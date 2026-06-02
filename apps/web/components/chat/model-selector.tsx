@@ -61,7 +61,7 @@ export default function ChatModelSelector({
 		<button
 			type="button"
 			className={cn(
-				"flex max-w-[min(100%,220px)] min-w-0 shrink cursor-pointer items-center gap-1.5 rounded-full border border-white/15 bg-black px-3 py-1.5 text-sm text-white transition-colors hover:border-white/30 hover:bg-white/5",
+				"flex max-w-[min(100%,220px)] min-w-0 shrink cursor-pointer items-center gap-1.5 rounded-full border border-white/15 bg-black px-3 py-1.5 text-[13px] text-white transition-colors hover:border-white/30 hover:bg-white/5",
 				dmSansClassName(),
 			)}
 			onClick={() => setIsOpen(!isOpen)}
@@ -132,8 +132,8 @@ export default function ChatModelSelector({
 									<div className="min-w-0 flex-1">
 										<div
 											className={cn(
-												"truncate text-[15px] font-medium",
-												isSelected ? "text-white" : "text-white",
+										"truncate text-sm font-medium",
+											isSelected ? "text-white" : "text-white",
 											)}
 										>
 											{modelData.name}{" "}

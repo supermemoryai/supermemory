@@ -70,7 +70,7 @@ export function ReasoningSelector({
 					"cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50",
 					variant === "icon"
 						? "rounded p-1.5 hover:bg-white/10"
-						: "flex size-9 items-center justify-center gap-1.5 rounded-full border border-white/15 bg-black px-0 py-1.5 text-[13px] text-white hover:border-white/30 hover:bg-white/5 sm:size-auto sm:justify-start sm:px-2.5",
+						: "flex size-9 items-center justify-center gap-1.5 rounded-full border border-white/15 bg-black px-0 py-1.5 text-xs text-white hover:border-white/30 hover:bg-white/5 sm:size-auto sm:justify-start sm:px-2.5",
 					dmSansClassName(),
 				)}
 				title={`Reasoning: ${selectedLabel}`}
@@ -122,8 +122,8 @@ export function ReasoningSelector({
 									<div className="min-w-0 flex-1">
 										<div
 											className={cn(
-												"text-[15px] font-medium",
-												isSelected ? "text-white" : "text-white",
+										"text-sm font-medium",
+											isSelected ? "text-white" : "text-white",
 											)}
 										>
 											{option.label}

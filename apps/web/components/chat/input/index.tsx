@@ -1,12 +1,24 @@
 "use client"
 
-import { ChevronUpIcon } from "lucide-react"
+import { BrainIcon, ChevronUpIcon, ZapIcon } from "lucide-react"
 import NovaOrb from "@/components/nova/nova-orb"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { type ReactNode, useEffect, useRef, useState } from "react"
-import { motion } from "motion/react"
+import { AnimatePresence, motion } from "motion/react"
 import { SendButton, StopButton } from "./actions"
+import {
+	type ModelId,
+	modelNames,
+	type ReasoningEffort,
+} from "@/lib/models"
+
+export interface QueuedChatMessagePreview {
+	id: string
+	text: string
+	model: ModelId
+	reasoningEffort: ReasoningEffort
+}
 
 interface ChatInputProps {
 	value: string
@@ -18,8 +30,7 @@ interface ChatInputProps {
 	sendDisabled?: boolean
 	sendDisabledTooltip?: string
 	activeStatus?: string
-	queuedMessagePreview?: string | null
-	queuedMessageCount?: number
+	queuedMessages?: QueuedChatMessagePreview[]
 	chainOfThoughtComponent?: React.ReactNode
 	onExpandedChange?: (expanded: boolean) => void
 	/** Model + space controls on one row with send; textarea full-width above */
@@ -38,8 +49,7 @@ export default function ChatInput({
 	sendDisabled = false,
 	sendDisabledTooltip,
 	activeStatus,
-	queuedMessagePreview,
-	queuedMessageCount = 0,
+	queuedMessages = [],
 	chainOfThoughtComponent,
 	onExpandedChange,
 	stackedToolbar,
@@ -49,7 +59,7 @@ export default function ChatInput({
 	const [isExpanded, setIsExpanded] = useState(false)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
 	const isSendDisabled = !value.trim() || sendDisabled
-	const hasQueuedPreview = !!queuedMessagePreview && queuedMessageCount > 0
+	const hasQueuedPreview = queuedMessages.length > 0
 	const resolvedSendDisabledTooltip =
 		sendDisabled && value.trim()
 			? sendDisabledTooltip
@@ -142,36 +152,61 @@ export default function ChatInput({
 						)}
 					</button>
 					{hasQueuedPreview && (
-						<motion.div
-							initial={{ height: 0, opacity: 0 }}
-							animate={{ height: "auto", opacity: 1 }}
-							transition={{ duration: 0.18, ease: "easeOut" }}
-							className="overflow-hidden px-12 pr-4 pb-3"
-						>
-							<div className="flex min-w-0 items-center gap-2 rounded-lg border border-white/[0.06] bg-black/[0.16] px-2.5 py-1.5">
-								<span className="shrink-0 text-[10px] font-medium tracking-[0.12em] text-white/32">
-									QUEUED
-								</span>
-								<span
-									className={cn(
-										"min-w-0 flex-1 truncate text-xs text-[#6A7484]",
-										dmSansClassName(),
-									)}
-								>
-									{queuedMessagePreview}
-								</span>
-								{queuedMessageCount > 1 && (
-									<span className="shrink-0 text-[10px] text-white/28">
-										+{queuedMessageCount - 1}
-									</span>
-								)}
-							</div>
-						</motion.div>
+						<div className="flex flex-col gap-1 px-3 pr-4 pb-3">
+							<AnimatePresence initial={false}>
+								{queuedMessages.map((queued) => {
+									const model = modelNames[queued.model]
+									const ReasoningIcon =
+										queued.reasoningEffort === "thinking"
+											? BrainIcon
+											: ZapIcon
+									const reasoningLabel =
+										queued.reasoningEffort === "thinking"
+											? "Thinking"
+											: "Instant"
+									return (
+										<motion.div
+											key={queued.id}
+											layout
+											initial={{ height: 0, opacity: 0 }}
+											animate={{ height: "auto", opacity: 1 }}
+											exit={{ height: 0, opacity: 0 }}
+											transition={{ duration: 0.2, ease: "easeOut" }}
+											className="overflow-hidden"
+										>
+											<div className="flex min-w-0 items-center gap-2 px-2.5 py-1">
+												<span
+													className={cn(
+														"min-w-0 flex-1 truncate text-xs text-white/35",
+														dmSansClassName(),
+													)}
+												>
+													{queued.text}
+												</span>
+												<span
+													className={cn(
+														"flex shrink-0 items-center gap-1.5 text-[10px] text-white/28",
+														dmSansClassName(),
+													)}
+												>
+													<span className="truncate">
+														{model.name} {model.version}
+													</span>
+													<span className="text-white/18">·</span>
+													<ReasoningIcon className="size-3 shrink-0 text-white/30" />
+													<span className="truncate">{reasoningLabel}</span>
+												</span>
+											</div>
+										</motion.div>
+									)
+								})}
+							</AnimatePresence>
+						</div>
 					)}
 				</>
 			) : null}
 			{stackedToolbar ? (
-				<div className="flex flex-col gap-2 rounded-xl bg-surface-card/60 backdrop-blur-md p-2 shadow-[0_16px_48px_rgba(0,0,0,0.34)] transition-all duration-200 focus-within:ring-1 focus-within:ring-fg-primary/10">
+				<div className="relative z-30 flex flex-col gap-2 rounded-xl bg-surface-card/60 backdrop-blur-md p-2 shadow-[0_16px_48px_rgba(0,0,0,0.34)] transition-all duration-200 focus-within:ring-1 focus-within:ring-fg-primary/10">
 					<textarea
 						ref={textareaRef}
 						value={value}

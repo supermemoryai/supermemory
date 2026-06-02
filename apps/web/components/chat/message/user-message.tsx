@@ -1,7 +1,7 @@
 "use client"
 
 import { memo, useEffect, useRef, useState } from "react"
-import { motion } from "motion/react"
+import { AnimatePresence, motion } from "motion/react"
 import { Copy, Check, PencilIcon, PencilOffIcon } from "lucide-react"
 import type { UIMessage } from "@ai-sdk/react"
 import { cn } from "@lib/utils"
@@ -73,18 +73,16 @@ export const UserMessage = memo(function UserMessage({
 
 	return (
 		<div className="flex flex-col items-end w-full">
-			<motion.div
-				layout
-				transition={{ layout: { duration: 0.2, ease: "easeOut" } }}
-				className={cn(
-					"origin-top-right overflow-hidden",
-					isEditing
-						? "w-full max-w-[88%] rounded-[14px] border border-[#293952]/70 bg-[#0D121A] p-2 shadow-[0_16px_36px_rgba(0,0,0,0.28)]"
-						: "max-w-[80%] rounded-[12px] bg-[#1B1F24] p-3 px-[14px]",
-				)}
-			>
+			<AnimatePresence mode="popLayout" initial={false}>
 				{isEditing ? (
-					<>
+					<motion.div
+						key="edit"
+						initial={{ opacity: 0, scaleX: 0.4, scaleY: 0.6 }}
+						animate={{ opacity: 1, scaleX: 1, scaleY: 1 }}
+						exit={{ opacity: 0, scaleX: 0.4, scaleY: 0.6 }}
+						transition={{ duration: 0.55, ease: [0.22, 0.68, 0.18, 1] }}
+						className="relative z-20 w-full max-w-[88%] origin-right rounded-xl bg-surface-card/60 p-2 shadow-[0_16px_48px_rgba(0,0,0,0.34)] backdrop-blur-md"
+					>
 						<textarea
 							ref={textareaRef}
 							value={draft}
@@ -103,12 +101,12 @@ export const UserMessage = memo(function UserMessage({
 									selectedModel={editModel}
 									onModelChange={handleEditModelChange}
 									minimal
-									dropdownDirection="down"
+									dropdownDirection="up"
 								/>
 								<ReasoningSelector
 									value={editReasoningEffort}
 									onChange={setEditReasoningEffort}
-									dropdownDirection="down"
+									dropdownDirection="up"
 								/>
 							</div>
 							<div className="flex shrink-0 items-center gap-1">
@@ -119,12 +117,25 @@ export const UserMessage = memo(function UserMessage({
 								/>
 							</div>
 						</div>
-					</>
+					</motion.div>
 				) : (
-					<p className="text-sm text-white">{text}</p>
+					<motion.div
+						key="view"
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						transition={{ duration: 0.18, ease: "easeOut" }}
+						className="max-w-[80%] origin-top-right rounded-[12px] bg-[#1B1F24] p-3 px-[14px]"
+					>
+						<p className="text-sm text-white">{text}</p>
+					</motion.div>
 				)}
-			</motion.div>
-			<div className="mt-1 flex max-w-full items-center justify-end gap-1">
+			</AnimatePresence>
+			<motion.div
+				layout
+				transition={{ layout: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } }}
+				className="mt-1 flex max-w-full items-center justify-end gap-1"
+			>
 				<button
 					type="button"
 					onClick={() => onCopy(message.id, text)}
@@ -149,7 +160,7 @@ export const UserMessage = memo(function UserMessage({
 						<PencilIcon className="size-3.5 text-white/50" />
 					)}
 				</button>
-			</div>
+			</motion.div>
 		</div>
 	)
 })

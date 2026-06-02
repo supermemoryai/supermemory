@@ -107,7 +107,7 @@ type QueuedChatMessage = {
 	reasoningEffort: ReasoningEffort
 }
 
-const CHAT_QUEUE_LIMIT = 5
+const CHAT_QUEUE_LIMIT = 3
 
 function normalizeModelId(value: unknown): ModelId | null {
 	if (typeof value !== "string") return null
@@ -1274,6 +1274,7 @@ export function ChatSidebar({
 								? cn(
 										"flex flex-col space-y-3 min-h-full justify-end",
 										isPageDesktop || isMobile ? "pt-2" : "pt-14",
+										isStackedInput && "px-4",
 									)
 								: ""
 						}
@@ -1423,8 +1424,7 @@ export function ChatSidebar({
 									? "Structuring response…"
 									: "Waiting for input…"
 					}
-					queuedMessagePreview={messageQueue[0]?.text ?? null}
-					queuedMessageCount={messageQueue.length}
+					queuedMessages={messageQueue}
 					showStatusStrip={showInputStatusStrip}
 					onExpandedChange={setIsInputExpanded}
 					chainOfThoughtComponent={
