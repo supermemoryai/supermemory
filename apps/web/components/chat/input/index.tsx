@@ -153,11 +153,9 @@ export default function ChatInput({
 								{queuedMessages.map((queued) => {
 									const model = modelNames[queued.model]
 									const ReasoningIcon =
-										queued.reasoningEffort === "thinking" ? BrainIcon : ZapIcon
-									const reasoningLabel =
 										queued.reasoningEffort === "thinking"
-											? "Thinking"
-											: "Instant"
+											? BrainIcon
+											: ZapIcon
 									return (
 										<motion.div
 											key={queued.id}
@@ -188,7 +186,6 @@ export default function ChatInput({
 													</span>
 													<span className="text-white/18">·</span>
 													<ReasoningIcon className="size-3 shrink-0 text-white/30" />
-													<span className="truncate">{reasoningLabel}</span>
 												</span>
 											</div>
 										</motion.div>
