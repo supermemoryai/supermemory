@@ -59,7 +59,7 @@ export function ReasoningSelector({
 			ref={containerRef}
 			className={cn(
 				"relative flex shrink-0 items-center",
-				isOpen ? "z-[100]" : "z-10",
+				isOpen ? "z-[1000]" : "z-10",
 			)}
 		>
 			<button
@@ -93,7 +93,7 @@ export function ReasoningSelector({
 			{isOpen && (
 				<div
 					className={cn(
-						"absolute left-0 z-[100] w-[min(14rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-white/15 bg-black p-1 shadow-[0_18px_48px_rgba(0,0,0,0.55)]",
+						"isolate absolute left-0 z-[1000] w-[min(14rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-white/15 bg-black p-1 shadow-[0_18px_48px_rgba(0,0,0,0.55)]",
 						dropdownDirection === "up" ? "bottom-full mb-2" : "top-full mt-2",
 					)}
 				>
