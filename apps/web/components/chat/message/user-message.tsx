@@ -1,9 +1,10 @@
 "use client"
 
 import { memo, useEffect, useRef, useState } from "react"
-import { AnimatePresence, motion } from "motion/react"
+import { motion } from "motion/react"
 import { Copy, Check, PencilIcon, PencilOffIcon } from "lucide-react"
 import type { UIMessage } from "@ai-sdk/react"
+import { cn } from "@lib/utils"
 import ChatModelSelector from "../model-selector"
 import { ReasoningSelector } from "../reasoning-selector"
 import { SendButton } from "../input/actions"
@@ -72,17 +73,18 @@ export const UserMessage = memo(function UserMessage({
 
 	return (
 		<div className="flex flex-col items-end w-full">
-			<AnimatePresence mode="wait" initial={false}>
+			<motion.div
+				layout
+				transition={{ layout: { duration: 0.2, ease: "easeOut" } }}
+				className={cn(
+					"origin-top-right overflow-hidden",
+					isEditing
+						? "w-full max-w-[88%] rounded-[14px] border border-[#293952]/70 bg-[#0D121A] p-2 shadow-[0_16px_36px_rgba(0,0,0,0.28)]"
+						: "max-w-[80%] rounded-[12px] bg-[#1B1F24] p-3 px-[14px]",
+				)}
+			>
 				{isEditing ? (
-					<motion.div
-						key="edit"
-						layout
-						initial={{ height: 44, opacity: 0, scale: 0.98 }}
-						animate={{ height: "auto", opacity: 1, scale: 1 }}
-						exit={{ opacity: 0, scale: 0.98 }}
-						transition={{ duration: 0.22, ease: "easeOut" }}
-						className="w-full max-w-[88%] origin-top-right overflow-hidden rounded-[14px] border border-[#293952]/70 bg-[#0D121A] p-2 shadow-[0_16px_36px_rgba(0,0,0,0.28)]"
-					>
+					<>
 						<textarea
 							ref={textareaRef}
 							value={draft}
@@ -117,21 +119,11 @@ export const UserMessage = memo(function UserMessage({
 								/>
 							</div>
 						</div>
-					</motion.div>
+					</>
 				) : (
-					<motion.div
-						key="message"
-						layout
-						initial={{ opacity: 0, scale: 0.98 }}
-						animate={{ opacity: 1, scale: 1 }}
-						exit={{ opacity: 0, scale: 0.98 }}
-						transition={{ duration: 0.18, ease: "easeOut" }}
-						className="bg-[#1B1F24] rounded-[12px] p-3 px-[14px] max-w-[80%]"
-					>
-						<p className="text-sm text-white">{text}</p>
-					</motion.div>
+					<p className="text-sm text-white">{text}</p>
 				)}
-			</AnimatePresence>
+			</motion.div>
 			<div className="mt-1 flex max-w-full items-center justify-end gap-1">
 				<button
 					type="button"
