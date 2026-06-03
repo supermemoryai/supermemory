@@ -84,13 +84,13 @@ export const apiSchema = createSchema({
 			redirectUrl: z.string().optional(),
 		}),
 		output: z.object({
-			authLink: z.string(),
-			expiresIn: z.string(),
+			authLink: z.string().optional(),
+			expiresIn: z.string().optional(),
 			id: z.string(),
 			redirectsTo: z.string().optional(),
 		}),
 		params: z.object({
-			provider: z.enum(["google-drive", "notion", "onedrive"]),
+			provider: z.enum(["google-drive", "notion", "onedrive", "zoom"]),
 		}),
 	},
 
@@ -158,6 +158,7 @@ export const apiSchema = createSchema({
 				"github",
 				"web-crawler",
 				"s3",
+				"zoom",
 			]),
 		}),
 	},
