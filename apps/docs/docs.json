@@ -112,6 +112,7 @@
 											"connectors/gmail",
 											"connectors/onedrive",
 											"connectors/s3",
+											"connectors/granola",
 											"connectors/github",
 											"connectors/web-crawler"
 										]
