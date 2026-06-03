@@ -4,7 +4,7 @@ import { dmSans125ClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { $fetch } from "@lib/api"
 import { hasActivePlan } from "@lib/queries"
-import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
+import { GoogleDrive, Granola, Notion, OneDrive } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
@@ -33,7 +33,10 @@ import { SyncStatusBadge } from "@/components/settings/sync-status-badge"
 import { SyncHistoryPanel } from "@/components/settings/sync-history-panel"
 import { useConnectionHealth } from "@/hooks/use-connection-health"
 import { useTriggerSync } from "@/hooks/use-trigger-sync"
-import { formatRelativeTime } from "@/components/settings/sync-utils"
+import {
+	formatRelativeTime,
+	getConnectionSubtitle,
+} from "@/components/settings/sync-utils"
 import type { ImportProvider } from "@/components/settings/sync-utils"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
@@ -67,6 +70,12 @@ const CONNECTORS = {
 		description: "Access your Microsoft Office documents",
 		icon: OneDrive,
 		documentLabel: "documents",
+	},
+	granola: {
+		title: "Granola",
+		description: "Sync AI meeting notes and transcripts",
+		icon: Granola,
+		documentLabel: "notes",
 	},
 } as const
 
@@ -231,7 +240,7 @@ function ConnectionRow({
 								"font-medium text-[16px] tracking-[-0.16px] text-[#737373]",
 							)}
 						>
-							{connection.email || "Unknown"}
+							{getConnectionSubtitle(connection)}
 						</span>
 					</div>
 					<div className="flex items-center gap-0.5">
