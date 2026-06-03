@@ -306,6 +306,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
 	const isProUser = hasActivePlan(autumn.data?.subscriptions, "api_pro")
+	const isMaxUser = hasActivePlan(autumn.data?.subscriptions, "api_max")
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
 	const [gdriveSyncScope, setGdriveSyncScope] =
@@ -599,23 +600,30 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 											</DropdownMenu>
 										</div>
 									) : (
-										<Button
-											onClick={() =>
-												handleConnect(provider as ConnectorProvider)
-											}
-											disabled={
-												!isProUser ||
-												isConnecting ||
-												addConnectionMutation.isPending
-											}
-											className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 text-[14px] font-medium px-3 py-1.5 h-8"
-										>
-											{isConnecting ? (
-												<Loader className="size-4 animate-spin" />
-											) : (
-												"Connect"
+										<>
+											{provider === "slack" && !isMaxUser && (
+												<span className="bg-[#0054AD] text-[#FAFAFA] text-[10px] font-bold px-1.5 py-[2px] rounded-[3px] uppercase tracking-wide">
+													Max
+												</span>
 											)}
-										</Button>
+											<Button
+												onClick={() =>
+													handleConnect(provider as ConnectorProvider)
+												}
+												disabled={
+													(provider === "slack" ? !isMaxUser : !isProUser) ||
+													isConnecting ||
+													addConnectionMutation.isPending
+												}
+												className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 text-[14px] font-medium px-3 py-1.5 h-8"
+											>
+												{isConnecting ? (
+													<Loader className="size-4 animate-spin" />
+												) : (
+													"Connect"
+												)}
+											</Button>
+										</>
 									)}
 								</div>
 							</div>
@@ -760,16 +768,22 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 											</div>
 										</DropdownMenuItem>
 										<DropdownMenuItem
+											disabled={!isMaxUser}
 											onClick={() => {
 												setConnectingProvider("slack")
 												addConnectionMutation.mutate({ provider: "slack" })
 											}}
-											className="flex items-start gap-2.5 px-3 py-2.5 rounded-md cursor-pointer text-white opacity-60 hover:opacity-100 hover:bg-[#293952]/40 focus:bg-[#293952]/40 focus:opacity-100"
+											className="flex items-start gap-2.5 px-3 py-2.5 rounded-md cursor-pointer text-white opacity-60 hover:opacity-100 hover:bg-[#293952]/40 focus:bg-[#293952]/40 focus:opacity-100 data-disabled:opacity-40 data-disabled:cursor-not-allowed data-disabled:hover:bg-transparent"
 										>
 											<Slack className="size-5 mt-0.5 shrink-0" />
 											<div className="flex flex-col gap-0.5 min-w-0">
-												<span className="text-[14px] font-medium text-[#FAFAFA] leading-tight">
+												<span className="flex items-center gap-1.5 text-[14px] font-medium text-[#FAFAFA] leading-tight">
 													Slack
+													{!isMaxUser && (
+														<span className="bg-[#0054AD] text-[#FAFAFA] text-[9px] font-bold px-1 py-px rounded-[3px] uppercase tracking-wide">
+															Max
+														</span>
+													)}
 												</span>
 												<span className="text-[11px] text-[#737373] leading-tight">
 													Messages & threads
