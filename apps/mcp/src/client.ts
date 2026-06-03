@@ -121,21 +121,44 @@ export class SupermemoryClient {
 		this.containerTag = containerTag || DEFAULT_PROJECT_ID
 	}
 
-	// Create memory using SDK
+	// Create memory via v4 API directly
+	// client.add() calls POST /v3/documents which uses the document upload
+	// pipeline that fails to process plain-text content (status: "failed").
+	// POST /v4/memories handles plain-text memories correctly.
 	async createMemory(
 		content: string,
 	): Promise<{ id: string; status: string; containerTag: string }> {
 		try {
-			const result = await this.client.add({
-				content,
+			const payload = {
 				containerTag: this.containerTag,
-				metadata: {
-					sm_source: "mcp",
+				memories: [{
+					content,
+					metadata: { sm_source: "mcp" },
+				}],
+			}
+			const response = await fetch(`${this.apiUrl}/v4/memories`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${this.bearerToken}`,
+					"Content-Type": "application/json",
 				},
+				body: JSON.stringify(payload),
 			})
+
+			if (!response.ok) {
+				const errorText = await response.text()
+				throw new Error(
+					`Failed to create memory: ${response.status} ${errorText}`,
+				)
+			}
+
+			const data = (await response.json()) as {
+				documentId: string
+				memories: Array<{ id: string }>
+			}
 			return {
-				id: result.id,
-				status: "queued",
+				id: data.memories?.[0]?.id || data.documentId,
+				status: "active",
 				containerTag: this.containerTag,
 			}
 		} catch (error) {
