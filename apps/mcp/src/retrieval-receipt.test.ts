@@ -32,7 +32,7 @@ describe("retrieval receipts", () => {
 			},
 			profile: { staticCount: 2, dynamicCount: 1 },
 			latencyMs: 42,
-			hashAlgorithm: "sha256-prefix-16",
+			hashAlgorithm: "hmac-sha256-ephemeral-salt-prefix-16",
 		})
 
 		expect(receipt.queryHash).toHaveLength(16)
@@ -47,6 +47,35 @@ describe("retrieval receipts", () => {
 		expect(JSON.stringify(receipt)).not.toContain("secret-client-project")
 		expect(JSON.stringify(receipt)).not.toContain("mem_sensitive_1")
 		expect(JSON.stringify(receipt)).not.toContain("Patient-specific")
+	})
+
+	it("keeps hashes equal within a receipt but unlinkable across receipts", async () => {
+		const args = {
+			query: "repeated query",
+			containerTag: "same-project",
+			results: [
+				{ id: "mem_dup", similarity: 0.5, text: "identical content" },
+				{ id: "mem_dup", similarity: 0.5, text: "identical content" },
+			],
+			latencyMs: 10,
+		}
+
+		const first = await createRetrievalReceipt(args)
+		const second = await createRetrievalReceipt(args)
+
+		// Within one receipt the same value hashes consistently, so duplicates
+		// remain detectable for debugging.
+		expect(first.result.idsHash[0]).toBe(first.result.idsHash[1])
+		expect(first.result.contentHashes[0]).toBe(first.result.contentHashes[1])
+
+		// Across receipts the same private value produces different tokens, so it
+		// cannot be correlated or dictionary-guessed without the ephemeral salt.
+		expect(second.queryHash).not.toBe(first.queryHash)
+		expect(second.projectIdHash).not.toBe(first.projectIdHash)
+		expect(second.result.idsHash[0]).not.toBe(first.result.idsHash[0])
+		expect(second.result.contentHashes[0]).not.toBe(
+			first.result.contentHashes[0],
+		)
 	})
 
 	it("keeps score buckets bounded at edges", () => {

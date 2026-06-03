@@ -27,7 +27,7 @@ export type RetrievalReceipt = {
 		dynamicCount: number
 	}
 	latencyMs: number
-	hashAlgorithm: "sha256-prefix-16"
+	hashAlgorithm: "hmac-sha256-ephemeral-salt-prefix-16"
 }
 
 type CreateRetrievalReceiptArgs = {
@@ -44,16 +44,51 @@ type CreateRetrievalReceiptArgs = {
 }
 
 const HASH_PREFIX_LENGTH = 16
+const SALT_BYTES = 32
 
-async function hashValue(value: string): Promise<string> {
-	const digest = await crypto.subtle.digest(
-		"SHA-256",
-		new TextEncoder().encode(value),
+function bytesToHex(bytes: Uint8Array): string {
+	return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+		"",
 	)
-	return [...new Uint8Array(digest)]
-		.map((byte) => byte.toString(16).padStart(2, "0"))
-		.join("")
-		.slice(0, HASH_PREFIX_LENGTH)
+}
+
+/**
+ * Builds a one-time keyed hasher for a single receipt.
+ *
+ * Plain deterministic SHA-256 is not privacy-safe for the values we hash here:
+ * queries, container tags, memory IDs, and (especially short) memory content
+ * are low-entropy, so a raw digest can be dictionary-guessed offline, and the
+ * same value would always produce the same digest and stay linkable across
+ * every receipt forever.
+ *
+ * Instead we key an HMAC with a cryptographically random salt that is generated
+ * per receipt and never emitted. Without the salt an attacker cannot precompute
+ * or brute-force the inputs, and because the salt is fresh for every receipt the
+ * same private value produces a different token each time, so receipts cannot be
+ * correlated against each other. Equality is preserved only within a single
+ * receipt (e.g. duplicate content in one result set), which is what debugging
+ * needs.
+ */
+async function createSaltedHasher(): Promise<
+	(value: string) => Promise<string>
+> {
+	const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES))
+	const key = await crypto.subtle.importKey(
+		"raw",
+		salt,
+		{ name: "HMAC", hash: "SHA-256" },
+		false,
+		["sign"],
+	)
+
+	return async (value: string): Promise<string> => {
+		const signature = await crypto.subtle.sign(
+			"HMAC",
+			key,
+			new TextEncoder().encode(value),
+		)
+		return bytesToHex(new Uint8Array(signature)).slice(0, HASH_PREFIX_LENGTH)
+	}
 }
 
 export function toScoreBucket(score: number): string {
@@ -74,11 +109,13 @@ export async function createRetrievalReceipt({
 	latencyMs,
 	profile,
 }: CreateRetrievalReceiptArgs): Promise<RetrievalReceipt> {
+	const hash = await createSaltedHasher()
+
 	const [queryHash, projectIdHash, idsHash, contentHashes] = await Promise.all([
-		hashValue(query),
-		containerTag ? hashValue(containerTag) : Promise.resolve(undefined),
-		Promise.all(results.map((result) => hashValue(result.id))),
-		Promise.all(results.map((result) => hashValue(result.text))),
+		hash(query),
+		containerTag ? hash(containerTag) : Promise.resolve(undefined),
+		Promise.all(results.map((result) => hash(result.id))),
+		Promise.all(results.map((result) => hash(result.text))),
 	])
 
 	return {
@@ -98,6 +135,6 @@ export async function createRetrievalReceipt({
 		},
 		...(profile ? { profile } : {}),
 		latencyMs,
-		hashAlgorithm: "sha256-prefix-16",
+		hashAlgorithm: "hmac-sha256-ephemeral-salt-prefix-16",
 	}
 }
