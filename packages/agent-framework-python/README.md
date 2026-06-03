@@ -25,7 +25,7 @@ For async HTTP support (recommended):
 ```bash
 uv add supermemory-agent-framework[async]
 # or
-pip install supermemory-agent-framework[async]
+pip install 'supermemory-agent-framework[async]'
 ```
 
 ## Quick Start
