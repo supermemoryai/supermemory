@@ -147,9 +147,12 @@ export class SupermemoryClient {
 
 			if (!response.ok) {
 				const errorText = await response.text()
-				throw new Error(
+				const err = new Error(
 					`Failed to create memory: ${response.status} ${errorText}`,
 				)
+				// Attach status so handleError can dispatch per status code
+				;(err as Record<string, unknown>).status = response.status
+				throw err
 			}
 
 			const data = (await response.json()) as {
