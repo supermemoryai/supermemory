@@ -166,10 +166,13 @@ def import_to_supermemory(mem0_data: Dict[str, Any], api_key: str) -> Dict[str, 
             # Generate a unique ID if Mem0 didn't provide one
             memory_id = memory.get("id")
             if not memory_id or memory_id == "None":
-                # Use content hash for uniqueness
+                # SECURITY FIX: Replaced MD5 with SHA256 for cryptographic hash
+                # CWE-327: Use of a Broken or Risky Cryptographic Algorithm
+                # MD5 is cryptographically broken and should not be used.
+                # Using SHA256 from hashlib for collision-resistant hashing.
                 import hashlib
 
-                memory_id = hashlib.md5(content.encode()).hexdigest()[:8]
+                memory_id = hashlib.sha256(content.encode()).hexdigest()[:16]
 
             # Prepare metadata
             metadata = {

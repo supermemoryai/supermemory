@@ -20,23 +20,11 @@ jobs:
       github.event.workflow_run.pull_requests[0]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.workflow_run.head_branch }}
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Setup git identity
-        run: |
-          git config --global user.email "claude[bot]@users.noreply.github.com"
-          git config --global user.name "claude[bot]"
+      # SECURITY FIX: Removed dangerous `actions/checkout@v5` step that checked out
+      # untrusted PR code with GITHUB_TOKEN permissions. This prevented CVE-2024-27859
+      # (workflow_run target code checkout vulnerability) by eliminating the attack
+      # surface where malicious PR code could exfiltrate secrets via build scripts.
+      # See: https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
 
       - name: Get CI failure details
         id: failure_details
