@@ -15,6 +15,7 @@ export interface PluginInfo {
 	icon: string
 	docsUrl?: string
 	githubUrl?: string
+	usesOAuth?: boolean
 	/** Steps shown after a key is minted. The literal `sm_...` is replaced
 	 *  with the freshly generated key when rendered. */
 	installSteps?: InstallStep[]
@@ -79,19 +80,19 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		tagline: "Long-term memory for your OpenCode sessions",
 		icon: "/images/plugins/opencode.svg",
 		docsUrl: "https://docs.supermemory.ai/integrations/opencode",
+		githubUrl: "https://github.com/supermemoryai/opencode-supermemory",
+		usesOAuth: true,
 		installSteps: [
-			{
-				title: "Save your API key",
-				description:
-					"Add this to your shell profile. This key is shown only once — save it now.",
-				code: 'export SUPERMEMORY_API_KEY="sm_..."',
-				copyLabel: "API key",
-				secret: true,
-			},
 			{
 				title: "Install the plugin",
 				description: "Use --no-tui for non-interactive environments.",
 				code: "bunx opencode-supermemory@latest install",
+			},
+			{
+				title: "Authenticate OpenCode",
+				description:
+					"Run the browser auth flow from the machine where OpenCode runs:",
+				code: "bunx opencode-supermemory@latest login",
 			},
 			{
 				title: "Verify your config",

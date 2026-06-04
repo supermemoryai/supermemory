@@ -620,9 +620,11 @@ export function PluginsDetail() {
 	const pluginSteps = dialogPlugin?.installSteps ?? []
 	// If a step already embeds the key (an `export …="sm_…"` line), don't also
 	// show the bare key in its own step — that's the repetition to avoid.
-	// Otherwise (wizard-style installs) lead with a copy-the-key step.
+	// Otherwise (wizard-style installs) lead with a copy-the-key step, unless
+	// the plugin performs browser OAuth itself.
 	const stepsEmbedKey = pluginSteps.some((s) => s.code?.includes("sm_..."))
-	const setupSteps: InstallStep[] = stepsEmbedKey
+	const skipGeneratedKeyStep = stepsEmbedKey || !!dialogPlugin?.usesOAuth
+	const setupSteps: InstallStep[] = skipGeneratedKeyStep
 		? pluginSteps
 		: [
 				{

@@ -1512,7 +1512,8 @@ export function IntegrationsView() {
 		: []
 	const pluginSteps = dialogPlugin?.installSteps ?? []
 	const stepsEmbedKey = pluginSteps.some((s) => s.code?.includes("sm_..."))
-	const setupSteps: InstallStep[] = stepsEmbedKey
+	const skipGeneratedKeyStep = stepsEmbedKey || !!dialogPlugin?.usesOAuth
+	const setupSteps: InstallStep[] = skipGeneratedKeyStep
 		? pluginSteps
 		: [
 				{
