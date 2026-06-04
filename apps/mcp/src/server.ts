@@ -89,6 +89,45 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			...(hasRootContainerTag ? {} : containerTagField),
 		})
 
+		const listMemoriesSchema = z.object({
+			limit: z
+				.number()
+				.int("Limit must be an integer")
+				.min(1, "Limit must be at least 1")
+				.max(200, "Limit cannot exceed 200")
+				.optional()
+				.default(50)
+				.describe(
+					"Maximum number of memories to return (default: 50, max: 200)",
+				),
+			cursor: z
+				.string()
+				.optional()
+				.describe("Cursor from a previous listMemories response"),
+			sort: z
+				.enum([
+					"createdAt",
+					"updatedAt",
+					"-createdAt",
+					"-updatedAt",
+					"createdAt:asc",
+					"createdAt:desc",
+					"updatedAt:asc",
+					"updatedAt:desc",
+				])
+				.optional()
+				.default("-createdAt")
+				.describe("Sort order for listed memories"),
+			filter: z
+				.string()
+				.max(1000, "Filter exceeds maximum length of 1,000 characters")
+				.optional()
+				.describe(
+					"Case-insensitive substring filter applied to memory content",
+				),
+			...(hasRootContainerTag ? {} : containerTagField),
+		})
+
 		const contextPromptSchema = z.object({
 			includeRecent: z
 				.boolean()
@@ -101,6 +140,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 		type ContextPromptArgs = z.infer<typeof contextPromptSchema>
 		type MemoryArgs = z.infer<typeof memorySchema>
 		type RecallArgs = z.infer<typeof recallSchema>
+		type ListMemoriesArgs = z.infer<typeof listMemoriesSchema>
 
 		// Register memory tool
 		this.server.registerTool(
@@ -124,6 +164,18 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			},
 			// @ts-expect-error - zod type inference issue with MCP SDK
 			(args: RecallArgs) => this.handleRecall(args),
+		)
+
+		// Register list memories tool
+		this.server.registerTool(
+			"listMemories",
+			{
+				description:
+					"List the user's stored memories with pagination. Use this to audit, clean, or diff memories before save/forget operations.",
+				inputSchema: listMemoriesSchema,
+			},
+			// @ts-expect-error - zod type inference issue with MCP SDK
+			(args: ListMemoriesArgs) => this.handleListMemories(args),
 		)
 
 		// Register profile resource
@@ -735,6 +787,64 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			const message =
 				error instanceof Error ? error.message : "An unexpected error occurred"
 			console.error("Recall operation failed:", error)
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: `Error: ${message}`,
+					},
+				],
+				isError: true,
+			}
+		}
+	}
+
+	private async handleListMemories(args: {
+		limit?: number
+		cursor?: string
+		sort?:
+			| "createdAt"
+			| "updatedAt"
+			| "-createdAt"
+			| "-updatedAt"
+			| "createdAt:asc"
+			| "createdAt:desc"
+			| "updatedAt:asc"
+			| "updatedAt:desc"
+		filter?: string
+		containerTag?: string
+	}) {
+		const {
+			containerTag,
+			cursor,
+			filter,
+			limit = 50,
+			sort = "-createdAt",
+		} = args
+
+		try {
+			const client = this.getClient(containerTag)
+			const result = await client.listMemories({
+				containerTag: containerTag || this.props?.containerTag,
+				cursor,
+				filter,
+				limit,
+				sort,
+			})
+
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify(result, null, 2),
+					},
+				],
+				structuredContent: result,
+			}
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "An unexpected error occurred"
+			console.error("List memories operation failed:", error)
 			return {
 				content: [
 					{

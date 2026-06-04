@@ -2,6 +2,8 @@ import Supermemory from "supermemory"
 
 const MAX_CHARS = 200000 // ~50k tokens (character-based limit)
 const DEFAULT_PROJECT_ID = "sm_project_default"
+const DEFAULT_LIST_LIMIT = 50
+const MAX_LIST_LIMIT = 200
 
 export type Memory =
 	| {
@@ -23,6 +25,48 @@ export interface SearchResult {
 	results: Memory[]
 	total: number
 	timing: number
+}
+
+type ListMemoryBase = {
+	id: string
+	title?: string
+	content?: string
+	summary?: string
+	createdAt?: string
+	updatedAt?: string
+	metadata?: unknown
+	status?: string
+	containerTags?: string[]
+	customId?: string | null
+	type?: string
+	connectionId?: string | null
+}
+
+export type ListedMemory =
+	| (ListMemoryBase & { memory: string })
+	| (ListMemoryBase & { chunk: string })
+
+export type ListMemoriesSort =
+	| "createdAt"
+	| "updatedAt"
+	| "-createdAt"
+	| "-updatedAt"
+	| "createdAt:asc"
+	| "createdAt:desc"
+	| "updatedAt:asc"
+	| "updatedAt:desc"
+
+export interface ListMemoriesOptions {
+	containerTag?: string
+	limit?: number
+	cursor?: string
+	sort?: ListMemoriesSort
+	filter?: string
+}
+
+export interface ListMemoriesResult {
+	memories: ListedMemory[]
+	nextCursor: string | null
 }
 
 export interface Profile {
@@ -82,7 +126,7 @@ export interface DocumentsApiResponse {
 	}
 }
 
-export function getMemoryText(m: Memory): string {
+export function getMemoryText(m: Memory | ListedMemory): string {
 	return "memory" in m ? m.memory : m.chunk
 }
 
@@ -99,6 +143,121 @@ interface SDKResult {
 	similarity: number
 	title?: string
 	context?: string
+}
+
+interface SDKListMemory {
+	id: string
+	memory?: string
+	chunk?: string
+	content?: string | null
+	summary?: string | null
+	title?: string | null
+	createdAt?: string
+	updatedAt?: string
+	metadata?: unknown
+	status?: string
+	containerTags?: string[]
+	customId?: string | null
+	type?: string
+	connectionId?: string | null
+}
+
+interface SDKListResponse {
+	memories?: SDKListMemory[]
+	results?: SDKListMemory[]
+	pagination?: {
+		currentPage: number
+		totalPages: number
+	}
+	nextCursor?: string | null
+}
+
+function clampListLimit(limit = DEFAULT_LIST_LIMIT): number {
+	return Math.min(Math.max(Math.trunc(limit), 1), MAX_LIST_LIMIT)
+}
+
+function parseListCursor(cursor?: string): number {
+	if (!cursor) return 1
+
+	const page = Number(cursor)
+	if (!Number.isInteger(page) || page < 1) {
+		throw new Error(
+			"Invalid cursor. Use the nextCursor value from listMemories.",
+		)
+	}
+	return page
+}
+
+function parseListSort(sort: ListMemoriesSort = "-createdAt"): {
+	sort: "createdAt" | "updatedAt"
+	order: "asc" | "desc"
+} {
+	if (sort.startsWith("-")) {
+		return {
+			sort: sort.slice(1) as "createdAt" | "updatedAt",
+			order: "desc",
+		}
+	}
+
+	if (sort.includes(":")) {
+		const [field, order] = sort.split(":") as [
+			"createdAt" | "updatedAt",
+			"asc" | "desc",
+		]
+		return { sort: field, order }
+	}
+
+	return {
+		sort: sort as "createdAt" | "updatedAt",
+		order: "desc",
+	}
+}
+
+function normalizeListedMemory(memory: SDKListMemory): ListedMemory {
+	const content =
+		typeof memory.content === "string"
+			? limitByChars(memory.content)
+			: undefined
+	const summary =
+		typeof memory.summary === "string"
+			? limitByChars(memory.summary)
+			: undefined
+	const text = limitByChars(
+		memory.content ||
+			memory.memory ||
+			memory.chunk ||
+			memory.summary ||
+			memory.title ||
+			"",
+	)
+	const base: ListMemoryBase = {
+		id: memory.id,
+		title: memory.title || undefined,
+		content,
+		summary,
+		createdAt: memory.createdAt,
+		updatedAt: memory.updatedAt,
+		metadata: memory.metadata,
+		status: memory.status,
+		containerTags: memory.containerTags,
+		customId: memory.customId,
+		type: memory.type,
+		connectionId: memory.connectionId,
+	}
+
+	if (memory.chunk && !memory.memory) {
+		return { ...base, chunk: text }
+	}
+	return { ...base, memory: text }
+}
+
+function matchesFilter(memory: ListedMemory, filter?: string): boolean {
+	const normalizedFilter = filter?.trim().toLowerCase()
+	if (!normalizedFilter) return true
+
+	return [getMemoryText(memory), memory.content, memory.summary, memory.title]
+		.filter((value): value is string => typeof value === "string")
+		.some((value) => value.toLowerCase().includes(normalizedFilter))
 }
 
 export class SupermemoryClient {
@@ -249,6 +408,42 @@ export class SupermemoryClient {
 				results,
 				total: result.total,
 				timing: result.timing,
+			}
+		} catch (error) {
+			this.handleError(error)
+		}
+	}
+
+	// List memories/documents with pagination using SDK
+	async listMemories(
+		options: ListMemoriesOptions = {},
+	): Promise<ListMemoriesResult> {
+		try {
+			const limit = clampListLimit(options.limit)
+			const page = parseListCursor(options.cursor)
+			const { sort, order } = parseListSort(options.sort)
+			const result = (await this.client.documents.list({
+				containerTags: [options.containerTag || this.containerTag],
+				includeContent: true,
+				limit,
+				page,
+				sort,
+				order,
+			})) as SDKListResponse
+			const rawMemories = result.memories || result.results || []
+			const memories = rawMemories
+				.map(normalizeListedMemory)
+				.filter((memory) => matchesFilter(memory, options.filter))
+			const nextCursor =
+				result.nextCursor ??
+				(result.pagination &&
+				result.pagination.currentPage < result.pagination.totalPages
+					? String(result.pagination.currentPage + 1)
+					: null)
+
+			return {
+				memories,
+				nextCursor,
 			}
 		} catch (error) {
 			this.handleError(error)
