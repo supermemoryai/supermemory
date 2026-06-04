@@ -1044,9 +1044,9 @@ export function IntegrationsView() {
 	const [connectedPluginId, setConnectedPluginId] = useState<string | null>(
 		null,
 	)
-	const [finishSetupPluginId, setFinishSetupPluginId] = useState<
-		string | null
-	>(null)
+	const [finishSetupPluginId, setFinishSetupPluginId] = useState<string | null>(
+		null,
+	)
 
 	const { data: pluginsData } = useQuery({
 		queryFn: async () => {
