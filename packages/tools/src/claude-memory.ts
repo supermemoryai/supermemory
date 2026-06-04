@@ -283,7 +283,13 @@ export class ClaudeMemoryTool {
 			if (viewRange) {
 				const lines = content.split("\n")
 				const [startLine, endLine] = viewRange
-				const selectedLines = lines.slice(startLine - 1, endLine)
+				// `endLine === -1` is the documented sentinel for "read to the end
+				// of the file" (same convention as Anthropic's text-editor tool).
+				// Passing it straight to Array.slice would be interpreted as a
+				// from-the-end index and silently drop the final line, so map any
+				// negative end to the array length.
+				const sliceEnd = endLine < 0 ? lines.length : endLine
+				const selectedLines = lines.slice(startLine - 1, sliceEnd)
 
 				// Format with line numbers
 				const numberedLines = selectedLines.map(
