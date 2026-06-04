@@ -395,7 +395,7 @@ function AuthConnectContent() {
 						</button>
 
 						<a
-							href="https://app.supermemory.ai/?view=plugins"
+							href="https://app.supermemory.ai/settings#billing"
 							className={dmSans125ClassName(
 								"text-[12px] text-[#737373] hover:text-[#FAFAFA] transition-colors",
 							)}
