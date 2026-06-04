@@ -27,7 +27,6 @@ import type { UseMutationResult } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useIsMobile } from "@hooks/use-mobile"
 import { parsePluginDocument } from "@/lib/plugin-document"
-import { PluginDetails } from "./plugin-details"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -270,13 +269,8 @@ export function DocumentModal({
 		],
 	)
 
-	const hasPluginInsights =
-		pluginDocument &&
-		pluginDocument.kind !== "claude-code-doc" &&
-		pluginDocument.kind !== "openclaw-session"
 	const hasDocumentInsights = Boolean(
-		hasPluginInsights ||
-			_document?.summary ||
+		_document?.summary ||
 			pluginDocument?.summary ||
 			(_document?.memoryEntries && _document.memoryEntries.length > 0),
 	)
@@ -303,7 +297,6 @@ export function DocumentModal({
 				dmSansClassName(),
 			)}
 		>
-			{hasPluginInsights && <PluginDetails parsed={pluginDocument} />}
 			{_document && (_document.summary || pluginDocument?.summary) && (
 				<DocumentSummary
 					memoryEntries={_document.memoryEntries}

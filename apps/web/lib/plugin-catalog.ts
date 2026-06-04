@@ -14,6 +14,7 @@ export interface PluginInfo {
 	tagline: string
 	icon: string
 	docsUrl?: string
+	githubUrl?: string
 	/** Steps shown after a key is minted. The literal `sm_...` is replaced
 	 *  with the freshly generated key when rendered. */
 	installSteps?: InstallStep[]
@@ -55,6 +56,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		tagline: "Persistent memory for the Codex CLI — free on every plan",
 		icon: "/images/plugins/codex.png",
 		docsUrl: "https://docs.supermemory.ai/integrations/codex",
+		githubUrl: "https://github.com/supermemoryai/codex-supermemory",
 		installSteps: [
 			{
 				title: "Save your API key",

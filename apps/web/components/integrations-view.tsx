@@ -23,7 +23,6 @@ import {
 	ArrowRight,
 	BookOpen,
 	Check,
-	ChevronDown,
 	Loader,
 	Search,
 	X,
@@ -46,11 +45,11 @@ import {
 import { AnimatePresence, motion } from "motion/react"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogTitle } from "@ui/components/dialog"
-import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
 import {
 	PLUGIN_CATALOG,
 	FREE_TIER_PLUGIN_IDS,
 	isFreeTierPlugin,
+	normalizePluginClientId,
 	type InstallStep,
 } from "@/lib/plugin-catalog"
 import { INSET, InstallSteps, PillButton } from "./integrations/install-steps"
@@ -64,6 +63,16 @@ interface ConnectedKey {
 	keyId: string
 	keyStart: string | null
 	pluginId: string
+}
+
+type ListedApiKey = {
+	id: string
+	name?: string | null
+	createdAt?: string
+	enabled?: boolean
+	lastRequest?: string | null
+	metadata: string | Record<string, unknown> | null
+	start?: string | null
 }
 
 type ItemKind = "plugin" | "connector" | "client" | "mcp-client" | "import"
@@ -487,56 +496,20 @@ function DisconnectButton({ onConfirm }: { onConfirm: () => void }) {
 	)
 }
 
-function ConnectedPill({
-	keys,
-	onRevoke,
-}: {
-	keys: ConnectedKey[]
-	onRevoke: (keyId: string) => void
-}) {
+function ConnectedButton({ onClick }: { onClick: () => void }) {
 	return (
-		<Popover>
-			<PopoverTrigger asChild>
-				<button
-					type="button"
-					onClick={(e) => e.stopPropagation()}
-					className={cn(
-						dmSans125ClassName(),
-						"flex h-8 min-w-[104px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-3 text-[12px] font-medium text-[#00AC3F] sm:h-9 sm:min-w-[116px] sm:gap-2 sm:px-4 sm:text-[13px]",
-						"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-opacity hover:opacity-80",
-					)}
-				>
-					<span className="size-[7px] rounded-full bg-[#00AC3F]" />
-					Connected
-					<ChevronDown className="size-3 text-[#737373]" />
-				</button>
-			</PopoverTrigger>
-			<PopoverContent
-				align="end"
-				onClick={(e) => e.stopPropagation()}
-				className={cn(
-					dmSans125ClassName(),
-					"w-[260px] rounded-xl border border-white/10 bg-[#1B1F24] p-2 text-[#FAFAFA]",
-				)}
-			>
-				<p className="px-2 pb-1.5 pt-1 text-[11px] font-medium uppercase tracking-wide text-[#737373]">
-					{keys.length > 1 ? `${keys.length} connections` : "Connection"}
-				</p>
-				<div className="flex flex-col">
-					{keys.map((k) => (
-						<div
-							key={k.keyId}
-							className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5"
-						>
-							<span className="min-w-0 flex-1 truncate font-mono text-[12px] text-[#A1A1AA]">
-								{k.keyStart ? `${k.keyStart}…` : "API key"}
-							</span>
-							<DisconnectButton onConfirm={() => onRevoke(k.keyId)} />
-						</div>
-					))}
-				</div>
-			</PopoverContent>
-		</Popover>
+		<button
+			type="button"
+			onClick={onClick}
+			className={cn(
+				dmSans125ClassName(),
+				"flex h-8 min-w-[104px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-3 text-[12px] font-medium text-[#00AC3F] sm:h-9 sm:min-w-[116px] sm:gap-2 sm:px-4 sm:text-[13px]",
+				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-opacity hover:opacity-80",
+			)}
+		>
+			<span className="size-[7px] rounded-full bg-[#00AC3F]" />
+			Connected
+		</button>
 	)
 }
 
@@ -1002,6 +975,9 @@ export function IntegrationsView() {
 		key: string
 		pluginId: string | null
 	}>({ open: false, key: "", pluginId: null })
+	const [connectedPluginId, setConnectedPluginId] = useState<string | null>(
+		null,
+	)
 
 	const { data: pluginsData } = useQuery({
 		queryFn: async () => {
@@ -1030,27 +1006,34 @@ export function IntegrationsView() {
 		enabled: hasProProduct,
 	})
 
-	type ApiKey = {
-		id: string
-		metadata: Record<string, unknown> | null
-		start: string | null
-	}
-	const { data: apiKeys = [], refetch: refetchKeys } = useQuery({
-		queryKey: ["api-keys", org?.id],
-		queryFn: async () => {
-			if (!org?.id) return []
-			const data = (await authClient.apiKey.list({
-				fetchOptions: { query: { metadata: { organizationId: org.id } } },
-			})) as unknown as ApiKey[]
-			return data.filter((key) => key.metadata?.organizationId === org.id)
+	const { data: apiKeys = [], refetch: refetchKeys } = useQuery<ListedApiKey[]>(
+		{
+			queryKey: ["api-keys", org?.id],
+			queryFn: async () => {
+				if (!org?.id) return []
+				const API_URL =
+					process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+				const res = await fetch(`${API_URL}/v3/auth/keys`, {
+					credentials: "include",
+				})
+				if (!res.ok) return []
+				const data = (await res.json()) as { keys?: ListedApiKey[] }
+				return data.keys ?? []
+			},
+			enabled: !!org?.id,
+			staleTime: 30 * 1000,
 		},
-		enabled: !!org?.id,
-		staleTime: 30 * 1000,
-	})
+	)
+
+	const keyPrefix = useCallback((key: ListedApiKey): string | null => {
+		return key.start ?? (key.name?.startsWith("sm_") ? key.name : null)
+	}, [])
 
 	const connectedPlugins = useMemo<ConnectedKey[]>(() => {
 		const out: ConnectedKey[] = []
 		for (const key of apiKeys) {
+			if (key.enabled === false) continue
+			if (!key.lastRequest) continue
 			if (!key.metadata) continue
 			try {
 				const metadata =
@@ -1063,14 +1046,14 @@ export function IntegrationsView() {
 				if (metadata.sm_type === "plugin_auth" && metadata.sm_client) {
 					out.push({
 						keyId: key.id,
-						keyStart: key.start ?? null,
-						pluginId: metadata.sm_client,
+						keyStart: keyPrefix(key),
+						pluginId: normalizePluginClientId(metadata.sm_client),
 					})
 				}
 			} catch {}
 		}
 		return out
-	}, [apiKeys])
+	}, [apiKeys, keyPrefix])
 
 	const connectionsByProvider = useMemo(() => {
 		const out: Record<ConnectorProvider, Connection[]> = {
@@ -1368,7 +1351,14 @@ export function IntegrationsView() {
 				const needsProUpgrade =
 					!isAutumnLoading && !hasProProduct && !isFreeTierPlugin(item.pluginId)
 				if (keys.length > 0) {
-					return <ConnectedPill keys={keys} onRevoke={handleRevokePluginKey} />
+					return (
+						<ConnectedButton
+							onClick={() => {
+								trackCard(item)
+								setConnectedPluginId(item.pluginId)
+							}}
+						/>
+					)
 				}
 				if (needsProUpgrade) {
 					return (
@@ -1500,12 +1490,7 @@ export function IntegrationsView() {
 
 	const renderLeftIndicator = (item: Item): ReactNode => {
 		if (item.kind === "plugin") {
-			const isConnected = connectedPlugins.some(
-				(k) => k.pluginId === item.pluginId,
-			)
-			return isConnected ? (
-				<span className="size-1.5 shrink-0 rounded-full bg-[#00AC3F]" />
-			) : null
+			return null
 		}
 		if (item.kind === "connector") {
 			const count = connectionsByProvider[item.provider].length
@@ -1519,6 +1504,12 @@ export function IntegrationsView() {
 	const dialogPlugin = newKey.pluginId
 		? PLUGIN_CATALOG[newKey.pluginId]
 		: undefined
+	const connectedDialogPlugin = connectedPluginId
+		? PLUGIN_CATALOG[connectedPluginId]
+		: undefined
+	const connectedDialogKeys = connectedPluginId
+		? connectedPlugins.filter((key) => key.pluginId === connectedPluginId)
+		: []
 	const pluginSteps = dialogPlugin?.installSteps ?? []
 	const stepsEmbedKey = pluginSteps.some((s) => s.code?.includes("sm_..."))
 	const setupSteps: InstallStep[] = stepsEmbedKey
@@ -1695,6 +1686,123 @@ export function IntegrationsView() {
 						>
 							<Check className="size-3.5 text-[#4BA0FA]" /> Done
 						</button>
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog
+				open={!!connectedPluginId}
+				onOpenChange={(open) => {
+					if (!open) setConnectedPluginId(null)
+				}}
+			>
+				<DialogContent
+					showCloseButton={false}
+					style={{
+						boxShadow:
+							"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset",
+					}}
+					className={cn(
+						dmSans125ClassName(),
+						"flex max-h-[88dvh] flex-col gap-3 overflow-hidden border border-white/[0.12] bg-[#1B1F24] p-0 px-3 pt-3 pb-4 rounded-2xl md:px-4 sm:max-w-[520px] sm:rounded-[22px]",
+					)}
+				>
+					<DialogTitle className="sr-only">
+						{connectedDialogPlugin?.name ?? "Plugin"} connection
+					</DialogTitle>
+					<div className="flex shrink-0 items-center gap-3">
+						{connectedDialogPlugin && (
+							<IconBox>
+								<Image
+									src={connectedDialogPlugin.icon}
+									alt={connectedDialogPlugin.name}
+									width={24}
+									height={24}
+								/>
+							</IconBox>
+						)}
+						<div className="min-w-0 flex-1">
+							<p className="truncate text-[16px] font-semibold leading-tight text-[#FAFAFA]">
+								{connectedDialogPlugin?.name ?? "Plugin"} connected
+							</p>
+							<p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-[#00AC3F]">
+								<span className="size-[7px] rounded-full bg-[#00AC3F]" />
+								Active
+							</p>
+						</div>
+						<div className="flex shrink-0 items-center gap-2">
+							{connectedDialogPlugin?.docsUrl && (
+								<a
+									href={connectedDialogPlugin.docsUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									className={cn(
+										dmSans125ClassName(),
+										"flex h-7 items-center gap-1.5 rounded-full bg-[#0D121A] px-3 text-[12px] text-[#A1A1AA] transition-colors hover:text-white",
+										INSET,
+									)}
+								>
+									<BookOpen className="size-3.5" /> Docs
+								</a>
+							)}
+							<DialogPrimitive.Close
+								type="button"
+								aria-label="Close"
+								className={cn(
+									"flex size-7 items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80 focus:outline-none",
+									INSET,
+								)}
+							>
+								<X className="size-4 text-[#737373]" />
+							</DialogPrimitive.Close>
+						</div>
+					</div>
+					<div
+						className={cn(
+							"flex min-w-0 flex-col gap-2 rounded-[14px] bg-[#14161A] p-4",
+							INSET,
+						)}
+					>
+						<p className="text-[11px] font-medium uppercase tracking-wide text-[#737373]">
+							{connectedDialogKeys.length > 1
+								? `${connectedDialogKeys.length} connections`
+								: "Connection"}
+						</p>
+						{connectedDialogKeys.length > 0 ? (
+							<div className="flex flex-col gap-1.5">
+								{connectedDialogKeys.map((key) => (
+									<div
+										key={key.keyId}
+										className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-[#0D121A]/70 px-3 py-2"
+									>
+										<span className="min-w-0 flex-1 truncate font-mono text-[12px] text-[#A1A1AA]">
+											{key.keyStart ? `${key.keyStart}...` : "API key"}
+										</span>
+										<DisconnectButton
+											onConfirm={() => void handleRevokePluginKey(key.keyId)}
+										/>
+									</div>
+								))}
+							</div>
+						) : (
+							<p className="text-[12px] text-[#A1A1AA]">
+								No active connection was found.
+							</p>
+						)}
+					</div>
+					<div className="flex shrink-0 items-center justify-end">
+						<DialogPrimitive.Close asChild>
+							<button
+								type="button"
+								className={cn(
+									dmSans125ClassName(),
+									"flex h-9 items-center gap-1.5 rounded-full bg-[#0D121A] px-5 text-[13px] font-medium text-[#FAFAFA] transition-opacity hover:opacity-80",
+									INSET,
+								)}
+							>
+								<Check className="size-3.5 text-[#4BA0FA]" /> Done
+							</button>
+						</DialogPrimitive.Close>
 					</div>
 				</DialogContent>
 			</Dialog>
