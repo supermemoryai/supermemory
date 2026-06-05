@@ -5,8 +5,13 @@ import {
 	registerAppResource,
 	RESOURCE_MIME_TYPE,
 } from "@modelcontextprotocol/ext-apps/server"
-import { SupermemoryClient, getMemoryText } from "./client"
+import { SupermemoryClient, getMemoryText, type Memory } from "./client"
 import { initPosthog, posthog } from "./posthog"
+import {
+	buildMemorySearchReceipt,
+	formatReceiptLogLine,
+	type MemorySearchReturnedReceipt,
+} from "./receipts"
 import { z } from "zod"
 import mcpAppHtml from "../dist/mcp-app.html"
 
@@ -14,6 +19,8 @@ type Env = {
 	MCP_SERVER: DurableObjectNamespace
 	API_URL?: string
 	POSTHOG_API_KEY?: string
+	RECEIPT_MODE?: string
+	RECEIPT_HASH_SALT?: string
 }
 
 type Props = {
@@ -86,6 +93,13 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				.max(1000, "Query exceeds maximum length of 1,000 characters")
 				.describe("The search query to find relevant memories"),
 			includeProfile: z.boolean().optional().default(true),
+			includeReceipt: z
+				.boolean()
+				.optional()
+				.default(false)
+				.describe(
+					"Include a privacy-safe memory.search.returned receipt (hashed fields only)",
+				),
 			...(hasRootContainerTag ? {} : containerTagField),
 		})
 
@@ -619,18 +633,28 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	private async handleRecall(args: {
 		query: string
 		includeProfile?: boolean
+		includeReceipt?: boolean
 		containerTag?: string
 	}) {
-		const { query, includeProfile = true, containerTag } = args
+		const {
+			query,
+			includeProfile = true,
+			includeReceipt = false,
+			containerTag,
+		} = args
 
 		try {
 			const client = this.getClient(containerTag)
 			const clientInfo = await this.getClientInfo()
 			const startTime = Date.now()
+			const effectiveContainerTag = containerTag || this.props?.containerTag
+			let recallResults: Memory[] = []
+			let receipt: MemorySearchReturnedReceipt | null = null
 
 			if (includeProfile) {
 				const profileResult = await client.getProfile(query)
 				const parts: string[] = []
+				recallResults = profileResult.searchResults?.results || []
 
 				if (
 					profileResult.profile.static.length > 0 ||
@@ -666,12 +690,22 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				}
 
 				const endTime = Date.now()
+				receipt = await this.buildRecallReceipt({
+					query,
+					results: recallResults,
+					containerTag: effectiveContainerTag,
+					clientInfo,
+					latencyMs: endTime - startTime,
+				})
+				if (receipt && this.shouldLogReceipt()) {
+					console.error(formatReceiptLogLine(receipt))
+				}
 
 				// Track search event
 				posthog
 					.memorySearch({
 						query_length: query.length,
-						results_count: profileResult.searchResults?.results.length || 0,
+						results_count: recallResults.length,
 						search_duration_ms: endTime - startTime,
 						container_tags_count: 1,
 						source: "mcp",
@@ -679,9 +713,14 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 						mcp_client_name: clientInfo?.name,
 						mcp_client_version: clientInfo?.version,
 						sessionId: this.getMcpSessionId(),
-						containerTag: containerTag || this.props?.containerTag,
+						containerTag: effectiveContainerTag,
 					})
 					.catch((error) => console.error("PostHog tracking error:", error))
+
+				if (includeReceipt && receipt) {
+					parts.push("\n## Memory Receipt (Privacy-safe)")
+					parts.push(JSON.stringify(receipt, null, 2))
+				}
 
 				return {
 					content: [
@@ -697,13 +736,24 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			}
 
 			const searchResult = await client.search(query, 10)
+			recallResults = searchResult.results
 			const endTime = Date.now()
+			receipt = await this.buildRecallReceipt({
+				query,
+				results: recallResults,
+				containerTag: effectiveContainerTag,
+				clientInfo,
+				latencyMs: endTime - startTime,
+			})
+			if (receipt && this.shouldLogReceipt()) {
+				console.error(formatReceiptLogLine(receipt))
+			}
 
 			// Track search event
 			posthog
 				.memorySearch({
 					query_length: query.length,
-					results_count: searchResult.results.length,
+					results_count: recallResults.length,
 					search_duration_ms: endTime - startTime,
 					container_tags_count: 1,
 					source: "mcp",
@@ -711,23 +761,38 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 					mcp_client_name: clientInfo?.name,
 					mcp_client_version: clientInfo?.version,
 					sessionId: this.getMcpSessionId(),
-					containerTag: containerTag || this.props?.containerTag,
+					containerTag: effectiveContainerTag,
 				})
 				.catch((error) => console.error("PostHog tracking error:", error))
 
-			if (searchResult.results.length === 0) {
+			if (recallResults.length === 0) {
+				if (includeReceipt && receipt) {
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: `No memories found.\n\n## Memory Receipt (Privacy-safe)\n${JSON.stringify(receipt, null, 2)}`,
+							},
+						],
+					}
+				}
 				return {
 					content: [{ type: "text" as const, text: "No memories found." }],
 				}
 			}
 
 			const parts = ["## Relevant Memories"]
-			for (const [i, memory] of searchResult.results.entries()) {
+			for (const [i, memory] of recallResults.entries()) {
 				parts.push(
 					`\n### Memory ${i + 1} (${Math.round(memory.similarity * 100)}% match)`,
 				)
 				if (memory.title) parts.push(`**${memory.title}**`)
 				parts.push(getMemoryText(memory))
+			}
+
+			if (includeReceipt && receipt) {
+				parts.push("\n## Memory Receipt (Privacy-safe)")
+				parts.push(JSON.stringify(receipt, null, 2))
 			}
 
 			return { content: [{ type: "text" as const, text: parts.join("\n") }] }
@@ -745,6 +810,29 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				isError: true,
 			}
 		}
+	}
+
+	private shouldLogReceipt(): boolean {
+		return (this.env.RECEIPT_MODE || "off").toLowerCase() === "log"
+	}
+
+	private async buildRecallReceipt(args: {
+		query: string
+		results: Memory[]
+		containerTag?: string
+		clientInfo?: { name: string; version?: string }
+		latencyMs: number
+	}): Promise<MemorySearchReturnedReceipt> {
+		return buildMemorySearchReceipt({
+			query: args.query,
+			results: args.results,
+			projectId: args.containerTag,
+			clientName: args.clientInfo?.name,
+			clientVersion: args.clientInfo?.version,
+			snapshotId: this.getMcpSessionId(),
+			latencyMs: args.latencyMs,
+			hashSalt: this.env.RECEIPT_HASH_SALT,
+		})
 	}
 
 	private async getClientInfo(): Promise<

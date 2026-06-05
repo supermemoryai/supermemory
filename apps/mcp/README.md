@@ -100,6 +100,7 @@ Search memories and get user profile.
 {
   "query": "What are the user's programming preferences?",
   "includeProfile": true,
+  "includeReceipt": false,
   "containerTag": "optional-project-tag"
 }
 ```
@@ -108,7 +109,34 @@ Search memories and get user profile.
 |-----------|------|----------|-------------|
 | `query` | string | Yes | Search query to find relevant memories |
 | `includeProfile` | boolean | No | Include user profile summary. Default: `true` |
+| `includeReceipt` | boolean | No | Include a privacy-safe `memory.search.returned` receipt in tool output. Default: `false` |
 | `containerTag` | string | No | Project tag to scope the search |
+
+### Privacy-Safe Receipts (Optional)
+
+The MCP server can emit anonymized recall receipts for debugging without exposing raw memory text or raw queries.
+
+- Event emitted: `memory.search.returned`
+- Privacy controls:
+  - `query.hash` instead of raw query
+  - `project.id_hash` instead of raw project id
+  - `result.content_hash[]` instead of memory bodies
+  - `result.ids_hash` and `result.score_bucket[]` for retrieval diagnostics
+
+Enable server-side receipt logging via env vars:
+
+```env
+RECEIPT_MODE=log
+RECEIPT_HASH_SALT=optional-secret-salt
+```
+
+When `RECEIPT_MODE=log`, receipts are emitted to stderr as:
+
+```text
+[SUPERMEMORY_RECEIPT] { ...receipt json... }
+```
+
+You can also request one receipt inline per recall call using `includeReceipt: true`.
 
 ### `whoAmI`
 
@@ -159,6 +187,8 @@ API_URL=https://api.supermemory.ai
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `API_URL` | Main Supermemory API URL for OAuth validation | `https://api.supermemory.ai` |
+| `RECEIPT_MODE` | Receipt mode: `off` or `log` | `off` |
+| `RECEIPT_HASH_SALT` | Optional salt used for receipt hashing | _empty_ |
 
 ### Run Locally
 

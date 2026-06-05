@@ -10,6 +10,8 @@ type Bindings = {
 	API_URL?: string
 	MCP_URL?: string
 	POSTHOG_API_KEY?: string
+	RECEIPT_MODE?: string
+	RECEIPT_HASH_SALT?: string
 }
 
 type Props = {
