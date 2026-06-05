@@ -122,6 +122,22 @@ describe("ViewportState", () => {
 		expect(vp.zoom).toBeCloseTo(0.1)
 	})
 
+	it("can lower the minimum zoom to fit a large loaded graph", () => {
+		const vp = new ViewportState(0, 0, 0.5)
+		const nodes = [
+			makeNode("a", 0, 0),
+			makeNode("b", 10_000, 0),
+			makeNode("c", 0, 10_000),
+			makeNode("d", 10_000, 10_000),
+		]
+
+		vp.setMinZoomForNodes(nodes, 800, 600)
+		vp.zoomImmediate(0.01, 0, 0)
+
+		expect(vp.zoom).toBeLessThan(0.1)
+		expect(vp.zoom).toBeGreaterThan(0.005)
+	})
+
 	it("zoomImmediate clamps to MAX_ZOOM (5.0)", () => {
 		const vp = new ViewportState(0, 0, 2)
 		// Try to zoom way up: 2 * 100 = 200, should clamp to 5

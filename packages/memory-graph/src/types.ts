@@ -81,6 +81,8 @@ export interface GraphNode {
 	data: DocumentNodeData | MemoryNodeData
 	size: number
 	borderColor: string
+	clusterKey?: string | null
+	clusterColor?: string | null
 	isHovered: boolean
 	isDragging: boolean
 	// D3-force simulation properties
