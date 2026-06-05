@@ -40,6 +40,7 @@ import {
 	type Profession,
 } from "@/hooks/use-personalization"
 import { normalizePluginClientId } from "@/lib/plugin-catalog"
+import { detectPluginSpace } from "@/lib/plugin-space"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -434,13 +435,19 @@ function getDocumentMetadataRecords(
 }
 
 function hasClaudeCodeContainer(document: DocumentWithMemories): boolean {
+	return getDocumentContainerTags(document).some((tag) =>
+		tag.startsWith("claudecode_"),
+	)
+}
+
+function getDocumentContainerTags(document: DocumentWithMemories): string[] {
 	const containerTags =
 		(document as { containerTags?: string[] }).containerTags ?? []
-	if (containerTags.some((tag) => tag.startsWith("claudecode_"))) return true
+	const memorySpaceTags = (document.memoryEntries ?? [])
+		.map((entry) => entry.spaceContainerTag)
+		.filter((tag): tag is string => !!tag)
 
-	return (document.memoryEntries ?? []).some((entry) =>
-		entry.spaceContainerTag?.startsWith("claudecode_"),
-	)
+	return [...containerTags, ...memorySpaceTags]
 }
 
 function getPluginClientFromDocument(
@@ -461,6 +468,11 @@ function getPluginClientFromDocument(
 	}
 
 	if (hasClaudeCodeContainer(document)) return "claude_code"
+
+	for (const tag of getDocumentContainerTags(document)) {
+		const plugin = detectPluginSpace(tag)
+		if (plugin) return normalizePluginClientId(plugin.pluginId)
+	}
 
 	const content = getDocumentText(document)
 	const title = document.title ?? ""
@@ -689,17 +701,38 @@ function parseToolUsage(
 	}
 
 	// Attach latest document info to plugin items where available from MCP documents
-	for (const [, item] of toolMap) {
-		if (item.type === "Plugin" && !item.lastDocumentTitle) {
-			const pluginId = item.id.replace(/^plugin_/, "")
-			const docInfo = latestDocPerPlugin.get(pluginId)
-			if (docInfo) {
-				item.lastDocumentTitle = docInfo.title
-				item.lastDocumentId = docInfo.id
-				item.lastDocumentPreview = docInfo.preview
-				item.lastDocument = docInfo.document
+	for (const [pluginId, docInfo] of latestDocPerPlugin) {
+		const itemKey = `plugin_${pluginId}`
+		const existingItem = toolMap.get(itemKey)
+		if (existingItem?.type === "Plugin") {
+			existingItem.lastDocumentTitle = docInfo.title
+			existingItem.lastDocumentId = docInfo.id
+			existingItem.lastDocumentPreview = docInfo.preview
+			existingItem.lastDocument = docInfo.document
+			existingItem.hasBeenUsed = true
+			if (
+				!existingItem.lastUsedAt ||
+				docInfo.at.getTime() > existingItem.lastUsedAt.getTime()
+			) {
+				existingItem.lastUsedAt = docInfo.at
 			}
+			continue
 		}
+
+		const catalog = PLUGIN_DISPLAY_CATALOG[pluginId]
+		toolMap.set(itemKey, {
+			id: itemKey,
+			name: catalog?.name ?? pluginId,
+			type: "Plugin",
+			icon: catalog?.icon ?? null,
+			lastUsedAt: docInfo.at,
+			hasBeenUsed: true,
+			connectedAt: null,
+			lastDocumentTitle: docInfo.title,
+			lastDocumentId: docInfo.id,
+			lastDocumentPreview: docInfo.preview,
+			lastDocument: docInfo.document,
+		})
 	}
 
 	// Sort by lastUsedAt (most recent first), then by hasBeenUsed

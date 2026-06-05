@@ -1,7 +1,7 @@
 import { normalizePluginClientId } from "@/lib/plugin-catalog"
 
 export type PluginSpaceInfo = {
-	pluginId: "claude-code" | "openclaw" | "opencode" | "codex" | "amp"
+	pluginId: "claude-code" | "openclaw" | "opencode" | "codex" | "amp" | "hermes"
 	label: string
 	iconSrc: string | null
 	projectId?: string
@@ -45,6 +45,12 @@ const PLUGINS: PluginDef[] = [
 		iconSrc: null,
 		prefixes: ["amp"],
 	},
+	{
+		id: "hermes",
+		label: "Hermes",
+		iconSrc: "/images/plugins/hermes.svg",
+		prefixes: ["hermes"],
+	},
 ]
 
 function parsePluginRest(rest: string): { projectId?: string } {
@@ -65,6 +71,7 @@ const PLUGIN_ICON_BY_LABEL: Record<string, string> = {
 	OpenClaw: "/images/plugins/openclaw.svg",
 	OpenCode: "/images/plugins/opencode.svg",
 	Codex: "/images/plugins/codex.png",
+	Hermes: "/images/plugins/hermes.svg",
 }
 
 export function pluginIconByLabel(
@@ -112,8 +119,8 @@ export function detectPluginSource(
 		metadata && typeof metadata.sm_source === "string"
 			? metadata.sm_source
 			: null
-	const source = documentSource ?? sourceFromMeta
-	if (source !== "claude-code-plugin") return null
+	const source = (documentSource ?? sourceFromMeta)?.trim().toLowerCase()
+	if (source !== "claude-code-plugin" && source !== "claude-code") return null
 
 	const md = metadata ?? {}
 	const project =
