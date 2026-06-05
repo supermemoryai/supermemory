@@ -456,6 +456,34 @@ function parseRoleBlockTranscript(
 	}
 }
 
+function parsePluginSpaceNote(
+	document: DocumentWithMemories,
+	content: string,
+	plugin: PluginIdentity | null,
+): ParsedPluginDocument | null {
+	if (!plugin) return null
+
+	const summary = typeof document.summary === "string" ? document.summary : ""
+	const memoryText = firstMemoryEntryText(document)
+	const preview = takePreview(memoryText || summary || content, 220)
+
+	return {
+		kind: plugin.pluginId === "codex" ? "codex-save" : "plugin-save",
+		pluginLabel: plugin.label,
+		pluginIconSrc: plugin.iconSrc ?? undefined,
+		formatLabel: "Note",
+		title:
+			(typeof document.title === "string" && document.title.trim()) ||
+			`${plugin.label} memory`,
+		preview,
+		summary: takePreview(summary || memoryText || content, 220),
+		artifacts: [],
+		messages: [],
+		sections: [],
+		rawContent: content,
+	}
+}
+
 function withIcon(
 	parsed: ParsedPluginDocument | null,
 ): ParsedPluginDocument | null {
@@ -693,6 +721,9 @@ export function parsePluginDocument(
 		const roleBlockSession = parseRoleBlockTranscript(content, plugin)
 		if (roleBlockSession) return withIcon(roleBlockSession)
 	}
+
+	const pluginSpaceNote = parsePluginSpaceNote(document, content, plugin)
+	if (pluginSpaceNote) return withIcon(pluginSpaceNote)
 
 	return withIcon(parseClaudeCodeByMetadata(document, metadata))
 }

@@ -40,6 +40,7 @@ import {
 	type Profession,
 } from "@/hooks/use-personalization"
 import { normalizePluginClientId } from "@/lib/plugin-catalog"
+import { detectPluginSpace } from "@/lib/plugin-space"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -443,6 +444,23 @@ function hasClaudeCodeContainer(document: DocumentWithMemories): boolean {
 	)
 }
 
+function getPluginClientFromSpace(
+	document: DocumentWithMemories,
+): string | null {
+	const containerTags =
+		(document as { containerTags?: string[] }).containerTags ?? []
+	const memorySpaceTags = (document.memoryEntries ?? [])
+		.map((entry) => entry.spaceContainerTag)
+		.filter((tag): tag is string => !!tag)
+
+	for (const tag of [...containerTags, ...memorySpaceTags]) {
+		const plugin = detectPluginSpace(tag)
+		if (plugin) return normalizePluginClientId(plugin.pluginId)
+	}
+
+	return null
+}
+
 function getPluginClientFromDocument(
 	document: DocumentWithMemories,
 ): string | null {
@@ -461,6 +479,9 @@ function getPluginClientFromDocument(
 	}
 
 	if (hasClaudeCodeContainer(document)) return "claude_code"
+
+	const pluginClientFromSpace = getPluginClientFromSpace(document)
+	if (pluginClientFromSpace) return pluginClientFromSpace
 
 	const content = getDocumentText(document)
 	const title = document.title ?? ""
@@ -689,6 +710,26 @@ function parseToolUsage(
 	}
 
 	// Attach latest document info to plugin items where available from MCP documents
+	for (const [pluginId, docInfo] of latestDocPerPlugin) {
+		const itemKey = `plugin_${pluginId}`
+		if (toolMap.has(itemKey)) continue
+
+		const catalog = PLUGIN_DISPLAY_CATALOG[pluginId]
+		toolMap.set(itemKey, {
+			id: itemKey,
+			name: catalog?.name ?? docInfo.title,
+			type: "Plugin",
+			icon: catalog?.icon ?? null,
+			lastUsedAt: docInfo.at,
+			hasBeenUsed: true,
+			connectedAt: null,
+			lastDocumentTitle: null,
+			lastDocumentId: null,
+			lastDocumentPreview: null,
+			lastDocument: null,
+		})
+	}
+
 	for (const [, item] of toolMap) {
 		if (item.type === "Plugin" && !item.lastDocumentTitle) {
 			const pluginId = item.id.replace(/^plugin_/, "")
