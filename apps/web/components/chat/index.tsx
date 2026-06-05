@@ -23,6 +23,7 @@ import {
 	ChevronDownIcon,
 	HistoryIcon,
 	Plus,
+	Search,
 	SquarePenIcon,
 	Trash2,
 	XIcon,
@@ -177,8 +178,21 @@ export function ChatSidebar({
 	const [isScrolledToBottom, setIsScrolledToBottom] = useState(true)
 	const [heightOffset, setHeightOffset] = useState(95)
 	const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+	const [historyScope, setHistoryScope] = useState<"current" | "all">("current")
+	const [historySearch, setHistorySearch] = useState("")
 	const [threads, setThreads] = useState<
-		Array<{ id: string; title: string; createdAt: string; updatedAt: string }>
+		Array<{
+			id: string
+			title: string
+			createdAt: string
+			updatedAt: string
+			space?: {
+				containerTag: string
+				name: string
+				emoji?: string
+				isDefault: boolean
+			}
+		}>
 	>([])
 	const [isLoadingThreads, setIsLoadingThreads] = useState(false)
 	const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
@@ -626,8 +640,10 @@ export function ChatSidebar({
 	const fetchThreads = useCallback(async () => {
 		setIsLoadingThreads(true)
 		try {
+			const params = new URLSearchParams({ projectId: chatProject })
+			if (historyScope === "all") params.set("scope", "all")
 			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads?projectId=${chatProject}`,
+				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads?${params.toString()}`,
 				{ credentials: "include" },
 			)
 			if (response.ok) {
@@ -639,7 +655,7 @@ export function ChatSidebar({
 		} finally {
 			setIsLoadingThreads(false)
 		}
-	}, [chatProject])
+	}, [chatProject, historyScope])
 
 	useEffect(() => {
 		if (!isHistoryOpen) return
@@ -1057,6 +1073,36 @@ export function ChatSidebar({
 		!isStackedInput || isResponding || messages.length > 0
 	const isQueueFull = messageQueue.length >= CHAT_QUEUE_LIMIT
 
+	const threadGroups = useMemo(() => {
+		const q = historySearch.trim().toLowerCase()
+		const filtered = q
+			? threads.filter((t) => (t.title || "").toLowerCase().includes(q))
+			: threads
+		const now = new Date()
+		const startOfToday = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+		).getTime()
+		const day = 86_400_000
+		const buckets: Array<{ label: string; items: typeof threads }> = [
+			{ label: "Today", items: [] },
+			{ label: "Yesterday", items: [] },
+			{ label: "Previous 7 days", items: [] },
+			{ label: "Previous 30 days", items: [] },
+			{ label: "Older", items: [] },
+		]
+		for (const t of filtered) {
+			const ts = new Date(t.updatedAt).getTime()
+			if (ts >= startOfToday) buckets[0].items.push(t)
+			else if (ts >= startOfToday - day) buckets[1].items.push(t)
+			else if (ts >= startOfToday - 7 * day) buckets[2].items.push(t)
+			else if (ts >= startOfToday - 30 * day) buckets[3].items.push(t)
+			else buckets[4].items.push(t)
+		}
+		return buckets.filter((b) => b.items.length > 0)
+	}, [threads, historySearch])
+
 	const chatHistorySheet = (
 		<Sheet
 			open={isHistoryOpen}
@@ -1064,25 +1110,62 @@ export function ChatSidebar({
 				setIsHistoryOpen(open)
 				if (!open) {
 					setConfirmingDeleteId(null)
+					setHistorySearch("")
 				}
 			}}
 		>
 			<SheetContent
 				side="right"
 				className={cn(
-					"flex h-full max-h-dvh w-[min(100%,92vw)] flex-col gap-0 overflow-hidden border-[#17181AB2] bg-[#0A0E14] p-0 pb-safe text-white sm:max-w-md",
+					"flex h-full max-h-dvh w-[380px] max-w-[88vw] flex-col gap-0 overflow-hidden border-[#17181AB2] bg-[#0A0E14] p-0 pb-safe text-white",
 					"[&>button]:text-[#FAFAFA]",
 					dmSansClassName(),
 				)}
 			>
-				<SheetHeader className="shrink-0 space-y-1 border-[#17181AB2] border-b px-6 pt-6 pb-4">
-					<SheetTitle>Chat History</SheetTitle>
-					<SheetDescription className="text-[#737373]">
-						Space: {chatSpaceLabel}
+				<SheetHeader className="shrink-0 space-y-3 border-[#17181AB2] border-b px-5 pt-5 pb-4">
+					<div className="flex min-w-0 items-center gap-2 pr-8">
+						<SheetTitle className="shrink-0">Chat History</SheetTitle>
+						<span className="truncate rounded-full border border-[#161F2C] bg-[#0F141B] px-2 py-0.5 text-[#9CA3AF] text-[11px]">
+							{historyScope === "all" ? "All spaces" : chatSpaceLabel}
+						</span>
+					</div>
+					<SheetDescription className="sr-only">
+						{historyScope === "all"
+							? "All conversations across your spaces"
+							: `Conversations in ${chatSpaceLabel}`}
 					</SheetDescription>
+					<div className="flex items-center gap-2">
+						<div className="relative flex-1">
+							<Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-[#737373]" />
+							<input
+								type="text"
+								value={historySearch}
+								onChange={(e) => setHistorySearch(e.target.value)}
+								placeholder="Search conversations…"
+								className="h-9 w-full rounded-lg border border-[#161F2C] bg-[#0F141B] pr-3 pl-9 text-sm text-white placeholder:text-[#737373] focus:border-[#267BF1]/50 focus:outline-none"
+							/>
+						</div>
+						<div className="flex shrink-0 items-center rounded-full border border-[#161F2C] bg-[#000000] p-0.5">
+							{(["current", "all"] as const).map((scope) => (
+								<button
+									key={scope}
+									type="button"
+									onClick={() => setHistoryScope(scope)}
+									className={cn(
+										"rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+										historyScope === scope
+											? "bg-[#267BF1]/15 text-[#FAFAFA]"
+											: "text-[#737373] hover:text-[#FAFAFA]",
+									)}
+								>
+									{scope === "current" ? "Current" : "All"}
+								</button>
+							))}
+						</div>
+					</div>
 				</SheetHeader>
-				<ScrollArea className="min-h-0 flex-1 px-6">
-					<div className="py-4">
+				<ScrollArea className="min-h-0 flex-1 px-3">
+					<div className="py-3">
 						{isLoadingThreads ? (
 							<div className="flex items-center justify-center py-8">
 								<SuperLoader label="Loading…" />
@@ -1091,79 +1174,103 @@ export function ChatSidebar({
 							<div className="py-8 text-center text-sm text-[#737373]">
 								No conversations yet
 							</div>
+						) : threadGroups.length === 0 ? (
+							<div className="py-8 text-center text-sm text-[#737373]">
+								No conversations match “{historySearch.trim()}”
+							</div>
 						) : (
-							<div className="flex flex-col gap-1">
-								{threads.map((thread) => {
-									const isActive = thread.id === currentChatId
-									return (
-										<button
-											key={thread.id}
-											type="button"
-											onClick={() => loadThread(thread.id)}
-											className={cn(
-												"flex w-full items-center justify-between rounded-md px-3 py-2 text-left transition-colors",
-												isActive ? "bg-[#267BF1]/10" : "hover:bg-[#17181A]",
-											)}
-										>
-											<div className="min-w-0 flex-1">
-												<div className="truncate text-sm font-medium">
-													{thread.title || "Untitled Chat"}
-												</div>
-												<div className="text-xs text-[#737373]">
-													{formatRelativeTime(thread.updatedAt)}
-												</div>
-											</div>
-											{confirmingDeleteId === thread.id ? (
-												<div className="ml-2 flex items-center gap-1">
-													<Button
-														type="button"
-														size="icon"
-														onClick={(e) => {
-															e.stopPropagation()
-															deleteThread(thread.id)
-														}}
-														className="size-7 bg-red-500 text-white hover:bg-red-600"
-													>
-														<Check className="size-3" />
-													</Button>
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														onClick={(e) => {
-															e.stopPropagation()
-															setConfirmingDeleteId(null)
-														}}
-														className="size-7"
-													>
-														<XIcon className="size-3 text-[#737373]" />
-													</Button>
-												</div>
-											) : (
-												<Button
+							<div className="flex flex-col gap-4">
+								{threadGroups.map((group) => (
+									<div key={group.label} className="flex flex-col gap-0.5">
+										<div className="px-2 pb-1 font-medium text-[#5A6473] text-[11px] uppercase tracking-wide">
+											{group.label}
+										</div>
+										{group.items.map((thread) => {
+											const isActive = thread.id === currentChatId
+											const isConfirming = confirmingDeleteId === thread.id
+											return (
+												<button
+													key={thread.id}
 													type="button"
-													variant="ghost"
-													size="icon"
-													onClick={(e) => {
-														e.stopPropagation()
-														setConfirmingDeleteId(thread.id)
-													}}
-													className="ml-2 size-7"
+													onClick={() => loadThread(thread.id)}
+													className={cn(
+														"group flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition-colors",
+														isActive ? "bg-[#267BF1]/10" : "hover:bg-[#17181A]",
+													)}
 												>
-													<Trash2 className="size-3 text-[#737373]" />
-												</Button>
-											)}
-										</button>
-									)
-								})}
+													<div className="min-w-0 flex-1">
+														<div className="truncate text-[#E5E7EB] text-sm">
+															{thread.title || "Untitled Chat"}
+														</div>
+														<div className="flex items-center gap-1.5 text-[#737373] text-xs">
+															<span>
+																{formatRelativeTime(thread.updatedAt)}
+															</span>
+															{historyScope === "all" && thread.space ? (
+																<>
+																	<span className="text-[#3A3A3A]">·</span>
+																	<span className="truncate">
+																		{thread.space.emoji
+																			? `${thread.space.emoji} `
+																			: ""}
+																		{thread.space.name}
+																	</span>
+																</>
+															) : null}
+														</div>
+													</div>
+													{isConfirming ? (
+														<div className="flex shrink-0 items-center gap-1">
+															<Button
+																type="button"
+																size="icon"
+																onClick={(e) => {
+																	e.stopPropagation()
+																	deleteThread(thread.id)
+																}}
+																className="size-7 bg-red-500 text-white hover:bg-red-600"
+															>
+																<Check className="size-3" />
+															</Button>
+															<Button
+																type="button"
+																variant="ghost"
+																size="icon"
+																onClick={(e) => {
+																	e.stopPropagation()
+																	setConfirmingDeleteId(null)
+																}}
+																className="size-7"
+															>
+																<XIcon className="size-3 text-[#737373]" />
+															</Button>
+														</div>
+													) : (
+														<Button
+															type="button"
+															variant="ghost"
+															size="icon"
+															onClick={(e) => {
+																e.stopPropagation()
+																setConfirmingDeleteId(thread.id)
+															}}
+															className="size-7 shrink-0 opacity-0 transition-opacity focus:opacity-100 group-hover:opacity-100 max-sm:opacity-100"
+														>
+															<Trash2 className="size-3 text-[#737373]" />
+														</Button>
+													)}
+												</button>
+											)
+										})}
+									</div>
+								))}
 							</div>
 						)}
 					</div>
 				</ScrollArea>
-				<div className="shrink-0 border-[#17181AB2] border-t p-4">
+				<div className="shrink-0 border-[#17181AB2] border-t p-3">
 					<Button
-						variant="outline"
-						className="w-full border-[#161F2C] border-dashed bg-transparent hover:bg-[#17181A]"
+						className="w-full bg-[#267BF1] font-medium text-white hover:bg-[#1f6ad6]"
 						onClick={() => {
 							handleNewChat()
 							setIsHistoryOpen(false)
