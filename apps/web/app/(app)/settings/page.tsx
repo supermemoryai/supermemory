@@ -8,6 +8,7 @@ import { cn } from "@lib/utils"
 import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
 import Account from "@/components/settings/account"
 import Billing from "@/components/settings/billing"
+import { DataPortabilityPanel } from "@/components/settings/data-portability"
 import Integrations from "@/components/settings/integrations"
 import ConnectionsMCP from "@/components/settings/connections-mcp"
 import Support from "@/components/settings/support"
@@ -24,6 +25,7 @@ import {
 	LoaderIcon,
 	User as UserIcon,
 	Zap,
+	Download,
 	HelpCircle,
 	CreditCard,
 	ShieldAlert,
@@ -49,6 +51,7 @@ const TABS = [
 	"account",
 	"billing",
 	"integrations",
+	"portability",
 	"connections",
 	"support",
 ] as const
@@ -79,6 +82,12 @@ const NAV_ITEMS: NavItem[] = [
 		label: "Integrations",
 		description: "Save, sync and search across tools",
 		icon: <Sun className="size-[18px]" />,
+	},
+	{
+		id: "portability",
+		label: "Data portability",
+		description: "Export and restore your memories",
+		icon: <Download className="size-[18px]" />,
 	},
 	{
 		id: "connections",
@@ -572,6 +581,7 @@ export default function SettingsPage() {
 							{activeTab === "account" && <Account />}
 							{activeTab === "billing" && <Billing />}
 							{activeTab === "integrations" && <Integrations />}
+							{activeTab === "portability" && <DataPortabilityPanel />}
 							{activeTab === "connections" && <ConnectionsMCP />}
 							{activeTab === "support" && <Support />}
 						</ErrorBoundary>
