@@ -145,6 +145,7 @@ const SPACE_TO_CATALOG_ID: Record<string, string> = {
 	codex: "codex",
 	opencode: "opencode",
 	openclaw: "openclaw",
+	hermes: "hermes",
 }
 
 export function spacePluginIdToCatalogId(spacePluginId: string): string | null {
