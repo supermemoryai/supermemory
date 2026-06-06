@@ -563,16 +563,11 @@ export function ChatSidebar({
 		}
 	}
 
-	// When the user stops generation before any assistant response arrives,
-	// remove the dangling user message so it isn't duplicated on the next send.
+	// Keep the user message on stop so it isn't lost when generation is halted
+	// before any assistant response arrives (ENG-732).
 	const handleStop = useCallback(() => {
 		stop()
-		setMessages((prev) => {
-			const last = prev[prev.length - 1]
-			if (last?.role === "user") return prev.slice(0, -1)
-			return prev
-		})
-	}, [stop, setMessages])
+	}, [stop])
 
 	const handleCopyMessage = useCallback((messageId: string, text: string) => {
 		analytics.chatMessageCopied({ message_id: messageId })
