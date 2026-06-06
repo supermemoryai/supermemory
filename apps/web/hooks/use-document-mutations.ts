@@ -212,6 +212,8 @@ function restoreQueriesFromSnapshot(
 }
 
 const FILE_UPLOAD_CONCURRENCY = 3
+const fullDocumentQueryKey = (documentId: string) =>
+	["document-full", documentId] as const
 
 export type FileUploadEntry = { id: string; file: File }
 
@@ -544,6 +546,10 @@ export function useDocumentMutations({
 		onSuccess: (_data, variables) => {
 			analytics.documentEdited({ document_id: variables.documentId })
 			toast.success("Document saved successfully!")
+			queryClient.setQueryData(
+				fullDocumentQueryKey(variables.documentId),
+				variables.content,
+			)
 			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 		},
 		onError: (error) => {
@@ -584,6 +590,10 @@ export function useDocumentMutations({
 		onSuccess: (_data, variables) => {
 			analytics.documentDeleted({ document_id: variables.documentId })
 			toast.success("Document deleted successfully!")
+			queryClient.removeQueries({
+				queryKey: fullDocumentQueryKey(variables.documentId),
+				exact: true,
+			})
 			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 			onClose?.()
 		},
@@ -623,6 +633,12 @@ export function useDocumentMutations({
 			toast.success(
 				`${variables.documentIds.length} document${variables.documentIds.length === 1 ? "" : "s"} deleted`,
 			)
+			for (const documentId of variables.documentIds) {
+				queryClient.removeQueries({
+					queryKey: fullDocumentQueryKey(documentId),
+					exact: true,
+				})
+			}
 			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 		},
 	})

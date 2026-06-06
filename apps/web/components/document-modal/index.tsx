@@ -27,6 +27,7 @@ import type { UseMutationResult } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useIsMobile } from "@hooks/use-mobile"
 import { parsePluginDocument } from "@/lib/plugin-document"
+import { useFullDocumentContent } from "@/hooks/use-full-document"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -198,16 +199,25 @@ export function DocumentModal({
 	const isMobile = useIsMobile()
 	const { updateMutation, deleteMutation } = useDocumentMutations({ onClose })
 
+	const fullContent = useFullDocumentContent(_document?.id, isOpen)
+	const effectiveDocument = useMemo(
+		() =>
+			_document && fullContent !== null
+				? { ..._document, content: fullContent }
+				: _document,
+		[_document, fullContent],
+	)
+
 	const { initialEditorContent, initialEditorString } = useMemo(() => {
-		const content = _document?.content as string | null | undefined
+		const content = effectiveDocument?.content as string | null | undefined
 		return {
 			initialEditorContent: content ?? undefined,
 			initialEditorString: content ?? "",
 		}
-	}, [_document?.content])
+	}, [effectiveDocument?.content])
 	const pluginDocument = useMemo(
-		() => parsePluginDocument(_document),
-		[_document],
+		() => parsePluginDocument(effectiveDocument),
+		[effectiveDocument],
 	)
 
 	const [draftContentString, setDraftContentString] =
@@ -281,7 +291,7 @@ export function DocumentModal({
 			className="bg-[#14161A] rounded-[14px] overflow-hidden flex min-h-0 flex-1 flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)] relative"
 		>
 			<DocumentContent
-				document={_document}
+				document={effectiveDocument}
 				textEditorProps={textEditorProps}
 				pluginDocument={pluginDocument}
 			/>
