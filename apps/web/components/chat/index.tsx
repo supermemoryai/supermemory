@@ -1621,6 +1621,9 @@ export function ChatSidebar({
 							chatProject === AUTO_CHAT_SPACE_ID ? null : [chatProject]
 						}
 					/>
+					{/* Hairline divider between the graph and the chat. A soft, edge-faded
+					    line keeps the boundary legible without breaking the shared gradient. */}
+					<div className="pointer-events-none relative z-[2] w-px shrink-0 self-stretch bg-gradient-to-b from-transparent via-white/15 to-transparent" />
 					<div className="relative z-[2] flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] shrink-0 basis-[min(720px,50vw)] flex-col">
 						{pageDesktopToolbarRow}
 						<div className="relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] flex-1 flex-col px-3 sm:px-4 md:px-0">
