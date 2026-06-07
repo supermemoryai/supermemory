@@ -126,7 +126,7 @@ export const UserMessage = memo(function UserMessage({
 						transition={{ duration: 0.18, ease: "easeOut" }}
 						className="max-w-[80%] origin-top-right rounded-[12px] bg-[#1B1F24] p-3 px-[14px]"
 					>
-						<p className="text-sm text-white">{text}</p>
+						<p className="text-sm text-white whitespace-pre-wrap">{text}</p>
 					</motion.div>
 				)}
 			</AnimatePresence>
