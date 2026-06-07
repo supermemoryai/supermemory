@@ -1621,12 +1621,10 @@ export function ChatSidebar({
 							chatProject === AUTO_CHAT_SPACE_ID ? null : [chatProject]
 						}
 					/>
-					{/* Hairline divider between the graph and the chat. A soft, edge-faded
-					    line keeps the boundary legible without breaking the shared gradient. */}
-					<div className="pointer-events-none relative z-[2] w-px shrink-0 self-stretch bg-gradient-to-b from-transparent via-white/15 to-transparent" />
 					<div className="relative z-[2] flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] shrink-0 basis-[min(720px,50vw)] flex-col">
 						{/* Soft left→right darkening so the chat reads as a distinct,
-						    recessed panel (like prod) while the dots/glow still show through. */}
+						    recessed panel (like prod) while the dots/glow still show
+						    through. The gradient handles the separation — no hard line. */}
 						<div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-r from-transparent via-[#05080D]/40 to-[#05080D]/80" />
 						<div className="relative z-[1] flex h-full min-h-0 w-full flex-col">
 							{pageDesktopToolbarRow}
