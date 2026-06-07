@@ -8,7 +8,8 @@
     "dev": "portless",
     "dev:app": "vite build && wrangler dev --port ${PORT:-8788}",
     "deploy": "vite build && wrangler deploy --minify",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "test:e2e": "vitest run"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^0.2.2",
@@ -27,6 +28,7 @@
     "typescript": "^5.8.3",
     "vite": "^6.0.0",
     "vite-plugin-singlefile": "^2.3.0",
+    "vitest": "^3.2.4",
     "wrangler": "^4.4.0"
   }
 }
