@@ -19,6 +19,16 @@ export function isApiKey(token: string): boolean {
 }
 
 /**
+ * Redact a user ID for logging — keeps first 4 + last 2 chars, masks the rest.
+ * Avoids leaking full UUIDs into Cloudflare Workers Logpush / Datadog / external SIEMs
+ * where they become PII under GDPR / CCPA.
+ */
+export function redactId(id: string): string {
+	if (!id || id.length < 8) return "***"
+	return `${id.slice(0, 4)}…${id.slice(-2)} (len=${id.length})`
+}
+
+/**
  * Validate API key by calling the main API's session endpoint.
  * Returns user info if the API key is valid.
  */
@@ -75,7 +85,7 @@ export async function validateApiKey(
 			return null
 		}
 
-		console.log("API key validated for user:", sessionData.user.id)
+		console.log("API key validated for user:", redactId(sessionData.user.id))
 
 		return {
 			userId: sessionData.user.id,
@@ -146,7 +156,7 @@ export async function validateOAuthToken(
 			return null
 		}
 
-		console.log("OAuth validated, got API key for user:", sessionData.userId)
+		console.log("OAuth validated, got API key for user:", redactId(sessionData.userId))
 
 		return {
 			userId: sessionData.userId,

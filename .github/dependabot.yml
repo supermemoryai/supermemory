@@ -1,0 +1,36 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    groups:
+      patch-and-minor:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+      security-critical:
+        applies-to: security-updates
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "automated"
+    ignore:
+      # Major bumps for framework packages — require manual review
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@sentry/*"
+        update-types: ["version-update:semver-major"]

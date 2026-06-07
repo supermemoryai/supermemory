@@ -13,11 +13,11 @@ jobs:
 
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
-      issues: write
+      issues: read
       actions: read
-      id-token: write
+      id-token: read
 
     steps:
       - name: Checkout repository
@@ -36,10 +36,14 @@ jobs:
           include_fix_links: true
           bot_name: Supermemory code review
 
-          # Enable inline comments for specific issues
+          # SEC: removed Write/Edit/Bash tools; only allow read-only tools + mcp__github for review submission.
+          # Rationale: an automatic PR-review bot with contents: write on every PR is a supply-chain
+          # attack vector if the ANTHROPIC token or upstream action is ever compromised.
+          # Fixes are suggested via PR review comments (read + comment only).
           claude_args: |
             --model claude-opus-4-5-20251101
-            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(*),WebSearch,WebFetch,Task,mcp__supermemory__*,mcp__github__*"
+            --allowedTools "Read,Glob,Grep,WebSearch,WebFetch,mcp__github__*"
+            --disallowedTools "Write,Edit,Bash,Task"
             --mcp-config '{
               "mcpServers": {
                 "supermemory": {
