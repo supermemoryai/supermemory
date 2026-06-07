@@ -48,6 +48,7 @@ import { SuperLoader } from "../superloader"
 import { UserMessage } from "./message/user-message"
 import { AgentMessage } from "./message/agent-message"
 import { ChatGraphContextRail } from "./chat-graph-context-rail"
+import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
 import { ChainOfThought } from "./input/chain-of-thought"
 import { useIsMobile } from "@hooks/use-mobile"
 import { useAuth } from "@lib/auth-context"
@@ -1601,14 +1602,26 @@ export function ChatSidebar({
 		>
 			{chatHistorySheet}
 			{isPageDesktop ? (
-				<div className="flex h-full min-h-0 w-full flex-1 flex-row">
+				<div className="relative flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden bg-[#05080D]">
+					{/* Shared backdrop spanning both the graph rail and the chat so the
+					    gradient flows continuously across the whole panel instead of
+					    stopping at the graph edge. */}
+					<div className="pointer-events-none absolute inset-0 z-0">
+						<AnimatedGradientBackground
+							animateFromBottom={false}
+							topPosition="55%"
+						/>
+						<div className="absolute inset-0 bg-[#05080D]/50" />
+						<div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]" />
+					</div>
 					<ChatGraphContextRail
+						showBackdrop={false}
 						messages={messages}
 						containerTags={
 							chatProject === AUTO_CHAT_SPACE_ID ? null : [chatProject]
 						}
 					/>
-					<div className="flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] shrink-0 basis-[min(720px,50vw)] flex-col">
+					<div className="relative z-[2] flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] shrink-0 basis-[min(720px,50vw)] flex-col">
 						{pageDesktopToolbarRow}
 						<div className="relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] flex-1 flex-col px-3 sm:px-4 md:px-0">
 							{shell}

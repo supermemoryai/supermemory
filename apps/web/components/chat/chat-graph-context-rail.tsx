@@ -13,10 +13,12 @@ export function ChatGraphContextRail({
 	messages,
 	containerTags,
 	className,
+	showBackdrop = true,
 }: {
 	messages: UIMessage[]
 	containerTags?: string[] | null
 	className?: string
+	showBackdrop?: boolean
 }) {
 	const { effectiveContainerTags } = useProject()
 	const graphContainerTags =
@@ -32,14 +34,22 @@ export function ChatGraphContextRail({
 		<div
 			id="chat-graph-context-rail"
 			className={cn(
-				"relative flex min-h-0 min-w-0 flex-1 flex-col bg-[#05080D] overflow-hidden",
+				"relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+				showBackdrop && "bg-[#05080D]",
 				dmSansClassName(),
 				className,
 			)}
 		>
-			<AnimatedGradientBackground animateFromBottom={false} topPosition="55%" />
-			<div className="pointer-events-none absolute inset-0 z-0 bg-[#05080D]/50" />
-			<div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]" />
+			{showBackdrop && (
+				<>
+					<AnimatedGradientBackground
+						animateFromBottom={false}
+						topPosition="55%"
+					/>
+					<div className="pointer-events-none absolute inset-0 z-0 bg-[#05080D]/50" />
+					<div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]" />
+				</>
+			)}
 			<div className="pointer-events-none absolute top-3 left-4 z-20">
 				<p className="text-xs font-medium text-white/70">Memory map</p>
 				<p className="mt-0.5 max-w-[14rem] text-[10px] leading-snug text-white/35">
@@ -48,7 +58,6 @@ export function ChatGraphContextRail({
 						: "Memories used by Nova will be highlighted here"}
 				</p>
 			</div>
-			<div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-r from-transparent to-[#05080D]" />
 			<div className="relative z-[2] min-h-0 flex-1 pt-10">
 				<MemoryGraph
 					containerTags={graphContainerTags}
