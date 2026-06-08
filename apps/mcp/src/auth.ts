@@ -15,7 +15,7 @@ export interface AuthUser {
  * Check if a token is an API key (starts with "sm_")
  */
 export function isApiKey(token: string): boolean {
-	return token.startsWith("sm_")
+	return token.startsWith("sm_") && token.length > 3
 }
 
 /**
