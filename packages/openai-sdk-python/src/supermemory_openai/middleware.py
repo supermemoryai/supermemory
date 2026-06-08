@@ -230,7 +230,7 @@ async def add_memory_tool(
             add_params["custom_id"] = custom_id
 
         # Handle both sync and async supermemory clients
-        result = client.add(**add_params)
+        result = client.memories.add(**add_params)
         if inspect.isawaitable(result):
             response = await result
         else:
