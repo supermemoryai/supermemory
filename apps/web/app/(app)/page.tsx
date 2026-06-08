@@ -13,6 +13,7 @@ import { useQueryState } from "nuqs"
 import { Header, PublicHeader } from "@/components/header"
 import { MobileBottomNav } from "@/components/bottom-nav"
 import { ChatSidebar, HomeChatComposer } from "@/components/chat"
+import type { ChatAttachmentDraft } from "@/components/chat/attachments"
 import { DashboardView } from "@/components/dashboard-view"
 import { MemoriesGrid } from "@/components/memories-grid"
 import { GraphLayoutView } from "@/components/graph-layout-view"
@@ -166,6 +167,9 @@ export default function NewPage() {
 	const [queuedChatProject, setQueuedChatProject] = useState<string | null>(
 		null,
 	)
+	const [queuedChatAttachments, setQueuedChatAttachments] = useState<
+		ChatAttachmentDraft[] | null
+	>(null)
 	const [queuedHighlightContent, setQueuedHighlightContent] = useState<
 		string | null
 	>(null)
@@ -494,6 +498,7 @@ export default function NewPage() {
 			setQueuedChatModel(null)
 			setQueuedChatReasoningEffort(null)
 			setQueuedChatProject(null)
+			setQueuedChatAttachments(null)
 			setQueuedMessageSource("highlight")
 			void setViewMode("chat")
 		},
@@ -506,12 +511,14 @@ export default function NewPage() {
 			model: ModelId,
 			projectId: string,
 			reasoningEffort: ReasoningEffort,
+			attachments?: ChatAttachmentDraft[],
 		) => {
 			setQueuedHighlightContent(null)
 			setQueuedChatSeed(message)
 			setQueuedChatModel(model)
 			setQueuedChatReasoningEffort(reasoningEffort)
 			setQueuedChatProject(projectId)
+			setQueuedChatAttachments(attachments ?? null)
 			setQueuedMessageSource("home")
 			void setViewMode("chat")
 		},
@@ -523,6 +530,7 @@ export default function NewPage() {
 		setQueuedChatModel(null)
 		setQueuedChatReasoningEffort(null)
 		setQueuedChatProject(null)
+		setQueuedChatAttachments(null)
 		setQueuedHighlightContent(null)
 		setQueuedMessageSource("highlight")
 	}, [])
@@ -642,6 +650,7 @@ export default function NewPage() {
 											queuedHighlightContent={queuedHighlightContent}
 											onConsumeQueuedMessage={consumeQueuedChat}
 											queuedMessageSource={queuedMessageSource}
+											queuedAttachments={queuedChatAttachments}
 											initialSelectedModel={queuedChatModel}
 											initialReasoningEffort={queuedChatReasoningEffort}
 											initialChatProject={queuedChatProject}

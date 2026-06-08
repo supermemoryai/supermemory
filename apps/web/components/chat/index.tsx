@@ -57,7 +57,46 @@ import { useViewMode } from "@/lib/view-mode-context"
 import { threadParam } from "@/lib/search-params"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import { ChatEmptyStatePlaceholder } from "./chat-empty-state"
+import { toast } from "sonner"
+import {
+	chatAttachmentKey,
+	CHAT_ATTACHMENT_ACCEPT,
+	createChatAttachmentDraft,
+	type ChatAttachment,
+	type ChatAttachmentDraft,
+	isAcceptedChatAttachment,
+} from "./attachments"
+import { cacheFileBlob, removeCachedFile } from "@/lib/file-cache"
 import { ReasoningSelector } from "./reasoning-selector"
+
+type ChatMessageSendSource = "typed" | "suggested" | "highlight" | "home"
+
+const DISCARD_ATTACHMENT_MAX_ATTEMPTS = 15
+const DISCARD_ATTACHMENT_RETRY_MS = 2000
+
+type RawChatAttachmentResponse = Partial<ChatAttachment> & {
+	attachment?: Partial<ChatAttachment>
+}
+
+function normalizeChatAttachmentResponse(
+	data: RawChatAttachmentResponse,
+	draft: ChatAttachmentDraft,
+): ChatAttachment {
+	const attachment = data.attachment ?? data
+	const id = attachment.id ?? attachment.documentId ?? draft.id
+	return {
+		id,
+		documentId: attachment.documentId,
+		filename: attachment.filename ?? draft.file.name,
+		mediaType:
+			(attachment.mediaType ?? draft.file.type) || "application/octet-stream",
+		size: attachment.size ?? draft.file.size,
+		saveToMemory: attachment.saveToMemory ?? draft.saveToMemory,
+		status: attachment.status ?? "ready",
+		url: attachment.url,
+		contentPreview: attachment.contentPreview,
+	}
+}
 
 export function ChatLaunchFab({
 	onOpen,
@@ -106,6 +145,7 @@ type QueuedChatMessage = {
 	text: string
 	model: ModelId
 	reasoningEffort: ReasoningEffort
+	attachments?: ChatAttachment[]
 }
 
 const CHAT_QUEUE_LIMIT = 3
@@ -133,6 +173,7 @@ export function ChatSidebar({
 	queuedHighlightContent,
 	onConsumeQueuedMessage,
 	queuedMessageSource = "highlight",
+	queuedAttachments = null,
 	initialSelectedModel = null,
 	initialReasoningEffort = null,
 	initialChatProject = null,
@@ -145,6 +186,7 @@ export function ChatSidebar({
 	queuedHighlightContent?: string | null
 	onConsumeQueuedMessage?: () => void
 	queuedMessageSource?: "highlight" | "home"
+	queuedAttachments?: ChatAttachmentDraft[] | null
 	initialSelectedModel?: ModelId | null
 	initialReasoningEffort?: ReasoningEffort | null
 	initialChatProject?: string | null
@@ -154,6 +196,9 @@ export function ChatSidebar({
 	const isMobile = useIsMobile()
 	const isPageDesktop = layout === "page" && !isMobile
 	const [input, setInput] = useState("")
+	const [attachmentDrafts, setAttachmentDrafts] = useState<
+		ChatAttachmentDraft[]
+	>([])
 	const [selectedModel, setSelectedModel] = useState<ModelId>(
 		initialSelectedModel ?? "claude-sonnet-4.6",
 	)
@@ -222,6 +267,12 @@ export function ChatSidebar({
 	const awaitingHighlightInjectionRef = useRef(false)
 	const pendingHighlightMessageRef = useRef<UIMessage[] | null>(null)
 	const targetHighlightChatIdRef = useRef<string | null>(null)
+	const pendingRequestAttachmentsRef = useRef<ChatAttachment[]>([])
+	const uploadPromisesRef = useRef<Map<string, Promise<ChatAttachment>>>(
+		new Map(),
+	)
+	const abortControllersRef = useRef<Map<string, AbortController>>(new Map())
+	const discardedDraftIdsRef = useRef<Set<string>>(new Set())
 	const { selectedProject } = useProject()
 	const [chatSpaceProjects, setChatSpaceProjects] = useState<string[]>([
 		initialChatProject ?? AUTO_CHAT_SPACE_ID,
@@ -316,6 +367,9 @@ export function ChatSidebar({
 								reasoningEffort:
 									sendSettings?.reasoningEffort ?? reasoningEffortRef.current,
 								truncateFromMessageId: truncateFromMessageIdRef.current,
+								...(pendingRequestAttachmentsRef.current.length > 0 && {
+									attachments: pendingRequestAttachmentsRef.current,
+								}),
 							},
 						},
 					}
@@ -408,6 +462,258 @@ export function ChatSidebar({
 		[clearError],
 	)
 
+	const setAttachmentDraftState = useCallback(
+		(id: string, patch: Partial<ChatAttachmentDraft>) => {
+			setAttachmentDrafts((prev) =>
+				prev.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+			)
+		},
+		[],
+	)
+
+	const discardUploadedAttachment = useCallback(
+		(documentId: string) => {
+			void removeCachedFile(documentId)
+
+			const run = async (attempt: number): Promise<void> => {
+				try {
+					const response = await fetch(
+						`${chatApiBase}/chat/attachments/${documentId}`,
+						{
+							method: "DELETE",
+							credentials: "include",
+						},
+					)
+
+					if (
+						response.status === 409 &&
+						attempt < DISCARD_ATTACHMENT_MAX_ATTEMPTS
+					) {
+						setTimeout(() => {
+							void run(attempt + 1)
+						}, DISCARD_ATTACHMENT_RETRY_MS)
+						return
+					}
+
+					if (!response.ok && response.status !== 404) {
+						console.warn("Failed to discard chat attachment", {
+							documentId,
+							status: response.status,
+						})
+					}
+				} catch (error) {
+					if (attempt < DISCARD_ATTACHMENT_MAX_ATTEMPTS) {
+						setTimeout(() => {
+							void run(attempt + 1)
+						}, DISCARD_ATTACHMENT_RETRY_MS)
+						return
+					}
+					console.warn("Failed to discard chat attachment", {
+						documentId,
+						error,
+					})
+				}
+			}
+
+			void run(1)
+		},
+		[chatApiBase],
+	)
+
+	const uploadAttachmentDraft = useCallback(
+		(
+			draft: ChatAttachmentDraft,
+			chatIdForUpload: string,
+		): Promise<ChatAttachment> => {
+			if (draft.status === "uploaded" && draft.uploaded) {
+				return Promise.resolve(draft.uploaded)
+			}
+
+			const inflight = uploadPromisesRef.current.get(draft.id)
+			if (inflight) return inflight
+
+			const uploadPromise = (async (): Promise<ChatAttachment> => {
+				const controller = new AbortController()
+				abortControllersRef.current.set(draft.id, controller)
+
+				setAttachmentDraftState(draft.id, {
+					status: "uploading",
+					errorMessage: undefined,
+				})
+
+				const formData = new FormData()
+				formData.append("file", draft.file)
+				formData.append("threadId", chatIdForUpload)
+				formData.append("projectId", selectedProjectRef.current)
+				formData.append("saveToMemory", String(draft.saveToMemory))
+
+				try {
+					const response = await fetch(`${chatApiBase}/chat/attachments`, {
+						method: "POST",
+						body: formData,
+						credentials: "include",
+						signal: controller.signal,
+					})
+
+					if (!response.ok) {
+						let message = "Failed to upload attachment"
+						try {
+							const error = (await response.json()) as {
+								error?: string
+								message?: string
+							}
+							message = error.error ?? error.message ?? message
+						} catch {
+							// keep the fallback error
+						}
+						throw new Error(message)
+					}
+
+					const data = (await response.json()) as RawChatAttachmentResponse
+					const attachment = normalizeChatAttachmentResponse(data, draft)
+
+					abortControllersRef.current.delete(draft.id)
+
+					if (discardedDraftIdsRef.current.has(draft.id)) {
+						discardedDraftIdsRef.current.delete(draft.id)
+						if (attachment.documentId) {
+							discardUploadedAttachment(attachment.documentId)
+						}
+						return attachment
+					}
+
+					if (attachment.documentId) {
+						void cacheFileBlob(
+							attachment.documentId,
+							draft.file,
+							draft.file.type,
+						)
+					}
+					setAttachmentDraftState(draft.id, {
+						status: "uploaded",
+						uploaded: attachment,
+					})
+					return attachment
+				} catch (error) {
+					abortControllersRef.current.delete(draft.id)
+					uploadPromisesRef.current.delete(draft.id)
+
+					if (error instanceof DOMException && error.name === "AbortError") {
+						throw error
+					}
+
+					if (discardedDraftIdsRef.current.has(draft.id)) {
+						discardedDraftIdsRef.current.delete(draft.id)
+						throw error
+					}
+
+					const message =
+						error instanceof Error
+							? error.message
+							: "Failed to upload attachment"
+					setAttachmentDraftState(draft.id, {
+						status: "error",
+						errorMessage: message,
+					})
+					throw error
+				}
+			})()
+
+			uploadPromisesRef.current.set(draft.id, uploadPromise)
+			return uploadPromise
+		},
+		[chatApiBase, discardUploadedAttachment, setAttachmentDraftState],
+	)
+
+	const uploadAttachmentDrafts = useCallback(
+		async (drafts: ChatAttachmentDraft[], chatIdForUpload: string) => {
+			const uploaded: ChatAttachment[] = []
+			for (const draft of drafts) {
+				uploaded.push(await uploadAttachmentDraft(draft, chatIdForUpload))
+			}
+			return uploaded
+		},
+		[uploadAttachmentDraft],
+	)
+
+	const handleAddAttachmentFiles = useCallback(
+		(files: FileList | File[]) => {
+			const incoming = Array.from(files)
+			const accepted = incoming.filter(isAcceptedChatAttachment)
+			const rejected = incoming.length - accepted.length
+			if (rejected > 0) {
+				toast.error(
+					rejected === 1
+						? "One attachment is not supported or is over 50MB"
+						: `${rejected} attachments are not supported or are over 50MB`,
+				)
+			}
+			if (accepted.length === 0) return
+
+			const existingKeys = new Set(
+				attachmentDrafts.map((item) => chatAttachmentKey(item.file)),
+			)
+			const nextItems: ChatAttachmentDraft[] = []
+			let duplicateCount = 0
+			for (const file of accepted) {
+				const key = chatAttachmentKey(file)
+				if (existingKeys.has(key)) {
+					duplicateCount++
+					continue
+				}
+				existingKeys.add(key)
+				nextItems.push(createChatAttachmentDraft(file))
+			}
+			if (duplicateCount > 0) {
+				toast.message(
+					duplicateCount === 1
+						? "Skipped duplicate attachment"
+						: `Skipped ${duplicateCount} duplicate attachments`,
+				)
+			}
+			if (nextItems.length === 0) return
+			setAttachmentDrafts((prev) => [...prev, ...nextItems])
+
+			for (const draft of nextItems) {
+				void uploadAttachmentDraft(draft, currentChatId).catch(() => {
+					// Upload errors are reflected on the draft state unless the draft was removed.
+				})
+			}
+		},
+		[attachmentDrafts, currentChatId, uploadAttachmentDraft],
+	)
+
+	const handleRemoveAttachment = useCallback(
+		(id: string) => {
+			const draft = attachmentDrafts.find((item) => item.id === id)
+			discardedDraftIdsRef.current.add(id)
+
+			const controller = abortControllersRef.current.get(id)
+			if (controller) {
+				controller.abort()
+				abortControllersRef.current.delete(id)
+			}
+			uploadPromisesRef.current.delete(id)
+
+			const documentId = draft?.uploaded?.documentId
+			if (draft?.status === "uploaded" && documentId) {
+				discardUploadedAttachment(documentId)
+			}
+
+			setAttachmentDrafts((prev) => prev.filter((item) => item.id !== id))
+		},
+		[attachmentDrafts, discardUploadedAttachment],
+	)
+
+	const handleRetryAttachment = useCallback(
+		(id: string) => {
+			const draft = attachmentDrafts.find((item) => item.id === id)
+			if (!draft) return
+			void uploadAttachmentDraft(draft, currentChatId)
+		},
+		[attachmentDrafts, currentChatId, uploadAttachmentDraft],
+	)
+
 	useEffect(() => {
 		if (pendingThreadLoad && currentChatId === pendingThreadLoad.id) {
 			setMessages(pendingThreadLoad.messages)
@@ -441,63 +747,136 @@ export function ChatSidebar({
 		}
 	}, [])
 
+	const submitChatMessage = useCallback(
+		async (
+			text: string,
+			source: ChatMessageSendSource,
+			drafts = attachmentDrafts,
+		): Promise<boolean> => {
+			const trimmed = text.trim()
+			if (!trimmed && drafts.length === 0) return false
+
+			const hasBusy = drafts.some(
+				(d) => d.status === "uploading" || d.status === "queued",
+			)
+			if (hasBusy) return false
+			const hasErrored = drafts.some((d) => d.status === "error")
+			if (hasErrored) return false
+
+			const chatIdForSend = threadId ?? fallbackChatId
+
+			try {
+				const uploadedAttachments =
+					drafts.length > 0
+						? await uploadAttachmentDrafts(drafts, chatIdForSend)
+						: []
+				const messageText = trimmed || "Analyze the attached file(s)."
+				const isRespondingNow = status === "submitted" || status === "streaming"
+
+				if (isRespondingNow) {
+					if (messageQueue.length >= CHAT_QUEUE_LIMIT) return false
+					setMessageQueue((prev) => {
+						if (prev.length >= CHAT_QUEUE_LIMIT) return prev
+						return [
+							...prev,
+							{
+								id: generateId(),
+								text: messageText,
+								model: selectedModel,
+								reasoningEffort,
+								attachments: uploadedAttachments,
+							},
+						]
+					})
+					analytics.chatMessageSent({
+						source,
+						attachment_count: uploadedAttachments.length,
+						saved_attachment_count: uploadedAttachments.filter(
+							(attachment) => attachment.saveToMemory,
+						).length,
+						temporary_attachment_count: uploadedAttachments.filter(
+							(attachment) => !attachment.saveToMemory,
+						).length,
+					})
+					setInput("")
+					setAttachmentDrafts([])
+					uploadPromisesRef.current.clear()
+					abortControllersRef.current.clear()
+					discardedDraftIdsRef.current.clear()
+					userJustSentRef.current = true
+					scrollToBottom()
+					return true
+				}
+
+				truncateFromMessageIdRef.current = null
+				if (!threadId) setThreadId(fallbackChatId)
+				pendingRequestAttachmentsRef.current = uploadedAttachments
+				analytics.chatMessageSent({
+					source,
+					attachment_count: uploadedAttachments.length,
+					saved_attachment_count: uploadedAttachments.filter(
+						(attachment) => attachment.saveToMemory,
+					).length,
+					temporary_attachment_count: uploadedAttachments.filter(
+						(attachment) => !attachment.saveToMemory,
+					).length,
+				})
+
+				setInput("")
+				setAttachmentDrafts([])
+				uploadPromisesRef.current.clear()
+				abortControllersRef.current.clear()
+				discardedDraftIdsRef.current.clear()
+				userJustSentRef.current = true
+				scrollToBottom()
+				pendingResponseModelsRef.current.push(selectedModel)
+
+				void sendMessage({
+					text: messageText,
+					metadata:
+						uploadedAttachments.length > 0
+							? { attachments: uploadedAttachments }
+							: undefined,
+				}).finally(() => {
+					pendingRequestAttachmentsRef.current = []
+				})
+
+				return true
+			} catch (error) {
+				pendingRequestAttachmentsRef.current = []
+				toast.error("Failed to send message", {
+					description:
+						error instanceof Error ? error.message : "Please try again.",
+				})
+				return false
+			}
+		},
+		[
+			attachmentDrafts,
+			fallbackChatId,
+			messageQueue.length,
+			reasoningEffort,
+			scrollToBottom,
+			selectedModel,
+			sendMessage,
+			setThreadId,
+			status,
+			threadId,
+			uploadAttachmentDrafts,
+		],
+	)
+
 	const handleSend = () => {
-		const text = input.trim()
-		if (!text) return
-
-		if (status === "submitted" || status === "streaming") {
-			if (messageQueue.length >= CHAT_QUEUE_LIMIT) return
-
-			setMessageQueue((prev) => {
-				if (prev.length >= CHAT_QUEUE_LIMIT) return prev
-				return [
-					...prev,
-					{
-						id: generateId(),
-						text,
-						model: selectedModel,
-						reasoningEffort,
-					},
-				]
-			})
-			setInput("")
-			analytics.chatMessageSent({ source: "typed" })
-			userJustSentRef.current = true
-			scrollToBottom()
-			return
-		}
-
-		truncateFromMessageIdRef.current = null
-		if (!threadId) setThreadId(fallbackChatId)
-		analytics.chatMessageSent({ source: "typed" })
-		pendingResponseModelsRef.current.push(selectedModel)
-		sendMessage({ text })
-		setInput("")
-		userJustSentRef.current = true
-		scrollToBottom()
+		void submitChatMessage(input, "typed")
 	}
 
 	const handleSuggestedQuestion = useCallback(
 		(suggestion: string) => {
 			if (status === "submitted" || status === "streaming") return
-			truncateFromMessageIdRef.current = null
-			if (!threadId) setThreadId(fallbackChatId)
 			analytics.chatSuggestedQuestionClicked()
-			analytics.chatMessageSent({ source: "suggested" })
-			pendingResponseModelsRef.current.push(selectedModel)
-			sendMessage({ text: suggestion })
-			userJustSentRef.current = true
-			scrollToBottom()
+			void submitChatMessage(suggestion, "suggested", [])
 		},
-		[
-			fallbackChatId,
-			sendMessage,
-			setThreadId,
-			status,
-			threadId,
-			scrollToBottom,
-			selectedModel,
-		],
+		[status, submitChatMessage],
 	)
 
 	const handleRegenerateFromUserMessage = useCallback(
@@ -624,6 +1003,13 @@ export function ChatSidebar({
 		setThreadId(null)
 		setFallbackChatId(newChatId)
 		setInput("")
+		setAttachmentDrafts([])
+		for (const controller of abortControllersRef.current.values()) {
+			controller.abort()
+		}
+		abortControllersRef.current.clear()
+		discardedDraftIdsRef.current.clear()
+		uploadPromisesRef.current.clear()
 		setMessageQueue([])
 		pendingResponseModelsRef.current = []
 		seenAssistantMessageIdsRef.current = new Set()
@@ -791,9 +1177,9 @@ export function ChatSidebar({
 				return
 			}
 			sentQueuedMessageRef.current = queuedMessage
-			analytics.chatMessageSent({ source: queuedMessageSource })
 
 			if (queuedHighlightContent) {
+				analytics.chatMessageSent({ source: queuedMessageSource })
 				truncateFromMessageIdRef.current = null
 				// Start a fresh thread for highlight-based chats to avoid overwriting existing conversations
 				const newChatId = generateId()
@@ -825,12 +1211,23 @@ export function ChatSidebar({
 					},
 				]
 			} else {
-				truncateFromMessageIdRef.current = null
-				if (!threadId) setThreadId(fallbackChatId)
-				queuedDispatchInFlightRef.current = true
-				queuedDispatchSawResponseRef.current = false
-				pendingResponseModelsRef.current.push(selectedModel)
-				sendMessage({ text: queuedMessage })
+				if (queuedAttachments?.length) {
+					setAttachmentDrafts(queuedAttachments)
+				}
+				void submitChatMessage(
+					queuedMessage,
+					queuedMessageSource,
+					queuedAttachments ?? [],
+				).then((sent) => {
+					if (!sent) {
+						setInput(queuedMessage)
+						if (queuedAttachments?.length) {
+							setAttachmentDrafts(queuedAttachments)
+						}
+					}
+					onConsumeQueuedMessage?.()
+				})
+				return
 			}
 			onConsumeQueuedMessage?.()
 		}
@@ -839,16 +1236,15 @@ export function ChatSidebar({
 		queuedMessage,
 		queuedHighlightContent,
 		queuedMessageSource,
+		queuedAttachments,
 		initialSelectedModel,
 		initialReasoningEffort,
 		selectedModel,
 		reasoningEffort,
 		status,
-		sendMessage,
 		onConsumeQueuedMessage,
-		fallbackChatId,
 		setThreadId,
-		threadId,
+		submitChatMessage,
 	])
 
 	// Inject the pending highlight assistant message once the new Chat instance is ready.
@@ -935,7 +1331,16 @@ export function ChatSidebar({
 				? prev.slice(1)
 				: prev.filter((item) => item.id !== nextMessage.id),
 		)
-		sendMessage({ text: nextMessage.text })
+		pendingRequestAttachmentsRef.current = nextMessage.attachments ?? []
+		void sendMessage({
+			text: nextMessage.text,
+			metadata:
+				nextMessage.attachments && nextMessage.attachments.length > 0
+					? { attachments: nextMessage.attachments }
+					: undefined,
+		}).finally(() => {
+			pendingRequestAttachmentsRef.current = []
+		})
 		userJustSentRef.current = true
 		scrollToBottom()
 	}, [
@@ -1064,6 +1469,17 @@ export function ChatSidebar({
 	const isStackedInput = layout === "page"
 	const showHeaderRow = !isPageDesktop || isMobile || !isStackedInput
 	const isResponding = status === "submitted" || status === "streaming"
+	const hasBusyAttachment = attachmentDrafts.some(
+		(attachment) =>
+			attachment.status === "uploading" || attachment.status === "queued",
+	)
+	const hasErroredAttachment = attachmentDrafts.some(
+		(attachment) => attachment.status === "error",
+	)
+	const canSendMessage =
+		(input.trim().length > 0 || attachmentDrafts.length > 0) &&
+		!hasBusyAttachment &&
+		!hasErroredAttachment
 	const showInputStatusStrip =
 		!isStackedInput || isResponding || messages.length > 0
 	const isQueueFull = messageQueue.length >= CHAT_QUEUE_LIMIT
@@ -1526,6 +1942,12 @@ export function ChatSidebar({
 					onStop={handleStop}
 					onKeyDown={handleKeyDown}
 					isResponding={isResponding}
+					attachments={attachmentDrafts}
+					onAddAttachmentFiles={handleAddAttachmentFiles}
+					onRemoveAttachment={handleRemoveAttachment}
+					onRetryAttachment={handleRetryAttachment}
+					canSend={canSendMessage}
+					attachmentAccept={CHAT_ATTACHMENT_ACCEPT}
 					sendDisabled={isResponding && isQueueFull}
 					sendDisabledTooltip={`Queue is full (${CHAT_QUEUE_LIMIT} max)`}
 					activeStatus={

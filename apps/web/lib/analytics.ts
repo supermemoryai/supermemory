@@ -122,6 +122,9 @@ export const analytics = {
 	// chat analytics
 	chatMessageSent: (props: {
 		source: "typed" | "suggested" | "highlight" | "home"
+		attachment_count?: number
+		saved_attachment_count?: number
+		temporary_attachment_count?: number
 	}) => safeCapture("chat_message_sent", props),
 
 	chatSuggestedQuestionClicked: () =>
