@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import NovaOrb from "@/components/nova/nova-orb"
+import { SuperLoader } from "@/components/superloader"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { type ReactNode, useEffect, useRef, useState } from "react"
@@ -46,6 +47,10 @@ interface ChatInputProps {
 	onExpandedChange?: (expanded: boolean) => void
 	/** Model + space controls on one row with send; textarea full-width above */
 	stackedToolbar?: ReactNode
+	/** Trailing controls rendered after the attach button (e.g. reasoning) */
+	toolbarTrailing?: ReactNode
+	/** Controls rendered just left of the send button (e.g. space selector) */
+	toolbarEnd?: ReactNode
 	/** Nova status row + chain-of-thought toggle (off for e.g. home composer) */
 	showStatusStrip?: boolean
 	attachments?: ChatAttachmentDraft[]
@@ -70,6 +75,8 @@ export default function ChatInput({
 	chainOfThoughtComponent,
 	onExpandedChange,
 	stackedToolbar,
+	toolbarTrailing,
+	toolbarEnd,
 	showStatusStrip = true,
 	attachments = [],
 	onAddAttachmentFiles,
@@ -184,7 +191,7 @@ export default function ChatInput({
 				type="button"
 				onClick={() => fileInputRef.current?.click()}
 				disabled={isResponding}
-				className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#242832] bg-black text-[#A6B0BE] transition-colors hover:border-[#3A4049] hover:bg-[#111418] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+				className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-white/45 transition-colors hover:bg-white/5 hover:text-white/80 disabled:cursor-not-allowed disabled:opacity-50"
 				aria-label="Attach files"
 				title="Attach files"
 			>
@@ -204,7 +211,7 @@ export default function ChatInput({
 			className={cn("relative z-20!")}
 			animate={{
 				padding: showStatusStrip ? (isExpanded ? "16px" : "0") : "0",
-				margin: showStatusStrip ? (isExpanded ? "0" : "16px") : "0",
+				margin: "0",
 				borderRadius: showStatusStrip
 					? isExpanded
 						? "0 0 12px 12px"
@@ -251,10 +258,16 @@ export default function ChatInput({
 						disabled={!chainOfThoughtComponent}
 					>
 						<div className="flex items-center gap-3">
-							<NovaOrb size={24} className="blur-[1px]! z-10" />
-							<p className={cn("text-[#525D6E]", dmSansClassName())}>
-								{activeStatus || "Waiting for input..."}
-							</p>
+							{isResponding ? (
+								<SuperLoader label={activeStatus || "Thinking…"} />
+							) : (
+								<>
+									<NovaOrb size={24} className="blur-[1px]! z-10" />
+									<p className={cn("text-[#525D6E]", dmSansClassName())}>
+										{activeStatus || "Waiting for input..."}
+									</p>
+								</>
+							)}
 						</div>
 						{chainOfThoughtComponent && (
 							<ChevronUpIcon
@@ -334,11 +347,13 @@ export default function ChatInput({
 						rows={1}
 					/>
 					<div className="flex items-center gap-2">
-						{attachmentButton}
-						<div className="flex min-w-0 flex-1 items-center gap-2">
+						<div className="flex min-w-0 flex-1 items-center gap-1.5">
 							{stackedToolbar}
+							{attachmentButton}
+							{toolbarTrailing}
 						</div>
 						<div className="flex shrink-0 items-center gap-1.5">
+							{toolbarEnd}
 							{isResponding && <StopButton onClick={onStop} />}
 							{(!isResponding || canSubmit) && (
 								<SendButton

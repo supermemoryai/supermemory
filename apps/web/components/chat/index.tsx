@@ -7,6 +7,7 @@ import { useQueryState } from "nuqs"
 import type { UIMessage } from "@ai-sdk/react"
 import { motion } from "motion/react"
 import { useChat } from "@ai-sdk/react"
+import { isWebSearchToolName } from "@/lib/chat-web-search-tools"
 import { DefaultChatTransport } from "ai"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
@@ -19,6 +20,7 @@ import {
 } from "@ui/components/sheet"
 import { ScrollArea } from "@ui/components/scroll-area"
 import {
+	ArrowLeftIcon,
 	Check,
 	ChevronDownIcon,
 	HistoryIcon,
@@ -200,11 +202,11 @@ export function ChatSidebar({
 		ChatAttachmentDraft[]
 	>([])
 	const [selectedModel, setSelectedModel] = useState<ModelId>(
-		initialSelectedModel ?? "claude-sonnet-4.6",
+		initialSelectedModel ?? "grok-4.3",
 	)
 	const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(
 		initialReasoningEffort ??
-			getDefaultReasoningEffort(initialSelectedModel ?? "claude-sonnet-4.6"),
+			getDefaultReasoningEffort(initialSelectedModel ?? "grok-4.3"),
 	)
 	const selectedModelRef = useRef(selectedModel)
 	selectedModelRef.current = selectedModel
@@ -351,9 +353,18 @@ export function ChatSidebar({
 					const sendSettings = pendingSendSettingsRef.current
 					pendingSendSettingsRef.current = null
 
+					// Tool parts (incl. Anthropic server-side web search) don't round-trip
+					// through convertToModelMessages and cause tool_use/tool_result mismatches.
+					const sanitizedMessages = messages.map((m) => ({
+						...m,
+						parts: (m.parts ?? []).filter(
+							(p) => !p.type.startsWith("tool-") && p.type !== "dynamic-tool",
+						),
+					}))
+
 					return {
 						body: {
-							messages,
+							messages: sanitizedMessages,
 							metadata: {
 								chatId: chatIdRef.current,
 								projectId: selectedProjectRef.current,
@@ -1063,11 +1074,14 @@ export function ChatSidebar({
 						}) => ({
 							id: m.id,
 							role: m.role,
-							// Strip tool parts — persisted format doesn't round-trip through
-							// convertToModelMessages correctly and causes tool_use/tool_result
-							// mismatch errors. Text history is sufficient for context.
+							// Strip tool parts (they break convertToModelMessages with tool_use/tool_result
+							// mismatches); keep text/reasoning + source parts so citations survive reload.
 							parts: (m.parts || []).filter(
-								(p) => p.type === "text" || p.type === "reasoning",
+								(p) =>
+									p.type === "text" ||
+									p.type === "reasoning" ||
+									p.type === "source-url" ||
+									p.type === "source-document",
 							),
 							metadata: m.metadata,
 							createdAt: new Date(m.createdAt),
@@ -1469,6 +1483,24 @@ export function ChatSidebar({
 	const isStackedInput = layout === "page"
 	const showHeaderRow = !isPageDesktop || isMobile || !isStackedInput
 	const isResponding = status === "submitted" || status === "streaming"
+	const isWebSearching =
+		isResponding &&
+		(() => {
+			const last = messages[messages.length - 1]
+			if (!last || last.role !== "assistant") return false
+			const parts = last.parts ?? []
+			const searching = parts.some(
+				(p) =>
+					(p.type === "dynamic-tool" &&
+						isWebSearchToolName((p as { toolName?: string }).toolName ?? "")) ||
+					(p.type.startsWith("tool-") &&
+						isWebSearchToolName(p.type.slice("tool-".length))),
+			)
+			const hasText = parts.some(
+				(p) => p.type === "text" && (p as { text?: string }).text?.trim(),
+			)
+			return searching && !hasText
+		})()
 	const hasBusyAttachment = attachmentDrafts.some(
 		(attachment) =>
 			attachment.status === "uploading" || attachment.status === "queued",
@@ -1748,6 +1780,16 @@ export function ChatSidebar({
 					)}
 				>
 					<div className="mr-2 flex min-w-0 flex-1 items-center gap-2">
+						{isMobile && (
+							<button
+								type="button"
+								onClick={() => _setIsChatOpen(false)}
+								aria-label="Back"
+								className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#161F2C] bg-black text-[#FAFAFA] transition-colors hover:bg-[#161F2C]"
+							>
+								<ArrowLeftIcon className="size-5" />
+							</button>
+						)}
 						{!isStackedInput && (
 							<>
 								<ChatModelSelector
@@ -1801,9 +1843,8 @@ export function ChatSidebar({
 						className={
 							messages.length > 0
 								? cn(
-										"flex flex-col space-y-3 min-h-full justify-end",
+										"flex flex-col space-y-3 min-h-full justify-end pb-4",
 										isPageDesktop || isMobile ? "pt-2" : "pt-14",
-										isStackedInput && "px-4",
 									)
 								: ""
 						}
@@ -1851,11 +1892,6 @@ export function ChatSidebar({
 								)}
 							</div>
 						))}
-						{(status === "submitted" || status === "streaming") && (
-							<div className="flex gap-2">
-								<SuperLoader label="Thinking…" />
-							</div>
-						)}
 					</div>
 				</div>
 
@@ -1878,8 +1914,7 @@ export function ChatSidebar({
 				<div
 					role="alert"
 					className={cn(
-						"mb-2 rounded-lg bg-amber-950/40 px-3 py-2 text-sm text-amber-50/95",
-						isPageDesktop ? "mx-0" : "mx-4",
+						"mx-4 mb-2 rounded-lg bg-amber-950/40 px-3 py-2 text-sm text-amber-50/95",
 						dmSansClassName(),
 					)}
 				>
@@ -1931,7 +1966,7 @@ export function ChatSidebar({
 					"shrink-0",
 					isStackedInput &&
 						(isMobile
-							? "px-4 pb-2"
+							? "px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
 							: "px-4 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))] md:pb-6"),
 				)}
 			>
@@ -1953,11 +1988,13 @@ export function ChatSidebar({
 					activeStatus={
 						isResponding && isQueueFull
 							? `Queue full (${CHAT_QUEUE_LIMIT} max)`
-							: status === "submitted"
-								? "Thinking…"
-								: status === "streaming"
-									? "Structuring response…"
-									: "Waiting for input…"
+							: isWebSearching
+								? "Searching the web…"
+								: status === "submitted"
+									? "Thinking…"
+									: status === "streaming"
+										? "Thinking…"
+										: "Waiting for input…"
 					}
 					queuedMessages={messageQueue}
 					showStatusStrip={showInputStatusStrip}
@@ -1967,25 +2004,31 @@ export function ChatSidebar({
 					}
 					stackedToolbar={
 						isStackedInput ? (
-							<>
-								<ChatModelSelector
-									selectedModel={selectedModel}
-									onModelChange={handleModelChange}
-									minimal
-								/>
-								<ReasoningSelector
-									value={reasoningEffort}
-									onChange={setReasoningEffort}
-								/>
-								<SpaceSelector
-									selectedProjects={chatSpaceProjects}
-									onValueChange={setChatSpaceProjects}
-									variant="insideOut"
-									includeAuto
-									hideCount
-									triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5 shadow-none hover:bg-[#05080D]"
-								/>
-							</>
+							<ChatModelSelector
+								selectedModel={selectedModel}
+								onModelChange={handleModelChange}
+								minimal
+							/>
+						) : undefined
+					}
+					toolbarTrailing={
+						isStackedInput ? (
+							<ReasoningSelector
+								value={reasoningEffort}
+								onChange={setReasoningEffort}
+							/>
+						) : undefined
+					}
+					toolbarEnd={
+						isStackedInput ? (
+							<SpaceSelector
+								selectedProjects={chatSpaceProjects}
+								onValueChange={setChatSpaceProjects}
+								variant="insideOut"
+								includeAuto
+								hideCount
+								triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] gap-1.5 rounded-md border-0 bg-transparent px-2 py-1 shadow-none hover:bg-white/5"
+							/>
 						) : undefined
 					}
 				/>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { AnimatePresence, motion } from "motion/react"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
 import { dmSansClassName } from "@/lib/fonts"
@@ -44,8 +45,7 @@ export default function ChatModelSelector({
 	const selectedModel = selectedModelProp ?? internalModel
 	const currentModelData = modelNames[selectedModel]
 	const selectedModelLabel = `${currentModelData.name} ${currentModelData.version}`
-	const selectedItemClass =
-		"border border-[#267BF1]/35 bg-[#0A1A3A] text-white shadow-[inset_0_0_0_1px_rgba(75,160,250,0.08)]"
+	const selectedItemClass = "bg-white/[0.06] text-white"
 
 	const handleModelSelect = (modelId: ModelId) => {
 		if (onModelChange) {
@@ -61,18 +61,23 @@ export default function ChatModelSelector({
 		<button
 			type="button"
 			className={cn(
-				"flex max-w-[min(100%,220px)] min-w-0 shrink cursor-pointer items-center gap-1.5 rounded-full border border-white/15 bg-black px-3 py-1.5 text-[13px] text-white transition-colors hover:border-white/30 hover:bg-white/5",
+				"flex max-w-[min(100%,220px)] min-w-0 shrink cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-[13px] text-white/80 transition-colors hover:bg-white/5",
 				dmSansClassName(),
 			)}
 			onClick={() => setIsOpen(!isOpen)}
 			aria-expanded={isOpen}
 			aria-label={`Model: ${selectedModelLabel}`}
 		>
-			<p className="min-w-0 truncate text-left text-white">
+			<p className="min-w-0 truncate text-left text-white/80">
 				{currentModelData.name}{" "}
-				<span className="text-white/55">{currentModelData.version}</span>
+				<span className="text-white/40">{currentModelData.version}</span>
 			</p>
-			<ChevronDownIcon className="size-3.5 shrink-0 text-white/55" />
+			<ChevronDownIcon
+				className={cn(
+					"size-3.5 shrink-0 text-white/40 transition-transform duration-200",
+					isOpen && "rotate-180",
+				)}
+			/>
 		</button>
 	) : (
 		<Button
@@ -89,7 +94,12 @@ export default function ChatModelSelector({
 				{currentModelData.name}{" "}
 				<span className="text-white/55">{currentModelData.version}</span>
 			</p>
-			<ChevronDownIcon className="size-4 text-white/55" />
+			<ChevronDownIcon
+				className={cn(
+					"size-4 text-white/55 transition-transform duration-200",
+					isOpen && "rotate-180",
+				)}
+			/>
 		</Button>
 	)
 
@@ -103,66 +113,82 @@ export default function ChatModelSelector({
 		>
 			{trigger}
 
-			{isOpen && (
-				<div
-					className={cn(
-						"isolate absolute left-0 z-[1000] w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-white/15 bg-black p-1 shadow-[0_18px_48px_rgba(0,0,0,0.55)]",
-						dropdownDirection === "up" ? "bottom-full mb-2" : "top-full mt-2",
-					)}
-				>
-					<div className="space-y-1">
-						{models.map((model) => {
-							const modelData = modelNames[model.id]
-							const isSelected = selectedModel === model.id
-							return (
-								<button
-									key={model.id}
-									type="button"
-									className={cn(
-										"flex w-full cursor-pointer items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-left transition-colors",
-										isSelected
-											? selectedItemClass
-											: "text-white hover:bg-white/10",
-									)}
-									onClick={() => handleModelSelect(model.id)}
-									onKeyDown={(e) =>
-										e.key === "Enter" && handleModelSelect(model.id)
-									}
-								>
-									<div className="min-w-0 flex-1">
-										<div
-											className={cn(
-												"truncate text-sm font-medium",
-												isSelected ? "text-white" : "text-white",
-											)}
-										>
-											{modelData.name}{" "}
-											<span
+			<AnimatePresence>
+				{isOpen && (
+					<motion.div
+						initial={{
+							opacity: 0,
+							scale: 0.96,
+							y: dropdownDirection === "up" ? 6 : -6,
+						}}
+						animate={{ opacity: 1, scale: 1, y: 0 }}
+						exit={{
+							opacity: 0,
+							scale: 0.96,
+							y: dropdownDirection === "up" ? 6 : -6,
+						}}
+						transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+						className={cn(
+							"isolate absolute left-0 z-[1000] w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-white/10 bg-[#0B0F16]/95 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl",
+							dropdownDirection === "up"
+								? "bottom-full mb-2 origin-bottom"
+								: "top-full mt-2 origin-top",
+						)}
+					>
+						<div className="space-y-1">
+							{models.map((model) => {
+								const modelData = modelNames[model.id]
+								const isSelected = selectedModel === model.id
+								return (
+									<button
+										key={model.id}
+										type="button"
+										className={cn(
+											"flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors",
+											isSelected
+												? selectedItemClass
+												: "text-white hover:bg-white/[0.06]",
+										)}
+										onClick={() => handleModelSelect(model.id)}
+										onKeyDown={(e) =>
+											e.key === "Enter" && handleModelSelect(model.id)
+										}
+									>
+										<div className="min-w-0 flex-1">
+											<div
 												className={cn(
-													isSelected ? "text-[#8DBDFF]" : "text-white/55",
+													"truncate text-sm font-medium",
+													isSelected ? "text-white" : "text-white",
 												)}
 											>
-												{modelData.version}
-											</span>
+												{modelData.name}{" "}
+												<span
+													className={cn(
+														isSelected ? "text-[#8DBDFF]" : "text-white/40",
+													)}
+												>
+													{modelData.version}
+												</span>
+											</div>
+											<div
+												className={cn(
+													"mt-0.5 truncate text-xs",
+													isSelected ? "text-white/50" : "text-white/40",
+												)}
+											>
+												{model.description}
+											</div>
 										</div>
-										<div
-											className={cn(
-												"mt-0.5 truncate text-xs",
-												isSelected ? "text-white/60" : "text-white/45",
-											)}
-										>
-											{model.description}
-										</div>
-									</div>
-									{isSelected && (
-										<CheckIcon className="size-4 shrink-0 text-[#8DBDFF]" />
-									)}
-								</button>
-							)
-						})}
-					</div>
-				</div>
-			)}
+										{isSelected && (
+											<CheckIcon className="size-4 shrink-0 text-[#8DBDFF]" />
+										)}
+									</button>
+								)
+							})}
+						</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</div>
 	)
 }
