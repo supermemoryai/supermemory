@@ -30,7 +30,7 @@ import {
 	Zap,
 } from "lucide-react"
 import { formatRelativeTime } from "@/components/settings/sync-utils"
-import { CHROME_EXTENSION_URL } from "@lib/constants"
+import { CHROME_EXTENSION_URL, POKE_RECIPE_URL } from "@lib/constants"
 import { analytics } from "@/lib/analytics"
 import Image from "next/image"
 import { useViewMode } from "@/lib/view-mode-context"
@@ -278,6 +278,7 @@ interface BaseItem {
 	kind: ItemKind
 	simpleTitle?: string
 	dev?: boolean
+	isNew?: boolean
 }
 
 interface PluginItem extends BaseItem {
@@ -417,6 +418,26 @@ const SECTIONS: Array<{
 			},
 			{
 				kind: "client",
+				id: "poke",
+				name: "Poke",
+				tagline: "Recall and save memories from Poke over text",
+				simpleTitle: "Text Poke to recall and save your memories",
+				isNew: true,
+				icon: (
+					<div className="relative size-10 shrink-0 overflow-hidden rounded-lg">
+						<Image
+							src="/images/poke.png"
+							alt="Poke"
+							width={40}
+							height={40}
+							className="object-cover"
+						/>
+					</div>
+				),
+				action: { type: "external", href: POKE_RECIPE_URL },
+			},
+			{
+				kind: "client",
 				id: "shortcuts",
 				name: "Apple Shortcuts",
 				tagline: "Add memories from iPhone, iPad or Mac",
@@ -480,6 +501,19 @@ function ProChip() {
 			)}
 		>
 			Pro
+		</span>
+	)
+}
+
+function NewChip() {
+	return (
+		<span
+			className={cn(
+				dmSans125ClassName(),
+				"shrink-0 rounded-full bg-[#4BA0FA]/12 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#4BA0FA]",
+			)}
+		>
+			New
 		</span>
 	)
 }
@@ -599,6 +633,7 @@ function ItemCard({
 	name,
 	tagline,
 	pro,
+	isNew,
 	docsUrl,
 	leftIndicator,
 	rightSlot,
@@ -607,6 +642,7 @@ function ItemCard({
 	name: string
 	tagline: string
 	pro?: boolean
+	isNew?: boolean
 	docsUrl?: string
 	leftIndicator?: ReactNode
 	rightSlot: ReactNode
@@ -643,6 +679,7 @@ function ItemCard({
 						>
 							{name}
 						</span>
+						{isNew && <NewChip />}
 						{pro && <ProChip />}
 					</div>
 					<p
@@ -663,6 +700,7 @@ function ItemCard({
 interface FeaturedPick {
 	id: string
 	name: string
+	emoji?: string
 	headline: string
 	support: string
 	tagline: string
@@ -798,8 +836,11 @@ function FeaturedHero({ picks }: { picks: FeaturedPick[] }) {
 							"text-[13px] leading-snug text-[#A1A1AA]",
 						)}
 					>
-						<span className="font-medium text-[#CBD5E1]">{pick.name}</span> ·{" "}
-						{pick.support}
+						<span className="font-medium text-[#CBD5E1]">
+							{pick.emoji ? `${pick.emoji} ` : ""}
+							{pick.name}
+						</span>{" "}
+						· {pick.support}
 					</p>
 				</motion.div>
 			</AnimatePresence>
@@ -1319,6 +1360,36 @@ export function IntegrationsView() {
 
 	const featuredPicks: FeaturedPick[] = [
 		{
+			id: "feat-poke",
+			name: "Poke",
+			emoji: "🌴",
+			headline: "Your memory, one text away.",
+			support: "recall and save anything by texting Poke",
+			tagline: "Connect Poke to recall and save memories over text.",
+			icon: (
+				<Image
+					src="/images/poke.png"
+					alt="Poke"
+					width={32}
+					height={32}
+					className="rounded"
+				/>
+			),
+			backdrop: (
+				<Image
+					src="/images/poke.png"
+					alt=""
+					width={360}
+					height={360}
+					className="object-contain"
+				/>
+			),
+			ctaLabel: "Connect",
+			onCta: () => {
+				window.open(POKE_RECIPE_URL, "_blank", "noopener,noreferrer")
+			},
+		},
+		{
 			id: "feat-mcp",
 			name: "Supermemory MCP",
 			headline: "Your AI tools forget everything between chats.",
@@ -1563,9 +1634,11 @@ export function IntegrationsView() {
 									"_blank",
 									"noopener,noreferrer",
 								)
-								analytics.onboardingChromeExtensionClicked({
-									source: "integrations",
-								})
+								if (item.id === "chrome") {
+									analytics.onboardingChromeExtensionClicked({
+										source: "integrations",
+									})
+								}
 							}}
 						>
 							Connect
@@ -1618,6 +1691,7 @@ export function IntegrationsView() {
 			name={item.name}
 			tagline={item.tagline}
 			pro={item.pro}
+			isNew={item.isNew}
 			docsUrl={item.docsUrl}
 			leftIndicator={renderLeftIndicator(item)}
 			rightSlot={renderRight(item)}
