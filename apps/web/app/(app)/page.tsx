@@ -580,17 +580,17 @@ export default function NewPage() {
 	const isDashboardShell =
 		viewMode === "dashboard" || (viewMode === "graph" && isMobile)
 	const isGraphMode = viewMode === "graph"
-	const showBottomNav = isMobile && !!session
+	const showBottomNav = isMobile && !!session && !isChatView
 
 	return (
 		<HotkeysProvider>
 			<div
 				className={cn(
 					"relative flex min-h-dvh flex-col bg-[#05080D]",
-					isGraphMode && "h-dvh overflow-hidden",
+					(isGraphMode || isChatView) && "h-dvh overflow-hidden",
 					showBottomNav &&
 						!isGraphMode &&
-						"pb-[calc(5.5rem+env(safe-area-inset-bottom))]",
+						"pb-[calc(4rem+env(safe-area-inset-bottom))]",
 				)}
 			>
 				{showNovaBackdrop && (
@@ -770,7 +770,7 @@ export default function NewPage() {
 						className={cn(
 							"pointer-events-none fixed inset-x-0 z-30",
 							showBottomNav
-								? "bottom-[4.25rem]"
+								? "bottom-[calc(4rem+env(safe-area-inset-bottom))]"
 								: "bottom-0 bg-gradient-to-t from-black via-black/40 to-transparent pt-12",
 						)}
 					>

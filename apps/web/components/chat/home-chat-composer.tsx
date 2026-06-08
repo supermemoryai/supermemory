@@ -36,9 +36,9 @@ export function HomeChatComposer({
 	const [attachmentDrafts, setAttachmentDrafts] = useState<
 		ChatAttachmentDraft[]
 	>([])
-	const [selectedModel, setSelectedModel] = useState<ModelId>("gemini-2.5-pro")
+	const [selectedModel, setSelectedModel] = useState<ModelId>("grok-4.3")
 	const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(
-		getDefaultReasoningEffort("gemini-2.5-pro"),
+		getDefaultReasoningEffort("grok-4.3"),
 	)
 	const { selectedProject } = useProject()
 	const [chatSpaceProjects, setChatSpaceProjects] = useState<string[]>([
@@ -126,7 +126,7 @@ export function HomeChatComposer({
 
 	return (
 		<div className={cn(className)}>
-			<div className="mx-auto w-full max-w-[720px] px-4 pt-1 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))] md:pb-6">
+			<div className="mx-auto w-full max-w-[720px] px-4 pt-1 pb-2 md:pb-6">
 				<ChatInput
 					value={input}
 					onChange={(e) => setInput(e.target.value)}
@@ -141,25 +141,27 @@ export function HomeChatComposer({
 					attachmentAccept={CHAT_ATTACHMENT_ACCEPT}
 					showStatusStrip={false}
 					stackedToolbar={
-						<>
-							<ChatModelSelector
-								selectedModel={selectedModel}
-								onModelChange={handleModelChange}
-								minimal
-							/>
-							<ReasoningSelector
-								value={reasoningEffort}
-								onChange={setReasoningEffort}
-							/>
-							<SpaceSelector
-								selectedProjects={chatSpaceProjects}
-								onValueChange={setChatSpaceProjects}
-								variant="insideOut"
-								includeAuto
-								hideCount
-								triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5 shadow-none hover:bg-[#05080D]"
-							/>
-						</>
+						<ChatModelSelector
+							selectedModel={selectedModel}
+							onModelChange={handleModelChange}
+							minimal
+						/>
+					}
+					toolbarTrailing={
+						<ReasoningSelector
+							value={reasoningEffort}
+							onChange={setReasoningEffort}
+						/>
+					}
+					toolbarEnd={
+						<SpaceSelector
+							selectedProjects={chatSpaceProjects}
+							onValueChange={setChatSpaceProjects}
+							variant="insideOut"
+							includeAuto
+							hideCount
+							triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] gap-1.5 rounded-md border-0 bg-transparent px-2 py-1 shadow-none hover:bg-white/5"
+						/>
 					}
 				/>
 			</div>

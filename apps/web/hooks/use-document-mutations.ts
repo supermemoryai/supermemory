@@ -7,26 +7,23 @@ import {
 } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { $fetch } from "@lib/api"
-import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
-import type { z } from "zod"
 import { useAuth } from "@lib/auth-context"
 import { analytics } from "@/lib/analytics"
 
-type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
+/** Pull the human-readable message out of a $fetch error (handles `{error}`/`{message}`/string). */
+function fetchErrorMessage(err: unknown, fallback: string): string {
+	if (typeof err === "string") return err
+	if (err && typeof err === "object") {
+		const e = err as { error?: unknown; message?: unknown }
+		if (typeof e.error === "string") return e.error
+		if (typeof e.message === "string") return e.message
+	}
+	return fallback
+}
 
 interface DocumentWithId {
 	id?: string
 	customId?: string | null
-}
-
-interface DocumentsQueryData {
-	documents: DocumentWithId[]
-	totalCount: number
-}
-
-type InfiniteQueryData = {
-	pages: DocumentsResponse[]
-	pageParams: number[]
 }
 
 interface UseDocumentMutationsOptions {
@@ -566,7 +563,9 @@ export function useDocumentMutations({
 			})
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to delete document")
+				throw new Error(
+					fetchErrorMessage(response.error, "Failed to delete document"),
+				)
 			}
 
 			return response.data
@@ -606,7 +605,9 @@ export function useDocumentMutations({
 			})
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to delete documents")
+				throw new Error(
+					fetchErrorMessage(response.error, "Failed to delete documents"),
+				)
 			}
 
 			return response.data

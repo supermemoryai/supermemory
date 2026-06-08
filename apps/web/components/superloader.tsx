@@ -47,7 +47,7 @@ export function SuperLoader({
 		<output
 			aria-label={label}
 			className={`inline-flex flex-row items-center gap-2 ${className}`}
-			style={{ width: size + 10 }}
+			style={{ minWidth: size + 10 }}
 		>
 			<motion.svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -87,7 +87,7 @@ export function SuperLoader({
 			</motion.svg>
 
 			<span
-				className="text-xs font-medium text-slate-500"
+				className="whitespace-nowrap text-xs font-medium text-slate-500"
 				style={{ fontSize: size * 0.25 }}
 			>
 				{label}

@@ -1,5 +1,10 @@
 export const models = [
 	{
+		id: "grok-4.3",
+		name: "Grok 4.3",
+		description: "xAI's latest model",
+	},
+	{
 		id: "gpt-5.1",
 		name: "GPT 5.1",
 		description: "OpenAI's latest model",
@@ -20,6 +25,7 @@ export type ModelId = (typeof models)[number]["id"]
 export type ReasoningEffort = "instant" | "thinking"
 
 export const modelNames: Record<ModelId, { name: string; version: string }> = {
+	"grok-4.3": { name: "Grok", version: "4.3" },
 	"gpt-5.1": { name: "GPT", version: "5.1" },
 	"claude-sonnet-4.6": { name: "Claude", version: "4.6" },
 	"gemini-2.5-pro": { name: "Gemini", version: "3 Pro" },
