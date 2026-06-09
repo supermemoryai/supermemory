@@ -504,7 +504,41 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 	)
 }
 
-export function PublicHeader() {
+export function PublicHeader({
+	variant = "default",
+}: {
+	variant?: "default" | "integrations"
+}) {
+	if (variant === "integrations") {
+		return (
+			<div className="relative z-10 flex shrink-0 items-center justify-between gap-2 p-2.5 md:p-3">
+				<Link
+					href="/?view=integrations"
+					className="flex items-center gap-2 transition-opacity hover:opacity-90"
+				>
+					<Logo className="h-6 md:h-7" />
+					<p className="text-base leading-none font-medium text-white/90 sm:text-lg">
+						supermemory
+					</p>
+				</Link>
+
+				<Link href="/login?redirect=%2F%3Fview%3Dintegrations">
+					<button
+						type="button"
+						className={cn(
+							"flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-95 sm:px-5 sm:text-[15px]",
+							"bg-[linear-gradient(100deg,#426BFF_0%,#2D1CFF_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]",
+							dmSansClassName(),
+						)}
+					>
+						<Logo className="h-4 w-5 shrink-0" />
+						Log in with Supermemory
+					</button>
+				</Link>
+			</div>
+		)
+	}
+
 	return (
 		<div className="relative z-10 flex shrink-0 items-center justify-between gap-2 p-2.5 md:p-3">
 			<Link

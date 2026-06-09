@@ -1460,13 +1460,18 @@ function SectionRail({
 	)
 }
 
-export function IntegrationsView() {
+export function IntegrationsView({
+	publicMode = false,
+}: {
+	publicMode?: boolean
+}) {
 	const { setViewMode } = useViewMode()
 	const queryClient = useQueryClient()
 	const { org } = useAuth()
-	const autumn = useCustomer()
-	const hasProProduct = hasActivePlan(autumn.data?.subscriptions, "api_pro")
-	const isAutumnLoading = autumn.isLoading
+	const autumn = useCustomer({ queryOptions: { enabled: !publicMode } })
+	const hasProProduct =
+		!publicMode && hasActivePlan(autumn.data?.subscriptions, "api_pro")
+	const isAutumnLoading = !publicMode && autumn.isLoading
 
 	const [connectingPlugin, setConnectingPlugin] = useState<string | null>(null)
 	const [connectingProvider, setConnectingProvider] =
@@ -1493,6 +1498,7 @@ export function IntegrationsView() {
 			if (!res.ok) throw new Error("Failed to fetch plugins")
 			return (await res.json()) as { plugins: string[] }
 		},
+		enabled: !publicMode,
 		queryKey: ["plugins"],
 	})
 
@@ -1507,7 +1513,7 @@ export function IntegrationsView() {
 			return response.data as Connection[]
 		},
 		staleTime: 30 * 1000,
-		enabled: hasProProduct,
+		enabled: !publicMode && hasProProduct,
 	})
 
 	const { data: apiKeys = [], refetch: refetchKeys } = useQuery<ListedApiKey[]>(
@@ -1524,7 +1530,7 @@ export function IntegrationsView() {
 				const data = (await res.json()) as { keys?: ListedApiKey[] }
 				return data.keys ?? []
 			},
-			enabled: !!org?.id,
+			enabled: !publicMode && !!org?.id,
 			staleTime: 30 * 1000,
 		},
 	)
@@ -1678,7 +1684,15 @@ export function IntegrationsView() {
 		}
 	}
 
-	const availablePluginIds = pluginsData?.plugins ?? Object.keys(PLUGIN_CATALOG)
+	const redirectToLogin = useCallback(() => {
+		const loginUrl = new URL("/login", window.location.origin)
+		loginUrl.searchParams.set("redirect", window.location.href)
+		window.location.assign(loginUrl.toString())
+	}, [])
+
+	const availablePluginIds = publicMode
+		? Object.keys(PLUGIN_CATALOG)
+		: (pluginsData?.plugins ?? Object.keys(PLUGIN_CATALOG))
 	const enabledPluginIds = new Set(
 		availablePluginIds.filter((id) => PLUGIN_CATALOG[id]),
 	)
@@ -1714,6 +1728,7 @@ export function IntegrationsView() {
 
 	const isItemConnected = useCallback(
 		(item: Item): boolean => {
+			if (publicMode) return false
 			if (item.kind === "plugin") {
 				return activePluginById.has(item.pluginId)
 			}
@@ -1722,7 +1737,7 @@ export function IntegrationsView() {
 			}
 			return false
 		},
-		[activePluginById, connectionsByProvider],
+		[activePluginById, connectionsByProvider, publicMode],
 	)
 
 	const counts = useMemo<Record<CategoryFilter, number>>(
@@ -1780,6 +1795,10 @@ export function IntegrationsView() {
 			),
 			ctaLabel: "Connect",
 			onCta: () => {
+				if (publicMode) {
+					redirectToLogin()
+					return
+				}
 				window.open(POKE_RECIPE_URL, "_blank", "noopener,noreferrer")
 			},
 		},
@@ -1802,6 +1821,10 @@ export function IntegrationsView() {
 			docsUrl: "https://supermemory.ai/docs/supermemory-mcp/introduction",
 			ctaLabel: "Connect",
 			onCta: () => {
+				if (publicMode) {
+					redirectToLogin()
+					return
+				}
 				void setMcpClient(null)
 				setViewMode("mcp")
 			},
@@ -1831,12 +1854,18 @@ export function IntegrationsView() {
 				/>
 			),
 			docsUrl: "https://supermemory.ai/docs/integrations/claude-code",
-			ctaLabel: claudeCodeConnected
-				? "Active"
-				: claudeCodeNeedsPro
-					? "Upgrade"
-					: "Connect",
+			ctaLabel: publicMode
+				? "Connect"
+				: claudeCodeConnected
+					? "Active"
+					: claudeCodeNeedsPro
+						? "Upgrade"
+						: "Connect",
 			onCta: () => {
+				if (publicMode) {
+					redirectToLogin()
+					return
+				}
 				if (claudeCodeConnected) return
 				if (claudeCodeNeedsPro) {
 					handleUpgrade()
@@ -1855,6 +1884,10 @@ export function IntegrationsView() {
 			backdrop: <ChromeIcon className="size-96" />,
 			ctaLabel: "Connect",
 			onCta: () => {
+				if (publicMode) {
+					redirectToLogin()
+					return
+				}
 				window.open(CHROME_EXTENSION_URL, "_blank", "noopener,noreferrer")
 				analytics.onboardingChromeExtensionClicked({ source: "integrations" })
 			},
@@ -1885,6 +1918,19 @@ export function IntegrationsView() {
 		})
 
 	const renderRight = (item: Item): ReactNode => {
+		if (publicMode) {
+			return (
+				<PillButton
+					onClick={() => {
+						trackCard(item)
+						redirectToLogin()
+					}}
+				>
+					Connect
+				</PillButton>
+			)
+		}
+
 		switch (item.kind) {
 			case "plugin": {
 				const activeKey = activePluginById.get(item.pluginId)
@@ -2065,6 +2111,8 @@ export function IntegrationsView() {
 	}
 
 	const renderStatus = (item: Item): ReactNode => {
+		if (publicMode) return null
+
 		switch (item.kind) {
 			case "plugin": {
 				const activeKey = activePluginById.get(item.pluginId)
