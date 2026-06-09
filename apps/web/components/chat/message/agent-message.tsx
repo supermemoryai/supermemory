@@ -142,16 +142,33 @@ const STATUS_COPY: Record<
 	},
 }
 
+function connectorToolName(part: ToolCallDisplayPart): string {
+	return part.type.startsWith("tool-")
+		? part.type.slice("tool-".length)
+		: part.type
+}
+
+function parseConnectorOutput(value: string): NovaConnectorToolOutput | null {
+	try {
+		return JSON.parse(value) as NovaConnectorToolOutput
+	} catch {
+		return null
+	}
+}
+
 function unwrapToolOutput(output: unknown): NovaConnectorToolOutput | null {
 	if (typeof output === "string") {
-		try {
-			return JSON.parse(output) as NovaConnectorToolOutput
-		} catch {
-			return null
-		}
+		return parseConnectorOutput(output)
 	}
 	if (!output || typeof output !== "object") return null
 	const record = output as Record<string, unknown>
+	for (const key of ["value", "result", "data", "output"]) {
+		const nested = record[key]
+		if (nested && nested !== output) {
+			const parsed = unwrapToolOutput(nested)
+			if (parsed) return parsed
+		}
+	}
 	if (
 		record.type === "json" &&
 		record.value &&
@@ -160,17 +177,17 @@ function unwrapToolOutput(output: unknown): NovaConnectorToolOutput | null {
 		return record.value as NovaConnectorToolOutput
 	}
 	if (record.type === "text" && typeof record.value === "string") {
-		try {
-			return JSON.parse(record.value) as NovaConnectorToolOutput
-		} catch {
-			return null
-		}
+		return parseConnectorOutput(record.value)
+	}
+	if (typeof record.text === "string") {
+		return parseConnectorOutput(record.text)
 	}
 	return record as NovaConnectorToolOutput
 }
 
 function StatusPill({ status }: { status?: NovaConnectorStatus }) {
-	const copy = STATUS_COPY[status ?? "not_connected"]
+	const copy =
+		STATUS_COPY[status ?? "not_connected"] ?? STATUS_COPY.not_connected
 	return (
 		<span
 			className={cn(
@@ -395,7 +412,7 @@ function NovaConnectorCard({
 }
 
 function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
-	const toolName = part.type.replace("tool-", "")
+	const toolName = connectorToolName(part)
 	const output = unwrapToolOutput(part.output)
 	const isLoading =
 		part.state === "input-streaming" || part.state === "input-available"
@@ -408,13 +425,14 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 			</div>
 		)
 	}
-	if (isError || !output) {
+	if (isError) {
 		return (
 			<div className="my-2 rounded-xl border border-red-400/15 bg-red-400/10 px-3 py-2 text-xs text-red-200">
 				Couldn't load connector setup.
 			</div>
 		)
 	}
+	if (!output) return null
 	if (output.success === false) {
 		return (
 			<div className="my-2 rounded-xl border border-white/[0.08] bg-[#0D121A] p-3 text-sm text-white/80">
@@ -748,7 +766,7 @@ function BashToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 
 function ToolCallDisplay({ part }: { part: ToolCallDisplayPart }) {
 	const [expanded, setExpanded] = useState(false)
-	const toolName = part.type.replace("tool-", "")
+	const toolName = connectorToolName(part)
 	if (NOVA_CONNECTOR_TOOLS.has(toolName)) {
 		return <NovaConnectorToolDisplay part={part} />
 	}
