@@ -202,18 +202,29 @@
 	border-radius: 0.75rem;
 	background: #080b10 !important;
 	padding: 0.875rem 1rem;
-	color: #e4e4e7 !important;
+	color: #f4f4f5 !important;
 }
 
 .chat-markdown-content pre code {
 	display: block;
 	background: transparent !important;
 	padding: 0;
-	color: #e4e4e7 !important;
-	font-size: 0.8125rem;
+	color: #f4f4f5 !important;
+	font-size: 0.875rem;
 	line-height: 1.65;
 	text-shadow: none;
 	white-space: pre;
+}
+
+.chat-markdown-content pre code *,
+.chat-markdown-content pre [style] {
+	background: transparent !important;
+	color: #f4f4f5 !important;
+	text-shadow: none !important;
+}
+
+.chat-markdown-content pre code .line {
+	min-height: 1.45em;
 }
 
 .chat-markdown-content :not(pre) > code {
