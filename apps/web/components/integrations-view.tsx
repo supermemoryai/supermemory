@@ -732,15 +732,23 @@ function FeaturedHero({ picks }: { picks: FeaturedPick[] }) {
 	if (!pick) return null
 
 	return (
-		<button
-			type="button"
+		// biome-ignore lint/a11y/useSemanticElements: card wraps nested dot buttons, so it can't be a <button>
+		<div
+			role="button"
+			tabIndex={0}
 			onClick={pick.onCta}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault()
+					pick.onCta()
+				}
+			}}
 			onMouseEnter={() => setPaused(true)}
 			onMouseLeave={() => setPaused(false)}
 			onFocus={() => setPaused(true)}
 			onBlur={() => setPaused(false)}
 			className={cn(
-				"group relative w-full overflow-hidden rounded-[14px] px-5 py-5 sm:px-6 sm:py-6 text-left cursor-pointer",
+				"group relative flex w-full flex-col items-start justify-center overflow-hidden rounded-[14px] px-5 py-5 sm:px-6 sm:py-6 text-left cursor-pointer",
 				"bg-[#191D24]",
 				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
 				"min-h-[160px]",
@@ -844,7 +852,7 @@ function FeaturedHero({ picks }: { picks: FeaturedPick[] }) {
 					</p>
 				</motion.div>
 			</AnimatePresence>
-		</button>
+		</div>
 	)
 }
 

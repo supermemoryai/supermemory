@@ -30,7 +30,6 @@ import {
 } from "@ui/components/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
 import { useProject } from "@/stores"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { SpaceSelector } from "./space-selector"
 import { useIsMobile } from "@hooks/use-mobile"
@@ -44,6 +43,7 @@ import { useCustomer } from "autumn-js/react"
 import { useTokenUsage } from "@/hooks/use-token-usage"
 import { useOrgSummaries } from "@/hooks/use-org-summaries"
 import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
+import { useSettingsModal } from "@/components/settings/settings-modal"
 
 interface HeaderProps {
 	onAddMemory?: () => void
@@ -74,7 +74,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 		(orgSummaries ?? []).map((s) => [s.orgId, s.plan] as const),
 	)
 	const { selectedProjects, setSelectedProjects } = useProject()
-	const router = useRouter()
+	const { openSettings } = useSettingsModal()
 	const isMobile = useIsMobile()
 	const [feedbackOpen, setFeedbackOpen] = useQueryState(
 		"feedback",
@@ -421,7 +421,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 									Feedback
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									onClick={() => router.push("/settings")}
+									onClick={() => openSettings()}
 									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
 									<Settings className="size-4 text-[#737373]" />

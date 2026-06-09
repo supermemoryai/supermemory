@@ -10,7 +10,6 @@ import {
 	LifeBuoy,
 	Settings,
 } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { useQueryState } from "nuqs"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
@@ -25,6 +24,7 @@ import {
 import { useViewMode, type ViewMode } from "@/lib/view-mode-context"
 import { feedbackParam } from "@/lib/search-params"
 import NovaOrb from "@/components/nova/nova-orb"
+import { useSettingsModal } from "@/components/settings/settings-modal"
 
 const INTEGRATION_VIEWS: ViewMode[] = [
 	"integrations",
@@ -43,7 +43,7 @@ interface BottomNavProps {
 }
 
 export function MobileBottomNav({ onAddMemory, onOpenSearch }: BottomNavProps) {
-	const router = useRouter()
+	const { openSettings } = useSettingsModal()
 	const { viewMode, setViewMode } = useViewMode()
 	const [, setFeedbackOpen] = useQueryState("feedback", feedbackParam)
 
@@ -127,7 +127,7 @@ export function MobileBottomNav({ onAddMemory, onOpenSearch }: BottomNavProps) {
 						<MoreItem
 							icon={Settings}
 							label="Settings"
-							onClick={() => router.push("/settings")}
+							onClick={() => openSettings()}
 						/>
 					</DropdownMenuContent>
 				</DropdownMenu>
