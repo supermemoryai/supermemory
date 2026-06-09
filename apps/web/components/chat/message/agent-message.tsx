@@ -211,6 +211,10 @@ function connectorIconSrc(
 	return connector.icon
 }
 
+function connectorCardKey(connector: NovaConnectorCardData): string {
+	return `${connector.kind ?? "connector"}-${connector.id ?? connector.name ?? "unknown"}`
+}
+
 function connectorIdentity(
 	output: NovaConnectorToolOutput | null,
 ): string | null {
@@ -503,15 +507,26 @@ function NovaConnectorCard({
 
 function NovaConnectorCompactCard({
 	connector,
+	expanded,
+	onToggle,
 }: {
 	connector: NovaConnectorCardData
+	expanded: boolean
+	onToggle: () => void
 }) {
 	const iconSrc = connectorIconSrc(connector)
 	return (
-		<div className="group min-w-0 rounded-xl focus-within:sm:col-span-2 hover:sm:col-span-2">
+		<div className="min-w-0 rounded-xl">
 			<button
 				type="button"
-				className="flex min-h-14 w-full items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0D121A] px-2.5 py-2 text-left transition-colors hover:border-white/[0.14] hover:bg-[#111820] focus:outline-none focus-visible:border-[#4BA0FA]/50"
+				aria-expanded={expanded}
+				onClick={onToggle}
+				className={cn(
+					"flex min-h-14 w-full cursor-pointer items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition-colors focus:outline-none focus-visible:border-[#4BA0FA]/50",
+					expanded
+						? "border-[#4BA0FA]/30 bg-[#111820]"
+						: "border-white/[0.08] bg-[#0D121A] hover:border-white/[0.14] hover:bg-[#111820]",
+				)}
 			>
 				<div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-[#080B0F]">
 					{iconSrc ? (
@@ -536,15 +551,20 @@ function NovaConnectorCompactCard({
 					</p>
 				</div>
 				<StatusPill status={connector.status} />
+				{expanded ? (
+					<ChevronDownIcon className="size-3.5 shrink-0 text-[#737373]" />
+				) : (
+					<ChevronRightIcon className="size-3.5 shrink-0 text-[#737373]" />
+				)}
 			</button>
-			<div className="hidden pt-2 group-hover:block group-focus-within:block">
-				<NovaConnectorCard connector={connector} />
-			</div>
 		</div>
 	)
 }
 
 function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
+	const [expandedConnectorKey, setExpandedConnectorKey] = useState<
+		string | null
+	>(null)
 	const toolName = connectorToolName(part)
 	const output = unwrapToolOutput(part.output)
 	const isLoading =
@@ -585,6 +605,12 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 		: (output.connectors ?? [])
 	const isConnectorList =
 		toolName === "listNovaConnectors" && connectors.length > 1
+	const expandedConnector =
+		isConnectorList && expandedConnectorKey
+			? connectors.find(
+					(connector) => connectorCardKey(connector) === expandedConnectorKey,
+				)
+			: null
 	return (
 		<div className="my-2 space-y-2">
 			{isConnectorList ? (
@@ -601,17 +627,29 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 				{connectors.map((connector) =>
 					isConnectorList ? (
 						<NovaConnectorCompactCard
-							key={`${connector.kind}-${connector.id}-${connector.name}`}
+							key={connectorCardKey(connector)}
 							connector={connector}
+							expanded={connectorCardKey(connector) === expandedConnectorKey}
+							onToggle={() => {
+								const nextKey = connectorCardKey(connector)
+								setExpandedConnectorKey((current) =>
+									current === nextKey ? null : nextKey,
+								)
+							}}
 						/>
 					) : (
 						<NovaConnectorCard
-							key={`${connector.kind}-${connector.id}-${connector.name}`}
+							key={connectorCardKey(connector)}
 							connector={connector}
 						/>
 					),
 				)}
 			</div>
+			{expandedConnector ? (
+				<div className="pt-1">
+					<NovaConnectorCard connector={expandedConnector} />
+				</div>
+			) : null}
 		</div>
 	)
 }
