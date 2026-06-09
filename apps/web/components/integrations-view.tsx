@@ -210,6 +210,7 @@ function mcpClientIconSrc(key: MCPClientKey): string {
 const PLUGIN_SIMPLE_TITLES: Record<string, string> = {
 	claude_code: "Remembers your code conventions and decisions",
 	codex: "Codex sessions that remember your project",
+	cursor: "Cursor sessions with persistent project memory",
 	opencode: "OpenCode with persistent project memory",
 	openclaw: "Save chats from Telegram, Discord and Slack",
 	hermes: "Persistent memory for the Hermes agent",

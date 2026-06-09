@@ -74,6 +74,28 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 			},
 		],
 	},
+	cursor: {
+		id: "cursor",
+		name: "Cursor",
+		tagline: "Persistent memory for your Cursor coding sessions",
+		icon: "/images/plugins/cursor.png",
+		docsUrl: "https://docs.supermemory.ai/supermemory-mcp/setup#cursor",
+		installSteps: [
+			{
+				title: "Add Supermemory to Cursor",
+				description:
+					"Paste this into ~/.cursor/mcp.json. This key is shown only once â€” save it now.",
+				code: '{\n  "mcpServers": {\n    "supermemory": {\n      "url": "https://mcp.supermemory.ai/mcp",\n      "headers": {\n        "Authorization": "Bearer sm_..."\n      }\n    }\n  }\n}',
+				copyLabel: "Cursor config",
+				secret: true,
+			},
+			{
+				title: "Restart Cursor",
+				description:
+					"Restart Cursor so it reloads the MCP server configuration.",
+			},
+		],
+	},
 	opencode: {
 		id: "opencode",
 		name: "OpenCode",
@@ -143,6 +165,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 const SPACE_TO_CATALOG_ID: Record<string, string> = {
 	"claude-code": "claude_code",
 	codex: "codex",
+	cursor: "cursor",
 	opencode: "opencode",
 	openclaw: "openclaw",
 	hermes: "hermes",
