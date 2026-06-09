@@ -2,6 +2,7 @@
 
 import { MemoryGraph as MemoryGraphBase } from "@supermemory/memory-graph"
 import type { GraphThemeColors } from "@supermemory/memory-graph"
+import { SuperLoader } from "@/components/superloader"
 import { useGraphApi } from "./hooks/use-graph-api"
 
 export interface MemoryGraphWrapperProps {
@@ -46,14 +47,15 @@ export function MemoryGraph({
 		documentIds,
 		maxNodes,
 	})
+	const isInitialLoading = externalIsLoading || apiIsLoading
 
 	return (
 		<div className="absolute inset-0 [&>div]:!h-full [&>div]:!bg-none">
 			<MemoryGraphBase
 				documents={documents}
-				isLoading={externalIsLoading || apiIsLoading}
-				isLoadingMore={isLoadingMore}
-				onLoadMore={hasMore ? () => loadMore() : undefined}
+				isLoading={false}
+				isLoadingMore={false}
+				onLoadMore={hasMore && !isLoadingMore ? () => loadMore() : undefined}
 				hasMore={hasMore}
 				error={externalError || apiError}
 				variant={variant}
@@ -70,6 +72,16 @@ export function MemoryGraph({
 			>
 				{children}
 			</MemoryGraphBase>
+			{isInitialLoading && (
+				<div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
+					<SuperLoader
+						label="Loading memory graph..."
+						size={72}
+						colorClassName="text-[#4BA0FA]"
+						className="[&>span]:text-slate-100"
+					/>
+				</div>
+			)}
 		</div>
 	)
 }
