@@ -195,6 +195,36 @@
 	margin-top: 0;
 }
 
+.chat-markdown-content pre {
+	margin: 0.75rem 0;
+	overflow-x: auto;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 0.75rem;
+	background: #080b10 !important;
+	padding: 0.875rem 1rem;
+	color: #e4e4e7 !important;
+}
+
+.chat-markdown-content pre code {
+	display: block;
+	background: transparent !important;
+	padding: 0;
+	color: #e4e4e7 !important;
+	font-size: 0.8125rem;
+	line-height: 1.65;
+	text-shadow: none;
+	white-space: pre;
+}
+
+.chat-markdown-content :not(pre) > code {
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 0.375rem;
+	background: rgba(255, 255, 255, 0.06);
+	padding: 0.125rem 0.3125rem;
+	color: #fafafa;
+	font-size: 0.875em;
+}
+
 /* Model spams `---` between every section; headings already separate them */
 .chat-markdown-content hr {
 	display: none;

@@ -12,7 +12,6 @@ import {
 	CopyIcon,
 	ExternalLinkIcon,
 	GlobeIcon,
-	KeyRoundIcon,
 	ListIcon,
 	Loader2,
 	PlusIcon,
@@ -116,6 +115,12 @@ const NOVA_CONNECTOR_TOOLS = new Set([
 	"prepareNovaPluginSetup",
 ])
 
+const CONNECTOR_ICON_FALLBACKS: Record<string, string> = {
+	codex: "/images/plugins/codex.png",
+	cursor: "/images/plugins/cursor.png",
+	mcp_cursor: "/mcp-supported-tools/cursor.png",
+}
+
 const STATUS_COPY: Record<
 	NovaConnectorStatus,
 	{ label: string; className: string }
@@ -146,6 +151,14 @@ function connectorToolName(part: ToolCallDisplayPart): string {
 	return part.type.startsWith("tool-")
 		? part.type.slice("tool-".length)
 		: part.type
+}
+
+function connectorToolNameFromPart(part: unknown): string | null {
+	if (!part || typeof part !== "object") return null
+	const record = part as { type?: string; toolName?: string }
+	if (record.type === "dynamic-tool") return record.toolName ?? null
+	if (record.type?.startsWith("tool-")) return record.type.slice("tool-".length)
+	return null
 }
 
 function parseConnectorOutput(value: string): NovaConnectorToolOutput | null {
@@ -183,6 +196,70 @@ function unwrapToolOutput(output: unknown): NovaConnectorToolOutput | null {
 		return parseConnectorOutput(record.text)
 	}
 	return record as NovaConnectorToolOutput
+}
+
+function connectorIconSrc(
+	connector: NovaConnectorCardData,
+): string | undefined {
+	if (connector.id && CONNECTOR_ICON_FALLBACKS[connector.id]) {
+		return CONNECTOR_ICON_FALLBACKS[connector.id]
+	}
+	if (connector.icon?.endsWith("/codex.svg"))
+		return CONNECTOR_ICON_FALLBACKS.codex
+	if (connector.icon?.endsWith("/cursor.svg"))
+		return CONNECTOR_ICON_FALLBACKS.cursor
+	return connector.icon
+}
+
+function connectorIdentity(
+	output: NovaConnectorToolOutput | null,
+): string | null {
+	if (!output) return null
+	if (output.connectors && output.connectors.length !== 1) return null
+	const connector = output.connector ?? output.connectors?.[0]
+	if (!connector) return null
+	return `${connector.kind ?? "connector"}:${connector.id ?? connector.name ?? ""}`
+}
+
+function connectorOutputFromPart(
+	part: unknown,
+): NovaConnectorToolOutput | null {
+	if (!part || typeof part !== "object") return null
+	const record = part as {
+		type?: string
+		toolName?: string
+		output?: unknown
+	}
+	const toolName = connectorToolNameFromPart(record)
+	if (!toolName || !NOVA_CONNECTOR_TOOLS.has(toolName)) return null
+	return unwrapToolOutput(record.output)
+}
+
+function connectorToolPriority(toolName: string | null): number {
+	if (toolName === "prepareNovaPluginSetup") return 2
+	if (toolName === "getNovaConnectorSetup") return 1
+	return 0
+}
+
+function shouldSkipNovaConnectorPart(parts: unknown[], index: number): boolean {
+	const part = parts[index]
+	const toolName = connectorToolNameFromPart(part)
+	if (!toolName || !NOVA_CONNECTOR_TOOLS.has(toolName)) return false
+	const identity = connectorIdentity(connectorOutputFromPart(part))
+	if (!identity) return false
+	const priority = connectorToolPriority(toolName)
+
+	for (let i = 0; i < parts.length; i++) {
+		if (i === index) continue
+		const otherTool = connectorToolNameFromPart(parts[i])
+		if (!otherTool || !NOVA_CONNECTOR_TOOLS.has(otherTool)) continue
+		const otherIdentity = connectorIdentity(connectorOutputFromPart(parts[i]))
+		if (otherIdentity !== identity) continue
+		const otherPriority = connectorToolPriority(otherTool)
+		if (i < index && otherPriority >= priority) return true
+		if (i > index && otherPriority > priority) return true
+	}
+	return false
 }
 
 function StatusPill({ status }: { status?: NovaConnectorStatus }) {
@@ -297,14 +374,14 @@ function RevealPluginKeyButton({
 				<CheckIcon className="size-3.5 text-emerald-300" />
 			) : state === "error" ? (
 				<XCircleIcon className="size-3.5 text-red-300" />
-			) : (
-				<KeyRoundIcon className="size-3.5 text-[#4BA0FA]" />
-			)}
+			) : null}
 			{state === "copied"
 				? "Key copied"
 				: state === "error"
 					? "Try again"
-					: "Generate / Reveal key"}
+					: state === "loading"
+						? "Generating"
+						: "Generate key"}
 		</button>
 	)
 }
@@ -317,15 +394,28 @@ function NovaConnectorCard({
 	const [revealedKey, setRevealedKey] = useState<string | undefined>()
 	const needsKey = Boolean(connector.canGenerateKey && connector.keyPluginId)
 	const isUpgrade = connector.status === "upgrade_required"
+	const iconSrc = connectorIconSrc(connector)
 	return (
 		<div className="rounded-xl border border-white/[0.08] bg-[#0D121A] p-3 text-sm text-white/90 shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.55)]">
 			<div className="flex items-start gap-3">
 				<div className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[#080B0F]">
-					{connector.icon ? (
+					{iconSrc ? (
 						<img
-							src={connector.icon}
+							src={iconSrc}
 							alt=""
 							className="size-6 rounded object-contain"
+							onError={(event) => {
+								const img = event.currentTarget
+								const fallback = connector.id
+									? CONNECTOR_ICON_FALLBACKS[connector.id]
+									: undefined
+								if (fallback && img.dataset.fallbackApplied !== "true") {
+									img.dataset.fallbackApplied = "true"
+									img.src = fallback
+								} else {
+									img.style.display = "none"
+								}
+							}}
 						/>
 					) : (
 						<WrenchIcon className="size-5 text-white/50" />
@@ -411,6 +501,51 @@ function NovaConnectorCard({
 	)
 }
 
+function NovaConnectorCompactCard({
+	connector,
+}: {
+	connector: NovaConnectorCardData
+}) {
+	const iconSrc = connectorIconSrc(connector)
+	return (
+		<div className="group relative">
+			<button
+				type="button"
+				className="flex min-h-14 w-full items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0D121A] px-2.5 py-2 text-left transition-colors hover:border-white/[0.14] hover:bg-[#111820] focus:outline-none focus-visible:border-[#4BA0FA]/50"
+			>
+				<div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-[#080B0F]">
+					{iconSrc ? (
+						<img
+							src={iconSrc}
+							alt=""
+							className="size-5 rounded object-contain"
+							onError={(event) => {
+								event.currentTarget.style.display = "none"
+							}}
+						/>
+					) : (
+						<WrenchIcon className="size-4 text-white/50" />
+					)}
+				</div>
+				<div className="min-w-0 flex-1">
+					<p className="truncate text-[12px] font-semibold text-[#FAFAFA]">
+						{connector.name ?? connector.id ?? "Connector"}
+					</p>
+					<p className="mt-0.5 truncate text-[11px] text-[#737373]">
+						{connector.kind === "mcp" ? "MCP" : "Plugin"}
+					</p>
+				</div>
+				<StatusPill status={connector.status} />
+			</button>
+			<div className="pointer-events-none absolute left-0 top-full z-30 hidden w-[min(34rem,calc(100vw-2rem))] pt-2 group-hover:block group-focus-within:block">
+				<div className="pointer-events-auto">
+					<NovaConnectorCard connector={connector} />
+				</div>
+			</div>
+		</div>
+	)
+}
+
 function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 	const toolName = connectorToolName(part)
 	const output = unwrapToolOutput(part.output)
@@ -450,19 +585,35 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 	const connectors = output.connector
 		? [output.connector]
 		: (output.connectors ?? [])
+	const isConnectorList =
+		toolName === "listNovaConnectors" && connectors.length > 1
 	return (
 		<div className="my-2 space-y-2">
-			{toolName === "listNovaConnectors" && connectors.length > 1 ? (
+			{isConnectorList ? (
 				<p className="px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[#737373]">
 					Supermemory setup options
 				</p>
 			) : null}
-			{connectors.map((connector) => (
-				<NovaConnectorCard
-					key={`${connector.kind}-${connector.id}-${connector.name}`}
-					connector={connector}
-				/>
-			))}
+			<div
+				className={cn(
+					isConnectorList && "grid grid-cols-1 gap-2 sm:grid-cols-2",
+					!isConnectorList && "space-y-2",
+				)}
+			>
+				{connectors.map((connector) =>
+					isConnectorList ? (
+						<NovaConnectorCompactCard
+							key={`${connector.kind}-${connector.id}-${connector.name}`}
+							connector={connector}
+						/>
+					) : (
+						<NovaConnectorCard
+							key={`${connector.kind}-${connector.id}-${connector.name}`}
+							connector={connector}
+						/>
+					),
+				)}
+			</div>
 		</div>
 	)
 }
@@ -1015,6 +1166,9 @@ export function AgentMessage({
 							)
 						}
 						if (part.type === "dynamic-tool") {
+							if (shouldSkipNovaConnectorPart(message.parts, partIndex)) {
+								return null
+							}
 							const dt = part as {
 								type: "dynamic-tool"
 								toolName: string
@@ -1042,6 +1196,9 @@ export function AgentMessage({
 							)
 						}
 						if (part.type.startsWith("tool-")) {
+							if (shouldSkipNovaConnectorPart(message.parts, partIndex)) {
+								return null
+							}
 							return (
 								<ToolCallDisplay
 									key={`${message.id}-${partIndex}`}
