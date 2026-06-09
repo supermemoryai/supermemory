@@ -436,7 +436,7 @@ function getInvoiceProductLabel(productId: string | undefined): string {
 export default function Billing() {
 	const queryClient = useQueryClient()
 	const { user, org } = useAuth()
-	const autumn = useCustomer({ expand: ["payment_method"] })
+	const autumn = useCustomer()
 	const [isUpgrading, setIsUpgrading] = useState(false)
 	const [isCancelling, setIsCancelling] = useState(false)
 	const [isResuming, setIsResuming] = useState(false)

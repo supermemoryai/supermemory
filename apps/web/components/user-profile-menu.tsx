@@ -17,6 +17,7 @@ import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { useOrgOnboarding } from "@hooks/use-org-onboarding"
 import { useTokenUsage } from "@/hooks/use-token-usage"
+import { useSettingsModal } from "@/components/settings/settings-modal"
 
 export function UserProfileMenu({
 	className,
@@ -29,6 +30,7 @@ export function UserProfileMenu({
 }) {
 	const { user } = useAuth()
 	const router = useRouter()
+	const { openSettings } = useSettingsModal()
 	const { resetOrgOnboarded } = useOrgOnboarding()
 	const autumn = useCustomer()
 	const { currentPlan, isLoading: planLoading } = useTokenUsage(autumn)
@@ -144,7 +146,7 @@ export function UserProfileMenu({
 				</div>
 				<DropdownMenuSeparator className="mx-1 my-1.5 bg-white/[0.06]" />
 				<DropdownMenuItem
-					onClick={() => router.push("/settings")}
+					onClick={() => openSettings()}
 					className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 				>
 					<Settings className="size-4 text-[#737373]" />
