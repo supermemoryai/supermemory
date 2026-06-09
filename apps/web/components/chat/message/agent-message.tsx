@@ -508,7 +508,7 @@ function NovaConnectorCompactCard({
 }) {
 	const iconSrc = connectorIconSrc(connector)
 	return (
-		<div className="group relative">
+		<div className="group min-w-0 rounded-xl focus-within:sm:col-span-2 hover:sm:col-span-2">
 			<button
 				type="button"
 				className="flex min-h-14 w-full items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0D121A] px-2.5 py-2 text-left transition-colors hover:border-white/[0.14] hover:bg-[#111820] focus:outline-none focus-visible:border-[#4BA0FA]/50"
@@ -537,10 +537,8 @@ function NovaConnectorCompactCard({
 				</div>
 				<StatusPill status={connector.status} />
 			</button>
-			<div className="pointer-events-none absolute left-0 top-full z-30 hidden w-[min(34rem,calc(100vw-2rem))] pt-2 group-hover:block group-focus-within:block">
-				<div className="pointer-events-auto">
-					<NovaConnectorCard connector={connector} />
-				</div>
+			<div className="hidden pt-2 group-hover:block group-focus-within:block">
+				<NovaConnectorCard connector={connector} />
 			</div>
 		</div>
 	)
