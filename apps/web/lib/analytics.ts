@@ -50,6 +50,12 @@ export const analytics = {
 	// integrations surface (main Nova page)
 	integrationCardClicked: (props: { kind: string; id: string; name: string }) =>
 		safeCapture("integration_card_clicked", props),
+	integrationInfoModalClosed: (props: {
+		kind: string
+		id: string
+		name: string
+		close_reason: "dismiss" | "close_button" | "im_good" | "action"
+	}) => safeCapture("integration_info_modal_closed", props),
 
 	nextAppResearchCtaDismissed: () =>
 		safeCapture("next_app_research_cta_dismissed"),

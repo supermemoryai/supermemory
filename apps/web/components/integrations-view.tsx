@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useCustomer } from "autumn-js/react"
 import { cn } from "@lib/utils"
-import { dmSans125ClassName } from "@/lib/fonts"
+import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
 import { hasActivePlan } from "@lib/queries"
 import { $fetch } from "@lib/api"
 import { authClient } from "@lib/auth"
@@ -23,6 +23,7 @@ import {
 	ArrowRight,
 	BookOpen,
 	Check,
+	Info,
 	Loader,
 	Plus,
 	Search,
@@ -338,7 +339,7 @@ const SECTIONS: Array<{
 							className="size-6 rounded object-contain"
 						/>
 					),
-				docsUrl: "https://docs.supermemory.ai/supermemory-mcp/introduction",
+				docsUrl: "https://supermemory.ai/docs/supermemory-mcp/introduction",
 			})),
 	},
 	{
@@ -381,6 +382,7 @@ const SECTIONS: Array<{
 				simpleTitle: "Your Docs, Sheets and Slides, searchable",
 				icon: <GoogleDrive className="size-6" />,
 				pro: true,
+				docsUrl: "https://supermemory.ai/docs/connectors/google-drive",
 			},
 			{
 				kind: "connector",
@@ -391,6 +393,7 @@ const SECTIONS: Array<{
 				simpleTitle: "All your Notion pages, in supermemory",
 				icon: <Notion className="size-6" />,
 				pro: true,
+				docsUrl: "https://supermemory.ai/docs/connectors/notion",
 			},
 			{
 				kind: "connector",
@@ -401,6 +404,7 @@ const SECTIONS: Array<{
 				simpleTitle: "Your OneDrive files, ready to recall",
 				icon: <OneDrive className="size-6" />,
 				pro: true,
+				docsUrl: "https://supermemory.ai/docs/connectors/onedrive",
 			},
 		],
 	},
@@ -531,22 +535,369 @@ function IconBox({ children }: { children: ReactNode }) {
 	)
 }
 
-function DocsLink({ href }: { href: string }) {
+type InfoUseCase = {
+	title: string
+	description: string
+}
+
+type InfoModalCloseReason = Parameters<
+	typeof analytics.integrationInfoModalClosed
+>[0]["close_reason"]
+
+const MCP_INFO_USE_CASES: InfoUseCase[] = [
+	{
+		title: "Persistent assistant memory",
+		description:
+			"Store useful context during conversations and recall it later from this MCP client.",
+	},
+	{
+		title: "Shared context across tools",
+		description:
+			"Use the same Supermemory account across MCP-compatible clients so memory follows the user between sessions.",
+	},
+	{
+		title: "Profiles and project context",
+		description:
+			"Bring user profiles and project-scoped memories into supported AI clients when they need context.",
+	},
+]
+
+const ITEM_INFO_USE_CASES: Record<string, InfoUseCase[]> = {
+	"plugin-claude_code": [
+		{
+			title: "Session context injection",
+			description:
+				"Fetch relevant project memories, user preferences, and past interactions when Claude Code starts a session.",
+		},
+		{
+			title: "Automatic coding capture",
+			description:
+				"Save useful tool activity like edits, new files, shell commands, and spawned tasks for future sessions.",
+		},
+	],
+	"plugin-codex": [
+		{
+			title: "Recall before each prompt",
+			description:
+				"Inject relevant memories and profile context into Codex before each prompt.",
+		},
+		{
+			title: "Capture after sessions",
+			description:
+				"Store conversation transcripts after a session, scoped to the current project and user.",
+		},
+		{
+			title: "Explicit memory skills",
+			description:
+				"Use supermemory-search, supermemory-save, and supermemory-forget when memory needs direct control.",
+		},
+	],
+	"plugin-opencode": [
+		{
+			title: "Project memory in OpenCode",
+			description:
+				"Inject preferences, project knowledge, and past interactions at the start of OpenCode sessions.",
+		},
+		{
+			title: "Smart session capture",
+			description:
+				"Save memories from explicit phrases like remember or save this, and summarize long sessions during compaction.",
+		},
+	],
+	"plugin-openclaw": [
+		{
+			title: "Memory across messaging channels",
+			description:
+				"Give OpenClaw memory across WhatsApp, Telegram, Discord, Slack, iMessage, and other channels.",
+		},
+		{
+			title: "Auto-recall and auto-capture",
+			description:
+				"Inject relevant memories before AI turns and store conversation exchanges after turns.",
+		},
+		{
+			title: "Direct memory tools",
+			description:
+				"Let the AI store, search, forget, and inspect profile memories during conversations.",
+		},
+	],
+	"plugin-hermes": [
+		{
+			title: "Semantic memory for Hermes",
+			description:
+				"Add long-term memory, profile recall, search, and session-aware ingest to Hermes.",
+		},
+		{
+			title: "Turn and session memory",
+			description:
+				"Prefetch relevant context before turns, capture completed turns, and ingest full sessions for richer graph updates.",
+		},
+		{
+			title: "Organized containers",
+			description:
+				"Use profile-scoped memory and optional multi-container tags for work, personal, or project-specific context.",
+		},
+	],
+	"google-drive": [
+		{
+			title: "Scoped Drive sync",
+			description:
+				"Sync selected Google Docs, Sheets, Slides, and PDFs after OAuth and the hosted file picker.",
+		},
+		{
+			title: "Fresh knowledge base",
+			description:
+				"Keep selected Drive files updated in Supermemory, with scheduled and manual import support.",
+		},
+	],
+	notion: [
+		{
+			title: "Workspace knowledge sync",
+			description:
+				"Sync Notion pages, databases, and blocks into Supermemory from connected workspaces.",
+		},
+		{
+			title: "Rich Notion context",
+			description:
+				"Preserve rich formatting and database properties so Notion content remains useful for retrieval.",
+		},
+	],
+	onedrive: [
+		{
+			title: "Microsoft 365 documents",
+			description:
+				"Sync Word documents, Excel spreadsheets, and PowerPoint presentations from OneDrive.",
+		},
+		{
+			title: "Personal and business accounts",
+			description:
+				"Connect personal or business OneDrive accounts and keep Office files updated through sync.",
+		},
+	],
+	chrome: [
+		{
+			title: "Save from the browser",
+			description:
+				"Capture webpages into Supermemory while browsing instead of manually copying content.",
+		},
+		{
+			title: "Bring bookmarks into memory",
+			description:
+				"Import saved browser context so it can be searched and reused later.",
+		},
+	],
+	shortcuts: [
+		{
+			title: "Quick mobile capture",
+			description:
+				"Add memories from iPhone, iPad, or Mac through Apple Shortcuts.",
+		},
+		{
+			title: "Save without opening the app",
+			description:
+				"Send useful snippets and links into Supermemory from native Apple workflows.",
+		},
+	],
+	raycast: [
+		{
+			title: "Fast desktop capture",
+			description:
+				"Add memories from Raycast on Mac without leaving the launcher.",
+		},
+		{
+			title: "Search from Raycast",
+			description:
+				"Look up Supermemory content directly from your desktop command bar.",
+		},
+	],
+	"x-bookmarks": [
+		{
+			title: "Import saved X posts",
+			description:
+				"Turn X/Twitter bookmarks into searchable Supermemory memories.",
+		},
+		{
+			title: "Reuse social research",
+			description:
+				"Bring bookmarked threads, references, and ideas into the same memory layer as your other tools.",
+		},
+	],
+}
+
+function getInfoUseCases(id: string): InfoUseCase[] {
+	return ITEM_INFO_USE_CASES[id] ?? MCP_INFO_USE_CASES
+}
+
+function ItemInfoButton({
+	name,
+	onClick,
+}: {
+	name: string
+	onClick: () => void
+}) {
 	return (
-		<a
-			aria-label="Open docs"
-			href={href}
-			target="_blank"
-			rel="noopener noreferrer"
-			onClick={(e) => e.stopPropagation()}
+		<button
+			type="button"
+			aria-label={`View ${name} use cases and docs`}
+			title="Use cases and docs"
+			onClick={(e) => {
+				e.stopPropagation()
+				onClick()
+			}}
 			className={cn(
-				dmSans125ClassName(),
-				"flex size-8 shrink-0 items-center justify-center rounded-full text-[12px] text-[#A1A1AA] transition-colors hover:text-white sm:h-auto sm:w-auto sm:gap-1.5 sm:rounded-none",
+				"absolute top-4 right-4 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[#A1A1AA] opacity-0 transition-all hover:text-[#FAFAFA] focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100 sm:size-8",
+				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
 			)}
 		>
-			<BookOpen className="size-3.5" />
-			<span className="hidden sm:inline">Docs</span>
-		</a>
+			<Info className="size-3.5" />
+		</button>
+	)
+}
+
+function ItemInfoDialog({
+	actionSlot,
+	docsUrl,
+	icon,
+	id,
+	kind,
+	name,
+	onOpenChange,
+	open,
+}: {
+	actionSlot: ReactNode
+	docsUrl?: string
+	icon: ReactNode
+	id: string
+	kind: ItemKind
+	name: string
+	onOpenChange: (open: boolean) => void
+	open: boolean
+}) {
+	const useCases = getInfoUseCases(id)
+	const closeWithReason = (closeReason: InfoModalCloseReason) => {
+		analytics.integrationInfoModalClosed({
+			kind,
+			id,
+			name,
+			close_reason: closeReason,
+		})
+		onOpenChange(false)
+	}
+	return (
+		<Dialog
+			open={open}
+			onOpenChange={(nextOpen) => {
+				if (nextOpen) {
+					onOpenChange(true)
+					return
+				}
+				closeWithReason("dismiss")
+			}}
+		>
+			<DialogContent
+				showCloseButton={false}
+				onClick={(e) => e.stopPropagation()}
+				style={{
+					boxShadow:
+						"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset",
+				}}
+				className={cn(
+					dmSans125ClassName(),
+					"flex max-h-[88dvh] flex-col gap-3 overflow-hidden border border-white/[0.12] bg-[#1B1F24] p-0 px-3 pt-3 pb-4 text-[#FAFAFA] rounded-2xl md:px-4 sm:max-w-[560px] sm:rounded-[22px]",
+				)}
+			>
+				<DialogTitle className="sr-only">{name} use cases and docs</DialogTitle>
+				<div className="flex shrink-0 items-center gap-3">
+					<IconBox>{icon}</IconBox>
+					<div className="min-w-0 flex-1">
+						<p className="truncate text-[16px] font-semibold leading-tight text-[#FAFAFA]">
+							{name}
+						</p>
+						<p className="mt-0.5 truncate text-[12px] text-[#A1A1AA]">
+							Use cases that apply to this Supermemory connection.
+						</p>
+					</div>
+					<div className="flex shrink-0 items-center gap-2">
+						{docsUrl && (
+							<a
+								href={docsUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								className={cn(
+									dmSans125ClassName(),
+									"flex h-7 items-center gap-1.5 rounded-full bg-[#0D121A] px-3 text-[12px] text-[#A1A1AA] transition-colors hover:text-white",
+									INSET,
+								)}
+							>
+								<BookOpen className="size-3.5" /> Docs
+							</a>
+						)}
+						<button
+							type="button"
+							aria-label="Close"
+							onClick={() => closeWithReason("close_button")}
+							className={cn(
+								"flex size-7 items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80 focus:outline-none",
+								INSET,
+							)}
+						>
+							<X className="size-4 text-[#737373]" />
+						</button>
+					</div>
+				</div>
+				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+					<div
+						className={cn(
+							"min-w-0 rounded-[14px] bg-[#14161A] p-4 sm:p-5",
+							INSET,
+						)}
+					>
+						<div className="flex flex-col gap-5">
+							{useCases.map((useCase, index) => (
+								<div key={useCase.title} className="flex gap-3">
+									<div className="flex flex-col items-center gap-1.5">
+										<span
+											className={cn(
+												"flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[11px] font-semibold text-[#4BA0FA]",
+												INSET,
+											)}
+										>
+											{index + 1}
+										</span>
+										{index < useCases.length - 1 && (
+											<span className="w-px flex-1 bg-white/[0.14]" />
+										)}
+									</div>
+									<div className="min-w-0">
+										<p className="text-[15px] font-semibold leading-tight text-[#FAFAFA]">
+											{useCase.title}
+										</p>
+										<p className="mt-1 text-[13px] leading-relaxed text-[#A1A1AA]">
+											{useCase.description}
+										</p>
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				</div>
+				<div className="flex shrink-0 items-center justify-end gap-2 pt-1">
+					<button
+						type="button"
+						onClick={() => closeWithReason("im_good")}
+						className={cn(
+							"px-3 py-2 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]",
+							dmSansClassName(),
+						)}
+					>
+						I'm good
+					</button>
+					{/* biome-ignore lint/a11y/noStaticElementInteractions: closes the info dialog after the nested action button runs. */}
+					{/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handling stays on the nested real button. */}
+					<div onClick={() => closeWithReason("action")}>{actionSlot}</div>
+				</div>
+			</DialogContent>
+		</Dialog>
 	)
 }
 
@@ -629,43 +980,61 @@ function ConnectionsCountPill({ count }: { count: number }) {
 }
 
 function ItemCard({
+	actionSlot,
 	icon,
+	id,
+	kind,
 	name,
 	tagline,
 	pro,
 	isNew,
 	docsUrl,
 	leftIndicator,
-	rightSlot,
+	statusSlot,
 }: {
+	actionSlot: ReactNode
 	icon: ReactNode
+	id: string
+	kind: ItemKind
 	name: string
 	tagline: string
 	pro?: boolean
 	isNew?: boolean
 	docsUrl?: string
 	leftIndicator?: ReactNode
-	rightSlot: ReactNode
+	statusSlot?: ReactNode
 }) {
+	const [infoOpen, setInfoOpen] = useState(false)
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: the card contains nested action buttons, so it cannot be a native button.
 		<div
+			role="button"
+			tabIndex={0}
+			onClick={() => setInfoOpen(true)}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault()
+					setInfoOpen(true)
+				}
+			}}
 			className={cn(
-				"flex h-full flex-col gap-4 rounded-[12px] bg-[#14161A] p-4 transition-colors hover:bg-[#16181D]",
+				"group relative flex h-full cursor-pointer flex-col gap-4 rounded-[12px] bg-[#14161A] p-4 transition-colors hover:bg-[#16181D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4BA0FA]/45",
 				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
 			)}
 		>
+			<ItemInfoButton name={name} onClick={() => setInfoOpen(true)} />
+			<ItemInfoDialog
+				actionSlot={actionSlot}
+				docsUrl={docsUrl}
+				icon={icon}
+				id={id}
+				kind={kind}
+				name={name}
+				open={infoOpen}
+				onOpenChange={setInfoOpen}
+			/>
 			<div className="flex items-start justify-between gap-2">
 				<IconBox>{icon}</IconBox>
-				{docsUrl && (
-					// biome-ignore lint/a11y/noStaticElementInteractions: wrapper to stop event propagation
-					<div
-						role="presentation"
-						onClick={(e) => e.stopPropagation()}
-						onKeyDown={(e) => e.stopPropagation()}
-					>
-						<DocsLink href={docsUrl} />
-					</div>
-				)}
 			</div>
 			<div className="flex flex-1 flex-col justify-end gap-3">
 				<div className="min-w-0">
@@ -691,7 +1060,24 @@ function ItemCard({
 						{tagline}
 					</p>
 				</div>
-				<div className="flex justify-end">{rightSlot}</div>
+				<div className="flex w-full items-center justify-between gap-2">
+					{/* biome-ignore lint/a11y/noStaticElementInteractions: stop card click from swallowing the status action. */}
+					<div
+						className="flex min-w-0 flex-1"
+						onClick={(e) => e.stopPropagation()}
+						onKeyDown={(e) => e.stopPropagation()}
+					>
+						{statusSlot}
+					</div>
+					{/* biome-ignore lint/a11y/noStaticElementInteractions: stop card click from swallowing the primary action. */}
+					<div
+						className="flex shrink-0 justify-end"
+						onClick={(e) => e.stopPropagation()}
+						onKeyDown={(e) => e.stopPropagation()}
+					>
+						{actionSlot}
+					</div>
+				</div>
 			</div>
 		</div>
 	)
@@ -1413,7 +1799,7 @@ export function IntegrationsView() {
 					className="object-contain"
 				/>
 			),
-			docsUrl: "https://docs.supermemory.ai/supermemory-mcp/introduction",
+			docsUrl: "https://supermemory.ai/docs/supermemory-mcp/introduction",
 			ctaLabel: "Connect",
 			onCta: () => {
 				void setMcpClient(null)
@@ -1444,7 +1830,7 @@ export function IntegrationsView() {
 					className="object-contain"
 				/>
 			),
-			docsUrl: "https://docs.supermemory.ai/integrations/claude-code",
+			docsUrl: "https://supermemory.ai/docs/integrations/claude-code",
 			ctaLabel: claudeCodeConnected
 				? "Active"
 				: claudeCodeNeedsPro
@@ -1502,46 +1888,35 @@ export function IntegrationsView() {
 		switch (item.kind) {
 			case "plugin": {
 				const activeKey = activePluginById.get(item.pluginId)
-				const activeCount = activeCountByPlugin.get(item.pluginId) ?? 0
 				const needsProUpgrade =
 					!isAutumnLoading && !hasProProduct && !isFreeTierPlugin(item.pluginId)
 				if (activeKey) {
 					const busy = connectingPlugin === item.pluginId
 					return (
-						<div className="flex w-full items-center justify-between gap-2">
-							<ActiveButton
-								count={activeCount}
-								lastActive={activeKey.lastRequest}
-								onClick={() => {
-									trackCard(item)
-									setConnectedPluginId(item.pluginId)
-								}}
-							/>
-							<button
-								type="button"
-								aria-label={`Connect ${item.name} to another agent`}
-								title="Connect another agent"
-								onClick={() => {
-									if (needsProUpgrade) {
-										handleUpgrade()
-										return
-									}
-									trackCard(item)
-									createPluginKeyMutation.mutate(item.pluginId)
-								}}
-								disabled={!!connectingPlugin}
-								className={cn(
-									"flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[#A1A1AA] transition-colors hover:text-[#FAFAFA] disabled:opacity-50 sm:size-9",
-									"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
-								)}
-							>
-								{busy ? (
-									<Loader className="size-3.5 animate-spin" />
-								) : (
-									<Plus className="size-4" />
-								)}
-							</button>
-						</div>
+						<button
+							type="button"
+							aria-label={`Connect ${item.name} to another agent`}
+							title="Connect another agent"
+							onClick={() => {
+								if (needsProUpgrade) {
+									handleUpgrade()
+									return
+								}
+								trackCard(item)
+								createPluginKeyMutation.mutate(item.pluginId)
+							}}
+							disabled={!!connectingPlugin}
+							className={cn(
+								"flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[#A1A1AA] transition-colors hover:text-[#FAFAFA] disabled:opacity-50 sm:size-9",
+								"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
+							)}
+						>
+							{busy ? (
+								<Loader className="size-3.5 animate-spin" />
+							) : (
+								<Plus className="size-4" />
+							)}
+						</button>
 					)
 				}
 				if (setupPluginIds.has(item.pluginId)) {
@@ -1585,24 +1960,21 @@ export function IntegrationsView() {
 				const needsProUpgrade = !isAutumnLoading && !hasProProduct
 				if (count > 0) {
 					return (
-						<div className="flex w-full items-center justify-between gap-2">
-							<ConnectionsCountPill count={count} />
-							<button
-								type="button"
-								aria-label="Add another knowledge source"
-								title="Add another knowledge source"
-								onClick={() => {
-									trackCard(item)
-									void setAddDoc("connect")
-								}}
-								className={cn(
-									"flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[#A1A1AA] transition-colors hover:text-[#FAFAFA] sm:size-9",
-									"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
-								)}
-							>
-								<Plus className="size-4" />
-							</button>
-						</div>
+						<button
+							type="button"
+							aria-label="Add another knowledge source"
+							title="Add another knowledge source"
+							onClick={() => {
+								trackCard(item)
+								void setAddDoc("connect")
+							}}
+							className={cn(
+								"flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[#A1A1AA] transition-colors hover:text-[#FAFAFA] sm:size-9",
+								"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
+							)}
+						>
+							<Plus className="size-4" />
+						</button>
 					)
 				}
 				if (needsProUpgrade) {
@@ -1692,17 +2064,46 @@ export function IntegrationsView() {
 		}
 	}
 
+	const renderStatus = (item: Item): ReactNode => {
+		switch (item.kind) {
+			case "plugin": {
+				const activeKey = activePluginById.get(item.pluginId)
+				if (!activeKey) return null
+				return (
+					<ActiveButton
+						count={activeCountByPlugin.get(item.pluginId) ?? 0}
+						lastActive={activeKey.lastRequest}
+						onClick={() => {
+							trackCard(item)
+							setConnectedPluginId(item.pluginId)
+						}}
+					/>
+				)
+			}
+			case "connector": {
+				const count = connectionsByProvider[item.provider].length
+				if (count <= 0) return null
+				return <ConnectionsCountPill count={count} />
+			}
+			default:
+				return null
+		}
+	}
+
 	const renderItemCard = (item: Item) => (
 		<ItemCard
 			key={item.id}
+			actionSlot={renderRight(item)}
 			icon={item.icon}
+			id={item.id}
+			kind={item.kind}
 			name={item.name}
 			tagline={item.tagline}
 			pro={item.pro}
 			isNew={item.isNew}
 			docsUrl={item.docsUrl}
 			leftIndicator={renderLeftIndicator(item)}
-			rightSlot={renderRight(item)}
+			statusSlot={renderStatus(item)}
 		/>
 	)
 
@@ -2194,7 +2595,7 @@ export function IntegrationsView() {
 						</div>
 						<div className="flex shrink-0 items-center gap-2">
 							<a
-								href="https://docs.supermemory.ai/supermemory-mcp/introduction"
+								href="https://supermemory.ai/docs/supermemory-mcp/introduction"
 								target="_blank"
 								rel="noopener noreferrer"
 								className={cn(
