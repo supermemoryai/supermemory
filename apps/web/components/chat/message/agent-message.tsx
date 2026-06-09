@@ -5,10 +5,14 @@ import type { UIMessage } from "@ai-sdk/react"
 import { Streamdown } from "streamdown"
 import {
 	BookOpenIcon,
+	CheckIcon,
 	ChevronDownIcon,
 	ChevronRightIcon,
 	ClockIcon,
+	CopyIcon,
+	ExternalLinkIcon,
 	GlobeIcon,
+	KeyRoundIcon,
 	ListIcon,
 	Loader2,
 	PlusIcon,
@@ -16,6 +20,7 @@ import {
 	TerminalIcon,
 	WrenchIcon,
 	XCircleIcon,
+	ZapIcon,
 } from "lucide-react"
 import { cn } from "@lib/utils"
 import { isWebSearchToolName } from "@/lib/chat-web-search-tools"
@@ -62,6 +67,386 @@ function sourceHost(url: string): string {
 
 function faviconUrl(host: string): string {
 	return `https://www.google.com/s2/favicons?sz=64&domain=${host}`
+}
+
+type NovaConnectorStatus =
+	| "active"
+	| "setup_pending"
+	| "not_connected"
+	| "upgrade_required"
+	| "setup_available"
+
+type NovaConnectorStep = {
+	title?: string
+	description?: string
+	code?: string
+	link?: { url: string; label: string }
+	createPluginKey?: boolean
+}
+
+type NovaConnectorCardData = {
+	kind?: "plugin" | "mcp"
+	id?: string
+	name?: string
+	icon?: string
+	description?: string
+	features?: string[]
+	docsUrl?: string
+	repoUrl?: string
+	installSteps?: NovaConnectorStep[]
+	status?: NovaConnectorStatus
+	requiresPro?: boolean
+	canGenerateKey?: boolean
+	keyPluginId?: string
+}
+
+type NovaConnectorToolOutput = {
+	success?: boolean
+	error?: string
+	kind?: string
+	connectors?: NovaConnectorCardData[]
+	connector?: NovaConnectorCardData
+	keyReveal?: { pluginId: string; label?: string } | null
+	available?: Array<{ kind: "plugin" | "mcp"; id: string; name: string }>
+}
+
+const NOVA_CONNECTOR_TOOLS = new Set([
+	"listNovaConnectors",
+	"getNovaConnectorSetup",
+	"prepareNovaPluginSetup",
+])
+
+const STATUS_COPY: Record<
+	NovaConnectorStatus,
+	{ label: string; className: string }
+> = {
+	active: {
+		label: "Active",
+		className: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
+	},
+	setup_pending: {
+		label: "Finish setup",
+		className: "border-amber-400/20 bg-amber-400/10 text-amber-300",
+	},
+	not_connected: {
+		label: "Not connected",
+		className: "border-white/10 bg-white/[0.05] text-white/55",
+	},
+	upgrade_required: {
+		label: "Pro required",
+		className: "border-[#4BA0FA]/25 bg-[#4BA0FA]/10 text-[#4BA0FA]",
+	},
+	setup_available: {
+		label: "Setup available",
+		className: "border-white/10 bg-white/[0.05] text-white/65",
+	},
+}
+
+function unwrapToolOutput(output: unknown): NovaConnectorToolOutput | null {
+	if (typeof output === "string") {
+		try {
+			return JSON.parse(output) as NovaConnectorToolOutput
+		} catch {
+			return null
+		}
+	}
+	if (!output || typeof output !== "object") return null
+	const record = output as Record<string, unknown>
+	if (
+		record.type === "json" &&
+		record.value &&
+		typeof record.value === "object"
+	) {
+		return record.value as NovaConnectorToolOutput
+	}
+	if (record.type === "text" && typeof record.value === "string") {
+		try {
+			return JSON.parse(record.value) as NovaConnectorToolOutput
+		} catch {
+			return null
+		}
+	}
+	return record as NovaConnectorToolOutput
+}
+
+function StatusPill({ status }: { status?: NovaConnectorStatus }) {
+	const copy = STATUS_COPY[status ?? "not_connected"]
+	return (
+		<span
+			className={cn(
+				"inline-flex h-6 shrink-0 items-center rounded-full border px-2 text-[11px] font-medium",
+				copy.className,
+			)}
+		>
+			{copy.label}
+		</span>
+	)
+}
+
+function MiniCopyButton({ text, label }: { text: string; label?: string }) {
+	const [copied, setCopied] = useState(false)
+	return (
+		<button
+			type="button"
+			aria-label={`Copy ${label ?? "value"}`}
+			onClick={async () => {
+				try {
+					await navigator.clipboard.writeText(text)
+					setCopied(true)
+					setTimeout(() => setCopied(false), 1800)
+				} catch {
+					setCopied(false)
+				}
+			}}
+			className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-white/45 transition-colors hover:text-white/80"
+		>
+			{copied ? (
+				<CheckIcon className="size-3.5 text-emerald-300" />
+			) : (
+				<CopyIcon className="size-3.5" />
+			)}
+		</button>
+	)
+}
+
+function ConnectorCodeBlock({
+	code,
+	apiKey,
+}: {
+	code: string
+	apiKey?: string
+}) {
+	const rendered = apiKey ? code.replaceAll("sm_...", apiKey) : code
+	return (
+		<div className="group flex min-w-0 items-center gap-2 rounded-[10px] border border-white/[0.07] bg-[#080B10] px-3 py-2.5">
+			<pre
+				className={cn(
+					"scrollbar-none min-w-0 flex-1 overflow-x-auto whitespace-pre font-mono text-[12px] leading-[1.6] text-[#E4E4E7]",
+					code.includes("sm_...") &&
+						!apiKey &&
+						"select-none blur-[4px] transition-[filter] group-hover:blur-none",
+				)}
+			>
+				{rendered}
+			</pre>
+			<MiniCopyButton text={rendered} label="setup step" />
+		</div>
+	)
+}
+
+function RevealPluginKeyButton({
+	pluginId,
+	onReveal,
+}: {
+	pluginId: string
+	onReveal: (key: string) => void
+}) {
+	const [state, setState] = useState<"idle" | "loading" | "copied" | "error">(
+		"idle",
+	)
+	return (
+		<button
+			type="button"
+			disabled={state === "loading"}
+			onClick={async () => {
+				setState("loading")
+				try {
+					const API_URL =
+						process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+					const params = new URLSearchParams({ client: pluginId })
+					const res = await fetch(`${API_URL}/v3/auth/key?${params}`, {
+						credentials: "include",
+					})
+					if (!res.ok) throw new Error("Failed to create plugin key")
+					const data = (await res.json()) as { key?: string }
+					if (!data.key) throw new Error("Plugin key missing")
+					onReveal(data.key)
+					await navigator.clipboard.writeText(data.key).catch(() => undefined)
+					setState("copied")
+					setTimeout(() => setState("idle"), 2200)
+				} catch {
+					setState("error")
+					setTimeout(() => setState("idle"), 2200)
+				}
+			}}
+			className={cn(
+				"inline-flex h-8 items-center gap-1.5 rounded-full bg-[#0D121A] px-3 text-[12px] font-medium text-[#FAFAFA]",
+				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-opacity hover:opacity-80 disabled:opacity-60",
+			)}
+		>
+			{state === "loading" ? (
+				<Loader2 className="size-3.5 animate-spin" />
+			) : state === "copied" ? (
+				<CheckIcon className="size-3.5 text-emerald-300" />
+			) : state === "error" ? (
+				<XCircleIcon className="size-3.5 text-red-300" />
+			) : (
+				<KeyRoundIcon className="size-3.5 text-[#4BA0FA]" />
+			)}
+			{state === "copied"
+				? "Key copied"
+				: state === "error"
+					? "Try again"
+					: "Generate / Reveal key"}
+		</button>
+	)
+}
+
+function NovaConnectorCard({
+	connector,
+}: {
+	connector: NovaConnectorCardData
+}) {
+	const [revealedKey, setRevealedKey] = useState<string | undefined>()
+	const needsKey = Boolean(connector.canGenerateKey && connector.keyPluginId)
+	const isUpgrade = connector.status === "upgrade_required"
+	return (
+		<div className="rounded-xl border border-white/[0.08] bg-[#0D121A] p-3 text-sm text-white/90 shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.55)]">
+			<div className="flex items-start gap-3">
+				<div className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[#080B0F]">
+					{connector.icon ? (
+						<img
+							src={connector.icon}
+							alt=""
+							className="size-6 rounded object-contain"
+						/>
+					) : (
+						<WrenchIcon className="size-5 text-white/50" />
+					)}
+				</div>
+				<div className="min-w-0 flex-1">
+					<div className="flex min-w-0 items-center gap-2">
+						<p className="truncate text-[14px] font-semibold text-[#FAFAFA]">
+							{connector.name ?? connector.id ?? "Connector"}
+						</p>
+						<StatusPill status={connector.status} />
+					</div>
+					{connector.description ? (
+						<p className="mt-1 text-[12px] leading-snug text-[#A1A1AA]">
+							{connector.description}
+						</p>
+					) : null}
+				</div>
+			</div>
+
+			{connector.installSteps?.length ? (
+				<ol className="mt-3 space-y-3">
+					{connector.installSteps.map((step, index) => (
+						<li key={`${step.title}-${index}`} className="flex gap-2.5">
+							<span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[#080B10] text-[10px] font-semibold text-[#4BA0FA]">
+								{index + 1}
+							</span>
+							<div className="min-w-0 flex-1 space-y-1.5">
+								<p className="text-[12px] font-medium text-[#FAFAFA]">
+									{step.title}
+								</p>
+								{step.description ? (
+									<p className="text-[12px] leading-snug text-[#A1A1AA]">
+										{step.description}
+									</p>
+								) : null}
+								{step.code ? (
+									<ConnectorCodeBlock code={step.code} apiKey={revealedKey} />
+								) : null}
+								{step.link ? (
+									<a
+										href={step.link.url}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="inline-flex items-center gap-1 text-[12px] text-[#4BA0FA] hover:text-[#86C5FF]"
+									>
+										{step.link.label}
+										<ExternalLinkIcon className="size-3" />
+									</a>
+								) : null}
+							</div>
+						</li>
+					))}
+				</ol>
+			) : null}
+
+			<div className="mt-3 flex flex-wrap items-center gap-2">
+				{needsKey && connector.keyPluginId && !isUpgrade ? (
+					<RevealPluginKeyButton
+						pluginId={connector.keyPluginId}
+						onReveal={setRevealedKey}
+					/>
+				) : null}
+				{isUpgrade ? (
+					<span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#0D121A] px-3 text-[12px] font-medium text-[#4BA0FA]">
+						<ZapIcon className="size-3.5" />
+						Upgrade to connect
+					</span>
+				) : null}
+				{connector.docsUrl ? (
+					<a
+						href={connector.docsUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] text-[#A1A1AA] transition-colors hover:text-white"
+					>
+						<BookOpenIcon className="size-3.5" />
+						Docs
+					</a>
+				) : null}
+			</div>
+		</div>
+	)
+}
+
+function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
+	const toolName = part.type.replace("tool-", "")
+	const output = unwrapToolOutput(part.output)
+	const isLoading =
+		part.state === "input-streaming" || part.state === "input-available"
+	const isError = part.state === "error" || part.state === "output-error"
+	if (isLoading) {
+		return (
+			<div className="my-2 flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0D121A] px-3 py-2 text-xs text-white/55">
+				<Loader2 className="size-3.5 animate-spin text-[#4BA0FA]" />
+				<span>Checking Supermemory setup…</span>
+			</div>
+		)
+	}
+	if (isError || !output) {
+		return (
+			<div className="my-2 rounded-xl border border-red-400/15 bg-red-400/10 px-3 py-2 text-xs text-red-200">
+				Couldn't load connector setup.
+			</div>
+		)
+	}
+	if (output.success === false) {
+		return (
+			<div className="my-2 rounded-xl border border-white/[0.08] bg-[#0D121A] p-3 text-sm text-white/80">
+				<p className="font-medium text-[#FAFAFA]">
+					{output.error ?? "Connector not found"}
+				</p>
+				{output.available?.length ? (
+					<p className="mt-1 text-xs text-[#A1A1AA]">
+						Try one of: {output.available.map((item) => item.name).join(", ")}
+					</p>
+				) : null}
+			</div>
+		)
+	}
+	const connectors = output.connector
+		? [output.connector]
+		: (output.connectors ?? [])
+	return (
+		<div className="my-2 space-y-2">
+			{toolName === "listNovaConnectors" && connectors.length > 1 ? (
+				<p className="px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[#737373]">
+					Supermemory setup options
+				</p>
+			) : null}
+			{connectors.map((connector) => (
+				<NovaConnectorCard
+					key={`${connector.kind}-${connector.id}-${connector.name}`}
+					connector={connector}
+				/>
+			))}
+		</div>
+	)
 }
 
 function isWebSearchPart(part: { type: string; toolName?: string }): boolean {
@@ -364,6 +749,9 @@ function BashToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 function ToolCallDisplay({ part }: { part: ToolCallDisplayPart }) {
 	const [expanded, setExpanded] = useState(false)
 	const toolName = part.type.replace("tool-", "")
+	if (NOVA_CONNECTOR_TOOLS.has(toolName)) {
+		return <NovaConnectorToolDisplay part={part} />
+	}
 	if (toolName === "bash") {
 		return <BashToolDisplay part={part} />
 	}
