@@ -77,22 +77,36 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 	cursor: {
 		id: "cursor",
 		name: "Cursor",
-		tagline: "Persistent memory for your Cursor coding sessions",
+		tagline: "Persistent memory, session hooks, and MCP tools inside Cursor",
 		icon: "/images/plugins/cursor.png",
-		docsUrl: "https://docs.supermemory.ai/supermemory-mcp/setup#cursor",
+		docsUrl: "https://github.com/supermemoryai/cursor-supermemory#readme",
+		githubUrl: "https://github.com/supermemoryai/cursor-supermemory",
 		installSteps: [
 			{
-				title: "Add Supermemory to Cursor",
+				title: "Install the Cursor plugin",
 				description:
-					"Paste this into ~/.cursor/mcp.json. This key is shown only once â€” save it now.",
-				code: '{\n  "mcpServers": {\n    "supermemory": {\n      "url": "https://mcp.supermemory.ai/mcp",\n      "headers": {\n        "Authorization": "Bearer sm_..."\n      }\n    }\n  }\n}',
-				copyLabel: "Cursor config",
+					"Install cursor-supermemory from the Cursor Marketplace, then run the auth command on the machine where Cursor runs.",
+				code: "bunx cursor-supermemory@latest login",
+				copyLabel: "Login command",
+			},
+			{
+				title: "Finish browser authentication",
+				description:
+					"The login command opens Supermemory in your browser and stores Cursor credentials in ~/.supermemory-cursor/credentials.json.",
+			},
+			{
+				title: "Manual API-key fallback",
+				description:
+					"If browser login is not available, set this environment variable before starting Cursor. This key is shown only once - save it now.",
+				code: 'export SUPERMEMORY_API_KEY="sm_..."',
+				copyLabel: "API key command",
 				secret: true,
+				optional: true,
 			},
 			{
 				title: "Restart Cursor",
 				description:
-					"Restart Cursor so it reloads the MCP server configuration.",
+					"Restart Cursor after installing or changing credentials so the plugin hooks and MCP tools are loaded.",
 			},
 		],
 	},
