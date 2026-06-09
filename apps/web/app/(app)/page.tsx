@@ -25,6 +25,7 @@ import { ShortcutsDetail } from "@/components/integrations/shortcuts-detail"
 import { RaycastDetail } from "@/components/integrations/raycast-detail"
 import { PluginsDetail } from "@/components/integrations/plugins-detail"
 import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
+import { OnboardingConfetti } from "@/components/onboarding-brain/onboarding-confetti"
 import { AddDocumentModal } from "@/components/add-document"
 import { DocumentModal } from "@/components/document-modal"
 import { DocumentsCommandPalette } from "@/components/documents-command-palette"
@@ -584,6 +585,7 @@ export default function NewPage() {
 
 	return (
 		<HotkeysProvider>
+			<OnboardingConfetti />
 			<div
 				className={cn(
 					"relative flex min-h-dvh flex-col bg-[#05080D]",
