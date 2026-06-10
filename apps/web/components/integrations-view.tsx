@@ -2427,6 +2427,12 @@ export function IntegrationsView({
 
 	const handleUpgrade = async (planId?: unknown) => {
 		const checkoutPlanId = planId === "api_max" ? "api_max" : "api_pro"
+		if (publicMode || !org) {
+			const loginUrl = new URL("/login", window.location.origin)
+			loginUrl.searchParams.set("redirect", window.location.href)
+			window.location.assign(loginUrl.toString())
+			return
+		}
 		try {
 			const result = await autumn.attach({
 				planId: checkoutPlanId,
