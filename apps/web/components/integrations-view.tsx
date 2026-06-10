@@ -2425,10 +2425,11 @@ export function IntegrationsView({
 		}
 	}
 
-	const handleUpgrade = async (planId: "api_pro" | "api_max" = "api_pro") => {
+	const handleUpgrade = async (planId?: unknown) => {
+		const checkoutPlanId = planId === "api_max" ? "api_max" : "api_pro"
 		try {
 			const result = await autumn.attach({
-				planId,
+				planId: checkoutPlanId,
 				successUrl: `${window.location.origin}/?view=integrations`,
 			})
 			if (result?.paymentUrl) {
@@ -2741,7 +2742,7 @@ export function IntegrationsView({
 				}
 				if (claudeCodeConnected) return
 				if (claudeCodeNeedsPro) {
-					handleUpgrade()
+					handleUpgrade("api_pro")
 					return
 				}
 				createPluginKeyMutation.mutate("claude_code")
@@ -2818,7 +2819,7 @@ export function IntegrationsView({
 							title="Connect another agent"
 							onClick={() => {
 								if (needsProUpgrade) {
-									handleUpgrade()
+									handleUpgrade("api_pro")
 									return
 								}
 								trackCard(item)
@@ -2850,7 +2851,7 @@ export function IntegrationsView({
 				}
 				if (needsProUpgrade) {
 					return (
-						<PillButton onClick={handleUpgrade}>
+						<PillButton onClick={() => handleUpgrade("api_pro")}>
 							<Zap className="size-3.5 text-[#4BA0FA]" /> Upgrade
 						</PillButton>
 					)
@@ -3020,7 +3021,7 @@ export function IntegrationsView({
 						<PillButton
 							onClick={() => {
 								if (needsProUpgrade) {
-									handleUpgrade()
+									handleUpgrade("api_pro")
 									return
 								}
 								trackCard(item)
@@ -3465,7 +3466,7 @@ export function IntegrationsView({
 					</div>
 					<div className="flex shrink-0 items-center justify-between gap-2">
 						{connectedDialogNeedsPro ? (
-							<PillButton onClick={handleUpgrade}>
+							<PillButton onClick={() => handleUpgrade("api_pro")}>
 								<Zap className="size-3.5 text-[#4BA0FA]" /> Upgrade to connect
 								more
 							</PillButton>
