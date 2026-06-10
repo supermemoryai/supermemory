@@ -15,9 +15,6 @@ The installer writes API keys to `~/.supermemory/env`, which is loaded on every 
 |---|---|---|
 | `PORT` (or `SUPERMEMORY_PORT`) | HTTP listen port | `6767` |
 | `SUPERMEMORY_DATA_DIR` | Where the graph engine's data, auth secret, and model cache live | `./.supermemory` |
-| `BETTER_AUTH_URL` | Public base URL of the API (cookies + OAuth redirects) | `http://localhost:${PORT}` |
-| `FRONTEND_URL` | Allowed CORS origin for your UI | `*` |
-| `STORAGE_PUBLIC_URL` | Public base URL for file downloads | `${BETTER_AUTH_URL}/files` |
 
 ## LLM providers
 
@@ -36,10 +33,10 @@ In production, Supermemory uses its own proprietary models tuned for long-horizo
 No key set? The server walks you through it. On first boot, an interactive setup wizard asks which provider you want, securely prompts for the key, and saves it encrypted — including a custom base URL and model name if you pick an OpenAI-compatible endpoint.
 </Tip>
 
-With multiple providers configured, the first one in the order above is used. To get automatic fallback and caching across providers, add [Cloudflare AI Gateway](#llm-routing-cloudflare-ai-gateway).
+With multiple providers configured, the first one in the order above is used.
 
 <Note>
-Image and video understanding require a Gemini or Vertex AI key, and high-fidelity PDF OCR uses Mistral or Gemini. Text ingestion, memory extraction, and search work with any provider.
+Image, video, and high-fidelity PDF understanding require a Gemini or Vertex AI key. Text ingestion, memory extraction, and search work with any provider.
 </Note>
 
 ### Fully offline with local models
@@ -62,29 +59,7 @@ OPENAI_MODEL=gpt-oss:20b
 
 ## File storage
 
-Nothing to configure. Uploaded files (PDFs, images) are stored on local disk inside `$SUPERMEMORY_DATA_DIR` and served by the server at `/files/:key`. Use `STORAGE_PUBLIC_URL` if downloads should be served from a different public base URL (e.g. behind a reverse proxy).
-
-## Login providers
-
-The API key printed on first boot is all you need for programmatic access. These are only for browser-based login:
-
-| Variable | Purpose |
-|---|---|
-| `BETTER_AUTH_SECRET` | Cookie signing secret (auto-generated and persisted if unset) |
-| `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub OAuth login |
-| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth login |
-
-## Content extraction
-
-For ingesting web pages and PDFs with higher fidelity:
-
-| Variable | Purpose |
-|---|---|
-| `JINA_API_KEY` | Jina Reader for URL → markdown |
-| `FIRECRAWL_API_KEY` | Firecrawl for URL extraction |
-| `MISTRAL_API_KEY` | Mistral OCR for scanned PDFs |
-
-If no URL extractor key is set, URL ingestion falls back to Supermemory's hosted reader service. Set `JINA_API_KEY` or `FIRECRAWL_API_KEY` to keep URL extraction routed through your own accounts.
+Nothing to configure. Uploaded files (PDFs, images) are stored on local disk inside `$SUPERMEMORY_DATA_DIR` and served by the server at `/files/:key`.
 
 ## Embedding performance
 
@@ -98,14 +73,13 @@ Local embeddings are prewarmed at startup with conservative defaults — one wor
 | `SUPERMEMORY_LOCAL_EMBEDDING_IDLE_TIMEOUT_MS` | Idle time before workers shut down | `120000` |
 | `SUPERMEMORY_SKIP_EMBEDDING_PREWARM` | Skip startup prewarm, load on first use | unset |
 
-## LLM routing (Cloudflare AI Gateway)
+## Telemetry
 
-Optionally route all LLM calls through Cloudflare AI Gateway. This also enables automatic fallback and caching across your configured providers:
+The self-hosted binary sends no analytics — there is nothing to opt out of. The only related switch:
 
-| Variable | Purpose |
-|---|---|
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
-| `CLOUDFLARE_AI_GATEWAY_NAME` | Gateway name |
+| Variable | Purpose | Default |
+|---|---|---|
+| `SUPERMEMORY_DISABLE_TELEMETRY` | Set to `1` to also disable internal AI SDK telemetry instrumentation | unset |
 
 ## Platform-only features
 
@@ -116,17 +90,13 @@ These exist in the codebase but are exclusive to the [hosted platform](https://c
 - **Optimized memory extraction** — the platform's extraction pipeline is tuned for higher quality at lower cost than bring-your-own-key
 - **Managed scale** — globally distributed infrastructure, no capacity planning
 
-`DATABASE_URL` is also ignored: the self-hosted server always uses its embedded graph engine.
+Any other environment variables you may find referenced in the codebase are platform-only: the self-hosted binary ignores them even when set.
 
 ## Example: production-ish `.env`
 
 ```dotenv
 # Persistent data location
 SUPERMEMORY_DATA_DIR=/var/lib/supermemory
-
-# Public URL (behind your reverse proxy / TLS)
-BETTER_AUTH_URL=https://memory.mycompany.com
-FRONTEND_URL=https://app.mycompany.com
 
 # One LLM provider
 OPENAI_API_KEY=sk-...
