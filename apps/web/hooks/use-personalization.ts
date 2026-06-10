@@ -401,7 +401,11 @@ function classifyProfession(results: SearchResult[]): Profession {
 
 let inflightPromise: Promise<void> | null = null
 
-export function usePersonalization(): {
+export function usePersonalization({
+	enabled = true,
+}: {
+	enabled?: boolean
+} = {}): {
 	copy: PersonalizedCopy
 	profession: Profession
 	setProfession: (p: Profession) => void
@@ -440,6 +444,8 @@ export function usePersonalization(): {
 				}
 			}
 		} catch {}
+
+		if (!enabled) return
 
 		if (inflightPromise) {
 			inflightPromise.then(() => {
@@ -482,7 +488,7 @@ export function usePersonalization(): {
 			.finally(() => {
 				inflightPromise = null
 			})
-	}, [])
+	}, [enabled])
 
 	return { copy, profession, setProfession }
 }

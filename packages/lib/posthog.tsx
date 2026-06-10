@@ -3,7 +3,7 @@
 import { usePathname, useSearchParams } from "next/navigation"
 import posthog from "posthog-js"
 import { Suspense, useEffect } from "react"
-import { useSession } from "./auth"
+import { useAuth } from "./auth-context"
 
 function PostHogPageTracking() {
 	const pathname = usePathname()
@@ -34,10 +34,23 @@ function PostHogPageTracking() {
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
-	const { data: session } = useSession()
+	const { user } = useAuth()
 
 	useEffect(() => {
-		if (typeof window !== "undefined") {
+		if (typeof window === "undefined") return
+		if (posthog.__loaded) {
+			if (user) {
+				posthog.identify(user.id, {
+					email: user.email,
+					name: user.name,
+					userId: user.id,
+					createdAt: user.createdAt,
+				})
+			}
+			return
+		}
+
+		const timeout = window.setTimeout(() => {
 			const backendUrl =
 				process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
@@ -47,22 +60,43 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 				person_profiles: "identified_only",
 				capture_pageview: false,
 				capture_pageleave: true,
-				loaded: (ph) => ph.register({ app: "app" }),
+				loaded: (ph) => {
+					ph.register({ app: "app" })
+					if (user) {
+						ph.identify(user.id, {
+							email: user.email,
+							name: user.name,
+							userId: user.id,
+							createdAt: user.createdAt,
+						})
+					}
+					if (process.env.NODE_ENV === "production") {
+						ph.capture("$pageview", {
+							$current_url: window.location.href,
+							path: window.location.pathname,
+							search_params: window.location.search.replace(/^\?/, ""),
+							page_type: getPageType(),
+							org_slug: getOrgSlug(window.location.pathname),
+						})
+					}
+				},
 			})
-		}
-	}, [])
+		}, 1500)
+
+		return () => window.clearTimeout(timeout)
+	}, [user])
 
 	// User identification
 	useEffect(() => {
-		if (session?.user && posthog.__loaded) {
-			posthog.identify(session.user.id, {
-				email: session.user.email,
-				name: session.user.name,
-				userId: session.user.id,
-				createdAt: session.user.createdAt,
+		if (user && posthog.__loaded) {
+			posthog.identify(user.id, {
+				email: user.email,
+				name: user.name,
+				userId: user.id,
+				createdAt: user.createdAt,
 			})
 		}
-	}, [session?.user])
+	}, [user])
 
 	return (
 		<>

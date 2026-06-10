@@ -39,8 +39,7 @@ import { FeedbackModal } from "./feedback-modal"
 import { useViewMode } from "@/lib/view-mode-context"
 import { useQueryState } from "nuqs"
 import { feedbackParam } from "@/lib/search-params"
-import { useCustomer } from "autumn-js/react"
-import { useTokenUsage } from "@/hooks/use-token-usage"
+import type { PlanType } from "@/hooks/use-token-usage"
 import { useOrgSummaries } from "@/hooks/use-org-summaries"
 import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
 import { useSettingsModal } from "@/components/settings/settings-modal"
@@ -67,12 +66,13 @@ const brainTileClass = (active: boolean) =>
 
 export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 	const { user, isRestoring, org, organizations, setActiveOrg } = useAuth()
-	const autumn = useCustomer()
-	const { currentPlan } = useTokenUsage(autumn)
 	const { data: orgSummaries } = useOrgSummaries()
 	const planByOrgId = new Map(
 		(orgSummaries ?? []).map((s) => [s.orgId, s.plan] as const),
 	)
+	const currentPlan: PlanType = org?.id
+		? (planByOrgId.get(org.id) ?? "free")
+		: "free"
 	const { selectedProjects, setSelectedProjects } = useProject()
 	const { openSettings } = useSettingsModal()
 	const isMobile = useIsMobile()

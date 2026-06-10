@@ -1178,6 +1178,19 @@ export function DashboardView({
 	const { user, org } = useAuth()
 	const { effectiveContainerTags } = useProject()
 	const _router = useRouter()
+	const [loadSupportData, setLoadSupportData] = useState(false)
+
+	useEffect(() => {
+		if (!user) {
+			setLoadSupportData(false)
+			return
+		}
+
+		setLoadSupportData(false)
+		const timeout = window.setTimeout(() => setLoadSupportData(true), 900)
+		return () => window.clearTimeout(timeout)
+	}, [user])
+
 	const { data: recentsData, isPending: isRecentsLoading } = useQuery({
 		queryKey: ["dashboard-recents", effectiveContainerTags],
 		queryFn: async (): Promise<DocumentsResponse> => {
@@ -1195,7 +1208,7 @@ export function DashboardView({
 			return response.data as DocumentsResponse
 		},
 		staleTime: 60 * 1000,
-		enabled: !!user && !!org?.id,
+		enabled: loadSupportData && !!user && !!org?.id,
 	})
 
 	const { data: connections = [] } = useQuery({
@@ -1208,7 +1221,7 @@ export function DashboardView({
 			return response.data ?? []
 		},
 		staleTime: 5 * 60 * 1000,
-		enabled: !!user,
+		enabled: loadSupportData && !!user,
 	})
 
 	const { data: mcpData } = useQuery({
@@ -1218,7 +1231,7 @@ export function DashboardView({
 			return response.data ?? { previousLogin: false }
 		},
 		staleTime: 5 * 60 * 1000,
-		enabled: !!user,
+		enabled: loadSupportData && !!user,
 	})
 
 	// Fetch API keys for tool usage tracking
@@ -1242,7 +1255,7 @@ export function DashboardView({
 			}
 		},
 		staleTime: 5 * 60 * 1000,
-		enabled: !!user,
+		enabled: loadSupportData && !!user,
 	})
 
 	const { data: recentMcpDocumentsData } = useQuery({
@@ -1261,7 +1274,7 @@ export function DashboardView({
 			return response.data as DocumentsResponse
 		},
 		staleTime: 5 * 60 * 1000,
-		enabled: !!user,
+		enabled: loadSupportData && !!user,
 	})
 
 	const toolUsageItems = useMemo(
@@ -1277,7 +1290,7 @@ export function DashboardView({
 		copy: personalizedCopy,
 		profession,
 		setProfession,
-	} = usePersonalization()
+	} = usePersonalization({ enabled: loadSupportData })
 
 	const recents = recentsData?.documents ?? []
 	const recentToolUsageItems = toolUsageItems
@@ -1288,6 +1301,7 @@ export function DashboardView({
 			return bTime - aTime
 		})
 		.slice(0, 3)
+	const showRecentsLoading = !loadSupportData || isRecentsLoading
 	const totalMemories = recentsData?.pagination?.totalItems ?? 0
 	const hasMcp = mcpData?.previousLogin ?? false
 	const connectedProviders = new Set(connections.map((c) => c.provider))
@@ -1493,7 +1507,7 @@ export function DashboardView({
 
 					<div className="flex gap-4 items-start">
 						<div className="flex-[4] min-w-0">
-							{isRecentsLoading ? (
+							{showRecentsLoading ? (
 								<ul
 									className="space-y-0.5"
 									aria-busy="true"
@@ -1567,7 +1581,7 @@ export function DashboardView({
 						</div>
 					</div>
 
-					{(isRecentsLoading || recents.length === 0) && (
+					{(showRecentsLoading || recents.length === 0) && (
 						<div className="space-y-2 sm:hidden">
 							<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
 								Suggested for you

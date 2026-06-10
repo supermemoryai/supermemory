@@ -109,6 +109,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		const orgs = orgsData ?? []
 		let cancelled = false
 
+		const setOrgFromList = (nextOrg: OrganizationListItem) => {
+			setOrg(nextOrg as unknown as Organization)
+		}
+
+		const hydrateFullOrg = async () => {
+			try {
+				const full = await authClient.organization.getFullOrganization()
+				if (!cancelled && full?.data) setOrg(full.data)
+			} catch (error) {
+				console.error("Failed to hydrate organization:", error)
+			}
+		}
+
+		const useListOrgThenHydrate = (nextOrg: OrganizationListItem) => {
+			if (!cancelled) {
+				setOrgFromList(nextOrg)
+				setIsRestoring(false)
+			}
+			void hydrateFullOrg()
+		}
+
 		const run = async () => {
 			try {
 				if (orgs.length === 0) {
@@ -122,8 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					const one = orgs[0]
 					if (!one) return
 					if (activeOrgId === one.id) {
-						const full = await authClient.organization.getFullOrganization()
-						if (!cancelled) setOrg(full?.data ?? null)
+						useListOrgThenHydrate(one)
 					} else {
 						await setActiveOrg(one.slug)
 					}
@@ -135,8 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					const match = orgs.find((o) => o.slug === savedSlug)
 					if (match) {
 						if (activeOrgId === match.id) {
-							const full = await authClient.organization.getFullOrganization()
-							if (!cancelled) setOrg(full?.data ?? null)
+							useListOrgThenHydrate(match)
 						} else {
 							await setActiveOrg(savedSlug)
 						}
@@ -148,8 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				if (activeOrgId) {
 					const fromList = orgs.find((o) => o.id === activeOrgId)
 					if (fromList) {
-						const full = await authClient.organization.getFullOrganization()
-						if (!cancelled) setOrg(full?.data ?? null)
+						useListOrgThenHydrate(fromList)
 						return
 					}
 				}

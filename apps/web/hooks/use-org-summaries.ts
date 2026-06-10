@@ -1,4 +1,7 @@
+"use client"
+
 import { useQuery } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
 import { useAuth } from "@lib/auth-context"
 import { normalizePlanType, type PlanType } from "@/hooks/use-token-usage"
 
@@ -15,6 +18,18 @@ export type OrgSummary = {
 
 export function useOrgSummaries() {
 	const { user } = useAuth()
+	const [enabled, setEnabled] = useState(false)
+
+	useEffect(() => {
+		if (!user?.id) {
+			setEnabled(false)
+			return
+		}
+
+		setEnabled(false)
+		const timeout = window.setTimeout(() => setEnabled(true), 1200)
+		return () => window.clearTimeout(timeout)
+	}, [user?.id])
 
 	return useQuery({
 		queryKey: ["account", "org-summaries"],
@@ -32,7 +47,7 @@ export function useOrgSummaries() {
 				plan: normalizePlanType(s.plan),
 			}))
 		},
-		enabled: !!user?.id,
+		enabled,
 		staleTime: 60 * 1000,
 	})
 }

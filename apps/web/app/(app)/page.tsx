@@ -131,6 +131,18 @@ export default function NewPage() {
 	const { viewMode, setViewMode } = useViewMode()
 	const queryClient = useQueryClient()
 	const [highlightsForceAt, setHighlightsForceAt] = useState(0)
+	const [loadHomeAsyncData, setLoadHomeAsyncData] = useState(false)
+
+	useEffect(() => {
+		if (!user) {
+			setLoadHomeAsyncData(false)
+			return
+		}
+
+		setLoadHomeAsyncData(false)
+		const timeout = window.setTimeout(() => setLoadHomeAsyncData(true), 900)
+		return () => window.clearTimeout(timeout)
+	}, [user])
 
 	// Chrome extension auth: send session token via postMessage so the content script can store it
 	useEffect(() => {
@@ -363,6 +375,7 @@ export default function NewPage() {
 			},
 			staleTime: HIGHLIGHTS_MAX_AGE,
 			refetchOnWindowFocus: false,
+			enabled: loadHomeAsyncData || highlightsForceAt > 0,
 		})
 
 	const { data: memoryOfDay = null } = useQuery<MemoryOfDay | null>({
@@ -393,7 +406,7 @@ export default function NewPage() {
 		},
 		staleTime: 24 * 60 * 60 * 1000,
 		refetchOnWindowFocus: false,
-		enabled: !!user,
+		enabled: loadHomeAsyncData && !!user,
 	})
 
 	useHotkeys("c", () => {
