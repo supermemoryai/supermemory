@@ -1,0 +1,151 @@
+---
+title: "Self-Hosting Quickstart"
+sidebarTitle: "Quickstart"
+description: "From zero to your first memory in under two minutes."
+icon: "play"
+---
+
+## Install
+
+<Tabs>
+<Tab title="curl">
+```bash
+curl -fsSL https://supermemory.ai/install | bash
+```
+</Tab>
+<Tab title="npx">
+```bash
+npx supermemory local
+```
+</Tab>
+<Tab title="bunx">
+```bash
+bunx supermemory local
+```
+</Tab>
+</Tabs>
+
+The installer detects your OS and architecture, downloads the right binary, verifies it, and (when run interactively) prompts you for an LLM API key. Supported platforms: macOS (Apple Silicon & Intel), Linux (x64 & arm64).
+
+## Run
+
+```bash
+supermemory-server
+```
+
+First boot sets everything up — the embedded Supermemory graph engine, local embeddings, and your credentials:
+
+```
+  ┌──────────────────────────────────────────────────┐
+  │  url       http://localhost:6767                 │
+  │  database  ./.supermemory                        │
+  │  api key   sm_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx     │
+  │  org id    xxxxxxxxxxxxxxxxxxxxxx                │
+  └──────────────────────────────────────────────────┘
+```
+
+Save that API key — it's your bearer token for every request.
+
+<Note>
+In production, Supermemory runs proprietary models tuned for long-horizon data understanding. Self-hosted, you bring any model: if no provider key is set, first boot launches an interactive setup wizard — pick a provider (OpenAI, Anthropic, Gemini, Groq, or any OpenAI-compatible endpoint like Ollama), paste your key, and it's saved encrypted for every future launch. See [all providers](/self-hosting/configuration#llm-providers), including [fully-offline local models](/self-hosting/configuration#fully-offline-with-local-models).
+</Note>
+
+## Add your first memory
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+import Supermemory from "supermemory"
+
+const client = new Supermemory({
+  apiKey: "sm_...",
+  baseURL: "http://localhost:6767",
+})
+
+await client.memories.add({
+  content: "I'm Dhravya. I love building dev tools and I'm allergic to peanuts.",
+  containerTag: "user_dhravya",
+})
+```
+</Tab>
+<Tab title="Python">
+```python
+from supermemory import Supermemory
+
+client = Supermemory(
+    api_key="sm_...",
+    base_url="http://localhost:6767",
+)
+
+client.memories.add(
+    content="I'm Dhravya. I love building dev tools and I'm allergic to peanuts.",
+    container_tag="user_dhravya",
+)
+```
+</Tab>
+<Tab title="curl">
+```bash
+curl http://localhost:6767/v3/documents \
+  -H "Authorization: Bearer sm_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "I am Dhravya. I love building dev tools and I am allergic to peanuts.",
+    "containerTag": "user_dhravya"
+  }'
+```
+</Tab>
+</Tabs>
+
+## Search it
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+const results = await client.search.memories({
+  q: "what food should I avoid?",
+  containerTag: "user_dhravya",
+})
+```
+</Tab>
+<Tab title="Python">
+```python
+results = client.search.memories(
+    q="what food should I avoid?",
+    container_tag="user_dhravya",
+)
+```
+</Tab>
+<Tab title="curl">
+```bash
+curl http://localhost:6767/v3/search \
+  -H "Authorization: Bearer sm_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "what food should I avoid?",
+    "containerTag": "user_dhravya"
+  }'
+```
+</Tab>
+</Tabs>
+
+That's it. Everything in the [Memory API](/quickstart) — documents, memories, user profiles, spaces, filtering — works identically against your local server.
+
+## Where things live
+
+By default, all state lives in a single directory you can back up or move:
+
+| Path | Contents |
+|---|---|
+| `./.supermemory/` (or `$SUPERMEMORY_DATA_DIR`) | The Supermemory graph engine's data, auth secret, embedding model cache |
+| `~/.supermemory/env` | API keys saved by the installer, loaded on every launch |
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="settings" href="/self-hosting/configuration">
+    LLM providers, local models, performance tuning
+  </Card>
+  <Card title="Memory API" icon="book-open" href="/quickstart">
+    The full API — it all works against your local server
+  </Card>
+</CardGroup>
