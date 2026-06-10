@@ -11,36 +11,37 @@ type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
 
 function getFileTypeInfo(document: DocumentWithMemories): {
+	fileName?: string
 	extension: string
 	color?: string
 } {
 	const type = document.type?.toLowerCase()
-	const mimeType = document.metadata?.mimeType as string | undefined
+	const mimeType = (document.metadata?.mimeType ??
+		document.metadata?.sm_internal_fileType) as string | undefined
+	const fileName = (document.metadata?.sm_internal_fileName ??
+		document.metadata?.fileName) as string | undefined
+	const nameExt = fileName?.includes(".")
+		? fileName.slice(fileName.lastIndexOf(".")).toLowerCase()
+		: undefined
 
-	if (mimeType) {
-		if (mimeType === "application/pdf") {
-			return { extension: ".pdf", color: "#FF7673" }
-		}
-		if (mimeType.startsWith("image/")) {
-			const ext = mimeType.split("/")[1] || "jpg"
-			return { extension: `.${ext}` }
-		}
-		if (mimeType.startsWith("video/")) {
-			const ext = mimeType.split("/")[1] || "mp4"
-			return { extension: `.${ext}` }
-		}
+	if (nameExt === ".pdf" || mimeType === "application/pdf" || type === "pdf") {
+		return { fileName, extension: ".pdf", color: "#FF7673" }
 	}
-
-	switch (type) {
-		case "pdf":
-			return { extension: ".pdf", color: "#FF7673" }
-		case "image":
-			return { extension: ".jpg" }
-		case "video":
-			return { extension: ".mp4" }
-		default:
-			return { extension: ".file" }
+	if (mimeType?.startsWith("image/") || type === "image") {
+		const ext = nameExt || `.${mimeType?.split("/")[1] || "jpg"}`
+		return { fileName, extension: ext }
 	}
+	if (mimeType?.startsWith("video/") || type === "video") {
+		const ext = nameExt || `.${mimeType?.split("/")[1] || "mp4"}`
+		return { fileName, extension: ext }
+	}
+	if (nameExt === ".html" || nameExt === ".htm" || mimeType === "text/html") {
+		return { fileName, extension: nameExt || ".html", color: "#FF8A4C" }
+	}
+	if (nameExt) {
+		return { fileName, extension: nameExt }
+	}
+	return { fileName, extension: ".file" }
 }
 
 export const FilePreview = memo(function FilePreview({
@@ -50,10 +51,11 @@ export const FilePreview = memo(function FilePreview({
 }) {
 	const [imageError, setImageError] = useState(false)
 	const [retryKey, setRetryKey] = useState(0)
-	const { extension, color } = getFileTypeInfo(document)
+	const { fileName, extension, color } = getFileTypeInfo(document)
 
 	const type = document.type?.toLowerCase()
-	const mimeType = document.metadata?.mimeType as string | undefined
+	const mimeType = (document.metadata?.mimeType ??
+		document.metadata?.sm_internal_fileType) as string | undefined
 	const isImage =
 		(mimeType?.startsWith("image/") || type === "image") &&
 		document.url &&
@@ -102,17 +104,23 @@ export const FilePreview = memo(function FilePreview({
 				</div>
 			) : (
 				<div className="p-3">
-					<div className="flex items-center gap-1 mb-2">
+					<div className="flex items-center gap-1 mb-2 min-w-0">
 						<DocumentIcon
 							type={document.type}
 							url={document.url}
-							className="size-4"
+							fileName={fileName}
+							mimeType={mimeType}
+							className="size-4 shrink-0"
 						/>
 						<p
-							className={cn(dmSansClassName(), "text-[11px] font-semibold")}
+							className={cn(
+								dmSansClassName(),
+								"text-[11px] font-semibold truncate",
+							)}
 							style={{ color: color }}
+							title={fileName}
 						>
-							{extension}
+							{fileName || extension}
 						</p>
 					</div>
 					{document.content && (

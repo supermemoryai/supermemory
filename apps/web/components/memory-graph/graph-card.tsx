@@ -4,6 +4,7 @@ import { memo, useMemo } from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { Expand } from "lucide-react"
+import { SuperLoader } from "@/components/superloader"
 import { useGraphApi } from "./hooks/use-graph-api"
 import { useViewMode } from "@/lib/view-mode-context"
 
@@ -157,7 +158,12 @@ export const GraphCard = memo<GraphCardProps>(
 				<div className="flex-1 w-full relative overflow-hidden rounded-lg">
 					{isLoading ? (
 						<div className="absolute inset-0 flex items-center justify-center">
-							<div className="size-6 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
+							<SuperLoader
+								label="Loading graph..."
+								size={40}
+								colorClassName="text-[#4BA0FA]"
+								className="[&>span]:text-[#A8B0BD]"
+							/>
 						</div>
 					) : documentCount > 0 || memoryCount > 0 ? (
 						<StaticGraphPreview

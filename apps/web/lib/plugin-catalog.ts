@@ -34,7 +34,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		name: "Claude Code",
 		tagline: "Remembers your conventions, decisions, and project context",
 		icon: "/images/plugins/claude-code.svg",
-		docsUrl: "https://docs.supermemory.ai/integrations/claude-code",
+		docsUrl: "https://supermemory.ai/docs/integrations/claude-code",
 		installSteps: [
 			{
 				title: "Save your API key",
@@ -56,7 +56,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		name: "Codex",
 		tagline: "Persistent memory for the Codex CLI — free on every plan",
 		icon: "/images/plugins/codex.png",
-		docsUrl: "https://docs.supermemory.ai/integrations/codex",
+		docsUrl: "https://supermemory.ai/docs/integrations/codex",
 		githubUrl: "https://github.com/supermemoryai/codex-supermemory",
 		installSteps: [
 			{
@@ -115,7 +115,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		name: "OpenCode",
 		tagline: "Long-term memory for your OpenCode sessions",
 		icon: "/images/plugins/opencode.svg",
-		docsUrl: "https://docs.supermemory.ai/integrations/opencode",
+		docsUrl: "https://supermemory.ai/docs/integrations/opencode",
 		githubUrl: "https://github.com/supermemoryai/opencode-supermemory",
 		usesOAuth: true,
 		installSteps: [
@@ -144,7 +144,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		name: "OpenClaw",
 		tagline: "Cross-platform memory across Telegram, Discord, Slack",
 		icon: "/images/plugins/openclaw.svg",
-		docsUrl: "https://docs.supermemory.ai/integrations/openclaw",
+		docsUrl: "https://supermemory.ai/docs/integrations/openclaw",
 		installSteps: [
 			{
 				title: "Install the plugin",
@@ -164,7 +164,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		name: "Hermes",
 		tagline: "Persistent memory for the Hermes agent — free on every plan",
 		icon: "/images/plugins/hermes.svg",
-		docsUrl: "https://docs.supermemory.ai/integrations/hermes",
+		docsUrl: "https://supermemory.ai/docs/integrations/hermes",
 		installSteps: [
 			{
 				title: "Run Hermes memory setup",

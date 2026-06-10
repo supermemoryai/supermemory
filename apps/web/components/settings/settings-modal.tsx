@@ -123,7 +123,6 @@ export function SettingsModalProvider({ children }: { children: ReactNode }) {
 						activeTab={tab}
 						onTabChange={handleTabChange}
 						showIdentity={false}
-						onClose={() => setParam(null)}
 						className="flex-1 min-h-0 w-full overflow-y-auto md:overflow-hidden px-5 md:px-4 pt-4 pb-6"
 					/>
 				</DialogContent>

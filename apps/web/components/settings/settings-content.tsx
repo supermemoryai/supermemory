@@ -123,13 +123,11 @@ export function SettingsContent({
 	onTabChange,
 	className,
 	showIdentity = true,
-	onClose,
 }: {
 	activeTab: SettingsTab
 	onTabChange: (tab: SettingsTab) => void
 	className?: string
 	showIdentity?: boolean
-	onClose?: () => void
 }) {
 	const { user, org } = useAuth()
 	const router = useRouter()
@@ -159,8 +157,7 @@ export function SettingsContent({
 	}
 
 	const handleIntegrations = () => {
-		router.push("/?view=integrations")
-		onClose?.()
+		void router.push("/?view=integrations")
 	}
 
 	const handleDeleteAccount = async () => {

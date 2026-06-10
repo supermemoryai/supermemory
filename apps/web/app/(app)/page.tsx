@@ -25,6 +25,7 @@ import { ShortcutsDetail } from "@/components/integrations/shortcuts-detail"
 import { RaycastDetail } from "@/components/integrations/raycast-detail"
 import { PluginsDetail } from "@/components/integrations/plugins-detail"
 import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
+import { OnboardingConfetti } from "@/components/onboarding-brain/onboarding-confetti"
 import { AddDocumentModal } from "@/components/add-document"
 import { DocumentModal } from "@/components/document-modal"
 import { DocumentsCommandPalette } from "@/components/documents-command-palette"
@@ -107,7 +108,7 @@ function ViewErrorFallback() {
 
 export default function NewPage() {
 	const isMobile = useIsMobile()
-	const { user, session } = useAuth()
+	const { user, session, isSessionPending } = useAuth()
 
 	const { selectedProject, selectedProjects, setSelectedProject } = useProject()
 	const selectedProjectTag = selectedProjects[0]
@@ -581,9 +582,12 @@ export default function NewPage() {
 		viewMode === "dashboard" || (viewMode === "graph" && isMobile)
 	const isGraphMode = viewMode === "graph"
 	const showBottomNav = isMobile && !!session && !isChatView
+	const isPublicIntegrations =
+		!session && !isSessionPending && viewMode === "integrations"
 
 	return (
 		<HotkeysProvider>
+			<OnboardingConfetti />
 			<div
 				className={cn(
 					"relative flex min-h-dvh flex-col bg-[#05080D]",
@@ -606,7 +610,9 @@ export default function NewPage() {
 						/>
 					</div>
 				)}
-				{!session && viewMode === "mcp" ? (
+				{isPublicIntegrations ? (
+					<PublicHeader variant="integrations" />
+				) : !session && viewMode === "mcp" ? (
 					<PublicHeader />
 				) : (
 					<Header
@@ -658,7 +664,10 @@ export default function NewPage() {
 									</div>
 								) : viewMode === "integrations" ? (
 									<div className="min-h-0 min-w-0 flex-1 p-4 pt-2! md:p-6 md:pr-0">
-										<IntegrationsView />
+										<IntegrationsView
+											publicMode={isPublicIntegrations}
+											onOpenDocument={handleOpenDocument}
+										/>
 									</div>
 								) : viewMode === "mcp" ? (
 									<MCPDetailView

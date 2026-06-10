@@ -7,7 +7,7 @@ const ADD_MEMORY_SHORTCUT_URL =
 const RAYCAST_EXTENSION_URL = "https://www.raycast.com/supermemory/supermemory"
 const CHROME_EXTENSION_URL =
 	"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc"
-const POKE_RECIPE_URL = "https://poke.com/r/5tHPbS8gZvA"
+const POKE_RECIPE_URL = "https://supermemory.link/poke"
 
 export {
 	BIG_DIMENSIONS_NEW,
