@@ -822,109 +822,124 @@ function ItemInfoDialog({
 				closeWithReason("dismiss")
 			}}
 		>
-			<DialogContent
-				showCloseButton={false}
-				onClick={(e) => e.stopPropagation()}
-				style={{
-					boxShadow:
-						"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset",
-				}}
-				className={cn(
-					dmSans125ClassName(),
-					"flex max-h-[88dvh] flex-col gap-3 overflow-hidden border border-white/[0.12] bg-[#1B1F24] p-0 px-3 pt-3 pb-4 text-[#FAFAFA] rounded-2xl md:px-4 sm:max-w-[560px] sm:rounded-[22px]",
-				)}
-			>
-				<DialogTitle className="sr-only">{name} use cases and docs</DialogTitle>
-				<div className="flex shrink-0 items-center gap-3">
-					<IconBox>{icon}</IconBox>
-					<div className="min-w-0 flex-1">
-						<p className="truncate text-[16px] font-semibold leading-tight text-[#FAFAFA]">
-							{name}
-						</p>
-						<p className="mt-0.5 truncate text-[12px] text-[#A1A1AA]">
-							Use cases that apply to this Supermemory connection.
-						</p>
-					</div>
-					<div className="flex shrink-0 items-center gap-2">
-						{docsUrl && (
-							<a
-								href={docsUrl}
-								target="_blank"
-								rel="noopener noreferrer"
+			<DialogPrimitive.Portal>
+				<DialogPrimitive.Overlay
+					data-slot="dialog-overlay"
+					onPointerDown={(e) => e.stopPropagation()}
+					onClick={(e) => {
+						e.stopPropagation()
+						closeWithReason("dismiss")
+					}}
+					className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50 backdrop-blur-[4px]"
+				/>
+				<DialogPrimitive.Content
+					data-slot="dialog-content"
+					onClick={(e) => e.stopPropagation()}
+					onInteractOutside={(e) => e.preventDefault()}
+					style={{
+						boxShadow:
+							"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset",
+					}}
+					className={cn(
+						dmSans125ClassName(),
+						"data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] duration-100",
+						"flex max-h-[88dvh] flex-col gap-3 overflow-hidden border border-white/[0.12] bg-[#1B1F24] p-0 px-3 pt-3 pb-4 text-[#FAFAFA] rounded-2xl md:px-4 sm:max-w-[560px] sm:rounded-[22px]",
+					)}
+				>
+					<DialogTitle className="sr-only">
+						{name} use cases and docs
+					</DialogTitle>
+					<div className="flex shrink-0 items-center gap-3">
+						<IconBox>{icon}</IconBox>
+						<div className="min-w-0 flex-1">
+							<p className="truncate text-[16px] font-semibold leading-tight text-[#FAFAFA]">
+								{name}
+							</p>
+							<p className="mt-0.5 truncate text-[12px] text-[#A1A1AA]">
+								Use cases that apply to this Supermemory connection.
+							</p>
+						</div>
+						<div className="flex shrink-0 items-center gap-2">
+							{docsUrl && (
+								<a
+									href={docsUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									className={cn(
+										dmSans125ClassName(),
+										"flex h-7 items-center gap-1.5 rounded-full bg-[#0D121A] px-3 text-[12px] text-[#A1A1AA] transition-colors hover:text-white",
+										INSET,
+									)}
+								>
+									<BookOpen className="size-3.5" /> Docs
+								</a>
+							)}
+							<button
+								type="button"
+								aria-label="Close"
+								onClick={() => closeWithReason("close_button")}
 								className={cn(
-									dmSans125ClassName(),
-									"flex h-7 items-center gap-1.5 rounded-full bg-[#0D121A] px-3 text-[12px] text-[#A1A1AA] transition-colors hover:text-white",
+									"flex size-7 items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80 focus:outline-none",
 									INSET,
 								)}
 							>
-								<BookOpen className="size-3.5" /> Docs
-							</a>
-						)}
-						<button
-							type="button"
-							aria-label="Close"
-							onClick={() => closeWithReason("close_button")}
+								<X className="size-4 text-[#737373]" />
+							</button>
+						</div>
+					</div>
+					<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+						<div
 							className={cn(
-								"flex size-7 items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80 focus:outline-none",
+								"min-w-0 rounded-[14px] bg-[#14161A] p-4 sm:p-5",
 								INSET,
 							)}
 						>
-							<X className="size-4 text-[#737373]" />
-						</button>
-					</div>
-				</div>
-				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-					<div
-						className={cn(
-							"min-w-0 rounded-[14px] bg-[#14161A] p-4 sm:p-5",
-							INSET,
-						)}
-					>
-						<div className="flex flex-col gap-5">
-							{useCases.map((useCase, index) => (
-								<div key={useCase.title} className="flex gap-3">
-									<div className="flex flex-col items-center gap-1.5">
-										<span
-											className={cn(
-												"flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[11px] font-semibold text-[#4BA0FA]",
-												INSET,
+							<div className="flex flex-col gap-5">
+								{useCases.map((useCase, index) => (
+									<div key={useCase.title} className="flex gap-3">
+										<div className="flex flex-col items-center gap-1.5">
+											<span
+												className={cn(
+													"flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[11px] font-semibold text-[#4BA0FA]",
+													INSET,
+												)}
+											>
+												{index + 1}
+											</span>
+											{index < useCases.length - 1 && (
+												<span className="w-px flex-1 bg-white/[0.14]" />
 											)}
-										>
-											{index + 1}
-										</span>
-										{index < useCases.length - 1 && (
-											<span className="w-px flex-1 bg-white/[0.14]" />
-										)}
+										</div>
+										<div className="min-w-0">
+											<p className="text-[15px] font-semibold leading-tight text-[#FAFAFA]">
+												{useCase.title}
+											</p>
+											<p className="mt-1 text-[13px] leading-relaxed text-[#A1A1AA]">
+												{useCase.description}
+											</p>
+										</div>
 									</div>
-									<div className="min-w-0">
-										<p className="text-[15px] font-semibold leading-tight text-[#FAFAFA]">
-											{useCase.title}
-										</p>
-										<p className="mt-1 text-[13px] leading-relaxed text-[#A1A1AA]">
-											{useCase.description}
-										</p>
-									</div>
-								</div>
-							))}
+								))}
+							</div>
 						</div>
 					</div>
-				</div>
-				<div className="flex shrink-0 items-center justify-end gap-2 pt-1">
-					<button
-						type="button"
-						onClick={() => closeWithReason("im_good")}
-						className={cn(
-							"px-3 py-2 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]",
-							dmSansClassName(),
-						)}
-					>
-						I'm good
-					</button>
-					{/* biome-ignore lint/a11y/noStaticElementInteractions: closes the info dialog after the nested action button runs. */}
-					{/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handling stays on the nested real button. */}
-					<div onClick={() => closeWithReason("action")}>{actionSlot}</div>
-				</div>
-			</DialogContent>
+					<div className="flex shrink-0 items-center justify-end gap-2 pt-1">
+						<button
+							type="button"
+							onClick={() => closeWithReason("im_good")}
+							className={cn(
+								"px-3 py-2 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]",
+								dmSansClassName(),
+							)}
+						>
+							I'm good
+						</button>
+						{/* biome-ignore lint/a11y/noStaticElementInteractions: closes the info dialog after the nested action button runs. */}
+						{/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handling stays on the nested real button. */}
+						<div onClick={() => closeWithReason("action")}>{actionSlot}</div>
+					</div>
+				</DialogPrimitive.Content>
+			</DialogPrimitive.Portal>
 		</Dialog>
 	)
 }
@@ -1683,6 +1698,7 @@ function RecentlyAddedCard({
 
 function ItemCard({
 	actionSlot,
+	infoActionSlot,
 	icon,
 	id,
 	kind,
@@ -1695,6 +1711,7 @@ function ItemCard({
 	statusSlot,
 }: {
 	actionSlot: ReactNode
+	infoActionSlot?: ReactNode
 	icon: ReactNode
 	id: string
 	kind: ItemKind
@@ -1726,7 +1743,7 @@ function ItemCard({
 		>
 			<ItemInfoButton name={name} onClick={() => setInfoOpen(true)} />
 			<ItemInfoDialog
-				actionSlot={actionSlot}
+				actionSlot={infoActionSlot ?? actionSlot}
 				docsUrl={docsUrl}
 				icon={icon}
 				id={id}
@@ -2941,6 +2958,61 @@ export function IntegrationsView({
 		}
 	}
 
+	const renderInfoRight = (item: Item): ReactNode => {
+		if (publicMode) return renderRight(item)
+
+		switch (item.kind) {
+			case "plugin": {
+				const activeKey = activePluginById.get(item.pluginId)
+				const needsProUpgrade =
+					!isAutumnLoading && !hasProProduct && !isFreeTierPlugin(item.pluginId)
+				if (activeKey) {
+					const busy = connectingPlugin === item.pluginId
+					return (
+						<PillButton
+							onClick={() => {
+								if (needsProUpgrade) {
+									handleUpgrade()
+									return
+								}
+								trackCard(item)
+								createPluginKeyMutation.mutate(item.pluginId)
+							}}
+							disabled={!!connectingPlugin}
+						>
+							{busy ? (
+								<>
+									<Loader className="size-3.5 animate-spin" /> Connecting…
+								</>
+							) : (
+								"Connect"
+							)}
+						</PillButton>
+					)
+				}
+				return renderRight(item)
+			}
+			case "connector": {
+				const count = connectionsByProvider[item.provider].length
+				if (count > 0) {
+					return (
+						<PillButton
+							onClick={() => {
+								trackCard(item)
+								void setAddDoc("connect")
+							}}
+						>
+							Connect
+						</PillButton>
+					)
+				}
+				return renderRight(item)
+			}
+			default:
+				return renderRight(item)
+		}
+	}
+
 	const renderStatus = (item: Item): ReactNode => {
 		if (publicMode) return null
 
@@ -2973,6 +3045,7 @@ export function IntegrationsView({
 		<ItemCard
 			key={item.id}
 			actionSlot={renderRight(item)}
+			infoActionSlot={renderInfoRight(item)}
 			icon={item.icon}
 			id={item.id}
 			kind={item.kind}
