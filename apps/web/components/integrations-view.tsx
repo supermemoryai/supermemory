@@ -8,7 +8,10 @@ import { hasActivePlan } from "@lib/queries"
 import { $fetch } from "@lib/api"
 import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
-import type { ConnectionResponseSchema } from "@repo/validation/api"
+import type {
+	ConnectionResponseSchema,
+	DocumentsWithMemoriesResponseSchema,
+} from "@repo/validation/api"
 import type { z } from "zod"
 import { Button } from "@ui/components/button"
 import {
@@ -23,6 +26,10 @@ import {
 	ArrowRight,
 	BookOpen,
 	Check,
+	ChevronDown,
+	ExternalLink,
+	FileText,
+	Globe,
 	Info,
 	Loader,
 	Plus,
@@ -31,13 +38,16 @@ import {
 	Zap,
 } from "lucide-react"
 import { formatRelativeTime } from "@/components/settings/sync-utils"
+import { useConnectionHealth } from "@/hooks/use-connection-health"
+import { useContainerTags } from "@/hooks/use-container-tags"
+import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import { CHROME_EXTENSION_URL, POKE_RECIPE_URL } from "@lib/constants"
 import { analytics } from "@/lib/analytics"
 import Image from "next/image"
 import { useViewMode } from "@/lib/view-mode-context"
 import type { ViewParamValue } from "@/lib/search-params"
 import { parseAsString, parseAsStringEnum, useQueryState } from "nuqs"
-import { addDocumentParam } from "@/lib/search-params"
+import { addDocumentParam, docParam } from "@/lib/search-params"
 import {
 	useCallback,
 	useEffect,
@@ -58,6 +68,7 @@ import {
 } from "@/lib/plugin-catalog"
 import { INSET, InstallSteps, PillButton } from "./integrations/install-steps"
 import { MCPSteps } from "./mcp-modal/mcp-detail-view"
+import { detectPluginSpace, detectPluginSource } from "@/lib/plugin-space"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
@@ -76,6 +87,16 @@ function toIsoDate(value: string | Date | null | undefined): string | null {
 	const d = value instanceof Date ? value : new Date(value)
 	if (Number.isNaN(d.getTime())) return null
 	return d.toISOString()
+}
+
+function toMs(value: string | null | undefined): number {
+	if (!value) return 0
+	const t = new Date(value).getTime()
+	return Number.isNaN(t) ? 0 : t
+}
+
+function compactRelativeTime(value: number | string): string {
+	return formatRelativeTime(value).replace(/\s*ago$/i, "")
 }
 
 function parsePluginAuthKeys(
@@ -522,11 +543,18 @@ function NewChip() {
 	)
 }
 
-function IconBox({ children }: { children: ReactNode }) {
+function IconBox({
+	children,
+	size = "md",
+}: {
+	children: ReactNode
+	size?: "sm" | "md"
+}) {
 	return (
 		<div
 			className={cn(
-				"flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[#080B0F]",
+				"flex shrink-0 items-center justify-center rounded-[10px] bg-[#080B0F]",
+				size === "sm" ? "size-8" : "size-10",
 				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]",
 			)}
 		>
@@ -976,6 +1004,680 @@ function ConnectionsCountPill({ count }: { count: number }) {
 			<span className="size-[7px] rounded-full bg-[#00AC3F]" />
 			{count > 1 ? `${count} connected` : "Connected"}
 		</span>
+	)
+}
+
+const CONNECTOR_META: Record<
+	ConnectorProvider,
+	{ name: string; icon: ReactNode; documentLabel: string }
+> = {
+	"google-drive": {
+		name: "Google Drive",
+		icon: <GoogleDrive className="size-6" />,
+		documentLabel: "documents",
+	},
+	notion: {
+		name: "Notion",
+		icon: <Notion className="size-6" />,
+		documentLabel: "pages",
+	},
+	onedrive: {
+		name: "OneDrive",
+		icon: <OneDrive className="size-6" />,
+		documentLabel: "documents",
+	},
+}
+
+interface PluginEntry {
+	kind: "plugin"
+	id: string
+	name: string
+	icon: ReactNode
+	pro: boolean
+	agentCount: number
+	createdAt: string | null
+	lastActive: string | null
+	onManage: () => void
+}
+
+interface ConnectorEntry {
+	kind: "connector"
+	id: string
+	name: string
+	documentLabel: string
+	icon: ReactNode
+	pro: boolean
+	provider: ConnectorProvider
+	connection: Connection
+	connectionCount: number
+	email: string | null
+	spaceName: string | null
+	createdAt: string | null
+	onManage: () => void
+	onReconnect: () => void
+}
+
+type RailEntry = PluginEntry | ConnectorEntry
+
+function railConnectionMeta(connection: Connection) {
+	const m = connection.metadata as Record<string, unknown> | undefined
+	return {
+		syncInProgress: m?.syncInProgress === true,
+		lastSyncedAt:
+			typeof m?.lastSyncedAt === "number" ? m.lastSyncedAt : undefined,
+		documentCount: typeof m?.documentCount === "number" ? m.documentCount : 0,
+	}
+}
+
+function RailDetail({ label, value }: { label: string; value: ReactNode }) {
+	return (
+		<div
+			className={cn(
+				dmSans125ClassName(),
+				"flex items-center justify-between gap-3 text-[11px]",
+			)}
+		>
+			<span className="shrink-0 text-[#737373]">{label}</span>
+			<span className="min-w-0 truncate text-right text-[#A1A1AA]">
+				{value}
+			</span>
+		</div>
+	)
+}
+
+function RailAction({
+	label,
+	onClick,
+	danger,
+}: {
+	label: string
+	onClick: () => void
+	danger?: boolean
+}) {
+	return (
+		<button
+			type="button"
+			onClick={(e) => {
+				e.stopPropagation()
+				onClick()
+			}}
+			className={cn(
+				dmSans125ClassName(),
+				"rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
+				danger
+					? "bg-[#EF4444]/15 text-[#EF4444] hover:bg-[#EF4444]/25"
+					: "bg-[#0D121A] text-[#A1A1AA] hover:text-[#FAFAFA]",
+			)}
+		>
+			{label}
+		</button>
+	)
+}
+
+function RailRow({
+	icon,
+	name,
+	statusLine,
+	expanded,
+	onToggle,
+	children,
+}: {
+	icon: ReactNode
+	name: string
+	statusLine: ReactNode
+	expanded: boolean
+	onToggle: () => void
+	children: ReactNode
+}) {
+	return (
+		<div
+			className={cn(
+				"overflow-hidden rounded-[12px] bg-[#14161A]",
+				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+			)}
+		>
+			<button
+				type="button"
+				onClick={onToggle}
+				className="group flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[#16181D]"
+			>
+				<IconBox size="sm">{icon}</IconBox>
+				<div className="min-w-0 flex-1">
+					<span
+						className={cn(
+							dmSans125ClassName(),
+							"block min-w-0 truncate text-[13px] font-medium text-[#FAFAFA]",
+						)}
+					>
+						{name}
+					</span>
+					<div className="mt-0.5 min-w-0">{statusLine}</div>
+				</div>
+				<ChevronDown
+					className={cn(
+						"size-4 shrink-0 text-[#525D6E] transition-transform group-hover:text-[#A1A1AA]",
+						expanded && "rotate-180",
+					)}
+				/>
+			</button>
+			<AnimatePresence initial={false}>
+				{expanded && (
+					<motion.div
+						initial={{ height: 0, opacity: 0 }}
+						animate={{ height: "auto", opacity: 1 }}
+						exit={{ height: 0, opacity: 0 }}
+						transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+						className="overflow-hidden"
+					>
+						<div className="flex flex-col gap-2 border-t border-white/[0.06] px-3 py-3">
+							{children}
+						</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
+		</div>
+	)
+}
+
+function ActiveStatusDot() {
+	return (
+		<>
+			<span className="size-[6px] shrink-0 rounded-full bg-[#00AC3F]" />
+			<span
+				className={cn(
+					dmSans125ClassName(),
+					"shrink-0 text-[11px] font-medium text-[#00AC3F]",
+				)}
+			>
+				Active
+			</span>
+		</>
+	)
+}
+
+function PluginRailRow({ entry }: { entry: PluginEntry }) {
+	const [expanded, setExpanded] = useState(false)
+	const lastTime = entry.lastActive ?? entry.createdAt
+	const suffix = [
+		entry.agentCount > 1 ? `${entry.agentCount} agents` : null,
+		lastTime ? formatRelativeTime(lastTime) : null,
+	]
+		.filter(Boolean)
+		.join(" · ")
+	return (
+		<RailRow
+			icon={entry.icon}
+			name={entry.name}
+			expanded={expanded}
+			onToggle={() => setExpanded((v) => !v)}
+			statusLine={
+				<div className="flex min-w-0 items-center gap-1.5">
+					<ActiveStatusDot />
+					{suffix && (
+						<span
+							className={cn(
+								dmSans125ClassName(),
+								"min-w-0 truncate text-[11px] text-[#737373]",
+							)}
+						>
+							· {suffix}
+						</span>
+					)}
+				</div>
+			}
+		>
+			{entry.createdAt && (
+				<RailDetail
+					label="Connected"
+					value={formatRelativeTime(entry.createdAt)}
+				/>
+			)}
+			{entry.lastActive && (
+				<RailDetail
+					label="Last active"
+					value={formatRelativeTime(entry.lastActive)}
+				/>
+			)}
+			<RailDetail label="Agents" value={`${entry.agentCount} connected`} />
+			<div className="mt-1 flex flex-wrap gap-1.5">
+				<RailAction label="Manage" onClick={entry.onManage} />
+			</div>
+		</RailRow>
+	)
+}
+
+const CONNECTOR_STATUS = {
+	expired: { color: "#EF4444", label: "Expired" },
+	syncing: { color: "#4BA0FA", label: "Syncing" },
+	synced: { color: "#00AC3F", label: "Synced" },
+	idle: { color: "#737373", label: "Connected" },
+} as const
+
+function ConnectorRailRow({ entry }: { entry: ConnectorEntry }) {
+	const [expanded, setExpanded] = useState(false)
+	const { needsReauth } = useConnectionHealth(entry.connection.id)
+	const meta = railConnectionMeta(entry.connection)
+	const status: keyof typeof CONNECTOR_STATUS = needsReauth
+		? "expired"
+		: meta.syncInProgress
+			? "syncing"
+			: meta.lastSyncedAt
+				? "synced"
+				: "idle"
+	const { color, label } = CONNECTOR_STATUS[status]
+	const statusParts = [
+		status !== "syncing" && meta.documentCount > 0
+			? String(meta.documentCount)
+			: null,
+		status === "synced" && meta.lastSyncedAt
+			? compactRelativeTime(meta.lastSyncedAt)
+			: null,
+	].filter(Boolean)
+	return (
+		<RailRow
+			icon={entry.icon}
+			name={entry.name}
+			expanded={expanded}
+			onToggle={() => setExpanded((v) => !v)}
+			statusLine={
+				<div className="flex min-w-0 items-center gap-1.5">
+					<span
+						className={cn(
+							"size-[6px] shrink-0 rounded-full",
+							status === "syncing" && "animate-pulse",
+						)}
+						style={{ backgroundColor: color }}
+					/>
+					<span
+						className={cn(
+							dmSans125ClassName(),
+							"shrink-0 text-[11px] font-medium",
+						)}
+						style={{ color }}
+					>
+						{label}
+					</span>
+					{statusParts.length > 0 && (
+						<span
+							className={cn(
+								dmSans125ClassName(),
+								"min-w-0 truncate text-[11px] text-[#737373]",
+							)}
+						>
+							· {statusParts.join(" · ")}
+						</span>
+					)}
+				</div>
+			}
+		>
+			{entry.email && <RailDetail label="Account" value={entry.email} />}
+			{entry.createdAt && (
+				<RailDetail label="Added" value={formatRelativeTime(entry.createdAt)} />
+			)}
+			{meta.lastSyncedAt && (
+				<RailDetail
+					label="Last synced"
+					value={formatRelativeTime(meta.lastSyncedAt)}
+				/>
+			)}
+			{meta.documentCount > 0 && (
+				<RailDetail
+					label="Synced"
+					value={`${meta.documentCount} ${entry.documentLabel}`}
+				/>
+			)}
+			{entry.spaceName && <RailDetail label="Space" value={entry.spaceName} />}
+			{needsReauth && (
+				<RailDetail
+					label="Status"
+					value={<span className="text-[#EF4444]">Reconnect needed</span>}
+				/>
+			)}
+			<div className="mt-1 flex flex-wrap gap-1.5">
+				{needsReauth && (
+					<RailAction label="Reconnect" danger onClick={entry.onReconnect} />
+				)}
+				<RailAction label="Manage" onClick={entry.onManage} />
+			</div>
+		</RailRow>
+	)
+}
+
+const SKELETON_KEYS = ["s1", "s2", "s3", "s4", "s5"]
+
+function RailSkeleton({ rows }: { rows: number }) {
+	return (
+		<div className="flex flex-col gap-2">
+			{SKELETON_KEYS.slice(0, rows).map((k) => (
+				<div
+					key={k}
+					className="flex items-center gap-3 rounded-[12px] bg-[#14161A] p-3"
+				>
+					<div className="size-8 shrink-0 animate-pulse rounded-md bg-white/[0.04]" />
+					<div className="flex min-w-0 flex-1 flex-col gap-1.5">
+						<div className="h-2.5 w-2/3 animate-pulse rounded bg-white/[0.06]" />
+						<div className="h-2 w-2/5 animate-pulse rounded bg-white/[0.04]" />
+					</div>
+				</div>
+			))}
+		</div>
+	)
+}
+
+function RailEmpty({
+	icon,
+	title,
+	hint,
+}: {
+	icon: ReactNode
+	title: string
+	hint: string
+}) {
+	return (
+		<div className="flex flex-col items-center gap-1.5 px-3 py-7 text-center">
+			<div className="flex size-9 items-center justify-center rounded-full bg-[#0D121A] text-[#525D6E]">
+				{icon}
+			</div>
+			<p
+				className={cn(
+					dmSans125ClassName(),
+					"text-[12px] font-medium text-[#A1A1AA]",
+				)}
+			>
+				{title}
+			</p>
+			<p className={cn(dmSans125ClassName(), "text-[11px] text-[#525D6E]")}>
+				{hint}
+			</p>
+		</div>
+	)
+}
+
+function ActiveConnectionsRail({
+	entries,
+	loading,
+	className,
+}: {
+	entries: RailEntry[]
+	loading?: boolean
+	className?: string
+}) {
+	return (
+		<aside
+			className={cn(
+				"flex flex-col gap-3 rounded-[14px] bg-[#191D24] p-4 sm:p-5",
+				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+				className,
+			)}
+		>
+			<div className="flex items-center justify-between gap-2">
+				<h3
+					className={cn(
+						dmSans125ClassName(),
+						"text-[13px] font-semibold tracking-[-0.01em] text-[#FAFAFA]",
+					)}
+				>
+					Active connections
+				</h3>
+				<div className="flex shrink-0 items-center gap-2">
+					{loading && entries.length > 0 && (
+						<Loader className="size-3.5 animate-spin text-[#525D6E]" />
+					)}
+					{entries.length > 0 && (
+						<span
+							className={cn(
+								dmSans125ClassName(),
+								"flex items-center gap-1.5 text-[12px] font-medium text-[#00AC3F]",
+							)}
+						>
+							<span className="size-[7px] rounded-full bg-[#00AC3F]" />
+							{entries.length}
+						</span>
+					)}
+				</div>
+			</div>
+			{entries.length > 0 ? (
+				<div className="flex flex-col gap-2">
+					{entries.map((entry) =>
+						entry.kind === "plugin" ? (
+							<PluginRailRow key={entry.id} entry={entry} />
+						) : (
+							<ConnectorRailRow key={entry.id} entry={entry} />
+						),
+					)}
+				</div>
+			) : loading ? (
+				<RailSkeleton rows={3} />
+			) : (
+				<RailEmpty
+					icon={<Zap className="size-4" />}
+					title="No active connections yet"
+					hint="Connect a tool below to see it here"
+				/>
+			)}
+		</aside>
+	)
+}
+
+type RecentDoc = z.infer<
+	typeof DocumentsWithMemoriesResponseSchema
+>["documents"][number]
+
+function hostnameOf(url: string | null | undefined): string | null {
+	if (!url) return null
+	try {
+		return new URL(url).hostname.replace(/^www\./, "")
+	} catch {
+		return null
+	}
+}
+
+const CONNECTOR_SMALL_ICON: Record<ConnectorProvider, ReactNode> = {
+	"google-drive": <GoogleDrive className="size-3.5" />,
+	notion: <Notion className="size-3.5" />,
+	onedrive: <OneDrive className="size-3.5" />,
+}
+
+function pluginIconNode(iconSrc: string | null): ReactNode {
+	if (!iconSrc) return <FileText className="size-3.5 text-[#737373]" />
+	return (
+		<Image
+			src={iconSrc}
+			alt=""
+			width={14}
+			height={14}
+			className="size-3.5 rounded-sm"
+		/>
+	)
+}
+
+function resolveDocSource(
+	doc: RecentDoc,
+	connectionSource: Map<string, ConnectorProvider>,
+): { label: string; icon: ReactNode } {
+	const tags = (doc as { containerTags?: unknown }).containerTags
+	if (Array.isArray(tags)) {
+		for (const tag of tags) {
+			if (typeof tag !== "string") continue
+			const space = detectPluginSpace(tag)
+			if (space) {
+				return { label: space.label, icon: pluginIconNode(space.iconSrc) }
+			}
+		}
+	}
+	if (doc.connectionId) {
+		const provider = connectionSource.get(doc.connectionId)
+		if (provider) {
+			return {
+				label: CONNECTOR_META[provider].name,
+				icon: CONNECTOR_SMALL_ICON[provider],
+			}
+		}
+	}
+	const cc = detectPluginSource(
+		doc.metadata as Record<string, unknown> | null | undefined,
+		doc.source,
+	)
+	if (cc) {
+		return { label: cc.label, icon: pluginIconNode(cc.iconSrc) }
+	}
+	if (doc.source === "mcp") {
+		return { label: "MCP", icon: <MCPIcon className="size-3.5" /> }
+	}
+	const type = (doc.type ?? "").toLowerCase()
+	if (type.includes("notion")) {
+		return { label: "Notion", icon: <Notion className="size-3.5" /> }
+	}
+	if (
+		type.includes("google") ||
+		type.includes("gdrive") ||
+		type.includes("drive")
+	) {
+		return { label: "Google Drive", icon: <GoogleDrive className="size-3.5" /> }
+	}
+	if (type.includes("onedrive") || type.includes("microsoft")) {
+		return { label: "OneDrive", icon: <OneDrive className="size-3.5" /> }
+	}
+	const host = hostnameOf(doc.url)
+	if (host) {
+		return { label: host, icon: <Globe className="size-3.5 text-[#737373]" /> }
+	}
+	return {
+		label: "Note",
+		icon: <FileText className="size-3.5 text-[#737373]" />,
+	}
+}
+
+function docDisplayTitle(doc: RecentDoc, sourceLabel: string): string {
+	const t = doc.title?.trim()
+	if (t && !/^untitled/i.test(t)) return t
+	const summary = typeof doc.summary === "string" ? doc.summary.trim() : ""
+	if (summary) {
+		const line = summary
+			.split("\n")
+			.find((l) => l.trim())
+			?.trim()
+		if (line) return line.length > 80 ? `${line.slice(0, 79)}…` : line
+	}
+	return `${sourceLabel} session`
+}
+
+function RecentDocRow({
+	doc,
+	connectionSource,
+	onOpen,
+}: {
+	doc: RecentDoc
+	connectionSource: Map<string, ConnectorProvider>
+	onOpen: () => void
+}) {
+	const { label, icon } = resolveDocSource(doc, connectionSource)
+	const title = docDisplayTitle(doc, label)
+	return (
+		<button
+			type="button"
+			onClick={onOpen}
+			className="group flex w-full items-center gap-2.5 rounded-[10px] px-2 py-2 text-left transition-colors hover:bg-[#14161A]"
+		>
+			<span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#0D121A] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.5)]">
+				{icon}
+			</span>
+			<div className="min-w-0 flex-1">
+				<span
+					className={cn(
+						dmSans125ClassName(),
+						"block min-w-0 truncate text-[12px] text-[#E5E5E5] transition-colors group-hover:text-white",
+					)}
+				>
+					{title}
+				</span>
+				<span
+					className={cn(
+						dmSans125ClassName(),
+						"mt-0.5 flex min-w-0 items-center gap-1 text-[10px] text-[#737373]",
+					)}
+				>
+					<span className="truncate">{label}</span>
+					<span className="shrink-0">·</span>
+					<span className="shrink-0">{formatRelativeTime(doc.createdAt)}</span>
+				</span>
+			</div>
+			{doc.url ? (
+				<ExternalLink className="size-3 shrink-0 text-[#525D6E] transition-colors group-hover:text-[#A1A1AA]" />
+			) : (
+				<ArrowRight className="size-3 shrink-0 text-[#525D6E] transition-colors group-hover:text-[#A1A1AA]" />
+			)}
+		</button>
+	)
+}
+
+function RecentlyAddedCard({
+	docs,
+	connectionSource,
+	loading,
+	onOpenDoc,
+	onViewAll,
+	className,
+}: {
+	docs: RecentDoc[]
+	connectionSource: Map<string, ConnectorProvider>
+	loading?: boolean
+	onOpenDoc: (doc: RecentDoc) => void
+	onViewAll: () => void
+	className?: string
+}) {
+	return (
+		<aside
+			className={cn(
+				"flex flex-col gap-2 rounded-[14px] bg-[#191D24] p-4 sm:p-5",
+				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+				className,
+			)}
+		>
+			<div className="flex items-center justify-between gap-2">
+				<h3
+					className={cn(
+						dmSans125ClassName(),
+						"text-[13px] font-semibold tracking-[-0.01em] text-[#FAFAFA]",
+					)}
+				>
+					Recently added
+				</h3>
+				{docs.length > 0 && (
+					<button
+						type="button"
+						onClick={onViewAll}
+						className={cn(
+							dmSans125ClassName(),
+							"flex shrink-0 items-center gap-1 text-[11px] text-[#737373] transition-colors hover:text-[#FAFAFA]",
+						)}
+					>
+						View all
+						<ArrowRight className="size-3" />
+					</button>
+				)}
+			</div>
+			{docs.length > 0 ? (
+				<div className="scrollbar-none flex max-h-[320px] flex-col gap-0.5 overflow-y-auto">
+					{docs.map((doc) => (
+						<RecentDocRow
+							key={doc.id ?? doc.customId}
+							doc={doc}
+							connectionSource={connectionSource}
+							onOpen={() => onOpenDoc(doc)}
+						/>
+					))}
+				</div>
+			) : loading ? (
+				<RailSkeleton rows={4} />
+			) : (
+				<RailEmpty
+					icon={<FileText className="size-4" />}
+					title="No memories yet"
+					hint="Anything you save will show up here"
+				/>
+			)}
+		</aside>
 	)
 }
 
@@ -1462,12 +2164,15 @@ function SectionRail({
 
 export function IntegrationsView({
 	publicMode = false,
+	onOpenDocument,
 }: {
 	publicMode?: boolean
+	onOpenDocument?: (doc: RecentDoc) => void
 }) {
 	const { setViewMode } = useViewMode()
 	const queryClient = useQueryClient()
 	const { org } = useAuth()
+	const { allProjects } = useContainerTags()
 	const autumn = useCustomer({ queryOptions: { enabled: !publicMode } })
 	const hasProProduct =
 		!publicMode && hasActivePlan(autumn.data?.subscriptions, "api_pro")
@@ -1502,7 +2207,7 @@ export function IntegrationsView({
 		queryKey: ["plugins"],
 	})
 
-	const { data: connections = [] } = useQuery({
+	const { data: connections = [], isLoading: connectionsLoading } = useQuery({
 		queryKey: ["connections"],
 		queryFn: async () => {
 			const response = await $fetch("@post/connections/list", {
@@ -1516,24 +2221,26 @@ export function IntegrationsView({
 		enabled: !publicMode && hasProProduct,
 	})
 
-	const { data: apiKeys = [], refetch: refetchKeys } = useQuery<ListedApiKey[]>(
-		{
-			queryKey: ["api-keys", org?.id],
-			queryFn: async () => {
-				if (!org?.id) return []
-				const API_URL =
-					process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
-				const res = await fetch(`${API_URL}/v3/auth/keys`, {
-					credentials: "include",
-				})
-				if (!res.ok) return []
-				const data = (await res.json()) as { keys?: ListedApiKey[] }
-				return data.keys ?? []
-			},
-			enabled: !publicMode && !!org?.id,
-			staleTime: 30 * 1000,
+	const {
+		data: apiKeys = [],
+		refetch: refetchKeys,
+		isLoading: apiKeysLoading,
+	} = useQuery<ListedApiKey[]>({
+		queryKey: ["api-keys", org?.id],
+		queryFn: async () => {
+			if (!org?.id) return []
+			const API_URL =
+				process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+			const res = await fetch(`${API_URL}/v3/auth/keys`, {
+				credentials: "include",
+			})
+			if (!res.ok) return []
+			const data = (await res.json()) as { keys?: ListedApiKey[] }
+			return data.keys ?? []
 		},
-	)
+		enabled: !publicMode && !!org?.id,
+		staleTime: 30 * 1000,
+	})
 
 	const keyPrefix = useCallback((key: ListedApiKey): string | null => {
 		return key.start ?? (key.name?.startsWith("sm_") ? key.name : null)
@@ -1585,6 +2292,15 @@ export function IntegrationsView({
 			if (p in out) out[p].push(c)
 		}
 		return out
+	}, [connections])
+
+	const connectionSource = useMemo(() => {
+		const m = new Map<string, ConnectorProvider>()
+		for (const c of connections) {
+			const p = c.provider as ConnectorProvider
+			if (p in CONNECTOR_META) m.set(c.id, p)
+		}
+		return m
 	}, [connections])
 
 	const createPluginKeyMutation = useMutation({
@@ -1699,6 +2415,7 @@ export function IntegrationsView({
 
 	const [category, setCategory] = useQueryState("cat", catParam)
 	const [, setAddDoc] = useQueryState("add", addDocumentParam)
+	const [, setDocId] = useQueryState("doc", docParam)
 	const [mcpClient, setMcpClient] = useQueryState("mcpClient", parseAsString)
 	const [mcpModalOpen, setMcpModalOpen] = useState(false)
 	const [search, setSearch] = useState("")
@@ -1762,6 +2479,120 @@ export function IntegrationsView({
 			void setCategory("all")
 		}
 	}, [category, counts, setCategory])
+
+	const railEntries = useMemo<RailEntry[]>(() => {
+		const getSpaceName = (tag?: string): string | null => {
+			if (!tag) return null
+			if (tag === DEFAULT_PROJECT_ID) return "Default"
+			return allProjects.find((p) => p.containerTag === tag)?.name ?? null
+		}
+		const rows: Array<{ ts: number; entry: RailEntry }> = []
+		for (const [pluginId, key] of activePluginById) {
+			const plugin = PLUGIN_CATALOG[pluginId]
+			if (!plugin) continue
+			const count = activeCountByPlugin.get(pluginId) ?? 1
+			rows.push({
+				ts: toMs(key.lastRequest ?? key.createdAt),
+				entry: {
+					kind: "plugin",
+					id: `plugin-${pluginId}`,
+					name: plugin.name,
+					icon: (
+						<Image
+							src={plugin.icon}
+							alt={plugin.name}
+							width={24}
+							height={24}
+							className="size-6 rounded"
+						/>
+					),
+					pro: !FREE_TIER_PLUGIN_IDS.includes(pluginId),
+					agentCount: count,
+					createdAt: key.createdAt ?? null,
+					lastActive: key.lastRequest ?? null,
+					onManage: () => setConnectedPluginId(pluginId),
+				},
+			})
+		}
+		for (const provider of [
+			"google-drive",
+			"notion",
+			"onedrive",
+		] as ConnectorProvider[]) {
+			const conns = connectionsByProvider[provider]
+			const primary = conns[0]
+			if (!primary) continue
+			const meta = CONNECTOR_META[provider]
+			const earliest = conns.reduce<string | null>((min, c) => {
+				if (!min) return c.createdAt
+				return c.createdAt < min ? c.createdAt : min
+			}, null)
+			const email = conns.find((c) => c.email)?.email ?? null
+			rows.push({
+				ts: toMs(earliest),
+				entry: {
+					kind: "connector",
+					id: `connector-${provider}`,
+					name: meta.name,
+					documentLabel: meta.documentLabel,
+					icon: meta.icon,
+					pro: true,
+					provider,
+					connection: primary,
+					connectionCount: conns.length,
+					email,
+					spaceName: getSpaceName(primary.containerTags?.[0]),
+					createdAt: earliest,
+					onManage: () => void setAddDoc("connect"),
+					onReconnect: () => addConnectionMutation.mutate(provider),
+				},
+			})
+		}
+		rows.sort((a, b) => b.ts - a.ts)
+		return rows.map((r) => r.entry)
+	}, [
+		activePluginById,
+		activeCountByPlugin,
+		connectionsByProvider,
+		allProjects,
+		setAddDoc,
+		addConnectionMutation,
+	])
+
+	const hasActiveRail = railEntries.length > 0
+
+	const { data: recentDocs = [], isLoading: recentsLoading } = useQuery({
+		queryKey: ["integrations-recent-docs", org?.id],
+		queryFn: async () => {
+			const response = await $fetch("@post/documents/documents", {
+				body: {
+					page: 1,
+					limit: 6,
+					sort: "createdAt",
+					order: "desc",
+					containerTags: [],
+				},
+				disableValidation: true,
+			})
+			if (response.error) {
+				throw new Error(
+					response.error?.message || "Failed to load recent documents",
+				)
+			}
+			const data = response.data as z.infer<
+				typeof DocumentsWithMemoriesResponseSchema
+			>
+			return data.documents ?? []
+		},
+		enabled: !publicMode && !!org?.id,
+		staleTime: 60 * 1000,
+	})
+
+	const railLoading =
+		!publicMode && (apiKeysLoading || connectionsLoading || isAutumnLoading)
+	const showRightColumn =
+		!publicMode &&
+		(hasActiveRail || recentDocs.length > 0 || railLoading || recentsLoading)
 
 	const claudeCodeConnected = activePluginById.has("claude_code")
 	const claudeCodeNeedsPro =
@@ -2196,65 +3027,107 @@ export function IntegrationsView({
 
 	return (
 		<div className="flex-1 p-4 md:p-6 pt-2">
-			<div className="mx-auto flex max-w-5xl flex-col gap-5">
-				{!q && <FeaturedHero picks={featuredPicks} />}
+			<div
+				className={cn(
+					"mx-auto w-full",
+					showRightColumn ? "max-w-[88rem]" : "max-w-5xl",
+				)}
+			>
+				<div className="flex flex-col gap-5">
+					{!q && <FeaturedHero picks={featuredPicks} />}
 
-				<div
-					className={cn(
-						"relative overflow-hidden rounded-[14px] bg-[#191D24] p-4 sm:p-6",
-						"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
-					)}
-				>
-					<div className="mb-4 flex items-center justify-between gap-2">
-						<div className="min-w-0 shrink">
-							<CategoryFilterToggle
-								value={category}
-								onChange={(v) => void setCategory(v)}
-								counts={counts}
-								compact={searchExpanded || !!search}
-							/>
+					<div
+						className={cn(
+							"flex flex-col gap-5",
+							showRightColumn && "lg:flex-row lg:items-start lg:gap-4",
+						)}
+					>
+						<div className="flex min-w-0 flex-1 flex-col gap-5">
+							<div
+								className={cn(
+									"relative overflow-hidden rounded-[14px] bg-[#191D24] p-4 sm:p-6",
+									"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+								)}
+							>
+								<div className="mb-4 flex items-center justify-between gap-2">
+									<div className="min-w-0 shrink">
+										<CategoryFilterToggle
+											value={category}
+											onChange={(v) => void setCategory(v)}
+											counts={counts}
+											compact={searchExpanded || !!search}
+										/>
+									</div>
+									<SearchToggle
+										value={search}
+										onChange={setSearch}
+										expanded={searchExpanded}
+										setExpanded={setSearchExpanded}
+									/>
+								</div>
+								{visibleItems.length === 0 ? (
+									<p
+										className={cn(
+											dmSans125ClassName(),
+											"py-6 text-center text-[13px] text-[#A1A1AA]",
+										)}
+									>
+										{q
+											? `No integrations match “${search}”.`
+											: "Nothing in this category yet."}
+									</p>
+								) : q || category !== "all" ? (
+									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+										{visibleItems.map((item) => renderItemCard(item))}
+									</div>
+								) : (
+									<div className="flex flex-col gap-6">
+										{SECTION_ORDER.map((cat) => {
+											const items = visibleItems.filter(
+												(i) => itemCategory(i) === cat,
+											)
+											if (items.length === 0) return null
+											return (
+												<SectionRail key={cat} label={CATEGORY_LABEL[cat]}>
+													{items.map((item) => (
+														<div
+															key={item.id}
+															className="shrink-0 grow-0 basis-[85%] sm:basis-[calc((100%_-_0.75rem)/2)] lg:basis-[calc((100%_-_1.5rem)/3)]"
+														>
+															{renderItemCard(item)}
+														</div>
+													))}
+												</SectionRail>
+											)
+										})}
+									</div>
+								)}
+							</div>
 						</div>
-						<SearchToggle
-							value={search}
-							onChange={setSearch}
-							expanded={searchExpanded}
-							setExpanded={setSearchExpanded}
-						/>
+						{showRightColumn && (
+							<div className="w-full lg:w-[320px] lg:shrink-0">
+								<div className="flex flex-col gap-4 lg:sticky lg:top-2">
+									<ActiveConnectionsRail
+										entries={railEntries}
+										loading={railLoading}
+									/>
+									<RecentlyAddedCard
+										docs={recentDocs}
+										connectionSource={connectionSource}
+										loading={recentsLoading}
+										onOpenDoc={(doc) => {
+											if (onOpenDocument) {
+												onOpenDocument(doc)
+												return
+											}
+											void setDocId(doc.id ?? doc.customId ?? null)
+										}}
+										onViewAll={() => setViewMode("list")}
+									/>
+								</div>
+							</div>
+						)}
 					</div>
-					{visibleItems.length === 0 ? (
-						<p
-							className={cn(
-								dmSans125ClassName(),
-								"py-6 text-center text-[13px] text-[#A1A1AA]",
-							)}
-						>
-							{q
-								? `No integrations match “${search}”.`
-								: "Nothing in this category yet."}
-						</p>
-					) : q || category !== "all" ? (
-						<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-							{visibleItems.map((item) => renderItemCard(item))}
-						</div>
-					) : (
-						<div className="flex flex-col gap-6">
-							{SECTION_ORDER.map((cat) => {
-								const items = visibleItems.filter(
-									(i) => itemCategory(i) === cat,
-								)
-								if (items.length === 0) return null
-								return (
-									<SectionRail key={cat} label={CATEGORY_LABEL[cat]}>
-										{items.map((item) => (
-											<div key={item.id} className="w-[280px] shrink-0">
-												{renderItemCard(item)}
-											</div>
-										))}
-									</SectionRail>
-								)
-							})}
-						</div>
-					)}
 				</div>
 			</div>
 

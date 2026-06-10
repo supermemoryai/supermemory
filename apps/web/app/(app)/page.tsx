@@ -108,7 +108,7 @@ function ViewErrorFallback() {
 
 export default function NewPage() {
 	const isMobile = useIsMobile()
-	const { user, session } = useAuth()
+	const { user, session, isSessionPending } = useAuth()
 
 	const { selectedProject, selectedProjects, setSelectedProject } = useProject()
 	const selectedProjectTag = selectedProjects[0]
@@ -582,7 +582,8 @@ export default function NewPage() {
 		viewMode === "dashboard" || (viewMode === "graph" && isMobile)
 	const isGraphMode = viewMode === "graph"
 	const showBottomNav = isMobile && !!session && !isChatView
-	const isPublicIntegrations = !session && viewMode === "integrations"
+	const isPublicIntegrations =
+		!session && !isSessionPending && viewMode === "integrations"
 
 	return (
 		<HotkeysProvider>
@@ -663,7 +664,10 @@ export default function NewPage() {
 									</div>
 								) : viewMode === "integrations" ? (
 									<div className="min-h-0 min-w-0 flex-1 p-4 pt-2! md:p-6 md:pr-0">
-										<IntegrationsView publicMode={isPublicIntegrations} />
+										<IntegrationsView
+											publicMode={isPublicIntegrations}
+											onOpenDocument={handleOpenDocument}
+										/>
 									</div>
 								) : viewMode === "mcp" ? (
 									<MCPDetailView
