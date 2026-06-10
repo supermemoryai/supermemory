@@ -16,7 +16,13 @@ import {
 	AppleShortcutsIcon,
 	RaycastIcon,
 } from "@/components/integration-icons"
-import { GoogleDrive, Notion, OneDrive, MCPIcon } from "@ui/assets/icons"
+import {
+	GoogleDrive,
+	Notion,
+	OneDrive,
+	MCPIcon,
+	Granola,
+} from "@ui/assets/icons"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import {
 	ArrowLeft,
@@ -57,10 +63,11 @@ import {
 } from "@/lib/plugin-catalog"
 import { INSET, InstallSteps, PillButton } from "./integrations/install-steps"
 import { MCPSteps } from "./mcp-modal/mcp-detail-view"
+import { GranolaConnectModal } from "./granola-connect-modal"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
-type ConnectorProvider = "google-drive" | "notion" | "onedrive"
+type ConnectorProvider = "google-drive" | "notion" | "onedrive" | "granola"
 
 interface ConnectedKey {
 	keyId: string
@@ -276,6 +283,7 @@ interface BaseItem {
 	icon: ReactNode
 	docsUrl?: string
 	pro?: boolean
+	max?: boolean
 	kind: ItemKind
 	simpleTitle?: string
 	dev?: boolean
@@ -403,6 +411,16 @@ const SECTIONS: Array<{
 				icon: <OneDrive className="size-6" />,
 				pro: true,
 			},
+			{
+				kind: "connector",
+				id: "granola",
+				provider: "granola",
+				name: "Granola",
+				tagline: "Sync AI meeting notes into your memory",
+				simpleTitle: "Your meeting notes, ready to recall",
+				icon: <Granola className="size-6" />,
+				max: true,
+			},
 		],
 	},
 	{
@@ -493,7 +511,7 @@ export function DetailWrapper({
 	)
 }
 
-function ProChip() {
+function ProChip({ children = "Pro" }: { children?: ReactNode }) {
 	return (
 		<span
 			className={cn(
@@ -501,7 +519,7 @@ function ProChip() {
 				"ml-auto shrink-0 pl-2 text-[10px] font-semibold uppercase tracking-wide text-[#4BA0FA]",
 			)}
 		>
-			Pro
+			{children}
 		</span>
 	)
 }
@@ -634,6 +652,7 @@ function ItemCard({
 	name,
 	tagline,
 	pro,
+	max,
 	isNew,
 	docsUrl,
 	leftIndicator,
@@ -643,6 +662,7 @@ function ItemCard({
 	name: string
 	tagline: string
 	pro?: boolean
+	max?: boolean
 	isNew?: boolean
 	docsUrl?: string
 	leftIndicator?: ReactNode
@@ -681,7 +701,7 @@ function ItemCard({
 							{name}
 						</span>
 						{isNew && <NewChip />}
-						{pro && <ProChip />}
+						{max ? <ProChip>Max</ProChip> : pro && <ProChip />}
 					</div>
 					<p
 						className={cn(
@@ -1081,11 +1101,13 @@ export function IntegrationsView() {
 	const { org } = useAuth()
 	const autumn = useCustomer()
 	const hasProProduct = hasActivePlan(autumn.data?.subscriptions, "api_pro")
+	const hasMaxProduct = hasActivePlan(autumn.data?.subscriptions, "api_max")
 	const isAutumnLoading = autumn.isLoading
 
 	const [connectingPlugin, setConnectingPlugin] = useState<string | null>(null)
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
+	const [granolaModalOpen, setGranolaModalOpen] = useState(false)
 	const [newKey, setNewKey] = useState<{
 		open: boolean
 		key: string
@@ -1188,6 +1210,7 @@ export function IntegrationsView() {
 			"google-drive": [],
 			notion: [],
 			onedrive: [],
+			granola: [],
 		}
 		for (const c of connections) {
 			const p = c.provider as ConnectorProvider
@@ -1276,10 +1299,10 @@ export function IntegrationsView() {
 		}
 	}
 
-	const handleUpgrade = async () => {
+	const handleUpgrade = async (planId: "api_pro" | "api_max" = "api_pro") => {
 		try {
 			const result = await autumn.attach({
-				planId: "api_pro",
+				planId,
 				successUrl: `${window.location.origin}/?view=integrations`,
 			})
 			if (result?.paymentUrl) {
@@ -1583,7 +1606,9 @@ export function IntegrationsView() {
 			}
 			case "connector": {
 				const count = connectionsByProvider[item.provider].length
-				const needsProUpgrade = !isAutumnLoading && !hasProProduct
+				const isGranola = item.provider === "granola"
+				const needsPlanUpgrade =
+					!isAutumnLoading && (isGranola ? !hasMaxProduct : !hasProProduct)
 				if (count > 0) {
 					return (
 						<div className="flex w-full items-center justify-between gap-2">
@@ -1594,6 +1619,14 @@ export function IntegrationsView() {
 								title="Add another knowledge source"
 								onClick={() => {
 									trackCard(item)
+									if (isGranola) {
+										if (!hasMaxProduct) {
+											handleUpgrade("api_max")
+											return
+										}
+										setGranolaModalOpen(true)
+										return
+									}
 									void setAddDoc("connect")
 								}}
 								className={cn(
@@ -1606,9 +1639,11 @@ export function IntegrationsView() {
 						</div>
 					)
 				}
-				if (needsProUpgrade) {
+				if (needsPlanUpgrade) {
 					return (
-						<PillButton onClick={handleUpgrade}>
+						<PillButton
+							onClick={() => handleUpgrade(isGranola ? "api_max" : "api_pro")}
+						>
 							<Zap className="size-3.5 text-[#4BA0FA]" /> Upgrade
 						</PillButton>
 					)
@@ -1618,6 +1653,14 @@ export function IntegrationsView() {
 					<PillButton
 						onClick={() => {
 							trackCard(item)
+							if (isGranola) {
+								if (!hasMaxProduct) {
+									handleUpgrade("api_max")
+									return
+								}
+								setGranolaModalOpen(true)
+								return
+							}
 							addConnectionMutation.mutate(item.provider)
 						}}
 						disabled={!!connectingProvider}
@@ -1700,6 +1743,7 @@ export function IntegrationsView() {
 			name={item.name}
 			tagline={item.tagline}
 			pro={item.pro}
+			max={item.max}
 			isNew={item.isNew}
 			docsUrl={item.docsUrl}
 			leftIndicator={renderLeftIndicator(item)}
@@ -2243,6 +2287,11 @@ export function IntegrationsView() {
 					</div>
 				</DialogContent>
 			</Dialog>
+
+			<GranolaConnectModal
+				open={granolaModalOpen}
+				onOpenChange={setGranolaModalOpen}
+			/>
 		</div>
 	)
 }
