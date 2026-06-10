@@ -2844,6 +2844,11 @@ export function IntegrationsView({
 						<FinishSetupButton
 							onClick={() => {
 								trackCard(item)
+								if (!PLUGIN_CATALOG[item.pluginId]?.usesOAuth) {
+									if (connectingPlugin) return
+									createPluginKeyMutation.mutate(item.pluginId)
+									return
+								}
 								setFinishSetupPluginId(item.pluginId)
 							}}
 						/>
