@@ -11,8 +11,15 @@ import {
 	DialogContent,
 	DialogTrigger,
 } from "@ui/components/dialog"
+import { Logo } from "@ui/assets/Logo"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useCustomer } from "autumn-js/react"
+import { usePostHog } from "@lib/posthog"
+import {
+	CANCEL_REASONS,
+	cancelReasonNeedsDetail,
+	type CancelReasonValue,
+} from "./cancel-reasons"
 import {
 	Check,
 	ChevronLeft,
@@ -30,6 +37,38 @@ import { toast } from "sonner"
 
 const API_BASE =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+
+const BOOK_CALL_HREF = "https://cal.com/maheshthedev/15min"
+
+function GoogleMeetIcon({ className }: { className?: string }) {
+	return (
+		<svg
+			className={className}
+			viewBox="0 0 87.5 72"
+			xmlns="http://www.w3.org/2000/svg"
+			aria-hidden="true"
+		>
+			<path
+				fill="#00832d"
+				d="M49.5 36l8.53 9.75 11.47 7.33 2-17.02-2-16.64-11.69 6.44z"
+			/>
+			<path
+				fill="#0066da"
+				d="M0 51.5V66c0 3.315 2.685 6 6 6h14.5l3-10.96-3-9.54-9.95-3z"
+			/>
+			<path fill="#e94235" d="M20.5 0L0 20.5l10.55 3 9.95-3 2.95-9.41z" />
+			<path fill="#2684fc" d="M20.5 20.5H0v31h20.5z" />
+			<path
+				fill="#00ac47"
+				d="M82.6 8.68L69.5 19.42v33.66l13.16 10.79c1.97 1.54 4.85.135 4.85-2.37V11c0-2.535-2.945-3.925-4.91-2.32zM49.5 36v15.5h-29V72h43c3.315 0 6-2.685 6-6V53.08z"
+			/>
+			<path
+				fill="#ffba00"
+				d="M63.5 0h-43v20.5h29V36l20-16.57V6c0-3.315-2.685-6-6-6z"
+			/>
+		</svg>
+	)
+}
 
 const CREDIT_FEATURE_ID = "usd_credits"
 const TOP_UP_PLAN_ID = "credits_topup"
@@ -437,11 +476,15 @@ export default function Billing() {
 	const queryClient = useQueryClient()
 	const { user, org } = useAuth()
 	const autumn = useCustomer()
+	const posthog = usePostHog()
 	const [isUpgrading, setIsUpgrading] = useState(false)
 	const [isCancelling, setIsCancelling] = useState(false)
 	const [isResuming, setIsResuming] = useState(false)
 	const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
-	const [cancelConfirmText, setCancelConfirmText] = useState("")
+	const [cancelReason, setCancelReason] = useState<CancelReasonValue | null>(
+		null,
+	)
+	const [cancelDetail, setCancelDetail] = useState("")
 	const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false)
 	const [isPlanCarouselActive, setIsPlanCarouselActive] = useState(false)
 	const [planPage, setPlanPage] = useState<0 | 1>(0)
@@ -578,16 +621,11 @@ export default function Billing() {
 			? (`api_${currentPlan}` as const)
 			: null
 
-	const currentPlanCard = [...PLAN_CARDS, ...ADVANCED_PLAN_CARDS].find(
-		(p) => p.id === currentPlan,
-	)
-	const cancelLossItems = currentPlanCard
-		? [
-				`${currentPlanCard.credits}/mo included credits`,
-				...currentPlanCard.features.filter((f) => !/credit/i.test(f)),
-			]
-		: []
-	const canConfirmCancel = cancelConfirmText.trim().toUpperCase() === "CANCEL"
+	const cancelNeedsDetail =
+		cancelReason != null && cancelReasonNeedsDetail(cancelReason)
+	const canConfirmCancel =
+		cancelReason != null &&
+		(!cancelNeedsDetail || cancelDetail.trim().length > 0)
 
 	const canceledSub = getCanceledSubscription(autumn.data?.subscriptions)
 	const isPlanCanceling = canceledSub != null
@@ -627,17 +665,31 @@ export default function Billing() {
 		}
 	}
 
+	const resetCancelForm = () => {
+		setCancelReason(null)
+		setCancelDetail("")
+	}
+
 	const handleCancelSubscription = async () => {
 		if (!cancellablePlanId) return
 		setIsCancelling(true)
 		try {
+			if (posthog?.__loaded) {
+				posthog.capture("subscription_cancelled", {
+					reason: cancelReason,
+					reason_detail: cancelDetail.trim() || null,
+					plan: currentPlan,
+					plan_id: cancellablePlanId,
+					surface: "nova",
+				})
+			}
 			await autumn.updateSubscription({
 				planId: cancellablePlanId,
 				cancelAction: "cancel_end_of_cycle",
 			})
 			autumn.refetch?.()
 			setIsCancelDialogOpen(false)
-			setCancelConfirmText("")
+			resetCancelForm()
 			toast.success(
 				`Subscription cancelled. ${planDisplayNames[currentPlan]} features remain active until the end of your billing period.`,
 			)
@@ -934,7 +986,7 @@ export default function Billing() {
 										open={isCancelDialogOpen}
 										onOpenChange={(open) => {
 											setIsCancelDialogOpen(open)
-											if (!open) setCancelConfirmText("")
+											if (!open) resetCancelForm()
 										}}
 									>
 										<DialogTrigger asChild>
@@ -950,7 +1002,7 @@ export default function Billing() {
 										</DialogTrigger>
 										<DialogContent
 											showCloseButton={false}
-											className="w-[min(420px,calc(100vw-32px))] rounded-[18px] border border-white/10 bg-[#14161A] p-5 shadow-[0px_16px_60px_rgba(0,0,0,0.55)]"
+											className="w-[min(760px,calc(100vw-32px))] rounded-[18px] border border-white/10 bg-[#14161A] p-5 shadow-[0px_16px_60px_rgba(0,0,0,0.55)] sm:max-w-[760px]"
 										>
 											<div className="flex items-start justify-between gap-4">
 												<div>
@@ -985,74 +1037,177 @@ export default function Billing() {
 													</button>
 												</DialogClose>
 											</div>
-											{cancelLossItems.length > 0 ? (
-												<div className="mt-4 rounded-[10px] border border-white/[0.06] bg-[#0D121A] p-3.5">
-													<p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#737373]">
-														You'll lose
-													</p>
-													<ul className="mt-2.5 flex flex-col gap-1.5">
-														{cancelLossItems.map((item) => (
-															<li
-																className="flex items-start gap-2 text-[13px] leading-snug text-[#C8D0DA]"
-																key={item}
+
+											<div className="@container">
+												<div className="grid gap-4 @xl:grid-cols-[1fr_auto_1fr] @xl:gap-5">
+													<div className="relative flex flex-col overflow-hidden rounded-[14px] border border-[#1E4FA0]/25 bg-gradient-to-b from-[#121826] to-[#0C0E13] p-5">
+														<Logo className="pointer-events-none absolute -right-8 -bottom-10 z-0 h-56 w-auto opacity-[0.03]" />
+														<div className="relative z-10 flex flex-1 flex-col">
+															<div className="flex items-center gap-2.5">
+																<GoogleMeetIcon className="h-[18px] w-auto" />
+																<p
+																	className={cn(
+																		dmSans125ClassName(),
+																		"text-[15px] font-semibold tracking-[-0.01em] text-white",
+																	)}
+																>
+																	Talk to us first
+																</p>
+															</div>
+															<p
+																className={cn(
+																	dmSans125ClassName(),
+																	"mt-3 text-[13px] leading-relaxed text-[#AEBCD8]",
+																)}
 															>
-																<X className="mt-0.5 size-3.5 shrink-0 text-[#C73B1B]" />
-																<span>{item}</span>
-															</li>
-														))}
-													</ul>
+																Give us 15 minutes before you go — a quick call
+																with the team where we'll:
+															</p>
+															<ul className="mt-3 flex flex-col gap-2.5">
+																{[
+																	"Fix anything that's not working for you",
+																	"Help you integrate Supermemory the right way",
+																	"Get a discount to stay",
+																].map((benefit) => (
+																	<li
+																		className={cn(
+																			dmSans125ClassName(),
+																			"flex items-start gap-2 text-[13px] leading-snug text-[#D4DEEE]",
+																		)}
+																		key={benefit}
+																	>
+																		<Check
+																			className="mt-0.5 size-[15px] shrink-0 text-[#3FD37E]"
+																			strokeWidth={2.5}
+																		/>
+																		<span>{benefit}</span>
+																	</li>
+																))}
+															</ul>
+															<a
+																href={BOOK_CALL_HREF}
+																target="_blank"
+																rel="noreferrer"
+																onClick={() => {
+																	if (posthog?.__loaded) {
+																		posthog.capture(
+																			"cancel_book_call_clicked",
+																			{
+																				plan: currentPlan,
+																				surface: "nova",
+																			},
+																		)
+																	}
+																}}
+																className={cn(
+																	dmSans125ClassName(),
+																	"group mt-auto inline-flex h-10 items-center justify-center gap-1.5 rounded-[10px] bg-[#0054AD] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#0B65C9]",
+																)}
+															>
+																Book a call
+																<ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+															</a>
+														</div>
+													</div>
+
+													<div className="flex items-center justify-center">
+														<span className="rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[#737373]">
+															or
+														</span>
+													</div>
+
+													<div className="flex flex-1 flex-col rounded-[14px] border border-white/10 bg-gradient-to-b from-[#12151B] to-[#0C0E13] p-5">
+														<p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#737373]">
+															Why are you leaving?
+														</p>
+														<div className="mt-2 flex flex-col gap-0.5">
+															{CANCEL_REASONS.map((option) => {
+																const selected = cancelReason === option.value
+																return (
+																	<button
+																		key={option.value}
+																		type="button"
+																		onClick={() =>
+																			setCancelReason(option.value)
+																		}
+																		className={cn(
+																			dmSans125ClassName(),
+																			"flex items-center gap-2.5 rounded-[8px] px-2 py-1.5 text-left text-[13px] transition-colors",
+																			selected
+																				? "text-[#FAFAFA]"
+																				: "text-[#A3A3A3] hover:bg-white/[0.03]",
+																		)}
+																	>
+																		<span
+																			className={cn(
+																				"flex size-4 shrink-0 items-center justify-center rounded-full border",
+																				selected
+																					? "border-[#0054AD]"
+																					: "border-white/25",
+																			)}
+																		>
+																			{selected ? (
+																				<span className="size-2 rounded-full bg-[#0054AD]" />
+																			) : null}
+																		</span>
+																		{option.label}
+																	</button>
+																)
+															})}
+														</div>
+														{cancelReason !== null ? (
+															<div className="mt-3">
+																<label
+																	className={cn(
+																		dmSans125ClassName(),
+																		"text-[13px] text-[#A3A3A3]",
+																	)}
+																	htmlFor="cancel-detail"
+																>
+																	{cancelNeedsDetail
+																		? "Tell us more (required)"
+																		: "Anything else? (optional)"}
+																</label>
+																<textarea
+																	className="mt-2 min-h-[72px] w-full resize-none rounded-[9px] border border-white/10 bg-[#0D121A] px-3 py-2 text-[13px] text-[#FAFAFA] outline-none placeholder:text-[#3F4651] focus:border-white/25"
+																	id="cancel-detail"
+																	onChange={(e) =>
+																		setCancelDetail(e.target.value)
+																	}
+																	placeholder="What could we have done better?"
+																	value={cancelDetail}
+																/>
+															</div>
+														) : null}
+														<div className="mt-auto pt-5">
+															<DialogClose asChild>
+																<button
+																	type="button"
+																	className={cn(
+																		dmSans125ClassName(),
+																		"h-9 w-full text-[13px] font-medium text-[#A3A3A3] transition-colors hover:text-[#FAFAFA]",
+																	)}
+																>
+																	Keep plan
+																</button>
+															</DialogClose>
+															<button
+																type="button"
+																onClick={() => void handleCancelSubscription()}
+																disabled={isCancelling || !canConfirmCancel}
+																className={cn(
+																	dmSans125ClassName(),
+																	"mt-1.5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] border border-[#C73B1B]/25 bg-[#290F0A] text-[13px] font-semibold text-[#E5604A] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50",
+																)}
+															>
+																{isCancelling ? (
+																	<LoaderIcon className="size-3.5 animate-spin" />
+																) : null}
+																Cancel subscription
+															</button>
+														</div>
+													</div>
 												</div>
-											) : null}
-											<div className="mt-4">
-												<label
-													className={cn(
-														dmSans125ClassName(),
-														"text-[13px] text-[#A3A3A3]",
-													)}
-													htmlFor="cancel-confirm"
-												>
-													Type{" "}
-													<span className="font-semibold text-[#FAFAFA]">
-														CANCEL
-													</span>{" "}
-													to confirm
-												</label>
-												<input
-													autoComplete="off"
-													className="mt-2 h-9 w-full rounded-[9px] border border-white/10 bg-[#0D121A] px-3 text-[13px] text-[#FAFAFA] outline-none placeholder:text-[#3F4651] focus:border-white/25"
-													id="cancel-confirm"
-													onChange={(e) => setCancelConfirmText(e.target.value)}
-													placeholder="CANCEL"
-													type="text"
-													value={cancelConfirmText}
-												/>
-											</div>
-											<div className="mt-5 flex items-center justify-end gap-3">
-												<DialogClose asChild>
-													<button
-														type="button"
-														className={cn(
-															dmSans125ClassName(),
-															"h-9 px-3 text-[13px] font-medium text-[#A3A3A3] transition-colors hover:text-[#FAFAFA]",
-														)}
-													>
-														Keep plan
-													</button>
-												</DialogClose>
-												<button
-													type="button"
-													onClick={() => void handleCancelSubscription()}
-													disabled={isCancelling || !canConfirmCancel}
-													className={cn(
-														dmSans125ClassName(),
-														"inline-flex h-9 items-center gap-2 rounded-[9px] bg-[#290F0A] px-3 text-[13px] font-medium text-[#C73B1B] transition-opacity disabled:cursor-not-allowed disabled:opacity-50",
-													)}
-												>
-													{isCancelling ? (
-														<LoaderIcon className="size-3.5 animate-spin" />
-													) : null}
-													Cancel subscription
-												</button>
 											</div>
 										</DialogContent>
 									</Dialog>
