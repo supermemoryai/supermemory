@@ -2850,7 +2850,7 @@ export function IntegrationsView({
 				}
 				if (needsProUpgrade) {
 					return (
-						<PillButton onClick={handleUpgrade}>
+						<PillButton onClick={() => handleUpgrade()}>
 							<Zap className="size-3.5 text-[#4BA0FA]" /> Upgrade
 						</PillButton>
 					)
@@ -3465,7 +3465,7 @@ export function IntegrationsView({
 					</div>
 					<div className="flex shrink-0 items-center justify-between gap-2">
 						{connectedDialogNeedsPro ? (
-							<PillButton onClick={handleUpgrade}>
+							<PillButton onClick={() => handleUpgrade()}>
 								<Zap className="size-3.5 text-[#4BA0FA]" /> Upgrade to connect
 								more
 							</PillButton>
