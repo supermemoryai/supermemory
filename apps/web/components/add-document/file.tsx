@@ -8,7 +8,7 @@ import { useHotkeys } from "react-hotkeys-hook"
 import { toast } from "sonner"
 
 export const FILE_ACCEPT =
-	"image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.mdx,.json,text/markdown,application/json"
+	"image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.mdx,.json,.html,.htm,text/markdown,application/json,text/html"
 
 export type FileQueueItemStatus = "pending" | "uploading" | "success" | "error"
 
@@ -47,11 +47,14 @@ function isAcceptedFile(file: File): boolean {
 		".md",
 		".mdx",
 		".json",
+		".html",
+		".htm",
 	])
 	if (allowedExt.has(ext)) return true
 	if (file.type.startsWith("image/")) return true
 	if (file.type === "text/markdown") return true
 	if (file.type === "application/json") return true
+	if (file.type === "text/html") return true
 	return false
 }
 
@@ -211,7 +214,7 @@ export function FileContent({
 				<div className="flex flex-col gap-0.5 pl-2">
 					<p className="text-[16px] font-medium">Upload files</p>
 					<p className="text-[#737373] text-xs">
-						Images, PDF, documents, sheets, markdown
+						Images, PDF, documents, sheets, markdown, HTML
 					</p>
 				</div>
 				<label
