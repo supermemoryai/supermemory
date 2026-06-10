@@ -59,6 +59,7 @@ interface ChatInputProps {
 	onRetryAttachment?: (id: string) => void
 	canSend?: boolean
 	attachmentAccept?: string
+	disableFileDropZone?: boolean
 }
 
 export default function ChatInput({
@@ -84,6 +85,7 @@ export default function ChatInput({
 	onRetryAttachment,
 	canSend,
 	attachmentAccept = CHAT_ATTACHMENT_ACCEPT,
+	disableFileDropZone = false,
 }: ChatInputProps) {
 	const [isMultiline, setIsMultiline] = useState(false)
 	const [isExpanded, setIsExpanded] = useState(false)
@@ -200,11 +202,20 @@ export default function ChatInput({
 		</>
 	) : null
 
-	const dropOverlay = isDraggingFiles ? (
-		<div className="pointer-events-none absolute inset-1 z-10 grid place-items-center rounded-lg border border-dashed border-[#4B5563] bg-black/70 text-sm font-medium text-fg-primary backdrop-blur-sm">
-			Drop files to attach
-		</div>
-	) : null
+	const dropOverlay =
+		!disableFileDropZone && isDraggingFiles ? (
+			<div className="pointer-events-none absolute inset-1 z-10 grid place-items-center rounded-lg border border-dashed border-[#4B5563] bg-black/70 text-sm font-medium text-fg-primary backdrop-blur-sm">
+				Drop files to attach
+			</div>
+		) : null
+	const dropZoneProps = disableFileDropZone
+		? {}
+		: {
+				onDragEnter: handleDragEnter,
+				onDragOver: handleDragOver,
+				onDragLeave: handleDragLeave,
+				onDrop: handleDrop,
+			}
 
 	return (
 		<motion.div
@@ -328,10 +339,7 @@ export default function ChatInput({
 			{stackedToolbar ? (
 				<fieldset
 					aria-label="Chat input with file drop zone"
-					onDragEnter={handleDragEnter}
-					onDragOver={handleDragOver}
-					onDragLeave={handleDragLeave}
-					onDrop={handleDrop}
+					{...dropZoneProps}
 					className="relative z-30 m-0 flex min-w-0 flex-col gap-2 rounded-xl border-0 bg-surface-card/60 p-2 shadow-[0_16px_48px_rgba(0,0,0,0.34)] backdrop-blur-md transition-all duration-200 focus-within:ring-1 focus-within:ring-fg-primary/10"
 				>
 					{dropOverlay}
@@ -368,10 +376,7 @@ export default function ChatInput({
 			) : (
 				<fieldset
 					aria-label="Chat input with file drop zone"
-					onDragEnter={handleDragEnter}
-					onDragOver={handleDragOver}
-					onDragLeave={handleDragLeave}
-					onDrop={handleDrop}
+					{...dropZoneProps}
 					className={cn(
 						"relative m-0 flex min-w-0 flex-col gap-2 rounded-xl border-0 bg-surface-card/60 p-2 shadow-[0_16px_48px_rgba(0,0,0,0.34)] backdrop-blur-md transition-all duration-200 focus-within:ring-1 focus-within:ring-fg-primary/10",
 						isMultiline && "flex-col",

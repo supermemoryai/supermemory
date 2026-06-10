@@ -201,6 +201,7 @@ export function ChatSidebar({
 	const [attachmentDrafts, setAttachmentDrafts] = useState<
 		ChatAttachmentDraft[]
 	>([])
+	const [isChatDraggingFiles, setIsChatDraggingFiles] = useState(false)
 	const [selectedModel, setSelectedModel] = useState<ModelId>(
 		initialSelectedModel ?? "grok-4.3",
 	)
@@ -246,6 +247,7 @@ export function ChatSidebar({
 		null,
 	)
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
+	const chatDragDepthRef = useRef(0)
 	const isScrolledToBottomRef = useRef(true)
 	const userJustSentRef = useRef(false)
 	const sentQueuedMessageRef = useRef<string | null>(null)
@@ -724,6 +726,77 @@ export function ChatSidebar({
 		},
 		[attachmentDrafts, currentChatId, uploadAttachmentDraft],
 	)
+
+	const hasDraggedFiles = useCallback(
+		(event: React.DragEvent) =>
+			Array.from(event.dataTransfer.types).includes("Files"),
+		[],
+	)
+
+	const resetChatFileDrag = useCallback(() => {
+		chatDragDepthRef.current = 0
+		setIsChatDraggingFiles(false)
+	}, [])
+
+	const handleChatDragEnter = useCallback(
+		(event: React.DragEvent) => {
+			if (!hasDraggedFiles(event)) return
+			event.preventDefault()
+			event.stopPropagation()
+
+			chatDragDepthRef.current += 1
+			if (status !== "submitted" && status !== "streaming") {
+				setIsChatDraggingFiles(true)
+			}
+		},
+		[hasDraggedFiles, status],
+	)
+
+	const handleChatDragOver = useCallback(
+		(event: React.DragEvent) => {
+			if (!hasDraggedFiles(event)) return
+			event.preventDefault()
+			event.stopPropagation()
+			event.dataTransfer.dropEffect =
+				status === "submitted" || status === "streaming" ? "none" : "copy"
+		},
+		[hasDraggedFiles, status],
+	)
+
+	const handleChatDragLeave = useCallback(
+		(event: React.DragEvent) => {
+			if (!hasDraggedFiles(event)) return
+			event.preventDefault()
+			event.stopPropagation()
+
+			chatDragDepthRef.current = Math.max(0, chatDragDepthRef.current - 1)
+			if (chatDragDepthRef.current === 0) {
+				setIsChatDraggingFiles(false)
+			}
+		},
+		[hasDraggedFiles],
+	)
+
+	const handleChatDrop = useCallback(
+		(event: React.DragEvent) => {
+			if (!hasDraggedFiles(event)) return
+			event.preventDefault()
+			event.stopPropagation()
+
+			resetChatFileDrag()
+			const files = event.dataTransfer.files
+			if (status !== "submitted" && status !== "streaming" && files.length) {
+				handleAddAttachmentFiles(files)
+			}
+		},
+		[handleAddAttachmentFiles, hasDraggedFiles, resetChatFileDrag, status],
+	)
+
+	useEffect(() => {
+		if (status === "submitted" || status === "streaming") {
+			resetChatFileDrag()
+		}
+	}, [resetChatFileDrag, status])
 
 	useEffect(() => {
 		if (pendingThreadLoad && currentChatId === pendingThreadLoad.id) {
@@ -1765,6 +1838,27 @@ export function ChatSidebar({
 		</div>
 	) : null
 
+	const chatDropOverlay = isChatDraggingFiles ? (
+		<div
+			className={cn(
+				"pointer-events-none absolute inset-0 z-[80] grid place-items-center border border-dashed border-[#4B5563] bg-black/72 text-sm font-medium text-fg-primary backdrop-blur-sm",
+				isMobile || isPageDesktop ? "rounded-none" : "rounded-2xl",
+			)}
+			aria-hidden="true"
+		>
+			<div className="rounded-lg border border-white/10 bg-black/50 px-4 py-2 shadow-[0_12px_32px_rgba(0,0,0,0.35)]">
+				Drop files to attach
+			</div>
+		</div>
+	) : null
+	const chatDropTargetProps = {
+		onDragEnter: handleChatDragEnter,
+		onDragOver: handleChatDragOver,
+		onDragLeave: handleChatDragLeave,
+		onDrop: handleChatDrop,
+		onDragEnd: resetChatFileDrag,
+	}
+
 	const shell = (
 		<>
 			{showHeaderRow ? (
@@ -1983,6 +2077,7 @@ export function ChatSidebar({
 					onRetryAttachment={handleRetryAttachment}
 					canSend={canSendMessage}
 					attachmentAccept={CHAT_ATTACHMENT_ACCEPT}
+					disableFileDropZone
 					sendDisabled={isResponding && isQueueFull}
 					sendDisabledTooltip={`Queue is full (${CHAT_QUEUE_LIMIT} max)`}
 					activeStatus={
@@ -2063,7 +2158,9 @@ export function ChatSidebar({
 				layout === "page" ? { opacity: 0, y: 12 } : { x: "100px", opacity: 0 }
 			}
 			transition={{ duration: 0.3, ease: "easeOut", bounce: 0 }}
+			{...(!isPageDesktop ? chatDropTargetProps : {})}
 		>
+			{!isPageDesktop && chatDropOverlay}
 			{chatHistorySheet}
 			{isPageDesktop ? (
 				<div className="flex h-full min-h-0 w-full flex-1 flex-row">
@@ -2073,7 +2170,11 @@ export function ChatSidebar({
 							chatProject === AUTO_CHAT_SPACE_ID ? null : [chatProject]
 						}
 					/>
-					<div className="flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] shrink-0 basis-[min(720px,50vw)] flex-col">
+					<div
+						{...chatDropTargetProps}
+						className="relative flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] shrink-0 basis-[min(720px,50vw)] flex-col"
+					>
+						{chatDropOverlay}
 						{pageDesktopToolbarRow}
 						<div className="relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] flex-1 flex-col px-3 sm:px-4 md:px-0">
 							{shell}
