@@ -244,10 +244,11 @@ function drawEdges(
 			continue
 		}
 
-		const src =
-			typeof edge.source === "string" ? nodeMap.get(edge.source) : edge.source
-		const tgt =
-			typeof edge.target === "string" ? nodeMap.get(edge.target) : edge.target
+		// Always resolve through nodeMap. d3-force mutates edge.source/target
+		// from string ids into node object refs at sim init; when useGraphData
+		// rebuilds nodes those refs go stale and edges lag behind dragged nodes.
+		const src = nodeMap.get(srcId)
+		const tgt = nodeMap.get(tgtId)
 		if (!src || !tgt) continue
 
 		if (edgeType === "derives") {
