@@ -102,6 +102,34 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 		type MemoryArgs = z.infer<typeof memorySchema>
 		type RecallArgs = z.infer<typeof recallSchema>
 
+		const listMemoriesSchema = z.object({
+			limit: z
+				.number()
+				.min(1)
+				.max(200)
+				.optional()
+				.default(50)
+				.describe("Maximum number of memories to return (default 50, max 200)"),
+			cursor: z
+				.string()
+				.optional()
+				.describe(
+					"Pagination cursor (opaque string) for fetching the next page",
+				),
+			sort: z
+				.enum(["created_desc", "created_asc", "updated_desc"])
+				.optional()
+				.default("created_desc")
+				.describe("Sort order for the memories"),
+			filter: z
+				.string()
+				.optional()
+				.describe("Optional substring filter against memory content"),
+			...(hasRootContainerTag ? {} : containerTagField),
+		})
+
+		type ListMemoriesArgs = z.infer<typeof listMemoriesSchema>
+
 		// Register memory tool
 		this.server.registerTool(
 			"memory",
@@ -124,6 +152,18 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			},
 			// @ts-expect-error - zod type inference issue with MCP SDK
 			(args: RecallArgs) => this.handleRecall(args),
+		)
+
+		// Register listMemories tool
+		this.server.registerTool(
+			"listMemories",
+			{
+				description:
+					"Enumerate stored memories. Use this to audit what is on file before a save/forget operation, or to power a 'list everything' view.",
+				inputSchema: listMemoriesSchema,
+			},
+			// @ts-expect-error - zod type inference issue with MCP SDK
+			(args: ListMemoriesArgs) => this.handleListMemories(args),
 		)
 
 		// Register profile resource
@@ -735,6 +775,74 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			const message =
 				error instanceof Error ? error.message : "An unexpected error occurred"
 			console.error("Recall operation failed:", error)
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: `Error: ${message}`,
+					},
+				],
+				isError: true,
+			}
+		}
+	}
+
+	private async handleListMemories(args: {
+		limit?: number
+		cursor?: string
+		sort?: "created_desc" | "created_asc" | "updated_desc"
+		filter?: string
+		containerTag?: string
+	}) {
+		const {
+			limit = 50,
+			cursor,
+			sort = "created_desc",
+			filter,
+			containerTag,
+		} = args
+		const effectiveContainerTag = containerTag || this.props?.containerTag
+
+		let apiSort: "createdAt" | "updatedAt" = "createdAt"
+		let apiOrder: "asc" | "desc" = "desc"
+
+		if (sort === "created_asc") {
+			apiSort = "createdAt"
+			apiOrder = "asc"
+		} else if (sort === "updated_desc") {
+			apiSort = "updatedAt"
+			apiOrder = "desc"
+		}
+
+		// Cursor maps directly to page number in supermemory API
+		const page = cursor ? Number.parseInt(cursor, 10) : 1
+
+		try {
+			const client = this.getClient(effectiveContainerTag)
+			const result = await client.listMemories(
+				effectiveContainerTag,
+				Number.isNaN(page) ? 1 : page,
+				limit,
+				apiSort,
+				apiOrder,
+				filter,
+			)
+
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({
+							memories: result?.memories || [],
+							nextCursor: result?.nextCursor,
+						}),
+					},
+				],
+			}
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "An unexpected error occurred"
+			console.error("List memories operation failed:", error)
 			return {
 				content: [
 					{

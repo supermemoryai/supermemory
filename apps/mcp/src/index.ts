@@ -108,6 +108,7 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 
 const mcpHandler = SupermemoryMCP.serve("/mcp", {
 	binding: "MCP_SERVER",
+	transport: "sse",
 	corsOptions: {
 		origin: "*",
 		methods: "GET, POST, DELETE, OPTIONS",

@@ -255,6 +255,61 @@ export class SupermemoryClient {
 		}
 	}
 
+	// List all memories using SDK
+	async listMemories(
+		containerTag?: string,
+		page = 1,
+		limit = 50,
+		sort: "createdAt" | "updatedAt" = "createdAt",
+		order: "asc" | "desc" = "desc",
+		filter?: string,
+	): Promise<{ memories: Memory[]; nextCursor?: string }> {
+		try {
+			const result = await this.client.documents.list({
+				containerTags: containerTag ? [containerTag] : [this.containerTag],
+				page,
+				limit,
+				sort,
+				order,
+				includeContent: true,
+			})
+
+			let memories: Memory[] = result.memories.map((r) => {
+				const text = limitByChars(r.content || r.summary || "")
+				return {
+					id: r.id,
+					similarity: 1.0, // Not applicable for a raw list
+					title: r.title || undefined,
+					content: r.content,
+					memory: text,
+				}
+			})
+
+			// Apply simple substring filter if requested
+			if (filter) {
+				const lowerFilter = filter.toLowerCase()
+				memories = memories.filter(
+					(m) =>
+						m.title?.toLowerCase().includes(lowerFilter) ||
+						getMemoryText(m).toLowerCase().includes(lowerFilter),
+				)
+			}
+
+			const nextCursor =
+				result.pagination &&
+				result.pagination.currentPage < result.pagination.totalPages
+					? String(result.pagination.currentPage + 1)
+					: undefined
+
+			return {
+				memories,
+				nextCursor,
+			}
+		} catch (error) {
+			this.handleError(error)
+		}
+	}
+
 	// Get user profile using SDK
 	async getProfile(query?: string): Promise<ProfileResponse> {
 		try {
