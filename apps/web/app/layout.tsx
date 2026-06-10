@@ -92,7 +92,7 @@ export default function RootLayout({
 							process.env.NEXT_PUBLIC_BACKEND_URL ??
 							"https://api.supermemory.ai"
 						}
-						includeCredentials={true}
+						useBetterAuth={true}
 						headers={{ "X-App-Source": "nova" }}
 					>
 						<QueryProvider>
