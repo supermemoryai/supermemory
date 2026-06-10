@@ -74,6 +74,42 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 			},
 		],
 	},
+	cursor: {
+		id: "cursor",
+		name: "Cursor",
+		tagline: "Persistent memory, session hooks, and MCP tools inside Cursor",
+		icon: "/images/plugins/cursor.png",
+		docsUrl: "https://github.com/supermemoryai/cursor-supermemory#readme",
+		githubUrl: "https://github.com/supermemoryai/cursor-supermemory",
+		installSteps: [
+			{
+				title: "Install the Cursor plugin",
+				description:
+					"Install cursor-supermemory from the Cursor Marketplace, then run the auth command on the machine where Cursor runs.",
+				code: "bunx cursor-supermemory@latest login",
+				copyLabel: "Login command",
+			},
+			{
+				title: "Finish browser authentication",
+				description:
+					"The login command opens Supermemory in your browser and stores Cursor credentials in ~/.supermemory-cursor/credentials.json.",
+			},
+			{
+				title: "Manual API-key fallback",
+				description:
+					"If browser login is not available, set this environment variable before starting Cursor. This key is shown only once - save it now.",
+				code: 'export SUPERMEMORY_API_KEY="sm_..."',
+				copyLabel: "API key command",
+				secret: true,
+				optional: true,
+			},
+			{
+				title: "Restart Cursor",
+				description:
+					"Restart Cursor after installing or changing credentials so the plugin hooks and MCP tools are loaded.",
+			},
+		],
+	},
 	opencode: {
 		id: "opencode",
 		name: "OpenCode",
@@ -143,6 +179,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 const SPACE_TO_CATALOG_ID: Record<string, string> = {
 	"claude-code": "claude_code",
 	codex: "codex",
+	cursor: "cursor",
 	opencode: "opencode",
 	openclaw: "openclaw",
 	hermes: "hermes",
