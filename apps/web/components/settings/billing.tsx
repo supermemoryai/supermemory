@@ -674,6 +674,10 @@ export default function Billing() {
 		if (!cancellablePlanId) return
 		setIsCancelling(true)
 		try {
+			await autumn.updateSubscription({
+				planId: cancellablePlanId,
+				cancelAction: "cancel_end_of_cycle",
+			})
 			if (posthog?.__loaded) {
 				posthog.capture("subscription_cancelled", {
 					reason: cancelReason,
@@ -683,10 +687,6 @@ export default function Billing() {
 					surface: "nova",
 				})
 			}
-			await autumn.updateSubscription({
-				planId: cancellablePlanId,
-				cancelAction: "cancel_end_of_cycle",
-			})
 			autumn.refetch?.()
 			setIsCancelDialogOpen(false)
 			resetCancelForm()
