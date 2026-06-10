@@ -305,7 +305,6 @@ interface BaseItem {
 	icon: ReactNode
 	docsUrl?: string
 	pro?: boolean
-	max?: boolean
 	kind: ItemKind
 	simpleTitle?: string
 	dev?: boolean
@@ -444,7 +443,7 @@ const SECTIONS: Array<{
 				tagline: "Sync AI meeting notes into your memory",
 				simpleTitle: "Your meeting notes, ready to recall",
 				icon: <Granola className="size-6" />,
-				max: true,
+				pro: true,
 			},
 		],
 	},
@@ -536,7 +535,7 @@ export function DetailWrapper({
 	)
 }
 
-function ProChip({ children = "Pro" }: { children?: ReactNode }) {
+function ProChip() {
 	return (
 		<span
 			className={cn(
@@ -544,7 +543,7 @@ function ProChip({ children = "Pro" }: { children?: ReactNode }) {
 				"ml-auto shrink-0 pl-2 text-[10px] font-semibold uppercase tracking-wide text-[#4BA0FA]",
 			)}
 		>
-			{children}
+			Pro
 		</span>
 	)
 }
@@ -1708,7 +1707,6 @@ function ItemCard({
 	name,
 	tagline,
 	pro,
-	max,
 	isNew,
 	docsUrl,
 	leftIndicator,
@@ -1721,7 +1719,6 @@ function ItemCard({
 	name: string
 	tagline: string
 	pro?: boolean
-	max?: boolean
 	isNew?: boolean
 	docsUrl?: string
 	leftIndicator?: ReactNode
@@ -1772,7 +1769,7 @@ function ItemCard({
 							{name}
 						</span>
 						{isNew && <NewChip />}
-						{max ? <ProChip>Max</ProChip> : pro && <ProChip />}
+						{pro && <ProChip />}
 					</div>
 					<p
 						className={cn(
@@ -2197,8 +2194,6 @@ export function IntegrationsView({
 	const autumn = useCustomer({ queryOptions: { enabled: !publicMode } })
 	const hasProProduct =
 		!publicMode && hasActivePlan(autumn.data?.subscriptions, "api_pro")
-	const hasMaxProduct =
-		!publicMode && hasActivePlan(autumn.data?.subscriptions, "api_max")
 	const isAutumnLoading = !publicMode && autumn.isLoading
 
 	const [connectingPlugin, setConnectingPlugin] = useState<string | null>(null)
@@ -2408,10 +2403,10 @@ export function IntegrationsView({
 		}
 	}
 
-	const handleUpgrade = async (planId: "api_pro" | "api_max" = "api_pro") => {
+	const handleUpgrade = async () => {
 		try {
 			const result = await autumn.attach({
-				planId,
+				planId: "api_pro",
 				successUrl: `${window.location.origin}/?view=integrations`,
 			})
 			if (result?.paymentUrl) {
@@ -2826,6 +2821,11 @@ export function IntegrationsView({
 						<FinishSetupButton
 							onClick={() => {
 								trackCard(item)
+								if (!PLUGIN_CATALOG[item.pluginId]?.usesOAuth) {
+									if (connectingPlugin) return
+									createPluginKeyMutation.mutate(item.pluginId)
+									return
+								}
 								setFinishSetupPluginId(item.pluginId)
 							}}
 						/>
@@ -2860,8 +2860,7 @@ export function IntegrationsView({
 			case "connector": {
 				const count = connectionsByProvider[item.provider].length
 				const isGranola = item.provider === "granola"
-				const needsPlanUpgrade =
-					!isAutumnLoading && (isGranola ? !hasMaxProduct : !hasProProduct)
+				const needsProUpgrade = !isAutumnLoading && !hasProProduct
 				if (count > 0) {
 					return (
 						<div className="flex w-full items-center justify-between gap-2">
@@ -2873,10 +2872,6 @@ export function IntegrationsView({
 								onClick={() => {
 									trackCard(item)
 									if (isGranola) {
-										if (!hasMaxProduct) {
-											handleUpgrade("api_max")
-											return
-										}
 										setGranolaModalOpen(true)
 										return
 									}
@@ -2892,11 +2887,9 @@ export function IntegrationsView({
 						</div>
 					)
 				}
-				if (needsPlanUpgrade) {
+				if (needsProUpgrade) {
 					return (
-						<PillButton
-							onClick={() => handleUpgrade(isGranola ? "api_max" : "api_pro")}
-						>
+						<PillButton onClick={handleUpgrade}>
 							<Zap className="size-3.5 text-[#4BA0FA]" /> Upgrade
 						</PillButton>
 					)
@@ -2907,10 +2900,6 @@ export function IntegrationsView({
 						onClick={() => {
 							trackCard(item)
 							if (isGranola) {
-								if (!hasMaxProduct) {
-									handleUpgrade("api_max")
-									return
-								}
 								setGranolaModalOpen(true)
 								return
 							}
@@ -3027,7 +3016,6 @@ export function IntegrationsView({
 			name={item.name}
 			tagline={item.tagline}
 			pro={item.pro}
-			max={item.max}
 			isNew={item.isNew}
 			docsUrl={item.docsUrl}
 			leftIndicator={renderLeftIndicator(item)}
