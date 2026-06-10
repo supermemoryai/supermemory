@@ -72,6 +72,15 @@
 								"pages": ["intro", "quickstart", "vibe-coding"]
 							},
 							{
+								"group": "Self-Hosting",
+								"pages": [
+									"self-hosting/overview",
+									"self-hosting/quickstart",
+									"self-hosting/configuration",
+									"self-hosting/local-vs-enterprise"
+								]
+							},
+							{
 								"group": "Concepts",
 								"pages": [
 									"concepts/how-it-works",

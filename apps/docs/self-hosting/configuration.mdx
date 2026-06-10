@@ -1,0 +1,135 @@
+---
+title: "Self-Hosting Configuration"
+sidebarTitle: "Configuration"
+description: "Every environment variable the self-hosted server understands."
+icon: "settings"
+---
+
+The self-hosted server aims for **zero configuration** — the only thing it needs is one model provider key, which the first-boot wizard collects interactively (or set it via env var for non-interactive deployments). Everything else below is opt-in, layered on top as you need it.
+
+The installer writes API keys to `~/.supermemory/env`, which is loaded on every launch. You can also set variables in your shell or a process manager.
+
+## Core
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `PORT` (or `SUPERMEMORY_PORT`) | HTTP listen port | `6767` |
+| `SUPERMEMORY_DATA_DIR` | Where the graph engine's data, auth secret, and model cache live | `./.supermemory` |
+| `BETTER_AUTH_URL` | Public base URL of the API (cookies + OAuth redirects) | `http://localhost:${PORT}` |
+| `FRONTEND_URL` | Allowed CORS origin for your UI | `*` |
+| `STORAGE_PUBLIC_URL` | Public base URL for file downloads | `${BETTER_AUTH_URL}/files` |
+
+## LLM providers
+
+In production, Supermemory uses its own proprietary models tuned for long-horizon data understanding. Self-hosted, you bring your own: embeddings are computed locally, and a model of your choice powers the intelligent steps — summaries, contextual chunking, and memory extraction. Configure **at least one**:
+
+| Variable | Provider |
+|---|---|
+| `OPENAI_API_KEY` | OpenAI — or any OpenAI-compatible endpoint, see below |
+| `ANTHROPIC_API_KEY` | Anthropic |
+| `GEMINI_API_KEY` | Google AI Studio (Gemini) |
+| `GROQ_API_KEY` | Groq |
+| `WORKERS_AI_API_KEY` + `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Workers AI |
+| `GOOGLE_VERTEX_PROJECT_ID` + `GOOGLE_VERTEX_LOCATION` | GCP Vertex AI |
+
+<Tip>
+No key set? The server walks you through it. On first boot, an interactive setup wizard asks which provider you want, securely prompts for the key, and saves it encrypted — including a custom base URL and model name if you pick an OpenAI-compatible endpoint.
+</Tip>
+
+With multiple providers configured, the first one in the order above is used. To get automatic fallback and caching across providers, add [Cloudflare AI Gateway](#llm-routing-cloudflare-ai-gateway).
+
+<Note>
+Image and video understanding require a Gemini or Vertex AI key, and high-fidelity PDF OCR uses Mistral or Gemini. Text ingestion, memory extraction, and search work with any provider.
+</Note>
+
+### Fully offline with local models
+
+`OPENAI_API_KEY` + `OPENAI_BASE_URL` covers any OpenAI-compatible endpoint: Ollama, LM Studio, vLLM, llama.cpp server, Together, Fireworks, and more.
+
+```bash
+# Ollama example — gpt-oss-20b works great
+OPENAI_BASE_URL=http://localhost:11434/v1
+OPENAI_API_KEY=ollama        # any non-empty string for local runners
+OPENAI_MODEL=gpt-oss:20b
+```
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `OPENAI_BASE_URL` | OpenAI-compatible endpoint URL | OpenAI |
+| `OPENAI_MODEL` | Model ID sent to that endpoint | `gpt-5.1` |
+| `OPENAI_FAST_MODEL` | Override for fast/light tasks | `OPENAI_MODEL` |
+| `OPENAI_TEXT_MODEL` | Override for heavier text tasks | `OPENAI_MODEL` |
+
+## File storage
+
+Nothing to configure. Uploaded files (PDFs, images) are stored on local disk inside `$SUPERMEMORY_DATA_DIR` and served by the server at `/files/:key`. Use `STORAGE_PUBLIC_URL` if downloads should be served from a different public base URL (e.g. behind a reverse proxy).
+
+## Login providers
+
+The API key printed on first boot is all you need for programmatic access. These are only for browser-based login:
+
+| Variable | Purpose |
+|---|---|
+| `BETTER_AUTH_SECRET` | Cookie signing secret (auto-generated and persisted if unset) |
+| `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub OAuth login |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth login |
+
+## Content extraction
+
+For ingesting web pages and PDFs with higher fidelity:
+
+| Variable | Purpose |
+|---|---|
+| `JINA_API_KEY` | Jina Reader for URL → markdown |
+| `FIRECRAWL_API_KEY` | Firecrawl for URL extraction |
+| `MISTRAL_API_KEY` | Mistral OCR for scanned PDFs |
+
+If no URL extractor key is set, URL ingestion falls back to Supermemory's hosted reader service. Set `JINA_API_KEY` or `FIRECRAWL_API_KEY` to keep URL extraction routed through your own accounts.
+
+## Embedding performance
+
+Local embeddings are prewarmed at startup with conservative defaults — one worker, minimal CPU footprint. Turn these up if you're ingesting heavily and prefer throughput over headroom:
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `SUPERMEMORY_LOCAL_EMBEDDING_POOL_SIZE` | Number of embedding workers | `1` |
+| `SUPERMEMORY_LOCAL_EMBEDDING_WASM_THREADS` | Compute threads per worker | `1` |
+| `SUPERMEMORY_LOCAL_EMBEDDING_BATCH_SIZE` | Texts per worker dispatch | `8` |
+| `SUPERMEMORY_LOCAL_EMBEDDING_IDLE_TIMEOUT_MS` | Idle time before workers shut down | `120000` |
+| `SUPERMEMORY_SKIP_EMBEDDING_PREWARM` | Skip startup prewarm, load on first use | unset |
+
+## LLM routing (Cloudflare AI Gateway)
+
+Optionally route all LLM calls through Cloudflare AI Gateway. This also enables automatic fallback and caching across your configured providers:
+
+| Variable | Purpose |
+|---|---|
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
+| `CLOUDFLARE_AI_GATEWAY_NAME` | Gateway name |
+
+## Platform-only features
+
+These exist in the codebase but are exclusive to the [hosted platform](https://console.supermemory.ai) — the self-hosted binary doesn't include them:
+
+- **Connectors** — Google Drive, Notion, Gmail, OneDrive background sync
+- **Supermemory MCP** — managed MCP server endpoints
+- **Optimized memory extraction** — the platform's extraction pipeline is tuned for higher quality at lower cost than bring-your-own-key
+- **Managed scale** — globally distributed infrastructure, no capacity planning
+
+`DATABASE_URL` is also ignored: the self-hosted server always uses its embedded graph engine.
+
+## Example: production-ish `.env`
+
+```dotenv
+# Persistent data location
+SUPERMEMORY_DATA_DIR=/var/lib/supermemory
+
+# Public URL (behind your reverse proxy / TLS)
+BETTER_AUTH_URL=https://memory.mycompany.com
+FRONTEND_URL=https://app.mycompany.com
+
+# One LLM provider
+OPENAI_API_KEY=sk-...
+```
+
+That's enough for full ingestion, memory extraction, and hybrid search.
