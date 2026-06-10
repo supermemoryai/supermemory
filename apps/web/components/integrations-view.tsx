@@ -24,7 +24,6 @@ import {
 	Notion,
 	OneDrive,
 	MCPIcon,
-	Granola,
 } from "@ui/assets/icons"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import {
@@ -74,12 +73,11 @@ import {
 } from "@/lib/plugin-catalog"
 import { INSET, InstallSteps, PillButton } from "./integrations/install-steps"
 import { MCPSteps } from "./mcp-modal/mcp-detail-view"
-import { GranolaConnectModal } from "./granola-connect-modal"
 import { detectPluginSpace, detectPluginSource } from "@/lib/plugin-space"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
-type ConnectorProvider = "google-drive" | "notion" | "onedrive" | "granola"
+type ConnectorProvider = "google-drive" | "notion" | "onedrive"
 
 interface ConnectedKey {
 	keyId: string
@@ -434,16 +432,6 @@ const SECTIONS: Array<{
 				icon: <OneDrive className="size-6" />,
 				pro: true,
 				docsUrl: "https://supermemory.ai/docs/connectors/onedrive",
-			},
-			{
-				kind: "connector",
-				id: "granola",
-				provider: "granola",
-				name: "Granola",
-				tagline: "Sync AI meeting notes into your memory",
-				simpleTitle: "Your meeting notes, ready to recall",
-				icon: <Granola className="size-6" />,
-				pro: true,
 			},
 		],
 	},
@@ -2199,7 +2187,6 @@ export function IntegrationsView({
 	const [connectingPlugin, setConnectingPlugin] = useState<string | null>(null)
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
-	const [granolaModalOpen, setGranolaModalOpen] = useState(false)
 	const [newKey, setNewKey] = useState<{
 		open: boolean
 		key: string
@@ -2305,7 +2292,6 @@ export function IntegrationsView({
 			"google-drive": [],
 			notion: [],
 			onedrive: [],
-			granola: [],
 		}
 		for (const c of connections) {
 			const p = c.provider as ConnectorProvider
@@ -2859,7 +2845,6 @@ export function IntegrationsView({
 			}
 			case "connector": {
 				const count = connectionsByProvider[item.provider].length
-				const isGranola = item.provider === "granola"
 				const needsProUpgrade = !isAutumnLoading && !hasProProduct
 				if (count > 0) {
 					return (
@@ -2871,10 +2856,6 @@ export function IntegrationsView({
 								title="Add another knowledge source"
 								onClick={() => {
 									trackCard(item)
-									if (isGranola) {
-										setGranolaModalOpen(true)
-										return
-									}
 									void setAddDoc("connect")
 								}}
 								className={cn(
@@ -2899,10 +2880,6 @@ export function IntegrationsView({
 					<PillButton
 						onClick={() => {
 							trackCard(item)
-							if (isGranola) {
-								setGranolaModalOpen(true)
-								return
-							}
 							addConnectionMutation.mutate(item.provider)
 						}}
 						disabled={!!connectingProvider}
@@ -3601,11 +3578,6 @@ export function IntegrationsView({
 					</div>
 				</DialogContent>
 			</Dialog>
-
-			<GranolaConnectModal
-				open={granolaModalOpen}
-				onOpenChange={setGranolaModalOpen}
-			/>
 		</div>
 	)
 }
