@@ -244,7 +244,6 @@ function drawEdges(
 			continue
 		}
 
-
 		const src = nodeMap.get(srcId)
 		const tgt = nodeMap.get(tgtId)
 		if (!src || !tgt) continue
