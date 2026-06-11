@@ -244,9 +244,7 @@ function drawEdges(
 			continue
 		}
 
-		// Always resolve through nodeMap. d3-force mutates edge.source/target
-		// from string ids into node object refs at sim init; when useGraphData
-		// rebuilds nodes those refs go stale and edges lag behind dragged nodes.
+
 		const src = nodeMap.get(srcId)
 		const tgt = nodeMap.get(tgtId)
 		if (!src || !tgt) continue
