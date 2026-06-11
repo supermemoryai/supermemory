@@ -3,6 +3,14 @@ title: "Changelog"
 description: "New updates and improvements to Supermemory"
 ---
 
+<Update label="May 27, 2026" tags={["API"]}>
+
+### Instant dreaming
+
+New `dreaming` parameter on `POST /v3/documents` and `POST /v3/documents/batch`. Default `"dynamic"` groups related documents together so memories form from coherent, logical units. Set `"dreaming": "instant"` to process a single document on its own — bills one extra operation per document. Omit the parameter and behavior is unchanged.
+
+</Update>
+
 <Update label="April 13, 2026" tags={["Integrations", "API"]}>
 
 ### Google Drive: scoped sync by default

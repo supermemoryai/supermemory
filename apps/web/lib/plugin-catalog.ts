@@ -14,6 +14,8 @@ export interface PluginInfo {
 	tagline: string
 	icon: string
 	docsUrl?: string
+	githubUrl?: string
+	usesOAuth?: boolean
 	/** Steps shown after a key is minted. The literal `sm_...` is replaced
 	 *  with the freshly generated key when rendered. */
 	installSteps?: InstallStep[]
@@ -32,7 +34,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		name: "Claude Code",
 		tagline: "Remembers your conventions, decisions, and project context",
 		icon: "/images/plugins/claude-code.svg",
-		docsUrl: "https://docs.supermemory.ai/integrations/claude-code",
+		docsUrl: "https://supermemory.ai/docs/integrations/claude-code",
 		installSteps: [
 			{
 				title: "Save your API key",
@@ -54,7 +56,8 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		name: "Codex",
 		tagline: "Persistent memory for the Codex CLI — free on every plan",
 		icon: "/images/plugins/codex.png",
-		docsUrl: "https://docs.supermemory.ai/integrations/codex",
+		docsUrl: "https://supermemory.ai/docs/integrations/codex",
+		githubUrl: "https://github.com/supermemoryai/codex-supermemory",
 		installSteps: [
 			{
 				title: "Save your API key",
@@ -71,25 +74,61 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 			},
 		],
 	},
+	cursor: {
+		id: "cursor",
+		name: "Cursor",
+		tagline: "Persistent memory, session hooks, and MCP tools inside Cursor",
+		icon: "/images/plugins/cursor.png",
+		docsUrl: "https://github.com/supermemoryai/cursor-supermemory#readme",
+		githubUrl: "https://github.com/supermemoryai/cursor-supermemory",
+		installSteps: [
+			{
+				title: "Install the Cursor plugin",
+				description:
+					"Install cursor-supermemory from the Cursor Marketplace, then run the auth command on the machine where Cursor runs.",
+				code: "bunx cursor-supermemory@latest login",
+				copyLabel: "Login command",
+			},
+			{
+				title: "Finish browser authentication",
+				description:
+					"The login command opens Supermemory in your browser and stores Cursor credentials in ~/.supermemory-cursor/credentials.json.",
+			},
+			{
+				title: "Manual API-key fallback",
+				description:
+					"If browser login is not available, set this environment variable before starting Cursor. This key is shown only once - save it now.",
+				code: 'export SUPERMEMORY_API_KEY="sm_..."',
+				copyLabel: "API key command",
+				secret: true,
+				optional: true,
+			},
+			{
+				title: "Restart Cursor",
+				description:
+					"Restart Cursor after installing or changing credentials so the plugin hooks and MCP tools are loaded.",
+			},
+		],
+	},
 	opencode: {
 		id: "opencode",
 		name: "OpenCode",
 		tagline: "Long-term memory for your OpenCode sessions",
 		icon: "/images/plugins/opencode.svg",
-		docsUrl: "https://docs.supermemory.ai/integrations/opencode",
+		docsUrl: "https://supermemory.ai/docs/integrations/opencode",
+		githubUrl: "https://github.com/supermemoryai/opencode-supermemory",
+		usesOAuth: true,
 		installSteps: [
-			{
-				title: "Save your API key",
-				description:
-					"Add this to your shell profile. This key is shown only once — save it now.",
-				code: 'export SUPERMEMORY_API_KEY="sm_..."',
-				copyLabel: "API key",
-				secret: true,
-			},
 			{
 				title: "Install the plugin",
 				description: "Use --no-tui for non-interactive environments.",
 				code: "bunx opencode-supermemory@latest install",
+			},
+			{
+				title: "Authenticate OpenCode",
+				description:
+					"Run the browser auth flow from the machine where OpenCode runs:",
+				code: "bunx opencode-supermemory@latest login",
 			},
 			{
 				title: "Verify your config",
@@ -105,7 +144,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		name: "OpenClaw",
 		tagline: "Cross-platform memory across Telegram, Discord, Slack",
 		icon: "/images/plugins/openclaw.svg",
-		docsUrl: "https://docs.supermemory.ai/integrations/openclaw",
+		docsUrl: "https://supermemory.ai/docs/integrations/openclaw",
 		installSteps: [
 			{
 				title: "Install the plugin",
@@ -125,7 +164,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		name: "Hermes",
 		tagline: "Persistent memory for the Hermes agent — free on every plan",
 		icon: "/images/plugins/hermes.svg",
-		docsUrl: "https://docs.supermemory.ai/integrations/hermes",
+		docsUrl: "https://supermemory.ai/docs/integrations/hermes",
 		installSteps: [
 			{
 				title: "Run Hermes memory setup",
@@ -140,8 +179,10 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 const SPACE_TO_CATALOG_ID: Record<string, string> = {
 	"claude-code": "claude_code",
 	codex: "codex",
+	cursor: "cursor",
 	opencode: "opencode",
 	openclaw: "openclaw",
+	hermes: "hermes",
 }
 
 export function spacePluginIdToCatalogId(spacePluginId: string): string | null {

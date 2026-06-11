@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import Image from "next/image"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
-import { Dialog, DialogContent } from "@repo/ui/components/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { Drawer, DrawerContent, DrawerTitle } from "@repo/ui/components/drawer"
 import { cn } from "@lib/utils"
 import { useIsMobile } from "@hooks/use-mobile"
@@ -1128,14 +1128,14 @@ export function SelectSpacesModal({
 			>
 				<div className="flex items-start justify-between gap-4 px-4 pt-4">
 					<div className="pl-1 space-y-1 flex-1">
-						<p
+						<DialogTitle
 							className={cn(
 								"font-semibold text-[#fafafa]",
 								dmSans125ClassName(),
 							)}
 						>
 							Select Space
-						</p>
+						</DialogTitle>
 						<p className="text-[#737373] font-medium text-[14px] leading-[1.35]">
 							{isBulkDeleteMode
 								? "Choose spaces to permanently delete"

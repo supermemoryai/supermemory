@@ -633,16 +633,18 @@ describe("getEdgeVisualProps: all MemoryRelation values return valid visual prop
 		})
 	}
 
-	it("extends edges have higher opacity than derives edges (rare but meaningful)", () => {
+	it("extends edges have lower opacity than derives edges (visible but quiet)", () => {
 		const ext = getEdgeVisualProps("extends")
 		const der = getEdgeVisualProps("derives")
-		expect(ext.opacity).toBeGreaterThan(der.opacity)
+		expect(ext.opacity).toBeLessThan(der.opacity)
 	})
 
-	it("updates edges have higher opacity than derives edges (version chains are prominent)", () => {
+	it("updates edges are more prominent than quiet relation edges", () => {
 		const upd = getEdgeVisualProps("updates")
 		const der = getEdgeVisualProps("derives")
+		const ext = getEdgeVisualProps("extends")
 		expect(upd.opacity).toBeGreaterThan(der.opacity)
+		expect(upd.opacity).toBeGreaterThan(ext.opacity)
 	})
 
 	it("unknown edge type returns default props (opacity 0.4, thickness 1.2)", () => {

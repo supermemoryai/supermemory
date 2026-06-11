@@ -201,6 +201,7 @@ Upload PDFs, images, and documents directly.
 | `metadata` | object | Key-value pairs for filtering (strings, numbers, booleans) |
 | `filterByMetadata` | object | Filter which existing memories are used as context during ingestion. See [Filtered Writes](#filtered-writes) |
 | `entityContext` | string | Context for memory extraction on this container tag. Max 1500 chars. See [Customization](/concepts/customization#entity-context) |
+| `dreaming` | `"dynamic" \| "instant"` | Processing mode. Default `"dynamic"`. `"instant"` processes each document on its own and bills one extra operation. See [Processing Modes](#processing-modes) |
 
 <AccordionGroup>
   <Accordion title="Parameter Details & Examples">
@@ -274,6 +275,22 @@ Upload PDFs, images, and documents directly.
     - Combines with org-level filter prompts
   </Accordion>
 </AccordionGroup>
+
+---
+
+## Processing Modes
+
+The `dreaming` parameter controls how Supermemory turns a document into memories.
+
+- `"dynamic"` (default) — groups related documents together so memories form from coherent, logical units rather than one isolated entry at a time.
+- `"instant"` — processes each document on its own right away, and bills one extra operation per document.
+
+```json
+{
+  "content": "...",
+  "dreaming": "instant"
+}
+```
 
 ---
 

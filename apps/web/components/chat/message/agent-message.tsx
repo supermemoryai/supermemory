@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import type { UIMessage } from "@ai-sdk/react"
 import { Streamdown } from "streamdown"
 import {
@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import { cn } from "@lib/utils"
 import { isWebSearchToolName } from "@/lib/chat-web-search-tools"
+import { modelNames, type ModelId } from "@/lib/models"
 import { RelatedMemories } from "./related-memories"
 import { MessageActions } from "./message-actions"
 
@@ -51,48 +52,205 @@ type SourceUrlPart = {
 	title?: string
 }
 
-function WebSourcesGroup({ sources }: { sources: SourceUrlPart[] }) {
+function sourceHost(url: string): string {
+	try {
+		return new URL(url).hostname.replace(/^www\./, "")
+	} catch {
+		return url
+	}
+}
+
+function faviconUrl(host: string): string {
+	return `https://www.google.com/s2/favicons?sz=64&domain=${host}`
+}
+
+function isWebSearchPart(part: { type: string; toolName?: string }): boolean {
+	if (part.type === "dynamic-tool") {
+		return isWebSearchToolName(part.toolName ?? "")
+	}
+	if (part.type.startsWith("tool-")) {
+		return isWebSearchToolName(part.type.slice("tool-".length))
+	}
+	return false
+}
+
+function CitationLink({
+	href,
+	label,
+	source,
+}: {
+	href: string
+	label: string
+	source?: SourceUrlPart
+}) {
+	const url = source?.url ?? href
+	const host = sourceHost(url)
+	const rawTitle = source?.title?.trim()
+	const hasTitle =
+		!!rawTitle && rawTitle !== host && !/^https?:\/\//i.test(rawTitle)
+	let path = ""
+	try {
+		path = new URL(url).pathname.replace(/\/$/, "")
+	} catch {}
+	return (
+		<span className="group/cite relative inline">
+			<a
+				href={url}
+				target="_blank"
+				rel="noopener noreferrer"
+				className="text-blue-400 no-underline hover:text-blue-300"
+			>
+				{label}
+			</a>
+			<span className="pointer-events-none absolute bottom-full left-1/2 z-[1000] hidden -translate-x-1/2 pb-1.5 group-hover/cite:block">
+				<a
+					href={url}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="pointer-events-auto block w-64 overflow-hidden rounded-lg border border-white/10 bg-[#0B0F16]/95 p-2.5 no-underline shadow-[0_12px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl"
+				>
+					<span className="flex items-center gap-2">
+						<img
+							src={faviconUrl(host)}
+							alt=""
+							className="size-4 shrink-0 rounded bg-white/10"
+							loading="lazy"
+							referrerPolicy="no-referrer"
+						/>
+						<span className="truncate text-xs font-medium text-white/85">
+							{host}
+						</span>
+					</span>
+					{hasTitle ? (
+						<span className="mt-1.5 block line-clamp-2 text-xs leading-snug text-white/60">
+							{rawTitle}
+						</span>
+					) : path ? (
+						<span className="mt-1 block truncate text-[11px] text-white/35">
+							{path}
+						</span>
+					) : null}
+				</a>
+			</span>
+		</span>
+	)
+}
+
+function makeMarkdownComponents(sources: SourceUrlPart[]) {
+	return {
+		a: ({ href, children }: { href?: string; children?: ReactNode }) => {
+			const label =
+				typeof children === "string"
+					? children
+					: Array.isArray(children)
+						? children.join("")
+						: ""
+			const match = label.match(/^\[?(\d+)\]?$/)
+			if (match && href) {
+				const n = Number(match[1])
+				const source = sources.find((s) => s.url === href) ?? sources[n - 1]
+				return <CitationLink href={href} label={label} source={source} />
+			}
+			return (
+				<a
+					href={href}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="text-blue-400 hover:underline"
+				>
+					{children}
+				</a>
+			)
+		},
+	}
+}
+
+function WebSourcesPill({ sources }: { sources: SourceUrlPart[] }) {
 	const [expanded, setExpanded] = useState(false)
+	const ref = useRef<HTMLDivElement>(null)
+
+	useEffect(() => {
+		if (!expanded) return
+		const onDown = (e: MouseEvent) => {
+			if (ref.current && !ref.current.contains(e.target as Node)) {
+				setExpanded(false)
+			}
+		}
+		document.addEventListener("mousedown", onDown)
+		return () => document.removeEventListener("mousedown", onDown)
+	}, [expanded])
+
 	if (sources.length === 0) return null
 
+	const faviconHosts: string[] = []
+	for (const s of sources) {
+		const host = sourceHost(s.url)
+		if (!faviconHosts.includes(host)) faviconHosts.push(host)
+		if (faviconHosts.length >= 3) break
+	}
+	const count = sources.length
+
 	return (
-		<div className="rounded-lg border border-[#1E2128] bg-[#0D121A] text-xs my-1 overflow-hidden">
+		<div ref={ref} className="relative">
 			<button
 				type="button"
-				onClick={() => setExpanded(!expanded)}
-				className={cn(
-					"flex items-center gap-2 w-full px-3 py-2 cursor-pointer hover:bg-[#141922] transition-colors",
-					expanded && "border-b border-[#1E2128]",
-				)}
+				onClick={() => setExpanded((v) => !v)}
+				className="flex cursor-pointer items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] py-1 pr-2.5 pl-1.5 text-xs text-white/65 transition-colors hover:bg-white/[0.08] hover:text-white/80"
+				aria-expanded={expanded}
+				aria-label={`${count} web ${count === 1 ? "source" : "sources"}`}
 			>
-				<GlobeIcon className="size-3 shrink-0 text-emerald-400" />
-				<span className="font-medium text-emerald-400">
-					Web sources
-					<span className="text-white/40 font-normal ml-1">
-						({sources.length})
-					</span>
+				<span className="flex -space-x-1.5">
+					{faviconHosts.length > 0 ? (
+						faviconHosts.map((host) => (
+							<img
+								key={host}
+								src={faviconUrl(host)}
+								alt=""
+								className="size-4 rounded-full border border-[#0B0F16] bg-white/10 object-cover"
+								loading="lazy"
+								referrerPolicy="no-referrer"
+							/>
+						))
+					) : (
+						<GlobeIcon className="size-3.5 text-emerald-400" />
+					)}
 				</span>
-				{expanded ? (
-					<ChevronDownIcon className="size-3 text-white/30 shrink-0 ml-auto" />
-				) : (
-					<ChevronRightIcon className="size-3 text-white/30 shrink-0 ml-auto" />
-				)}
+				<span>{count === 1 ? "1 source" : `${count} sources`}</span>
 			</button>
 			{expanded && (
-				<ul className="px-3 py-2 space-y-1.5 list-none">
-					{sources.map((s) => (
-						<li key={s.sourceId}>
-							<a
-								href={s.url}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-blue-400 hover:underline break-all"
-							>
-								{s.title?.trim() || s.url}
-							</a>
-						</li>
-					))}
-				</ul>
+				<div className="absolute bottom-full left-0 z-[1000] mb-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-white/10 bg-[#0B0F16]/95 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl">
+					<ul className="max-h-72 list-none space-y-0.5 overflow-y-auto">
+						{sources.map((s) => {
+							const host = sourceHost(s.url)
+							return (
+								<li key={s.sourceId}>
+									<a
+										href={s.url}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="flex items-start gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.06]"
+									>
+										<img
+											src={faviconUrl(host)}
+											alt=""
+											className="mt-0.5 size-4 shrink-0 rounded-full bg-white/10"
+											loading="lazy"
+											referrerPolicy="no-referrer"
+										/>
+										<span className="min-w-0">
+											<span className="block truncate text-white/80">
+												{s.title?.trim() || host}
+											</span>
+											<span className="block truncate text-[11px] text-white/40">
+												{host}
+											</span>
+										</span>
+									</a>
+								</li>
+							)
+						})}
+					</ul>
+				</div>
 			)}
 		</div>
 	)
@@ -209,6 +367,23 @@ function ToolCallDisplay({ part }: { part: ToolCallDisplayPart }) {
 	if (toolName === "bash") {
 		return <BashToolDisplay part={part} />
 	}
+	if (isWebSearchToolName(toolName)) {
+		if (part.state === "output-available") return null
+		if (part.state === "error" || part.state === "output-error") {
+			return (
+				<div className="my-1 flex items-center gap-2 text-xs text-red-400/80">
+					<GlobeIcon className="size-3.5 shrink-0" />
+					<span>Web search failed</span>
+				</div>
+			)
+		}
+		return (
+			<div className="my-1 flex items-center gap-2 text-xs text-white/50">
+				<Loader2 className="size-3.5 shrink-0 animate-spin text-emerald-400/80" />
+				<span>Searching the web…</span>
+			</div>
+		)
+	}
 	const meta =
 		TOOL_META[toolName] ??
 		(isWebSearchToolName(toolName)
@@ -313,6 +488,7 @@ interface AgentMessageProps {
 	copiedMessageId: string | null
 	messageFeedback: Record<string, "like" | "dislike" | null>
 	expandedMemories: string | null
+	responseModel: ModelId | null
 	onCopy: (messageId: string, text: string) => void
 	onLike: (messageId: string) => void
 	onDislike: (messageId: string) => void
@@ -327,6 +503,7 @@ export function AgentMessage({
 	copiedMessageId,
 	messageFeedback,
 	expandedMemories,
+	responseModel,
 	onCopy,
 	onLike,
 	onDislike,
@@ -339,6 +516,30 @@ export function AgentMessage({
 		.filter((part) => part.type === "text")
 		.map((part) => part.text)
 		.join(" ")
+	const webSources = (() => {
+		const seen = new Set<string>()
+		const out: SourceUrlPart[] = []
+		for (const part of message.parts) {
+			if (part.type !== "source-url") continue
+			const source = part as SourceUrlPart
+			if (seen.has(source.url)) continue
+			seen.add(source.url)
+			out.push(source)
+		}
+		return out
+	})()
+	const hasAssistantText = message.parts.some(
+		(p) => p.type === "text" && (p as { text?: string }).text?.trim(),
+	)
+	const sourceKey = webSources.map((s) => s.url).join("|")
+	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed by stable source urls
+	const markdownComponents = useMemo(
+		() => makeMarkdownComponents(webSources),
+		[sourceKey],
+	)
+	const responseModelLabel = responseModel
+		? `${modelNames[responseModel].name} ${modelNames[responseModel].version}`
+		: null
 
 	return (
 		<div className="flex flex-col gap-1 w-full">
@@ -352,24 +553,10 @@ export function AgentMessage({
 
 					{message.parts.map((part, partIndex) => {
 						if (part.type === "source-url") {
-							if (
-								partIndex > 0 &&
-								message.parts[partIndex - 1]?.type === "source-url"
-							) {
-								return null
-							}
-							const sources: SourceUrlPart[] = []
-							for (let j = partIndex; j < message.parts.length; j++) {
-								const p = message.parts[j]
-								if (!p || p.type !== "source-url") break
-								sources.push(p as SourceUrlPart)
-							}
-							return (
-								<WebSourcesGroup
-									key={`${message.id}-web-sources-${partIndex}`}
-									sources={sources}
-								/>
-							)
+							return null
+						}
+						if (isWebSearchPart(part)) {
+							return null
 						}
 						if (part.type === "source-document") {
 							const doc = part as {
@@ -394,12 +581,30 @@ export function AgentMessage({
 							)
 						}
 						if (part.type === "text") {
+							// Skip fragments mid-run — source-url citations split one answer into
+							// many text parts; rendering each separately tears markdown (lists etc.).
+							let prev = partIndex - 1
+							while (prev >= 0 && message.parts[prev]?.type === "source-url") {
+								prev--
+							}
+							if (prev >= 0 && message.parts[prev]?.type === "text") {
+								return null
+							}
+							let runText = ""
+							for (let j = partIndex; j < message.parts.length; j++) {
+								const p = message.parts[j]
+								if (p?.type === "text") runText += p.text
+								else if (p?.type === "source-url") continue
+								else break
+							}
 							return (
 								<div
 									key={`${message.id}-${partIndex}`}
 									className="text-sm text-white/90 chat-markdown-content"
 								>
-									<Streamdown>{part.text}</Streamdown>
+									<Streamdown components={markdownComponents}>
+										{runText}
+									</Streamdown>
 								</div>
 							)
 						}
@@ -442,17 +647,41 @@ export function AgentMessage({
 					})}
 				</div>
 			</div>
-			<MessageActions
-				messageId={message.id}
-				messageText={messageText}
-				isLastMessage={isLastAgentMessage}
-				isHovered={isHovered}
-				copiedMessageId={copiedMessageId}
-				messageFeedback={messageFeedback}
-				onCopy={onCopy}
-				onLike={onLike}
-				onDislike={onDislike}
-			/>
+			{hasAssistantText && (
+				<div className="flex min-h-7 items-center gap-2">
+					<MessageActions
+						messageId={message.id}
+						messageText={messageText}
+						isLastMessage={isLastAgentMessage}
+						isHovered={isHovered}
+						copiedMessageId={copiedMessageId}
+						messageFeedback={messageFeedback}
+						onCopy={onCopy}
+						onLike={onLike}
+						onDislike={onDislike}
+					/>
+					{webSources.length > 0 && (
+						<div
+							className={cn(
+								"transition-opacity duration-200",
+								isHovered || isLastAgentMessage ? "opacity-100" : "opacity-0",
+							)}
+						>
+							<WebSourcesPill sources={webSources} />
+						</div>
+					)}
+					{responseModelLabel && (
+						<span
+							className={cn(
+								"text-[10px] leading-none text-white/25 transition-opacity duration-200",
+								isHovered ? "opacity-100" : "opacity-0",
+							)}
+						>
+							{responseModelLabel}
+						</span>
+					)}
+				</div>
+			)}
 		</div>
 	)
 }

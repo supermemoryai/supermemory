@@ -61,8 +61,10 @@ describe("ForceSimulation", () => {
 		sim.init(nodes, [])
 
 		// After init with pre-ticks, nodes at same position should have moved apart
-		const dx = nodes[0]!.x - nodes[1]!.x
-		const dy = nodes[0]!.y - nodes[1]!.y
+		const [first, second] = nodes
+		if (!first || !second) throw new Error("Expected two nodes")
+		const dx = first.x - second.x
+		const dy = first.y - second.y
 		const dist = Math.sqrt(dx * dx + dy * dy)
 		expect(dist).toBeGreaterThan(0)
 		sim.destroy()
@@ -74,7 +76,9 @@ describe("ForceSimulation", () => {
 		sim.init(nodes, [])
 
 		// Update with same nodes but different positions
-		nodes[0]!.x = 50
+		const [first] = nodes
+		if (!first) throw new Error("Expected node")
+		first.x = 50
 		expect(() => sim.update(nodes, [])).not.toThrow()
 		expect(sim.isActive()).toBe(true)
 		sim.destroy()
@@ -94,6 +98,15 @@ describe("ForceSimulation", () => {
 		const nodes = [makeNode("a", 0, 0)]
 		sim.init(nodes, [])
 		expect(() => sim.coolDown()).not.toThrow()
+		sim.destroy()
+	})
+
+	it("stop immediately deactivates the simulation", () => {
+		const sim = new ForceSimulation()
+		const nodes = [makeNode("a", 0, 0)]
+		sim.init(nodes, [])
+		sim.stop()
+		expect(sim.isActive()).toBe(false)
 		sim.destroy()
 	})
 
