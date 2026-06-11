@@ -73,6 +73,15 @@ Local embeddings are prewarmed at startup with conservative defaults — one wor
 | `SUPERMEMORY_LOCAL_EMBEDDING_IDLE_TIMEOUT_MS` | Idle time before workers shut down | `120000` |
 | `SUPERMEMORY_SKIP_EMBEDDING_PREWARM` | Skip startup prewarm, load on first use | unset |
 
+### Memory considerations
+
+Each local embedding worker runs the model through a WebAssembly runtime whose linear memory **only grows** — it expands to fit the largest batch a worker has processed and is not returned to the OS until that worker shuts down. A single worker can grow up to ~4 GB. Practical implications:
+
+- **Peak memory scales with the pool.** Budget roughly `SUPERMEMORY_LOCAL_EMBEDDING_POOL_SIZE × up to ~4 GB` for embeddings under sustained load, on top of the rest of the server.
+- **Reclamation only happens when the pool goes fully idle** for `SUPERMEMORY_LOCAL_EMBEDDING_IDLE_TIMEOUT_MS`. On a host that ingests continuously the pool may never be fully idle, so worker memory stays at its high-water mark.
+
+On memory-constrained hosts (≤ 16 GB), keep `SUPERMEMORY_LOCAL_EMBEDDING_POOL_SIZE=1`, consider a shorter `SUPERMEMORY_LOCAL_EMBEDDING_IDLE_TIMEOUT_MS` so memory is released sooner between ingestion bursts, or point embeddings at a hosted provider instead of the local model.
+
 ## Telemetry
 
 The self-hosted binary sends no analytics — there is nothing to opt out of. The only related switch:
