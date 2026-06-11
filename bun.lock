@@ -153,7 +153,7 @@
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
         "@floating-ui/react": "^0.27.0",
-        "@lobbyside/react": "0.5.0",
+        "@lobbyside/react": "0.5.1",
         "@opennextjs/cloudflare": "^1.12.0",
         "@radix-ui/react-accordion": "^1.2.11",
         "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -1026,7 +1026,7 @@
 
     "@levischuck/tiny-cbor": ["@levischuck/tiny-cbor@0.2.11", "", {}, "sha512-llBRm4dT4Z89aRsm6u2oEZ8tfwL/2l6BwpZ7JcyieouniDECM5AqNgr/y08zalEIvW3RSK4upYyybDcmjXqAow=="],
 
-    "@lobbyside/react": ["@lobbyside/react@0.5.0", "", { "peerDependencies": { "@instantdb/core": ">=1.0.0", "react": ">=18.0.0" } }, "sha512-I6MpJxdrCMQRIM6uCKUFVSinkz0/HFxqFiLoIBgzw+mmSq16QSX/DMzdLbT0jb3n0gO49LMFSLDCHFp4j9dyrw=="],
+    "@lobbyside/react": ["@lobbyside/react@0.5.1", "", { "peerDependencies": { "@instantdb/core": ">=1.0.0", "react": ">=18.0.0" } }, "sha512-UHAIOC6VBxcuFSIfzUjf8Qe1tI6McGTVJk98k1d5tWLOOEdTx+f8rj23v7/46n9T6I8ZhdEQzQzPsB1SNiMKeg=="],
 
     "@lukeed/csprng": ["@lukeed/csprng@1.1.0", "", {}, "sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA=="],
 
