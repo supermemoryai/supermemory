@@ -73,6 +73,10 @@ import {
 	type InstallStep,
 } from "@/lib/plugin-catalog"
 import { INSET, InstallSteps, PillButton } from "./integrations/install-steps"
+import {
+	ShortcutsConnectButtons,
+	useShortcutsConnect,
+} from "./integrations/shortcuts-detail"
 import { MCPSteps } from "./mcp-modal/mcp-detail-view"
 import { GranolaConnectModal } from "./granola-connect-modal"
 import { detectPluginSpace, detectPluginSource } from "@/lib/plugin-space"
@@ -804,6 +808,7 @@ function ItemInfoButton({
 function ItemInfoDialog({
 	actionSlot,
 	docsUrl,
+	hideDismiss,
 	icon,
 	id,
 	kind,
@@ -813,6 +818,7 @@ function ItemInfoDialog({
 }: {
 	actionSlot: ReactNode
 	docsUrl?: string
+	hideDismiss?: boolean
 	icon: ReactNode
 	id: string
 	kind: ItemKind
@@ -942,17 +948,19 @@ function ItemInfoDialog({
 							</div>
 						</div>
 					</div>
-					<div className="flex shrink-0 items-center justify-end gap-2 pt-1">
-						<button
-							type="button"
-							onClick={() => closeWithReason("im_good")}
-							className={cn(
-								"px-3 py-2 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]",
-								dmSansClassName(),
-							)}
-						>
-							I'm good
-						</button>
+					<div className="flex shrink-0 flex-wrap items-center justify-end gap-2 pt-1">
+						{!hideDismiss && (
+							<button
+								type="button"
+								onClick={() => closeWithReason("im_good")}
+								className={cn(
+									"px-3 py-2 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]",
+									dmSansClassName(),
+								)}
+							>
+								I'm good
+							</button>
+						)}
 						{/* biome-ignore lint/a11y/noStaticElementInteractions: closes the info dialog after the nested action button runs. */}
 						{/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handling stays on the nested real button. */}
 						<div onClick={() => closeWithReason("action")}>{actionSlot}</div>
@@ -1766,6 +1774,7 @@ function ItemCard({
 			<ItemInfoDialog
 				actionSlot={infoActionSlot ?? actionSlot}
 				docsUrl={docsUrl}
+				hideDismiss={id === "shortcuts"}
 				icon={icon}
 				id={id}
 				kind={kind}
@@ -2211,6 +2220,7 @@ export function IntegrationsView({
 	const queryClient = useQueryClient()
 	const { org } = useAuth()
 	const { allProjects } = useContainerTags()
+	const shortcutsConnect = useShortcutsConnect()
 	const autumn = useCustomer({ queryOptions: { enabled: !publicMode } })
 	const hasProProduct =
 		!publicMode && hasActivePlan(autumn.data?.subscriptions, "api_pro")
@@ -2973,6 +2983,9 @@ export function IntegrationsView({
 						</PillButton>
 					)
 				}
+				if (item.id === "shortcuts") {
+					return <ShortcutsConnectButtons controller={shortcutsConnect} />
+				}
 				return (
 					<PillButton
 						onClick={() => {
@@ -3059,6 +3072,12 @@ export function IntegrationsView({
 							Connect
 						</PillButton>
 					)
+				}
+				return renderRight(item)
+			}
+			case "client": {
+				if (item.id === "shortcuts") {
+					return <ShortcutsConnectButtons controller={shortcutsConnect} />
 				}
 				return renderRight(item)
 			}
@@ -3155,6 +3174,7 @@ export function IntegrationsView({
 
 	return (
 		<div className="flex-1 p-4 md:p-6 pt-2">
+			{shortcutsConnect.dialog}
 			<div
 				className={cn(
 					"mx-auto w-full",
