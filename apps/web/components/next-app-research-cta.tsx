@@ -151,7 +151,10 @@ export function NextAppResearchCta() {
 		!mounted ||
 		dismissed ||
 		pathname.startsWith("/onboarding") ||
-		widget.status === "loading"
+		widget.status === "loading" ||
+		// Host's targeting cohort excludes this visitor — render nothing, same
+		// as the script-tag embed. (0.6.0+)
+		widget.status === "hidden"
 	) {
 		return null
 	}
