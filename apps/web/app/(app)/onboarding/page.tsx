@@ -275,6 +275,7 @@ export default function BrainOnboardingPage() {
 				<StepSources
 					containerTag={containerTag}
 					workspaceName={about.workspaceName || suggestedWorkspaceName}
+					mode={mode}
 					values={sources}
 					onChange={setSources}
 					onContinue={goNext}

@@ -51,8 +51,22 @@ export function BrainShell({ step, children }: ShellProps) {
 				<span aria-hidden />
 			</header>
 
-			<main className="relative z-10 flex-1 flex items-center justify-center px-4 md:px-10 py-6 md:py-10">
-				<div className="w-full max-w-5xl">{children}</div>
+			<main
+				className={cn(
+					"relative z-10 flex-1 flex justify-center px-4 md:px-10 py-6 md:py-10",
+					step === "sources"
+						? "items-start overflow-y-auto"
+						: "items-center overflow-hidden",
+				)}
+			>
+				<div
+					className={cn(
+						"w-full",
+						step === "sources" ? "max-w-none" : "max-w-5xl",
+					)}
+				>
+					{children}
+				</div>
 			</main>
 		</div>
 	)

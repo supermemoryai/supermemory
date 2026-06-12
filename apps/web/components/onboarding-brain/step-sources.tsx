@@ -1,14 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import Image from "next/image"
 import { Button } from "@ui/components/button"
-import {
-	Drawer,
-	DrawerContent,
-	DrawerHeader,
-	DrawerTitle,
-} from "@ui/components/drawer"
-import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
+import { Dialog, DialogClose, DialogContent } from "@ui/components/dialog"
+import { GoogleDrive, Granola, Notion, OneDrive } from "@ui/assets/icons"
 import { Logo } from "@ui/assets/Logo"
 import {
 	Select,
@@ -21,12 +17,16 @@ import {
 	AlertTriangle,
 	ArrowRight,
 	Check,
-	Database,
+	ChevronLeft,
+	ChevronRight,
+	Coins,
+	ExternalLink,
 	FolderOpen,
 	Github,
-	Globe,
-	Mic,
+	LoaderIcon,
+	Lock,
 	Plus,
+	X,
 } from "lucide-react"
 import {
 	AppleShortcutsIcon,
@@ -43,6 +43,19 @@ function XBookmarksIcon({ className }: { className?: string }) {
 			aria-hidden="true"
 		>
 			<path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24H16.17l-4.71-6.23-5.4 6.23H2.74l7.73-8.84L1.25 2.25H8.08l4.25 5.62 5.91-5.62Zm-1.16 17.52h1.83L7.08 4.13H5.12z" />
+		</svg>
+	)
+}
+
+function GrokIcon({ className }: { className?: string }) {
+	return (
+		<svg
+			className={className}
+			viewBox="0 0 24 24"
+			fill="currentColor"
+			aria-hidden="true"
+		>
+			<path d="M9.27 15.29l7.978-5.897c.391-.29.95-.177 1.137.272.98 2.369.542 5.215-1.41 7.169-1.951 1.954-4.667 2.382-7.149 1.406l-2.711 1.257c3.889 2.661 8.611 2.003 11.562-.953 2.341-2.344 3.066-5.539 2.388-8.42l.006.007c-.983-4.232.242-5.924 2.75-9.383.06-.082.12-.164.179-.248l-3.301 3.305v-.01L9.267 15.292M7.623 16.723c-2.792-2.67-2.31-6.801.071-9.184 1.761-1.763 4.647-2.483 7.166-1.425l2.705-1.25a7.808 7.808 0 00-1.829-1A8.975 8.975 0 005.984 5.83c-2.533 2.536-3.33 6.436-1.962 9.764.102.248-.052.591-.317.736l-2.881 1.586 6.798-.193z" />
 		</svg>
 	)
 }
@@ -79,13 +92,126 @@ function GmailIcon({ className }: { className?: string }) {
 	)
 }
 import { cn } from "@lib/utils"
+import {
+	PLAN_DISPLAY_NAMES,
+	PLAN_RANK,
+	type PlanType,
+	useTokenUsage,
+} from "@/hooks/use-token-usage"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { $fetch } from "@lib/api"
+import { hasActivePlan } from "@lib/queries"
+import {
+	ADD_MEMORY_SHORTCUT_URL,
+	CHROME_EXTENSION_URL,
+	RAYCAST_EXTENSION_URL,
+} from "@lib/constants"
+import { useCustomer } from "autumn-js/react"
 import { toast } from "sonner"
+import type { BrainMode } from "./types"
 
-type SourceId = "drive" | "notion" | "gmail" | "github" | "onedrive"
+type SourceId =
+	| "drive"
+	| "notion"
+	| "gmail"
+	| "github"
+	| "onedrive"
+	| "bookmarks"
+	| "chatapps"
+	| "chrome"
+	| "shortcuts"
+	| "raycast"
 type SourceState = "idle" | "connecting" | "connected" | "waitlist"
 type DriveScope = "selective" | "full"
+type RequiredPlan = "pro" | "max"
+
+const PLAN_LABELS: Record<RequiredPlan, string> = {
+	pro: "Pro",
+	max: "Max",
+}
+
+const BOOK_CALL_HREF = "https://cal.com/maheshthedev/15min"
+
+type PlanCardDefinition = {
+	id: PlanType
+	name: string
+	price: string
+	period: string
+	credits: string
+	productId: "api_free" | "api_pro" | "api_max" | "api_scale" | "api_enterprise"
+	description: string
+	includesFrom?: string
+	features: string[]
+	isContactSales?: boolean
+	mostPopular?: boolean
+}
+
+type CheckoutPlanId = Extract<
+	PlanCardDefinition["productId"],
+	"api_pro" | "api_max" | "api_scale"
+>
+
+const PLAN_CARDS: PlanCardDefinition[] = [
+	{
+		id: "pro",
+		name: "Pro",
+		price: "$19",
+		period: "/mo",
+		credits: "$20",
+		productId: "api_pro",
+		description: "For people building with AI memory",
+		features: [
+			"Auto top-up when balance runs low",
+			"All plugins (Claude Code, Cursor, Hermes...)",
+			"Priority support",
+		],
+	},
+	{
+		id: "max",
+		name: "Max",
+		price: "$100",
+		period: "/mo",
+		credits: "$130",
+		productId: "api_max",
+		description: "For power users who outgrow Pro",
+		includesFrom: "Pro",
+		mostPopular: true,
+		features: ["6x the credits of Pro", "Gmail connector", "Priority support"],
+	},
+	{
+		id: "scale",
+		name: "Scale",
+		price: "$399",
+		period: "/mo",
+		credits: "$600",
+		productId: "api_scale",
+		description: "For teams and production workloads",
+		includesFrom: "Max",
+		features: [
+			"Auto top-up & spend caps",
+			"S3 & Web Crawler connectors",
+			"Dedicated support",
+		],
+	},
+	{
+		id: "enterprise",
+		name: "Enterprise",
+		price: "Custom",
+		period: "",
+		credits: "Unlimited",
+		productId: "api_enterprise",
+		description: "Custom deployments with dedicated engineering",
+		includesFrom: "Scale",
+		features: [
+			"Custom metering & billing",
+			"Custom integrations & SSO",
+			"Forward-deployed engineer",
+		],
+		isContactSales: true,
+	},
+]
+
+const PLAN_CARD_SCROLL_STEP = 406
 
 export interface SourcesValues {
 	connected: Partial<Record<SourceId, SourceState>>
@@ -95,6 +221,7 @@ export interface SourcesValues {
 interface Props {
 	containerTag: string
 	workspaceName: string
+	mode: BrainMode
 	values: SourcesValues
 	onChange: (next: SourcesValues) => void
 	onContinue: () => void
@@ -110,14 +237,69 @@ const inputBevelStyle = {
 		"0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08), inset 0px 1px 1px 0px rgba(0,0,0,0.08), inset 0px 2px 4px 0px rgba(0,0,0,0.02)",
 }
 
+function ChatAppsIconCluster() {
+	const tileClass =
+		"absolute flex size-[28px] items-center justify-center rounded-[10px] border border-white/10 bg-[#0D1117] shadow-[0_4px_10px_rgba(0,0,0,0.28)]"
+	const imageClass = "size-4 object-contain"
+
+	return (
+		<div className="relative size-10" aria-hidden="true">
+			<span className={cn(tileClass, "right-[17px] top-[4px] z-30")}>
+				<span className="flex size-[22px] items-center justify-center rounded-[8px] bg-[#48636B]">
+					<Image
+						src="/mcp-supported-tools/chatgpt.png"
+						alt=""
+						width={14}
+						height={14}
+						className={imageClass}
+					/>
+				</span>
+			</span>
+			<span className={cn(tileClass, "right-[5px] top-[4px] z-20")}>
+				<span className="flex size-[22px] items-center justify-center rounded-[8px] bg-[#211A18]">
+					<Image
+						src="/mcp-supported-tools/claude.png"
+						alt=""
+						width={14}
+						height={14}
+						className={imageClass}
+					/>
+				</span>
+			</span>
+			<span className={cn(tileClass, "right-[-7px] top-[4px] z-10")}>
+				<span className="flex size-[22px] items-center justify-center rounded-[8px] bg-[#0D1117]">
+					<GrokIcon className="size-5 translate-x-[0.5px] -translate-y-[0.5px] text-[#fafafa]" />
+				</span>
+			</span>
+		</div>
+	)
+}
+
 export function StepSources({
 	containerTag,
 	workspaceName,
+	mode,
 	values,
 	onChange,
 	onContinue,
 }: Props) {
 	const [moreOpen, setMoreOpen] = useState(false)
+	const [plansOpen, setPlansOpen] = useState(false)
+	const [requestedPlan, setRequestedPlan] = useState<RequiredPlan>("pro")
+	const [requestedConnector, setRequestedConnector] = useState("This connector")
+	const autumn = useCustomer()
+	const hasPro = hasActivePlan(autumn.data?.subscriptions, "api_pro")
+	const hasMax = hasActivePlan(autumn.data?.subscriptions, "api_max")
+	const planLoading = autumn.isLoading
+
+	useEffect(() => {
+		setMoreOpen(false)
+	}, [])
+
+	const isLocked = (plan?: RequiredPlan) => {
+		if (!plan || planLoading) return false
+		return plan === "max" ? !hasMax : !hasPro
+	}
 
 	const setState = (id: SourceId, state: SourceState) => {
 		onChange({ ...values, connected: { ...values.connected, [id]: state } })
@@ -155,117 +337,731 @@ export function StepSources({
 		}
 	}
 
+	const openExternal = (id: SourceId, url: string) => {
+		window.open(url, "_blank", "noopener,noreferrer")
+		setState(id, "connected")
+	}
+
+	const guard = (
+		plan: RequiredPlan | undefined,
+		title: string,
+		fn: () => void,
+	) => {
+		return () => {
+			if (isLocked(plan) && plan) {
+				setRequestedPlan(plan)
+				setRequestedConnector(title)
+				setPlansOpen(true)
+				return
+			}
+			fn()
+		}
+	}
+
 	const connectedCount = Object.values(values.connected).filter(
 		(s) => s === "connected" || s === "waitlist",
 	).length
 
 	return (
-		<div>
-			<div className="flex flex-wrap items-end justify-between gap-3 mb-6 px-1">
-				<div>
-					<p
-						className={cn(
-							"font-semibold text-[#fafafa] text-[22px]",
-							dmSans125ClassName(),
-						)}
-					>
-						Connect your team's signals
-					</p>
-					<p className="text-[#737373] font-medium text-[15px] leading-[1.4] mt-1.5">
-						Start with the sources that carry the most context. Add more
-						anytime.
-					</p>
-				</div>
-				<RoutingChip workspaceName={workspaceName} />
-			</div>
-
-			<div className="grid md:grid-cols-2 gap-3">
-				<SourceCard
-					title="Google Drive"
-					blurb="Docs, sheets, slides — the working memory of your team."
-					icon={<GoogleDrive className="size-7" />}
-					state={values.connected.drive ?? "idle"}
-					ctaLabel="Connect"
-					perks={[
-						"Docs, sheets, slides — all parsed",
-						"Stays in sync as files change",
-						"You pick what to share at sign-in",
-					]}
-					onConnect={() => connectRealProvider("google-drive", "drive")}
-					headerNote={
-						values.driveScope === "full" ? (
-							<p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[#FF8A47] font-medium">
-								<AlertTriangle className="size-3 shrink-0" />
-								Full Drive can exhaust your monthly usage.
+		<div className="mx-auto w-full max-w-[1400px] pb-10">
+			<section className="relative min-h-[calc(100dvh-136px)] py-4">
+				<div className="absolute inset-x-0 top-[46%] -translate-y-1/2">
+					<div className="flex flex-wrap items-end justify-between gap-3 mb-6 px-1">
+						<div>
+							<p
+								className={cn(
+									"font-semibold text-[#fafafa] text-[22px]",
+									dmSans125ClassName(),
+								)}
+							>
+								{mode === "personal"
+									? "Bring your context together"
+									: "Connect your team's signals"}
 							</p>
-						) : null
-					}
-					footerLeft={
-						<DriveScopePicker
-							value={values.driveScope}
-							onChange={(s) => onChange({ ...values, driveScope: s })}
+							<p className="text-[#737373] font-medium text-[15px] leading-[1.4] mt-1.5">
+								Start with the sources that carry the most context. Add more
+								anytime.
+							</p>
+						</div>
+						<RoutingChip workspaceName={workspaceName} />
+					</div>
+
+					<div className="grid md:grid-cols-3 gap-4">
+						<SourceCard
+							title="Import bookmarks"
+							blurb="One-shot import of your saved tweets."
+							icon={<XBookmarksIcon className="size-6 text-[#fafafa]" />}
+							state={values.connected.bookmarks ?? "idle"}
+							ctaLabel="Connect"
+							doneLabel="Opened"
+							perks={[
+								"Bookmarks become searchable memories",
+								"One-click import from the X bookmarks tab",
+								"Works via the Chrome extension",
+							]}
+							onConnect={() => openExternal("bookmarks", CHROME_EXTENSION_URL)}
 						/>
-					}
-					footerRight={<SpaceChip name="My Drive" />}
-				/>
-				<SourceCard
-					title="Notion"
-					blurb="Pages, databases, the team's running wiki."
-					icon={<Notion className="size-7" />}
-					state={values.connected.notion ?? "idle"}
-					ctaLabel="Connect"
-					perks={[
-						"Pages and database rows",
-						"Stays in sync when you edit",
-						"Pick which workspaces ingest",
-					]}
-					onConnect={() => connectRealProvider("notion", "notion")}
-					footerRight={<SpaceChip name="Company Notion" />}
-				/>
-			</div>
-
-			<div className="mt-6 flex flex-wrap items-center justify-between gap-3 px-1">
-				<button
-					type="button"
-					onClick={() => setMoreOpen(true)}
-					className="text-[#737373] font-medium text-[14px] hover:text-[#fafafa] inline-flex items-center gap-1.5 transition-colors"
-				>
-					<Plus className="size-3.5" />
-					More integrations
-					<span className="text-[#525D6E]">
-						(Gmail, GitHub, OneDrive, Granola…)
-					</span>
-				</button>
-				<div className="flex items-center gap-[22px]">
-					<button
-						type="button"
-						onClick={onContinue}
-						className="text-[#737373] font-medium text-[14px] hover:text-[#999] transition-colors"
-					>
-						Skip for now
-					</button>
-					<Button
-						variant="insideOut"
-						onClick={onContinue}
-						disabled={connectedCount === 0}
-						className="rounded-full px-5 py-[10px] text-[13px] font-medium text-[#fafafa]"
-					>
-						Continue
-						{connectedCount > 0 && (
-							<span className="text-[#4BA0FA] ml-1">({connectedCount})</span>
+						<SourceCard
+							title="Import from AI chat apps"
+							blurb="Bring memories from ChatGPT, Claude, Grok & more."
+							icon={<ChatAppsIconCluster />}
+							bareIconFrame
+							state={values.connected.chatapps ?? "idle"}
+							ctaLabel="Connect"
+							doneLabel="Opened"
+							perks={[
+								"Sync your ChatGPT memories",
+								"Carry context across every assistant",
+								"Import once, recall anywhere",
+							]}
+							onConnect={() => openExternal("chatapps", CHROME_EXTENSION_URL)}
+						/>
+						{mode === "personal" ? (
+							<NotionSourceCard
+								values={values}
+								isLocked={isLocked}
+								guard={guard}
+								connectRealProvider={connectRealProvider}
+							/>
+						) : (
+							<GoogleDriveSourceCard
+								values={values}
+								onChange={onChange}
+								isLocked={isLocked}
+								guard={guard}
+								connectRealProvider={connectRealProvider}
+							/>
 						)}
-						<ArrowRight className="size-3.5" />
-					</Button>
-				</div>
-			</div>
+					</div>
 
-			<MoreDrawer
-				open={moreOpen}
-				onClose={() => setMoreOpen(false)}
-				containerTag={containerTag}
-				connectRealProvider={connectRealProvider}
+					<div className="absolute left-0 right-0 top-full mt-6 px-1">
+						<div className="flex items-center justify-between gap-3">
+							<button
+								type="button"
+								onClick={() => setMoreOpen((open) => !open)}
+								className="text-[#737373] font-medium text-[14px] hover:text-[#fafafa] inline-flex items-center gap-1.5 transition-colors"
+							>
+								<Plus
+									className={cn(
+										"size-3.5 transition-transform duration-200",
+										moreOpen && "rotate-45",
+									)}
+								/>
+								More integrations
+								<span className="text-[#525D6E]">
+									(Notion, Gmail, GitHub, OneDrive…)
+								</span>
+							</button>
+							<SourceActions
+								connectedCount={connectedCount}
+								onContinue={onContinue}
+								className="mt-0 px-0"
+							/>
+						</div>
+
+						{moreOpen ? (
+							<div className="mt-10 grid md:grid-cols-3 gap-4">
+								<MoreSourcesGrid
+									mode={mode}
+									values={values}
+									onChange={onChange}
+									isLocked={isLocked}
+									guard={guard}
+									setState={setState}
+									openExternal={openExternal}
+									connectRealProvider={connectRealProvider}
+								/>
+							</div>
+						) : null}
+					</div>
+				</div>
+			</section>
+
+			{moreOpen && <div className="h-[860px] md:h-[680px]" aria-hidden />}
+			<OnboardingPlansModal
+				open={plansOpen}
+				onOpenChange={setPlansOpen}
+				requestedConnector={requestedConnector}
+				requestedPlan={requestedPlan}
 			/>
 		</div>
+	)
+}
+
+function OnboardingPlansModal({
+	open,
+	onOpenChange,
+	requestedConnector,
+	requestedPlan,
+}: {
+	open: boolean
+	onOpenChange: (open: boolean) => void
+	requestedConnector: string
+	requestedPlan: RequiredPlan
+}) {
+	const autumn = useCustomer()
+	const { currentPlan, isLoading } = useTokenUsage(autumn)
+	const [upgradingPlan, setUpgradingPlan] = useState<CheckoutPlanId | null>(
+		null,
+	)
+	const [planIndex, setPlanIndex] = useState(0)
+	const lastPlanIndex = Math.max(0, PLAN_CARDS.length - 2)
+
+	useEffect(() => {
+		if (open) {
+			setPlanIndex(0)
+		}
+	}, [open])
+
+	const handleUpgrade = async (planId: CheckoutPlanId) => {
+		setUpgradingPlan(planId)
+		try {
+			const result = await autumn.attach({
+				planId,
+				successUrl: window.location.href,
+			})
+			if ((result as { paymentUrl?: string })?.paymentUrl) {
+				window.location.href = (result as { paymentUrl: string }).paymentUrl
+				return
+			}
+			autumn.refetch?.()
+		} catch (error) {
+			console.error(error)
+			toast.error("Failed to start checkout. Please try again.")
+		} finally {
+			setUpgradingPlan(null)
+		}
+	}
+
+	const scrollPlans = (direction: -1 | 1) => {
+		setPlanIndex((index) =>
+			Math.min(lastPlanIndex, Math.max(0, index + direction)),
+		)
+	}
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent
+				showCloseButton={false}
+				className="max-h-[min(820px,calc(100dvh-32px))] w-[calc(100vw-48px)] max-w-[900px] overflow-x-hidden overflow-y-auto rounded-[18px] border border-white/[0.08] bg-[#1B1F24] p-0 text-[#FAFAFA] shadow-[0_24px_80px_rgba(0,0,0,0.48)] sm:max-w-[900px]"
+			>
+				<div className="sticky top-0 z-10 border-white/[0.08] border-b bg-[#1B1F24]/95 px-5 py-4 pr-[150px] backdrop-blur">
+					<div>
+						<p
+							className={cn(
+								dmSans125ClassName(),
+								"font-semibold text-[22px] text-[#FAFAFA]",
+							)}
+						>
+							Choose a plan
+						</p>
+					</div>
+					<div className="absolute top-4 right-5 flex items-center gap-2">
+						<button
+							type="button"
+							onClick={() => scrollPlans(-1)}
+							disabled={planIndex === 0}
+							className="flex size-8 items-center justify-center rounded-full border border-white/[0.08] bg-[#14161A] text-[#A3A3A3] transition-colors hover:bg-white/[0.05] hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-35"
+							aria-label="Show previous plans"
+						>
+							<ChevronLeft className="size-4" />
+						</button>
+						<button
+							type="button"
+							onClick={() => scrollPlans(1)}
+							disabled={planIndex === lastPlanIndex}
+							className="flex size-8 items-center justify-center rounded-full border border-white/[0.08] bg-[#14161A] text-[#A3A3A3] transition-colors hover:bg-white/[0.05] hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-35"
+							aria-label="Show next plans"
+						>
+							<ChevronRight className="size-4" />
+						</button>
+						<DialogClose asChild>
+							<button
+								type="button"
+								className="flex size-8 items-center justify-center rounded-full border border-white/[0.08] bg-[#14161A] text-[#737373] transition-colors hover:text-[#FAFAFA]"
+								aria-label="Close plans"
+							>
+								<X className="size-4" />
+							</button>
+						</DialogClose>
+					</div>
+					<div>
+						<p className="mt-1 text-[13px] text-[#A3A3A3]">
+							{requestedConnector} requires{" "}
+							<span className="font-semibold text-[#FAFAFA]">
+								{PLAN_LABELS[requestedPlan]}
+							</span>
+							.
+						</p>
+					</div>
+				</div>
+
+				<div className="overflow-hidden p-6">
+					<div className="overflow-hidden pb-1">
+						<div
+							className="flex gap-4 pr-12 transition-transform duration-300 ease-out"
+							style={{
+								transform: `translateX(-${planIndex * PLAN_CARD_SCROLL_STEP}px)`,
+							}}
+						>
+							{PLAN_CARDS.map((plan) => {
+								const isCurrent = currentPlan === plan.id
+								const isIncluded =
+									!isCurrent && PLAN_RANK[currentPlan] > PLAN_RANK[plan.id]
+								const isBusy = upgradingPlan === plan.productId
+								const checkoutPlanId =
+									plan.productId === "api_pro" ||
+									plan.productId === "api_max" ||
+									plan.productId === "api_scale"
+										? plan.productId
+										: null
+
+								return (
+									<div
+										key={plan.id}
+										className="w-[390px] max-w-[calc(100vw-96px)] shrink-0"
+									>
+										<OnboardingPlanCard
+											plan={plan}
+											action={
+												plan.isContactSales ? (
+													<a
+														href={BOOK_CALL_HREF}
+														target="_blank"
+														rel="noreferrer"
+														className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] bg-white text-[13px] font-semibold text-[#14161A] transition-colors hover:bg-[#E6EDF5]"
+													>
+														Book a call
+														<ExternalLink className="size-3.5" />
+													</a>
+												) : (
+													<Button
+														variant="default"
+														disabled={
+															isLoading ||
+															isCurrent ||
+															isIncluded ||
+															upgradingPlan !== null
+														}
+														onClick={() => {
+															if (checkoutPlanId) {
+																handleUpgrade(checkoutPlanId)
+															}
+														}}
+														className={cn(
+															"h-10 w-full rounded-[10px] bg-[#0A65CC] text-[13px] font-semibold text-white hover:bg-[#0B72E7]",
+															(isCurrent || isIncluded) &&
+																"bg-white/[0.04] text-[#737373] hover:bg-white/[0.04]",
+														)}
+													>
+														{isBusy ? (
+															<LoaderIcon className="size-4 animate-spin" />
+														) : isCurrent ? (
+															"Your current plan"
+														) : isIncluded ? (
+															`Included with ${PLAN_DISPLAY_NAMES[currentPlan]}`
+														) : checkoutPlanId ? (
+															`Upgrade to ${plan.name}`
+														) : (
+															"Your current plan"
+														)}
+													</Button>
+												)
+											}
+										/>
+									</div>
+								)
+							})}
+						</div>
+					</div>
+				</div>
+			</DialogContent>
+		</Dialog>
+	)
+}
+
+function OnboardingPlanCard({
+	action,
+	plan,
+}: {
+	action: React.ReactNode
+	plan: PlanCardDefinition
+}) {
+	return (
+		<div
+			className={cn(
+				"relative flex h-full min-h-[390px] min-w-0 flex-col overflow-hidden rounded-[14px] border p-5",
+				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+				plan.mostPopular
+					? "border-[#4BA0FA]/40 bg-[#14161A]"
+					: "border-white/[0.08] bg-[#14161A]",
+			)}
+		>
+			{plan.mostPopular ? (
+				<span className="absolute right-5 top-5 inline-flex h-[18px] items-center rounded-[3px] bg-[#4BA0FA] px-1.5 text-[10px] font-bold uppercase tracking-[0.36px] text-[#00171A]">
+					Most popular
+				</span>
+			) : null}
+			<p className="font-mono font-medium text-[#737373] text-[10px] uppercase tracking-[0.18em]">
+				{plan.name}
+			</p>
+
+			<div className="mt-3 flex items-baseline gap-1">
+				<span
+					className={cn(
+						dmSans125ClassName(),
+						"font-bold text-[#FAFAFA] text-[34px] leading-none tracking-[-0.34px] tabular-nums",
+					)}
+				>
+					{plan.price}
+				</span>
+				{plan.period ? (
+					<span className="text-[#737373] text-[13px]">{plan.period}</span>
+				) : null}
+			</div>
+
+			<p
+				className={cn(
+					dmSans125ClassName(),
+					"mt-2 text-[#A3A3A3] text-[13px] leading-snug",
+				)}
+			>
+				{plan.description}
+			</p>
+
+			{plan.isContactSales ? null : (
+				<div className="mt-5 flex items-center gap-2 rounded-[8px] bg-white/[0.04] px-3 py-2.5 text-[#A3A3A3]">
+					<Coins className="size-3.5 shrink-0 text-[#737373]" />
+					<div className="min-w-0">
+						<p className="font-semibold text-[#C8D0DA] text-[12px] leading-none tabular-nums">
+							{plan.credits}
+						</p>
+						<p className="mt-0.5 text-[#737373] text-[10px] leading-none">
+							of usage included
+						</p>
+					</div>
+				</div>
+			)}
+
+			{plan.includesFrom ? (
+				<div className="mt-5 flex items-center gap-3">
+					<div className="h-px flex-1 bg-white/[0.08]" />
+					<span className="whitespace-nowrap text-[#737373] text-[10px]">
+						Everything in {plan.includesFrom}, plus
+					</span>
+					<div className="h-px flex-1 bg-white/[0.08]" />
+				</div>
+			) : null}
+
+			<ul
+				className={cn(
+					"mb-6 flex flex-1 flex-col gap-3",
+					plan.includesFrom ? "mt-5" : "mt-5",
+					plan.isContactSales && !plan.includesFrom && "mt-7",
+				)}
+			>
+				{plan.features.map((feature) => (
+					<li
+						className="flex items-start gap-2 text-[#C8D0DA] text-[13px] leading-snug"
+						key={feature}
+					>
+						<Check className="mt-0.5 size-3.5 shrink-0 text-[#737373]" />
+						<span>{feature}</span>
+					</li>
+				))}
+			</ul>
+
+			{action}
+		</div>
+	)
+}
+
+function SourceActions({
+	connectedCount,
+	onContinue,
+	className,
+}: {
+	connectedCount: number
+	onContinue: () => void
+	className?: string
+}) {
+	return (
+		<div
+			className={cn(
+				"mt-6 flex items-center justify-end gap-[22px] px-1",
+				className,
+			)}
+		>
+			<button
+				type="button"
+				onClick={onContinue}
+				className="text-[#737373] font-medium text-[14px] hover:text-[#999] transition-colors"
+			>
+				Skip for now
+			</button>
+			<Button
+				variant="insideOut"
+				onClick={onContinue}
+				disabled={connectedCount === 0}
+				className="rounded-full px-5 py-[10px] text-[13px] font-medium text-[#fafafa]"
+			>
+				Continue
+				{connectedCount > 0 && (
+					<span className="text-[#4BA0FA] ml-1">({connectedCount})</span>
+				)}
+				<ArrowRight className="size-3.5" />
+			</Button>
+		</div>
+	)
+}
+
+function GoogleDriveSourceCard({
+	values,
+	onChange,
+	isLocked,
+	guard,
+	connectRealProvider,
+}: {
+	values: SourcesValues
+	onChange: (next: SourcesValues) => void
+	isLocked: (plan?: RequiredPlan) => boolean
+	guard: (
+		plan: RequiredPlan | undefined,
+		title: string,
+		fn: () => void,
+	) => () => void
+	connectRealProvider: (
+		provider: "google-drive" | "notion" | "onedrive",
+		id: SourceId,
+	) => void
+}) {
+	return (
+		<SourceCard
+			title="Google Drive"
+			blurb="Docs, sheets, slides — the working memory of your team."
+			icon={<GoogleDrive className="size-7" />}
+			state={values.connected.drive ?? "idle"}
+			ctaLabel="Connect"
+			locked={isLocked("pro")}
+			requiredPlan="pro"
+			perks={[
+				"Docs, sheets, slides — all parsed",
+				"Stays in sync as files change",
+				"You pick what to share at sign-in",
+			]}
+			onConnect={guard("pro", "Google Drive", () =>
+				connectRealProvider("google-drive", "drive"),
+			)}
+			headerNote={
+				values.driveScope === "full" ? (
+					<p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[#FF8A47] font-medium">
+						<AlertTriangle className="size-3 shrink-0" />
+						Full Drive can exhaust your monthly usage.
+					</p>
+				) : null
+			}
+			footerLeft={
+				<DriveScopePicker
+					value={values.driveScope}
+					onChange={(s) => onChange({ ...values, driveScope: s })}
+				/>
+			}
+			footerRight={<SpaceChip name="My Drive" />}
+		/>
+	)
+}
+
+function NotionSourceCard({
+	values,
+	isLocked,
+	guard,
+	connectRealProvider,
+}: {
+	values: SourcesValues
+	isLocked: (plan?: RequiredPlan) => boolean
+	guard: (
+		plan: RequiredPlan | undefined,
+		title: string,
+		fn: () => void,
+	) => () => void
+	connectRealProvider: (
+		provider: "google-drive" | "notion" | "onedrive",
+		id: SourceId,
+	) => void
+}) {
+	return (
+		<SourceCard
+			title="Notion"
+			blurb="Pages, databases, the team's running wiki."
+			icon={<Notion className="size-7" />}
+			state={values.connected.notion ?? "idle"}
+			ctaLabel="Connect"
+			locked={isLocked("pro")}
+			requiredPlan="pro"
+			perks={[
+				"Pages and database rows",
+				"Stays in sync when you edit",
+				"Pick which workspaces ingest",
+			]}
+			onConnect={guard("pro", "Notion", () =>
+				connectRealProvider("notion", "notion"),
+			)}
+			footerRight={<SpaceChip name="Company Notion" />}
+		/>
+	)
+}
+
+function MoreSourcesGrid({
+	mode,
+	values,
+	onChange,
+	isLocked,
+	guard,
+	setState,
+	openExternal,
+	connectRealProvider,
+}: {
+	mode: BrainMode
+	values: SourcesValues
+	onChange: (next: SourcesValues) => void
+	isLocked: (plan?: RequiredPlan) => boolean
+	guard: (
+		plan: RequiredPlan | undefined,
+		title: string,
+		fn: () => void,
+	) => () => void
+	setState: (id: SourceId, state: SourceState) => void
+	openExternal: (id: SourceId, url: string) => void
+	connectRealProvider: (
+		provider: "google-drive" | "notion" | "onedrive",
+		id: SourceId,
+	) => void
+}) {
+	return (
+		<>
+			<SourceCard
+				title="Raycast"
+				blurb="Quick add from your Mac."
+				icon={<RaycastIcon className="size-7" />}
+				state={values.connected.raycast ?? "idle"}
+				ctaLabel="Connect"
+				doneLabel="Opened"
+				perks={[
+					"Add memories without leaving Raycast",
+					"Search your brain from anywhere",
+					"Fast keyboard-first capture",
+				]}
+				onConnect={() => openExternal("raycast", RAYCAST_EXTENSION_URL)}
+			/>
+			<SourceCard
+				title="Apple Shortcuts"
+				blurb="One-tap capture from iPhone."
+				icon={<AppleShortcutsIcon />}
+				state={values.connected.shortcuts ?? "idle"}
+				ctaLabel="Connect"
+				doneLabel="Opened"
+				perks={[
+					"Save from the iOS share sheet",
+					"Capture text, links and photos",
+					"Works on iPhone, iPad and Mac",
+				]}
+				onConnect={() => openExternal("shortcuts", ADD_MEMORY_SHORTCUT_URL)}
+			/>
+			<SourceCard
+				title="Chrome extension"
+				blurb="Save pages and clip from the browser."
+				icon={<ChromeIcon className="size-7" />}
+				state={values.connected.chrome ?? "idle"}
+				ctaLabel="Connect"
+				doneLabel="Opened"
+				perks={[
+					"Save any page in one click",
+					"Import your X bookmarks",
+					"Sync ChatGPT memories",
+				]}
+				onConnect={() => openExternal("chrome", CHROME_EXTENSION_URL)}
+			/>
+			{mode === "personal" ? (
+				<GoogleDriveSourceCard
+					values={values}
+					onChange={onChange}
+					isLocked={isLocked}
+					guard={guard}
+					connectRealProvider={connectRealProvider}
+				/>
+			) : (
+				<NotionSourceCard
+					values={values}
+					isLocked={isLocked}
+					guard={guard}
+					connectRealProvider={connectRealProvider}
+				/>
+			)}
+			<SourceCard
+				title="OneDrive"
+				blurb="Office docs from OneDrive."
+				icon={<OneDrive className="size-7" />}
+				state={values.connected.onedrive ?? "idle"}
+				ctaLabel="Connect"
+				locked={isLocked("pro")}
+				requiredPlan="pro"
+				perks={[
+					"Word, Excel, PowerPoint — all parsed",
+					"Stays in sync as files change",
+					"You pick what to share at sign-in",
+				]}
+				onConnect={guard("pro", "OneDrive", () =>
+					connectRealProvider("onedrive", "onedrive"),
+				)}
+			/>
+			<SourceCard
+				title="Gmail"
+				blurb="Inbox threads, decisions, customer conversations."
+				icon={<GmailIcon className="size-6" />}
+				state={values.connected.gmail ?? "idle"}
+				ctaLabel="Connect"
+				locked={isLocked("max")}
+				requiredPlan="max"
+				perks={[
+					"Threads become searchable context",
+					"Decisions and follow-ups surfaced",
+					"You control which labels sync",
+				]}
+				onConnect={guard("max", "Gmail", () => setState("gmail", "waitlist"))}
+			/>
+			<SourceCard
+				title="GitHub"
+				blurb="PRs, issues, READMEs — every code decision searchable."
+				icon={<Github className="size-6 text-[#fafafa]" />}
+				state={values.connected.github ?? "idle"}
+				ctaLabel="Connect"
+				locked={isLocked("max")}
+				requiredPlan="max"
+				perks={[
+					"PRs and issues parsed",
+					"READMEs and docs indexed",
+					"Stays in sync with new activity",
+				]}
+				onConnect={guard("max", "GitHub", () => setState("github", "waitlist"))}
+			/>
+			<SourceCard
+				title="Granola"
+				blurb="Meeting notes into searchable decisions."
+				icon={<Granola className="size-6" />}
+				state="idle"
+				ctaLabel="Connect"
+				locked={isLocked("max")}
+				requiredPlan="max"
+				perks={[
+					"Meeting notes auto-captured",
+					"Decisions and action items extracted",
+					"Synced after every meeting",
+				]}
+				onConnect={guard("max", "Granola", () =>
+					toast.info("Granola is coming soon."),
+				)}
+			/>
+		</>
 	)
 }
 
@@ -293,8 +1089,12 @@ function SourceCard({
 	icon,
 	state,
 	ctaLabel,
+	doneLabel,
 	perks,
-	soft,
+	bareIconFrame,
+	disabled,
+	locked,
+	requiredPlan,
 	headerNote,
 	footerLeft,
 	footerRight,
@@ -305,8 +1105,12 @@ function SourceCard({
 	icon: React.ReactNode
 	state: SourceState
 	ctaLabel: string
+	doneLabel?: string
 	perks: string[]
-	soft?: boolean
+	bareIconFrame?: boolean
+	disabled?: boolean
+	locked?: boolean
+	requiredPlan?: RequiredPlan
 	headerNote?: React.ReactNode
 	footerLeft?: React.ReactNode
 	footerRight?: React.ReactNode
@@ -317,40 +1121,62 @@ function SourceCard({
 	return (
 		<div
 			className={cn(
-				"rounded-[16px] p-5 transition-colors bg-[#1B1F24] flex flex-col",
+				"min-h-[190px] rounded-[18px] p-5 transition-colors bg-[#1B1F24] flex flex-col",
 				isDone && "ring-1 ring-[#2261CA33]",
 			)}
 			style={modalCardStyle}
 		>
-			<div className="flex items-start justify-between gap-3">
-				<div className="flex items-center gap-3 min-w-0">
+			<div className="grid grid-cols-[48px_minmax(0,1fr)_auto] items-start gap-3">
+				<div className="pt-0.5">
 					<div
-						className="size-12 rounded-[12px] bg-[#14161A] border border-[rgba(82,89,102,0.2)] flex items-center justify-center shrink-0"
-						style={inputBevelStyle}
+						className={cn(
+							"size-12 rounded-[12px] flex items-center justify-center shrink-0",
+							bareIconFrame
+								? "bg-transparent border border-transparent"
+								: "bg-[#14161A] border border-[rgba(82,89,102,0.2)]",
+						)}
+						style={bareIconFrame ? undefined : inputBevelStyle}
 					>
 						{icon}
 					</div>
-					<div className="min-w-0">
-						<p className="text-[15px] font-semibold text-[#fafafa]">{title}</p>
-						<p className="text-[12px] text-[#737373] mt-0.5 leading-[1.4] font-medium">
-							{blurb}
-						</p>
-						{headerNote}
-					</div>
+				</div>
+				<div className="min-w-0 pr-1">
+					<p className="text-[15px] leading-tight font-semibold text-[#fafafa]">
+						{title}
+					</p>
+					<p className="text-[12px] text-[#737373] mt-1 leading-[1.35] font-medium">
+						{blurb}
+					</p>
+					{headerNote}
 				</div>
 				{isDone ? (
 					<span className="inline-flex items-center gap-1 text-[11px] text-[#4BA0FA] font-semibold uppercase tracking-[0.08em] shrink-0 mt-1">
 						<Check className="size-3" />
-						{state === "waitlist" ? "Requested" : "Connected"}
+						{state === "waitlist" ? "Requested" : (doneLabel ?? "Connected")}
 					</span>
 				) : (
 					<Button
 						variant="insideOut"
 						onClick={onConnect}
-						disabled={state === "connecting"}
-						className="shrink-0 rounded-full h-9 px-4 text-[13px] font-medium text-[#fafafa]"
+						disabled={state === "connecting" || disabled}
+						title={
+							locked && requiredPlan
+								? `Requires the ${PLAN_LABELS[requiredPlan]} plan`
+								: undefined
+						}
+						className={cn(
+							"shrink-0 rounded-full h-9 px-4 text-[13px] font-medium text-[#fafafa] gap-1.5",
+							disabled && "opacity-50",
+						)}
 					>
-						{state === "connecting" ? "Opening…" : ctaLabel}
+						{state === "connecting" ? (
+							"Opening…"
+						) : (
+							<>
+								{ctaLabel}
+								{locked && <Lock className="size-3 text-[#8B8B8B]" />}
+							</>
+						)}
 					</Button>
 				)}
 			</div>
@@ -369,12 +1195,6 @@ function SourceCard({
 					</li>
 				))}
 			</ul>
-
-			{soft && !isDone && (
-				<p className="text-[11px] text-[#525D6E] mt-3 leading-[1.5] font-medium">
-					OAuth lands shortly — request access and we'll auto-enable it.
-				</p>
-			)}
 
 			{(footerLeft || footerRight) && (
 				<div className="mt-auto pt-4 flex items-end justify-between gap-3">
@@ -428,160 +1248,5 @@ function DriveScopePicker({
 				</SelectItem>
 			</SelectContent>
 		</Select>
-	)
-}
-
-function MoreDrawer({
-	open,
-	onClose,
-	containerTag,
-	connectRealProvider,
-}: {
-	open: boolean
-	onClose: () => void
-	containerTag: string
-	connectRealProvider: (
-		provider: "google-drive" | "notion" | "onedrive",
-		id: SourceId,
-	) => void
-}) {
-	return (
-		<Drawer open={open} onOpenChange={(o) => !o && onClose()}>
-			<DrawerContent
-				className="bg-[#1B1F24] border-none"
-				style={modalCardStyle}
-			>
-				<DrawerHeader className="px-8 pt-6 pb-4 max-w-5xl mx-auto w-full">
-					<DrawerTitle className="text-[#fafafa] text-[20px] font-semibold">
-						More integrations
-					</DrawerTitle>
-					<p className="text-[#737373] text-[13px] font-medium mt-1">
-						Add any of these alongside your spotlight sources. Everything routes
-						to <span className="text-[#fafafa]">{containerTag}</span>.
-					</p>
-				</DrawerHeader>
-				<div className="px-8 pb-8 max-w-5xl mx-auto w-full grid sm:grid-cols-2 gap-2.5">
-					<MoreItem
-						title="Gmail"
-						blurb="Inbox threads, decisions, customer conversations."
-						icon={<GmailIcon className="size-6" />}
-						action="Request access"
-						soft
-					/>
-					<MoreItem
-						title="GitHub"
-						blurb="PRs, issues, READMEs — every code decision searchable."
-						icon={<Github className="size-6 text-[#fafafa]" />}
-						action="Request access"
-						soft
-					/>
-					<MoreItem
-						title="OneDrive"
-						blurb="Office docs from OneDrive."
-						icon={<OneDrive className="size-6" />}
-						action="Connect"
-						onAction={() => connectRealProvider("onedrive", "onedrive")}
-					/>
-					<MoreItem
-						title="Granola"
-						blurb="Meeting notes into searchable decisions."
-						icon={<Mic className="size-6 text-[#FF8A47]" />}
-						action="Coming soon"
-						soft
-					/>
-					<MoreItem
-						title="Web crawler"
-						blurb="Crawl any site into your brain."
-						icon={<Globe className="size-6 text-[#8B8B8B]" />}
-						action="Connect"
-						soft
-					/>
-					<MoreItem
-						title="S3"
-						blurb="Files from an S3 bucket."
-						icon={<Database className="size-6 text-[#8B8B8B]" />}
-						action="Connect"
-						soft
-					/>
-					<MoreItem
-						title="Chrome extension"
-						blurb="Save pages and clip from the browser."
-						icon={<ChromeIcon className="size-7" />}
-						action="Install"
-						soft
-					/>
-					<MoreItem
-						title="Apple Shortcuts"
-						blurb="One-tap capture from iPhone."
-						icon={<AppleShortcutsIcon />}
-						action="Install"
-						soft
-					/>
-					<MoreItem
-						title="Raycast"
-						blurb="Quick add from your Mac."
-						icon={<RaycastIcon className="size-7" />}
-						action="Install"
-						soft
-					/>
-					<MoreItem
-						title="X bookmarks"
-						blurb="One-shot import of saved tweets."
-						icon={<XBookmarksIcon className="size-5 text-[#fafafa]" />}
-						action="Import"
-						soft
-					/>
-				</div>
-			</DrawerContent>
-		</Drawer>
-	)
-}
-
-function MoreItem({
-	title,
-	blurb,
-	icon,
-	action,
-	soft,
-	onAction,
-}: {
-	title: string
-	blurb: string
-	icon: React.ReactNode
-	action: string
-	soft?: boolean
-	onAction?: () => void
-}) {
-	return (
-		<div
-			className="flex items-center gap-3 rounded-[14px] bg-[#14161A] border border-[rgba(82,89,102,0.2)] px-4 py-3"
-			style={inputBevelStyle}
-		>
-			<div
-				className="size-10 rounded-[10px] bg-[#0F1217] border border-[rgba(82,89,102,0.2)] flex items-center justify-center shrink-0"
-				style={inputBevelStyle}
-			>
-				{icon}
-			</div>
-			<div className="min-w-0 flex-1">
-				<p className="text-[14px] text-[#fafafa] font-semibold truncate">
-					{title}
-				</p>
-				<p className="text-[12px] text-[#737373] font-medium truncate">
-					{blurb}
-				</p>
-			</div>
-			<Button
-				variant="insideOut"
-				onClick={onAction}
-				disabled={soft && !onAction}
-				className={cn(
-					"shrink-0 rounded-full h-8 px-3 text-[12px] font-medium text-[#fafafa]",
-					soft && !onAction && "opacity-50",
-				)}
-			>
-				{action}
-			</Button>
-		</div>
 	)
 }
