@@ -207,6 +207,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 							selectedProjects={selectedProjects}
 							onValueChange={setSelectedProjects}
 							enableDelete
+							enableEdit
 						/>
 					</>
 				)}

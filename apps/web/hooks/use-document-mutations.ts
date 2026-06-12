@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { $fetch } from "@lib/api"
 import { useAuth } from "@lib/auth-context"
 import { analytics } from "@/lib/analytics"
+import { fetchSpaceSettings, spaceSettingsKey } from "@/hooks/use-space-context"
 
 /** Pull the human-readable message out of a $fetch error (handles `{error}`/`{message}`/string). */
 function fetchErrorMessage(err: unknown, fallback: string): string {
@@ -225,7 +226,23 @@ export function useDocumentMutations({
 	const queryClient = useQueryClient()
 	const { user } = useAuth()
 
-	const entityContext = `This is ${user?.name ?? "a user"}, saving items in a personal knowledge management system. This may be websites, links, notes, journals, PDFs, etc. Understand the user from it into a graph.`
+	const defaultEntityContext = `This is ${user?.name ?? "a user"}, saving items in a personal knowledge management system. This may be websites, links, notes, journals, PDFs, etc. Understand the user from it into a graph.`
+
+	// Skip when the space has its own context — sending one would overwrite the stored value.
+	const resolveEntityContext = async (
+		project: string,
+	): Promise<string | undefined> => {
+		try {
+			const settings = await queryClient.fetchQuery({
+				queryKey: spaceSettingsKey(project),
+				queryFn: () => fetchSpaceSettings(project),
+				staleTime: 60 * 1000,
+			})
+			return settings?.entityContext ? undefined : defaultEntityContext
+		} catch {
+			return defaultEntityContext
+		}
+	}
 
 	const noteMutation = useMutation({
 		mutationFn: async ({
@@ -235,11 +252,12 @@ export function useDocumentMutations({
 			content: string
 			project: string
 		}) => {
+			const entityContext = await resolveEntityContext(project)
 			const response = await $fetch("@post/documents", {
 				body: {
 					content,
 					containerTags: [project],
-					entityContext,
+					...(entityContext !== undefined ? { entityContext } : {}),
 					metadata: { sm_source: "consumer" },
 				},
 			})
@@ -299,11 +317,12 @@ export function useDocumentMutations({
 
 	const linkMutation = useMutation({
 		mutationFn: async ({ url, project }: { url: string; project: string }) => {
+			const entityContext = await resolveEntityContext(project)
 			const response = await $fetch("@post/documents", {
 				body: {
 					content: url,
 					containerTags: [project],
-					entityContext,
+					...(entityContext !== undefined ? { entityContext } : {}),
 					metadata: { sm_source: "consumer" },
 				},
 			})
@@ -375,12 +394,15 @@ export function useDocumentMutations({
 		}): Promise<FileUploadBatchResult> => {
 			const applyMeta = fileEntries.length === 1
 			const failures: { id: string; message: string }[] = []
+			const entityContext = await resolveEntityContext(project)
 
 			const uploadOne = async (entry: FileUploadEntry) => {
 				const formData = new FormData()
 				formData.append("file", entry.file)
 				formData.append("containerTags", JSON.stringify([project]))
-				formData.append("entityContext", entityContext)
+				if (entityContext !== undefined) {
+					formData.append("entityContext", entityContext)
+				}
 				formData.append("metadata", JSON.stringify({ sm_source: "consumer" }))
 
 				const response = await fetch(
