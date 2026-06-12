@@ -163,7 +163,7 @@
         "@repo/lib": "workspace:*",
         "@repo/validation": "workspace:*",
         "@sentry/nextjs": "^10.33.0",
-        "@supermemory/memory-graph": "^0.2.0",
+        "@supermemory/memory-graph": "^0.2.3",
         "@tailwindcss/typography": "^0.5.16",
         "@tanstack/react-form": "^1.12.4",
         "@tanstack/react-query": "^5.90.14",
@@ -298,7 +298,7 @@
     },
     "packages/memory-graph": {
       "name": "@supermemory/memory-graph",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "dependencies": {
         "d3-force": "^3.0.0",
       },
