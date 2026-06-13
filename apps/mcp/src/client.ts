@@ -389,6 +389,16 @@ export class SupermemoryClient {
 	}
 
 	private handleError(error: unknown): never {
+		// Handle explicit timeouts
+		if (
+			error instanceof Error &&
+			(error.name === "TimeoutError" || error.name === "AbortError")
+		) {
+			throw new Error(
+				"Request timed out. The server is taking too long to respond, please try again.",
+			)
+		}
+
 		// Handle network/fetch errors
 		if (error instanceof TypeError) {
 			if (
