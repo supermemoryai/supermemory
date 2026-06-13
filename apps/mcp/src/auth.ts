@@ -11,6 +11,10 @@ export interface AuthUser {
 	name?: string
 }
 
+export type AuthResult =
+	| { ok: true; user: AuthUser }
+	| { ok: false; error: "timeout" | "unauthorized" }
+
 /**
  * Check if a token is an API key (starts with "sm_")
  */
@@ -25,7 +29,7 @@ export function isApiKey(token: string): boolean {
 export async function validateApiKey(
 	apiKey: string,
 	apiUrl: string,
-): Promise<AuthUser | null> {
+): Promise<AuthResult> {
 	try {
 		const sessionResponse = await fetch(`${apiUrl}/v3/session`, {
 			method: "GET",
@@ -57,7 +61,7 @@ export async function validateApiKey(
 			} else {
 				console.error("API key validation failed:", status, responseText)
 			}
-			return null
+			return { ok: false, error: "unauthorized" }
 		}
 
 		const sessionData = (await sessionResponse.json()) as {
@@ -73,23 +77,26 @@ export async function validateApiKey(
 
 		if (!sessionData?.user?.id) {
 			console.error("Missing user.id in session response:", sessionData)
-			return null
+			return { ok: false, error: "unauthorized" }
 		}
 
 		console.log("API key validated for user:", sessionData.user.id)
 
 		return {
-			userId: sessionData.user.id,
-			apiKey: apiKey,
-			email: sessionData.user.email,
-			name: sessionData.user.name,
+			ok: true,
+			user: {
+				userId: sessionData.user.id,
+				apiKey: apiKey,
+				email: sessionData.user.email,
+				name: sessionData.user.name,
+			},
 		}
 	} catch (error: any) {
 		if (error.name === "TimeoutError" || error.name === "AbortError") {
-			throw new Error("Authentication request timed out. Please try again.")
+			return { ok: false, error: "timeout" }
 		}
 		console.error("API key validation error:", error)
-		return null
+		return { ok: false, error: "unauthorized" }
 	}
 }
 
@@ -100,7 +107,7 @@ export async function validateApiKey(
 export async function validateOAuthToken(
 	token: string,
 	apiUrl: string,
-): Promise<AuthUser | null> {
+): Promise<AuthResult> {
 	try {
 		const sessionResponse = await fetch(`${apiUrl}/v3/mcp/session-with-key`, {
 			method: "GET",
@@ -132,7 +139,7 @@ export async function validateOAuthToken(
 			} else {
 				console.error("Token validation failed:", status, responseText)
 			}
-			return null
+			return { ok: false, error: "unauthorized" }
 		}
 
 		const sessionData = (await sessionResponse.json()) as {
@@ -148,22 +155,25 @@ export async function validateOAuthToken(
 				"Missing userId or apiKey in session response:",
 				sessionData,
 			)
-			return null
+			return { ok: false, error: "unauthorized" }
 		}
 
 		console.log("OAuth validated, got API key for user:", sessionData.userId)
 
 		return {
-			userId: sessionData.userId,
-			apiKey: sessionData.apiKey,
-			email: sessionData.email,
-			name: sessionData.name,
+			ok: true,
+			user: {
+				userId: sessionData.userId,
+				apiKey: sessionData.apiKey,
+				email: sessionData.email,
+				name: sessionData.name,
+			},
 		}
 	} catch (error: any) {
 		if (error.name === "TimeoutError" || error.name === "AbortError") {
-			throw new Error("Authentication request timed out. Please try again.")
+			return { ok: false, error: "timeout" }
 		}
 		console.error("Token validation error:", error)
-		return null
+		return { ok: false, error: "unauthorized" }
 	}
 }

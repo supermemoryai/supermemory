@@ -136,22 +136,31 @@ const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 		})
 	}
 
-	let authUser: {
-		userId: string
-		apiKey: string
-		email?: string
-		name?: string
-	} | null = null
+	const authResult = isApiKey(token)
+		? await validateApiKey(token, apiUrl)
+		: await validateOAuthToken(token, apiUrl)
 
-	if (isApiKey(token)) {
-		console.log("Authenticating with API key")
-		authUser = await validateApiKey(token, apiUrl)
-	} else {
-		console.log("Authenticating with OAuth token")
-		authUser = await validateOAuthToken(token, apiUrl)
-	}
+	if (!authResult.ok) {
+		if (authResult.error === "timeout") {
+			return new Response(
+				JSON.stringify({
+					jsonrpc: "2.0",
+					error: {
+						code: -32000,
+						message: "Authentication timed out. Please try again.",
+					},
+					id: null,
+				}),
+				{
+					status: 504,
+					headers: {
+						"Content-Type": "application/json",
+						"Access-Control-Allow-Origin": "*",
+					},
+				},
+			)
+		}
 
-	if (!authUser) {
 		const errorMessage = isApiKey(token)
 			? "Unauthorized: Invalid or expired API key"
 			: "Unauthorized: Invalid or expired token"
@@ -177,15 +186,14 @@ const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 		)
 	}
 
-	// Create execution context with authenticated user props
 	const ctx = {
 		...c.executionCtx,
 		props: {
-			userId: authUser.userId,
-			apiKey: authUser.apiKey,
+			userId: authResult.user.userId,
+			apiKey: authResult.user.apiKey,
 			containerTag,
-			email: authUser.email,
-			name: authUser.name,
+			email: authResult.user.email,
+			name: authResult.user.name,
 		} satisfies Props,
 	} as ExecutionContext & { props: Props }
 
