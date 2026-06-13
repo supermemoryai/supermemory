@@ -24,11 +24,11 @@ No Docker. No database to provision. No config files. It boots in seconds with e
 Run the binary with nothing set and you get a complete memory system:
 
 - **The Supermemory graph engine, embedded** — created automatically on first boot. No database to stand up, no connection strings.
-- **Built-in local embeddings** — vectors are computed on your machine. Nothing is sent anywhere to be embedded.
+- **Built-in local embeddings** — vectors are computed on your machine by the bundled embedding model. Nothing is sent anywhere to be embedded.
 - **An API key, generated for you** — printed on first boot, ready to paste into any SDK.
 - **The full Memory API** — `/v3/documents`, `/v4/search`, `/v4/profile`, spaces, the works.
 
-The only thing you bring is a model. In production, Supermemory runs its own proprietary models, purpose-tuned for long-horizon data understanding and memory extraction. Self-hosted, the same pipeline runs on whatever model you point it at — OpenAI, Anthropic, Gemini, Groq, or any OpenAI-compatible endpoint. Bring a key and go. Or don't bring one at all:
+The only thing you bring is a model for the LLM-powered parts of the pipeline. In production, Supermemory runs its own proprietary models, purpose-tuned for long-horizon data understanding and memory extraction. Self-hosted, the same extraction pipeline runs on whatever LLM you point it at — OpenAI, Anthropic, Gemini, Groq, or any OpenAI-compatible endpoint. Bring a key and go. Or don't bring one at all:
 
 ## Runs fully offline
 
@@ -42,6 +42,10 @@ supermemory-server
 ```
 
 Local graph engine, local embeddings, local LLM. Your data never leaves the building.
+
+<Note>
+The LLM settings above do not change the local embedding model used for vector search. The self-hosted binary currently ships with its embedding model built in; if that changes in a future release, existing memories should be re-ingested so all stored vectors come from the same model.
+</Note>
 
 ## Drop-in with your existing code
 

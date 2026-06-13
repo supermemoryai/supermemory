@@ -39,6 +39,10 @@ With multiple providers configured, the first one in the order above is used.
 Image, video, and high-fidelity PDF understanding require a Gemini or Vertex AI key. Text ingestion, memory extraction, and search work with any provider.
 </Note>
 
+<Note>
+The provider variables above configure the LLM used for summarization, contextual chunking, and memory extraction. Vector embeddings are computed locally by the bundled embedding model; the self-hosted binary does not currently expose an environment variable for changing that embedding model. If a future version adds one, existing data should be re-ingested because vectors from different embedding models are not comparable.
+</Note>
+
 ### Fully offline with local models
 
 `OPENAI_API_KEY` + `OPENAI_BASE_URL` covers any OpenAI-compatible endpoint: Ollama, LM Studio, vLLM, llama.cpp server, Together, Fireworks, and more.
