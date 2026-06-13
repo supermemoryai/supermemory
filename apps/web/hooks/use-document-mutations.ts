@@ -209,6 +209,7 @@ function restoreQueriesFromSnapshot(
 }
 
 const FILE_UPLOAD_CONCURRENCY = 3
+const BULK_LINK_BATCH_SIZE = 500
 const fullDocumentQueryKey = (documentId: string) =>
 	["document-full", documentId] as const
 
@@ -358,6 +359,98 @@ export function useDocumentMutations({
 			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 			queryClient.invalidateQueries({ queryKey: ["processing-documents"] })
 			onClose?.()
+		},
+	})
+
+	const bulkLinkMutation = useMutation({
+		mutationFn: async ({
+			urls,
+			project,
+		}: {
+			urls: string[]
+			project: string
+		}): Promise<{ success: number; failed: number }> => {
+			let success = 0
+			let failed = 0
+
+			for (let i = 0; i < urls.length; i += BULK_LINK_BATCH_SIZE) {
+				const chunk = urls.slice(i, i + BULK_LINK_BATCH_SIZE)
+				const response = await $fetch("@post/documents/batch", {
+					body: {
+						documents: chunk,
+						containerTag: project,
+						entityContext,
+						metadata: { sm_source: "consumer" },
+					},
+				})
+				if (response.error) {
+					throw new Error(response.error?.message || "Failed to add links")
+				}
+				success += response.data?.success ?? 0
+				failed += response.data?.failed ?? 0
+			}
+
+			return { success, failed }
+		},
+		onMutate: async ({ urls, project }) => {
+			const previousQueries = await cancelAndSnapshotQueries(queryClient)
+			const now = new Date().toISOString()
+
+			for (const url of urls) {
+				const optimisticMemory: OptimisticMemory = {
+					id: `temp-${crypto.randomUUID()}`,
+					content: "",
+					url,
+					title: "Processing...",
+					description: "Extracting content...",
+					containerTags: [project],
+					createdAt: now,
+					updatedAt: now,
+					status: "queued",
+					type: "link",
+					metadata: {
+						processingStage: "queued",
+						processingMessage: "Added to processing queue",
+					},
+					memoryEntries: [],
+					isOptimistic: true,
+				}
+				queryClient.setQueriesData(
+					{ queryKey: ["documents-with-memories"] },
+					(old) => addOptimisticMemoryToQueryData(old, optimisticMemory),
+				)
+			}
+
+			return { previousQueries }
+		},
+		onError: (error, _variables, context) => {
+			restoreQueriesFromSnapshot(queryClient, context?.previousQueries)
+			toast.error("Failed to add links", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			})
+		},
+		onSuccess: (data, variables) => {
+			for (let i = 0; i < data.success; i++) {
+				analytics.documentAdded({ type: "link", project_id: variables.project })
+			}
+			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
+			queryClient.invalidateQueries({ queryKey: ["processing-documents"] })
+			if (data.failed === 0) {
+				toast.success(`${data.success} links added!`, {
+					description: "Your links are being processed",
+				})
+				onClose?.()
+				return
+			}
+			if (data.success === 0) {
+				toast.error("Failed to add links", {
+					description: `All ${data.failed} links failed`,
+				})
+				return
+			}
+			toast.warning("Some links failed", {
+				description: `${data.success} added, ${data.failed} failed`,
+			})
 		},
 	})
 
@@ -647,6 +740,7 @@ export function useDocumentMutations({
 	return {
 		noteMutation,
 		linkMutation,
+		bulkLinkMutation,
 		fileMutation,
 		updateMutation,
 		deleteMutation,
