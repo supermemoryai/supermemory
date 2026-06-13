@@ -73,6 +73,36 @@ Local embeddings are prewarmed at startup with conservative defaults — one wor
 | `SUPERMEMORY_LOCAL_EMBEDDING_IDLE_TIMEOUT_MS` | Idle time before workers shut down | `120000` |
 | `SUPERMEMORY_SKIP_EMBEDDING_PREWARM` | Skip startup prewarm, load on first use | unset |
 
+## Memory limits & ingestion queue
+
+The server manages memory for you and separates the two kinds of work you send it:
+
+- **Searches are always served immediately.** They never wait behind ingestion, regardless of how much is queued.
+- **Adds are accepted instantly but processed through a queue.** A `POST /v3/documents` call returns in milliseconds with status `queued`; extraction, embedding, and indexing happen in the background at a controlled pace.
+
+Ingestion may grow the server's memory usage by at most `SUPERMEMORY_EMBEDDING_RAM_LIMIT` (default **1 GB**) above its post-boot baseline. Past that, new documents simply wait in the queue until memory drops back under the limit — nothing is dropped, ingestion just slows down. The limit is measured above the boot baseline because the built-in local embeddings and storage engine have a fixed footprint that exists before any document is processed.
+
+The limit is printed at boot, and whenever adds are waiting the binary shows a live status line in the terminal:
+
+```
+[ingest] memory limit 1.0 GB above baseline (1.6 GB) · 2 concurrent — set SUPERMEMORY_EMBEDDING_RAM_LIMIT=ngb to change
+[ingest] 2 running · 193 queued · 0.4 GB / 1.0 GB ingest memory
+[ingest] 2 running · 193 queued · paused — 1.1 GB / 1.0 GB ingest memory, waiting for it to drop
+[ingest] resumed — memory back under the 1.0 GB ingest limit
+```
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `SUPERMEMORY_EMBEDDING_RAM_LIMIT` | Memory ingestion may use above the boot baseline. Accepts `1gb`, `1.5gb`, `512mb`, or a bare number (GB). | `1gb` |
+| `SUPERMEMORY_INGEST_CONCURRENCY` | Documents processed concurrently | `2` |
+
+```bash
+# Give ingestion 4 GB of headroom on a larger machine
+SUPERMEMORY_EMBEDDING_RAM_LIMIT=4gb ./supermemory-server
+```
+
+Raise the limit and concurrency on machines with spare RAM for faster bulk imports; lower them on small VPSes where you want the server to stay lean and don't mind adds draining slowly.
+
 ## Telemetry
 
 The self-hosted binary sends no analytics — there is nothing to opt out of. The only related switch:
