@@ -35,12 +35,29 @@ const toHex = (bytes: Uint8Array): string =>
 		.map((byte) => byte.toString(16).padStart(2, "0"))
 		.join("")
 
-export async function privacyHash(input: string, salt = ""): Promise<string> {
+function createReceiptHashSecret(): string {
+	const bytes = new Uint8Array(32)
+	crypto.getRandomValues(bytes)
+	return toHex(bytes)
+}
+
+export async function privacyHash(
+	input: string,
+	secret: string,
+): Promise<string> {
+	if (!secret) {
+		throw new Error("Receipt hash secret is required")
+	}
+
 	const encoder = new TextEncoder()
-	const hash = await crypto.subtle.digest(
-		"SHA-256",
-		encoder.encode(`${salt}:${input}`),
+	const key = await crypto.subtle.importKey(
+		"raw",
+		encoder.encode(secret),
+		{ name: "HMAC", hash: "SHA-256" },
+		false,
+		["sign"],
 	)
+	const hash = await crypto.subtle.sign("HMAC", key, encoder.encode(input))
 	return toHex(new Uint8Array(hash)).slice(0, RECEIPT_HASH_LENGTH)
 }
 
@@ -73,11 +90,12 @@ export async function buildMemorySearchReceipt(args: {
 		hashSalt,
 	} = args
 
+	const receiptHashSecret = hashSalt?.trim() || createReceiptHashSecret()
 	const idMaterial = results.map((result) => result.id).join("|")
 	const contentHashes = await Promise.all(
 		results.map((result) => {
 			const content = "memory" in result ? result.memory : result.chunk
-			return privacyHash(content || "", hashSalt)
+			return privacyHash(content || "", receiptHashSecret)
 		}),
 	)
 
@@ -89,19 +107,19 @@ export async function buildMemorySearchReceipt(args: {
 			version: clientVersion,
 		},
 		project: {
-			id_hash: await privacyHash(projectId || "default", hashSalt),
+			id_hash: await privacyHash(projectId || "default", receiptHashSecret),
 		},
 		query: {
-			hash: await privacyHash(query, hashSalt),
+			hash: await privacyHash(query, receiptHashSecret),
 		},
 		result: {
 			count: results.length,
-			ids_hash: await privacyHash(idMaterial, hashSalt),
+			ids_hash: await privacyHash(idMaterial, receiptHashSecret),
 			score_bucket: results.map((result) => scoreToBucket(result.similarity)),
 			content_hash: contentHashes,
 		},
 		snapshot: {
-			id_hash: await privacyHash(snapshotId || "unknown", hashSalt),
+			id_hash: await privacyHash(snapshotId || "unknown", receiptHashSecret),
 		},
 		latency_ms: latencyMs,
 		timestamp: new Date().toISOString(),

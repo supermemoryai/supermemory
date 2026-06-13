@@ -127,8 +127,14 @@ Enable server-side receipt logging via env vars:
 
 ```env
 RECEIPT_MODE=log
-RECEIPT_HASH_SALT=optional-secret-salt
+RECEIPT_HASH_SALT=secret-salt-for-correlating-receipts
 ```
+
+If `RECEIPT_HASH_SALT` is not set, each receipt uses a fresh random HMAC
+secret that is never emitted. This keeps receipts unlinkable by default and
+prevents dictionary guessing of short queries, project ids, memory ids, or
+memory snippets. Set `RECEIPT_HASH_SALT` only when you explicitly need stable
+hashes for correlation across receipt events.
 
 When `RECEIPT_MODE=log`, receipts are emitted to stderr as:
 
@@ -188,7 +194,7 @@ API_URL=https://api.supermemory.ai
 |----------|-------------|---------|
 | `API_URL` | Main Supermemory API URL for OAuth validation | `https://api.supermemory.ai` |
 | `RECEIPT_MODE` | Receipt mode: `off` or `log` | `off` |
-| `RECEIPT_HASH_SALT` | Optional salt used for receipt hashing | _empty_ |
+| `RECEIPT_HASH_SALT` | Optional secret used for stable HMAC receipt hashes. When empty, receipts use a fresh non-emitted random HMAC secret per event. | _empty_ |
 
 ### Run Locally
 
