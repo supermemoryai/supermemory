@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ForceSimulation } from "../canvas/simulation"
+import {
+	DENSE_GRAPH_STATIC_THRESHOLD,
+	ForceSimulation,
+} from "../canvas/simulation"
 import { VersionChainIndex } from "../canvas/version-chain"
 import type { ViewportState } from "../canvas/viewport"
 import { useGraphData } from "../hooks/use-graph-data"
 import { useGraphTheme } from "../hooks/use-graph-theme"
-import type { GraphThemeColors, MemoryGraphProps } from "../types"
+import type {
+	GraphApiDocument,
+	GraphThemeColors,
+	MemoryGraphProps,
+} from "../types"
 import { GraphCanvas } from "./graph-canvas"
 import { Legend } from "./legend"
 import { LoadingIndicator } from "./loading-indicator"
@@ -60,20 +67,41 @@ export function MemoryGraph({
 	const limitedDocuments = useMemo(() => {
 		if (!maxNodes || documents.length === 0) return documents
 		let totalNodes = 0
-		let cutoff = documents.length
+		const limited: GraphApiDocument[] = []
 		for (let i = 0; i < documents.length; i++) {
-			const docNodes = 1 + (documents[i]?.memories?.length ?? 0)
-			if (totalNodes + docNodes > maxNodes) {
-				cutoff = i
+			const doc = documents[i]
+			if (!doc) continue
+			if (totalNodes >= maxNodes) break
+
+			const remainingNodes = maxNodes - totalNodes
+			const memories = doc.memories ?? []
+			const docNodes = 1 + memories.length
+
+			if (docNodes <= remainingNodes) {
+				limited.push(doc)
+				totalNodes += docNodes
+				continue
+			}
+
+			if (remainingNodes > 1) {
+				limited.push({
+					...doc,
+					memories: memories.slice(0, remainingNodes - 1),
+				})
+				totalNodes = maxNodes
 				break
 			}
-			totalNodes += docNodes
+
+			limited.push({ ...doc, memories: [] })
+			totalNodes += 1
 		}
-		return cutoff === documents.length ? documents : documents.slice(0, cutoff)
+		return limited
 	}, [documents, maxNodes])
 
+	const hasContainerSize = containerSize.width > 0 && containerSize.height > 0
+
 	const { nodes, edges } = useGraphData(
-		limitedDocuments,
+		hasContainerSize ? limitedDocuments : [],
 		null,
 		containerSize.width,
 		containerSize.height,
@@ -93,21 +121,34 @@ export function MemoryGraph({
 	// that makes this a no-op on re-renders where limitedDocuments hasn't changed.
 	chainIndex.current.rebuild(limitedDocuments)
 
-	// Smart simulation re-init: track node ID set, only init() when IDs change
-	const prevSimIdsRef = useRef<string>("")
+	// Initial loads get a full force settle. Append-only pagination keeps
+	// existing coordinates stable and renders new nodes in nearby open areas.
+	const prevSimIdsRef = useRef<Set<string>>(new Set())
 	useEffect(() => {
 		if (nodes.length === 0) {
 			simulationRef.current?.destroy()
 			simulationRef.current = null
 			setSimulation(null)
-			prevSimIdsRef.current = ""
+			prevSimIdsRef.current = new Set()
 			return
 		}
 
-		const idKey = nodes
-			.map((n) => n.id)
-			.sort()
-			.join(",")
+		const currentIds = new Set(nodes.map((n) => n.id))
+		if (nodes.length > DENSE_GRAPH_STATIC_THRESHOLD) {
+			simulationRef.current?.destroy()
+			simulationRef.current = null
+			setSimulation(null)
+			prevSimIdsRef.current = currentIds
+			return
+		}
+
+		const previousIds = prevSimIdsRef.current
+		const hasPreviousIds = previousIds.size > 0
+		const idsChanged =
+			currentIds.size !== previousIds.size ||
+			[...currentIds].some((id) => !previousIds.has(id))
+		const isAppendOnly =
+			hasPreviousIds && [...previousIds].every((id) => currentIds.has(id))
 
 		if (!simulationRef.current) {
 			const sim = new ForceSimulation()
@@ -115,12 +156,14 @@ export function MemoryGraph({
 			setSimulation(sim)
 		}
 
-		if (idKey !== prevSimIdsRef.current) {
-			// IDs changed - full re-init
-			prevSimIdsRef.current = idKey
+		if (!hasPreviousIds || (idsChanged && !isAppendOnly)) {
+			prevSimIdsRef.current = currentIds
 			simulationRef.current.init(nodes, edges)
+		} else if (idsChanged && isAppendOnly) {
+			prevSimIdsRef.current = currentIds
+			simulationRef.current.update(nodes, edges)
+			simulationRef.current.stop()
 		} else {
-			// Only metadata changed - update existing simulation
 			simulationRef.current.update(nodes, edges)
 		}
 	}, [nodes, edges])
@@ -134,20 +177,30 @@ export function MemoryGraph({
 		}
 	}, [])
 
+	useEffect(() => {
+		viewportRef.current?.setMinZoomForNodes(
+			nodes,
+			containerSize.width,
+			graphFitHeight,
+		)
+	}, [nodes, containerSize.width, graphFitHeight])
+
 	// Auto-fit when data first loads. Mobile needs a few passes because the
 	// force simulation can move nodes after the first layout frame.
 	const hasAutoFittedRef = useRef(false)
+	const hadValidContainerSizeRef = useRef(false)
 	useEffect(() => {
 		if (
 			!hasAutoFittedRef.current &&
 			nodes.length > 0 &&
 			viewportRef.current &&
-			containerSize.width > 0
+			hasContainerSize
 		) {
-			const fitDelays = isCompactViewport ? [100, 450, 900] : [100]
+			const fitDelays = isCompactViewport ? [100, 450, 900] : [100, 300]
 			const timers = fitDelays.map((delay, index) =>
 				setTimeout(() => {
-					viewportRef.current?.fitToNodes(
+					if (!viewportRef.current || !hasContainerSize) return
+					viewportRef.current.fitToNodes(
 						nodes,
 						containerSize.width,
 						graphFitHeight,
@@ -161,10 +214,17 @@ export function MemoryGraph({
 				for (const timer of timers) clearTimeout(timer)
 			}
 		}
-	}, [nodes, containerSize.width, graphFitHeight, isCompactViewport])
+	}, [
+		nodes,
+		containerSize.width,
+		graphFitHeight,
+		isCompactViewport,
+		hasContainerSize,
+	])
 
 	useEffect(() => {
 		if (!isCompactViewport || nodes.length === 0 || !viewportRef.current) return
+		if (!hasContainerSize) return
 		const timer = setTimeout(() => {
 			viewportRef.current?.fitToNodes(
 				nodes,
@@ -173,7 +233,13 @@ export function MemoryGraph({
 			)
 		}, 120)
 		return () => clearTimeout(timer)
-	}, [isCompactViewport, nodes, containerSize.width, graphFitHeight])
+	}, [
+		isCompactViewport,
+		nodes,
+		containerSize.width,
+		graphFitHeight,
+		hasContainerSize,
+	])
 
 	useEffect(() => {
 		if (nodes.length === 0) hasAutoFittedRef.current = false
@@ -185,20 +251,39 @@ export function MemoryGraph({
 		}
 	}, [isCompactViewport])
 
+	useEffect(() => {
+		if (hasContainerSize && !hadValidContainerSizeRef.current) {
+			hadValidContainerSizeRef.current = true
+			hasAutoFittedRef.current = false
+		}
+		if (!hasContainerSize) {
+			hadValidContainerSizeRef.current = false
+		}
+	}, [hasContainerSize])
+
 	// Container resize observer
 	useEffect(() => {
 		const el = containerRef.current
 		if (!el) return
 
-		const ro = new ResizeObserver(() => {
-			setContainerSize({ width: el.clientWidth, height: el.clientHeight })
-			setContainerBounds(el.getBoundingClientRect())
-		})
-		ro.observe(el)
-		setContainerSize({ width: el.clientWidth, height: el.clientHeight })
-		setContainerBounds(el.getBoundingClientRect())
+		const measure = () => {
+			const rect = el.getBoundingClientRect()
+			const width = Math.round(rect.width) || el.clientWidth
+			const height = Math.round(rect.height) || el.clientHeight
+			setContainerSize({ width, height })
+			setContainerBounds(rect)
+		}
 
-		return () => ro.disconnect()
+		const ro = new ResizeObserver(measure)
+		ro.observe(el)
+		const parent = el.parentElement
+		if (parent) ro.observe(parent)
+		measure()
+		const raf = requestAnimationFrame(measure)
+		return () => {
+			cancelAnimationFrame(raf)
+			ro.disconnect()
+		}
 	}, [])
 
 	// Callbacks for GraphCanvas
@@ -588,7 +673,8 @@ export function MemoryGraph({
 		return chainIndex.current.getChain(activeNodeData.id)
 	}, [activeNodeData, limitedDocuments])
 
-	const isLoading = externalIsLoading
+	const isLayoutPending = !hasContainerSize && limitedDocuments.length > 0
+	const isLoading = externalIsLoading || isLayoutPending
 
 	if (externalError) {
 		const errorContainerStyle: React.CSSProperties = {
@@ -671,7 +757,7 @@ export function MemoryGraph({
 			)}
 
 			<div style={canvasContainerStyle} ref={containerRef}>
-				{containerSize.width > 0 && containerSize.height > 0 && (
+				{hasContainerSize && (
 					<GraphCanvas
 						colors={colors}
 						edges={edges}
@@ -726,6 +812,7 @@ export function MemoryGraph({
 						<Legend
 							colors={colors}
 							edges={edges}
+							hoveredNode={hoveredNode}
 							compact={isCompactViewport}
 							isLoading={isLoading}
 							maxHeight={compactLegendMaxHeight}

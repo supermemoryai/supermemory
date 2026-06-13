@@ -10,7 +10,6 @@ import {
 	LifeBuoy,
 	Settings,
 } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { useQueryState } from "nuqs"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
@@ -25,6 +24,7 @@ import {
 import { useViewMode, type ViewMode } from "@/lib/view-mode-context"
 import { feedbackParam } from "@/lib/search-params"
 import NovaOrb from "@/components/nova/nova-orb"
+import { useSettingsModal } from "@/components/settings/settings-modal"
 
 const INTEGRATION_VIEWS: ViewMode[] = [
 	"integrations",
@@ -43,7 +43,7 @@ interface BottomNavProps {
 }
 
 export function MobileBottomNav({ onAddMemory, onOpenSearch }: BottomNavProps) {
-	const router = useRouter()
+	const { openSettings } = useSettingsModal()
 	const { viewMode, setViewMode } = useViewMode()
 	const [, setFeedbackOpen] = useQueryState("feedback", feedbackParam)
 
@@ -55,11 +55,11 @@ export function MobileBottomNav({ onAddMemory, onOpenSearch }: BottomNavProps) {
 		<nav
 			aria-label="Primary"
 			className={cn(
-				"fixed inset-x-0 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-3 md:hidden",
+				"fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.08] bg-[#0A0E14]/85 shadow-[0_-8px_24px_rgba(0,0,0,0.35)] backdrop-blur-xl md:hidden",
 				dmSansClassName(),
 			)}
 		>
-			<div className="flex w-full items-center justify-around rounded-full border border-[#161F2C] bg-muted/95 px-2.5 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+			<div className="flex items-center justify-around px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
 				<NavTab
 					label="Home"
 					icon={Home}
@@ -76,10 +76,10 @@ export function MobileBottomNav({ onAddMemory, onOpenSearch }: BottomNavProps) {
 					type="button"
 					aria-label="Open chat"
 					onClick={() => void setViewMode("chat")}
-					className="group relative flex size-11 shrink-0 items-center justify-center self-center rounded-full outline-none transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-[#4BA0FA]/50"
+					className="group relative flex size-11 shrink-0 items-center justify-center rounded-full shadow-[0_0_18px_rgba(75,160,250,0.35)] outline-none transition-transform hover:scale-[1.04] focus-visible:ring-2 focus-visible:ring-[#4BA0FA]/60 active:scale-95"
 				>
 					<NovaOrb
-						size={42}
+						size={40}
 						className="pointer-events-none blur-[1px]! transition-transform group-hover:scale-105"
 					/>
 				</button>
@@ -127,7 +127,7 @@ export function MobileBottomNav({ onAddMemory, onOpenSearch }: BottomNavProps) {
 						<MoreItem
 							icon={Settings}
 							label="Settings"
-							onClick={() => router.push("/settings")}
+							onClick={() => openSettings()}
 						/>
 					</DropdownMenuContent>
 				</DropdownMenu>
@@ -172,13 +172,13 @@ function NavTabButton({
 			aria-current={active ? "page" : undefined}
 			onClick={onClick}
 			className={cn(
-				"flex shrink-0 flex-col items-center gap-1 rounded-full px-3 py-1.5 outline-none transition-colors",
+				"flex flex-1 flex-col items-center gap-1 rounded-lg py-1 outline-none transition-colors active:scale-95",
 				active ? "text-white" : "text-[#737373] hover:text-white",
 			)}
 			{...props}
 		>
 			{children}
-			<span className="text-[10px] font-medium leading-none">{label}</span>
+			<span className="text-[11px] font-medium leading-none">{label}</span>
 		</button>
 	)
 }

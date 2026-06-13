@@ -13,6 +13,7 @@ import { useQueryState } from "nuqs"
 import { Header, PublicHeader } from "@/components/header"
 import { MobileBottomNav } from "@/components/bottom-nav"
 import { ChatSidebar, HomeChatComposer } from "@/components/chat"
+import type { ChatAttachmentDraft } from "@/components/chat/attachments"
 import { DashboardView } from "@/components/dashboard-view"
 import { MemoriesGrid } from "@/components/memories-grid"
 import { GraphLayoutView } from "@/components/graph-layout-view"
@@ -24,6 +25,7 @@ import { ShortcutsDetail } from "@/components/integrations/shortcuts-detail"
 import { RaycastDetail } from "@/components/integrations/raycast-detail"
 import { PluginsDetail } from "@/components/integrations/plugins-detail"
 import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
+import { OnboardingConfetti } from "@/components/onboarding-brain/onboarding-confetti"
 import { AddDocumentModal } from "@/components/add-document"
 import { DocumentModal } from "@/components/document-modal"
 import { DocumentsCommandPalette } from "@/components/documents-command-palette"
@@ -106,7 +108,7 @@ function ViewErrorFallback() {
 
 export default function NewPage() {
 	const isMobile = useIsMobile()
-	const { user, session } = useAuth()
+	const { user, session, isSessionPending } = useAuth()
 
 	const { selectedProject, selectedProjects, setSelectedProject } = useProject()
 	const selectedProjectTag = selectedProjects[0]
@@ -166,6 +168,9 @@ export default function NewPage() {
 	const [queuedChatProject, setQueuedChatProject] = useState<string | null>(
 		null,
 	)
+	const [queuedChatAttachments, setQueuedChatAttachments] = useState<
+		ChatAttachmentDraft[] | null
+	>(null)
 	const [queuedHighlightContent, setQueuedHighlightContent] = useState<
 		string | null
 	>(null)
@@ -494,6 +499,7 @@ export default function NewPage() {
 			setQueuedChatModel(null)
 			setQueuedChatReasoningEffort(null)
 			setQueuedChatProject(null)
+			setQueuedChatAttachments(null)
 			setQueuedMessageSource("highlight")
 			void setViewMode("chat")
 		},
@@ -506,12 +512,14 @@ export default function NewPage() {
 			model: ModelId,
 			projectId: string,
 			reasoningEffort: ReasoningEffort,
+			attachments?: ChatAttachmentDraft[],
 		) => {
 			setQueuedHighlightContent(null)
 			setQueuedChatSeed(message)
 			setQueuedChatModel(model)
 			setQueuedChatReasoningEffort(reasoningEffort)
 			setQueuedChatProject(projectId)
+			setQueuedChatAttachments(attachments ?? null)
 			setQueuedMessageSource("home")
 			void setViewMode("chat")
 		},
@@ -523,6 +531,7 @@ export default function NewPage() {
 		setQueuedChatModel(null)
 		setQueuedChatReasoningEffort(null)
 		setQueuedChatProject(null)
+		setQueuedChatAttachments(null)
 		setQueuedHighlightContent(null)
 		setQueuedMessageSource("highlight")
 	}, [])
@@ -572,17 +581,20 @@ export default function NewPage() {
 	const isDashboardShell =
 		viewMode === "dashboard" || (viewMode === "graph" && isMobile)
 	const isGraphMode = viewMode === "graph"
-	const showBottomNav = isMobile && !!session
+	const showBottomNav = isMobile && !!session && !isChatView
+	const isPublicIntegrations =
+		!session && !isSessionPending && viewMode === "integrations"
 
 	return (
 		<HotkeysProvider>
+			<OnboardingConfetti />
 			<div
 				className={cn(
 					"relative flex min-h-dvh flex-col bg-[#05080D]",
-					isGraphMode && "h-dvh overflow-hidden",
+					(isGraphMode || isChatView) && "h-dvh overflow-hidden",
 					showBottomNav &&
 						!isGraphMode &&
-						"pb-[calc(5.5rem+env(safe-area-inset-bottom))]",
+						"pb-[calc(4rem+env(safe-area-inset-bottom))]",
 				)}
 			>
 				{showNovaBackdrop && (
@@ -598,7 +610,9 @@ export default function NewPage() {
 						/>
 					</div>
 				)}
-				{!session && viewMode === "mcp" ? (
+				{isPublicIntegrations ? (
+					<PublicHeader variant="integrations" />
+				) : !session && viewMode === "mcp" ? (
 					<PublicHeader />
 				) : (
 					<Header
@@ -642,6 +656,7 @@ export default function NewPage() {
 											queuedHighlightContent={queuedHighlightContent}
 											onConsumeQueuedMessage={consumeQueuedChat}
 											queuedMessageSource={queuedMessageSource}
+											queuedAttachments={queuedChatAttachments}
 											initialSelectedModel={queuedChatModel}
 											initialReasoningEffort={queuedChatReasoningEffort}
 											initialChatProject={queuedChatProject}
@@ -649,7 +664,10 @@ export default function NewPage() {
 									</div>
 								) : viewMode === "integrations" ? (
 									<div className="min-h-0 min-w-0 flex-1 p-4 pt-2! md:p-6 md:pr-0">
-										<IntegrationsView />
+										<IntegrationsView
+											publicMode={isPublicIntegrations}
+											onOpenDocument={handleOpenDocument}
+										/>
 									</div>
 								) : viewMode === "mcp" ? (
 									<MCPDetailView
@@ -684,7 +702,7 @@ export default function NewPage() {
 										onBack={() => void setViewMode("integrations")}
 									/>
 								) : viewMode === "graph" ? (
-									<div className="min-h-0 min-w-0 flex-1">
+									<div className="flex min-h-0 min-w-0 flex-1 flex-col">
 										<GraphLayoutView onOpenDocument={handleOpenDocumentById} />
 									</div>
 								) : viewMode === "list" ? (
@@ -761,7 +779,7 @@ export default function NewPage() {
 						className={cn(
 							"pointer-events-none fixed inset-x-0 z-30",
 							showBottomNav
-								? "bottom-[4.25rem]"
+								? "bottom-[calc(4rem+env(safe-area-inset-bottom))]"
 								: "bottom-0 bg-gradient-to-t from-black via-black/40 to-transparent pt-12",
 						)}
 					>

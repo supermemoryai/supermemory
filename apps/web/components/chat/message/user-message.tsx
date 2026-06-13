@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { Copy, Check, PencilIcon, PencilOffIcon } from "lucide-react"
+import { Check, Copy, FileIcon, PencilIcon, PencilOffIcon } from "lucide-react"
 import type { UIMessage } from "@ai-sdk/react"
 import ChatModelSelector from "../model-selector"
 import { ReasoningSelector } from "../reasoning-selector"
@@ -12,6 +12,7 @@ import {
 	type ModelId,
 	type ReasoningEffort,
 } from "@/lib/models"
+import { formatAttachmentSize, getChatMessageAttachments } from "../attachments"
 
 interface UserMessageProps {
 	message: UIMessage
@@ -45,6 +46,7 @@ export const UserMessage = memo(function UserMessage({
 		.filter((part) => part.type === "text")
 		.map((part) => part.text)
 		.join(" ")
+	const attachments = getChatMessageAttachments(message.metadata)
 
 	const startEditing = () => {
 		setDraft(text)
@@ -71,7 +73,31 @@ export const UserMessage = memo(function UserMessage({
 	}, [isEditing])
 
 	return (
-		<div className="flex flex-col items-end w-full">
+		<div className="flex w-full flex-col items-end">
+			{attachments.length > 0 ? (
+				<div className="mb-2 flex w-full max-w-[80%] flex-col items-end gap-1.5">
+					{attachments.map((attachment) => (
+						<div
+							key={attachment.id}
+							className="flex max-w-full min-w-0 items-center gap-2 rounded-lg border border-[#303949] bg-[#0D121A]/80 px-2.5 py-2 text-left shadow-[0_6px_18px_rgba(0,0,0,0.18)]"
+						>
+							<div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#111A27]">
+								<FileIcon className="size-3.5 text-[#8FC3FF]" />
+							</div>
+							<div className="min-w-0">
+								<div className="truncate text-xs font-medium text-white">
+									{attachment.filename}
+								</div>
+								<div className="truncate text-[11px] text-white/50">
+									{formatAttachmentSize(attachment.size)}
+									{" | "}
+									{attachment.saveToMemory ? "Saved" : "Chat only"}
+								</div>
+							</div>
+						</div>
+					))}
+				</div>
+			) : null}
 			<AnimatePresence mode="popLayout" initial={false}>
 				{isEditing ? (
 					<motion.div
@@ -126,7 +152,9 @@ export const UserMessage = memo(function UserMessage({
 						transition={{ duration: 0.18, ease: "easeOut" }}
 						className="max-w-[80%] origin-top-right rounded-[12px] bg-[#1B1F24] p-3 px-[14px]"
 					>
-						<p className="text-sm text-white">{text}</p>
+						{text ? (
+							<p className="text-sm text-white whitespace-pre-wrap">{text}</p>
+						) : null}
 					</motion.div>
 				)}
 			</AnimatePresence>

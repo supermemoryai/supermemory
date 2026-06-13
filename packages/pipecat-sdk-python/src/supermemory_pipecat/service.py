@@ -146,14 +146,17 @@ class SupermemoryPipecatService(FrameProcessor):
 
             response = await self._supermemory_client.profile(**kwargs)
 
+            profile = getattr(response, "profile", None)
+            search_results_response = getattr(response, "search_results", None)
+
             search_results = []
-            if response.search_results and response.search_results.results:
-                search_results = response.search_results.results
+            if search_results_response and search_results_response.results:
+                search_results = search_results_response.results
 
             return {
                 "profile": {
-                    "static": response.profile.static,
-                    "dynamic": response.profile.dynamic,
+                    "static": profile.static if profile is not None else [],
+                    "dynamic": profile.dynamic if profile is not None else [],
                 },
                 "search_results": search_results,
             }

@@ -1,0 +1,85 @@
+---
+title: "Self-Hosting Supermemory"
+sidebarTitle: "Overview"
+description: "State-of-the-art memory, running on your machine. One binary, zero config."
+icon: "server"
+---
+
+Supermemory runs on your own hardware. It's the same memory engine behind the [hosted platform](https://console.supermemory.ai) — ingestion, memory extraction, hybrid semantic search, and the full API — as a single self-contained binary.
+
+<CodeGroup>
+```bash curl
+curl -fsSL https://supermemory.ai/install | bash
+```
+
+```bash npx
+npx supermemory local
+```
+</CodeGroup>
+
+No Docker. No database to provision. No config files. It boots in seconds with everything built in, and it's [open source](https://git.new/memory).
+
+## Zero config, actually
+
+Run the binary with nothing set and you get a complete memory system:
+
+- **The Supermemory graph engine, embedded** — created automatically on first boot. No database to stand up, no connection strings.
+- **Built-in local embeddings** — vectors are computed on your machine. Nothing is sent anywhere to be embedded.
+- **An API key, generated for you** — printed on first boot, ready to paste into any SDK.
+- **The full Memory API** — `/v3/documents`, `/v4/search`, `/v4/profile`, spaces, the works.
+
+The only thing you bring is a model. In production, Supermemory runs its own proprietary models, purpose-tuned for long-horizon data understanding and memory extraction. Self-hosted, the same pipeline runs on whatever model you point it at — OpenAI, Anthropic, Gemini, Groq, or any OpenAI-compatible endpoint. Bring a key and go. Or don't bring one at all:
+
+## Runs fully offline
+
+Supermemory works with any OpenAI-compatible endpoint, which means it runs end-to-end on your machine with a local model — Ollama, LM Studio, vLLM, llama.cpp. `gpt-oss-20b` is a great fit:
+
+```bash
+OPENAI_BASE_URL=http://localhost:11434/v1 \
+OPENAI_API_KEY=ollama \
+OPENAI_MODEL=gpt-oss:20b \
+supermemory-server
+```
+
+Local graph engine, local embeddings, local LLM. Your data never leaves the building.
+
+## Drop-in with your existing code
+
+The self-hosted server speaks the same API as the hosted platform. Point any Supermemory SDK at it with a one-line change:
+
+```typescript
+const client = new Supermemory({
+  apiKey: "sm_...", // printed on first boot
+  baseURL: "http://localhost:6767",
+})
+```
+
+Everything in the [Memory API docs](/quickstart) works the same way. The coding plugins do too — [Claude Code](/integrations/claude-code), [Codex](/integrations/codex), and [OpenCode](/integrations/opencode) all target your local server with `SUPERMEMORY_API_URL=http://localhost:6767`.
+
+## Self-hosted vs. the platform
+
+Self-hosted is free, open source, and great for local development, air-gapped environments, and privacy-sensitive workloads. The hosted platform is where the full product lives:
+
+| | Self-hosted | Platform |
+|---|---|---|
+| Full Memory API | ✅ | ✅ |
+| Hybrid semantic search | ✅ | ✅ |
+| Local embeddings | ✅ | Managed |
+| File ingestion (PDFs, images) | ✅ | ✅ |
+| [Connectors](/connectors/overview) (Google Drive, Notion, Gmail, OneDrive) | — | ✅ |
+| [Supermemory MCP](/supermemory-mcp/mcp) | — | ✅ |
+| Memory extraction | Your model, your key | Proprietary long-horizon models — higher quality, cheaper at scale |
+| Infrastructure | Your machine | Globally distributed, scales with you |
+
+If you outgrow a single machine — or want connectors, MCP, and the best-tuned extraction pipeline — [the platform](https://console.supermemory.ai) is one `baseURL` change away. Running this for a team or organization? See [Local vs. Enterprise](/self-hosting/local-vs-enterprise).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="play" href="/self-hosting/quickstart">
+    Install, run, and store your first memory in under two minutes
+  </Card>
+  <Card title="Configuration" icon="settings" href="/self-hosting/configuration">
+    Every environment variable: LLM providers, storage, auth, tuning
+  </Card>
+</CardGroup>

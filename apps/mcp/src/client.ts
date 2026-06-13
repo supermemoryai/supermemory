@@ -5,21 +5,29 @@ const DEFAULT_PROJECT_ID = "sm_project_default"
 const DEFAULT_LIST_LIMIT = 50
 const MAX_LIST_LIMIT = 200
 
+interface MemoryRichFields {
+	metadata?: Record<string, unknown> | null
+	updatedAt?: string
+	context?: Record<string, unknown>
+	documents?: Array<Record<string, unknown>>
+	isAggregated?: boolean
+}
+
 export type Memory =
-	| {
+	| ({
 			id: string
 			memory: string
 			similarity: number
 			title?: string
 			content?: string
-	  }
-	| {
+	  } & MemoryRichFields)
+	| ({
 			id: string
 			chunk: string
 			similarity: number
 			title?: string
 			content?: string
-	  }
+	  } & MemoryRichFields)
 
 export interface SearchResult {
 	results: Memory[]
@@ -67,6 +75,17 @@ export interface ListMemoriesOptions {
 export interface ListMemoriesResult {
 	memories: ListedMemory[]
 	nextCursor: string | null
+export interface SearchOptions {
+	searchMode?: "memories" | "hybrid" | "documents"
+	rerank?: boolean
+	rewriteQuery?: boolean
+	include?: {
+		documents?: boolean
+		relatedMemories?: boolean
+		summaries?: boolean
+		chunks?: boolean
+		forgottenMemories?: boolean
+	}
 }
 
 export interface Profile {
@@ -142,7 +161,11 @@ interface SDKResult {
 	content?: string
 	similarity: number
 	title?: string
-	context?: string
+	metadata?: Record<string, unknown> | null
+	updatedAt?: string
+	context?: Record<string, unknown>
+	documents?: Array<Record<string, unknown>>
+	isAggregated?: boolean
 }
 
 interface SDKListMemory {
@@ -377,26 +400,32 @@ export class SupermemoryClient {
 		query: string,
 		limit = 10,
 		threshold?: number,
+		options?: SearchOptions,
 	): Promise<SearchResult> {
 		try {
 			const result = await this.client.search.memories({
 				q: query,
 				limit,
 				containerTag: this.containerTag,
-				searchMode: "hybrid",
+				searchMode: options?.searchMode ?? "hybrid",
 				threshold, // Optional threshold parameter
+				rerank: options?.rerank,
+				rewriteQuery: options?.rewriteQuery,
+				include: options?.include,
 			})
 
-			// Normalize and limit response size — preserve memory vs chunk distinction
 			const results: Memory[] = (result.results as SDKResult[]).map((r) => {
-				const text = limitByChars(
-					r.content || r.memory || r.chunk || r.context || "",
-				)
+				const text = limitByChars(r.content || r.memory || r.chunk || "")
 				const base = {
 					id: r.id,
 					similarity: r.similarity,
 					title: r.title,
 					content: r.content,
+					metadata: r.metadata,
+					updatedAt: r.updatedAt,
+					context: r.context,
+					documents: r.documents,
+					isAggregated: r.isAggregated,
 				}
 				if (r.chunk && !r.memory) {
 					return { ...base, chunk: text }
@@ -468,9 +497,7 @@ export class SupermemoryClient {
 			if (result.searchResults) {
 				response.searchResults = {
 					results: (result.searchResults.results as SDKResult[]).map((r) => {
-						const text = limitByChars(
-							r.content || r.memory || r.chunk || r.context || "",
-						)
+						const text = limitByChars(r.content || r.memory || r.chunk || "")
 						const base = {
 							id: r.id,
 							similarity: r.similarity,

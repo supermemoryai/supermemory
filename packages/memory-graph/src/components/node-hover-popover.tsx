@@ -324,20 +324,23 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 
 		const isMemory = node.type === "memory"
 		const data = node.data
+		const hasChain = Boolean(versionChain && versionChain.length > 1)
 
 		const memoryMeta = useMemo(() => {
 			if (!isMemory) return null
 			const md = data as MemoryNodeData
+			const chainVersion = hasChain
+				? versionChain?.find((entry) => entry.id === node.id)?.version
+				: undefined
 			return {
-				version: md.version ?? 1,
+				version: chainVersion ?? md.version ?? 1,
 				isLatest: md.isLatest ?? false,
 				isForgotten: md.isForgotten ?? false,
 				forgetReason: md.forgetReason ?? null,
 				forgetAfter: md.forgetAfter ?? null,
 			}
-		}, [isMemory, data])
+		}, [isMemory, data, hasChain, versionChain, node.id])
 
-		const hasChain = versionChain && versionChain.length > 1
 		const hasForgetInfo =
 			memoryMeta && (memoryMeta.isForgotten || memoryMeta.forgetAfter)
 
@@ -516,7 +519,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 					<div style={cardStyle}>
 						{hasChain ? (
 							<VersionTimeline
-								chain={versionChain}
+								chain={versionChain ?? []}
 								colors={colors}
 								currentId={node.id}
 								onSelect={onSelectNode}
@@ -587,7 +590,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 												: colors.popoverTextSecondary,
 									}}
 								>
-									v{memoryMeta.version}{" "}
+									{hasChain ? `v${memoryMeta.version} ` : ""}
 									{memoryMeta.isForgotten
 										? "Forgotten"
 										: memoryMeta.isLatest

@@ -99,7 +99,7 @@ const PLUGIN_INFO: Record<string, PluginInfo> = {
 			"Captures coding decisions and patterns automatically",
 			"Builds persistent user profile across projects",
 		],
-		icon: "/images/plugins/codex.svg",
+		icon: "/images/plugins/codex.png",
 	},
 }
 
@@ -199,6 +199,7 @@ function AuthConnectContent() {
 
 			const redirectUrl = new URL(callback)
 			redirectUrl.searchParams.set("apikey", data.key)
+			redirectUrl.searchParams.set("api_url", API_URL)
 			window.location.href = redirectUrl.toString()
 		} catch (err) {
 			console.error("Failed to get API key:", err)
@@ -395,7 +396,7 @@ function AuthConnectContent() {
 						</button>
 
 						<a
-							href="https://app.supermemory.ai/?view=plugins"
+							href="https://app.supermemory.ai/settings#billing"
 							className={dmSans125ClassName(
 								"text-[12px] text-[#737373] hover:text-[#FAFAFA] transition-colors",
 							)}

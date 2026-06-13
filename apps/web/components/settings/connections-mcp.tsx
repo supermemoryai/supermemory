@@ -23,8 +23,8 @@ import { useQueryState } from "nuqs"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { analytics } from "@/lib/analytics"
-import { ConnectAIModal } from "@/components/connect-ai-modal"
 import { AddDocumentModal } from "@/components/add-document"
+import { useRouter } from "next/navigation"
 import { RemoveConnectionDialog } from "@/components/remove-connection-dialog"
 import { addDocumentParam } from "@/lib/search-params"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
@@ -421,7 +421,7 @@ export default function ConnectionsMCP() {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
 	const [addDoc, setAddDoc] = useQueryState("add", addDocumentParam)
-	const [mcpModalOpen, setMcpModalOpen] = useState(false)
+	const router = useRouter()
 	const [removeDialog, setRemoveDialog] = useState<{
 		open: boolean
 		connection: Connection | null
@@ -709,14 +709,14 @@ export default function ConnectionsMCP() {
 							</a>
 						</p>
 
-						<ConnectAIModal open={mcpModalOpen} onOpenChange={setMcpModalOpen}>
-							<PillButton onClick={() => setMcpModalOpen(true)}>
-								<Plus className="size-[10px] text-[#FAFAFA]" />
-								<span className="text-[14px] tracking-[-0.14px] text-[#FAFAFA] font-medium">
-									Connect your AI to Supermemory
-								</span>
-							</PillButton>
-						</ConnectAIModal>
+						<PillButton
+							onClick={() => router.push("/?view=integrations&cat=ai-clients")}
+						>
+							<Plus className="size-[10px] text-[#FAFAFA]" />
+							<span className="text-[14px] tracking-[-0.14px] text-[#FAFAFA] font-medium">
+								Connect your AI to Supermemory
+							</span>
+						</PillButton>
 					</div>
 				</ConnectionsCard>
 			</div>

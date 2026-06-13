@@ -35,15 +35,14 @@ export const GraphLayoutView = memo(function GraphLayoutView({
 	}, [setIsShareModalOpen])
 
 	return (
-		<div className="relative h-full min-h-[calc(100dvh-8.5rem)] w-full md:min-h-0">
+		<div className="relative flex h-full min-h-0 flex-1 flex-col w-full">
 			{/* Full-width graph */}
-			<div className="absolute inset-0">
+			<div className="relative min-h-0 flex-1">
 				<MemoryGraph
 					containerTags={effectiveContainerTags}
 					variant="consumer"
 					highlightDocumentIds={allHighlightDocumentIds}
 					highlightsVisible
-					maxNodes={undefined}
 					canvasRef={canvasRef}
 					onOpenDocument={onOpenDocument}
 				/>

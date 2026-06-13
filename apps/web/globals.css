@@ -190,6 +190,16 @@
 	padding-left: 0.25rem;
 }
 
+/* Loose lists wrap item content in <p> whose top margin detaches the bullet */
+.chat-markdown-content li > p:first-child {
+	margin-top: 0;
+}
+
+/* Model spams `---` between every section; headings already separate them */
+.chat-markdown-content hr {
+	display: none;
+}
+
 .shadow-inside-out {
 	box-shadow:
 		inset 0 2px 4px rgba(0, 0, 0, 0.3),

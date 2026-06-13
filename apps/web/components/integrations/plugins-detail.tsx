@@ -8,7 +8,15 @@ import { hasActivePlan } from "@lib/queries"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { BookOpen, Check, ChevronDown, Loader, X, Zap } from "lucide-react"
+import {
+	BookOpen,
+	Check,
+	ChevronDown,
+	ExternalLink,
+	Loader,
+	X,
+	Zap,
+} from "lucide-react"
 import Image from "next/image"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -17,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
 import {
 	PLUGIN_CATALOG,
 	isFreeTierPlugin,
+	normalizePluginClientId,
 	type InstallStep,
 	type PluginInfo,
 } from "@/lib/plugin-catalog"
@@ -27,7 +36,18 @@ interface ConnectedPlugin {
 	keyId: string
 	pluginId: string
 	createdAt: string
+	lastRequest?: string | null
 	keyStart?: string | null
+}
+
+type ListedApiKey = {
+	id: string
+	name?: string | null
+	createdAt: string
+	enabled?: boolean
+	lastRequest: string | null
+	metadata: string | Record<string, unknown> | null
+	start?: string | null
 }
 
 function SectionHeader({ children }: { children: ReactNode }) {
@@ -121,13 +141,77 @@ function DisconnectButton({ onConfirm }: { onConfirm: () => void }) {
 	)
 }
 
-function ConnectedPill({
+function toDate(value: string | Date | null | undefined): Date | null {
+	if (!value) return null
+	const date = value instanceof Date ? value : new Date(value)
+	return Number.isNaN(date.getTime()) ? null : date
+}
+
+function formatRelativeTime(value: string | Date | null | undefined): string {
+	const date = toDate(value)
+	if (!date) return "Never"
+	const absMs = Math.abs(Date.now() - date.getTime())
+	const minute = 60 * 1000
+	const hour = 60 * minute
+	const day = 24 * hour
+	if (absMs < minute) return "Just now"
+	if (absMs < hour) return `${Math.round(absMs / minute)}m ago`
+	if (absMs < day) return `${Math.round(absMs / hour)}h ago`
+	return `${Math.round(absMs / day)}d ago`
+}
+
+function formatDate(value: string | Date | null | undefined): string {
+	const date = toDate(value)
+	if (!date) return "Unknown"
+	return date.toLocaleDateString("en-US", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+	})
+}
+
+function maskKey(start: string | null | undefined): string {
+	if (!start) return "sm_********"
+	return `${start}********`
+}
+
+function keyPrefix(key: ListedApiKey): string | null {
+	return key.start ?? (key.name?.startsWith("sm_") ? key.name : null)
+}
+
+function DetailStat({ label, value }: { label: string; value: string }) {
+	return (
+		<div className="min-w-0">
+			<p
+				className={cn(
+					dmSans125ClassName(),
+					"text-[10px] font-medium uppercase tracking-wide text-[#737373]",
+				)}
+			>
+				{label}
+			</p>
+			<p
+				className={cn(
+					dmSans125ClassName(),
+					"mt-1 truncate text-[13px] font-medium text-[#FAFAFA]",
+				)}
+			>
+				{value}
+			</p>
+		</div>
+	)
+}
+
+function ActivePill({
+	plugin,
 	connectedKeys,
 	onRevoke,
 }: {
+	plugin: PluginInfo
 	connectedKeys: ConnectedPlugin[]
 	onRevoke: (keyId: string) => void
 }) {
+	const primaryKey = connectedKeys[0]
 	return (
 		<Popover>
 			<PopoverTrigger asChild>
@@ -140,7 +224,7 @@ function ConnectedPill({
 					)}
 				>
 					<span className="size-[7px] rounded-full bg-[#00AC3F]" />
-					Connected
+					ACTIVE
 					<ChevronDown className="size-3 text-[#737373]" />
 				</button>
 			</PopoverTrigger>
@@ -148,13 +232,67 @@ function ConnectedPill({
 				align="end"
 				className={cn(
 					dmSans125ClassName(),
-					"w-[260px] rounded-xl border border-white/10 bg-[#1B1F24] p-2 text-[#FAFAFA]",
+					"w-[min(380px,calc(100vw-32px))] rounded-xl border border-white/10 bg-[#1B1F24] p-4 text-[#FAFAFA]",
 				)}
 			>
+				<div className="flex items-center gap-3">
+					<PluginIconBox src={plugin.icon} alt={plugin.name} />
+					<div className="min-w-0 flex-1">
+						<p
+							className={cn(
+								dmSans125ClassName(),
+								"truncate text-[15px] font-semibold text-[#FAFAFA]",
+							)}
+						>
+							{plugin.name}
+						</p>
+						<p className="mt-0.5 text-[12px] text-[#A1A1AA]">Active</p>
+					</div>
+					<span className="size-3 rounded-full bg-[#37D67A]" />
+				</div>
+
+				<div className="mt-4 grid grid-cols-1 gap-3 border-y border-white/[0.08] py-4 sm:grid-cols-3">
+					<DetailStat label="API key" value={maskKey(primaryKey?.keyStart)} />
+					<DetailStat
+						label="Last active"
+						value={formatRelativeTime(primaryKey?.lastRequest)}
+					/>
+					<DetailStat
+						label="Connected"
+						value={formatRelativeTime(primaryKey?.createdAt)}
+					/>
+				</div>
+
+				<div className="mt-4 flex flex-wrap items-center gap-3">
+					{plugin.docsUrl && (
+						<a
+							href={plugin.docsUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex items-center gap-1.5 text-[13px] text-[#4BA0FA] transition-colors hover:text-[#86C5FF]"
+						>
+							Docs <ExternalLink className="size-3" />
+						</a>
+					)}
+					{plugin.githubUrl && (
+						<a
+							href={plugin.githubUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex items-center gap-1.5 text-[13px] text-[#4BA0FA] transition-colors hover:text-[#86C5FF]"
+						>
+							GitHub <ExternalLink className="size-3" />
+						</a>
+					)}
+					<span className="ml-auto text-[11px] text-[#737373]">
+						Connected {formatDate(primaryKey?.createdAt)}
+					</span>
+				</div>
+
 				<p
 					className={cn(
 						dmSans125ClassName(),
-						"px-2 pb-1.5 pt-1 text-[11px] font-medium uppercase tracking-wide text-[#737373]",
+						"px-2 pb-1.5 pt-4 text-[11px] font-medium uppercase tracking-wide text-[#737373]",
 					)}
 				>
 					{connectedKeys.length > 1
@@ -188,22 +326,26 @@ function PluginRow({
 	plugin,
 	pluginId,
 	connectedKeys,
+	needsSetup,
 	needsProUpgrade,
 	isConnecting,
 	actionsDisabled,
 	onConnect,
 	onUpgrade,
 	onRevoke,
+	onFinishSetup,
 }: {
 	plugin: PluginInfo
 	pluginId: string
 	connectedKeys: ConnectedPlugin[]
+	needsSetup: boolean
 	needsProUpgrade: boolean
 	isConnecting: boolean
 	actionsDisabled: boolean
 	onConnect: (id: string) => void
 	onUpgrade: () => void
 	onRevoke: (keyId: string) => void
+	onFinishSetup: (id: string) => void
 }) {
 	const isConnected = connectedKeys.length > 0
 	return (
@@ -240,7 +382,16 @@ function PluginRow({
 			<div className="col-start-2 flex min-w-0 shrink-0 items-center gap-2 sm:col-start-auto sm:gap-4">
 				{plugin.docsUrl && <DocsLink href={plugin.docsUrl} />}
 				{isConnected ? (
-					<ConnectedPill connectedKeys={connectedKeys} onRevoke={onRevoke} />
+					<ActivePill
+						plugin={plugin}
+						connectedKeys={connectedKeys}
+						onRevoke={onRevoke}
+					/>
+				) : needsSetup ? (
+					<PillButton onClick={() => onFinishSetup(pluginId)}>
+						<span className="size-[7px] rounded-full bg-[#EAB308]" />
+						Finish setup
+					</PillButton>
 				) : needsProUpgrade ? (
 					<PillButton onClick={onUpgrade}>
 						<Zap className="size-3.5 text-[#4BA0FA]" /> Upgrade
@@ -307,6 +458,9 @@ export function PluginsDetail() {
 	const queryClient = useQueryClient()
 	const [tierFilter, setTierFilter] = useState<TierFilter>("all")
 	const [connectingPlugin, setConnectingPlugin] = useState<string | null>(null)
+	const [finishSetupPluginId, setFinishSetupPluginId] = useState<string | null>(
+		null,
+	)
 	const [newKey, setNewKey] = useState<{
 		open: boolean
 		key: string
@@ -332,21 +486,51 @@ export function PluginsDetail() {
 		queryKey: ["plugins"],
 	})
 
-	const { data: apiKeys = [], refetch: refetchKeys } = useQuery({
-		enabled: !!org?.id,
-		queryFn: async () => {
-			if (!org?.id) return []
-			const data = await authClient.apiKey.list({
-				fetchOptions: { query: { metadata: { organizationId: org.id } } },
-			})
-			return data.filter((key) => key.metadata?.organizationId === org.id)
+	const { data: apiKeys = [], refetch: refetchKeys } = useQuery<ListedApiKey[]>(
+		{
+			enabled: !!org?.id,
+			queryFn: async () => {
+				if (!org?.id) return []
+				const API_URL =
+					process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+				const res = await fetch(`${API_URL}/v3/auth/keys`, {
+					credentials: "include",
+				})
+				if (!res.ok) return []
+				const data = (await res.json()) as { keys?: ListedApiKey[] }
+				return data.keys ?? []
+			},
+			queryKey: ["api-keys", org?.id],
 		},
-		queryKey: ["api-keys", org?.id],
-	})
+	)
+
+	const setupPluginIds = useMemo(() => {
+		const ids = new Set<string>()
+		for (const key of apiKeys) {
+			if (key.enabled === false) continue
+			if (key.lastRequest) continue
+			if (!key.metadata) continue
+			try {
+				const metadata =
+					typeof key.metadata === "string"
+						? (JSON.parse(key.metadata) as {
+								sm_type?: string
+								sm_client?: string
+							})
+						: (key.metadata as { sm_type?: string; sm_client?: string })
+				if (metadata.sm_type === "plugin_auth" && metadata.sm_client) {
+					ids.add(normalizePluginClientId(metadata.sm_client))
+				}
+			} catch {}
+		}
+		return ids
+	}, [apiKeys])
 
 	const connectedPlugins = useMemo<ConnectedPlugin[]>(() => {
 		const plugins: ConnectedPlugin[] = []
 		for (const key of apiKeys) {
+			if (key.enabled === false) continue
+			if (!key.lastRequest) continue
 			if (!key.metadata) continue
 			try {
 				const metadata =
@@ -358,12 +542,15 @@ export function PluginsDetail() {
 						: (key.metadata as { sm_type?: string; sm_client?: string })
 
 				if (metadata.sm_type === "plugin_auth" && metadata.sm_client) {
+					const createdAt = toDate(key.createdAt)?.toISOString()
+					const lastRequest = toDate(key.lastRequest)?.toISOString()
 					plugins.push({
 						id: key.id,
 						keyId: key.id,
-						pluginId: metadata.sm_client,
-						createdAt: key.createdAt.toISOString(),
-						keyStart: key.start ?? null,
+						pluginId: normalizePluginClientId(metadata.sm_client),
+						createdAt: createdAt ?? new Date().toISOString(),
+						lastRequest: lastRequest ?? null,
+						keyStart: keyPrefix(key),
 					})
 				}
 			} catch {}
@@ -463,13 +650,18 @@ export function PluginsDetail() {
 	const dialogPlugin = newKey.pluginId
 		? PLUGIN_CATALOG[newKey.pluginId]
 		: undefined
+	const finishSetupPlugin = finishSetupPluginId
+		? PLUGIN_CATALOG[finishSetupPluginId]
+		: undefined
 
 	const pluginSteps = dialogPlugin?.installSteps ?? []
 	// If a step already embeds the key (an `export …="sm_…"` line), don't also
 	// show the bare key in its own step — that's the repetition to avoid.
-	// Otherwise (wizard-style installs) lead with a copy-the-key step.
+	// Otherwise (wizard-style installs) lead with a copy-the-key step, unless
+	// the plugin performs browser OAuth itself.
 	const stepsEmbedKey = pluginSteps.some((s) => s.code?.includes("sm_..."))
-	const setupSteps: InstallStep[] = stepsEmbedKey
+	const skipGeneratedKeyStep = stepsEmbedKey || !!dialogPlugin?.usesOAuth
+	const setupSteps: InstallStep[] = skipGeneratedKeyStep
 		? pluginSteps
 		: [
 				{
@@ -512,10 +704,15 @@ export function PluginsDetail() {
 									connectedKeys={connectedPlugins.filter(
 										(p) => p.pluginId === pluginId,
 									)}
+									needsSetup={
+										!connectedPluginIds.has(pluginId) &&
+										setupPluginIds.has(pluginId)
+									}
 									needsProUpgrade={needsProUpgrade}
 									isConnecting={connectingPlugin === pluginId}
 									actionsDisabled={!!connectingPlugin}
 									onConnect={(id) => createPluginKeyMutation.mutate(id)}
+									onFinishSetup={(id) => setFinishSetupPluginId(id)}
 									onUpgrade={handleUpgrade}
 									onRevoke={handleRevoke}
 								/>
@@ -635,6 +832,97 @@ export function PluginsDetail() {
 						>
 							<Check className="size-3.5 text-[#4BA0FA]" /> Done
 						</button>
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog
+				open={!!finishSetupPluginId}
+				onOpenChange={(open) => {
+					if (!open) setFinishSetupPluginId(null)
+				}}
+			>
+				<DialogContent
+					showCloseButton={false}
+					style={{
+						boxShadow:
+							"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset",
+					}}
+					className={cn(
+						dmSans125ClassName(),
+						"flex max-h-[88dvh] flex-col gap-3 overflow-hidden border border-white/[0.12] bg-[#1B1F24] p-0 px-3 pt-3 pb-4 rounded-2xl md:px-4 sm:max-w-[560px] sm:rounded-[22px]",
+					)}
+				>
+					<DialogTitle className="sr-only">
+						Finish setup {finishSetupPlugin?.name ?? "plugin"}
+					</DialogTitle>
+					<div className="flex shrink-0 items-center gap-3">
+						{finishSetupPlugin && (
+							<PluginIconBox
+								src={finishSetupPlugin.icon}
+								alt={finishSetupPlugin.name}
+							/>
+						)}
+						<div className="min-w-0 flex-1">
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"truncate text-[16px] font-semibold leading-tight text-[#FAFAFA]",
+								)}
+							>
+								Finish setup {finishSetupPlugin?.name ?? "plugin"}
+							</p>
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"mt-0.5 truncate text-[12px] text-[#A1A1AA]",
+								)}
+							>
+								Complete install in the tool — status becomes active after the
+								first API call.
+							</p>
+						</div>
+						<DialogPrimitive.Close
+							type="button"
+							aria-label="Close"
+							className={cn(
+								"flex size-7 items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80 focus:outline-none",
+								INSET,
+							)}
+						>
+							<X className="size-4 text-[#737373]" />
+						</DialogPrimitive.Close>
+					</div>
+					<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+						<div
+							className={cn(
+								"min-w-0 rounded-[14px] bg-[#14161A] p-4 sm:p-5",
+								INSET,
+							)}
+						>
+							{finishSetupPlugin?.installSteps?.length ? (
+								<InstallSteps steps={finishSetupPlugin.installSteps} />
+							) : (
+								<p className="text-[13px] text-[#A1A1AA]">
+									Open {finishSetupPlugin?.name ?? "the plugin"} and finish
+									authentication.
+								</p>
+							)}
+						</div>
+					</div>
+					<div className="flex shrink-0 items-center justify-end">
+						<DialogPrimitive.Close asChild>
+							<button
+								type="button"
+								className={cn(
+									dmSans125ClassName(),
+									"flex h-9 items-center gap-1.5 rounded-full bg-[#0D121A] px-5 text-[13px] font-medium text-[#FAFAFA] transition-opacity hover:opacity-80",
+									INSET,
+								)}
+							>
+								<Check className="size-3.5 text-[#4BA0FA]" /> Done
+							</button>
+						</DialogPrimitive.Close>
 					</div>
 				</DialogContent>
 			</Dialog>

@@ -328,11 +328,11 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const projects = (queryClient.getQueryData<Project[]>(["projects"]) ||
 		[]) as Project[]
 
-	const handleUpgrade = async () => {
+	const handleUpgrade = async (planId: "api_pro" | "api_max" = "api_pro") => {
 		setIsUpgrading(true)
 		try {
 			const result = await autumn.attach({
-				planId: "api_pro",
+				planId,
 				successUrl: window.location.href,
 			})
 			if (result?.paymentUrl) {
@@ -614,11 +614,21 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												</span>
 											)}
 											<Button
-												onClick={() => setGranolaModalOpen(true)}
-												disabled={!isMaxUser}
+												onClick={() => {
+													if (!isMaxUser) {
+														handleUpgrade("api_max")
+														return
+													}
+													setGranolaModalOpen(true)
+												}}
+												disabled={isUpgrading || autumn.isLoading}
 												className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 text-[14px] font-medium px-3 py-1.5 h-8"
 											>
-												Connect
+												{!isMaxUser
+													? isUpgrading || autumn.isLoading
+														? "Upgrading..."
+														: "Upgrade"
+													: "Connect"}
 											</Button>
 										</>
 									) : (
@@ -783,8 +793,14 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 											</div>
 										</DropdownMenuItem>
 										<DropdownMenuItem
-											disabled={!isMaxUser}
-											onClick={() => setGranolaModalOpen(true)}
+											disabled={isUpgrading || autumn.isLoading}
+											onClick={() => {
+												if (!isMaxUser) {
+													handleUpgrade("api_max")
+													return
+												}
+												setGranolaModalOpen(true)
+											}}
 											className="flex items-start gap-2.5 px-3 py-2.5 rounded-md cursor-pointer text-white opacity-60 hover:opacity-100 hover:bg-[#293952]/40 focus:bg-[#293952]/40 focus:opacity-100 data-disabled:opacity-40 data-disabled:cursor-not-allowed data-disabled:hover:bg-transparent"
 										>
 											<Granola className="size-5 mt-0.5 shrink-0" />
@@ -798,7 +814,9 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 													)}
 												</span>
 												<span className="text-[11px] text-[#737373] leading-tight">
-													Meeting notes & transcripts
+													{isMaxUser
+														? "Meeting notes & transcripts"
+														: "Upgrade to Max"}
 												</span>
 											</div>
 										</DropdownMenuItem>
