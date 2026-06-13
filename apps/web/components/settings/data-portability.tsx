@@ -4,13 +4,7 @@ import { dmSans125ClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { useAuth } from "@lib/auth-context"
 import { useContainerTags } from "@/hooks/use-container-tags"
-import {
-	Check,
-	Download,
-	FileDown,
-	LoaderIcon,
-	Upload,
-} from "lucide-react"
+import { Check, Download, FileDown, LoaderIcon, Upload } from "lucide-react"
 import { useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -97,7 +91,9 @@ export function DataPortabilityPanel() {
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
 	const availableTags = useMemo(() => {
-		return [...new Set((allProjects ?? []).map((project) => project.containerTag))]
+		return [
+			...new Set((allProjects ?? []).map((project) => project.containerTag)),
+		]
 			.filter(Boolean)
 			.sort((a, b) => a.localeCompare(b))
 	}, [allProjects])
@@ -141,9 +137,12 @@ export function DataPortabilityPanel() {
 			if (startDate) params.set("startDate", startDate)
 			if (endDate) params.set("endDate", endDate)
 
-			const response = await fetch(`/api/memories/export?${params.toString()}`, {
-				credentials: "include",
-			})
+			const response = await fetch(
+				`/api/memories/export?${params.toString()}`,
+				{
+					credentials: "include",
+				},
+			)
 
 			if (!response.ok) {
 				const body = await response.json().catch(() => ({}))
@@ -169,7 +168,9 @@ export function DataPortabilityPanel() {
 		}
 	}
 
-	const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+	const handleImportFile = async (
+		event: React.ChangeEvent<HTMLInputElement>,
+	) => {
 		const file = event.target.files?.[0]
 		event.target.value = ""
 		if (!file) return
@@ -240,7 +241,9 @@ export function DataPortabilityPanel() {
 							<div className="rounded-[14px] border border-white/8 bg-[#0D121A] p-4 sm:p-5">
 								<div className="flex items-start justify-between gap-4">
 									<div className="space-y-1">
-										<p className="text-sm font-semibold text-white">Export memories</p>
+										<p className="text-sm font-semibold text-white">
+											Export memories
+										</p>
 										<p className="text-sm text-white/55">
 											Choose a format, then optionally narrow by date or tags.
 										</p>
@@ -251,13 +254,21 @@ export function DataPortabilityPanel() {
 								<div className="mt-4 flex flex-wrap gap-2">
 									<PillButton
 										onClick={() => setFormat("json")}
-										className={format === "json" ? "bg-white text-black" : "bg-white/5 text-white"}
+										className={
+											format === "json"
+												? "bg-white text-black"
+												: "bg-white/5 text-white"
+										}
 									>
 										JSON
 									</PillButton>
 									<PillButton
 										onClick={() => setFormat("markdown")}
-										className={format === "markdown" ? "bg-white text-black" : "bg-white/5 text-white"}
+										className={
+											format === "markdown"
+												? "bg-white text-black"
+												: "bg-white/5 text-white"
+										}
 									>
 										Markdown
 									</PillButton>
@@ -286,7 +297,9 @@ export function DataPortabilityPanel() {
 
 								<div className="mt-5 space-y-2">
 									<div className="flex items-center justify-between gap-3">
-										<p className="text-sm font-medium text-white">Filter by tags</p>
+										<p className="text-sm font-medium text-white">
+											Filter by tags
+										</p>
 										<p className="text-xs text-white/45">{activeTagSummary}</p>
 									</div>
 									<div className="flex flex-wrap gap-2">
@@ -320,8 +333,8 @@ export function DataPortabilityPanel() {
 
 								<div className="mt-5 flex items-center justify-between gap-3">
 									<p className="text-xs text-white/45">
-										Markdown is best for human-readable backups. JSON is best for
-										round-tripping.
+										Markdown is best for human-readable backups. JSON is best
+										for round-tripping.
 									</p>
 									<PillButton
 										onClick={() => handleExport(format)}
@@ -341,9 +354,12 @@ export function DataPortabilityPanel() {
 							<div className="rounded-[14px] border border-white/8 bg-[#0D121A] p-4 sm:p-5">
 								<div className="flex items-start justify-between gap-4">
 									<div className="space-y-1">
-										<p className="text-sm font-semibold text-white">Import memories</p>
+										<p className="text-sm font-semibold text-white">
+											Import memories
+										</p>
 										<p className="text-sm text-white/55">
-											Upload a previously exported JSON archive to restore memories.
+											Upload a previously exported JSON archive to restore
+											memories.
 										</p>
 									</div>
 									<Upload className="mt-0.5 size-4 shrink-0 text-white/40" />
@@ -371,9 +387,9 @@ export function DataPortabilityPanel() {
 								</div>
 
 								<p className="mt-4 text-xs text-white/45">
-									Import keeps any container tags stored in the archive. If you want to
-									move memories into a different workspace, export the JSON and adjust
-									tags before importing.
+									Import keeps any container tags stored in the archive. If you
+									want to move memories into a different workspace, export the
+									JSON and adjust tags before importing.
 								</p>
 								<PillButton
 									onClick={() => {

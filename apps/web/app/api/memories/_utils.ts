@@ -58,5 +58,5 @@ export function parseDateBound(value: string, bound: "start" | "end") {
 }
 
 export function escapeMarkdown(value: string) {
-	return value.replace(/[\\`*_{}\[\]()#+\-.!|>]/g, "\\$&")
+	return value.replace(/[\\`*_{}[\]()#+\-.!|>]/g, "\\$&")
 }

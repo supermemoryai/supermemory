@@ -132,13 +132,16 @@ function buildMarkdownExport(documents: ExportDocument[], exportedAt: string) {
 export async function GET(request: Request) {
 	try {
 		const { searchParams } = new URL(request.url)
-		const format = searchParams.get("format") === "markdown" ? "markdown" : "json"
+		const format =
+			searchParams.get("format") === "markdown" ? "markdown" : "json"
 		const startDateParam = searchParams.get("startDate")
 		const endDateParam = searchParams.get("endDate")
 		const containerTags = parseContainerTags(searchParams)
 		const pageSize = 100
 
-		const startDate = startDateParam ? parseDateBound(startDateParam, "start") : null
+		const startDate = startDateParam
+			? parseDateBound(startDateParam, "start")
+			: null
 		const endDate = endDateParam ? parseDateBound(endDateParam, "end") : null
 
 		if (startDateParam && !startDate) {
@@ -149,12 +152,22 @@ export async function GET(request: Request) {
 			return NextResponse.json({ error: "Invalid endDate" }, { status: 400 })
 		}
 
-		const firstPage = await fetchDocumentsPage(request, 1, pageSize, containerTags)
+		const firstPage = await fetchDocumentsPage(
+			request,
+			1,
+			pageSize,
+			containerTags,
+		)
 		const documents = [...(firstPage.documents ?? [])]
 		const totalPages = firstPage.pagination?.totalPages ?? 1
 
 		for (let page = 2; page <= totalPages; page += 1) {
-			const response = await fetchDocumentsPage(request, page, pageSize, containerTags)
+			const response = await fetchDocumentsPage(
+				request,
+				page,
+				pageSize,
+				containerTags,
+			)
 			documents.push(...(response.documents ?? []))
 		}
 
@@ -199,7 +212,8 @@ export async function GET(request: Request) {
 		console.error("Memory export failed:", error)
 		return NextResponse.json(
 			{
-				error: error instanceof Error ? error.message : "Failed to export memories",
+				error:
+					error instanceof Error ? error.message : "Failed to export memories",
 			},
 			{ status: 500 },
 		)

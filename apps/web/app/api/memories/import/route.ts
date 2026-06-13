@@ -12,12 +12,12 @@ type ExportDocument = {
 
 type ImportPayload =
 	| {
-		containerTags?: string[]
-		targetContainerTags?: string[]
-		documents?: ExportDocument[]
-		memories?: ExportDocument[]
-		data?: ExportDocument[]
-	}
+			containerTags?: string[]
+			targetContainerTags?: string[]
+			documents?: ExportDocument[]
+			memories?: ExportDocument[]
+			data?: ExportDocument[]
+	  }
 	| ExportDocument[]
 
 function normalizeDocuments(payload: ImportPayload): ExportDocument[] {
@@ -30,10 +30,16 @@ function normalizeDocuments(payload: ImportPayload): ExportDocument[] {
 
 function pickTargetContainerTags(payload: ImportPayload): string[] | null {
 	if (Array.isArray(payload)) return null
-	if (Array.isArray(payload.targetContainerTags) && payload.targetContainerTags.length > 0) {
+	if (
+		Array.isArray(payload.targetContainerTags) &&
+		payload.targetContainerTags.length > 0
+	) {
 		return payload.targetContainerTags
 	}
-	if (Array.isArray(payload.containerTags) && payload.containerTags.length > 0) {
+	if (
+		Array.isArray(payload.containerTags) &&
+		payload.containerTags.length > 0
+	) {
 		return payload.containerTags
 	}
 	return null
@@ -66,7 +72,10 @@ export async function POST(request: Request) {
 						entityContext: document.entityContext ?? undefined,
 					}
 				})
-				.filter((document): document is NonNullable<typeof document> => document !== null),
+				.filter(
+					(document): document is NonNullable<typeof document> =>
+						document !== null,
+				),
 			25,
 		)
 
@@ -81,21 +90,26 @@ export async function POST(request: Request) {
 		for (const batch of batches) {
 			if (batch.length === 0) continue
 
-			const response = await fetch(`${getBackendBaseUrl()}/v3/documents/batch`, {
-				method: "POST",
-				headers: buildBackendHeaders(request),
-				body: JSON.stringify({
-					documents: batch,
-					metadata: {
-						sm_source: "supermemory-export",
-						sm_imported_at: new Date().toISOString(),
-					},
-				}),
-			})
+			const response = await fetch(
+				`${getBackendBaseUrl()}/v3/documents/batch`,
+				{
+					method: "POST",
+					headers: buildBackendHeaders(request),
+					body: JSON.stringify({
+						documents: batch,
+						metadata: {
+							sm_source: "supermemory-export",
+							sm_imported_at: new Date().toISOString(),
+						},
+					}),
+				},
+			)
 
 			if (!response.ok) {
 				const message = await response.text()
-				throw new Error(message || `Import failed with status ${response.status}`)
+				throw new Error(
+					message || `Import failed with status ${response.status}`,
+				)
 			}
 
 			imported += batch.length
@@ -106,7 +120,8 @@ export async function POST(request: Request) {
 		console.error("Memory import failed:", error)
 		return NextResponse.json(
 			{
-				error: error instanceof Error ? error.message : "Failed to import memories",
+				error:
+					error instanceof Error ? error.message : "Failed to import memories",
 			},
 			{ status: 500 },
 		)
