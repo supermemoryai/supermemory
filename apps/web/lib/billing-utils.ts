@@ -1,10 +1,21 @@
 const COMPANY_BRAIN_PRODUCT_ID = "company_brain"
 
 // Add-on resolved by product presence, not tier.
+// better-auth returns org.metadata as a JSON string, so accept string or object.
 export function hasCompanyBrain(
-	metadata: Record<string, unknown> | null | undefined,
+	metadataRaw: Record<string, unknown> | string | null | undefined,
 ): boolean {
-	if (!metadata) return false
+	if (!metadataRaw) return false
+	let metadata: Record<string, unknown>
+	if (typeof metadataRaw === "string") {
+		try {
+			metadata = JSON.parse(metadataRaw) as Record<string, unknown>
+		} catch {
+			return false
+		}
+	} else {
+		metadata = metadataRaw
+	}
 	const overrides = metadata.featureOverrides as
 		| Record<string, { allow?: boolean }>
 		| undefined

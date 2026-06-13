@@ -26,7 +26,7 @@ import {
 } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { DEFAULT_PROJECT_ID } from "@lib/constants"
+import { DEFAULT_PROJECT_ID, SHARED_TEAM_BRAIN_TAG } from "@lib/constants"
 import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
 import type { ContainerTagListType } from "@lib/types"
@@ -595,6 +595,19 @@ export function SelectSpacesModal({
 			)
 			const isDefault = project.containerTag === DEFAULT_PROJECT_ID
 			const isOwnSpace = isOwnConversationSpace(project, user?.id)
+			const isCbSpace =
+				hasCompanyBrain && !plugin && !isOwnSpace && !!project.visibility
+			const isShared = project.visibility === "public"
+			const orgName = org?.name ?? "your team"
+			const descriptor = isCbSpace
+				? isShared
+					? `Everyone in ${orgName}${
+							project.containerTag === SHARED_TEAM_BRAIN_TAG
+								? " · your default"
+								: ""
+						}`
+					: "Only you"
+				: null
 			const canEdit = !isDefault && !plugin && !isOwnSpace
 			const canBulkDelete = enableDelete && !isDefault
 			const isEditing = editingProject?.containerTag === project.containerTag
@@ -723,6 +736,22 @@ export function SelectSpacesModal({
 								)
 							) : isOwnSpace ? (
 								<NovaOrb size={20} className="shrink-0 blur-[0.55px]!" />
+							) : isCbSpace ? (
+								<span
+									className={cn(
+										"shrink-0 flex size-5 items-center justify-center rounded-[6px]",
+										isShared
+											? "bg-[#4BA0FA]/15 text-[#4BA0FA]"
+											: "bg-white/[0.06] text-[#A3A3A3]",
+									)}
+									aria-hidden
+								>
+									{isShared ? (
+										<Users className="size-3" />
+									) : (
+										<Lock className="size-3" />
+									)}
+								</span>
 							) : (
 								<SpaceGlyph
 									emoji={project.emoji}
@@ -730,38 +759,30 @@ export function SelectSpacesModal({
 									className="shrink-0"
 								/>
 							)}
-							<span
-								className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium"
-								title={plugin ? project.containerTag : displayName}
-							>
-								{plugin ? (
-									<>
-										{plugin.label}
-										{pluginIdLabel && (
-											<span className="ml-1.5 text-[12px] text-[#737373]">
-												· {pluginIdLabel}
-											</span>
-										)}
-									</>
-								) : (
-									displayName
+							<span className="flex min-w-0 flex-1 flex-col">
+								<span
+									className="truncate text-[#fafafa] text-sm font-medium"
+									title={plugin ? project.containerTag : displayName}
+								>
+									{plugin ? (
+										<>
+											{plugin.label}
+											{pluginIdLabel && (
+												<span className="ml-1.5 text-[12px] text-[#737373]">
+													· {pluginIdLabel}
+												</span>
+											)}
+										</>
+									) : (
+										displayName
+									)}
+								</span>
+								{descriptor && (
+									<span className="truncate text-[11px] text-[#737373]">
+										{descriptor}
+									</span>
 								)}
 							</span>
-							{hasCompanyBrain &&
-								!plugin &&
-								!isOwnSpace &&
-								project.visibility &&
-								(project.visibility === "public" ? (
-									<span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-[#4BA0FA]/10 px-2 py-0.5 text-[10px] font-medium text-[#4BA0FA]">
-										<Users className="size-3" />
-										Shared
-									</span>
-								) : (
-									<span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium text-[#737373]">
-										<Lock className="size-3" />
-										Private
-									</span>
-								))}
 						</button>
 					)}
 					{canEdit && !isEditing && !isBulkDeleteMode && (
@@ -809,6 +830,7 @@ export function SelectSpacesModal({
 			enableDelete,
 			handleEditKeyDown,
 			handleSelect,
+			hasCompanyBrain,
 			isBulkDeleteMode,
 			onDeleteRequest,
 			pluginMetaMap,
@@ -817,6 +839,8 @@ export function SelectSpacesModal({
 			toggleBulkDeleteTag,
 			updateProjectMutation.isPending,
 			user?.id,
+			hasCompanyBrain,
+			org?.name,
 		],
 	)
 
@@ -982,7 +1006,36 @@ export function SelectSpacesModal({
 								</div>
 							</>
 						)}
-						{mainList.map(renderRow)}
+						{hasCompanyBrain && recentProjects.length === 0
+							? (() => {
+									const shared = mainList.filter(
+										(p) => p.visibility === "public",
+									)
+									const personal = mainList.filter(
+										(p) => p.visibility !== "public",
+									)
+									return (
+										<>
+											{shared.length > 0 && (
+												<>
+													<div className="px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-[0.08em] text-[#737373]">
+														Shared
+													</div>
+													{shared.map(renderRow)}
+												</>
+											)}
+											{personal.length > 0 && (
+												<>
+													<div className="px-3 pt-2 pb-0.5 text-[10px] uppercase tracking-[0.08em] text-[#737373]">
+														Personal
+													</div>
+													{personal.map(renderRow)}
+												</>
+											)}
+										</>
+									)
+								})()
+							: mainList.map(renderRow)}
 					</div>
 				)}
 			</div>

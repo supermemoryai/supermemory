@@ -149,7 +149,9 @@ export function SpaceSelector({
 	const { allProjects, isLoading } = useContainerTags()
 	const { user } = useAuth()
 	const hasCompanyBrain = useHasCompanyBrain()
-	const defaultTag = hasCompanyBrain ? SHARED_TEAM_BRAIN_TAG : DEFAULT_PROJECT_ID
+	const defaultTag = hasCompanyBrain
+		? SHARED_TEAM_BRAIN_TAG
+		: DEFAULT_PROJECT_ID
 
 	useEffect(() => {
 		setRecents(readRecents())
@@ -236,7 +238,14 @@ export function SpaceSelector({
 			isAuto: false,
 			isOwnSpace,
 		}
-	}, [allProjects, selectedProjects, pluginMetaMap, includeAuto, user?.id, defaultTag])
+	}, [
+		allProjects,
+		selectedProjects,
+		pluginMetaMap,
+		includeAuto,
+		user?.id,
+		defaultTag,
+	])
 
 	const canEditCurrent =
 		enableEdit &&

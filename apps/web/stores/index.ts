@@ -12,7 +12,9 @@ export function useProject() {
 		projectParam,
 	)
 	const hasCompanyBrain = useHasCompanyBrain()
-	const defaultTag = hasCompanyBrain ? SHARED_TEAM_BRAIN_TAG : DEFAULT_PROJECT_ID
+	const defaultTag = hasCompanyBrain
+		? SHARED_TEAM_BRAIN_TAG
+		: DEFAULT_PROJECT_ID
 
 	const selectedProject = selectedProjects[0] ?? defaultTag
 
