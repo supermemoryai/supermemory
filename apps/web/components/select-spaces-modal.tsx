@@ -21,6 +21,8 @@ import {
 	Loader,
 	Pencil,
 	Check,
+	Lock,
+	Users,
 } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -50,6 +52,7 @@ import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import NovaOrb from "@/components/nova/nova-orb"
 import { AutoSpaceIcon } from "@/components/nova/auto-space-icon"
 import { SpaceGlyph } from "./space-glyph"
+import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 
 interface SelectSpacesModalProps {
 	isOpen: boolean
@@ -130,8 +133,15 @@ export function SelectSpacesModal({
 	)
 
 	const pluginMetaMap = usePluginSpaceMeta(pluginTags)
+	const hasCompanyBrain = useHasCompanyBrain()
 
 	const allSpaces = useMemo(() => {
+		const rest = projects
+			.filter((p) => p.containerTag !== DEFAULT_PROJECT_ID)
+			.sort(compareSpacesUserFirst)
+		// Company brain orgs use real Private + Team Brain spaces; skip the
+		// synthetic "My Space" default that would otherwise duplicate Private.
+		if (hasCompanyBrain) return rest
 		const defaultSpace = {
 			id: "default",
 			name: "My Space",
@@ -142,11 +152,8 @@ export function SelectSpacesModal({
 			createdAt: "",
 			updatedAt: "",
 		} as ContainerTagListType
-		const rest = projects
-			.filter((p) => p.containerTag !== DEFAULT_PROJECT_ID)
-			.sort(compareSpacesUserFirst)
 		return [defaultSpace, ...rest]
-	}, [projects])
+	}, [projects, hasCompanyBrain])
 
 	const { categories, connectedCatalogIds } = useMemo<{
 		categories: Category[]
@@ -740,6 +747,21 @@ export function SelectSpacesModal({
 									displayName
 								)}
 							</span>
+							{hasCompanyBrain &&
+								!plugin &&
+								!isOwnSpace &&
+								project.visibility &&
+								(project.visibility === "public" ? (
+									<span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-[#4BA0FA]/10 px-2 py-0.5 text-[10px] font-medium text-[#4BA0FA]">
+										<Users className="size-3" />
+										Shared
+									</span>
+								) : (
+									<span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium text-[#737373]">
+										<Lock className="size-3" />
+										Private
+									</span>
+								))}
 						</button>
 					)}
 					{canEdit && !isEditing && !isBulkDeleteMode && (
