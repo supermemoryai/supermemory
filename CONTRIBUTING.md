@@ -44,6 +44,7 @@ Before you begin, ensure you have the following installed:
    if (url.hostname === "localhost") {
      return NextResponse.next();
    }
+   ```
 
 5. **Start the Development Server**
 

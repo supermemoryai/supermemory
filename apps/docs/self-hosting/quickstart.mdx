@@ -50,6 +50,10 @@ Save that API key — it's your bearer token for every request.
 In production, Supermemory runs proprietary models tuned for long-horizon data understanding. Self-hosted, you bring any model: if no provider key is set, first boot launches an interactive setup wizard — pick a provider (OpenAI, Anthropic, Gemini, Groq, or any OpenAI-compatible endpoint like Ollama), paste your key, and it's saved encrypted for every future launch. See [all providers](/self-hosting/configuration#llm-providers), including [fully-offline local models](/self-hosting/configuration#fully-offline-with-local-models).
 </Note>
 
+<Note>
+This provider choice controls the LLM used for extraction, chunking, and summaries. Search embeddings are still generated locally by the bundled embedding model; changing embedding models is not currently configurable and would require re-ingesting existing memories once supported.
+</Note>
+
 ## Add your first memory
 
 <Tabs>
