@@ -116,7 +116,9 @@ function IconTile({ children }: { children: React.ReactNode }) {
 
 function Title({ children }: { children: React.ReactNode }) {
 	return (
-		<h2 className={dmSans125ClassName("font-semibold text-[18px] text-[#FAFAFA]")}>
+		<h2
+			className={dmSans125ClassName("font-semibold text-[18px] text-[#FAFAFA]")}
+		>
 			{children}
 		</h2>
 	)
@@ -220,7 +222,9 @@ export default function InvitePage() {
 				await setActiveOrg(invitation.organizationSlug)
 			}
 			await refetchOrganizations()
-			toast.success(`You've joined ${invitation?.organizationName ?? "the team"}`)
+			toast.success(
+				`You've joined ${invitation?.organizationName ?? "the team"}`,
+			)
 			router.push("/")
 		} finally {
 			setAccepting(false)
@@ -341,7 +345,9 @@ export default function InvitePage() {
 						)}
 						{session?.user?.email && (
 							<p
-								className={dmSans125ClassName("text-[12px] text-[#737373] mt-1")}
+								className={dmSans125ClassName(
+									"text-[12px] text-[#737373] mt-1",
+								)}
 							>
 								Signed in as {session.user.email}
 							</p>
