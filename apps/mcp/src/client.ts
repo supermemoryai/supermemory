@@ -336,6 +336,7 @@ export class SupermemoryClient {
 					Authorization: `Bearer ${this.bearerToken}`,
 					"Content-Type": "application/json",
 				},
+				signal: AbortSignal.timeout(10000),
 			})
 
 			if (!response.ok) {
@@ -374,6 +375,7 @@ export class SupermemoryClient {
 					order: "desc",
 					containerTags,
 				}),
+				signal: AbortSignal.timeout(30000),
 			})
 			if (!response.ok) {
 				throw Object.assign(new Error("Failed to fetch documents"), {
