@@ -32,7 +32,7 @@ export async function validateApiKey(
 			headers: {
 				Authorization: `Bearer ${apiKey}`,
 			},
-			signal: AbortSignal.timeout(10000),
+			signal: AbortSignal.timeout(2000),
 		})
 
 		if (!sessionResponse.ok) {
@@ -84,7 +84,10 @@ export async function validateApiKey(
 			email: sessionData.user.email,
 			name: sessionData.user.name,
 		}
-	} catch (error) {
+	} catch (error: any) {
+		if (error.name === "TimeoutError" || error.name === "AbortError") {
+			throw new Error("Authentication request timed out. Please try again.")
+		}
 		console.error("API key validation error:", error)
 		return null
 	}
@@ -104,7 +107,7 @@ export async function validateOAuthToken(
 			headers: {
 				Authorization: `Bearer ${token}`,
 			},
-			signal: AbortSignal.timeout(10000),
+			signal: AbortSignal.timeout(2000),
 		})
 
 		if (!sessionResponse.ok) {
@@ -156,7 +159,10 @@ export async function validateOAuthToken(
 			email: sessionData.email,
 			name: sessionData.name,
 		}
-	} catch (error) {
+	} catch (error: any) {
+		if (error.name === "TimeoutError" || error.name === "AbortError") {
+			throw new Error("Authentication request timed out. Please try again.")
+		}
 		console.error("Token validation error:", error)
 		return null
 	}
