@@ -163,7 +163,7 @@
         "@repo/lib": "workspace:*",
         "@repo/validation": "workspace:*",
         "@sentry/nextjs": "^10.33.0",
-        "@supermemory/memory-graph": "^0.2.3",
+        "@supermemory/memory-graph": "^0.2.0",
         "@tailwindcss/typography": "^0.5.16",
         "@tanstack/react-form": "^1.12.4",
         "@tanstack/react-query": "^5.90.14",
