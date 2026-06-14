@@ -1,3 +1,21 @@
+const COMPANY_BRAIN_PRODUCT_ID = "company_brain"
+
+// Add-on resolved by product presence, not tier.
+export function hasCompanyBrain(
+	metadata: Record<string, unknown> | null | undefined,
+): boolean {
+	if (!metadata) return false
+	const overrides = metadata.featureOverrides as
+		| Record<string, { allow?: boolean }>
+		| undefined
+	const override = overrides?.[COMPANY_BRAIN_PRODUCT_ID]
+	if (override) return Boolean(override.allow)
+	const activeProducts = Array.isArray(metadata.activeProducts)
+		? (metadata.activeProducts as string[])
+		: []
+	return activeProducts.includes(COMPANY_BRAIN_PRODUCT_ID)
+}
+
 /**
  * Format a number with K/M suffix for display
  * @example formatUsageNumber(1500000) => "1.5M"
