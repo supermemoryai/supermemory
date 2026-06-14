@@ -188,11 +188,21 @@ export function AddDocument({
 
 	const handleLinkSubmit = useCallback(
 		(data: LinkData) => {
-			if (data.bulkUrls && data.bulkUrls.length >= 2) {
-				bulkLinkMutation.mutate({
-					urls: data.bulkUrls,
-					project: localSelectedProject,
-				})
+			// In bulk mode the selection is the source of truth, not the raw textarea.
+			if (data.bulkUrls) {
+				if (data.bulkUrls.length >= 2) {
+					bulkLinkMutation.mutate({
+						urls: data.bulkUrls,
+						project: localSelectedProject,
+					})
+					return
+				}
+				const [onlyUrl] = data.bulkUrls
+				if (onlyUrl) {
+					linkMutation.mutate({ url: onlyUrl, project: localSelectedProject })
+					return
+				}
+				toast.error("Select at least one link")
 				return
 			}
 			if (!data.url.trim()) {

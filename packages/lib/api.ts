@@ -193,7 +193,18 @@ export const apiSchema = createSchema({
 	},
 	"@post/documents/batch": {
 		input: z.object({
-			documents: z.array(z.string()).min(1).max(600),
+			documents: z
+				.array(
+					z.object({
+						content: z.string(),
+						containerTags: z.array(z.string()).optional(),
+						containerTag: z.string().optional(),
+						entityContext: z.string().max(1500).optional(),
+						metadata: z.record(z.unknown()).optional(),
+					}),
+				)
+				.min(1)
+				.max(600),
 			containerTag: z.string().optional(),
 			entityContext: z.string().max(1500).optional(),
 			metadata: z.record(z.unknown()).optional(),

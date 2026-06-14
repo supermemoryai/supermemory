@@ -377,10 +377,12 @@ export function useDocumentMutations({
 				const chunk = urls.slice(i, i + BULK_LINK_BATCH_SIZE)
 				const response = await $fetch("@post/documents/batch", {
 					body: {
-						documents: chunk,
-						containerTag: project,
-						entityContext,
-						metadata: { sm_source: "consumer" },
+						documents: chunk.map((url) => ({
+							content: url,
+							containerTags: [project],
+							entityContext,
+							metadata: { sm_source: "consumer" },
+						})),
 					},
 				})
 				if (response.error) {
