@@ -244,10 +244,8 @@ function drawEdges(
 			continue
 		}
 
-		const src =
-			typeof edge.source === "string" ? nodeMap.get(edge.source) : edge.source
-		const tgt =
-			typeof edge.target === "string" ? nodeMap.get(edge.target) : edge.target
+		const src = nodeMap.get(srcId)
+		const tgt = nodeMap.get(tgtId)
 		if (!src || !tgt) continue
 
 		if (edgeType === "derives") {

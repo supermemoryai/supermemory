@@ -298,7 +298,7 @@
     },
     "packages/memory-graph": {
       "name": "@supermemory/memory-graph",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "dependencies": {
         "d3-force": "^3.0.0",
       },
