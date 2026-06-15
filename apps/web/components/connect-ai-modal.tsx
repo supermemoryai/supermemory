@@ -61,12 +61,6 @@ const clients = {
 	"mcp-url": "MCP URL",
 } as const
 
-function mcpClientIconSrc(key: string): string {
-	if (key === "mcp-url") return "/mcp-icon.svg"
-	if (key === "antigravity") return "/mcp-supported-tools/antigravity.png"
-	return `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`
-}
-
 const mcpMigrationSchema = z.object({
 	url: z
 		.string()
@@ -403,7 +397,13 @@ export function ConnectAIModal({
 														parent.appendChild(fallback)
 													}
 												}}
-												src={mcpClientIconSrc(key)}
+												src={
+													key === "mcp-url"
+														? "/mcp-icon.svg"
+														: key === "antigravity"
+															? "/mcp-supported-tools/antigravity.png"
+															: `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`
+												}
 												width={20}
 											/>
 										</div>
