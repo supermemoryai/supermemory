@@ -64,7 +64,7 @@ export function getManualInstallEntry(clientKey: string): ManualInstallEntry {
 			return {
 				kind: "file",
 				paths:
-					"Antigravity: ~/.gemini\config\mcp_config.json. Merge the block into your existing [mcp_servers] section.",
+					"Antigravity: ~/.gemini/config/mcp_config.json. Merge the block into your existing [mcp_servers] section.",
 				snippet: ANTIGRAVITY_MCP_SNIPPET,
 				format: "json",
 			}
