@@ -2,9 +2,9 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "supermemory-mcp",
 	"build": {
-		"command": "bun run build:ui"
+		"command": "bun run build:widget"
 	},
-	"main": "src/index.ts",
+	"main": "src/server/index.ts",
 	"compatibility_date": "2025-01-01",
 	"compatibility_flags": ["nodejs_compat"],
 
@@ -13,6 +13,7 @@
 	"vars": {
 		"API_URL": "https://api.supermemory.ai"
 	},
+
 	"routes": [
 		{
 			"pattern": "mcp.supermemory.ai",
@@ -20,11 +21,16 @@
 			"custom_domain": true
 		}
 	],
+
+	"kv_namespaces": [
+		{ "binding": "AUTH_CACHE", "id": "REPLACE_WITH_KV_NAMESPACE_ID" }
+	],
+
 	"durable_objects": {
 		"bindings": [
 			{
 				"name": "MCP_SERVER",
-				"class_name": "SupermemoryMCP"
+				"class_name": "EnterpriseMCP"
 			}
 		]
 	},
@@ -32,7 +38,7 @@
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_sqlite_classes": ["SupermemoryMCP"]
+			"new_sqlite_classes": ["EnterpriseMCP"]
 		}
 	],
 

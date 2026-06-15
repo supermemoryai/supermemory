@@ -1,0 +1,222 @@
+/* Design tokens for Enterprise MCP widget.
+ *
+ * Mirrors console-v2's tokens 1:1 so brand identity is consistent across
+ * surfaces. Diverge only when the widget's iframed context demands it.
+ *
+ * Dark mode: MCP host applies `data-theme="dark"` on <body> via
+ * `applyDocumentTheme`. Tailwind's `dark:` variant is wired in globals.css
+ * via `@custom-variant dark (&:is([data-theme="dark"] *))`.
+ */
+
+:root {
+	color-scheme: light;
+
+	/* Accent gradient (Supermemory brand) */
+	--accent-start: #1148f7;
+	--accent-mid: #117dff;
+	--accent-end: #cdf4ff;
+	--accent-gradient: linear-gradient(
+		135deg,
+		var(--accent-start),
+		var(--accent-mid),
+		var(--accent-end)
+	);
+
+	/* Accent solid */
+	--accent: #117dff;
+	--accent-foreground: #ffffff;
+	--accent-hover: #1148f7;
+	--accent-muted: #cdf4ff;
+
+	/* Backgrounds (warm subtle) */
+	--bg-primary: #faf9f4;
+	--bg-secondary: #f3f1ec;
+	--bg-muted: #e8e5e0;
+	--bg-elevated: #ffffff;
+	--bg-overlay: rgba(250, 249, 244, 0.7);
+
+	/* Borders */
+	--border: #e3e0db;
+	--border-muted: #f0ede8;
+	--border-accent: var(--accent);
+
+	/* Text */
+	--text-primary: #0a0a0a;
+	--text-secondary: #525252;
+	--text-muted: #a3a3a3;
+	--text-inverse: #ffffff;
+
+	/* Status colors (soft pastel) */
+	--success: #4ade80;
+	--success-muted: rgba(74, 222, 128, 0.18);
+	--error: #f87171;
+	--error-muted: rgba(248, 113, 113, 0.18);
+	--warning: #fbbf24;
+	--warning-muted: rgba(251, 191, 36, 0.18);
+	--info: #60a5fa;
+	--info-muted: rgba(96, 165, 250, 0.18);
+
+	/* Action colors */
+	--danger: #ef4444;
+
+	/* Spacing scale (4px base) */
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 20px;
+	--space-6: 24px;
+	--space-8: 32px;
+	--space-10: 40px;
+	--space-12: 48px;
+	--space-16: 64px;
+
+	/* Typography */
+	--font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+	--font-display:
+		"Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+	--font-brand: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+	--font-mono:
+		ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+	--text-xs: 12px;
+	--text-sm: 14px;
+	--text-base: 16px;
+	--text-lg: 18px;
+	--text-xl: 20px;
+	--text-2xl: 24px;
+	--text-3xl: 30px;
+
+	--font-normal: 400;
+	--font-medium: 500;
+	--font-semibold: 600;
+	--font-bold: 700;
+
+	--leading-tight: 1.25;
+	--leading-normal: 1.5;
+	--leading-relaxed: 1.75;
+
+	/* Unified component heights */
+	--height-xs: 28px;
+	--height-sm: 32px;
+	--height-md: 36px;
+	--height-lg: 44px;
+
+	/* Icon sizes */
+	--icon-xs: 14px;
+	--icon-sm: 16px;
+	--icon-md: 20px;
+	--icon-lg: 24px;
+
+	/* Radius */
+	--radius-sm: 3px;
+	--radius-md: 4px;
+	--radius-lg: 6px;
+	--radius-full: 9999px;
+
+	/* Border width */
+	--border-width: 1px;
+
+	/* Page layout (mirrors console-v2 — widget iframes are narrow so we
+	 * use the mobile values throughout: 16px horizontal, 16-24px vertical). */
+	--page-header-px: var(--space-4);
+	--page-header-py: var(--space-4);
+	--page-title-size: var(--text-lg);
+	--page-title-weight: var(--font-semibold);
+	--page-title-mt: var(--space-5);
+
+	/* Shadows */
+	--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	--shadow-md:
+		0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+	--shadow-lg:
+		0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+	/* Host-provided iframe dimensions; fallback for standalone dev. */
+	--host-height: 100vh;
+	--host-width: 100vw;
+
+	/* Memory graph canvas — read by @supermemory/memory-graph's useGraphTheme.
+	 * Mirrors console-v2 so the widget graph matches the console exactly. */
+	--graph-bg: var(--bg-secondary);
+	--graph-doc-fill: #e8e5e0;
+	--graph-doc-stroke: #d4d0cb;
+	--graph-doc-inner: #f3f1ec;
+	--graph-mem-fill: #dbeafe;
+	--graph-mem-fill-hover: #bfdbfe;
+	--graph-mem-stroke: #3b82f6;
+	--graph-accent: var(--accent);
+	--graph-text-primary: var(--text-primary);
+	--graph-text-secondary: var(--text-secondary);
+	--graph-text-muted: var(--text-muted);
+	/* Edge / legend colors — bright + "hot" so derives/updates/extends read
+	 * clearly against the light canvas (dark mode keeps its own hot set below). */
+	--graph-edge-derives: #f59e0b;
+	--graph-edge-updates: #8b5cf6;
+	--graph-edge-extends: #0ea5e9;
+	--graph-mem-border-forgotten: #dc2626;
+	--graph-mem-border-expiring: #d97706;
+	--graph-mem-border-recent: #059669;
+	--graph-glow: #3b82f6;
+	--graph-icon: #6b7280;
+	--graph-popover-bg: var(--bg-elevated);
+	--graph-popover-border: var(--border);
+	--graph-popover-text-primary: var(--text-primary);
+	--graph-popover-text-secondary: var(--text-secondary);
+	--graph-popover-text-muted: var(--text-muted);
+	--graph-control-bg: var(--bg-elevated);
+	--graph-control-border: var(--border);
+}
+
+[data-theme="dark"] {
+	color-scheme: dark;
+
+	--bg-primary: #0a0a0a;
+	--bg-secondary: #171717;
+	--bg-muted: #262626;
+	--bg-elevated: #1c1c1c;
+	--bg-overlay: rgba(10, 10, 10, 0.7);
+
+	--border: #2e2e2e;
+	--border-muted: #1f1f1f;
+
+	--text-primary: #fafafa;
+	--text-secondary: #a3a3a3;
+	--text-muted: #525252;
+	--text-inverse: #0a0a0a;
+
+	--success-muted: rgba(74, 222, 128, 0.2);
+	--error-muted: rgba(248, 113, 113, 0.2);
+	--warning-muted: rgba(251, 191, 36, 0.2);
+	--info-muted: rgba(96, 165, 250, 0.2);
+
+	--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+	--shadow-md:
+		0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+	--shadow-lg:
+		0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+
+	/* Memory graph canvas — dark (mirrors console-v2) */
+	--graph-bg: #0f1419;
+	--graph-doc-fill: #1b1f24;
+	--graph-doc-stroke: #2a2f36;
+	--graph-doc-inner: #13161a;
+	--graph-mem-fill: #0d2034;
+	--graph-mem-fill-hover: #112840;
+	--graph-mem-stroke: #3b73b8;
+	--graph-edge-derives: #fbbf24;
+	--graph-edge-updates: #a78bfa;
+	--graph-edge-extends: #38bdf8;
+	--graph-mem-border-forgotten: #ef4444;
+	--graph-mem-border-expiring: #f59e0b;
+	--graph-mem-border-recent: #10b981;
+	--graph-glow: #3b73b8;
+	--graph-icon: #3b73b8;
+	--graph-popover-bg: #0c1829;
+	--graph-popover-border: #1a2333;
+	--graph-popover-text-primary: #ffffff;
+	--graph-popover-text-secondary: #e2e8f0;
+	--graph-popover-text-muted: #94a3b8;
+	--graph-control-bg: #0c1829;
+	--graph-control-border: #1a2333;
+}

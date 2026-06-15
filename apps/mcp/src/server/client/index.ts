@@ -1,49 +1,41 @@
 import Supermemory from "supermemory"
+import type {
+	ContainerTag,
+	DocumentMemoryEntry,
+	DocumentsApiResponse,
+	DocumentWithMemories,
+} from "../../shared/types"
 
-const MAX_CHARS = 200000 // ~50k tokens (character-based limit)
+const MAX_CHARS = 200000
 const DEFAULT_PROJECT_ID = "sm_project_default"
 
-interface MemoryRichFields {
-	metadata?: Record<string, unknown> | null
-	updatedAt?: string
-	context?: Record<string, unknown>
-	documents?: Array<Record<string, unknown>>
-	isAggregated?: boolean
+export type {
+	ContainerTag,
+	DocumentMemoryEntry,
+	DocumentWithMemories,
+	DocumentsApiResponse,
 }
 
 export type Memory =
-	| ({
+	| {
 			id: string
 			memory: string
 			similarity: number
 			title?: string
 			content?: string
-	  } & MemoryRichFields)
-	| ({
+	  }
+	| {
 			id: string
 			chunk: string
 			similarity: number
 			title?: string
 			content?: string
-	  } & MemoryRichFields)
+	  }
 
 export interface SearchResult {
 	results: Memory[]
 	total: number
 	timing: number
-}
-
-export interface SearchOptions {
-	searchMode?: "memories" | "hybrid" | "documents"
-	rerank?: boolean
-	rewriteQuery?: boolean
-	include?: {
-		documents?: boolean
-		relatedMemories?: boolean
-		summaries?: boolean
-		chunks?: boolean
-		forgottenMemories?: boolean
-	}
 }
 
 export interface Profile {
@@ -56,53 +48,6 @@ export interface ProfileResponse {
 	searchResults?: SearchResult
 }
 
-export interface Project {
-	id: string
-	name: string
-	containerTag: string
-	createdAt: string
-	updatedAt: string
-	isExperimental: boolean
-	documentCount?: number
-}
-
-// Documents API types
-export interface DocumentMemoryEntry {
-	id: string
-	memory: string
-	spaceId: string
-	isStatic?: boolean
-	isLatest?: boolean
-	isForgotten?: boolean
-	forgetAfter?: string | null
-	forgetReason?: string | null
-	version?: number
-	parentMemoryId?: string | null
-	rootMemoryId?: string | null
-	createdAt: string
-	updatedAt: string
-}
-
-export interface DocumentWithMemories {
-	id: string
-	title: string | null
-	summary?: string | null
-	type: string
-	createdAt: string
-	updatedAt: string
-	memoryEntries: DocumentMemoryEntry[]
-}
-
-export interface DocumentsApiResponse {
-	documents: DocumentWithMemories[]
-	pagination: {
-		currentPage: number
-		limit: number
-		totalItems: number
-		totalPages: number
-	}
-}
-
 export function getMemoryText(m: Memory): string {
 	return "memory" in m ? m.memory : m.chunk
 }
@@ -111,7 +56,6 @@ function limitByChars(text: string, maxChars = MAX_CHARS): string {
 	return text.length > maxChars ? `${text.slice(0, maxChars)}...` : text
 }
 
-// Type for SDK search result item
 interface SDKResult {
 	id: string
 	memory?: string
@@ -119,11 +63,7 @@ interface SDKResult {
 	content?: string
 	similarity: number
 	title?: string
-	metadata?: Record<string, unknown> | null
-	updatedAt?: string
-	context?: Record<string, unknown>
-	documents?: Array<Record<string, unknown>>
-	isAggregated?: boolean
+	context?: string
 }
 
 export class SupermemoryClient {
@@ -146,7 +86,6 @@ export class SupermemoryClient {
 		this.containerTag = containerTag || DEFAULT_PROJECT_ID
 	}
 
-	// Create memory using SDK
 	async createMemory(
 		content: string,
 	): Promise<{ id: string; status: string; containerTag: string }> {
@@ -154,9 +93,7 @@ export class SupermemoryClient {
 			const result = await this.client.add({
 				content,
 				containerTag: this.containerTag,
-				metadata: {
-					sm_source: "mcp",
-				},
+				metadata: { sm_source: "enterprise-mcp" },
 			})
 			return {
 				id: result.id,
@@ -168,59 +105,48 @@ export class SupermemoryClient {
 		}
 	}
 
-	// Delete/forget memory - try exact match first, then semantic search
 	async forgetMemory(
 		content: string,
 	): Promise<{ success: boolean; message: string; containerTag: string }> {
 		try {
-			// Try exact content matching first
 			try {
 				const result = await this.client.memories.forget({
-					content: content,
+					content,
 					containerTag: this.containerTag,
 				})
-
 				return {
 					success: true,
 					message: `Successfully forgot memory (exact match) with ID: ${result.id}`,
 					containerTag: this.containerTag,
 				}
 			} catch (error: unknown) {
-				// If not 404, it's a real error - re-throw it
 				const status =
 					error && typeof error === "object" && "status" in error
 						? (error as Record<string, unknown>).status
 						: undefined
-				if (status !== 404) {
-					throw error
-				}
-				// Otherwise continue to semantic search fallback
+				if (status !== 404) throw error
 			}
 
-			// Fallback to semantic search if exact match fails
-			const SIMILARITY_THRESHOLD = 0.85 // High threshold - only very similar memories
+			const SIMILARITY_THRESHOLD = 0.85
 			const searchResult = await this.search(content, 5, SIMILARITY_THRESHOLD)
 
 			if (searchResult.results.length === 0) {
 				return {
 					success: false,
-					message: `No matching memory found to forget. Tried exact match and semantic search with similarity threshold ${SIMILARITY_THRESHOLD}.`,
+					message: "No matching memory found to forget.",
 					containerTag: this.containerTag,
 				}
 			}
 
-			// Only actual memories (not chunks) can be forgotten
 			const memoryToDelete = searchResult.results.find((r) => "memory" in r)
 			if (!memoryToDelete) {
 				return {
 					success: false,
-					message:
-						"No matching memory found to forget (only document chunks matched in semantic search).",
+					message: "No matching memory found (only chunks matched).",
 					containerTag: this.containerTag,
 				}
 			}
 
-			// Delete using the ID from semantic search
 			await this.client.memories.forget({
 				id: memoryToDelete.id,
 				containerTag: this.containerTag,
@@ -230,7 +156,7 @@ export class SupermemoryClient {
 				getMemoryText(memoryToDelete) || memoryToDelete.content || ""
 			return {
 				success: true,
-				message: `Forgot similar memory (semantic match, similarity: ${memoryToDelete.similarity.toFixed(2)}): "${limitByChars(memoryText, 100)}"`,
+				message: `Forgot similar memory (similarity: ${memoryToDelete.similarity.toFixed(2)}): "${limitByChars(memoryText, 100)}"`,
 				containerTag: this.containerTag,
 			}
 		} catch (error) {
@@ -238,37 +164,29 @@ export class SupermemoryClient {
 		}
 	}
 
-	// Search memories using SDK
 	async search(
 		query: string,
 		limit = 10,
 		threshold?: number,
-		options?: SearchOptions,
 	): Promise<SearchResult> {
 		try {
 			const result = await this.client.search.memories({
 				q: query,
 				limit,
 				containerTag: this.containerTag,
-				searchMode: options?.searchMode ?? "hybrid",
-				threshold, // Optional threshold parameter
-				rerank: options?.rerank,
-				rewriteQuery: options?.rewriteQuery,
-				include: options?.include,
+				searchMode: "hybrid",
+				threshold,
 			})
 
 			const results: Memory[] = (result.results as SDKResult[]).map((r) => {
-				const text = limitByChars(r.content || r.memory || r.chunk || "")
+				const text = limitByChars(
+					r.content || r.memory || r.chunk || r.context || "",
+				)
 				const base = {
 					id: r.id,
 					similarity: r.similarity,
 					title: r.title,
 					content: r.content,
-					metadata: r.metadata,
-					updatedAt: r.updatedAt,
-					context: r.context,
-					documents: r.documents,
-					isAggregated: r.isAggregated,
 				}
 				if (r.chunk && !r.memory) {
 					return { ...base, chunk: text }
@@ -276,17 +194,12 @@ export class SupermemoryClient {
 				return { ...base, memory: text }
 			})
 
-			return {
-				results,
-				total: result.total,
-				timing: result.timing,
-			}
+			return { results, total: result.total, timing: result.timing }
 		} catch (error) {
 			this.handleError(error)
 		}
 	}
 
-	// Get user profile using SDK
 	async getProfile(query?: string): Promise<ProfileResponse> {
 		try {
 			const result = await this.client.profile({
@@ -304,16 +217,16 @@ export class SupermemoryClient {
 			if (result.searchResults) {
 				response.searchResults = {
 					results: (result.searchResults.results as SDKResult[]).map((r) => {
-						const text = limitByChars(r.content || r.memory || r.chunk || "")
+						const text = limitByChars(
+							r.content || r.memory || r.chunk || r.context || "",
+						)
 						const base = {
 							id: r.id,
 							similarity: r.similarity,
 							title: r.title,
 							content: r.content,
 						}
-						if (r.chunk && !r.memory) {
-							return { ...base, chunk: text }
-						}
+						if (r.chunk && !r.memory) return { ...base, chunk: text }
 						return { ...base, memory: text }
 					}),
 					total: result.searchResults.total,
@@ -327,10 +240,9 @@ export class SupermemoryClient {
 		}
 	}
 
-	// Get projects list
-	async getProjects(): Promise<string[]> {
+	async listContainerTags(): Promise<ContainerTag[]> {
 		try {
-			const response = await fetch(`${this.apiUrl}/v3/projects`, {
+			const response = await fetch(`${this.apiUrl}/v3/container-tags/list`, {
 				method: "GET",
 				headers: {
 					Authorization: `Bearer ${this.bearerToken}`,
@@ -342,23 +254,22 @@ export class SupermemoryClient {
 				if (response.status === 401) {
 					throw new Error("Authentication failed. Please re-authenticate.")
 				}
-				throw new Error(`Failed to fetch projects: ${response.statusText}`)
+				throw new Error(
+					`Failed to fetch container tags: ${response.statusText}`,
+				)
 			}
 
-			const data = (await response.json()) as {
-				projects: Project[]
-			}
-			return data.projects?.map((p) => p.containerTag) || []
+			const data = (await response.json()) as ContainerTag[]
+			return Array.isArray(data) ? data : []
 		} catch (error) {
 			this.handleError(error)
 		}
 	}
 
-	// Fetch documents with their memory entries
 	async getDocuments(
 		containerTags?: string[],
 		page = 1,
-		limit = 10,
+		limit = 200,
 	): Promise<DocumentsApiResponse> {
 		try {
 			const response = await fetch(`${this.apiUrl}/v3/documents/documents`, {
@@ -386,20 +297,56 @@ export class SupermemoryClient {
 		}
 	}
 
+	async uploadFile(
+		fileData: ArrayBuffer,
+		fileName: string,
+		mimeType: string,
+		containerTag?: string,
+	): Promise<{ id: string; status: string }> {
+		try {
+			const formData = new FormData()
+			const blob = new Blob([fileData], { type: mimeType })
+			formData.append("file", blob, fileName)
+			if (containerTag) {
+				formData.append("containerTags", containerTag)
+			}
+			formData.append(
+				"metadata",
+				JSON.stringify({ sm_source: "enterprise-mcp" }),
+			)
+
+			const response = await fetch(`${this.apiUrl}/v3/documents/file`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${this.bearerToken}`,
+				},
+				body: formData,
+			})
+
+			if (!response.ok) {
+				const text = await response.text()
+				throw Object.assign(new Error(text || "Upload failed"), {
+					status: response.status,
+				})
+			}
+
+			const result = (await response.json()) as { id: string; status: string }
+			return result
+		} catch (error) {
+			this.handleError(error)
+		}
+	}
+
 	private handleError(error: unknown): never {
-		// Handle network/fetch errors
 		if (error instanceof TypeError) {
 			if (
 				error.message.includes("fetch") ||
 				error.message.includes("network")
 			) {
-				throw new Error(
-					"Network error. Please check your connection and try again.",
-				)
+				throw new Error("Network error. Please check your connection.")
 			}
 		}
 
-		// Handle HTTP status errors from SDK/fetch
 		if (error && typeof error === "object" && "status" in error) {
 			const status = (error as { status: number }).status
 			const message =
@@ -408,38 +355,25 @@ export class SupermemoryClient {
 			switch (status) {
 				case 400:
 				case 422:
-					throw new Error(
-						message || "Invalid request parameters. Please check your input.",
-					)
+					throw new Error(message || "Invalid request. Check your input.")
 				case 401:
 					throw new Error("Authentication failed. Please re-authenticate.")
 				case 402:
 					throw new Error("Memory limit reached. Upgrade at supermemory.ai")
 				case 403:
-					throw new Error(
-						"Access forbidden. Your account may be restricted or blocked.",
-					)
+					throw new Error("Access forbidden.")
 				case 404:
-					throw new Error("Memory not found. It may have been deleted.")
+					throw new Error("Not found.")
 				case 429:
-					throw new Error(
-						"Rate limit exceeded. Please wait a moment and try again.",
-					)
+					throw new Error("Rate limit exceeded. Please wait and try again.")
 				default:
 					if (status >= 500) {
-						throw new Error(
-							"Server error. The service may be temporarily unavailable. Please try again later.",
-						)
+						throw new Error("Server error. Please try again later.")
 					}
 			}
 		}
 
-		// Re-throw Error instances as-is
-		if (error instanceof Error) {
-			throw error
-		}
-
-		// Wrap unknown errors
-		throw new Error(`An unexpected error occurred: ${String(error)}`)
+		if (error instanceof Error) throw error
+		throw new Error(`Unexpected error: ${String(error)}`)
 	}
 }

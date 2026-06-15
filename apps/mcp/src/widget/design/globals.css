@@ -1,0 +1,143 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+@custom-variant dark (&:is([data-theme="dark"] *));
+
+/* Map design tokens to Tailwind utilities. Mirrors console-v2's mapping
+ * so utility class names like `bg-bg-primary`, `text-text-primary`,
+ * `border-border-accent`, `font-brand`, `text-xs`, `shadow-md` etc.
+ * resolve from one source of truth.
+ */
+@theme inline {
+	--color-bg-primary: var(--bg-primary);
+	--color-bg-secondary: var(--bg-secondary);
+	--color-bg-muted: var(--bg-muted);
+	--color-bg-elevated: var(--bg-elevated);
+	--color-bg-overlay: var(--bg-overlay);
+
+	--color-border: var(--border);
+	--color-border-muted: var(--border-muted);
+	--color-border-accent: var(--border-accent);
+
+	--color-text-primary: var(--text-primary);
+	--color-text-secondary: var(--text-secondary);
+	--color-text-muted: var(--text-muted);
+	--color-text-inverse: var(--text-inverse);
+
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-accent-hover: var(--accent-hover);
+	--color-accent-muted: var(--accent-muted);
+
+	--color-success: var(--success);
+	--color-success-muted: var(--success-muted);
+	--color-error: var(--error);
+	--color-error-muted: var(--error-muted);
+	--color-warning: var(--warning);
+	--color-warning-muted: var(--warning-muted);
+	--color-info: var(--info);
+	--color-info-muted: var(--info-muted);
+	--color-danger: var(--danger);
+
+	--font-sans: var(--font-sans);
+	--font-mono: var(--font-mono);
+	--font-display: var(--font-display);
+	--font-brand: var(--font-brand);
+
+	--text-xs: var(--text-xs);
+	--text-sm: var(--text-sm);
+	--text-base: var(--text-base);
+	--text-lg: var(--text-lg);
+	--text-xl: var(--text-xl);
+	--text-2xl: var(--text-2xl);
+	--text-3xl: var(--text-3xl);
+
+	--leading-tight: var(--leading-tight);
+	--leading-normal: var(--leading-normal);
+	--leading-relaxed: var(--leading-relaxed);
+
+	--radius-none: 0px;
+	--radius-sm: var(--radius-sm);
+	--radius-md: var(--radius-md);
+	--radius-lg: var(--radius-lg);
+	--radius-full: var(--radius-full);
+
+	--shadow-sm: var(--shadow-sm);
+	--shadow-md: var(--shadow-md);
+	--shadow-lg: var(--shadow-lg);
+}
+
+/* Excalidraw pattern: NO heights on root containers. The MCP host owns
+ * the iframe height; ext-apps' App.autoResize observes documentElement
+ * and reports content size back so the host right-sizes the iframe.
+ * Setting any height (vh, %, etc.) here breaks that feedback loop.
+ *
+ * The reset lives INSIDE @layer base so Tailwind's @layer utilities (which
+ * come after base) win — an unlayered universal padding:0 reset would override
+ * every padding utility in the widget. box-sizing/margin are belt-and-braces
+ * on top of Tailwind preflight. */
+@layer base {
+	* {
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+		border-color: var(--border);
+	}
+
+	body {
+		background: var(--bg-primary);
+		color: var(--text-primary);
+		font-family: var(--font-sans);
+		line-height: var(--leading-normal);
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	h1, h2, h3, h4, h5, h6 {
+		font-family: var(--font-display);
+	}
+}
+
+#app {
+	position: relative;
+}
+
+/* Spinner — kept as global because primitives can't easily express a CSS animation */
+.spinner {
+	width: 24px;
+	height: 24px;
+	border: 2px solid var(--border);
+	border-top-color: var(--accent);
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+
+/* The graph canvas needs a definite height in both modes.
+ *
+ * Inline: derive height from the (stable) width via aspect-ratio — width is
+ * fixed by the chat column, so this breaks the autoResize feedback loop.
+ *
+ * Fullscreen: the host expands the iframe, so 100dvh = the fullscreen height.
+ * We stay IN FLOW (no position:fixed) — taking the element out of flow
+ * collapses the document, autoResize shrinks the iframe, and a fixed inset:0
+ * box in a collapsed iframe ends up with zero height (and never recovers on
+ * minimize). Keeping it in flow with an explicit height avoids that entirely. */
+.graph-view {
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	/* Never collapse to 0 during a resize/transition — a 0-size frame makes the
+	 * package drop its "already fitted" flag and re-fit (a camera animation that
+	 * reads as a re-layout). The floor keeps the size continuous. */
+	min-height: 280px;
+	position: relative;
+	background: var(--bg-primary);
+}
+
+.graph-view.fullscreen {
+	aspect-ratio: auto;
+	height: 100dvh;
+}
