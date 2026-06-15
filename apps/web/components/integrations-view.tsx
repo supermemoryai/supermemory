@@ -176,7 +176,7 @@ const MCP_CLIENTS: Array<{
 	{
 		key: "antigravity",
 		name: "Antigravity",
-		tagline: "Manual MCP config for Antigravity IDE",
+		tagline: "MCP config for Antigravity",
 		simpleTitle: "Bring your memory into Antigravity",
 		dev: true,
 	},
