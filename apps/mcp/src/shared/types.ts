@@ -108,4 +108,4 @@ export type Props = {
 }
 
 // MCP resource URI for the widget bundle.
-export const ENTERPRISE_RESOURCE_URI = "ui://enterprise/app.html"
+export const SUPERMEMORY_RESOURCE_URI = "ui://supermemory/app.html"

@@ -93,7 +93,7 @@ export class SupermemoryClient {
 			const result = await this.client.add({
 				content,
 				containerTag: this.containerTag,
-				metadata: { sm_source: "enterprise-mcp" },
+				metadata: { sm_source: "supermemory-mcp" },
 			})
 			return {
 				id: result.id,
@@ -312,7 +312,7 @@ export class SupermemoryClient {
 			}
 			formData.append(
 				"metadata",
-				JSON.stringify({ sm_source: "enterprise-mcp" }),
+				JSON.stringify({ sm_source: "supermemory-mcp" }),
 			)
 
 			const response = await fetch(`${this.apiUrl}/v3/documents/file`, {

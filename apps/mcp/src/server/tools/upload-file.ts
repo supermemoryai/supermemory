@@ -1,5 +1,5 @@
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
-import { ENTERPRISE_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -10,7 +10,7 @@ export function register(deps: ToolDeps) {
 			title: "Upload File",
 			description: "Upload a file (PDF, text, image, video) to memory.",
 			inputSchema: {},
-			_meta: { ui: { resourceUri: ENTERPRISE_RESOURCE_URI } },
+			_meta: { ui: { resourceUri: SUPERMEMORY_RESOURCE_URI } },
 		},
 		async () => {
 			const activeTag = await deps.storage.get<string>("activeContainerTag")

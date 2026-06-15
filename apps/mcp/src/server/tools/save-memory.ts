@@ -1,6 +1,6 @@
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
-import { ENTERPRISE_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -15,7 +15,7 @@ export function register(deps: ToolDeps) {
 			},
 			_meta: {
 				ui: {
-					resourceUri: ENTERPRISE_RESOURCE_URI,
+					resourceUri: SUPERMEMORY_RESOURCE_URI,
 					visibility: ["app"],
 				},
 			},

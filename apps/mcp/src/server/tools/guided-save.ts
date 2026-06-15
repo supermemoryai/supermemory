@@ -1,6 +1,6 @@
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
-import { ENTERPRISE_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -13,7 +13,7 @@ export function register(deps: ToolDeps) {
 			inputSchema: {
 				prefill: z.string().optional().describe("Optional content to prefill"),
 			},
-			_meta: { ui: { resourceUri: ENTERPRISE_RESOURCE_URI } },
+			_meta: { ui: { resourceUri: SUPERMEMORY_RESOURCE_URI } },
 		},
 		async (args) => {
 			const prefill = (args as { prefill?: string }).prefill

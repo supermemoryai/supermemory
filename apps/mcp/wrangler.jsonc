@@ -30,7 +30,7 @@
 		"bindings": [
 			{
 				"name": "MCP_SERVER",
-				"class_name": "EnterpriseMCP"
+				"class_name": "SupermemoryMCP"
 			}
 		]
 	},
@@ -38,7 +38,7 @@
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_sqlite_classes": ["EnterpriseMCP"]
+			"new_sqlite_classes": ["SupermemoryMCP"]
 		}
 	],
 

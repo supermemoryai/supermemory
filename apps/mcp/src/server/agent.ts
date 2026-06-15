@@ -18,14 +18,14 @@ type Env = {
 
 const DEFAULT_API_URL = "https://api.supermemory.ai"
 
-export class EnterpriseMCP extends McpAgent<Env, unknown, Props> {
+export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	private clientInfo: { name: string; version?: string } | null = null
 	private cachedContainerTagsList: string[] = []
 
 	// @ts-expect-error - agents/mcp ships its own bundled @modelcontextprotocol/sdk;
 	// our installed sdk has a private `_serverInfo` field with a different declaration.
 	server = new McpServer({
-		name: "supermemory-enterprise",
+		name: "supermemory",
 		version: "1.0.0",
 	})
 

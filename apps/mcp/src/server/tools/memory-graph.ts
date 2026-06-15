@@ -1,6 +1,6 @@
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
-import { ENTERPRISE_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -22,7 +22,7 @@ export function register(deps: ToolDeps) {
 			description:
 				"Visualize the user's memory graph as an interactive force-directed graph.",
 			inputSchema,
-			_meta: { ui: { resourceUri: ENTERPRISE_RESOURCE_URI } },
+			_meta: { ui: { resourceUri: SUPERMEMORY_RESOURCE_URI } },
 		},
 		async (rawArgs) => {
 			try {

@@ -4,4 +4,4 @@
  */
 import { App } from "@modelcontextprotocol/ext-apps"
 
-export const app = new App({ name: "Enterprise MCP", version: "1.0.0" })
+export const app = new App({ name: "Supermemory MCP", version: "1.0.0" })

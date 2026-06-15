@@ -3,8 +3,8 @@ import {
 	registerAppResource,
 } from "@modelcontextprotocol/ext-apps/server"
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
-import enterpriseAppHtml from "../../../dist/src/widget/index.html"
-import { ENTERPRISE_RESOURCE_URI } from "../../shared/types"
+import supermemoryAppHtml from "../../../dist/src/widget/index.html"
+import { SUPERMEMORY_RESOURCE_URI } from "../../shared/types"
 
 const CSP_DOMAINS = [
 	"https://esm.sh",
@@ -23,8 +23,8 @@ const RESOURCE_UI_META = {
 export function registerWidgetResource(server: McpServer) {
 	registerAppResource(
 		server,
-		"Enterprise MCP UI",
-		ENTERPRISE_RESOURCE_URI,
+		"Supermemory MCP UI",
+		SUPERMEMORY_RESOURCE_URI,
 		// Listing-level metadata: hosts use this when discovering resources
 		// before invoking the read callback. Mirrors the read response below
 		// so prefetch/connect-time decisions match what the host will get.
@@ -38,9 +38,9 @@ export function registerWidgetResource(server: McpServer) {
 		async () => ({
 			contents: [
 				{
-					uri: ENTERPRISE_RESOURCE_URI,
+					uri: SUPERMEMORY_RESOURCE_URI,
 					mimeType: RESOURCE_MIME_TYPE,
-					text: enterpriseAppHtml,
+					text: supermemoryAppHtml,
 					_meta: { ui: RESOURCE_UI_META },
 				},
 			],

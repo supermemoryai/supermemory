@@ -7,13 +7,13 @@ import type { AuthUser, ContainerTagAccess } from "."
 //   - service: namespaces our keys; safe even if AUTH_CACHE is shared with
 //     other workers later
 //   - kind:    discriminates this cache from future kinds (e.g.,
-//     `enterprise-mcp:container-tags:v1:<orgId>`)
+//     `supermemory-mcp:container-tags:v1:<orgId>`)
 //   - version: schema version on the value; bump to invalidate every entry
 //     instantly without flushing the namespace
 //   - hash:    SHA-256 hex of the bearer; deterministic, never reveals
 //     the raw token
 
-const SERVICE = "enterprise-mcp"
+const SERVICE = "supermemory-mcp"
 const KIND = "auth"
 const CACHE_VERSION = 1 as const
 const TTL_SECONDS = 300 // 5 min — matches Better Auth's session cookie cache

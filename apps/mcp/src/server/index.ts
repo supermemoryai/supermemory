@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 import type { Props } from "../shared/types"
-import { EnterpriseMCP } from "./agent"
+import { SupermemoryMCP } from "./agent"
 import {
 	type AuthUser,
 	isApiKey,
@@ -78,9 +78,9 @@ app.use(
 
 app.get("/", (c) => {
 	return c.json({
-		name: "enterprise-mcp",
+		name: "supermemory-mcp",
 		version: "1.0.0",
-		description: "Supermemory Enterprise MCP — AI memory for teams",
+		description: "Supermemory MCP — AI memory for teams",
 		docs: "https://docs.supermemory.ai/mcp",
 	})
 })
@@ -94,7 +94,7 @@ app.get("/.well-known/oauth-protected-resource", (c) => {
 	const proto = c.req.header("x-forwarded-proto") || "https"
 	const resourceUrl = host
 		? `${proto}://${host}`
-		: "https://enterprise-mcp.supermemory.ai"
+		: "https://mcp.supermemory.ai"
 
 	return c.json({
 		resource: resourceUrl,
@@ -127,7 +127,7 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 	}
 })
 
-const mcpHandler = EnterpriseMCP.serve("/mcp", {
+const mcpHandler = SupermemoryMCP.serve("/mcp", {
 	binding: "MCP_SERVER",
 	corsOptions: {
 		origin: "*",
@@ -204,6 +204,6 @@ app.all("/mcp/*", async (c) => {
 	return mcpHandler.fetch(c.req.raw, c.env, ctx)
 })
 
-export { EnterpriseMCP }
+export { SupermemoryMCP }
 
 export default app
