@@ -49,6 +49,7 @@ import type { Project } from "@lib/types"
 import { motion, AnimatePresence } from "motion/react"
 
 const clients = {
+	antigravity: "Antigravity",
 	chatgpt: "ChatGPT",
 	codex: "Codex",
 	cursor: "Cursor",
@@ -59,6 +60,12 @@ const clients = {
 	"claude-code": "Claude Code",
 	"mcp-url": "MCP URL",
 } as const
+
+function mcpClientIconSrc(key: string): string {
+	if (key === "mcp-url") return "/mcp-icon.svg"
+	if (key === "antigravity") return "/mcp-supported-tools/antigravity.svg"
+	return `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`
+}
 
 const mcpMigrationSchema = z.object({
 	url: z
@@ -396,11 +403,7 @@ export function ConnectAIModal({
 														parent.appendChild(fallback)
 													}
 												}}
-												src={
-													key === "mcp-url"
-														? "/mcp-icon.svg"
-														: `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`
-												}
+												src={mcpClientIconSrc(key)}
 												width={20}
 											/>
 										</div>
