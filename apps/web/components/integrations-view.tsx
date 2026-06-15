@@ -244,7 +244,7 @@ const MCP_CLIENTS: Array<{
 
 function mcpClientIconSrc(key: MCPClientKey): string {
 	if (key === "mcp-url") return "/mcp-icon.svg"
-	if (key === "antigravity") return "/mcp-supported-tools/antigravity.svg"
+	if (key === "antigravity") return "/mcp-supported-tools/antigravity.png"
 	const file = key === "claude-code" ? "claude" : key
 	return `/mcp-supported-tools/${file}.png`
 }

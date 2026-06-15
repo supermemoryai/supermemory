@@ -63,7 +63,7 @@ const clients = {
 
 function mcpClientIconSrc(key: string): string {
 	if (key === "mcp-url") return "/mcp-icon.svg"
-	if (key === "antigravity") return "/mcp-supported-tools/antigravity.svg"
+	if (key === "antigravity") return "/mcp-supported-tools/antigravity.png"
 	return `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`
 }
 
