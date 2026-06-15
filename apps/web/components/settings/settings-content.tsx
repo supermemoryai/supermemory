@@ -13,6 +13,7 @@ import ConnectionsMCP from "@/components/settings/connections-mcp"
 import Support from "@/components/settings/support"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useRouter } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
 import { useIsMobile } from "@hooks/use-mobile"
 import { useLocalStorageUsername } from "@hooks/use-local-storage-username"
 import {
@@ -28,12 +29,14 @@ import {
 	ShieldAlert,
 	ChevronRight,
 	ArrowUpRight,
+	Building2,
 } from "lucide-react"
 import { authClient } from "@lib/auth"
 import { Dialog, DialogContent, DialogClose } from "@ui/components/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
 import { useResetOrganization } from "@/hooks/use-reset-organization"
 import { useDeleteUserAccount } from "@/hooks/use-account-settings"
+import { useDeleteOrganization } from "@/hooks/use-delete-organization"
 import { SettingsOrgSwitcher } from "@/components/settings/settings-org-switcher"
 
 export const TABS = [
@@ -129,7 +132,7 @@ export function SettingsContent({
 	className?: string
 	showIdentity?: boolean
 }) {
-	const { user, org } = useAuth()
+	const { user, org, organizations, setActiveOrg, clearActiveOrg } = useAuth()
 	const router = useRouter()
 	const isMobile = useIsMobile()
 	const localStorageUsername = useLocalStorageUsername()
@@ -141,6 +144,25 @@ export function SettingsContent({
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 	const [deleteEmailConfirm, setDeleteEmailConfirm] = useState("")
 	const deleteUserAccount = useDeleteUserAccount()
+
+	const [isDeleteOrgDialogOpen, setIsDeleteOrgDialogOpen] = useState(false)
+	const [deleteOrgConfirm, setDeleteOrgConfirm] = useState("")
+	const deleteOrganization = useDeleteOrganization()
+
+	// Only owners can delete the organization.
+	const activeMemberRoleQuery = useQuery({
+		queryKey: ["organization", org?.id, "active-member-role"],
+		queryFn: async () => {
+			const result = await authClient.organization.getActiveMember()
+			if (result.error) {
+				throw new Error(result.error.message ?? "Failed to load team role")
+			}
+			return result.data?.role ?? null
+		},
+		enabled: !!org?.id,
+		staleTime: 60_000,
+	})
+	const isOwner = (activeMemberRoleQuery.data ?? "").toLowerCase() === "owner"
 
 	const [dangerMenuOpen, setDangerMenuOpen] = useState(false)
 
@@ -172,6 +194,24 @@ export function SettingsContent({
 				},
 			},
 		)
+	}
+
+	const handleDeleteOrganization = async () => {
+		if (!org || deleteOrgConfirm !== org.name) return
+		deleteOrganization.mutate(org.id, {
+			onSuccess: async () => {
+				setIsDeleteOrgDialogOpen(false)
+				setDeleteOrgConfirm("")
+				const remaining = (organizations ?? []).filter((o) => o.id !== org.id)
+				if (remaining[0]) {
+					await setActiveOrg(remaining[0].slug)
+					window.location.href = "/"
+				} else {
+					await clearActiveOrg()
+					window.location.href = "/onboarding"
+				}
+			},
+		})
 	}
 
 	return (
@@ -314,6 +354,26 @@ export function SettingsContent({
 									<RotateCcw className="size-[16px] shrink-0" />
 									<span className="font-medium text-[13.5px]">Reset data</span>
 								</button>
+
+								{isOwner && (
+									<>
+										<div className="my-1 h-px bg-white/[0.06]" />
+
+										<button
+											type="button"
+											onClick={() => {
+												setDangerMenuOpen(false)
+												setIsDeleteOrgDialogOpen(true)
+											}}
+											className="w-full flex items-center gap-3 rounded-[10px] px-3 py-2 text-left text-[#C73B1B] hover:bg-[#290F0A]/60 transition-colors cursor-pointer"
+										>
+											<Building2 className="size-[16px] shrink-0" />
+											<span className="font-semibold text-[13.5px]">
+												Delete organization
+											</span>
+										</button>
+									</>
+								)}
 
 								<div className="my-1 h-px bg-white/[0.06]" />
 
@@ -528,6 +588,83 @@ export function SettingsContent({
 									<Trash2 className="size-[15px]" />
 								)}
 								{deleteUserAccount.isPending ? "Deleting…" : "Delete account"}
+							</button>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			{/* Delete organization dialog */}
+			<Dialog
+				open={isDeleteOrgDialogOpen}
+				onOpenChange={(open) => {
+					setIsDeleteOrgDialogOpen(open)
+					if (!open) setDeleteOrgConfirm("")
+				}}
+			>
+				<DialogContent className="sm:max-w-md">
+					<div className={cn("flex flex-col gap-5 p-1", dmSans125ClassName())}>
+						<div className="flex flex-col gap-1.5">
+							<h2 className="text-[18px] font-semibold text-[#FAFAFA]">
+								Delete this organization?
+							</h2>
+							<p className="text-sm text-[#8B8B8B]">
+								Permanently deletes{" "}
+								<strong className="text-[#FAFAFA]">
+									{org?.name || "this organization"}
+								</strong>{" "}
+								— its documents, spaces, connections, and members.{" "}
+								<strong className="text-[#FAFAFA]">
+									This cannot be undone.
+								</strong>
+							</p>
+						</div>
+						<div className="flex flex-col gap-2">
+							<p className="text-sm text-[#8B8B8B]">
+								Type <strong className="text-[#FAFAFA]">{org?.name}</strong> to
+								confirm:
+							</p>
+							<input
+								type="text"
+								value={deleteOrgConfirm}
+								onChange={(e) => setDeleteOrgConfirm(e.target.value)}
+								placeholder={org?.name ?? "Organization name"}
+								autoComplete="off"
+								className="w-full rounded-xl border border-[#2A2D35] bg-[#0D0F14] px-4 py-2.5 text-sm text-white placeholder:text-[#525D6E] focus:outline-none focus:border-[#C73B1B]/50 transition-colors"
+							/>
+						</div>
+						<div className="flex gap-3 justify-end">
+							<DialogClose asChild>
+								<button
+									type="button"
+									className="px-4 py-2 rounded-full border border-[#2A2D35] text-sm text-[#8B8B8B] hover:text-white hover:border-[#3A3D45] transition-colors cursor-pointer"
+								>
+									Cancel
+								</button>
+							</DialogClose>
+							<button
+								type="button"
+								disabled={
+									!org?.name ||
+									deleteOrgConfirm !== org.name ||
+									deleteOrganization.isPending
+								}
+								title={
+									!org?.name || deleteOrgConfirm !== org.name
+										? `Type "${org?.name ?? "the organization name"}" exactly to confirm`
+										: undefined
+								}
+								onClick={handleDeleteOrganization}
+								className="relative flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-opacity bg-[#290F0A] text-[#C73B1B] disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+							>
+								{deleteOrganization.isPending ? (
+									<LoaderIcon className="size-[15px] animate-spin" />
+								) : (
+									<Building2 className="size-[15px]" />
+								)}
+								{deleteOrganization.isPending
+									? "Deleting…"
+									: "Delete organization"}
 							</button>
 						</div>
 					</div>
