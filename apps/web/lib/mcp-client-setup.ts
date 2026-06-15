@@ -13,7 +13,7 @@ const DEFAULT_SETUP: McpSetupAvailability = {
  * manual instructions and one-click (CLI / deeplink / URL copy).
  */
 export const MCP_CLIENT_SETUP: Record<string, McpSetupAvailability> = {
-	antigravity: { manual: true, oneClick: false },
+	antigravity: { manual: true, oneClick: true },
 	chatgpt: { manual: true, oneClick: false },
 	cline: { manual: false, oneClick: true },
 }
