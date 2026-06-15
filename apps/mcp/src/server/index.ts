@@ -92,9 +92,7 @@ app.get("/.well-known/oauth-protected-resource", (c) => {
 	// host the client connected to (tunnel, prod, localhost, etc.)
 	const host = c.req.header("x-forwarded-host") || c.req.header("host")
 	const proto = c.req.header("x-forwarded-proto") || "https"
-	const resourceUrl = host
-		? `${proto}://${host}`
-		: "https://mcp.supermemory.ai"
+	const resourceUrl = host ? `${proto}://${host}` : "https://mcp.supermemory.ai"
 
 	return c.json({
 		resource: resourceUrl,
