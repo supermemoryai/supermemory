@@ -83,6 +83,43 @@ export const normalizeUrl = (url: string): string => {
 	return `https://${url}`
 }
 
+const URL_TOKEN_REGEX =
+	/(?:https?:\/\/)?(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:[/?#][^\s<>[\]"'`]*)?/g
+const MARKDOWN_LINK_REGEX = /\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/g
+const ANGLE_LINK_REGEX = /<(https?:\/\/[^\s>]+)>/g
+
+/** Pull every distinct URL out of a free-text blob; handles markdown `[t](url)`, `<url>`, and bare links. */
+export const extractUrls = (
+	text: string,
+): { urls: string[]; duplicates: number } => {
+	if (!text.trim()) return { urls: [], duplicates: 0 }
+	const unwrapped = text
+		.replace(MARKDOWN_LINK_REGEX, " $1 ")
+		.replace(ANGLE_LINK_REGEX, " $1 ")
+	const matches = unwrapped.match(URL_TOKEN_REGEX) ?? []
+	const seen = new Set<string>()
+	const urls: string[] = []
+	let duplicates = 0
+	for (const match of matches) {
+		let trimmed = match.trim().replace(/[.,;!]+$/, "")
+		const opens = (trimmed.match(/\(/g) ?? []).length
+		const closes = (trimmed.match(/\)/g) ?? []).length
+		if (closes > opens && trimmed.endsWith(")")) {
+			trimmed = trimmed.replace(/\)+$/, "").replace(/[.,;!]+$/, "")
+		}
+		const normalized = normalizeUrl(trimmed)
+		if (!isValidUrl(normalized)) continue
+		const key = normalized.toLowerCase().replace(/\/+$/, "")
+		if (seen.has(key)) {
+			duplicates++
+			continue
+		}
+		seen.add(key)
+		urls.push(normalized)
+	}
+	return { urls, duplicates }
+}
+
 /**
  * Checks if a URL is a Twitter/X URL.
  */

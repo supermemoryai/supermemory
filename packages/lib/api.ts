@@ -191,6 +191,37 @@ export const apiSchema = createSchema({
 		input: MemoryAddSchema,
 		output: MemoryResponseSchema,
 	},
+	"@post/documents/batch": {
+		input: z.object({
+			documents: z
+				.array(
+					z.object({
+						content: z.string(),
+						containerTags: z.array(z.string()).optional(),
+						containerTag: z.string().optional(),
+						entityContext: z.string().max(1500).optional(),
+						metadata: z.record(z.unknown()).optional(),
+					}),
+				)
+				.min(1)
+				.max(600),
+			containerTag: z.string().optional(),
+			entityContext: z.string().max(1500).optional(),
+			metadata: z.record(z.unknown()).optional(),
+		}),
+		output: z.object({
+			results: z.array(
+				z.object({
+					id: z.string(),
+					status: z.string(),
+					error: z.string().optional(),
+					details: z.string().optional(),
+				}),
+			),
+			success: z.number(),
+			failed: z.number(),
+		}),
+	},
 	"@post/documents/list": {
 		body: z
 			.object({
