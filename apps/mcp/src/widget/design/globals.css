@@ -93,7 +93,12 @@
 		-moz-osx-font-smoothing: grayscale;
 	}
 
-	h1, h2, h3, h4, h5, h6 {
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
 		font-family: var(--font-display);
 	}
 }
@@ -113,7 +118,9 @@
 }
 
 @keyframes spin {
-	to { transform: rotate(360deg); }
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 /* The graph canvas needs a definite height in both modes.
