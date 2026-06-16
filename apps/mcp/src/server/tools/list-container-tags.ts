@@ -2,10 +2,10 @@ import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	deps.server.registerTool(
-		"listContainerTags",
+		"listSpaces",
 		{
 			description:
-				"List available container tags for organizing memories. Returns name, identifier, emoji, document/memory counts, and last activity time per tag. The API auto-filters this list to tags the caller has access to.",
+				"List the spaces available to you. Spaces are the workspaces you organize memories into — returns each space's name, identifier, emoji, document/memory counts, and last activity. The list is auto-filtered to spaces you have access to.",
 			inputSchema: {},
 		},
 		async () => {
@@ -17,7 +17,7 @@ export function register(deps: ToolDeps) {
 						content: [
 							{
 								type: "text" as const,
-								text: "No container tags found.",
+								text: "No spaces found.",
 							},
 						],
 					}
@@ -33,7 +33,7 @@ export function register(deps: ToolDeps) {
 					content: [
 						{
 							type: "text" as const,
-							text: `Available container tags:\n${lines.join("\n")}`,
+							text: `Available spaces:\n${lines.join("\n")}`,
 						},
 					],
 					structuredContent: { containerTags: tags },
