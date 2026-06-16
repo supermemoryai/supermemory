@@ -117,7 +117,7 @@ export function createToast(state: ToastState): HTMLElement {
 			break
 
 		case "success": {
-			const iconUrl = browser.runtime.getURL("/icon-16.png")
+			const iconUrl = browser.runtime.getURL("/new_logo.png")
 			icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`
 			textElement.textContent = "Added to Memory"
 			break
@@ -184,7 +184,7 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
 	font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   `
 
-	const iconUrl = browser.runtime.getURL("/icon-16.png")
+	const iconUrl = browser.runtime.getURL("/new_logo.png")
 
 	button.style.backgroundImage = `url("${iconUrl}")`
 	button.style.backgroundRepeat = "no-repeat"
@@ -232,7 +232,7 @@ export function createSaveTweetElement(onClick: () => void): HTMLElement {
     z-index: 1000;
   `
 
-	const iconFileName = "/icon-16.png"
+	const iconFileName = "/new_logo.png"
 	const iconUrl = browser.runtime.getURL(iconFileName)
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
@@ -261,31 +261,72 @@ export function createSaveTweetElement(onClick: () => void): HTMLElement {
  * @returns HTMLElement - The save button element
  */
 export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
-	const iconButton = document.createElement("div")
+	return createConnectedIndicator(onClick)
+}
+
+export function createConnectedIndicator(onClick: () => void): HTMLElement {
+	const iconButton = document.createElement("button")
+	iconButton.type = "button"
+	iconButton.setAttribute("aria-label", "supermemory connected")
+	iconButton.dataset.supermemoryConnectedIndicator = "true"
 	iconButton.style.cssText = `
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: auto;
-    height: 24px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
     cursor: pointer;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
     border-radius: 50%;
+    border: none;
+    background: transparent;
+    padding: 0;
+    position: relative;
+    flex-shrink: 0;
   `
 
-	// Use appropriate icon based on theme
-	const iconFileName = "/icon-16.png"
+	const iconFileName = "/new_logo.png"
 	const iconUrl = browser.runtime.getURL(iconFileName)
 	iconButton.innerHTML = `
-    <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 50%;" />
+    <img src="${iconUrl}" width="20" height="20" alt="" style="border-radius: 5px; display: block;" />
   `
 
+	const tooltip = document.createElement("div")
+	tooltip.textContent = "supermemory connected"
+	tooltip.style.cssText = `
+		position: absolute;
+		bottom: calc(100% + 8px);
+		left: 50%;
+		transform: translateX(-50%) translateY(2px);
+		background: #0A0E14;
+		color: #FAFAFA;
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		border-radius: 8px;
+		padding: 6px 8px;
+		font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		font-size: 12px;
+		font-weight: 500;
+		line-height: 1;
+		white-space: nowrap;
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity 0.16s ease, transform 0.16s ease;
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+		z-index: 2147483647;
+	`
+	iconButton.appendChild(tooltip)
+
 	iconButton.addEventListener("mouseenter", () => {
-		iconButton.style.opacity = "0.8"
+		iconButton.style.backgroundColor = "rgba(255, 255, 255, 0.08)"
+		tooltip.style.opacity = "1"
+		tooltip.style.transform = "translateX(-50%) translateY(0)"
 	})
 
 	iconButton.addEventListener("mouseleave", () => {
-		iconButton.style.opacity = "1"
+		iconButton.style.backgroundColor = "transparent"
+		tooltip.style.opacity = "0"
+		tooltip.style.transform = "translateX(-50%) translateY(2px)"
 	})
 
 	iconButton.addEventListener("click", (event) => {
@@ -303,42 +344,11 @@ export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
  * @returns HTMLElement - The save button element
  */
 export function createClaudeInputBarElement(onClick: () => void): HTMLElement {
-	const iconButton = document.createElement("div")
-	iconButton.style.cssText = `
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: auto;
-    height: 32px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 6px;
-    background: transparent;
-  `
+	return createConnectedIndicator(onClick)
+}
 
-	const iconFileName = "/icon-16.png"
-	const iconUrl = browser.runtime.getURL(iconFileName)
-	iconButton.innerHTML = `
-    <img src="${iconUrl}" width="20" height="20" alt="Get Related Memories from supermemory" style="border-radius: 4px;" />
-  `
-
-	iconButton.addEventListener("mouseenter", () => {
-		iconButton.style.backgroundColor = "rgba(0, 0, 0, 0.05)"
-		iconButton.style.borderColor = "rgba(0, 0, 0, 0.2)"
-	})
-
-	iconButton.addEventListener("mouseleave", () => {
-		iconButton.style.backgroundColor = "transparent"
-		iconButton.style.borderColor = "rgba(0, 0, 0, 0.1)"
-	})
-
-	iconButton.addEventListener("click", (event) => {
-		event.stopPropagation()
-		event.preventDefault()
-		onClick()
-	})
-
-	return iconButton
+export function createGeminiInputBarElement(onClick: () => void): HTMLElement {
+	return createConnectedIndicator(onClick)
 }
 
 /**
@@ -360,7 +370,7 @@ export function createT3InputBarElement(onClick: () => void): HTMLElement {
     background: transparent;
   `
 
-	const iconFileName = "/icon-16.png"
+	const iconFileName = "/new_logo.png"
 	const iconUrl = browser.runtime.getURL(iconFileName)
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Get Related Memories from supermemory" style="border-radius: 4px;" />
@@ -433,7 +443,7 @@ export function createProjectSelectionModal(
 		margin-bottom: 20px;
 	`
 
-	const iconUrl = browser.runtime.getURL("/icon-16.png")
+	const iconUrl = browser.runtime.getURL("/new_logo.png")
 	header.innerHTML = `
 	<div style="display: flex; flex-direction: column; gap: 8px;">
 	    <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #ffffff; display: flex; align-items: center; gap: 8px;">
@@ -702,7 +712,7 @@ export const DOMUtils = {
 
 			if (icon && text) {
 				if (state === "success") {
-					const iconUrl = browser.runtime.getURL("/icon-16.png")
+					const iconUrl = browser.runtime.getURL("/new_logo.png")
 					icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`
 					icon.style.animation = ""
 					text.textContent = "Added to Memory"
