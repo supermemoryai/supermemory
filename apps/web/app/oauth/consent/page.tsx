@@ -93,17 +93,31 @@ function OAuthConsentContent() {
 			setError(null)
 			try {
 				if (accept && clientId) {
-					await fetch(`${API_URL}/v3/mcp/connect-scope`, {
+					const scopeRes = await fetch(`${API_URL}/v3/mcp/connect-scope`, {
 						method: "POST",
 						credentials: "include",
-						headers: { "Content-Type": "application/json" },
+						headers: {
+							"Content-Type": "application/json",
+							Accept: "application/json",
+						},
 						body: JSON.stringify({
 							clientId,
 							permission: scope.permission,
 							containerTags: scope.scopeType === "scoped" ? scope.tags : [],
 							expiresDays: scope.expiresDays,
 						}),
-					}).catch(() => {})
+					})
+					if (!scopeRes.ok) {
+						const scopeData = (await scopeRes.json().catch(() => ({}))) as {
+							error?: string
+							message?: string
+						}
+						throw new Error(
+							scopeData.message ||
+								scopeData.error ||
+								"Could not save MCP access settings. Start the connection again.",
+						)
+					}
 				}
 				const res = await fetch(`${API_URL}/api/auth/oauth2/consent`, {
 					method: "POST",
@@ -138,10 +152,27 @@ function OAuthConsentContent() {
 							"Authorization failed.",
 					)
 				}
-				// Show the final state regardless: many clients use a loopback or custom
-				// scheme redirect_uri that hands off without replacing this tab.
-				setDone(accept ? "approved" : "denied")
+				// Many clients use a loopback or custom-scheme redirect URI that hands
+				// off without replacing this tab, but the server still has to provide it.
 				const redirectUrl = data.url ?? data.redirectURI ?? data.redirect_uri
+				if (!redirectUrl) {
+					throw new Error(
+						"Authorization completed but no redirect URL was returned. Start the connection again from your app.",
+					)
+				}
+				const targetUrl = new URL(redirectUrl, window.location.href)
+				const isSignedInteractionRedirect =
+					targetUrl.origin === window.location.origin &&
+					(targetUrl.pathname === "/login" ||
+						targetUrl.pathname === "/oauth/consent") &&
+					targetUrl.searchParams.has("sig") &&
+					targetUrl.searchParams.has("exp")
+				if (accept && isSignedInteractionRedirect) {
+					throw new Error(
+						"Authorization could not finish because your session changed. Start the connection again from your app.",
+					)
+				}
+				setDone(accept ? "approved" : "denied")
 				if (redirectUrl) window.location.href = redirectUrl
 			} catch (err) {
 				console.error("OAuth consent failed:", err)
