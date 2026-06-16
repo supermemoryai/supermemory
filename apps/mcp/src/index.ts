@@ -25,8 +25,30 @@ const app = new Hono<{ Bindings: Bindings }>()
 const DEFAULT_API_URL = "https://api.supermemory.ai"
 const DEFAULT_MCP_URL = "https://mcp.supermemory.ai"
 
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "")
+
+const authServerIssuer = (apiUrl: string) => {
+	const base = trimTrailingSlash(apiUrl)
+	return base.endsWith("/api/auth") ? base : `${base}/api/auth`
+}
+
+const authServerMetadataUrl = (apiUrl: string) => {
+	const issuer = new URL(authServerIssuer(apiUrl))
+	const issuerPath = issuer.pathname === "/" ? "" : issuer.pathname
+	return `${issuer.origin}/.well-known/oauth-authorization-server${issuerPath}`
+}
+
+const authServerMetadataUrls = (apiUrl: string) => {
+	const issuer = new URL(authServerIssuer(apiUrl))
+	return [
+		authServerMetadataUrl(apiUrl),
+		`${issuer.origin}/.well-known/oauth-authorization-server`,
+		`${trimTrailingSlash(apiUrl)}/.well-known/oauth-authorization-server`,
+	].filter((url, index, urls) => urls.indexOf(url) === index)
+}
+
 const mcpBaseUrl = (c: Context<{ Bindings: Bindings }>) => {
-	if (c.env.MCP_URL) return c.env.MCP_URL.replace(/\/$/, "")
+	if (c.env.MCP_URL) return trimTrailingSlash(c.env.MCP_URL)
 	const host = c.req.header("x-forwarded-host") || c.req.header("host")
 	const proto = c.req.header("x-forwarded-proto") || "https"
 	return host ? `${proto}://${host}` : DEFAULT_MCP_URL
@@ -70,7 +92,7 @@ const protectedResourceHandler = (c: Context<{ Bindings: Bindings }>) => {
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
 	return c.json({
 		resource: `${mcpBaseUrl(c)}/mcp`,
-		authorization_servers: [apiUrl],
+		authorization_servers: [authServerIssuer(apiUrl)],
 		scopes_supported: ["openid", "profile", "email", "offline_access"],
 		bearer_methods_supported: ["header"],
 		resource_documentation: "https://docs.supermemory.ai/mcp",
@@ -87,14 +109,16 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 
 	try {
 		// Fetch the authorization server metadata from the main API
-		const response = await fetch(
-			`${apiUrl}/.well-known/oauth-authorization-server`,
-		)
+		let response: Response | null = null
+		for (const metadataUrl of authServerMetadataUrls(apiUrl)) {
+			response = await fetch(metadataUrl)
+			if (response.ok) break
+		}
 
-		if (!response.ok) {
+		if (!response?.ok) {
 			return c.json(
 				{ error: "Failed to fetch authorization server metadata" },
-				{ status: response.status as ContentfulStatusCode },
+				{ status: (response?.status ?? 502) as ContentfulStatusCode },
 			)
 		}
 
@@ -104,6 +128,56 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 		console.error("Error fetching OAuth authorization server metadata:", error)
 		return c.json({ error: "Internal server error" }, 500)
 	}
+})
+
+const proxyOAuthPost = async (
+	c: Context<{ Bindings: Bindings }>,
+	endpoint: "register" | "token" | "revoke" | "introspect",
+) => {
+	const apiUrl = c.env.API_URL || DEFAULT_API_URL
+	const upstreamEndpoint = `${authServerIssuer(apiUrl)}/oauth2/${endpoint}`
+
+	try {
+		const headers = new Headers()
+		headers.set("Content-Type", c.req.header("content-type") || "application/json")
+		const accept = c.req.header("accept")
+		if (accept) headers.set("Accept", accept)
+		const authorization = c.req.header("authorization")
+		if (authorization) headers.set("Authorization", authorization)
+
+		const response = await fetch(upstreamEndpoint, {
+			method: "POST",
+			headers,
+			body: await c.req.arrayBuffer(),
+		})
+
+		const responseHeaders = new Headers()
+		const contentType = response.headers.get("content-type")
+		if (contentType) responseHeaders.set("Content-Type", contentType)
+		responseHeaders.set("Access-Control-Allow-Origin", "*")
+
+		return new Response(await response.text(), {
+			status: response.status,
+			headers: responseHeaders,
+		})
+	} catch (error) {
+		console.error(`Error proxying OAuth ${endpoint} request:`, error)
+		return c.json({ error: "Internal server error" }, 500)
+	}
+}
+
+// Compatibility endpoints for MCP clients that resolve OAuth endpoints relative
+// to the MCP resource origin.
+app.post("/register", (c) => proxyOAuthPost(c, "register"))
+app.post("/token", (c) => proxyOAuthPost(c, "token"))
+app.post("/revoke", (c) => proxyOAuthPost(c, "revoke"))
+app.post("/introspect", (c) => proxyOAuthPost(c, "introspect"))
+
+app.get("/authorize", (c) => {
+	const apiUrl = c.env.API_URL || DEFAULT_API_URL
+	const authorizeUrl = new URL(`${authServerIssuer(apiUrl)}/oauth2/authorize`)
+	authorizeUrl.search = new URL(c.req.url).search
+	return c.redirect(authorizeUrl.toString())
 })
 
 const mcpHandler = SupermemoryMCP.serve("/mcp", {
