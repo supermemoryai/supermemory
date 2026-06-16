@@ -72,17 +72,17 @@
 								"pages": ["intro", "quickstart", "vibe-coding"]
 							},
 							{
-								"group": "Command Line (CLI)",
-								"icon": "square-terminal",
-								"pages": ["cli/overview", "cli/commands", "cli/local"]
-							},
-							{
-								"group": "Self-Hosting",
+								"group": "Core Features",
 								"pages": [
-									"self-hosting/overview",
-									"self-hosting/quickstart",
-									"self-hosting/configuration",
-									"self-hosting/local-vs-enterprise"
+									"add-memories",
+									"search",
+									"user-profiles",
+									{
+										"group": "Manage Content",
+										"icon": "folder-cog",
+										"pages": ["document-operations", "memory-operations"]
+									},
+									"overview/use-cases"
 								]
 							},
 							{
@@ -98,20 +98,6 @@
 									"concepts/user-profiles",
 									"concepts/customization",
 									"authentication"
-								]
-							},
-							{
-								"group": "Using supermemory",
-								"pages": [
-									"add-memories",
-									"search",
-									"user-profiles",
-									{
-										"group": "Manage Content",
-										"icon": "folder-cog",
-										"pages": ["document-operations", "memory-operations"]
-									},
-									"overview/use-cases"
 								]
 							},
 							{
@@ -137,6 +123,30 @@
 								]
 							},
 							{
+								"group": "Migration Guides",
+								"pages": [
+									{
+										"group": "From another provider",
+										"icon": "truck",
+										"pages": ["migration/from-mem0", "migration/from-zep"]
+									}
+								]
+							},
+							{
+								"group": "Self-Hosting",
+								"pages": [
+									"self-hosting/overview",
+									"self-hosting/quickstart",
+									"self-hosting/configuration",
+									"self-hosting/local-vs-enterprise"
+								]
+							},
+							{
+								"group": "Command Line (CLI)",
+								"icon": "square-terminal",
+								"pages": ["cli/overview", "cli/commands", "cli/local"]
+							},
+							{
 								"group": "SMFS (Memory Filesystem)",
 								"icon": "database",
 								"pages": [
@@ -156,16 +166,6 @@
 										]
 									},
 									"smfs/examples"
-								]
-							},
-							{
-								"group": "Migration Guides",
-								"pages": [
-									{
-										"group": "From another provider",
-										"icon": "truck",
-										"pages": ["migration/from-mem0", "migration/from-zep"]
-									}
 								]
 							}
 						]
