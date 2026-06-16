@@ -167,7 +167,7 @@ function OAuthConsentContent() {
 						targetUrl.pathname === "/oauth/consent") &&
 					targetUrl.searchParams.has("sig") &&
 					targetUrl.searchParams.has("exp")
-				console.log("isSignedInteractionRedirect", isSignedInteractionRedirect)
+				console.log("isSignedInteractionRedirect", isSignedInteractionRedirect);
 				console.log("targetUrl", targetUrl)
 				console.log("accept", accept)
 				console.log("window.location.origin", window.location.origin)
