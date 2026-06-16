@@ -139,7 +139,10 @@ const proxyOAuthPost = async (
 
 	try {
 		const headers = new Headers()
-		headers.set("Content-Type", c.req.header("content-type") || "application/json")
+		headers.set(
+			"Content-Type",
+			c.req.header("content-type") || "application/json",
+		)
 		const accept = c.req.header("accept")
 		if (accept) headers.set("Accept", accept)
 		const authorization = c.req.header("authorization")
