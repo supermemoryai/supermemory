@@ -44,6 +44,10 @@
 	"navbar": {
 		"links": [
 			{
+				"href": "/self-hosting/overview",
+				"label": "Self-host"
+			},
+			{
 				"href": "mailto:support@supermemory.com",
 				"label": "Support"
 			}
