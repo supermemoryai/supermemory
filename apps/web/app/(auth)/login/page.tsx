@@ -46,7 +46,7 @@ function buildMcpAuthorizeResumeUrl(
 		p.delete("prompt")
 	}
 
-	return `${backend}/api/auth/oauth2/authorize?${p.toString()}`
+	return `${backend}/api/auth/mcp/authorize?${p.toString()}`
 }
 
 function LoginHeadline({ className }: { className?: string }) {

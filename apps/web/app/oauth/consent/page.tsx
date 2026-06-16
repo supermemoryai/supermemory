@@ -14,6 +14,32 @@ import {
 const API_URL =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
+const ACTIVE_ORG_CONFIRMATION_TIMEOUT_MS = 5000
+const ACTIVE_ORG_CONFIRMATION_INTERVAL_MS = 150
+
+const wait = (ms: number) =>
+	new Promise<void>((resolve) => window.setTimeout(resolve, ms))
+
+async function waitForActiveOrganization(orgId: string) {
+	const deadline = Date.now() + ACTIVE_ORG_CONFIRMATION_TIMEOUT_MS
+	let lastActiveOrgId: string | null | undefined
+
+	while (Date.now() < deadline) {
+		const res = await authClient.getSession({
+			query: { disableCookieCache: true },
+		})
+		lastActiveOrgId = res.data?.session.activeOrganizationId
+		if (lastActiveOrgId === orgId) return
+		await wait(ACTIVE_ORG_CONFIRMATION_INTERVAL_MS)
+	}
+
+	throw new Error(
+		`Active organization did not update in time. Last active organization: ${
+			lastActiveOrgId ?? "none"
+		}`,
+	)
+}
+
 function OAuthConsentContent() {
 	const params = useSearchParams()
 	const { data: session } = useSession()
@@ -31,14 +57,11 @@ function OAuthConsentContent() {
 	)
 	const activeOrgId = session?.session.activeOrganizationId ?? null
 	const clientId = params.get("client_id") ?? ""
+	const consentCode = params.get("consent_code") ?? ""
 	const plugin = clientId ? (OAUTH_PLUGINS[clientId] ?? null) : null
 	const appLabel = plugin?.name ?? "An application"
 
-	// A valid consent page is reached only via /oauth2/authorize, which appends a
-	// signed (`sig`) + short-lived (`exp`) query. Without that it can't succeed.
-	const expSeconds = Number(params.get("exp"))
-	const requestExpired = expSeconds > 0 && expSeconds * 1000 < Date.now()
-	const invalidRequest = !params.get("sig") || requestExpired
+	const invalidRequest = !consentCode
 
 	const onEnterOrg = useCallback(
 		async (orgId: string) => {
@@ -46,6 +69,7 @@ function OAuthConsentContent() {
 			if (orgId !== activeOrgId) {
 				try {
 					await authClient.organization.setActive({ organizationId: orgId })
+					await waitForActiveOrganization(orgId)
 				} catch (err) {
 					setError("Couldn't switch to that organization. Try again.")
 					throw err
@@ -80,10 +104,7 @@ function OAuthConsentContent() {
 
 	const onSubmit = useCallback(
 		async (accept: boolean, scope: ConsentScope) => {
-			// Send the raw, unmodified query string — better-auth re-verifies its HMAC,
-			// so it must be byte-for-byte what we were redirected with.
-			const oauthQuery = window.location.search.replace(/^\?/, "")
-			if (!oauthQuery) {
+			if (!consentCode) {
 				setError(
 					"Missing authorization request. Start the flow again from your app.",
 				)
@@ -126,7 +147,7 @@ function OAuthConsentContent() {
 						"Content-Type": "application/json",
 						Accept: "application/json",
 					},
-					body: JSON.stringify({ accept, oauth_query: oauthQuery }),
+					body: JSON.stringify({ accept, consent_code: consentCode }),
 				})
 				const data = (await res.json().catch(() => ({}))) as {
 					url?: string
@@ -160,23 +181,6 @@ function OAuthConsentContent() {
 						"Authorization completed but no redirect URL was returned. Start the connection again from your app.",
 					)
 				}
-				const targetUrl = new URL(redirectUrl, window.location.href)
-				const isSignedInteractionRedirect =
-					targetUrl.origin === window.location.origin &&
-					(targetUrl.pathname === "/login" ||
-						targetUrl.pathname === "/oauth/consent") &&
-					targetUrl.searchParams.has("sig") &&
-					targetUrl.searchParams.has("exp")
-				console.log("isSignedInteractionRedirect", isSignedInteractionRedirect)
-				console.log("targetUrl", targetUrl)
-				console.log("accept", accept)
-				console.log("window.location.origin", window.location.origin)
-				console.log("pathname", targetUrl.pathname)
-				if (accept && isSignedInteractionRedirect) {
-					throw new Error(
-						"Authorization could not finish because your session changed. Start the connection again from your app.",
-					)
-				}
 				setDone(accept ? "approved" : "denied")
 				if (redirectUrl) window.location.href = redirectUrl
 			} catch (err) {
@@ -185,7 +189,7 @@ function OAuthConsentContent() {
 				setSubmitting(null)
 			}
 		},
-		[clientId],
+		[clientId, consentCode],
 	)
 
 	const onSignOut = useCallback(async () => {
@@ -199,11 +203,7 @@ function OAuthConsentContent() {
 		return (
 			<FullScreenMessage
 				subtitle="Start the connection again from your app — this page only works as part of that flow."
-				title={
-					requestExpired
-						? "This request has expired"
-						: "No authorization request"
-				}
+				title="No authorization request"
 			/>
 		)
 	}

@@ -111,11 +111,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		const run = async () => {
 			try {
-				// OAuth consent owns org selection for the authorization transaction.
-				const shouldRestoreSavedOrg =
-					typeof window === "undefined" ||
-					window.location.pathname !== "/oauth/consent"
-
 				if (orgs.length === 0) {
 					if (!cancelled) setOrg(null)
 					return
@@ -135,21 +130,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					return
 				}
 
-				if (shouldRestoreSavedOrg) {
-					const savedSlug = localStorage.getItem(STORAGE_KEY)
-					if (savedSlug) {
-						const match = orgs.find((o) => o.slug === savedSlug)
-						if (match) {
-							if (activeOrgId === match.id) {
-								const full = await authClient.organization.getFullOrganization()
-								if (!cancelled) setOrg(full?.data ?? null)
-							} else {
-								await setActiveOrg(savedSlug)
-							}
-							return
+				const savedSlug = localStorage.getItem(STORAGE_KEY)
+				if (savedSlug) {
+					const match = orgs.find((o) => o.slug === savedSlug)
+					if (match) {
+						if (activeOrgId === match.id) {
+							const full = await authClient.organization.getFullOrganization()
+							if (!cancelled) setOrg(full?.data ?? null)
+						} else {
+							await setActiveOrg(savedSlug)
 						}
-						localStorage.removeItem(STORAGE_KEY)
+						return
 					}
+					localStorage.removeItem(STORAGE_KEY)
 				}
 
 				if (activeOrgId) {
