@@ -93,6 +93,7 @@ function McpCodeBlock({
 }
 
 const clients = {
+	antigravity: "Antigravity",
 	chatgpt: "ChatGPT",
 	codex: "Codex",
 	cursor: "Cursor",
@@ -131,6 +132,7 @@ const MCP_CATEGORIES: {
 	{
 		label: "IDEs",
 		items: [
+			{ key: "antigravity", title: "Antigravity", subtitle: "AI IDE" },
 			{ key: "cursor", title: "Cursor", subtitle: "AI IDE" },
 			{ key: "vscode", title: "VS Code", subtitle: "IDE" },
 			{ key: "cline", title: "Cline", subtitle: "VS Code extension" },
@@ -145,6 +147,7 @@ const MCP_CATEGORIES: {
 
 function clientIconSrc(key: ClientKey) {
 	if (key === "mcp-url") return "/mcp-icon.svg"
+	if (key === "antigravity") return "/mcp-supported-tools/antigravity.png"
 	const file = key === "claude-code" ? "claude" : key
 	return `/mcp-supported-tools/${file}.png`
 }

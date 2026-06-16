@@ -155,6 +155,7 @@ type ListedApiKey = {
 type ItemKind = "plugin" | "connector" | "client" | "mcp-client" | "import"
 
 type MCPClientKey =
+	| "antigravity"
 	| "chatgpt"
 	| "codex"
 	| "cursor"
@@ -172,6 +173,13 @@ const MCP_CLIENTS: Array<{
 	simpleTitle?: string
 	dev?: boolean
 }> = [
+	{
+		key: "antigravity",
+		name: "Antigravity",
+		tagline: "MCP config for Antigravity",
+		simpleTitle: "Bring your memory into Antigravity",
+		dev: true,
+	},
 	{
 		key: "cursor",
 		name: "Cursor",
@@ -236,6 +244,7 @@ const MCP_CLIENTS: Array<{
 
 function mcpClientIconSrc(key: MCPClientKey): string {
 	if (key === "mcp-url") return "/mcp-icon.svg"
+	if (key === "antigravity") return "/mcp-supported-tools/antigravity.png"
 	const file = key === "claude-code" ? "claude" : key
 	return `/mcp-supported-tools/${file}.png`
 }
