@@ -1,0 +1,125 @@
+---
+title: "Supermemory CLI"
+sidebarTitle: "Overview"
+description: "Supermemory from the terminal. One command — npx supermemory — for your cloud memory and a local server."
+icon: "square-terminal"
+---
+
+The Supermemory CLI is the complete interface to Supermemory from your terminal. Add memories, search, manage documents, configure projects, connect data sources, administer teams — all programmatically, all from `npx supermemory`.
+
+It does two things:
+
+<CardGroup cols={2}>
+  <Card title="Manage your cloud memory" icon="cloud" href="/cli/commands">
+    `npx supermemory <command>` talks to the [hosted platform](https://console.supermemory.ai). Add, search, and manage memories, documents, tags, keys, connectors, and teams.
+  </Card>
+  <Card title="Run a local server" icon="server" href="/cli/local">
+    `npx supermemory local` downloads and runs the self-hosted memory engine on your machine — one binary, zero config.
+  </Card>
+</CardGroup>
+
+## Install
+
+You can run every command through `npx` with no install:
+
+```bash
+npx supermemory whoami
+npx supermemory search "authentication patterns"
+npx supermemory local
+```
+
+Or install it globally and drop the `npx`:
+
+<CodeGroup>
+```bash npm
+npm install -g supermemory
+```
+
+```bash bun
+bun add -g supermemory
+```
+</CodeGroup>
+
+```bash
+supermemory whoami
+```
+
+The rest of these docs use the bare `supermemory` form — prefix with `npx` if you haven't installed globally.
+
+## Authenticate
+
+Most commands act on your cloud account, so authenticate first:
+
+```bash
+# Browser OAuth flow
+supermemory login
+
+# Or pass an API key directly
+supermemory login --api-key sm_xxx
+
+# Confirm who you are
+supermemory whoami
+```
+
+In CI or scripts, set the API key as an environment variable instead of logging in:
+
+```bash
+export SUPERMEMORY_API_KEY=sm_xxx
+```
+
+<Note>
+`npx supermemory local` does **not** require authentication — it runs entirely on your machine and generates its own API key on first boot. See [Local server](/cli/local).
+</Note>
+
+## Configuration
+
+The CLI resolves config from three scopes, most specific wins:
+
+| Scope | File | Use case |
+|---|---|---|
+| `project` | `.supermemory/config.json` (gitignored) | Per-machine secrets, API keys |
+| `team` | `.supermemory/team.json` (committed) | Shared container tag, team-wide defaults |
+| `global` | `~/.config/supermemory/config.json` | Defaults for all projects on this machine |
+
+```bash
+# Interactive setup wizard
+supermemory init
+
+# Non-interactive
+supermemory init --scope project --tag my-bot
+supermemory init --scope team --tag shared-project
+
+# View / get / set values
+supermemory config
+supermemory config get tag
+supermemory config set tag my-project
+```
+
+### Environment variables
+
+| Variable | Description |
+|---|---|
+| `SUPERMEMORY_API_KEY` | API key for authentication |
+| `SUPERMEMORY_TAG` | Override the default container tag |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OpenTelemetry collector endpoint |
+
+### Global flags
+
+Available on every command:
+
+| Flag | Description |
+|---|---|
+| `--json` | Force machine-readable JSON output |
+| `--tag <string>` | Override the default container tag for this command |
+| `--help` | Show help for any command |
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Command reference" icon="list" href="/cli/commands">
+    Every command and flag — add, search, docs, tags, keys, connectors, teams, and more.
+  </Card>
+  <Card title="Local server" icon="server" href="/cli/local">
+    `npx supermemory local` — run the memory engine on your own machine.
+  </Card>
+</CardGroup>

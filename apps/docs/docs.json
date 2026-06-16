@@ -72,6 +72,11 @@
 								"pages": ["intro", "quickstart", "vibe-coding"]
 							},
 							{
+								"group": "Command Line (CLI)",
+								"icon": "square-terminal",
+								"pages": ["cli/overview", "cli/commands", "cli/local"]
+							},
+							{
 								"group": "Self-Hosting",
 								"pages": [
 									"self-hosting/overview",
@@ -132,6 +137,28 @@
 								]
 							},
 							{
+								"group": "SMFS (Memory Filesystem)",
+								"icon": "database",
+								"pages": [
+									"smfs/overview",
+									"smfs/install",
+									"smfs/mount",
+									"smfs/bash-tool",
+									"smfs/bash-tool-python",
+									{
+										"group": "Providers",
+										"icon": "cloud",
+										"pages": [
+											"smfs/providers/daytona",
+											"smfs/providers/e2b",
+											"smfs/providers/vercel",
+											"smfs/providers/cloudflare"
+										]
+									},
+									"smfs/examples"
+								]
+							},
+							{
 								"group": "Migration Guides",
 								"pages": [
 									{
@@ -154,28 +181,6 @@
 								"icon": "layers",
 								"pages": ["supermemory-mcp/claude-desktop"]
 							}
-						]
-					},
-					{
-						"anchor": "SMFS",
-						"icon": "database",
-						"pages": [
-							"smfs/overview",
-							"smfs/install",
-							"smfs/mount",
-							"smfs/bash-tool",
-							"smfs/bash-tool-python",
-							{
-								"group": "Providers",
-								"icon": "cloud",
-								"pages": [
-									"smfs/providers/daytona",
-									"smfs/providers/e2b",
-									"smfs/providers/vercel",
-									"smfs/providers/cloudflare"
-								]
-							},
-							"smfs/examples"
 						]
 					}
 				],
