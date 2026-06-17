@@ -3078,7 +3078,6 @@ export function IntegrationsView({
 				if (count > 0) {
 					return (
 						<div className="flex w-full items-center justify-between gap-2">
-							<ConnectionsCountPill count={count} />
 							<button
 								type="button"
 								aria-label="Add another knowledge source"
