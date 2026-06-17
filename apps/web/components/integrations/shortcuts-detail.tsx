@@ -153,7 +153,7 @@ export function ShortcutsConnectButtons({
 	return (
 		<div className="flex flex-col gap-2 sm:flex-row">
 			<PillButton
-				className="h-9 flex-none"
+				className="h-9 flex-none min-w-[88px]"
 				onClick={(e) => {
 					e.stopPropagation()
 					connect("add")
@@ -163,14 +163,14 @@ export function ShortcutsConnectButtons({
 				{pendingType === "add" ? (
 					<Loader className="size-4 text-[#FAFAFA] animate-spin" />
 				) : (
-					<Plus className="size-4 text-[#FAFAFA]" />
+					<Plus className="size-4 shrink-0 text-[#FAFAFA]" />
 				)}
 				<span className="text-[13px] text-[#FAFAFA] font-medium whitespace-nowrap">
-					{pendingType === "add" ? "Creating..." : "Add memory shortcut"}
+					{pendingType === "add" ? "Creating..." : "Add"}
 				</span>
 			</PillButton>
 			<PillButton
-				className="h-9 flex-none"
+				className="h-9 flex-none min-w-[88px]"
 				onClick={(e) => {
 					e.stopPropagation()
 					connect("search")
@@ -180,10 +180,10 @@ export function ShortcutsConnectButtons({
 				{pendingType === "search" ? (
 					<Loader className="size-4 text-[#FAFAFA] animate-spin" />
 				) : (
-					<Search className="size-4 text-[#FAFAFA]" />
+					<Search className="size-4 shrink-0 text-[#FAFAFA]" />
 				)}
 				<span className="text-[13px] text-[#FAFAFA] font-medium whitespace-nowrap">
-					{pendingType === "search" ? "Creating..." : "Search memory shortcut"}
+					{pendingType === "search" ? "Creating..." : "Search"}
 				</span>
 			</PillButton>
 		</div>
