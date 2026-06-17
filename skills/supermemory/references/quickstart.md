@@ -24,7 +24,7 @@ npm install supermemory
 ```bash
 pip install supermemory
 # Or for async support with aiohttp
-pip install supermemory[aiohttp]
+pip install 'supermemory[aiohttp]'
 ```
 
 📦 View on PyPI: [https://pypi.org/project/supermemory/](https://pypi.org/project/supermemory/)
