@@ -148,6 +148,7 @@ const PLAN_CARDS: PlanCardDefinition[] = [
 		description: "For people building with AI memory",
 		features: [
 			"Auto top-up when balance runs low",
+			"Google Drive, Notion, OneDrive & Granola connectors",
 			"All plugins (Claude Code, Cursor, Hermes...)",
 			"Priority support",
 		],

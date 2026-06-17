@@ -457,7 +457,8 @@ const SECTIONS: Array<{
 				tagline: "Sync AI meeting notes into your memory",
 				simpleTitle: "Your meeting notes, ready to recall",
 				icon: <Granola className="size-6" />,
-				max: true,
+				pro: true,
+				docsUrl: "https://supermemory.ai/docs/connectors/granola",
 			},
 		],
 	},
@@ -1077,6 +1078,11 @@ const CONNECTOR_META: Record<
 		icon: <OneDrive className="size-6" />,
 		documentLabel: "documents",
 	},
+	granola: {
+		name: "Granola",
+		icon: <Granola className="size-6" />,
+		documentLabel: "notes",
+	},
 }
 
 interface PluginEntry {
@@ -1527,6 +1533,7 @@ const CONNECTOR_SMALL_ICON: Record<ConnectorProvider, ReactNode> = {
 	"google-drive": <GoogleDrive className="size-3.5" />,
 	notion: <Notion className="size-3.5" />,
 	onedrive: <OneDrive className="size-3.5" />,
+	granola: <Granola className="size-3.5" />,
 }
 
 function pluginIconNode(iconSrc: string | null): ReactNode {
@@ -1588,6 +1595,9 @@ function resolveDocSource(
 	}
 	if (type.includes("onedrive") || type.includes("microsoft")) {
 		return { label: "OneDrive", icon: <OneDrive className="size-3.5" /> }
+	}
+	if (type.includes("granola")) {
+		return { label: "Granola", icon: <Granola className="size-3.5" /> }
 	}
 	const host = hostnameOf(doc.url)
 	if (host) {
@@ -2386,8 +2396,6 @@ export function IntegrationsView({
 	const autumn = useCustomer({ queryOptions: { enabled: !publicMode } })
 	const hasProProduct =
 		!publicMode && hasActivePlan(autumn.data?.subscriptions, "api_pro")
-	const hasMaxProduct =
-		!publicMode && hasActivePlan(autumn.data?.subscriptions, "api_max")
 	const isAutumnLoading = !publicMode && autumn.isLoading
 
 	const [connectingPlugin, setConnectingPlugin] = useState<string | null>(null)
@@ -3066,9 +3074,7 @@ export function IntegrationsView({
 			case "connector": {
 				const count = connectionsByProvider[item.provider].length
 				const isGranola = item.provider === "granola"
-				const needsPlanUpgrade = isGranola
-					? !hasMaxProduct
-					: !isAutumnLoading && !hasProProduct
+				const needsPlanUpgrade = !isAutumnLoading && !hasProProduct
 				if (count > 0) {
 					return (
 						<div className="flex w-full items-center justify-between gap-2">
@@ -3080,8 +3086,8 @@ export function IntegrationsView({
 								onClick={() => {
 									trackCard(item)
 									if (isGranola) {
-										if (!hasMaxProduct) {
-											handleUpgrade("api_max")
+										if (!hasProProduct) {
+											handleUpgrade("api_pro")
 											return
 										}
 										setGranolaModalOpen(true)
@@ -3101,9 +3107,7 @@ export function IntegrationsView({
 				}
 				if (needsPlanUpgrade) {
 					return (
-						<PillButton
-							onClick={() => handleUpgrade(isGranola ? "api_max" : "api_pro")}
-						>
+						<PillButton onClick={() => handleUpgrade("api_pro")}>
 							<Zap className="size-3.5 text-[#4BA0FA]" /> Upgrade
 						</PillButton>
 					)
@@ -3114,8 +3118,8 @@ export function IntegrationsView({
 						onClick={() => {
 							trackCard(item)
 							if (isGranola) {
-								if (!hasMaxProduct) {
-									handleUpgrade("api_max")
+								if (!hasProProduct) {
+									handleUpgrade("api_pro")
 									return
 								}
 								setGranolaModalOpen(true)
@@ -3895,8 +3899,8 @@ export function IntegrationsView({
 			</Dialog>
 
 			<GranolaConnectModal
-				open={hasMaxProduct && granolaModalOpen}
-				onOpenChange={(open) => setGranolaModalOpen(open && hasMaxProduct)}
+				open={hasProProduct && granolaModalOpen}
+				onOpenChange={(open) => setGranolaModalOpen(open && hasProProduct)}
 			/>
 		</div>
 	)

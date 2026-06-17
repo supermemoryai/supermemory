@@ -310,9 +310,6 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
 	const isProUser = hasActivePlan(autumn.data?.subscriptions, "api_pro")
-	// Granola is a Max-tier (and above) connector, like the Gmail connector.
-	// Lower plans see it but can't connect — the API-key modal stays gated.
-	const isMaxUser = hasActivePlan(autumn.data?.subscriptions, "api_max")
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
 	const [granolaModalOpen, setGranolaModalOpen] = useState(false)
@@ -608,15 +605,15 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 										</div>
 									) : provider === "granola" ? (
 										<>
-											{!isMaxUser && (
+											{!isProUser && (
 												<span className="bg-[#0054AD] text-[#FAFAFA] text-[10px] font-bold px-1.5 py-[2px] rounded-[3px] uppercase tracking-wide">
-													Max
+													Pro
 												</span>
 											)}
 											<Button
 												onClick={() => {
-													if (!isMaxUser) {
-														handleUpgrade("api_max")
+													if (!isProUser) {
+														handleUpgrade("api_pro")
 														return
 													}
 													setGranolaModalOpen(true)
@@ -624,7 +621,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												disabled={isUpgrading || autumn.isLoading}
 												className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 text-[14px] font-medium px-3 py-1.5 h-8"
 											>
-												{!isMaxUser
+												{!isProUser
 													? isUpgrading || autumn.isLoading
 														? "Upgrading..."
 														: "Upgrade"
@@ -795,8 +792,8 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 										<DropdownMenuItem
 											disabled={isUpgrading || autumn.isLoading}
 											onClick={() => {
-												if (!isMaxUser) {
-													handleUpgrade("api_max")
+												if (!isProUser) {
+													handleUpgrade("api_pro")
 													return
 												}
 												setGranolaModalOpen(true)
@@ -807,16 +804,16 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 											<div className="flex flex-col gap-0.5 min-w-0">
 												<span className="flex items-center gap-1.5 text-[14px] font-medium text-[#FAFAFA] leading-tight">
 													Granola
-													{!isMaxUser && (
+													{!isProUser && (
 														<span className="bg-[#0054AD] text-[#FAFAFA] text-[9px] font-bold px-1 py-px rounded-[3px] uppercase tracking-wide">
-															Max
+															Pro
 														</span>
 													)}
 												</span>
 												<span className="text-[11px] text-[#737373] leading-tight">
-													{isMaxUser
+													{isProUser
 														? "Meeting notes & transcripts"
-														: "Upgrade to Max"}
+														: "Upgrade to Pro"}
 												</span>
 											</div>
 										</DropdownMenuItem>
@@ -881,7 +878,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 									<>
 										<button
 											type="button"
-											onClick={handleUpgrade}
+											onClick={() => handleUpgrade()}
 											className="underline text-[#737373] hover:text-white transition-colors cursor-pointer"
 										>
 											Upgrade to Pro
@@ -948,8 +945,8 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 			/>
 
 			<GranolaConnectModal
-				open={isMaxUser && granolaModalOpen}
-				onOpenChange={(open) => setGranolaModalOpen(open && isMaxUser)}
+				open={isProUser && granolaModalOpen}
+				onOpenChange={(open) => setGranolaModalOpen(open && isProUser)}
 				containerTags={[selectedProject]}
 			/>
 		</div>
