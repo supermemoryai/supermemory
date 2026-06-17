@@ -7,10 +7,11 @@ import { cn } from "@lib/utils"
 import { $fetch } from "@lib/api"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
-import { ChevronDownIcon, XIcon, Loader2, Trash2 } from "lucide-react"
+import { ChevronDownIcon, Pencil, XIcon, Loader2, Trash2 } from "lucide-react"
 import type { ContainerTagListType } from "@lib/types"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import { AddSpaceModal } from "./add-space-modal"
+import { EditSpaceModal } from "./edit-space-modal"
 import { SelectSpacesModal } from "./select-spaces-modal"
 import { SpaceGlyph } from "./space-glyph"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
@@ -54,6 +55,7 @@ export interface SpaceSelectorProps {
 	compact?: boolean
 	includeAuto?: boolean
 	hideCount?: boolean
+	enableEdit?: boolean
 }
 
 const triggerVariants = {
@@ -114,9 +116,11 @@ export function SpaceSelector({
 	compact = false,
 	includeAuto = false,
 	hideCount = false,
+	enableEdit = false,
 }: SpaceSelectorProps) {
 	const [showCreateDialog, setShowCreateDialog] = useState(false)
 	const [showSelectSpacesModal, setShowSelectSpacesModal] = useState(false)
+	const [showEditDialog, setShowEditDialog] = useState(false)
 	const [recents, setRecents] = useState<string[]>([])
 	const [deleteDialog, setDeleteDialog] = useState<{
 		open: boolean
@@ -230,6 +234,12 @@ export function SpaceSelector({
 			isOwnSpace,
 		}
 	}, [allProjects, selectedProjects, pluginMetaMap, includeAuto, user?.id])
+
+	const canEditCurrent =
+		enableEdit &&
+		!displayInfo.isAuto &&
+		!displayInfo.plugin &&
+		!displayInfo.isOwnSpace
 
 	const pushRecent = useCallback((tag: string) => {
 		setRecents((prev) => {
@@ -371,85 +381,115 @@ export function SpaceSelector({
 
 	return (
 		<>
-			<Tooltip>
-				<TooltipTrigger asChild>
+			<div className="group relative inline-flex min-w-0 max-w-full">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={() => setShowSelectSpacesModal(true)}
+							aria-label={
+								isLoading
+									? "Loading spaces"
+									: `Space: ${displayInfo.name}. Open selector.`
+							}
+							className={cn(
+								"flex min-w-0 max-w-full items-center cursor-pointer transition-colors",
+								triggerVariants[variant],
+								variant === "default" &&
+									compact &&
+									"h-9 min-h-9 gap-1.5 px-2.5",
+								dmSansClassName(),
+								triggerClassName,
+							)}
+						>
+							<span
+								className={cn(
+									"flex shrink-0 items-center",
+									canEditCurrent && "transition-opacity group-hover:opacity-0",
+								)}
+							>
+								{displayInfo.isAuto ? (
+									<AutoSpaceIcon size={compact ? 16 : 18} />
+								) : displayInfo.isOwnSpace ? (
+									<NovaOrb
+										size={compact ? 14 : 16}
+										className="shrink-0 blur-[0.45px]!"
+									/>
+								) : displayInfo.plugin ? (
+									displayInfo.plugin.iconSrc ? (
+										<Image
+											src={displayInfo.plugin.iconSrc}
+											alt=""
+											width={16}
+											height={16}
+											className={cn(
+												"shrink-0 rounded-[3px]",
+												compact ? "size-3.5" : "size-4",
+											)}
+											aria-hidden
+										/>
+									) : (
+										<span
+											className={cn(
+												"shrink-0 flex items-center justify-center rounded-[3px] bg-[#1E232B] text-[#FAFAFA] text-[10px] font-semibold uppercase",
+												compact ? "size-3.5" : "size-4",
+											)}
+											aria-hidden
+										>
+											{pluginInitial(displayInfo.plugin.label)}
+										</span>
+									)
+								) : (
+									<SpaceGlyph
+										emoji={displayInfo.emoji}
+										size={compact ? 16 : 18}
+									/>
+								)}
+							</span>
+							<span
+								className={cn(
+									"min-w-0 truncate text-sm font-medium text-white",
+									compact ? "max-w-[7rem]" : "max-w-[10rem] md:max-w-[15rem]",
+								)}
+								title={isLoading ? undefined : displayInfo.name}
+							>
+								{isLoading ? "…" : displayInfo.name}
+							</span>
+							{!compact &&
+								!hideCount &&
+								spaceCountData !== undefined &&
+								spaceCountData > 0 && (
+									<span className="shrink-0 text-[11px] text-[#737373] tabular-nums">
+										· {formatCount(spaceCountData)}
+									</span>
+								)}
+							<ChevronDownIcon
+								className="size-3.5 shrink-0 text-[#737373]"
+								aria-hidden
+							/>
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" className={dmSansClassName()}>
+						Switch space
+					</TooltipContent>
+				</Tooltip>
+				{canEditCurrent && (
 					<button
 						type="button"
-						onClick={() => setShowSelectSpacesModal(true)}
-						aria-label={
-							isLoading
-								? "Loading spaces"
-								: `Space: ${displayInfo.name}. Open selector.`
-						}
+						onClick={(event) => {
+							event.stopPropagation()
+							setShowEditDialog(true)
+						}}
+						aria-label={`Edit ${displayInfo.name}`}
 						className={cn(
-							"flex min-w-0 max-w-full items-center cursor-pointer transition-colors",
-							triggerVariants[variant],
-							variant === "default" && compact && "h-9 min-h-9 gap-1.5 px-2.5",
-							dmSansClassName(),
-							triggerClassName,
+							"pointer-events-none absolute top-1/2 z-10 flex -translate-y-1/2 items-center justify-center rounded-md text-[#A1A1AA] opacity-0 transition-opacity hover:text-white group-hover:pointer-events-auto group-hover:opacity-100",
+							compact ? "left-2.5 size-4" : "left-3 size-[18px]",
 						)}
 					>
-						{displayInfo.isAuto ? (
-							<AutoSpaceIcon size={compact ? 16 : 18} />
-						) : displayInfo.isOwnSpace ? (
-							<NovaOrb
-								size={compact ? 14 : 16}
-								className="shrink-0 blur-[0.45px]!"
-							/>
-						) : displayInfo.plugin ? (
-							displayInfo.plugin.iconSrc ? (
-								<Image
-									src={displayInfo.plugin.iconSrc}
-									alt=""
-									width={16}
-									height={16}
-									className={cn(
-										"shrink-0 rounded-[3px]",
-										compact ? "size-3.5" : "size-4",
-									)}
-									aria-hidden
-								/>
-							) : (
-								<span
-									className={cn(
-										"shrink-0 flex items-center justify-center rounded-[3px] bg-[#1E232B] text-[#FAFAFA] text-[10px] font-semibold uppercase",
-										compact ? "size-3.5" : "size-4",
-									)}
-									aria-hidden
-								>
-									{pluginInitial(displayInfo.plugin.label)}
-								</span>
-							)
-						) : (
-							<SpaceGlyph emoji={displayInfo.emoji} size={compact ? 16 : 18} />
-						)}
-						<span
-							className={cn(
-								"min-w-0 truncate text-sm font-medium text-white",
-								compact ? "max-w-[7rem]" : "max-w-[10rem] md:max-w-[15rem]",
-							)}
-							title={isLoading ? undefined : displayInfo.name}
-						>
-							{isLoading ? "…" : displayInfo.name}
-						</span>
-						{!compact &&
-							!hideCount &&
-							spaceCountData !== undefined &&
-							spaceCountData > 0 && (
-								<span className="shrink-0 text-[11px] text-[#737373] tabular-nums">
-									· {formatCount(spaceCountData)}
-								</span>
-							)}
-						<ChevronDownIcon
-							className="size-3.5 shrink-0 text-[#737373]"
-							aria-hidden
-						/>
+						<Pencil className={compact ? "size-3" : "size-3.5"} />
 					</button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" className={dmSansClassName()}>
-					Switch space
-				</TooltipContent>
-			</Tooltip>
+				)}
+			</div>
 
 			<AddSpaceModal
 				isOpen={showCreateDialog}
@@ -474,6 +514,16 @@ export function SpaceSelector({
 				onDeleteRequest={handleDeleteRequest}
 				onBulkDeleteRequest={handleBulkDeleteRequest}
 			/>
+
+			{canEditCurrent && (
+				<EditSpaceModal
+					containerTag={activeTag}
+					currentName={displayInfo.name}
+					currentEmoji={displayInfo.emoji ?? "📁"}
+					open={showEditDialog}
+					onOpenChange={setShowEditDialog}
+				/>
+			)}
 
 			<Dialog
 				open={deleteDialog.open}

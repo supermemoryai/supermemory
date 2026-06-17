@@ -1,6 +1,6 @@
 {
   "name": "@supermemory/memory-graph",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Interactive graph visualization component for Supermemory - visualize and explore your memory connections",
   "type": "module",
   "main": "./src/index.tsx",

@@ -4,7 +4,7 @@ import { $fetch } from "@lib/api"
 import { hasActivePlan } from "@lib/queries"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
+import { GoogleDrive, Granola, Notion, OneDrive } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import {
 	Check,
@@ -31,12 +31,16 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
+import { GranolaConnectModal } from "@/components/granola-connect-modal"
 import { RemoveConnectionDialog } from "@/components/remove-connection-dialog"
 import { SyncStatusBadge } from "@/components/settings/sync-status-badge"
 import { SyncHistoryPanel } from "@/components/settings/sync-history-panel"
 import { useConnectionHealth } from "@/hooks/use-connection-health"
 import { useTriggerSync } from "@/hooks/use-trigger-sync"
-import { formatRelativeTime } from "@/components/settings/sync-utils"
+import {
+	formatRelativeTime,
+	getConnectionSubtitle,
+} from "@/components/settings/sync-utils"
 import type { ImportProvider } from "@/components/settings/sync-utils"
 
 type GDriveSyncScope = "scoped" | "full"
@@ -48,7 +52,7 @@ const GDRIVE_SCOPE_LABELS: Record<GDriveSyncScope, string> = {
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
-type ConnectorProvider = "google-drive" | "notion" | "onedrive"
+type ConnectorProvider = "google-drive" | "notion" | "onedrive" | "granola"
 
 const CONNECTORS: Record<
 	ConnectorProvider,
@@ -76,6 +80,12 @@ const CONNECTORS: Record<
 		description: "Access your Microsoft Office documents",
 		documentLabel: "documents",
 		icon: OneDrive,
+	},
+	granola: {
+		title: "Granola",
+		description: "Sync AI meeting notes and transcripts",
+		documentLabel: "notes",
+		icon: Granola,
 	},
 } as const
 
@@ -162,7 +172,7 @@ function ConnectionRow({
 								"truncate text-[14px] text-[#737373]",
 							)}
 						>
-							{connection.email || "Unknown"}
+							{getConnectionSubtitle(connection)}
 						</span>
 					</div>
 					<div className="flex shrink-0 items-center gap-0.5">
@@ -300,8 +310,12 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
 	const isProUser = hasActivePlan(autumn.data?.subscriptions, "api_pro")
+	// Granola is a Max-tier (and above) connector, like the Gmail connector.
+	// Lower plans see it but can't connect — the API-key modal stays gated.
+	const isMaxUser = hasActivePlan(autumn.data?.subscriptions, "api_max")
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
+	const [granolaModalOpen, setGranolaModalOpen] = useState(false)
 	const [gdriveSyncScope, setGdriveSyncScope] =
 		useState<GDriveSyncScope>("scoped")
 	const [isUpgrading, setIsUpgrading] = useState(false)
@@ -314,11 +328,11 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const projects = (queryClient.getQueryData<Project[]>(["projects"]) ||
 		[]) as Project[]
 
-	const handleUpgrade = async () => {
+	const handleUpgrade = async (planId: "api_pro" | "api_max" = "api_pro") => {
 		setIsUpgrading(true)
 		try {
 			const result = await autumn.attach({
-				planId: "api_pro",
+				planId,
 				successUrl: window.location.href,
 			})
 			if (result?.paymentUrl) {
@@ -592,6 +606,31 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												</DropdownMenuContent>
 											</DropdownMenu>
 										</div>
+									) : provider === "granola" ? (
+										<>
+											{!isMaxUser && (
+												<span className="bg-[#0054AD] text-[#FAFAFA] text-[10px] font-bold px-1.5 py-[2px] rounded-[3px] uppercase tracking-wide">
+													Max
+												</span>
+											)}
+											<Button
+												onClick={() => {
+													if (!isMaxUser) {
+														handleUpgrade("api_max")
+														return
+													}
+													setGranolaModalOpen(true)
+												}}
+												disabled={isUpgrading || autumn.isLoading}
+												className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 text-[14px] font-medium px-3 py-1.5 h-8"
+											>
+												{!isMaxUser
+													? isUpgrading || autumn.isLoading
+														? "Upgrading..."
+														: "Upgrade"
+													: "Connect"}
+											</Button>
+										</>
 									) : (
 										<Button
 											onClick={() =>
@@ -753,6 +792,34 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												</span>
 											</div>
 										</DropdownMenuItem>
+										<DropdownMenuItem
+											disabled={isUpgrading || autumn.isLoading}
+											onClick={() => {
+												if (!isMaxUser) {
+													handleUpgrade("api_max")
+													return
+												}
+												setGranolaModalOpen(true)
+											}}
+											className="flex items-start gap-2.5 px-3 py-2.5 rounded-md cursor-pointer text-white opacity-60 hover:opacity-100 hover:bg-[#293952]/40 focus:bg-[#293952]/40 focus:opacity-100 data-disabled:opacity-40 data-disabled:cursor-not-allowed data-disabled:hover:bg-transparent"
+										>
+											<Granola className="size-5 mt-0.5 shrink-0" />
+											<div className="flex flex-col gap-0.5 min-w-0">
+												<span className="flex items-center gap-1.5 text-[14px] font-medium text-[#FAFAFA] leading-tight">
+													Granola
+													{!isMaxUser && (
+														<span className="bg-[#0054AD] text-[#FAFAFA] text-[9px] font-bold px-1 py-px rounded-[3px] uppercase tracking-wide">
+															Max
+														</span>
+													)}
+												</span>
+												<span className="text-[11px] text-[#737373] leading-tight">
+													{isMaxUser
+														? "Meeting notes & transcripts"
+														: "Upgrade to Max"}
+												</span>
+											</div>
+										</DropdownMenuItem>
 									</div>
 								</div>
 							</DropdownMenuContent>
@@ -878,6 +945,12 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 					}
 				}}
 				isDeleting={deleteConnectionMutation.isPending}
+			/>
+
+			<GranolaConnectModal
+				open={isMaxUser && granolaModalOpen}
+				onOpenChange={(open) => setGranolaModalOpen(open && isMaxUser)}
+				containerTags={[selectedProject]}
 			/>
 		</div>
 	)

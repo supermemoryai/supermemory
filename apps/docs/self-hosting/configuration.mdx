@@ -1,0 +1,135 @@
+---
+title: "Self-Hosting Configuration"
+sidebarTitle: "Configuration"
+description: "Every environment variable the self-hosted server understands."
+icon: "settings"
+---
+
+The self-hosted server aims for **zero configuration** — the only thing it needs is one model provider key, which the first-boot wizard collects interactively (or set it via env var for non-interactive deployments). Everything else below is opt-in, layered on top as you need it.
+
+The installer writes API keys to `~/.supermemory/env`, which is loaded on every launch. You can also set variables in your shell or a process manager.
+
+## Core
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `PORT` (or `SUPERMEMORY_PORT`) | HTTP listen port | `6767` |
+| `SUPERMEMORY_DATA_DIR` | Where the graph engine's data, auth secret, and model cache live | `./.supermemory` |
+
+## LLM providers
+
+In production, Supermemory uses its own proprietary models tuned for long-horizon data understanding. Self-hosted, you bring your own: embeddings are computed locally, and a model of your choice powers the intelligent steps — summaries, contextual chunking, and memory extraction. Configure **at least one**:
+
+| Variable | Provider |
+|---|---|
+| `OPENAI_API_KEY` | OpenAI — or any OpenAI-compatible endpoint, see below |
+| `ANTHROPIC_API_KEY` | Anthropic |
+| `GEMINI_API_KEY` | Google AI Studio (Gemini) |
+| `GROQ_API_KEY` | Groq |
+| `WORKERS_AI_API_KEY` + `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Workers AI |
+| `GOOGLE_VERTEX_PROJECT_ID` + `GOOGLE_VERTEX_LOCATION` | GCP Vertex AI |
+
+<Tip>
+No key set? The server walks you through it. On first boot, an interactive setup wizard asks which provider you want, securely prompts for the key, and saves it encrypted — including a custom base URL and model name if you pick an OpenAI-compatible endpoint.
+</Tip>
+
+With multiple providers configured, the first one in the order above is used.
+
+<Note>
+Image, video, and high-fidelity PDF understanding require a Gemini or Vertex AI key. Text ingestion, memory extraction, and search work with any provider.
+</Note>
+
+### Fully offline with local models
+
+`OPENAI_API_KEY` + `OPENAI_BASE_URL` covers any OpenAI-compatible endpoint: Ollama, LM Studio, vLLM, llama.cpp server, Together, Fireworks, and more.
+
+```bash
+# Ollama example — gpt-oss-20b works great
+OPENAI_BASE_URL=http://localhost:11434/v1
+OPENAI_API_KEY=ollama        # any non-empty string for local runners
+OPENAI_MODEL=gpt-oss:20b
+```
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `OPENAI_BASE_URL` | OpenAI-compatible endpoint URL | OpenAI |
+| `OPENAI_MODEL` | Model ID sent to that endpoint | `gpt-5.1` |
+| `OPENAI_FAST_MODEL` | Override for fast/light tasks | `OPENAI_MODEL` |
+| `OPENAI_TEXT_MODEL` | Override for heavier text tasks | `OPENAI_MODEL` |
+
+## File storage
+
+Nothing to configure. Uploaded files (PDFs, images) are stored on local disk inside `$SUPERMEMORY_DATA_DIR` and served by the server at `/files/:key`.
+
+## Embedding performance
+
+Local embeddings are prewarmed at startup with conservative defaults — one worker, minimal CPU footprint. Turn these up if you're ingesting heavily and prefer throughput over headroom:
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `SUPERMEMORY_LOCAL_EMBEDDING_POOL_SIZE` | Number of embedding workers | `1` |
+| `SUPERMEMORY_LOCAL_EMBEDDING_WASM_THREADS` | Compute threads per worker | `1` |
+| `SUPERMEMORY_LOCAL_EMBEDDING_BATCH_SIZE` | Texts per worker dispatch | `8` |
+| `SUPERMEMORY_LOCAL_EMBEDDING_IDLE_TIMEOUT_MS` | Idle time before workers shut down | `120000` |
+| `SUPERMEMORY_SKIP_EMBEDDING_PREWARM` | Skip startup prewarm, load on first use | unset |
+
+## Memory limits & ingestion queue
+
+The server manages memory for you and separates the two kinds of work you send it:
+
+- **Searches are always served immediately.** They never wait behind ingestion, regardless of how much is queued.
+- **Adds are accepted instantly but processed through a queue.** A `POST /v3/documents` call returns in milliseconds with status `queued`; extraction, embedding, and indexing happen in the background at a controlled pace.
+
+Ingestion may grow the server's memory usage by at most `SUPERMEMORY_EMBEDDING_RAM_LIMIT` (default **1 GB**) above its post-boot baseline. Past that, new documents simply wait in the queue until memory drops back under the limit — nothing is dropped, ingestion just slows down. The limit is measured above the boot baseline because the built-in local embeddings and storage engine have a fixed footprint that exists before any document is processed.
+
+The limit is printed at boot, and whenever adds are waiting the binary shows a live status line in the terminal:
+
+```
+[ingest] memory limit 1.0 GB above baseline (1.6 GB) · 2 concurrent — set SUPERMEMORY_EMBEDDING_RAM_LIMIT=ngb to change
+[ingest] 2 running · 193 queued · 0.4 GB / 1.0 GB ingest memory
+[ingest] 2 running · 193 queued · paused — 1.1 GB / 1.0 GB ingest memory, waiting for it to drop
+[ingest] resumed — memory back under the 1.0 GB ingest limit
+```
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `SUPERMEMORY_EMBEDDING_RAM_LIMIT` | Memory ingestion may use above the boot baseline. Accepts `1gb`, `1.5gb`, `512mb`, or a bare number (GB). | `1gb` |
+| `SUPERMEMORY_INGEST_CONCURRENCY` | Documents processed concurrently | `2` |
+
+```bash
+# Give ingestion 4 GB of headroom on a larger machine
+SUPERMEMORY_EMBEDDING_RAM_LIMIT=4gb ./supermemory-server
+```
+
+Raise the limit and concurrency on machines with spare RAM for faster bulk imports; lower them on small VPSes where you want the server to stay lean and don't mind adds draining slowly.
+
+## Telemetry
+
+The self-hosted binary sends no analytics — there is nothing to opt out of. The only related switch:
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `SUPERMEMORY_DISABLE_TELEMETRY` | Set to `1` to also disable internal AI SDK telemetry instrumentation | unset |
+
+## Platform-only features
+
+These exist in the codebase but are exclusive to the [hosted platform](https://console.supermemory.ai) — the self-hosted binary doesn't include them:
+
+- **Connectors** — Google Drive, Notion, Gmail, OneDrive background sync
+- **Supermemory MCP** — managed MCP server endpoints
+- **Optimized memory extraction** — the platform's extraction pipeline is tuned for higher quality at lower cost than bring-your-own-key
+- **Managed scale** — globally distributed infrastructure, no capacity planning
+
+Any other environment variables you may find referenced in the codebase are platform-only: the self-hosted binary ignores them even when set.
+
+## Example: production-ish `.env`
+
+```dotenv
+# Persistent data location
+SUPERMEMORY_DATA_DIR=/var/lib/supermemory
+
+# One LLM provider
+OPENAI_API_KEY=sk-...
+```
+
+That's enough for full ingestion, memory extraction, and hybrid search.

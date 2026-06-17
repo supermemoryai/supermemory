@@ -33,7 +33,20 @@ function buildMcpAuthorizeResumeUrl(
 	const p = new URLSearchParams(sp.toString())
 	p.delete("redirect")
 	p.delete("error")
-	return `${backend}/api/auth/mcp/authorize?${p.toString()}`
+	p.delete("exp")
+	p.delete("sig")
+
+	const prompt = p
+		.get("prompt")
+		?.split(" ")
+		.filter((value) => value && value !== "login")
+	if (prompt?.length) {
+		p.set("prompt", prompt.join(" "))
+	} else {
+		p.delete("prompt")
+	}
+
+	return `${backend}/api/auth/oauth2/authorize?${p.toString()}`
 }
 
 function LoginHeadline({ className }: { className?: string }) {

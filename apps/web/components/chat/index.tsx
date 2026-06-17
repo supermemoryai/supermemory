@@ -7,6 +7,7 @@ import { useQueryState } from "nuqs"
 import type { UIMessage } from "@ai-sdk/react"
 import { motion } from "motion/react"
 import { useChat } from "@ai-sdk/react"
+import { isWebSearchToolName } from "@/lib/chat-web-search-tools"
 import { DefaultChatTransport } from "ai"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
@@ -19,10 +20,12 @@ import {
 } from "@ui/components/sheet"
 import { ScrollArea } from "@ui/components/scroll-area"
 import {
+	ArrowLeftIcon,
 	Check,
 	ChevronDownIcon,
 	HistoryIcon,
 	Plus,
+	Search,
 	SquarePenIcon,
 	Trash2,
 	XIcon,
@@ -36,7 +39,12 @@ import { getNovaChatErrorCopy } from "@/lib/chat-stream-error"
 import { useProject } from "@/stores"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
-import { modelNames, type ModelId } from "@/lib/models"
+import {
+	getDefaultReasoningEffort,
+	modelNames,
+	type ModelId,
+	type ReasoningEffort,
+} from "@/lib/models"
 import { SpaceSelector } from "@/components/space-selector"
 import { SuperLoader } from "../superloader"
 import { UserMessage } from "./message/user-message"
@@ -51,6 +59,46 @@ import { useViewMode } from "@/lib/view-mode-context"
 import { threadParam } from "@/lib/search-params"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import { ChatEmptyStatePlaceholder } from "./chat-empty-state"
+import { toast } from "sonner"
+import {
+	chatAttachmentKey,
+	CHAT_ATTACHMENT_ACCEPT,
+	createChatAttachmentDraft,
+	type ChatAttachment,
+	type ChatAttachmentDraft,
+	isAcceptedChatAttachment,
+} from "./attachments"
+import { cacheFileBlob, removeCachedFile } from "@/lib/file-cache"
+import { ReasoningSelector } from "./reasoning-selector"
+
+type ChatMessageSendSource = "typed" | "suggested" | "highlight" | "home"
+
+const DISCARD_ATTACHMENT_MAX_ATTEMPTS = 15
+const DISCARD_ATTACHMENT_RETRY_MS = 2000
+
+type RawChatAttachmentResponse = Partial<ChatAttachment> & {
+	attachment?: Partial<ChatAttachment>
+}
+
+function normalizeChatAttachmentResponse(
+	data: RawChatAttachmentResponse,
+	draft: ChatAttachmentDraft,
+): ChatAttachment {
+	const attachment = data.attachment ?? data
+	const id = attachment.id ?? attachment.documentId ?? draft.id
+	return {
+		id,
+		documentId: attachment.documentId,
+		filename: attachment.filename ?? draft.file.name,
+		mediaType:
+			(attachment.mediaType ?? draft.file.type) || "application/octet-stream",
+		size: attachment.size ?? draft.file.size,
+		saveToMemory: attachment.saveToMemory ?? draft.saveToMemory,
+		status: attachment.status ?? "ready",
+		url: attachment.url,
+		contentPreview: attachment.contentPreview,
+	}
+}
 
 export function ChatLaunchFab({
 	onOpen,
@@ -94,6 +142,32 @@ export function ChatLaunchFab({
 	)
 }
 
+type QueuedChatMessage = {
+	id: string
+	text: string
+	model: ModelId
+	reasoningEffort: ReasoningEffort
+	attachments?: ChatAttachment[]
+}
+
+const CHAT_QUEUE_LIMIT = 3
+
+function normalizeModelId(value: unknown): ModelId | null {
+	if (typeof value !== "string") return null
+	return value in modelNames ? (value as ModelId) : null
+}
+
+function getMessageResponseModel(message: UIMessage): ModelId | null {
+	const metadata = (
+		message as UIMessage & { metadata?: Record<string, unknown> }
+	).metadata
+	return (
+		normalizeModelId(metadata?.model) ??
+		normalizeModelId(metadata?.responseModel) ??
+		null
+	)
+}
+
 export function ChatSidebar({
 	isChatOpen,
 	setIsChatOpen: _setIsChatOpen,
@@ -101,7 +175,9 @@ export function ChatSidebar({
 	queuedHighlightContent,
 	onConsumeQueuedMessage,
 	queuedMessageSource = "highlight",
+	queuedAttachments = null,
 	initialSelectedModel = null,
+	initialReasoningEffort = null,
 	initialChatProject = null,
 	emptyStateSuggestions,
 	layout = "sidebar",
@@ -112,7 +188,9 @@ export function ChatSidebar({
 	queuedHighlightContent?: string | null
 	onConsumeQueuedMessage?: () => void
 	queuedMessageSource?: "highlight" | "home"
+	queuedAttachments?: ChatAttachmentDraft[] | null
 	initialSelectedModel?: ModelId | null
+	initialReasoningEffort?: ReasoningEffort | null
 	initialChatProject?: string | null
 	emptyStateSuggestions?: string[]
 	layout?: "sidebar" | "page"
@@ -120,11 +198,24 @@ export function ChatSidebar({
 	const isMobile = useIsMobile()
 	const isPageDesktop = layout === "page" && !isMobile
 	const [input, setInput] = useState("")
+	const [attachmentDrafts, setAttachmentDrafts] = useState<
+		ChatAttachmentDraft[]
+	>([])
+	const [isChatDraggingFiles, setIsChatDraggingFiles] = useState(false)
 	const [selectedModel, setSelectedModel] = useState<ModelId>(
-		initialSelectedModel ?? "claude-sonnet-4.6",
+		initialSelectedModel ?? "grok-4.3",
+	)
+	const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(
+		initialReasoningEffort ??
+			getDefaultReasoningEffort(initialSelectedModel ?? "grok-4.3"),
 	)
 	const selectedModelRef = useRef(selectedModel)
 	selectedModelRef.current = selectedModel
+	const reasoningEffortRef = useRef(reasoningEffort)
+	reasoningEffortRef.current = reasoningEffort
+	const [messageQueue, setMessageQueue] = useState<QueuedChatMessage[]>([])
+	const queuedDispatchInFlightRef = useRef(false)
+	const queuedDispatchSawResponseRef = useRef(false)
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
 	const [messageFeedback, setMessageFeedback] = useState<
@@ -135,21 +226,57 @@ export function ChatSidebar({
 	const [isScrolledToBottom, setIsScrolledToBottom] = useState(true)
 	const [heightOffset, setHeightOffset] = useState(95)
 	const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+	const [historyScope, setHistoryScope] = useState<"current" | "all">("current")
+	const [historySearch, setHistorySearch] = useState("")
 	const [threads, setThreads] = useState<
-		Array<{ id: string; title: string; createdAt: string; updatedAt: string }>
+		Array<{
+			id: string
+			title: string
+			createdAt: string
+			updatedAt: string
+			space?: {
+				containerTag: string
+				name: string
+				emoji?: string
+				isDefault: boolean
+			}
+		}>
 	>([])
 	const [isLoadingThreads, setIsLoadingThreads] = useState(false)
 	const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
 		null,
 	)
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
+	const chatDragDepthRef = useRef(0)
 	const isScrolledToBottomRef = useRef(true)
 	const userJustSentRef = useRef(false)
 	const sentQueuedMessageRef = useRef<string | null>(null)
+	const truncateFromMessageIdRef = useRef<string | null>(null)
+	const pendingRegenerationRef = useRef<{
+		text: string
+	} | null>(null)
+	const pendingSendSettingsRef = useRef<{
+		model: ModelId
+		reasoningEffort: ReasoningEffort
+	} | null>(null)
+	const pendingResponseModelsRef = useRef<ModelId[]>([])
+	const seenAssistantMessageIdsRef = useRef<Set<string>>(new Set())
+	const [responseModelByMessageId, setResponseModelByMessageId] = useState<
+		Record<string, ModelId>
+	>({})
+	const [regenerationBaseLength, setRegenerationBaseLength] = useState<
+		number | null
+	>(null)
 	const pendingHighlightReplyRef = useRef<string | null>(null)
 	const awaitingHighlightInjectionRef = useRef(false)
 	const pendingHighlightMessageRef = useRef<UIMessage[] | null>(null)
 	const targetHighlightChatIdRef = useRef<string | null>(null)
+	const pendingRequestAttachmentsRef = useRef<ChatAttachment[]>([])
+	const uploadPromisesRef = useRef<Map<string, Promise<ChatAttachment>>>(
+		new Map(),
+	)
+	const abortControllersRef = useRef<Map<string, AbortController>>(new Map())
+	const discardedDraftIdsRef = useRef<Set<string>>(new Set())
 	const { selectedProject } = useProject()
 	const [chatSpaceProjects, setChatSpaceProjects] = useState<string[]>([
 		initialChatProject ?? AUTO_CHAT_SPACE_ID,
@@ -224,22 +351,42 @@ export function ChatSidebar({
 			new DefaultChatTransport({
 				api: `${chatApiBase}/chat`,
 				credentials: "include",
-				prepareSendMessagesRequest: ({ messages }) => ({
-					body: {
-						messages,
-						metadata: {
-							chatId: chatIdRef.current,
-							projectId: selectedProjectRef.current,
-							spaceMode:
-								selectedProjectRef.current === AUTO_CHAT_SPACE_ID
-									? "auto"
-									: "manual",
-							enableSpaceDiscovery:
-								selectedProjectRef.current === AUTO_CHAT_SPACE_ID,
-							model: selectedModelRef.current,
+				prepareSendMessagesRequest: ({ messages }) => {
+					const sendSettings = pendingSendSettingsRef.current
+					pendingSendSettingsRef.current = null
+
+					// Tool parts (incl. Anthropic server-side web search) don't round-trip
+					// through convertToModelMessages and cause tool_use/tool_result mismatches.
+					const sanitizedMessages = messages.map((m) => ({
+						...m,
+						parts: (m.parts ?? []).filter(
+							(p) => !p.type.startsWith("tool-") && p.type !== "dynamic-tool",
+						),
+					}))
+
+					return {
+						body: {
+							messages: sanitizedMessages,
+							metadata: {
+								chatId: chatIdRef.current,
+								projectId: selectedProjectRef.current,
+								spaceMode:
+									selectedProjectRef.current === AUTO_CHAT_SPACE_ID
+										? "auto"
+										: "manual",
+								enableSpaceDiscovery:
+									selectedProjectRef.current === AUTO_CHAT_SPACE_ID,
+								model: sendSettings?.model ?? selectedModelRef.current,
+								reasoningEffort:
+									sendSettings?.reasoningEffort ?? reasoningEffortRef.current,
+								truncateFromMessageId: truncateFromMessageIdRef.current,
+								...(pendingRequestAttachmentsRef.current.length > 0 && {
+									attachments: pendingRequestAttachmentsRef.current,
+								}),
+							},
 						},
-					},
-				}),
+					}
+				},
 			}),
 		[chatApiBase],
 	)
@@ -291,13 +438,365 @@ export function ChatSidebar({
 		[error, selectedModel],
 	)
 
+	useEffect(() => {
+		if (error) {
+			pendingResponseModelsRef.current = []
+		}
+	}, [error])
+
+	useEffect(() => {
+		const updates: Record<string, ModelId> = {}
+
+		for (const message of messages) {
+			if (message.role !== "assistant") continue
+			if (seenAssistantMessageIdsRef.current.has(message.id)) continue
+
+			seenAssistantMessageIdsRef.current.add(message.id)
+			const responseModel =
+				getMessageResponseModel(message) ??
+				pendingResponseModelsRef.current.shift() ??
+				null
+
+			if (responseModel) {
+				updates[message.id] = responseModel
+			}
+		}
+
+		if (Object.keys(updates).length === 0) return
+		setResponseModelByMessageId((prev) => ({ ...prev, ...updates }))
+	}, [messages])
+
 	const handleModelChange = useCallback(
 		(modelId: ModelId) => {
 			setSelectedModel(modelId)
+			setReasoningEffort(getDefaultReasoningEffort(modelId))
 			clearError()
 		},
 		[clearError],
 	)
+
+	const setAttachmentDraftState = useCallback(
+		(id: string, patch: Partial<ChatAttachmentDraft>) => {
+			setAttachmentDrafts((prev) =>
+				prev.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+			)
+		},
+		[],
+	)
+
+	const discardUploadedAttachment = useCallback(
+		(documentId: string) => {
+			void removeCachedFile(documentId)
+
+			const run = async (attempt: number): Promise<void> => {
+				try {
+					const response = await fetch(
+						`${chatApiBase}/chat/attachments/${documentId}`,
+						{
+							method: "DELETE",
+							credentials: "include",
+						},
+					)
+
+					if (
+						response.status === 409 &&
+						attempt < DISCARD_ATTACHMENT_MAX_ATTEMPTS
+					) {
+						setTimeout(() => {
+							void run(attempt + 1)
+						}, DISCARD_ATTACHMENT_RETRY_MS)
+						return
+					}
+
+					if (!response.ok && response.status !== 404) {
+						console.warn("Failed to discard chat attachment", {
+							documentId,
+							status: response.status,
+						})
+					}
+				} catch (error) {
+					if (attempt < DISCARD_ATTACHMENT_MAX_ATTEMPTS) {
+						setTimeout(() => {
+							void run(attempt + 1)
+						}, DISCARD_ATTACHMENT_RETRY_MS)
+						return
+					}
+					console.warn("Failed to discard chat attachment", {
+						documentId,
+						error,
+					})
+				}
+			}
+
+			void run(1)
+		},
+		[chatApiBase],
+	)
+
+	const uploadAttachmentDraft = useCallback(
+		(
+			draft: ChatAttachmentDraft,
+			chatIdForUpload: string,
+		): Promise<ChatAttachment> => {
+			if (draft.status === "uploaded" && draft.uploaded) {
+				return Promise.resolve(draft.uploaded)
+			}
+
+			const inflight = uploadPromisesRef.current.get(draft.id)
+			if (inflight) return inflight
+
+			const uploadPromise = (async (): Promise<ChatAttachment> => {
+				const controller = new AbortController()
+				abortControllersRef.current.set(draft.id, controller)
+
+				setAttachmentDraftState(draft.id, {
+					status: "uploading",
+					errorMessage: undefined,
+				})
+
+				const formData = new FormData()
+				formData.append("file", draft.file)
+				formData.append("threadId", chatIdForUpload)
+				formData.append("projectId", selectedProjectRef.current)
+				formData.append("saveToMemory", String(draft.saveToMemory))
+
+				try {
+					const response = await fetch(`${chatApiBase}/chat/attachments`, {
+						method: "POST",
+						body: formData,
+						credentials: "include",
+						signal: controller.signal,
+					})
+
+					if (!response.ok) {
+						let message = "Failed to upload attachment"
+						try {
+							const error = (await response.json()) as {
+								error?: string
+								message?: string
+							}
+							message = error.error ?? error.message ?? message
+						} catch {
+							// keep the fallback error
+						}
+						throw new Error(message)
+					}
+
+					const data = (await response.json()) as RawChatAttachmentResponse
+					const attachment = normalizeChatAttachmentResponse(data, draft)
+
+					abortControllersRef.current.delete(draft.id)
+
+					if (discardedDraftIdsRef.current.has(draft.id)) {
+						discardedDraftIdsRef.current.delete(draft.id)
+						if (attachment.documentId) {
+							discardUploadedAttachment(attachment.documentId)
+						}
+						return attachment
+					}
+
+					if (attachment.documentId) {
+						void cacheFileBlob(
+							attachment.documentId,
+							draft.file,
+							draft.file.type,
+						)
+					}
+					setAttachmentDraftState(draft.id, {
+						status: "uploaded",
+						uploaded: attachment,
+					})
+					return attachment
+				} catch (error) {
+					abortControllersRef.current.delete(draft.id)
+					uploadPromisesRef.current.delete(draft.id)
+
+					if (error instanceof DOMException && error.name === "AbortError") {
+						throw error
+					}
+
+					if (discardedDraftIdsRef.current.has(draft.id)) {
+						discardedDraftIdsRef.current.delete(draft.id)
+						throw error
+					}
+
+					const message =
+						error instanceof Error
+							? error.message
+							: "Failed to upload attachment"
+					setAttachmentDraftState(draft.id, {
+						status: "error",
+						errorMessage: message,
+					})
+					throw error
+				}
+			})()
+
+			uploadPromisesRef.current.set(draft.id, uploadPromise)
+			return uploadPromise
+		},
+		[chatApiBase, discardUploadedAttachment, setAttachmentDraftState],
+	)
+
+	const uploadAttachmentDrafts = useCallback(
+		async (drafts: ChatAttachmentDraft[], chatIdForUpload: string) => {
+			const uploaded: ChatAttachment[] = []
+			for (const draft of drafts) {
+				uploaded.push(await uploadAttachmentDraft(draft, chatIdForUpload))
+			}
+			return uploaded
+		},
+		[uploadAttachmentDraft],
+	)
+
+	const handleAddAttachmentFiles = useCallback(
+		(files: FileList | File[]) => {
+			const incoming = Array.from(files)
+			const accepted = incoming.filter(isAcceptedChatAttachment)
+			const rejected = incoming.length - accepted.length
+			if (rejected > 0) {
+				toast.error(
+					rejected === 1
+						? "One attachment is not supported or is over 50MB"
+						: `${rejected} attachments are not supported or are over 50MB`,
+				)
+			}
+			if (accepted.length === 0) return
+
+			const existingKeys = new Set(
+				attachmentDrafts.map((item) => chatAttachmentKey(item.file)),
+			)
+			const nextItems: ChatAttachmentDraft[] = []
+			let duplicateCount = 0
+			for (const file of accepted) {
+				const key = chatAttachmentKey(file)
+				if (existingKeys.has(key)) {
+					duplicateCount++
+					continue
+				}
+				existingKeys.add(key)
+				nextItems.push(createChatAttachmentDraft(file))
+			}
+			if (duplicateCount > 0) {
+				toast.message(
+					duplicateCount === 1
+						? "Skipped duplicate attachment"
+						: `Skipped ${duplicateCount} duplicate attachments`,
+				)
+			}
+			if (nextItems.length === 0) return
+			setAttachmentDrafts((prev) => [...prev, ...nextItems])
+
+			for (const draft of nextItems) {
+				void uploadAttachmentDraft(draft, currentChatId).catch(() => {
+					// Upload errors are reflected on the draft state unless the draft was removed.
+				})
+			}
+		},
+		[attachmentDrafts, currentChatId, uploadAttachmentDraft],
+	)
+
+	const handleRemoveAttachment = useCallback(
+		(id: string) => {
+			const draft = attachmentDrafts.find((item) => item.id === id)
+			discardedDraftIdsRef.current.add(id)
+
+			const controller = abortControllersRef.current.get(id)
+			if (controller) {
+				controller.abort()
+				abortControllersRef.current.delete(id)
+			}
+			uploadPromisesRef.current.delete(id)
+
+			const documentId = draft?.uploaded?.documentId
+			if (draft?.status === "uploaded" && documentId) {
+				discardUploadedAttachment(documentId)
+			}
+
+			setAttachmentDrafts((prev) => prev.filter((item) => item.id !== id))
+		},
+		[attachmentDrafts, discardUploadedAttachment],
+	)
+
+	const handleRetryAttachment = useCallback(
+		(id: string) => {
+			const draft = attachmentDrafts.find((item) => item.id === id)
+			if (!draft) return
+			void uploadAttachmentDraft(draft, currentChatId)
+		},
+		[attachmentDrafts, currentChatId, uploadAttachmentDraft],
+	)
+
+	const hasDraggedFiles = useCallback(
+		(event: React.DragEvent) =>
+			Array.from(event.dataTransfer.types).includes("Files"),
+		[],
+	)
+
+	const resetChatFileDrag = useCallback(() => {
+		chatDragDepthRef.current = 0
+		setIsChatDraggingFiles(false)
+	}, [])
+
+	const handleChatDragEnter = useCallback(
+		(event: React.DragEvent) => {
+			if (!hasDraggedFiles(event)) return
+			event.preventDefault()
+			event.stopPropagation()
+
+			chatDragDepthRef.current += 1
+			if (status !== "submitted" && status !== "streaming") {
+				setIsChatDraggingFiles(true)
+			}
+		},
+		[hasDraggedFiles, status],
+	)
+
+	const handleChatDragOver = useCallback(
+		(event: React.DragEvent) => {
+			if (!hasDraggedFiles(event)) return
+			event.preventDefault()
+			event.stopPropagation()
+			event.dataTransfer.dropEffect =
+				status === "submitted" || status === "streaming" ? "none" : "copy"
+		},
+		[hasDraggedFiles, status],
+	)
+
+	const handleChatDragLeave = useCallback(
+		(event: React.DragEvent) => {
+			if (!hasDraggedFiles(event)) return
+			event.preventDefault()
+			event.stopPropagation()
+
+			chatDragDepthRef.current = Math.max(0, chatDragDepthRef.current - 1)
+			if (chatDragDepthRef.current === 0) {
+				setIsChatDraggingFiles(false)
+			}
+		},
+		[hasDraggedFiles],
+	)
+
+	const handleChatDrop = useCallback(
+		(event: React.DragEvent) => {
+			if (!hasDraggedFiles(event)) return
+			event.preventDefault()
+			event.stopPropagation()
+
+			resetChatFileDrag()
+			const files = event.dataTransfer.files
+			if (status !== "submitted" && status !== "streaming" && files.length) {
+				handleAddAttachmentFiles(files)
+			}
+		},
+		[handleAddAttachmentFiles, hasDraggedFiles, resetChatFileDrag, status],
+	)
+
+	useEffect(() => {
+		if (status === "submitted" || status === "streaming") {
+			resetChatFileDrag()
+		}
+	}, [resetChatFileDrag, status])
 
 	useEffect(() => {
 		if (pendingThreadLoad && currentChatId === pendingThreadLoad.id) {
@@ -332,36 +831,193 @@ export function ChatSidebar({
 		}
 	}, [])
 
+	const submitChatMessage = useCallback(
+		async (
+			text: string,
+			source: ChatMessageSendSource,
+			drafts = attachmentDrafts,
+		): Promise<boolean> => {
+			const trimmed = text.trim()
+			if (!trimmed && drafts.length === 0) return false
+
+			const hasBusy = drafts.some(
+				(d) => d.status === "uploading" || d.status === "queued",
+			)
+			if (hasBusy) return false
+			const hasErrored = drafts.some((d) => d.status === "error")
+			if (hasErrored) return false
+
+			const chatIdForSend = threadId ?? fallbackChatId
+
+			try {
+				const uploadedAttachments =
+					drafts.length > 0
+						? await uploadAttachmentDrafts(drafts, chatIdForSend)
+						: []
+				const messageText = trimmed || "Analyze the attached file(s)."
+				const isRespondingNow = status === "submitted" || status === "streaming"
+
+				if (isRespondingNow) {
+					if (messageQueue.length >= CHAT_QUEUE_LIMIT) return false
+					setMessageQueue((prev) => {
+						if (prev.length >= CHAT_QUEUE_LIMIT) return prev
+						return [
+							...prev,
+							{
+								id: generateId(),
+								text: messageText,
+								model: selectedModel,
+								reasoningEffort,
+								attachments: uploadedAttachments,
+							},
+						]
+					})
+					analytics.chatMessageSent({
+						source,
+						attachment_count: uploadedAttachments.length,
+						saved_attachment_count: uploadedAttachments.filter(
+							(attachment) => attachment.saveToMemory,
+						).length,
+						temporary_attachment_count: uploadedAttachments.filter(
+							(attachment) => !attachment.saveToMemory,
+						).length,
+					})
+					setInput("")
+					setAttachmentDrafts([])
+					uploadPromisesRef.current.clear()
+					abortControllersRef.current.clear()
+					discardedDraftIdsRef.current.clear()
+					userJustSentRef.current = true
+					scrollToBottom()
+					return true
+				}
+
+				truncateFromMessageIdRef.current = null
+				if (!threadId) setThreadId(fallbackChatId)
+				pendingRequestAttachmentsRef.current = uploadedAttachments
+				analytics.chatMessageSent({
+					source,
+					attachment_count: uploadedAttachments.length,
+					saved_attachment_count: uploadedAttachments.filter(
+						(attachment) => attachment.saveToMemory,
+					).length,
+					temporary_attachment_count: uploadedAttachments.filter(
+						(attachment) => !attachment.saveToMemory,
+					).length,
+				})
+
+				setInput("")
+				setAttachmentDrafts([])
+				uploadPromisesRef.current.clear()
+				abortControllersRef.current.clear()
+				discardedDraftIdsRef.current.clear()
+				userJustSentRef.current = true
+				scrollToBottom()
+				pendingResponseModelsRef.current.push(selectedModel)
+
+				void sendMessage({
+					text: messageText,
+					metadata:
+						uploadedAttachments.length > 0
+							? { attachments: uploadedAttachments }
+							: undefined,
+				}).finally(() => {
+					pendingRequestAttachmentsRef.current = []
+				})
+
+				return true
+			} catch (error) {
+				pendingRequestAttachmentsRef.current = []
+				toast.error("Failed to send message", {
+					description:
+						error instanceof Error ? error.message : "Please try again.",
+				})
+				return false
+			}
+		},
+		[
+			attachmentDrafts,
+			fallbackChatId,
+			messageQueue.length,
+			reasoningEffort,
+			scrollToBottom,
+			selectedModel,
+			sendMessage,
+			setThreadId,
+			status,
+			threadId,
+			uploadAttachmentDrafts,
+		],
+	)
+
 	const handleSend = () => {
-		if (!input.trim() || status === "submitted" || status === "streaming")
-			return
-		if (!threadId) setThreadId(fallbackChatId)
-		analytics.chatMessageSent({ source: "typed" })
-		sendMessage({ text: input })
-		setInput("")
-		userJustSentRef.current = true
-		scrollToBottom()
+		void submitChatMessage(input, "typed")
 	}
 
 	const handleSuggestedQuestion = useCallback(
 		(suggestion: string) => {
 			if (status === "submitted" || status === "streaming") return
-			if (!threadId) setThreadId(fallbackChatId)
 			analytics.chatSuggestedQuestionClicked()
-			analytics.chatMessageSent({ source: "suggested" })
-			sendMessage({ text: suggestion })
+			void submitChatMessage(suggestion, "suggested", [])
+		},
+		[status, submitChatMessage],
+	)
+
+	const handleRegenerateFromUserMessage = useCallback(
+		(
+			messageId: string,
+			text: string,
+			model: ModelId,
+			nextReasoningEffort: ReasoningEffort,
+		) => {
+			const trimmed = text.trim()
+			if (!trimmed || status === "submitted" || status === "streaming") return
+			const messageIndex = messages.findIndex(
+				(message) => message.id === messageId,
+			)
+			if (messageIndex === -1) return
+
+			truncateFromMessageIdRef.current = messageId
+			pendingSendSettingsRef.current = {
+				model,
+				reasoningEffort: nextReasoningEffort,
+			}
+			clearError()
+			pendingRegenerationRef.current = {
+				text: trimmed,
+			}
+			setRegenerationBaseLength(messageIndex)
+			setMessages(messages.slice(0, messageIndex))
 			userJustSentRef.current = true
 			scrollToBottom()
 		},
-		[
-			fallbackChatId,
-			sendMessage,
-			setThreadId,
-			status,
-			threadId,
-			scrollToBottom,
-		],
+		[clearError, messages, scrollToBottom, setMessages, status],
 	)
+
+	useEffect(() => {
+		const pending = pendingRegenerationRef.current
+		if (
+			!pending ||
+			regenerationBaseLength === null ||
+			messages.length !== regenerationBaseLength ||
+			status !== "ready"
+		) {
+			return
+		}
+
+		pendingRegenerationRef.current = null
+		setRegenerationBaseLength(null)
+		analytics.chatMessageSent({ source: "typed" })
+		queuedDispatchInFlightRef.current = true
+		queuedDispatchSawResponseRef.current = false
+		pendingResponseModelsRef.current.push(
+			pendingSendSettingsRef.current?.model ?? selectedModelRef.current,
+		)
+		sendMessage({ text: pending.text })
+		window.setTimeout(() => {
+			truncateFromMessageIdRef.current = null
+		}, 0)
+	}, [messages.length, regenerationBaseLength, sendMessage, status])
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey && !isMobile) {
@@ -370,16 +1026,11 @@ export function ChatSidebar({
 		}
 	}
 
-	// When the user stops generation before any assistant response arrives,
-	// remove the dangling user message so it isn't duplicated on the next send.
+	// Keep the user message on stop so it isn't lost when generation is halted
+	// before any assistant response arrives (ENG-732).
 	const handleStop = useCallback(() => {
 		stop()
-		setMessages((prev) => {
-			const last = prev[prev.length - 1]
-			if (last?.role === "user") return prev.slice(0, -1)
-			return prev
-		})
-	}, [stop, setMessages])
+	}, [stop])
 
 	const handleCopyMessage = useCallback((messageId: string, text: string) => {
 		analytics.chatMessageCopied({ message_id: messageId })
@@ -436,13 +1087,28 @@ export function ChatSidebar({
 		setThreadId(null)
 		setFallbackChatId(newChatId)
 		setInput("")
+		setAttachmentDrafts([])
+		for (const controller of abortControllersRef.current.values()) {
+			controller.abort()
+		}
+		abortControllersRef.current.clear()
+		discardedDraftIdsRef.current.clear()
+		uploadPromisesRef.current.clear()
+		setMessageQueue([])
+		pendingResponseModelsRef.current = []
+		seenAssistantMessageIdsRef.current = new Set()
+		setResponseModelByMessageId({})
+		queuedDispatchInFlightRef.current = false
+		queuedDispatchSawResponseRef.current = false
 	}, [setThreadId, setMessages])
 
 	const fetchThreads = useCallback(async () => {
 		setIsLoadingThreads(true)
 		try {
+			const params = new URLSearchParams({ projectId: chatProject })
+			if (historyScope === "all") params.set("scope", "all")
 			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads?projectId=${chatProject}`,
+				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads?${params.toString()}`,
 				{ credentials: "include" },
 			)
 			if (response.ok) {
@@ -454,7 +1120,7 @@ export function ChatSidebar({
 		} finally {
 			setIsLoadingThreads(false)
 		}
-	}, [chatProject])
+	}, [chatProject, historyScope])
 
 	useEffect(() => {
 		if (!isHistoryOpen) return
@@ -477,20 +1143,31 @@ export function ChatSidebar({
 							role: string
 							parts: Array<{ type: string }>
 							createdAt: string
+							metadata?: Record<string, unknown>
 						}) => ({
 							id: m.id,
 							role: m.role,
-							// Strip tool parts — persisted format doesn't round-trip through
-							// convertToModelMessages correctly and causes tool_use/tool_result
-							// mismatch errors. Text history is sufficient for context.
+							// Strip tool parts (they break convertToModelMessages with tool_use/tool_result
+							// mismatches); keep text/reasoning + source parts so citations survive reload.
 							parts: (m.parts || []).filter(
-								(p) => p.type === "text" || p.type === "reasoning",
+								(p) =>
+									p.type === "text" ||
+									p.type === "reasoning" ||
+									p.type === "source-url" ||
+									p.type === "source-document",
 							),
+							metadata: m.metadata,
 							createdAt: new Date(m.createdAt),
 						}),
 					)
+					pendingResponseModelsRef.current = []
+					seenAssistantMessageIdsRef.current = new Set()
+					setResponseModelByMessageId({})
 					setThreadId(id)
 					setPendingThreadLoad({ id, messages: uiMessages })
+					setMessageQueue([])
+					queuedDispatchInFlightRef.current = false
+					queuedDispatchSawResponseRef.current = false
 					analytics.chatThreadLoaded({ thread_id: id })
 					setIsHistoryOpen(false)
 					setConfirmingDeleteId(null)
@@ -579,10 +1256,18 @@ export function ChatSidebar({
 				setSelectedModel(initialSelectedModel)
 				return
 			}
+			if (
+				initialReasoningEffort &&
+				reasoningEffort !== initialReasoningEffort
+			) {
+				setReasoningEffort(initialReasoningEffort)
+				return
+			}
 			sentQueuedMessageRef.current = queuedMessage
-			analytics.chatMessageSent({ source: queuedMessageSource })
 
 			if (queuedHighlightContent) {
+				analytics.chatMessageSent({ source: queuedMessageSource })
+				truncateFromMessageIdRef.current = null
 				// Start a fresh thread for highlight-based chats to avoid overwriting existing conversations
 				const newChatId = generateId()
 				chatIdRef.current = newChatId
@@ -613,8 +1298,23 @@ export function ChatSidebar({
 					},
 				]
 			} else {
-				if (!threadId) setThreadId(fallbackChatId)
-				sendMessage({ text: queuedMessage })
+				if (queuedAttachments?.length) {
+					setAttachmentDrafts(queuedAttachments)
+				}
+				void submitChatMessage(
+					queuedMessage,
+					queuedMessageSource,
+					queuedAttachments ?? [],
+				).then((sent) => {
+					if (!sent) {
+						setInput(queuedMessage)
+						if (queuedAttachments?.length) {
+							setAttachmentDrafts(queuedAttachments)
+						}
+					}
+					onConsumeQueuedMessage?.()
+				})
+				return
 			}
 			onConsumeQueuedMessage?.()
 		}
@@ -623,14 +1323,15 @@ export function ChatSidebar({
 		queuedMessage,
 		queuedHighlightContent,
 		queuedMessageSource,
+		queuedAttachments,
 		initialSelectedModel,
+		initialReasoningEffort,
 		selectedModel,
+		reasoningEffort,
 		status,
-		sendMessage,
 		onConsumeQueuedMessage,
-		fallbackChatId,
 		setThreadId,
-		threadId,
+		submitChatMessage,
 	])
 
 	// Inject the pending highlight assistant message once the new Chat instance is ready.
@@ -664,6 +1365,10 @@ export function ChatSidebar({
 			awaitingHighlightInjectionRef.current = false
 			const reply = pendingHighlightReplyRef.current
 			pendingHighlightReplyRef.current = null
+			truncateFromMessageIdRef.current = null
+			queuedDispatchInFlightRef.current = true
+			queuedDispatchSawResponseRef.current = false
+			pendingResponseModelsRef.current.push(selectedModelRef.current)
 			sendMessage({ text: reply })
 		}
 	}, [messages, sendMessage, status])
@@ -674,6 +1379,66 @@ export function ChatSidebar({
 			sentQueuedMessageRef.current = null
 		}
 	}, [queuedMessage])
+
+	useEffect(() => {
+		const isRespondingNow = status === "submitted" || status === "streaming"
+		if (isRespondingNow) {
+			if (queuedDispatchInFlightRef.current) {
+				queuedDispatchSawResponseRef.current = true
+			}
+			return
+		}
+
+		if (status !== "ready") {
+			queuedDispatchInFlightRef.current = false
+			queuedDispatchSawResponseRef.current = false
+			return
+		}
+
+		if (queuedDispatchInFlightRef.current) {
+			if (!queuedDispatchSawResponseRef.current) return
+			queuedDispatchInFlightRef.current = false
+			queuedDispatchSawResponseRef.current = false
+		}
+
+		const nextMessage = messageQueue[0]
+		if (!nextMessage) return
+
+		queuedDispatchInFlightRef.current = true
+		queuedDispatchSawResponseRef.current = false
+		truncateFromMessageIdRef.current = null
+		pendingSendSettingsRef.current = {
+			model: nextMessage.model,
+			reasoningEffort: nextMessage.reasoningEffort,
+		}
+		pendingResponseModelsRef.current.push(nextMessage.model)
+		if (!threadId) setThreadId(fallbackChatId)
+		setMessageQueue((prev) =>
+			prev[0]?.id === nextMessage.id
+				? prev.slice(1)
+				: prev.filter((item) => item.id !== nextMessage.id),
+		)
+		pendingRequestAttachmentsRef.current = nextMessage.attachments ?? []
+		void sendMessage({
+			text: nextMessage.text,
+			metadata:
+				nextMessage.attachments && nextMessage.attachments.length > 0
+					? { attachments: nextMessage.attachments }
+					: undefined,
+		}).finally(() => {
+			pendingRequestAttachmentsRef.current = []
+		})
+		userJustSentRef.current = true
+		scrollToBottom()
+	}, [
+		fallbackChatId,
+		messageQueue,
+		scrollToBottom,
+		sendMessage,
+		setThreadId,
+		status,
+		threadId,
+	])
 
 	// Scroll to bottom when a new user message is added or a thread is loaded
 	useEffect(() => {
@@ -791,7 +1556,68 @@ export function ChatSidebar({
 	const isStackedInput = layout === "page"
 	const showHeaderRow = !isPageDesktop || isMobile || !isStackedInput
 	const isResponding = status === "submitted" || status === "streaming"
-	const showInputStatusStrip = !isStackedInput
+	const isWebSearching =
+		isResponding &&
+		(() => {
+			const last = messages[messages.length - 1]
+			if (!last || last.role !== "assistant") return false
+			const parts = last.parts ?? []
+			const searching = parts.some(
+				(p) =>
+					(p.type === "dynamic-tool" &&
+						isWebSearchToolName((p as { toolName?: string }).toolName ?? "")) ||
+					(p.type.startsWith("tool-") &&
+						isWebSearchToolName(p.type.slice("tool-".length))),
+			)
+			const hasText = parts.some(
+				(p) => p.type === "text" && (p as { text?: string }).text?.trim(),
+			)
+			return searching && !hasText
+		})()
+	const hasBusyAttachment = attachmentDrafts.some(
+		(attachment) =>
+			attachment.status === "uploading" || attachment.status === "queued",
+	)
+	const hasErroredAttachment = attachmentDrafts.some(
+		(attachment) => attachment.status === "error",
+	)
+	const canSendMessage =
+		(input.trim().length > 0 || attachmentDrafts.length > 0) &&
+		!hasBusyAttachment &&
+		!hasErroredAttachment
+	const showInputStatusStrip =
+		!isStackedInput || isResponding || messages.length > 0
+	const isQueueFull = messageQueue.length >= CHAT_QUEUE_LIMIT
+
+	const threadGroups = useMemo(() => {
+		const q = historySearch.trim().toLowerCase()
+		const filtered = q
+			? threads.filter((t) => (t.title || "").toLowerCase().includes(q))
+			: threads
+		const now = new Date()
+		const startOfToday = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+		).getTime()
+		const day = 86_400_000
+		const buckets: Array<{ label: string; items: typeof threads }> = [
+			{ label: "Today", items: [] },
+			{ label: "Yesterday", items: [] },
+			{ label: "Previous 7 days", items: [] },
+			{ label: "Previous 30 days", items: [] },
+			{ label: "Older", items: [] },
+		]
+		for (const t of filtered) {
+			const ts = new Date(t.updatedAt).getTime()
+			if (ts >= startOfToday) buckets[0].items.push(t)
+			else if (ts >= startOfToday - day) buckets[1].items.push(t)
+			else if (ts >= startOfToday - 7 * day) buckets[2].items.push(t)
+			else if (ts >= startOfToday - 30 * day) buckets[3].items.push(t)
+			else buckets[4].items.push(t)
+		}
+		return buckets.filter((b) => b.items.length > 0)
+	}, [threads, historySearch])
 
 	const chatHistorySheet = (
 		<Sheet
@@ -800,25 +1626,62 @@ export function ChatSidebar({
 				setIsHistoryOpen(open)
 				if (!open) {
 					setConfirmingDeleteId(null)
+					setHistorySearch("")
 				}
 			}}
 		>
 			<SheetContent
 				side="right"
 				className={cn(
-					"flex h-full max-h-dvh w-[min(100%,92vw)] flex-col gap-0 overflow-hidden border-[#17181AB2] bg-[#0A0E14] p-0 pb-safe text-white sm:max-w-md",
+					"flex h-full max-h-dvh w-[380px] max-w-[88vw] flex-col gap-0 overflow-hidden border-[#17181AB2] bg-[#0A0E14] p-0 pb-safe text-white",
 					"[&>button]:text-[#FAFAFA]",
 					dmSansClassName(),
 				)}
 			>
-				<SheetHeader className="shrink-0 space-y-1 border-[#17181AB2] border-b px-6 pt-6 pb-4">
-					<SheetTitle>Chat History</SheetTitle>
-					<SheetDescription className="text-[#737373]">
-						Space: {chatSpaceLabel}
+				<SheetHeader className="shrink-0 space-y-3 border-[#17181AB2] border-b px-5 pt-5 pb-4">
+					<div className="flex min-w-0 items-center gap-2 pr-8">
+						<SheetTitle className="shrink-0">Chat History</SheetTitle>
+						<span className="truncate rounded-full border border-[#161F2C] bg-[#0F141B] px-2 py-0.5 text-[#9CA3AF] text-[11px]">
+							{historyScope === "all" ? "All spaces" : chatSpaceLabel}
+						</span>
+					</div>
+					<SheetDescription className="sr-only">
+						{historyScope === "all"
+							? "All conversations across your spaces"
+							: `Conversations in ${chatSpaceLabel}`}
 					</SheetDescription>
+					<div className="flex items-center gap-2">
+						<div className="relative flex-1">
+							<Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-[#737373]" />
+							<input
+								type="text"
+								value={historySearch}
+								onChange={(e) => setHistorySearch(e.target.value)}
+								placeholder="Search conversations…"
+								className="h-9 w-full rounded-lg border border-[#161F2C] bg-[#0F141B] pr-3 pl-9 text-sm text-white placeholder:text-[#737373] focus:border-[#267BF1]/50 focus:outline-none"
+							/>
+						</div>
+						<div className="flex shrink-0 items-center rounded-full border border-[#161F2C] bg-[#000000] p-0.5">
+							{(["current", "all"] as const).map((scope) => (
+								<button
+									key={scope}
+									type="button"
+									onClick={() => setHistoryScope(scope)}
+									className={cn(
+										"rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+										historyScope === scope
+											? "bg-[#267BF1]/15 text-[#FAFAFA]"
+											: "text-[#737373] hover:text-[#FAFAFA]",
+									)}
+								>
+									{scope === "current" ? "Current" : "All"}
+								</button>
+							))}
+						</div>
+					</div>
 				</SheetHeader>
-				<ScrollArea className="min-h-0 flex-1 px-6">
-					<div className="py-4">
+				<ScrollArea className="min-h-0 flex-1 px-3">
+					<div className="py-3">
 						{isLoadingThreads ? (
 							<div className="flex items-center justify-center py-8">
 								<SuperLoader label="Loading…" />
@@ -827,79 +1690,103 @@ export function ChatSidebar({
 							<div className="py-8 text-center text-sm text-[#737373]">
 								No conversations yet
 							</div>
+						) : threadGroups.length === 0 ? (
+							<div className="py-8 text-center text-sm text-[#737373]">
+								No conversations match “{historySearch.trim()}”
+							</div>
 						) : (
-							<div className="flex flex-col gap-1">
-								{threads.map((thread) => {
-									const isActive = thread.id === currentChatId
-									return (
-										<button
-											key={thread.id}
-											type="button"
-											onClick={() => loadThread(thread.id)}
-											className={cn(
-												"flex w-full items-center justify-between rounded-md px-3 py-2 text-left transition-colors",
-												isActive ? "bg-[#267BF1]/10" : "hover:bg-[#17181A]",
-											)}
-										>
-											<div className="min-w-0 flex-1">
-												<div className="truncate text-sm font-medium">
-													{thread.title || "Untitled Chat"}
-												</div>
-												<div className="text-xs text-[#737373]">
-													{formatRelativeTime(thread.updatedAt)}
-												</div>
-											</div>
-											{confirmingDeleteId === thread.id ? (
-												<div className="ml-2 flex items-center gap-1">
-													<Button
-														type="button"
-														size="icon"
-														onClick={(e) => {
-															e.stopPropagation()
-															deleteThread(thread.id)
-														}}
-														className="size-7 bg-red-500 text-white hover:bg-red-600"
-													>
-														<Check className="size-3" />
-													</Button>
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														onClick={(e) => {
-															e.stopPropagation()
-															setConfirmingDeleteId(null)
-														}}
-														className="size-7"
-													>
-														<XIcon className="size-3 text-[#737373]" />
-													</Button>
-												</div>
-											) : (
-												<Button
+							<div className="flex flex-col gap-4">
+								{threadGroups.map((group) => (
+									<div key={group.label} className="flex flex-col gap-0.5">
+										<div className="px-2 pb-1 font-medium text-[#5A6473] text-[11px] uppercase tracking-wide">
+											{group.label}
+										</div>
+										{group.items.map((thread) => {
+											const isActive = thread.id === currentChatId
+											const isConfirming = confirmingDeleteId === thread.id
+											return (
+												<button
+													key={thread.id}
 													type="button"
-													variant="ghost"
-													size="icon"
-													onClick={(e) => {
-														e.stopPropagation()
-														setConfirmingDeleteId(thread.id)
-													}}
-													className="ml-2 size-7"
+													onClick={() => loadThread(thread.id)}
+													className={cn(
+														"group flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition-colors",
+														isActive ? "bg-[#267BF1]/10" : "hover:bg-[#17181A]",
+													)}
 												>
-													<Trash2 className="size-3 text-[#737373]" />
-												</Button>
-											)}
-										</button>
-									)
-								})}
+													<div className="min-w-0 flex-1">
+														<div className="truncate text-[#E5E7EB] text-sm">
+															{thread.title || "Untitled Chat"}
+														</div>
+														<div className="flex items-center gap-1.5 text-[#737373] text-xs">
+															<span>
+																{formatRelativeTime(thread.updatedAt)}
+															</span>
+															{historyScope === "all" && thread.space ? (
+																<>
+																	<span className="text-[#3A3A3A]">·</span>
+																	<span className="truncate">
+																		{thread.space.emoji
+																			? `${thread.space.emoji} `
+																			: ""}
+																		{thread.space.name}
+																	</span>
+																</>
+															) : null}
+														</div>
+													</div>
+													{isConfirming ? (
+														<div className="flex shrink-0 items-center gap-1">
+															<Button
+																type="button"
+																size="icon"
+																onClick={(e) => {
+																	e.stopPropagation()
+																	deleteThread(thread.id)
+																}}
+																className="size-7 bg-red-500 text-white hover:bg-red-600"
+															>
+																<Check className="size-3" />
+															</Button>
+															<Button
+																type="button"
+																variant="ghost"
+																size="icon"
+																onClick={(e) => {
+																	e.stopPropagation()
+																	setConfirmingDeleteId(null)
+																}}
+																className="size-7"
+															>
+																<XIcon className="size-3 text-[#737373]" />
+															</Button>
+														</div>
+													) : (
+														<Button
+															type="button"
+															variant="ghost"
+															size="icon"
+															onClick={(e) => {
+																e.stopPropagation()
+																setConfirmingDeleteId(thread.id)
+															}}
+															className="size-7 shrink-0 opacity-0 transition-opacity focus:opacity-100 group-hover:opacity-100 max-sm:opacity-100"
+														>
+															<Trash2 className="size-3 text-[#737373]" />
+														</Button>
+													)}
+												</button>
+											)
+										})}
+									</div>
+								))}
 							</div>
 						)}
 					</div>
 				</ScrollArea>
-				<div className="shrink-0 border-[#17181AB2] border-t p-4">
+				<div className="shrink-0 border-[#17181AB2] border-t p-3">
 					<Button
-						variant="outline"
-						className="w-full border-[#161F2C] border-dashed bg-transparent hover:bg-[#17181A]"
+						className="w-full bg-[#267BF1] font-medium text-white hover:bg-[#1f6ad6]"
 						onClick={() => {
 							handleNewChat()
 							setIsHistoryOpen(false)
@@ -951,6 +1838,27 @@ export function ChatSidebar({
 		</div>
 	) : null
 
+	const chatDropOverlay = isChatDraggingFiles ? (
+		<div
+			className={cn(
+				"pointer-events-none absolute inset-0 z-[80] grid place-items-center border border-dashed border-[#4B5563] bg-black/72 text-sm font-medium text-fg-primary backdrop-blur-sm",
+				isMobile || isPageDesktop ? "rounded-none" : "rounded-2xl",
+			)}
+			aria-hidden="true"
+		>
+			<div className="rounded-lg border border-white/10 bg-black/50 px-4 py-2 shadow-[0_12px_32px_rgba(0,0,0,0.35)]">
+				Drop files to attach
+			</div>
+		</div>
+	) : null
+	const chatDropTargetProps = {
+		onDragEnter: handleChatDragEnter,
+		onDragOver: handleChatDragOver,
+		onDragLeave: handleChatDragLeave,
+		onDrop: handleChatDrop,
+		onDragEnd: resetChatFileDrag,
+	}
+
 	const shell = (
 		<>
 			{showHeaderRow ? (
@@ -966,11 +1874,25 @@ export function ChatSidebar({
 					)}
 				>
 					<div className="mr-2 flex min-w-0 flex-1 items-center gap-2">
+						{isMobile && (
+							<button
+								type="button"
+								onClick={() => _setIsChatOpen(false)}
+								aria-label="Back"
+								className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#161F2C] bg-black text-[#FAFAFA] transition-colors hover:bg-[#161F2C]"
+							>
+								<ArrowLeftIcon className="size-5" />
+							</button>
+						)}
 						{!isStackedInput && (
 							<>
 								<ChatModelSelector
 									selectedModel={selectedModel}
 									onModelChange={handleModelChange}
+								/>
+								<ReasoningSelector
+									value={reasoningEffort}
+									onChange={setReasoningEffort}
 								/>
 								<SpaceSelector
 									selectedProjects={chatSpaceProjects}
@@ -1015,7 +1937,7 @@ export function ChatSidebar({
 						className={
 							messages.length > 0
 								? cn(
-										"flex flex-col space-y-3 min-h-full justify-end",
+										"flex flex-col space-y-3 min-h-full justify-end pb-4",
 										isPageDesktop || isMobile ? "pt-2" : "pt-14",
 									)
 								: ""
@@ -1041,7 +1963,10 @@ export function ChatSidebar({
 									<UserMessage
 										message={message}
 										copiedMessageId={copiedMessageId}
+										selectedModel={selectedModel}
+										reasoningEffort={reasoningEffort}
 										onCopy={handleCopyMessage}
+										onRegenerate={handleRegenerateFromUserMessage}
 									/>
 								) : (
 									<AgentMessage
@@ -1052,6 +1977,7 @@ export function ChatSidebar({
 										copiedMessageId={copiedMessageId}
 										messageFeedback={messageFeedback}
 										expandedMemories={expandedMemories}
+										responseModel={responseModelByMessageId[message.id] ?? null}
 										onCopy={handleCopyMessage}
 										onLike={handleLikeMessage}
 										onDislike={handleDislikeMessage}
@@ -1060,11 +1986,6 @@ export function ChatSidebar({
 								)}
 							</div>
 						))}
-						{(status === "submitted" || status === "streaming") && (
-							<div className="flex gap-2">
-								<SuperLoader label="Thinking…" />
-							</div>
-						)}
 					</div>
 				</div>
 
@@ -1087,8 +2008,7 @@ export function ChatSidebar({
 				<div
 					role="alert"
 					className={cn(
-						"mb-2 rounded-lg bg-amber-950/40 px-3 py-2 text-sm text-amber-50/95",
-						isPageDesktop ? "mx-0" : "mx-4",
+						"mx-4 mb-2 rounded-lg bg-amber-950/40 px-3 py-2 text-sm text-amber-50/95",
 						dmSansClassName(),
 					)}
 				>
@@ -1140,7 +2060,7 @@ export function ChatSidebar({
 					"shrink-0",
 					isStackedInput &&
 						(isMobile
-							? "px-4 pb-2"
+							? "px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
 							: "px-4 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))] md:pb-6"),
 				)}
 			>
@@ -1151,13 +2071,27 @@ export function ChatSidebar({
 					onStop={handleStop}
 					onKeyDown={handleKeyDown}
 					isResponding={isResponding}
+					attachments={attachmentDrafts}
+					onAddAttachmentFiles={handleAddAttachmentFiles}
+					onRemoveAttachment={handleRemoveAttachment}
+					onRetryAttachment={handleRetryAttachment}
+					canSend={canSendMessage}
+					attachmentAccept={CHAT_ATTACHMENT_ACCEPT}
+					disableFileDropZone
+					sendDisabled={isResponding && isQueueFull}
+					sendDisabledTooltip={`Queue is full (${CHAT_QUEUE_LIMIT} max)`}
 					activeStatus={
-						status === "submitted"
-							? "Thinking…"
-							: status === "streaming"
-								? "Structuring response…"
-								: "Waiting for input…"
+						isResponding && isQueueFull
+							? `Queue full (${CHAT_QUEUE_LIMIT} max)`
+							: isWebSearching
+								? "Searching the web…"
+								: status === "submitted"
+									? "Thinking…"
+									: status === "streaming"
+										? "Thinking…"
+										: "Waiting for input…"
 					}
+					queuedMessages={messageQueue}
 					showStatusStrip={showInputStatusStrip}
 					onExpandedChange={setIsInputExpanded}
 					chainOfThoughtComponent={
@@ -1165,21 +2099,31 @@ export function ChatSidebar({
 					}
 					stackedToolbar={
 						isStackedInput ? (
-							<>
-								<ChatModelSelector
-									selectedModel={selectedModel}
-									onModelChange={handleModelChange}
-									minimal
-								/>
-								<SpaceSelector
-									selectedProjects={chatSpaceProjects}
-									onValueChange={setChatSpaceProjects}
-									variant="insideOut"
-									includeAuto
-									hideCount
-									triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5 shadow-none hover:bg-[#05080D]"
-								/>
-							</>
+							<ChatModelSelector
+								selectedModel={selectedModel}
+								onModelChange={handleModelChange}
+								minimal
+							/>
+						) : undefined
+					}
+					toolbarTrailing={
+						isStackedInput ? (
+							<ReasoningSelector
+								value={reasoningEffort}
+								onChange={setReasoningEffort}
+							/>
+						) : undefined
+					}
+					toolbarEnd={
+						isStackedInput ? (
+							<SpaceSelector
+								selectedProjects={chatSpaceProjects}
+								onValueChange={setChatSpaceProjects}
+								variant="insideOut"
+								includeAuto
+								hideCount
+								triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] gap-1.5 rounded-md border-0 bg-transparent px-2 py-1 shadow-none hover:bg-white/5"
+							/>
 						) : undefined
 					}
 				/>
@@ -1214,7 +2158,9 @@ export function ChatSidebar({
 				layout === "page" ? { opacity: 0, y: 12 } : { x: "100px", opacity: 0 }
 			}
 			transition={{ duration: 0.3, ease: "easeOut", bounce: 0 }}
+			{...(!isPageDesktop ? chatDropTargetProps : {})}
 		>
+			{!isPageDesktop && chatDropOverlay}
 			{chatHistorySheet}
 			{isPageDesktop ? (
 				<div className="flex h-full min-h-0 w-full flex-1 flex-row">
@@ -1224,7 +2170,11 @@ export function ChatSidebar({
 							chatProject === AUTO_CHAT_SPACE_ID ? null : [chatProject]
 						}
 					/>
-					<div className="flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] shrink-0 basis-[min(720px,50vw)] flex-col">
+					<div
+						{...chatDropTargetProps}
+						className="relative flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] shrink-0 basis-[min(720px,50vw)] flex-col"
+					>
+						{chatDropOverlay}
 						{pageDesktopToolbarRow}
 						<div className="relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] flex-1 flex-col px-3 sm:px-4 md:px-0">
 							{shell}

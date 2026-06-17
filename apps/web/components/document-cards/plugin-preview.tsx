@@ -28,15 +28,7 @@ export function PluginPreview({ parsed }: { parsed: ParsedPluginDocument }) {
 						)}
 						{parsed.pluginLabel}
 					</span>
-					<p className="text-[11px] text-[#737373] truncate">
-						{parsed.formatLabel}
-					</p>
 				</div>
-				{parsed.identifierValue && (
-					<p className="text-[10px] text-[#737373] truncate max-w-[45%]">
-						{parsed.identifierValue}
-					</p>
-				)}
 			</div>
 			<div className="space-y-[6px]">
 				<p

@@ -22,11 +22,14 @@ export function EnsureWorkspace({ children }: { children: React.ReactNode }) {
 	const searchParams = useSearchParams()
 	const { session, organizations, isRestoring } = useAuth()
 
-	const isMcpPublicPage = searchParams.get("view") === "mcp"
+	const isPublicAppPage =
+		pathname === "/" &&
+		["integrations", "mcp"].includes(searchParams.get("view") ?? "")
+	const isGuestPublicAppPage = isPublicAppPage && !session
 	const isOnboarding = pathname.startsWith("/onboarding")
 
 	useEffect(() => {
-		if (isMcpPublicPage) return
+		if (isGuestPublicAppPage) return
 		if (isRestoring) return
 		if (!session) {
 			router.replace(
@@ -44,11 +47,11 @@ export function EnsureWorkspace({ children }: { children: React.ReactNode }) {
 		isRestoring,
 		isOnboarding,
 		router,
-		isMcpPublicPage,
+		isGuestPublicAppPage,
 	])
 
 	const showLoading =
-		!isMcpPublicPage &&
+		!isGuestPublicAppPage &&
 		(isRestoring ||
 			(!session && !isRestoring) ||
 			(session && organizations === null) ||

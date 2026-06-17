@@ -72,6 +72,15 @@
 								"pages": ["intro", "quickstart", "vibe-coding"]
 							},
 							{
+								"group": "Self-Hosting",
+								"pages": [
+									"self-hosting/overview",
+									"self-hosting/quickstart",
+									"self-hosting/configuration",
+									"self-hosting/local-vs-enterprise"
+								]
+							},
+							{
 								"group": "Concepts",
 								"pages": [
 									"concepts/how-it-works",
@@ -79,6 +88,7 @@
 									"concepts/content-types",
 									"concepts/super-rag",
 									"concepts/memory-vs-rag",
+									"concepts/container-tags",
 									"concepts/filtering",
 									"concepts/user-profiles",
 									"concepts/customization",
@@ -112,6 +122,7 @@
 											"connectors/gmail",
 											"connectors/onedrive",
 											"connectors/s3",
+											"connectors/granola",
 											"connectors/github",
 											"connectors/web-crawler"
 										]

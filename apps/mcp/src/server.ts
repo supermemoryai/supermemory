@@ -11,6 +11,7 @@ import {
 	createMemoryGraphStructuredContent,
 	summarizeMemoryGraphResult,
 } from "./memory-graph-data"
+import { formatMemories } from "./format"
 import { initPosthog, posthog } from "./posthog"
 import { z } from "zod"
 import mcpAppHtml from "../dist/mcp-app.html"
@@ -30,6 +31,8 @@ type Props = {
 }
 
 const CONTAINER_TAGS_TTL_MS = 5 * 60 * 1000
+
+const MAX_RECALL_CHARS = 200000
 
 export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	private clientInfo: { name: string; version?: string } | null = null
@@ -630,10 +633,21 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			const clientInfo = await this.getClientInfo()
 			const startTime = Date.now()
 
-			if (includeProfile) {
-				const profileResult = await client.getProfile(query)
-				const parts: string[] = []
+			const searchResult = await client.search(query, 10, undefined, {
+				searchMode: "hybrid",
+				include: {
+					documents: true,
+					relatedMemories: true,
+					summaries: false,
+					chunks: false,
+					forgottenMemories: false,
+				},
+			})
 
+			const parts: string[] = []
+
+			if (includeProfile) {
+				const profileResult = await client.getProfile()
 				if (
 					profileResult.profile.static.length > 0 ||
 					profileResult.profile.dynamic.length > 0
@@ -651,54 +665,23 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 							parts.push(`- ${fact}`)
 						}
 					}
-				}
-
-				if (profileResult.searchResults?.results.length) {
-					parts.push("\n## Relevant Memories")
-					for (const [
-						i,
-						memory,
-					] of profileResult.searchResults.results.entries()) {
-						parts.push(
-							`\n### Memory ${i + 1} (${Math.round(memory.similarity * 100)}% match)`,
-						)
-						if (memory.title) parts.push(`**${memory.title}**`)
-						parts.push(getMemoryText(memory))
-					}
-				}
-
-				const endTime = Date.now()
-
-				// Track search event
-				posthog
-					.memorySearch({
-						query_length: query.length,
-						results_count: profileResult.searchResults?.results.length || 0,
-						search_duration_ms: endTime - startTime,
-						container_tags_count: 1,
-						source: "mcp",
-						userId: this.props?.userId || "unknown",
-						mcp_client_name: clientInfo?.name,
-						mcp_client_version: clientInfo?.version,
-						sessionId: this.getMcpSessionId(),
-						containerTag: containerTag || this.props?.containerTag,
-					})
-					.catch((error) => console.error("PostHog tracking error:", error))
-
-				return {
-					content: [
-						{
-							type: "text" as const,
-							text:
-								parts.length > 0
-									? parts.join("\n")
-									: "No memories or profile found.",
-						},
-					],
+					parts.push("")
 				}
 			}
 
-			const searchResult = await client.search(query, 10)
+			parts.push("## Relevant Memories")
+			parts.push(
+				formatMemories(
+					{
+						results: searchResult.results as unknown as Array<
+							Record<string, unknown>
+						>,
+						total: searchResult.total,
+					},
+					{ includeScores: true, includeLegend: true },
+				),
+			)
+
 			const endTime = Date.now()
 
 			// Track search event
@@ -717,22 +700,18 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				})
 				.catch((error) => console.error("PostHog tracking error:", error))
 
-			if (searchResult.results.length === 0) {
-				return {
-					content: [{ type: "text" as const, text: "No memories found." }],
-				}
+			const text = parts.join("\n")
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text:
+							text.length > MAX_RECALL_CHARS
+								? `${text.slice(0, MAX_RECALL_CHARS)}...`
+								: text,
+					},
+				],
 			}
-
-			const parts = ["## Relevant Memories"]
-			for (const [i, memory] of searchResult.results.entries()) {
-				parts.push(
-					`\n### Memory ${i + 1} (${Math.round(memory.similarity * 100)}% match)`,
-				)
-				if (memory.title) parts.push(`**${memory.title}**`)
-				parts.push(getMemoryText(memory))
-			}
-
-			return { content: [{ type: "text" as const, text: parts.join("\n") }] }
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "An unexpected error occurred"

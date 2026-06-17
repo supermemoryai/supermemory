@@ -23,7 +23,7 @@ For async HTTP support (recommended):
 ```bash
 uv add supermemory-openai-sdk[async]
 # or
-pip install supermemory-openai-sdk[async]
+pip install 'supermemory-openai-sdk[async]'
 ```
 
 ## Quick Start
@@ -416,7 +416,7 @@ Optional for testing:
 
 Install with async support:
 ```bash
-pip install supermemory-openai-sdk[async]
+pip install 'supermemory-openai-sdk[async]'
 ```
 
 ## Development

@@ -84,13 +84,15 @@ export const apiSchema = createSchema({
 			redirectUrl: z.string().optional(),
 		}),
 		output: z.object({
-			authLink: z.string(),
-			expiresIn: z.string(),
+			// authLink/expiresIn are present for OAuth providers (Drive/Notion/OneDrive)
+			// but absent for credential-based ones like Granola where there's no redirect.
+			authLink: z.string().optional(),
+			expiresIn: z.string().optional(),
 			id: z.string(),
 			redirectsTo: z.string().optional(),
 		}),
 		params: z.object({
-			provider: z.enum(["google-drive", "notion", "onedrive"]),
+			provider: z.enum(["google-drive", "notion", "onedrive", "granola"]),
 		}),
 	},
 
@@ -158,6 +160,7 @@ export const apiSchema = createSchema({
 				"github",
 				"web-crawler",
 				"s3",
+				"granola",
 			]),
 		}),
 	},
@@ -187,6 +190,37 @@ export const apiSchema = createSchema({
 	"@post/documents": {
 		input: MemoryAddSchema,
 		output: MemoryResponseSchema,
+	},
+	"@post/documents/batch": {
+		input: z.object({
+			documents: z
+				.array(
+					z.object({
+						content: z.string(),
+						containerTags: z.array(z.string()).optional(),
+						containerTag: z.string().optional(),
+						entityContext: z.string().max(1500).optional(),
+						metadata: z.record(z.unknown()).optional(),
+					}),
+				)
+				.min(1)
+				.max(600),
+			containerTag: z.string().optional(),
+			entityContext: z.string().max(1500).optional(),
+			metadata: z.record(z.unknown()).optional(),
+		}),
+		output: z.object({
+			results: z.array(
+				z.object({
+					id: z.string(),
+					status: z.string(),
+					error: z.string().optional(),
+					details: z.string().optional(),
+				}),
+			),
+			success: z.number(),
+			failed: z.number(),
+		}),
 	},
 	"@post/documents/list": {
 		body: z

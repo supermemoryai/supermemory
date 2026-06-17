@@ -49,6 +49,7 @@ import type { Project } from "@lib/types"
 import { motion, AnimatePresence } from "motion/react"
 
 const clients = {
+	antigravity: "Antigravity",
 	chatgpt: "ChatGPT",
 	codex: "Codex",
 	cursor: "Cursor",
@@ -399,7 +400,9 @@ export function ConnectAIModal({
 												src={
 													key === "mcp-url"
 														? "/mcp-icon.svg"
-														: `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`
+														: key === "antigravity"
+															? "/mcp-supported-tools/antigravity.png"
+															: `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`
 												}
 												width={20}
 											/>

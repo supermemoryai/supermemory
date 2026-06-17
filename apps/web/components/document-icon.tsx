@@ -15,7 +15,7 @@ import {
 	NotionDoc,
 	PDF,
 } from "@ui/assets/icons"
-import { Globe, FileText, Image } from "lucide-react"
+import { Globe, FileText, FileCode, Image } from "lucide-react"
 import { cn } from "@lib/utils"
 
 function MCPIcon({ className }: { className?: string }) {
@@ -144,13 +144,60 @@ export interface DocumentIconProps {
 	type: string | null | undefined
 	source?: string | null
 	url?: string | null
+	fileName?: string | null
+	mimeType?: string | null
 	className?: string
+}
+
+function fileExtensionIcon(
+	ext: string | undefined,
+	mimeType: string | null | undefined,
+	iconClassName: string,
+): React.ReactNode | null {
+	if (ext === ".html" || ext === ".htm" || mimeType === "text/html") {
+		return <FileCode className={iconClassName} style={{ color: "#FF8A4C" }} />
+	}
+	switch (ext) {
+		case ".pdf":
+			return <PDF className={iconClassName} />
+		case ".doc":
+		case ".docx":
+			return (
+				<span style={{ color: BRAND_COLORS.word }}>
+					<MicrosoftWord className={iconClassName} />
+				</span>
+			)
+		case ".xls":
+		case ".xlsx":
+		case ".csv":
+			return (
+				<span style={{ color: BRAND_COLORS.excel }}>
+					<MicrosoftExcel className={iconClassName} />
+				</span>
+			)
+		case ".ppt":
+		case ".pptx":
+			return (
+				<span style={{ color: BRAND_COLORS.powerpoint }}>
+					<MicrosoftPowerpoint className={iconClassName} />
+				</span>
+			)
+		case ".md":
+		case ".mdx":
+		case ".txt":
+		case ".json":
+			return <TextDocumentIcon className={iconClassName} />
+		default:
+			return null
+	}
 }
 
 export function DocumentIcon({
 	type,
 	source,
 	url,
+	fileName,
+	mimeType,
 	className,
 }: DocumentIconProps) {
 	const iconClassName = cn("size-4", className)
@@ -161,6 +208,22 @@ export function DocumentIcon({
 
 	if (url?.includes("youtube.com") || url?.includes("youtu.be")) {
 		return <YouTubeIcon className={iconClassName} />
+	}
+
+	// Uploaded files get a type icon, never the URL favicon of their storage host
+	if (fileName || mimeType) {
+		const lower = fileName?.toLowerCase()
+		const ext = lower?.includes(".")
+			? lower.slice(lower.lastIndexOf("."))
+			: undefined
+		const fileIcon = fileExtensionIcon(ext, mimeType, iconClassName)
+		if (fileIcon) return fileIcon
+		if (mimeType?.startsWith("image/")) {
+			return <Image className={iconClassName} style={{ color: "#FAFAFA" }} />
+		}
+		if (!type || type === "unknown" || type === "text") {
+			return <FileText className={iconClassName} style={{ color: "#FAFAFA" }} />
+		}
 	}
 
 	if (

@@ -1,11 +1,11 @@
 ---
 title: "Connectors Overview"
-description: "Integrate Google Drive, Gmail, Notion, OneDrive, GitHub and Web Crawler to automatically sync documents into your knowledge base"
+description: "Integrate Google Drive, Gmail, Notion, OneDrive, GitHub, Granola and Web Crawler to automatically sync documents into your knowledge base"
 sidebarTitle: "Overview"
 icon: "layers"
 ---
 
-Connect external platforms to automatically sync documents into supermemory. Supported connectors include Google Drive, Gmail, Notion, OneDrive, GitHub and Web Crawler with real-time synchronization and intelligent content processing.
+Connect external platforms to automatically sync documents into supermemory. Supported connectors include Google Drive, Gmail, Notion, OneDrive, GitHub, Granola and Web Crawler with real-time synchronization and intelligent content processing.
 
 ## Supported Connectors
 
@@ -39,6 +39,12 @@ Connect external platforms to automatically sync documents into supermemory. Sup
     **GitHub Repositories**
 
     Real-time incremental sync via webhooks. Supports documentation files in repositories.
+  </Card>
+
+  <Card title="Granola" icon="/images/granola.svg" href="/connectors/granola">
+    **Meeting notes and transcripts**
+
+    Syncs AI meeting notes, summaries, attendees, and transcripts from your Granola workspace.
   </Card>
 
   <Card title="Web Crawler" icon="globe" href="/connectors/web-crawler">
@@ -201,10 +207,10 @@ curl -X POST "https://api.supermemory.ai/v3/documents/list" \
 
 ### Authentication Flow
 
-1. **Create Connection**: Call `/v3/connections/{provider}` to get OAuth URL (or direct connection for web-crawler)
-2. **User Authorization**: Redirect user to complete OAuth flow (not required for web-crawler)
+1. **Create Connection**: Call `/v3/connections/{provider}` to get an OAuth URL, or create a direct credential-based connection for Granola or Web Crawler
+2. **User Authorization**: Redirect user to complete OAuth flow when the provider requires it
 3. **Automatic Setup**: Connection established, sync begins immediately
-4. **Continuous Sync**: Real-time updates via webhooks + scheduled sync every 4 hours (or scheduled recrawling for web-crawler)
+4. **Continuous Sync**: Real-time updates via webhooks + scheduled sync every 4 hours (or scheduled recrawling for Web Crawler)
 
 ### Document Processing Pipeline
 
@@ -228,6 +234,7 @@ graph TD
 | **Notion** | ✅ Webhooks | ✅ Every 4 hours | ✅ On-demand |
 | **OneDrive** | ✅ Webhooks (30-day expiry) | ✅ Every 4 hours | ✅ On-demand |
 | **GitHub** | ✅ Webhooks | ✅ Every 4 hours | ✅ On-demand |
+| **Granola** | ❌ Not supported | ❌ Not supported | ✅ On-demand |
 | **Web Crawler** | ❌ Not supported | ✅ Scheduled recrawling (7+ days) | ✅ On-demand |
 
 

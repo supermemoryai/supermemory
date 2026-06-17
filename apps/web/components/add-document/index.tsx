@@ -147,9 +147,10 @@ export function AddDocument({
 	const fileDataRef = useRef(fileData)
 	fileDataRef.current = fileData
 
-	const { noteMutation, linkMutation, fileMutation } = useDocumentMutations({
-		onClose,
-	})
+	const { noteMutation, linkMutation, bulkLinkMutation, fileMutation } =
+		useDocumentMutations({
+			onClose,
+		})
 
 	const autumn = useCustomer()
 	const {
@@ -187,13 +188,30 @@ export function AddDocument({
 
 	const handleLinkSubmit = useCallback(
 		(data: LinkData) => {
+			// In bulk mode the selection is the source of truth, not the raw textarea.
+			if (data.bulkUrls) {
+				if (data.bulkUrls.length >= 2) {
+					bulkLinkMutation.mutate({
+						urls: data.bulkUrls,
+						project: localSelectedProject,
+					})
+					return
+				}
+				const [onlyUrl] = data.bulkUrls
+				if (onlyUrl) {
+					linkMutation.mutate({ url: onlyUrl, project: localSelectedProject })
+					return
+				}
+				toast.error("Select at least one link")
+				return
+			}
 			if (!data.url.trim()) {
 				toast.error("Please enter a URL")
 				return
 			}
 			linkMutation.mutate({ url: data.url, project: localSelectedProject })
 		},
-		[linkMutation, localSelectedProject],
+		[linkMutation, bulkLinkMutation, localSelectedProject],
 	)
 
 	const handleFileSubmit = useCallback(
@@ -263,6 +281,14 @@ export function AddDocument({
 		setFileData(data)
 	}, [])
 
+	const handleNoteImportLinks = useCallback(
+		(urls: string[]) => {
+			setLinkData({ url: urls.join("\n"), title: "", description: "" })
+			setActiveTab("link")
+		},
+		[setActiveTab],
+	)
+
 	const handleButtonClick = () => {
 		switch (activeTab) {
 			case "note":
@@ -278,11 +304,20 @@ export function AddDocument({
 	}
 
 	const isSubmitting =
-		noteMutation.isPending || linkMutation.isPending || fileMutation.isPending
+		noteMutation.isPending ||
+		linkMutation.isPending ||
+		bulkLinkMutation.isPending ||
+		fileMutation.isPending
 
 	const fileTabHasPending = fileData.items.some((i) => i.status === "pending")
 	const fileTabSubmitDisabled =
 		activeTab === "file" && (!fileTabHasPending || isSubmitting)
+
+	const linkBulkCount = linkData.bulkUrls?.length ?? 0
+	const linkTabSubmitDisabled =
+		activeTab === "link" &&
+		linkData.bulkUrls !== undefined &&
+		linkBulkCount === 0
 
 	const spaceSelector = (
 		<SpaceSelector
@@ -479,6 +514,7 @@ export function AddDocument({
 						<NoteContent
 							onSubmit={handleNoteSubmit}
 							onContentChange={handleNoteContentChange}
+							onImportLinks={handleNoteImportLinks}
 							isSubmitting={noteMutation.isPending}
 							isOpen={isOpen}
 							initialContent={noteContent}
@@ -488,7 +524,9 @@ export function AddDocument({
 						<LinkContent
 							onSubmit={handleLinkSubmit}
 							onDataChange={handleLinkDataChange}
-							isSubmitting={linkMutation.isPending}
+							isSubmitting={
+								linkMutation.isPending || bulkLinkMutation.isPending
+							}
 							isOpen={isOpen}
 							initialData={linkData}
 						/>
@@ -539,7 +577,9 @@ export function AddDocument({
 								variant="insideOut"
 								onClick={handleButtonClick}
 								disabled={
-									activeTab === "file" ? fileTabSubmitDisabled : isSubmitting
+									activeTab === "file"
+										? fileTabSubmitDisabled
+										: isSubmitting || linkTabSubmitDisabled
 								}
 								className={cn(isMobile && "h-12 flex-1 px-5 text-[15px]")}
 							>
@@ -548,6 +588,8 @@ export function AddDocument({
 										<Loader2 className="size-4 animate-spin mr-2" />
 										Adding…
 									</>
+								) : activeTab === "link" && linkBulkCount >= 2 ? (
+									`+ Add ${linkBulkCount} memories`
 								) : (
 									<>
 										+ Add {activeTab}{" "}

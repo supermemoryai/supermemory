@@ -80,13 +80,22 @@ export class VersionChainIndex {
 		// A single-entry chain (standalone v1 with no children) is not useful
 		if (all.length <= 1) return null
 
-		const chain: ChainEntry[] = all.map((m) => ({
-			id: m.id,
-			version: m.version,
-			memory: m.memory,
-			isForgotten: m.isForgotten,
-			isLatest: m.isLatest,
-		}))
+		let lastVersion = 0
+		const chain: ChainEntry[] = all.map((m) => {
+			const version =
+				Number.isFinite(m.version) && m.version > lastVersion
+					? m.version
+					: lastVersion + 1
+			lastVersion = version
+
+			return {
+				id: m.id,
+				version,
+				memory: m.memory,
+				isForgotten: m.isForgotten,
+				isLatest: m.isLatest,
+			}
+		})
 
 		for (const entry of chain) {
 			this.cache.set(entry.id, chain)
