@@ -5,12 +5,7 @@ import {
 	registerAppResource,
 	RESOURCE_MIME_TYPE,
 } from "@modelcontextprotocol/ext-apps/server"
-import { SupermemoryClient, getMemoryText } from "./client"
-import {
-	GRAPH_PAGE_LIMIT,
-	createMemoryGraphStructuredContent,
-	summarizeMemoryGraphResult,
-} from "./memory-graph-data"
+import { SupermemoryClient } from "./client"
 import { formatMemories } from "./format"
 import { initPosthog, posthog } from "./posthog"
 import { z } from "zod"
@@ -326,23 +321,26 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 						? [effectiveContainerTag]
 						: undefined
 
-					const result = await client.getDocuments(
-						containerTags,
-						1,
-						GRAPH_PAGE_LIMIT,
+					const result = await client.getDocuments(containerTags, 1, 10)
+
+					const memoryCount = result.documents.reduce(
+						(sum, d) => sum + d.memoryEntries.length,
+						0,
 					)
+					const textParts = [
+						`Memory Graph: ${result.documents.length} documents, ${memoryCount} memories`,
+					]
+					if (effectiveContainerTag) {
+						textParts.push(`Project: ${effectiveContainerTag}`)
+					}
 
 					return {
-						content: [
-							{
-								type: "text" as const,
-								text: summarizeMemoryGraphResult(result, effectiveContainerTag),
-							},
-						],
-						structuredContent: createMemoryGraphStructuredContent(
-							result,
-							effectiveContainerTag,
-						),
+						content: [{ type: "text" as const, text: textParts.join(". ") }],
+						structuredContent: {
+							containerTag: effectiveContainerTag,
+							documents: result.documents,
+							totalCount: result.pagination.totalItems,
+						},
 					}
 				} catch (error) {
 					const message =
@@ -371,7 +369,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				inputSchema: z.object({
 					containerTag: z.string().optional(),
 					page: z.number().optional().default(1),
-					limit: z.number().optional().default(GRAPH_PAGE_LIMIT),
+					limit: z.number().optional().default(10),
 				}),
 				_meta: {
 					ui: {
@@ -696,7 +694,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 					mcp_client_name: clientInfo?.name,
 					mcp_client_version: clientInfo?.version,
 					sessionId: this.getMcpSessionId(),
-					containerTag: effectiveContainerTag,
+					containerTag: containerTag || this.props?.containerTag,
 				})
 				.catch((error) => console.error("PostHog tracking error:", error))
 
