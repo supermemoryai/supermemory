@@ -17,7 +17,7 @@ icon: "/images/claude-code-icon.svg"
 This integration requires the **Supermemory Pro plan**. [Upgrade here](https://console.supermemory.ai/billing).
 </Warning>
 
-[Claude-Supermemory](https://github.com/supermemoryai/claude-supermemory) is a Claude Code plugin that gives your AI persistent memory across sessions. Your agent remembers what you worked on — across sessions, across projects.
+[supermemory](https://github.com/supermemoryai/claude-supermemory) is a Claude Code plugin that gives your AI persistent memory across sessions. Your agent remembers what you worked on — across sessions, across projects.
 
 <Tip>
 **Prefer to keep everything on your machine?** This plugin works with [self-hosted Supermemory](/self-hosting/overview) — run `npx supermemory local`, then `export SUPERMEMORY_API_URL="http://localhost:6767"` and use the API key printed on first boot.
@@ -55,7 +55,7 @@ Create a Supermemory API key from the [API Keys](https://console.supermemory.ai/
 /plugin marketplace add supermemoryai/claude-supermemory
 
 # Install the plugin
-/plugin install claude-supermemory
+/plugin install supermemory
 ```
 
 ## How It Works
@@ -76,12 +76,12 @@ Once installed, the plugin runs automatically:
 
 ## Commands
 
-### /claude-supermemory:logout
+### /supermemory:logout
 
 Log out from Supermemory and clear saved credentials.
 
 ```
-/claude-supermemory:logout
+/supermemory:logout
 ```
 
 ## Configuration
