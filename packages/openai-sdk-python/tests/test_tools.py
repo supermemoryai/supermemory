@@ -12,8 +12,7 @@ load_dotenv()
 
 # Import from the installed package or src directly
 try:
-    # Try importing from the installed package first
-    from supermemory_openai_sdk import (
+    from supermemory_openai import (
         SupermemoryTools,
         SupermemoryToolsConfig,
         create_supermemory_tools,
@@ -23,13 +22,14 @@ try:
         create_add_memory_tool,
     )
 except ImportError:
-    # Fallback to importing from src directory
     import sys
     import os
 
-    # Add src directory to path
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "src"))
-    from tools import (
+    sys.path.insert(
+        0,
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "src"),
+    )
+    from supermemory_openai.tools import (
         SupermemoryTools,
         SupermemoryToolsConfig,
         create_supermemory_tools,
