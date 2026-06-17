@@ -75,6 +75,8 @@ export interface ListMemoriesOptions {
 export interface ListMemoriesResult {
 	memories: ListedMemory[]
 	nextCursor: string | null
+}
+
 export interface SearchOptions {
 	searchMode?: "memories" | "hybrid" | "documents"
 	rerank?: boolean
