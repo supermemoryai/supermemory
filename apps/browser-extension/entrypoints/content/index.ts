@@ -2,6 +2,7 @@ import { DOMAINS, MESSAGE_TYPES } from "../../utils/constants"
 import { DOMUtils } from "../../utils/ui-components"
 import { initializeChatGPT } from "./chatgpt"
 import { initializeClaude } from "./claude"
+import { initializeGrok } from "./grok"
 import {
 	saveMemory,
 	setupGlobalKeyboardShortcut,
@@ -48,6 +49,9 @@ export default defineContentScript({
 				if (DOMUtils.isOnDomain(DOMAINS.CLAUDE)) {
 					initializeClaude()
 				}
+				if (DOMUtils.isOnDomain(DOMAINS.GROK)) {
+					initializeGrok()
+				}
 				if (DOMUtils.isOnDomain(DOMAINS.T3)) {
 					initializeT3()
 				}
@@ -65,6 +69,7 @@ export default defineContentScript({
 		// Initialize platform-specific functionality
 		initializeChatGPT()
 		initializeClaude()
+		initializeGrok()
 		initializeT3()
 		initializeTwitter()
 

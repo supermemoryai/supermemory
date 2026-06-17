@@ -38,6 +38,10 @@ export default defineConfig({
 			"*://api.supermemory.ai/*",
 			"*://chatgpt.com/*",
 			"*://chat.openai.com/*",
+			"*://grok.com/*",
+			"*://*.grok.com/*",
+			"*://x.ai/*",
+			"*://*.x.ai/*",
 			"https://*.posthog.com/*",
 		],
 		web_accessible_resources: [
