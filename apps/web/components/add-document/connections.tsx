@@ -948,8 +948,8 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 			/>
 
 			<GranolaConnectModal
-				open={granolaModalOpen}
-				onOpenChange={setGranolaModalOpen}
+				open={isMaxUser && granolaModalOpen}
+				onOpenChange={(open) => setGranolaModalOpen(open && isMaxUser)}
 				containerTags={[selectedProject]}
 			/>
 		</div>
