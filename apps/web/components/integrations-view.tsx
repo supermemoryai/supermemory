@@ -481,13 +481,13 @@ const SECTIONS: Array<{
 				simpleTitle: "Text Poke to recall and save your memories",
 				isNew: true,
 				icon: (
-					<div className="relative size-10 shrink-0 overflow-hidden rounded-lg">
+					<div className="relative size-6 shrink-0 overflow-hidden rounded-md sm:size-10 sm:rounded-lg">
 						<Image
 							src="/images/poke.png"
 							alt="Poke"
 							width={40}
 							height={40}
-							className="object-cover"
+							className="size-full object-cover"
 						/>
 					</div>
 				),
@@ -586,7 +586,7 @@ function IconBox({
 		<div
 			className={cn(
 				"flex shrink-0 items-center justify-center rounded-[10px] bg-[#080B0F]",
-				size === "sm" ? "size-8" : "size-10",
+				size === "sm" ? "size-8" : "size-8 sm:size-10",
 				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]",
 			)}
 		>
@@ -1732,6 +1732,159 @@ function RecentlyAddedCard({
 	)
 }
 
+type MobileActivityTab = "active" | "recent"
+
+function MobileActivityPanel({
+	entries,
+	docs,
+	connectionSource,
+	activeLoading,
+	recentsLoading,
+	onOpenDoc,
+	onViewAll,
+}: {
+	entries: RailEntry[]
+	docs: RecentDoc[]
+	connectionSource: Map<string, ConnectorProvider>
+	activeLoading?: boolean
+	recentsLoading?: boolean
+	onOpenDoc: (doc: RecentDoc) => void
+	onViewAll: () => void
+}) {
+	const [tab, setTab] = useState<MobileActivityTab>("active")
+	const hasActiveTab = activeLoading || entries.length > 0
+	const hasRecentTab = recentsLoading || docs.length > 0
+	const showTabs = hasActiveTab && hasRecentTab
+	const activeTab: MobileActivityTab =
+		hasActiveTab && (tab === "active" || !hasRecentTab) ? "active" : "recent"
+
+	useEffect(() => {
+		if (!hasActiveTab && hasRecentTab && tab === "active") {
+			setTab("recent")
+		}
+		if (!hasRecentTab && hasActiveTab && tab === "recent") {
+			setTab("active")
+		}
+	}, [hasActiveTab, hasRecentTab, tab])
+
+	const tabClass = (value: MobileActivityTab) =>
+		cn(
+			dmSans125ClassName(),
+			"flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-[12px] font-medium transition-colors",
+			activeTab === value
+				? "bg-white/[0.10] text-[#FAFAFA]"
+				: "text-[#A1A1AA] hover:text-[#FAFAFA]",
+		)
+
+	return (
+		<aside
+			className={cn(
+				"rounded-[14px] bg-[#191D24] p-3",
+				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+			)}
+		>
+			<div className="flex items-center justify-between gap-3">
+				<h3
+					className={cn(
+						dmSans125ClassName(),
+						"text-[13px] font-semibold tracking-[-0.01em] text-[#FAFAFA]",
+					)}
+				>
+					Activity
+				</h3>
+				{activeTab === "recent" && docs.length > 0 && (
+					<button
+						type="button"
+						onClick={onViewAll}
+						className={cn(
+							dmSans125ClassName(),
+							"flex shrink-0 items-center gap-1 text-[11px] text-[#737373] transition-colors hover:text-[#FAFAFA]",
+						)}
+					>
+						View all
+						<ArrowRight className="size-3" />
+					</button>
+				)}
+			</div>
+			{showTabs && (
+				<div
+					className={cn(
+						"mt-3 flex items-center gap-0.5 rounded-full bg-[#0D121A] p-0.5",
+						"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.5)]",
+					)}
+				>
+					<button
+						type="button"
+						onClick={() => setTab("active")}
+						className={tabClass("active")}
+					>
+						Active
+						{entries.length > 0 && (
+							<span className="text-[10px] font-semibold tabular-nums text-[#00AC3F]">
+								{entries.length}
+							</span>
+						)}
+					</button>
+					<button
+						type="button"
+						onClick={() => setTab("recent")}
+						className={tabClass("recent")}
+					>
+						Recent
+						{docs.length > 0 && (
+							<span className="text-[10px] font-semibold tabular-nums text-[#525D6E]">
+								{docs.length}
+							</span>
+						)}
+					</button>
+				</div>
+			)}
+			<div className="mt-2.5">
+				{activeTab === "active" ? (
+					entries.length > 0 ? (
+						<div className="scrollbar-none flex max-h-[158px] flex-col gap-2 overflow-y-auto pr-0.5">
+							{entries.map((entry) =>
+								entry.kind === "plugin" ? (
+									<PluginRailRow key={entry.id} entry={entry} />
+								) : (
+									<ConnectorRailRow key={entry.id} entry={entry} />
+								),
+							)}
+						</div>
+					) : activeLoading ? (
+						<RailSkeleton rows={2} />
+					) : (
+						<RailEmpty
+							icon={<Zap className="size-4" />}
+							title="No active connections yet"
+							hint="Connect a tool below to see it here"
+						/>
+					)
+				) : docs.length > 0 ? (
+					<div className="scrollbar-none flex max-h-[142px] flex-col gap-0.5 overflow-y-auto pr-0.5">
+						{docs.map((doc) => (
+							<RecentDocRow
+								key={doc.id ?? doc.customId}
+								doc={doc}
+								connectionSource={connectionSource}
+								onOpen={() => onOpenDoc(doc)}
+							/>
+						))}
+					</div>
+				) : recentsLoading ? (
+					<RailSkeleton rows={3} />
+				) : (
+					<RailEmpty
+						icon={<FileText className="size-4" />}
+						title="No memories yet"
+						hint="Anything you save will show up here"
+					/>
+				)}
+			</div>
+		</aside>
+	)
+}
+
 function ItemCard({
 	actionSlot,
 	infoActionSlot,
@@ -1775,7 +1928,7 @@ function ItemCard({
 				}
 			}}
 			className={cn(
-				"group relative flex h-full cursor-pointer flex-col gap-4 rounded-[12px] bg-[#14161A] p-4 transition-colors hover:bg-[#16181D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4BA0FA]/45",
+				"group relative flex h-full cursor-pointer flex-row items-center gap-2.5 rounded-[10px] bg-[#14161A] px-2.5 py-2 transition-colors hover:bg-[#16181D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4BA0FA]/45 sm:flex-col sm:items-stretch sm:gap-4 sm:rounded-[12px] sm:p-4",
 				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
 			)}
 		>
@@ -1791,17 +1944,17 @@ function ItemCard({
 				open={infoOpen}
 				onOpenChange={setInfoOpen}
 			/>
-			<div className="flex items-start justify-between gap-2">
+			<div className="flex shrink-0 items-start justify-between gap-2">
 				<IconBox>{icon}</IconBox>
 			</div>
-			<div className="flex flex-1 flex-col justify-end gap-3">
-				<div className="min-w-0">
+			<div className="flex min-w-0 flex-1 flex-row items-center justify-between gap-2 sm:flex-col sm:items-stretch sm:justify-end sm:gap-3">
+				<div className="min-w-0 flex-1">
 					<div className="flex min-w-0 items-center gap-1">
 						{leftIndicator}
 						<span
 							className={cn(
 								dmSans125ClassName(),
-								"min-w-0 truncate text-[14px] font-medium text-[#FAFAFA]",
+								"min-w-0 truncate text-[13px] font-medium text-[#FAFAFA] sm:text-[14px]",
 							)}
 						>
 							{name}
@@ -1812,16 +1965,16 @@ function ItemCard({
 					<p
 						className={cn(
 							dmSans125ClassName(),
-							"mt-1 line-clamp-2 text-[12px] leading-snug text-[#A1A1AA]",
+							"mt-1 hidden text-[12px] leading-snug text-[#A1A1AA] sm:line-clamp-2 sm:block",
 						)}
 					>
 						{tagline}
 					</p>
 				</div>
-				<div className="flex w-full items-center justify-between gap-2">
+				<div className="flex w-auto shrink-0 items-center justify-end gap-2 sm:w-full sm:justify-between">
 					{/* biome-ignore lint/a11y/noStaticElementInteractions: stop card click from swallowing the status action. */}
 					<div
-						className="flex min-w-0 flex-1"
+						className="hidden min-w-0 flex-1 sm:flex"
 						onClick={(e) => e.stopPropagation()}
 						onKeyDown={(e) => e.stopPropagation()}
 					>
@@ -1829,7 +1982,7 @@ function ItemCard({
 					</div>
 					{/* biome-ignore lint/a11y/noStaticElementInteractions: stop card click from swallowing the primary action. */}
 					<div
-						className="flex shrink-0 justify-end"
+						className="flex shrink-0 justify-end [&>button]:!h-7 [&>button]:!min-w-[82px] [&>button]:!px-3 [&>button]:!text-[11px] sm:[&>button]:!h-9 sm:[&>button]:!min-w-[116px] sm:[&>button]:!px-5 sm:[&>button]:!text-[14px]"
 						onClick={(e) => e.stopPropagation()}
 						onKeyDown={(e) => e.stopPropagation()}
 					>
@@ -1892,10 +2045,10 @@ function FeaturedHero({ picks }: { picks: FeaturedPick[] }) {
 			onFocus={() => setPaused(true)}
 			onBlur={() => setPaused(false)}
 			className={cn(
-				"group relative flex w-full flex-col items-start justify-center overflow-hidden rounded-[14px] px-5 py-5 sm:px-6 sm:py-6 text-left cursor-pointer",
+				"group relative flex w-full flex-col items-start justify-center overflow-hidden rounded-[14px] px-5 py-4 text-left cursor-pointer sm:px-6 sm:py-6",
 				"bg-[#191D24]",
 				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
-				"min-h-[160px]",
+				"min-h-[150px] sm:min-h-[160px]",
 			)}
 		>
 			{pick.backdrop && (
@@ -1907,12 +2060,12 @@ function FeaturedHero({ picks }: { picks: FeaturedPick[] }) {
 						exit={{ opacity: 0, x: 8 }}
 						transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
 						aria-hidden
-						className="pointer-events-none absolute inset-y-0 right-0 w-3/5 sm:w-2/3"
+						className="pointer-events-none absolute inset-y-0 right-0 w-[72%] overflow-hidden sm:w-2/3"
 					>
-						<div className="absolute -right-8 -top-10 sm:right-0 sm:-top-4 opacity-55">
+						<div className="absolute -right-16 -top-12 opacity-35 sm:right-0 sm:-top-4 sm:opacity-55">
 							{pick.backdrop}
 						</div>
-						<div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#191D24]/40 to-[#191D24]" />
+						<div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#191D24]/70 to-[#191D24]" />
 						<div className="absolute inset-0 bg-gradient-to-t from-[#191D24]/60 via-transparent to-transparent" />
 					</motion.div>
 				</AnimatePresence>
@@ -1972,12 +2125,12 @@ function FeaturedHero({ picks }: { picks: FeaturedPick[] }) {
 					animate={{ opacity: 1, y: 0 }}
 					exit={{ opacity: 0, y: -3 }}
 					transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-					className="relative flex max-w-[55%] flex-col gap-1.5"
+					className="relative flex max-w-[72%] flex-col gap-1.5 sm:max-w-[55%]"
 				>
 					<h3
 						className={cn(
 							dmSans125ClassName(),
-							"text-[18px] font-semibold leading-tight tracking-[-0.15px] text-[#FAFAFA]",
+							"text-[17px] font-semibold leading-tight tracking-[-0.15px] text-[#FAFAFA] sm:text-[18px]",
 						)}
 					>
 						{pick.headline}
@@ -1985,7 +2138,7 @@ function FeaturedHero({ picks }: { picks: FeaturedPick[] }) {
 					<p
 						className={cn(
 							dmSans125ClassName(),
-							"text-[13px] leading-snug text-[#A1A1AA]",
+							"line-clamp-2 text-[12px] leading-snug text-[#A1A1AA] sm:text-[13px]",
 						)}
 					>
 						<span className="font-medium text-[#CBD5E1]">
@@ -2187,7 +2340,7 @@ function SectionRail({
 				>
 					{label}
 				</h3>
-				<div className="flex items-center gap-1.5">
+				<div className="hidden items-center gap-1.5 sm:flex">
 					<button
 						type="button"
 						aria-label="Show previous"
@@ -2210,7 +2363,7 @@ function SectionRail({
 			</div>
 			<div
 				ref={scrollRef}
-				className="scrollbar-none flex gap-3 overflow-x-auto -mx-1 px-1"
+				className="scrollbar-none flex flex-col gap-1.5 sm:-mx-1 sm:flex-row sm:gap-3 sm:overflow-x-auto sm:px-1"
 			>
 				{children}
 			</div>
@@ -2655,6 +2808,17 @@ export function IntegrationsView({
 	const showRightColumn =
 		!publicMode &&
 		(hasActiveRail || recentDocs.length > 0 || railLoading || recentsLoading)
+
+	const openRecentDoc = useCallback(
+		(doc: RecentDoc) => {
+			if (onOpenDocument) {
+				onOpenDocument(doc)
+				return
+			}
+			void setDocId(doc.id ?? doc.customId ?? null)
+		},
+		[onOpenDocument, setDocId],
+	)
 
 	const claudeCodeConnected = activePluginById.has("claude_code")
 	const claudeCodeNeedsPro =
@@ -3192,6 +3356,19 @@ export function IntegrationsView({
 			>
 				<div className="flex flex-col gap-5">
 					{!q && <FeaturedHero picks={featuredPicks} />}
+					{showRightColumn && (
+						<div className="lg:hidden">
+							<MobileActivityPanel
+								entries={railEntries}
+								docs={recentDocs}
+								connectionSource={connectionSource}
+								activeLoading={railLoading}
+								recentsLoading={recentsLoading}
+								onOpenDoc={openRecentDoc}
+								onViewAll={() => setViewMode("list")}
+							/>
+						</div>
+					)}
 
 					<div
 						className={cn(
@@ -3249,7 +3426,7 @@ export function IntegrationsView({
 													{items.map((item) => (
 														<div
 															key={item.id}
-															className="shrink-0 grow-0 basis-[85%] sm:basis-[calc((100%_-_0.75rem)/2)] lg:basis-[calc((100%_-_1.5rem)/3)]"
+															className="w-full sm:shrink-0 sm:grow-0 sm:basis-[calc((100%_-_0.75rem)/2)] lg:basis-[calc((100%_-_1.5rem)/3)]"
 														>
 															{renderItemCard(item)}
 														</div>
@@ -3262,7 +3439,7 @@ export function IntegrationsView({
 							</div>
 						</div>
 						{showRightColumn && (
-							<div className="w-full lg:w-[320px] lg:shrink-0">
+							<div className="hidden w-full lg:block lg:w-[320px] lg:shrink-0">
 								<div className="flex flex-col gap-4 lg:sticky lg:top-2">
 									<ActiveConnectionsRail
 										entries={railEntries}
@@ -3272,13 +3449,7 @@ export function IntegrationsView({
 										docs={recentDocs}
 										connectionSource={connectionSource}
 										loading={recentsLoading}
-										onOpenDoc={(doc) => {
-											if (onOpenDocument) {
-												onOpenDocument(doc)
-												return
-											}
-											void setDocId(doc.id ?? doc.customId ?? null)
-										}}
+										onOpenDoc={openRecentDoc}
 										onViewAll={() => setViewMode("list")}
 									/>
 								</div>
