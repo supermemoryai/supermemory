@@ -19,7 +19,9 @@ function isPrivateHost(hostname: string): boolean {
 	if (
 		lowerHost === "localhost" ||
 		lowerHost === "127.0.0.1" ||
+		lowerHost === "0.0.0.0" ||
 		lowerHost === "::1" ||
+		lowerHost === "::" ||
 		lowerHost.startsWith("127.") ||
 		lowerHost.startsWith("0.0.0.0")
 	) {
@@ -30,6 +32,7 @@ function isPrivateHost(hostname: string): boolean {
 		/^10\./,
 		/^172\.(1[6-9]|2[0-9]|3[01])\./,
 		/^192\.168\./,
+		/^169\.254\./, // Link-local / Metadata service
 	]
 
 	return privateIpPatterns.some((pattern) => pattern.test(hostname))
@@ -179,61 +182,70 @@ export async function GET(request: Request) {
 		const controller = new AbortController()
 		const timeoutId = setTimeout(() => controller.abort(), 8000)
 
-		const response = await fetch(trimmedUrl, {
-			signal: controller.signal,
-			headers: {
-				"User-Agent":
-					"Mozilla/5.0 (compatible; SuperMemory/1.0; +https://supermemory.ai)",
-			},
-		})
+		try {
+			const response = await fetch(trimmedUrl, {
+				signal: controller.signal,
+				redirect: "manual",
+				headers: {
+					"User-Agent":
+						"Mozilla/5.0 (compatible; SuperMemory/1.0; +https://supermemory.ai)",
+				},
+			})
 
-		clearTimeout(timeoutId)
+			if (response.status >= 300 && response.status < 400) {
+				const location = response.headers.get("location")
+				if (location) {
+					const redirectUrl = new URL(location, trimmedUrl).href
+					if (
+						!isValidUrl(redirectUrl) ||
+						isPrivateHost(new URL(redirectUrl).hostname)
+					) {
+						return Response.json(
+							{ error: "Invalid or private redirect URL" },
+							{ status: 400 },
+						)
+					}
+					// For simplicity, we only follow one level of redirect manually to re-validate IP
+					const secondResponse = await fetch(redirectUrl, {
+						signal: controller.signal,
+						redirect: "error", // No more redirects allowed
+						headers: {
+							"User-Agent":
+								"Mozilla/5.0 (compatible; SuperMemory/1.0; +https://supermemory.ai)",
+						},
+					})
+					if (!secondResponse.ok) {
+						return Response.json(
+							{ error: "Failed to fetch redirect URL" },
+							{ status: secondResponse.status },
+						)
+					}
+					const contentType = secondResponse.headers.get("content-type")
+					if (contentType && !contentType.includes("text/html")) {
+						return Response.json({ title: "", description: "" })
+					}
+					const html = await secondResponse.text()
+					return processHtml(html, redirectUrl)
+				}
+			}
 
-		if (!response.ok) {
-			return Response.json(
-				{ error: "Failed to fetch URL" },
-				{ status: response.status },
-			)
+			if (!response.ok) {
+				return Response.json(
+					{ error: "Failed to fetch URL" },
+					{ status: response.status },
+				)
+			}
+
+			const contentType = response.headers.get("content-type")
+			if (contentType && !contentType.includes("text/html")) {
+				return Response.json({ title: "", description: "" })
+			}
+
+			const html = await response.text()
+			return processHtml(html, trimmedUrl)
+		} finally {
+			clearTimeout(timeoutId)
 		}
-
-		const html = await response.text()
-
-		const titlePatterns = [
-			/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i,
-			/<meta\s+content=["']([^"']+)["']\s+property=["']og:title["']/i,
-			/<meta\s+name=["']twitter:title["']\s+content=["']([^"']+)["']/i,
-			/<title>([^<]+)<\/title>/i,
-		]
-
-		const descriptionPatterns = [
-			/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i,
-			/<meta\s+content=["']([^"']+)["']\s+property=["']og:description["']/i,
-			/<meta\s+name=["']twitter:description["']\s+content=["']([^"']+)["']/i,
-			/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i,
-		]
-
-		const imagePatterns = [
-			/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i,
-			/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i,
-			/<meta\s+name=["']twitter:image["']\s+content=["']([^"']+)["']/i,
-		]
-
-		const title = extractMetaTag(html, titlePatterns)
-		const description = extractMetaTag(html, descriptionPatterns)
-		const imageUrl = extractMetaTag(html, imagePatterns)
-		const resolvedImageUrl = resolveImageUrl(imageUrl, trimmedUrl)
-
-		const ogResponse: OGResponse = {
-			title,
-			description,
-			...(resolvedImageUrl && { image: resolvedImageUrl }),
-		}
-
-		return Response.json(ogResponse, {
-			headers: {
-				"Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-			},
-		})
 	} catch (error) {
 		if (error instanceof Error && error.name === "AbortError") {
 			return Response.json({ error: "Request timeout" }, { status: 504 })
@@ -241,4 +253,43 @@ export async function GET(request: Request) {
 		console.error("OG route error:", error)
 		return Response.json({ error: "Internal server error" }, { status: 500 })
 	}
+}
+
+function processHtml(html: string, baseUrl: string) {
+	const titlePatterns = [
+		/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i,
+		/<meta\s+content=["']([^"']+)["']\s+property=["']og:title["']/i,
+		/<meta\s+name=["']twitter:title["']\s+content=["']([^"']+)["']/i,
+		/<title>([^<]+)<\/title>/i,
+	]
+
+	const descriptionPatterns = [
+		/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i,
+		/<meta\s+content=["']([^"']+)["']\s+property=["']og:description["']/i,
+		/<meta\s+name=["']twitter:description["']\s+content=["']([^"']+)["']/i,
+		/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i,
+	]
+
+	const imagePatterns = [
+		/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i,
+		/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i,
+		/<meta\s+name=["']twitter:image["']\s+content=["']([^"']+)["']/i,
+	]
+
+	const title = extractMetaTag(html, titlePatterns)
+	const description = extractMetaTag(html, descriptionPatterns)
+	const imageUrl = extractMetaTag(html, imagePatterns)
+	const resolvedImageUrl = resolveImageUrl(imageUrl, baseUrl)
+
+	const ogResponse: OGResponse = {
+		title,
+		description,
+		...(resolvedImageUrl && { image: resolvedImageUrl }),
+	}
+
+	return Response.json(ogResponse, {
+		headers: {
+			"Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+		},
+	})
 }
