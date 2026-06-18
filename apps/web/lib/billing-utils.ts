@@ -1,10 +1,21 @@
 const COMPANY_BRAIN_PRODUCT_ID = "company_brain"
 
 // Add-on resolved by product presence, not tier.
+// better-auth returns org.metadata as a JSON string, so accept string or object.
 export function hasCompanyBrain(
-	metadata: Record<string, unknown> | null | undefined,
+	metadataRaw: Record<string, unknown> | string | null | undefined,
 ): boolean {
-	if (!metadata) return false
+	if (!metadataRaw) return false
+	let metadata: Record<string, unknown>
+	if (typeof metadataRaw === "string") {
+		try {
+			metadata = JSON.parse(metadataRaw) as Record<string, unknown>
+		} catch {
+			return false
+		}
+	} else {
+		metadata = metadataRaw
+	}
 	const overrides = metadata.featureOverrides as
 		| Record<string, { allow?: boolean }>
 		| undefined
@@ -14,6 +25,49 @@ export function hasCompanyBrain(
 		? (metadata.activeProducts as string[])
 		: []
 	return activeProducts.includes(COMPANY_BRAIN_PRODUCT_ID)
+}
+
+// Origin of the org. Consumer (app.supermemory) orgs get company_brain attached,
+// but the add-on lands async — signupSource is set at creation, so it's the
+// reliable "this org uses brain spaces" signal in the UI.
+export function getSignupSource(
+	metadataRaw: Record<string, unknown> | string | null | undefined,
+): string | null {
+	if (!metadataRaw) return null
+	let metadata: Record<string, unknown>
+	if (typeof metadataRaw === "string") {
+		try {
+			metadata = JSON.parse(metadataRaw) as Record<string, unknown>
+		} catch {
+			return null
+		}
+	} else {
+		metadata = metadataRaw
+	}
+	return typeof metadata.signupSource === "string"
+		? (metadata.signupSource as string)
+		: null
+}
+
+// Brain mode chosen during onboarding ("personal" | "team"). Set synchronously
+// at org creation, so it's the reliable pre-webhook signal for company brain.
+export function getBrainMode(
+	metadataRaw: Record<string, unknown> | string | null | undefined,
+): string | null {
+	if (!metadataRaw) return null
+	let metadata: Record<string, unknown>
+	if (typeof metadataRaw === "string") {
+		try {
+			metadata = JSON.parse(metadataRaw) as Record<string, unknown>
+		} catch {
+			return null
+		}
+	} else {
+		metadata = metadataRaw
+	}
+	return typeof metadata.brainMode === "string"
+		? (metadata.brainMode as string)
+		: null
 }
 
 /**
