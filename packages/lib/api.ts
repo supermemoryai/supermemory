@@ -348,6 +348,76 @@ export const apiSchema = createSchema({
 			message: z.string(),
 		}),
 	},
+
+	// Weekly digest preferences
+	"@get/digests/preferences": {
+		output: z.object({ digestOptOut: z.boolean() }),
+	},
+	"@post/digests/preferences": {
+		input: z.object({ digestOptOut: z.boolean() }),
+		output: z.object({ digestOptOut: z.boolean() }),
+	},
+
+	// Weekly digest endpoints
+	"@get/digests": {
+		output: z.object({
+			digests: z.array(
+				z.object({
+					id: z.string(),
+					isoWeek: z.string(),
+					emailSubject: z.string().nullable(),
+					title: z.string().nullable(),
+					status: z.enum(["pending", "processing", "completed", "failed"]),
+					sentAt: z.string().nullable(),
+					generatedAt: z.string(),
+					highlightCount: z.number(),
+					memoryCount: z.number(),
+				}),
+			),
+			page: z.number(),
+			limit: z.number(),
+		}),
+		query: z.object({
+			page: z.number().optional(),
+			limit: z.number().optional(),
+		}),
+	},
+
+	"@get/digests/:id": {
+		output: z.object({
+			id: z.string(),
+			isoWeek: z.string(),
+			emailSubject: z.string().nullable(),
+			status: z.enum(["pending", "processing", "completed", "failed"]),
+			sentAt: z.string().nullable(),
+			generatedAt: z.string(),
+			digestData: z.object({
+				title: z.string(),
+				intro: z.string(),
+				highlights: z.array(
+					z.object({
+						id: z.string(),
+						title: z.string(),
+						content: z.string(),
+						format: z.enum(["paragraph", "bullets", "quote", "one_liner"]),
+						query: z.string(),
+						sourceDocumentIds: z.array(z.string()),
+					}),
+				),
+				featureRecommendations: z.array(
+					z.object({
+						feature: z.string(),
+						headline: z.string(),
+						body: z.string(),
+						ctaLabel: z.string(),
+						ctaUrl: z.string(),
+					}),
+				),
+				memoryCount: z.number(),
+				spaceCount: z.number(),
+			}),
+		}),
+	},
 })
 
 export const $fetch = createFetch({

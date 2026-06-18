@@ -45,6 +45,7 @@ import { useTokenUsage } from "@/hooks/use-token-usage"
 import { useOrgSummaries } from "@/hooks/use-org-summaries"
 import { useCustomer } from "autumn-js/react"
 import { FileText, Layers, Plug, Search } from "lucide-react"
+import { $fetch } from "@lib/api"
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
 	return (
@@ -587,6 +588,8 @@ export default function Account() {
 			</section>
 
 			<OrgContext />
+
+			<DigestPreferences />
 
 			<section id="team-members" className="flex flex-col gap-4 px-1">
 				<div className="flex flex-wrap items-center justify-between gap-3">
@@ -1223,5 +1226,72 @@ export default function Account() {
 				</DialogContent>
 			</Dialog>
 		</div>
+	)
+}
+
+function DigestPreferences() {
+	const { data, isLoading } = useQuery({
+		queryKey: ["digest-preferences"],
+		queryFn: async () => {
+			const res = await $fetch("@get/digests/preferences")
+			if (res.error) throw new Error("Failed")
+			return res.data as { digestOptOut: boolean }
+		},
+	})
+
+	const mutation = useMutation({
+		mutationFn: async (digestOptOut: boolean) => {
+			const res = await $fetch("@post/digests/preferences", {
+				body: { digestOptOut },
+			})
+			if (res.error) throw new Error("Failed")
+			return res.data as { digestOptOut: boolean }
+		},
+		onError: () => toast.error("Failed to update preference"),
+	})
+
+	const optOut = mutation.data?.digestOptOut ?? data?.digestOptOut ?? false
+
+	return (
+		<section className="flex flex-col gap-3 px-1">
+			<SectionTitle>Notifications</SectionTitle>
+			<SettingsCard>
+				<div className="flex items-center justify-between gap-4">
+					<div className="flex flex-col gap-0.5">
+						<p
+							className={cn(
+								dmSans125ClassName(),
+								"text-[13px] font-medium text-[#FAFAFA]",
+							)}
+						>
+							Weekly digest
+						</p>
+						<p
+							className={cn(dmSans125ClassName(), "text-[12px] text-[#6B6B6B]")}
+						>
+							Personalized weekly recap of your memories, delivered every Monday
+						</p>
+					</div>
+					<button
+						type="button"
+						role="switch"
+						aria-checked={!optOut}
+						disabled={isLoading || mutation.isPending}
+						onClick={() => mutation.mutate(!optOut)}
+						className={cn(
+							"relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+							!optOut ? "bg-[#2563FF]" : "bg-white/10",
+						)}
+					>
+						<span
+							className={cn(
+								"pointer-events-none inline-block size-4 rounded-full bg-white shadow-sm transition-transform",
+								!optOut ? "translate-x-4" : "translate-x-0",
+							)}
+						/>
+					</button>
+				</div>
+			</SettingsCard>
+		</section>
 	)
 }

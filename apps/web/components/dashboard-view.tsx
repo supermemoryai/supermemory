@@ -41,6 +41,7 @@ import {
 } from "@/hooks/use-personalization"
 import { normalizePluginClientId } from "@/lib/plugin-catalog"
 import { detectPluginSpace } from "@/lib/plugin-space"
+import { useDigests } from "@/hooks/use-digests"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -1153,6 +1154,7 @@ export function DashboardView({
 	onHighlightsChat,
 	onHighlightsShowRelated,
 	onResetHighlights,
+	onOpenDigests,
 	memoryOfDay,
 }: {
 	spaceLabel: string
@@ -1173,6 +1175,7 @@ export function DashboardView({
 	onHighlightsChat: (highlightContent: string, userReply: string) => void
 	onHighlightsShowRelated: (query: string) => void
 	onResetHighlights: () => void
+	onOpenDigests: () => void
 	memoryOfDay: MemoryOfDay | null
 }) {
 	const { user, org } = useAuth()
@@ -1278,6 +1281,9 @@ export function DashboardView({
 		profession,
 		setProfession,
 	} = usePersonalization()
+
+	const { data: digestList } = useDigests()
+	const latestDigest = digestList?.[0]
 
 	const recents = recentsData?.documents ?? []
 	const recentToolUsageItems = toolUsageItems
@@ -1471,6 +1477,43 @@ export function DashboardView({
 						<span className="truncate">{tip}</span>
 					</p>
 				</motion.section>
+
+				{/* Weekly digest preview */}
+				{latestDigest && (
+					<motion.button
+						{...fadeUp}
+						transition={{ ...fadeUp.transition, delay: 0.12 }}
+						type="button"
+						onClick={onOpenDigests}
+						className={cn(
+							"group flex w-full items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-left transition-colors hover:border-white/[0.1] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4BA0FA]/45",
+							dmSansClassName(),
+						)}
+					>
+						<div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#4BA0FA]/12">
+							<Image
+								src="/images/digest/feat-fs.svg"
+								alt=""
+								width={16}
+								height={16}
+								className="size-4"
+							/>
+						</div>
+						<div className="flex min-w-0 flex-1 items-baseline gap-2">
+							<span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#8BC6FF]">
+								Weekly digest
+							</span>
+							<p className="truncate text-[12px] text-fg-muted">
+								{latestDigest.title || "Your week in Supermemory"} ·{" "}
+								{latestDigest.memoryCount} memories
+							</p>
+						</div>
+						<span className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-fg-faint transition-colors group-hover:text-fg-muted">
+							View
+							<ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+						</span>
+					</motion.button>
+				)}
 
 				{/* Recently saved + Suggested for you */}
 				<motion.section

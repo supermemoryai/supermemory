@@ -33,7 +33,7 @@ export const analytics = {
 	chatDeleted: () => safeCapture("chat_deleted"),
 
 	viewModeChanged: (
-		mode: "dashboard" | "graph" | "list" | "integrations" | "chat",
+		mode: "dashboard" | "graph" | "list" | "integrations" | "chat" | "digests",
 	) => safeCapture("view_mode_changed", { mode }),
 
 	documentCardClicked: () => safeCapture("document_card_clicked"),
@@ -182,4 +182,19 @@ export const analytics = {
 
 	documentEdited: (props: { document_id: string }) =>
 		safeCapture("document_edited", props),
+
+	// weekly digest
+	digestViewed: (props: { digest_id: string; iso_week: string }) =>
+		safeCapture("digest_viewed", props),
+	digestFeedback: (props: {
+		digest_id: string
+		iso_week: string
+		rating: "up" | "down"
+	}) => safeCapture("digest_feedback", props),
+	digestFeedbackDetail: (props: {
+		digest_id: string
+		iso_week: string
+		rating: "up" | "down" | null
+		message: string
+	}) => safeCapture("digest_feedback_detail", props),
 }
