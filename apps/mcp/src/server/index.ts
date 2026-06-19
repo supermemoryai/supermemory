@@ -137,7 +137,10 @@ const mcpHandler = SupermemoryMCP.serve("/mcp", {
 	},
 })
 
-app.all("/mcp/*", async (c) => {
+async function handleMcpRequest(
+	c: Context<{ Bindings: Bindings }>,
+	rewritePath?: string,
+) {
 	const authHeader = c.req.header("Authorization")
 	const token = authHeader?.replace(/^Bearer\s+/i, "")
 	const containerTag = c.req.header("x-sm-project")
@@ -202,7 +205,19 @@ app.all("/mcp/*", async (c) => {
 		} satisfies Props,
 	} as ExecutionContext & { props: Props }
 
-	return mcpHandler.fetch(c.req.raw, c.env, ctx)
+	const request = rewritePath
+		? new Request(new URL(rewritePath, c.req.url).toString(), c.req.raw)
+		: c.req.raw
+
+	return mcpHandler.fetch(request, c.env, ctx)
+}
+
+app.all("/", async (c) => {
+	return handleMcpRequest(c, "/mcp")
+})
+
+app.all("/mcp/*", async (c) => {
+	return handleMcpRequest(c)
 })
 
 export { SupermemoryMCP }
