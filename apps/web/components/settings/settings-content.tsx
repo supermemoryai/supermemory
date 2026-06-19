@@ -3,7 +3,7 @@
 import { Logo } from "@ui/assets/Logo"
 import { useAuth } from "@lib/auth-context"
 import NovaOrb from "@/components/nova/nova-orb"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
 import Account from "@/components/settings/account"
@@ -147,6 +147,7 @@ export function SettingsContent({
 
 	const [isDeleteOrgDialogOpen, setIsDeleteOrgDialogOpen] = useState(false)
 	const [deleteOrgConfirm, setDeleteOrgConfirm] = useState("")
+	const deleteOrgInputRef = useRef<HTMLInputElement>(null)
 	const deleteOrganization = useDeleteOrganization()
 
 	// Only owners can delete the organization.
@@ -165,6 +166,13 @@ export function SettingsContent({
 	const isOwner = (activeMemberRoleQuery.data ?? "").toLowerCase() === "owner"
 
 	const [dangerMenuOpen, setDangerMenuOpen] = useState(false)
+
+	const openDeleteOrganizationDialog = () => {
+		setDangerMenuOpen(false)
+		window.requestAnimationFrame(() => {
+			setIsDeleteOrgDialogOpen(true)
+		})
+	}
 
 	const displayName =
 		user?.displayUsername ||
@@ -361,10 +369,7 @@ export function SettingsContent({
 
 										<button
 											type="button"
-											onClick={() => {
-												setDangerMenuOpen(false)
-												setIsDeleteOrgDialogOpen(true)
-											}}
+											onClick={openDeleteOrganizationDialog}
 											className="w-full flex items-center gap-3 rounded-[10px] px-3 py-2 text-left text-[#C73B1B] hover:bg-[#290F0A]/60 transition-colors cursor-pointer"
 										>
 											<Building2 className="size-[16px] shrink-0" />
@@ -602,7 +607,13 @@ export function SettingsContent({
 					if (!open) setDeleteOrgConfirm("")
 				}}
 			>
-				<DialogContent className="sm:max-w-md">
+				<DialogContent
+					className="sm:max-w-md"
+					onOpenAutoFocus={(event) => {
+						event.preventDefault()
+						deleteOrgInputRef.current?.focus()
+					}}
+				>
 					<div className={cn("flex flex-col gap-5 p-1", dmSans125ClassName())}>
 						<div className="flex flex-col gap-1.5">
 							<h2 className="text-[18px] font-semibold text-[#FAFAFA]">
@@ -625,6 +636,7 @@ export function SettingsContent({
 								confirm:
 							</p>
 							<input
+								ref={deleteOrgInputRef}
 								type="text"
 								value={deleteOrgConfirm}
 								onChange={(e) => setDeleteOrgConfirm(e.target.value)}
