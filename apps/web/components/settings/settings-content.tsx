@@ -10,6 +10,7 @@ import Account from "@/components/settings/account"
 import Billing from "@/components/settings/billing"
 import Integrations from "@/components/settings/integrations"
 import ConnectionsMCP from "@/components/settings/connections-mcp"
+import CompanyBrainConnections from "@/components/settings/company-brain-connections"
 import Support from "@/components/settings/support"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useRouter } from "next/navigation"
@@ -44,6 +45,7 @@ export const TABS = [
 	"billing",
 	"integrations",
 	"connections",
+	"company-brain",
 	"support",
 ] as const
 export type SettingsTab = (typeof TABS)[number]
@@ -79,6 +81,12 @@ const NAV_ITEMS: NavItem[] = [
 		label: "Connections & MCP",
 		description: "Drive, Notion, OneDrive, MCP",
 		icon: <Zap className="size-[18px]" />,
+	},
+	{
+		id: "company-brain",
+		label: "Company Brain",
+		description: "GitHub & Linear — org and personal",
+		icon: <Building2 className="size-[18px]" />,
 	},
 	{
 		id: "support",
@@ -416,6 +424,7 @@ export function SettingsContent({
 						{activeTab === "billing" && <Billing />}
 						{activeTab === "integrations" && <Integrations />}
 						{activeTab === "connections" && <ConnectionsMCP />}
+						{activeTab === "company-brain" && <CompanyBrainConnections />}
 						{activeTab === "support" && <Support />}
 					</ErrorBoundary>
 				</section>
