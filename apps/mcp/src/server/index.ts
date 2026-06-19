@@ -1,4 +1,4 @@
-import { Hono } from "hono"
+import { Hono, type Context } from "hono"
 import { cors } from "hono/cors"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 import type { Props } from "../shared/types"
@@ -57,6 +57,9 @@ export type { Props }
 const app = new Hono<{ Bindings: Bindings }>()
 
 const DEFAULT_API_URL = "https://api.supermemory.ai"
+const DEFAULT_MCP_RESOURCE = "https://mcp.supermemory.ai/mcp"
+const PROTECTED_RESOURCE_METADATA_PATH =
+	"/.well-known/oauth-protected-resource/mcp"
 
 app.use(
 	"*",
@@ -85,23 +88,23 @@ app.get("/", (c) => {
 	})
 })
 
-// OAuth discovery: resource metadata
-app.get("/.well-known/oauth-protected-resource", (c) => {
+// OAuth discovery: resource metadata. The protected resource is the MCP
+// endpoint itself, so path-aware clients discover metadata at the well-known
+// URL with `/mcp` appended.
+function resourceMetadata(c: Context<{ Bindings: Bindings }>) {
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
-	// Derive resource URL from the incoming request so it matches whatever
-	// host the client connected to (tunnel, prod, localhost, etc.)
-	const host = c.req.header("x-forwarded-host") || c.req.header("host")
-	const proto = c.req.header("x-forwarded-proto") || "https"
-	const resourceUrl = host ? `${proto}://${host}` : "https://mcp.supermemory.ai"
 
 	return c.json({
-		resource: resourceUrl,
+		resource: DEFAULT_MCP_RESOURCE,
 		authorization_servers: [apiUrl],
 		scopes_supported: ["openid", "profile", "email", "offline_access"],
 		bearer_methods_supported: ["header"],
 		resource_documentation: "https://docs.supermemory.ai/mcp",
 	})
-})
+}
+
+app.get("/.well-known/oauth-protected-resource", resourceMetadata)
+app.get(PROTECTED_RESOURCE_METADATA_PATH, resourceMetadata)
 
 // OAuth discovery: proxy authorization server metadata
 app.get("/.well-known/oauth-authorization-server", async (c) => {
@@ -145,8 +148,8 @@ app.all("/mcp/*", async (c) => {
 	const reqHost = c.req.header("x-forwarded-host") || c.req.header("host") || ""
 	const reqProto = c.req.header("x-forwarded-proto") || "https"
 	const resourceMetadataUrl = reqHost
-		? `${reqProto}://${reqHost}/.well-known/oauth-protected-resource`
-		: "/.well-known/oauth-protected-resource"
+		? `${reqProto}://${reqHost}${PROTECTED_RESOURCE_METADATA_PATH}`
+		: PROTECTED_RESOURCE_METADATA_PATH
 
 	if (!token) {
 		return new Response("Unauthorized", {
