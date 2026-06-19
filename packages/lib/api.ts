@@ -57,6 +57,34 @@ const WaitlistStatusResponseSchema = z.object({
 })
 
 export const apiSchema = createSchema({
+	// Inferred-memory review queue (Nova "Suggested for you")
+	"@get/container-tags/:containerTag/inferred": {
+		output: z.object({
+			memories: z.array(
+				z.object({
+					id: z.string(),
+					memory: z.string(),
+					parentCount: z.number(),
+					createdAt: z.string(),
+					updatedAt: z.string(),
+					metadata: z.record(z.string(), z.unknown()).nullable(),
+				}),
+			),
+			total: z.number(),
+		}),
+		params: z.object({ containerTag: z.string() }),
+	},
+
+	"@post/container-tags/:containerTag/inferred/:memoryId/review": {
+		input: z.object({ action: z.enum(["approve", "decline"]) }),
+		output: z.object({
+			id: z.string(),
+			isInference: z.boolean(),
+			reviewStatus: z.enum(["approved", "declined"]),
+		}),
+		params: z.object({ containerTag: z.string(), memoryId: z.string() }),
+	},
+
 	"@get/analytics/chat": {
 		output: AnalyticsChatResponseSchema,
 		query: AnalyticsRequestSchema,

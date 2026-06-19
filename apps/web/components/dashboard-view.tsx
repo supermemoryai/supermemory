@@ -42,6 +42,7 @@ import {
 import { normalizePluginClientId } from "@/lib/plugin-catalog"
 import { detectPluginSpace } from "@/lib/plugin-space"
 import { useDigests } from "@/hooks/use-digests"
+import { ReviewMemoriesCard } from "@/components/review-memories-card"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -1180,6 +1181,7 @@ export function DashboardView({
 }) {
 	const { user, org } = useAuth()
 	const { effectiveContainerTags } = useProject()
+	const primaryContainerTag = effectiveContainerTags?.[0]
 	const _router = useRouter()
 	const { data: recentsData, isPending: isRecentsLoading } = useQuery({
 		queryKey: ["dashboard-recents", effectiveContainerTags],
@@ -1598,7 +1600,8 @@ export function DashboardView({
 							)}
 						</div>
 
-						<div className="flex-[2] min-w-0 hidden sm:block">
+						<div className="flex-[2] min-w-0 hidden sm:block space-y-2">
+							<ReviewMemoriesCard containerTag={primaryContainerTag} />
 							<RecommendedPluginsCard
 								profession={profession}
 								setProfession={setProfession}
@@ -1615,7 +1618,8 @@ export function DashboardView({
 							<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
 								Suggested for you
 							</p>
-							<div className="max-w-sm">
+							<div className="max-w-sm space-y-2">
+								<ReviewMemoriesCard containerTag={primaryContainerTag} />
 								<RecommendedPluginsCard
 									profession={profession}
 									setProfession={setProfession}
