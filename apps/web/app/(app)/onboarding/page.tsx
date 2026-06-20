@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { useAuth } from "@lib/auth-context"
 import { authClient } from "@lib/auth"
+import { analytics } from "@/lib/analytics"
 import { BrainShell } from "@/components/onboarding-brain/shell"
 import {
 	StepAbout,
@@ -33,6 +34,9 @@ import {
 } from "@/components/onboarding-brain/types"
 
 const STORAGE_KEY = "supermemory-brain-onboarding-v1"
+
+const countsAsConnectedSource = (state: unknown) =>
+	state === "connected" || state === "waitlist"
 
 export default function BrainOnboardingPage() {
 	const router = useRouter()
@@ -103,8 +107,40 @@ export default function BrainOnboardingPage() {
 		} catch {}
 	}, [mode, about, sources, team])
 
+	const navTrigger = useRef<"user" | "auto">("auto")
+	const startedRef = useRef(false)
+	useEffect(() => {
+		if (startedRef.current) return
+		startedRef.current = true
+		analytics.onboardingStarted({
+			mode: detectedMode,
+			entry_step: initialStep,
+		})
+		analytics.onboardingStepViewed({
+			step: initialStep,
+			index: BRAIN_STEPS.indexOf(initialStep),
+			trigger: "auto",
+		})
+	}, [detectedMode, initialStep])
+
+	const firstStepRender = useRef(true)
+	useEffect(() => {
+		// Skip the mount run — the gated effect above fires the initial view.
+		if (firstStepRender.current) {
+			firstStepRender.current = false
+			return
+		}
+		analytics.onboardingStepViewed({
+			step,
+			index: BRAIN_STEPS.indexOf(step),
+			trigger: navTrigger.current,
+		})
+		navTrigger.current = "auto"
+	}, [step])
+
 	const setStepAndUrl = useCallback(
 		(next: BrainStep) => {
+			navTrigger.current = "user"
 			setStep(next)
 			const url = new URL(window.location.href)
 			url.searchParams.set("step", next)
@@ -128,14 +164,23 @@ export default function BrainOnboardingPage() {
 	}, [org])
 
 	const finish = useCallback(async () => {
+		analytics.onboardingCompleted({
+			mode,
+			steps_completed: BRAIN_STEPS.length,
+			sources_connected: Object.values(sources.connected).filter(
+				countsAsConnectedSource,
+			).length,
+			invites_sent: team.invites.filter((i) => i.email.trim()).length,
+		})
 		try {
 			localStorage.removeItem(STORAGE_KEY)
 		} catch {}
 		router.push("/?onboarded=1")
-	}, [router])
+	}, [router, mode, sources, team])
 
 	const goNext = useCallback(() => {
 		const idx = BRAIN_STEPS.indexOf(step)
+		analytics.onboardingStepCompleted({ step, index: idx })
 		const next = BRAIN_STEPS[idx + 1]
 		if (!next) {
 			finish()
@@ -175,6 +220,11 @@ export default function BrainOnboardingPage() {
 			})
 		}
 		await refetchOrganizations()
+		analytics.onboardingWorkspaceCreated({
+			mode,
+			has_about: Boolean(about.about.trim()),
+			has_domain: Boolean(mode === "team" && (about.workspaceDomain || domain)),
+		})
 	}, [
 		organizations,
 		about,
@@ -195,6 +245,9 @@ export default function BrainOnboardingPage() {
 			goNext()
 		} catch (e) {
 			console.error("Failed to create organization:", e)
+			analytics.onboardingWorkspaceCreateFailed({
+				error: e instanceof Error ? e.message : String(e),
+			})
 			toast.error("Couldn't create your workspace. Please try again.")
 		} finally {
 			creatingOrgRef.current = false
@@ -209,6 +262,7 @@ export default function BrainOnboardingPage() {
 		if (sendingInvitesRef.current) return
 		const pending = team.invites.filter((i) => i.email.trim())
 		if (pending.length === 0) {
+			analytics.onboardingTeamSkipped()
 			goNext()
 			return
 		}
@@ -231,6 +285,10 @@ export default function BrainOnboardingPage() {
 					r.status === "rejected" ||
 					(r.status === "fulfilled" && Boolean(r.value?.error)),
 			).length
+			analytics.onboardingInvitesSent({
+				sent: pending.length - failed,
+				failed,
+			})
 			if (failed > 0) {
 				toast.error(
 					`${failed} of ${pending.length} invite${pending.length === 1 ? "" : "s"} couldn't be sent.`,
@@ -260,7 +318,10 @@ export default function BrainOnboardingPage() {
 			{step === "about" && (
 				<StepAbout
 					mode={mode}
-					onModeChange={setMode}
+					onModeChange={(m) => {
+						analytics.onboardingModeSelected({ mode: m })
+						setMode(m)
+					}}
 					domain={domain}
 					suggestedWorkspaceName={suggestedWorkspaceName}
 					defaultName={user?.name ?? ""}
@@ -290,7 +351,10 @@ export default function BrainOnboardingPage() {
 					values={team}
 					onChange={setTeam}
 					onContinue={handleTeamContinue}
-					onSkip={goNext}
+					onSkip={() => {
+						analytics.onboardingTeamSkipped()
+						goNext()
+					}}
 					submitting={sendingInvites}
 					onUpgrade={() => router.push("/settings/billing")}
 				/>

@@ -1,16 +1,53 @@
 import posthog from "posthog-js"
+import type { BrainStep } from "@/components/onboarding-brain/types"
 
-export type OnboardingStep = "profile_input" | "processing" | "done" | "error"
-export type OnboardingSource = "x" | "linkedin" | "resume"
+const pendingEvents: Array<{
+	eventName: string
+	properties?: Record<string, unknown>
+}> = []
+let flushTimer: ReturnType<typeof setInterval> | undefined
+let flushTimeout: ReturnType<typeof setTimeout> | undefined
 
-// Helper function to safely capture events
+const flushPendingEvents = () => {
+	if (!posthog.__loaded) return
+	while (pendingEvents.length > 0) {
+		const event = pendingEvents.shift()
+		if (!event) return
+		posthog.capture(event.eventName, event.properties)
+	}
+	if (flushTimer) {
+		clearInterval(flushTimer)
+		flushTimer = undefined
+	}
+	if (flushTimeout) {
+		clearTimeout(flushTimeout)
+		flushTimeout = undefined
+	}
+}
+
+const scheduleFlush = () => {
+	if (flushTimer) return
+	flushTimer = setInterval(flushPendingEvents, 200)
+	flushTimeout = setTimeout(() => {
+		if (!flushTimer) return
+		clearInterval(flushTimer)
+		flushTimer = undefined
+		flushTimeout = undefined
+		pendingEvents.length = 0
+	}, 10000)
+}
+
 const safeCapture = (
 	eventName: string,
 	properties?: Record<string, unknown>,
 ) => {
 	if (posthog.__loaded) {
+		flushPendingEvents()
 		posthog.capture(eventName, properties)
+		return
 	}
+	pendingEvents.push({ eventName, properties })
+	scheduleFlush()
 }
 
 export const analytics = {
@@ -82,16 +119,47 @@ export const analytics = {
 	addDocumentModalOpened: () => safeCapture("add_document_modal_opened"),
 
 	// onboarding analytics
+	onboardingStarted: (props: { mode: string; entry_step: BrainStep }) =>
+		safeCapture("onboarding_started", props),
+
 	onboardingStepViewed: (props: {
-		step: OnboardingStep
+		step: BrainStep
+		index: number
 		trigger: "user" | "auto"
 	}) => safeCapture("onboarding_step_viewed", props),
 
-	onboardingProfileSubmitted: (props: { source: OnboardingSource }) =>
-		safeCapture("onboarding_profile_submitted", props),
+	onboardingStepCompleted: (props: { step: BrainStep; index: number }) =>
+		safeCapture("onboarding_step_completed", props),
+
+	onboardingModeSelected: (props: { mode: string }) =>
+		safeCapture("onboarding_mode_selected", props),
+
+	onboardingWorkspaceCreated: (props: {
+		mode: string
+		has_about: boolean
+		has_domain: boolean
+	}) => safeCapture("onboarding_workspace_created", props),
+
+	onboardingWorkspaceCreateFailed: (props: { error: string }) =>
+		safeCapture("onboarding_workspace_create_failed", props),
 
 	onboardingIntegrationClicked: (props: { integration: string }) =>
 		safeCapture("onboarding_integration_clicked", props),
+
+	onboardingSourcesCompleted: (props: { connected_count: number }) =>
+		safeCapture("onboarding_sources_completed", props),
+
+	onboardingAgentSelected: (props: { agent: string }) =>
+		safeCapture("onboarding_agent_selected", props),
+
+	onboardingIngestCompleted: () => safeCapture("onboarding_ingest_completed"),
+
+	onboardingIngestSkipped: () => safeCapture("onboarding_ingest_skipped"),
+
+	onboardingInvitesSent: (props: { sent: number; failed: number }) =>
+		safeCapture("onboarding_invites_sent", props),
+
+	onboardingTeamSkipped: () => safeCapture("onboarding_team_skipped"),
 
 	onboardingChromeExtensionClicked: (props: {
 		source: "onboarding" | "settings" | "integrations"
@@ -99,15 +167,14 @@ export const analytics = {
 
 	onboardingMcpDetailOpened: () => safeCapture("onboarding_mcp_detail_opened"),
 
-	onboardingXBookmarksDetailOpened: () =>
-		safeCapture("onboarding_x_bookmarks_detail_opened"),
-
-	onboardingSkipped: (props: { from_step: OnboardingStep }) =>
+	onboardingSkipped: (props: { from_step: BrainStep }) =>
 		safeCapture("onboarding_skipped", props),
 
-	onboardingCompleted: (props?: {
-		source?: OnboardingSource
-		memories_count?: number
+	onboardingCompleted: (props: {
+		mode: string
+		steps_completed: number
+		sources_connected: number
+		invites_sent: number
 	}) => safeCapture("onboarding_completed", props),
 
 	// main app analytics

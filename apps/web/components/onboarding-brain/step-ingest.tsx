@@ -11,6 +11,7 @@ import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { toast } from "sonner"
 import { MCPSteps } from "@/components/mcp-modal/mcp-detail-view"
 import { PLUGIN_CATALOG } from "@/lib/plugin-catalog"
+import { analytics } from "@/lib/analytics"
 
 interface Props {
 	mcpUrl: string
@@ -120,7 +121,18 @@ export function StepIngest({ mcpUrl, onContinue }: Props) {
 	}, [selectedAgent, setMcpClient])
 
 	const selectAgent = (agent: Agent) => {
+		analytics.onboardingAgentSelected({ agent: agent.key })
 		setSelectedKey(agent.key)
+	}
+
+	const handleContinue = () => {
+		analytics.onboardingIngestCompleted()
+		onContinue()
+	}
+
+	const handleSkip = () => {
+		analytics.onboardingIngestSkipped()
+		onContinue()
 	}
 
 	const filtered = AGENTS.filter((a) => a.category === activeCategory)
@@ -176,14 +188,14 @@ export function StepIngest({ mcpUrl, onContinue }: Props) {
 			<div className="flex flex-wrap items-center justify-end gap-[22px] px-1 pt-2">
 				<button
 					type="button"
-					onClick={onContinue}
+					onClick={handleSkip}
 					className="text-[#737373] font-medium text-[14px] hover:text-[#999] transition-colors"
 				>
 					Skip for now
 				</button>
 				<Button
 					variant="insideOut"
-					onClick={onContinue}
+					onClick={handleContinue}
 					className="rounded-full px-5 py-[10px] text-[13px] font-medium text-[#fafafa]"
 				>
 					Continue

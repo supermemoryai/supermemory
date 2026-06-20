@@ -108,6 +108,7 @@ import {
 } from "@lib/constants"
 import { useCustomer } from "autumn-js/react"
 import { toast } from "sonner"
+import { analytics } from "@/lib/analytics"
 import type { BrainMode } from "./types"
 
 type SourceId =
@@ -213,6 +214,9 @@ const PLAN_CARDS: PlanCardDefinition[] = [
 
 const PLAN_CARD_SCROLL_STEP = 406
 
+const countsAsConnected = (state: SourceState | undefined) =>
+	state === "connected" || state === "waitlist"
+
 export interface SourcesValues {
 	connected: Partial<Record<SourceId, SourceState>>
 	driveScope: DriveScope
@@ -309,6 +313,7 @@ export function StepSources({
 		provider: "google-drive" | "notion" | "onedrive",
 		id: SourceId,
 	) => {
+		analytics.onboardingIntegrationClicked({ integration: provider })
 		setState(id, "connecting")
 		try {
 			const metadata: Record<string, string> = {}
@@ -338,8 +343,14 @@ export function StepSources({
 	}
 
 	const openExternal = (id: SourceId, url: string) => {
+		analytics.onboardingIntegrationClicked({ integration: id })
 		window.open(url, "_blank", "noopener,noreferrer")
 		setState(id, "connected")
+	}
+
+	const requestWaitlist = (id: SourceId) => {
+		analytics.onboardingIntegrationClicked({ integration: id })
+		setState(id, "waitlist")
 	}
 
 	const guard = (
@@ -359,8 +370,13 @@ export function StepSources({
 	}
 
 	const connectedCount = Object.values(values.connected).filter(
-		(s) => s === "connected" || s === "waitlist",
+		countsAsConnected,
 	).length
+
+	const handleContinue = () => {
+		analytics.onboardingSourcesCompleted({ connected_count: connectedCount })
+		onContinue()
+	}
 
 	return (
 		<div className="mx-auto w-full max-w-[1400px] pb-10">
@@ -454,7 +470,7 @@ export function StepSources({
 							</button>
 							<SourceActions
 								connectedCount={connectedCount}
-								onContinue={onContinue}
+								onContinue={handleContinue}
 								className="mt-0 px-0"
 							/>
 						</div>
@@ -467,8 +483,8 @@ export function StepSources({
 									onChange={onChange}
 									isLocked={isLocked}
 									guard={guard}
-									setState={setState}
 									openExternal={openExternal}
+									requestWaitlist={requestWaitlist}
 									connectRealProvider={connectRealProvider}
 								/>
 							</div>
@@ -917,8 +933,8 @@ function MoreSourcesGrid({
 	onChange,
 	isLocked,
 	guard,
-	setState,
 	openExternal,
+	requestWaitlist,
 	connectRealProvider,
 }: {
 	mode: BrainMode
@@ -930,8 +946,8 @@ function MoreSourcesGrid({
 		title: string,
 		fn: () => void,
 	) => () => void
-	setState: (id: SourceId, state: SourceState) => void
 	openExternal: (id: SourceId, url: string) => void
+	requestWaitlist: (id: SourceId) => void
 	connectRealProvider: (
 		provider: "google-drive" | "notion" | "onedrive",
 		id: SourceId,
@@ -1027,7 +1043,7 @@ function MoreSourcesGrid({
 					"Decisions and follow-ups surfaced",
 					"You control which labels sync",
 				]}
-				onConnect={guard("max", "Gmail", () => setState("gmail", "waitlist"))}
+				onConnect={guard("max", "Gmail", () => requestWaitlist("gmail"))}
 			/>
 			<SourceCard
 				title="GitHub"
@@ -1042,7 +1058,7 @@ function MoreSourcesGrid({
 					"READMEs and docs indexed",
 					"Stays in sync with new activity",
 				]}
-				onConnect={guard("max", "GitHub", () => setState("github", "waitlist"))}
+				onConnect={guard("max", "GitHub", () => requestWaitlist("github"))}
 			/>
 			<SourceCard
 				title="Granola"
@@ -1057,9 +1073,10 @@ function MoreSourcesGrid({
 					"Decisions and action items extracted",
 					"Synced after every meeting",
 				]}
-				onConnect={guard("max", "Granola", () =>
-					toast.info("Granola is coming soon."),
-				)}
+				onConnect={guard("max", "Granola", () => {
+					analytics.onboardingIntegrationClicked({ integration: "granola" })
+					toast.info("Granola is coming soon.")
+				})}
 			/>
 		</>
 	)
