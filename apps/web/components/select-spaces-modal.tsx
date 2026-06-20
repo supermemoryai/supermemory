@@ -21,7 +21,9 @@ import {
 	Loader,
 	Pencil,
 	Check,
+	ExternalLink,
 } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
@@ -88,6 +90,14 @@ type Category = {
 	iconSrc: string | null
 	emoji: string | null
 	count: number
+}
+
+const CONSOLE_PLAYGROUND_URL = "https://console.dev.supermemory.ai/playground"
+
+function openContainerTagInPlayground(containerTag: string) {
+	const url = new URL(CONSOLE_PLAYGROUND_URL)
+	url.searchParams.set("containerTag", containerTag)
+	window.open(url.toString(), "_blank", "noopener,noreferrer")
 }
 
 export function SelectSpacesModal({
@@ -590,6 +600,7 @@ export function SelectSpacesModal({
 			const isOwnSpace = isOwnConversationSpace(project, user?.id)
 			const canEdit = !isDefault && !plugin && !isOwnSpace
 			const canBulkDelete = enableDelete && !isDefault
+			const canOpenPlayground = enableDelete
 			const isEditing = editingProject?.containerTag === project.containerTag
 			const isBulkDeleteSelected = bulkDeleteTags.has(project.containerTag)
 			const trimmedEditName = editingProject?.name.trim() ?? ""
@@ -755,6 +766,27 @@ export function SelectSpacesModal({
 							<Pencil className="size-3.5" />
 						</button>
 					)}
+					{canOpenPlayground && !isEditing && !isBulkDeleteMode && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation()
+										openContainerTagInPlayground(project.containerTag)
+										e.currentTarget.blur()
+									}}
+									aria-label="Open in Playground"
+									className="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-1.5 rounded-full text-[#737373] hover:bg-[#4BA0FA]/15 hover:text-[#4BA0FA] cursor-pointer focus:outline-none"
+								>
+									<ExternalLink className="size-3.5" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="right" className={dmSansClassName()}>
+								Open in Playground
+							</TooltipContent>
+						</Tooltip>
+					)}
 					{enableDelete &&
 						!isDefault &&
 						!isEditing &&
@@ -771,7 +803,7 @@ export function SelectSpacesModal({
 									})
 								}}
 								aria-label="Delete space"
-								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-red-500/15 cursor-pointer focus:outline-none"
+								className="-ml-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-red-500/15 cursor-pointer focus:outline-none"
 							>
 								<Trash2 className="size-3.5 text-red-400" />
 							</button>
