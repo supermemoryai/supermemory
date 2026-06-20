@@ -15,7 +15,7 @@ import {
 	type SourcesValues,
 } from "@/components/onboarding-brain/step-sources"
 import { StepIngest } from "@/components/onboarding-brain/step-ingest"
-import { useFeatureFlag } from "@/hooks/use-feature-flag"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import {
 	StepTeam,
 	type TeamValues,
@@ -66,7 +66,7 @@ export default function BrainOnboardingPage() {
 	)
 
 	// Team (Company Brain) onboarding is gated behind a private-beta flag.
-	const allowTeam = useFeatureFlag("company-brain-beta")
+	const allowTeam = useFeatureFlagEnabled("company-brain-beta") ?? false
 	const [mode, setMode] = useState<BrainMode>(detectedMode)
 	const [about, setAbout] = useState<AboutValues>({
 		name: user?.name ?? "",
