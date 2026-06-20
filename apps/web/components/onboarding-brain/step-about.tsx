@@ -11,6 +11,7 @@ import {
 	Building2,
 	LayoutGrid,
 	Loader2,
+	Mail,
 	Plug,
 	Terminal,
 	User2,
@@ -31,6 +32,7 @@ export interface AboutValues {
 interface Props {
 	mode: BrainMode
 	onModeChange: (m: BrainMode) => void
+	allowTeam: boolean
 	domain: string | null
 	suggestedWorkspaceName: string
 	defaultName: string
@@ -58,6 +60,7 @@ const inputClass =
 export function StepAbout({
 	mode,
 	onModeChange,
+	allowTeam,
 	domain,
 	suggestedWorkspaceName,
 	defaultName,
@@ -80,8 +83,11 @@ export function StepAbout({
 		if (Object.keys(patch).length > 0) onChange({ ...values, ...patch })
 	}, [defaultName, suggestedWorkspaceName, domain])
 
+	const teamGated = mode === "team" && !allowTeam
 	const canContinue =
-		values.name.trim().length > 0 && values.workspaceName.trim().length > 0
+		!teamGated &&
+		values.name.trim().length > 0 &&
+		values.workspaceName.trim().length > 0
 
 	return (
 		<div className="space-y-5">
@@ -146,7 +152,9 @@ export function StepAbout({
 					<ModeToggle mode={mode} onChange={onModeChange} />
 
 					<div className="mt-6">
-						{mode === "team" ? (
+						{teamGated ? (
+							<TeamBetaGate onUsePersonal={() => onModeChange("personal")} />
+						) : mode === "team" ? (
 							<TeamWorkspaceCard
 								domain={values.workspaceDomain || domain || ""}
 								onDomainChange={(d) =>
@@ -355,6 +363,57 @@ function PersonalWorkspaceCard({
 				Working with a team? Switch above.
 			</p>
 		</>
+	)
+}
+
+function TeamBetaGate({ onUsePersonal }: { onUsePersonal: () => void }) {
+	return (
+		<div
+			className="relative overflow-hidden rounded-[14px] bg-[#1B1F24] p-5 md:p-6"
+			style={cardSurfaceStyle}
+		>
+			<div
+				aria-hidden
+				className="absolute -top-px left-0 right-0 h-px"
+				style={{
+					background:
+						"linear-gradient(to right, transparent, rgba(75,160,250,0.3), transparent)",
+				}}
+			/>
+			<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4BA0FA]">
+				Private beta
+			</p>
+			<p
+				className={cn(
+					"mt-1.5 text-[15px] font-semibold leading-snug text-[#fafafa]",
+					dmSans125ClassName(),
+				)}
+			>
+				Team workspaces are invite-only
+			</p>
+			<p className="mt-1.5 text-[13px] leading-relaxed text-[#737373]">
+				We're onboarding teams to Company Brain one at a time. Email us for
+				access — or start with a personal workspace and invite your team later.
+			</p>
+			<div className="mt-4 flex w-full flex-col items-center gap-2.5">
+				<a
+					href="mailto:support@supermemory.com?subject=Company%20Brain%20beta%20access"
+					className="group inline-flex items-center gap-2 rounded-[10px] border border-[rgba(82,89,102,0.2)] bg-[#14161A] px-3.5 py-2 text-[13px] font-medium text-[#fafafa] transition-colors hover:border-[rgba(75,160,250,0.4)]"
+				>
+					<Mail className="size-3.5 text-[#4BA0FA]" />
+					support@supermemory.com
+					<ArrowRight className="size-3.5 text-[#525D6E] transition-colors group-hover:text-[#fafafa]" />
+				</a>
+				<button
+					type="button"
+					onClick={onUsePersonal}
+					className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]"
+				>
+					Start with a personal workspace
+					<ArrowRight className="size-3.5" />
+				</button>
+			</div>
+		</div>
 	)
 }
 
