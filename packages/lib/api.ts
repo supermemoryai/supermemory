@@ -76,11 +76,11 @@ export const apiSchema = createSchema({
 	},
 
 	"@post/container-tags/:containerTag/inferred/:memoryId/review": {
-		input: z.object({ action: z.enum(["approve", "decline"]) }),
+		input: z.object({ action: z.enum(["approve", "decline", "undo"]) }),
 		output: z.object({
 			id: z.string(),
 			isInference: z.boolean(),
-			reviewStatus: z.enum(["approved", "declined"]),
+			reviewStatus: z.enum(["approved", "declined"]).nullable(),
 		}),
 		params: z.object({ containerTag: z.string(), memoryId: z.string() }),
 	},

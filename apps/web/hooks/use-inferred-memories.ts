@@ -12,7 +12,7 @@ export type InferredMemory = {
 	metadata: Record<string, unknown> | null
 }
 
-export type ReviewAction = "approve" | "decline"
+export type ReviewAction = "approve" | "decline" | "undo"
 
 const inferredKey = (containerTag: string | undefined) =>
 	["inferred-memories", containerTag] as const
@@ -54,7 +54,14 @@ export function useReviewInferredMemory(containerTag: string | undefined) {
 		},
 		// The modal pops cards off its local stack as you swipe, so we just drop
 		// the reviewed entry from the cached queue once the request settles.
-		onSuccess: (_data, { memoryId }) => {
+		// Undo restores the memory server-side, so refetch to bring it back.
+		onSuccess: (_data, { memoryId, action }) => {
+			if (action === "undo") {
+				queryClient.invalidateQueries({
+					queryKey: inferredKey(containerTag),
+				})
+				return
+			}
 			queryClient.setQueryData<InferredMemory[]>(
 				inferredKey(containerTag),
 				(prev) => prev?.filter((m) => m.id !== memoryId),

@@ -8,7 +8,7 @@ import {
 } from "@/hooks/use-inferred-memories"
 import { cn } from "@lib/utils"
 import { Dialog, DialogContent } from "@ui/components/dialog"
-import { Check, X } from "lucide-react"
+import { Check, Undo2, X } from "lucide-react"
 import {
 	AnimatePresence,
 	motion,
@@ -16,7 +16,7 @@ import {
 	useReducedMotion,
 	useTransform,
 } from "motion/react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 // Distance / velocity past which a drag commits to a decision.
 const SWIPE_OFFSET = 120
@@ -44,6 +44,12 @@ export function ReviewMemoriesModal({
 	const [index, setIndex] = useState(0)
 	const [exitDir, setExitDir] = useState(1)
 	const [approved, setApproved] = useState(0)
+	const [history, setHistory] = useState<{ id: string; decision: Decision }[]>(
+		[],
+	)
+	// Synchronous source of truth so rapid swipes/undos don't read stale state.
+	const indexRef = useRef(0)
+	const historyRef = useRef<{ id: string; decision: Decision }[]>([])
 
 	// Intentionally keyed on `open` only: including `memories` would reset the
 	// stack every time the review mutation trims the cache. The queue is loaded
@@ -53,7 +59,10 @@ export function ReviewMemoriesModal({
 		if (!open) return
 		setCards(memories)
 		setIndex(0)
+		indexRef.current = 0
 		setApproved(0)
+		setHistory([])
+		historyRef.current = []
 	}, [open])
 
 	const current = cards[index]
@@ -61,7 +70,7 @@ export function ReviewMemoriesModal({
 
 	const decide = useCallback(
 		(decision: Decision) => {
-			const card = cards[index]
+			const card = cards[indexRef.current]
 			if (!card) return
 			// 1 = fly right (approve), -1 = fly left (decline), 0 = drop down (skip)
 			setExitDir(decision === "approve" ? 1 : decision === "decline" ? -1 : 0)
@@ -72,15 +81,43 @@ export function ReviewMemoriesModal({
 				review({ memoryId: card.id, action: "decline" })
 			}
 			// skip persists nothing — it simply resurfaces in a later session.
-			setIndex((i) => i + 1)
+			historyRef.current = [...historyRef.current, { id: card.id, decision }]
+			setHistory(historyRef.current)
+			indexRef.current += 1
+			setIndex(indexRef.current)
 		},
-		[cards, index, review],
+		[cards, review],
 	)
+
+	const canUndo = history.length > 0
+
+	// Step back one card and revert its server-side review (skip had none).
+	// Reads from refs so consecutive/rapid undos each target the correct card.
+	const undo = useCallback(() => {
+		const last = historyRef.current[historyRef.current.length - 1]
+		if (!last) return
+		historyRef.current = historyRef.current.slice(0, -1)
+		setHistory(historyRef.current)
+		if (last.decision === "approve") {
+			setApproved((n) => Math.max(0, n - 1))
+			review({ memoryId: last.id, action: "undo" })
+		} else if (last.decision === "decline") {
+			review({ memoryId: last.id, action: "undo" })
+		}
+		indexRef.current = Math.max(0, indexRef.current - 1)
+		setIndex(indexRef.current)
+	}, [review])
 
 	// Keyboard: ← decline, → approve, ↓/space skip.
 	useEffect(() => {
-		if (!open || done || !current) return
+		if (!open) return
 		const onKey = (e: KeyboardEvent) => {
+			if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
+				e.preventDefault()
+				undo()
+				return
+			}
+			if (done || !current) return
 			if (e.key === "ArrowRight") decide("approve")
 			else if (e.key === "ArrowLeft") decide("decline")
 			else if (e.key === "ArrowDown" || e.key === " ") {
@@ -90,7 +127,7 @@ export function ReviewMemoriesModal({
 		}
 		window.addEventListener("keydown", onKey)
 		return () => window.removeEventListener("keydown", onKey)
-	}, [open, done, current, decide])
+	}, [open, done, current, decide, undo])
 
 	const visible = cards.slice(index, index + STACK_DEPTH)
 
@@ -123,8 +160,8 @@ export function ReviewMemoriesModal({
 					</button>
 				</div>
 
-				{/* Progress dots */}
-				{!done && cards.length > 0 && (
+				{/* Progress dots + undo + counter */}
+				{cards.length > 0 && (
 					<div className="flex items-center justify-between px-6 pb-1">
 						<div className="flex flex-wrap items-center gap-1.5">
 							{cards.map((c, i) => (
@@ -141,9 +178,21 @@ export function ReviewMemoriesModal({
 								/>
 							))}
 						</div>
-						<span className="shrink-0 pl-3 text-[11px] tabular-nums text-fg-faint">
-							{Math.min(index + 1, cards.length)}/{cards.length}
-						</span>
+						<div className="flex shrink-0 items-center gap-2.5 pl-3">
+							{canUndo && (
+								<button
+									type="button"
+									onClick={undo}
+									className="flex items-center gap-1 text-[11px] font-medium text-fg-faint transition-colors hover:text-fg-primary"
+								>
+									<Undo2 className="size-3.5" />
+									Undo
+								</button>
+							)}
+							<span className="text-[11px] tabular-nums text-fg-faint">
+								{Math.min(index + 1, cards.length)}/{cards.length}
+							</span>
+						</div>
 					</div>
 				)}
 
@@ -198,10 +247,9 @@ export function ReviewMemoriesModal({
 						<motion.button
 							type="button"
 							onClick={() => decide("skip")}
-							whileHover={{ scale: 1.04 }}
 							whileTap={{ scale: 0.94 }}
 							transition={{ duration: 0.15 }}
-							className="h-10 rounded-full border border-white/10 bg-white/[0.03] px-5 text-[13px] font-medium text-fg-muted transition-colors hover:bg-white/[0.07] hover:text-fg-primary"
+							className="px-4 text-[13px] font-medium text-fg-faint transition-colors hover:text-fg-primary"
 						>
 							Skip
 						</motion.button>
