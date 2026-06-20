@@ -89,6 +89,7 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 		// Fetch the authorization server metadata from the main API
 		const response = await fetch(
 			`${apiUrl}/.well-known/oauth-authorization-server`,
+			{ signal: AbortSignal.timeout(30_000) },
 		)
 
 		if (!response.ok) {
