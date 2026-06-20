@@ -92,7 +92,7 @@ type Category = {
 	count: number
 }
 
-const CONSOLE_PLAYGROUND_URL = "https://console.dev.supermemory.ai/playground"
+const CONSOLE_PLAYGROUND_URL = "https://console.supermemory.ai/playground"
 
 function openContainerTagInPlayground(containerTag: string) {
 	const url = new URL(CONSOLE_PLAYGROUND_URL)
