@@ -221,9 +221,15 @@ export default function CompanyBrainConnections() {
 				toast.error("Only admins can connect the shared org account.")
 				return
 			}
+			if (!res.ok) {
+				toast.error("Couldn't start the connection.")
+				return
+			}
 			const data = (await res.json()) as { url?: string; error?: string }
 			if (data.url) window.open(data.url, "_blank", "noopener")
 			else toast.error(data.error ?? "Couldn't start the connection.")
+		} catch {
+			toast.error("Couldn't start the connection.")
 		} finally {
 			setBusy(null)
 		}
