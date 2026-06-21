@@ -2,6 +2,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"main": ".open-next/worker.js",
 	"name": "supermemory-app",
+	"tags": ["cf:service=supermemory"],
 	"compatibility_date": "2024-12-30",
 	"compatibility_flags": [
 		// Enable Node.js API
