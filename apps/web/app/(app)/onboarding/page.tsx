@@ -16,6 +16,7 @@ import {
 	type SourcesValues,
 } from "@/components/onboarding-brain/step-sources"
 import { StepIngest } from "@/components/onboarding-brain/step-ingest"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import {
 	StepTeam,
 	type TeamValues,
@@ -68,6 +69,8 @@ export default function BrainOnboardingPage() {
 		[user?.email],
 	)
 
+	// Team (Company Brain) onboarding is gated behind a private-beta flag.
+	const allowTeam = useFeatureFlagEnabled("company-brain-beta") ?? false
 	const [mode, setMode] = useState<BrainMode>(detectedMode)
 	const [about, setAbout] = useState<AboutValues>({
 		name: user?.name ?? "",
@@ -168,6 +171,13 @@ export default function BrainOnboardingPage() {
 		return plan === "scale" || plan === "scale_yearly"
 	}, [org])
 
+	// Personal onboarding has no team step — drop it from the flow + stepper.
+	const steps = useMemo<BrainStep[]>(
+		() =>
+			mode === "team" ? BRAIN_STEPS : BRAIN_STEPS.filter((s) => s !== "team"),
+		[mode],
+	)
+
 	const finish = useCallback(async () => {
 		analytics.onboardingCompleted({
 			mode,
@@ -189,15 +199,23 @@ export default function BrainOnboardingPage() {
 	}, [router, mode, sources, team, forceCreate])
 
 	const goNext = useCallback(() => {
-		const idx = BRAIN_STEPS.indexOf(step)
+		const idx = steps.indexOf(step)
 		analytics.onboardingStepCompleted({ step, index: idx })
-		const next = BRAIN_STEPS[idx + 1]
+		const next = steps[idx + 1]
 		if (!next) {
 			finish()
 			return
 		}
 		setStepAndUrl(next)
-	}, [step, setStepAndUrl, finish])
+	}, [step, steps, setStepAndUrl, finish])
+
+	// If the current step isn't valid for the mode (e.g. switched to personal),
+	// fall back to the last valid step.
+	useEffect(() => {
+		if (!steps.includes(step)) {
+			setStepAndUrl(steps[steps.length - 1] ?? "about")
+		}
+	}, [steps, step, setStepAndUrl])
 
 	const [creatingOrg, setCreatingOrg] = useState(false)
 	const creatingOrgRef = useRef(false)
@@ -206,13 +224,14 @@ export default function BrainOnboardingPage() {
 		if (!forceCreate && organizations && organizations.length > 0) return
 		const name = (about.workspaceName || suggestedWorkspaceName).trim()
 		const slug = generateOrgSlug(name)
+		const effectiveMode = allowTeam ? mode : "personal"
 		const metadata: BrainMetadata & { signupSource: string } = {
 			signupSource: "consumer",
 			brainOnboardingVersion: "v1",
-			brainMode: mode,
+			brainMode: effectiveMode,
 			brainWorkspaceName: name,
 			brainWorkspaceDomain:
-				mode === "team" ? about.workspaceDomain || domain : null,
+				effectiveMode === "team" ? about.workspaceDomain || domain : null,
 			brainContainerTag: containerTag,
 			...(about.about.trim() ? { brainAbout: about.about.trim() } : {}),
 		}
@@ -247,6 +266,7 @@ export default function BrainOnboardingPage() {
 		about,
 		suggestedWorkspaceName,
 		mode,
+		allowTeam,
 		domain,
 		containerTag,
 		setActiveOrg,
@@ -332,6 +352,7 @@ export default function BrainOnboardingPage() {
 	return (
 		<BrainShell
 			step={step}
+			steps={steps}
 			domain={mode === "team" ? about.workspaceDomain || domain : null}
 		>
 			{step === "about" && (
@@ -341,6 +362,7 @@ export default function BrainOnboardingPage() {
 						analytics.onboardingModeSelected({ mode: m })
 						setMode(m)
 					}}
+					allowTeam={allowTeam}
 					domain={domain}
 					suggestedWorkspaceName={suggestedWorkspaceName}
 					defaultName={user?.name ?? ""}
@@ -361,7 +383,13 @@ export default function BrainOnboardingPage() {
 					onContinue={goNext}
 				/>
 			)}
-			{step === "ingest" && <StepIngest mcpUrl={mcpUrl} onContinue={goNext} />}
+			{step === "ingest" && (
+				<StepIngest
+					mode={allowTeam ? mode : "personal"}
+					mcpUrl={mcpUrl}
+					onContinue={goNext}
+				/>
+			)}
 			{step === "team" && (
 				<StepTeam
 					mode={mode}

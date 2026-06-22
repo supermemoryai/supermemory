@@ -9,11 +9,12 @@ import { BRAIN_STEPS, BRAIN_STEP_LABELS, type BrainStep } from "./types"
 interface ShellProps {
 	step: BrainStep
 	domain?: string | null
+	steps?: BrainStep[]
 	children: React.ReactNode
 }
 
-export function BrainShell({ step, children }: ShellProps) {
-	const visibleSteps: BrainStep[] = BRAIN_STEPS
+export function BrainShell({ step, steps, children }: ShellProps) {
+	const visibleSteps: BrainStep[] = steps ?? BRAIN_STEPS
 
 	return (
 		<div

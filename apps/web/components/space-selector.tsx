@@ -61,8 +61,8 @@ export interface SpaceSelectorProps {
 
 const triggerVariants = {
 	default:
-		"h-10 min-h-10 shrink-0 rounded-full border border-[#161F2C] bg-muted px-3 gap-2 " +
-		"hover:bg-white/5 hover:border-[#2261CA33] " +
+		"h-10 min-h-10 shrink-0 rounded-full bg-muted px-3 gap-2 " +
+		"hover:bg-white/5 " +
 		"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2261CA33]/35",
 	insideOut:
 		"h-10 min-h-10 gap-2 px-3 rounded-full bg-[#0D121A] shadow-inside-out hover:bg-[#121820]",

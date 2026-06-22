@@ -15,6 +15,8 @@ import { MobileBottomNav } from "@/components/bottom-nav"
 import { ChatSidebar, HomeChatComposer } from "@/components/chat"
 import type { ChatAttachmentDraft } from "@/components/chat/attachments"
 import { DashboardView } from "@/components/dashboard-view"
+import { BrainHomeView } from "@/components/brain-home/brain-home-view"
+import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { MemoriesGrid } from "@/components/memories-grid"
 import { GraphLayoutView } from "@/components/graph-layout-view"
 import { IntegrationsView, DetailWrapper } from "@/components/integrations-view"
@@ -130,6 +132,27 @@ export default function NewPage() {
 		: undefined
 
 	const { viewMode, setViewMode } = useViewMode()
+	const isCompanyBrain = useHasCompanyBrain()
+
+	// Slack OAuth redirects back here with ?slack=connected — toast then clean up.
+	useEffect(() => {
+		const sp = new URLSearchParams(window.location.search)
+		if (sp.get("slack") !== "connected") return
+		const team = sp.get("team")
+		toast.success(
+			team
+				? `Supermemory added to ${team} on Slack`
+				: "Supermemory added to your Slack",
+		)
+		sp.delete("slack")
+		sp.delete("team")
+		const qs = sp.toString()
+		window.history.replaceState(
+			null,
+			"",
+			window.location.pathname + (qs ? `?${qs}` : ""),
+		)
+	}, [])
 	const queryClient = useQueryClient()
 	const [highlightsForceAt, setHighlightsForceAt] = useState(0)
 
@@ -753,6 +776,10 @@ export default function NewPage() {
 												onSwitchToAllSpaces: undefined,
 											}}
 										/>
+									</div>
+								) : isCompanyBrain ? (
+									<div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 pt-2! pb-[180px] md:p-6">
+										<BrainHomeView />
 									</div>
 								) : (
 									<DashboardView
