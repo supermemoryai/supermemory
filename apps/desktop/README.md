@@ -1,6 +1,6 @@
-# @repo/desktop
+# supermemory
 
-Supermemory desktop app — a [Tauri v2](https://v2.tauri.app) shell around the
+supermemory desktop app — a [Tauri v2](https://v2.tauri.app) shell around the
 Supermemory web UI (Next.js static export), talking to `api.supermemory.ai`.
 
 Design docs live in `/.context/desktop-app-*.md` (spec, roadmap, architecture).

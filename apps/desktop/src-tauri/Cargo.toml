@@ -1,7 +1,7 @@
 [package]
-name = "supermemory-desktop"
+name = "supermemory"
 version = "0.1.0"
-description = "Supermemory Desktop"
+description = "supermemory"
 edition = "2021"
 rust-version = "1.77.2"
 
