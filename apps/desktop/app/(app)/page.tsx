@@ -14,9 +14,10 @@ import {
 	SendHorizontal,
 	Sparkles,
 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { listDocuments, type DocumentWithMemories } from "@/lib/api"
 import type { SearchResult } from "@/lib/search"
+import { OPEN_MEMORY_EVENT, type SpotlightMemory } from "@/lib/spotlight"
 import { SearchCommand, useCommandK } from "@/components/search-command"
 
 type MemoryPreview = {
@@ -50,6 +51,27 @@ export default function DashboardPage() {
 		return "Your memory is ready."
 	}, [documentsQuery.isPending, totalCount])
 	const visibleDocuments = documents.slice(0, 5)
+
+	useEffect(() => {
+		let unlisten: (() => void) | undefined
+
+		import("@tauri-apps/api/event")
+			.then(({ listen }) =>
+				listen<SpotlightMemory>(OPEN_MEMORY_EVENT, (event) => {
+					setSelectedMemory(spotlightMemoryToPreview(event.payload))
+				}),
+			)
+			.then((handler) => {
+				unlisten = handler
+			})
+			.catch(() => {
+				unlisten = undefined
+			})
+
+		return () => {
+			unlisten?.()
+		}
+	}, [])
 
 	return (
 		<div className="flex min-h-full flex-col px-4 pb-10 md:px-6">
@@ -270,6 +292,19 @@ function searchResultToPreview(result: SearchResult): MemoryPreview {
 			null,
 		type: result.type,
 		createdAt: result.createdAt,
+	}
+}
+
+function spotlightMemoryToPreview(memory: SpotlightMemory): MemoryPreview {
+	return {
+		id: memory.id,
+		title: memory.title,
+		summary: memory.summary,
+		content: memory.content,
+		raw: memory.raw,
+		url: memory.url,
+		type: memory.type,
+		createdAt: memory.createdAt,
 	}
 }
 

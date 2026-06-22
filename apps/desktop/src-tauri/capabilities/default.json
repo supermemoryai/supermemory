@@ -2,6 +2,6 @@
 	"$schema": "../gen/schemas/desktop-schema.json",
 	"identifier": "default",
 	"description": "Core capabilities granted to the main window.",
-	"windows": ["main"],
+	"windows": ["main", "spotlight"],
 	"permissions": ["core:default", "core:window:allow-start-dragging"]
 }
