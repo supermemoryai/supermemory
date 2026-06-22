@@ -1,5 +1,6 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
 import {
 	CommandDialog,
 	CommandEmpty,
@@ -8,21 +9,9 @@ import {
 	CommandItem,
 	CommandList,
 } from "@ui/components/command"
-import { FileText, Hash, MessageSquare } from "lucide-react"
+import { FileText, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
-
-// Mock data for Phase 1. Phase 5 swaps this for /v3/search results and wires the
-// OS-global hotkey via the Rust global-shortcut plugin. The point here is to
-// mount the real command-palette UI (cmdk + shared theme) behind an in-app
-// Cmd/Ctrl+K — the precursor to the spotlight window.
-const MOCK_RESULTS = [
-	{ id: "1", title: "Q3 planning notes", kind: "doc" },
-	{ id: "2", title: "Tauri vs Electron — research", kind: "doc" },
-	{ id: "3", title: "engineering", kind: "space" },
-	{ id: "4", title: "Desktop app architecture", kind: "chat" },
-] as const
-
-const ICONS = { doc: FileText, space: Hash, chat: MessageSquare }
+import { searchMemories } from "@/lib/search"
 
 export function SearchCommand({
 	open,
@@ -31,22 +20,71 @@ export function SearchCommand({
 	open: boolean
 	onOpenChange: (open: boolean) => void
 }) {
+	const [query, setQuery] = useState("")
+	const trimmedQuery = query.trim()
+	const searchQuery = useQuery({
+		queryKey: ["desktop-search", trimmedQuery],
+		queryFn: () => searchMemories(trimmedQuery),
+		enabled: open && trimmedQuery.length > 0,
+		staleTime: 30 * 1000,
+	})
+	const results = searchQuery.data?.results ?? []
+
+	useEffect(() => {
+		if (!open) setQuery("")
+	}, [open])
+
 	return (
 		<CommandDialog open={open} onOpenChange={onOpenChange}>
-			<CommandInput placeholder="Search your memories…" />
+			<CommandInput
+				placeholder="Search your memories..."
+				value={query}
+				onValueChange={setQuery}
+			/>
 			<CommandList>
-				<CommandEmpty>No results found.</CommandEmpty>
+				{trimmedQuery ? (
+					<CommandEmpty>
+						{searchQuery.isFetching ? "Searching..." : "No results found."}
+					</CommandEmpty>
+				) : (
+					<div className="px-4 py-6 text-center text-muted-foreground text-sm">
+						Type to search your memories.
+					</div>
+				)}
 				<CommandGroup heading="Memories">
-					{MOCK_RESULTS.map((result) => {
-						const Icon = ICONS[result.kind]
+					{searchQuery.isFetching ? (
+						<CommandItem disabled value="searching">
+							<Loader2 className="animate-spin" />
+							Searching...
+						</CommandItem>
+					) : null}
+					{searchQuery.isError ? (
+						<CommandItem disabled value="search-error">
+							<FileText />
+							Search failed. Check your token and API URL.
+						</CommandItem>
+					) : null}
+					{results.map((result) => {
+						const title = result.title ?? result.documentId
+						const preview =
+							result.summary ??
+							result.chunks.find((chunk) => chunk.isRelevant)?.content
 						return (
 							<CommandItem
-								key={result.id}
-								value={result.title}
+								key={result.documentId}
+								value={`${title} ${preview ?? ""}`}
 								onSelect={() => onOpenChange(false)}
+								className="items-start"
 							>
-								<Icon />
-								{result.title}
+								<FileText className="mt-0.5" />
+								<div className="min-w-0">
+									<div className="truncate font-medium">{title}</div>
+									{preview ? (
+										<div className="line-clamp-2 text-muted-foreground text-xs">
+											{preview}
+										</div>
+									) : null}
+								</div>
 							</CommandItem>
 						)
 					})}

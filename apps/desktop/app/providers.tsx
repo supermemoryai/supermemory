@@ -1,9 +1,11 @@
 "use client"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { setTokenProvider } from "@lib/token-provider"
 import { Toaster } from "@ui/components/sonner"
 import { ThemeProvider } from "next-themes"
-import { type ReactNode, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
+import { getStoredToken } from "@/lib/auth"
 
 export function Providers({ children }: { children: ReactNode }) {
 	// One QueryClient for the app's lifetime; lazy init avoids re-creating it on
@@ -19,6 +21,10 @@ export function Providers({ children }: { children: ReactNode }) {
 				},
 			}),
 	)
+
+	useEffect(() => {
+		setTokenProvider(getStoredToken)
+	}, [])
 
 	// The app is dark-only, matching apps/web (forcedTheme="dark").
 	return (
