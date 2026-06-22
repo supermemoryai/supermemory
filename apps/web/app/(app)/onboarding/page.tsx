@@ -44,6 +44,10 @@ export default function BrainOnboardingPage() {
 	const { user, org, organizations, setActiveOrg, refetchOrganizations } =
 		useAuth()
 
+	// `?new=1` forces creating an additional org even when the user already has one.
+	const forceCreate = params?.get("new") === "1"
+	const nameParam = params?.get("name")?.trim() || ""
+
 	const stepFromUrl = (params?.get("step") as BrainStep | null) ?? "about"
 	const initialStep: BrainStep = BRAIN_STEPS.includes(stepFromUrl)
 		? stepFromUrl
@@ -68,7 +72,7 @@ export default function BrainOnboardingPage() {
 	const [about, setAbout] = useState<AboutValues>({
 		name: user?.name ?? "",
 		about: "",
-		workspaceName: suggestedWorkspaceName,
+		workspaceName: nameParam || suggestedWorkspaceName,
 		workspaceDomain: domain ?? "",
 	})
 	const [sources, setSources] = useState<SourcesValues>({
@@ -82,6 +86,7 @@ export default function BrainOnboardingPage() {
 	})
 
 	useEffect(() => {
+		if (forceCreate) return
 		try {
 			const raw = localStorage.getItem(STORAGE_KEY)
 			if (!raw) return
@@ -96,7 +101,7 @@ export default function BrainOnboardingPage() {
 			if (cached.sources) setSources((s) => ({ ...s, ...cached.sources }))
 			if (cached.team) setTeam((t) => ({ ...t, ...cached.team }))
 		} catch {}
-	}, [])
+	}, [forceCreate])
 
 	useEffect(() => {
 		try {
@@ -175,8 +180,13 @@ export default function BrainOnboardingPage() {
 		try {
 			localStorage.removeItem(STORAGE_KEY)
 		} catch {}
+		// Extra org from settings: hard-reload so org-scoped caches don't show the previous org's data.
+		if (forceCreate) {
+			window.location.href = "/?onboarded=1"
+			return
+		}
 		router.push("/?onboarded=1")
-	}, [router, mode, sources, team])
+	}, [router, mode, sources, team, forceCreate])
 
 	const goNext = useCallback(() => {
 		const idx = BRAIN_STEPS.indexOf(step)
@@ -193,7 +203,7 @@ export default function BrainOnboardingPage() {
 	const creatingOrgRef = useRef(false)
 
 	const ensureOrg = useCallback(async () => {
-		if (organizations && organizations.length > 0) return
+		if (!forceCreate && organizations && organizations.length > 0) return
 		const name = (about.workspaceName || suggestedWorkspaceName).trim()
 		const slug = generateOrgSlug(name)
 		const metadata: BrainMetadata & { signupSource: string } = {
@@ -225,6 +235,13 @@ export default function BrainOnboardingPage() {
 			has_about: Boolean(about.about.trim()),
 			has_domain: Boolean(mode === "team" && (about.workspaceDomain || domain)),
 		})
+		// Drop new=1 so a reload or back+Continue reuses this org instead of creating a duplicate.
+		if (forceCreate) {
+			const url = new URL(window.location.href)
+			url.searchParams.delete("new")
+			url.searchParams.delete("name")
+			router.replace(url.pathname + url.search, { scroll: false })
+		}
 	}, [
 		organizations,
 		about,
@@ -234,6 +251,8 @@ export default function BrainOnboardingPage() {
 		containerTag,
 		setActiveOrg,
 		refetchOrganizations,
+		forceCreate,
+		router,
 	])
 
 	const handleAboutContinue = useCallback(async () => {

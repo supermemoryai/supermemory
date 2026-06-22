@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { useCustomer } from "autumn-js/react"
 import { toast } from "sonner"
 import {
@@ -13,7 +14,6 @@ import {
 import { cn } from "@lib/utils"
 import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
 import { useAuth } from "@lib/auth-context"
-import { authClient } from "@lib/auth"
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
 import { Dialog, DialogContent, DialogTitle } from "@ui/components/dialog"
 import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
@@ -23,17 +23,9 @@ import { useTokenUsage, type PlanType } from "@/hooks/use-token-usage"
 const SURFACE_SHADOW =
 	"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset"
 
-function generateOrgSlug(name: string): string {
-	const base =
-		name
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/(^-|-$)/g, "") || "org"
-	return `${base}-${Math.floor(100000 + Math.random() * 900000)}`
-}
-
 export function SettingsOrgSwitcher() {
 	const { org, organizations, setActiveOrg } = useAuth()
+	const router = useRouter()
 	const autumn = useCustomer()
 	const { currentPlan } = useTokenUsage(autumn)
 	const { data: orgSummaries } = useOrgSummaries()
@@ -43,6 +35,11 @@ export function SettingsOrgSwitcher() {
 	const [createOpen, setCreateOpen] = useState(false)
 	const [createName, setCreateName] = useState("")
 	const [creating, setCreating] = useState(false)
+
+	// Clear a stale Radix `pointer-events: none` left on <body> so the dialog accepts clicks.
+	useEffect(() => {
+		if (createOpen) document.body.style.pointerEvents = ""
+	}, [createOpen])
 
 	const planByOrgId = useMemo(() => {
 		const map = new Map<string, PlanType>()
@@ -78,29 +75,14 @@ export function SettingsOrgSwitcher() {
 		}
 	}
 
-	const handleCreate = async () => {
+	const handleCreate = () => {
 		const name = createName.trim()
 		if (!name || creating) return
 		setCreating(true)
-		try {
-			const result = await authClient.organization.create({
-				name,
-				slug: generateOrgSlug(name),
-				metadata: { signupSource: "consumer" },
-			})
-			if (result.error) {
-				throw new Error(result.error.message ?? "Failed to create organization")
-			}
-			await setActiveOrg(result.data?.slug ?? "")
-			window.location.reload()
-		} catch (error) {
-			setCreating(false)
-			toast.error(
-				error instanceof Error
-					? error.message
-					: "Failed to create organization",
-			)
-		}
+		// Org creation now happens through the onboarding flow (team/personal, name, invites).
+		setCreateOpen(false)
+		setOpen(false)
+		router.push(`/onboarding?new=1&name=${encodeURIComponent(name)}`)
 	}
 
 	return (
@@ -179,8 +161,9 @@ export function SettingsOrgSwitcher() {
 					<button
 						type="button"
 						onClick={() => {
+							// Defer dialog open: same-tick handoff leaves Radix's pointer-events stuck on <body>.
 							setOpen(false)
-							setCreateOpen(true)
+							setTimeout(() => setCreateOpen(true), 120)
 						}}
 						className="w-full flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-[#A3A3A3] transition-colors hover:bg-white/5 hover:text-white cursor-pointer"
 					>
