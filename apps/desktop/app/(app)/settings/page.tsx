@@ -8,8 +8,11 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@ui/components/card"
+import { Button } from "@ui/components/button"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { clearSession, getSession, type AuthSession } from "@/lib/auth"
 
 type AppInfo = {
 	name: string
@@ -18,17 +21,46 @@ type AppInfo = {
 }
 
 export default function SettingsPage() {
+	const router = useRouter()
 	const [info, setInfo] = useState<AppInfo | null>(null)
+	const [session, setSession] = useState<AuthSession | null>(null)
 
 	useEffect(() => {
 		invoke<AppInfo>("app_info")
 			.then(setInfo)
 			.catch(() => setInfo(null))
+		getSession()
+			.then(setSession)
+			.catch(() => setSession(null))
 	}, [])
+
+	async function signOut() {
+		await clearSession()
+		router.replace("/login")
+	}
 
 	return (
 		<div className="mx-auto w-full max-w-2xl p-8">
 			<h1 className="mb-6 font-semibold text-2xl">Settings</h1>
+
+			<Card className="mb-4">
+				<CardHeader>
+					<CardTitle className="text-base">Account</CardTitle>
+					<CardDescription>
+						Keychain-backed desktop session for API requests.
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="space-y-3 text-sm">
+					<Row
+						label="User"
+						value={session?.email ?? session?.userId ?? "..."}
+					/>
+					<Row label="API" value={session?.apiUrl ?? "..."} />
+					<Button variant="outline" onClick={signOut}>
+						Sign out
+					</Button>
+				</CardContent>
+			</Card>
 
 			<Card>
 				<CardHeader>

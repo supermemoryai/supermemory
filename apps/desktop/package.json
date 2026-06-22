@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3001",
+    "dev": "NEXT_PUBLIC_DESKTOP_DEV=1 next dev --port 3001",
     "build": "next build",
     "check-types": "tsc --noEmit",
     "tauri": "tauri"

@@ -1,16 +1,31 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { type ReactNode, useEffect } from "react"
+import { type ReactNode, useEffect, useState } from "react"
+import { getSession } from "@/lib/auth"
 
-// Phase 1 stub. Phase 2/3 replaces `useAuthStatus` with a real check of the
-// keychain-backed token (invoke('auth_get_token')) and returns "unauthenticated"
-// when it is missing. The state machine + redirect are wired now so later phases
-// only swap the source of truth, not the guard's shape.
 type AuthStatus = "loading" | "authenticated" | "unauthenticated"
 
 function useAuthStatus(): AuthStatus {
-	return "authenticated"
+	const [status, setStatus] = useState<AuthStatus>("loading")
+
+	useEffect(() => {
+		let cancelled = false
+
+		getSession()
+			.then(() => {
+				if (!cancelled) setStatus("authenticated")
+			})
+			.catch(() => {
+				if (!cancelled) setStatus("unauthenticated")
+			})
+
+		return () => {
+			cancelled = true
+		}
+	}, [])
+
+	return status
 }
 
 export function AuthGuard({ children }: { children: ReactNode }) {
@@ -26,7 +41,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
 	if (status !== "authenticated") {
 		return (
 			<div className="flex min-h-screen items-center justify-center text-muted-foreground text-sm">
-				Loading…
+				Loading...
 			</div>
 		)
 	}
