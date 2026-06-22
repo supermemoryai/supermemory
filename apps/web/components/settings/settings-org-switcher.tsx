@@ -36,7 +36,8 @@ export function SettingsOrgSwitcher() {
 	const [createName, setCreateName] = useState("")
 	const [creating, setCreating] = useState(false)
 
-	// Clear a stale Radix `pointer-events: none` left on <body> so the dialog accepts clicks.
+	// Safety net: a prior Radix overlay can leave `pointer-events: none` stuck on
+	// <body>, making the dialog appear but ignore clicks. Clear it when it opens.
 	useEffect(() => {
 		if (createOpen) document.body.style.pointerEvents = ""
 	}, [createOpen])
@@ -161,7 +162,8 @@ export function SettingsOrgSwitcher() {
 					<button
 						type="button"
 						onClick={() => {
-							// Defer dialog open: same-tick handoff leaves Radix's pointer-events stuck on <body>.
+							// Open the dialog only after the popover has closed — opening both in
+							// the same tick can leave Radix's `pointer-events: none` stuck on <body>.
 							setOpen(false)
 							setTimeout(() => setCreateOpen(true), 120)
 						}}

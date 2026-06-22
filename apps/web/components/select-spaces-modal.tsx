@@ -5,6 +5,7 @@ import Image from "next/image"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { Drawer, DrawerContent, DrawerTitle } from "@repo/ui/components/drawer"
+import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
 import { cn } from "@lib/utils"
 import { useIsMobile } from "@hooks/use-mobile"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
@@ -21,10 +22,11 @@ import {
 	Loader,
 	Pencil,
 	Check,
+	Lock,
 } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { DEFAULT_PROJECT_ID } from "@lib/constants"
+import { DEFAULT_PROJECT_ID, SHARED_TEAM_BRAIN_TAG } from "@lib/constants"
 import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
 import type { ContainerTagListType } from "@lib/types"
@@ -50,6 +52,7 @@ import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import NovaOrb from "@/components/nova/nova-orb"
 import { AutoSpaceIcon } from "@/components/nova/auto-space-icon"
 import { SpaceGlyph } from "./space-glyph"
+import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 
 interface SelectSpacesModalProps {
 	isOpen: boolean
@@ -130,8 +133,15 @@ export function SelectSpacesModal({
 	)
 
 	const pluginMetaMap = usePluginSpaceMeta(pluginTags)
+	const hasCompanyBrain = useHasCompanyBrain()
 
 	const allSpaces = useMemo(() => {
+		const rest = projects
+			.filter((p) => p.containerTag !== DEFAULT_PROJECT_ID)
+			.sort(compareSpacesUserFirst)
+		// Company brain orgs use real Private + Team Brain spaces; skip the
+		// synthetic "My Space" default that would otherwise duplicate Private.
+		if (hasCompanyBrain) return rest
 		const defaultSpace = {
 			id: "default",
 			name: "My Space",
@@ -142,11 +152,8 @@ export function SelectSpacesModal({
 			createdAt: "",
 			updatedAt: "",
 		} as ContainerTagListType
-		const rest = projects
-			.filter((p) => p.containerTag !== DEFAULT_PROJECT_ID)
-			.sort(compareSpacesUserFirst)
 		return [defaultSpace, ...rest]
-	}, [projects])
+	}, [projects, hasCompanyBrain])
 
 	const { categories, connectedCatalogIds } = useMemo<{
 		categories: Category[]
@@ -588,6 +595,20 @@ export function SelectSpacesModal({
 			)
 			const isDefault = project.containerTag === DEFAULT_PROJECT_ID
 			const isOwnSpace = isOwnConversationSpace(project, user?.id)
+			const isCbSpace =
+				hasCompanyBrain && !plugin && !isOwnSpace && !!project.visibility
+			const isShared = project.visibility === "public"
+			const orgName = org?.name ?? "your team"
+			const orgMembers = org?.members ?? []
+			const memberCount = orgMembers.length
+			const isDefaultBrain = project.containerTag === SHARED_TEAM_BRAIN_TAG
+			const descriptor = isCbSpace
+				? isShared
+					? `${orgName} · ${memberCount} ${
+							memberCount === 1 ? "member" : "members"
+						}`
+					: "Only you"
+				: null
 			const canEdit = !isDefault && !plugin && !isOwnSpace
 			const canBulkDelete = enableDelete && !isDefault
 			const isEditing = editingProject?.containerTag === project.containerTag
@@ -716,6 +737,54 @@ export function SelectSpacesModal({
 								)
 							) : isOwnSpace ? (
 								<NovaOrb size={20} className="shrink-0 blur-[0.55px]!" />
+							) : isCbSpace ? (
+								isShared ? (
+									<span className="shrink-0 flex items-center" aria-hidden>
+										{orgMembers.slice(0, 3).map((m, i) => (
+											<Avatar
+												key={m.id}
+												className={cn(
+													"size-6 ring-2 ring-[#14161A]",
+													i > 0 && "-ml-2",
+												)}
+											>
+												<AvatarImage
+													src={m.user?.image ?? ""}
+													alt=""
+													className="object-cover"
+												/>
+												<AvatarFallback className="bg-[#1E232B] text-white text-[10px] font-medium">
+													{(m.user?.name ?? m.user?.email ?? "U")
+														.charAt(0)
+														.toUpperCase()}
+												</AvatarFallback>
+											</Avatar>
+										))}
+										{memberCount > 3 && (
+											<span className="-ml-2 flex size-6 items-center justify-center rounded-full bg-[#1E232B] text-[#A3A3A3] text-[9px] font-medium ring-2 ring-[#14161A]">
+												+{memberCount - 3}
+											</span>
+										)}
+									</span>
+								) : (
+									<span className="shrink-0 relative" aria-hidden>
+										<Avatar className="size-6">
+											<AvatarImage
+												src={user?.image ?? ""}
+												alt=""
+												className="object-cover"
+											/>
+											<AvatarFallback className="bg-[#1E232B] text-white text-[10px] font-medium">
+												{(user?.name ?? user?.email ?? "U")
+													.charAt(0)
+													.toUpperCase()}
+											</AvatarFallback>
+										</Avatar>
+										<span className="absolute -right-1 -bottom-1 flex size-3.5 items-center justify-center rounded-full bg-[#14161A] text-[#A3A3A3]">
+											<Lock className="size-2" />
+										</span>
+									</span>
+								)
 							) : (
 								<SpaceGlyph
 									emoji={project.emoji}
@@ -723,23 +792,35 @@ export function SelectSpacesModal({
 									className="shrink-0"
 								/>
 							)}
-							<span
-								className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium"
-								title={plugin ? project.containerTag : displayName}
-							>
-								{plugin ? (
-									<>
-										{plugin.label}
-										{pluginIdLabel && (
-											<span className="ml-1.5 text-[12px] text-[#737373]">
-												· {pluginIdLabel}
-											</span>
-										)}
-									</>
-								) : (
-									displayName
+							<span className="flex min-w-0 flex-1 flex-col">
+								<span
+									className="truncate text-[#fafafa] text-sm font-medium"
+									title={plugin ? project.containerTag : displayName}
+								>
+									{plugin ? (
+										<>
+											{plugin.label}
+											{pluginIdLabel && (
+												<span className="ml-1.5 text-[12px] text-[#737373]">
+													· {pluginIdLabel}
+												</span>
+											)}
+										</>
+									) : (
+										displayName
+									)}
+								</span>
+								{descriptor && (
+									<span className="truncate text-[11px] text-[#737373]">
+										{descriptor}
+									</span>
 								)}
 							</span>
+							{isCbSpace && isDefaultBrain && (
+								<span className="ml-2 shrink-0 rounded-[4px] bg-[#4BA0FA]/15 px-1.5 py-0.5 text-[10px] font-medium text-[#4BA0FA]">
+									Default
+								</span>
+							)}
 						</button>
 					)}
 					{canEdit && !isEditing && !isBulkDeleteMode && (
@@ -787,6 +868,7 @@ export function SelectSpacesModal({
 			enableDelete,
 			handleEditKeyDown,
 			handleSelect,
+			hasCompanyBrain,
 			isBulkDeleteMode,
 			onDeleteRequest,
 			pluginMetaMap,
@@ -795,6 +877,11 @@ export function SelectSpacesModal({
 			toggleBulkDeleteTag,
 			updateProjectMutation.isPending,
 			user?.id,
+			org?.name,
+			org?.members,
+			user?.email,
+			user?.image,
+			user?.name,
 		],
 	)
 
@@ -960,7 +1047,36 @@ export function SelectSpacesModal({
 								</div>
 							</>
 						)}
-						{mainList.map(renderRow)}
+						{hasCompanyBrain && recentProjects.length === 0
+							? (() => {
+									const shared = mainList.filter(
+										(p) => p.visibility === "public",
+									)
+									const personal = mainList.filter(
+										(p) => p.visibility !== "public",
+									)
+									return (
+										<>
+											{shared.length > 0 && (
+												<>
+													<div className="px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-[0.08em] text-[#737373]">
+														Shared
+													</div>
+													{shared.map(renderRow)}
+												</>
+											)}
+											{personal.length > 0 && (
+												<>
+													<div className="px-3 pt-2 pb-0.5 text-[10px] uppercase tracking-[0.08em] text-[#737373]">
+														Personal
+													</div>
+													{personal.map(renderRow)}
+												</>
+											)}
+										</>
+									)
+								})()
+							: mainList.map(renderRow)}
 					</div>
 				)}
 			</div>

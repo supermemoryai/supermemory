@@ -109,7 +109,7 @@ function ViewErrorFallback() {
 
 export default function NewPage() {
 	const isMobile = useIsMobile()
-	const { user, session, isSessionPending } = useAuth()
+	const { user, session, isSessionPending, org } = useAuth()
 
 	const { selectedProject, selectedProjects, setSelectedProject } = useProject()
 	const selectedProjectTag = selectedProjects[0]
@@ -370,10 +370,11 @@ export default function NewPage() {
 		queryKey: [
 			"memory-of-day",
 			user?.id,
+			org?.id,
 			new Date().toISOString().slice(0, 10),
 		],
 		queryFn: async (): Promise<MemoryOfDay | null> => {
-			const cacheKey = `memory-of-day:v2:${user?.id}:${new Date().toISOString().slice(0, 10)}`
+			const cacheKey = `memory-of-day:v2:${user?.id}:${org?.id}:${new Date().toISOString().slice(0, 10)}`
 			try {
 				const stored = localStorage.getItem(cacheKey)
 				if (stored) return JSON.parse(stored) as MemoryOfDay
@@ -394,7 +395,7 @@ export default function NewPage() {
 		},
 		staleTime: 24 * 60 * 60 * 1000,
 		refetchOnWindowFocus: false,
-		enabled: !!user,
+		enabled: !!user && !!org,
 	})
 
 	useHotkeys("c", () => {
