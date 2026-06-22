@@ -7,6 +7,14 @@ export type PluginSpaceInfo = {
 	projectId?: string
 }
 
+export type AgentSpaceInfo = {
+	label: "Agents" | "Claude Code" | "Codex"
+	iconSrc: string
+	projectId?: string
+	sourceIds: Array<"claude-code" | "codex">
+	isSharedRepo: boolean
+}
+
 type PluginDef = {
 	id: PluginSpaceInfo["pluginId"]
 	label: string
@@ -52,6 +60,19 @@ const PLUGINS: PluginDef[] = [
 		prefixes: ["hermes"],
 	},
 ]
+
+const AGENTS_ICON_SRC = "/images/logo.png"
+const AGENT_PLUGIN_IDS = new Set<PluginSpaceInfo["pluginId"]>([
+	"claude-code",
+	"codex",
+])
+
+function parseRepoProjectId(containerTag: string): string | undefined {
+	if (!containerTag.startsWith("repo_")) return undefined
+	const repoName = containerTag.slice("repo_".length)
+	if (!repoName) return undefined
+	return repoName.replace(/_/g, "-").slice(0, 32)
+}
 
 function parsePluginRest(rest: string): { projectId?: string } {
 	if (!rest || rest === "default" || rest === "global") {
@@ -215,4 +236,29 @@ export function detectPluginSpace(
 	}
 
 	return null
+}
+
+export function detectAgentSpace(containerTag: string): AgentSpaceInfo | null {
+	if (!containerTag) return null
+
+	if (containerTag.startsWith("repo_")) {
+		return {
+			label: "Agents",
+			iconSrc: AGENTS_ICON_SRC,
+			projectId: parseRepoProjectId(containerTag),
+			sourceIds: ["claude-code", "codex"],
+			isSharedRepo: true,
+		}
+	}
+
+	const plugin = detectPluginSpace(containerTag)
+	if (!plugin || !AGENT_PLUGIN_IDS.has(plugin.pluginId)) return null
+
+	return {
+		label: plugin.label as "Claude Code" | "Codex",
+		iconSrc: plugin.iconSrc ?? AGENTS_ICON_SRC,
+		projectId: plugin.projectId,
+		sourceIds: [plugin.pluginId as "claude-code" | "codex"],
+		isSharedRepo: false,
+	}
 }
