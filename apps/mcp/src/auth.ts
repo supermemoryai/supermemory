@@ -32,6 +32,7 @@ export async function validateApiKey(
 			headers: {
 				Authorization: `Bearer ${apiKey}`,
 			},
+			signal: AbortSignal.timeout(30_000),
 		})
 
 		if (!sessionResponse.ok) {
@@ -103,6 +104,7 @@ export async function validateOAuthToken(
 			headers: {
 				Authorization: `Bearer ${token}`,
 			},
+			signal: AbortSignal.timeout(30_000),
 		})
 
 		if (!sessionResponse.ok) {

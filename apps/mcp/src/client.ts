@@ -142,6 +142,7 @@ export class SupermemoryClient {
 		this.client = new Supermemory({
 			apiKey: bearerToken,
 			baseURL: apiUrl,
+			timeout: 30_000,
 		})
 		this.containerTag = containerTag || DEFAULT_PROJECT_ID
 	}
@@ -336,6 +337,7 @@ export class SupermemoryClient {
 					Authorization: `Bearer ${this.bearerToken}`,
 					"Content-Type": "application/json",
 				},
+				signal: AbortSignal.timeout(30_000),
 			})
 
 			if (!response.ok) {
@@ -374,6 +376,7 @@ export class SupermemoryClient {
 					order: "desc",
 					containerTags,
 				}),
+				signal: AbortSignal.timeout(30_000),
 			})
 			if (!response.ok) {
 				throw Object.assign(new Error("Failed to fetch documents"), {
@@ -387,6 +390,19 @@ export class SupermemoryClient {
 	}
 
 	private handleError(error: unknown): never {
+		// Handle request timeout errors (AbortError from AbortSignal.timeout or SDK TimeoutError)
+		if (error instanceof Error) {
+			if (
+				error.name === "AbortError" ||
+				error.name === "TimeoutError" ||
+				error.message.toLowerCase().includes("timeout")
+			) {
+				throw new Error(
+					"Request to Supermemory API timed out. Please try again.",
+				)
+			}
+		}
+
 		// Handle network/fetch errors
 		if (error instanceof TypeError) {
 			if (
