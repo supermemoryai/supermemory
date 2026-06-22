@@ -111,8 +111,13 @@ export function useCommandK() {
 				setOpen((prev) => !prev)
 			}
 		}
+		const onOpenSearch = () => setOpen(true)
 		document.addEventListener("keydown", onKeyDown)
-		return () => document.removeEventListener("keydown", onKeyDown)
+		window.addEventListener("supermemory:open-search", onOpenSearch)
+		return () => {
+			document.removeEventListener("keydown", onKeyDown)
+			window.removeEventListener("supermemory:open-search", onOpenSearch)
+		}
 	}, [])
 
 	return { open, setOpen }

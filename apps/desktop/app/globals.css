@@ -12,6 +12,72 @@ body {
 	overscroll-behavior: none;
 }
 
+.desktop-shell {
+	position: relative;
+	isolation: isolate;
+	background:
+		radial-gradient(
+			ellipse 90% 46% at 50% -4%,
+			rgba(75, 160, 250, 0.22),
+			transparent 60%
+		),
+		radial-gradient(
+			ellipse 52% 32% at 78% 12%,
+			rgba(127, 108, 255, 0.14),
+			transparent 70%
+		),
+		radial-gradient(
+			ellipse 42% 30% at 18% 20%,
+			rgba(15, 240, 210, 0.08),
+			transparent 74%
+		),
+		linear-gradient(180deg, #05080d 0%, #070b12 44%, #05070a 100%);
+	color: #fafafa;
+}
+
+.desktop-shell::before {
+	position: absolute;
+	inset: 0;
+	z-index: -2;
+	content: "";
+	background-image: radial-gradient(
+		circle,
+		rgba(255, 255, 255, 0.13) 1px,
+		transparent 1px
+	);
+	background-size: 18px 18px;
+	mask-image: linear-gradient(
+		to bottom,
+		rgba(255, 255, 255, 0.72),
+		rgba(255, 255, 255, 0.2) 44%,
+		transparent 88%
+	);
+	-webkit-mask-image: linear-gradient(
+		to bottom,
+		rgba(255, 255, 255, 0.72),
+		rgba(255, 255, 255, 0.2) 44%,
+		transparent 88%
+	);
+	pointer-events: none;
+}
+
+.desktop-shell::after {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	content: "";
+	background:
+		radial-gradient(
+			ellipse 86% 32% at 50% 100%,
+			rgba(65, 115, 255, 0.1),
+			transparent 70%
+		),
+		linear-gradient(90deg, transparent, rgba(75, 160, 250, 0.08), transparent)
+		50% 0 / 60% 1px no-repeat,
+		linear-gradient(180deg, rgba(5, 8, 13, 0), #05070a 92%);
+	pointer-events: none;
+}
+
 /* The draggable title bar should feel like native chrome, not selectable text. */
 [data-tauri-drag-region] {
 	cursor: default;

@@ -9,12 +9,12 @@ import { Titlebar } from "@/components/titlebar"
 export default function AppLayout({ children }: { children: ReactNode }) {
 	return (
 		<AuthGuard>
-			<div className="flex h-screen flex-col">
+			<div className="desktop-shell flex h-screen flex-col overflow-hidden">
 				<Titlebar />
-				<div className="flex min-h-0 flex-1">
-					<AppNav />
-					<main className="min-w-0 flex-1 overflow-auto">{children}</main>
-				</div>
+				<AppNav />
+				<main className="relative z-10 min-h-0 flex-1 overflow-auto">
+					{children}
+				</main>
 			</div>
 		</AuthGuard>
 	)
