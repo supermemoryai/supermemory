@@ -6,6 +6,7 @@ export interface Project {
 	updatedAt: string
 	isExperimental?: boolean
 	emoji?: string
+	visibility?: "public" | "private" | "unlisted"
 }
 
 export interface ContainerTagListType extends Project {
