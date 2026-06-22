@@ -34,6 +34,7 @@ import {
 	spaceSelectorDisplayName,
 } from "@/lib/ingest-auto-space"
 import {
+	detectAgentSpace,
 	detectPluginSpace,
 	pluginInitial,
 	type PluginSpaceInfo,
@@ -79,6 +80,7 @@ interface SelectSpacesModalProps {
 type CategoryId =
 	| "all"
 	| "my"
+	| "agents"
 	| `plugin:${PluginSpaceInfo["pluginId"]}`
 	| `discover:${string}`
 
@@ -88,6 +90,10 @@ type Category = {
 	iconSrc: string | null
 	emoji: string | null
 	count: number
+}
+
+function normalizeAgentProjectKey(value: string | null | undefined) {
+	return value?.trim().replace(/_/g, "-").toLowerCase() || null
 }
 
 export function SelectSpacesModal({
@@ -148,6 +154,37 @@ export function SelectSpacesModal({
 		return [defaultSpace, ...rest]
 	}, [projects])
 
+	const visibleSpaces = useMemo(() => {
+		const sharedRepoProjects = new Set<string>()
+
+		for (const project of allSpaces) {
+			const agent = detectAgentSpace(project.containerTag)
+			if (!agent?.isSharedRepo) continue
+
+			const projectKey = normalizeAgentProjectKey(agent.projectId)
+			if (projectKey) sharedRepoProjects.add(projectKey)
+		}
+
+		if (sharedRepoProjects.size === 0) return allSpaces
+
+		return allSpaces.filter((project) => {
+			const agent = detectAgentSpace(project.containerTag)
+			if (!agent || agent.isSharedRepo) return true
+
+			// Claude Code already uses repo-based tags, so once the shared
+			// Agents row exists we should not show an extra source-specific row.
+			if (!agent.sourceIds.includes("claude-code")) return true
+
+			const metaProject = pluginMetaMap.get(project.containerTag)?.projectName
+			const projectKeys = [
+				normalizeAgentProjectKey(metaProject),
+				normalizeAgentProjectKey(agent.projectId),
+			].filter((key): key is string => !!key)
+
+			return !projectKeys.some((key) => sharedRepoProjects.has(key))
+		})
+	}, [allSpaces, pluginMetaMap])
+
 	const { categories, connectedCatalogIds } = useMemo<{
 		categories: Category[]
 		connectedCatalogIds: Set<string>
@@ -156,8 +193,14 @@ export function SelectSpacesModal({
 			PluginSpaceInfo["pluginId"],
 			{ label: string; iconSrc: string | null; count: number }
 		>()
+		let agentCount = 0
 		let myCount = 0
-		for (const p of allSpaces) {
+		for (const p of visibleSpaces) {
+			const agent = detectAgentSpace(p.containerTag)
+			if (agent) {
+				agentCount += 1
+				continue
+			}
 			const plugin = detectPluginSpace(p.containerTag)
 			if (plugin) {
 				const prev = pluginCounts.get(plugin.pluginId)
@@ -184,6 +227,10 @@ export function SelectSpacesModal({
 			const catalogId = spacePluginIdToCatalogId(pluginId)
 			if (catalogId) connectedIds.add(catalogId)
 		}
+		if (agentCount > 0) {
+			connectedIds.add("claude_code")
+			connectedIds.add("codex")
+		}
 		return {
 			categories: [
 				{
@@ -191,7 +238,7 @@ export function SelectSpacesModal({
 					label: "All Spaces",
 					iconSrc: null,
 					emoji: null,
-					count: allSpaces.length,
+					count: visibleSpaces.length,
 				},
 				{
 					id: "my",
@@ -200,15 +247,27 @@ export function SelectSpacesModal({
 					emoji: "📁",
 					count: myCount,
 				},
+				...(agentCount > 0
+					? [
+							{
+								id: "agents" as CategoryId,
+								label: "Agents",
+								iconSrc: "/images/logo.png",
+								emoji: null,
+								count: agentCount,
+							},
+						]
+					: []),
 				...pluginCats,
 			],
 			connectedCatalogIds: connectedIds,
 		}
-	}, [allSpaces])
+	}, [visibleSpaces])
 
 	const defaultCategory = useMemo<CategoryId>(() => {
 		if (!currentSelection) return "all"
 		if (currentSelection === AUTO_CHAT_SPACE_ID) return "all"
+		if (detectAgentSpace(currentSelection)) return "agents"
 		const plugin = detectPluginSpace(currentSelection)
 		if (plugin) return `plugin:${plugin.pluginId}`
 		return "my"
@@ -450,15 +509,18 @@ export function SelectSpacesModal({
 	)
 
 	const filteredProjects = useMemo(() => {
-		const byCategory = allSpaces.filter((p) => {
+		const byCategory = visibleSpaces.filter((p) => {
 			if (activeCategory === "all") return true
+			const agent = detectAgentSpace(p.containerTag)
+			if (activeCategory === "agents") return !!agent
 			const plugin = detectPluginSpace(p.containerTag)
-			if (activeCategory === "my") return !plugin
+			if (activeCategory === "my") return !plugin && !agent
 			return plugin && `plugin:${plugin.pluginId}` === activeCategory
 		})
 		if (!searchQuery.trim()) return byCategory
 		const query = searchQuery.trim().toLowerCase()
 		return byCategory.filter((p) => {
+			const agent = detectAgentSpace(p.containerTag)
 			const plugin = detectPluginSpace(p.containerTag)
 			const projectName = pluginMetaMap.get(p.containerTag)?.projectName
 			const displayName = spaceSelectorDisplayName(p, p.containerTag, {
@@ -468,18 +530,20 @@ export function SelectSpacesModal({
 				p.containerTag.toLowerCase().includes(query) ||
 				(p.name ?? "").toLowerCase().includes(query) ||
 				displayName.toLowerCase().includes(query) ||
+				(agent?.label.toLowerCase().includes(query) ?? false) ||
+				(agent?.projectId?.toLowerCase().includes(query) ?? false) ||
 				(plugin?.label.toLowerCase().includes(query) ?? false) ||
 				(plugin?.projectId?.toLowerCase().includes(query) ?? false) ||
 				(projectName?.toLowerCase().includes(query) ?? false)
 			)
 		})
-	}, [allSpaces, activeCategory, searchQuery, pluginMetaMap, user?.id])
+	}, [visibleSpaces, activeCategory, searchQuery, pluginMetaMap, user?.id])
 
 	const recentProjects = useMemo<ContainerTagListType[]>(() => {
 		if (!recents?.length) return []
 		if (searchQuery.trim()) return []
 		if (activeCategory !== "all") return []
-		const byTag = new Map(allSpaces.map((p) => [p.containerTag, p]))
+		const byTag = new Map(visibleSpaces.map((p) => [p.containerTag, p]))
 		const out: ContainerTagListType[] = []
 		for (const tag of recents) {
 			const p = byTag.get(tag)
@@ -487,7 +551,7 @@ export function SelectSpacesModal({
 			if (out.length >= 5) break
 		}
 		return out
-	}, [recents, searchQuery, activeCategory, allSpaces])
+	}, [recents, searchQuery, activeCategory, visibleSpaces])
 
 	const recentSet = useMemo(
 		() => new Set(recentProjects.map((p) => p.containerTag)),
@@ -574,11 +638,13 @@ export function SelectSpacesModal({
 	const renderRow = useCallback(
 		(project: ContainerTagListType) => {
 			const isSelected = currentSelection === project.containerTag
-			const plugin = detectPluginSpace(project.containerTag)
+			const agent = detectAgentSpace(project.containerTag)
+			const plugin = agent ? null : detectPluginSpace(project.containerTag)
 			const pluginProjectName = pluginMetaMap.get(
 				project.containerTag,
 			)?.projectName
 			const pluginIdLabel = pluginProjectName || plugin?.projectId
+			const agentIdLabel = pluginProjectName || agent?.projectId
 			const displayName = spaceSelectorDisplayName(
 				project,
 				project.containerTag,
@@ -588,7 +654,7 @@ export function SelectSpacesModal({
 			)
 			const isDefault = project.containerTag === DEFAULT_PROJECT_ID
 			const isOwnSpace = isOwnConversationSpace(project, user?.id)
-			const canEdit = !isDefault && !plugin && !isOwnSpace
+			const canEdit = !isDefault && !plugin && !agent && !isOwnSpace
 			const canBulkDelete = enableDelete && !isDefault
 			const isEditing = editingProject?.containerTag === project.containerTag
 			const isBulkDeleteSelected = bulkDeleteTags.has(project.containerTag)
@@ -696,7 +762,16 @@ export function SelectSpacesModal({
 							disabled={isBulkDeleteMode && !canBulkDelete}
 							className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer focus:outline-none focus:ring-0 disabled:cursor-not-allowed"
 						>
-							{plugin ? (
+							{agent ? (
+								<Image
+									src={agent.iconSrc}
+									alt=""
+									width={20}
+									height={20}
+									className="shrink-0 rounded-[4px]"
+									aria-hidden
+								/>
+							) : plugin ? (
 								plugin.iconSrc ? (
 									<Image
 										src={plugin.iconSrc}
@@ -725,9 +800,18 @@ export function SelectSpacesModal({
 							)}
 							<span
 								className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium"
-								title={plugin ? project.containerTag : displayName}
+								title={agent || plugin ? project.containerTag : displayName}
 							>
-								{plugin ? (
+								{agent ? (
+									<>
+										{agent.label}
+										{agentIdLabel && (
+											<span className="ml-1.5 text-[12px] text-[#737373]">
+												· {agentIdLabel}
+											</span>
+										)}
+									</>
+								) : plugin ? (
 									<>
 										{plugin.label}
 										{pluginIdLabel && (
@@ -837,11 +921,11 @@ export function SelectSpacesModal({
 
 	const renderCategoryChip = (
 		category: {
-			id: string
+			id: CategoryId
 			label: string
 			count?: number
-			iconSrc?: string
-			emoji?: string
+			iconSrc?: string | null
+			emoji?: string | null
 		},
 		isDiscover: boolean,
 	) => {

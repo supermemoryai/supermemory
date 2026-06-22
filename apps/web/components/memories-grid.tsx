@@ -35,6 +35,7 @@ import { QuickNoteCard } from "./quick-note-card"
 import type { HighlightItem } from "./highlights-card"
 import { Button } from "@ui/components/button"
 import {
+	agentSourceParam,
 	categoriesParam,
 	type IntegrationParamValue,
 } from "@/lib/search-params"
@@ -88,8 +89,17 @@ type DocumentFacet = {
 	label: string
 }
 
+type AgentSource = "claude-code" | "codex"
+
+type SourceFacet = {
+	source: AgentSource
+	count: number
+	label: string
+}
+
 type FacetsResponse = {
 	facets: DocumentFacet[]
+	sourceFacets?: SourceFacet[]
 	total: number
 }
 
@@ -278,6 +288,10 @@ export function MemoriesGrid({
 		"categories",
 		categoriesParam,
 	)
+	const [selectedAgentSource, setSelectedAgentSource] = useQueryState(
+		"source",
+		agentSourceParam,
+	)
 	const selectedCategoriesSet = useMemo(
 		() => new Set(selectedCategories),
 		[selectedCategories],
@@ -315,6 +329,7 @@ export function MemoriesGrid({
 			"documents-with-memories",
 			effectiveContainerTags,
 			selectedCategories,
+			selectedAgentSource,
 		],
 		initialPageParam: 1,
 		queryFn: async ({ pageParam }) => {
@@ -327,6 +342,7 @@ export function MemoriesGrid({
 					containerTags: effectiveContainerTags,
 					categories:
 						selectedCategories.length > 0 ? selectedCategories : undefined,
+					sources: selectedAgentSource ? [selectedAgentSource] : undefined,
 				},
 				disableValidation: true,
 			})
@@ -381,9 +397,17 @@ export function MemoriesGrid({
 		[setSelectedCategories],
 	)
 
+	const handleAgentSourceToggle = useCallback(
+		(source: AgentSource) => {
+			setSelectedAgentSource((prev) => (prev === source ? null : source))
+		},
+		[setSelectedAgentSource],
+	)
+
 	const handleSelectAll = useCallback(() => {
 		setSelectedCategories(null)
-	}, [setSelectedCategories])
+		setSelectedAgentSource(null)
+	}, [setSelectedCategories, setSelectedAgentSource])
 
 	const documents = useMemo(() => {
 		return (
@@ -559,6 +583,10 @@ export function MemoriesGrid({
 	const allVisibleSelected =
 		documents.length > 0 &&
 		documents.every((d) => d.id && selectedDocumentIds.has(d.id))
+	const agentSourceFacets =
+		facetsData?.sourceFacets?.filter(
+			(facet) => facet.source === "claude-code" || facet.source === "codex",
+		) ?? []
 
 	return (
 		<div className="relative flex h-full min-h-0 flex-col">
@@ -573,6 +601,7 @@ export function MemoriesGrid({
 								dmSansClassName(),
 								"shrink-0 whitespace-nowrap rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
 								selectedCategories.length === 0 &&
+									!selectedAgentSource &&
 									"bg-[#00173C] border-[#2261CA33]",
 							)}
 							onClick={handleSelectAll}
@@ -594,6 +623,21 @@ export function MemoriesGrid({
 										"bg-[#00173C] border-[#2261CA33]",
 								)}
 								onClick={() => handleCategoryToggle(facet.category)}
+							>
+								{facet.label}
+								<span className="ml-1 text-[#737373]">({facet.count})</span>
+							</Button>
+						))}
+						{agentSourceFacets.map((facet) => (
+							<Button
+								key={facet.source}
+								className={cn(
+									dmSansClassName(),
+									"shrink-0 whitespace-nowrap rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
+									selectedAgentSource === facet.source &&
+										"bg-[#00173C] border-[#2261CA33]",
+								)}
+								onClick={() => handleAgentSourceToggle(facet.source)}
 							>
 								{facet.label}
 								<span className="ml-1 text-[#737373]">({facet.count})</span>
