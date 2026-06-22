@@ -11,14 +11,16 @@ import {
 } from "@ui/components/command"
 import { FileText, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { searchMemories } from "@/lib/search"
+import { searchMemories, type SearchResult } from "@/lib/search"
 
 export function SearchCommand({
 	open,
 	onOpenChange,
+	onOpenResult,
 }: {
 	open: boolean
 	onOpenChange: (open: boolean) => void
+	onOpenResult?: (result: SearchResult) => void
 }) {
 	const [query, setQuery] = useState("")
 	const trimmedQuery = query.trim()
@@ -73,7 +75,10 @@ export function SearchCommand({
 							<CommandItem
 								key={result.documentId}
 								value={`${title} ${preview ?? ""}`}
-								onSelect={() => onOpenChange(false)}
+								onSelect={() => {
+									onOpenResult?.(result)
+									onOpenChange(false)
+								}}
 								className="items-start"
 							>
 								<FileText className="mt-0.5" />

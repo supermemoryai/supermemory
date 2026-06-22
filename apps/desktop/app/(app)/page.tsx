@@ -12,19 +12,33 @@ import {
 import { Clock, FileText, RefreshCcw, Search } from "lucide-react"
 import { useMemo, useState } from "react"
 import { listDocuments, type DocumentWithMemories } from "@/lib/api"
+import type { SearchResult } from "@/lib/search"
 import { SearchCommand, useCommandK } from "@/components/search-command"
+
+type MemoryPreview = {
+	id: string
+	title: string | null
+	summary?: string | null
+	content?: string | null
+	raw?: string | null
+	url?: string | null
+	type?: string | null
+	createdAt: string | Date
+}
 
 export default function DashboardPage() {
 	const { open, setOpen } = useCommandK()
-	const [selectedDocument, setSelectedDocument] =
-		useState<DocumentWithMemories | null>(null)
+	const [selectedMemory, setSelectedMemory] = useState<MemoryPreview | null>(
+		null,
+	)
 	const documentsQuery = useQuery({
 		queryKey: ["desktop-documents"],
 		queryFn: listDocuments,
 		staleTime: 60 * 1000,
 	})
 	const documents = documentsQuery.data?.documents ?? []
-	const activeDocument = selectedDocument ?? documents.at(0) ?? null
+	const activeMemory =
+		selectedMemory ?? toMemoryPreview(documents.at(0) ?? null)
 	const totalCount = documentsQuery.data?.pagination.totalItems
 	const subtitle = useMemo(() => {
 		if (documentsQuery.isPending) return "Loading your recent memories."
@@ -90,10 +104,10 @@ export default function DashboardPage() {
 								<button
 									type="button"
 									key={document.id}
-									onClick={() => setSelectedDocument(document)}
+									onClick={() => setSelectedMemory(toMemoryPreview(document))}
 									className={[
 										"flex w-full items-start gap-3 rounded-md px-3 py-2 text-left transition-colors",
-										activeDocument?.id === document.id
+										activeMemory?.id === document.id
 											? "bg-accent text-accent-foreground"
 											: "hover:bg-accent/50",
 									].join(" ")}
@@ -113,20 +127,22 @@ export default function DashboardPage() {
 					</CardContent>
 				</Card>
 
-				<DocumentPreview document={activeDocument} />
+				<DocumentPreview memory={activeMemory} />
 			</div>
 
-			<SearchCommand open={open} onOpenChange={setOpen} />
+			<SearchCommand
+				open={open}
+				onOpenChange={setOpen}
+				onOpenResult={(result) =>
+					setSelectedMemory(searchResultToPreview(result))
+				}
+			/>
 		</div>
 	)
 }
 
-function DocumentPreview({
-	document,
-}: {
-	document: DocumentWithMemories | null
-}) {
-	if (!document) {
+function DocumentPreview({ memory }: { memory: MemoryPreview | null }) {
+	if (!memory) {
 		return (
 			<Card className="min-h-0">
 				<CardContent className="flex h-full min-h-[360px] items-center justify-center text-muted-foreground text-sm">
@@ -142,48 +158,78 @@ function DocumentPreview({
 				<div className="flex items-start justify-between gap-4">
 					<div className="min-w-0">
 						<CardTitle className="truncate text-lg">
-							{document.title ?? "Untitled memory"}
+							{memory.title ?? "Untitled memory"}
 						</CardTitle>
 						<CardDescription className="mt-1 flex items-center gap-2">
 							<Clock className="size-3.5" />
-							{formatDate(document.createdAt)}
+							{formatDate(memory.createdAt)}
 						</CardDescription>
 					</div>
-					{document.type ? (
+					{memory.type ? (
 						<span className="rounded-md bg-muted px-2 py-1 text-muted-foreground text-xs">
-							{document.type}
+							{memory.type}
 						</span>
 					) : null}
 				</div>
 			</CardHeader>
 			<CardContent className="min-h-0 overflow-auto p-6">
-				{document.url ? (
+				{memory.url ? (
 					<a
-						href={document.url}
+						href={memory.url}
 						target="_blank"
 						rel="noreferrer"
 						className="mb-4 block truncate text-primary text-sm underline-offset-4 hover:underline"
 					>
-						{document.url}
+						{memory.url}
 					</a>
 				) : null}
 				<div className="space-y-4 text-sm leading-6">
-					{document.summary ? (
+					{memory.summary ? (
 						<section>
 							<h2 className="mb-2 font-medium">Summary</h2>
-							<p className="text-muted-foreground">{document.summary}</p>
+							<p className="text-muted-foreground">{memory.summary}</p>
 						</section>
 					) : null}
 					<section>
 						<h2 className="mb-2 font-medium">Content</h2>
 						<p className="whitespace-pre-wrap text-muted-foreground">
-							{document.content ?? document.raw ?? "No content available."}
+							{memory.content ?? memory.raw ?? "No content available."}
 						</p>
 					</section>
 				</div>
 			</CardContent>
 		</Card>
 	)
+}
+
+function toMemoryPreview(
+	document: DocumentWithMemories | null,
+): MemoryPreview | null {
+	if (!document) return null
+	return {
+		id: document.id,
+		title: document.title ?? null,
+		summary: document.summary ?? null,
+		content: document.content ?? null,
+		raw: document.raw ?? null,
+		url: document.url ?? null,
+		type: document.type ?? null,
+		createdAt: document.createdAt,
+	}
+}
+
+function searchResultToPreview(result: SearchResult): MemoryPreview {
+	return {
+		id: result.documentId,
+		title: result.title,
+		summary: result.summary,
+		content:
+			result.content ??
+			result.chunks.find((chunk) => chunk.isRelevant)?.content ??
+			null,
+		type: result.type,
+		createdAt: result.createdAt,
+	}
 }
 
 function formatDate(value: string | Date) {

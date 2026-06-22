@@ -9,6 +9,8 @@ export type SearchResult = {
 	title: string | null
 	summary?: string | null
 	content?: string | null
+	createdAt: string | Date
+	updatedAt: string | Date
 	type: string | null
 	score: number
 	chunks: Array<{
