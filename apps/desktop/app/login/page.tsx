@@ -22,7 +22,13 @@ export default function LoginPage() {
 			await storeToken(token)
 			router.replace("/")
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Could not sign in")
+			setError(
+				err instanceof Error
+					? err.message
+					: typeof err === "string"
+						? err
+						: "Could not sign in",
+			)
 		} finally {
 			setIsSubmitting(false)
 		}

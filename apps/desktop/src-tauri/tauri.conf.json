@@ -5,7 +5,7 @@
 	"identifier": "ai.supermemory.desktop",
 	"build": {
 		"beforeDevCommand": "bun run dev",
-		"devUrl": "http://localhost:3001",
+		"devUrl": "http://localhost:3003",
 		"beforeBuildCommand": "bun run build",
 		"frontendDist": "../out"
 	},

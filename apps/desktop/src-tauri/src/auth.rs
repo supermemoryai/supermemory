@@ -1,8 +1,13 @@
 use keyring::{Entry, Error as KeyringError};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+use serde_json::Value;
 
 const KEYCHAIN_SERVICE: &str = "ai.supermemory.desktop";
 const KEYCHAIN_USER: &str = "supermemory-api-token";
+#[cfg(debug_assertions)]
+const DEFAULT_API_URL: &str = "http://localhost:8787";
+
+#[cfg(not(debug_assertions))]
 const DEFAULT_API_URL: &str = "https://api.supermemory.ai";
 
 #[derive(Serialize)]
@@ -12,18 +17,6 @@ pub struct AuthSession {
     pub email: Option<String>,
     pub name: Option<String>,
     pub api_url: String,
-}
-
-#[derive(Deserialize)]
-struct SessionResponse {
-    user: Option<SessionUser>,
-}
-
-#[derive(Deserialize)]
-struct SessionUser {
-    id: Option<String>,
-    email: Option<String>,
-    name: Option<String>,
 }
 
 fn token_entry() -> Result<Entry, String> {
@@ -83,21 +76,33 @@ pub async fn whoami() -> Result<AuthSession, String> {
     }
 
     let session = response
-        .json::<SessionResponse>()
+        .json::<Value>()
         .await
         .map_err(|error| format!("Could not parse session response: {error}"))?;
 
-    let user = session
-        .user
-        .ok_or_else(|| "Session response did not include a user".to_string())?;
-    let user_id = user
-        .id
-        .ok_or_else(|| "Session response did not include a user id".to_string())?;
+    let user_id = first_string(
+        &session,
+        &[
+            &["user", "id"],
+            &["userId"],
+            &["id"],
+            &["session", "userId"],
+            &["session", "user", "id"],
+        ],
+    )
+    .ok_or_else(|| "Session response did not include a user id".to_string())?;
 
     Ok(AuthSession {
         user_id,
-        email: user.email,
-        name: user.name,
+        email: first_string(&session, &[&["user", "email"], &["email"]]),
+        name: first_string(&session, &[&["user", "name"], &["name"]]),
         api_url,
+    })
+}
+
+fn first_string(value: &Value, paths: &[&[&str]]) -> Option<String> {
+    paths.iter().find_map(|path| {
+        let found = path.iter().try_fold(value, |current, key| current.get(key))?;
+        found.as_str().map(ToString::to_string)
     })
 }

@@ -8,11 +8,15 @@ Design docs live in `/.context/desktop-app-*.md` (spec, roadmap, architecture).
 ## Develop
 
 ```sh
-# from this directory — launches the native window and spawns `next dev` on :3001
+# from this directory — launches the native window and spawns `next dev` on :3003
 bun run tauri dev
 ```
 
-`bun run dev` on its own just starts the Next dev server on :3001 (no native window).
+`bun run dev` on its own just starts the Next dev server on :3003 (no native window).
+
+In development, the desktop UI and Rust auth commands default to the local API at
+`http://localhost:8787`. Set `NEXT_PUBLIC_BACKEND_URL` / `SUPERMEMORY_API_URL`
+if you need a different API.
 
 ## Build
 
