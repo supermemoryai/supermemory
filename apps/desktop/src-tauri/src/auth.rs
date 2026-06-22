@@ -1,6 +1,7 @@
 use keyring::{Entry, Error as KeyringError};
 use serde::Serialize;
 use serde_json::Value;
+use std::sync::{Mutex, OnceLock};
 
 const KEYCHAIN_SERVICE: &str = "ai.supermemory.desktop";
 const KEYCHAIN_USER: &str = "supermemory-api-token";
@@ -9,6 +10,8 @@ const DEFAULT_API_URL: &str = "http://localhost:8787";
 
 #[cfg(not(debug_assertions))]
 const DEFAULT_API_URL: &str = "https://api.supermemory.ai";
+
+static TOKEN_CACHE: OnceLock<Mutex<Option<String>>> = OnceLock::new();
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -24,6 +27,25 @@ fn token_entry() -> Result<Entry, String> {
         .map_err(|error| format!("Could not open keychain entry: {error}"))
 }
 
+fn token_cache() -> &'static Mutex<Option<String>> {
+    TOKEN_CACHE.get_or_init(|| Mutex::new(None))
+}
+
+fn set_cached_token(token: Option<String>) -> Result<(), String> {
+    let mut cached = token_cache()
+        .lock()
+        .map_err(|_| "Could not lock token cache".to_string())?;
+    *cached = token;
+    Ok(())
+}
+
+fn get_cached_token() -> Result<Option<String>, String> {
+    token_cache()
+        .lock()
+        .map(|cached| cached.clone())
+        .map_err(|_| "Could not lock token cache".to_string())
+}
+
 fn api_url() -> String {
     std::env::var("SUPERMEMORY_API_URL")
         .or_else(|_| std::env::var("NEXT_PUBLIC_BACKEND_URL"))
@@ -36,6 +58,8 @@ pub fn store_token(token: String) -> Result<(), String> {
         return Err("Token cannot be empty".to_string());
     }
 
+    set_cached_token(Some(token.to_string()))?;
+
     token_entry()?
         .set_password(token)
         .map_err(|error| format!("Could not save token to keychain: {error}"))
@@ -44,12 +68,14 @@ pub fn store_token(token: String) -> Result<(), String> {
 pub fn get_token() -> Result<Option<String>, String> {
     match token_entry()?.get_password() {
         Ok(token) => Ok(Some(token)),
-        Err(KeyringError::NoEntry) => Ok(None),
+        Err(KeyringError::NoEntry) => get_cached_token(),
         Err(error) => Err(format!("Could not read token from keychain: {error}")),
     }
 }
 
 pub fn clear_token() -> Result<(), String> {
+    set_cached_token(None)?;
+
     match token_entry()?.delete_credential() {
         Ok(()) | Err(KeyringError::NoEntry) => Ok(()),
         Err(error) => Err(format!("Could not clear token from keychain: {error}")),
