@@ -2,21 +2,17 @@
 
 import { useQuery } from "@tanstack/react-query"
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@ui/components/card"
-import {
 	ArrowRight,
 	Clock,
 	FileText,
 	Link2,
 	Lightbulb,
-	MessageCircle,
+	Loader2,
+	Plus,
 	RefreshCcw,
 	Search,
+	SendHorizontal,
+	Sparkles,
 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { listDocuments, type DocumentWithMemories } from "@/lib/api"
@@ -53,160 +49,128 @@ export default function DashboardPage() {
 		if (typeof totalCount === "number") return `${totalCount} memories indexed.`
 		return "Your memory is ready."
 	}, [documentsQuery.isPending, totalCount])
+	const visibleDocuments = documents.slice(0, 5)
 
 	return (
-		<div className="min-h-full px-4 pt-2 pb-16 md:px-6">
-			<div className="mx-auto w-full max-w-4xl space-y-5">
-				<header className="flex items-end justify-between gap-4 border-surface-border border-b pb-4">
-					<div className="space-y-0.5">
-						<p className="font-medium text-[10px] text-fg-faint uppercase tracking-[0.12em]">
-							Home
+		<div className="flex min-h-full flex-col px-4 pb-10 md:px-6">
+			<div className="mx-auto flex min-h-[calc(100vh-8.5rem)] w-full max-w-5xl flex-col justify-center py-8">
+				<section className="mx-auto w-full max-w-3xl space-y-8">
+					<div className="space-y-3 text-center">
+						<p className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-[#2261CA33] bg-[#00173C]/80 px-3 py-1 font-medium text-[#8BC6FF] text-[11px] shadow-[0_10px_40px_rgba(0,23,60,0.28)]">
+							<Sparkles className="size-3" />
+							Nova memory
 						</p>
-						<h1 className="max-w-2xl font-medium text-2xl text-white leading-tight tracking-tight">
-							Welcome back, your saved context is ready.
+						<h1 className="font-medium text-3xl text-white leading-tight tracking-tight md:text-4xl">
+							What should we remember?
 						</h1>
 						<p className="text-fg-subtle text-sm">{subtitle}</p>
 					</div>
-					<button
-						type="button"
-						onClick={() => documentsQuery.refetch()}
-						disabled={documentsQuery.isFetching}
-						className="group relative hidden h-14 w-36 shrink-0 overflow-hidden rounded-xl border border-surface-border bg-surface-card transition-all hover:scale-[1.02] hover:border-[#3A4A63] md:block"
-						aria-label="Refresh memories"
-					>
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_50%,rgba(75,160,250,0.35),transparent_22%),radial-gradient(circle_at_58%_42%,rgba(139,198,255,0.22),transparent_18%),radial-gradient(circle_at_78%_62%,rgba(15,240,210,0.16),transparent_16%)]" />
-						<div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/45 to-transparent" />
-						<RefreshCcw
-							className={[
-								"absolute right-3 bottom-3 size-4 text-[#8BC6FF]",
-								documentsQuery.isFetching ? "animate-spin" : "",
-							].join(" ")}
-						/>
-					</button>
-				</header>
 
-				<section className="space-y-2">
-					<p className="font-medium text-[10px] text-fg-faint uppercase tracking-[0.12em]">
-						Daily brief
-					</p>
-					<div className="grid gap-3 sm:grid-cols-[1fr_220px]">
-						<div className="rounded-[18px] bg-surface-card/60 p-3 shadow-[0_12px_40px_rgba(0,0,0,0.22)] backdrop-blur-md">
-							<div className="flex min-h-[132px] flex-col justify-between gap-4">
-								<div className="space-y-2">
-									<p className="font-medium text-fg-primary text-sm">
-										{activeMemory?.title ?? "No memory selected yet"}
-									</p>
-									<p className="line-clamp-3 text-[12px] text-fg-subtle leading-relaxed">
-										{activeMemory?.summary ??
-											activeMemory?.content ??
-											"Save or search memories and Nova will surface the most useful context here."}
-									</p>
-								</div>
-								<div className="flex items-center justify-between">
-									<button
-										type="button"
-										onClick={() => setOpen(true)}
-										className="text-[11px] text-fg-subtle transition-colors hover:text-fg-primary"
-									>
-										Ask or search related →
-									</button>
-									<MessageCircle className="size-4 text-[#4BA0FA]" />
-								</div>
+					<div className="overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#0B1018]/88 shadow-[0_30px_120px_rgba(0,0,0,0.38),inset_1px_1px_1px_rgba(255,255,255,0.06)] backdrop-blur-2xl">
+						<button
+							type="button"
+							onClick={() => setOpen(true)}
+							className="flex min-h-[118px] w-full items-start px-5 pt-5 text-left text-[#7D8794] text-base transition-colors hover:text-[#AAB3BF]"
+						>
+							Search, ask, or save a memory...
+						</button>
+						<div className="flex flex-col gap-3 border-white/[0.06] border-t bg-white/[0.025] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+							<div className="flex min-w-0 flex-wrap items-center gap-2">
+								<ComposerAction icon={Plus} label="Save link" />
+								<ComposerAction icon={FileText} label="Write note" />
+								<ComposerAction
+									icon={Search}
+									label="Search memory"
+									onClick={() => setOpen(true)}
+								/>
+							</div>
+							<div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+								<span className="hidden items-center gap-1.5 text-[12px] text-fg-subtle sm:flex">
+									<Lightbulb className="size-3.5 text-[#3374FF]" />
+									Semantic search
+								</span>
+								<button
+									type="button"
+									onClick={() => setOpen(true)}
+									className="flex size-10 items-center justify-center rounded-full bg-white text-[#0B1018] shadow-[0_10px_30px_rgba(255,255,255,0.16)] transition-transform hover:scale-[1.03]"
+									aria-label="Open memory search"
+								>
+									<SendHorizontal className="size-4" />
+								</button>
 							</div>
 						</div>
-						<div className="hidden rounded-[18px] bg-surface-card/60 p-3 shadow-[0_12px_40px_rgba(0,0,0,0.22)] backdrop-blur-md sm:flex sm:flex-col sm:justify-between">
-							<span className="self-start rounded-full bg-[#4BA0FA]/16 px-2 py-0.5 font-semibold text-[#8BC6FF] text-[9px] uppercase tracking-[0.12em]">
-								Desktop
-							</span>
-							<p className="text-[12px] text-fg-secondary leading-relaxed">
-								Use Command-K to search your memory without leaving the native
-								shell.
-							</p>
-							<span className="text-[10px] text-fg-faint">Nova-ready</span>
+						<div className="flex items-center justify-between border-white/[0.04] border-t bg-black/10 px-5 py-3 text-[12px] text-fg-subtle">
+							<button
+								type="button"
+								onClick={() => setSelectedMemory(activeMemory)}
+								className="flex min-w-0 items-center gap-2 text-left transition-colors hover:text-fg-primary"
+							>
+								<Link2 className="size-4 shrink-0" />
+								<span className="truncate">
+									{activeMemory?.title ?? "Work from your saved context"}
+								</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => documentsQuery.refetch()}
+								disabled={documentsQuery.isFetching}
+								className="flex shrink-0 items-center gap-1.5 transition-colors hover:text-fg-primary disabled:opacity-60"
+							>
+								<RefreshCcw
+									className={[
+										"size-3.5",
+										documentsQuery.isFetching ? "animate-spin" : "",
+									].join(" ")}
+								/>
+								Refresh
+							</button>
 						</div>
 					</div>
-				</section>
 
-				<section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-					<div className="grid grid-cols-3 gap-1 sm:-mx-2.5 sm:flex sm:items-center sm:gap-0.5">
-						<QuickAction icon={Link2} label="Save link" />
-						<span className="hidden text-[#3A4455] sm:inline">·</span>
-						<QuickAction icon={FileText} label="Write note" />
-						<span className="hidden text-[#3A4455] sm:inline">·</span>
-						<QuickAction
-							icon={Search}
-							label="Search"
-							onClick={() => setOpen(true)}
-						/>
-					</div>
-					<p className="hidden min-w-0 items-center gap-1.5 overflow-hidden text-[11px] text-fg-subtle sm:flex">
-						<Lightbulb className="size-3 shrink-0 text-[#3374FF]" />
-						<span className="truncate">
-							Search by meaning, not just exact titles.
-						</span>
-					</p>
-				</section>
-
-				<section className="space-y-2">
-					<div className="flex gap-4">
-						<div className="min-w-0 flex-[4]">
+					<section className="mx-auto w-full max-w-2xl space-y-2">
+						<div className="flex items-center justify-between px-1">
 							<p className="font-medium text-[10px] text-fg-faint uppercase tracking-[0.12em]">
 								Recents
 							</p>
+							<button
+								type="button"
+								onClick={() => setOpen(true)}
+								className="text-[11px] text-fg-subtle transition-colors hover:text-fg-primary"
+							>
+								Open search
+							</button>
 						</div>
-						<div className="hidden min-w-0 flex-[2] sm:block">
-							<p className="font-medium text-[10px] text-fg-faint uppercase tracking-[0.12em]">
-								Preview
-							</p>
-						</div>
-					</div>
-
-					<div className="flex items-start gap-4">
-						<div className="min-w-0 flex-[4]">
+						<div className="rounded-2xl border border-white/[0.06] bg-[#0B1018]/42 p-1 shadow-[0_18px_70px_rgba(0,0,0,0.2)] backdrop-blur-xl">
 							{documentsQuery.isPending ? (
-								<div className="px-2.5 py-2 text-fg-subtle text-sm">
+								<div className="flex items-center gap-2 px-3 py-2.5 text-fg-subtle text-sm">
+									<Loader2 className="size-4 animate-spin" />
 									Loading memories...
 								</div>
 							) : null}
 							{documentsQuery.isError ? (
-								<div className="px-2.5 py-2 text-destructive text-sm">
+								<div className="px-3 py-2.5 text-destructive text-sm">
 									{documentsQuery.error.message}
 								</div>
 							) : null}
 							{!documentsQuery.isPending && documents.length === 0 ? (
-								<div className="px-2.5 py-2 text-fg-subtle text-sm">
+								<div className="px-3 py-2.5 text-fg-subtle text-sm">
 									No memories found.
 								</div>
 							) : null}
 							<ul className="space-y-0.5">
-								{documents.map((document) => (
-									<li key={document.id}>
-										<button
-											type="button"
-											onClick={() =>
-												setSelectedMemory(toMemoryPreview(document))
-											}
-											className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-surface-hover"
-										>
-											<span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-surface-card ring-1 ring-surface-border transition-colors group-hover:bg-[#182333]">
-												<FileText className="size-3 text-fg-subtle" />
-											</span>
-											<span className="min-w-0 flex-1 truncate text-fg-muted text-sm transition-colors group-hover:text-white">
-												{document.title?.trim() ||
-													document.url ||
-													"Untitled memory"}
-											</span>
-											<ArrowRight className="size-3.5 shrink-0 text-fg-faint transition-colors group-hover:text-fg-muted" />
-										</button>
-									</li>
+								{visibleDocuments.map((document) => (
+									<RecentMemoryRow
+										key={document.id}
+										document={document}
+										active={activeMemory?.id === document.id}
+										onSelect={() =>
+											setSelectedMemory(toMemoryPreview(document))
+										}
+									/>
 								))}
 							</ul>
 						</div>
-
-						<div className="hidden min-w-0 flex-[2] sm:block">
-							<DocumentPreview memory={activeMemory} />
-						</div>
-					</div>
+					</section>
 				</section>
 			</div>
 
@@ -221,7 +185,7 @@ export default function DashboardPage() {
 	)
 }
 
-function QuickAction({
+function ComposerAction({
 	icon: Icon,
 	label,
 	onClick,
@@ -234,7 +198,7 @@ function QuickAction({
 		<button
 			type="button"
 			onClick={onClick}
-			className="flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[11px] text-fg-subtle leading-none transition-colors hover:bg-surface-hover hover:text-white sm:gap-1.5 sm:px-2.5 sm:text-sm"
+			className="flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-fg-subtle leading-none transition-colors hover:bg-white/[0.05] hover:text-white"
 		>
 			<Icon className="size-3.5 shrink-0" />
 			<span className="min-w-0 truncate whitespace-nowrap">{label}</span>
@@ -242,64 +206,40 @@ function QuickAction({
 	)
 }
 
-function DocumentPreview({ memory }: { memory: MemoryPreview | null }) {
-	if (!memory) {
-		return (
-			<Card className="min-h-0 rounded-lg border-white/[0.08] bg-[#0D121A]/74 shadow-[0_24px_80px_rgba(0,0,0,0.24),inset_1px_1px_1px_rgba(255,255,255,0.05)] backdrop-blur-xl">
-				<CardContent className="flex h-full min-h-[360px] items-center justify-center text-[#8A929E] text-sm">
-					Select a memory to preview it.
-				</CardContent>
-			</Card>
-		)
-	}
-
+function RecentMemoryRow({
+	document,
+	active,
+	onSelect,
+}: {
+	document: DocumentWithMemories
+	active: boolean
+	onSelect: () => void
+}) {
 	return (
-		<Card className="border-0 bg-surface-card/60 shadow-[0_12px_40px_rgba(0,0,0,0.22)] backdrop-blur-md">
-			<CardHeader className="p-3 pb-2">
-				<div className="flex items-start justify-between gap-4">
-					<div className="min-w-0">
-						<CardTitle className="truncate text-fg-primary text-sm">
-							{memory.title ?? "Untitled memory"}
-						</CardTitle>
-						<CardDescription className="mt-1 flex items-center gap-1.5 text-fg-faint text-[10px]">
-							<Clock className="size-3.5" />
-							{formatDate(memory.createdAt)}
-						</CardDescription>
-					</div>
-					{memory.type ? (
-						<span className="rounded-full bg-[#4BA0FA]/16 px-2 py-0.5 font-semibold text-[#8BC6FF] text-[9px] uppercase tracking-[0.08em]">
-							{memory.type}
-						</span>
-					) : null}
-				</div>
-			</CardHeader>
-			<CardContent className="px-3 pt-0 pb-3">
-				{memory.url ? (
-					<a
-						href={memory.url}
-						target="_blank"
-						rel="noreferrer"
-						className="mb-3 block truncate text-[#8BC6FF] text-[11px] underline-offset-4 hover:underline"
-					>
-						{memory.url}
-					</a>
-				) : null}
-				<div className="space-y-3 text-[12px] leading-relaxed">
-					{memory.summary ? (
-						<section>
-							<h2 className="mb-1 font-medium text-fg-primary">Summary</h2>
-							<p className="line-clamp-4 text-fg-subtle">{memory.summary}</p>
-						</section>
-					) : null}
-					<section>
-						<h2 className="mb-1 font-medium text-fg-primary">Content</h2>
-						<p className="line-clamp-6 whitespace-pre-wrap text-fg-subtle">
-							{memory.content ?? memory.raw ?? "No content available."}
-						</p>
-					</section>
-				</div>
-			</CardContent>
-		</Card>
+		<li>
+			<button
+				type="button"
+				onClick={onSelect}
+				className={[
+					"group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors",
+					active ? "bg-white/[0.06]" : "hover:bg-white/[0.04]",
+				].join(" ")}
+			>
+				<span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-surface-card ring-1 ring-surface-border transition-colors group-hover:bg-[#182333]">
+					<FileText className="size-3.5 text-fg-subtle" />
+				</span>
+				<span className="min-w-0 flex-1">
+					<span className="block truncate text-fg-muted text-sm transition-colors group-hover:text-white">
+						{document.title?.trim() || document.url || "Untitled memory"}
+					</span>
+					<span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-fg-faint">
+						<Clock className="size-3" />
+						{formatDate(document.createdAt)}
+					</span>
+				</span>
+				<ArrowRight className="size-3.5 shrink-0 text-fg-faint transition-colors group-hover:text-fg-muted" />
+			</button>
+		</li>
 	)
 }
 
