@@ -47,9 +47,20 @@ fn get_cached_token() -> Result<Option<String>, String> {
 }
 
 fn api_url() -> String {
-    std::env::var("SUPERMEMORY_API_URL")
-        .or_else(|_| std::env::var("NEXT_PUBLIC_BACKEND_URL"))
-        .unwrap_or_else(|_| DEFAULT_API_URL.to_string())
+    if let Ok(api_url) = std::env::var("SUPERMEMORY_DESKTOP_API_URL") {
+        return api_url;
+    }
+
+    if let Ok(api_url) = std::env::var("NEXT_PUBLIC_BACKEND_URL") {
+        return api_url;
+    }
+
+    #[cfg(not(debug_assertions))]
+    if let Ok(api_url) = std::env::var("SUPERMEMORY_API_URL") {
+        return api_url;
+    }
+
+    DEFAULT_API_URL.to_string()
 }
 
 pub fn store_token(token: String) -> Result<(), String> {
