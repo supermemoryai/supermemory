@@ -1,8 +1,9 @@
-import Supermemory from "supermemory"
+import Supermemory, { APIConnectionTimeoutError } from "supermemory"
+
+import { FETCH_TIMEOUT_MS } from "./constants"
 
 const MAX_CHARS = 200000 // ~50k tokens (character-based limit)
 const DEFAULT_PROJECT_ID = "sm_project_default"
-const FETCH_TIMEOUT_MS = 30_000
 
 interface MemoryRichFields {
 	metadata?: Record<string, unknown> | null
@@ -144,6 +145,7 @@ export class SupermemoryClient {
 			apiKey: bearerToken,
 			baseURL: apiUrl,
 			timeout: FETCH_TIMEOUT_MS,
+			maxRetries: 0,
 		})
 		this.containerTag = containerTag || DEFAULT_PROJECT_ID
 	}
@@ -394,10 +396,10 @@ export class SupermemoryClient {
 	}
 
 	private handleError(error: unknown): never {
-		// Handle request timeout (AbortSignal.timeout or explicit abort)
 		if (
-			error instanceof Error &&
-			(error.name === "AbortError" || error.name === "TimeoutError")
+			error instanceof APIConnectionTimeoutError ||
+			(error instanceof Error &&
+				(error.name === "AbortError" || error.name === "TimeoutError"))
 		) {
 			throw new Error("Request to Supermemory API timed out")
 		}

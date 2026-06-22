@@ -4,11 +4,25 @@
  * This validates OAuth tokens and API keys by calling the main Supermemory API,
  */
 
+import { FETCH_TIMEOUT_MS } from "./constants"
+
 export interface AuthUser {
 	userId: string
 	apiKey: string
 	email?: string
 	name?: string
+}
+
+export type AuthValidationResult =
+	| { status: "success"; user: AuthUser }
+	| { status: "invalid" }
+	| { status: "timeout" }
+
+function isFetchTimeout(error: unknown): boolean {
+	return (
+		error instanceof Error &&
+		(error.name === "AbortError" || error.name === "TimeoutError")
+	)
 }
 
 /**
@@ -25,13 +39,14 @@ export function isApiKey(token: string): boolean {
 export async function validateApiKey(
 	apiKey: string,
 	apiUrl: string,
-): Promise<AuthUser | null> {
+): Promise<AuthValidationResult> {
 	try {
 		const sessionResponse = await fetch(`${apiUrl}/v3/session`, {
 			method: "GET",
 			headers: {
 				Authorization: `Bearer ${apiKey}`,
 			},
+			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 		})
 
 		if (!sessionResponse.ok) {
@@ -56,7 +71,7 @@ export async function validateApiKey(
 			} else {
 				console.error("API key validation failed:", status, responseText)
 			}
-			return null
+			return { status: "invalid" }
 		}
 
 		const sessionData = (await sessionResponse.json()) as {
@@ -72,20 +87,27 @@ export async function validateApiKey(
 
 		if (!sessionData?.user?.id) {
 			console.error("Missing user.id in session response:", sessionData)
-			return null
+			return { status: "invalid" }
 		}
 
 		console.log("API key validated for user:", sessionData.user.id)
 
 		return {
-			userId: sessionData.user.id,
-			apiKey: apiKey,
-			email: sessionData.user.email,
-			name: sessionData.user.name,
+			status: "success",
+			user: {
+				userId: sessionData.user.id,
+				apiKey: apiKey,
+				email: sessionData.user.email,
+				name: sessionData.user.name,
+			},
 		}
 	} catch (error) {
+		if (isFetchTimeout(error)) {
+			console.error("API key validation timed out")
+			return { status: "timeout" }
+		}
 		console.error("API key validation error:", error)
-		return null
+		return { status: "invalid" }
 	}
 }
 
@@ -96,14 +118,14 @@ export async function validateApiKey(
 export async function validateOAuthToken(
 	token: string,
 	apiUrl: string,
-): Promise<AuthUser | null> {
+): Promise<AuthValidationResult> {
 	try {
 		const sessionResponse = await fetch(`${apiUrl}/v3/mcp/session-with-key`, {
 			method: "GET",
 			headers: {
 				Authorization: `Bearer ${token}`,
 			},
-			signal: AbortSignal.timeout(30_000),
+			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 		})
 
 		if (!sessionResponse.ok) {
@@ -128,7 +150,7 @@ export async function validateOAuthToken(
 			} else {
 				console.error("Token validation failed:", status, responseText)
 			}
-			return null
+			return { status: "invalid" }
 		}
 
 		const sessionData = (await sessionResponse.json()) as {
@@ -144,19 +166,26 @@ export async function validateOAuthToken(
 				"Missing userId or apiKey in session response:",
 				sessionData,
 			)
-			return null
+			return { status: "invalid" }
 		}
 
 		console.log("OAuth validated, got API key for user:", sessionData.userId)
 
 		return {
-			userId: sessionData.userId,
-			apiKey: sessionData.apiKey,
-			email: sessionData.email,
-			name: sessionData.name,
+			status: "success",
+			user: {
+				userId: sessionData.userId,
+				apiKey: sessionData.apiKey,
+				email: sessionData.email,
+				name: sessionData.name,
+			},
 		}
 	} catch (error) {
+		if (isFetchTimeout(error)) {
+			console.error("Token validation timed out")
+			return { status: "timeout" }
+		}
 		console.error("Token validation error:", error)
-		return null
+		return { status: "invalid" }
 	}
 }

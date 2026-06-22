@@ -2,6 +2,7 @@ import { cors } from "hono/cors"
 import { Hono, type Context } from "hono"
 import { SupermemoryMCP } from "./server"
 import { isApiKey, validateApiKey, validateOAuthToken } from "./auth"
+import { FETCH_TIMEOUT_MS } from "./constants"
 import { initPosthog } from "./posthog"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 
@@ -89,7 +90,7 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 		// Fetch the authorization server metadata from the main API
 		const response = await fetch(
 			`${apiUrl}/.well-known/oauth-authorization-server`,
-			{ signal: AbortSignal.timeout(30_000) },
+			{ signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
 		)
 
 		if (!response.ok) {
@@ -136,22 +137,32 @@ const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 		})
 	}
 
-	let authUser: {
-		userId: string
-		apiKey: string
-		email?: string
-		name?: string
-	} | null = null
+	let authResult = isApiKey(token)
+		? await validateApiKey(token, apiUrl)
+		: await validateOAuthToken(token, apiUrl)
 
-	if (isApiKey(token)) {
-		console.log("Authenticating with API key")
-		authUser = await validateApiKey(token, apiUrl)
-	} else {
-		console.log("Authenticating with OAuth token")
-		authUser = await validateOAuthToken(token, apiUrl)
+	if (authResult.status === "timeout") {
+		return new Response(
+			JSON.stringify({
+				jsonrpc: "2.0",
+				error: {
+					code: -32000,
+					message: "Authentication service timed out. Please try again.",
+				},
+				id: null,
+			}),
+			{
+				status: 504,
+				headers: {
+					"Content-Type": "application/json",
+					"Access-Control-Expose-Headers": "WWW-Authenticate",
+					"Access-Control-Allow-Origin": "*",
+				},
+			},
+		)
 	}
 
-	if (!authUser) {
+	if (authResult.status !== "success") {
 		const errorMessage = isApiKey(token)
 			? "Unauthorized: Invalid or expired API key"
 			: "Unauthorized: Invalid or expired token"
@@ -176,6 +187,8 @@ const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 			},
 		)
 	}
+
+	const authUser = authResult.user
 
 	// Create execution context with authenticated user props
 	const ctx = {
