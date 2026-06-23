@@ -7,12 +7,51 @@ export type PluginSpaceInfo = {
 	projectId?: string
 }
 
+export const AGENT_SPACE_CATEGORY_LABEL = "Agent Spaces"
+
 export type AgentSpaceInfo = {
-	label: "Agents" | "Claude Code" | "Codex"
+	label: typeof AGENT_SPACE_CATEGORY_LABEL | "Claude Code" | "Codex"
 	iconSrc: string
 	projectId?: string
 	sourceIds: Array<"claude-code" | "codex">
 	isSharedRepo: boolean
+}
+
+export function getAgentSpacePlaceName(
+	agent: AgentSpaceInfo,
+	projectName?: string | null,
+): string {
+	return projectName?.trim() || agent.projectId?.trim() || agent.label
+}
+
+/** Primary row/trigger label for an agent-scoped space. */
+export function getAgentSpaceDisplayName(
+	agent: AgentSpaceInfo,
+	options?: {
+		projectName?: string | null
+		inAgentCategory?: boolean
+	},
+): string {
+	const placeName = getAgentSpacePlaceName(agent, options?.projectName)
+
+	if (agent.isSharedRepo) {
+		return placeName
+	}
+
+	const idLabel = options?.projectName || agent.projectId
+	if (idLabel) return `${agent.label} · ${idLabel}`
+	return agent.label
+}
+
+/** Secondary hint when agent spaces appear outside the Agent Spaces filter. */
+export function getAgentSpaceSecondaryLabel(
+	agent: AgentSpaceInfo,
+	options: { inAllSpaces?: boolean },
+): string | null {
+	if (agent.isSharedRepo && options.inAllSpaces) {
+		return "Agent space"
+	}
+	return null
 }
 
 type PluginDef = {
@@ -243,7 +282,7 @@ export function detectAgentSpace(containerTag: string): AgentSpaceInfo | null {
 
 	if (containerTag.startsWith("repo_")) {
 		return {
-			label: "Agents",
+			label: AGENT_SPACE_CATEGORY_LABEL,
 			iconSrc: AGENTS_ICON_SRC,
 			projectId: parseRepoProjectId(containerTag),
 			sourceIds: ["claude-code", "codex"],

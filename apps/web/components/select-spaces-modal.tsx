@@ -34,8 +34,11 @@ import {
 	spaceSelectorDisplayName,
 } from "@/lib/ingest-auto-space"
 import {
+	AGENT_SPACE_CATEGORY_LABEL,
 	detectAgentSpace,
 	detectPluginSpace,
+	getAgentSpaceDisplayName,
+	getAgentSpaceSecondaryLabel,
 	pluginInitial,
 	type PluginSpaceInfo,
 } from "@/lib/plugin-space"
@@ -172,7 +175,7 @@ export function SelectSpacesModal({
 			if (!agent || agent.isSharedRepo) return true
 
 			// Claude Code already uses repo-based tags, so once the shared
-			// Agents row exists we should not show an extra source-specific row.
+			// Agent Spaces row exists we should not show an extra source-specific row.
 			if (!agent.sourceIds.includes("claude-code")) return true
 
 			const metaProject = pluginMetaMap.get(project.containerTag)?.projectName
@@ -251,7 +254,7 @@ export function SelectSpacesModal({
 					? [
 							{
 								id: "agents" as CategoryId,
-								label: "Agents",
+								label: AGENT_SPACE_CATEGORY_LABEL,
 								iconSrc: "/images/logo.png",
 								emoji: null,
 								count: agentCount,
@@ -290,7 +293,14 @@ export function SelectSpacesModal({
 		setLastBulkDeleteTag(null)
 	}, [activeDiscoverId])
 
-	const { org, user } = useAuth()
+	const modalSubtitle = useMemo(() => {
+		if (isBulkDeleteMode) return "Choose spaces to permanently delete"
+		if (activeCategory === "agents") {
+			return "Memories from Claude, Codex, and other agents"
+		}
+		return "Filter your memories by space"
+	}, [activeCategory, isBulkDeleteMode])
+
 	const queryClient = useQueryClient()
 	const [connectingPluginId, setConnectingPluginId] = useState<string | null>(
 		null,
@@ -531,6 +541,7 @@ export function SelectSpacesModal({
 				(p.name ?? "").toLowerCase().includes(query) ||
 				displayName.toLowerCase().includes(query) ||
 				(agent?.label.toLowerCase().includes(query) ?? false) ||
+				(agent?.isSharedRepo && "agent space".includes(query)) ||
 				(agent?.projectId?.toLowerCase().includes(query) ?? false) ||
 				(plugin?.label.toLowerCase().includes(query) ?? false) ||
 				(plugin?.projectId?.toLowerCase().includes(query) ?? false) ||
@@ -644,7 +655,17 @@ export function SelectSpacesModal({
 				project.containerTag,
 			)?.projectName
 			const pluginIdLabel = pluginProjectName || plugin?.projectId
-			const agentIdLabel = pluginProjectName || agent?.projectId
+			const agentPrimaryLabel = agent
+				? getAgentSpaceDisplayName(agent, {
+						projectName: pluginProjectName,
+						inAgentCategory: activeCategory === "agents",
+					})
+				: null
+			const agentSecondaryLabel = agent
+				? getAgentSpaceSecondaryLabel(agent, {
+						inAllSpaces: activeCategory === "all",
+					})
+				: null
 			const displayName = spaceSelectorDisplayName(
 				project,
 				project.containerTag,
@@ -804,10 +825,10 @@ export function SelectSpacesModal({
 							>
 								{agent ? (
 									<>
-										{agent.label}
-										{agentIdLabel && (
+										{agentPrimaryLabel}
+										{agentSecondaryLabel && (
 											<span className="ml-1.5 text-[12px] text-[#737373]">
-												· {agentIdLabel}
+												· {agentSecondaryLabel}
 											</span>
 										)}
 									</>
@@ -864,6 +885,7 @@ export function SelectSpacesModal({
 			)
 		},
 		[
+			activeCategory,
 			cancelEditing,
 			bulkDeleteTags,
 			currentSelection,
@@ -1136,9 +1158,7 @@ export function SelectSpacesModal({
 								Select Space
 							</p>
 							<p className="text-[13px] font-medium leading-[1.35] text-[#737373]">
-								{isBulkDeleteMode
-									? "Choose spaces to permanently delete"
-									: "Filter your memories by space"}
+								{modalSubtitle}
 							</p>
 						</div>
 						<div className="flex shrink-0 items-center gap-2">
@@ -1221,9 +1241,7 @@ export function SelectSpacesModal({
 							Select Space
 						</DialogTitle>
 						<p className="text-[#737373] font-medium text-[14px] leading-[1.35]">
-							{isBulkDeleteMode
-								? "Choose spaces to permanently delete"
-								: "Filter your memories by space"}
+							{modalSubtitle}
 						</p>
 					</div>
 					<div className="flex shrink-0 items-center gap-2">

@@ -43,6 +43,7 @@ import {
 import {
 	detectAgentSpace,
 	detectPluginSpace,
+	getAgentSpaceDisplayName,
 	pluginInitial,
 } from "@/lib/plugin-space"
 import { usePluginSpaceMeta } from "@/hooks/use-plugin-space-meta"
@@ -230,9 +231,7 @@ export function SpaceSelector({
 		const idForLabel = projectName || agent?.projectId || plugin?.projectId
 		return {
 			name: agent
-				? idForLabel
-					? `${agent.label} · ${idForLabel}`
-					: agent.label
+				? getAgentSpaceDisplayName(agent, { projectName })
 				: plugin
 					? idForLabel
 						? `${plugin.label} · ${idForLabel}`
