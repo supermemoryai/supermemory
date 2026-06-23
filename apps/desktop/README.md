@@ -18,15 +18,27 @@ In development, the desktop UI and Rust auth commands default to the local API a
 `http://localhost:8787`. Set `NEXT_PUBLIC_BACKEND_URL` / `SUPERMEMORY_API_URL`
 if you need a different API.
 
+SMFS integration uses the first available binary in this order:
+
+1. `SUPERMEMORY_DESKTOP_SMFS_BIN`
+2. bundled sidecar in `src-tauri/binaries`
+3. `smfs` on `PATH`
+
+The desktop-managed filesystem space uses container tags with the fixed
+`sm_fs_` prefix. The default development tag is `sm_fs_desktop`.
+
 ## Build
 
 ```sh
 bun run build        # Next static export -> ./out   (no Rust needed)
-bun run tauri build  # native .app / .dmg            (requires the Rust toolchain)
+bun run build:native # copy local smfs sidecar, then build native .app / .dmg
 ```
 
 ## Prerequisites for the native build
 
 - Rust toolchain (`rustup`) + Xcode Command Line Tools.
+- SMFS installed locally (`curl -fsSL https://smfs.ai/install | bash`) for
+  `bun run build:native`, or a pinned sidecar copied into `src-tauri/binaries`
+  by CI.
 - App icons in `src-tauri/icons/` — generate once with
   `bun run tauri icon <path-to-1024px.png>`.

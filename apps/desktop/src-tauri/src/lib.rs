@@ -1,4 +1,5 @@
 mod auth;
+mod smfs;
 mod spotlight;
 mod tray;
 
@@ -80,6 +81,50 @@ fn spotlight_set_shortcut(
     spotlight::set_shortcut(&app, &state, accelerator)
 }
 
+#[tauri::command]
+fn smfs_state(app: tauri::AppHandle) -> Result<Vec<smfs::SmfsStatus>, String> {
+    smfs::state(&app)
+}
+
+#[tauri::command]
+fn smfs_mount(app: tauri::AppHandle, tag: Option<String>) -> Result<smfs::SmfsStatus, String> {
+    smfs::mount(&app, tag)
+}
+
+#[tauri::command]
+fn smfs_unmount(app: tauri::AppHandle, tag: Option<String>) -> Result<smfs::SmfsStatus, String> {
+    smfs::unmount(&app, tag)
+}
+
+#[tauri::command]
+fn smfs_sync(app: tauri::AppHandle, tag: Option<String>) -> Result<smfs::SmfsStatus, String> {
+    smfs::sync(&app, tag)
+}
+
+#[tauri::command]
+fn smfs_reveal(app: tauri::AppHandle, tag: Option<String>) -> Result<(), String> {
+    smfs::reveal(&app, tag)
+}
+
+#[tauri::command]
+fn smfs_logs(
+    app: tauri::AppHandle,
+    tag: Option<String>,
+    lines: Option<u32>,
+) -> Result<String, String> {
+    smfs::logs(&app, tag, lines)
+}
+
+#[tauri::command]
+fn smfs_default_container_tag() -> String {
+    smfs::default_container_tag().to_string()
+}
+
+#[tauri::command]
+fn smfs_profile(app: tauri::AppHandle, tag: Option<String>) -> Result<smfs::SmfsProfile, String> {
+    smfs::profile(&app, tag)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -90,6 +135,7 @@ pub fn run() {
             app.manage(spotlight::SpotlightShortcutState::new(accelerator.clone()));
             spotlight::register_shortcut(app, &accelerator);
             tray::create(app)?;
+            smfs::start_status_poller(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -102,7 +148,15 @@ pub fn run() {
             spotlight_hide,
             spotlight_open_result,
             spotlight_get_shortcut,
-            spotlight_set_shortcut
+            spotlight_set_shortcut,
+            smfs_state,
+            smfs_mount,
+            smfs_unmount,
+            smfs_sync,
+            smfs_reveal,
+            smfs_logs,
+            smfs_default_container_tag,
+            smfs_profile
         ])
         // Bootstrap failure is unrecoverable (no window, no app), so we abort
         // loudly here. This is the one sanctioned `expect` — see roadmap quality bar.

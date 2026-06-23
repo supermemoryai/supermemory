@@ -46,7 +46,7 @@ fn get_cached_token() -> Result<Option<String>, String> {
         .map_err(|_| "Could not lock token cache".to_string())
 }
 
-fn api_url() -> String {
+pub fn api_url() -> String {
     if let Ok(api_url) = std::env::var("SUPERMEMORY_DESKTOP_API_URL") {
         return api_url;
     }
@@ -139,7 +139,9 @@ pub async fn whoami() -> Result<AuthSession, String> {
 
 fn first_string(value: &Value, paths: &[&[&str]]) -> Option<String> {
     paths.iter().find_map(|path| {
-        let found = path.iter().try_fold(value, |current, key| current.get(key))?;
+        let found = path
+            .iter()
+            .try_fold(value, |current, key| current.get(key))?;
         found.as_str().map(ToString::to_string)
     })
 }

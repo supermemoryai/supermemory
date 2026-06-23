@@ -29,6 +29,7 @@
 	"bundle": {
 		"active": true,
 		"targets": ["app", "dmg"],
+		"externalBin": ["binaries/smfs"],
 		"icon": [
 			"icons/32x32.png",
 			"icons/128x128.png",

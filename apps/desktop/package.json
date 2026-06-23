@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "NEXT_PUBLIC_DESKTOP_DEV=1 NEXT_PUBLIC_BACKEND_URL=http://localhost:8787 next dev --port 3003",
     "build": "next build",
+    "prepare-smfs-sidecar": "mkdir -p src-tauri/binaries && cp \"$(command -v smfs)\" \"src-tauri/binaries/smfs-$(rustc -vV | sed -n 's/^host: //p')\"",
+    "build:native": "bun run prepare-smfs-sidecar && tauri build",
     "check-types": "tsc --noEmit",
     "tauri": "tauri"
   },

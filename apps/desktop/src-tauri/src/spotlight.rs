@@ -2,12 +2,9 @@ use std::{fs, sync::Mutex};
 
 use serde::{Deserialize, Serialize};
 use tauri::{
-    App, AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
-    WindowEvent,
+    App, AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent,
 };
-use tauri_plugin_global_shortcut::{
-    GlobalShortcutExt, Shortcut, ShortcutEvent, ShortcutState,
-};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent, ShortcutState};
 
 const MAIN_LABEL: &str = "main";
 const SPOTLIGHT_LABEL: &str = "spotlight";
@@ -59,20 +56,17 @@ pub fn create_window(app: &App) -> tauri::Result<WebviewWindow> {
         return Ok(window);
     }
 
-    let window = WebviewWindowBuilder::new(
-        app,
-        SPOTLIGHT_LABEL,
-        WebviewUrl::App("spotlight/".into()),
-    )
-    .title("Supermemory Spotlight")
-    .inner_size(760.0, 420.0)
-    .min_inner_size(560.0, 220.0)
-    .decorations(false)
-    .always_on_top(true)
-    .skip_taskbar(true)
-    .visible(false)
-    .center()
-    .build()?;
+    let window =
+        WebviewWindowBuilder::new(app, SPOTLIGHT_LABEL, WebviewUrl::App("spotlight/".into()))
+            .title("Supermemory Spotlight")
+            .inner_size(760.0, 420.0)
+            .min_inner_size(560.0, 220.0)
+            .decorations(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .visible(false)
+            .center()
+            .build()?;
 
     let window_for_blur = window.clone();
     window.on_window_event(move |event| {
@@ -194,18 +188,18 @@ where
 }
 
 fn unregister_accelerator(app: &AppHandle, accelerator: &str) -> Result<(), String> {
-	validate_accelerator(accelerator)?;
-	app.global_shortcut()
-		.unregister(accelerator)
-		.map_err(|error| error.to_string())
+    validate_accelerator(accelerator)?;
+    app.global_shortcut()
+        .unregister(accelerator)
+        .map_err(|error| error.to_string())
 }
 
 fn unregister_accelerator_if_registered(app: &AppHandle, accelerator: &str) -> Result<(), String> {
-	validate_accelerator(accelerator)?;
-	if app.global_shortcut().is_registered(accelerator) {
-		unregister_accelerator(app, accelerator)?;
-	}
-	Ok(())
+    validate_accelerator(accelerator)?;
+    if app.global_shortcut().is_registered(accelerator) {
+        unregister_accelerator(app, accelerator)?;
+    }
+    Ok(())
 }
 
 fn validate_accelerator(accelerator: &str) -> Result<(), String> {

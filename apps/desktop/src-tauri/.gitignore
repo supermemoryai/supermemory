@@ -3,3 +3,7 @@
 
 # Tauri-generated schemas / artifacts
 /gen/schemas
+
+# SMFS sidecars are copied or downloaded per target before native packaging.
+/binaries/*
+!/binaries/.gitkeep
