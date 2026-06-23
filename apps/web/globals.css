@@ -195,6 +195,47 @@
 	margin-top: 0;
 }
 
+.chat-markdown-content pre {
+	margin: 0.75rem 0;
+	overflow-x: auto;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 0.75rem;
+	background: #080b10 !important;
+	padding: 0.875rem 1rem;
+	color: #f4f4f5 !important;
+}
+
+.chat-markdown-content pre code {
+	display: block;
+	background: transparent !important;
+	padding: 0;
+	color: #f4f4f5 !important;
+	font-size: 0.875rem;
+	line-height: 1.65;
+	text-shadow: none;
+	white-space: pre;
+}
+
+.chat-markdown-content pre code *,
+.chat-markdown-content pre [style] {
+	background: transparent !important;
+	color: #f4f4f5 !important;
+	text-shadow: none !important;
+}
+
+.chat-markdown-content pre code .line {
+	min-height: 1.45em;
+}
+
+.chat-markdown-content :not(pre) > code {
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 0.375rem;
+	background: rgba(255, 255, 255, 0.06);
+	padding: 0.125rem 0.3125rem;
+	color: #fafafa;
+	font-size: 0.875em;
+}
+
 /* Model spams `---` between every section; headings already separate them */
 .chat-markdown-content hr {
 	display: none;
