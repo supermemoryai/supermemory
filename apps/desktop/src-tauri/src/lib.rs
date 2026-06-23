@@ -45,8 +45,18 @@ fn auth_clear() -> Result<(), String> {
 }
 
 #[tauri::command]
-fn auth_begin_browser() -> Result<String, String> {
-    auth::begin_browser_auth()
+fn auth_begin_browser(app: tauri::AppHandle) -> Result<String, String> {
+    let app_for_callback = app.clone();
+    auth::begin_browser_auth(move |result| match result {
+        Ok(event) => {
+            let _ = app_for_callback.emit("auth:changed", event);
+            focus_main_window(&app_for_callback);
+        }
+        Err(error) => {
+            let _ = app_for_callback.emit("auth:error", error);
+            focus_main_window(&app_for_callback);
+        }
+    })
 }
 
 #[tauri::command]
@@ -162,10 +172,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(main) = app.get_webview_window("main") {
-                let _ = main.show();
-                let _ = main.set_focus();
-            }
+            focus_main_window(app);
         }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
@@ -233,13 +240,17 @@ fn handle_auth_deep_link(app: &tauri::AppHandle, url: &str) {
     match auth::handle_deep_link(url) {
         Ok(event) => {
             let _ = app.emit("auth:changed", event);
-            if let Some(main) = app.get_webview_window("main") {
-                let _ = main.show();
-                let _ = main.set_focus();
-            }
+            focus_main_window(app);
         }
         Err(error) => {
             let _ = app.emit("auth:error", error);
         }
+    }
+}
+
+fn focus_main_window(app: &tauri::AppHandle) {
+    if let Some(main) = app.get_webview_window("main") {
+        let _ = main.show();
+        let _ = main.set_focus();
     }
 }

@@ -2,8 +2,12 @@ use keyring::{Entry, Error as KeyringError};
 use serde::Serialize;
 use serde_json::Value;
 use std::{
+    io::{BufRead, BufReader, Write},
+    net::TcpListener,
     process::Command,
     sync::{Mutex, OnceLock},
+    thread,
+    time::Duration,
 };
 
 const KEYCHAIN_SERVICE: &str = "ai.supermemory.desktop";
@@ -11,6 +15,7 @@ const KEYCHAIN_USER: &str = "supermemory-api-token";
 const KEYCHAIN_API_URL_USER: &str = "supermemory-api-url";
 const DEFAULT_WEB_URL: &str = "https://console.supermemory.ai";
 const DEFAULT_BROWSER_API_URL: &str = "https://api.supermemory.ai";
+const BROWSER_AUTH_TIMEOUT: Duration = Duration::from_secs(120);
 #[cfg(debug_assertions)]
 const DEFAULT_API_URL: &str = "http://localhost:8787";
 
@@ -198,7 +203,10 @@ pub fn clear_token() -> Result<(), String> {
     Ok(())
 }
 
-pub fn begin_browser_auth() -> Result<String, String> {
+pub fn begin_browser_auth<F>(on_complete: F) -> Result<String, String>
+where
+    F: FnOnce(Result<AuthChangedEvent, String>) + Send + 'static,
+{
     let state = uuid::Uuid::new_v4().to_string();
     {
         let mut pending = pending_browser_state()
@@ -207,7 +215,8 @@ pub fn begin_browser_auth() -> Result<String, String> {
         *pending = Some(state.clone());
     }
 
-    let login_url = build_browser_login_url(&state)?;
+    let port = start_loopback_auth_server(on_complete)?;
+    let login_url = build_browser_login_url(&state, port)?;
     open_system_browser(&login_url)?;
     Ok(login_url)
 }
@@ -225,39 +234,7 @@ pub fn handle_deep_link(url: &str) -> Result<AuthChangedEvent, String> {
         return Err("Ignoring unsupported supermemory deep link".to_string());
     }
 
-    let params = parsed.query_pairs().collect::<Vec<_>>();
-    let state = params
-        .iter()
-        .find_map(|(key, value)| (key == "state").then(|| value.to_string()))
-        .ok_or_else(|| "Auth callback did not include state".to_string())?;
-    let api_key = params
-        .iter()
-        .find_map(|(key, value)| (key == "apikey").then(|| value.to_string()))
-        .or_else(|| {
-            params
-                .iter()
-                .find_map(|(key, value)| (key == "apiKey").then(|| value.to_string()))
-        })
-        .or_else(|| {
-            params
-                .iter()
-                .find_map(|(key, value)| (key == "token").then(|| value.to_string()))
-        })
-        .ok_or_else(|| "Auth callback did not include API key".to_string())?;
-    let callback_api_url = params
-        .iter()
-        .find_map(|(key, value)| (key == "apiUrl").then(|| value.to_string()))
-        .or_else(|| {
-            params
-                .iter()
-                .find_map(|(key, value)| (key == "api_url").then(|| value.to_string()))
-        });
-
-    verify_browser_state(&state)?;
-    store_token_with_api_url(
-        api_key,
-        callback_api_url.or_else(|| Some(browser_auth_api_url())),
-    )?;
+    complete_browser_auth(parsed)?;
 
     Ok(AuthChangedEvent {
         authenticated: true,
@@ -318,25 +295,230 @@ pub async fn whoami() -> Result<AuthSession, String> {
     })
 }
 
-fn build_browser_login_url(state: &str) -> Result<String, String> {
+fn handle_loopback_callback(url: &str) -> Result<AuthChangedEvent, String> {
+    let parsed =
+        url::Url::parse(url).map_err(|error| format!("Invalid auth callback URL: {error}"))?;
+    if parsed.scheme() != "http" {
+        return Err("Auth callback must use HTTP loopback".to_string());
+    }
+
+    let is_loopback = matches!(parsed.host_str(), Some("127.0.0.1") | Some("localhost"));
+    if !is_loopback || parsed.path() != "/callback" {
+        return Err("Ignoring unsupported loopback auth callback".to_string());
+    }
+
+    complete_browser_auth(parsed)?;
+
+    Ok(AuthChangedEvent {
+        authenticated: true,
+        api_url: Some(api_url()),
+    })
+}
+
+fn build_browser_login_url(state: &str, callback_port: u16) -> Result<String, String> {
     let base = web_url();
     let mut url = url::Url::parse(&base)
         .or_else(|_| url::Url::parse(&format!("{}/", base.trim_end_matches('/'))))
         .map_err(|error| format!("Invalid Supermemory web URL: {error}"))?;
-    url.set_path("auth/connect");
+    url.set_path("auth/agent-connect");
 
-    let mut callback = url::Url::parse("supermemory://auth-callback")
+    let mut callback = url::Url::parse(&format!("http://127.0.0.1:{callback_port}/callback"))
         .map_err(|error| format!("Invalid desktop callback URL: {error}"))?;
     callback
         .query_pairs_mut()
         .append_pair("state", state)
         .append_pair("api_url", &browser_auth_api_url());
 
+    let cwd = std::env::current_dir()
+        .ok()
+        .and_then(|path| path.to_str().map(ToString::to_string))
+        .unwrap_or_default();
+
     url.query_pairs_mut()
         .append_pair("callback", callback.as_str())
-        .append_pair("client", "desktop")
-        .append_pair("name", "Supermemory Desktop");
+        .append_pair("hostname", "Supermemory Desktop")
+        .append_pair("os", std::env::consts::OS)
+        .append_pair("cwd", &cwd)
+        .append_pair("cli_version", env!("CARGO_PKG_VERSION"))
+        .append_pair("client", "desktop");
     Ok(url.to_string())
+}
+
+fn start_loopback_auth_server<F>(on_complete: F) -> Result<u16, String>
+where
+    F: FnOnce(Result<AuthChangedEvent, String>) + Send + 'static,
+{
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .map_err(|error| format!("Could not start auth callback server: {error}"))?;
+    listener
+        .set_nonblocking(true)
+        .map_err(|error| format!("Could not configure auth callback server: {error}"))?;
+    let port = listener
+        .local_addr()
+        .map_err(|error| format!("Could not read auth callback server port: {error}"))?
+        .port();
+
+    thread::spawn(move || {
+        let started = std::time::Instant::now();
+        loop {
+            if started.elapsed() > BROWSER_AUTH_TIMEOUT {
+                on_complete(Err("Browser sign-in timed out".to_string()));
+                return;
+            }
+
+            match listener.accept() {
+                Ok((mut stream, _addr)) => {
+                    let path = match read_loopback_request_path(&mut stream) {
+                        Ok(path) => path,
+                        Err(error) => {
+                            write_loopback_response(
+                                &mut stream,
+                                400,
+                                "Authentication failed",
+                                &error,
+                            );
+                            on_complete(Err(error));
+                            return;
+                        }
+                    };
+
+                    if !is_loopback_callback_path(&path) {
+                        write_loopback_response(
+                            &mut stream,
+                            404,
+                            "Supermemory authentication",
+                            "Not found.",
+                        );
+                        continue;
+                    }
+
+                    let callback_url = format!("http://127.0.0.1:{port}{path}");
+                    let result = handle_loopback_callback(&callback_url);
+                    match &result {
+                        Ok(_) => write_loopback_response(
+                            &mut stream,
+                            200,
+                            "Authentication successful",
+                            "You can close this window and return to Supermemory.",
+                        ),
+                        Err(error) => {
+                            write_loopback_response(
+                                &mut stream,
+                                400,
+                                "Authentication failed",
+                                error,
+                            );
+                        }
+                    }
+                    on_complete(result);
+                    return;
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    thread::sleep(Duration::from_millis(100));
+                }
+                Err(error) => {
+                    on_complete(Err(format!("Auth callback server failed: {error}")));
+                    return;
+                }
+            }
+        }
+    });
+
+    Ok(port)
+}
+
+fn read_loopback_request_path(stream: &mut std::net::TcpStream) -> Result<String, String> {
+    let mut reader = BufReader::new(stream);
+    let mut request_line = String::new();
+    reader
+        .read_line(&mut request_line)
+        .map_err(|error| format!("Could not read auth callback request: {error}"))?;
+
+    let mut parts = request_line.split_whitespace();
+    let method = parts.next().unwrap_or_default();
+    let path = parts.next().unwrap_or_default();
+    if method != "GET" || path.is_empty() {
+        return Err("Invalid auth callback request".to_string());
+    }
+
+    Ok(path.to_string())
+}
+
+fn is_loopback_callback_path(path: &str) -> bool {
+    path == "/callback" || path.starts_with("/callback?")
+}
+
+fn write_loopback_response(
+    stream: &mut std::net::TcpStream,
+    status: u16,
+    title: &str,
+    message: &str,
+) {
+    let escaped_title = escape_html(title);
+    let escaped_message = escape_html(message);
+    let status_text = if status == 200 { "OK" } else { "Bad Request" };
+    let body = format!(
+        "<!doctype html><html><head><title>{escaped_title}</title></head><body style=\"font-family: system-ui; display: grid; place-items: center; min-height: 100vh; margin: 0; background: #030912; color: #fafafa;\"><main style=\"text-align: center; max-width: 420px;\"><h1>{escaped_title}</h1><p style=\"color: #a3a3a3;\">{escaped_message}</p></main></body></html>"
+    );
+    let response = format!(
+        "HTTP/1.1 {status} {status_text}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    let _ = stream.write_all(response.as_bytes());
+    let _ = stream.flush();
+}
+
+fn escape_html(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
+}
+
+fn complete_browser_auth(parsed: url::Url) -> Result<(), String> {
+    let params = parsed.query_pairs().collect::<Vec<_>>();
+    let state = params
+        .iter()
+        .find_map(|(key, value)| (key == "state").then(|| value.to_string()))
+        .ok_or_else(|| "Auth callback did not include state".to_string())?;
+    verify_browser_state(&state)?;
+
+    if let Some(error) = params
+        .iter()
+        .find_map(|(key, value)| (key == "error").then(|| value.to_string()))
+    {
+        return Err(format!("Browser sign-in failed: {error}"));
+    }
+
+    let api_key = params
+        .iter()
+        .find_map(|(key, value)| (key == "apikey").then(|| value.to_string()))
+        .or_else(|| {
+            params
+                .iter()
+                .find_map(|(key, value)| (key == "apiKey").then(|| value.to_string()))
+        })
+        .or_else(|| {
+            params
+                .iter()
+                .find_map(|(key, value)| (key == "token").then(|| value.to_string()))
+        })
+        .ok_or_else(|| "Auth callback did not include API key".to_string())?;
+    let callback_api_url = params
+        .iter()
+        .find_map(|(key, value)| (key == "apiUrl").then(|| value.to_string()))
+        .or_else(|| {
+            params
+                .iter()
+                .find_map(|(key, value)| (key == "api_url").then(|| value.to_string()))
+        });
+
+    store_token_with_api_url(
+        api_key,
+        callback_api_url.or_else(|| Some(browser_auth_api_url())),
+    )
 }
 
 fn open_system_browser(url: &str) -> Result<(), String> {
@@ -408,14 +590,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn browser_auth_url_uses_console_connect_flow() {
+    fn browser_auth_url_uses_console_agent_connect_flow() {
         std::env::remove_var("SUPERMEMORY_DESKTOP_WEB_URL");
         std::env::remove_var("SUPERMEMORY_DESKTOP_API_URL");
 
-        let url = url::Url::parse(&build_browser_login_url("state-123").unwrap()).unwrap();
+        let url = url::Url::parse(&build_browser_login_url("state-123", 49876).unwrap()).unwrap();
         assert_eq!(
             url.as_str().split('?').next().unwrap(),
-            "https://console.supermemory.ai/auth/connect"
+            "https://console.supermemory.ai/auth/agent-connect"
+        );
+        assert_eq!(
+            url.query_pairs()
+                .find(|(key, _)| key == "hostname")
+                .unwrap()
+                .1,
+            "Supermemory Desktop"
         );
         assert_eq!(
             url.query_pairs()
@@ -424,10 +613,6 @@ mod tests {
                 .1,
             "desktop"
         );
-        assert_eq!(
-            url.query_pairs().find(|(key, _)| key == "name").unwrap().1,
-            "Supermemory Desktop"
-        );
 
         let callback = url
             .query_pairs()
@@ -435,8 +620,10 @@ mod tests {
             .unwrap();
         let callback = url::Url::parse(&callback).unwrap();
 
-        assert_eq!(callback.scheme(), "supermemory");
-        assert_eq!(callback.host_str(), Some("auth-callback"));
+        assert_eq!(callback.scheme(), "http");
+        assert_eq!(callback.host_str(), Some("127.0.0.1"));
+        assert_eq!(callback.port(), Some(49876));
+        assert_eq!(callback.path(), "/callback");
         assert_eq!(
             callback
                 .query_pairs()
@@ -453,5 +640,33 @@ mod tests {
                 .1,
             DEFAULT_BROWSER_API_URL
         );
+    }
+
+    #[test]
+    fn auth_deep_link_recognizes_legacy_callback_shape() {
+        assert!(is_auth_deep_link(
+            "supermemory://auth-callback?state=state-123&apikey=sm_test"
+        ));
+        assert!(!is_auth_deep_link(
+            "https://console.supermemory.ai/auth/connect?state=state-123"
+        ));
+    }
+
+    #[test]
+    fn loopback_response_escapes_browser_visible_text() {
+        assert_eq!(
+            escape_html("<script>alert('x')</script>"),
+            "&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;"
+        );
+    }
+
+    #[test]
+    fn loopback_callback_path_must_match_callback_route() {
+        assert!(is_loopback_callback_path("/callback"));
+        assert!(is_loopback_callback_path("/callback?state=state-123"));
+        assert!(!is_loopback_callback_path(
+            "/callback-extra?state=state-123"
+        ));
+        assert!(!is_loopback_callback_path("/favicon.ico"));
     }
 }

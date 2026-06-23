@@ -270,7 +270,7 @@ export default function LoginPage() {
 								<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-[14px] bg-[#030912]/90 backdrop-blur-sm">
 									<Loader2 className="size-6 animate-spin text-muted-foreground" />
 									<p className="text-muted-foreground text-sm">
-										Redirecting...
+										Waiting for browser sign-in...
 									</p>
 								</div>
 							) : null}
