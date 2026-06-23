@@ -32,6 +32,16 @@ import {
 	syncSmfs,
 	unmountSmfs,
 } from "@/lib/smfs"
+import {
+	connectDesktopTool,
+	detectDesktopTools,
+	disconnectDesktopTool,
+	type DesktopToolId,
+	type DesktopToolPreview,
+	type DesktopToolStatus,
+	previewConnectDesktopTool,
+	previewDisconnectDesktopTool,
+} from "@/lib/tools"
 
 type AppInfo = {
 	name: string
@@ -52,6 +62,12 @@ export default function SettingsPage() {
 	const [smfsBusy, setSmfsBusy] = useState<string | null>(null)
 	const [smfsLogs, setSmfsLogs] = useState<string | null>(null)
 	const [smfsProfile, setSmfsProfile] = useState<SmfsProfile | null>(null)
+	const [tools, setTools] = useState<DesktopToolStatus[]>([])
+	const [toolsError, setToolsError] = useState<string | null>(null)
+	const [toolsBusy, setToolsBusy] = useState<string | null>(null)
+	const [toolPreview, setToolPreview] = useState<DesktopToolPreview | null>(
+		null,
+	)
 
 	const refreshSmfsState = useCallback(async () => {
 		setSmfsError(null)
@@ -59,6 +75,15 @@ export default function SettingsPage() {
 			setSmfsStatuses(await getSmfsState())
 		} catch (err) {
 			setSmfsError(formatError(err, "Could not load SMFS status"))
+		}
+	}, [])
+
+	const refreshTools = useCallback(async () => {
+		setToolsError(null)
+		try {
+			setTools(await detectDesktopTools())
+		} catch (err) {
+			setToolsError(formatError(err, "Could not detect tools"))
 		}
 	}, [])
 
@@ -76,7 +101,8 @@ export default function SettingsPage() {
 			.then(setSmfsTag)
 			.catch(() => setSmfsTag("sm_fs_desktop"))
 		refreshSmfsState()
-	}, [refreshSmfsState])
+		refreshTools()
+	}, [refreshSmfsState, refreshTools])
 
 	useEffect(() => {
 		let unlisten: (() => void) | undefined
@@ -159,6 +185,45 @@ export default function SettingsPage() {
 			setSmfsError(formatError(err, "Could not read profile.md"))
 		} finally {
 			setSmfsBusy(null)
+		}
+	}
+
+	async function previewToolAction(
+		toolId: DesktopToolId,
+		action: "connect" | "disconnect",
+	) {
+		setToolsError(null)
+		setToolsBusy(`${action}:${toolId}`)
+		try {
+			const preview =
+				action === "connect"
+					? await previewConnectDesktopTool(toolId)
+					: await previewDisconnectDesktopTool(toolId)
+			setToolPreview(preview)
+		} catch (err) {
+			setToolsError(formatError(err, `Could not preview ${action}`))
+		} finally {
+			setToolsBusy(null)
+		}
+	}
+
+	async function applyToolPreview() {
+		if (!toolPreview) return
+
+		setToolsError(null)
+		setToolsBusy(`${toolPreview.action}:${toolPreview.tool.id}`)
+		try {
+			if (toolPreview.action === "connect") {
+				await connectDesktopTool(toolPreview.tool.id)
+			} else {
+				await disconnectDesktopTool(toolPreview.tool.id)
+			}
+			setToolPreview(null)
+			await refreshTools()
+		} catch (err) {
+			setToolsError(formatError(err, `Could not ${toolPreview.action} tool`))
+		} finally {
+			setToolsBusy(null)
 		}
 	}
 
@@ -387,6 +452,117 @@ export default function SettingsPage() {
 						<pre className="max-h-52 overflow-auto rounded-md border border-border bg-muted/20 p-3 text-xs">
 							{smfsLogs}
 						</pre>
+					) : null}
+				</CardContent>
+			</Card>
+
+			<Card className="mb-4">
+				<CardHeader>
+					<CardTitle className="text-base">AI tools</CardTitle>
+					<CardDescription>
+						Detect local tools and connect them to the Supermemory MCP server.
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="space-y-4 text-sm">
+					<div className="flex justify-end">
+						<Button
+							type="button"
+							variant="outline"
+							disabled={toolsBusy !== null}
+							onClick={() => refreshTools()}
+						>
+							Refresh
+						</Button>
+					</div>
+					<div className="space-y-3">
+						{tools.map((tool) => (
+							<div
+								key={tool.id}
+								className="rounded-md border border-border bg-muted/10 p-3"
+							>
+								<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+									<div className="min-w-0 space-y-1">
+										<div className="flex flex-wrap items-center gap-2">
+											<p className="font-medium">{tool.name}</p>
+											<span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+												{tool.connected
+													? "Connected"
+													: tool.detected
+														? "Detected"
+														: "Not detected"}
+											</span>
+										</div>
+										<p className="text-muted-foreground text-xs">
+											{tool.detail}
+										</p>
+										<p
+											className="truncate font-mono text-muted-foreground text-xs"
+											title={tool.configPath}
+										>
+											{tool.configPath}
+										</p>
+									</div>
+									<div className="flex shrink-0 gap-2">
+										<Button
+											type="button"
+											variant="outline"
+											disabled={toolsBusy !== null}
+											onClick={() => previewToolAction(tool.id, "connect")}
+										>
+											Preview
+										</Button>
+										<Button
+											type="button"
+											variant="outline"
+											disabled={toolsBusy !== null || !tool.connected}
+											onClick={() => previewToolAction(tool.id, "disconnect")}
+										>
+											Disconnect
+										</Button>
+									</div>
+								</div>
+							</div>
+						))}
+					</div>
+					{toolsError ? (
+						<p className="text-destructive text-sm">{toolsError}</p>
+					) : null}
+					{toolPreview ? (
+						<div className="space-y-3 rounded-md border border-border bg-muted/10 p-3">
+							<div className="space-y-1">
+								<p className="font-medium">
+									{toolPreview.action === "connect" ? "Connect" : "Disconnect"}{" "}
+									{toolPreview.tool.name}
+								</p>
+								<Row label="Config" value={toolPreview.configPath} />
+								<Row
+									label="Backup"
+									value={
+										toolPreview.backupPath ?? "Created only if file exists"
+									}
+								/>
+							</div>
+							<pre className="max-h-80 overflow-auto rounded-md border border-border bg-background p-3 whitespace-pre-wrap text-xs">
+								{toolPreview.diff}
+							</pre>
+							<div className="flex justify-end gap-2">
+								<Button
+									type="button"
+									variant="outline"
+									disabled={toolsBusy !== null}
+									onClick={() => setToolPreview(null)}
+								>
+									Cancel
+								</Button>
+								<Button
+									type="button"
+									disabled={toolsBusy !== null}
+									onClick={() => applyToolPreview()}
+								>
+									{toolsBusy ? "Applying..." : "Apply"}
+								</Button>
+							</div>
+						</div>
 					) : null}
 				</CardContent>
 			</Card>

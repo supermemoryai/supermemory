@@ -1,6 +1,7 @@
 mod auth;
 mod smfs;
 mod spotlight;
+mod tools;
 mod tray;
 
 use serde::Serialize;
@@ -125,6 +126,31 @@ fn smfs_profile(app: tauri::AppHandle, tag: Option<String>) -> Result<smfs::Smfs
     smfs::profile(&app, tag)
 }
 
+#[tauri::command]
+fn tools_detect() -> Result<Vec<tools::ToolStatus>, String> {
+    tools::detect()
+}
+
+#[tauri::command]
+fn tools_preview_connect(tool_id: String) -> Result<tools::ToolPreview, String> {
+    tools::preview_connect(tool_id)
+}
+
+#[tauri::command]
+fn tools_connect(tool_id: String) -> Result<tools::ToolConnectResult, String> {
+    tools::connect(tool_id)
+}
+
+#[tauri::command]
+fn tools_preview_disconnect(tool_id: String) -> Result<tools::ToolPreview, String> {
+    tools::preview_disconnect(tool_id)
+}
+
+#[tauri::command]
+fn tools_disconnect(tool_id: String) -> Result<tools::ToolConnectResult, String> {
+    tools::disconnect(tool_id)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -156,7 +182,12 @@ pub fn run() {
             smfs_reveal,
             smfs_logs,
             smfs_default_container_tag,
-            smfs_profile
+            smfs_profile,
+            tools_detect,
+            tools_preview_connect,
+            tools_connect,
+            tools_preview_disconnect,
+            tools_disconnect
         ])
         // Bootstrap failure is unrecoverable (no window, no app), so we abort
         // loudly here. This is the one sanctioned `expect` — see roadmap quality bar.
