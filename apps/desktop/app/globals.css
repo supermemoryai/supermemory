@@ -430,6 +430,10 @@ body {
 	padding: 2rem;
 }
 
+.desktop-login-card-pending {
+	min-height: 38rem;
+}
+
 .desktop-login-form {
 	gap: 0.75rem;
 }
@@ -464,6 +468,111 @@ body {
 
 	.desktop-login-auth-stack {
 		max-width: 25rem;
+	}
+}
+
+@media (max-width: 1900px) and (min-width: 1024px) {
+	.desktop-login-page {
+		grid-template-columns: minmax(0, 60fr) minmax(390px, 40fr);
+	}
+
+	.desktop-login-tool-node {
+		width: 2.5rem;
+		height: 2.5rem;
+		border-radius: 0.75rem;
+	}
+
+	.desktop-login-tool-node-icon {
+		width: 1.125rem;
+		height: 1.125rem;
+		font-size: 0.5625rem;
+		line-height: 1.125rem;
+	}
+
+	.desktop-login-tool-node-label {
+		top: calc(100% + 0.3rem);
+		font-size: 0.625rem;
+	}
+
+	.desktop-login-memory-chip {
+		width: 2.375rem;
+		height: 1.375rem;
+	}
+
+	.desktop-login-memory-chip-lines {
+		width: 1.25rem;
+		gap: 0.16rem;
+	}
+
+	.desktop-login-nova-orb {
+		width: 7.5rem;
+		height: 7.5rem;
+		box-shadow:
+			0.25rem 0.5rem 1rem #0a0e14 inset,
+			0 0 44px rgb(65 135 255 / 0.54);
+	}
+
+	.desktop-login-nova-gradient {
+		width: 13.5rem;
+		height: 13.5rem;
+	}
+
+	.desktop-login-panel-caption {
+		bottom: 1.5rem;
+		font-size: 0.75rem;
+	}
+
+	.desktop-login-auth-header {
+		height: 4.75rem;
+		padding-inline: 1.25rem;
+	}
+
+	.desktop-login-memory-api-button {
+		height: 2.5rem;
+		padding-inline: 0.875rem;
+		font-size: 0.875rem;
+	}
+
+	.desktop-login-auth-content {
+		padding: 0.5rem 1.25rem 1.5rem;
+	}
+
+	.desktop-login-auth-stack {
+		max-width: 22.5rem;
+	}
+
+	.desktop-login-headline {
+		margin-bottom: 1.25rem;
+	}
+
+	.desktop-login-headline h1 {
+		font-size: 1.5rem;
+	}
+
+	.desktop-login-subtitle {
+		margin-top: 0.75rem;
+		font-size: 0.8125rem;
+	}
+
+	.desktop-login-card {
+		padding: 1.5rem;
+	}
+
+	.desktop-login-card-pending {
+		min-height: 27rem;
+	}
+
+	.desktop-login-email-form {
+		gap: 1rem;
+	}
+
+	.desktop-login-email-input,
+	.desktop-login-primary-button {
+		height: 3rem;
+	}
+
+	.desktop-login-terms {
+		font-size: 0.75rem;
 	}
 }
 
@@ -513,6 +622,10 @@ body {
 	.desktop-login-card {
 		padding: 1.125rem 1.25rem;
 		border-radius: 1rem;
+	}
+
+	.desktop-login-card-pending {
+		min-height: 18rem;
 	}
 
 	.desktop-login-form {

@@ -153,8 +153,14 @@ export default function LoginPage() {
 							</p>
 						</div>
 
-						<div className="desktop-login-card relative bg-linear-to-b from-[#06101F] to-[#030912] shadow-[1.5px_1.5px_20px_0_rgba(0,0,0,0.65),1px_1.5px_2px_0_rgba(128,189,255,0.07)_inset,-0.5px_-1.5px_4px_0_rgba(0,35,73,0.40)_inset]">
-							<div className={isBrowserAuthPending ? "invisible" : undefined}>
+						<div
+							className={
+								isBrowserAuthPending
+									? "desktop-login-card desktop-login-card-pending relative bg-linear-to-b from-[#06101F] to-[#030912] shadow-[1.5px_1.5px_20px_0_rgba(0,0,0,0.65),1px_1.5px_2px_0_rgba(128,189,255,0.07)_inset,-0.5px_-1.5px_4px_0_rgba(0,35,73,0.40)_inset]"
+									: "desktop-login-card relative bg-linear-to-b from-[#06101F] to-[#030912] shadow-[1.5px_1.5px_20px_0_rgba(0,0,0,0.65),1px_1.5px_2px_0_rgba(128,189,255,0.07)_inset,-0.5px_-1.5px_4px_0_rgba(0,35,73,0.40)_inset]"
+							}
+						>
+							<div className={isBrowserAuthPending ? "hidden" : undefined}>
 								<div className="mb-2 flex justify-end">
 									<Badge className="h-5 rounded-md px-2 text-[10px]">
 										Last used
