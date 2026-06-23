@@ -247,6 +247,7 @@ where
         .json(&serde_json::json!({
             "provider": provider,
             "callbackURL": request.finish_url,
+            "newUserCallbackURL": request.finish_url,
             "errorCallbackURL": request.finish_url,
         }))
         .send()
@@ -292,6 +293,7 @@ where
         .json(&serde_json::json!({
             "email": email,
             "callbackURL": request.finish_url,
+            "newUserCallbackURL": request.finish_url,
             "errorCallbackURL": request.finish_url,
         }))
         .send()
@@ -558,8 +560,8 @@ where
                         Ok(_) => write_loopback_response(
                             &mut stream,
                             200,
-                            "Authentication successful",
-                            "You can close this window and return to Supermemory.",
+                            "You are authenticated",
+                            "You can close this window and go back to Supermemory.",
                         ),
                         Err(error) => {
                             write_loopback_response(

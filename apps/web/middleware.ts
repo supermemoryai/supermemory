@@ -36,6 +36,10 @@ export default async function proxy(request: Request) {
 		return NextResponse.next()
 	}
 
+	if (url.pathname === "/api/auth/desktop/callback") {
+		return NextResponse.next()
+	}
+
 	if (url.pathname.startsWith("/api/")) {
 		if (!sessionCookie) {
 			console.debug("[MIDDLEWARE] API route without session, returning 401")
