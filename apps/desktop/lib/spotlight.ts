@@ -13,6 +13,10 @@ export type SpotlightMemory = {
 	createdAt: string
 }
 
+export type SpotlightShortcut = {
+	accelerator: string
+}
+
 export const OPEN_MEMORY_EVENT = "nav:open-memory"
 export const SPOTLIGHT_SHOWN_EVENT = "spotlight:shown"
 
@@ -26,4 +30,12 @@ export function hideSpotlight() {
 
 export function openSpotlightResult(memory: SpotlightMemory) {
 	return invoke("spotlight_open_result", { memory })
+}
+
+export function getSpotlightShortcut() {
+	return invoke<SpotlightShortcut>("spotlight_get_shortcut")
+}
+
+export function setSpotlightShortcut(accelerator: string) {
+	return invoke<SpotlightShortcut>("spotlight_set_shortcut", { accelerator })
 }

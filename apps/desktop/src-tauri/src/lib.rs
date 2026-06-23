@@ -1,7 +1,9 @@
 mod auth;
 mod spotlight;
+mod tray;
 
 use serde::Serialize;
+use tauri::Manager;
 
 /// Identity of the native app, surfaced to the webview over IPC.
 /// `rename_all = "camelCase"` makes the JSON keys match the TypeScript `AppInfo`.
@@ -62,13 +64,32 @@ fn spotlight_open_result(
     spotlight::open_result(&app, memory).map_err(|error| error.to_string())
 }
 
+#[tauri::command]
+fn spotlight_get_shortcut(
+    state: tauri::State<'_, spotlight::SpotlightShortcutState>,
+) -> Result<spotlight::SpotlightShortcut, String> {
+    spotlight::get_shortcut(&state)
+}
+
+#[tauri::command]
+fn spotlight_set_shortcut(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, spotlight::SpotlightShortcutState>,
+    accelerator: String,
+) -> Result<spotlight::SpotlightShortcut, String> {
+    spotlight::set_shortcut(&app, &state, accelerator)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
             spotlight::create_window(app)?;
-            spotlight::register_shortcut(app);
+            let accelerator = spotlight::load_shortcut(app.handle());
+            app.manage(spotlight::SpotlightShortcutState::new(accelerator.clone()));
+            spotlight::register_shortcut(app, &accelerator);
+            tray::create(app)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -79,7 +100,9 @@ pub fn run() {
             auth_whoami,
             spotlight_show,
             spotlight_hide,
-            spotlight_open_result
+            spotlight_open_result,
+            spotlight_get_shortcut,
+            spotlight_set_shortcut
         ])
         // Bootstrap failure is unrecoverable (no window, no app), so we abort
         // loudly here. This is the one sanctioned `expect` — see roadmap quality bar.
