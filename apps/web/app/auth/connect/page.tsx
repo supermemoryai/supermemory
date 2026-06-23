@@ -18,6 +18,12 @@ const API_URL =
 function isValidLocalhostCallback(callback: string): boolean {
 	try {
 		const url = new URL(callback)
+		const isDesktopCallback =
+			url.protocol === "supermemory:" &&
+			url.hostname === "auth-callback" &&
+			url.searchParams.has("state")
+		if (isDesktopCallback) return true
+
 		const isLocalhost =
 			url.hostname === "localhost" || url.hostname === "127.0.0.1"
 		const isHttp = url.protocol === "http:"
@@ -100,6 +106,17 @@ const PLUGIN_INFO: Record<string, PluginInfo> = {
 			"Builds persistent user profile across projects",
 		],
 		icon: "/images/plugins/codex.png",
+	},
+	desktop: {
+		name: "Supermemory Desktop",
+		description:
+			"Native access to your Supermemory account from the desktop app.",
+		features: [
+			"Secure browser-based sign-in",
+			"Stores your access key in the system keychain",
+			"Syncs search, MCP, and local memory features",
+		],
+		icon: "/icon.png",
 	},
 }
 

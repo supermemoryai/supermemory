@@ -149,27 +149,6 @@ export default function NewPage() {
 		}
 	}, [user, session])
 
-	// Desktop auth: hand the browser session token back to the native app via deep link.
-	useEffect(() => {
-		const url = new URL(window.location.href)
-		if (!url.searchParams.get("desktop-auth")) return
-		const state = url.searchParams.get("state")
-		const sessionToken = session?.token
-		if (state && sessionToken) {
-			const callback = new URL("supermemory://auth-callback")
-			callback.searchParams.set("token", sessionToken)
-			callback.searchParams.set("state", state)
-			callback.searchParams.set(
-				"apiUrl",
-				process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai",
-			)
-			window.location.assign(callback.toString())
-			url.searchParams.delete("desktop-auth")
-			url.searchParams.delete("state")
-			window.history.replaceState({}, "", url.toString())
-		}
-	}, [session])
-
 	// URL-driven modal states
 	const [addDoc, setAddDoc] = useQueryState("add", addDocumentParam)
 	const [isSearchOpen, setIsSearchOpen] = useQueryState("search", searchParam)

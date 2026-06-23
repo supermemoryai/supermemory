@@ -9,7 +9,8 @@ use std::{
 const KEYCHAIN_SERVICE: &str = "ai.supermemory.desktop";
 const KEYCHAIN_USER: &str = "supermemory-api-token";
 const KEYCHAIN_API_URL_USER: &str = "supermemory-api-url";
-const DEFAULT_WEB_URL: &str = "https://app.supermemory.ai";
+const DEFAULT_WEB_URL: &str = "https://console.supermemory.ai";
+const DEFAULT_BROWSER_API_URL: &str = "https://api.supermemory.ai";
 #[cfg(debug_assertions)]
 const DEFAULT_API_URL: &str = "http://localhost:8787";
 
@@ -121,6 +122,18 @@ pub fn web_url() -> String {
     std::env::var("SUPERMEMORY_DESKTOP_WEB_URL").unwrap_or_else(|_| DEFAULT_WEB_URL.to_string())
 }
 
+fn browser_auth_api_url() -> String {
+    if let Ok(api_url) = std::env::var("SUPERMEMORY_DESKTOP_API_URL") {
+        return api_url;
+    }
+
+    if std::env::var("SUPERMEMORY_DESKTOP_WEB_URL").is_ok() {
+        return configured_api_url();
+    }
+
+    DEFAULT_BROWSER_API_URL.to_string()
+}
+
 pub fn store_token(token: String) -> Result<(), String> {
     store_token_with_api_url(token, Some(configured_api_url()))
 }
@@ -217,10 +230,20 @@ pub fn handle_deep_link(url: &str) -> Result<AuthChangedEvent, String> {
         .iter()
         .find_map(|(key, value)| (key == "state").then(|| value.to_string()))
         .ok_or_else(|| "Auth callback did not include state".to_string())?;
-    let token = params
+    let api_key = params
         .iter()
-        .find_map(|(key, value)| (key == "token").then(|| value.to_string()))
-        .ok_or_else(|| "Auth callback did not include token".to_string())?;
+        .find_map(|(key, value)| (key == "apikey").then(|| value.to_string()))
+        .or_else(|| {
+            params
+                .iter()
+                .find_map(|(key, value)| (key == "apiKey").then(|| value.to_string()))
+        })
+        .or_else(|| {
+            params
+                .iter()
+                .find_map(|(key, value)| (key == "token").then(|| value.to_string()))
+        })
+        .ok_or_else(|| "Auth callback did not include API key".to_string())?;
     let callback_api_url = params
         .iter()
         .find_map(|(key, value)| (key == "apiUrl").then(|| value.to_string()))
@@ -231,7 +254,10 @@ pub fn handle_deep_link(url: &str) -> Result<AuthChangedEvent, String> {
         });
 
     verify_browser_state(&state)?;
-    store_token_with_api_url(token, callback_api_url)?;
+    store_token_with_api_url(
+        api_key,
+        callback_api_url.or_else(|| Some(browser_auth_api_url())),
+    )?;
 
     Ok(AuthChangedEvent {
         authenticated: true,
@@ -297,10 +323,19 @@ fn build_browser_login_url(state: &str) -> Result<String, String> {
     let mut url = url::Url::parse(&base)
         .or_else(|_| url::Url::parse(&format!("{}/", base.trim_end_matches('/'))))
         .map_err(|error| format!("Invalid Supermemory web URL: {error}"))?;
-    url.set_path("login");
+    url.set_path("auth/connect");
+
+    let mut callback = url::Url::parse("supermemory://auth-callback")
+        .map_err(|error| format!("Invalid desktop callback URL: {error}"))?;
+    callback
+        .query_pairs_mut()
+        .append_pair("state", state)
+        .append_pair("api_url", &browser_auth_api_url());
+
     url.query_pairs_mut()
-        .append_pair("desktop-auth", "1")
-        .append_pair("state", state);
+        .append_pair("callback", callback.as_str())
+        .append_pair("client", "desktop")
+        .append_pair("name", "Supermemory Desktop");
     Ok(url.to_string())
 }
 
@@ -366,4 +401,57 @@ fn first_string(value: &Value, paths: &[&[&str]]) -> Option<String> {
             .try_fold(value, |current, key| current.get(key))?;
         found.as_str().map(ToString::to_string)
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn browser_auth_url_uses_console_connect_flow() {
+        std::env::remove_var("SUPERMEMORY_DESKTOP_WEB_URL");
+        std::env::remove_var("SUPERMEMORY_DESKTOP_API_URL");
+
+        let url = url::Url::parse(&build_browser_login_url("state-123").unwrap()).unwrap();
+        assert_eq!(
+            url.as_str().split('?').next().unwrap(),
+            "https://console.supermemory.ai/auth/connect"
+        );
+        assert_eq!(
+            url.query_pairs()
+                .find(|(key, _)| key == "client")
+                .unwrap()
+                .1,
+            "desktop"
+        );
+        assert_eq!(
+            url.query_pairs().find(|(key, _)| key == "name").unwrap().1,
+            "Supermemory Desktop"
+        );
+
+        let callback = url
+            .query_pairs()
+            .find_map(|(key, value)| (key == "callback").then(|| value.to_string()))
+            .unwrap();
+        let callback = url::Url::parse(&callback).unwrap();
+
+        assert_eq!(callback.scheme(), "supermemory");
+        assert_eq!(callback.host_str(), Some("auth-callback"));
+        assert_eq!(
+            callback
+                .query_pairs()
+                .find(|(key, _)| key == "state")
+                .unwrap()
+                .1,
+            "state-123"
+        );
+        assert_eq!(
+            callback
+                .query_pairs()
+                .find(|(key, _)| key == "api_url")
+                .unwrap()
+                .1,
+            DEFAULT_BROWSER_API_URL
+        );
+    }
 }
