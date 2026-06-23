@@ -126,6 +126,9 @@ export default function LoginPage() {
 	const { data: sessionData, isPending: sessionPending } = useSession()
 
 	const oauthQueryForResume = params.toString()
+	const desktopAuthState = params.get("desktop-auth")
+		? params.get("state")
+		: null
 	const isRedirecting = !sessionPending && Boolean(sessionData?.session)
 	const isAuthResolving = sessionPending || isRedirecting
 	const loadingMessage = isAuthResolving
@@ -148,16 +151,32 @@ export default function LoginPage() {
 		}
 		const redirectUrl = params.get("redirect")
 		if (redirectUrl) {
-			window.location.assign(
-				resolveAuthRedirectUrl(redirectUrl, window.location.origin).toString(),
-			)
+			const dest = resolveAuthRedirectUrl(redirectUrl, window.location.origin)
+			if (desktopAuthState) {
+				dest.searchParams.set("desktop-auth", "1")
+				dest.searchParams.set("state", desktopAuthState)
+			}
+			window.location.assign(dest.toString())
+			return
+		}
+		if (desktopAuthState) {
+			const dest = new URL("/", window.location.origin)
+			dest.searchParams.set("desktop-auth", "1")
+			dest.searchParams.set("state", desktopAuthState)
+			window.location.assign(dest.toString())
 			return
 		}
 		// Carry the flag so the dashboard posts the session token to the extension (else: sign-in loop).
 		const dest = new URL("/", window.location.origin)
 		dest.searchParams.set("extension-auth-success", "true")
 		window.location.assign(dest.toString())
-	}, [sessionPending, sessionData?.session, oauthQueryForResume, params])
+	}, [
+		sessionPending,
+		sessionData?.session,
+		oauthQueryForResume,
+		params,
+		desktopAuthState,
+	])
 
 	// Get redirect URL from query params
 	const redirectUrl = params.get("redirect")
@@ -172,7 +191,12 @@ export default function LoginPage() {
 
 		const finalUrl = resolveAuthRedirectUrl(redirectUrl, origin)
 
-		finalUrl.searchParams.set("extension-auth-success", "true")
+		if (desktopAuthState) {
+			finalUrl.searchParams.set("desktop-auth", "1")
+			finalUrl.searchParams.set("state", desktopAuthState)
+		} else {
+			finalUrl.searchParams.set("extension-auth-success", "true")
+		}
 		return finalUrl.toString()
 	}
 

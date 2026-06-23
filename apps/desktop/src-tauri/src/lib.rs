@@ -5,7 +5,8 @@ mod tools;
 mod tray;
 
 use serde::Serialize;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
+use tauri_plugin_deep_link::DeepLinkExt;
 
 /// Identity of the native app, surfaced to the webview over IPC.
 /// `rename_all = "camelCase"` makes the JSON keys match the TypeScript `AppInfo`.
@@ -41,6 +42,11 @@ fn auth_get_token() -> Result<Option<String>, String> {
 #[tauri::command]
 fn auth_clear() -> Result<(), String> {
     auth::clear_token()
+}
+
+#[tauri::command]
+fn auth_begin_browser() -> Result<String, String> {
+    auth::begin_browser_auth()
 }
 
 #[tauri::command]
@@ -154,6 +160,13 @@ fn tools_disconnect(tool_id: String) -> Result<tools::ToolConnectResult, String>
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(main) = app.get_webview_window("main") {
+                let _ = main.show();
+                let _ = main.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
             spotlight::create_window(app)?;
@@ -162,6 +175,7 @@ pub fn run() {
             spotlight::register_shortcut(app, &accelerator);
             tray::create(app)?;
             smfs::start_status_poller(app.handle().clone());
+            register_auth_deep_link_handler(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -169,6 +183,7 @@ pub fn run() {
             auth_store_token,
             auth_get_token,
             auth_clear,
+            auth_begin_browser,
             auth_whoami,
             spotlight_show,
             spotlight_hide,
@@ -193,4 +208,38 @@ pub fn run() {
         // loudly here. This is the one sanctioned `expect` — see roadmap quality bar.
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn register_auth_deep_link_handler(app: &tauri::AppHandle) {
+    let app_for_listener = app.clone();
+    app.deep_link().on_open_url(move |event| {
+        for url in event.urls() {
+            handle_auth_deep_link(&app_for_listener, url.as_str());
+        }
+    });
+
+    if let Ok(Some(urls)) = app.deep_link().get_current() {
+        for url in urls {
+            handle_auth_deep_link(app, url.as_str());
+        }
+    }
+}
+
+fn handle_auth_deep_link(app: &tauri::AppHandle, url: &str) {
+    if !auth::is_auth_deep_link(url) {
+        return;
+    }
+
+    match auth::handle_deep_link(url) {
+        Ok(event) => {
+            let _ = app.emit("auth:changed", event);
+            if let Some(main) = app.get_webview_window("main") {
+                let _ = main.show();
+                let _ = main.set_focus();
+            }
+        }
+        Err(error) => {
+            let _ = app.emit("auth:error", error);
+        }
+    }
 }

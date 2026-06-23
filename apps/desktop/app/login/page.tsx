@@ -4,14 +4,61 @@ import { Button } from "@ui/components/button"
 import { Input } from "@ui/components/input"
 import { Label } from "@ui/components/label"
 import { useRouter } from "next/navigation"
-import { type FormEvent, useState } from "react"
-import { desktopDevAuthEnabled, storeToken } from "@/lib/auth"
+import { type FormEvent, useEffect, useState } from "react"
+import {
+	beginBrowserAuth,
+	desktopDevAuthEnabled,
+	getSession,
+	onAuthChanged,
+	onAuthError,
+	storeToken,
+} from "@/lib/auth"
 
 export default function LoginPage() {
 	const router = useRouter()
 	const [token, setToken] = useState("")
 	const [error, setError] = useState<string | null>(null)
 	const [isSubmitting, setIsSubmitting] = useState(false)
+	const [isBrowserAuthPending, setIsBrowserAuthPending] = useState(false)
+
+	useEffect(() => {
+		let unlistenChanged: (() => void) | undefined
+		let unlistenError: (() => void) | undefined
+
+		onAuthChanged(async (event) => {
+			if (!event.authenticated) return
+			setError(null)
+			setIsBrowserAuthPending(false)
+			try {
+				await getSession()
+				router.replace("/")
+			} catch (err) {
+				setError(formatError(err, "Could not validate browser sign-in"))
+			}
+		})
+			.then((handler) => {
+				unlistenChanged = handler
+			})
+			.catch(() => {
+				unlistenChanged = undefined
+			})
+
+		onAuthError((message) => {
+			setIsBrowserAuthPending(false)
+			setError(message)
+		})
+			.then((handler) => {
+				unlistenError = handler
+			})
+			.catch(() => {
+				unlistenError = undefined
+			})
+
+		return () => {
+			unlistenChanged?.()
+			unlistenError?.()
+		}
+	}, [router])
 
 	async function onSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
@@ -34,6 +81,17 @@ export default function LoginPage() {
 		}
 	}
 
+	async function startBrowserAuth() {
+		setError(null)
+		setIsBrowserAuthPending(true)
+		try {
+			await beginBrowserAuth()
+		} catch (err) {
+			setError(formatError(err, "Could not open browser sign-in"))
+			setIsBrowserAuthPending(false)
+		}
+	}
+
 	return (
 		<div className="flex h-screen flex-col">
 			{/* Keep the frameless window draggable from the top edge. */}
@@ -44,12 +102,23 @@ export default function LoginPage() {
 					<p className="mt-2 text-muted-foreground text-sm">
 						Sign in to access your memories.
 					</p>
-					<Button className="mt-6 w-full" disabled>
-						Sign in with browser
+					<Button
+						type="button"
+						className="mt-6 w-full"
+						disabled={isBrowserAuthPending || isSubmitting}
+						onClick={startBrowserAuth}
+					>
+						{isBrowserAuthPending
+							? "Waiting for browser..."
+							: "Sign in with browser"}
 					</Button>
 					<p className="mt-3 text-muted-foreground text-xs">
-						Browser-based sign-in arrives in a later phase.
+						We'll open Supermemory in your browser and return here after
+						sign-in.
 					</p>
+					{error ? (
+						<p className="mt-4 text-destructive text-sm">{error}</p>
+					) : null}
 					{desktopDevAuthEnabled ? (
 						<form className="mt-6 space-y-3 text-left" onSubmit={onSubmit}>
 							<div className="space-y-2">
@@ -63,9 +132,6 @@ export default function LoginPage() {
 									autoComplete="off"
 								/>
 							</div>
-							{error ? (
-								<p className="text-destructive text-sm">{error}</p>
-							) : null}
 							<Button
 								type="submit"
 								className="w-full"
@@ -79,4 +145,12 @@ export default function LoginPage() {
 			</div>
 		</div>
 	)
+}
+
+function formatError(error: unknown, fallback: string) {
+	return error instanceof Error
+		? error.message
+		: typeof error === "string"
+			? error
+			: fallback
 }
