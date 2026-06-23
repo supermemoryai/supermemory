@@ -25,10 +25,6 @@ export function EnsureWorkspace({ children }: { children: React.ReactNode }) {
 	const isPublicAppPage =
 		pathname === "/" &&
 		["integrations", "mcp"].includes(searchParams.get("view") ?? "")
-	// Only treat this as a guest page once the session state is actually known.
-	// While the session is still pending we can't tell guest from logged-in, so
-	// rendering the public page optimistically here causes a logged-in user to
-	// see public content → loading shell → authenticated content (a double flash).
 	const isGuestPublicAppPage = isPublicAppPage && !session && !isSessionPending
 	const isOnboarding = pathname.startsWith("/onboarding")
 
