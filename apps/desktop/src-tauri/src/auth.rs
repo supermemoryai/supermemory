@@ -14,6 +14,7 @@ const KEYCHAIN_SERVICE: &str = "ai.supermemory.desktop";
 const KEYCHAIN_USER: &str = "supermemory-api-token";
 const KEYCHAIN_API_URL_USER: &str = "supermemory-api-url";
 const DEFAULT_WEB_URL: &str = "https://app.supermemory.ai";
+#[cfg(not(debug_assertions))]
 const DEFAULT_BROWSER_API_URL: &str = "https://api.supermemory.ai";
 const BROWSER_AUTH_TIMEOUT: Duration = Duration::from_secs(120);
 #[cfg(debug_assertions)]
@@ -147,11 +148,27 @@ fn browser_auth_api_url() -> String {
         return api_url;
     }
 
-    if std::env::var("SUPERMEMORY_DESKTOP_WEB_URL").is_ok() {
-        return configured_api_url();
+    #[cfg(debug_assertions)]
+    {
+        configured_api_url()
     }
 
-    DEFAULT_BROWSER_API_URL.to_string()
+    #[cfg(not(debug_assertions))]
+    {
+        if std::env::var("SUPERMEMORY_DESKTOP_WEB_URL").is_ok() {
+            return configured_api_url();
+        }
+
+        DEFAULT_BROWSER_API_URL.to_string()
+    }
+}
+
+fn is_loopback_http_url(value: &str) -> bool {
+    url::Url::parse(value)
+        .map(|url| {
+            url.scheme() == "http" && matches!(url.host_str(), Some("localhost" | "127.0.0.1"))
+        })
+        .unwrap_or(false)
 }
 
 pub fn store_token(token: String) -> Result<(), String> {
@@ -460,11 +477,22 @@ fn build_loopback_callback_url(state: &str, callback_port: u16) -> Result<String
 }
 
 fn build_desktop_finish_url(callback_url: &str) -> Result<String, String> {
-    let base = web_url();
+    let api_url = browser_auth_api_url();
+    let use_local_api_finish =
+        std::env::var("SUPERMEMORY_DESKTOP_WEB_URL").is_err() && is_loopback_http_url(&api_url);
+    let base = if use_local_api_finish {
+        api_url.clone()
+    } else {
+        web_url()
+    };
     let mut url = url::Url::parse(&base)
         .or_else(|_| url::Url::parse(&format!("{}/", base.trim_end_matches('/'))))
-        .map_err(|error| format!("Invalid Supermemory web URL: {error}"))?;
-    url.set_path("api/auth/desktop/callback");
+        .map_err(|error| format!("Invalid Supermemory auth finish URL: {error}"))?;
+    url.set_path(if use_local_api_finish {
+        "v3/auth/desktop/callback"
+    } else {
+        "api/auth/desktop/callback"
+    });
 
     let cwd = std::env::current_dir()
         .ok()
@@ -473,7 +501,7 @@ fn build_desktop_finish_url(callback_url: &str) -> Result<String, String> {
 
     url.query_pairs_mut()
         .append_pair("callback", callback_url)
-        .append_pair("api_url", &browser_auth_api_url())
+        .append_pair("api_url", &api_url)
         .append_pair("hostname", "Supermemory Desktop")
         .append_pair("os", std::env::consts::OS)
         .append_pair("cwd", &cwd)
@@ -751,15 +779,19 @@ fn first_string(value: &Value, paths: &[&[&str]]) -> Option<String> {
 mod tests {
     use super::*;
 
+    static TEST_ENV_LOCK: Mutex<()> = Mutex::new(());
+
     #[test]
     fn browser_auth_url_uses_desktop_finish_callback_flow() {
+        let _guard = TEST_ENV_LOCK.lock().unwrap();
         std::env::remove_var("SUPERMEMORY_DESKTOP_WEB_URL");
         std::env::remove_var("SUPERMEMORY_DESKTOP_API_URL");
+        std::env::remove_var("NEXT_PUBLIC_BACKEND_URL");
 
         let url = url::Url::parse(&build_browser_login_url("state-123", 49876).unwrap()).unwrap();
         assert_eq!(
             url.as_str().split('?').next().unwrap(),
-            "https://app.supermemory.ai/api/auth/desktop/callback"
+            "http://localhost:8787/v3/auth/desktop/callback"
         );
         assert_eq!(
             url.query_pairs()
@@ -773,7 +805,7 @@ mod tests {
                 .find(|(key, _)| key == "api_url")
                 .unwrap()
                 .1,
-            DEFAULT_BROWSER_API_URL
+            DEFAULT_API_URL
         );
         assert!(url.query_pairs().all(|(key, _)| key != "client"));
 
@@ -801,8 +833,31 @@ mod tests {
                 .find(|(key, _)| key == "api_url")
                 .unwrap()
                 .1,
-            DEFAULT_BROWSER_API_URL
+            DEFAULT_API_URL
         );
+    }
+
+    #[test]
+    fn browser_auth_url_uses_web_finish_when_web_url_is_overridden() {
+        let _guard = TEST_ENV_LOCK.lock().unwrap();
+        std::env::set_var("SUPERMEMORY_DESKTOP_WEB_URL", "https://app.supermemory.ai");
+        std::env::remove_var("SUPERMEMORY_DESKTOP_API_URL");
+        std::env::remove_var("NEXT_PUBLIC_BACKEND_URL");
+
+        let url = url::Url::parse(&build_browser_login_url("state-123", 49876).unwrap()).unwrap();
+        assert_eq!(
+            url.as_str().split('?').next().unwrap(),
+            "https://app.supermemory.ai/api/auth/desktop/callback"
+        );
+        assert_eq!(
+            url.query_pairs()
+                .find(|(key, _)| key == "api_url")
+                .unwrap()
+                .1,
+            DEFAULT_API_URL
+        );
+
+        std::env::remove_var("SUPERMEMORY_DESKTOP_WEB_URL");
     }
 
     #[test]
