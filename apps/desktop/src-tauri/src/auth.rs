@@ -13,7 +13,7 @@ use std::{
 const KEYCHAIN_SERVICE: &str = "ai.supermemory.desktop";
 const KEYCHAIN_USER: &str = "supermemory-api-token";
 const KEYCHAIN_API_URL_USER: &str = "supermemory-api-url";
-const DEFAULT_WEB_URL: &str = "https://console.supermemory.ai";
+const DEFAULT_WEB_URL: &str = "https://app.supermemory.ai";
 const DEFAULT_BROWSER_API_URL: &str = "https://api.supermemory.ai";
 const BROWSER_AUTH_TIMEOUT: Duration = Duration::from_secs(120);
 #[cfg(debug_assertions)]
@@ -320,7 +320,7 @@ fn build_browser_login_url(state: &str, callback_port: u16) -> Result<String, St
     let mut url = url::Url::parse(&base)
         .or_else(|_| url::Url::parse(&format!("{}/", base.trim_end_matches('/'))))
         .map_err(|error| format!("Invalid Supermemory web URL: {error}"))?;
-    url.set_path("auth/agent-connect");
+    url.set_path("auth/desktop");
 
     let mut callback = url::Url::parse(&format!("http://127.0.0.1:{callback_port}/callback"))
         .map_err(|error| format!("Invalid desktop callback URL: {error}"))?;
@@ -339,8 +339,7 @@ fn build_browser_login_url(state: &str, callback_port: u16) -> Result<String, St
         .append_pair("hostname", "Supermemory Desktop")
         .append_pair("os", std::env::consts::OS)
         .append_pair("cwd", &cwd)
-        .append_pair("cli_version", env!("CARGO_PKG_VERSION"))
-        .append_pair("client", "desktop");
+        .append_pair("version", env!("CARGO_PKG_VERSION"));
     Ok(url.to_string())
 }
 
@@ -590,14 +589,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn browser_auth_url_uses_console_agent_connect_flow() {
+    fn browser_auth_url_uses_desktop_login_handoff_flow() {
         std::env::remove_var("SUPERMEMORY_DESKTOP_WEB_URL");
         std::env::remove_var("SUPERMEMORY_DESKTOP_API_URL");
 
         let url = url::Url::parse(&build_browser_login_url("state-123", 49876).unwrap()).unwrap();
         assert_eq!(
             url.as_str().split('?').next().unwrap(),
-            "https://console.supermemory.ai/auth/agent-connect"
+            "https://app.supermemory.ai/auth/desktop"
         );
         assert_eq!(
             url.query_pairs()
@@ -606,13 +605,7 @@ mod tests {
                 .1,
             "Supermemory Desktop"
         );
-        assert_eq!(
-            url.query_pairs()
-                .find(|(key, _)| key == "client")
-                .unwrap()
-                .1,
-            "desktop"
-        );
+        assert!(url.query_pairs().all(|(key, _)| key != "client"));
 
         let callback = url
             .query_pairs()
