@@ -36,6 +36,18 @@ export async function beginBrowserAuth() {
 	return invoke<string>("auth_begin_browser")
 }
 
+export async function beginSocialAuth(provider: "google" | "github") {
+	return invoke<string>("auth_begin_social", { provider })
+}
+
+export async function sendMagicLink(email: string) {
+	return invoke("auth_send_magic_link", { email })
+}
+
+export async function verifyMagicLinkToken(token: string) {
+	return invoke<string>("auth_verify_magic_link_token", { token })
+}
+
 export async function clearSession() {
 	await invoke("auth_clear")
 }

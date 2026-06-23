@@ -1,5 +1,5 @@
 use keyring::{Entry, Error as KeyringError};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     io::{BufRead, BufReader, Write},
@@ -24,7 +24,22 @@ const DEFAULT_API_URL: &str = "https://api.supermemory.ai";
 
 static TOKEN_CACHE: OnceLock<Mutex<Option<String>>> = OnceLock::new();
 static API_URL_CACHE: OnceLock<Mutex<Option<String>>> = OnceLock::new();
-static PENDING_BROWSER_STATE: OnceLock<Mutex<Option<String>>> = OnceLock::new();
+static PENDING_BROWSER_AUTH: OnceLock<Mutex<Option<PendingBrowserAuth>>> = OnceLock::new();
+
+#[derive(Clone)]
+struct PendingBrowserAuth {
+    state: String,
+    finish_url: String,
+}
+
+struct DesktopAuthRequest {
+    finish_url: String,
+}
+
+#[derive(Deserialize)]
+struct SocialSignInResponse {
+    url: String,
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -60,8 +75,8 @@ fn api_url_cache() -> &'static Mutex<Option<String>> {
     API_URL_CACHE.get_or_init(|| Mutex::new(None))
 }
 
-fn pending_browser_state() -> &'static Mutex<Option<String>> {
-    PENDING_BROWSER_STATE.get_or_init(|| Mutex::new(None))
+fn pending_browser_auth() -> &'static Mutex<Option<PendingBrowserAuth>> {
+    PENDING_BROWSER_AUTH.get_or_init(|| Mutex::new(None))
 }
 
 fn set_cached_token(token: Option<String>) -> Result<(), String> {
@@ -207,18 +222,113 @@ pub fn begin_browser_auth<F>(on_complete: F) -> Result<String, String>
 where
     F: FnOnce(Result<AuthChangedEvent, String>) + Send + 'static,
 {
-    let state = uuid::Uuid::new_v4().to_string();
-    {
-        let mut pending = pending_browser_state()
-            .lock()
-            .map_err(|_| "Could not lock browser auth state".to_string())?;
-        *pending = Some(state.clone());
-    }
-
-    let port = start_loopback_auth_server(on_complete)?;
-    let login_url = build_browser_login_url(&state, port)?;
+    let request = create_desktop_auth_request(on_complete)?;
+    let login_url = build_browser_login_url_from_finish_url(&request.finish_url)?;
     open_system_browser(&login_url)?;
     Ok(login_url)
+}
+
+pub async fn begin_social_auth<F>(provider: String, on_complete: F) -> Result<String, String>
+where
+    F: FnOnce(Result<AuthChangedEvent, String>) + Send + 'static,
+{
+    let provider = match provider.as_str() {
+        "google" | "github" => provider,
+        _ => return Err("Unsupported social sign-in provider".to_string()),
+    };
+
+    let request = create_desktop_auth_request(on_complete)?;
+    let api_url = browser_auth_api_url();
+    let sign_in_url = format!("{}/api/auth/sign-in/social", api_url.trim_end_matches('/'));
+    let response = reqwest::Client::new()
+        .post(&sign_in_url)
+        .header("Content-Type", "application/json")
+        .header("X-App-Source", "desktop")
+        .json(&serde_json::json!({
+            "provider": provider,
+            "callbackURL": request.finish_url,
+            "errorCallbackURL": request.finish_url,
+        }))
+        .send()
+        .await
+        .map_err(|error| format!("Could not start {provider} sign-in: {error}"))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!(
+            "Could not start {provider} sign-in ({status}): {body}"
+        ));
+    }
+
+    let sign_in = response
+        .json::<SocialSignInResponse>()
+        .await
+        .map_err(|error| format!("Could not parse {provider} sign-in response: {error}"))?;
+
+    open_system_browser(&sign_in.url)?;
+    Ok(sign_in.url)
+}
+
+pub async fn send_magic_link<F>(email: String, on_complete: F) -> Result<(), String>
+where
+    F: FnOnce(Result<AuthChangedEvent, String>) + Send + 'static,
+{
+    let email = email.trim().to_string();
+    if email.is_empty() {
+        return Err("Email cannot be empty".to_string());
+    }
+
+    let request = create_desktop_auth_request(on_complete)?;
+    let api_url = browser_auth_api_url();
+    let magic_link_url = format!(
+        "{}/api/auth/sign-in/magic-link",
+        api_url.trim_end_matches('/')
+    );
+    let response = reqwest::Client::new()
+        .post(&magic_link_url)
+        .header("Content-Type", "application/json")
+        .header("X-App-Source", "desktop")
+        .json(&serde_json::json!({
+            "email": email,
+            "callbackURL": request.finish_url,
+            "errorCallbackURL": request.finish_url,
+        }))
+        .send()
+        .await
+        .map_err(|error| format!("Could not send login link: {error}"))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!("Could not send login link ({status}): {body}"));
+    }
+
+    Ok(())
+}
+
+pub fn verify_magic_link_token(token: String) -> Result<String, String> {
+    let token = token.trim();
+    if token.is_empty() {
+        return Err("Login code cannot be empty".to_string());
+    }
+
+    let finish_url = pending_finish_url()?;
+    let api_url = browser_auth_api_url();
+    let mut verify_url = url::Url::parse(&format!(
+        "{}/api/auth/magic-link/verify",
+        api_url.trim_end_matches('/')
+    ))
+    .map_err(|error| format!("Invalid magic link verification URL: {error}"))?;
+    verify_url
+        .query_pairs_mut()
+        .append_pair("token", token)
+        .append_pair("callbackURL", &finish_url)
+        .append_pair("errorCallbackURL", &finish_url);
+
+    let verify_url = verify_url.to_string();
+    open_system_browser(&verify_url)?;
+    Ok(verify_url)
 }
 
 pub fn handle_deep_link(url: &str) -> Result<AuthChangedEvent, String> {
@@ -315,19 +425,44 @@ fn handle_loopback_callback(url: &str) -> Result<AuthChangedEvent, String> {
     })
 }
 
-fn build_browser_login_url(state: &str, callback_port: u16) -> Result<String, String> {
-    let base = web_url();
-    let mut url = url::Url::parse(&base)
-        .or_else(|_| url::Url::parse(&format!("{}/", base.trim_end_matches('/'))))
-        .map_err(|error| format!("Invalid Supermemory web URL: {error}"))?;
-    url.set_path("auth/desktop");
+fn create_desktop_auth_request<F>(on_complete: F) -> Result<DesktopAuthRequest, String>
+where
+    F: FnOnce(Result<AuthChangedEvent, String>) + Send + 'static,
+{
+    let state = uuid::Uuid::new_v4().to_string();
+    let port = start_loopback_auth_server(on_complete)?;
+    let callback_url = build_loopback_callback_url(&state, port)?;
+    let finish_url = build_desktop_finish_url(&callback_url)?;
 
+    {
+        let mut pending = pending_browser_auth()
+            .lock()
+            .map_err(|_| "Could not lock browser auth state".to_string())?;
+        *pending = Some(PendingBrowserAuth {
+            state,
+            finish_url: finish_url.clone(),
+        });
+    }
+
+    Ok(DesktopAuthRequest { finish_url })
+}
+
+fn build_loopback_callback_url(state: &str, callback_port: u16) -> Result<String, String> {
     let mut callback = url::Url::parse(&format!("http://127.0.0.1:{callback_port}/callback"))
         .map_err(|error| format!("Invalid desktop callback URL: {error}"))?;
     callback
         .query_pairs_mut()
         .append_pair("state", state)
         .append_pair("api_url", &browser_auth_api_url());
+    Ok(callback.to_string())
+}
+
+fn build_desktop_finish_url(callback_url: &str) -> Result<String, String> {
+    let base = web_url();
+    let mut url = url::Url::parse(&base)
+        .or_else(|_| url::Url::parse(&format!("{}/", base.trim_end_matches('/'))))
+        .map_err(|error| format!("Invalid Supermemory web URL: {error}"))?;
+    url.set_path("api/auth/desktop/callback");
 
     let cwd = std::env::current_dir()
         .ok()
@@ -335,12 +470,38 @@ fn build_browser_login_url(state: &str, callback_port: u16) -> Result<String, St
         .unwrap_or_default();
 
     url.query_pairs_mut()
-        .append_pair("callback", callback.as_str())
+        .append_pair("callback", callback_url)
+        .append_pair("api_url", &browser_auth_api_url())
         .append_pair("hostname", "Supermemory Desktop")
         .append_pair("os", std::env::consts::OS)
         .append_pair("cwd", &cwd)
         .append_pair("version", env!("CARGO_PKG_VERSION"));
     Ok(url.to_string())
+}
+
+fn build_browser_login_url_from_finish_url(finish_url: &str) -> Result<String, String> {
+    let base = web_url();
+    let mut url = url::Url::parse(&base)
+        .or_else(|_| url::Url::parse(&format!("{}/", base.trim_end_matches('/'))))
+        .map_err(|error| format!("Invalid Supermemory web URL: {error}"))?;
+    url.set_path("login");
+    url.query_pairs_mut().append_pair("redirect", finish_url);
+    Ok(url.to_string())
+}
+
+#[cfg(test)]
+fn build_browser_login_url(state: &str, callback_port: u16) -> Result<String, String> {
+    let callback_url = build_loopback_callback_url(state, callback_port)?;
+    build_desktop_finish_url(&callback_url)
+}
+
+fn pending_finish_url() -> Result<String, String> {
+    pending_browser_auth()
+        .lock()
+        .map_err(|_| "Could not lock browser auth state".to_string())?
+        .as_ref()
+        .map(|pending| pending.finish_url.clone())
+        .ok_or_else(|| "No browser auth request is pending".to_string())
 }
 
 fn start_loopback_auth_server<F>(on_complete: F) -> Result<u16, String>
@@ -549,12 +710,12 @@ fn open_system_browser(url: &str) -> Result<(), String> {
 }
 
 fn verify_browser_state(state: &str) -> Result<(), String> {
-    let mut pending = pending_browser_state()
+    let mut pending = pending_browser_auth()
         .lock()
         .map_err(|_| "Could not lock browser auth state".to_string())?;
 
-    match pending.as_deref() {
-        Some(expected) if expected == state => {
+    match pending.as_ref() {
+        Some(expected) if expected.state == state => {
             *pending = None;
             Ok(())
         }
@@ -589,14 +750,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn browser_auth_url_uses_desktop_login_handoff_flow() {
+    fn browser_auth_url_uses_desktop_finish_callback_flow() {
         std::env::remove_var("SUPERMEMORY_DESKTOP_WEB_URL");
         std::env::remove_var("SUPERMEMORY_DESKTOP_API_URL");
 
         let url = url::Url::parse(&build_browser_login_url("state-123", 49876).unwrap()).unwrap();
         assert_eq!(
             url.as_str().split('?').next().unwrap(),
-            "https://app.supermemory.ai/auth/desktop"
+            "https://app.supermemory.ai/api/auth/desktop/callback"
         );
         assert_eq!(
             url.query_pairs()
@@ -604,6 +765,13 @@ mod tests {
                 .unwrap()
                 .1,
             "Supermemory Desktop"
+        );
+        assert_eq!(
+            url.query_pairs()
+                .find(|(key, _)| key == "api_url")
+                .unwrap()
+                .1,
+            DEFAULT_BROWSER_API_URL
         );
         assert!(url.query_pairs().all(|(key, _)| key != "client"));
 

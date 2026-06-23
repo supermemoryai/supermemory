@@ -23,18 +23,22 @@ import {
 	useState,
 } from "react"
 import {
-	beginBrowserAuth,
+	beginSocialAuth,
 	desktopDevAuthEnabled,
 	getSession,
 	onAuthChanged,
 	onAuthError,
+	sendMagicLink,
 	storeToken,
+	verifyMagicLinkToken,
 } from "@/lib/auth"
 
 export default function LoginPage() {
 	const router = useRouter()
 	const [token, setToken] = useState("")
 	const [email, setEmail] = useState("")
+	const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
+	const [loginCode, setLoginCode] = useState("")
 	const [error, setError] = useState<string | null>(null)
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [isBrowserAuthPending, setIsBrowserAuthPending] = useState(false)
@@ -47,6 +51,8 @@ export default function LoginPage() {
 			if (!event.authenticated) return
 			setError(null)
 			setIsBrowserAuthPending(false)
+			setSubmittedEmail(null)
+			setIsSubmitting(false)
 			try {
 				await getSession()
 				router.replace("/")
@@ -63,6 +69,7 @@ export default function LoginPage() {
 
 		onAuthError((message) => {
 			setIsBrowserAuthPending(false)
+			setIsSubmitting(false)
 			setError(message)
 		})
 			.then((handler) => {
@@ -93,20 +100,46 @@ export default function LoginPage() {
 		}
 	}
 
-	async function startBrowserAuth() {
+	async function startSocialAuth(provider: "google" | "github") {
 		setError(null)
+		setSubmittedEmail(null)
 		setIsBrowserAuthPending(true)
 		try {
-			await beginBrowserAuth()
+			await beginSocialAuth(provider)
 		} catch (err) {
-			setError(formatError(err, "Could not open browser sign-in"))
+			setError(formatError(err, `Could not start ${provider} sign-in`))
 			setIsBrowserAuthPending(false)
 		}
 	}
 
-	function onBrowserAuthSubmit(event: FormEvent<HTMLFormElement>) {
+	async function onEmailAuthSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
-		void startBrowserAuth()
+		setError(null)
+		setSubmittedEmail(null)
+		setIsSubmitting(true)
+
+		try {
+			await sendMagicLink(email)
+			setSubmittedEmail(email)
+		} catch (err) {
+			setError(formatError(err, "Could not send login link"))
+		} finally {
+			setIsSubmitting(false)
+		}
+	}
+
+	async function onVerifyTokenSubmit(event: FormEvent<HTMLFormElement>) {
+		event.preventDefault()
+		setError(null)
+		setIsSubmitting(true)
+
+		try {
+			await verifyMagicLinkToken(loginCode)
+			setIsBrowserAuthPending(true)
+		} catch (err) {
+			setError(formatError(err, "Could not verify login code"))
+			setIsSubmitting(false)
+		}
 	}
 
 	const isAuthBusy = isBrowserAuthPending || isSubmitting
@@ -168,48 +201,111 @@ export default function LoginPage() {
 								</div>
 
 								<div className="desktop-login-form flex flex-col">
-									<ExternalAuthButton
-										authIcon={<GoogleIcon />}
-										authProvider="Google"
-										className="w-full"
-										disabled={isAuthBusy}
-										onClick={startBrowserAuth}
-										type="button"
-									/>
+									{submittedEmail ? (
+										<div className="desktop-login-email-form flex flex-col">
+											<div className="space-y-2 text-center">
+												<h2 className="font-medium text-foreground text-lg">
+													Check your email
+												</h2>
+												<p className="text-muted-foreground/60 text-sm">
+													Click the magic link sent to{" "}
+													<span className="text-foreground">
+														{submittedEmail}
+													</span>{" "}
+													or enter the code below.
+												</p>
+											</div>
 
-									<ExternalAuthButton
-										authIcon={<GithubIcon />}
-										authProvider="Github"
-										className="w-full"
-										disabled={isAuthBusy}
-										onClick={startBrowserAuth}
-										type="button"
-									/>
+											<form
+												className="desktop-login-email-form flex flex-col"
+												onSubmit={onVerifyTokenSubmit}
+											>
+												<Input
+													value={loginCode}
+													onChange={(event) => setLoginCode(event.target.value)}
+													placeholder="temporary login code"
+													type="text"
+													autoComplete="one-time-code"
+													className="desktop-login-email-input rounded-xl border-[#17202e] bg-[#040a14]/70 px-6 text-base text-foreground placeholder:text-muted-foreground/45"
+												/>
 
-									<TextSeparator text="OR" />
+												<Button
+													type="submit"
+													className="desktop-login-primary-button rounded-xl bg-linear-to-r from-[#2935ff] to-[#2f78ff] text-lg text-white hover:from-[#3440ff] hover:to-[#3b83ff]"
+													disabled={!loginCode.trim() || isAuthBusy}
+												>
+													{isSubmitting ? (
+														<Loader2 className="size-5 animate-spin" />
+													) : (
+														<Logo className="size-5" />
+													)}
+													Verify code
+												</Button>
+											</form>
 
-									<form
-										className="desktop-login-email-form flex flex-col"
-										onSubmit={onBrowserAuthSubmit}
-									>
-										<Input
-											value={email}
-											onChange={(event) => setEmail(event.target.value)}
-											placeholder="your@email.com"
-											type="email"
-											autoComplete="email"
-											className="desktop-login-email-input rounded-xl border-[#17202e] bg-[#040a14]/70 px-6 text-base text-foreground placeholder:text-muted-foreground/45"
-										/>
+											<Button
+												type="button"
+												variant="ghost"
+												className="text-muted-foreground/60 hover:text-foreground"
+												disabled={isAuthBusy}
+												onClick={() => {
+													setSubmittedEmail(null)
+													setLoginCode("")
+												}}
+											>
+												Use a different email
+											</Button>
+										</div>
+									) : (
+										<>
+											<ExternalAuthButton
+												authIcon={<GoogleIcon />}
+												authProvider="Google"
+												className="w-full"
+												disabled={isAuthBusy}
+												onClick={() => startSocialAuth("google")}
+												type="button"
+											/>
 
-										<Button
-											type="submit"
-											className="desktop-login-primary-button rounded-xl bg-linear-to-r from-[#2935ff] to-[#2f78ff] text-lg text-white hover:from-[#3440ff] hover:to-[#3b83ff]"
-											disabled={isAuthBusy}
-										>
-											<Logo className="size-5" />
-											Log in with Supermemory
-										</Button>
-									</form>
+											<ExternalAuthButton
+												authIcon={<GithubIcon />}
+												authProvider="Github"
+												className="w-full"
+												disabled={isAuthBusy}
+												onClick={() => startSocialAuth("github")}
+												type="button"
+											/>
+
+											<TextSeparator text="OR" />
+
+											<form
+												className="desktop-login-email-form flex flex-col"
+												onSubmit={onEmailAuthSubmit}
+											>
+												<Input
+													value={email}
+													onChange={(event) => setEmail(event.target.value)}
+													placeholder="your@email.com"
+													type="email"
+													autoComplete="email"
+													className="desktop-login-email-input rounded-xl border-[#17202e] bg-[#040a14]/70 px-6 text-base text-foreground placeholder:text-muted-foreground/45"
+												/>
+
+												<Button
+													type="submit"
+													className="desktop-login-primary-button rounded-xl bg-linear-to-r from-[#2935ff] to-[#2f78ff] text-lg text-white hover:from-[#3440ff] hover:to-[#3b83ff]"
+													disabled={!email.trim() || isAuthBusy}
+												>
+													{isSubmitting ? (
+														<Loader2 className="size-5 animate-spin" />
+													) : (
+														<Logo className="size-5" />
+													)}
+													Send login link
+												</Button>
+											</form>
+										</>
+									)}
 
 									<p className="desktop-login-terms text-center text-muted-foreground/50">
 										By continuing, you agree to our{" "}

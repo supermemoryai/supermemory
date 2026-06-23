@@ -60,6 +60,43 @@ fn auth_begin_browser(app: tauri::AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn auth_begin_social(app: tauri::AppHandle, provider: String) -> Result<String, String> {
+    let app_for_callback = app.clone();
+    auth::begin_social_auth(provider, move |result| match result {
+        Ok(event) => {
+            let _ = app_for_callback.emit("auth:changed", event);
+            focus_main_window(&app_for_callback);
+        }
+        Err(error) => {
+            let _ = app_for_callback.emit("auth:error", error);
+            focus_main_window(&app_for_callback);
+        }
+    })
+    .await
+}
+
+#[tauri::command]
+async fn auth_send_magic_link(app: tauri::AppHandle, email: String) -> Result<(), String> {
+    let app_for_callback = app.clone();
+    auth::send_magic_link(email, move |result| match result {
+        Ok(event) => {
+            let _ = app_for_callback.emit("auth:changed", event);
+            focus_main_window(&app_for_callback);
+        }
+        Err(error) => {
+            let _ = app_for_callback.emit("auth:error", error);
+            focus_main_window(&app_for_callback);
+        }
+    })
+    .await
+}
+
+#[tauri::command]
+fn auth_verify_magic_link_token(token: String) -> Result<String, String> {
+    auth::verify_magic_link_token(token)
+}
+
+#[tauri::command]
 async fn auth_whoami() -> Result<auth::AuthSession, String> {
     auth::whoami().await
 }
@@ -191,6 +228,9 @@ pub fn run() {
             auth_get_token,
             auth_clear,
             auth_begin_browser,
+            auth_begin_social,
+            auth_send_magic_link,
+            auth_verify_magic_link_token,
             auth_whoami,
             spotlight_show,
             spotlight_hide,
