@@ -1,5 +1,5 @@
 import { AppExperience } from "@/components/app-experience"
 
-export default function Page() {
+export default function IntegrationsPage() {
 	return <AppExperience />
 }

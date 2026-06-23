@@ -36,6 +36,14 @@ export default async function proxy(request: Request) {
 		return NextResponse.next()
 	}
 
+	// Real integrations routes, public in guest mode (mirrors view=integrations / view=mcp).
+	if (
+		url.pathname === "/integrations" ||
+		url.pathname === "/integrations/mcp"
+	) {
+		return NextResponse.next()
+	}
+
 	if (url.pathname.startsWith("/api/")) {
 		if (!sessionCookie) {
 			console.debug("[MIDDLEWARE] API route without session, returning 401")

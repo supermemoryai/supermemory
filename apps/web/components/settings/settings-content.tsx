@@ -195,7 +195,7 @@ export function SettingsContent({
 	}
 
 	const handleIntegrations = () => {
-		void router.push("/?view=integrations")
+		void router.push("/integrations")
 	}
 
 	const handleDeleteAccount = async () => {

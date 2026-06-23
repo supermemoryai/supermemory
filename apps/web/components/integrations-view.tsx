@@ -2429,7 +2429,8 @@ export function IntegrationsView({
 		open: boolean
 		key: string
 		pluginId: string | null
-	}>({ open: false, key: "", pluginId: null })
+		loading: boolean
+	}>({ open: false, key: "", pluginId: null, loading: false })
 	const [connectedPluginId, setConnectedPluginId] = useState<string | null>(
 		null,
 	)
@@ -2600,6 +2601,12 @@ export function IntegrationsView({
 		},
 		onMutate: (pluginId) => setConnectingPlugin(pluginId),
 		onError: (err) => {
+			// Tear down a pre-opened (loading) modal so a failed mint doesn't hang on a spinner.
+			setNewKey((s) =>
+				s.loading
+					? { open: false, key: "", pluginId: null, loading: false }
+					: s,
+			)
 			toast.error("Failed to connect plugin", {
 				description: err instanceof Error ? err.message : "Unknown error",
 			})
@@ -2609,7 +2616,7 @@ export function IntegrationsView({
 			queryClient.invalidateQueries({ queryKey: ["api-keys", org?.id] })
 		},
 		onSuccess: (data, pluginId) => {
-			setNewKey({ open: true, key: data.key, pluginId })
+			setNewKey({ open: true, key: data.key, pluginId, loading: false })
 		},
 	})
 
@@ -2657,23 +2664,26 @@ export function IntegrationsView({
 		}
 	}
 
-	const handleUpgrade = async (planId?: unknown) => {
-		const checkoutPlanId = planId === "api_max" ? "api_max" : "api_pro"
-		try {
-			const result = await autumn.attach({
-				planId: checkoutPlanId,
-				successUrl: `${window.location.origin}/?view=integrations`,
-			})
-			if (result?.paymentUrl) {
-				window.open(result.paymentUrl, "_self")
-				return
+	const handleUpgrade = useCallback(
+		async (planId?: unknown) => {
+			const checkoutPlanId = planId === "api_max" ? "api_max" : "api_pro"
+			try {
+				const result = await autumn.attach({
+					planId: checkoutPlanId,
+					successUrl: `${window.location.origin}/integrations`,
+				})
+				if (result?.paymentUrl) {
+					window.open(result.paymentUrl, "_self")
+					return
+				}
+				autumn.refetch?.()
+			} catch (error) {
+				console.error(error)
+				toast.error("Failed to start checkout. Please try again.")
 			}
-			autumn.refetch?.()
-		} catch (error) {
-			console.error(error)
-			toast.error("Failed to start checkout. Please try again.")
-		}
-	}
+		},
+		[autumn],
+	)
 
 	const redirectToLogin = useCallback(() => {
 		const loginUrl = new URL("/login", window.location.origin)
@@ -2700,6 +2710,85 @@ export function IntegrationsView({
 		void setMcpClient(key)
 		setMcpModalOpen(true)
 	}
+
+	// Deeplink: /integrations?connect=<plugin-id|provider> auto-opens that card's connect flow.
+	const [connectTarget, setConnectTarget] = useQueryState(
+		"connect",
+		parseAsString,
+	)
+	// Tracks the last target we acted on; reset when the param clears so a fresh deeplink re-fires.
+	const connectHandledRef = useRef<string | null>(null)
+	useEffect(() => {
+		if (!connectTarget) {
+			connectHandledRef.current = null
+			return
+		}
+		if (connectHandledRef.current === connectTarget) return
+		const target = connectTarget
+		const isPlugin = !!PLUGIN_CATALOG[target]
+		const freeTier = isPlugin && isFreeTierPlugin(target)
+
+		// Paid plugins and granola need the plan query before deciding upgrade-vs-connect.
+		const needsPlan = (isPlugin && !freeTier) || target === "granola"
+		if (needsPlan && isAutumnLoading) return
+
+		// Defer to a macrotask and cancel on cleanup so React Strict Mode's mount→unmount→remount
+		// fires this exactly once (on the surviving mount) instead of opening/minting twice.
+		let cancelled = false
+		const timer = setTimeout(() => {
+			if (cancelled) return
+			connectHandledRef.current = target
+
+			if (publicMode) {
+				redirectToLogin()
+				return
+			}
+
+			if (isPlugin) {
+				if (!freeTier && !hasProProduct) {
+					void setConnectTarget(null)
+					handleUpgrade("api_pro")
+				} else {
+					// Open instantly; the key fills in on mint. The ?connect param stays the source
+					// of truth until the modal closes.
+					setNewKey({ open: true, key: "", pluginId: target, loading: true })
+					createPluginKeyMutation.mutate(target)
+				}
+				return
+			}
+
+			if (target === "granola") {
+				if (!hasProProduct) {
+					void setConnectTarget(null)
+					handleUpgrade("api_pro")
+				} else {
+					setGranolaModalOpen(true)
+				}
+				return
+			}
+
+			if (["notion", "google-drive", "onedrive"].includes(target)) {
+				// The add-document modal is driven by its own ?add param, so clearing ?connect is safe.
+				void setConnectTarget(null)
+				void setAddDoc("connect")
+			}
+		}, 0)
+
+		return () => {
+			cancelled = true
+			clearTimeout(timer)
+		}
+	}, [
+		connectTarget,
+		isAutumnLoading,
+		hasProProduct,
+		publicMode,
+		redirectToLogin,
+		setConnectTarget,
+		setAddDoc,
+		createPluginKeyMutation,
+		handleUpgrade,
+	])
 
 	const closeMcpModal = () => {
 		setMcpModalOpen(false)
@@ -3409,7 +3498,7 @@ export function IntegrationsView({
 			]
 
 	return (
-		<div className="flex-1 p-4 md:p-6 pt-2">
+		<div className="flex-1">
 			{shortcutsConnect.dialog}
 			<div
 				className={cn(
@@ -3524,13 +3613,15 @@ export function IntegrationsView({
 
 			<Dialog
 				open={newKey.open}
-				onOpenChange={(open) =>
+				onOpenChange={(open) => {
 					setNewKey((s) => ({
 						open,
 						key: open ? s.key : "",
 						pluginId: open ? s.pluginId : null,
+						loading: open ? s.loading : false,
 					}))
-				}
+					if (!open) void setConnectTarget(null)
+				}}
 			>
 				<DialogContent
 					showCloseButton={false}
@@ -3562,7 +3653,9 @@ export function IntegrationsView({
 								Set up {dialogPlugin?.name ?? "your plugin"}
 							</p>
 							<p className="mt-0.5 truncate text-[12px] text-[#A1A1AA]">
-								Copy your key and run these steps to finish.
+								{newKey.loading
+									? "Generating your key…"
+									: "Copy your key and run these steps to finish."}
 							</p>
 						</div>
 						<div className="flex shrink-0 items-center gap-2">
@@ -3599,15 +3692,28 @@ export function IntegrationsView({
 								INSET,
 							)}
 						>
-							<InstallSteps steps={setupSteps} apiKey={newKey.key} />
+							{newKey.loading ? (
+								<div className="flex items-center justify-center gap-2 py-10 text-[13px] text-[#A1A1AA]">
+									<Loader className="size-4 animate-spin" />
+									Generating your key…
+								</div>
+							) : (
+								<InstallSteps steps={setupSteps} apiKey={newKey.key} />
+							)}
 						</div>
 					</div>
 					<div className="flex shrink-0 items-center justify-end">
 						<button
 							type="button"
-							onClick={() =>
-								setNewKey({ open: false, key: "", pluginId: null })
-							}
+							onClick={() => {
+								setNewKey({
+									open: false,
+									key: "",
+									pluginId: null,
+									loading: false,
+								})
+								void setConnectTarget(null)
+							}}
 							className={cn(
 								dmSans125ClassName(),
 								"flex h-9 items-center gap-1.5 rounded-full bg-[#0D121A] px-5 text-[13px] font-medium text-[#FAFAFA] transition-opacity hover:opacity-80",
@@ -3958,7 +4064,10 @@ export function IntegrationsView({
 
 			<GranolaConnectModal
 				open={hasProProduct && granolaModalOpen}
-				onOpenChange={(open) => setGranolaModalOpen(open && hasProProduct)}
+				onOpenChange={(open) => {
+					setGranolaModalOpen(open && hasProProduct)
+					if (!open) void setConnectTarget(null)
+				}}
 			/>
 		</div>
 	)
