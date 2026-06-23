@@ -15,7 +15,13 @@ import { Label } from "@ui/components/label"
 import { TextSeparator } from "@ui/components/text-separator"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { type FormEvent, useEffect, useState } from "react"
+import {
+	type CSSProperties,
+	type FormEvent,
+	type ReactNode,
+	useEffect,
+	useState,
+} from "react"
 import {
 	beginBrowserAuth,
 	desktopDevAuthEnabled,
@@ -106,13 +112,13 @@ export default function LoginPage() {
 	const isAuthBusy = isBrowserAuthPending || isSubmitting
 
 	return (
-		<main className="grid h-screen min-h-screen overflow-hidden bg-[#030912] text-foreground lg:grid-cols-[65%_35%]">
+		<main className="desktop-login-page bg-[#030912] text-foreground">
 			<DesktopLoginToolsPanel />
 
-			<section className="relative z-10 flex min-h-0 min-w-0 flex-col">
+			<section className="desktop-login-auth-pane relative z-10 min-w-0">
 				<header
 					data-tauri-drag-region
-					className="flex h-[86px] shrink-0 items-center justify-between px-6"
+					className="desktop-login-auth-header flex shrink-0 items-center justify-between"
 				>
 					<div className="flex min-w-0 items-center">
 						<Logo className="h-7 shrink-0" />
@@ -123,7 +129,7 @@ export default function LoginPage() {
 					<Button
 						asChild
 						variant="newDefault"
-						className="h-11 rounded-2xl px-4 text-base text-white"
+						className="desktop-login-memory-api-button rounded-2xl text-white"
 					>
 						<a
 							href="https://console.supermemory.ai"
@@ -135,19 +141,19 @@ export default function LoginPage() {
 					</Button>
 				</header>
 
-				<div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-10">
-					<div className="w-full max-w-[390px]">
-						<div className="mb-8 text-center">
-							<h1 className="text-balance font-medium text-[28px] leading-tight text-[#f7f9fc]">
+				<div className="desktop-login-auth-content">
+					<div className="desktop-login-auth-stack">
+						<div className="desktop-login-headline text-center">
+							<h1 className="text-balance font-medium leading-tight text-[#f7f9fc]">
 								Never forget anything, anywhere
 								<span className="block text-[#4BA0FA]">with supermemory</span>
 							</h1>
-							<p className="mt-4 text-muted-foreground/50 text-sm">
+							<p className="desktop-login-subtitle text-muted-foreground/50">
 								Save from Chrome, Notion, X - search it all in one place.
 							</p>
 						</div>
 
-						<div className="relative rounded-[22px] bg-linear-to-b from-[#06101F] to-[#030912] px-8 py-8 shadow-[1.5px_1.5px_20px_0_rgba(0,0,0,0.65),1px_1.5px_2px_0_rgba(128,189,255,0.07)_inset,-0.5px_-1.5px_4px_0_rgba(0,35,73,0.40)_inset]">
+						<div className="desktop-login-card relative bg-linear-to-b from-[#06101F] to-[#030912] shadow-[1.5px_1.5px_20px_0_rgba(0,0,0,0.65),1px_1.5px_2px_0_rgba(128,189,255,0.07)_inset,-0.5px_-1.5px_4px_0_rgba(0,35,73,0.40)_inset]">
 							<div className={isBrowserAuthPending ? "invisible" : undefined}>
 								<div className="mb-2 flex justify-end">
 									<Badge className="h-5 rounded-md px-2 text-[10px]">
@@ -155,7 +161,7 @@ export default function LoginPage() {
 									</Badge>
 								</div>
 
-								<div className="flex flex-col gap-3">
+								<div className="desktop-login-form flex flex-col">
 									<ExternalAuthButton
 										authIcon={<GoogleIcon />}
 										authProvider="Google"
@@ -177,7 +183,7 @@ export default function LoginPage() {
 									<TextSeparator text="OR" />
 
 									<form
-										className="flex flex-col gap-6"
+										className="desktop-login-email-form flex flex-col"
 										onSubmit={onBrowserAuthSubmit}
 									>
 										<Input
@@ -186,12 +192,12 @@ export default function LoginPage() {
 											placeholder="your@email.com"
 											type="email"
 											autoComplete="email"
-											className="h-14 rounded-xl border-[#17202e] bg-[#040a14]/70 px-6 text-base text-foreground placeholder:text-muted-foreground/45"
+											className="desktop-login-email-input rounded-xl border-[#17202e] bg-[#040a14]/70 px-6 text-base text-foreground placeholder:text-muted-foreground/45"
 										/>
 
 										<Button
 											type="submit"
-											className="h-14 rounded-xl bg-linear-to-r from-[#2935ff] to-[#2f78ff] text-lg text-white hover:from-[#3440ff] hover:to-[#3b83ff]"
+											className="desktop-login-primary-button rounded-xl bg-linear-to-r from-[#2935ff] to-[#2f78ff] text-lg text-white hover:from-[#3440ff] hover:to-[#3b83ff]"
 											disabled={isAuthBusy}
 										>
 											<Logo className="size-5" />
@@ -199,7 +205,7 @@ export default function LoginPage() {
 										</Button>
 									</form>
 
-									<p className="text-center text-muted-foreground/50 text-sm">
+									<p className="desktop-login-terms text-center text-muted-foreground/50">
 										By continuing, you agree to our{" "}
 										<a
 											className="underline underline-offset-4 hover:text-muted-foreground"
@@ -276,82 +282,319 @@ export default function LoginPage() {
 	)
 }
 
+type ToolNode = {
+	id: string
+	name: string
+	x: number
+	y: number
+	icon: (props: { className?: string }) => ReactNode
+}
+
+type ContextConnection = {
+	from: ToolNode
+	to: ToolNode
+}
+
+type ContextPhase = "idle" | "capture" | "hold" | "recall"
+
+const CENTER = { x: 50, y: 50 }
+const IN_MS = 1100
+const HOLD_MS = 700
+const OUT_MS = 1100
+const TOTAL_MS = IN_MS + HOLD_MS + OUT_MS
+
+const TOOL_NODES: ToolNode[] = [
+	{ id: "chrome", name: "Chrome", x: 14, y: 20, icon: ChromeLogo },
+	{ id: "notion", name: "Notion", x: 84, y: 16, icon: Notion },
+	{ id: "drive", name: "Google Drive", x: 10, y: 52, icon: GoogleDrive },
+	{ id: "claude", name: "Claude", x: 90, y: 44, icon: ClaudeDesktopIcon },
+	{ id: "raycast", name: "Raycast", x: 76, y: 76, icon: RaycastMark },
+	{ id: "mcp", name: "MCP", x: 22, y: 84, icon: MCPIcon },
+	{
+		id: "claude-code",
+		name: "Claude Code",
+		x: 20,
+		y: 36,
+		icon: CodeMark,
+	},
+	{ id: "codex", name: "Codex", x: 92, y: 28, icon: CodexMark },
+	{ id: "opencode", name: "OpenCode", x: 58, y: 10, icon: OpenCodeMark },
+	{ id: "hermes", name: "Hermes", x: 36, y: 90, icon: HermesMark },
+	{ id: "openclaw", name: "OpenClaw", x: 68, y: 68, icon: OpenClawMark },
+]
+
+const CONTEXT_FLOWS: [string, string][] = [
+	["chrome", "claude"],
+	["notion", "raycast"],
+	["drive", "claude-code"],
+	["opencode", "codex"],
+	["claude-code", "mcp"],
+	["hermes", "openclaw"],
+	["claude", "mcp"],
+	["notion", "claude"],
+]
+
+function nodeById(id: string) {
+	return TOOL_NODES.find((node) => node.id === id)
+}
+
+function pickContextFlow(): ContextConnection | null {
+	const flow = CONTEXT_FLOWS[Math.floor(Math.random() * CONTEXT_FLOWS.length)]
+	if (!flow) return null
+	const [fromId, toId] = flow
+	const from = nodeById(fromId)
+	const to = nodeById(toId)
+	if (!from || !to) return null
+	return { from, to }
+}
+
 function DesktopLoginToolsPanel() {
+	const [connection, setConnection] = useState<ContextConnection | null>(null)
+	const [pulseId, setPulseId] = useState(0)
+	const [phase, setPhase] = useState<ContextPhase>("idle")
+
+	useEffect(() => {
+		let cancelled = false
+		let pulseTimeout: ReturnType<typeof setTimeout>
+
+		function runPulse() {
+			if (cancelled) return
+			const next = pickContextFlow()
+			if (!next) return
+			setConnection(next)
+			setPulseId((id) => id + 1)
+			pulseTimeout = setTimeout(runPulse, TOTAL_MS + 900 + Math.random() * 500)
+		}
+
+		runPulse()
+		return () => {
+			cancelled = true
+			clearTimeout(pulseTimeout)
+		}
+	}, [])
+
+	useEffect(() => {
+		if (!connection) return
+
+		setPhase("capture")
+		const holdTimer = setTimeout(() => setPhase("hold"), IN_MS)
+		const recallTimer = setTimeout(() => setPhase("recall"), IN_MS + HOLD_MS)
+		const idleTimer = setTimeout(() => setPhase("idle"), TOTAL_MS)
+
+		return () => {
+			clearTimeout(holdTimer)
+			clearTimeout(recallTimer)
+			clearTimeout(idleTimer)
+		}
+	}, [connection])
+
+	const sourceRole = (nodeId: string) =>
+		connection &&
+		connection.from.id === nodeId &&
+		(phase === "capture" || phase === "hold")
+			? ("source" as const)
+			: undefined
+
+	const destinationRole = (nodeId: string) =>
+		connection && connection.to.id === nodeId && phase === "recall"
+			? ("destination" as const)
+			: undefined
+
 	return (
-		<aside className="relative hidden min-h-0 overflow-hidden border-white/[0.06] border-r lg:block">
-			<div
-				className="absolute inset-0"
-				style={{
-					background:
-						"radial-gradient(ellipse 130% 100% at 50% 45%, rgba(70,155,255,0.26) 0%, rgba(35,100,210,0.15) 38%, rgba(8,22,45,0.58) 68%, #030912 100%), radial-gradient(ellipse 90% 70% at 50% 100%, rgba(50,130,240,0.18) 0%, transparent 65%)",
-				}}
-			/>
-			<div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_52%,rgba(85,150,255,0.22),transparent_24%),radial-gradient(circle_at_48%_52%,rgba(255,255,255,0.18),transparent_8%)] opacity-80" />
-			<div className="absolute inset-0 bg-linear-to-b from-[#071024]/20 via-transparent to-[#030912]/35" />
+		<aside className="desktop-login-tools-panel" aria-hidden>
+			<div className="desktop-login-panel-orb" />
+			<div className="desktop-login-panel-glow" />
+			<div className="desktop-login-panel-vignette" />
 
-			<div className="relative z-10 h-full">
-				<FloatingToolNode x={14} y={22} label="Chrome">
-					<ChromeLogo className="size-5" />
-				</FloatingToolNode>
-				<FloatingToolNode x={84} y={18} label="Notion">
-					<Notion className="size-5" />
-				</FloatingToolNode>
-				<FloatingToolNode x={11} y={53} label="Google Drive">
-					<GoogleDrive className="size-5" />
-				</FloatingToolNode>
-				<FloatingToolNode x={88} y={45} label="Claude">
-					<ClaudeDesktopIcon className="size-5" />
-				</FloatingToolNode>
-				<FloatingToolNode x={22} y={84} label="MCP">
-					<MCPIcon className="size-5" />
-				</FloatingToolNode>
-				<FloatingToolNode x={68} y={70} label="Raycast">
-					<RaycastMark className="size-5" />
-				</FloatingToolNode>
-				<FloatingToolNode x={20} y={38} label="Code">
-					<span className="font-semibold text-[#ff9a63] text-lg">▦</span>
-				</FloatingToolNode>
-				<FloatingToolNode x={58} y={14} label="OpenCode">
-					<span className="font-semibold text-[#b8c4d8] text-sm">□</span>
-				</FloatingToolNode>
+			<div className="desktop-login-tools-network">
+				{connection && phase !== "idle" ? (
+					<AnimatedContextFlow
+						key={pulseId}
+						connection={connection}
+						phase={phase}
+					/>
+				) : null}
 
-				<div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
-					<div className="relative flex size-36 items-center justify-center rounded-full bg-[radial-gradient(circle_at_68%_34%,rgba(145,230,255,0.9),rgba(48,81,255,0.92)_44%,rgba(14,29,90,0.84)_72%,transparent_73%)] shadow-[0_0_54px_rgba(65,135,255,0.6),inset_12px_16px_24px_rgba(255,255,255,0.13)] blur-[1px]">
-						<div className="absolute inset-4 rounded-full bg-[#244cff]/50 blur-xl" />
-						<Logo className="relative z-10 size-8 opacity-85" />
+				{TOOL_NODES.map((node) => (
+					<FloatingToolNode
+						key={node.id}
+						node={node}
+						role={sourceRole(node.id) ?? destinationRole(node.id)}
+					/>
+				))}
+
+				<div className="desktop-login-orb-wrap">
+					<div
+						className={
+							phase === "hold"
+								? "desktop-login-nova-orb desktop-login-nova-orb-active"
+								: "desktop-login-nova-orb"
+						}
+					>
+						<div className="desktop-login-nova-gradient" />
+						<Logo className="relative z-10 size-8 opacity-80" />
 					</div>
 				</div>
-
-				<p className="-translate-x-1/2 absolute bottom-8 left-1/2 whitespace-nowrap text-center text-sm text-white/45">
-					One memory layer - context from any tool, everywhere you need it.
-				</p>
 			</div>
+
+			<p className="desktop-login-panel-caption">
+				One memory layer - context from any tool, everywhere you need it.
+			</p>
 		</aside>
 	)
 }
 
-function FloatingToolNode({
-	x,
-	y,
-	label,
-	children,
+function AnimatedContextFlow({
+	connection,
+	phase,
 }: {
-	x: number
-	y: number
-	label: string
-	children: React.ReactNode
+	connection: ContextConnection
+	phase: ContextPhase
 }) {
+	const { from, to } = connection
+	const dIn = `M ${from.x} ${from.y} L ${CENTER.x} ${CENTER.y}`
+	const dOut = `M ${CENTER.x} ${CENTER.y} L ${to.x} ${to.y}`
+	const chipPhase =
+		phase === "recall"
+			? "desktop-login-chip-recall"
+			: phase === "hold"
+				? "desktop-login-chip-hold"
+				: "desktop-login-chip-capture"
+
 	return (
-		<div
-			className="-translate-x-1/2 -translate-y-1/2 absolute z-10"
-			style={{ left: `${x}%`, top: `${y}%` }}
-			title={label}
-		>
-			<div className="flex size-12 items-center justify-center rounded-xl border border-white/12 bg-[#0c1628]/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_6px_20px_rgba(0,0,0,0.22)] backdrop-blur-md">
-				{children}
+		<div className="pointer-events-none absolute inset-0 z-[1]">
+			<svg
+				className="absolute inset-0 h-full w-full"
+				viewBox="0 0 100 100"
+				preserveAspectRatio="none"
+				aria-hidden="true"
+			>
+				<path
+					d={dIn}
+					fill="none"
+					stroke="rgb(75 160 250 / 0.12)"
+					strokeWidth="2.5"
+					strokeLinecap="round"
+					vectorEffect="non-scaling-stroke"
+				/>
+				<path
+					d={dOut}
+					fill="none"
+					stroke="rgb(75 160 250 / 0.12)"
+					strokeWidth="2.5"
+					strokeLinecap="round"
+					vectorEffect="non-scaling-stroke"
+				/>
+				{phase === "capture" || phase === "hold" ? (
+					<path
+						d={dIn}
+						pathLength={1}
+						className="desktop-login-active-path"
+						fill="none"
+						stroke="rgb(140 205 255 / 0.75)"
+						strokeWidth="1.75"
+						strokeLinecap="round"
+						vectorEffect="non-scaling-stroke"
+					/>
+				) : null}
+				{phase === "recall" ? (
+					<path
+						d={dOut}
+						pathLength={1}
+						className="desktop-login-active-path"
+						fill="none"
+						stroke="rgb(160 220 255 / 0.9)"
+						strokeWidth="1.75"
+						strokeLinecap="round"
+						vectorEffect="non-scaling-stroke"
+					/>
+				) : null}
+			</svg>
+
+			<div
+				className={`desktop-login-memory-chip-motion ${chipPhase}`}
+				style={
+					{
+						"--from-x": `${from.x}%`,
+						"--from-y": `${from.y}%`,
+						"--to-x": `${to.x}%`,
+						"--to-y": `${to.y}%`,
+					} as CSSProperties
+				}
+			>
+				<MemoryChip />
 			</div>
 		</div>
 	)
+}
+
+function FloatingToolNode({
+	node,
+	role,
+}: {
+	node: ToolNode
+	role?: "source" | "destination"
+}) {
+	const Icon = node.icon
+	const roleClass =
+		role === "source"
+			? "desktop-login-tool-node-source"
+			: role === "destination"
+				? "desktop-login-tool-node-destination"
+				: ""
+
+	return (
+		<div
+			className="desktop-login-tool-node-wrap"
+			style={{ left: `${node.x}%`, top: `${node.y}%` }}
+			title={node.name}
+		>
+			<div className={`desktop-login-tool-node ${roleClass}`}>
+				<Icon className="desktop-login-tool-node-icon" />
+			</div>
+			<span
+				className={
+					role
+						? "desktop-login-tool-node-label desktop-login-tool-node-label-visible"
+						: "desktop-login-tool-node-label"
+				}
+			>
+				{node.name}
+			</span>
+		</div>
+	)
+}
+
+function MemoryChip() {
+	return (
+		<div className="desktop-login-memory-chip">
+			<div className="desktop-login-memory-chip-lines" aria-hidden>
+				<span />
+				<span />
+				<span />
+			</div>
+		</div>
+	)
+}
+
+function CodeMark({ className }: { className?: string }) {
+	return <span className={`${className ?? ""} text-[#ff9a63]`}>CC</span>
+}
+
+function CodexMark({ className }: { className?: string }) {
+	return <span className={`${className ?? ""} text-[#d7e6ff]`}>CX</span>
+}
+
+function OpenCodeMark({ className }: { className?: string }) {
+	return <span className={`${className ?? ""} text-[#b8c4d8]`}>OC</span>
+}
+
+function HermesMark({ className }: { className?: string }) {
+	return <span className={`${className ?? ""} text-[#8ccfff]`}>HM</span>
+}
+
+function OpenClawMark({ className }: { className?: string }) {
+	return <span className={`${className ?? ""} text-[#8af0d8]`}>OP</span>
 }
 
 function GoogleIcon() {
