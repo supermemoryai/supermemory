@@ -15,7 +15,6 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState, type ReactNode } from "react"
-import { Titlebar } from "@/components/titlebar"
 import { getSession, type AuthSession } from "@/lib/auth"
 import {
 	completeDesktopOnboarding,
@@ -126,12 +125,16 @@ export default function DesktopOnboardingPage() {
 
 	return (
 		<div className="flex h-screen flex-col overflow-hidden bg-[#05080D] text-[#FAFAFA]">
-			<Titlebar title="Supermemory setup" />
 			<div className="relative min-h-0 flex-1 overflow-auto">
 				<NovaBackground />
-				<header className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-6 py-4 md:px-10">
+				<header
+					data-tauri-drag-region
+					className="relative z-10 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-6 pt-8 pb-4 md:px-10"
+				>
 					<LogoFull className="h-5 justify-self-start text-[#FAFAFA] md:h-6" />
-					<StepIndicator step={step} />
+					<div className="justify-self-center">
+						<StepIndicator step={step} />
+					</div>
 					<button
 						type="button"
 						onClick={skip}
@@ -141,7 +144,7 @@ export default function DesktopOnboardingPage() {
 					</button>
 				</header>
 
-				<main className="relative z-10 mx-auto flex min-h-[calc(100vh-9rem)] w-full max-w-6xl items-center px-4 py-8 md:px-10">
+				<main className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-6xl items-center px-4 py-8 md:px-10">
 					{step === "welcome" ? (
 						<WelcomeStep onContinue={() => goToStep("tools")} onSkip={skip} />
 					) : null}
@@ -181,7 +184,7 @@ function WelcomeStep({
 	onSkip: () => void
 }) {
 	return (
-		<section className="mx-auto w-full max-w-3xl">
+		<section className="w-full max-w-3xl">
 			<div className="space-y-5">
 				<div className="space-y-3">
 					<h1 className="max-w-3xl text-balance font-medium text-4xl leading-tight tracking-tight md:text-5xl">
