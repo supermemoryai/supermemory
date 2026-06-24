@@ -17,14 +17,7 @@ body {
 .desktop-shell {
 	position: relative;
 	isolation: isolate;
-	background:
-		radial-gradient(
-			ellipse 80% 60% at 50% 0%,
-			rgba(75, 160, 250, 0.08) 0%,
-			rgba(34, 97, 202, 0.04) 35%,
-			transparent 70%
-		),
-		#05080d;
+	background: #05080d;
 	color: #fafafa;
 }
 
@@ -33,18 +26,18 @@ body {
 	inset: 0;
 	z-index: -2;
 	content: "";
-	background-image: radial-gradient(
-		circle,
-		rgba(105, 167, 240, 0.18) 1px,
-		transparent 1px
-	);
-	background-size: 32px 32px;
-	mask-image: radial-gradient(ellipse at center, black 55%, transparent 100%);
-	-webkit-mask-image: radial-gradient(
-		ellipse at center,
-		black 55%,
-		transparent 100%
-	);
+	background-image:
+		url("/bg-rectangle.png"), url("/onboarding/bg-gradient-1.png"),
+		url("/onboarding/bg-gradient-0.png");
+	background-position:
+		bottom,
+		center 20%,
+		center 20%;
+	background-repeat: no-repeat;
+	background-size:
+		cover,
+		150% auto,
+		150% auto;
 	pointer-events: none;
 }
 
@@ -53,7 +46,16 @@ body {
 	inset: 0;
 	z-index: -1;
 	content: "";
-	background: rgb(5 8 13 / 0.55);
+	background-image:
+		radial-gradient(
+			circle at center,
+			rgba(105, 167, 240, 0.22) 1px,
+			transparent 1px
+		),
+		linear-gradient(rgb(5 8 13 / 0.55), rgb(5 8 13 / 0.55));
+	background-size:
+		32px 32px,
+		auto;
 	pointer-events: none;
 }
 
