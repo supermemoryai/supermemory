@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
+
 /*
  * Desktop window chrome — supplements the shared @repo/ui theme, which is
  * imported first in app/layout.tsx (`@ui/globals.css`) and provides the
@@ -17,21 +19,12 @@ body {
 	isolation: isolate;
 	background:
 		radial-gradient(
-			ellipse 90% 46% at 50% -4%,
-			rgba(75, 160, 250, 0.22),
-			transparent 60%
-		),
-		radial-gradient(
-			ellipse 52% 32% at 78% 12%,
-			rgba(127, 108, 255, 0.14),
+			ellipse 80% 60% at 50% 0%,
+			rgba(75, 160, 250, 0.08) 0%,
+			rgba(34, 97, 202, 0.04) 35%,
 			transparent 70%
 		),
-		radial-gradient(
-			ellipse 42% 30% at 18% 20%,
-			rgba(15, 240, 210, 0.08),
-			transparent 74%
-		),
-		linear-gradient(180deg, #05080d 0%, #070b12 44%, #05070a 100%);
+		#05080d;
 	color: #fafafa;
 }
 
@@ -42,21 +35,15 @@ body {
 	content: "";
 	background-image: radial-gradient(
 		circle,
-		rgba(255, 255, 255, 0.13) 1px,
+		rgba(105, 167, 240, 0.18) 1px,
 		transparent 1px
 	);
-	background-size: 18px 18px;
-	mask-image: linear-gradient(
-		to bottom,
-		rgba(255, 255, 255, 0.72),
-		rgba(255, 255, 255, 0.2) 44%,
-		transparent 88%
-	);
-	-webkit-mask-image: linear-gradient(
-		to bottom,
-		rgba(255, 255, 255, 0.72),
-		rgba(255, 255, 255, 0.2) 44%,
-		transparent 88%
+	background-size: 32px 32px;
+	mask-image: radial-gradient(ellipse at center, black 55%, transparent 100%);
+	-webkit-mask-image: radial-gradient(
+		ellipse at center,
+		black 55%,
+		transparent 100%
 	);
 	pointer-events: none;
 }
@@ -66,15 +53,7 @@ body {
 	inset: 0;
 	z-index: -1;
 	content: "";
-	background:
-		radial-gradient(
-			ellipse 86% 32% at 50% 100%,
-			rgba(65, 115, 255, 0.1),
-			transparent 70%
-		),
-		linear-gradient(90deg, transparent, rgba(75, 160, 250, 0.08), transparent)
-		50% 0 / 60% 1px no-repeat,
-		linear-gradient(180deg, rgba(5, 8, 13, 0), #05070a 92%);
+	background: rgb(5 8 13 / 0.55);
 	pointer-events: none;
 }
 
@@ -87,15 +66,33 @@ body {
 
 .desktop-login-page {
 	display: grid;
-	height: 100dvh;
 	min-height: 100dvh;
-	overflow: hidden;
+	height: 100dvh;
+	overflow-x: hidden;
+	overflow-y: auto;
 	grid-template-columns: 1fr;
+	grid-template-rows: auto minmax(0, 1fr);
 }
 
 @media (min-width: 1024px) {
 	.desktop-login-page {
-		grid-template-columns: minmax(0, 65fr) minmax(360px, 35fr);
+		height: 100dvh;
+		overflow: hidden;
+		grid-template-columns: 65% 35%;
+		grid-template-rows: minmax(0, 1fr);
+	}
+}
+
+.desktop-login-mobile-bg {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+}
+
+@media (min-width: 1024px) {
+	.desktop-login-mobile-bg {
+		display: none;
 	}
 }
 
@@ -103,6 +100,7 @@ body {
 	position: relative;
 	display: none;
 	min-height: 0;
+	flex-direction: column;
 	overflow: hidden;
 	border-right: 1px solid rgb(255 255 255 / 0.06);
 }
@@ -111,6 +109,14 @@ body {
 	.desktop-login-tools-panel {
 		display: block;
 	}
+}
+
+.desktop-login-tools-panel::before {
+	position: absolute;
+	inset: 0;
+	content: "";
+	background: #030912;
+	pointer-events: none;
 }
 
 .desktop-login-panel-orb {
@@ -131,26 +137,26 @@ body {
 		);
 }
 
-.desktop-login-panel-glow {
+.desktop-login-panel-orb-image {
 	position: absolute;
-	inset: -10%;
-	background:
-		radial-gradient(
-			circle at 50% 52%,
-			rgba(85, 150, 255, 0.24),
-			transparent 24%
-		),
-		radial-gradient(
-			circle at 48% 52%,
-			rgba(255, 255, 255, 0.18),
-			transparent 8%
-		),
-		radial-gradient(
-			ellipse 60% 38% at 52% 42%,
-			rgba(40, 96, 255, 0.22),
-			transparent 74%
-		);
-	opacity: 0.85;
+	inset: -10% -15% -5% -15%;
+	background-image: url("/onboarding/bg-gradient-0.png");
+	background-size: cover;
+	background-position: center 35%;
+	background-repeat: no-repeat;
+	opacity: 0.22;
+	pointer-events: none;
+}
+
+.desktop-login-panel-orb-image-alt {
+	position: absolute;
+	inset: -10% -15% -5% -15%;
+	background-image: url("/onboarding/bg-gradient-1.png");
+	background-size: cover;
+	background-position: center 35%;
+	background-repeat: no-repeat;
+	opacity: 0.11;
+	pointer-events: none;
 }
 
 .desktop-login-panel-vignette {
@@ -167,8 +173,9 @@ body {
 .desktop-login-tools-network {
 	position: relative;
 	z-index: 1;
+	width: 100%;
 	height: 100%;
-	min-height: 360px;
+	min-height: 240px;
 }
 
 .desktop-login-panel-caption {
@@ -388,8 +395,7 @@ body {
 }
 
 .desktop-login-auth-header {
-	height: 5.375rem;
-	padding-inline: 1.5rem;
+	padding: 1.5rem;
 }
 
 .desktop-login-memory-api-button {
@@ -402,14 +408,15 @@ body {
 	display: flex;
 	min-height: 0;
 	flex: 1;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	padding: 0.75rem 1.5rem 2.5rem;
+	padding: 0.25rem 2.5rem 2.5rem;
 }
 
 .desktop-login-auth-stack {
 	width: 100%;
-	max-width: 24.375rem;
+	max-width: 36.875rem;
 }
 
 .desktop-login-headline {
@@ -417,17 +424,20 @@ body {
 }
 
 .desktop-login-headline h1 {
-	font-size: 1.75rem;
+	font-size: 1.875rem;
+	letter-spacing: 0;
 }
 
 .desktop-login-subtitle {
 	margin-top: 1rem;
+	font-family: "DM Sans", sans-serif;
 	font-size: 0.875rem;
+	line-height: 1.35;
 }
 
 .desktop-login-card {
 	border-radius: 1.375rem;
-	padding: 2rem;
+	padding: 3rem 3.625rem;
 }
 
 .desktop-login-card-pending {
@@ -436,6 +446,8 @@ body {
 
 .desktop-login-form {
 	gap: 0.75rem;
+	width: 29.5rem;
+	max-width: 100%;
 }
 
 .desktop-login-email-form {
@@ -448,7 +460,9 @@ body {
 }
 
 .desktop-login-terms {
-	font-size: 0.875rem;
+	font-family: "DM Sans", sans-serif;
+	font-size: 0.75rem;
+	line-height: 1.35;
 }
 
 @media (max-width: 1023px) {
@@ -467,26 +481,22 @@ body {
 	}
 
 	.desktop-login-auth-stack {
-		max-width: 25rem;
+		max-width: 36.875rem;
 	}
 }
 
 @media (max-width: 1900px) and (min-width: 1024px) {
-	.desktop-login-page {
-		grid-template-columns: minmax(0, 60fr) minmax(390px, 40fr);
-	}
-
 	.desktop-login-tool-node {
-		width: 2.5rem;
-		height: 2.5rem;
-		border-radius: 0.75rem;
+		width: 2.875rem;
+		height: 2.875rem;
+		border-radius: 0.8125rem;
 	}
 
 	.desktop-login-tool-node-icon {
-		width: 1.125rem;
-		height: 1.125rem;
+		width: 1.375rem;
+		height: 1.375rem;
 		font-size: 0.5625rem;
-		line-height: 1.125rem;
+		line-height: 1.375rem;
 	}
 
 	.desktop-login-tool-node-label {
@@ -495,13 +505,13 @@ body {
 	}
 
 	.desktop-login-memory-chip {
-		width: 2.375rem;
-		height: 1.375rem;
+		width: 2.75rem;
+		height: 1.625rem;
 	}
 
 	.desktop-login-memory-chip-lines {
-		width: 1.25rem;
-		gap: 0.16rem;
+		width: 1.5rem;
+		gap: 0.2rem;
 	}
 
 	.desktop-login-nova-orb {
@@ -519,12 +529,11 @@ body {
 
 	.desktop-login-panel-caption {
 		bottom: 1.5rem;
-		font-size: 0.75rem;
+		font-size: 0.875rem;
 	}
 
 	.desktop-login-auth-header {
-		height: 4.75rem;
-		padding-inline: 1.25rem;
+		padding: 1.5rem;
 	}
 
 	.desktop-login-memory-api-button {
@@ -534,45 +543,45 @@ body {
 	}
 
 	.desktop-login-auth-content {
-		padding: 0.5rem 1.25rem 1.5rem;
+		padding: 0.25rem 2.5rem 2.5rem;
 	}
 
 	.desktop-login-auth-stack {
-		max-width: 22.5rem;
+		max-width: 25rem;
 	}
 
 	.desktop-login-headline {
-		margin-bottom: 1.25rem;
+		margin-bottom: 2rem;
 	}
 
 	.desktop-login-headline h1 {
-		font-size: 1.5rem;
+		font-size: 1.875rem;
 	}
 
 	.desktop-login-subtitle {
-		margin-top: 0.75rem;
-		font-size: 0.8125rem;
+		margin-top: 1rem;
+		font-size: 0.875rem;
 	}
 
 	.desktop-login-card {
-		padding: 1.5rem;
+		padding: 3rem 3.625rem;
 	}
 
 	.desktop-login-card-pending {
-		min-height: 27rem;
+		min-height: 38rem;
 	}
 
 	.desktop-login-email-form {
-		gap: 1rem;
+		gap: 1.5rem;
 	}
 
 	.desktop-login-email-input,
 	.desktop-login-primary-button {
-		height: 3rem;
+		height: 3.5rem;
 	}
 
 	.desktop-login-terms {
-		font-size: 0.75rem;
+		font-size: 0.875rem;
 	}
 }
 
@@ -651,10 +660,6 @@ body {
 }
 
 @media (max-width: 1180px) and (min-width: 1024px) {
-	.desktop-login-page {
-		grid-template-columns: minmax(0, 58fr) minmax(360px, 42fr);
-	}
-
 	.desktop-login-panel-caption {
 		font-size: 0.75rem;
 	}

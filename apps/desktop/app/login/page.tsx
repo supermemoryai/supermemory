@@ -127,7 +127,12 @@ export default function LoginPage() {
 	const isAuthBusy = isBrowserAuthPending || isSubmitting
 
 	return (
-		<main className="desktop-login-page bg-[#030912] text-foreground">
+		<main className="desktop-login-page relative bg-[#030912] text-foreground">
+			<div className="desktop-login-mobile-bg" aria-hidden>
+				<div className="desktop-login-panel-orb h-full" />
+				<div className="desktop-login-panel-orb-image h-full" />
+			</div>
+
 			<DesktopLoginToolsPanel />
 
 			<section className="desktop-login-auth-pane relative z-10 min-w-0">
@@ -269,21 +274,28 @@ export default function LoginPage() {
 													onChange={(event) => setEmail(event.target.value)}
 													placeholder="your@email.com"
 													type="email"
+													required
 													autoComplete="email"
 													className="desktop-login-email-input rounded-xl border-[#17202e] bg-[#040a14]/70 px-6 text-base text-foreground placeholder:text-muted-foreground/45"
 												/>
 
 												<Button
 													type="submit"
-													className="desktop-login-primary-button rounded-xl bg-linear-to-r from-[#2935ff] to-[#2f78ff] text-lg text-white hover:from-[#3440ff] hover:to-[#3b83ff]"
-													disabled={!email.trim() || isAuthBusy}
+													className="desktop-login-primary-button flex w-full items-center justify-center gap-3 rounded-xl p-2 text-lg text-white"
+													style={{
+														background:
+															"linear-gradient(182.37deg, #0ff0d2 -91.53%, #5bd3fb -67.8%, #1e0ff0 95.17%)",
+														boxShadow:
+															"1px 1px 2px 0px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)",
+													}}
+													disabled={isAuthBusy}
 												>
 													{isSubmitting ? (
 														<Loader2 className="size-5 animate-spin" />
 													) : (
 														<Logo className="size-5" />
 													)}
-													Send login link
+													Log in with Supermemory
 												</Button>
 											</form>
 										</>
@@ -340,7 +352,8 @@ type ToolNode = {
 	name: string
 	x: number
 	y: number
-	icon: (props: { className?: string }) => ReactNode
+	icon?: (props: { className?: string }) => ReactNode
+	iconSrc?: string
 }
 
 type ContextConnection = {
@@ -368,12 +381,36 @@ const TOOL_NODES: ToolNode[] = [
 		name: "Claude Code",
 		x: 20,
 		y: 36,
-		icon: CodeMark,
+		iconSrc: "/images/plugins/claude-code.svg",
 	},
-	{ id: "codex", name: "Codex", x: 92, y: 28, icon: CodexMark },
-	{ id: "opencode", name: "OpenCode", x: 58, y: 10, icon: OpenCodeMark },
-	{ id: "hermes", name: "Hermes", x: 36, y: 90, icon: HermesMark },
-	{ id: "openclaw", name: "OpenClaw", x: 68, y: 68, icon: OpenClawMark },
+	{
+		id: "codex",
+		name: "Codex",
+		x: 92,
+		y: 28,
+		iconSrc: "/images/plugins/codex.png",
+	},
+	{
+		id: "opencode",
+		name: "OpenCode",
+		x: 58,
+		y: 10,
+		iconSrc: "/images/plugins/opencode.svg",
+	},
+	{
+		id: "hermes",
+		name: "Hermes",
+		x: 36,
+		y: 90,
+		iconSrc: "/images/plugins/hermes.svg",
+	},
+	{
+		id: "openclaw",
+		name: "OpenClaw",
+		x: 68,
+		y: 68,
+		iconSrc: "/images/plugins/openclaw.svg",
+	},
 ]
 
 const CONTEXT_FLOWS: [string, string][] = [
@@ -456,7 +493,8 @@ function DesktopLoginToolsPanel() {
 	return (
 		<aside className="desktop-login-tools-panel" aria-hidden>
 			<div className="desktop-login-panel-orb" />
-			<div className="desktop-login-panel-glow" />
+			<div className="desktop-login-panel-orb-image" />
+			<div className="desktop-login-panel-orb-image-alt" />
 			<div className="desktop-login-panel-vignette" />
 
 			<div className="desktop-login-tools-network">
@@ -603,7 +641,16 @@ function FloatingToolNode({
 			title={node.name}
 		>
 			<div className={`desktop-login-tool-node ${roleClass}`}>
-				<Icon className="desktop-login-tool-node-icon" />
+				{Icon ? (
+					<Icon className="desktop-login-tool-node-icon" />
+				) : node.iconSrc ? (
+					<img
+						src={node.iconSrc}
+						alt=""
+						className="desktop-login-tool-node-icon"
+						aria-hidden
+					/>
+				) : null}
 			</div>
 			<span
 				className={
@@ -628,26 +675,6 @@ function MemoryChip() {
 			</div>
 		</div>
 	)
-}
-
-function CodeMark({ className }: { className?: string }) {
-	return <span className={`${className ?? ""} text-[#ff9a63]`}>CC</span>
-}
-
-function CodexMark({ className }: { className?: string }) {
-	return <span className={`${className ?? ""} text-[#d7e6ff]`}>CX</span>
-}
-
-function OpenCodeMark({ className }: { className?: string }) {
-	return <span className={`${className ?? ""} text-[#b8c4d8]`}>OC</span>
-}
-
-function HermesMark({ className }: { className?: string }) {
-	return <span className={`${className ?? ""} text-[#8ccfff]`}>HM</span>
-}
-
-function OpenClawMark({ className }: { className?: string }) {
-	return <span className={`${className ?? ""} text-[#8af0d8]`}>OP</span>
 }
 
 function GoogleIcon() {
