@@ -880,54 +880,29 @@ function StepIndicator({ step }: { step: DesktopOnboardingStep }) {
 
 function NovaBackground() {
 	return (
-		<div
-			aria-hidden
-			className="pointer-events-none absolute inset-0 overflow-hidden"
-		>
+		<>
 			<div
-				className="absolute inset-0"
-				style={{
-					backgroundImage: "url('/onboarding/bg-gradient-0.png')",
-					backgroundPosition: "center 20%",
-					backgroundRepeat: "no-repeat",
-					backgroundSize: "150% auto",
-				}}
-			/>
-			<div
-				className="absolute inset-0"
-				style={{
-					backgroundImage: "url('/onboarding/bg-gradient-1.png')",
-					backgroundPosition: "center 20%",
-					backgroundRepeat: "no-repeat",
-					backgroundSize: "150% auto",
-					opacity: 0.8,
-				}}
-			/>
-			<div
+				aria-hidden
 				className="pointer-events-none absolute inset-0"
 				style={{
-					backgroundImage: "url('/bg-rectangle.png')",
-					backgroundPosition: "bottom",
-					backgroundRepeat: "no-repeat",
-					backgroundSize: "cover",
-					mixBlendMode: "soft-light",
-					opacity: 0.4,
+					background:
+						"radial-gradient(ellipse 80% 60% at 50% 40%, rgba(75,160,250,0.08) 0%, rgba(34,97,202,0.04) 35%, transparent 70%)",
 				}}
 			/>
-			<div className="absolute inset-0 bg-[#05080D]/55" />
 			<div
+				aria-hidden
 				className="pointer-events-none absolute inset-0"
 				style={{
 					backgroundImage:
 						"radial-gradient(circle at center, rgba(105,167,240,0.22) 1px, transparent 1px)",
-					backgroundSize: "32px 32px",
+					backgroundSize: "28px 28px",
 					maskImage:
-						"radial-gradient(ellipse at center, black 55%, transparent 100%)",
+						"radial-gradient(ellipse at center, black 0%, black 40%, transparent 90%)",
 					WebkitMaskImage:
-						"radial-gradient(ellipse at center, black 55%, transparent 100%)",
+						"radial-gradient(ellipse at center, black 0%, black 40%, transparent 90%)",
 				}}
 			/>
-		</div>
+		</>
 	)
 }
 
