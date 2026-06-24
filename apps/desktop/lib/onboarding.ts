@@ -4,6 +4,11 @@ import type { DesktopToolId } from "@/lib/tools"
 
 export type DesktopOnboardingStep = "welcome" | "tools" | "filesystem" | "done"
 
+export type DesktopOnboardingOwner = {
+	userId?: string | null
+	email?: string | null
+}
+
 export type DesktopOnboardingStatus = {
 	version: "v1"
 	completed: boolean
@@ -30,11 +35,19 @@ function storageAvailable() {
 	)
 }
 
-export function getDesktopOnboardingStatus(): DesktopOnboardingStatus {
+function storageKey(owner?: DesktopOnboardingOwner | null) {
+	const accountId = owner?.userId || owner?.email
+	if (!accountId) return STORAGE_KEY
+	return `${STORAGE_KEY}:${encodeURIComponent(accountId)}`
+}
+
+export function getDesktopOnboardingStatus(
+	owner?: DesktopOnboardingOwner | null,
+): DesktopOnboardingStatus {
 	if (!storageAvailable()) return DEFAULT_STATUS
 
 	try {
-		const raw = window.localStorage.getItem(STORAGE_KEY)
+		const raw = window.localStorage.getItem(storageKey(owner))
 		if (!raw) return DEFAULT_STATUS
 		const parsed = JSON.parse(raw) as Partial<DesktopOnboardingStatus>
 		if (parsed.version !== "v1") return DEFAULT_STATUS
@@ -52,52 +65,66 @@ export function getDesktopOnboardingStatus(): DesktopOnboardingStatus {
 
 export function saveDesktopOnboardingStatus(
 	status: DesktopOnboardingStatus,
+	owner?: DesktopOnboardingOwner | null,
 ): void {
 	if (!storageAvailable()) return
 
 	try {
-		window.localStorage.setItem(STORAGE_KEY, JSON.stringify(status))
+		window.localStorage.setItem(storageKey(owner), JSON.stringify(status))
 	} catch {}
 }
 
 export function updateDesktopOnboardingStatus(
 	patch: Partial<DesktopOnboardingStatus>,
+	owner?: DesktopOnboardingOwner | null,
 ): DesktopOnboardingStatus {
 	const next: DesktopOnboardingStatus = {
-		...getDesktopOnboardingStatus(),
+		...getDesktopOnboardingStatus(owner),
 		...patch,
 		version: "v1",
 	}
-	saveDesktopOnboardingStatus(next)
+	saveDesktopOnboardingStatus(next, owner)
 	return next
 }
 
-export function shouldShowDesktopOnboarding() {
-	const status = getDesktopOnboardingStatus()
+export function shouldShowDesktopOnboarding(
+	owner?: DesktopOnboardingOwner | null,
+) {
+	const status = getDesktopOnboardingStatus(owner)
 	return !status.completed && !status.skipped
 }
 
-export function postAuthRedirectPath() {
-	return shouldShowDesktopOnboarding() ? "/onboarding" : "/"
+export function postAuthRedirectPath(owner?: DesktopOnboardingOwner | null) {
+	return shouldShowDesktopOnboarding(owner) ? "/onboarding" : "/"
 }
 
 export function completeDesktopOnboarding(
 	connectedTools: DesktopToolId[] = [],
+	owner?: DesktopOnboardingOwner | null,
 ) {
-	return updateDesktopOnboardingStatus({
-		completed: true,
-		skipped: false,
-		completedAt: new Date().toISOString(),
-		lastStep: "done",
-		connectedTools,
-	})
+	return updateDesktopOnboardingStatus(
+		{
+			completed: true,
+			skipped: false,
+			completedAt: new Date().toISOString(),
+			lastStep: "done",
+			connectedTools,
+		},
+		owner,
+	)
 }
 
-export function skipDesktopOnboarding(lastStep: DesktopOnboardingStep) {
-	return updateDesktopOnboardingStatus({
-		completed: false,
-		skipped: true,
-		skippedAt: new Date().toISOString(),
-		lastStep,
-	})
+export function skipDesktopOnboarding(
+	lastStep: DesktopOnboardingStep,
+	owner?: DesktopOnboardingOwner | null,
+) {
+	return updateDesktopOnboardingStatus(
+		{
+			completed: false,
+			skipped: true,
+			skippedAt: new Date().toISOString(),
+			lastStep,
+		},
+		owner,
+	)
 }

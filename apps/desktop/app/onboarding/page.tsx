@@ -79,7 +79,7 @@ export default function DesktopOnboardingPage() {
 		getSession()
 			.then((nextSession) => {
 				if (cancelled) return
-				const status = getDesktopOnboardingStatus()
+				const status = getDesktopOnboardingStatus(nextSession)
 				setSession(nextSession)
 				setStep(status.lastStep === "done" ? "welcome" : status.lastStep)
 				setConnectedTools(status.connectedTools)
@@ -94,23 +94,26 @@ export default function DesktopOnboardingPage() {
 		}
 	}, [router])
 
-	const goToStep = useCallback((nextStep: DesktopOnboardingStep) => {
-		setStep(nextStep)
-		updateDesktopOnboardingStatus({ lastStep: nextStep })
-	}, [])
+	const goToStep = useCallback(
+		(nextStep: DesktopOnboardingStep) => {
+			setStep(nextStep)
+			updateDesktopOnboardingStatus({ lastStep: nextStep }, session)
+		},
+		[session],
+	)
 
 	const complete = useCallback(
 		(nextConnectedTools = connectedTools) => {
-			completeDesktopOnboarding(nextConnectedTools)
+			completeDesktopOnboarding(nextConnectedTools, session)
 			router.replace("/")
 		},
-		[connectedTools, router],
+		[connectedTools, router, session],
 	)
 
 	const skip = useCallback(() => {
-		skipDesktopOnboarding(step)
+		skipDesktopOnboarding(step, session)
 		router.replace("/")
-	}, [router, step])
+	}, [router, session, step])
 
 	if (!authChecked || !session) {
 		return (
@@ -148,6 +151,7 @@ export default function DesktopOnboardingPage() {
 					) : null}
 					{step === "tools" ? (
 						<ToolsStep
+							session={session}
 							connectedTools={connectedTools}
 							onConnectedToolsChange={setConnectedTools}
 							onBack={() => goToStep("welcome")}
@@ -233,11 +237,13 @@ function WelcomeStep({
 }
 
 function ToolsStep({
+	session,
 	connectedTools,
 	onConnectedToolsChange,
 	onBack,
 	onContinue,
 }: {
+	session: AuthSession
 	connectedTools: DesktopToolId[]
 	onConnectedToolsChange: (tools: DesktopToolId[]) => void
 	onBack: () => void
@@ -263,13 +269,13 @@ function ToolsStep({
 				.filter((tool) => tool.connected)
 				.map((tool) => tool.id)
 			onConnectedToolsChange(nextConnected)
-			updateDesktopOnboardingStatus({ connectedTools: nextConnected })
+			updateDesktopOnboardingStatus({ connectedTools: nextConnected }, session)
 		} catch (err) {
 			setError(formatUnknownError(err, "Could not scan local tools"))
 		} finally {
 			setLoading(false)
 		}
-	}, [onConnectedToolsChange])
+	}, [onConnectedToolsChange, session])
 
 	useEffect(() => {
 		refreshTools()

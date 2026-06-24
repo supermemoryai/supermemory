@@ -51,8 +51,8 @@ export default function LoginPage() {
 			setSubmittedEmail(null)
 			setIsSubmitting(false)
 			try {
-				await getSession()
-				router.replace(postAuthRedirectPath())
+				const session = await getSession()
+				router.replace(postAuthRedirectPath(session))
 			} catch (err) {
 				setError(formatError(err, "Could not validate browser sign-in"))
 			}

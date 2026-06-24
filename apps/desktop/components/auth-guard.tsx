@@ -2,23 +2,33 @@
 
 import { useRouter } from "next/navigation"
 import { type ReactNode, useEffect, useState } from "react"
-import { getSession } from "@/lib/auth"
+import { getSession, type AuthSession } from "@/lib/auth"
 import { shouldShowDesktopOnboarding } from "@/lib/onboarding"
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated"
 
-function useAuthStatus(): AuthStatus {
+function useAuthStatus(): {
+	status: AuthStatus
+	session: AuthSession | null
+} {
 	const [status, setStatus] = useState<AuthStatus>("loading")
+	const [session, setSession] = useState<AuthSession | null>(null)
 
 	useEffect(() => {
 		let cancelled = false
 
 		getSession()
-			.then(() => {
-				if (!cancelled) setStatus("authenticated")
+			.then((nextSession) => {
+				if (!cancelled) {
+					setSession(nextSession)
+					setStatus("authenticated")
+				}
 			})
 			.catch(() => {
-				if (!cancelled) setStatus("unauthenticated")
+				if (!cancelled) {
+					setSession(null)
+					setStatus("unauthenticated")
+				}
 			})
 
 		return () => {
@@ -26,11 +36,11 @@ function useAuthStatus(): AuthStatus {
 		}
 	}, [])
 
-	return status
+	return { status, session }
 }
 
 export function AuthGuard({ children }: { children: ReactNode }) {
-	const status = useAuthStatus()
+	const { status, session } = useAuthStatus()
 	const router = useRouter()
 
 	useEffect(() => {
@@ -39,10 +49,10 @@ export function AuthGuard({ children }: { children: ReactNode }) {
 			return
 		}
 
-		if (status === "authenticated" && shouldShowDesktopOnboarding()) {
+		if (status === "authenticated" && shouldShowDesktopOnboarding(session)) {
 			router.replace("/onboarding")
 		}
-	}, [status, router])
+	}, [status, session, router])
 
 	if (status !== "authenticated") {
 		return (
