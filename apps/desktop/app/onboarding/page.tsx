@@ -10,7 +10,7 @@ import {
 	ChevronLeft,
 	FolderOpen,
 	Loader2,
-	RefreshCcw,
+	Plus,
 	X,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -292,20 +292,11 @@ function ToolsStep({
 	return (
 		<section className="mx-auto w-full max-w-6xl space-y-6">
 			<StepHeader
-				eyebrow="Local tools"
 				title="Connect your AI tools"
-				description="Supermemory scans this Mac and connects the clients you use. Nothing is written until you approve the diff."
-				meta={`${detectedCount} detected · ${connectedCount} connected`}
-				action={
-					<button
-						type="button"
-						onClick={refreshTools}
-						disabled={loading || busyTool !== null}
-						className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-white/[0.08] px-3 text-[#A1A1AA] text-sm transition-colors hover:bg-white/[0.05] hover:text-white disabled:opacity-60"
-					>
-						<RefreshCcw className={cn("size-4", loading && "animate-spin")} />
-						Rescan
-					</button>
+				meta={
+					loading
+						? "Scanning tools..."
+						: `${detectedCount} detected · ${connectedCount} connected`
 				}
 			/>
 
@@ -504,98 +495,75 @@ function ToolCard({
 	return (
 		<div
 			className={cn(
-				"flex min-h-[190px] flex-col rounded-[18px] bg-[#1B1F24] p-5 transition-colors",
+				"flex min-h-[190px] flex-col rounded-[18px] bg-[#15181D] p-5 transition-colors",
 				tool.connected && "ring-1 ring-[#2261CA33]",
 			)}
 			style={modalCardStyle}
 		>
-			<div className="grid grid-cols-[48px_minmax(0,1fr)_auto] items-start gap-3">
-				<div className="pt-0.5">
-					<div
-						className="flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#14161A]"
-						style={inputBevelStyle}
-					>
-						<Icon className="size-6 text-[#FAFAFA]" />
-					</div>
+			<div className="flex items-start justify-between gap-3">
+				<div
+					className="flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.16)] bg-[#0C1016]"
+					style={inputBevelStyle}
+				>
+					<Icon className="size-6 text-[#FAFAFA]" />
 				</div>
-				<div className="min-w-0 pr-1">
-					<p className="font-semibold text-[#FAFAFA] text-[15px] leading-tight">
-						{tool.name}
-					</p>
-					<p className="mt-1 line-clamp-2 font-medium text-[#737373] text-[12px] leading-[1.35]">
-						{tool.description}
-					</p>
-				</div>
-				{tool.connected ? (
-					<span className="mt-1 inline-flex shrink-0 items-center gap-1 font-semibold text-[#4BA0FA] text-[11px] uppercase tracking-[0.08em]">
-						<Check className="size-3" />
-						Connected
+				{tool.id !== "codex" ? (
+					<span className="mt-1 font-semibold text-[#4BA0FA] text-[11px] uppercase tracking-[0.08em]">
+						Pro
 					</span>
-				) : (
-					<Button
-						type="button"
-						variant="insideOut"
-						onClick={canPreview ? onPreview : undefined}
-						disabled={busy}
-						className="h-9 shrink-0 gap-1.5 rounded-full px-4 font-medium text-[#FAFAFA] text-[13px]"
-					>
-						{busy
-							? "Opening..."
-							: tool.primaryAction === "connect"
-								? "Connect"
-								: "Set up"}
-					</Button>
-				)}
+				) : null}
 			</div>
 
-			<ul className="mt-4 space-y-1.5">
-				{tool.perks.map((perk) => (
-					<li
-						key={perk}
-						className="flex items-start gap-2.5 font-medium text-[#737373] text-[12px] leading-[1.5]"
-					>
-						<span
-							aria-hidden
-							className="mt-[7px] size-1 shrink-0 rounded-full bg-[#525D6E]"
-						/>
-						<span>{perk}</span>
-					</li>
-				))}
-			</ul>
+			<div className="mt-8 min-w-0">
+				<p className="font-semibold text-[#FAFAFA] text-[20px] leading-tight">
+					{tool.name}
+				</p>
+				<p className="mt-2 line-clamp-2 font-medium text-[#9A9AA2] text-[14px] leading-[1.45]">
+					{tool.tagline}
+				</p>
+			</div>
 
-			<div className="mt-auto flex items-end justify-between gap-3 pt-4">
-				<div className="min-w-0">
-					<p
-						className="truncate font-mono font-medium text-[#737373] text-[11px]"
-						title={tool.configPath}
-					>
-						{tool.configPath}
-					</p>
-					<p className="mt-1 font-medium text-[#525D6E] text-[11px]">
-						{tool.detected
-							? tool.version
-								? `Detected ${tool.version}`
-								: "Detected on this Mac"
-							: "Not detected yet"}
-					</p>
-				</div>
-				<SaveTargetChip label="Supermemory MCP" />
+			<div className="mt-auto flex items-center justify-between gap-4 pt-8">
+				<ToolCardStatus tool={tool} />
+				<Button
+					type="button"
+					variant="insideOut"
+					onClick={canPreview ? onPreview : undefined}
+					disabled={busy || tool.connected}
+					className={cn(
+						"h-10 min-w-[132px] shrink-0 rounded-full px-5 font-medium text-[#FAFAFA] text-[15px]",
+						tool.connected && "text-[#A1A1AA]",
+					)}
+				>
+					{tool.connected ? (
+						<Plus className="size-5" />
+					) : busy ? (
+						"Opening..."
+					) : tool.primaryAction === "connect" ? (
+						"Connect"
+					) : (
+						"Set up"
+					)}
+				</Button>
 			</div>
 		</div>
 	)
 }
 
-function SaveTargetChip({ label }: { label: string }) {
+function ToolCardStatus({ tool }: { tool: DesktopToolCard }) {
+	if (tool.connected) {
+		return (
+			<div className="flex min-w-0 items-center gap-2 font-medium text-[#4AC463] text-[14px]">
+				<span className="size-2 shrink-0 rounded-full bg-[#4AC463]" />
+				<span>Active</span>
+			</div>
+		)
+	}
+
 	return (
-		<div
-			className="inline-flex shrink-0 items-center gap-1.5 font-medium text-[#737373] text-[11px]"
-			title={`This tool will connect to ${label}.`}
-		>
-			<span className="text-[#525D6E] text-[10px] uppercase tracking-[0.08em]">
-				Uses
-			</span>
-			<FolderOpen className="size-3 text-[#737373]" />
-			<span className="text-[#FAFAFA]">{label}</span>
+		<div className="flex min-w-0 items-center gap-2 font-medium text-[#737373] text-[14px]">
+			<span className="size-2 shrink-0 rounded-full bg-[#525D6E]" />
+			<span>{tool.detected ? "Detected" : "Not detected"}</span>
 		</div>
 	)
 }
@@ -661,24 +629,33 @@ function StepHeader({
 	meta,
 	action,
 }: {
-	eyebrow: string
+	eyebrow?: string
 	title: string
-	description: string
+	description?: string
 	meta?: string
 	action?: ReactNode
 }) {
 	return (
 		<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
 			<div className="min-w-0">
-				<p className="font-medium text-[#8BC6FF] text-[11px] uppercase tracking-[0.14em]">
-					{eyebrow}
-				</p>
-				<h1 className="mt-2 text-balance font-medium text-3xl tracking-tight md:text-4xl">
+				{eyebrow ? (
+					<p className="font-medium text-[#8BC6FF] text-[11px] uppercase tracking-[0.14em]">
+						{eyebrow}
+					</p>
+				) : null}
+				<h1
+					className={cn(
+						"text-balance font-medium text-3xl tracking-tight md:text-4xl",
+						eyebrow && "mt-2",
+					)}
+				>
 					{title}
 				</h1>
-				<p className="mt-2 max-w-2xl text-[#A1A1AA] text-sm leading-6">
-					{description}
-				</p>
+				{description ? (
+					<p className="mt-2 max-w-2xl text-[#A1A1AA] text-sm leading-6">
+						{description}
+					</p>
+				) : null}
 				{meta ? <p className="mt-2 text-[#737373] text-xs">{meta}</p> : null}
 			</div>
 			{action}
