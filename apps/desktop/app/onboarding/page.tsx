@@ -502,27 +502,25 @@ function ToolCard({
 	onPreview: () => void
 }) {
 	const Icon = tool.icon
+	const canPreview = !busy && !tool.connected
 	return (
-		<div className="flex min-h-[280px] flex-col rounded-2xl border border-white/[0.07] bg-[#0B1018]/70 p-4 shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.45)]">
-			<div className="flex items-start justify-between gap-3">
-				<div className="flex min-w-0 items-center gap-3">
-					<span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#00173C] text-[#8BC6FF] ring-1 ring-[#2261CA33]">
-						<Icon className="size-5" />
-					</span>
-					<div className="min-w-0">
-						<p className="truncate font-medium text-white">{tool.name}</p>
-						<p className="text-[#737373] text-xs">{toolStatusLabel(tool)}</p>
-					</div>
-				</div>
-				{tool.connected ? (
-					<span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-1 text-[11px] text-emerald-300">
-						<span className="size-1.5 rounded-full bg-emerald-300" />
-						Active
-					</span>
-				) : null}
-			</div>
-			<p className="mt-4 line-clamp-2 text-[#A1A1AA] text-sm leading-5">
-				{tool.tagline}
+		<button
+			type="button"
+			onClick={canPreview ? onPreview : undefined}
+			disabled={busy}
+			className={cn(
+				"group relative flex min-h-[250px] w-full cursor-pointer flex-col rounded-xl border border-[#0D121A] bg-[#080B0F] p-4 pt-14 text-left transition-all duration-300 hover:border-[#3374FF]/50 hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:200%_auto] hover:bg-[center_top_1rem] hover:bg-no-repeat disabled:cursor-default disabled:opacity-80",
+			)}
+		>
+			<span className="absolute top-3 left-3">
+				<ToolStatusPill tool={tool} />
+			</span>
+			<span className="absolute top-2 right-2 text-[#8BC6FF] opacity-60 transition-opacity group-hover:opacity-100">
+				<Icon className="size-8" />
+			</span>
+			<h3 className="text-sm font-medium text-white">{tool.name}</h3>
+			<p className="mt-0.5 line-clamp-2 text-[#8B8B8B] text-xs leading-relaxed">
+				{tool.description}
 			</p>
 			<div className="mt-4 grid gap-2 text-xs">
 				<InfoRow label="Config" value={tool.configPath} />
@@ -537,12 +535,7 @@ function ToolCard({
 			<p className="mt-4 text-[#737373] text-xs leading-5">
 				{tool.restartHint}
 			</p>
-			<button
-				type="button"
-				onClick={onPreview}
-				disabled={busy || tool.connected}
-				className="mt-auto inline-flex h-9 items-center justify-center rounded-xl bg-white px-3 font-medium text-[#05080D] text-sm disabled:cursor-default disabled:bg-white/[0.08] disabled:text-[#737373]"
-			>
+			<span className="mt-auto inline-flex h-9 items-center justify-center rounded-xl bg-white px-3 font-medium text-[#05080D] text-sm transition-transform group-hover:scale-[1.01] group-disabled:bg-white/[0.08] group-disabled:text-[#737373] group-disabled:group-hover:scale-100">
 				{tool.connected
 					? "Connected"
 					: busy
@@ -550,8 +543,23 @@ function ToolCard({
 						: tool.primaryAction === "connect"
 							? "Connect"
 							: "Set up"}
-			</button>
-		</div>
+			</span>
+		</button>
+	)
+}
+
+function ToolStatusPill({ tool }: { tool: DesktopToolCard }) {
+	if (tool.connected) {
+		return (
+			<span className="inline-block rounded-full bg-[#00AC3F]/10 px-1.5 py-0.5 font-medium text-[#00AC3F] text-[10px]">
+				Connected
+			</span>
+		)
+	}
+	return (
+		<span className="inline-block rounded-full bg-[#737373]/10 px-1.5 py-0.5 font-medium text-[#737373] text-[10px]">
+			{tool.detected ? "Detected" : "Not detected"}
+		</span>
 	)
 }
 
@@ -773,12 +781,6 @@ function NovaBackground() {
 			/>
 		</>
 	)
-}
-
-function toolStatusLabel(tool: DesktopToolCard) {
-	if (tool.connected) return "Connected"
-	if (tool.detected) return "Detected"
-	return "Not detected"
 }
 
 function formatSmfsState(state?: SmfsStatus["state"]) {

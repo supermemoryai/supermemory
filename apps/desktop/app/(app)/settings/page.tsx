@@ -9,6 +9,7 @@ import {
 	CardTitle,
 } from "@ui/components/card"
 import { Button } from "@ui/components/button"
+import { cn } from "@lib/utils"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
@@ -38,10 +39,14 @@ import {
 	disconnectDesktopTool,
 	type DesktopToolId,
 	type DesktopToolPreview,
-	type DesktopToolStatus,
 	previewConnectDesktopTool,
 	previewDisconnectDesktopTool,
 } from "@/lib/tools"
+import {
+	sortDesktopToolCards,
+	toDesktopToolCard,
+	type DesktopToolCard,
+} from "@/lib/tool-catalog"
 
 type AppInfo = {
 	name: string
@@ -62,7 +67,7 @@ export default function SettingsPage() {
 	const [smfsBusy, setSmfsBusy] = useState<string | null>(null)
 	const [smfsLogs, setSmfsLogs] = useState<string | null>(null)
 	const [smfsProfile, setSmfsProfile] = useState<SmfsProfile | null>(null)
-	const [tools, setTools] = useState<DesktopToolStatus[]>([])
+	const [tools, setTools] = useState<DesktopToolCard[]>([])
 	const [toolsError, setToolsError] = useState<string | null>(null)
 	const [toolsBusy, setToolsBusy] = useState<string | null>(null)
 	const [toolPreview, setToolPreview] = useState<DesktopToolPreview | null>(
@@ -81,7 +86,8 @@ export default function SettingsPage() {
 	const refreshTools = useCallback(async () => {
 		setToolsError(null)
 		try {
-			setTools(await detectDesktopTools())
+			const statuses = await detectDesktopTools()
+			setTools(sortDesktopToolCards(statuses.map(toDesktopToolCard)))
 		} catch (err) {
 			setToolsError(formatError(err, "Could not detect tools"))
 		}
@@ -474,54 +480,17 @@ export default function SettingsPage() {
 							Refresh
 						</Button>
 					</div>
-					<div className="space-y-3">
+					<div className="grid gap-3 md:grid-cols-3">
 						{tools.map((tool) => (
-							<div
+							<SettingsToolCard
 								key={tool.id}
-								className="rounded-md border border-border bg-muted/10 p-3"
-							>
-								<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-									<div className="min-w-0 space-y-1">
-										<div className="flex flex-wrap items-center gap-2">
-											<p className="font-medium">{tool.name}</p>
-											<span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-												{tool.connected
-													? "Connected"
-													: tool.detected
-														? "Detected"
-														: "Not detected"}
-											</span>
-										</div>
-										<p className="text-muted-foreground text-xs">
-											{tool.detail}
-										</p>
-										<p
-											className="truncate font-mono text-muted-foreground text-xs"
-											title={tool.configPath}
-										>
-											{tool.configPath}
-										</p>
-									</div>
-									<div className="flex shrink-0 gap-2">
-										<Button
-											type="button"
-											variant="outline"
-											disabled={toolsBusy !== null}
-											onClick={() => previewToolAction(tool.id, "connect")}
-										>
-											Preview
-										</Button>
-										<Button
-											type="button"
-											variant="outline"
-											disabled={toolsBusy !== null || !tool.connected}
-											onClick={() => previewToolAction(tool.id, "disconnect")}
-										>
-											Disconnect
-										</Button>
-									</div>
-								</div>
-							</div>
+								tool={tool}
+								busy={toolsBusy !== null}
+								onPreviewConnect={() => previewToolAction(tool.id, "connect")}
+								onPreviewDisconnect={() =>
+									previewToolAction(tool.id, "disconnect")
+								}
+							/>
 						))}
 					</div>
 					{toolsError ? (
@@ -599,6 +568,82 @@ const SHORTCUT_OPTIONS = [
 	{ label: "⌘ ⇧ Space", accelerator: "CommandOrControl+Shift+Space" },
 	{ label: "⌘ ⌥ M", accelerator: "CommandOrControl+Option+M" },
 ] as const
+
+function SettingsToolCard({
+	tool,
+	busy,
+	onPreviewConnect,
+	onPreviewDisconnect,
+}: {
+	tool: DesktopToolCard
+	busy: boolean
+	onPreviewConnect: () => void
+	onPreviewDisconnect: () => void
+}) {
+	const Icon = tool.icon
+	return (
+		<div
+			className={cn(
+				"group relative flex min-h-[230px] flex-col rounded-xl border border-[#0D121A] bg-[#080B0F] p-4 pt-14 text-left transition-all duration-300 hover:border-[#3374FF]/50 hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:200%_auto] hover:bg-[center_top_1rem] hover:bg-no-repeat",
+			)}
+		>
+			<span className="absolute top-3 left-3">
+				<SettingsToolStatusPill tool={tool} />
+			</span>
+			<span className="absolute top-2 right-2 text-[#8BC6FF] opacity-60 transition-opacity group-hover:opacity-100">
+				<Icon className="size-8" />
+			</span>
+			<h3 className="text-sm font-medium text-white">{tool.name}</h3>
+			<p className="mt-0.5 line-clamp-2 text-[#8B8B8B] text-xs leading-relaxed">
+				{tool.description}
+			</p>
+			<div className="mt-4 min-w-0 space-y-2">
+				<p
+					className="truncate font-mono text-[#737373] text-[11px]"
+					title={tool.configPath}
+				>
+					{tool.configPath}
+				</p>
+				<p className="line-clamp-2 text-[#737373] text-xs">{tool.detail}</p>
+			</div>
+			<div className="mt-auto flex gap-2 pt-4">
+				<Button
+					type="button"
+					variant="outline"
+					disabled={busy}
+					onClick={onPreviewConnect}
+					className="h-8 flex-1 rounded-lg border-white/[0.08] bg-white/[0.03] text-xs hover:bg-white/[0.06]"
+				>
+					Preview
+				</Button>
+				<Button
+					type="button"
+					variant="outline"
+					disabled={busy || !tool.connected}
+					onClick={onPreviewDisconnect}
+					className="h-8 flex-1 rounded-lg border-white/[0.08] bg-white/[0.03] text-xs hover:bg-white/[0.06]"
+				>
+					Disconnect
+				</Button>
+			</div>
+		</div>
+	)
+}
+
+function SettingsToolStatusPill({ tool }: { tool: DesktopToolCard }) {
+	if (tool.connected) {
+		return (
+			<span className="inline-block rounded-full bg-[#00AC3F]/10 px-1.5 py-0.5 font-medium text-[#00AC3F] text-[10px]">
+				Connected
+			</span>
+		)
+	}
+	return (
+		<span className="inline-block rounded-full bg-[#737373]/10 px-1.5 py-0.5 font-medium text-[#737373] text-[10px]">
+			{tool.detected ? "Detected" : "Not detected"}
+		</span>
+	)
+}
 
 function Row({ label, value }: { label: string; value: string }) {
 	return (
