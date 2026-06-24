@@ -74,6 +74,9 @@ const novaCardClassName =
 const novaIconBoxClassName =
 	"flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#14161A]"
 
+const stickyActionBarClassName =
+	"sticky bottom-0 z-20 mt-4 border-white/[0.06] border-t bg-[#05080D]/90 py-3 shadow-[0_-18px_42px_rgba(5,8,13,0.92)] backdrop-blur-xl"
+
 export default function DesktopOnboardingPage() {
 	const router = useRouter()
 	const [session, setSession] = useState<AuthSession | null>(null)
@@ -132,27 +135,27 @@ export default function DesktopOnboardingPage() {
 	}
 
 	return (
-		<div className="flex h-screen flex-col overflow-hidden bg-[#05080D] text-[#FAFAFA]">
-			<div className="relative min-h-0 flex-1 overflow-auto">
-				<NovaBackground />
-				<header
-					data-tauri-drag-region
-					className="relative z-10 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-6 pt-8 pb-4 md:px-10"
+		<div className="relative flex h-dvh min-h-0 flex-col overflow-hidden bg-[#05080D] text-[#FAFAFA]">
+			<NovaBackground />
+			<header
+				data-tauri-drag-region
+				className="relative z-20 grid flex-none grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-6 pt-8 pb-4 md:px-10"
+			>
+				<LogoFull className="h-5 justify-self-start text-[#FAFAFA] md:h-6" />
+				<div className="justify-self-center">
+					<StepIndicator step={step} />
+				</div>
+				<button
+					type="button"
+					onClick={skip}
+					className="justify-self-end rounded-full px-3 py-1.5 text-[#737373] text-xs transition-colors hover:bg-white/[0.05] hover:text-[#FAFAFA]"
 				>
-					<LogoFull className="h-5 justify-self-start text-[#FAFAFA] md:h-6" />
-					<div className="justify-self-center">
-						<StepIndicator step={step} />
-					</div>
-					<button
-						type="button"
-						onClick={skip}
-						className="justify-self-end rounded-full px-3 py-1.5 text-[#737373] text-xs transition-colors hover:bg-white/[0.05] hover:text-[#FAFAFA]"
-					>
-						Skip
-					</button>
-				</header>
+					Skip
+				</button>
+			</header>
 
-				<main className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-6xl items-center px-4 py-8 md:px-10">
+			<main className="relative z-10 min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-10">
+				<div className="mx-auto flex w-full max-w-6xl flex-col justify-start py-2 md:py-6">
 					{step === "welcome" ? (
 						<WelcomeStep onContinue={() => goToStep("tools")} onSkip={skip} />
 					) : null}
@@ -178,8 +181,8 @@ export default function DesktopOnboardingPage() {
 							onFinish={() => complete()}
 						/>
 					) : null}
-				</main>
-			</div>
+				</div>
+			</main>
 		</div>
 	)
 }
@@ -576,7 +579,12 @@ function DoneStep({
 					? `${connectedCount} tool${connectedCount === 1 ? "" : "s"} connected. You can add more from Settings anytime.`
 					: "No tools connected yet. You can come back from Settings whenever you are ready."}
 			</p>
-			<div className="mt-8 flex justify-center gap-3">
+			<div
+				className={cn(
+					stickyActionBarClassName,
+					"mt-8 flex justify-center gap-3",
+				)}
+			>
 				<button
 					type="button"
 					onClick={onBack}
@@ -816,7 +824,7 @@ function StepActions({
 	continueLabel: string
 }) {
 	return (
-		<div className="flex justify-between gap-3">
+		<div className={cn(stickyActionBarClassName, "flex justify-between gap-3")}>
 			<button
 				type="button"
 				onClick={onBack}
