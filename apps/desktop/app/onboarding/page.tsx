@@ -152,7 +152,14 @@ export default function DesktopOnboardingPage() {
 			</header>
 
 			<main className="relative z-10 min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-10">
-				<div className="mx-auto flex w-full max-w-6xl flex-col justify-start py-2 md:py-6">
+				<div
+					className={cn(
+						"mx-auto flex min-h-full w-full max-w-6xl flex-col py-2 md:py-6",
+						step === "welcome" || step === "done"
+							? "justify-center"
+							: "justify-start",
+					)}
+				>
 					{step === "welcome" ? <WelcomeStep /> : null}
 					{step === "tools" ? (
 						<ToolsStep
