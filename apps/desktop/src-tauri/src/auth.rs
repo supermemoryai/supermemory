@@ -171,10 +171,6 @@ fn is_loopback_http_url(value: &str) -> bool {
         .unwrap_or(false)
 }
 
-pub fn store_token(token: String) -> Result<(), String> {
-    store_token_with_api_url(token, Some(configured_api_url()))
-}
-
 pub fn store_token_with_api_url(token: String, api_url: Option<String>) -> Result<(), String> {
     let token = token.trim();
     if token.is_empty() {
@@ -682,7 +678,7 @@ fn complete_browser_auth(parsed: url::Url) -> Result<(), String> {
         return Err(format!("Browser sign-in failed: {error}"));
     }
 
-    let api_key = params
+    let auth_token = params
         .iter()
         .find_map(|(key, value)| (key == "apikey").then(|| value.to_string()))
         .or_else(|| {
@@ -695,7 +691,7 @@ fn complete_browser_auth(parsed: url::Url) -> Result<(), String> {
                 .iter()
                 .find_map(|(key, value)| (key == "token").then(|| value.to_string()))
         })
-        .ok_or_else(|| "Auth callback did not include API key".to_string())?;
+        .ok_or_else(|| "Auth callback did not include an auth token".to_string())?;
     let callback_api_url = params
         .iter()
         .find_map(|(key, value)| (key == "apiUrl").then(|| value.to_string()))
@@ -706,7 +702,7 @@ fn complete_browser_auth(parsed: url::Url) -> Result<(), String> {
         });
 
     store_token_with_api_url(
-        api_key,
+        auth_token,
         callback_api_url.or_else(|| Some(browser_auth_api_url())),
     )
 }

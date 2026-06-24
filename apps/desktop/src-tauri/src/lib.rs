@@ -30,11 +30,6 @@ fn app_info() -> AppInfo {
 }
 
 #[tauri::command]
-fn auth_store_token(token: String) -> Result<(), String> {
-    auth::store_token(token)
-}
-
-#[tauri::command]
 fn auth_get_token() -> Result<Option<String>, String> {
     auth::get_token()
 }
@@ -224,7 +219,6 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_info,
-            auth_store_token,
             auth_get_token,
             auth_clear,
             auth_begin_browser,

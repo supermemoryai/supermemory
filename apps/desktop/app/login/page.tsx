@@ -11,7 +11,6 @@ import { ExternalAuthButton } from "@ui/button/external-auth"
 import { Badge } from "@ui/components/badge"
 import { Button } from "@ui/components/button"
 import { Input } from "@ui/components/input"
-import { Label } from "@ui/components/label"
 import { TextSeparator } from "@ui/components/text-separator"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -24,19 +23,16 @@ import {
 } from "react"
 import {
 	beginSocialAuth,
-	desktopDevAuthEnabled,
 	getSession,
 	onAuthChanged,
 	onAuthError,
 	sendMagicLink,
-	storeToken,
 	verifyMagicLinkToken,
 } from "@/lib/auth"
 import { postAuthRedirectPath } from "@/lib/onboarding"
 
 export default function LoginPage() {
 	const router = useRouter()
-	const [token, setToken] = useState("")
 	const [email, setEmail] = useState("")
 	const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
 	const [loginCode, setLoginCode] = useState("")
@@ -85,21 +81,6 @@ export default function LoginPage() {
 			unlistenError?.()
 		}
 	}, [router])
-
-	async function onSubmit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault()
-		setError(null)
-		setIsSubmitting(true)
-
-		try {
-			await storeToken(token)
-			router.replace(postAuthRedirectPath())
-		} catch (err) {
-			setError(formatError(err, "Could not sign in"))
-		} finally {
-			setIsSubmitting(false)
-		}
-	}
 
 	async function startSocialAuth(provider: "google" | "github") {
 		setError(null)
@@ -334,37 +315,6 @@ export default function LoginPage() {
 										<p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-center text-destructive text-sm">
 											{error}
 										</p>
-									) : null}
-
-									{desktopDevAuthEnabled ? (
-										<details className="group rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
-											<summary className="cursor-pointer text-muted-foreground text-xs transition-colors hover:text-foreground">
-												Development API key
-											</summary>
-											<form
-												className="mt-4 space-y-3 text-left"
-												onSubmit={onSubmit}
-											>
-												<div className="space-y-2">
-													<Label htmlFor="api-key">API key</Label>
-													<Input
-														id="api-key"
-														value={token}
-														onChange={(event) => setToken(event.target.value)}
-														placeholder="sm_..."
-														type="password"
-														autoComplete="off"
-													/>
-												</div>
-												<Button
-													type="submit"
-													className="w-full"
-													disabled={!token.trim() || isSubmitting}
-												>
-													{isSubmitting ? "Checking..." : "Continue with key"}
-												</Button>
-											</form>
-										</details>
 									) : null}
 								</div>
 							</div>

@@ -10,7 +10,6 @@ export type AuthSession = {
 	apiUrl: string
 }
 
-export const desktopDevAuthEnabled = process.env.NEXT_PUBLIC_DESKTOP_DEV === "1"
 export const AUTH_CHANGED_EVENT = "auth:changed"
 export const AUTH_ERROR_EVENT = "auth:error"
 
@@ -25,11 +24,6 @@ export async function getStoredToken() {
 
 export async function getSession() {
 	return invoke<AuthSession>("auth_whoami")
-}
-
-export async function storeToken(token: string) {
-	await invoke("auth_store_token", { token })
-	return getSession()
 }
 
 export async function beginBrowserAuth() {
