@@ -143,11 +143,7 @@ export default function DesktopOnboardingPage() {
 
 				<main className="relative z-10 mx-auto flex min-h-[calc(100vh-9rem)] w-full max-w-6xl items-center px-4 py-8 md:px-10">
 					{step === "welcome" ? (
-						<WelcomeStep
-							session={session}
-							onContinue={() => goToStep("tools")}
-							onSkip={skip}
-						/>
+						<WelcomeStep onContinue={() => goToStep("tools")} onSkip={skip} />
 					) : null}
 					{step === "tools" ? (
 						<ToolsStep
@@ -178,21 +174,15 @@ export default function DesktopOnboardingPage() {
 }
 
 function WelcomeStep({
-	session,
 	onContinue,
 	onSkip,
 }: {
-	session: AuthSession
 	onContinue: () => void
 	onSkip: () => void
 }) {
 	return (
-		<section className="mx-auto grid w-full max-w-5xl gap-8 md:grid-cols-[minmax(0,1fr)_360px] md:items-center">
+		<section className="mx-auto w-full max-w-3xl">
 			<div className="space-y-5">
-				<p className="inline-flex items-center gap-2 rounded-full border border-[#2261CA33] bg-[#00173C]/80 px-3 py-1 font-medium text-[#8BC6FF] text-[11px]">
-					<CheckCircle2 className="size-3.5" />
-					Authenticated
-				</p>
 				<div className="space-y-3">
 					<h1 className="max-w-3xl text-balance font-medium text-4xl leading-tight tracking-tight md:text-5xl">
 						Set up Supermemory on this Mac.
@@ -218,18 +208,6 @@ function WelcomeStep({
 					>
 						Skip for now
 					</button>
-				</div>
-			</div>
-			<div className="rounded-2xl border border-white/[0.07] bg-[#0B1018]/70 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-				<p className="font-medium text-sm text-white">Signed in as</p>
-				<p className="mt-1 truncate text-[#A1A1AA] text-sm">
-					{session.email ?? session.userId}
-				</p>
-				<div className="mt-5 grid gap-3">
-					<SetupBenefit label="Detect Claude Code, Codex, and Cursor" />
-					<SetupBenefit label="Preview every config change before writing" />
-					<SetupBenefit label="Create backups before touching local files" />
-					<SetupBenefit label="Mount your Supermemory filesystem folder" />
 				</div>
 			</div>
 		</section>
@@ -785,15 +763,6 @@ function StepIndicator({ step }: { step: DesktopOnboardingStep }) {
 					</div>
 				)
 			})}
-		</div>
-	)
-}
-
-function SetupBenefit({ label }: { label: string }) {
-	return (
-		<div className="flex items-center gap-2 text-[#C8D0DA] text-sm">
-			<Check className="size-4 text-[#8BC6FF]" />
-			{label}
 		</div>
 	)
 }
