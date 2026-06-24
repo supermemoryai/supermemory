@@ -74,15 +74,13 @@ const novaCardClassName =
 const novaIconBoxClassName =
 	"flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#14161A]"
 
-const stickyActionBarClassName =
-	"sticky bottom-0 z-20 mt-4 border-white/[0.06] border-t bg-[#05080D]/90 py-3 shadow-[0_-18px_42px_rgba(5,8,13,0.92)] backdrop-blur-xl"
-
 export default function DesktopOnboardingPage() {
 	const router = useRouter()
 	const [session, setSession] = useState<AuthSession | null>(null)
 	const [authChecked, setAuthChecked] = useState(false)
 	const [step, setStep] = useState<DesktopOnboardingStep>("welcome")
 	const [connectedTools, setConnectedTools] = useState<DesktopToolId[]>([])
+	const [filesystemMounted, setFilesystemMounted] = useState(false)
 
 	useEffect(() => {
 		let cancelled = false
@@ -156,44 +154,46 @@ export default function DesktopOnboardingPage() {
 
 			<main className="relative z-10 min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-10">
 				<div className="mx-auto flex w-full max-w-6xl flex-col justify-start py-2 md:py-6">
-					{step === "welcome" ? (
-						<WelcomeStep onContinue={() => goToStep("tools")} onSkip={skip} />
-					) : null}
+					{step === "welcome" ? <WelcomeStep /> : null}
 					{step === "tools" ? (
 						<ToolsStep
 							session={session}
-							connectedTools={connectedTools}
 							onConnectedToolsChange={setConnectedTools}
-							onBack={() => goToStep("welcome")}
-							onContinue={() => goToStep("filesystem")}
 						/>
 					) : null}
 					{step === "filesystem" ? (
 						<FilesystemStep
-							onBack={() => goToStep("tools")}
 							onContinue={() => goToStep("done")}
+							onMountedChange={setFilesystemMounted}
 						/>
 					) : null}
 					{step === "done" ? (
-						<DoneStep
-							connectedCount={connectedTools.length}
-							onBack={() => goToStep("filesystem")}
-							onFinish={() => complete()}
-						/>
+						<DoneStep connectedCount={connectedTools.length} />
 					) : null}
 				</div>
 			</main>
+			<OnboardingFooter
+				step={step}
+				toolsConnected={connectedTools.length > 0}
+				filesystemMounted={filesystemMounted}
+				onBack={() => {
+					if (step === "tools") goToStep("welcome")
+					if (step === "filesystem") goToStep("tools")
+					if (step === "done") goToStep("filesystem")
+				}}
+				onPrimary={() => {
+					if (step === "welcome") goToStep("tools")
+					if (step === "tools") goToStep("filesystem")
+					if (step === "filesystem") goToStep("done")
+					if (step === "done") complete()
+				}}
+				onSkip={skip}
+			/>
 		</div>
 	)
 }
 
-function WelcomeStep({
-	onContinue,
-	onSkip,
-}: {
-	onContinue: () => void
-	onSkip: () => void
-}) {
+function WelcomeStep() {
 	return (
 		<section className="w-full max-w-3xl">
 			<div className="space-y-5">
@@ -206,23 +206,6 @@ function WelcomeStep({
 						available everywhere you work.
 					</p>
 				</div>
-				<div className="flex flex-col gap-2 sm:flex-row">
-					<button
-						type="button"
-						onClick={onContinue}
-						className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-white px-4 font-medium text-[#05080D] text-sm transition-transform hover:scale-[1.01]"
-					>
-						Start setup
-						<ArrowRight className="size-4" />
-					</button>
-					<button
-						type="button"
-						onClick={onSkip}
-						className="inline-flex h-10 items-center justify-center rounded-xl border border-white/[0.08] px-4 text-[#A1A1AA] text-sm transition-colors hover:bg-white/[0.05] hover:text-white"
-					>
-						Skip for now
-					</button>
-				</div>
 			</div>
 		</section>
 	)
@@ -230,16 +213,10 @@ function WelcomeStep({
 
 function ToolsStep({
 	session,
-	connectedTools,
 	onConnectedToolsChange,
-	onBack,
-	onContinue,
 }: {
 	session: AuthSession
-	connectedTools: DesktopToolId[]
 	onConnectedToolsChange: (tools: DesktopToolId[]) => void
-	onBack: () => void
-	onContinue: () => void
 }) {
 	const [tools, setTools] = useState<DesktopToolCard[]>([])
 	const [loading, setLoading] = useState(true)
@@ -332,22 +309,16 @@ function ToolsStep({
 					onApply={applyPreview}
 				/>
 			) : null}
-
-			<StepActions
-				onBack={onBack}
-				onContinue={onContinue}
-				continueLabel={connectedTools.length > 0 ? "Continue" : "Skip tools"}
-			/>
 		</section>
 	)
 }
 
 function FilesystemStep({
-	onBack,
 	onContinue,
+	onMountedChange,
 }: {
-	onBack: () => void
 	onContinue: () => void
+	onMountedChange: (mounted: boolean) => void
 }) {
 	const [tag, setTag] = useState("sm_fs_desktop")
 	const [status, setStatus] = useState<SmfsStatus | null>(null)
@@ -424,6 +395,10 @@ function FilesystemStep({
 	const mountPath =
 		selectedMountPath ?? (status?.mountPathConfigured ? status.mountPath : null)
 	const canMount = Boolean(mountPath) && !loading && !busy
+
+	useEffect(() => {
+		onMountedChange(mounted)
+	}, [mounted, onMountedChange])
 
 	return (
 		<section className="mx-auto w-full max-w-4xl space-y-6">
@@ -515,11 +490,6 @@ function FilesystemStep({
 					</Button>
 				</div>
 			</div>
-			<StepActions
-				onBack={onBack}
-				onContinue={onContinue}
-				continueLabel={mounted ? "Continue" : "Skip for now"}
-			/>
 		</section>
 	)
 }
@@ -557,15 +527,7 @@ function FilesystemStatus({
 	)
 }
 
-function DoneStep({
-	connectedCount,
-	onBack,
-	onFinish,
-}: {
-	connectedCount: number
-	onBack: () => void
-	onFinish: () => void
-}) {
+function DoneStep({ connectedCount }: { connectedCount: number }) {
 	return (
 		<section className="mx-auto w-full max-w-3xl text-center">
 			<div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#00173C] text-[#8BC6FF] ring-1 ring-[#2261CA33]">
@@ -579,29 +541,6 @@ function DoneStep({
 					? `${connectedCount} tool${connectedCount === 1 ? "" : "s"} connected. You can add more from Settings anytime.`
 					: "No tools connected yet. You can come back from Settings whenever you are ready."}
 			</p>
-			<div
-				className={cn(
-					stickyActionBarClassName,
-					"mt-8 flex justify-center gap-3",
-				)}
-			>
-				<button
-					type="button"
-					onClick={onBack}
-					className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[0.08] px-4 text-[#A1A1AA] text-sm transition-colors hover:bg-white/[0.05] hover:text-white"
-				>
-					<ChevronLeft className="size-4" />
-					Back
-				</button>
-				<button
-					type="button"
-					onClick={onFinish}
-					className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-white px-4 font-medium text-[#05080D] text-sm"
-				>
-					Open Supermemory
-					<ArrowRight className="size-4" />
-				</button>
-			</div>
 		</section>
 	)
 }
@@ -814,34 +753,56 @@ function StepHeader({
 	)
 }
 
-function StepActions({
+function OnboardingFooter({
+	step,
+	toolsConnected,
+	filesystemMounted,
 	onBack,
-	onContinue,
-	continueLabel,
+	onPrimary,
+	onSkip,
 }: {
+	step: DesktopOnboardingStep
+	toolsConnected: boolean
+	filesystemMounted: boolean
 	onBack: () => void
-	onContinue: () => void
-	continueLabel: string
+	onPrimary: () => void
+	onSkip: () => void
 }) {
+	const isWelcome = step === "welcome"
+	const primaryLabel =
+		step === "welcome"
+			? "Start setup"
+			: step === "tools"
+				? toolsConnected
+					? "Continue"
+					: "Skip tools"
+				: step === "filesystem"
+					? filesystemMounted
+						? "Continue"
+						: "Skip for now"
+					: "Open Supermemory"
+
 	return (
-		<div className={cn(stickyActionBarClassName, "flex justify-between gap-3")}>
-			<button
-				type="button"
-				onClick={onBack}
-				className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[0.08] px-4 text-[#A1A1AA] text-sm transition-colors hover:bg-white/[0.05] hover:text-white"
-			>
-				<ChevronLeft className="size-4" />
-				Back
-			</button>
-			<button
-				type="button"
-				onClick={onContinue}
-				className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-white px-4 font-medium text-[#05080D] text-sm"
-			>
-				{continueLabel}
-				<ArrowRight className="size-4" />
-			</button>
-		</div>
+		<footer className="relative z-20 flex-none bg-[#05080D]/92 px-4 pt-3 pb-4 shadow-[0_-18px_42px_rgba(5,8,13,0.72)] backdrop-blur-xl md:px-10">
+			<div className="mx-auto flex w-full max-w-6xl justify-between gap-3">
+				<button
+					type="button"
+					onClick={isWelcome ? onSkip : onBack}
+					className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[0.08] px-4 text-[#A1A1AA] text-sm transition-colors hover:bg-white/[0.05] hover:text-white"
+				>
+					{isWelcome ? null : <ChevronLeft className="size-4" />}
+					{isWelcome ? "Skip for now" : "Back"}
+				</button>
+				<button
+					type="button"
+					onClick={onPrimary}
+					className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-white px-4 font-medium text-[#05080D] text-sm"
+				>
+					{primaryLabel}
+					<ArrowRight className="size-4" />
+				</button>
+			</div>
+		</footer>
 	)
 }
 
