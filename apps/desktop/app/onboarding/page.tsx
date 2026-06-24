@@ -11,7 +11,6 @@ import {
 	FolderOpen,
 	Info,
 	Loader2,
-	Plus,
 	X,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -288,7 +287,7 @@ function ToolsStep({
 				}
 			/>
 
-			<div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+			<div className="grid gap-3 min-[860px]:grid-cols-3">
 				{tools.map((tool) => (
 					<ToolCard
 						key={tool.id}
@@ -564,51 +563,75 @@ function ToolCard({
 			style={sourceCardStyle}
 		>
 			<CardInfoButton href={tool.docsUrl} name={tool.name} />
-			<div className="flex items-start justify-between gap-3">
-				<div className={novaIconBoxClassName} style={sourceIconStyle}>
-					<img
-						src={tool.iconSrc}
-						alt=""
-						className="size-7 object-contain"
-						draggable={false}
-					/>
+			<div className="grid grid-cols-[48px_minmax(0,1fr)_auto] items-start gap-3 pr-8">
+				<div className="pt-0.5">
+					<div className={novaIconBoxClassName} style={sourceIconStyle}>
+						<img
+							src={tool.iconSrc}
+							alt=""
+							className="size-7 object-contain"
+							draggable={false}
+						/>
+					</div>
 				</div>
-			</div>
-
-			<div className="mt-8 min-w-0">
-				<div className="flex min-w-0 items-center gap-2">
-					<p className="min-w-0 truncate font-semibold text-[#FAFAFA] text-[20px] leading-tight">
-						{tool.name}
+				<div className="min-w-0 pr-1">
+					<div className="flex min-w-0 items-center gap-2">
+						<p className="min-w-0 truncate font-semibold text-[#FAFAFA] text-[15px] leading-tight">
+							{tool.name}
+						</p>
+						{tool.id !== "codex" ? <NovaInlineChip>Pro</NovaInlineChip> : null}
+					</div>
+					<p className="mt-1 line-clamp-2 font-medium text-[#737373] text-[12px] leading-[1.35]">
+						{tool.tagline}
 					</p>
-					{tool.id !== "codex" ? <NovaInlineChip>Pro</NovaInlineChip> : null}
 				</div>
-				<p className="mt-2 line-clamp-2 font-medium text-[#A1A1AA] text-[14px] leading-[1.45]">
-					{tool.tagline}
-				</p>
+				{tool.connected ? (
+					<div className="mt-1 inline-flex shrink-0 items-center gap-1 font-semibold text-[#4BA0FA] text-[11px] uppercase tracking-[0.08em]">
+						<Check className="size-3" />
+						<span className="hidden min-[1100px]:inline">Connected</span>
+					</div>
+				) : (
+					<Button
+						type="button"
+						variant="insideOut"
+						onClick={canPreview ? onPreview : undefined}
+						disabled={busy}
+						className="h-9 shrink-0 rounded-full px-4 font-medium text-[#FAFAFA] text-[13px]"
+					>
+						{busy
+							? "Opening..."
+							: tool.primaryAction === "connect"
+								? "Connect"
+								: "Set up"}
+					</Button>
+				)}
 			</div>
 
-			<div className="mt-auto flex items-center justify-between gap-4 pt-8">
-				<ToolCardStatus tool={tool} />
-				<Button
-					type="button"
-					variant="insideOut"
-					onClick={canPreview ? onPreview : undefined}
-					disabled={busy || tool.connected}
-					className={cn(
-						"h-10 min-w-[132px] shrink-0 rounded-full px-5 font-medium text-[#FAFAFA] text-[15px]",
-						tool.connected && "text-[#A1A1AA]",
-					)}
-				>
-					{tool.connected ? (
-						<Plus className="size-5" />
-					) : busy ? (
-						"Opening..."
-					) : tool.primaryAction === "connect" ? (
-						"Connect"
-					) : (
-						"Set up"
-					)}
-				</Button>
+			<ul className="mt-4 space-y-1.5">
+				{tool.perks.map((perk) => (
+					<li
+						key={perk}
+						className="flex items-start gap-2.5 font-medium text-[#737373] text-[12px] leading-[1.5]"
+					>
+						<span
+							aria-hidden
+							className="mt-[7px] size-1 shrink-0 rounded-full bg-[#525D6E]"
+						/>
+						<span>{perk}</span>
+					</li>
+				))}
+			</ul>
+
+			<div className="mt-auto flex items-end justify-between gap-3 pt-4">
+				<div className="min-w-0">
+					<ToolCardStatus tool={tool} />
+					<p
+						className="mt-1 truncate font-mono font-medium text-[#525D6E] text-[11px]"
+						title={tool.configPath}
+					>
+						{tool.configPath}
+					</p>
+				</div>
 			</div>
 		</div>
 	)
@@ -643,7 +666,7 @@ function NovaInlineChip({ children }: { children: ReactNode }) {
 function ToolCardStatus({ tool }: { tool: DesktopToolCard }) {
 	if (tool.connected) {
 		return (
-			<div className="flex min-w-0 items-center gap-2 font-medium text-[#4AC463] text-[14px]">
+			<div className="flex min-w-0 items-center gap-2 font-medium text-[#4AC463] text-[12px]">
 				<span className="size-2 shrink-0 rounded-full bg-[#4AC463]" />
 				<span>Active</span>
 			</div>
@@ -651,7 +674,7 @@ function ToolCardStatus({ tool }: { tool: DesktopToolCard }) {
 	}
 
 	return (
-		<div className="flex min-w-0 items-center gap-2 font-medium text-[#737373] text-[14px]">
+		<div className="flex min-w-0 items-center gap-2 font-medium text-[#737373] text-[12px]">
 			<span className="size-2 shrink-0 rounded-full bg-[#525D6E]" />
 			<span>{tool.detected ? "Detected" : "Not detected"}</span>
 		</div>
