@@ -58,11 +58,21 @@ const STEP_LABELS: Record<DesktopOnboardingStep, string> = {
 	done: "Done",
 }
 
+const sourceCardStyle = {
+	boxShadow:
+		"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+}
+
+const sourceIconStyle = {
+	boxShadow:
+		"0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08), inset 0px 1px 1px 0px rgba(0,0,0,0.08), inset 0px 2px 4px 0px rgba(0,0,0,0.02)",
+}
+
 const novaCardClassName =
-	"group relative flex min-h-[190px] flex-col overflow-hidden rounded-[12px] bg-[#14161A] p-5 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)] transition-colors hover:bg-[#16181D] focus-within:ring-2 focus-within:ring-[#4BA0FA]/45"
+	"group relative flex min-h-[190px] flex-col overflow-hidden rounded-[18px] bg-[#1B1F24] p-5 transition-colors focus-within:ring-2 focus-within:ring-[#4BA0FA]/45"
 
 const novaIconBoxClassName =
-	"flex size-12 shrink-0 items-center justify-center rounded-[10px] bg-[#080B0F] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]"
+	"flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#14161A]"
 
 export default function DesktopOnboardingPage() {
 	const router = useRouter()
@@ -298,7 +308,7 @@ function ToolsStep({
 				}
 			/>
 
-			<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+			<div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
 				{tools.map((tool) => (
 					<ToolCard
 						key={tool.id}
@@ -415,19 +425,20 @@ function FilesystemStep({
 	return (
 		<section className="mx-auto w-full max-w-4xl space-y-6">
 			<StepHeader title="Mount your Supermemory filesystem" />
-			<div className="grid gap-3 md:grid-cols-2">
+			<div className="grid gap-3 lg:grid-cols-2">
 				<div
 					className={cn(
 						novaCardClassName,
 						mounted && "ring-1 ring-[#2261CA33]",
 					)}
+					style={sourceCardStyle}
 				>
 					<CardInfoButton
 						href="https://supermemory.ai/docs/smfs/overview"
 						name="SMFS"
 					/>
 					<div className="flex items-start justify-between gap-3">
-						<div className={novaIconBoxClassName}>
+						<div className={novaIconBoxClassName} style={sourceIconStyle}>
 							<FolderOpen className="size-6 text-[#8BC6FF]" />
 						</div>
 					</div>
@@ -453,13 +464,13 @@ function FilesystemStep({
 					{error ? <p className="mt-4 text-red-300 text-sm">{error}</p> : null}
 				</div>
 
-				<div className={novaCardClassName}>
+				<div className={novaCardClassName} style={sourceCardStyle}>
 					<CardInfoButton
 						href="https://supermemory.ai/docs/smfs/mount"
 						name="mount folder"
 					/>
 					<div className="flex items-start justify-between gap-3">
-						<div className={novaIconBoxClassName}>
+						<div className={novaIconBoxClassName} style={sourceIconStyle}>
 							<Check className="size-6 text-[#FAFAFA]" />
 						</div>
 					</div>
@@ -603,10 +614,11 @@ function ToolCard({
 				novaCardClassName,
 				tool.connected && "ring-1 ring-[#2261CA33]",
 			)}
+			style={sourceCardStyle}
 		>
 			<CardInfoButton href={tool.docsUrl} name={tool.name} />
 			<div className="flex items-start justify-between gap-3">
-				<div className={novaIconBoxClassName}>
+				<div className={novaIconBoxClassName} style={sourceIconStyle}>
 					<img
 						src={tool.iconSrc}
 						alt=""
