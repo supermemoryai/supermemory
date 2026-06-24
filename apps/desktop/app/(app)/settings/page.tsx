@@ -10,6 +10,7 @@ import {
 } from "@ui/components/card"
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
+import { Check, FolderOpen } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
@@ -480,7 +481,7 @@ export default function SettingsPage() {
 							Refresh
 						</Button>
 					</div>
-					<div className="grid gap-3 md:grid-cols-3">
+					<div className="grid gap-3 lg:grid-cols-2">
 						{tools.map((tool) => (
 							<SettingsToolCard
 								key={tool.id}
@@ -569,6 +570,16 @@ const SHORTCUT_OPTIONS = [
 	{ label: "⌘ ⌥ M", accelerator: "CommandOrControl+Option+M" },
 ] as const
 
+const modalCardStyle = {
+	boxShadow:
+		"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+}
+
+const inputBevelStyle = {
+	boxShadow:
+		"0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08), inset 0px 1px 1px 0px rgba(0,0,0,0.08), inset 0px 2px 4px 0px rgba(0,0,0,0.02)",
+}
+
 function SettingsToolCard({
 	tool,
 	busy,
@@ -584,64 +595,107 @@ function SettingsToolCard({
 	return (
 		<div
 			className={cn(
-				"group relative flex min-h-[230px] flex-col rounded-xl border border-[#0D121A] bg-[#080B0F] p-4 pt-14 text-left transition-all duration-300 hover:border-[#3374FF]/50 hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:200%_auto] hover:bg-[center_top_1rem] hover:bg-no-repeat",
+				"flex min-h-[190px] flex-col rounded-[18px] bg-[#1B1F24] p-5 transition-colors",
+				tool.connected && "ring-1 ring-[#2261CA33]",
 			)}
+			style={modalCardStyle}
 		>
-			<span className="absolute top-3 left-3">
-				<SettingsToolStatusPill tool={tool} />
-			</span>
-			<span className="absolute top-2 right-2 text-[#8BC6FF] opacity-60 transition-opacity group-hover:opacity-100">
-				<Icon className="size-8" />
-			</span>
-			<h3 className="text-sm font-medium text-white">{tool.name}</h3>
-			<p className="mt-0.5 line-clamp-2 text-[#8B8B8B] text-xs leading-relaxed">
-				{tool.description}
-			</p>
-			<div className="mt-4 min-w-0 space-y-2">
-				<p
-					className="truncate font-mono text-[#737373] text-[11px]"
-					title={tool.configPath}
-				>
-					{tool.configPath}
-				</p>
-				<p className="line-clamp-2 text-[#737373] text-xs">{tool.detail}</p>
+			<div className="grid grid-cols-[48px_minmax(0,1fr)_auto] items-start gap-3">
+				<div className="pt-0.5">
+					<div
+						className="flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#14161A]"
+						style={inputBevelStyle}
+					>
+						<Icon className="size-6 text-[#FAFAFA]" />
+					</div>
+				</div>
+				<div className="min-w-0 pr-1">
+					<p className="font-semibold text-[#FAFAFA] text-[15px] leading-tight">
+						{tool.name}
+					</p>
+					<p className="mt-1 line-clamp-2 font-medium text-[#737373] text-[12px] leading-[1.35]">
+						{tool.description}
+					</p>
+				</div>
+				{tool.connected ? (
+					<span className="mt-1 inline-flex shrink-0 items-center gap-1 font-semibold text-[#4BA0FA] text-[11px] uppercase tracking-[0.08em]">
+						<Check className="size-3" />
+						Connected
+					</span>
+				) : (
+					<Button
+						type="button"
+						variant="insideOut"
+						disabled={busy}
+						onClick={onPreviewConnect}
+						className="h-9 shrink-0 gap-1.5 rounded-full px-4 font-medium text-[#FAFAFA] text-[13px]"
+					>
+						{tool.primaryAction === "connect" ? "Connect" : "Set up"}
+					</Button>
+				)}
 			</div>
-			<div className="mt-auto flex gap-2 pt-4">
+
+			<ul className="mt-4 space-y-1.5">
+				{tool.perks.map((perk) => (
+					<li
+						key={perk}
+						className="flex items-start gap-2.5 font-medium text-[#737373] text-[12px] leading-[1.5]"
+					>
+						<span
+							aria-hidden
+							className="mt-[7px] size-1 shrink-0 rounded-full bg-[#525D6E]"
+						/>
+						<span>{perk}</span>
+					</li>
+				))}
+			</ul>
+
+			<div className="mt-auto flex items-end justify-between gap-3 pt-4">
+				<div className="min-w-0">
+					<p
+						className="truncate font-mono font-medium text-[#737373] text-[11px]"
+						title={tool.configPath}
+					>
+						{tool.configPath}
+					</p>
+					<p className="mt-1 line-clamp-1 font-medium text-[#525D6E] text-[11px]">
+						{tool.detected
+							? tool.version
+								? `Detected ${tool.version}`
+								: "Detected on this Mac"
+							: "Not detected yet"}
+					</p>
+				</div>
+				<SettingsToolTargetChip label="Supermemory MCP" />
+			</div>
+
+			{tool.connected ? (
 				<Button
 					type="button"
 					variant="outline"
 					disabled={busy}
-					onClick={onPreviewConnect}
-					className="h-8 flex-1 rounded-lg border-white/[0.08] bg-white/[0.03] text-xs hover:bg-white/[0.06]"
-				>
-					Preview
-				</Button>
-				<Button
-					type="button"
-					variant="outline"
-					disabled={busy || !tool.connected}
 					onClick={onPreviewDisconnect}
-					className="h-8 flex-1 rounded-lg border-white/[0.08] bg-white/[0.03] text-xs hover:bg-white/[0.06]"
+					className="mt-4 h-8 rounded-full border-white/[0.08] bg-white/[0.03] text-xs hover:bg-white/[0.06]"
 				>
 					Disconnect
 				</Button>
-			</div>
+			) : null}
 		</div>
 	)
 }
 
-function SettingsToolStatusPill({ tool }: { tool: DesktopToolCard }) {
-	if (tool.connected) {
-		return (
-			<span className="inline-block rounded-full bg-[#00AC3F]/10 px-1.5 py-0.5 font-medium text-[#00AC3F] text-[10px]">
-				Connected
-			</span>
-		)
-	}
+function SettingsToolTargetChip({ label }: { label: string }) {
 	return (
-		<span className="inline-block rounded-full bg-[#737373]/10 px-1.5 py-0.5 font-medium text-[#737373] text-[10px]">
-			{tool.detected ? "Detected" : "Not detected"}
-		</span>
+		<div
+			className="inline-flex shrink-0 items-center gap-1.5 font-medium text-[#737373] text-[11px]"
+			title={`This tool will connect to ${label}.`}
+		>
+			<span className="text-[#525D6E] text-[10px] uppercase tracking-[0.08em]">
+				Uses
+			</span>
+			<FolderOpen className="size-3 text-[#737373]" />
+			<span className="text-[#FAFAFA]">{label}</span>
+		</div>
 	)
 }
 

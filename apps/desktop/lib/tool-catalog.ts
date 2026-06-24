@@ -11,6 +11,7 @@ export type DesktopToolCatalogEntry = {
 	description: string
 	docsUrl: string
 	icon: LucideIcon
+	perks: string[]
 	restartHint: string
 }
 
@@ -32,6 +33,11 @@ export const DESKTOP_TOOL_CATALOG: Record<
 			"Connect the Supermemory MCP server so Claude Code can search and save memories while you work.",
 		docsUrl: "https://supermemory.ai/docs/integrations/claude-code",
 		icon: Bot,
+		perks: [
+			"Search and save memories from coding sessions",
+			"Project decisions become reusable context",
+			"Backs up config before every change",
+		],
 		restartHint: "Restart Claude Code after changing MCP config.",
 	},
 	codex: {
@@ -43,6 +49,11 @@ export const DESKTOP_TOOL_CATALOG: Record<
 			"Add Supermemory to Codex MCP servers so coding sessions can recall durable context.",
 		docsUrl: "https://supermemory.ai/docs/integrations/codex",
 		icon: Terminal,
+		perks: [
+			"Persistent memory for Codex CLI sessions",
+			"Uses the Supermemory MCP server",
+			"Backs up ~/.codex/config.toml first",
+		],
 		restartHint: "Restart Codex after changing ~/.codex/config.toml.",
 	},
 	cursor: {
@@ -54,6 +65,11 @@ export const DESKTOP_TOOL_CATALOG: Record<
 			"Write the Supermemory MCP server into Cursor's MCP config for one-click memory access.",
 		docsUrl: "https://supermemory.ai/docs/supermemory-mcp/setup",
 		icon: Code2,
+		perks: [
+			"Memory tools directly inside Cursor",
+			"One MCP config for project context",
+			"Backs up config before every change",
+		],
 		restartHint: "Restart Cursor so MCP changes are loaded.",
 	},
 }
