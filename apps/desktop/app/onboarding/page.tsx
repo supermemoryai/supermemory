@@ -381,43 +381,73 @@ function FilesystemStep({
 
 	return (
 		<section className="mx-auto w-full max-w-4xl space-y-6">
-			<StepHeader
-				eyebrow="Memory folder"
-				title="Mount your Supermemory filesystem"
-				description="SMFS turns a Supermemory space into a local folder, so your context is visible to editors and command-line tools."
-				meta={status ? formatSmfsState(status.state) : "Not mounted"}
-			/>
-			<div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_320px]">
-				<div className="rounded-2xl border border-white/[0.07] bg-[#0B1018]/70 p-5">
-					<div className="flex items-center gap-3">
-						<span className="flex size-10 items-center justify-center rounded-xl bg-[#00173C] text-[#8BC6FF] ring-1 ring-[#2261CA33]">
-							<FolderOpen className="size-5" />
-						</span>
-						<div className="min-w-0">
-							<p className="font-medium text-white">Filesystem space</p>
-							<p className="truncate font-mono text-[#A1A1AA] text-xs">
-								{status?.tag ?? tag}
-							</p>
+			<StepHeader title="Mount your Supermemory filesystem" />
+			<div className="grid gap-3 md:grid-cols-2">
+				<div
+					className={cn(
+						"flex min-h-[190px] flex-col rounded-[18px] bg-[#15181D] p-5 transition-colors",
+						mounted && "ring-1 ring-[#2261CA33]",
+					)}
+					style={modalCardStyle}
+				>
+					<div className="flex items-start justify-between gap-3">
+						<div
+							className="flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.16)] bg-[#0C1016]"
+							style={inputBevelStyle}
+						>
+							<FolderOpen className="size-6 text-[#8BC6FF]" />
 						</div>
 					</div>
-					<div className="mt-5 grid gap-3 text-sm">
-						<InfoRow label="State" value={formatSmfsState(status?.state)} />
-						<InfoRow label="Mount path" value={status?.mountPath || "..."} />
-						<InfoRow label="Binary" value={status?.binaryPath || "..."} />
+
+					<div className="mt-8 min-w-0">
+						<p className="font-semibold text-[#FAFAFA] text-[20px] leading-tight">
+							Filesystem space
+						</p>
+						<p className="mt-2 line-clamp-2 font-medium text-[#9A9AA2] text-[14px] leading-[1.45]">
+							Local Supermemory folder for editors and command-line tools
+						</p>
+					</div>
+
+					<div className="mt-auto flex items-center justify-between gap-4 pt-8">
+						<FilesystemStatus mounted={mounted} loading={loading} />
+						<p className="truncate font-mono font-medium text-[#737373] text-[13px]">
+							{status?.tag ?? tag}
+						</p>
 					</div>
 					{error ? <p className="mt-4 text-red-300 text-sm">{error}</p> : null}
 				</div>
-				<div className="rounded-2xl border border-white/[0.07] bg-[#0B1018]/70 p-5">
-					<p className="font-medium text-sm text-white">Recommended</p>
-					<p className="mt-2 text-[#A1A1AA] text-sm leading-6">
-						Mount now if you want a local memory folder. You can also do this
-						later from Settings.
-					</p>
-					<button
+
+				<div
+					className="flex min-h-[190px] flex-col rounded-[18px] bg-[#15181D] p-5 transition-colors"
+					style={modalCardStyle}
+				>
+					<div className="flex items-start justify-between gap-3">
+						<div
+							className="flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.16)] bg-[#0C1016]"
+							style={inputBevelStyle}
+						>
+							<Check className="size-6 text-[#FAFAFA]" />
+						</div>
+						<span className="mt-1 font-semibold text-[#4BA0FA] text-[11px] uppercase tracking-[0.08em]">
+							Recommended
+						</span>
+					</div>
+
+					<div className="mt-8 min-w-0">
+						<p className="font-semibold text-[#FAFAFA] text-[20px] leading-tight">
+							Mount folder
+						</p>
+						<p className="mt-2 line-clamp-2 font-medium text-[#9A9AA2] text-[14px] leading-[1.45]">
+							Create the local memory folder for this Mac
+						</p>
+					</div>
+
+					<Button
 						type="button"
+						variant="insideOut"
 						onClick={mounted ? onContinue : mount}
 						disabled={loading || busy}
-						className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 font-medium text-[#05080D] text-sm disabled:opacity-60"
+						className="mt-auto h-10 w-full rounded-full font-medium text-[#FAFAFA] text-[15px]"
 					>
 						{busy || loading ? (
 							<Loader2 className="size-4 animate-spin" />
@@ -425,7 +455,7 @@ function FilesystemStep({
 							<Check className="size-4" />
 						) : null}
 						{mounted ? "Mounted" : "Mount folder"}
-					</button>
+					</Button>
 				</div>
 			</div>
 			<StepActions
@@ -434,6 +464,39 @@ function FilesystemStep({
 				continueLabel={mounted ? "Continue" : "Skip for now"}
 			/>
 		</section>
+	)
+}
+
+function FilesystemStatus({
+	mounted,
+	loading,
+}: {
+	mounted: boolean
+	loading: boolean
+}) {
+	if (loading) {
+		return (
+			<div className="flex min-w-0 items-center gap-2 font-medium text-[#737373] text-[14px]">
+				<Loader2 className="size-3.5 shrink-0 animate-spin" />
+				<span>Checking</span>
+			</div>
+		)
+	}
+
+	if (mounted) {
+		return (
+			<div className="flex min-w-0 items-center gap-2 font-medium text-[#4AC463] text-[14px]">
+				<span className="size-2 shrink-0 rounded-full bg-[#4AC463]" />
+				<span>Mounted</span>
+			</div>
+		)
+	}
+
+	return (
+		<div className="flex min-w-0 items-center gap-2 font-medium text-[#737373] text-[14px]">
+			<span className="size-2 shrink-0 rounded-full bg-[#525D6E]" />
+			<span>Unmounted</span>
+		</div>
 	)
 }
 
@@ -751,19 +814,6 @@ function StepIndicator({ step }: { step: DesktopOnboardingStep }) {
 	)
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
-	return (
-		<div className="min-w-0">
-			<p className="text-[#737373] text-[11px] uppercase tracking-[0.08em]">
-				{label}
-			</p>
-			<p className="mt-0.5 truncate text-[#C8D0DA] text-xs" title={value}>
-				{value}
-			</p>
-		</div>
-	)
-}
-
 function NovaBackground() {
 	return (
 		<>
@@ -790,25 +840,6 @@ function NovaBackground() {
 			/>
 		</>
 	)
-}
-
-function formatSmfsState(state?: SmfsStatus["state"]) {
-	switch (state) {
-		case "degraded":
-			return "Mounted with warnings"
-		case "external":
-			return "External mount"
-		case "error":
-			return "Error"
-		case "missing-binary":
-			return "Missing binary"
-		case "mounted":
-			return "Mounted"
-		case "unmounted":
-			return "Unmounted"
-		default:
-			return "Loading"
-	}
 }
 
 function formatUnknownError(error: unknown, fallback: string) {
