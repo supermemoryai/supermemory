@@ -293,9 +293,11 @@ export default function LoginPage() {
 													{isSubmitting ? (
 														<Loader2 className="size-5 animate-spin" />
 													) : (
-														<Logo className="size-5" />
+														<Logo className="h-5 w-6 shrink-0" />
 													)}
-													Log in with Supermemory
+													<span className="whitespace-nowrap">
+														Log in with Supermemory
+													</span>
 												</Button>
 											</form>
 										</>

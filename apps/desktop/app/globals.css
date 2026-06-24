@@ -543,45 +543,45 @@ body {
 	}
 
 	.desktop-login-auth-content {
-		padding: 0.25rem 2.5rem 2.5rem;
+		padding: 0.5rem 1.25rem 1.5rem;
 	}
 
 	.desktop-login-auth-stack {
-		max-width: 25rem;
+		max-width: 22.5rem;
 	}
 
 	.desktop-login-headline {
-		margin-bottom: 2rem;
+		margin-bottom: 1.25rem;
 	}
 
 	.desktop-login-headline h1 {
-		font-size: 1.875rem;
+		font-size: 1.5rem;
 	}
 
 	.desktop-login-subtitle {
-		margin-top: 1rem;
-		font-size: 0.875rem;
+		margin-top: 0.75rem;
+		font-size: 0.8125rem;
 	}
 
 	.desktop-login-card {
-		padding: 3rem 3.625rem;
+		padding: 1.5rem;
 	}
 
 	.desktop-login-card-pending {
-		min-height: 38rem;
+		min-height: 27rem;
 	}
 
 	.desktop-login-email-form {
-		gap: 1.5rem;
+		gap: 1rem;
 	}
 
 	.desktop-login-email-input,
 	.desktop-login-primary-button {
-		height: 3.5rem;
+		height: 3rem;
 	}
 
 	.desktop-login-terms {
-		font-size: 0.875rem;
+		font-size: 0.75rem;
 	}
 }
 
