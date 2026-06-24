@@ -26,3 +26,4 @@ tauri-plugin-deep-link = "2"
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 url = "2"
 uuid = { version = "1", features = ["v4"] }
+rfd = "0.15"

@@ -13,6 +13,7 @@ export type SmfsStatus = {
 		| "missing-binary"
 		| "error"
 	mountPath: string
+	mountPathConfigured: boolean
 	ownedByApp: boolean
 	profileAvailable: boolean
 	lastSync?: string | null
@@ -38,8 +39,12 @@ export function getSmfsState() {
 	return invoke<SmfsStatus[]>("smfs_state")
 }
 
-export function mountSmfs(tag?: string) {
-	return invoke<SmfsStatus>("smfs_mount", { tag })
+export function chooseSmfsMountPath() {
+	return invoke<string | null>("smfs_choose_mount_path")
+}
+
+export function mountSmfs(tag?: string, mountPath?: string) {
+	return invoke<SmfsStatus>("smfs_mount", { tag, mountPath })
 }
 
 export function unmountSmfs(tag?: string) {

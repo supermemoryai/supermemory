@@ -136,8 +136,17 @@ fn smfs_state(app: tauri::AppHandle) -> Result<Vec<smfs::SmfsStatus>, String> {
 }
 
 #[tauri::command]
-fn smfs_mount(app: tauri::AppHandle, tag: Option<String>) -> Result<smfs::SmfsStatus, String> {
-    smfs::mount(&app, tag)
+fn smfs_choose_mount_path() -> Result<Option<String>, String> {
+    smfs::choose_mount_path()
+}
+
+#[tauri::command]
+fn smfs_mount(
+    app: tauri::AppHandle,
+    tag: Option<String>,
+    mount_path: Option<String>,
+) -> Result<smfs::SmfsStatus, String> {
+    smfs::mount(&app, tag, mount_path)
 }
 
 #[tauri::command]
@@ -232,6 +241,7 @@ pub fn run() {
             spotlight_get_shortcut,
             spotlight_set_shortcut,
             smfs_state,
+            smfs_choose_mount_path,
             smfs_mount,
             smfs_unmount,
             smfs_sync,

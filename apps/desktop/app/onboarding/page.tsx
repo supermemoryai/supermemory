@@ -24,6 +24,7 @@ import {
 	updateDesktopOnboardingStatus,
 } from "@/lib/onboarding"
 import {
+	chooseSmfsMountPath,
 	getDefaultSmfsContainerTag,
 	getSmfsState,
 	mountSmfs,
@@ -340,6 +341,9 @@ function FilesystemStep({
 }) {
 	const [tag, setTag] = useState("sm_fs_desktop")
 	const [status, setStatus] = useState<SmfsStatus | null>(null)
+	const [selectedMountPath, setSelectedMountPath] = useState<string | null>(
+		null,
+	)
 	const [loading, setLoading] = useState(true)
 	const [busy, setBusy] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -353,7 +357,16 @@ function FilesystemStep({
 				getSmfsState(),
 			])
 			setTag(defaultTag)
-			setStatus(statuses[0] ?? null)
+			const nextStatus = statuses[0] ?? null
+			setStatus(nextStatus)
+			if (
+				nextStatus?.mountPath &&
+				(nextStatus.mountPathConfigured ||
+					nextStatus.state === "mounted" ||
+					nextStatus.state === "external")
+			) {
+				setSelectedMountPath(nextStatus.mountPath)
+			}
 		} catch (err) {
 			setError(formatUnknownError(err, "Could not load filesystem status"))
 		} finally {
@@ -369,7 +382,12 @@ function FilesystemStep({
 		setError(null)
 		setBusy(true)
 		try {
-			setStatus(await mountSmfs(tag))
+			if (!selectedMountPath) {
+				throw new Error("Choose a folder before mounting SMFS")
+			}
+			const nextStatus = await mountSmfs(tag, selectedMountPath)
+			setStatus(nextStatus)
+			setSelectedMountPath(nextStatus.mountPath)
 		} catch (err) {
 			setError(formatUnknownError(err, "Could not mount memory folder"))
 		} finally {
@@ -377,7 +395,25 @@ function FilesystemStep({
 		}
 	}
 
+	async function chooseFolder() {
+		setError(null)
+		setBusy(true)
+		try {
+			const path = await chooseSmfsMountPath()
+			if (path) {
+				setSelectedMountPath(path)
+			}
+		} catch (err) {
+			setError(formatUnknownError(err, "Could not choose mount folder"))
+		} finally {
+			setBusy(false)
+		}
+	}
+
 	const mounted = status?.state === "mounted" || status?.state === "external"
+	const mountPath =
+		selectedMountPath ?? (status?.mountPathConfigured ? status.mountPath : null)
+	const canMount = Boolean(mountPath) && !loading && !busy
 
 	return (
 		<section className="mx-auto w-full max-w-4xl space-y-6">
@@ -410,8 +446,11 @@ function FilesystemStep({
 
 					<div className="mt-auto flex items-center justify-between gap-4 pt-8">
 						<FilesystemStatus mounted={mounted} loading={loading} />
-						<p className="truncate font-mono font-medium text-[#737373] text-[13px]">
-							{status?.tag ?? tag}
+						<p
+							className="truncate font-mono font-medium text-[#737373] text-[13px]"
+							title={mountPath ?? undefined}
+						>
+							{mountPath ? compactPath(mountPath) : "No folder selected"}
 						</p>
 					</div>
 					{error ? <p className="mt-4 text-red-300 text-sm">{error}</p> : null}
@@ -438,16 +477,25 @@ function FilesystemStep({
 							Mount folder
 						</p>
 						<p className="mt-2 line-clamp-2 font-medium text-[#9A9AA2] text-[14px] leading-[1.45]">
-							Create the local memory folder for this Mac
+							Choose or create the local folder SMFS should mount into
 						</p>
 					</div>
 
 					<Button
 						type="button"
 						variant="insideOut"
-						onClick={mounted ? onContinue : mount}
-						disabled={loading || busy}
+						onClick={chooseFolder}
+						disabled={loading || busy || mounted}
 						className="mt-auto h-10 w-full rounded-full font-medium text-[#FAFAFA] text-[15px]"
+					>
+						{mountPath ? "Change folder" : "Choose folder"}
+					</Button>
+					<Button
+						type="button"
+						variant="insideOut"
+						onClick={mounted ? onContinue : mount}
+						disabled={!mounted && !canMount}
+						className="mt-3 h-10 w-full rounded-full font-medium text-[#FAFAFA] text-[15px]"
 					>
 						{busy || loading ? (
 							<Loader2 className="size-4 animate-spin" />
@@ -840,6 +888,16 @@ function NovaBackground() {
 			/>
 		</>
 	)
+}
+
+function compactPath(path: string) {
+	if (path.startsWith("/Users/")) {
+		const parts = path.split("/")
+		if (parts.length > 3) {
+			return `~/${parts.slice(3).join("/")}`
+		}
+	}
+	return path
 }
 
 function formatUnknownError(error: unknown, fallback: string) {

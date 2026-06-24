@@ -24,6 +24,7 @@ pub struct SmfsStatus {
     tag: String,
     state: SmfsState,
     mount_path: String,
+    mount_path_configured: bool,
     owned_by_app: bool,
     profile_available: bool,
     last_sync: Option<String>,
@@ -96,11 +97,32 @@ pub fn state(app: &AppHandle) -> Result<Vec<SmfsStatus>, String> {
     Ok(vec![status_for_tag(app, DEFAULT_CONTAINER_TAG)?])
 }
 
-pub fn mount(app: &AppHandle, tag: Option<String>) -> Result<SmfsStatus, String> {
+pub fn choose_mount_path() -> Result<Option<String>, String> {
+    Ok(rfd::FileDialog::new()
+        .set_title("Choose SMFS mount folder")
+        .pick_folder()
+        .map(|path| path_to_string(&path)))
+}
+
+pub fn mount(
+    app: &AppHandle,
+    tag: Option<String>,
+    mount_path: Option<String>,
+) -> Result<SmfsStatus, String> {
     let tag = normalize_tag(tag)?;
     let token = auth::get_token()?.ok_or_else(|| "No stored token".to_string())?;
-    let mount_path = expected_mount_path(app, &tag)?;
+    let (configured_path, _) = configured_mount_path(app, &tag)?;
+    let mount_path = match mount_path {
+        Some(path) => normalize_mount_path(path)?,
+        None => configured_path,
+    };
     fs::create_dir_all(&mount_path).map_err(|error| error.to_string())?;
+    if !mount_path.is_dir() {
+        return Err(format!(
+            "{} is not a directory",
+            path_to_string(&mount_path)
+        ));
+    }
 
     let status = status_for_tag(app, &tag)?;
     match status.state {
@@ -242,7 +264,7 @@ pub fn profile(app: &AppHandle, tag: Option<String>) -> Result<SmfsProfile, Stri
 fn status_for_tag(app: &AppHandle, tag: &str) -> Result<SmfsStatus, String> {
     validate_tag(tag)?;
 
-    let expected_mount_path = expected_mount_path(app, tag)?;
+    let (expected_mount_path, mount_path_configured) = configured_mount_path(app, tag)?;
     let binary_path = smfs_bin(app);
     let binary_path_string = path_to_string(&binary_path);
     let output = match run_smfs(app, ["status", tag, "--json"]) {
@@ -252,6 +274,7 @@ fn status_for_tag(app: &AppHandle, tag: &str) -> Result<SmfsStatus, String> {
                 tag: tag.to_string(),
                 state: SmfsState::MissingBinary,
                 mount_path: path_to_string(&expected_mount_path),
+                mount_path_configured,
                 owned_by_app: false,
                 profile_available: false,
                 last_sync: None,
@@ -264,6 +287,7 @@ fn status_for_tag(app: &AppHandle, tag: &str) -> Result<SmfsStatus, String> {
                 tag: tag.to_string(),
                 state: SmfsState::Error,
                 mount_path: path_to_string(&expected_mount_path),
+                mount_path_configured,
                 owned_by_app: false,
                 profile_available: false,
                 last_sync: None,
@@ -291,6 +315,7 @@ fn status_for_tag(app: &AppHandle, tag: &str) -> Result<SmfsStatus, String> {
         .unwrap_or_else(|| expected_mount_path.clone());
         let owned_by_app = is_app_owned_mount(app, tag, &active_mount_path);
         let profile_available = active_mount_path.join("profile.md").exists();
+        let mount_path_configured = owned_by_app || mount_path_configured;
         let state = if is_degraded(&parsed) {
             SmfsState::Degraded
         } else if owned_by_app {
@@ -303,6 +328,7 @@ fn status_for_tag(app: &AppHandle, tag: &str) -> Result<SmfsStatus, String> {
             tag: tag.to_string(),
             state,
             mount_path: path_to_string(&active_mount_path),
+            mount_path_configured,
             owned_by_app,
             profile_available,
             last_sync: first_string(&parsed, &[&["lastSync"], &["last_sync"]]),
@@ -320,6 +346,7 @@ fn status_for_tag(app: &AppHandle, tag: &str) -> Result<SmfsStatus, String> {
             tag: tag.to_string(),
             state: SmfsState::Unmounted,
             mount_path: path_to_string(&expected_mount_path),
+            mount_path_configured,
             owned_by_app: false,
             profile_available: false,
             last_sync: None,
@@ -332,6 +359,7 @@ fn status_for_tag(app: &AppHandle, tag: &str) -> Result<SmfsStatus, String> {
         tag: tag.to_string(),
         state: SmfsState::Error,
         mount_path: path_to_string(&expected_mount_path),
+        mount_path_configured,
         owned_by_app: false,
         profile_available: false,
         last_sync: None,
@@ -367,7 +395,49 @@ fn validate_tag(tag: &str) -> Result<(), String> {
     }
 }
 
+fn normalize_mount_path(path: String) -> Result<PathBuf, String> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return Err("Choose a folder before mounting SMFS".to_string());
+    }
+
+    let path = shellexpand_path(trimmed);
+    if path.exists() && !path.is_dir() {
+        return Err(format!("{} is not a directory", path_to_string(&path)));
+    }
+
+    Ok(path)
+}
+
+fn shellexpand_path(path: &str) -> PathBuf {
+    if path == "~" {
+        if let Some(home) = env::var_os("HOME") {
+            return PathBuf::from(home);
+        }
+    }
+
+    if let Some(rest) = path.strip_prefix("~/") {
+        if let Some(home) = env::var_os("HOME") {
+            return PathBuf::from(home).join(rest);
+        }
+    }
+
+    PathBuf::from(path)
+}
+
+fn configured_mount_path(app: &AppHandle, tag: &str) -> Result<(PathBuf, bool), String> {
+    if let Some(marker) = read_ownership_marker(app, tag) {
+        return Ok((PathBuf::from(marker.mount_path), true));
+    }
+
+    Ok((default_mount_path(app, tag)?, false))
+}
+
 fn expected_mount_path(app: &AppHandle, tag: &str) -> Result<PathBuf, String> {
+    configured_mount_path(app, tag).map(|(path, _)| path)
+}
+
+fn default_mount_path(app: &AppHandle, tag: &str) -> Result<PathBuf, String> {
     Ok(app
         .path()
         .app_data_dir()
