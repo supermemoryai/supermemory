@@ -11,6 +11,8 @@ export type DesktopToolStatus = {
 	connected: boolean
 	configPath: string
 	configExists: boolean
+	detectedPath?: string | null
+	version?: string | null
 	installHint: string
 	detail: string
 }

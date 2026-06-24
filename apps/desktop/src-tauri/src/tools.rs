@@ -27,6 +27,8 @@ pub struct ToolStatus {
     connected: bool,
     config_path: String,
     config_exists: bool,
+    detected_path: Option<String>,
+    version: Option<String>,
     install_hint: &'static str,
     detail: String,
 }
@@ -127,7 +129,9 @@ fn status_for_tool(tool: ToolId) -> Result<ToolStatus, String> {
     let config_path = config_path(tool)?;
     let config_exists = config_path.exists();
     let connected = is_connected(tool, &config_path)?;
-    let detected = is_detected(tool);
+    let detected_path = detected_path(tool);
+    let detected = detected_path.is_some();
+    let version = detected_path.as_deref().and_then(version_for_tool);
 
     Ok(ToolStatus {
         id: tool.id(),
@@ -136,8 +140,16 @@ fn status_for_tool(tool: ToolId) -> Result<ToolStatus, String> {
         connected,
         config_path: path_to_string(&config_path),
         config_exists,
+        detected_path: detected_path.as_deref().map(path_to_string),
+        version,
         install_hint: tool.install_hint(),
-        detail: status_detail(tool, detected, connected, config_exists),
+        detail: status_detail(
+            tool,
+            detected,
+            connected,
+            config_exists,
+            detected_path.as_deref(),
+        ),
     })
 }
 
@@ -338,19 +350,59 @@ fn make_diff(before: &str, after: &str) -> String {
     diff
 }
 
-fn is_detected(tool: ToolId) -> bool {
+fn detected_path(tool: ToolId) -> Option<PathBuf> {
     match tool {
-        ToolId::ClaudeCode => find_binary("claude").is_some() || home_path(".claude").exists(),
-        ToolId::Codex => find_binary("codex").is_some() || home_path(".codex").exists(),
-        ToolId::Cursor => {
-            PathBuf::from("/Applications/Cursor.app").exists()
-                || find_binary("cursor").is_some()
-                || home_path(".cursor").exists()
-        }
+        ToolId::ClaudeCode => find_binary("claude")
+            .or_else(|| existing_path(home_path(".claude.json")))
+            .or_else(|| existing_path(home_path(".claude"))),
+        ToolId::Codex => find_binary("codex")
+            .or_else(|| {
+                env::var("CODEX_HOME")
+                    .ok()
+                    .map(PathBuf::from)
+                    .and_then(existing_path)
+            })
+            .or_else(|| existing_path(home_path(".codex"))),
+        ToolId::Cursor => existing_path(PathBuf::from("/Applications/Cursor.app"))
+            .or_else(|| find_binary("cursor"))
+            .or_else(|| existing_path(home_path(".cursor"))),
     }
 }
 
-fn status_detail(tool: ToolId, detected: bool, connected: bool, config_exists: bool) -> String {
+fn existing_path(path: PathBuf) -> Option<PathBuf> {
+    path.exists().then_some(path)
+}
+
+fn version_for_tool(detected_path: &Path) -> Option<String> {
+    if !detected_path.is_file() {
+        return None;
+    }
+
+    let output = Command::new(detected_path).arg("--version").output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+
+    let raw = if output.stdout.is_empty() {
+        String::from_utf8_lossy(&output.stderr)
+    } else {
+        String::from_utf8_lossy(&output.stdout)
+    };
+    let first_line = raw.lines().next()?.trim();
+    if first_line.is_empty() {
+        return None;
+    }
+
+    Some(first_line.to_string())
+}
+
+fn status_detail(
+    tool: ToolId,
+    detected: bool,
+    connected: bool,
+    config_exists: bool,
+    detected_path: Option<&Path>,
+) -> String {
     if connected {
         return "Connected to the Supermemory MCP server.".to_string();
     }
@@ -360,6 +412,9 @@ fn status_detail(tool: ToolId, detected: bool, connected: bool, config_exists: b
     }
 
     if detected {
+        if let Some(path) = detected_path {
+            return format!("Detected at {}; ready to connect.", path_to_string(path));
+        }
         return "Detected locally; ready to connect.".to_string();
     }
 

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { type ReactNode, useEffect, useState } from "react"
 import { getSession } from "@/lib/auth"
+import { shouldShowDesktopOnboarding } from "@/lib/onboarding"
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated"
 
@@ -35,6 +36,11 @@ export function AuthGuard({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		if (status === "unauthenticated") {
 			router.replace("/login")
+			return
+		}
+
+		if (status === "authenticated" && shouldShowDesktopOnboarding()) {
+			router.replace("/onboarding")
 		}
 	}, [status, router])
 

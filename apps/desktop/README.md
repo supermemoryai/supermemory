@@ -18,6 +18,32 @@ In development, the desktop UI and Rust auth commands default to the local API a
 `http://localhost:8787`. Set `NEXT_PUBLIC_BACKEND_URL` / `SUPERMEMORY_API_URL`
 if you need a different API.
 
+## Manual onboarding verification
+
+Run the API locally on `localhost:8787`, then start the desktop app:
+
+```sh
+bun run tauri dev
+```
+
+Use this path before shipping auth or onboarding changes:
+
+1. Clear `localStorage["supermemory-desktop-onboarding-v1"]` if you need a
+   fresh first-run state.
+2. Sign in with Google or email from the desktop login page.
+3. Confirm the browser callback returns to the desktop app and the first
+   authenticated route is `/onboarding`, not the web console.
+4. In the tools step, rescan and confirm Claude Code, Codex, and Cursor show
+   detected paths when installed or configured.
+5. Preview each tool connection and verify the diff targets the expected config:
+   `~/.claude.json`, `$CODEX_HOME/config.toml` or `~/.codex/config.toml`, and
+   `~/.cursor/mcp.json`.
+6. Apply one connection and confirm the app writes the MCP server, creates a
+   `.smbak` backup when the config already existed, and reports the tool as
+   connected after refresh.
+7. Mount or skip the filesystem step, finish onboarding, relaunch the app, and
+   confirm completed or skipped onboarding does not appear again.
+
 SMFS integration uses the first available binary in this order:
 
 1. `SUPERMEMORY_DESKTOP_SMFS_BIN`

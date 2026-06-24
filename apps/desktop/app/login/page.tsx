@@ -32,6 +32,7 @@ import {
 	storeToken,
 	verifyMagicLinkToken,
 } from "@/lib/auth"
+import { postAuthRedirectPath } from "@/lib/onboarding"
 
 export default function LoginPage() {
 	const router = useRouter()
@@ -55,7 +56,7 @@ export default function LoginPage() {
 			setIsSubmitting(false)
 			try {
 				await getSession()
-				router.replace("/")
+				router.replace(postAuthRedirectPath())
 			} catch (err) {
 				setError(formatError(err, "Could not validate browser sign-in"))
 			}
@@ -92,7 +93,7 @@ export default function LoginPage() {
 
 		try {
 			await storeToken(token)
-			router.replace("/")
+			router.replace(postAuthRedirectPath())
 		} catch (err) {
 			setError(formatError(err, "Could not sign in"))
 		} finally {

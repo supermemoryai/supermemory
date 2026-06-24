@@ -3,10 +3,7 @@
 import { useQuery } from "@tanstack/react-query"
 import {
 	ArrowRight,
-	Bot,
-	CheckCircle2,
 	Clock,
-	Code2,
 	FileText,
 	Link2,
 	Lightbulb,
@@ -16,20 +13,11 @@ import {
 	Search,
 	SendHorizontal,
 	Sparkles,
-	Terminal,
 } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { listDocuments, type DocumentWithMemories } from "@/lib/api"
 import type { SearchResult } from "@/lib/search"
 import { OPEN_MEMORY_EVENT, type SpotlightMemory } from "@/lib/spotlight"
-import {
-	connectDesktopTool,
-	detectDesktopTools,
-	type DesktopToolId,
-	type DesktopToolPreview,
-	type DesktopToolStatus,
-	previewConnectDesktopTool,
-} from "@/lib/tools"
 import { SearchCommand, useCommandK } from "@/components/search-command"
 
 type MemoryPreview = {
@@ -160,9 +148,6 @@ export default function DashboardPage() {
 							</button>
 						</div>
 					</div>
-
-					<ToolOnboardingPanel />
-
 					<section className="mx-auto w-full max-w-2xl space-y-2">
 						<div className="flex items-center justify-between px-1">
 							<p className="font-medium text-[10px] text-fg-faint uppercase tracking-[0.12em]">
@@ -221,180 +206,6 @@ export default function DashboardPage() {
 	)
 }
 
-function ToolOnboardingPanel() {
-	const [tools, setTools] = useState<DesktopToolStatus[]>([])
-	const [toolsError, setToolsError] = useState<string | null>(null)
-	const [toolsBusy, setToolsBusy] = useState<string | null>(null)
-	const [toolPreview, setToolPreview] = useState<DesktopToolPreview | null>(
-		null,
-	)
-	const [loading, setLoading] = useState(true)
-
-	const connectedCount = tools.filter((tool) => tool.connected).length
-	const detectedCount = tools.filter((tool) => tool.detected).length
-
-	const refreshTools = useCallback(async () => {
-		setToolsError(null)
-		setLoading(true)
-		try {
-			setTools(await detectDesktopTools())
-		} catch (err) {
-			setToolsError(formatUnknownError(err, "Could not detect local tools"))
-		} finally {
-			setLoading(false)
-		}
-	}, [])
-
-	useEffect(() => {
-		refreshTools()
-	}, [refreshTools])
-
-	async function previewConnect(toolId: DesktopToolId) {
-		setToolsError(null)
-		setToolsBusy(toolId)
-		try {
-			setToolPreview(await previewConnectDesktopTool(toolId))
-		} catch (err) {
-			setToolsError(formatUnknownError(err, "Could not prepare setup"))
-		} finally {
-			setToolsBusy(null)
-		}
-	}
-
-	async function applyPreview() {
-		if (!toolPreview) return
-
-		setToolsError(null)
-		setToolsBusy(toolPreview.tool.id)
-		try {
-			await connectDesktopTool(toolPreview.tool.id)
-			setToolPreview(null)
-			await refreshTools()
-		} catch (err) {
-			setToolsError(formatUnknownError(err, "Could not connect tool"))
-		} finally {
-			setToolsBusy(null)
-		}
-	}
-
-	return (
-		<section className="mx-auto w-full max-w-3xl rounded-2xl border border-white/[0.06] bg-[#0B1018]/56 p-4 shadow-[0_18px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-			<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-				<div className="min-w-0 space-y-1">
-					<p className="flex items-center gap-2 font-medium text-sm text-white">
-						<Bot className="size-4 text-[#8BC6FF]" />
-						Connect AI tools
-					</p>
-					<p className="text-fg-subtle text-xs">
-						Detected {detectedCount} local tools. {connectedCount} connected.
-					</p>
-				</div>
-				<button
-					type="button"
-					onClick={refreshTools}
-					disabled={loading || toolsBusy !== null}
-					className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] px-3 text-[12px] text-fg-muted transition-colors hover:bg-white/[0.05] hover:text-white disabled:opacity-60"
-				>
-					{loading ? "Scanning..." : "Rescan"}
-				</button>
-			</div>
-
-			<div className="mt-4 grid gap-2 md:grid-cols-3">
-				{tools.map((tool) => {
-					const Icon = toolIcon(tool.id)
-					return (
-						<div
-							key={tool.id}
-							className="flex min-h-36 flex-col justify-between rounded-xl border border-white/[0.06] bg-black/15 p-3"
-						>
-							<div className="space-y-3">
-								<div className="flex items-start justify-between gap-3">
-									<div className="flex min-w-0 items-center gap-2">
-										<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#00173C] text-[#8BC6FF] ring-1 ring-[#2261CA33]">
-											<Icon className="size-4" />
-										</span>
-										<div className="min-w-0">
-											<p className="truncate font-medium text-sm text-white">
-												{tool.name}
-											</p>
-											<p className="text-[11px] text-fg-faint">
-												{toolStatusLabel(tool)}
-											</p>
-										</div>
-									</div>
-									{tool.connected ? (
-										<CheckCircle2 className="size-4 shrink-0 text-emerald-300" />
-									) : null}
-								</div>
-								<p className="line-clamp-2 text-[11px] text-fg-subtle">
-									{tool.detail}
-								</p>
-							</div>
-							<button
-								type="button"
-								onClick={() => previewConnect(tool.id)}
-								disabled={toolsBusy !== null || tool.connected}
-								className="mt-4 inline-flex h-8 items-center justify-center rounded-lg bg-white px-3 font-medium text-[#0B1018] text-[12px] transition-transform hover:scale-[1.02] disabled:cursor-default disabled:bg-white/[0.08] disabled:text-fg-faint disabled:hover:scale-100"
-							>
-								{tool.connected
-									? "Connected"
-									: toolsBusy === tool.id
-										? "Preparing..."
-										: tool.detected
-											? "Connect"
-											: "Set up"}
-							</button>
-						</div>
-					)
-				})}
-			</div>
-
-			{toolsError ? (
-				<p className="mt-3 text-destructive text-xs">{toolsError}</p>
-			) : null}
-
-			{toolPreview ? (
-				<div className="mt-4 rounded-xl border border-[#2261CA33] bg-[#00173C]/42 p-3">
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-						<div className="min-w-0">
-							<p className="font-medium text-sm text-white">
-								Connect {toolPreview.tool.name}
-							</p>
-							<p
-								className="truncate font-mono text-[11px] text-fg-subtle"
-								title={toolPreview.configPath}
-							>
-								{toolPreview.configPath}
-							</p>
-						</div>
-						<div className="flex shrink-0 gap-2">
-							<button
-								type="button"
-								onClick={() => setToolPreview(null)}
-								disabled={toolsBusy !== null}
-								className="h-8 rounded-lg border border-white/[0.08] px-3 text-[12px] text-fg-muted transition-colors hover:bg-white/[0.05] hover:text-white disabled:opacity-60"
-							>
-								Cancel
-							</button>
-							<button
-								type="button"
-								onClick={applyPreview}
-								disabled={toolsBusy !== null}
-								className="h-8 rounded-lg bg-white px-3 font-medium text-[#0B1018] text-[12px] disabled:opacity-60"
-							>
-								{toolsBusy ? "Applying..." : "Apply"}
-							</button>
-						</div>
-					</div>
-					<pre className="mt-3 max-h-52 overflow-auto rounded-lg border border-white/[0.06] bg-black/25 p-3 whitespace-pre-wrap text-[11px] text-fg-muted">
-						{toolPreview.diff}
-					</pre>
-				</div>
-			) : null}
-		</section>
-	)
-}
-
 function ComposerAction({
 	icon: Icon,
 	label,
@@ -414,31 +225,6 @@ function ComposerAction({
 			<span className="min-w-0 truncate whitespace-nowrap">{label}</span>
 		</button>
 	)
-}
-
-function toolIcon(toolId: DesktopToolId) {
-	switch (toolId) {
-		case "claude-code":
-			return Bot
-		case "codex":
-			return Terminal
-		case "cursor":
-			return Code2
-	}
-}
-
-function toolStatusLabel(tool: DesktopToolStatus) {
-	if (tool.connected) return "Connected"
-	if (tool.detected) return "Detected"
-	return "Not detected"
-}
-
-function formatUnknownError(error: unknown, fallback: string) {
-	return error instanceof Error
-		? error.message
-		: typeof error === "string"
-			? error
-			: fallback
 }
 
 function RecentMemoryRow({
