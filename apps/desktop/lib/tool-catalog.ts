@@ -1,6 +1,5 @@
 "use client"
 
-import { Bot, Code2, Terminal, type LucideIcon } from "lucide-react"
 import type { DesktopToolId, DesktopToolStatus } from "@/lib/tools"
 
 export type DesktopToolCatalogEntry = {
@@ -10,7 +9,7 @@ export type DesktopToolCatalogEntry = {
 	tagline: string
 	description: string
 	docsUrl: string
-	icon: LucideIcon
+	iconSrc: string
 	perks: string[]
 	restartHint: string
 }
@@ -32,7 +31,7 @@ export const DESKTOP_TOOL_CATALOG: Record<
 		description:
 			"Connect the Supermemory MCP server so Claude Code can search and save memories while you work.",
 		docsUrl: "https://supermemory.ai/docs/integrations/claude-code",
-		icon: Bot,
+		iconSrc: "/images/plugins/claude-code.svg",
 		perks: [
 			"Search and save memories from coding sessions",
 			"Project decisions become reusable context",
@@ -48,7 +47,7 @@ export const DESKTOP_TOOL_CATALOG: Record<
 		description:
 			"Add Supermemory to Codex MCP servers so coding sessions can recall durable context.",
 		docsUrl: "https://supermemory.ai/docs/integrations/codex",
-		icon: Terminal,
+		iconSrc: "/images/plugins/codex.png",
 		perks: [
 			"Persistent memory for Codex CLI sessions",
 			"Uses the Supermemory MCP server",
@@ -64,7 +63,7 @@ export const DESKTOP_TOOL_CATALOG: Record<
 		description:
 			"Write the Supermemory MCP server into Cursor's MCP config for one-click memory access.",
 		docsUrl: "https://supermemory.ai/docs/supermemory-mcp/setup",
-		icon: Code2,
+		iconSrc: "/images/plugins/cursor.png",
 		perks: [
 			"Memory tools directly inside Cursor",
 			"One MCP config for project context",

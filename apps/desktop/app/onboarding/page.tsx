@@ -490,7 +490,6 @@ function ToolCard({
 	busy: boolean
 	onPreview: () => void
 }) {
-	const Icon = tool.icon
 	const canPreview = !busy && !tool.connected
 	return (
 		<div
@@ -505,7 +504,12 @@ function ToolCard({
 					className="flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.16)] bg-[#0C1016]"
 					style={inputBevelStyle}
 				>
-					<Icon className="size-6 text-[#FAFAFA]" />
+					<img
+						src={tool.iconSrc}
+						alt=""
+						className="size-7 object-contain"
+						draggable={false}
+					/>
 				</div>
 				{tool.id !== "codex" ? (
 					<span className="mt-1 font-semibold text-[#4BA0FA] text-[11px] uppercase tracking-[0.08em]">

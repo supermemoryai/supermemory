@@ -591,7 +591,6 @@ function SettingsToolCard({
 	onPreviewConnect: () => void
 	onPreviewDisconnect: () => void
 }) {
-	const Icon = tool.icon
 	return (
 		<div
 			className={cn(
@@ -606,7 +605,12 @@ function SettingsToolCard({
 						className="flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#14161A]"
 						style={inputBevelStyle}
 					>
-						<Icon className="size-6 text-[#FAFAFA]" />
+						<img
+							src={tool.iconSrc}
+							alt=""
+							className="size-7 object-contain"
+							draggable={false}
+						/>
 					</div>
 				</div>
 				<div className="min-w-0 pr-1">
