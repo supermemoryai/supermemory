@@ -90,12 +90,13 @@ export function updateDesktopOnboardingStatus(
 export function shouldShowDesktopOnboarding(
 	owner?: DesktopOnboardingOwner | null,
 ) {
-	const status = getDesktopOnboardingStatus(owner)
-	return !status.completed && !status.skipped
+	void owner
+	return true
 }
 
 export function postAuthRedirectPath(owner?: DesktopOnboardingOwner | null) {
-	return shouldShowDesktopOnboarding(owner) ? "/onboarding" : "/"
+	void owner
+	return "/onboarding"
 }
 
 export function completeDesktopOnboarding(
