@@ -9,6 +9,7 @@ import {
 	CheckCircle2,
 	ChevronLeft,
 	FolderOpen,
+	Info,
 	Loader2,
 	Plus,
 	X,
@@ -57,15 +58,11 @@ const STEP_LABELS: Record<DesktopOnboardingStep, string> = {
 	done: "Done",
 }
 
-const modalCardStyle = {
-	boxShadow:
-		"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
-}
+const novaCardClassName =
+	"group relative flex min-h-[190px] flex-col overflow-hidden rounded-[12px] bg-[#14161A] p-5 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)] transition-colors hover:bg-[#16181D] focus-within:ring-2 focus-within:ring-[#4BA0FA]/45"
 
-const inputBevelStyle = {
-	boxShadow:
-		"0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08), inset 0px 1px 1px 0px rgba(0,0,0,0.08), inset 0px 2px 4px 0px rgba(0,0,0,0.02)",
-}
+const novaIconBoxClassName =
+	"flex size-12 shrink-0 items-center justify-center rounded-[10px] bg-[#080B0F] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]"
 
 export default function DesktopOnboardingPage() {
 	const router = useRouter()
@@ -421,16 +418,16 @@ function FilesystemStep({
 			<div className="grid gap-3 md:grid-cols-2">
 				<div
 					className={cn(
-						"flex min-h-[190px] flex-col rounded-[18px] bg-[#15181D] p-5 transition-colors",
+						novaCardClassName,
 						mounted && "ring-1 ring-[#2261CA33]",
 					)}
-					style={modalCardStyle}
 				>
+					<CardInfoButton
+						href="https://supermemory.ai/docs/smfs/overview"
+						name="SMFS"
+					/>
 					<div className="flex items-start justify-between gap-3">
-						<div
-							className="flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.16)] bg-[#0C1016]"
-							style={inputBevelStyle}
-						>
+						<div className={novaIconBoxClassName}>
 							<FolderOpen className="size-6 text-[#8BC6FF]" />
 						</div>
 					</div>
@@ -439,7 +436,7 @@ function FilesystemStep({
 						<p className="font-semibold text-[#FAFAFA] text-[20px] leading-tight">
 							Filesystem space
 						</p>
-						<p className="mt-2 line-clamp-2 font-medium text-[#9A9AA2] text-[14px] leading-[1.45]">
+						<p className="mt-2 line-clamp-2 font-medium text-[#A1A1AA] text-[14px] leading-[1.45]">
 							Local Supermemory folder for editors and command-line tools
 						</p>
 					</div>
@@ -456,27 +453,25 @@ function FilesystemStep({
 					{error ? <p className="mt-4 text-red-300 text-sm">{error}</p> : null}
 				</div>
 
-				<div
-					className="flex min-h-[190px] flex-col rounded-[18px] bg-[#15181D] p-5 transition-colors"
-					style={modalCardStyle}
-				>
+				<div className={novaCardClassName}>
+					<CardInfoButton
+						href="https://supermemory.ai/docs/smfs/mount"
+						name="mount folder"
+					/>
 					<div className="flex items-start justify-between gap-3">
-						<div
-							className="flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.16)] bg-[#0C1016]"
-							style={inputBevelStyle}
-						>
+						<div className={novaIconBoxClassName}>
 							<Check className="size-6 text-[#FAFAFA]" />
 						</div>
-						<span className="mt-1 font-semibold text-[#4BA0FA] text-[11px] uppercase tracking-[0.08em]">
-							Recommended
-						</span>
 					</div>
 
 					<div className="mt-8 min-w-0">
-						<p className="font-semibold text-[#FAFAFA] text-[20px] leading-tight">
-							Mount folder
-						</p>
-						<p className="mt-2 line-clamp-2 font-medium text-[#9A9AA2] text-[14px] leading-[1.45]">
+						<div className="flex min-w-0 items-center gap-2">
+							<p className="min-w-0 truncate font-semibold text-[#FAFAFA] text-[20px] leading-tight">
+								Mount folder
+							</p>
+							<NovaInlineChip>Recommended</NovaInlineChip>
+						</div>
+						<p className="mt-2 line-clamp-2 font-medium text-[#A1A1AA] text-[14px] leading-[1.45]">
 							Choose or create the local folder SMFS should mount into
 						</p>
 					</div>
@@ -605,16 +600,13 @@ function ToolCard({
 	return (
 		<div
 			className={cn(
-				"flex min-h-[190px] flex-col rounded-[18px] bg-[#15181D] p-5 transition-colors",
+				novaCardClassName,
 				tool.connected && "ring-1 ring-[#2261CA33]",
 			)}
-			style={modalCardStyle}
 		>
+			<CardInfoButton href={tool.docsUrl} name={tool.name} />
 			<div className="flex items-start justify-between gap-3">
-				<div
-					className="flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.16)] bg-[#0C1016]"
-					style={inputBevelStyle}
-				>
+				<div className={novaIconBoxClassName}>
 					<img
 						src={tool.iconSrc}
 						alt=""
@@ -622,18 +614,16 @@ function ToolCard({
 						draggable={false}
 					/>
 				</div>
-				{tool.id !== "codex" ? (
-					<span className="mt-1 font-semibold text-[#4BA0FA] text-[11px] uppercase tracking-[0.08em]">
-						Pro
-					</span>
-				) : null}
 			</div>
 
 			<div className="mt-8 min-w-0">
-				<p className="font-semibold text-[#FAFAFA] text-[20px] leading-tight">
-					{tool.name}
-				</p>
-				<p className="mt-2 line-clamp-2 font-medium text-[#9A9AA2] text-[14px] leading-[1.45]">
+				<div className="flex min-w-0 items-center gap-2">
+					<p className="min-w-0 truncate font-semibold text-[#FAFAFA] text-[20px] leading-tight">
+						{tool.name}
+					</p>
+					{tool.id !== "codex" ? <NovaInlineChip>Pro</NovaInlineChip> : null}
+				</div>
+				<p className="mt-2 line-clamp-2 font-medium text-[#A1A1AA] text-[14px] leading-[1.45]">
 					{tool.tagline}
 				</p>
 			</div>
@@ -662,6 +652,32 @@ function ToolCard({
 				</Button>
 			</div>
 		</div>
+	)
+}
+
+function CardInfoButton({ href, name }: { href?: string; name: string }) {
+	return (
+		<a
+			href={href}
+			target="_blank"
+			rel="noreferrer"
+			aria-label={`View ${name} docs`}
+			title={`${name} docs`}
+			onClick={(event) => {
+				event.stopPropagation()
+			}}
+			className="absolute top-4 right-4 z-10 flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[#A1A1AA] opacity-0 shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-all hover:text-[#FAFAFA] focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100"
+		>
+			<Info className="size-3.5" />
+		</a>
+	)
+}
+
+function NovaInlineChip({ children }: { children: ReactNode }) {
+	return (
+		<span className="shrink-0 font-semibold text-[#4BA0FA] text-[10px] uppercase tracking-wide">
+			{children}
+		</span>
 	)
 }
 
