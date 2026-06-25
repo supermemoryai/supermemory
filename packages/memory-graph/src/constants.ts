@@ -1,5 +1,18 @@
 import type { GraphThemeColors } from "./types"
 
+export const DEFAULT_CLUSTER_COLORS = [
+	"#58C7E8",
+	"#E7BC52",
+	"#74D680",
+	"#D47B75",
+	"#A789E8",
+	"#62C5A8",
+	"#74ABD8",
+	"#C78AC8",
+	"#D18A58",
+	"#8BCB6F",
+]
+
 export const MEMORY_BORDER_KEYS = {
 	forgotten: "memBorderForgotten",
 	expiring: "memBorderExpiring",
@@ -66,4 +79,5 @@ export const DEFAULT_COLORS: GraphThemeColors = {
 	popoverTextMuted: "#94a3b8",
 	controlBg: "#1a1f29",
 	controlBorder: "#2A2F36",
+	clusterColors: DEFAULT_CLUSTER_COLORS,
 }
