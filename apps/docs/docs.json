@@ -306,7 +306,7 @@
 				"anchors": [
 					{
 						"anchor": "Changelog",
-						"pages": ["changelog/overview"]
+						"pages": ["changelog/overview", "changelog/plugins"]
 					}
 				],
 				"tab": "Changelog"
