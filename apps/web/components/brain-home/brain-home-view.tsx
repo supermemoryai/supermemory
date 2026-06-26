@@ -128,7 +128,7 @@ export function BrainHomeView() {
 				setupDone={stepsDone}
 			/>
 			<ConnectionsBoard />
-			<div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+			<div className="grid gap-4 lg:grid-cols-2">
 				<RecentMemories docs={o.recentDocs} loading={o.loading} />
 				<GettingStarted
 					hasSource={o.hasSource}
@@ -186,7 +186,10 @@ function RecentMemories({
 	loading: boolean
 }) {
 	return (
-		<section className="rounded-[18px] bg-[#1B1F24] p-5" style={cardStyle}>
+		<section
+			className="min-w-0 rounded-[18px] bg-[#1B1F24] p-5"
+			style={cardStyle}
+		>
 			<p
 				className={cn(
 					"mb-3 text-[15px] font-semibold text-[#fafafa]",

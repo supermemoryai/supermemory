@@ -246,7 +246,7 @@ function Group({
 }) {
 	return (
 		<section
-			className="relative flex flex-col gap-2.5 overflow-hidden rounded-[18px] bg-[#1B1F24] p-5"
+			className="relative flex min-w-0 flex-col gap-2.5 overflow-hidden rounded-[18px] bg-[#1B1F24] p-5"
 			style={cardStyle}
 		>
 			{accent && (
