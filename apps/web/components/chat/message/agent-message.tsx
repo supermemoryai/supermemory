@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import type { UIMessage } from "@ai-sdk/react"
+import { useQuery } from "@tanstack/react-query"
 import { Streamdown } from "streamdown"
 import {
 	BookOpenIcon,
@@ -19,12 +20,27 @@ import {
 } from "lucide-react"
 import { cn } from "@lib/utils"
 import { isWebSearchToolName } from "@/lib/chat-web-search-tools"
+import {
+	buildCitationIndex,
+	fetchDocumentsByIds,
+	getDocumentSourceUrl,
+	mapDocumentsByKnownIds,
+	type CitationTarget,
+	type DocumentWithMemories,
+	extractMemoryToolOutputs,
+} from "@/lib/chat-memory-tools"
+import {
+	parseSourceAnnotatedMarkdown,
+	stripSourceMarkup,
+} from "@/lib/source-annotations"
 import { modelNames, type ModelId } from "@/lib/models"
 import { RelatedMemories } from "./related-memories"
 import { MessageActions } from "./message-actions"
 
 const TOOL_META: Record<string, { label: string; icon: typeof SearchIcon }> = {
 	bash: { label: "Memory", icon: TerminalIcon },
+	recallContext: { label: "Recall Memories", icon: BookOpenIcon },
+	discoverSpaces: { label: "Discover Spaces", icon: SearchIcon },
 	web_search: { label: "Web search", icon: GlobeIcon },
 	google_search: { label: "Google search", icon: GlobeIcon },
 	// legacy tool names kept for existing persisted messages
@@ -64,6 +80,20 @@ function faviconUrl(host: string): string {
 	return `https://www.google.com/s2/favicons?sz=64&domain=${host}`
 }
 
+function safeExternalUrl(url: string | null | undefined): string | null {
+	if (!url) return null
+	if (url.startsWith("/") && !url.startsWith("//")) return url
+	if (url.startsWith("#") && !url.startsWith("#sm-source:")) return url
+	try {
+		const parsed = new URL(url)
+		return parsed.protocol === "http:" || parsed.protocol === "https:"
+			? url
+			: null
+	} catch {
+		return null
+	}
+}
+
 function isWebSearchPart(part: { type: string; toolName?: string }): boolean {
 	if (part.type === "dynamic-tool") {
 		return isWebSearchToolName(part.toolName ?? "")
@@ -72,6 +102,14 @@ function isWebSearchPart(part: { type: string; toolName?: string }): boolean {
 		return isWebSearchToolName(part.type.slice("tool-".length))
 	}
 	return false
+}
+
+function isMemoryRetrievalToolName(toolName: string): boolean {
+	return (
+		toolName === "searchMemories" ||
+		toolName === "recallContext" ||
+		toolName === "discoverSpaces"
+	)
 }
 
 function CitationLink({
@@ -83,7 +121,8 @@ function CitationLink({
 	label: string
 	source?: SourceUrlPart
 }) {
-	const url = source?.url ?? href
+	const url = safeExternalUrl(source?.url ?? href) ?? ""
+	if (!url) return <>{label}</>
 	const host = sourceHost(url)
 	const rawTitle = source?.title?.trim()
 	const hasTitle =
@@ -136,9 +175,136 @@ function CitationLink({
 	)
 }
 
-function makeMarkdownComponents(sources: SourceUrlPart[]) {
+function sourceTitle(
+	target: CitationTarget,
+	document?: DocumentWithMemories,
+): string {
+	return (
+		document?.title?.trim() ||
+		target.title?.trim() ||
+		document?.customId ||
+		target.customId ||
+		target.documentId ||
+		target.sourceId
+	)
+}
+
+function sourceSummary(
+	target: CitationTarget,
+	document?: DocumentWithMemories,
+): string | null {
+	const summary =
+		document?.summary ||
+		target.summary ||
+		(document as { content?: string } | undefined)?.content ||
+		null
+	return summary ? summary.trim() : null
+}
+
+function sourceKind(
+	target: CitationTarget,
+	document?: DocumentWithMemories,
+): string {
+	return (document?.type || target.type || "memory").replaceAll("_", " ")
+}
+
+function SourceCitationLink({
+	sourceId,
+	children,
+	citationIndex,
+	documentByKnownId,
+}: {
+	sourceId: string
+	children: ReactNode
+	citationIndex: Map<string, CitationTarget>
+	documentByKnownId: Map<string, DocumentWithMemories>
+}) {
+	const target = citationIndex.get(sourceId)
+	if (!target) return <>{children}</>
+
+	const document =
+		(target.documentId
+			? documentByKnownId.get(target.documentId)
+			: undefined) ??
+		(target.customId ? documentByKnownId.get(target.customId) : undefined)
+	const url = safeExternalUrl(
+		document ? getDocumentSourceUrl(document) : target.url,
+	)
+	const title = sourceTitle(target, document)
+	const summary = sourceSummary(target, document)
+
+	return (
+		<span className="group/source relative inline rounded-[4px] bg-blue-400/10 px-0.5 text-blue-100 ring-1 ring-blue-300/20 transition-colors hover:bg-blue-400/20 focus-within:bg-blue-400/20">
+			{url ? (
+				<a
+					href={url}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="text-inherit no-underline outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70"
+				>
+					{children}
+				</a>
+			) : (
+				<button
+					type="button"
+					className="cursor-help border-0 bg-transparent p-0 text-inherit"
+				>
+					{children}
+				</button>
+			)}
+			<span className="ml-1 inline-flex h-4 min-w-4 translate-y-[-1px] items-center justify-center rounded-full border border-blue-300/30 bg-blue-400/15 px-1 text-[10px] font-medium leading-none text-blue-100">
+				{sourceId}
+			</span>
+			<span className="pointer-events-none absolute bottom-full left-1/2 z-[1000] hidden w-72 -translate-x-1/2 pb-2 group-hover/source:block group-focus-within/source:block">
+				<span className="pointer-events-auto block rounded-xl border border-white/10 bg-[#0B0F16]/95 p-3 text-left shadow-[0_16px_44px_rgba(0,0,0,0.48)] backdrop-blur-xl">
+					<span className="mb-1 flex items-center justify-between gap-2">
+						<span className="truncate text-xs font-medium text-white/85">
+							{title}
+						</span>
+						<span className="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-[10px] capitalize text-white/40">
+							{sourceKind(target, document)}
+						</span>
+					</span>
+					{summary ? (
+						<span className="line-clamp-3 text-xs leading-snug text-white/55">
+							{summary}
+						</span>
+					) : null}
+					{url ? (
+						<span className="mt-2 block text-xs font-medium text-blue-300">
+							Open source
+						</span>
+					) : null}
+				</span>
+			</span>
+		</span>
+	)
+}
+
+function makeMarkdownComponents(
+	sources: SourceUrlPart[],
+	citationIndex: Map<string, CitationTarget>,
+	documentByKnownId: Map<string, DocumentWithMemories>,
+) {
 	return {
 		a: ({ href, children }: { href?: string; children?: ReactNode }) => {
+			if (href?.startsWith("#sm-source:")) {
+				let sourceId = ""
+				try {
+					sourceId = decodeURIComponent(href.slice("#sm-source:".length))
+				} catch {
+					return <>{children}</>
+				}
+				return (
+					<SourceCitationLink
+						sourceId={sourceId}
+						citationIndex={citationIndex}
+						documentByKnownId={documentByKnownId}
+					>
+						{children}
+					</SourceCitationLink>
+				)
+			}
 			const label =
 				typeof children === "string"
 					? children
@@ -146,14 +312,16 @@ function makeMarkdownComponents(sources: SourceUrlPart[]) {
 						? children.join("")
 						: ""
 			const match = label.match(/^\[?(\d+)\]?$/)
-			if (match && href) {
+			const safeHref = safeExternalUrl(href)
+			if (match && safeHref) {
 				const n = Number(match[1])
-				const source = sources.find((s) => s.url === href) ?? sources[n - 1]
-				return <CitationLink href={href} label={label} source={source} />
+				const source = sources.find((s) => s.url === safeHref) ?? sources[n - 1]
+				return <CitationLink href={safeHref} label={label} source={source} />
 			}
+			if (!safeHref) return <>{children}</>
 			return (
 				<a
-					href={href}
+					href={safeHref}
 					target="_blank"
 					rel="noopener noreferrer"
 					className="text-blue-400 hover:underline"
@@ -397,6 +565,7 @@ function ToolCallDisplay({ part }: { part: ToolCallDisplayPart }) {
 	const isDone = part.state === "output-available"
 	const isError = part.state === "error" || part.state === "output-error"
 	const errorText = part.errorText
+	if (isMemoryRetrievalToolName(toolName) && isDone) return null
 
 	return (
 		<div className="rounded-lg border border-[#1E2128] bg-[#0D121A] text-xs my-1 overflow-hidden">
@@ -516,7 +685,38 @@ export function AgentMessage({
 		.filter((part) => part.type === "text")
 		.map((part) => part.text)
 		.join(" ")
-	const webSources = (() => {
+	const copyText = stripSourceMarkup(messageText)
+	const memoryOutputs = useMemo(
+		() => extractMemoryToolOutputs(message),
+		[message],
+	)
+	const citationIndex = useMemo(
+		() => buildCitationIndex(memoryOutputs),
+		[memoryOutputs],
+	)
+	const allowedSourceIds = useMemo(
+		() => new Set(citationIndex.keys()),
+		[citationIndex],
+	)
+	const sourceDocumentIds = useMemo(() => {
+		const ids = new Set<string>()
+		for (const target of citationIndex.values()) {
+			if (target.documentId) ids.add(target.documentId)
+			if (target.customId) ids.add(target.customId)
+		}
+		return [...ids].sort()
+	}, [citationIndex])
+	const { data: sourceDocuments = [] } = useQuery({
+		queryKey: ["chat-source-documents", sourceDocumentIds],
+		queryFn: () => fetchDocumentsByIds(sourceDocumentIds),
+		enabled: sourceDocumentIds.length > 0,
+		staleTime: 5 * 60 * 1000,
+	})
+	const documentByKnownId = useMemo(
+		() => mapDocumentsByKnownIds(sourceDocuments),
+		[sourceDocuments],
+	)
+	const webSources = useMemo(() => {
 		const seen = new Set<string>()
 		const out: SourceUrlPart[] = []
 		for (const part of message.parts) {
@@ -527,15 +727,13 @@ export function AgentMessage({
 			out.push(source)
 		}
 		return out
-	})()
+	}, [message.parts])
 	const hasAssistantText = message.parts.some(
 		(p) => p.type === "text" && (p as { text?: string }).text?.trim(),
 	)
-	const sourceKey = webSources.map((s) => s.url).join("|")
-	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed by stable source urls
 	const markdownComponents = useMemo(
-		() => makeMarkdownComponents(webSources),
-		[sourceKey],
+		() => makeMarkdownComponents(webSources, citationIndex, documentByKnownId),
+		[webSources, citationIndex, documentByKnownId],
 	)
 	const responseModelLabel = responseModel
 		? `${modelNames[responseModel].name} ${modelNames[responseModel].version}`
@@ -603,7 +801,10 @@ export function AgentMessage({
 									className="text-sm text-white/90 chat-markdown-content"
 								>
 									<Streamdown components={markdownComponents}>
-										{runText}
+										{
+											parseSourceAnnotatedMarkdown(runText, allowedSourceIds)
+												.markdown
+										}
 									</Streamdown>
 								</div>
 							)
@@ -651,7 +852,7 @@ export function AgentMessage({
 				<div className="flex min-h-7 items-center gap-2">
 					<MessageActions
 						messageId={message.id}
-						messageText={messageText}
+						messageText={copyText}
 						isLastMessage={isLastAgentMessage}
 						isHovered={isHovered}
 						copiedMessageId={copiedMessageId}

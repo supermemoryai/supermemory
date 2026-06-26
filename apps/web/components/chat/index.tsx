@@ -1147,14 +1147,16 @@ export function ChatSidebar({
 						}) => ({
 							id: m.id,
 							role: m.role,
-							// Strip tool parts (they break convertToModelMessages with tool_use/tool_result
-							// mismatches); keep text/reasoning + source parts so citations survive reload.
+							// Keep memory retrieval tool outputs for display-only citations and graph highlights.
 							parts: (m.parts || []).filter(
 								(p) =>
 									p.type === "text" ||
 									p.type === "reasoning" ||
 									p.type === "source-url" ||
-									p.type === "source-document",
+									p.type === "source-document" ||
+									p.type === "tool-searchMemories" ||
+									p.type === "tool-recallContext" ||
+									p.type === "tool-discoverSpaces",
 							),
 							metadata: m.metadata,
 							createdAt: new Date(m.createdAt),
