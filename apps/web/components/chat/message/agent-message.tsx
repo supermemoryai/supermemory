@@ -234,13 +234,13 @@ function SourceCitationLink({
 	const summary = sourceSummary(target, document)
 
 	return (
-		<span className="group/source relative inline rounded-[4px] bg-blue-400/10 px-0.5 text-blue-100 ring-1 ring-blue-300/20 transition-colors hover:bg-blue-400/20 focus-within:bg-blue-400/20">
+		<span className="group/source relative inline rounded-[3px] border-b border-dotted border-white/20 bg-white/[0.025] px-px text-white/90 transition-colors hover:border-white/35 hover:bg-white/[0.045] focus-within:border-white/35 focus-within:bg-white/[0.045]">
 			{url ? (
 				<a
 					href={url}
 					target="_blank"
 					rel="noopener noreferrer"
-					className="text-inherit no-underline outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70"
+					className="text-inherit no-underline outline-none focus-visible:ring-1 focus-visible:ring-white/25"
 				>
 					{children}
 				</a>
@@ -252,7 +252,7 @@ function SourceCitationLink({
 					{children}
 				</button>
 			)}
-			<span className="ml-1 inline-flex h-4 min-w-4 translate-y-[-1px] items-center justify-center rounded-full border border-blue-300/30 bg-blue-400/15 px-1 text-[10px] font-medium leading-none text-blue-100">
+			<span className="ml-1 inline-flex h-3.5 min-w-3.5 translate-y-[-1px] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-1 text-[9px] font-medium leading-none text-white/45 transition-colors group-hover/source:text-white/65 group-focus-within/source:text-white/65">
 				{sourceId}
 			</span>
 			<span className="pointer-events-none absolute bottom-full left-1/2 z-[1000] hidden w-72 -translate-x-1/2 pb-2 group-hover/source:block group-focus-within/source:block">
