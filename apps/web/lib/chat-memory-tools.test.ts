@@ -45,11 +45,28 @@ const assistantMessage = {
 } as const
 
 describe("chat memory tool citation mapping", () => {
-	it("extracts only completed memory tool outputs", () => {
-		const outputs = extractMemoryToolOutputs(assistantMessage)
+	it("extracts only ready memory tool outputs", () => {
+		const outputs = extractMemoryToolOutputs({
+			parts: [
+				...assistantMessage.parts,
+				{
+					type: "tool-searchMemories",
+					state: "done",
+					output: { sourceIds: ["done"], documentIds: ["doneDoc"] },
+				},
+				{
+					type: "tool-searchMemories",
+					output: { sourceIds: ["stateless"], documentIds: ["statelessDoc"] },
+				},
+			],
+		})
 
-		expect(outputs).toHaveLength(1)
-		expect(outputs[0]?.output.sourceIds).toEqual(["S1"])
+		expect(outputs).toHaveLength(3)
+		expect(outputs.map((output) => output.output.sourceIds?.[0])).toEqual([
+			"S1",
+			"done",
+			"stateless",
+		])
 	})
 
 	it("maps citation ids to document and custom ids", () => {
@@ -70,6 +87,30 @@ describe("chat memory tool citation mapping", () => {
 		expect(extractHighlightDocumentIdsFromMessages([assistantMessage])).toEqual(
 			["topDoc", "docA", "customA"],
 		)
+	})
+
+	it("keeps graph highlights for legacy memory tool states and ids", () => {
+		const legacyMessage = {
+			id: "legacy",
+			role: "assistant",
+			parts: [
+				{
+					type: "tool-searchMemories",
+					state: "done",
+					output: { results: [{ id: "legacyDoc" }] },
+				},
+				{
+					type: "tool-recallContext",
+					output: { documentIds: ["statelessDoc"] },
+				},
+			],
+		} as const
+
+		expect(extractMemoryToolOutputs(legacyMessage)).toHaveLength(2)
+		expect(extractHighlightDocumentIdsFromMessages([legacyMessage])).toEqual([
+			"legacyDoc",
+			"statelessDoc",
+		])
 	})
 
 	it("normalizes nested discoverSpaces memory results", () => {

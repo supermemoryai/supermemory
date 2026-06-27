@@ -195,6 +195,16 @@ function firstDocumentForResult(
 	return firstId ? { id: firstId, customId: result.customId } : null
 }
 
+export function isMemoryToolOutputReady(
+	part: Record<string, unknown>,
+): boolean {
+	return (
+		part.state === "output-available" ||
+		part.state === "done" ||
+		(part.state === undefined && part.output !== undefined)
+	)
+}
+
 export function extractMemoryToolOutputs(message: {
 	parts?: unknown[]
 }): MemoryToolOutput[] {
@@ -212,7 +222,7 @@ export function extractMemoryToolOutputs(message: {
 			)
 		)
 			continue
-		if (part.state !== "output-available") continue
+		if (!isMemoryToolOutputReady(part)) continue
 		outputs.push({ output: normalizeOutput(part.output) })
 	}
 
@@ -257,6 +267,7 @@ export function extractDocumentIdsFromMemoryOutput(
 	const ids: string[] = []
 	ids.push(...(output.documentIds ?? []))
 	for (const result of output.results ?? []) {
+		if (result.id) ids.push(result.id)
 		if (result.documentId) ids.push(result.documentId)
 		if (result.internalDocumentId) ids.push(result.internalDocumentId)
 		ids.push(...(result.documentIds ?? []))
