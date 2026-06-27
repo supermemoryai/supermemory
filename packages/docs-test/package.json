@@ -10,7 +10,8 @@
     "test:integrations": "bun run run.ts integrations",
     "test:quickstart": "bun run run.ts quickstart",
     "test:sdk": "bun run run.ts sdk",
-    "test:search": "bun run run.ts search"
+    "test:search": "bun run run.ts search",
+    "test:self-hosting": "bun run run.ts self-hosting"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.15",

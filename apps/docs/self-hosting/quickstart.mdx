@@ -130,6 +130,10 @@ curl http://localhost:6767/v3/search \
 
 That's it. Everything in the [Memory API](/quickstart) — documents, memories, user profiles, spaces, filtering — works identically against your local server.
 
+<Note>
+Self-hosted embeddings are local and separate from your configured LLM provider. For multilingual or non-English production deployments, review [Local Embeddings](/self-hosting/embedding-models) before backfilling a large corpus.
+</Note>
+
 ## Where things live
 
 By default, all state lives in a single directory you can back up or move:

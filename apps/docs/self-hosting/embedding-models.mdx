@@ -1,0 +1,52 @@
+---
+title: "Local Embeddings"
+sidebarTitle: "Local Embeddings"
+description: "How self-hosted local embeddings affect multilingual search."
+icon: "languages"
+---
+
+Self-hosted Supermemory computes dense embeddings locally. These embeddings are separate from the LLM provider you configure for summaries, extraction, and chunking.
+
+Changing `OPENAI_MODEL`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`, or another LLM provider setting does **not** change the local embedding model used for semantic search.
+
+<Warning>
+Current self-hosted release binaries do not expose a supported embedding-model selector. The `SUPERMEMORY_LOCAL_EMBEDDING_*` variables documented on the configuration page tune worker performance only; they do not change the embedding model or vector dimensions.
+</Warning>
+
+## Why this matters
+
+Semantic search compares the query embedding with stored document and memory embeddings. If the embedding model is not trained for the language in your content, ingestion can still finish successfully while dense recall returns weak, wrong, or empty results.
+
+This is most visible for multilingual or non-English deployments: exact keyword matches may still work through the lexical side of hybrid search, but paraphrased natural-language queries can fail because the dense vector space is not reliable for that language.
+
+## Production fix shape
+
+A production-grade multilingual fix needs more than a model-name environment variable:
+
+- A multilingual default embedding profile for fresh self-hosted installs.
+- Durable profile metadata for model id, dimensions, pooling, normalization, token limits, and model-family text formatting.
+- Model-scoped vector storage and search so embeddings from different models are never compared.
+- A reindex command for switching profiles, because embeddings from different models are not comparable.
+- Upgrade behavior that keeps existing stores searchable until an operator explicitly reindexes.
+- Release validation across multiple language families and scripts, not only one or two reported languages.
+
+The current recommendation for the default multilingual dense model is **BGE-M3** because it is designed for multilingual retrieval, supports more than 100 languages, supports long inputs, and uses 1024-dimensional dense vectors. That 1024-dimensional output is also why the database/index layer must change together with the model loader.
+
+## What to do today
+
+For English-only self-hosted deployments, the current local embedding path can still be suitable.
+
+For production multilingual self-hosting, track [GitHub issue #1104](https://github.com/supermemoryai/supermemory/issues/1104) and avoid large backfills that you expect to re-embed later. If you already have a multilingual corpus, keep the canonical content unchanged and plan for a reindex once a release includes model-scoped multilingual embedding profiles.
+
+Avoid these workarounds in production:
+
+- Translating memories to English at write time, because it changes the canonical user data.
+- Storing bilingual duplicates, because it increases storage and pollutes extraction/search.
+- Replacing model cache files under a different model name, because it hides model identity and can be overwritten by release updates.
+- Truncating model output dimensions to fit the old vector schema, because it treats a schema constraint as a retrieval-quality decision.
+
+## Related configuration
+
+Use [Embedding performance](/self-hosting/configuration#embedding-performance) to tune worker count, batch size, WASM threads, and prewarm behavior. These settings affect throughput and memory use only.
+
+Use [Memory limits and ingestion queue](/self-hosting/configuration#memory-limits--ingestion-queue) to control how much additional memory background ingestion can consume.

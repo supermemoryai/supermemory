@@ -77,6 +77,7 @@
 									"self-hosting/overview",
 									"self-hosting/quickstart",
 									"self-hosting/configuration",
+									"self-hosting/embedding-models",
 									"self-hosting/local-vs-enterprise"
 								]
 							},
