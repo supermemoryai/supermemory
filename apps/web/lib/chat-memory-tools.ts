@@ -290,9 +290,9 @@ export async function fetchDocumentsByIds(
 			data?: { documents?: DocumentWithMemories[] } | null
 		}
 		if (result.error) {
-			throw new Error(
-				result.error.message ?? "Failed to fetch source documents",
-			)
+			throw new Error("Failed to fetch source documents", {
+				cause: result.error,
+			})
 		}
 		return result.data?.documents ?? []
 	}

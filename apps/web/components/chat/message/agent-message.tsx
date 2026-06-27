@@ -303,12 +303,14 @@ function makeMarkdownComponents(
 	return {
 		a: ({ href, children }: { href?: string; children?: ReactNode }) => {
 			if (href?.startsWith("#sm-source:")) {
-				let sourceId = ""
-				try {
-					sourceId = decodeURIComponent(href.slice("#sm-source:".length))
-				} catch {
-					return <>{children}</>
-				}
+				const sourceId = (() => {
+					try {
+						return decodeURIComponent(href.slice("#sm-source:".length))
+					} catch {
+						return null
+					}
+				})()
+				if (!sourceId) return <>{children}</>
 				return (
 					<SourceCitationLink
 						sourceId={sourceId}
