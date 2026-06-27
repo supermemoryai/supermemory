@@ -48,7 +48,10 @@ import {
 import { SpaceSelector } from "@/components/space-selector"
 import { SuperLoader } from "../superloader"
 import { UserMessage } from "./message/user-message"
-import { AgentMessage } from "./message/agent-message"
+import {
+	AgentMessage,
+	isChatToolDisplayPartType,
+} from "./message/agent-message"
 import { ChatGraphContextRail } from "./chat-graph-context-rail"
 import { ChainOfThought } from "./input/chain-of-thought"
 import { useIsMobile } from "@hooks/use-mobile"
@@ -1147,14 +1150,14 @@ export function ChatSidebar({
 						}) => ({
 							id: m.id,
 							role: m.role,
-							// Strip tool parts (they break convertToModelMessages with tool_use/tool_result
-							// mismatches); keep text/reasoning + source parts so citations survive reload.
+							// Keep chat tool outputs that are meaningful to render after thread reload.
 							parts: (m.parts || []).filter(
 								(p) =>
 									p.type === "text" ||
 									p.type === "reasoning" ||
 									p.type === "source-url" ||
-									p.type === "source-document",
+									p.type === "source-document" ||
+									isChatToolDisplayPartType(p.type),
 							),
 							metadata: m.metadata,
 							createdAt: new Date(m.createdAt),
