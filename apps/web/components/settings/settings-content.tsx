@@ -3,7 +3,7 @@
 import { Logo } from "@ui/assets/Logo"
 import { useAuth } from "@lib/auth-context"
 import NovaOrb from "@/components/nova/nova-orb"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
 import Account from "@/components/settings/account"
@@ -31,9 +31,15 @@ import {
 	ChevronRight,
 	ArrowUpRight,
 	Building2,
+	X,
 } from "lucide-react"
 import { authClient } from "@lib/auth"
-import { Dialog, DialogContent, DialogClose } from "@ui/components/dialog"
+import {
+	Dialog,
+	DialogContent,
+	DialogClose,
+	DialogTitle,
+} from "@ui/components/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
 import { useResetOrganization } from "@/hooks/use-reset-organization"
 import { useDeleteUserAccount } from "@/hooks/use-account-settings"
@@ -96,6 +102,11 @@ const NAV_ITEMS: NavItem[] = [
 	},
 ]
 
+const MODAL_SURFACE_SHADOW =
+	"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset"
+
+const INSET_SHADOW = "inset 1.313px 1.313px 3.938px rgba(0,0,0,0.7)"
+
 export function parseHashToTab(hash: string): SettingsTab {
 	const cleaned = hash.replace("#", "").toLowerCase()
 	return TABS.includes(cleaned as SettingsTab)
@@ -132,11 +143,13 @@ function IdentityCard({ displayName }: { displayName: string }) {
 export function SettingsContent({
 	activeTab,
 	onTabChange,
+	dialogPortalContainer,
 	className,
 	showIdentity = true,
 }: {
 	activeTab: SettingsTab
 	onTabChange: (tab: SettingsTab) => void
+	dialogPortalContainer?: HTMLElement | null
 	className?: string
 	showIdentity?: boolean
 }) {
@@ -156,7 +169,12 @@ export function SettingsContent({
 	const [isDeleteOrgDialogOpen, setIsDeleteOrgDialogOpen] = useState(false)
 	const [deleteOrgConfirm, setDeleteOrgConfirm] = useState("")
 	const deleteOrgInputRef = useRef<HTMLInputElement>(null)
+	const deleteOrgDialogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	)
 	const deleteOrganization = useDeleteOrganization()
+	const activeOrgId = org?.id
+	const previousOrgIdRef = useRef(activeOrgId)
 
 	// Only owners can delete the organization.
 	const activeMemberRoleQuery = useQuery({
@@ -175,11 +193,44 @@ export function SettingsContent({
 
 	const [dangerMenuOpen, setDangerMenuOpen] = useState(false)
 
+	useEffect(() => {
+		if (previousOrgIdRef.current === activeOrgId) return
+		previousOrgIdRef.current = activeOrgId
+		setDangerMenuOpen(false)
+		setIsDeleteOrgDialogOpen(false)
+		setDeleteOrgConfirm("")
+	}, [activeOrgId])
+
+	useEffect(() => {
+		if (!isDeleteOrgDialogOpen) return
+
+		document.body.style.pointerEvents = ""
+		const focusTimer = setTimeout(() => {
+			deleteOrgInputRef.current?.focus()
+		}, 0)
+
+		return () => clearTimeout(focusTimer)
+	}, [isDeleteOrgDialogOpen])
+
+	useEffect(() => {
+		return () => {
+			if (deleteOrgDialogTimerRef.current) {
+				clearTimeout(deleteOrgDialogTimerRef.current)
+			}
+		}
+	}, [])
+
 	const openDeleteOrganizationDialog = () => {
 		setDangerMenuOpen(false)
-		window.requestAnimationFrame(() => {
+		setDeleteOrgConfirm("")
+		if (deleteOrgDialogTimerRef.current) {
+			clearTimeout(deleteOrgDialogTimerRef.current)
+		}
+		deleteOrgDialogTimerRef.current = setTimeout(() => {
+			document.body.style.pointerEvents = ""
 			setIsDeleteOrgDialogOpen(true)
-		})
+			deleteOrgDialogTimerRef.current = null
+		}, 120)
 	}
 
 	const displayName =
@@ -610,6 +661,7 @@ export function SettingsContent({
 
 			{/* Delete organization dialog */}
 			<Dialog
+				key={activeOrgId ?? "delete-organization"}
 				open={isDeleteOrgDialogOpen}
 				onOpenChange={(open) => {
 					setIsDeleteOrgDialogOpen(open)
@@ -617,33 +669,58 @@ export function SettingsContent({
 				}}
 			>
 				<DialogContent
-					className="sm:max-w-md"
+					className={cn(
+						dmSans125ClassName(),
+						"sm:max-w-[560px] border border-white/[0.12] bg-[#1B1F24] p-0 px-4 pt-4 pb-5 gap-0 rounded-[22px] overflow-hidden text-[#FAFAFA]",
+					)}
+					portalContainer={dialogPortalContainer}
+					showCloseButton={false}
+					style={{ boxShadow: MODAL_SURFACE_SHADOW }}
 					onOpenAutoFocus={(event) => {
 						event.preventDefault()
 						deleteOrgInputRef.current?.focus()
 					}}
 				>
-					<div className={cn("flex flex-col gap-5 p-1", dmSans125ClassName())}>
-						<div className="flex flex-col gap-1.5">
-							<h2 className="text-[18px] font-semibold text-[#FAFAFA]">
+					<div className="flex shrink-0 items-center gap-3">
+						<div className="min-w-0 flex-1">
+							<DialogTitle className="text-[18px] font-semibold leading-tight text-[#FAFAFA]">
 								Delete this organization?
-							</h2>
-							<p className="text-sm text-[#8B8B8B]">
-								Permanently deletes{" "}
-								<strong className="text-[#FAFAFA]">
-									{org?.name || "this organization"}
-								</strong>{" "}
-								— its documents, spaces, connections, and members.{" "}
-								<strong className="text-[#FAFAFA]">
-									This cannot be undone.
-								</strong>
+							</DialogTitle>
+							<p className="mt-0.5 truncate text-[13px] text-[#A1A1AA]">
+								This action permanently removes the selected workspace.
 							</p>
 						</div>
-						<div className="flex flex-col gap-2">
-							<p className="text-sm text-[#8B8B8B]">
-								Type <strong className="text-[#FAFAFA]">{org?.name}</strong> to
-								confirm:
-							</p>
+						<DialogClose asChild>
+							<button
+								type="button"
+								aria-label="Close"
+								className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80 focus:outline-none"
+								style={{ boxShadow: INSET_SHADOW }}
+							>
+								<X className="size-5 text-[#737373]" />
+							</button>
+						</DialogClose>
+					</div>
+
+					<div className="mt-4 flex flex-col gap-4 rounded-[14px] bg-[#14161A] p-4 sm:p-5 shadow-[inset_1.313px_1.313px_3.938px_rgba(0,0,0,0.7)]">
+						<p className="text-[13.5px] leading-relaxed text-[#A1A1AA]">
+							Permanently deletes{" "}
+							<strong className="font-semibold text-[#FAFAFA]">
+								{org?.name || "this organization"}
+							</strong>{" "}
+							and all of its documents, spaces, connections, and members.{" "}
+							<strong className="font-semibold text-[#FAFAFA]">
+								This cannot be undone.
+							</strong>
+						</p>
+						<label className="flex flex-col gap-2">
+							<span className="text-[13px] text-[#A1A1AA]">
+								Type{" "}
+								<strong className="font-semibold text-[#FAFAFA]">
+									{org?.name}
+								</strong>{" "}
+								to confirm
+							</span>
 							<input
 								ref={deleteOrgInputRef}
 								type="text"
@@ -651,43 +728,47 @@ export function SettingsContent({
 								onChange={(e) => setDeleteOrgConfirm(e.target.value)}
 								placeholder={org?.name ?? "Organization name"}
 								autoComplete="off"
-								className="w-full rounded-xl border border-[#2A2D35] bg-[#0D0F14] px-4 py-2.5 text-sm text-white placeholder:text-[#525D6E] focus:outline-none focus:border-[#C73B1B]/50 transition-colors"
+								className="h-11 w-full rounded-[12px] border border-white/[0.08] bg-[#0D121A] px-4 text-[14px] text-white placeholder:text-[#525D6E] transition-colors focus:border-[#C73B1B]/55 focus:outline-none focus:ring-2 focus:ring-[#C73B1B]/15"
+								style={{ boxShadow: INSET_SHADOW }}
 							/>
-						</div>
-						<div className="flex gap-3 justify-end">
-							<DialogClose asChild>
-								<button
-									type="button"
-									className="px-4 py-2 rounded-full border border-[#2A2D35] text-sm text-[#8B8B8B] hover:text-white hover:border-[#3A3D45] transition-colors cursor-pointer"
-								>
-									Cancel
-								</button>
-							</DialogClose>
+						</label>
+					</div>
+
+					<div className="mt-4 flex shrink-0 flex-wrap items-center justify-end gap-2">
+						<DialogClose asChild>
 							<button
 								type="button"
-								disabled={
-									!org?.name ||
-									deleteOrgConfirm !== org.name ||
-									deleteOrganization.isPending
-								}
-								title={
-									!org?.name || deleteOrgConfirm !== org.name
-										? `Type "${org?.name ?? "the organization name"}" exactly to confirm`
-										: undefined
-								}
-								onClick={handleDeleteOrganization}
-								className="relative flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-opacity bg-[#290F0A] text-[#C73B1B] disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
-							>
-								{deleteOrganization.isPending ? (
-									<LoaderIcon className="size-[15px] animate-spin" />
-								) : (
-									<Building2 className="size-[15px]" />
+								className={cn(
+									"px-3 py-2 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#FAFAFA]",
+									dmSansClassName(),
 								)}
-								{deleteOrganization.isPending
-									? "Deleting…"
-									: "Delete organization"}
+							>
+								Cancel
 							</button>
-						</div>
+						</DialogClose>
+						<button
+							type="button"
+							disabled={
+								!org?.name ||
+								deleteOrgConfirm !== org.name ||
+								deleteOrganization.isPending
+							}
+							title={
+								!org?.name || deleteOrgConfirm !== org.name
+									? `Type "${org?.name ?? "the organization name"}" exactly to confirm`
+									: undefined
+							}
+							onClick={handleDeleteOrganization}
+							className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-[#0D121A] px-5 text-[14px] font-semibold text-[#FAFAFA] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+							style={{ boxShadow: INSET_SHADOW }}
+						>
+							{deleteOrganization.isPending ? (
+								<LoaderIcon className="size-4 animate-spin text-[#C73B1B]" />
+							) : null}
+							{deleteOrganization.isPending
+								? "Deleting..."
+								: "Delete organization"}
+						</button>
 					</div>
 				</DialogContent>
 			</Dialog>

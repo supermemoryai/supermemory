@@ -39,6 +39,16 @@ const STORAGE_KEY = "supermemory-brain-onboarding-v1"
 const countsAsConnectedSource = (state: unknown) =>
 	state === "connected" || state === "waitlist"
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+	if (error instanceof Error && error.message) return error.message
+	if (typeof error === "string" && error.trim()) return error
+	if (typeof error === "object" && error !== null && "message" in error) {
+		const message = (error as { message?: unknown }).message
+		if (typeof message === "string" && message.trim()) return message
+	}
+	return fallback
+}
+
 export default function BrainOnboardingPage() {
 	const router = useRouter()
 	const params = useSearchParams()
@@ -240,7 +250,12 @@ export default function BrainOnboardingPage() {
 			slug,
 			metadata,
 		})
-		await setActiveOrg(result.data?.slug ?? slug)
+		if (result.error || !result.data?.slug) {
+			throw new Error(
+				getErrorMessage(result.error, "Organization was not created."),
+			)
+		}
+		await setActiveOrg(result.data.slug)
 		if (about.name.trim()) {
 			await authClient.updateUser({
 				name: about.name.trim(),
@@ -283,16 +298,22 @@ export default function BrainOnboardingPage() {
 			await ensureOrg()
 			goNext()
 		} catch (e) {
+			const message = getErrorMessage(e, "Organization was not created.")
 			console.error("Failed to create organization:", e)
 			analytics.onboardingWorkspaceCreateFailed({
-				error: e instanceof Error ? e.message : String(e),
+				error: message,
 			})
-			toast.error("Couldn't create your workspace. Please try again.")
+			toast.error("Organization was not created", {
+				description: "Please try again from Settings.",
+			})
+			if (forceCreate && (organizations?.length ?? 0) > 0) {
+				router.replace("/")
+			}
 		} finally {
 			creatingOrgRef.current = false
 			setCreatingOrg(false)
 		}
-	}, [ensureOrg, goNext])
+	}, [ensureOrg, goNext, forceCreate, organizations, router])
 
 	const [sendingInvites, setSendingInvites] = useState(false)
 	const sendingInvitesRef = useRef(false)
