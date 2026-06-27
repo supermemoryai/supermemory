@@ -4,86 +4,112 @@ sidebarTitle: "Overview"
 icon: "book-open"
 ---
 
-Supermemory is the long-term and short-term memory and context infrastructure for AI agents. It is the [state of the art](https://supermemory.ai/research) across multiple different benchmarks, like LongMemEval and LoCoMo.
+Supermemory is the memory and context engine for AI agents — and it's the state of the art, ranked **#1 on every major memory benchmark**: [LongMemEval](https://github.com/xiaowu0162/LongMemEval), [LoCoMo](https://github.com/snap-research/locomo), and [ConvoMem](https://github.com/Salesforce/ConvoMem).
 
-With supermemory, developers can provide perfect recall about their users to build AI agents that are more intelligent, more personalized, and more consistent. Additionally, *supermemory* has all the pieces of the context stack built in:
-- [Agent memory](/concepts/graph-memory)
-- [Content extraction](/concepts/content-types)
-- [Connectors and syncing](/connectors/overview)
-- [Managed RAG platform](/concepts/super-rag)
+Your AI forgets everything between conversations. Supermemory fixes that. It learns from every interaction, **reasons over a directed knowledge graph** to resolve contradictions and track how facts change over time, forgets what's expired, and serves the right context at the right moment — through one API.
 
-All this, coming together, makes supermemory the best abstraction to provide to agents.
+## State of the art, by the numbers
+
+Most memory systems claim to be better. Supermemory is measurably ahead — first place across all three independent benchmarks the field uses to grade AI memory.
+
+| Benchmark | What it measures | Supermemory |
+|---|---|---|
+| [LongMemEval](https://github.com/xiaowu0162/LongMemEval) | Long-term memory across sessions, with knowledge updates | **81.6% — #1** |
+| [LoCoMo](https://github.com/snap-research/locomo) | Fact recall across long conversations (multi-hop, temporal, adversarial) | **#1** |
+| [ConvoMem](https://github.com/Salesforce/ConvoMem) | Personalization and preference learning | **#1** |
+
+Read the full methodology on the [research page](https://supermemory.ai/research), or reproduce it yourself with [MemoryBench](/memorybench/overview), our open-source benchmarking framework.
+
+## What makes Supermemory different
+
+Most "memory layers" are a vector store that retrieves the nearest chunk. Supermemory is an engine that *understands* — which is why it tops the benchmarks instead of just claiming to.
+
+<CardGroup cols={2}>
+  <Card title="It reasons — not just retrieves" icon="brain" href="/concepts/how-it-works">
+    Resolves contradictions, tracks temporal change, follows multi-hop relationships, and forgets expired facts automatically. Reasoning is why it wins every benchmark.
+  </Card>
+  <Card title="A directed knowledge graph" icon="git-fork" href="/concepts/graph-memory">
+    One evolving directed graph and a single ontology across all your data — not a flat vector store, and not a raw graph you have to traverse yourself.
+  </Card>
+  <Card title="The whole context stack, one system" icon="layers" href="/concepts/super-rag">
+    Memory, user profiles, hybrid search (RAG), connectors, and file processing — together, sharing one context pool. No stitching five tools together.
+  </Card>
+  <Card title="Multi-modal — everything in" icon="file-text" href="/concepts/content-types">
+    Text, conversations, PDFs, images (OCR), video (transcription), and code (AST-aware chunking). Upload it and it just works.
+  </Card>
+  <Card title="Built to build on" icon="blocks" href="/integrations/supermemory-sdk">
+    One API, plus SDKs, a CLI, a memory filesystem, and MCP. Infrastructure you ship products on — not a closed box.
+  </Card>
+  <Card title="Run it anywhere" icon="server" href="/self-hosting/overview">
+    Hosted for zero-ops scale, or the full engine as one self-hosted binary — fully offline if you want, same API either way.
+  </Card>
+</CardGroup>
+
+<Tip>
+**Hosted or self-hosted — same API.** Use the [managed platform](https://console.supermemory.ai) for zero-ops scale, or [run the entire engine on your own machine](/self-hosting/overview) — one binary, zero config, fully offline. Move between them by changing a single `baseURL`.
+</Tip>
 
 ## How does it work? (at a glance)
 
 ![](/images/232.png)
 
 - You send Supermemory text, files, and chats.
-- Supermemory [intelligently indexes them](/concepts/how-it-works) and builds a semantic understanding graph on top of an entity (e.g., a user, a document, a project, an organization).
-- At query time, we fetch only the most relevant context and pass it to your models.
+- It [indexes them intelligently](/concepts/how-it-works) and builds a directed knowledge graph on top of an entity (a user, document, project, or organization).
+- At query time, it fetches only the most relevant context and passes it to your models.
 
-## Supermemory is context engineering.
+## Three ways to add context
 
-#### Ingestion and Extraction
+Memory, profiles, and search all draw from the **same context pool** for a given user (`containerTag`) — so they reinforce each other instead of living in silos. Mix and match as your use case needs.
 
-Supermemory handles all the extraction, for [any data type that you have](/concepts/content-types).
-- Text
-- Conversations
-- Files (PDF, Images, Docs)
-- Even videos!
-
-... and then,
-
-We offer three ways to add context to your LLMs:
-
-#### Memory API — Learned user context
+#### Memory API — learned user context
 
 ![memory graph](/images/memory-graph.png)
 
-Supermemory learns and builds the memory for the user. These are extracted facts about the user, that:
+Supermemory learns and builds memory for each user — extracted facts that:
 - [Evolve on top of existing context about the user](/concepts/graph-memory), **in real time**
-- Handle **knowledge updates, temporal changes, forgetfulness**
-- Creates a **user profile** as the default context provider for the LLM.
-
-_This can then be provided to the LLM, to give more contextual, personalized responses._
+- Handle **knowledge updates, temporal changes, and contradictions**
+- Power a **user profile** that acts as the default context provider for the LLM
 
 #### User profiles
 
-Having the latest, evolving context about the user allows us to also create a [**User Profile**](/concepts/user-profiles). This is a combination of static and dynamic facts about the user, that the agent should **always know**
-Developers can configure supermemory with what static and dynamic contents are, depending on their use case.
+The evolving context produces a [**User Profile**](/concepts/user-profiles) — the facts your agent should **always** know, in one ~50ms call:
 
-- Static: Information that the agent should **always** know.
-- Dynamic: **Episodic** information, about last few conversations etc.
+- **Static:** stable facts the agent should always know.
+- **Dynamic:** episodic context from the last few conversations.
 
-This leads to a much better retrieval system, and extremely personalized responses.
+#### RAG — advanced semantic search
 
-#### RAG - Advanced semantic search
+Run hybrid [search](/search) over the raw content too: advanced metadata filtering, contextual chunking, and reranking — tightly integrated with the memory engine, in a single query.
 
-Along with the user context, developers can also choose to do a search on the raw context. We provide full RAG-as-a-service, along with
-- Full advanced metadata filtering
-- Contextual chunking
-- Works well with the memory engine
+## Start building
 
-<Info>
-    See the full API Reference tab for detailed endpoint documentation.
-</Info>
-
-
-<Note>
-All three approaches share the **same context pool** when using the same user ID (`containerTag`). You can mix and match based on your needs.
-</Note>
-
-## Next steps
-
-<CardGroup cols={2}>
+<CardGroup cols={3}>
   <Card title="Quickstart" icon="play" href="/quickstart">
-    Make your first API call in minutes
+    Make your first API call in minutes.
   </Card>
-  <Card title="How it Works" icon="cpu" href="/concepts/how-it-works">
-    Understand the knowledge graph architecture
+  <Card title="Add your first memory" icon="plus" href="/add-memories">
+    Ingest text, files, and conversations into a container.
   </Card>
-  <Card title="Self-host it" icon="server" href="/self-hosting/overview">
-    Run Supermemory on your own machine — one binary, zero config, fully offline
+  <Card title="Search it" icon="search" href="/search">
+    Retrieve the most relevant context with hybrid semantic search.
   </Card>
 </CardGroup>
 
+## Ways to use Supermemory
+
+The API is the core — but you don't have to talk to it directly. Reach Supermemory however fits your workflow:
+
+<CardGroup cols={2}>
+  <Card title="SDKs" icon="code" href="/integrations/supermemory-sdk">
+    Official TypeScript and Python SDKs, plus drop-in plugins for the AI SDK, OpenAI, LangChain, and more.
+  </Card>
+  <Card title="Command line (CLI)" icon="square-terminal" href="/cli/overview">
+    Manage memories, search, and scripting from your terminal — it's all `npx supermemory`.
+  </Card>
+  <Card title="Memory filesystem (SMFS)" icon="database" href="/smfs/overview">
+    Mount a container as a real directory your agent can `ls`, `cat`, and semantically `grep`.
+  </Card>
+  <Card title="Self-host it" icon="server" href="/self-hosting/overview">
+    Run the full memory engine on your own machine — one binary, zero config, fully offline.
+  </Card>
+</CardGroup>

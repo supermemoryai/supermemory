@@ -1,0 +1,86 @@
+---
+title: "Local server"
+sidebarTitle: "Local server"
+description: "npx supermemory local — run the full memory engine on your own machine. One binary, zero config."
+icon: "server"
+---
+
+`npx supermemory local` downloads and runs Supermemory's self-hosted memory engine on your machine. It's the same engine behind the [hosted platform](https://console.supermemory.ai) — ingestion, memory extraction, hybrid semantic search, and the full API — as a single self-contained binary.
+
+No Docker, no database to provision, no config files. It boots in seconds with everything built in, and it's [open source](https://git.new/memory).
+
+## Run it
+
+<Tabs>
+<Tab title="npx">
+```bash
+npx supermemory local
+```
+</Tab>
+<Tab title="bunx">
+```bash
+bunx supermemory local
+```
+</Tab>
+<Tab title="curl">
+```bash
+curl -fsSL https://supermemory.ai/install | bash
+```
+</Tab>
+</Tabs>
+
+The installer detects your OS and architecture, downloads the right binary, verifies it, and (when run interactively) prompts you for an LLM API key. Then start the server:
+
+```bash
+supermemory-server
+```
+
+First boot sets everything up — the embedded graph engine, local embeddings, and your credentials — and prints an API key:
+
+```
+  ┌──────────────────────────────────────────────────┐
+  │  url       http://localhost:6767                 │
+  │  database  ./.supermemory                        │
+  │  api key   sm_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx     │
+  │  org id    xxxxxxxxxxxxxxxxxxxxxx                │
+  └──────────────────────────────────────────────────┘
+```
+
+Save that API key — it's your bearer token for every request. Then point any Supermemory SDK at your local server with a one-line change:
+
+```typescript
+const client = new Supermemory({
+  apiKey: "sm_...",                  // printed on first boot
+  baseURL: "http://localhost:6767",  // that's the only change
+})
+```
+
+## Cloud CLI vs. local server
+
+Both ship under `npx supermemory`, but they're different things:
+
+| | `supermemory <command>` | `supermemory local` |
+|---|---|---|
+| What it talks to | The [hosted platform](https://console.supermemory.ai) | A server running on your machine |
+| Auth | Your account ([`login`](/cli/overview#authenticate)) | Auto-generated key on first boot |
+| Use case | Manage cloud memory from the terminal | Local-first, air-gapped, privacy-sensitive workloads |
+| Reference | [Command reference](/cli/commands) | This page + [Self-hosting docs](/self-hosting/overview) |
+
+## Learn more
+
+The local server has its own full documentation — bringing your own model (or running fully offline with Ollama), configuration, and how it compares to Enterprise:
+
+<CardGroup cols={2}>
+  <Card title="Self-hosting quickstart" icon="play" href="/self-hosting/quickstart">
+    Install, run, and store your first memory in under two minutes.
+  </Card>
+  <Card title="Configuration" icon="settings" href="/self-hosting/configuration">
+    Every environment variable: LLM providers, local models, storage, tuning.
+  </Card>
+  <Card title="Overview" icon="server" href="/self-hosting/overview">
+    What's built in, what runs offline, and how it matches the platform API.
+  </Card>
+  <Card title="Local vs. Enterprise" icon="building-2" href="/self-hosting/local-vs-enterprise">
+    When to run it yourself and when to move to the managed platform.
+  </Card>
+</CardGroup>
