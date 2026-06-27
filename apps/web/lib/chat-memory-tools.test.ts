@@ -4,6 +4,7 @@ import {
 	buildCitationIndex,
 	extractDocumentIdsFromMemoryOutput,
 	extractMemoryToolOutputs,
+	getDocumentSourceUrl,
 	mapDocumentsByKnownIds,
 } from "./chat-memory-tools"
 
@@ -84,9 +85,9 @@ describe("chat memory tool citation mapping", () => {
 		expect(output && extractDocumentIdsFromMemoryOutput(output.output)).toEqual(
 			["topDoc", "docA", "customA"],
 		)
-		expect(extractHighlightDocumentIdsFromMessages([assistantMessage])).toEqual(
-			["topDoc", "docA", "customA"],
-		)
+		expect(
+			extractHighlightDocumentIdsFromMessages([assistantMessage as never]),
+		).toEqual(["topDoc", "docA", "customA"])
 	})
 
 	it("keeps graph highlights for legacy memory tool states and ids", () => {
@@ -107,10 +108,9 @@ describe("chat memory tool citation mapping", () => {
 		} as const
 
 		expect(extractMemoryToolOutputs(legacyMessage)).toHaveLength(2)
-		expect(extractHighlightDocumentIdsFromMessages([legacyMessage])).toEqual([
-			"legacyDoc",
-			"statelessDoc",
-		])
+		expect(
+			extractHighlightDocumentIdsFromMessages([legacyMessage as never]),
+		).toEqual(["legacyDoc", "statelessDoc"])
 	})
 
 	it("normalizes nested discoverSpaces memory results", () => {
@@ -137,6 +137,34 @@ describe("chat memory tool citation mapping", () => {
 		expect(
 			extractDocumentIdsFromMemoryOutput(outputs[0]?.output ?? {}),
 		).toEqual(["spaceDoc", "nestedDoc"])
+	})
+
+	it("builds editable Google source URLs from custom ids and API URLs", () => {
+		expect(
+			getDocumentSourceUrl({
+				type: "google_doc",
+				customId: "docCustom",
+				url: "https://docs.googleapis.com/v1/documents/apiDoc",
+			} as never),
+		).toBe("https://docs.google.com/document/d/docCustom/edit")
+		expect(
+			getDocumentSourceUrl({
+				type: "google_doc",
+				url: "https://docs.googleapis.com/v1/documents/apiDoc",
+			} as never),
+		).toBe("https://docs.google.com/document/d/apiDoc/edit")
+		expect(
+			getDocumentSourceUrl({
+				type: "google_sheet",
+				url: "https://sheets.googleapis.com/v4/spreadsheets/sheetId/values/A1",
+			} as never),
+		).toBe("https://docs.google.com/spreadsheets/d/sheetId/edit")
+		expect(
+			getDocumentSourceUrl({
+				type: "google_slide",
+				url: "https://slides.googleapis.com/v1/presentations/slideId/pages",
+			} as never),
+		).toBe("https://docs.google.com/presentation/d/slideId/edit")
 	})
 
 	it("maps documents by all known ids", () => {

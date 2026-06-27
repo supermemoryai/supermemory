@@ -24,6 +24,7 @@ import {
 	buildCitationIndex,
 	fetchDocumentsByIds,
 	getDocumentSourceUrl,
+	isMemoryToolOutputReady,
 	mapDocumentsByKnownIds,
 	type CitationTarget,
 	type DocumentWithMemories,
@@ -57,7 +58,7 @@ const TOOL_META: Record<string, { label: string; icon: typeof SearchIcon }> = {
 
 type ToolCallDisplayPart = {
 	type: string
-	state: string
+	state?: string
 	input?: unknown
 	output?: unknown
 	toolCallId?: string
@@ -581,7 +582,9 @@ function ToolCallDisplay({ part }: { part: ToolCallDisplayPart }) {
 	const isDone = part.state === "output-available"
 	const isError = part.state === "error" || part.state === "output-error"
 	const errorText = part.errorText
-	if (isMemoryRetrievalToolName(toolName) && isDone) return null
+	if (isMemoryRetrievalToolName(toolName) && isMemoryToolOutputReady(part)) {
+		return null
+	}
 
 	return (
 		<div className="rounded-lg border border-[#1E2128] bg-[#0D121A] text-xs my-1 overflow-hidden">
@@ -830,7 +833,7 @@ export function AgentMessage({
 								type: "dynamic-tool"
 								toolName: string
 								toolCallId: string
-								state: string
+								state?: string
 								input?: unknown
 								output?: unknown
 								errorText?: string

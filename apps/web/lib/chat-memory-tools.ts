@@ -206,7 +206,7 @@ export function isMemoryToolOutputReady(
 }
 
 export function extractMemoryToolOutputs(message: {
-	parts?: unknown[]
+	parts?: readonly unknown[]
 }): MemoryToolOutput[] {
 	const parts = Array.isArray(message.parts) ? message.parts : []
 	const outputs: MemoryToolOutput[] = []
@@ -349,11 +349,27 @@ export function getDocumentSourceUrl(
 		customId?: string | null
 	},
 ) {
-	if (document.type === "google_doc" && document.customId)
-		return `https://docs.google.com/document/d/${document.customId}`
-	if (document.type === "google_sheet" && document.customId)
-		return `https://docs.google.com/spreadsheets/d/${document.customId}`
-	if (document.type === "google_slide" && document.customId)
-		return `https://docs.google.com/presentation/d/${document.customId}`
-	return document.url
+	const url = document.url ?? null
+	const googleDocTypes: Record<string, { prefix: string; apiPattern: RegExp }> =
+		{
+			google_doc: {
+				prefix: "https://docs.google.com/document/d/",
+				apiPattern: /docs\.googleapis\.com\/v1\/documents\/([A-Za-z0-9_-]+)/,
+			},
+			google_sheet: {
+				prefix: "https://docs.google.com/spreadsheets/d/",
+				apiPattern:
+					/sheets\.googleapis\.com\/v4\/spreadsheets\/([A-Za-z0-9_-]+)/,
+			},
+			google_slide: {
+				prefix: "https://docs.google.com/presentation/d/",
+				apiPattern:
+					/slides\.googleapis\.com\/v1\/presentations\/([A-Za-z0-9_-]+)/,
+			},
+		}
+	const googleDoc = document.type ? googleDocTypes[document.type] : undefined
+	if (!googleDoc) return url
+	if (document.customId) return `${googleDoc.prefix}${document.customId}/edit`
+	const apiId = url?.match(googleDoc.apiPattern)?.[1]
+	return apiId ? `${googleDoc.prefix}${apiId}/edit` : url
 }
