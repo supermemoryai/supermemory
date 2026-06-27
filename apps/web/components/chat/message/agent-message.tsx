@@ -47,6 +47,9 @@ const TOOL_META: Record<string, { label: string; icon: typeof SearchIcon }> = {
 	searchMemories: { label: "Search Memories", icon: SearchIcon },
 	addMemory: { label: "Add Memory", icon: PlusIcon },
 	fetchMemory: { label: "Fetch Memory", icon: BookOpenIcon },
+	forgetMemory: { label: "Forget Memory", icon: XCircleIcon },
+	updateMemory: { label: "Update Memory", icon: BookOpenIcon },
+	forgetDocument: { label: "Forget Document", icon: XCircleIcon },
 	scheduleTask: { label: "Schedule Task", icon: ClockIcon },
 	listSchedules: { label: "List Schedules", icon: ListIcon },
 	cancelSchedule: { label: "Cancel Schedule", icon: XCircleIcon },
@@ -109,6 +112,17 @@ function isMemoryRetrievalToolName(toolName: string): boolean {
 		toolName === "searchMemories" ||
 		toolName === "recallContext" ||
 		toolName === "discoverSpaces"
+	)
+}
+
+export function isChatToolDisplayPartType(type: string): boolean {
+	return (
+		type === "tool-searchMemories" ||
+		type === "tool-recallContext" ||
+		type === "tool-discoverSpaces" ||
+		type === "tool-forgetMemory" ||
+		type === "tool-updateMemory" ||
+		type === "tool-forgetDocument"
 	)
 }
 

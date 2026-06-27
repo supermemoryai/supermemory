@@ -48,7 +48,10 @@ import {
 import { SpaceSelector } from "@/components/space-selector"
 import { SuperLoader } from "../superloader"
 import { UserMessage } from "./message/user-message"
-import { AgentMessage } from "./message/agent-message"
+import {
+	AgentMessage,
+	isChatToolDisplayPartType,
+} from "./message/agent-message"
 import { ChatGraphContextRail } from "./chat-graph-context-rail"
 import { ChainOfThought } from "./input/chain-of-thought"
 import { useIsMobile } from "@hooks/use-mobile"
@@ -1147,16 +1150,14 @@ export function ChatSidebar({
 						}) => ({
 							id: m.id,
 							role: m.role,
-							// Keep memory retrieval tool outputs for display-only citations and graph highlights.
+							// Keep chat tool outputs that are meaningful to render after thread reload.
 							parts: (m.parts || []).filter(
 								(p) =>
 									p.type === "text" ||
 									p.type === "reasoning" ||
 									p.type === "source-url" ||
 									p.type === "source-document" ||
-									p.type === "tool-searchMemories" ||
-									p.type === "tool-recallContext" ||
-									p.type === "tool-discoverSpaces",
+									isChatToolDisplayPartType(p.type),
 							),
 							metadata: m.metadata,
 							createdAt: new Date(m.createdAt),
