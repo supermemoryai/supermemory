@@ -4,6 +4,7 @@ import {
 	buildCitationIndex,
 	extractDocumentIdsFromMemoryOutput,
 	extractMemoryToolOutputs,
+	getCitationDisplay,
 	getDocumentSourceUrl,
 	mapDocumentsByKnownIds,
 } from "./chat-memory-tools"
@@ -76,7 +77,99 @@ describe("chat memory tool citation mapping", () => {
 
 		expect(index.get("S1")?.documentId).toBe("docA")
 		expect(index.get("S1")?.customId).toBe("customA")
+		expect(index.get("S1")?.content).toBe("memo")
 		expect(index.has("ignored")).toBe(false)
+	})
+
+	it("maps source ids to matching result ids when citation ids are absent", () => {
+		const outputs = extractMemoryToolOutputs({
+			parts: [
+				{
+					type: "tool-searchMemories",
+					state: "output-available",
+					output: {
+						sourceIds: ["memory_no_citation"],
+						results: [
+							{
+								id: "memory_no_citation",
+								kind: "memory",
+								content: "Fallback source text.",
+							},
+						],
+					},
+				},
+			],
+		})
+
+		expect(buildCitationIndex(outputs).get("memory_no_citation")).toMatchObject(
+			{
+				sourceId: "memory_no_citation",
+				memoryId: "memory_no_citation",
+				content: "Fallback source text.",
+			},
+		)
+	})
+
+	it("keeps memory text for citations without source documents", () => {
+		const outputs = extractMemoryToolOutputs({
+			parts: [
+				{
+					type: "tool-recallContext",
+					state: "output-available",
+					output: {
+						sourceIds: ["memory_1"],
+						results: [
+							{
+								id: "memory_1",
+								citationId: "memory_1",
+								kind: "memory",
+								content: "User prefers concise answers.",
+							},
+						],
+					},
+				},
+			],
+		})
+
+		expect(buildCitationIndex(outputs).get("memory_1")).toMatchObject({
+			sourceId: "memory_1",
+			memoryId: "memory_1",
+			kind: "memory",
+			content: "User prefers concise answers.",
+		})
+	})
+
+	it("uses memory display only for citations without document metadata", () => {
+		expect(
+			getCitationDisplay({
+				sourceId: "memory_1",
+				memoryId: "memory_1",
+				kind: "memory",
+				content: "User prefers concise answers.",
+			}),
+		).toEqual({
+			title: "Memory",
+			kind: "memory",
+			summary: "User prefers concise answers.",
+		})
+	})
+
+	it("prefers tool-provided document metadata over generic memory display", () => {
+		expect(
+			getCitationDisplay({
+				sourceId: "S1",
+				memoryId: "memory_1",
+				content: "Memory text",
+				documentId: "doc_1",
+				customId: "custom_1",
+				title: "Project Plan",
+				type: "google_doc",
+			}),
+		).toMatchObject({
+			title: "Project Plan",
+			kind: "google doc",
+			summary: "Memory text",
+		})
 	})
 
 	it("extracts graph highlight document ids from memory outputs", () => {
