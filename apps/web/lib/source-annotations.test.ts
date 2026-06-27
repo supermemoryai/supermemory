@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test"
 import {
+	hasRenderableSourceAnnotations,
 	isSafeSourceId,
 	parseSourceAnnotatedMarkdown,
+	sourceAnnotatedTextRun,
 	stripSourceMarkup,
 } from "./source-annotations"
 
@@ -76,6 +78,31 @@ describe("source annotation parsing", () => {
 		expect(parseSourceAnnotatedMarkdown(input, new Set(["S1"])).markdown).toBe(
 			input,
 		)
+	})
+
+	it("checks inline annotations against rendered text runs", () => {
+		const allowedSourceIds = new Set(["S1"])
+		expect(
+			hasRenderableSourceAnnotations(
+				[
+					{ type: "text", text: 'Lead <response source="S1">supported' },
+					{ type: "tool-recallContext" },
+					{ type: "text", text: " claim</response>" },
+				],
+				allowedSourceIds,
+			),
+		).toBe(false)
+
+		const parts = [
+			{ type: "text", text: 'Lead <response source="S1">supported' },
+			{ type: "source-url", sourceId: "web", url: "https://example.com" },
+			{ type: "text", text: " claim</response>" },
+		]
+		expect(sourceAnnotatedTextRun(parts, 0)).toBe(
+			'Lead <response source="S1">supported claim</response>',
+		)
+		expect(sourceAnnotatedTextRun(parts, 2)).toBeNull()
+		expect(hasRenderableSourceAnnotations(parts, allowedSourceIds)).toBe(true)
 	})
 
 	it("strips source markup for copy text", () => {

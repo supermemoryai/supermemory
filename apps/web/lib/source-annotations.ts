@@ -169,6 +169,48 @@ export function parseSourceAnnotatedMarkdown(
 	return { markdown: output.join("") }
 }
 
+export type SourceAnnotationMessagePart = {
+	type: string
+	text?: string | undefined
+}
+
+export function sourceAnnotatedTextRun(
+	parts: readonly SourceAnnotationMessagePart[],
+	partIndex: number,
+): string | null {
+	const part = parts[partIndex]
+	if (part?.type !== "text") return null
+
+	let prev = partIndex - 1
+	while (prev >= 0 && parts[prev]?.type === "source-url") prev--
+	if (prev >= 0 && parts[prev]?.type === "text") return null
+
+	let runText = ""
+	for (let index = partIndex; index < parts.length; index++) {
+		const current = parts[index]
+		if (current?.type === "text") runText += current.text ?? ""
+		else if (current?.type === "source-url") continue
+		else break
+	}
+
+	return runText
+}
+
+export function hasRenderableSourceAnnotations(
+	parts: readonly SourceAnnotationMessagePart[],
+	allowedSourceIds: ReadonlySet<string>,
+): boolean {
+	return parts.some((part, index) => {
+		if (part.type !== "text") return false
+		const runText = sourceAnnotatedTextRun(parts, index)
+		if (!runText) return false
+		return parseSourceAnnotatedMarkdown(
+			runText,
+			allowedSourceIds,
+		).markdown.includes("#sm-source:")
+	})
+}
+
 export function stripSourceMarkup(text: string): string {
 	let output = ""
 	let i = 0

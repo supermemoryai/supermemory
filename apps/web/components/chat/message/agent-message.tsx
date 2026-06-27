@@ -32,7 +32,9 @@ import {
 	extractMemoryToolOutputs,
 } from "@/lib/chat-memory-tools"
 import {
+	hasRenderableSourceAnnotations,
 	parseSourceAnnotatedMarkdown,
+	sourceAnnotatedTextRun,
 	stripSourceMarkup,
 } from "@/lib/source-annotations"
 import { modelNames, type ModelId } from "@/lib/models"
@@ -778,12 +780,8 @@ export function AgentMessage({
 		[webSources, citationIndex, documentByKnownId],
 	)
 	const hasInlineSourceAnnotations = useMemo(
-		() =>
-			parseSourceAnnotatedMarkdown(
-				messageText,
-				allowedSourceIds,
-			).markdown.includes("#sm-source:"),
-		[messageText, allowedSourceIds],
+		() => hasRenderableSourceAnnotations(message.parts, allowedSourceIds),
+		[message.parts, allowedSourceIds],
 	)
 	const showMemorySourcesFallback =
 		citationIndex.size > 0 && !hasInlineSourceAnnotations
@@ -831,22 +829,10 @@ export function AgentMessage({
 							)
 						}
 						if (part.type === "text") {
-							// Skip fragments mid-run — source-url citations split one answer into
-							// many text parts; rendering each separately tears markdown (lists etc.).
-							let prev = partIndex - 1
-							while (prev >= 0 && message.parts[prev]?.type === "source-url") {
-								prev--
-							}
-							if (prev >= 0 && message.parts[prev]?.type === "text") {
-								return null
-							}
-							let runText = ""
-							for (let j = partIndex; j < message.parts.length; j++) {
-								const p = message.parts[j]
-								if (p?.type === "text") runText += p.text
-								else if (p?.type === "source-url") continue
-								else break
-							}
+							// source-url citations split one answer into many text parts;
+							// render each contiguous text/source-url run as one markdown block.
+							const runText = sourceAnnotatedTextRun(message.parts, partIndex)
+							if (runText === null) return null
 							return (
 								<div
 									key={`${message.id}-${partIndex}`}
