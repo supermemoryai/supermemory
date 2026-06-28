@@ -17,6 +17,7 @@ import {
 } from "@ui/assets/icons"
 import { Globe, FileText, FileCode, Image } from "lucide-react"
 import { cn } from "@lib/utils"
+import { isYouTubeUrl } from "./utils"
 
 function MCPIcon({ className }: { className?: string }) {
 	return (
@@ -206,7 +207,7 @@ export function DocumentIcon({
 		return <MCPIcon className={iconClassName} />
 	}
 
-	if (url?.includes("youtube.com") || url?.includes("youtu.be")) {
+	if (isYouTubeUrl(url)) {
 		return <YouTubeIcon className={iconClassName} />
 	}
 
