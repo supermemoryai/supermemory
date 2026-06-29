@@ -104,7 +104,11 @@
 									{
 										"group": "Manage Content",
 										"icon": "folder-cog",
-										"pages": ["document-operations", "memory-operations"]
+										"pages": [
+											"document-operations",
+											"memory-operations",
+											"memory-review"
+										]
 									},
 									"overview/use-cases"
 								]
