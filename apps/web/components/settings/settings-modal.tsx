@@ -5,6 +5,7 @@ import {
 	useCallback,
 	useContext,
 	useMemo,
+	useState,
 	type ReactNode,
 } from "react"
 import { useQueryState } from "nuqs"
@@ -50,6 +51,8 @@ const SettingsModalContext = createContext<SettingsModalContextValue | null>(
 
 export function SettingsModalProvider({ children }: { children: ReactNode }) {
 	const [param, setParam] = useQueryState(SETTINGS_PARAM)
+	const [settingsDialogContent, setSettingsDialogContent] =
+		useState<HTMLDivElement | null>(null)
 	const open = param !== null
 	const tab = parseTab(param)
 
@@ -85,6 +88,7 @@ export function SettingsModalProvider({ children }: { children: ReactNode }) {
 				}}
 			>
 				<DialogContent
+					ref={setSettingsDialogContent}
 					showCloseButton={false}
 					style={{
 						display: "flex",
@@ -122,6 +126,7 @@ export function SettingsModalProvider({ children }: { children: ReactNode }) {
 					<SettingsContent
 						activeTab={tab}
 						onTabChange={handleTabChange}
+						dialogPortalContainer={settingsDialogContent}
 						showIdentity={false}
 						className="flex-1 min-h-0 w-full overflow-y-auto md:overflow-hidden px-5 md:px-4 pt-4 pb-6"
 					/>

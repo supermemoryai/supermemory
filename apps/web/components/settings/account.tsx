@@ -194,16 +194,18 @@ export default function Account() {
 		() => org?.members?.find((member) => member.userId === user?.id) ?? null,
 		[org?.members, user?.id],
 	)
+	// Only treat as a personal single-member org when members are actually loaded —
+	// otherwise default to least privilege (member), never owner.
+	const membersLoaded = Array.isArray(org?.members)
 	const isSingleMemberPersonalOrg =
+		membersLoaded &&
 		(org?.members?.length ?? 0) <= 1 &&
 		(!org?.members?.[0]?.userId || org.members[0].userId === user?.id)
-	const currentRole = isSingleMemberPersonalOrg
-		? "owner"
-		: (
-				activeMemberRoleQuery.data ??
-				currentMember?.role ??
-				"member"
-			).toLowerCase()
+	const currentRole = (
+		activeMemberRoleQuery.data ??
+		currentMember?.role ??
+		(isSingleMemberPersonalOrg ? "owner" : "member")
+	).toLowerCase()
 	const canManageTeam = currentRole === "owner" || currentRole === "admin"
 	const isOwner = currentRole === "owner"
 
@@ -496,6 +498,14 @@ export default function Account() {
 										>
 											{org?.name ?? "Personal"}
 										</span>
+										<span
+											className={cn(
+												dmSans125ClassName(),
+												"inline-flex h-[18px] shrink-0 items-center justify-center rounded-[3px] bg-[#2E353D] px-1.5 text-[10px] font-mono font-medium uppercase tracking-[0.12em] text-[#A3A3A3]",
+											)}
+										>
+											{currentRole}
+										</span>
 										{canManageTeam ? (
 											<button
 												type="button"
@@ -587,7 +597,7 @@ export default function Account() {
 				</div>
 			</section>
 
-			<OrgContext />
+			{canManageTeam && <OrgContext />}
 
 			<DigestPreferences />
 

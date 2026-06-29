@@ -77,7 +77,7 @@ export const isValidUrl = (url: string): boolean => {
  */
 export const normalizeUrl = (url: string): string => {
 	if (!url.trim()) return ""
-	if (url.startsWith("http://") || url.startsWith("https://")) {
+	if (/^https?:\/\//i.test(url)) {
 		return url
 	}
 	return `https://${url}`
@@ -120,13 +120,40 @@ export const extractUrls = (
 	return { urls, duplicates }
 }
 
+const parseWebUrl = (url: string): URL | null => {
+	const trimmed = url.trim()
+	if (!trimmed) return null
+
+	try {
+		const parsed = new URL(trimmed)
+		return parsed.protocol === "http:" || parsed.protocol === "https:"
+			? parsed
+			: null
+	} catch {
+		try {
+			return new URL(`https://${trimmed}`)
+		} catch {
+			return null
+		}
+	}
+}
+
+const hostnameMatches = (hostname: string, domain: string): boolean => {
+	const normalizedHostname = hostname.toLowerCase()
+	return (
+		normalizedHostname === domain || normalizedHostname.endsWith(`.${domain}`)
+	)
+}
+
 /**
  * Checks if a URL is a Twitter/X URL.
  */
 export const isTwitterUrl = (url: string): boolean => {
-	const normalizedUrl = url.toLowerCase()
+	const parsed = parseWebUrl(url)
+	if (!parsed) return false
 	return (
-		normalizedUrl.includes("twitter.com") || normalizedUrl.includes("x.com")
+		hostnameMatches(parsed.hostname, "twitter.com") ||
+		hostnameMatches(parsed.hostname, "x.com")
 	)
 }
 
@@ -134,11 +161,11 @@ export const isTwitterUrl = (url: string): boolean => {
  * Checks if a URL is a LinkedIn profile URL (not a company page).
  */
 export const isLinkedInProfileUrl = (url: string): boolean => {
-	const normalizedUrl = url.toLowerCase()
-	return (
-		normalizedUrl.includes("linkedin.com/in/") &&
-		!normalizedUrl.includes("linkedin.com/company/")
-	)
+	const parsed = parseWebUrl(url)
+	if (!parsed || !hostnameMatches(parsed.hostname, "linkedin.com")) return false
+
+	const [section, handle] = parsed.pathname.split("/").filter(Boolean)
+	return section?.toLowerCase() === "in" && Boolean(handle)
 }
 
 /**

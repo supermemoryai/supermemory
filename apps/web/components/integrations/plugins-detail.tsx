@@ -613,7 +613,7 @@ export function PluginsDetail() {
 		try {
 			const result = await autumn.attach({
 				planId: "api_pro",
-				successUrl: `${window.location.origin}/?view=integrations`,
+				successUrl: `${window.location.origin}/integrations`,
 			})
 			if (result?.paymentUrl) {
 				window.open(result.paymentUrl, "_self")

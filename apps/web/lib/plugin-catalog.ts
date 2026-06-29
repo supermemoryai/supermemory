@@ -47,7 +47,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 			{
 				title: "Install the plugin",
 				description: "Run these commands inside a Claude Code session:",
-				code: "/plugin marketplace add supermemoryai/claude-supermemory\n/plugin install claude-supermemory",
+				code: "/plugin marketplace add supermemoryai/claude-supermemory\n/plugin install supermemory",
 			},
 		],
 	},
