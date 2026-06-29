@@ -2,6 +2,7 @@ import Supermemory from "supermemory"
 
 const MAX_CHARS = 200000 // ~50k tokens (character-based limit)
 const DEFAULT_PROJECT_ID = "sm_project_default"
+const FETCH_TIMEOUT_MS = 30_000
 
 interface MemoryRichFields {
 	metadata?: Record<string, unknown> | null
@@ -142,7 +143,7 @@ export class SupermemoryClient {
 		this.client = new Supermemory({
 			apiKey: bearerToken,
 			baseURL: apiUrl,
-			timeout: 30_000,
+			timeout: FETCH_TIMEOUT_MS,
 		})
 		this.containerTag = containerTag || DEFAULT_PROJECT_ID
 	}
@@ -329,15 +330,16 @@ export class SupermemoryClient {
 	}
 
 	// Get projects list
-	async getProjects(): Promise<string[]> {
+	async getProjects(options?: { signal?: AbortSignal }): Promise<string[]> {
 		try {
+			const signal = options?.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS)
 			const response = await fetch(`${this.apiUrl}/v3/projects`, {
 				method: "GET",
 				headers: {
 					Authorization: `Bearer ${this.bearerToken}`,
 					"Content-Type": "application/json",
 				},
-				signal: AbortSignal.timeout(30_000),
+				signal,
 			})
 
 			if (!response.ok) {
@@ -361,8 +363,10 @@ export class SupermemoryClient {
 		containerTags?: string[],
 		page = 1,
 		limit = 10,
+		options?: { signal?: AbortSignal },
 	): Promise<DocumentsApiResponse> {
 		try {
+			const signal = options?.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS)
 			const response = await fetch(`${this.apiUrl}/v3/documents/documents`, {
 				method: "POST",
 				headers: {
@@ -376,7 +380,7 @@ export class SupermemoryClient {
 					order: "desc",
 					containerTags,
 				}),
-				signal: AbortSignal.timeout(30_000),
+				signal,
 			})
 			if (!response.ok) {
 				throw Object.assign(new Error("Failed to fetch documents"), {
@@ -390,14 +394,12 @@ export class SupermemoryClient {
 	}
 
 	private handleError(error: unknown): never {
-		// Handle request timeout / abort
+		// Handle request timeout (AbortSignal.timeout or explicit abort)
 		if (
 			error instanceof Error &&
 			(error.name === "AbortError" || error.name === "TimeoutError")
 		) {
-			throw new Error(
-				"Request timed out after 30 seconds. The service may be slow or unavailable. Please try again.",
-			)
+			throw new Error("Request to Supermemory API timed out")
 		}
 
 		// Handle network/fetch errors
