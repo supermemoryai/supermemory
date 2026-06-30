@@ -15,7 +15,7 @@ export default function SettingsRedirect() {
 		const hash = typeof window !== "undefined" ? window.location.hash : ""
 		const tab = parseHashToTab(hash)
 		router.replace(
-			tab === "integrations" ? "/?view=integrations" : `/?settings=${tab}`,
+			tab === "integrations" ? "/integrations" : `/?settings=${tab}`,
 		)
 	}, [router])
 

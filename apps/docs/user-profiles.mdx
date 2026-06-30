@@ -121,6 +121,9 @@ Get profile and search results in one call by adding the `q` parameter:
 | `containerTag` | string | Yes | User/project identifier |
 | `q` | string | No | Search query (includes search results in response) |
 | `threshold` | 0-1 | No | Filter search results by relevance score |
+| `filters` | object | No | Metadata filters applied to profile and search results |
+| `include` | string[] | No | Sections to return — any of `"static"`, `"dynamic"`, `"buckets"`. Omit to return all |
+| `buckets` | string[] | No | Restrict the `buckets` section to specific keys. Omit for all configured buckets |
 
 ---
 
@@ -177,6 +180,142 @@ ${result.searchResults?.results.map(m => m.memory).join('\n') || 'None'}
   `;
 }
 ```
+
+---
+
+## Profile Buckets
+
+Buckets are **custom topical categories** for a profile — an axis that sits alongside
+`static` and `dynamic`. Where static/dynamic split facts by how long-lived they are,
+buckets group them by subject (e.g. `preferences`, `goals`, `work`). As content is
+ingested, a classifier assigns each memory to the buckets it matches, so you can pull
+just the slice of context a given surface needs.
+
+Every org starts with a built-in `preferences` bucket. You can define your own at the
+organization or space level in your console settings; space-level buckets are
+**add-only** — a container tag inherits all org buckets and may add more, but cannot
+disable them.
+
+### Requesting buckets
+
+Pass `include: ["buckets"]` to return bucket-organized memories, and optionally
+`buckets` to limit the response to specific keys. `include` also lets you skip
+sections you don't need — `["buckets"]` alone omits `static` and `dynamic`.
+
+<Tabs>
+  <Tab title="fetch">
+    ```typescript
+    const res = await fetch("https://api.supermemory.ai/v4/profile", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        containerTag: "user_123",
+        include: ["buckets"],
+        buckets: ["preferences", "goals"]   // optional — omit for all buckets
+      })
+    });
+
+    const { profile } = await res.json();
+    console.log(profile.buckets.preferences);
+    console.log(profile.buckets.goals);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v4/profile" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "containerTag": "user_123",
+        "include": ["buckets"],
+        "buckets": ["preferences", "goals"]
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "profile": {
+    "buckets": {
+      "preferences": [
+        "[Summary] Prefers concise, technical answers and dark-mode tooling",
+        "[Recent] Switched their editor to Zed"
+      ],
+      "goals": [
+        "[Recent] Wants to ship the billing revamp this quarter"
+      ]
+    }
+  }
+}
+```
+
+<Note>
+**`[Recent]` and `[Summary]` labels.** To keep profiles dense, an entity's older
+memories are periodically aggregated into a short synthesis. Entries prefixed
+`[Summary]` are that aggregated context; entries prefixed `[Recent]` were ingested
+since the last aggregation and aren't summarized yet. The `dynamic` section uses the
+same `[Recent]` prefix (plus a `[YYYY-MM-DD]` date). Strip the prefixes if you only
+want raw text, or keep them to signal recency to your model.
+</Note>
+
+### List bucket definitions
+
+To see which buckets are configured for a container tag (org buckets merged with any
+space-level additions), call `/v4/profile/buckets`:
+
+<Tabs>
+  <Tab title="fetch">
+    ```typescript
+    const res = await fetch("https://api.supermemory.ai/v4/profile/buckets", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ containerTag: "user_123" })
+    });
+
+    const { buckets } = await res.json();
+    // [{ key: "preferences", description: "..." }, ...]
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v4/profile/buckets" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"containerTag": "user_123"}'
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "buckets": [
+    {
+      "key": "preferences",
+      "description": "Explicit first-person preferences the person directly stated."
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `buckets[].key` | string | Stable slug, also stored on each memory. Lowercase alphanumeric with `-`/`_`, 1–64 chars |
+| `buckets[].description` | string | What belongs in the bucket — guides the ingestion classifier |
+
+<Tip>
+Bucket descriptions steer classification. A precise description ("Explicit
+first-person preferences only — exclude inferred traits") yields cleaner buckets than
+a vague one. `static` and `dynamic` are reserved and can't be used as bucket keys.
+</Tip>
 
 ---
 
@@ -249,8 +388,9 @@ ${result.searchResults?.results.map(m => m.memory).join('\n') || 'None'}
 ```typescript
 interface ProfileResponse {
   profile: {
-    static: string[];   // Long-term facts
-    dynamic: string[];  // Recent context
+    static?: string[];                    // Long-term facts
+    dynamic?: string[];                   // Recent context
+    buckets?: Record<string, string[]>;   // Topical buckets, keyed by bucket key
   };
   searchResults?: {     // Only if q parameter provided
     results: SearchResult[];

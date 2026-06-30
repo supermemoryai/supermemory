@@ -8,6 +8,7 @@ import type {
 
 const MAX_CHARS = 200000
 const DEFAULT_PROJECT_ID = "sm_project_default"
+const FETCH_TIMEOUT_MS = 30_000
 
 export type {
 	ContainerTag,
@@ -82,6 +83,7 @@ export class SupermemoryClient {
 		this.client = new Supermemory({
 			apiKey: bearerToken,
 			baseURL: apiUrl,
+			timeout: FETCH_TIMEOUT_MS,
 		})
 		this.containerTag = containerTag || DEFAULT_PROJECT_ID
 	}
@@ -242,12 +244,14 @@ export class SupermemoryClient {
 
 	async listContainerTags(): Promise<ContainerTag[]> {
 		try {
+			const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS)
 			const response = await fetch(`${this.apiUrl}/v3/container-tags/list`, {
 				method: "GET",
 				headers: {
 					Authorization: `Bearer ${this.bearerToken}`,
 					"Content-Type": "application/json",
 				},
+				signal,
 			})
 
 			if (!response.ok) {
@@ -270,8 +274,10 @@ export class SupermemoryClient {
 		containerTags?: string[],
 		page = 1,
 		limit = 200,
+		options?: { signal?: AbortSignal },
 	): Promise<DocumentsApiResponse> {
 		try {
+			const signal = options?.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS)
 			const response = await fetch(`${this.apiUrl}/v3/documents/documents`, {
 				method: "POST",
 				headers: {
@@ -285,6 +291,7 @@ export class SupermemoryClient {
 					order: "desc",
 					containerTags,
 				}),
+				signal,
 			})
 			if (!response.ok) {
 				throw Object.assign(new Error("Failed to fetch documents"), {
@@ -338,6 +345,15 @@ export class SupermemoryClient {
 	}
 
 	private handleError(error: unknown): never {
+		// Handle request timeout (AbortSignal.timeout or explicit abort)
+		if (
+			error instanceof Error &&
+			(error.name === "AbortError" || error.name === "TimeoutError")
+		) {
+			throw new Error("Request to Supermemory API timed out")
+		}
+
+		// Handle network/fetch errors
 		if (error instanceof TypeError) {
 			if (
 				error.message.includes("fetch") ||

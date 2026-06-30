@@ -514,7 +514,7 @@ export function PublicHeader({
 		return (
 			<div className="relative z-10 flex shrink-0 items-center justify-between gap-2 p-2.5 md:p-3">
 				<Link
-					href="/?view=integrations"
+					href="/integrations"
 					className="flex items-center gap-2 transition-opacity hover:opacity-90"
 				>
 					<Logo className="h-6 md:h-7" />
@@ -523,7 +523,7 @@ export function PublicHeader({
 					</p>
 				</Link>
 
-				<Link href="/login?redirect=%2F%3Fview%3Dintegrations">
+				<Link href="/login?redirect=%2Fintegrations">
 					<button
 						type="button"
 						className={cn(

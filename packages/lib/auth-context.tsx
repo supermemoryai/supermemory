@@ -18,6 +18,23 @@ type OrganizationListItem = NonNullable<
 
 const STORAGE_KEY = "supermemory-consumer-last-org-slug"
 
+// Reads ?org=<slug> from the URL once and removes it, so a deep link that
+// selects an org doesn't re-fire on refresh or back-navigation.
+function consumeRequestedOrgSlug(): string | null {
+	if (typeof window === "undefined") return null
+	const params = new URLSearchParams(window.location.search)
+	const slug = params.get("org")
+	if (!slug) return null
+	params.delete("org")
+	const qs = params.toString()
+	window.history.replaceState(
+		null,
+		"",
+		`${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`,
+	)
+	return slug
+}
+
 interface AuthContextType {
 	session: SessionData["session"] | null
 	user: SessionData["user"] | null
@@ -122,6 +139,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				}
 
 				const activeOrgId = session.session.activeOrganizationId
+
+				// Deep link (?org=<slug>) takes priority — used when arriving from
+				// the console. Strip the param so refresh/back doesn't re-trigger.
+				const requestedSlug = consumeRequestedOrgSlug()
+				if (requestedSlug) {
+					const match = orgs.find((o) => o.slug === requestedSlug)
+					if (match) {
+						if (activeOrgId === match.id) {
+							const full = await authClient.organization.getFullOrganization()
+							if (!cancelled) setOrg(full?.data ?? null)
+						} else {
+							await setActiveOrg(requestedSlug)
+						}
+						return
+					}
+				}
 
 				if (orgs.length === 1) {
 					const one = orgs[0]

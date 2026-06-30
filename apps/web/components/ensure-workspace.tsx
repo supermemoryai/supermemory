@@ -20,12 +20,14 @@ export function EnsureWorkspace({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname()
 	const router = useRouter()
 	const searchParams = useSearchParams()
-	const { session, organizations, isRestoring } = useAuth()
+	const { session, organizations, isRestoring, isSessionPending } = useAuth()
 
 	const isPublicAppPage =
-		pathname === "/" &&
-		["integrations", "mcp"].includes(searchParams.get("view") ?? "")
-	const isGuestPublicAppPage = isPublicAppPage && !session
+		pathname === "/integrations" ||
+		pathname === "/integrations/mcp" ||
+		(pathname === "/" &&
+			["integrations", "mcp"].includes(searchParams.get("view") ?? ""))
+	const isGuestPublicAppPage = isPublicAppPage && !session && !isSessionPending
 	const isOnboarding = pathname.startsWith("/onboarding")
 
 	useEffect(() => {

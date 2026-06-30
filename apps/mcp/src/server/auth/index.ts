@@ -6,6 +6,8 @@
 
 import type { ContainerTagAccess } from "../../shared/types"
 
+const FETCH_TIMEOUT_MS = 30_000
+
 export type { ContainerTagAccess }
 
 export interface AuthUser {
@@ -30,6 +32,7 @@ export async function validateApiKey(
 		const response = await fetch(`${apiUrl}/v3/session`, {
 			method: "GET",
 			headers: { Authorization: `Bearer ${apiKey}` },
+			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 		})
 
 		if (!response.ok) {
@@ -82,6 +85,7 @@ export async function validateOAuthToken(
 		const response = await fetch(`${apiUrl}/v3/mcp/session-with-key`, {
 			method: "GET",
 			headers: { Authorization: `Bearer ${token}` },
+			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 		})
 
 		if (!response.ok) {
@@ -124,6 +128,7 @@ export async function validateOAuthToken(
 			const rbacResponse = await fetch(`${apiUrl}/v3/session`, {
 				method: "GET",
 				headers: { Authorization: `Bearer ${data.apiKey}` },
+				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 			})
 			if (!rbacResponse.ok) {
 				console.error("RBAC fetch returned non-OK:", rbacResponse.status)

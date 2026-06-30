@@ -1496,6 +1496,10 @@ export const ContainerTagListTypeSchema = z
 			description: "True if containerTag starts with 'sm_project_'",
 			example: true,
 		}),
+		visibility: z.enum(["public", "private", "unlisted"]).optional().openapi({
+			description: "Space visibility (company brain spaces)",
+			example: "public",
+		}),
 	})
 	.openapi({
 		description:

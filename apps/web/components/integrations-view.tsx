@@ -93,6 +93,19 @@ interface ConnectedKey {
 	createdAt?: string | null
 }
 
+interface ConnectedMcpKey {
+	keyId: string
+	keyStart: string | null
+	lastRequest?: string | null
+	createdAt?: string | null
+}
+
+function isMcpAuthMetadata(metadata: { sm_source?: string; sm_kind?: string }) {
+	return (
+		metadata.sm_source === "mcp" || metadata.sm_kind === "mcp_oauth_exchange"
+	)
+}
+
 function toIsoDate(value: string | Date | null | undefined): string | null {
 	if (!value) return null
 	const d = value instanceof Date ? value : new Date(value)
@@ -140,6 +153,34 @@ function parsePluginAuthKeys(
 		} catch {}
 	}
 	return { active, setup }
+}
+
+function parseMcpAuthKeys(
+	apiKeys: ListedApiKey[],
+	keyPrefix: (key: ListedApiKey) => string | null,
+): ConnectedMcpKey[] {
+	const keys: ConnectedMcpKey[] = []
+	for (const key of apiKeys) {
+		if (key.enabled === false) continue
+		if (!key.metadata) continue
+		try {
+			const metadata =
+				typeof key.metadata === "string"
+					? (JSON.parse(key.metadata) as {
+							sm_source?: string
+							sm_kind?: string
+						})
+					: (key.metadata as { sm_source?: string; sm_kind?: string })
+			if (!isMcpAuthMetadata(metadata)) continue
+			keys.push({
+				keyId: key.id,
+				keyStart: keyPrefix(key),
+				lastRequest: toIsoDate(key.lastRequest),
+				createdAt: toIsoDate(key.createdAt),
+			})
+		} catch {}
+	}
+	return keys
 }
 
 type ListedApiKey = {
@@ -1036,6 +1077,31 @@ function ActiveButton({
 	)
 }
 
+function McpConnectedPill({
+	connectedAt,
+	lastActive,
+}: {
+	connectedAt?: string | null
+	lastActive?: string | null
+}) {
+	return (
+		<span
+			className={cn(
+				dmSans125ClassName(),
+				"flex shrink-0 items-center gap-1.5 text-[12px] font-medium text-[#00AC3F] sm:text-[13px]",
+			)}
+		>
+			<span className="size-[7px] rounded-full bg-[#00AC3F]" />
+			Connected
+			{(lastActive ?? connectedAt) && (
+				<span className="text-[11px] font-normal text-[#737373]">
+					· {formatRelativeTime(lastActive ?? connectedAt)}
+				</span>
+			)}
+		</span>
+	)
+}
+
 function FinishSetupButton({ onClick }: { onClick: () => void }) {
 	return (
 		<PillButton onClick={onClick}>
@@ -1137,7 +1203,18 @@ interface ConnectorEntry {
 	onReconnect: () => void
 }
 
-type RailEntry = PluginEntry | ConnectorEntry
+interface McpEntry {
+	kind: "mcp"
+	id: string
+	name: string
+	icon: ReactNode
+	connectionCount: number
+	createdAt: string | null
+	lastActive: string | null
+	onManage: () => void
+}
+
+type RailEntry = PluginEntry | ConnectorEntry | McpEntry
 
 function railConnectionMeta(connection: Connection) {
 	const m = connection.metadata as Record<string, unknown> | undefined
@@ -1423,6 +1500,60 @@ function ConnectorRailRow({ entry }: { entry: ConnectorEntry }) {
 	)
 }
 
+function McpRailRow({ entry }: { entry: McpEntry }) {
+	const [expanded, setExpanded] = useState(false)
+	const lastTime = entry.lastActive ?? entry.createdAt
+	const suffix = [
+		entry.connectionCount > 1 ? `${entry.connectionCount} connections` : null,
+		lastTime ? formatRelativeTime(lastTime) : null,
+	]
+		.filter(Boolean)
+		.join(" · ")
+	return (
+		<RailRow
+			icon={entry.icon}
+			name={entry.name}
+			expanded={expanded}
+			onToggle={() => setExpanded((v) => !v)}
+			statusLine={
+				<div className="flex min-w-0 items-center gap-1.5">
+					<ActiveStatusDot />
+					{suffix && (
+						<span
+							className={cn(
+								dmSans125ClassName(),
+								"min-w-0 truncate text-[11px] text-[#737373]",
+							)}
+						>
+							· {suffix}
+						</span>
+					)}
+				</div>
+			}
+		>
+			{entry.createdAt && (
+				<RailDetail
+					label="Connected"
+					value={formatRelativeTime(entry.createdAt)}
+				/>
+			)}
+			{entry.lastActive && (
+				<RailDetail
+					label="Last active"
+					value={formatRelativeTime(entry.lastActive)}
+				/>
+			)}
+			<RailDetail
+				label="MCP keys"
+				value={`${entry.connectionCount} connected`}
+			/>
+			<div className="mt-1 flex flex-wrap gap-1.5">
+				<RailAction label="Manage" onClick={entry.onManage} />
+			</div>
+		</RailRow>
+	)
+}
+
 const SKELETON_KEYS = ["s1", "s2", "s3", "s4", "s5"]
 
 function RailSkeleton({ rows }: { rows: number }) {
@@ -1521,6 +1652,8 @@ function ActiveConnectionsRail({
 					{entries.map((entry) =>
 						entry.kind === "plugin" ? (
 							<PluginRailRow key={entry.id} entry={entry} />
+						) : entry.kind === "mcp" ? (
+							<McpRailRow key={entry.id} entry={entry} />
 						) : (
 							<ConnectorRailRow key={entry.id} entry={entry} />
 						),
@@ -1879,6 +2012,8 @@ function MobileActivityPanel({
 							{entries.map((entry) =>
 								entry.kind === "plugin" ? (
 									<PluginRailRow key={entry.id} entry={entry} />
+								) : entry.kind === "mcp" ? (
+									<McpRailRow key={entry.id} entry={entry} />
 								) : (
 									<ConnectorRailRow key={entry.id} entry={entry} />
 								),
@@ -2321,9 +2456,11 @@ function CategoryFilterToggle({
 function SectionRail({
 	label,
 	children,
+	headerSlot,
 }: {
 	label: string
 	children: ReactNode
+	headerSlot?: ReactNode
 }) {
 	const scrollRef = useRef<HTMLDivElement>(null)
 	const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -2374,6 +2511,7 @@ function SectionRail({
 					{label}
 				</h3>
 				<div className="hidden items-center gap-1.5 sm:flex">
+					{headerSlot}
 					<button
 						type="button"
 						aria-label="Show previous"
@@ -2429,7 +2567,8 @@ export function IntegrationsView({
 		open: boolean
 		key: string
 		pluginId: string | null
-	}>({ open: false, key: "", pluginId: null })
+		loading: boolean
+	}>({ open: false, key: "", pluginId: null, loading: false })
 	const [connectedPluginId, setConnectedPluginId] = useState<string | null>(
 		null,
 	)
@@ -2524,6 +2663,11 @@ export function IntegrationsView({
 		[apiKeys, keyPrefix],
 	)
 
+	const activeMcpKeys = useMemo(
+		() => parseMcpAuthKeys(apiKeys, keyPrefix),
+		[apiKeys, keyPrefix],
+	)
+
 	const activePluginById = useMemo(() => {
 		const map = new Map<string, ConnectedKey>()
 		for (const key of activePlugins) {
@@ -2540,6 +2684,20 @@ export function IntegrationsView({
 		}
 		return map
 	}, [activePlugins])
+
+	const activeMcpKey = useMemo(() => {
+		let latest: ConnectedMcpKey | null = null
+		for (const key of activeMcpKeys) {
+			if (!latest) {
+				latest = key
+				continue
+			}
+			const a = toMs(key.lastRequest ?? key.createdAt)
+			const b = toMs(latest.lastRequest ?? latest.createdAt)
+			if (a >= b) latest = key
+		}
+		return latest
+	}, [activeMcpKeys])
 
 	const activeCountByPlugin = useMemo(() => {
 		const map = new Map<string, number>()
@@ -2600,6 +2758,12 @@ export function IntegrationsView({
 		},
 		onMutate: (pluginId) => setConnectingPlugin(pluginId),
 		onError: (err) => {
+			// Tear down a pre-opened (loading) modal so a failed mint doesn't hang on a spinner.
+			setNewKey((s) =>
+				s.loading
+					? { open: false, key: "", pluginId: null, loading: false }
+					: s,
+			)
 			toast.error("Failed to connect plugin", {
 				description: err instanceof Error ? err.message : "Unknown error",
 			})
@@ -2609,7 +2773,7 @@ export function IntegrationsView({
 			queryClient.invalidateQueries({ queryKey: ["api-keys", org?.id] })
 		},
 		onSuccess: (data, pluginId) => {
-			setNewKey({ open: true, key: data.key, pluginId })
+			setNewKey({ open: true, key: data.key, pluginId, loading: false })
 		},
 	})
 
@@ -2657,23 +2821,26 @@ export function IntegrationsView({
 		}
 	}
 
-	const handleUpgrade = async (planId?: unknown) => {
-		const checkoutPlanId = planId === "api_max" ? "api_max" : "api_pro"
-		try {
-			const result = await autumn.attach({
-				planId: checkoutPlanId,
-				successUrl: `${window.location.origin}/?view=integrations`,
-			})
-			if (result?.paymentUrl) {
-				window.open(result.paymentUrl, "_self")
-				return
+	const handleUpgrade = useCallback(
+		async (planId?: unknown) => {
+			const checkoutPlanId = planId === "api_max" ? "api_max" : "api_pro"
+			try {
+				const result = await autumn.attach({
+					planId: checkoutPlanId,
+					successUrl: `${window.location.origin}/integrations`,
+				})
+				if (result?.paymentUrl) {
+					window.open(result.paymentUrl, "_self")
+					return
+				}
+				autumn.refetch?.()
+			} catch (error) {
+				console.error(error)
+				toast.error("Failed to start checkout. Please try again.")
 			}
-			autumn.refetch?.()
-		} catch (error) {
-			console.error(error)
-			toast.error("Failed to start checkout. Please try again.")
-		}
-	}
+		},
+		[autumn],
+	)
 
 	const redirectToLogin = useCallback(() => {
 		const loginUrl = new URL("/login", window.location.origin)
@@ -2700,6 +2867,85 @@ export function IntegrationsView({
 		void setMcpClient(key)
 		setMcpModalOpen(true)
 	}
+
+	// Deeplink: /integrations?connect=<plugin-id|provider> auto-opens that card's connect flow.
+	const [connectTarget, setConnectTarget] = useQueryState(
+		"connect",
+		parseAsString,
+	)
+	// Tracks the last target we acted on; reset when the param clears so a fresh deeplink re-fires.
+	const connectHandledRef = useRef<string | null>(null)
+	useEffect(() => {
+		if (!connectTarget) {
+			connectHandledRef.current = null
+			return
+		}
+		if (connectHandledRef.current === connectTarget) return
+		const target = connectTarget
+		const isPlugin = !!PLUGIN_CATALOG[target]
+		const freeTier = isPlugin && isFreeTierPlugin(target)
+
+		// Paid plugins and granola need the plan query before deciding upgrade-vs-connect.
+		const needsPlan = (isPlugin && !freeTier) || target === "granola"
+		if (needsPlan && isAutumnLoading) return
+
+		// Defer to a macrotask and cancel on cleanup so React Strict Mode's mount→unmount→remount
+		// fires this exactly once (on the surviving mount) instead of opening/minting twice.
+		let cancelled = false
+		const timer = setTimeout(() => {
+			if (cancelled) return
+			connectHandledRef.current = target
+
+			if (publicMode) {
+				redirectToLogin()
+				return
+			}
+
+			if (isPlugin) {
+				if (!freeTier && !hasProProduct) {
+					void setConnectTarget(null)
+					handleUpgrade("api_pro")
+				} else {
+					// Open instantly; the key fills in on mint. The ?connect param stays the source
+					// of truth until the modal closes.
+					setNewKey({ open: true, key: "", pluginId: target, loading: true })
+					createPluginKeyMutation.mutate(target)
+				}
+				return
+			}
+
+			if (target === "granola") {
+				if (!hasProProduct) {
+					void setConnectTarget(null)
+					handleUpgrade("api_pro")
+				} else {
+					setGranolaModalOpen(true)
+				}
+				return
+			}
+
+			if (["notion", "google-drive", "onedrive"].includes(target)) {
+				// The add-document modal is driven by its own ?add param, so clearing ?connect is safe.
+				void setConnectTarget(null)
+				void setAddDoc("connect")
+			}
+		}, 0)
+
+		return () => {
+			cancelled = true
+			clearTimeout(timer)
+		}
+	}, [
+		connectTarget,
+		isAutumnLoading,
+		hasProProduct,
+		publicMode,
+		redirectToLogin,
+		setConnectTarget,
+		setAddDoc,
+		createPluginKeyMutation,
+		handleUpgrade,
+	])
 
 	const closeMcpModal = () => {
 		setMcpModalOpen(false)
@@ -2792,6 +3038,24 @@ export function IntegrationsView({
 				},
 			})
 		}
+		if (activeMcpKey) {
+			rows.push({
+				ts: toMs(activeMcpKey.lastRequest ?? activeMcpKey.createdAt),
+				entry: {
+					kind: "mcp",
+					id: "mcp",
+					name: "Supermemory MCP",
+					icon: <MCPIcon className="size-6" />,
+					connectionCount: activeMcpKeys.length,
+					createdAt: activeMcpKey.createdAt ?? null,
+					lastActive: activeMcpKey.lastRequest ?? null,
+					onManage: () => {
+						void setMcpClient("mcp-url")
+						setMcpModalOpen(true)
+					},
+				},
+			})
+		}
 		for (const provider of [
 			"google-drive",
 			"notion",
@@ -2829,11 +3093,14 @@ export function IntegrationsView({
 		rows.sort((a, b) => b.ts - a.ts)
 		return rows.map((r) => r.entry)
 	}, [
+		activeMcpKey,
+		activeMcpKeys.length,
 		activePluginById,
 		activeCountByPlugin,
 		connectionsByProvider,
 		allProjects,
 		setAddDoc,
+		setMcpClient,
 		addConnectionMutation,
 	])
 
@@ -2886,6 +3153,7 @@ export function IntegrationsView({
 	const claudeCodeConnected = activePluginById.has("claude_code")
 	const claudeCodeNeedsPro =
 		!isAutumnLoading && !hasProProduct && !isFreeTierPlugin("claude_code")
+	const mcpConnected = !!activeMcpKey
 
 	const featuredPicks: FeaturedPick[] = [
 		{
@@ -2939,7 +3207,7 @@ export function IntegrationsView({
 				/>
 			),
 			docsUrl: "https://supermemory.ai/docs/supermemory-mcp/introduction",
-			ctaLabel: "Connect",
+			ctaLabel: mcpConnected ? "Connected" : "Connect",
 			onCta: () => {
 				if (publicMode) {
 					redirectToLogin()
@@ -3234,14 +3502,21 @@ export function IntegrationsView({
 			}
 			case "mcp-client":
 				return (
-					<PillButton
+					<button
+						type="button"
+						aria-label={`Connect ${item.name}`}
+						title="Connect"
 						onClick={() => {
 							trackCard(item)
 							openMcpClient(item.clientKey)
 						}}
+						className={cn(
+							"flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[#A1A1AA] transition-colors hover:text-[#FAFAFA] sm:size-9",
+							"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
+						)}
 					>
-						Connect
-					</PillButton>
+						<Plus className="size-4" />
+					</button>
 				)
 			case "import":
 				return (
@@ -3409,7 +3684,7 @@ export function IntegrationsView({
 			]
 
 	return (
-		<div className="flex-1 p-4 md:p-6 pt-2">
+		<div className="flex-1">
 			{shortcutsConnect.dialog}
 			<div
 				className={cn(
@@ -3485,7 +3760,18 @@ export function IntegrationsView({
 											)
 											if (items.length === 0) return null
 											return (
-												<SectionRail key={cat} label={CATEGORY_LABEL[cat]}>
+												<SectionRail
+													key={cat}
+													label={CATEGORY_LABEL[cat]}
+													headerSlot={
+														cat === "ai-clients" && activeMcpKey ? (
+															<McpConnectedPill
+																connectedAt={activeMcpKey.createdAt}
+																lastActive={activeMcpKey.lastRequest}
+															/>
+														) : null
+													}
+												>
 													{items.map((item) => (
 														<div
 															key={item.id}
@@ -3524,13 +3810,15 @@ export function IntegrationsView({
 
 			<Dialog
 				open={newKey.open}
-				onOpenChange={(open) =>
+				onOpenChange={(open) => {
 					setNewKey((s) => ({
 						open,
 						key: open ? s.key : "",
 						pluginId: open ? s.pluginId : null,
+						loading: open ? s.loading : false,
 					}))
-				}
+					if (!open) void setConnectTarget(null)
+				}}
 			>
 				<DialogContent
 					showCloseButton={false}
@@ -3562,7 +3850,9 @@ export function IntegrationsView({
 								Set up {dialogPlugin?.name ?? "your plugin"}
 							</p>
 							<p className="mt-0.5 truncate text-[12px] text-[#A1A1AA]">
-								Copy your key and run these steps to finish.
+								{newKey.loading
+									? "Generating your key…"
+									: "Copy your key and run these steps to finish."}
 							</p>
 						</div>
 						<div className="flex shrink-0 items-center gap-2">
@@ -3599,15 +3889,28 @@ export function IntegrationsView({
 								INSET,
 							)}
 						>
-							<InstallSteps steps={setupSteps} apiKey={newKey.key} />
+							{newKey.loading ? (
+								<div className="flex items-center justify-center gap-2 py-10 text-[13px] text-[#A1A1AA]">
+									<Loader className="size-4 animate-spin" />
+									Generating your key…
+								</div>
+							) : (
+								<InstallSteps steps={setupSteps} apiKey={newKey.key} />
+							)}
 						</div>
 					</div>
 					<div className="flex shrink-0 items-center justify-end">
 						<button
 							type="button"
-							onClick={() =>
-								setNewKey({ open: false, key: "", pluginId: null })
-							}
+							onClick={() => {
+								setNewKey({
+									open: false,
+									key: "",
+									pluginId: null,
+									loading: false,
+								})
+								void setConnectTarget(null)
+							}}
 							className={cn(
 								dmSans125ClassName(),
 								"flex h-9 items-center gap-1.5 rounded-full bg-[#0D121A] px-5 text-[13px] font-medium text-[#FAFAFA] transition-opacity hover:opacity-80",
@@ -3958,7 +4261,10 @@ export function IntegrationsView({
 
 			<GranolaConnectModal
 				open={hasProProduct && granolaModalOpen}
-				onOpenChange={(open) => setGranolaModalOpen(open && hasProProduct)}
+				onOpenChange={(open) => {
+					setGranolaModalOpen(open && hasProProduct)
+					if (!open) void setConnectTarget(null)
+				}}
 			/>
 		</div>
 	)

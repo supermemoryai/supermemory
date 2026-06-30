@@ -2,6 +2,7 @@
 
 import { usePathname, useSearchParams } from "next/navigation"
 import posthog from "posthog-js"
+import { PostHogProvider as PHProvider } from "posthog-js/react"
 import { Suspense, useEffect } from "react"
 import { useSession } from "./auth"
 
@@ -65,12 +66,12 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 	}, [session?.user])
 
 	return (
-		<>
+		<PHProvider client={posthog}>
 			<Suspense fallback={null}>
 				{process.env.NODE_ENV === "production" && <PostHogPageTracking />}
 			</Suspense>
 			{children}
-		</>
+		</PHProvider>
 	)
 }
 

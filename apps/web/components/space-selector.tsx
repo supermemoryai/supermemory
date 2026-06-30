@@ -6,7 +6,8 @@ import { useQuery } from "@tanstack/react-query"
 import { cn } from "@lib/utils"
 import { $fetch } from "@lib/api"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
-import { DEFAULT_PROJECT_ID } from "@lib/constants"
+import { DEFAULT_PROJECT_ID, SHARED_TEAM_BRAIN_TAG } from "@lib/constants"
+import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { ChevronDownIcon, Pencil, XIcon, Loader2, Trash2 } from "lucide-react"
 import type { ContainerTagListType } from "@lib/types"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
@@ -60,8 +61,8 @@ export interface SpaceSelectorProps {
 
 const triggerVariants = {
 	default:
-		"h-10 min-h-10 shrink-0 rounded-full border border-[#161F2C] bg-muted px-3 gap-2 " +
-		"hover:bg-white/5 hover:border-[#2261CA33] " +
+		"h-10 min-h-10 shrink-0 rounded-full bg-muted px-3 gap-2 " +
+		"hover:bg-white/5 " +
 		"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2261CA33]/35",
 	insideOut:
 		"h-10 min-h-10 gap-2 px-3 rounded-full bg-[#0D121A] shadow-inside-out hover:bg-[#121820]",
@@ -147,12 +148,16 @@ export function SpaceSelector({
 		useProjectMutations()
 	const { allProjects, isLoading } = useContainerTags()
 	const { user } = useAuth()
+	const hasCompanyBrain = useHasCompanyBrain()
+	const defaultTag = hasCompanyBrain
+		? SHARED_TEAM_BRAIN_TAG
+		: DEFAULT_PROJECT_ID
 
 	useEffect(() => {
 		setRecents(readRecents())
 	}, [])
 
-	const activeTag = selectedProjects[0] ?? DEFAULT_PROJECT_ID
+	const activeTag = selectedProjects[0] ?? defaultTag
 	const { data: spaceCountData } = useQuery({
 		queryKey: ["space-selector-count", activeTag],
 		queryFn: async (): Promise<number> => {
@@ -194,7 +199,7 @@ export function SpaceSelector({
 		isAuto: boolean
 		isOwnSpace: boolean
 	}>(() => {
-		const containerTag = selectedProjects[0] ?? ""
+		const containerTag = selectedProjects[0] ?? defaultTag
 		if (includeAuto && containerTag === AUTO_CHAT_SPACE_ID) {
 			return {
 				name: "Auto",
@@ -233,7 +238,14 @@ export function SpaceSelector({
 			isAuto: false,
 			isOwnSpace,
 		}
-	}, [allProjects, selectedProjects, pluginMetaMap, includeAuto, user?.id])
+	}, [
+		allProjects,
+		selectedProjects,
+		pluginMetaMap,
+		includeAuto,
+		user?.id,
+		defaultTag,
+	])
 
 	const canEditCurrent =
 		enableEdit &&

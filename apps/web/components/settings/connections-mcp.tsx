@@ -710,7 +710,7 @@ export default function ConnectionsMCP() {
 						</p>
 
 						<PillButton
-							onClick={() => router.push("/?view=integrations&cat=ai-clients")}
+							onClick={() => router.push("/integrations?cat=ai-clients")}
 						>
 							<Plus className="size-[10px] text-[#FAFAFA]" />
 							<span className="text-[14px] tracking-[-0.14px] text-[#FAFAFA] font-medium">
