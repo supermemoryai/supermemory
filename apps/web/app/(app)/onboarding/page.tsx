@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { useAuth } from "@lib/auth-context"
 import { authClient } from "@lib/auth"
+import { SHARED_TEAM_BRAIN_TAG } from "@lib/constants"
 import { analytics } from "@/lib/analytics"
 import { BrainShell } from "@/components/onboarding-brain/shell"
 import {
@@ -167,13 +168,17 @@ export default function BrainOnboardingPage() {
 		[router],
 	)
 
+	// Team/company-brain routes everything into the shared Team Brain that
+	// provisioning creates (sm_org_shared) — not a workspace-name slug space.
 	const containerTag = useMemo(
 		() =>
-			containerTagFromWorkspace(
-				about.workspaceName || suggestedWorkspaceName,
-				mode,
-			),
-		[about.workspaceName, suggestedWorkspaceName, mode],
+			allowTeam && mode === "team"
+				? SHARED_TEAM_BRAIN_TAG
+				: containerTagFromWorkspace(
+						about.workspaceName || suggestedWorkspaceName,
+						mode,
+					),
+		[allowTeam, about.workspaceName, suggestedWorkspaceName, mode],
 	)
 
 	const isScale = useMemo(() => {
@@ -397,7 +402,6 @@ export default function BrainOnboardingPage() {
 			{step === "sources" && (
 				<StepSources
 					containerTag={containerTag}
-					workspaceName={about.workspaceName || suggestedWorkspaceName}
 					mode={mode}
 					values={sources}
 					onChange={setSources}

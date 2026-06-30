@@ -3,8 +3,8 @@
 import { $fetch } from "@lib/api"
 import { cn } from "@lib/utils"
 import { useQuery } from "@tanstack/react-query"
-import { GoogleDrive, Notion } from "@ui/assets/icons"
-import { Cloud, ExternalLink, Loader2 } from "lucide-react"
+import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
+import { ExternalLink, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -167,7 +167,7 @@ export function ConnectionsBoard() {
 						onConnect={() => connectConnector("notion")}
 					/>
 					<AppCard
-						icon={<Cloud className="size-5 text-[#0F6CBD]" />}
+						icon={<OneDrive className="size-5" />}
 						name="OneDrive"
 						subtitle="Files from Microsoft 365."
 						connected={connectorConnected("onedrive")}

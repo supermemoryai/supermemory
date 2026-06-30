@@ -4,8 +4,10 @@ import { $fetch } from "@lib/api"
 import { useAuth } from "@lib/auth-context"
 import { cn } from "@lib/utils"
 import { useQuery } from "@tanstack/react-query"
-import { ArrowRight, Check, FileText, Loader2 } from "lucide-react"
+import { ArrowRight, Check, FileText, Loader2, UserPlus } from "lucide-react"
 import Link from "next/link"
+import { useQueryState } from "nuqs"
+import { useSettingsModal } from "@/components/settings/settings-modal"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { ConnectionsBoard } from "./connections-board"
 
@@ -103,11 +105,17 @@ function useBrainOverview() {
 		(brain.data?.slack ? 1 : 0) +
 		(connectors.data?.length ?? 0)
 
+	const currentRole = org?.members
+		?.find((m) => m.userId === user?.id)
+		?.role?.toLowerCase()
+
 	return {
 		loading: docs.isPending,
 		recentDocs: docs.data?.documents ?? [],
 		memoriesCount,
 		connectedCount,
+		membersCount: org?.members?.length ?? 0,
+		canInvite: currentRole === "owner" || currentRole === "admin",
 		hasSource: connectedCount > 0,
 		hasAgent: mcp.data ?? false,
 		hasMemory: memoriesCount > 0,
@@ -125,6 +133,8 @@ export function BrainHomeView() {
 			<StatsRow
 				memories={o.memoriesCount}
 				connected={o.connectedCount}
+				members={o.membersCount}
+				canInvite={o.canInvite}
 				setupDone={stepsDone}
 			/>
 			<ConnectionsBoard />
@@ -143,27 +153,60 @@ export function BrainHomeView() {
 function StatsRow({
 	memories,
 	connected,
+	members,
+	canInvite,
 	setupDone,
 }: {
 	memories: number
 	connected: number
+	members: number
+	canInvite: boolean
 	setupDone: number
 }) {
-	const tiles = [
+	const { openSettings } = useSettingsModal()
+	const [, setInvite] = useQueryState("invite")
+
+	const onInvite = () => {
+		setInvite("1")
+		openSettings("account")
+	}
+
+	const tiles: {
+		label: string
+		value: string
+		action?: React.ReactNode
+	}[] = [
 		{ label: "Memories", value: memories.toLocaleString() },
 		{ label: "Connected sources", value: String(connected) },
+		{
+			label: "Active members",
+			value: String(members),
+			action: canInvite ? (
+				<button
+					type="button"
+					onClick={onInvite}
+					className="inline-flex items-center gap-1 text-[11px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]"
+				>
+					<UserPlus className="size-3" />
+					Invite
+				</button>
+			) : undefined,
+		},
 		{ label: "Setup", value: `${setupDone}/3` },
 	]
 	return (
 		<section
-			className="grid grid-cols-3 divide-x divide-white/[0.04] rounded-[16px] bg-[#1B1F24]"
+			className="grid grid-cols-2 divide-white/[0.04] rounded-[16px] bg-[#1B1F24] sm:grid-cols-4 sm:divide-x"
 			style={cardStyle}
 		>
 			{tiles.map((t) => (
 				<div key={t.label} className="px-5 py-4">
-					<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#737373]">
-						{t.label}
-					</p>
+					<div className="flex items-start justify-between gap-2">
+						<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#737373]">
+							{t.label}
+						</p>
+						{t.action}
+					</div>
 					<p
 						className={cn(
 							"mt-1.5 text-[22px] font-semibold leading-none tabular-nums text-[#fafafa]",

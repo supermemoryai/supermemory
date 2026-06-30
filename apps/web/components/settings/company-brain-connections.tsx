@@ -273,7 +273,8 @@ export default function CompanyBrainConnections() {
 			fetch(`${BACKEND}/brain/slack/status`, { credentials: "include" }),
 		])
 		if (connRes.ok) {
-			setRows(((await connRes.json()) as { toolkits: ConnRow[] }).toolkits)
+			const data = (await connRes.json()) as { toolkits?: ConnRow[] }
+			setRows(Array.isArray(data.toolkits) ? data.toolkits : [])
 		} else {
 			setRows([])
 			toast.error("Couldn't load connections.")
