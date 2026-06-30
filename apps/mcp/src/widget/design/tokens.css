@@ -8,7 +8,8 @@
  * via `@custom-variant dark (&:is([data-theme="dark"] *))`.
  */
 
-:root {
+:root,
+[data-theme="light"] {
 	color-scheme: light;
 
 	/* Accent gradient (Supermemory brand) */
@@ -182,7 +183,7 @@
 
 	--text-primary: #fafafa;
 	--text-secondary: #a3a3a3;
-	--text-muted: #525252;
+	--text-muted: #8a8a8a;
 	--text-inverse: #0a0a0a;
 
 	--success-muted: rgba(74, 222, 128, 0.2);
@@ -219,4 +220,60 @@
 	--graph-popover-text-muted: #94a3b8;
 	--graph-control-bg: #0c1829;
 	--graph-control-border: #1a2333;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) {
+		color-scheme: dark;
+
+		--bg-primary: #0a0a0a;
+		--bg-secondary: #171717;
+		--bg-muted: #262626;
+		--bg-elevated: #1c1c1c;
+		--bg-overlay: rgba(10, 10, 10, 0.7);
+
+		--border: #2e2e2e;
+		--border-muted: #1f1f1f;
+
+		--text-primary: #fafafa;
+		--text-secondary: #a3a3a3;
+		--text-muted: #8a8a8a;
+		--text-inverse: #0a0a0a;
+
+		--success-muted: rgba(74, 222, 128, 0.2);
+		--error-muted: rgba(248, 113, 113, 0.2);
+		--warning-muted: rgba(251, 191, 36, 0.2);
+		--info-muted: rgba(96, 165, 250, 0.2);
+
+		--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+		--shadow-md:
+			0 4px 6px -1px rgba(0, 0, 0, 0.4),
+			0 2px 4px -2px rgba(0, 0, 0, 0.3);
+		--shadow-lg:
+			0 10px 15px -3px rgba(0, 0, 0, 0.5),
+			0 4px 6px -4px rgba(0, 0, 0, 0.4);
+
+		--graph-bg: #0f1419;
+		--graph-doc-fill: #1b1f24;
+		--graph-doc-stroke: #2a2f36;
+		--graph-doc-inner: #13161a;
+		--graph-mem-fill: #0d2034;
+		--graph-mem-fill-hover: #112840;
+		--graph-mem-stroke: #3b73b8;
+		--graph-edge-derives: #fbbf24;
+		--graph-edge-updates: #a78bfa;
+		--graph-edge-extends: #38bdf8;
+		--graph-mem-border-forgotten: #ef4444;
+		--graph-mem-border-expiring: #f59e0b;
+		--graph-mem-border-recent: #10b981;
+		--graph-glow: #3b73b8;
+		--graph-icon: #3b73b8;
+		--graph-popover-bg: #0c1829;
+		--graph-popover-border: #1a2333;
+		--graph-popover-text-primary: #ffffff;
+		--graph-popover-text-secondary: #e2e8f0;
+		--graph-popover-text-muted: #94a3b8;
+		--graph-control-bg: #0c1829;
+		--graph-control-border: #1a2333;
+	}
 }
