@@ -4,6 +4,7 @@ import { dmSansClassName } from "@/lib/fonts"
 import {
 	type InferredMemory,
 	useInferredMemories,
+	useInferredMemoryCache,
 	useReviewInferredMemory,
 } from "@/hooks/use-inferred-memories"
 import { cn } from "@lib/utils"
@@ -36,6 +37,7 @@ export function ReviewMemoriesModal({
 }) {
 	const { data: memories = [] } = useInferredMemories(containerTag)
 	const { mutate: review } = useReviewInferredMemory(containerTag)
+	const queue = useInferredMemoryCache(containerTag)
 	const reduceMotion = useReducedMotion()
 
 	// Snapshot the queue when the modal opens so cache updates from the
@@ -79,14 +81,17 @@ export function ReviewMemoriesModal({
 				review({ memoryId: card.id, action: "approve" })
 			} else if (decision === "decline") {
 				review({ memoryId: card.id, action: "decline" })
+			} else {
+				// Skip persists nothing server-side, but drop it from the cached queue
+				// so the trigger's live count falls and the prompt can be dismissed.
+				queue.drop(card.id)
 			}
-			// skip persists nothing — it simply resurfaces in a later session.
 			historyRef.current = [...historyRef.current, { id: card.id, decision }]
 			setHistory(historyRef.current)
 			indexRef.current += 1
 			setIndex(indexRef.current)
 		},
-		[cards, review],
+		[cards, review, queue.drop],
 	)
 
 	const canUndo = history.length > 0
@@ -103,10 +108,13 @@ export function ReviewMemoriesModal({
 			review({ memoryId: last.id, action: "undo" })
 		} else if (last.decision === "decline") {
 			review({ memoryId: last.id, action: "undo" })
+		} else {
+			const card = cards.find((c) => c.id === last.id)
+			if (card) queue.restore(card)
 		}
 		indexRef.current = Math.max(0, indexRef.current - 1)
 		setIndex(indexRef.current)
-	}, [review])
+	}, [review, cards, queue.restore])
 
 	// Keyboard: ← decline, → approve, ↓/space skip.
 	useEffect(() => {

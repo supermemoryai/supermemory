@@ -2,6 +2,8 @@
 
 import { $fetch } from "@lib/api"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useCallback } from "react"
+import { toast } from "sonner"
 
 export type InferredMemory = {
 	id: string
@@ -67,5 +69,41 @@ export function useReviewInferredMemory(containerTag: string | undefined) {
 				(prev) => prev?.filter((m) => m.id !== memoryId),
 			)
 		},
+		// The card already flew off the stack, so a silent failure would read as
+		// "saved". Surface it; the entry stays cached (onSuccess never ran) so it
+		// resurfaces for review later.
+		onError: (_err, { action }) => {
+			toast.error(
+				action === "undo"
+					? "Couldn't undo that review. Try again."
+					: "Couldn't save your review. It'll resurface for review later.",
+			)
+		},
 	})
+}
+
+// Session-local queue edits for decisions that don't hit the server (skip),
+// so the trigger's live count reflects them and the prompt can be dismissed.
+export function useInferredMemoryCache(containerTag: string | undefined) {
+	const queryClient = useQueryClient()
+	const drop = useCallback(
+		(memoryId: string) =>
+			queryClient.setQueryData<InferredMemory[]>(
+				inferredKey(containerTag),
+				(prev) => prev?.filter((m) => m.id !== memoryId),
+			),
+		[queryClient, containerTag],
+	)
+	const restore = useCallback(
+		(memory: InferredMemory) =>
+			queryClient.setQueryData<InferredMemory[]>(
+				inferredKey(containerTag),
+				(prev) =>
+					prev?.some((m) => m.id === memory.id)
+						? prev
+						: [...(prev ?? []), memory],
+			),
+		[queryClient, containerTag],
+	)
+	return { drop, restore }
 }
