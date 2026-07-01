@@ -9,7 +9,7 @@ import { useSettingsModal } from "@/components/settings/settings-modal"
 import { brainConnectorIcon, SlackMark } from "../brain-connector-icons"
 
 // Apps surfaced on the dashboard; the rest live behind "More" in settings.
-const FEATURED_SLUGS = ["linear", "granola", "github"] as const
+const FEATURED_SLUGS = ["linear", "granola", "sentry"] as const
 // Example prompts on the right card — can include apps not shown on the left.
 const PREVIEW_PROMPT_SLUGS = ["linear", "granola", "github", "sentry"] as const
 
