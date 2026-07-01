@@ -61,6 +61,12 @@ OPENAI_MODEL=gpt-oss:20b
 
 Nothing to configure. Uploaded files (PDFs, images) are stored on local disk inside `$SUPERMEMORY_DATA_DIR` and served by the server at `/files/:key`.
 
+## Local embedding model
+
+The self-hosted server computes dense embeddings locally. The current release does not expose a supported embedding-model selector; changing your LLM provider settings changes summaries, extraction, and chunking, but not the dense embedding model used for semantic search.
+
+For multilingual or non-English deployments, read [Local Embeddings](/self-hosting/embedding-models) before large backfills. The variables below tune embedding throughput and memory behavior only.
+
 ## Embedding performance
 
 Local embeddings are prewarmed at startup with conservative defaults — one worker, minimal CPU footprint. Turn these up if you're ingesting heavily and prefer throughput over headroom:

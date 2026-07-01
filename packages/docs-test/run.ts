@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { spawn } from "child_process"
-import path from "path"
+import { spawn } from "node:child_process"
+import path from "node:path"
 
 const args = process.argv.slice(2)
 const filter = args[0] // e.g., "typescript", "python", "integrations", or specific file
@@ -55,6 +55,15 @@ function getTests(): TestFile[] {
 		})
 	}
 
+	const selfHostingTests = ["embedding-models-docs"]
+	for (const t of selfHostingTests) {
+		tests.push({
+			name: `self-hosting/${t}`,
+			path: path.join(TESTS_DIR, "self-hosting", `${t}.ts`),
+			type: "ts",
+		})
+	}
+
 	return tests
 }
 
@@ -95,7 +104,9 @@ async function main() {
 	if (tests.length === 0) {
 		console.log("No tests matched the filter:", filter)
 		console.log("\nAvailable tests:")
-		getTests().forEach((t) => console.log(`  - ${t.name} (${t.type})`))
+		for (const t of getTests()) {
+			console.log(`  - ${t.name} (${t.type})`)
+		}
 		process.exit(1)
 	}
 
