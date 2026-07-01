@@ -1,28 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { extractYouTubeVideoId } from "@/components/utils"
 
 interface YoutubeVideoProps {
 	url: string | null | undefined
-}
-
-// Extract YouTube video ID from various URL formats
-function extractVideoId(url: string): string | null {
-	if (!url) return null
-
-	const patterns = [
-		/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-		/youtube\.com\/watch\?.*v=([^&\n?#]+)/,
-	]
-
-	for (const pattern of patterns) {
-		const match = url.match(pattern)
-		if (match?.[1]) {
-			return match[1]
-		}
-	}
-
-	return null
 }
 
 export function YoutubeVideo({ url }: YoutubeVideoProps) {
@@ -37,7 +19,7 @@ export function YoutubeVideo({ url }: YoutubeVideoProps) {
 			return
 		}
 
-		const id = extractVideoId(url)
+		const id = extractYouTubeVideoId(url)
 		if (!id) {
 			setError("Invalid YouTube URL format")
 			setLoading(false)

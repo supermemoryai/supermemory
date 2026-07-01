@@ -2,37 +2,70 @@
 
 import { useQuery } from "@tanstack/react-query"
 
-export function isYouTubeUrl(url: string | undefined | null): boolean {
-	if (!url) return false
+const YOUTUBE_VIDEO_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/
+
+function parseHttpUrl(url: string | undefined | null): URL | null {
+	const trimmed = url?.trim()
+	if (!trimmed) return null
+
+	try {
+		const parsed = new URL(trimmed)
+		return parsed.protocol === "http:" || parsed.protocol === "https:"
+			? parsed
+			: null
+	} catch {
+		try {
+			return new URL(`https://${trimmed}`)
+		} catch {
+			return null
+		}
+	}
+}
+
+function hostnameMatches(hostname: string, domain: string): boolean {
+	const normalizedHostname = hostname.toLowerCase()
 	return (
-		url.includes("youtube.com") ||
-		url.includes("youtu.be") ||
-		url.includes("m.youtube.com")
+		normalizedHostname === domain || normalizedHostname.endsWith(`.${domain}`)
+	)
+}
+
+function validYouTubeVideoId(value: string | null | undefined): string | null {
+	if (!value || !YOUTUBE_VIDEO_ID_REGEX.test(value)) return null
+	return value
+}
+
+export function isYouTubeUrl(url: string | undefined | null): boolean {
+	const parsed = parseHttpUrl(url)
+	if (!parsed) return false
+
+	return (
+		hostnameMatches(parsed.hostname, "youtube.com") ||
+		hostnameMatches(parsed.hostname, "youtu.be")
 	)
 }
 
 export function extractYouTubeVideoId(
 	url: string | undefined | null,
 ): string | null {
-	if (!url) return null
+	const parsed = parseHttpUrl(url)
+	if (!parsed) return null
 
-	// Handle youtu.be format
-	const youtuBeMatch = url.match(/(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/)
-	if (youtuBeMatch?.[1]) return youtuBeMatch[1]
+	const pathSegments = parsed.pathname.split("/").filter(Boolean)
 
-	// Handle youtube.com/watch?v= format
-	const watchMatch = url.match(/(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/)
-	if (watchMatch?.[1]) return watchMatch[1]
+	if (hostnameMatches(parsed.hostname, "youtu.be")) {
+		return validYouTubeVideoId(pathSegments[0])
+	}
 
-	// Handle youtube.com/embed/ format
-	const embedMatch = url.match(/(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
-	if (embedMatch?.[1]) return embedMatch[1]
+	if (!hostnameMatches(parsed.hostname, "youtube.com")) return null
 
-	// Handle m.youtube.com format
-	const mobileMatch = url.match(
-		/(?:m\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-	)
-	if (mobileMatch?.[1]) return mobileMatch[1]
+	const route = pathSegments[0]?.toLowerCase()
+	if (route === "watch") {
+		return validYouTubeVideoId(parsed.searchParams.get("v"))
+	}
+
+	if (route === "embed" || route === "shorts" || route === "live") {
+		return validYouTubeVideoId(pathSegments[1])
+	}
 
 	return null
 }
