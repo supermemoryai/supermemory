@@ -130,6 +130,7 @@ export interface GraphThemeColors {
 	popoverTextMuted: string
 	controlBg: string
 	controlBorder: string
+	clusterColors: string[]
 }
 
 export interface GraphCanvasProps {

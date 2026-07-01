@@ -8,6 +8,7 @@ import type {
 	GraphThemeColors,
 	MemoryNodeData,
 } from "../types"
+import { DEFAULT_CLUSTER_COLORS } from "../constants"
 import { hashString } from "../utils/hash"
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
@@ -21,19 +22,6 @@ const APPEND_CANDIDATES_PER_RING = 18
 const APPEND_MAX_RINGS = 8
 const APPEND_SPATIAL_CELL_SIZE = APPEND_CLUSTER_RADIUS + APPEND_AREA_GAP + 120
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
-const CLUSTER_COLORS = [
-	"#58C7E8",
-	"#E7BC52",
-	"#74D680",
-	"#D47B75",
-	"#A789E8",
-	"#62C5A8",
-	"#74ABD8",
-	"#C78AC8",
-	"#D18A58",
-	"#8BCB6F",
-]
-
 export interface ClusterAssignment {
 	key: string
 	color: string
@@ -107,12 +95,18 @@ function getMemoryRingCapacity(ring: number): number {
 	return Math.max(8, Math.floor((2 * Math.PI * radius) / MEMORY_ORBIT_SPACING))
 }
 
-export function getClusterColor(key: string): string {
-	return CLUSTER_COLORS[hashString(key) % CLUSTER_COLORS.length] as string
+export function getClusterColor(
+	key: string,
+	clusterColors: readonly string[] = DEFAULT_CLUSTER_COLORS,
+): string {
+	const palette =
+		clusterColors.length > 0 ? clusterColors : DEFAULT_CLUSTER_COLORS
+	return palette[hashString(key) % palette.length] as string
 }
 
 export function computeClusterAssignments(
 	documents: GraphApiDocument[],
+	clusterColors: readonly string[] = DEFAULT_CLUSTER_COLORS,
 ): Map<string, ClusterAssignment> {
 	const adjacency = new Map<string, Set<string>>()
 	const docByMemory = new Map<string, string>()
@@ -180,7 +174,7 @@ export function computeClusterAssignments(
 				: `relation:${firstDocId}:${firstId}`
 		const assignment = {
 			key,
-			color: getClusterColor(key),
+			color: getClusterColor(key, clusterColors),
 			size: component.length,
 		}
 
@@ -205,6 +199,7 @@ function getMemoryRelationTargets(mem: GraphApiMemory): Record<string, string> {
 function getDocumentClusterAssignment(
 	doc: GraphApiDocument,
 	assignments: Map<string, ClusterAssignment>,
+	clusterColors: readonly string[] = DEFAULT_CLUSTER_COLORS,
 ): ClusterAssignment {
 	const counts = new Map<
 		string,
@@ -229,7 +224,7 @@ function getDocumentClusterAssignment(
 	return (
 		best?.assignment ?? {
 			key: `doc:${doc.id}`,
-			color: getClusterColor(`doc:${doc.id}`),
+			color: getClusterColor(`doc:${doc.id}`, clusterColors),
 			size: 1,
 		}
 	)
@@ -492,7 +487,10 @@ export function useGraphData(
 				? buildAppendSpatialGrid(appendPlacementNodes)
 				: null
 		let appendIndex = 0
-		const clusterAssignments = computeClusterAssignments(documents)
+		const clusterAssignments = computeClusterAssignments(
+			documents,
+			colors.clusterColors,
+		)
 
 		const result: GraphNode[] = []
 		// Spiral layout: documents form a compact spiral core, memories orbit
@@ -509,7 +507,11 @@ export function useGraphData(
 
 		for (let docIdx = 0; docIdx < docCount; docIdx++) {
 			const doc = documents[docIdx]
-			const docCluster = getDocumentClusterAssignment(doc, clusterAssignments)
+			const docCluster = getDocumentClusterAssignment(
+				doc,
+				clusterAssignments,
+				colors.clusterColors,
+			)
 			const angle = docIdx * goldenAngle
 			const radius = spiralScale * Math.sqrt((docIdx + 1) / docCount)
 			const initialX = cx + Math.cos(angle) * radius

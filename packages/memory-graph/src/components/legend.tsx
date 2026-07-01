@@ -81,13 +81,16 @@ function LineIcon({
 	)
 }
 
-function ClusterSwatches() {
-	const swatches = ["#58C7E8", "#E7BC52", "#74D680", "#D47B75", "#A789E8"]
+function ClusterSwatches({ colors }: { colors: GraphThemeColors }) {
+	const swatches =
+		colors.clusterColors.length > 0
+			? colors.clusterColors.slice(0, 5)
+			: [colors.memStrokeDefault]
 	return (
 		<div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
-			{swatches.map((color) => (
+			{swatches.map((color, index) => (
 				<span
-					key={color}
+					key={`${color}-${index}`}
 					style={{
 						width: 7,
 						height: 12,
@@ -563,7 +566,7 @@ export const Legend = memo(function Legend({
 							<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
 								<span style={sectionLabelStyle}>Color</span>
 								<div style={statusRowStyle}>
-									<ClusterSwatches />
+									<ClusterSwatches colors={colors} />
 									<div
 										style={{
 											display: "flex",

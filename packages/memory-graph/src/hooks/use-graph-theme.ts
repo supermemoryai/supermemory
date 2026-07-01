@@ -10,6 +10,19 @@ function readCssVar(name: string, fallback: string): string {
 	return val || fallback
 }
 
+function readCssColorList(name: string, fallback: string[]): string[] {
+	if (typeof document === "undefined") return fallback
+	const val = getComputedStyle(document.documentElement)
+		.getPropertyValue(name)
+		.trim()
+	if (!val) return fallback
+	const colors = val
+		.split(",")
+		.map((color) => color.trim())
+		.filter(Boolean)
+	return colors.length > 0 ? colors : fallback
+}
+
 function resolveColors(): GraphThemeColors {
 	return {
 		bg: readCssVar("--graph-bg", DEFAULT_COLORS.bg),
@@ -71,6 +84,10 @@ function resolveColors(): GraphThemeColors {
 			"--graph-control-border",
 			DEFAULT_COLORS.controlBorder,
 		),
+		clusterColors: readCssColorList(
+			"--graph-cluster-colors",
+			DEFAULT_COLORS.clusterColors,
+		),
 	}
 }
 
@@ -107,13 +124,13 @@ export function useGraphTheme(
 	const overrideKey = overrides
 		? Object.entries(overrides)
 				.sort(([a], [b]) => a.localeCompare(b))
-				.map(([k, v]) => `${k}:${v}`)
+				.map(([k, v]) => `${k}:${Array.isArray(v) ? v.join("|") : v}`)
 				.join(",")
 		: ""
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: overrideKey tracks overrides by value
 	const merged = useMemo(
 		() => (overrides ? { ...colors, ...overrides } : colors),
-		// biome-ignore lint/correctness/useExhaustiveDependencies: overrideKey tracks overrides by value
 		[colors, overrideKey],
 	)
 
