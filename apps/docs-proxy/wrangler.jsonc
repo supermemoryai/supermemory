@@ -1,0 +1,11 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "supermemory-docs-mintlify",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-06-20",
+	"compatibility_flags": [],
+
+	"observability": {
+		"enabled": true
+	}
+}
