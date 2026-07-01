@@ -16,9 +16,9 @@ const PopoverContent = forwardRef<
 			align={align}
 			className={cn(
 				"z-50 w-72 p-(--space-4)",
-				"bg-bg-elevated border border-border",
-				"rounded-(--radius-md)",
-				"shadow-md",
+				"bg-bg-elevated/95 border border-border",
+				"rounded-(--radius-lg)",
+				"shadow-lg backdrop-blur",
 				"data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
 				"data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
 				className,

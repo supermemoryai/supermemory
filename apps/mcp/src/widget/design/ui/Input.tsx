@@ -7,13 +7,13 @@ import { cn } from "../lib/cn"
 const inputVariants = cva(
 	[
 		"flex w-full",
-		"bg-transparent text-[var(--text-primary)]",
+		"bg-[var(--bg-overlay)] text-[var(--text-primary)]",
 		"border border-[var(--border)]",
 		"rounded-[var(--radius-lg)]",
 		"placeholder:text-[var(--text-muted)]",
 		"transition-colors",
-		"hover:bg-[var(--text-muted)]/10",
-		"focus-visible:outline-none focus-visible:shadow-[0_0_0_1px_var(--border)]",
+		"hover:bg-[var(--bg-muted)]",
+		"focus-visible:outline-none focus-visible:border-[var(--border-accent)] focus-visible:shadow-[0_0_0_1px_var(--border-accent)]",
 		"disabled:cursor-not-allowed disabled:opacity-50",
 		"aria-invalid:border-[var(--error)] aria-invalid:ring-[var(--error)]",
 		"file:border-0 file:bg-transparent file:text-[length:var(--text-sm)] file:font-medium",

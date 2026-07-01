@@ -85,9 +85,17 @@
 	}
 
 	body {
-		background: var(--bg-primary);
+		background:
+			radial-gradient(
+				ellipse at 50% 112%,
+				rgba(75, 160, 250, 0.34) 0%,
+				rgba(20, 16, 255, 0.22) 28%,
+				rgba(11, 17, 25, 0) 62%
+			),
+			linear-gradient(180deg, #0b1119 0%, #070b11 100%);
 		color: var(--text-primary);
 		font-family: var(--font-sans);
+		letter-spacing: -0.01em;
 		line-height: var(--leading-normal);
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
@@ -107,14 +115,114 @@
 	position: relative;
 }
 
+.mcp-widget-shell {
+	position: relative;
+	isolation: isolate;
+	min-height: 280px;
+	overflow: hidden;
+	background:
+		linear-gradient(rgba(75, 160, 250, 0.035) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(75, 160, 250, 0.035) 1px, transparent 1px),
+		radial-gradient(
+			circle at 50% 108%,
+			rgba(75, 160, 250, 0.22),
+			transparent 42%
+		),
+		linear-gradient(180deg, #0b1119 0%, #070b11 100%);
+	background-size:
+		36px 36px,
+		36px 36px,
+		100% 100%,
+		100% 100%;
+	color: var(--text-primary);
+}
+
+.mcp-widget-glow {
+	position: absolute;
+	right: -18%;
+	bottom: -42%;
+	left: -18%;
+	z-index: -1;
+	height: 70%;
+	pointer-events: none;
+	background: radial-gradient(
+		ellipse at 50% 48%,
+		rgba(255, 255, 255, 0.34) 0%,
+		rgba(71, 168, 253, 0.42) 11%,
+		rgba(0, 153, 255, 0.32) 28%,
+		rgba(20, 16, 255, 0.28) 48%,
+		transparent 74%
+	);
+	filter: blur(18px);
+	opacity: 0.9;
+}
+
+.mcp-widget-brand {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin: var(--space-4) var(--page-header-px) 0;
+	padding: 7px 10px 7px 8px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	background: rgba(13, 18, 26, 0.78);
+	backdrop-filter: blur(18px);
+	box-shadow: var(--shadow-sm);
+}
+
+.mcp-widget-brand-mark {
+	display: grid;
+	width: 26px;
+	height: 26px;
+	place-items: center;
+	color: var(--accent);
+	border-radius: var(--radius-md);
+	background: #080b0f;
+	box-shadow:
+		inset 1.5px 1.5px 4.5px rgba(0, 0, 0, 0.7),
+		inset 0 1px 1px rgba(255, 255, 255, 0.03);
+}
+
+.mcp-widget-brand-mark svg {
+	width: 17px;
+	height: 14px;
+}
+
+.mcp-widget-brand-copy {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.mcp-widget-brand-name {
+	color: var(--text-primary);
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.mcp-widget-brand-mode {
+	color: var(--text-muted);
+	font-size: 10px;
+	font-weight: 500;
+	line-height: 1.15;
+}
+
+.mcp-widget-content {
+	position: relative;
+	z-index: 1;
+}
+
 /* Spinner — kept as global because primitives can't easily express a CSS animation */
 .spinner {
 	width: 24px;
 	height: 24px;
-	border: 2px solid var(--border);
+	border: 2px solid rgba(255, 255, 255, 0.12);
 	border-top-color: var(--accent);
 	border-radius: 50%;
 	animation: spin 0.8s linear infinite;
+	box-shadow: 0 0 20px rgba(75, 160, 250, 0.42);
 }
 
 @keyframes spin {
@@ -141,7 +249,20 @@
 	 * reads as a re-layout). The floor keeps the size continuous. */
 	min-height: 280px;
 	position: relative;
-	background: var(--bg-primary);
+	background:
+		linear-gradient(rgba(75, 160, 250, 0.035) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(75, 160, 250, 0.035) 1px, transparent 1px),
+		radial-gradient(
+			circle at 50% 108%,
+			rgba(75, 160, 250, 0.22),
+			transparent 42%
+		),
+		var(--bg-primary);
+	background-size:
+		36px 36px,
+		36px 36px,
+		100% 100%,
+		100% 100%;
 }
 
 .graph-view.fullscreen {

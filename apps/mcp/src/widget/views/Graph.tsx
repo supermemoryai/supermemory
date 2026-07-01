@@ -185,8 +185,13 @@ export function Graph({ documents, totalCount }: Props) {
 	}, [mode, toggleFullscreen])
 
 	return (
-		<div className="relative">
-			<div className={cn("graph-view", mode === "fullscreen" && "fullscreen")}>
+		<div className="relative px-(--page-header-px) pb-(--space-6) pt-(--space-4)">
+			<div
+				className={cn(
+					"graph-view overflow-hidden rounded-lg border border-border shadow-lg",
+					mode === "fullscreen" && "fullscreen rounded-none border-0",
+				)}
+			>
 				{/* No remount on toggle. The CSS just resizes the container; the
 				    package's ResizeObserver re-lays-out and its node cache keeps
 				    positions stable, so expand/minimize is instant with no reload.
