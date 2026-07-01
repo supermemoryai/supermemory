@@ -70,9 +70,9 @@ function WidgetShell({
 		<div className={shellClassName}>
 			<div aria-hidden className="mcp-widget-glow" />
 			{immersive ? null : (
-				<header aria-label="supermemory" className="mcp-widget-brand">
+				<header className="mcp-widget-brand">
 					<span aria-hidden className="mcp-widget-brand-mark">
-						<svg role="img" viewBox="0 0 314 256">
+						<svg aria-hidden="true" viewBox="0 0 314 256">
 							<path
 								d="M313.728 100.982H197.297V0H159.68V109.567C159.68 121.205 164.284 132.381 172.466 140.615L267.535 236.283L294.134 209.517L223.917 138.858H313.75V101.004L313.728 100.982Z"
 								fill="currentColor"

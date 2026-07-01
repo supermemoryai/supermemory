@@ -172,10 +172,6 @@
 		linear-gradient(180deg, rgba(5, 8, 13, 0) 0%, rgba(5, 8, 13, 0.2) 100%);
 }
 
-.mcp-widget-shell-graph .mcp-widget-glow {
-	display: none;
-}
-
 .mcp-widget-glow {
 	position: absolute;
 	right: -18%;
@@ -194,6 +190,10 @@
 	);
 	filter: blur(18px);
 	opacity: 0.9;
+}
+
+.mcp-widget-shell-graph .mcp-widget-glow {
+	display: none;
 }
 
 .mcp-widget-brand {
