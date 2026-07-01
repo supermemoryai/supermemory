@@ -21,7 +21,7 @@ export function Success(props: Props) {
 	return (
 		<Stack
 			align="center"
-			className="px-(--page-header-px) py-(--space-10) text-center"
+			className="mx-(--page-header-px) my-(--space-6) rounded-lg border border-border bg-bg-elevated/80 px-(--page-header-px) py-(--space-10) text-center shadow-lg backdrop-blur"
 			gap="md"
 		>
 			<CheckCircle className="size-12 text-success" />

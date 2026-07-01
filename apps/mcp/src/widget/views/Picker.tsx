@@ -82,7 +82,7 @@ export function Picker({
 
 				{/* Bounded, scrollable list — keeps a stable height so filtering or a
 				    long workspace list doesn't resize (jump) the whole widget. */}
-				<div className="min-h-[220px] max-h-[60vh] overflow-y-auto pr-1">
+				<div className="min-h-[220px] max-h-[60vh] overflow-y-auto pr-1 scrollbar-thin">
 					{filtered.length === 0 ? (
 						<p className="py-(--space-6) text-center text-(length:--text-sm) text-text-muted">
 							No workspaces match “{query}”.

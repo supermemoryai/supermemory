@@ -277,3 +277,103 @@
 		--graph-control-border: #1a2333;
 	}
 }
+
+/* Nova widget theme
+ *
+ * PR-1120's widget screens run inside agent cells, so the light/dark host
+ * theme can vary independently from the Supermemory product theme. Force the
+ * MCP app surfaces onto Nova's dark product palette so all widget tools match
+ * apps/web: DM Sans, dark cards, soft borders, and the #4ba0fa accent.
+ */
+:root,
+[data-theme="light"],
+[data-theme="dark"] {
+	color-scheme: dark;
+
+	--accent-start: #369bfd;
+	--accent-mid: #4ba0fa;
+	--accent-end: #36fdfd;
+	--accent-gradient: linear-gradient(
+		94deg,
+		var(--accent-start),
+		var(--accent-end)
+	);
+
+	--accent: #4ba0fa;
+	--accent-foreground: #ffffff;
+	--accent-hover: #369bfd;
+	--accent-muted: rgba(75, 160, 250, 0.12);
+
+	--bg-primary: #0b1119;
+	--bg-secondary: #101822;
+	--bg-muted: #131b28;
+	--bg-elevated: #1b1f24;
+	--bg-overlay: rgba(13, 18, 26, 0.78);
+
+	--border: rgba(255, 255, 255, 0.12);
+	--border-muted: rgba(255, 255, 255, 0.07);
+	--border-accent: rgba(34, 97, 202, 0.45);
+
+	--text-primary: #fafafa;
+	--text-secondary: #d0dae7;
+	--text-muted: #a0aec4;
+	--text-inverse: #0b1119;
+
+	--success: #4ade80;
+	--success-muted: rgba(74, 222, 128, 0.14);
+	--error: #fb7185;
+	--error-muted: rgba(251, 113, 133, 0.14);
+	--warning: #fbbf24;
+	--warning-muted: rgba(251, 191, 36, 0.14);
+	--info: #60a5fa;
+	--info-muted: rgba(96, 165, 250, 0.14);
+	--danger: #ef4444;
+
+	--font-sans:
+		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-display:
+		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-brand:
+		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+	--radius-sm: 4px;
+	--radius-md: 6px;
+	--radius-lg: 8px;
+
+	--shadow-sm:
+		0 2px 10px rgba(0, 0, 0, 0.18),
+		inset 0 1px 1px rgba(255, 255, 255, 0.06);
+	--shadow-md:
+		0 10px 30px rgba(0, 0, 0, 0.28),
+		inset 0 1px 1px rgba(255, 255, 255, 0.08);
+	--shadow-lg:
+		0 20px 60px rgba(0, 0, 0, 0.42),
+		inset 0 1px 1px rgba(255, 255, 255, 0.08);
+
+	--graph-bg: #0b1119;
+	--graph-doc-fill: #1b1f24;
+	--graph-doc-stroke: rgba(255, 255, 255, 0.12);
+	--graph-doc-inner: #0d121a;
+	--graph-mem-fill: #0d2034;
+	--graph-mem-fill-hover: #112840;
+	--graph-mem-stroke: #4ba0fa;
+	--graph-accent: #4ba0fa;
+	--graph-text-primary: #fafafa;
+	--graph-text-secondary: #d0dae7;
+	--graph-text-muted: #a0aec4;
+	--graph-edge-derives: #fbbf24;
+	--graph-edge-updates: #4ba0fa;
+	--graph-edge-extends: #36fdfd;
+	--graph-mem-border-forgotten: #ef4444;
+	--graph-mem-border-expiring: #f59e0b;
+	--graph-mem-border-recent: #10b981;
+	--graph-glow: #4ba0fa;
+	--graph-icon: #4ba0fa;
+	--graph-popover-bg: rgba(27, 31, 36, 0.94);
+	--graph-popover-border: rgba(255, 255, 255, 0.12);
+	--graph-popover-text-primary: #fafafa;
+	--graph-popover-text-secondary: #d0dae7;
+	--graph-popover-text-muted: #a0aec4;
+	--graph-control-bg: rgba(13, 18, 26, 0.78);
+	--graph-control-border: rgba(255, 255, 255, 0.12);
+}
