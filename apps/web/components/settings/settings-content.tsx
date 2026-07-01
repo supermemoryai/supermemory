@@ -91,7 +91,7 @@ const NAV_ITEMS: NavItem[] = [
 	{
 		id: "company-brain",
 		label: "Company Brain",
-		description: "GitHub & Linear — org and personal",
+		description: "Connect apps to your brain — org and personal",
 		icon: <Building2 className="size-[18px]" />,
 	},
 	{

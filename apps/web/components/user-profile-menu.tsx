@@ -12,7 +12,14 @@ import {
 } from "@ui/components/dropdown-menu"
 import { authClient } from "@lib/auth"
 import { useRouter } from "next/navigation"
-import { LogOut, Settings, RotateCcw, HelpCircle, LifeBuoy } from "lucide-react"
+import {
+	LogOut,
+	Settings,
+	RotateCcw,
+	HelpCircle,
+	LifeBuoy,
+	Building2,
+} from "lucide-react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { useOrgOnboarding } from "@hooks/use-org-onboarding"
@@ -151,6 +158,13 @@ export function UserProfileMenu({
 				>
 					<Settings className="size-4 text-[#737373]" />
 					Settings
+				</DropdownMenuItem>
+				<DropdownMenuItem
+					onClick={() => openSettings("company-brain")}
+					className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
+				>
+					<Building2 className="size-4 text-[#737373]" />
+					Company Brain
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					onClick={handleTryOnboarding}
