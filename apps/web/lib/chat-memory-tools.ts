@@ -55,12 +55,21 @@ export type MemoryToolOutput = {
 }
 export type CitationTarget = {
 	sourceId: string
+	memoryId?: string | undefined
+	kind?: string | undefined
+	content?: string | undefined
 	documentId?: string | undefined
 	customId?: string | null | undefined
 	title?: string | null | undefined
 	type?: string | null | undefined
 	summary?: string | null | undefined
 	url?: string | null | undefined
+}
+
+export type CitationDisplay = {
+	title: string
+	summary: string | null
+	kind: string
 }
 
 export type DocumentWithMemories = z.infer<
@@ -156,10 +165,15 @@ function citationTargetForResult(
 		doc?.id ??
 		result.documentIds?.find(Boolean) ??
 		result.documentId
-	const target = documentTarget(sourceId, doc)
-	target.documentId = target.documentId ?? docId
-	target.customId = target.customId ?? result.customId
-	return target
+	const docTarget = documentTarget(sourceId, doc)
+	return {
+		...docTarget,
+		memoryId: result.id,
+		kind: result.kind,
+		content: result.content,
+		documentId: docTarget.documentId ?? docId,
+		customId: docTarget.customId ?? result.customId,
+	}
 }
 
 function documentTarget(
@@ -247,7 +261,7 @@ export function buildCitationIndex(
 		for (const sourceId of output.sourceIds ?? []) {
 			if (index.has(sourceId)) continue
 			const matchingResult = (output.results ?? []).find(
-				(result) => result.citationId === sourceId,
+				(result) => result.citationId === sourceId || result.id === sourceId,
 			)
 			if (matchingResult)
 				addTarget(
@@ -342,6 +356,46 @@ export function mapDocumentsByKnownIds(
 		if (doc.customId) map.set(doc.customId, doc)
 	}
 	return map
+}
+
+function hasDisplayMetadata(target: CitationTarget): boolean {
+	return !!(
+		target.title?.trim() ||
+		target.documentId ||
+		target.customId ||
+		target.url ||
+		target.type ||
+		target.summary?.trim()
+	)
+}
+
+export function getCitationDisplay(
+	target: CitationTarget,
+	document?: DocumentWithMemories,
+): CitationDisplay {
+	const memoryOnly = !document && !hasDisplayMetadata(target)
+	const summary =
+		document?.summary ||
+		target.summary ||
+		target.content ||
+		(document as { content?: string } | undefined)?.content ||
+		null
+
+	return {
+		title: memoryOnly
+			? "Memory"
+			: document?.title?.trim() ||
+				target.title?.trim() ||
+				document?.customId ||
+				target.customId ||
+				target.documentId ||
+				target.sourceId,
+		summary: summary ? summary.trim() : null,
+		kind: (document?.type || target.type || target.kind || "memory").replaceAll(
+			"_",
+			" ",
+		),
+	}
 }
 
 export function getDocumentSourceUrl(
