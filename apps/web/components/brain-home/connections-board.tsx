@@ -71,19 +71,29 @@ export function ConnectionsBoard() {
 				fetch(`${MCP_BASE}/`, { credentials: "include" }),
 				fetch(`${BACKEND}/brain/slack/status`, { credentials: "include" }),
 			])
-			if (cat.ok)
-				setCatalog(
-					((await cat.json()) as { catalog?: CatalogEntry[] }).catalog ?? [],
-				)
-			else setCatalog([])
-			if (conn.ok)
-				setRows(
-					((await conn.json()) as { connections?: ConnRow[] }).connections ??
-						[],
-				)
-			if (s.ok) setSlack(await s.json())
+			// Parse each response independently so one bad payload can't strand the others.
+			try {
+				if (cat.ok) {
+					const data: { catalog?: CatalogEntry[] } = await cat.json()
+					setCatalog(data.catalog ?? [])
+				} else setCatalog([])
+			} catch {
+				setCatalog([])
+			}
+			try {
+				if (conn.ok) {
+					const data: { connections?: ConnRow[] } = await conn.json()
+					setRows(data.connections ?? [])
+				} else setRows([])
+			} catch {
+				setRows([])
+			}
+			try {
+				if (s.ok) setSlack(await s.json())
+			} catch {}
 		} catch {
 			setCatalog([])
+			setRows([])
 		}
 	}, [])
 
@@ -132,7 +142,7 @@ export function ConnectionsBoard() {
 				toast.error("Couldn't start the connection.")
 				return
 			}
-			const data = (await res.json()) as { authUrl?: string; ok?: boolean }
+			const data: { authUrl?: string; ok?: boolean } = await res.json()
 			if (data.authUrl) window.open(data.authUrl, "_blank", "noopener")
 			else if (data.ok) {
 				toast.success(`${entry.name} connected.`)
