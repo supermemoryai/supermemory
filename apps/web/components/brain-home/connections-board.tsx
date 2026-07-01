@@ -72,10 +72,15 @@ export function ConnectionsBoard() {
 				fetch(`${BACKEND}/brain/slack/status`, { credentials: "include" }),
 			])
 			if (cat.ok)
-				setCatalog(((await cat.json()) as { catalog?: CatalogEntry[] }).catalog ?? [])
+				setCatalog(
+					((await cat.json()) as { catalog?: CatalogEntry[] }).catalog ?? [],
+				)
 			else setCatalog([])
 			if (conn.ok)
-				setRows(((await conn.json()) as { connections?: ConnRow[] }).connections ?? [])
+				setRows(
+					((await conn.json()) as { connections?: ConnRow[] }).connections ??
+						[],
+				)
 			if (s.ok) setSlack(await s.json())
 		} catch {
 			setCatalog([])
@@ -118,7 +123,10 @@ export function ConnectionsBoard() {
 				method: "POST",
 				credentials: "include",
 				headers: { "content-type": "application/json" },
-				body: JSON.stringify({ shared: false, redirectUrl: window.location.href }),
+				body: JSON.stringify({
+					shared: false,
+					redirectUrl: window.location.href,
+				}),
 			})
 			if (!res.ok) {
 				toast.error("Couldn't start the connection.")
