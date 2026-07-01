@@ -151,6 +151,14 @@ export function Graph({ documents, totalCount }: Props) {
 	// mid-session theme switch re-themes the canvas.
 	const theme = (ctx?.theme as string | undefined) ?? "light"
 	const colors = useGraphColors(theme)
+	const graphColors = useMemo<Partial<GraphThemeColors>>(
+		() => ({
+			...colors,
+			bg: "transparent",
+			edgeDerives: "#9ca3af",
+		}),
+		[colors],
+	)
 
 	const fullscreenSupported = useMemo(() => {
 		const modes = (
@@ -185,11 +193,11 @@ export function Graph({ documents, totalCount }: Props) {
 	}, [mode, toggleFullscreen])
 
 	return (
-		<div className="relative px-(--page-header-px) pb-(--space-6) pt-(--space-4)">
+		<div className="relative">
 			<div
 				className={cn(
-					"graph-view overflow-hidden rounded-lg border border-border shadow-lg",
-					mode === "fullscreen" && "fullscreen rounded-none border-0",
+					"graph-view overflow-hidden",
+					mode === "fullscreen" && "fullscreen",
 				)}
 			>
 				{/* No remount on toggle. The CSS just resizes the container; the
@@ -197,10 +205,10 @@ export function Graph({ documents, totalCount }: Props) {
 				    positions stable, so expand/minimize is instant with no reload.
 				    Theme is fed reactively via the colors prop. */}
 				<MemoryGraph
-					colors={colors}
+					colors={graphColors}
 					documents={graphDocuments}
 					totalCount={totalCount}
-					variant="console"
+					variant="consumer"
 				/>
 			</div>
 			{fullscreenSupported ? (
@@ -208,7 +216,7 @@ export function Graph({ documents, totalCount }: Props) {
 					aria-label={
 						mode === "fullscreen" ? "Exit fullscreen" : "Enter fullscreen"
 					}
-					className="absolute top-4 right-4 z-40 inline-flex items-center justify-center w-9 h-9 rounded-md bg-bg-elevated/80 backdrop-blur border border-border text-text-secondary hover:text-text-primary hover:bg-bg-muted transition-colors"
+					className="absolute top-3 right-3 z-40 inline-flex items-center justify-center w-9 h-9 rounded-full bg-bg-elevated/90 backdrop-blur border border-border text-text-secondary hover:text-text-primary hover:bg-bg-muted transition-colors"
 					onClick={toggleFullscreen}
 					title={mode === "fullscreen" ? "Exit fullscreen" : "Fullscreen"}
 					type="button"

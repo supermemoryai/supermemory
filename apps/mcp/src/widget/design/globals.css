@@ -137,6 +137,45 @@
 	color: var(--text-primary);
 }
 
+.mcp-widget-shell-graph {
+	min-height: 420px;
+	background: #05080d;
+}
+
+.mcp-widget-shell-graph::before,
+.mcp-widget-shell-graph::after {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	content: "";
+}
+
+.mcp-widget-shell-graph::before {
+	background-image: radial-gradient(
+		circle at center,
+		rgba(105, 167, 240, 0.25) 1px,
+		transparent 1px
+	);
+	background-size: 32px 32px;
+	mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%);
+}
+
+.mcp-widget-shell-graph::after {
+	background:
+		radial-gradient(
+			ellipse at 50% 112%,
+			rgba(75, 160, 250, 0.42) 0%,
+			rgba(20, 16, 255, 0.3) 34%,
+			transparent 66%
+		),
+		linear-gradient(180deg, rgba(5, 8, 13, 0) 0%, rgba(5, 8, 13, 0.2) 100%);
+}
+
+.mcp-widget-shell-graph .mcp-widget-glow {
+	display: none;
+}
+
 .mcp-widget-glow {
 	position: absolute;
 	right: -18%;
@@ -214,6 +253,10 @@
 	z-index: 1;
 }
 
+.mcp-widget-shell-graph .mcp-widget-content {
+	min-height: inherit;
+}
+
 /* Spinner — kept as global because primitives can't easily express a CSS animation */
 .spinner {
 	width: 24px;
@@ -243,26 +286,13 @@
  * minimize). Keeping it in flow with an explicit height avoids that entirely. */
 .graph-view {
 	width: 100%;
-	aspect-ratio: 4 / 3;
+	aspect-ratio: 16 / 9;
 	/* Never collapse to 0 during a resize/transition — a 0-size frame makes the
 	 * package drop its "already fitted" flag and re-fit (a camera animation that
 	 * reads as a re-layout). The floor keeps the size continuous. */
-	min-height: 280px;
+	min-height: 420px;
 	position: relative;
-	background:
-		linear-gradient(rgba(75, 160, 250, 0.035) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(75, 160, 250, 0.035) 1px, transparent 1px),
-		radial-gradient(
-			circle at 50% 108%,
-			rgba(75, 160, 250, 0.22),
-			transparent 42%
-		),
-		var(--bg-primary);
-	background-size:
-		36px 36px,
-		36px 36px,
-		100% 100%,
-		100% 100%;
+	background: transparent;
 }
 
 .graph-view.fullscreen {
