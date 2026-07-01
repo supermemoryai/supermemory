@@ -8,8 +8,8 @@ import { cn } from "../lib/cn"
 
 const cardStyles = cva(
 	[
-		"text-left bg-bg-elevated/90 border border-border rounded-lg p-4",
-		"shadow-md backdrop-blur transition-colors duration-150",
+		"text-left bg-bg-elevated border border-border rounded-lg p-4",
+		"shadow-md transition-colors duration-150",
 	].join(" "),
 	{
 		variants: {

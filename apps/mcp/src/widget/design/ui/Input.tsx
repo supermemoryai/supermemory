@@ -2,17 +2,17 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { forwardRef, type InputHTMLAttributes } from "react"
 import { cn } from "../lib/cn"
 
-// Mirrors console-v2's Input: transparent surface, soft hover tint,
-// focus shadow, aria-invalid styling. Sizes sm/md/lg match component heights.
+// Mirrors console-v2's Input with a solid widget surface so the Nova grid stays
+// behind the form instead of bleeding through controls.
 const inputVariants = cva(
 	[
 		"flex w-full",
-		"bg-[var(--bg-overlay)] text-[var(--text-primary)]",
-		"border border-[var(--border)]",
+		"bg-[var(--bg-control)] text-[var(--text-primary)]",
+		"border border-[var(--border-control)]",
 		"rounded-[var(--radius-lg)]",
 		"placeholder:text-[var(--text-muted)]",
 		"transition-colors",
-		"hover:bg-[var(--bg-muted)]",
+		"hover:bg-[var(--bg-control-hover)]",
 		"focus-visible:outline-none focus-visible:border-[var(--border-accent)] focus-visible:shadow-[0_0_0_1px_var(--border-accent)]",
 		"disabled:cursor-not-allowed disabled:opacity-50",
 		"aria-invalid:border-[var(--error)] aria-invalid:ring-[var(--error)]",

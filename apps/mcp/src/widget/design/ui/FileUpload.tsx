@@ -58,10 +58,10 @@ export function FileUpload({
 				"flex min-h-[180px] flex-col items-center justify-center gap-(--space-3)",
 				"py-(--space-12) px-(--space-6)",
 				"border-2 border-dashed rounded-(--radius-lg)",
-				"bg-[var(--bg-overlay)] cursor-pointer shadow-md backdrop-blur transition-colors",
+				"bg-[var(--bg-control)] cursor-pointer shadow-md transition-colors",
 				dragOver
 					? "border-accent bg-accent-muted"
-					: "border-border hover:bg-bg-muted/80",
+					: "border-[var(--border-control)] hover:bg-[var(--bg-control-hover)]",
 				disabled && "pointer-events-none opacity-50",
 				className,
 			)}

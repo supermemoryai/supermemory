@@ -307,9 +307,12 @@
 	--bg-muted: #131b28;
 	--bg-elevated: #1b1f24;
 	--bg-overlay: rgba(13, 18, 26, 0.78);
+	--bg-control: #0d121a;
+	--bg-control-hover: #111923;
 
 	--border: rgba(255, 255, 255, 0.12);
 	--border-muted: rgba(255, 255, 255, 0.07);
+	--border-control: rgba(255, 255, 255, 0.14);
 	--border-accent: rgba(34, 97, 202, 0.45);
 
 	--text-primary: #fafafa;
