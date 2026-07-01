@@ -25,9 +25,9 @@ const buttonVariants = cva(
 					"hover:bg-[var(--accent-hover)] hover:shadow-[0_12px_32px_rgba(75,160,250,0.32)]",
 				].join(" "),
 				secondary: [
-					"bg-[var(--bg-overlay)] text-[var(--text-primary)]",
-					"border border-[var(--border)]",
-					"hover:bg-[var(--bg-muted)] hover:border-[var(--border-accent)]",
+					"bg-[var(--bg-control)] text-[var(--text-primary)]",
+					"border border-[var(--border-control)]",
+					"hover:bg-[var(--bg-control-hover)] hover:border-[var(--border-accent)]",
 				].join(" "),
 				ghost: [
 					"text-[var(--text-primary)]",
