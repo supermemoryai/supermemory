@@ -27,7 +27,7 @@ export function WorkspaceCard({
 			<Stack className="h-full" gap="sm">
 				<Stack align="center" direction="row" gap="sm" justify="between">
 					<span className="flex min-w-0 items-center gap-(--space-2)">
-						<span className="grid size-7 shrink-0 place-items-center rounded-md bg-[#0D121A] ring-1 ring-[#161F2C] transition-colors group-hover:ring-[#3374FF]/40">
+						<span className="grid size-7 shrink-0 place-items-center rounded-md bg-[#0D121A] ring-1 ring-[#161F2C] transition-colors group-hover:ring-[#3A4455]">
 							{containerTag.emoji ? (
 								<span aria-hidden className="text-base leading-none">
 									{containerTag.emoji}

@@ -27,7 +27,7 @@ const buttonVariants = cva(
 				secondary: [
 					"bg-[var(--bg-control)] text-[var(--text-primary)]",
 					"border border-[var(--border-control)]",
-					"hover:bg-[var(--bg-control-hover)] hover:border-[#3374FF]/50",
+					"hover:bg-[var(--bg-control-hover)] hover:border-[#3A4455]",
 				].join(" "),
 				ghost: [
 					"text-[var(--text-primary)]",
