@@ -55,7 +55,7 @@ export function App() {
 	)
 }
 
-function WidgetShell({
+export function WidgetShell({
 	children,
 	immersive = false,
 }: {
