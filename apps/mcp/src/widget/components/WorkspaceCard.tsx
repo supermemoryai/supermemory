@@ -20,25 +20,25 @@ export function WorkspaceCard({
 	return (
 		<Card
 			as="button"
-			className="min-h-[108px] w-full p-3"
+			className="min-h-[132px] w-full p-4"
 			onClick={() => onClick(containerTag.containerTag)}
 			variant={active ? "active" : "interactive"}
 		>
-			<Stack className="h-full" gap="sm">
+			<Stack className="h-full" gap="xs">
 				<Stack align="center" direction="row" gap="sm" justify="between">
 					<span
-						className="min-w-0 truncate text-(length:--text-sm) font-medium text-text-primary"
+						className="min-w-0 truncate text-sm font-medium text-white"
 						style={{ fontFamily: "var(--font-brand)" }}
 					>
 						{name}
 					</span>
 					{active ? <Check className="size-4 shrink-0 text-accent" /> : null}
 				</Stack>
-				<div className="truncate font-mono text-[13px] text-text-muted">
+				<div className="truncate text-xs leading-relaxed text-[#8B8B8B]">
 					{containerTag.containerTag}
 				</div>
 				{(containerTag.documentCount > 0 || containerTag.memoryCount > 0) && (
-					<div className="mt-auto flex items-center gap-(--space-2) text-(length:--text-xs) text-text-muted">
+					<div className="mt-1 flex items-center gap-(--space-2) text-xs leading-relaxed text-[#8B8B8B]">
 						<span>
 							{containerTag.documentCount} doc
 							{containerTag.documentCount === 1 ? "" : "s"}
@@ -50,6 +50,7 @@ export function WorkspaceCard({
 						</span>
 					</div>
 				)}
+				<div className="flex-1" />
 				{access ? <PermissionBadge permission={access.permission} /> : null}
 			</Stack>
 		</Card>

@@ -19,7 +19,7 @@ const cardStyles = cva(
 				interactive:
 					"cursor-pointer hover:border-[#3A4455] hover:bg-bg-control-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
 				active:
-					"cursor-pointer border-[#2261CA]/70 bg-[#00173C] shadow-[0_0_28px_rgba(75,160,250,0.18)]",
+					"cursor-pointer border-[#263348] bg-bg-elevated hover:border-[#3A4455] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
 			},
 		},
 		defaultVariants: { variant: "default" },
