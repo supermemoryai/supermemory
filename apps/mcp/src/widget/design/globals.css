@@ -275,6 +275,64 @@
 	}
 }
 
+.super-loader {
+	display: inline-flex;
+	min-width: calc(var(--super-loader-size, 42px) + 10px);
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--accent);
+}
+
+.super-loader-mark {
+	width: calc(var(--super-loader-size, 42px) * 0.5);
+	height: calc(var(--super-loader-size, 42px) * 0.5);
+	flex-shrink: 0;
+	overflow: visible;
+}
+
+.super-loader-path {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.4;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-dasharray: 1;
+	stroke-dashoffset: 1;
+	opacity: 0.2;
+	animation: super-loader-draw 0.9s ease-in-out infinite alternate;
+}
+
+.super-loader-path-left {
+	animation-delay: 0.18s;
+}
+
+.super-loader-label {
+	color: var(--text-muted);
+	font-size: calc(var(--super-loader-size, 42px) * 0.25);
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+@keyframes super-loader-draw {
+	from {
+		stroke-dashoffset: 1;
+		opacity: 0.2;
+	}
+
+	to {
+		stroke-dashoffset: 0;
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.super-loader-path {
+		stroke-dashoffset: 0;
+		opacity: 0.7;
+		animation: none;
+	}
+}
+
 /* The graph canvas needs a definite height in both modes.
  *
  * Inline: derive height from the (stable) width via aspect-ratio — width is
