@@ -73,7 +73,7 @@ export function Save({
 				title="Add Memory"
 			/>
 			<div className="px-(--page-header-px) pb-(--space-6)">
-				<div className="rounded-(--radius-lg) border border-border bg-[var(--bg-panel)] p-(--space-4) shadow-md">
+				<div className="rounded-[20px] bg-[#1B1F24] p-(--space-4) shadow-[0_2.842px_14.211px_0_rgba(0,0,0,0.25),inset_0.711px_0.711px_0.711px_0_rgba(255,255,255,0.10)]">
 					<Stack gap="lg">
 						<Field label="Memory">
 							<TextArea
