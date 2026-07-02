@@ -1,6 +1,6 @@
 import type { ContainerTag, ContainerTagAccess } from "../../shared/types"
 import { Card, Stack } from "../design/ui"
-import { Check, Package } from "../lib/icons"
+import { Check } from "../lib/icons"
 import { PermissionBadge } from "./PermissionBadge"
 
 interface Props {
@@ -20,28 +20,17 @@ export function WorkspaceCard({
 	return (
 		<Card
 			as="button"
-			className="min-h-[116px] w-full p-3"
+			className="min-h-[108px] w-full p-3"
 			onClick={() => onClick(containerTag.containerTag)}
 			variant={active ? "active" : "interactive"}
 		>
 			<Stack className="h-full" gap="sm">
 				<Stack align="center" direction="row" gap="sm" justify="between">
-					<span className="flex min-w-0 items-center gap-(--space-2)">
-						<span className="grid size-7 shrink-0 place-items-center rounded-md bg-[#0D121A] ring-1 ring-[#161F2C] transition-colors group-hover:ring-[#3A4455]">
-							{containerTag.emoji ? (
-								<span aria-hidden className="text-base leading-none">
-									{containerTag.emoji}
-								</span>
-							) : (
-								<Package className="size-4 text-text-secondary" />
-							)}
-						</span>
-						<span
-							className="truncate text-(length:--text-sm) font-medium text-text-primary"
-							style={{ fontFamily: "var(--font-brand)" }}
-						>
-							{name}
-						</span>
+					<span
+						className="min-w-0 truncate text-(length:--text-sm) font-medium text-text-primary"
+						style={{ fontFamily: "var(--font-brand)" }}
+					>
+						{name}
 					</span>
 					{active ? <Check className="size-4 shrink-0 text-accent" /> : null}
 				</Stack>
