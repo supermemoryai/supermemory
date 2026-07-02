@@ -9,7 +9,7 @@ export function Confirmation({ containerTag }: Props) {
 	return (
 		<Stack
 			align="center"
-			className="mx-(--page-header-px) my-(--space-6) rounded-lg border border-border bg-bg-elevated/80 px-(--page-header-px) py-(--space-10) text-center shadow-lg backdrop-blur"
+			className="mx-(--page-header-px) my-(--space-6) rounded-lg border border-border bg-[var(--bg-panel)] px-(--page-header-px) py-(--space-10) text-center shadow-md"
 			gap="md"
 		>
 			<CheckCircle className="size-12 text-success" />

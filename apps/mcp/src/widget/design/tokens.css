@@ -305,19 +305,20 @@
 	--bg-primary: #0b1119;
 	--bg-secondary: #101822;
 	--bg-muted: #131b28;
-	--bg-elevated: #1b1f24;
+	--bg-elevated: #080b0f;
 	--bg-overlay: rgba(13, 18, 26, 0.78);
-	--bg-control: #0d121a;
-	--bg-control-hover: #111923;
+	--bg-panel: #101822;
+	--bg-control: #080b0f;
+	--bg-control-hover: #0d121a;
 
-	--border: rgba(255, 255, 255, 0.12);
-	--border-muted: rgba(255, 255, 255, 0.07);
-	--border-control: rgba(255, 255, 255, 0.14);
-	--border-accent: rgba(34, 97, 202, 0.45);
+	--border: #263348;
+	--border-muted: #161f2c;
+	--border-control: #263348;
+	--border-accent: rgba(75, 160, 250, 0.5);
 
 	--text-primary: #fafafa;
 	--text-secondary: #d0dae7;
-	--text-muted: #a0aec4;
+	--text-muted: #8b8b8b;
 	--text-inverse: #0b1119;
 
 	--success: #4ade80;
@@ -341,12 +342,9 @@
 	--radius-md: 6px;
 	--radius-lg: 8px;
 
-	--shadow-sm:
-		0 2px 10px rgba(0, 0, 0, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.06);
-	--shadow-md:
-		0 10px 30px rgba(0, 0, 0, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.08);
-	--shadow-lg:
-		0 20px 60px rgba(0, 0, 0, 0.42), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+	--shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.2);
+	--shadow-md: 0 12px 34px rgba(0, 0, 0, 0.28);
+	--shadow-lg: 0 20px 54px rgba(0, 0, 0, 0.38);
 
 	--graph-bg: #0b1119;
 	--graph-doc-fill: #1b1f24;

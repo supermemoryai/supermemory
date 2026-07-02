@@ -14,7 +14,7 @@ export function Field({ label, hint, error, className, children }: Props) {
 		<div className={cn("flex flex-col gap-1.5", className)}>
 			{label ? (
 				// biome-ignore lint/a11y/noLabelWithoutControl: generic field wrapper where children provide the input
-				<label className="text-xs font-medium text-text-secondary uppercase tracking-wide">
+				<label className="text-xs font-medium uppercase text-text-secondary">
 					{label}
 				</label>
 			) : null}

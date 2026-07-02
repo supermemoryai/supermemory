@@ -8,17 +8,18 @@ import { cn } from "../lib/cn"
 
 const cardStyles = cva(
 	[
-		"text-left bg-bg-elevated border border-border rounded-lg p-4",
-		"shadow-md transition-colors duration-150",
+		"group relative overflow-hidden text-left",
+		"rounded-lg border border-[#0D121A] bg-bg-elevated p-4",
+		"transition-all duration-200",
 	].join(" "),
 	{
 		variants: {
 			variant: {
 				default: "",
 				interactive:
-					"cursor-pointer hover:bg-bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
+					"cursor-pointer hover:border-[#3374FF]/50 hover:bg-bg-control-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
 				active:
-					"cursor-pointer border-border-accent bg-accent-muted shadow-[0_0_30px_rgba(75,160,250,0.16)]",
+					"cursor-pointer border-[#2261CA]/70 bg-[#00173C] shadow-[0_0_28px_rgba(75,160,250,0.18)]",
 			},
 		},
 		defaultVariants: { variant: "default" },

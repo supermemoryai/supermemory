@@ -73,11 +73,11 @@ export function Save({
 				title="Add Memory"
 			/>
 			<div className="px-(--page-header-px) pb-(--space-6)">
-				<div className="rounded-(--radius-lg) border border-border bg-bg-elevated p-(--space-4) shadow-lg">
+				<div className="rounded-(--radius-lg) border border-border bg-[var(--bg-panel)] p-(--space-4) shadow-md">
 					<Stack gap="lg">
 						<Field label="Memory">
 							<TextArea
-								className="min-h-40"
+								className="min-h-40 shadow-sm"
 								onChange={(e) => setContent(e.target.value)}
 								placeholder="Enter content to save as a memory…"
 								value={content}

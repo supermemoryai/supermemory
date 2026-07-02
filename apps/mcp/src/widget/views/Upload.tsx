@@ -78,10 +78,10 @@ export function Upload({ activeTag, writableTags, onAdvance, onError }: Props) {
 				title="Upload File"
 			/>
 			<div className="px-(--page-header-px) pb-(--space-6)">
-				<div className="rounded-(--radius-lg) border border-border bg-bg-elevated p-(--space-4) shadow-lg">
+				<div className="rounded-(--radius-lg) border border-border bg-[var(--bg-panel)] p-(--space-4) shadow-md">
 					<Stack gap="lg">
 						{file ? (
-							<div className="flex items-center justify-between gap-(--space-3) rounded-(--radius-lg) border border-[var(--border-control)] bg-[var(--bg-control)] p-(--space-3)">
+							<div className="flex items-center justify-between gap-(--space-3) rounded-(--radius-lg) border border-[var(--border-control)] bg-[var(--bg-control)] p-(--space-3) shadow-sm">
 								<div className="flex min-w-0 items-center gap-(--space-3)">
 									<FileText className="size-5 shrink-0 text-text-secondary" />
 									<div className="flex min-w-0 flex-col">

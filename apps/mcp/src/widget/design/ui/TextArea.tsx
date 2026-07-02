@@ -11,9 +11,9 @@ const textAreaClass = [
 	"px-[var(--space-3)] py-[var(--space-2)]",
 	"text-[length:var(--text-sm)] leading-normal font-sans",
 	"placeholder:text-[var(--text-muted)]",
-	"transition-colors resize-y",
+	"transition-all resize-y",
 	"hover:bg-[var(--bg-control-hover)]",
-	"focus-visible:outline-none focus-visible:border-[var(--border-accent)] focus-visible:shadow-[0_0_0_1px_var(--border-accent)]",
+	"focus-visible:outline-none focus-visible:border-[var(--border-accent)] focus-visible:shadow-[0_0_0_1px_var(--border-accent),0_0_24px_rgba(75,160,250,0.12)]",
 	"disabled:cursor-not-allowed disabled:opacity-50",
 	"aria-invalid:border-[var(--error)] aria-invalid:ring-[var(--error)]",
 ].join(" ")

@@ -20,22 +20,24 @@ export function WorkspaceCard({
 	return (
 		<Card
 			as="button"
-			className="w-full"
+			className="min-h-[116px] w-full p-3"
 			onClick={() => onClick(containerTag.containerTag)}
 			variant={active ? "active" : "interactive"}
 		>
-			<Stack gap="sm">
+			<Stack className="h-full" gap="sm">
 				<Stack align="center" direction="row" gap="sm" justify="between">
 					<span className="flex min-w-0 items-center gap-(--space-2)">
-						{containerTag.emoji ? (
-							<span aria-hidden className="text-base leading-none">
-								{containerTag.emoji}
-							</span>
-						) : (
-							<Package className="size-4 shrink-0 text-text-secondary" />
-						)}
+						<span className="grid size-7 shrink-0 place-items-center rounded-md bg-[#0D121A] ring-1 ring-[#161F2C] transition-colors group-hover:ring-[#3374FF]/40">
+							{containerTag.emoji ? (
+								<span aria-hidden className="text-base leading-none">
+									{containerTag.emoji}
+								</span>
+							) : (
+								<Package className="size-4 text-text-secondary" />
+							)}
+						</span>
 						<span
-							className="truncate text-(length:--text-sm) font-semibold text-text-primary"
+							className="truncate text-(length:--text-sm) font-medium text-text-primary"
 							style={{ fontFamily: "var(--font-brand)" }}
 						>
 							{name}
@@ -43,11 +45,11 @@ export function WorkspaceCard({
 					</span>
 					{active ? <Check className="size-4 shrink-0 text-accent" /> : null}
 				</Stack>
-				<div className="truncate font-mono text-(length:--text-xs) text-text-muted">
+				<div className="truncate font-mono text-[13px] text-text-muted">
 					{containerTag.containerTag}
 				</div>
 				{(containerTag.documentCount > 0 || containerTag.memoryCount > 0) && (
-					<div className="flex items-center gap-(--space-3) text-(length:--text-xs) text-text-muted">
+					<div className="mt-auto flex items-center gap-(--space-2) text-(length:--text-xs) text-text-muted">
 						<span>
 							{containerTag.documentCount} doc
 							{containerTag.documentCount === 1 ? "" : "s"}

@@ -14,6 +14,9 @@
 	--color-bg-muted: var(--bg-muted);
 	--color-bg-elevated: var(--bg-elevated);
 	--color-bg-overlay: var(--bg-overlay);
+	--color-bg-panel: var(--bg-panel);
+	--color-bg-control: var(--bg-control);
+	--color-bg-control-hover: var(--bg-control-hover);
 
 	--color-border: var(--border);
 	--color-border-muted: var(--border-muted);
@@ -95,7 +98,7 @@
 			linear-gradient(180deg, #0b1119 0%, #070b11 100%);
 		color: var(--text-primary);
 		font-family: var(--font-sans);
-		letter-spacing: -0.01em;
+		letter-spacing: 0;
 		line-height: var(--leading-normal);
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
@@ -121,11 +124,11 @@
 	min-height: 280px;
 	overflow: hidden;
 	background:
-		linear-gradient(rgba(75, 160, 250, 0.035) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(75, 160, 250, 0.035) 1px, transparent 1px),
+		linear-gradient(rgba(75, 160, 250, 0.04) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(75, 160, 250, 0.04) 1px, transparent 1px),
 		radial-gradient(
 			circle at 50% 108%,
-			rgba(75, 160, 250, 0.22),
+			rgba(75, 160, 250, 0.18),
 			transparent 42%
 		),
 		linear-gradient(180deg, #0b1119 0%, #070b11 100%);
@@ -182,14 +185,14 @@
 	pointer-events: none;
 	background: radial-gradient(
 		ellipse at 50% 48%,
-		rgba(255, 255, 255, 0.34) 0%,
-		rgba(71, 168, 253, 0.42) 11%,
-		rgba(0, 153, 255, 0.32) 28%,
-		rgba(20, 16, 255, 0.28) 48%,
+		rgba(255, 255, 255, 0.22) 0%,
+		rgba(71, 168, 253, 0.3) 12%,
+		rgba(0, 153, 255, 0.22) 28%,
+		rgba(20, 16, 255, 0.18) 48%,
 		transparent 74%
 	);
-	filter: blur(18px);
-	opacity: 0.9;
+	filter: blur(20px);
+	opacity: 0.78;
 }
 
 .mcp-widget-shell-graph .mcp-widget-glow {
@@ -202,9 +205,9 @@
 	gap: var(--space-2);
 	margin: var(--space-4) var(--page-header-px) 0;
 	padding: 7px 10px 7px 8px;
-	border: 1px solid var(--border);
+	border: 1px solid #263348;
 	border-radius: var(--radius-lg);
-	background: rgba(13, 18, 26, 0.78);
+	background: rgba(8, 11, 15, 0.92);
 	backdrop-filter: blur(18px);
 	box-shadow: var(--shadow-sm);
 }
@@ -217,9 +220,7 @@
 	color: var(--accent);
 	border-radius: var(--radius-md);
 	background: #080b0f;
-	box-shadow:
-		inset 1.5px 1.5px 4.5px rgba(0, 0, 0, 0.7),
-		inset 0 1px 1px rgba(255, 255, 255, 0.03);
+	box-shadow: inset 1.5px 1.5px 4.5px rgba(0, 0, 0, 0.7);
 }
 
 .mcp-widget-brand-mark svg {

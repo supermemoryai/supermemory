@@ -27,7 +27,7 @@ const buttonVariants = cva(
 				secondary: [
 					"bg-[var(--bg-control)] text-[var(--text-primary)]",
 					"border border-[var(--border-control)]",
-					"hover:bg-[var(--bg-control-hover)] hover:border-[var(--border-accent)]",
+					"hover:bg-[var(--bg-control-hover)] hover:border-[#3374FF]/50",
 				].join(" "),
 				ghost: [
 					"text-[var(--text-primary)]",
@@ -94,7 +94,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 				{shortcut && !loading ? (
 					<span
 						className={cn(
-							"text-[0.8em] tracking-[0.1em]",
+							"text-[0.8em]",
 							variant === "primary" || variant === "danger"
 								? "opacity-60"
 								: variant === "ghost"
