@@ -73,39 +73,41 @@ export function Save({
 				title="Add Memory"
 			/>
 			<div className="px-(--page-header-px) pb-(--space-6)">
-				<Stack gap="lg">
-					<Field label="Memory">
-						<TextArea
-							className="min-h-40"
-							onChange={(e) => setContent(e.target.value)}
-							placeholder="Enter content to save as a memory…"
-							value={content}
-						/>
-					</Field>
-
-					{writableTags.length > 0 ? (
-						<Field label="Workspace">
-							<WorkspaceSelect
-								onValueChange={setSelectedTag}
-								options={options}
-								value={selectedTag}
+				<div className="rounded-(--radius-lg) border border-border bg-bg-elevated p-(--space-4) shadow-lg">
+					<Stack gap="lg">
+						<Field label="Memory">
+							<TextArea
+								className="min-h-40"
+								onChange={(e) => setContent(e.target.value)}
+								placeholder="Enter content to save as a memory…"
+								value={content}
 							/>
 						</Field>
-					) : null}
 
-					<div className="flex justify-end border-t border-border-muted pt-(--space-4)">
-						<ActionGroup>
-							<Button
-								disabled={!canSave}
-								loading={saving}
-								onClick={handleSave}
-								variant="primary"
-							>
-								{saving ? "Saving" : "Save memory"}
-							</Button>
-						</ActionGroup>
-					</div>
-				</Stack>
+						{writableTags.length > 0 ? (
+							<Field label="Workspace">
+								<WorkspaceSelect
+									onValueChange={setSelectedTag}
+									options={options}
+									value={selectedTag}
+								/>
+							</Field>
+						) : null}
+
+						<div className="flex justify-end pt-(--space-2)">
+							<ActionGroup>
+								<Button
+									disabled={!canSave}
+									loading={saving}
+									onClick={handleSave}
+									variant="primary"
+								>
+									{saving ? "Saving" : "Save memory"}
+								</Button>
+							</ActionGroup>
+						</div>
+					</Stack>
+				</div>
 			</div>
 		</div>
 	)

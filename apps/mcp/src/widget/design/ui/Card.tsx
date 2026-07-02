@@ -7,14 +7,18 @@ import {
 import { cn } from "../lib/cn"
 
 const cardStyles = cva(
-	"text-left bg-bg-elevated border border-border rounded-lg p-4 transition-colors duration-150",
+	[
+		"text-left bg-bg-elevated border border-border rounded-lg p-4",
+		"shadow-md transition-colors duration-150",
+	].join(" "),
 	{
 		variants: {
 			variant: {
 				default: "",
 				interactive:
 					"cursor-pointer hover:bg-bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
-				active: "cursor-pointer border-accent bg-accent-muted",
+				active:
+					"cursor-pointer border-border-accent bg-accent-muted shadow-[0_0_30px_rgba(75,160,250,0.16)]",
 			},
 		},
 		defaultVariants: { variant: "default" },

@@ -9,9 +9,9 @@ import { cn } from "../lib/cn"
 const buttonVariants = cva(
 	[
 		"inline-flex items-center justify-center gap-2",
-		"uppercase tracking-[0.075em]",
+		"font-semibold",
 		"rounded-[var(--radius-md)]",
-		"transition-colors cursor-pointer",
+		"transition-all cursor-pointer",
 		"disabled:pointer-events-none disabled:opacity-50",
 		"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-primary)]",
 		"[&_svg:not([class*='size-'])]:size-4 shrink-0",
@@ -21,12 +21,13 @@ const buttonVariants = cva(
 			variant: {
 				primary: [
 					"bg-[var(--accent)] text-[var(--accent-foreground)]",
-					"hover:bg-[var(--accent)]/90",
+					"shadow-[0_10px_28px_rgba(75,160,250,0.24)]",
+					"hover:bg-[var(--accent-hover)] hover:shadow-[0_12px_32px_rgba(75,160,250,0.32)]",
 				].join(" "),
 				secondary: [
-					"bg-transparent text-[var(--text-primary)]",
-					"border border-[var(--border)]",
-					"hover:bg-[var(--bg-muted)]",
+					"bg-[var(--bg-control)] text-[var(--text-primary)]",
+					"border border-[var(--border-control)]",
+					"hover:bg-[var(--bg-control-hover)] hover:border-[var(--border-accent)]",
 				].join(" "),
 				ghost: [
 					"text-[var(--text-primary)]",
@@ -38,7 +39,7 @@ const buttonVariants = cva(
 				].join(" "),
 			},
 			size: {
-				sm: "h-[var(--height-sm)] px-[var(--space-4)] text-[length:var(--text-xs)]",
+				sm: "h-[var(--height-md)] px-[var(--space-4)] text-[length:var(--text-sm)]",
 				icon: "size-[var(--height-sm)] p-0",
 			},
 		},

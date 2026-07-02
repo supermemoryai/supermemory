@@ -17,8 +17,8 @@ const PopoverContent = forwardRef<
 			className={cn(
 				"z-50 w-72 p-(--space-4)",
 				"bg-bg-elevated border border-border",
-				"rounded-(--radius-md)",
-				"shadow-md",
+				"rounded-(--radius-lg)",
+				"shadow-lg",
 				"data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
 				"data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
 				className,

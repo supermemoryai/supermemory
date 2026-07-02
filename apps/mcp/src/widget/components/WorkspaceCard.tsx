@@ -54,8 +54,8 @@ export function WorkspaceCard({
 						</span>
 						<span aria-hidden>·</span>
 						<span>
-							{containerTag.memoryCount} mem
-							{containerTag.memoryCount === 1 ? "" : "s"}
+							{containerTag.memoryCount}{" "}
+							{containerTag.memoryCount === 1 ? "memory" : "memories"}
 						</span>
 					</div>
 				)}
