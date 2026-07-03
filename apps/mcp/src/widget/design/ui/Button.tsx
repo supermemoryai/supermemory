@@ -26,10 +26,9 @@ const buttonVariants = cva(
 					"bg-[#0D121A] text-[#FAFAFA] shadow-inside-out",
 					"hover:bg-[#121820]",
 				].join(" "),
-				ghost: [
-					"text-[#737373]",
-					"hover:bg-white/5 hover:text-[#FAFAFA]",
-				].join(" "),
+				ghost: ["text-[#737373]", "hover:bg-white/5 hover:text-[#FAFAFA]"].join(
+					" ",
+				),
 				danger: [
 					"bg-[#EF4444]/15 text-[#EF4444]",
 					"hover:bg-[#EF4444]/25",
