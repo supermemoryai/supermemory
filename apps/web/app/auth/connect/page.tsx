@@ -203,16 +203,6 @@ function PluginAccessList({
 					const eligible = state === "eligible"
 					return (
 						<div className="flex items-center gap-3" key={`${id}-${state}`}>
-							<div
-								className={cn(
-									"flex size-6 shrink-0 items-center justify-center rounded-md border",
-									eligible
-										? "border-[#24413C] bg-[#0B1717] text-[#8BD8CB]"
-										: "border-transparent bg-transparent",
-								)}
-							>
-								{eligible && <Check className="size-3" strokeWidth={2} />}
-							</div>
 							{plugin && (
 								<Image
 									alt=""
@@ -231,6 +221,11 @@ function PluginAccessList({
 									>
 										{getPluginName(id)}
 									</p>
+									{eligible && (
+										<span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-[#24413C] bg-[#0B1717] text-[#8BD8CB]">
+											<Check className="size-3" strokeWidth={2} />
+										</span>
+									)}
 									{!eligible && (
 										<span
 											className={dmSans125ClassName(
