@@ -98,7 +98,7 @@
 			linear-gradient(180deg, #0b1119 0%, #070b11 100%);
 		color: var(--text-primary);
 		font-family: var(--font-sans);
-		letter-spacing: 0;
+		letter-spacing: -0.01em;
 		line-height: var(--leading-normal);
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
