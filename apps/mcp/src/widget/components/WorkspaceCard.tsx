@@ -20,20 +20,20 @@ export function WorkspaceCard({
 	return (
 		<Card
 			as="button"
-			className="min-h-[104px] w-full p-3"
+			className="min-h-[92px] w-full p-2.5"
 			onClick={() => onClick(containerTag.containerTag)}
 			variant={active ? "active" : "interactive"}
 		>
-			<div className="absolute right-3 top-3 text-[11px] font-medium leading-none">
+			<div className="absolute right-2.5 top-2.5 text-[11px] font-medium leading-none">
 				{access ? <PermissionBadge permission={access.permission} /> : null}
 			</div>
 			{active ? (
-				<Check className="absolute bottom-3 right-3 size-3 shrink-0 text-accent" />
+				<Check className="absolute bottom-2.5 right-2.5 size-3 shrink-0 text-accent" />
 			) : null}
 			<Stack className="h-full" gap="xs">
 				<Stack align="center" direction="row" gap="sm" justify="between">
 					<span
-						className="min-w-0 max-w-[calc(100%-88px)] truncate text-sm font-medium text-white"
+						className="min-w-0 max-w-[calc(100%-82px)] truncate text-sm font-medium text-white"
 						style={{ fontFamily: "var(--font-brand)" }}
 					>
 						{name}
