@@ -1,6 +1,6 @@
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
-import { SUPERMEMORY_RESOURCE_URI } from "../../shared/types"
+import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -44,9 +44,23 @@ export function register(deps: ToolDeps) {
 					args.limit,
 				)
 
+				// structuredContent must be a ViewMessage — the widget dispatches on
+				// `view` and renders anything else as an "unrecognized response" error.
+				const sc: ViewMessage = {
+					view: "graph",
+					containerTag: effectiveTag,
+					documents: data.documents,
+					totalCount: data.pagination.totalItems,
+				}
+
 				return {
-					content: [{ type: "text" as const, text: JSON.stringify(data) }],
-					structuredContent: data,
+					content: [
+						{
+							type: "text" as const,
+							text: `Fetched ${data.documents.length} documents (page ${data.pagination.currentPage} of ${data.pagination.totalPages}, ${data.pagination.totalItems} total)${effectiveTag ? `. Workspace: ${effectiveTag}` : ""}`,
+						},
+					],
+					structuredContent: sc,
 				}
 			} catch (error) {
 				return deps.errorResult(error)
