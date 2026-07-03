@@ -5,6 +5,7 @@ import type {
 	ViewMessage,
 } from "../../shared/types"
 import { WorkspaceCard } from "../components/WorkspaceCard"
+import { cn } from "../design/lib/cn"
 import { Input, PageHeader } from "../design/ui"
 import { useApp } from "../hooks/useApp"
 import { useLog } from "../hooks/useLog"
@@ -59,6 +60,7 @@ export function Picker({
 	}
 
 	const count = containerTags.length
+	const shouldConstrainList = count >= SEARCH_THRESHOLD
 	const description =
 		count === 0
 			? "No workspaces available."
@@ -80,9 +82,15 @@ export function Picker({
 					</div>
 				) : null}
 
-				{/* Bounded, scrollable list — keeps a stable height so filtering or a
-				    long workspace list doesn't resize (jump) the whole widget. */}
-				<div className="min-h-[220px] max-h-[60vh] overflow-y-auto pr-1 scrollbar-thin">
+				{/* Bound longer workspace lists so filtering/search does not resize the widget.
+				    Small lists stay natural-height to avoid unnecessary nested scrolling. */}
+				<div
+					className={cn(
+						shouldConstrainList
+							? "min-h-[220px] max-h-[60vh] overflow-y-auto pr-1 scrollbar-thin"
+							: "overflow-visible",
+					)}
+				>
 					{filtered.length === 0 ? (
 						<p className="py-(--space-6) text-center text-(length:--text-sm) text-text-muted">
 							No workspaces match “{query}”.
