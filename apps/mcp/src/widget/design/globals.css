@@ -204,28 +204,24 @@
 	align-items: center;
 	gap: var(--space-2);
 	margin: var(--space-4) var(--page-header-px) 0;
-	padding: 7px 10px 7px 8px;
-	border: 1px solid #263348;
-	border-radius: var(--radius-lg);
-	background: rgba(8, 11, 15, 0.92);
-	backdrop-filter: blur(18px);
-	box-shadow: var(--shadow-sm);
+	padding: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	opacity: 0.86;
 }
 
 .mcp-widget-brand-mark {
 	display: grid;
-	width: 26px;
-	height: 26px;
+	width: 20px;
+	height: 20px;
 	place-items: center;
 	color: var(--accent);
-	border-radius: var(--radius-md);
-	background: #080b0f;
-	box-shadow: inset 1.5px 1.5px 4.5px rgba(0, 0, 0, 0.7);
 }
 
 .mcp-widget-brand-mark svg {
-	width: 17px;
-	height: 14px;
+	width: 16px;
+	height: 13px;
 }
 
 .mcp-widget-brand-copy {
@@ -238,7 +234,7 @@
 .mcp-widget-brand-name {
 	color: var(--text-primary);
 	font-size: 12px;
-	font-weight: 700;
+	font-weight: 650;
 	line-height: 1;
 }
 
@@ -247,6 +243,12 @@
 	font-size: 10px;
 	font-weight: 500;
 	line-height: 1.15;
+}
+
+.shadow-inside-out {
+	box-shadow:
+		inset 0 2px 4px rgba(0, 0, 0, 0.3),
+		inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .mcp-widget-content {

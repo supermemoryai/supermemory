@@ -24,15 +24,20 @@ export function WorkspaceCard({
 			onClick={() => onClick(containerTag.containerTag)}
 			variant={active ? "active" : "interactive"}
 		>
+			<div className="absolute right-4 top-4 text-[11px] font-medium leading-none">
+				{access ? <PermissionBadge permission={access.permission} /> : null}
+			</div>
+			{active ? (
+				<Check className="absolute bottom-4 right-4 size-3.5 shrink-0 text-accent" />
+			) : null}
 			<Stack className="h-full" gap="xs">
 				<Stack align="center" direction="row" gap="sm" justify="between">
 					<span
-						className="min-w-0 truncate text-sm font-medium text-white"
+						className="min-w-0 max-w-[calc(100%-96px)] truncate text-sm font-medium text-white"
 						style={{ fontFamily: "var(--font-brand)" }}
 					>
 						{name}
 					</span>
-					{active ? <Check className="size-4 shrink-0 text-accent" /> : null}
 				</Stack>
 				<div className="truncate text-xs leading-relaxed text-[#8B8B8B]">
 					{containerTag.containerTag}
@@ -51,7 +56,6 @@ export function WorkspaceCard({
 					</div>
 				)}
 				<div className="flex-1" />
-				{access ? <PermissionBadge permission={access.permission} /> : null}
 			</Stack>
 		</Card>
 	)

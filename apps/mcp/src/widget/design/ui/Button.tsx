@@ -3,44 +3,41 @@ import { type ButtonHTMLAttributes, forwardRef, type ReactNode } from "react"
 import { Loader2 } from "../../lib/icons"
 import { cn } from "../lib/cn"
 
-// Mirrors console-v2's button: uppercase + tracked, brand-font by default,
-// CVA primary/secondary/ghost/danger × sm/icon. We skip `asChild` because the
-// widget has no router links and dropping it saves a @radix-ui/react-slot dep.
+// Mirrors apps/web's pill-shaped inside-out controls while keeping the widget
+// variants small and dependency-free for MCP iframes.
 const buttonVariants = cva(
 	[
 		"inline-flex items-center justify-center gap-2",
 		"font-semibold",
-		"rounded-[var(--radius-md)]",
+		"rounded-full",
 		"transition-all cursor-pointer",
 		"disabled:pointer-events-none disabled:opacity-50",
-		"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-primary)]",
+		"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35 focus-visible:ring-offset-0",
 		"[&_svg:not([class*='size-'])]:size-4 shrink-0",
 	].join(" "),
 	{
 		variants: {
 			variant: {
 				primary: [
-					"bg-[var(--accent)] text-[var(--accent-foreground)]",
-					"shadow-[0_10px_28px_rgba(75,160,250,0.24)]",
-					"hover:bg-[var(--accent-hover)] hover:shadow-[0_12px_32px_rgba(75,160,250,0.32)]",
+					"bg-[#0D121A] text-[#FAFAFA] shadow-inside-out",
+					"hover:bg-[#121820] active:bg-[#080B0F]",
 				].join(" "),
 				secondary: [
-					"bg-[var(--bg-control)] text-[var(--text-primary)]",
-					"border border-[var(--border-control)]",
-					"hover:bg-[var(--bg-control-hover)] hover:border-[#3A4455]",
+					"bg-[#0D121A] text-[#FAFAFA] shadow-inside-out",
+					"hover:bg-[#121820]",
 				].join(" "),
 				ghost: [
-					"text-[var(--text-primary)]",
-					"hover:bg-[var(--bg-muted)]",
+					"text-[#737373]",
+					"hover:bg-white/5 hover:text-[#FAFAFA]",
 				].join(" "),
 				danger: [
-					"bg-[var(--danger)] text-[var(--text-inverse)]",
-					"hover:bg-[var(--danger)]/90",
+					"bg-[#EF4444]/15 text-[#EF4444]",
+					"hover:bg-[#EF4444]/25",
 				].join(" "),
 			},
 			size: {
-				sm: "h-[var(--height-md)] px-[var(--space-4)] text-[length:var(--text-sm)]",
-				icon: "size-[var(--height-sm)] p-0",
+				sm: "h-9 px-4 text-[13px]",
+				icon: "size-8 p-0",
 			},
 		},
 		defaultVariants: {
