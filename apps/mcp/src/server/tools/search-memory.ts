@@ -1,6 +1,10 @@
 import { z } from "zod"
 import { getMemoryText } from "../client"
 import type { ToolDeps } from "./types"
+import {
+	containerTagExists,
+	unknownContainerTagError,
+} from "./validate-container-tag"
 
 export function register(deps: ToolDeps) {
 	const containerTagField: Record<string, z.ZodTypeAny> = deps.rbac
@@ -42,6 +46,12 @@ export function register(deps: ToolDeps) {
 							`No read access to container tag '${args.containerTag}'.`,
 						),
 					)
+				}
+				if (
+					args.containerTag &&
+					!(await containerTagExists(deps, args.containerTag))
+				) {
+					return deps.errorResult(unknownContainerTagError(args.containerTag))
 				}
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
 				const client = deps.getClient(effectiveTag)

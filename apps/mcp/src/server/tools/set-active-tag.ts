@@ -2,6 +2,10 @@ import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
 import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
 import type { ToolDeps } from "./types"
+import {
+	containerTagExists,
+	unknownContainerTagError,
+} from "./validate-container-tag"
 
 export function register(deps: ToolDeps) {
 	registerAppTool(
@@ -25,6 +29,13 @@ export function register(deps: ToolDeps) {
 				return deps.errorResult(
 					new Error(`No access to container tag '${containerTag}'.`),
 				)
+			}
+			try {
+				if (!(await containerTagExists(deps, containerTag))) {
+					return deps.errorResult(unknownContainerTagError(containerTag))
+				}
+			} catch (error) {
+				return deps.errorResult(error)
 			}
 			await deps.storage.put("activeContainerTag", containerTag)
 			const sc: ViewMessage = {
