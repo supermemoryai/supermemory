@@ -66,12 +66,8 @@ export function Picker({
 
 	return (
 		<div className="flex flex-col">
-			<PageHeader
-				description={description}
-				className="w-full max-w-[380px]"
-				title="Select Workspace"
-			/>
-			<div className="flex w-full max-w-[380px] flex-col gap-(--space-3) px-(--page-header-px) pb-(--space-6)">
+			<PageHeader description={description} title="Select Workspace" />
+			<div className="flex flex-col gap-(--space-4) px-(--page-header-px) pb-(--space-6)">
 				{count >= SEARCH_THRESHOLD ? (
 					<div className="relative max-w-sm">
 						<Search className="pointer-events-none absolute left-(--space-3) top-1/2 size-4 -translate-y-1/2 text-text-muted" />
@@ -91,7 +87,7 @@ export function Picker({
 							No workspaces match “{query}”.
 						</p>
 					) : (
-						<div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-1.5">
+						<div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-(--space-2)">
 							{filtered.map((tag) => {
 								const access = assignedTags?.find(
 									(t) => t.containerTag === tag.containerTag,
