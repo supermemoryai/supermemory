@@ -23,6 +23,7 @@ type RecentDoc = {
 	id?: string
 	title?: string | null
 	createdAt?: string | Date | null
+	updatedAt?: string | Date | null
 }
 
 function useBrainOverview() {
@@ -47,6 +48,27 @@ function useBrainOverview() {
 				documents?: RecentDoc[]
 				pagination?: { totalItems?: number }
 			}
+		},
+		staleTime: 60_000,
+		enabled,
+	})
+
+	const lastUpdated = useQuery({
+		queryKey: ["brain-last-updated", org?.id],
+		queryFn: async () => {
+			const res = await $fetch("@post/documents/documents", {
+				body: {
+					page: 1,
+					limit: 1,
+					sort: "updatedAt",
+					order: "desc",
+					containerTags: [],
+				},
+				disableValidation: true,
+			})
+			if (res.error) return null
+			const docs = (res.data as { documents?: RecentDoc[] })?.documents
+			return docs?.[0]?.updatedAt ?? null
 		},
 		staleTime: 60_000,
 		enabled,
@@ -112,6 +134,7 @@ function useBrainOverview() {
 	return {
 		loading: docs.isPending,
 		recentDocs: docs.data?.documents ?? [],
+		lastUpdatedAt: lastUpdated.data ?? null,
 		memoriesCount,
 		connectedCount,
 		membersCount: org?.members?.length ?? 0,
@@ -127,6 +150,7 @@ export function BrainHomeView() {
 	const stepsDone = [o.hasSource, o.hasAgent, o.hasMemory].filter(
 		Boolean,
 	).length
+	const showGettingStarted = !o.loading && stepsDone < 3
 
 	return (
 		<div className="mx-auto max-w-[1080px] space-y-6">
@@ -136,15 +160,23 @@ export function BrainHomeView() {
 				members={o.membersCount}
 				canInvite={o.canInvite}
 				setupDone={stepsDone}
+				lastUpdatedAt={o.lastUpdatedAt}
 			/>
 			<ConnectionsBoard />
-			<div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+			<div
+				className={cn(
+					"grid gap-6",
+					showGettingStarted && "lg:grid-cols-[minmax(0,1fr)_340px]",
+				)}
+			>
 				<RecentMemories docs={o.recentDocs} loading={o.loading} />
-				<GettingStarted
-					hasSource={o.hasSource}
-					hasAgent={o.hasAgent}
-					hasMemory={o.hasMemory}
-				/>
+				{showGettingStarted && (
+					<GettingStarted
+						hasSource={o.hasSource}
+						hasAgent={o.hasAgent}
+						hasMemory={o.hasMemory}
+					/>
+				)}
 			</div>
 		</div>
 	)
@@ -156,12 +188,14 @@ function StatsRow({
 	members,
 	canInvite,
 	setupDone,
+	lastUpdatedAt,
 }: {
 	memories: number
 	connected: number
 	members: number
 	canInvite: boolean
 	setupDone: number
+	lastUpdatedAt: string | Date | null
 }) {
 	const { openSettings } = useSettingsModal()
 	const [, setInvite] = useQueryState("invite")
@@ -192,7 +226,12 @@ function StatsRow({
 				</button>
 			) : undefined,
 		},
-		{ label: "Setup", value: `${setupDone}/3` },
+		setupDone < 3
+			? { label: "Setup", value: `${setupDone}/3` }
+			: {
+					label: "Last updated",
+					value: formatWhen(lastUpdatedAt) || "—",
+				},
 	]
 	return (
 		<section
