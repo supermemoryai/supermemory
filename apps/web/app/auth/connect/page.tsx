@@ -208,18 +208,10 @@ function PluginAccessList({
 									"flex size-6 shrink-0 items-center justify-center rounded-md border",
 									eligible
 										? "border-[#24413C] bg-[#0B1717] text-[#8BD8CB]"
-										: "border-[#2B3240] bg-[#11151C] text-[#8B8B8B]",
+										: "border-transparent bg-transparent",
 								)}
 							>
-								{eligible ? (
-									<Check className="size-3" strokeWidth={2} />
-								) : (
-									<span
-										className={dmSans125ClassName("text-[9px] font-semibold")}
-									>
-										PRO
-									</span>
-								)}
+								{eligible && <Check className="size-3" strokeWidth={2} />}
 							</div>
 							{plugin && (
 								<Image
@@ -231,13 +223,24 @@ function PluginAccessList({
 								/>
 							)}
 							<div className="min-w-0 flex-1">
-								<p
-									className={dmSans125ClassName(
-										"truncate text-[13px] text-[#FAFAFA]",
+								<div className="flex min-w-0 items-center gap-1.5">
+									<p
+										className={dmSans125ClassName(
+											"truncate text-[13px] text-[#FAFAFA]",
+										)}
+									>
+										{getPluginName(id)}
+									</p>
+									{!eligible && (
+										<span
+											className={dmSans125ClassName(
+												"shrink-0 rounded-full bg-[#4BA0FA]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[#8BC6FF]",
+											)}
+										>
+											PRO
+										</span>
 									)}
-								>
-									{getPluginName(id)}
-								</p>
+								</div>
 								<p className={dmSans125ClassName("text-[12px] text-[#737373]")}>
 									{eligible
 										? "Available on your current plan"
