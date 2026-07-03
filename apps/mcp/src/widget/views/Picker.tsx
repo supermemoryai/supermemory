@@ -81,13 +81,13 @@ export function Picker({
 				) : null}
 
 				{/* Bounded, scrollable list — keeps a stable height without showing scrollbar chrome. */}
-				<div className="min-h-[220px] max-h-[60vh] overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+				<div className="min-h-[220px] max-h-[60vh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 					{filtered.length === 0 ? (
 						<p className="py-(--space-6) text-center text-(length:--text-sm) text-text-muted">
 							No workspaces match “{query}”.
 						</p>
 					) : (
-						<div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-(--space-3)">
+						<div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-(--space-2)">
 							{filtered.map((tag) => {
 								const access = assignedTags?.find(
 									(t) => t.containerTag === tag.containerTag,
