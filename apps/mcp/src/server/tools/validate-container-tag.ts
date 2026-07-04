@@ -14,7 +14,9 @@ export async function validateContainerTag(
 	if (deps.cachedContainerTags().includes(containerTag)) return "exists"
 	const refreshed = await deps.refreshContainerTags()
 	if (!refreshed) return "unavailable"
-	return deps.cachedContainerTags().includes(containerTag) ? "exists" : "missing"
+	return deps.cachedContainerTags().includes(containerTag)
+		? "exists"
+		: "missing"
 }
 
 export function unknownContainerTagError(containerTag: string): Error {
