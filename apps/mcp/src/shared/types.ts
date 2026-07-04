@@ -91,6 +91,7 @@ export type ViewMessage =
 			documents: DocumentWithMemories[]
 			totalCount: number
 			containerTag?: string
+			pagination?: DocumentsApiResponse["pagination"]
 	  }
 	| {
 			view: "error"

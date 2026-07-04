@@ -51,6 +51,7 @@ export function register(deps: ToolDeps) {
 					containerTag: effectiveTag,
 					documents: data.documents,
 					totalCount: data.pagination.totalItems,
+					pagination: data.pagination,
 				}
 
 				return {
