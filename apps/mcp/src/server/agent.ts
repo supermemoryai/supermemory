@@ -8,7 +8,7 @@ import { registerContainerTagsResource } from "./resources/container-tags"
 import { registerProfileResource } from "./resources/profile"
 import { registerWidgetResource } from "./resources/widget"
 import { registerAllTools } from "./tools"
-import { errorResult } from "./tools/types"
+import { appErrorResult, errorResult } from "./tools/types"
 
 type Env = {
 	MCP_SERVER: DurableObjectNamespace
@@ -71,6 +71,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			getClientInfo: () => this.clientInfo,
 			getMcpSessionId: () => this.ctx.id.name ?? "unknown",
 			errorResult,
+			appErrorResult,
 		}
 
 		registerAllTools(deps)
@@ -103,13 +104,15 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 		return activeTag || this.props?.containerTag
 	}
 
-	private async refreshContainerTags(): Promise<void> {
+	private async refreshContainerTags(): Promise<boolean> {
 		try {
 			const client = this.getClient()
 			const tags = await client.listContainerTags()
 			this.cachedContainerTagsList = tags.map((t) => t.containerTag)
+			return true
 		} catch (error) {
 			console.error("Failed to refresh container tags:", error)
+			return false
 		}
 	}
 }

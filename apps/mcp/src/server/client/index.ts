@@ -377,7 +377,9 @@ export class SupermemoryClient {
 				case 402:
 					throw new Error("Memory limit reached. Upgrade at supermemory.ai")
 				case 403:
-					throw new Error("Access forbidden.")
+					throw new Error(
+						`Access forbidden: you don't have access to container tag '${this.containerTag}', or it doesn't exist. Use listSpaces to see the available container tags.`,
+					)
 				case 404:
 					throw new Error("Not found.")
 				case 429:

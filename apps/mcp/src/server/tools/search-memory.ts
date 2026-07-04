@@ -1,6 +1,11 @@
 import { z } from "zod"
 import { getMemoryText } from "../client"
 import type { ToolDeps } from "./types"
+import {
+	containerTagValidationUnavailableError,
+	unknownContainerTagError,
+	validateContainerTag,
+} from "./validate-container-tag"
 
 export function register(deps: ToolDeps) {
 	const containerTagField: Record<string, z.ZodTypeAny> = deps.rbac
@@ -44,6 +49,20 @@ export function register(deps: ToolDeps) {
 					)
 				}
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
+				if (effectiveTag && !deps.rbac.canRead(effectiveTag)) {
+					return deps.errorResult(
+						new Error(`No read access to container tag '${effectiveTag}'.`),
+					)
+				}
+				if (effectiveTag) {
+					const validation = await validateContainerTag(deps, effectiveTag)
+					if (validation === "missing") {
+						return deps.errorResult(unknownContainerTagError(effectiveTag))
+					}
+					if (validation === "unavailable") {
+						return deps.errorResult(containerTagValidationUnavailableError())
+					}
+				}
 				const client = deps.getClient(effectiveTag)
 
 				const parts: string[] = []
