@@ -139,6 +139,14 @@ function renderView(
 			)
 		case "confirmation":
 			return <Confirmation containerTag={msg.containerTag} />
+		case "error":
+			return (
+				<ErrorView
+					kind={msg.kind}
+					message={msg.message}
+					title={msg.title}
+				/>
+			)
 		case "save-success":
 			return <Success containerTag={msg.containerTag} id={msg.id} kind="save" />
 		case "upload-success":

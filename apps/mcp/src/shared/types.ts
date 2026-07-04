@@ -92,6 +92,12 @@ export type ViewMessage =
 			totalCount: number
 			containerTag?: string
 	  }
+	| {
+			view: "error"
+			message: string
+			kind?: "user" | "system"
+			title?: string
+	  }
 
 export type ViewName = ViewMessage["view"]
 
