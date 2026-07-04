@@ -814,7 +814,7 @@ export function AppExperience() {
 				{isDashboardShell && showBottomNav && (
 					<div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-64 bg-gradient-to-t from-[#05080D] via-[#05080D]/95 to-transparent" />
 				)}
-				{isDashboardShell && (
+				{isDashboardShell && !isCompanyBrain && (
 					<div
 						className={cn(
 							"pointer-events-none fixed inset-x-0 z-30",

@@ -46,18 +46,18 @@ interface Props {
 	submitting?: boolean
 }
 
-const cardSurfaceStyle = {
+export const cardSurfaceStyle = {
 	boxShadow:
 		"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
 }
 
-const inputBevelStyle = {
+export const inputBevelStyle = {
 	boxShadow:
 		"0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08), inset 0px 1px 1px 0px rgba(0,0,0,0.08), inset 0px 2px 4px 0px rgba(0,0,0,0.02)",
 }
 
-const fieldLabel = "pl-2 pb-2 font-semibold text-[14px] text-[#737373]"
-const inputClass =
+export const fieldLabel = "pl-2 pb-2 font-semibold text-[14px] text-[#737373]"
+export const inputClass =
 	"bg-[#0F1217] border border-[rgba(82,89,102,0.2)] rounded-[12px] text-[#fafafa] text-[14px] placeholder:text-[#525D6E] h-12 px-4 shadow-none focus-visible:ring-0 focus-visible:border-[rgba(115,115,115,0.3)] transition-colors"
 
 export function StepAbout({
@@ -409,7 +409,7 @@ const TEAM_PERKS: Perk[] = [
 	},
 ]
 
-function DomainLogo({ domain }: { domain: string }) {
+export function DomainLogo({ domain }: { domain: string }) {
 	const sources = [
 		`https://logo.clearbit.com/${domain}`,
 		`https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}&size=64`,
@@ -527,7 +527,7 @@ function ModeToggle({
 	)
 }
 
-function UserAvatar({
+export function UserAvatar({
 	url,
 	name,
 	className,
