@@ -211,15 +211,15 @@ export function CompanyBrainOnboarding({
 							transition={{ delay: 0.15, duration: 0.3 }}
 							className="relative w-full max-w-7xl xl:max-w-[1360px] mx-auto flex flex-col flex-1 min-h-0 mt-4 mb-8 gap-4"
 						>
-							<div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-4">
-								<div className="flex min-h-[280px] min-w-0 flex-[1.15] flex-col lg:min-w-0">
+							<div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:items-start lg:gap-4">
+								<div className="flex min-h-[280px] min-w-0 flex-[1.15] flex-col lg:min-w-0 lg:self-stretch">
 									<ResearchTranscript />
 								</div>
 								<motion.div
 									initial={{ opacity: 0, x: 10 }}
 									animate={{ opacity: 1, x: 0 }}
 									transition={{ delay: 0.35, duration: 0.4 }}
-									className="flex min-h-[200px] min-w-0 flex-1 flex-col lg:min-w-[340px] lg:max-w-[420px]"
+									className="flex min-w-0 flex-none flex-col lg:w-[420px] lg:min-w-[340px] lg:max-w-[420px]"
 								>
 									<ResearchActionRail domain={clean} />
 								</motion.div>

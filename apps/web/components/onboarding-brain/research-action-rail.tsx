@@ -351,9 +351,9 @@ export function ResearchActionRail({
 	return (
 		<div
 			style={cardSurfaceStyle}
-			className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] bg-[#161A20]/95"
+			className="w-full overflow-hidden rounded-[20px] bg-[#161A20]/95"
 		>
-			<div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
+			<div className="px-6 py-6">
 				<p
 					className={cn(
 						"text-[13px] font-medium text-[#737373]",
