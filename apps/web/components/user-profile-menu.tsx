@@ -19,12 +19,15 @@ import {
 	HelpCircle,
 	LifeBuoy,
 	Building2,
+	Sun,
 } from "lucide-react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { useOrgOnboarding } from "@hooks/use-org-onboarding"
 import { useTokenUsage } from "@/hooks/use-token-usage"
 import { useSettingsModal } from "@/components/settings/settings-modal"
+import { useHasCompanyBrain } from "@/hooks/use-company-brain"
+import { useViewMode } from "@/lib/view-mode-context"
 
 export function UserProfileMenu({
 	className,
@@ -38,6 +41,8 @@ export function UserProfileMenu({
 	const { user } = useAuth()
 	const router = useRouter()
 	const { openSettings } = useSettingsModal()
+	const { setViewMode } = useViewMode()
+	const isCompanyBrain = useHasCompanyBrain()
 	const { resetOrgOnboarded } = useOrgOnboarding()
 	const autumn = useCustomer()
 	const { currentPlan, isLoading: planLoading } = useTokenUsage(autumn)
@@ -166,6 +171,15 @@ export function UserProfileMenu({
 					<Building2 className="size-4 text-[#737373]" />
 					Company Brain
 				</DropdownMenuItem>
+				{isCompanyBrain ? (
+					<DropdownMenuItem
+						onClick={() => void setViewMode("integrations")}
+						className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
+					>
+						<Sun className="size-4 text-[#737373]" />
+						Integrations
+					</DropdownMenuItem>
+				) : null}
 				<DropdownMenuItem
 					onClick={handleTryOnboarding}
 					className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"

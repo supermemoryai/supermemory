@@ -1,3 +1,7 @@
+export type CompanyBrainConfirmResult =
+	| { ok: true; serverSchedulesResearch: boolean }
+	| { ok: false }
+
 export type BrainMode = "personal" | "team"
 
 export type BrainStep = "about" | "sources" | "ingest" | "team"
@@ -64,6 +68,22 @@ export function workspaceNameFromEmail(
 	const root = domain.split(".")[0] ?? ""
 	if (!root) return ""
 	return root.charAt(0).toUpperCase() + root.slice(1)
+}
+
+/** e.g. duolingo.com → Duolingo (first hostname label, title-cased). */
+export function workspaceNameFromDomain(
+	domain: string | undefined | null,
+): string {
+	if (!domain) return ""
+	const clean = domain
+		.trim()
+		.toLowerCase()
+		.replace(/^https?:\/\//, "")
+		.replace(/^www\./, "")
+		.replace(/\/.*$/, "")
+	const host = clean.split(".")[0] ?? ""
+	if (!host) return ""
+	return host.charAt(0).toUpperCase() + host.slice(1)
 }
 
 export function workspaceDomainFromEmail(
