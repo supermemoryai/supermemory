@@ -1,6 +1,7 @@
 import type { ContainerTag, ContainerTagAccess } from "../../shared/types"
-import { Card, Stack } from "../design/ui"
+import { Card } from "../design/ui"
 import { Check } from "../lib/icons"
+import { formatTagLabel } from "../lib/formatTag"
 import { PermissionBadge } from "./PermissionBadge"
 
 interface Props {
@@ -16,46 +17,53 @@ export function WorkspaceCard({
 	access,
 	onClick,
 }: Props) {
-	const name = containerTag.name || containerTag.containerTag
+	const name = containerTag.name || formatTagLabel(containerTag.containerTag)
 	return (
 		<Card
 			as="button"
-			className="min-h-[104px] w-full p-3"
+			className="workspace-card w-full p-3"
 			onClick={() => onClick(containerTag.containerTag)}
 			variant={active ? "active" : "interactive"}
 		>
-			<div className="absolute right-3 top-3 text-[11px] font-medium leading-none">
-				{access ? <PermissionBadge permission={access.permission} /> : null}
-			</div>
-			{active ? (
-				<Check className="absolute bottom-3 right-3 size-3 shrink-0 text-accent" />
-			) : null}
-			<Stack className="h-full" gap="xs">
-				<Stack align="center" direction="row" gap="sm" justify="between">
-					<span
-						className="min-w-0 max-w-[calc(100%-88px)] truncate text-sm font-medium text-white"
-						style={{ fontFamily: "var(--font-brand)" }}
-					>
-						{name}
-					</span>
-				</Stack>
-				<div className="truncate text-xs leading-normal text-[#8B8B8B]">
-					{containerTag.containerTag}
-				</div>
-				{(containerTag.documentCount > 0 || containerTag.memoryCount > 0) && (
-					<div className="mt-0.5 flex items-center gap-(--space-2) text-xs leading-normal text-[#8B8B8B]">
-						<span>
-							{containerTag.documentCount} doc
-							{containerTag.documentCount === 1 ? "" : "s"}
+			<div className="workspace-card-inner">
+				<div className="workspace-card-main">
+					<div className="workspace-card-heading">
+						<span
+							className="workspace-card-title truncate text-sm font-medium text-text-primary"
+							style={{ fontFamily: "var(--font-brand)" }}
+						>
+							{name}
 						</span>
-						<span aria-hidden>·</span>
-						<span>
-							{containerTag.memoryCount}{" "}
-							{containerTag.memoryCount === 1 ? "memory" : "memories"}
-						</span>
+						{active ? (
+							<Check
+								aria-hidden
+								className="workspace-card-check size-3 shrink-0 text-accent"
+							/>
+						) : null}
 					</div>
-				)}
-			</Stack>
+					{(containerTag.documentCount > 0 ||
+						containerTag.memoryCount > 0) && (
+						<div className="workspace-card-meta flex items-center gap-(--space-2) text-[11px] leading-normal text-text-muted">
+							<span>
+								{containerTag.documentCount} doc
+								{containerTag.documentCount === 1 ? "" : "s"}
+							</span>
+							<span aria-hidden className="opacity-40">
+								·
+							</span>
+							<span>
+								{containerTag.memoryCount}{" "}
+								{containerTag.memoryCount === 1 ? "memory" : "memories"}
+							</span>
+						</div>
+					)}
+				</div>
+				{access ? (
+					<div className="workspace-card-trailing">
+						<PermissionBadge permission={access.permission} />
+					</div>
+				) : null}
+			</div>
 		</Card>
 	)
 }

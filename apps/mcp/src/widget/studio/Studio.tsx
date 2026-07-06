@@ -32,6 +32,7 @@ import {
 
 type Theme = "light" | "dark"
 type Width = "narrow" | "wide" | "cursor"
+type Version = "v1" | "v2" | "v3" | "v4"
 
 const NARROW = 420
 const WIDE = 720
@@ -122,6 +123,7 @@ function Swatch({ name, varName }: { name: string; varName: string }) {
 export function Studio() {
 	const [theme, setTheme] = useState<Theme>("light")
 	const [width, setWidth] = useState<Width>("cursor")
+	const [version, setVersion] = useState<Version>("v1")
 	const frameWidth =
 		width === "narrow" ? NARROW : width === "wide" ? WIDE : CURSOR
 
@@ -163,6 +165,23 @@ export function Studio() {
 							selected={theme === "dark"}
 						>
 							Dark
+						</Chip>
+					</div>
+					<div className="flex items-center gap-(--space-2)">
+						<span className="text-(length:--text-xs) text-text-muted">
+							Version
+						</span>
+						<Chip onClick={() => setVersion("v1")} selected={version === "v1"}>
+							v1
+						</Chip>
+						<Chip onClick={() => setVersion("v2")} selected={version === "v2"}>
+							v2
+						</Chip>
+						<Chip onClick={() => setVersion("v3")} selected={version === "v3"}>
+							v3
+						</Chip>
+						<Chip onClick={() => setVersion("v4")} selected={version === "v4"}>
+							v4
 						</Chip>
 					</div>
 					<div className="flex items-center gap-(--space-2)">
@@ -235,7 +254,7 @@ export function Studio() {
 								<div className="flex flex-wrap items-center gap-(--space-2)">
 									<Chip selected>Selected</Chip>
 									<Chip>Unselected</Chip>
-									<Chip>sm_project_marketing</Chip>
+									<Chip>Marketing</Chip>
 								</div>
 							</div>
 
@@ -346,7 +365,7 @@ export function Studio() {
 					description="The same widget shell Cursor renders, with mock MCP tool data."
 					title="Cursor widgets"
 				>
-					<div className="flex flex-wrap gap-(--space-8)">
+					<div data-widget-version={version} className="flex flex-wrap gap-(--space-8)">
 						<Frame label="Picker" width={frameWidth}>
 							<WidgetShell>
 								<Picker

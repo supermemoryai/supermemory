@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react"
-import { Check, ChevronDown, Package, Search } from "../../lib/icons"
+import { Check, ChevronDown, Search } from "../../lib/icons"
 import { cn } from "../lib/cn"
 import { Button } from "./Button"
 import { Popover, PopoverContent, PopoverTrigger } from "./Popover"
@@ -63,13 +63,12 @@ export function WorkspaceSelect({
 						<Button
 							brandFont={false}
 							className={cn(
-								"w-full justify-between normal-case tracking-normal",
+								"workspace-select-trigger mcp-soft-button w-full justify-between normal-case tracking-normal",
 								"focus-visible:ring-0 focus-visible:ring-offset-0",
 								"data-[state=open]:bg-bg-muted",
 								className,
 							)}
 							disabled={disabled}
-							iconLeft={<Package className="size-4 text-text-secondary" />}
 							iconRight={<ChevronDown className="size-3 text-text-muted" />}
 							size="sm"
 							type="button"
@@ -127,9 +126,7 @@ export function WorkspaceSelect({
 									>
 										<span className="flex min-w-0 flex-col gap-0.5">
 											<span className="flex items-center gap-(--space-2)">
-												{option.icon ?? (
-													<Package className="size-3.5 text-text-muted shrink-0" />
-												)}
+												{option.icon ?? null}
 												<span className="text-(length:--text-sm) text-text-primary truncate">
 													{option.label}
 												</span>

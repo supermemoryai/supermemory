@@ -33,7 +33,7 @@
 	--bg-primary: #faf9f4;
 	--bg-secondary: #f3f1ec;
 	--bg-muted: #e8e5e0;
-	--bg-elevated: #ffffff;
+	--bg-elevated: #f8f7f3;
 	--bg-overlay: rgba(250, 249, 244, 0.7);
 
 	/* Borders */
@@ -276,100 +276,231 @@
 	}
 }
 
-/* Nova widget theme
+/* Cursor MCP widget theme
  *
- * PR-1120's widget screens run inside agent cells, so the light/dark host
- * theme can vary independently from the Supermemory product theme. Force the
- * MCP app surfaces onto Nova's dark product palette so all widget tools match
- * apps/web: DM Sans, dark cards, soft borders, and the #4ba0fa accent.
+ * The web app palette is a useful reference, but these widgets live inside
+ * Cursor's chat surface. Keep the brand typography, then soften both themes so
+ * the widget feels embedded instead of like a separate high-contrast app frame.
  */
 :root,
-[data-theme="light"],
-[data-theme="dark"] {
-	color-scheme: dark;
+[data-theme="light"] {
+	color-scheme: light;
 
-	--accent-start: #369bfd;
-	--accent-mid: #4ba0fa;
-	--accent-end: #36fdfd;
-	--accent-gradient: linear-gradient(
-		94deg,
-		var(--accent-start),
-		var(--accent-end)
-	);
-
-	--accent: #4ba0fa;
+	--accent-start: #4f8df7;
+	--accent-mid: #4f8df7;
+	--accent-end: #8ec8ff;
+	--accent-gradient: linear-gradient(94deg, var(--accent-start), var(--accent-end));
+	--accent: #3f7ee8;
 	--accent-foreground: #ffffff;
-	--accent-hover: #369bfd;
-	--accent-muted: rgba(75, 160, 250, 0.12);
+	--accent-hover: #2f6fd8;
+	--accent-muted: rgba(63, 126, 232, 0.1);
 
-	--bg-primary: #0b1119;
-	--bg-secondary: #101822;
-	--bg-muted: #131b28;
-	--bg-elevated: #080b0f;
-	--bg-overlay: rgba(13, 18, 26, 0.78);
-	--bg-panel: #101822;
-	--bg-control: #080b0f;
-	--bg-control-hover: #0d121a;
+	--app-bg: #f3f1ec;
+	--widget-shell-bg: #f6f4ef;
+	--widget-shell-graph-bg: #f4f2ec;
+	--brand-accent: #78746c;
+	--brand-opacity: 0.66;
+	--widget-glow-inner: rgba(255, 255, 255, 0.62);
+	--widget-glow-mid: rgba(110, 154, 220, 0.2);
+	--widget-glow-outer: rgba(63, 126, 232, 0.08);
 
-	--border: #263348;
-	--border-muted: #161f2c;
-	--border-control: #263348;
-	--border-accent: rgba(75, 160, 250, 0.5);
+	--bg-primary: #f6f4ef;
+	--bg-secondary: #efede7;
+	--bg-muted: #e7e3da;
+	--bg-elevated: #f8f7f3;
+	--bg-overlay: rgba(246, 244, 239, 0.74);
+	--bg-panel: #f1efe8;
+	--bg-control: #fbfaf7;
+	--bg-control-hover: #f4f2ec;
 
-	--text-primary: #fafafa;
-	--text-secondary: #d0dae7;
-	--text-muted: #8b8b8b;
-	--text-inverse: #0b1119;
+	--border: #ddd8ce;
+	--border-muted: #e9e5dc;
+	--border-control: #dcd6ca;
+	--border-accent: rgba(63, 126, 232, 0.42);
 
-	--success: #4ade80;
-	--success-muted: rgba(74, 222, 128, 0.14);
-	--error: #fb7185;
-	--error-muted: rgba(251, 113, 133, 0.14);
-	--warning: #fbbf24;
-	--warning-muted: rgba(251, 191, 36, 0.14);
-	--info: #60a5fa;
-	--info-muted: rgba(96, 165, 250, 0.14);
-	--danger: #ef4444;
+	--card-bg: #f8f7f3;
+	--card-bg-hover: #f3f1eb;
+	--card-border: #ddd8ce;
+	--card-border-hover: #cfc7b8;
+	--card-active-bg: #f8f7f3;
+	--card-active-border: rgba(63, 126, 232, 0.42);
 
-	--font-sans:
-		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-	--font-display:
-		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-	--font-brand:
-		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--panel-bg: #f1efe8;
+	--panel-border: #ddd8ce;
+	--panel-shadow: 0 10px 24px rgba(74, 68, 58, 0.08);
+
+	--button-primary-bg: #111827;
+	--button-primary-hover: #1f2937;
+	--button-primary-active: #0b1120;
+	--button-primary-text: #ffffff;
+	--button-secondary-bg: #f8f7f3;
+	--button-secondary-hover: #f1eee7;
+	--button-secondary-text: #111827;
+	--button-secondary-border: #dcd6ca;
+	--button-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(15, 23, 42, 0.1);
+
+	--text-primary: #111827;
+	--text-secondary: #4b5563;
+	--text-muted: #8a94a3;
+	--text-inverse: #ffffff;
+
+	--success: #16a34a;
+	--success-muted: rgba(22, 163, 74, 0.1);
+	--error: #dc2626;
+	--error-muted: rgba(220, 38, 38, 0.1);
+	--warning: #d97706;
+	--warning-muted: rgba(217, 119, 6, 0.12);
+	--info: #2563eb;
+	--info-muted: rgba(37, 99, 235, 0.1);
+	--danger: #dc2626;
+
+	--font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-display: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-brand: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
 	--radius-sm: 4px;
 	--radius-md: 6px;
 	--radius-lg: 8px;
 
-	--shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.2);
-	--shadow-md: 0 12px 34px rgba(0, 0, 0, 0.28);
-	--shadow-lg: 0 20px 54px rgba(0, 0, 0, 0.38);
+	--shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+	--shadow-md: 0 12px 28px rgba(15, 23, 42, 0.09);
+	--shadow-lg: 0 20px 44px rgba(15, 23, 42, 0.12);
 
-	--graph-bg: #0b1119;
-	--graph-doc-fill: #1b1f24;
-	--graph-doc-stroke: rgba(255, 255, 255, 0.12);
-	--graph-doc-inner: #0d121a;
-	--graph-mem-fill: #0d2034;
-	--graph-mem-fill-hover: #112840;
-	--graph-mem-stroke: #4ba0fa;
-	--graph-accent: #4ba0fa;
-	--graph-text-primary: #fafafa;
-	--graph-text-secondary: #d0dae7;
-	--graph-text-muted: #a0aec4;
+	--graph-bg: #f3f1ec;
+	--graph-doc-fill: #f8f7f3;
+	--graph-doc-stroke: #ddd8ce;
+	--graph-doc-inner: #efede7;
+	--graph-mem-fill: #edf2f7;
+	--graph-mem-fill-hover: #e3ebf3;
+	--graph-mem-stroke: #6aa6f8;
+	--graph-accent: #3f7ee8;
+	--graph-text-primary: #111827;
+	--graph-text-secondary: #4b5563;
+	--graph-text-muted: #8a94a3;
+	--graph-edge-derives: #c08403;
+	--graph-edge-updates: #3f7ee8;
+	--graph-edge-extends: #0891b2;
+	--graph-mem-border-forgotten: #dc2626;
+	--graph-mem-border-expiring: #d97706;
+	--graph-mem-border-recent: #16a34a;
+	--graph-glow: #6aa6f8;
+	--graph-icon: #6b7280;
+	--graph-popover-bg: #f8f7f3;
+	--graph-popover-border: #ddd8ce;
+	--graph-popover-text-primary: #111827;
+	--graph-popover-text-secondary: #4b5563;
+	--graph-popover-text-muted: #8a94a3;
+	--graph-control-bg: #f8f7f3;
+	--graph-control-border: #ddd8ce;
+}
+
+[data-theme="dark"] {
+	color-scheme: dark;
+
+	--accent-start: #6aa6f8;
+	--accent-mid: #6aa6f8;
+	--accent-end: #8bd4ff;
+	--accent-gradient: linear-gradient(94deg, var(--accent-start), var(--accent-end));
+	--accent: #6aa6f8;
+	--accent-foreground: #0f141a;
+	--accent-hover: #82b7ff;
+	--accent-muted: rgba(106, 166, 248, 0.12);
+
+	--app-bg: #12161b;
+	--widget-shell-bg: #151a20;
+	--widget-shell-graph-bg: #11161c;
+	--brand-accent: #7f8996;
+	--brand-opacity: 0.56;
+	--widget-glow-inner: rgba(255, 255, 255, 0.12);
+	--widget-glow-mid: rgba(106, 166, 248, 0.16);
+	--widget-glow-outer: rgba(106, 166, 248, 0.08);
+
+	--bg-primary: #151a20;
+	--bg-secondary: #181e25;
+	--bg-muted: #20262e;
+	--bg-elevated: #1a2027;
+	--bg-overlay: rgba(21, 26, 32, 0.72);
+	--bg-panel: #1d232b;
+	--bg-control: #14191f;
+	--bg-control-hover: #1b222a;
+
+	--border: #2b333d;
+	--border-muted: #232a33;
+	--border-control: #303946;
+	--border-accent: rgba(106, 166, 248, 0.38);
+
+	--card-bg: #1a2026;
+	--card-bg-hover: #202731;
+	--card-border: #2b333d;
+	--card-border-hover: #3a4654;
+	--card-active-bg: #1b222b;
+	--card-active-border: rgba(106, 166, 248, 0.44);
+
+	--panel-bg: #1c222a;
+	--panel-border: #2b333d;
+	--panel-shadow: 0 14px 34px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+
+	--button-primary-bg: #eef4ff;
+	--button-primary-hover: #ffffff;
+	--button-primary-active: #dceaff;
+	--button-primary-text: #101820;
+	--button-secondary-bg: #202731;
+	--button-secondary-hover: #27303b;
+	--button-secondary-text: #eef2f7;
+	--button-secondary-border: #34404d;
+	--button-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.22);
+
+	--text-primary: #f4f6f8;
+	--text-secondary: #c1c9d2;
+	--text-muted: #87909c;
+	--text-inverse: #111827;
+
+	--success: #4ade80;
+	--success-muted: rgba(74, 222, 128, 0.12);
+	--error: #fb7185;
+	--error-muted: rgba(251, 113, 133, 0.12);
+	--warning: #fbbf24;
+	--warning-muted: rgba(251, 191, 36, 0.12);
+	--info: #8bbcff;
+	--info-muted: rgba(139, 188, 255, 0.12);
+	--danger: #fb7185;
+
+	--font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-display: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-brand: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+	--radius-sm: 4px;
+	--radius-md: 6px;
+	--radius-lg: 8px;
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.18);
+	--shadow-md: 0 12px 30px rgba(0, 0, 0, 0.22);
+	--shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.28);
+
+	--graph-bg: #151a20;
+	--graph-doc-fill: #202731;
+	--graph-doc-stroke: #35404c;
+	--graph-doc-inner: #171d24;
+	--graph-mem-fill: #172536;
+	--graph-mem-fill-hover: #1b2d42;
+	--graph-mem-stroke: #6aa6f8;
+	--graph-accent: #6aa6f8;
+	--graph-text-primary: #f4f6f8;
+	--graph-text-secondary: #c1c9d2;
+	--graph-text-muted: #87909c;
 	--graph-edge-derives: #fbbf24;
-	--graph-edge-updates: #4ba0fa;
-	--graph-edge-extends: #36fdfd;
-	--graph-mem-border-forgotten: #ef4444;
+	--graph-edge-updates: #6aa6f8;
+	--graph-edge-extends: #67e8f9;
+	--graph-mem-border-forgotten: #fb7185;
 	--graph-mem-border-expiring: #f59e0b;
-	--graph-mem-border-recent: #10b981;
-	--graph-glow: #4ba0fa;
-	--graph-icon: #4ba0fa;
-	--graph-popover-bg: rgba(27, 31, 36, 0.94);
-	--graph-popover-border: rgba(255, 255, 255, 0.12);
-	--graph-popover-text-primary: #fafafa;
-	--graph-popover-text-secondary: #d0dae7;
-	--graph-popover-text-muted: #a0aec4;
-	--graph-control-bg: rgba(13, 18, 26, 0.78);
-	--graph-control-border: rgba(255, 255, 255, 0.12);
+	--graph-mem-border-recent: #4ade80;
+	--graph-glow: #6aa6f8;
+	--graph-icon: #7ab2ff;
+	--graph-popover-bg: #1c222a;
+	--graph-popover-border: #34404d;
+	--graph-popover-text-primary: #f4f6f8;
+	--graph-popover-text-secondary: #c1c9d2;
+	--graph-popover-text-muted: #87909c;
+	--graph-control-bg: #1c222a;
+	--graph-control-border: #34404d;
 }

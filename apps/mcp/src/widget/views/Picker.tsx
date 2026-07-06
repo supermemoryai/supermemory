@@ -8,6 +8,7 @@ import { WorkspaceCard } from "../components/WorkspaceCard"
 import { Input, PageHeader } from "../design/ui"
 import { useApp } from "../hooks/useApp"
 import { useLog } from "../hooks/useLog"
+import { formatTagLabel } from "../lib/formatTag"
 import { Search } from "../lib/icons"
 
 interface Props {
@@ -62,11 +63,11 @@ export function Picker({
 	const description =
 		count === 0
 			? "No workspaces available."
-			: `${count} workspace${count === 1 ? "" : "s"} available — select one to set your active context.`
+			: `${count} workspace${count === 1 ? "" : "s"} available`
 
 	return (
 		<div className="flex flex-col">
-			<PageHeader description={description} title="Select Workspace" />
+			<PageHeader description={description} title="Workspaces" />
 			<div className="flex flex-col gap-(--space-4) px-(--page-header-px) pb-(--space-6)">
 				{count >= SEARCH_THRESHOLD ? (
 					<div className="relative max-w-sm">
@@ -87,7 +88,7 @@ export function Picker({
 							No workspaces match “{query}”.
 						</p>
 					) : (
-						<div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-(--space-2)">
+						<div className="workspace-picker-grid grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-(--space-2)">
 							{filtered.map((tag) => {
 								const access = assignedTags?.find(
 									(t) => t.containerTag === tag.containerTag,
@@ -108,7 +109,7 @@ export function Picker({
 
 				{pending ? (
 					<p className="text-(length:--text-xs) text-text-muted">
-						Setting workspace to {pending}…
+						Setting workspace to {formatTagLabel(pending)}…
 					</p>
 				) : null}
 			</div>

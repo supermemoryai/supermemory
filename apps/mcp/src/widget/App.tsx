@@ -69,26 +69,24 @@ export function WidgetShell({
 	return (
 		<div className={shellClassName}>
 			<div aria-hidden className="mcp-widget-glow" />
-			{immersive ? null : (
-				<header className="mcp-widget-brand">
-					<span aria-hidden className="mcp-widget-brand-mark">
-						<svg aria-hidden="true" viewBox="0 0 314 256">
-							<path
-								d="M313.728 100.982H197.297V0H159.68V109.567C159.68 121.205 164.284 132.381 172.466 140.615L267.535 236.283L294.134 209.517L223.917 138.858H313.75V101.004L313.728 100.982Z"
-								fill="currentColor"
-							/>
-							<path
-								d="M19.616 46.5043L89.8323 117.163H0V155.017H116.431V255.999H154.048V146.432C154.048 134.795 149.444 123.618 141.262 115.384L46.2144 19.7383L19.616 46.5043Z"
-								fill="currentColor"
-							/>
-						</svg>
-					</span>
-					<span className="mcp-widget-brand-copy">
-						<span className="mcp-widget-brand-name">supermemory</span>
-						<span className="mcp-widget-brand-mode">MCP</span>
-					</span>
-				</header>
-			)}
+			<header className="mcp-widget-brand">
+				<span aria-hidden className="mcp-widget-brand-mark">
+					<svg aria-hidden="true" viewBox="0 0 314 256">
+						<path
+							d="M313.728 100.982H197.297V0H159.68V109.567C159.68 121.205 164.284 132.381 172.466 140.615L267.535 236.283L294.134 209.517L223.917 138.858H313.75V101.004L313.728 100.982Z"
+							fill="currentColor"
+						/>
+						<path
+							d="M19.616 46.5043L89.8323 117.163H0V155.017H116.431V255.999H154.048V146.432C154.048 134.795 149.444 123.618 141.262 115.384L46.2144 19.7383L19.616 46.5043Z"
+							fill="currentColor"
+						/>
+					</svg>
+				</span>
+				<span className="mcp-widget-brand-copy">
+					<span className="mcp-widget-brand-name">supermemory</span>
+					<span className="mcp-widget-brand-mode">MCP</span>
+				</span>
+			</header>
 			<main className="mcp-widget-content">{children}</main>
 		</div>
 	)

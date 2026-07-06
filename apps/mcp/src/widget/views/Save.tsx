@@ -11,6 +11,7 @@ import {
 } from "../design/ui"
 import { useApp } from "../hooks/useApp"
 import { useLog } from "../hooks/useLog"
+import { formatTagLabel } from "../lib/formatTag"
 
 interface Props {
 	activeTag?: string | null
@@ -42,7 +43,12 @@ export function Save({
 	}, [selectedTag, writableTags])
 
 	const options = useMemo(
-		() => writableTags.map((tag) => ({ value: tag, label: tag })),
+		() =>
+			writableTags.map((tag) => ({
+				value: tag,
+				label: formatTagLabel(tag),
+				description: tag,
+			})),
 		[writableTags],
 	)
 
@@ -73,7 +79,8 @@ export function Save({
 				title="Add Memory"
 			/>
 			<div className="px-(--page-header-px) pb-(--space-6)">
-				<div className="rounded-[20px] bg-[#1B1F24] p-(--space-4) shadow-[0_2.842px_14.211px_0_rgba(0,0,0,0.25),inset_0.711px_0.711px_0.711px_0_rgba(255,255,255,0.10)]">
+				<div className="mcp-panel rounded-[20px] border border-[var(--panel-border)] bg-[var(--panel-bg)] p-(--space-4) shadow-[var(--panel-shadow)]">
+					<div aria-hidden className="panel-glow" />
 					<Stack gap="lg">
 						<Field label="Memory">
 							<TextArea
@@ -97,6 +104,7 @@ export function Save({
 						<div className="flex justify-end pt-(--space-2)">
 							<ActionGroup>
 								<Button
+									className="mcp-soft-button"
 									disabled={!canSave}
 									loading={saving}
 									onClick={handleSave}

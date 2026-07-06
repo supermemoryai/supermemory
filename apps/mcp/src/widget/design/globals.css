@@ -88,14 +88,7 @@
 	}
 
 	body {
-		background:
-			radial-gradient(
-				ellipse at 50% 112%,
-				rgba(75, 160, 250, 0.34) 0%,
-				rgba(20, 16, 255, 0.22) 28%,
-				rgba(11, 17, 25, 0) 62%
-			),
-			linear-gradient(180deg, #0b1119 0%, #070b11 100%);
+		background: var(--app-bg);
 		color: var(--text-primary);
 		font-family: var(--font-sans);
 		letter-spacing: -0.01em;
@@ -123,26 +116,13 @@
 	isolation: isolate;
 	min-height: 280px;
 	overflow: hidden;
-	background:
-		linear-gradient(rgba(75, 160, 250, 0.04) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(75, 160, 250, 0.04) 1px, transparent 1px),
-		radial-gradient(
-			circle at 50% 108%,
-			rgba(75, 160, 250, 0.18),
-			transparent 42%
-		),
-		linear-gradient(180deg, #0b1119 0%, #070b11 100%);
-	background-size:
-		36px 36px,
-		36px 36px,
-		100% 100%,
-		100% 100%;
+	background: var(--widget-shell-bg);
 	color: var(--text-primary);
 }
 
 .mcp-widget-shell-graph {
 	min-height: 420px;
-	background: #05080d;
+	background: var(--widget-shell-graph-bg);
 }
 
 .mcp-widget-shell-graph::before,
@@ -177,24 +157,379 @@
 
 .mcp-widget-glow {
 	position: absolute;
-	right: -18%;
-	bottom: -42%;
-	left: -18%;
+	right: -16%;
+	bottom: -44%;
+	left: -16%;
 	z-index: -1;
-	height: 70%;
+	height: 68%;
 	pointer-events: none;
 	background: radial-gradient(
-		ellipse at 50% 48%,
-		rgba(255, 255, 255, 0.22) 0%,
-		rgba(71, 168, 253, 0.3) 12%,
-		rgba(0, 153, 255, 0.22) 28%,
-		rgba(20, 16, 255, 0.18) 48%,
+		ellipse at 50% 42%,
+		var(--widget-glow-inner) 0%,
+		var(--widget-glow-mid) 22%,
+		var(--widget-glow-outer) 46%,
 		transparent 74%
 	);
-	filter: blur(20px);
-	opacity: 0.78;
+	filter: blur(18px);
+	opacity: 0.82;
 }
 
+
+/* Studio-only visual variants. Production widgets do not set this attribute. */
+[data-widget-version="v1"] .mcp-widget-shell {
+	--brand-accent: var(--accent);
+	--brand-opacity: 0.86;
+	--widget-glow-inner: rgba(255, 255, 255, 0.22);
+	--widget-glow-mid: rgba(71, 168, 253, 0.3);
+	--widget-glow-outer: rgba(20, 16, 255, 0.18);
+	background:
+		linear-gradient(rgba(75, 160, 250, 0.045) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(75, 160, 250, 0.045) 1px, transparent 1px),
+		radial-gradient(
+			circle at 50% 108%,
+			rgba(75, 160, 250, 0.16),
+			transparent 42%
+		),
+		var(--widget-shell-bg);
+	background-size:
+		36px 36px,
+		36px 36px,
+		100% 100%,
+		100% 100%;
+}
+
+[data-widget-version="v1"] .super-loader,
+[data-widget-version="v1"] .spinner {
+	color: var(--accent);
+}
+
+[data-widget-version="v1"] .spinner {
+	border-top-color: var(--accent);
+	box-shadow: 0 0 20px rgba(75, 160, 250, 0.42);
+}
+[data-widget-version="v2"] .mcp-widget-shell {
+	--brand-accent: var(--accent);
+	--brand-opacity: 1;
+	--widget-shell-bg: color-mix(in srgb, var(--widget-shell-bg) 86%, var(--bg-muted));
+	--card-bg: color-mix(in srgb, var(--card-bg) 88%, var(--bg-muted));
+	--panel-bg: color-mix(in srgb, var(--panel-bg) 88%, var(--bg-muted));
+	--widget-glow-mid: color-mix(in srgb, var(--widget-glow-mid) 70%, transparent);
+	--widget-glow-outer: color-mix(in srgb, var(--widget-glow-outer) 70%, transparent);
+}
+
+[data-widget-version="v2"] .mcp-widget-shell-graph::before {
+	background-image:
+		linear-gradient(rgba(105, 167, 240, 0.12) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(105, 167, 240, 0.12) 1px, transparent 1px);
+	background-size: 32px 32px;
+	mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%);
+}
+
+[data-theme="light"] [data-widget-version="v2"] .mcp-widget-shell-graph::before,
+:root:not([data-theme="dark"]) [data-widget-version="v2"] .mcp-widget-shell-graph::before {
+	background-image:
+		linear-gradient(rgba(75, 160, 250, 0.045) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(75, 160, 250, 0.045) 1px, transparent 1px);
+}
+
+[data-theme="light"] [data-widget-version="v2"] .mcp-widget-shell-graph::after,
+:root:not([data-theme="dark"]) [data-widget-version="v2"] .mcp-widget-shell-graph::after {
+	content: none;
+}
+
+[data-theme="light"] [data-widget-version="v2"] .mcp-soft-button,
+:root:not([data-theme="dark"]) [data-widget-version="v2"] .mcp-soft-button {
+	background: var(--button-secondary-bg);
+	color: var(--button-secondary-text);
+	border: 1px solid var(--button-secondary-border);
+	box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] [data-widget-version="v2"] .mcp-soft-button:hover,
+:root:not([data-theme="dark"]) [data-widget-version="v2"] .mcp-soft-button:hover {
+	background: var(--button-secondary-hover);
+}
+
+/* Card/panel glow — hidden by default, activated by v3/v4. */
+.card-glow,
+.panel-glow {
+	display: none;
+}
+
+.mcp-panel {
+	position: relative;
+	overflow: hidden;
+}
+
+.mcp-panel > :not(.panel-glow) {
+	position: relative;
+	z-index: 1;
+}
+
+/* Workspace picker cards — grid layout (default). */
+.workspace-card {
+	min-height: 104px;
+}
+
+.workspace-card-inner {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 56px;
+}
+
+.workspace-card-main {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	min-width: 0;
+	padding-right: 72px;
+}
+
+.workspace-card-heading {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+}
+
+.workspace-card-title {
+	flex: 1;
+	min-width: 0;
+}
+
+.workspace-card-trailing {
+	position: absolute;
+	top: 0;
+	right: 0;
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 1;
+}
+
+/* v3 — Bold inner glow on cards/panels (web-app BgGrad-inspired), plain shell background. */
+[data-widget-version="v3"] .mcp-widget-shell {
+	--brand-accent: var(--accent);
+	--brand-opacity: 1;
+	background: var(--widget-shell-bg);
+}
+
+[data-widget-version="v3"] .mcp-widget-glow {
+	display: none;
+}
+
+[data-widget-version="v3"] .card-glow,
+[data-widget-version="v3"] .panel-glow {
+	display: block;
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background:
+		radial-gradient(
+			ellipse 80% 50% at 50% 100%,
+			rgba(20, 16, 255, 0.12) 0%,
+			rgba(0, 144, 255, 0.08) 30%,
+			transparent 70%
+		),
+		radial-gradient(
+			ellipse 60% 40% at 30% 90%,
+			rgba(71, 168, 253, 0.10) 0%,
+			transparent 60%
+		),
+		radial-gradient(
+			ellipse 60% 40% at 70% 90%,
+			rgba(75, 160, 250, 0.10) 0%,
+			transparent 60%
+		);
+}
+
+/* v4 — Fully refined for white/light + proper dark mode support. */
+[data-widget-version="v4"] .mcp-widget-shell {
+	--brand-accent: var(--accent);
+	--brand-opacity: 1;
+	display: flex;
+	flex-direction: column;
+	background: var(--widget-shell-bg);
+}
+
+[data-widget-version="v4"] .mcp-widget-glow {
+	display: none;
+}
+
+[data-theme="light"] [data-widget-version="v4"] .mcp-widget-shell,
+:root:not([data-theme="dark"]) [data-widget-version="v4"] .mcp-widget-shell {
+	--widget-shell-bg: #faf9f7;
+	--card-bg: #ffffff;
+	--card-border: rgba(0, 0, 0, 0.06);
+	--card-border-hover: rgba(0, 0, 0, 0.10);
+	--card-active-border: rgba(63, 126, 232, 0.32);
+	--card-active-bg: #fafcff;
+	--panel-bg: #ffffff;
+	--panel-border: rgba(0, 0, 0, 0.06);
+	--panel-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 16px rgba(0, 0, 0, 0.03);
+	--bg-control: #fafafa;
+	--bg-control-hover: #f5f5f5;
+	--border-control: rgba(0, 0, 0, 0.08);
+	--text-secondary: #6b7280;
+	--text-muted: #9ca3af;
+}
+
+[data-theme="dark"] [data-widget-version="v4"] .mcp-widget-shell {
+	--widget-shell-bg: #111518;
+	--card-bg: #181d22;
+	--card-border: rgba(255, 255, 255, 0.06);
+	--card-border-hover: rgba(255, 255, 255, 0.10);
+	--card-active-border: rgba(106, 166, 248, 0.36);
+	--card-active-bg: #161c24;
+	--panel-bg: #181d22;
+	--panel-border: rgba(255, 255, 255, 0.06);
+	--panel-shadow: 0 1px 3px rgba(0, 0, 0, 0.16), 0 6px 16px rgba(0, 0, 0, 0.14);
+	--bg-control: #14191f;
+	--bg-control-hover: #1b222a;
+	--border-control: rgba(255, 255, 255, 0.08);
+	--text-secondary: #a0a8b4;
+	--text-muted: #6b7580;
+}
+
+[data-widget-version="v4"] .card-glow,
+[data-widget-version="v4"] .panel-glow {
+	display: block;
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background: radial-gradient(
+		ellipse 80% 50% at 50% 100%,
+		rgba(20, 16, 255, 0.07) 0%,
+		rgba(0, 144, 255, 0.04) 30%,
+		transparent 70%
+	);
+}
+
+/* v4 — Compact inline wordmark: logo + supermemory, no MCP subtitle. */
+[data-widget-version="v4"] .mcp-widget-brand {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin: var(--space-3) var(--page-header-px) 0;
+	padding-bottom: var(--space-3);
+	border-bottom: 1px solid var(--border-muted);
+	opacity: 1;
+}
+
+[data-widget-version="v4"] .mcp-widget-brand-mark {
+	width: 18px;
+	height: 18px;
+}
+
+[data-widget-version="v4"] .mcp-widget-brand-mark svg {
+	width: 15px;
+	height: 12px;
+}
+
+[data-widget-version="v4"] .mcp-widget-brand-copy {
+	flex-direction: row;
+	align-items: center;
+}
+
+[data-widget-version="v4"] .mcp-widget-brand-name {
+	font-family: var(--font-brand);
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	line-height: 1;
+}
+
+[data-widget-version="v4"] .mcp-widget-brand-mode {
+	display: none;
+}
+
+/* v4 — Vertically center loading in the shell below the header. */
+[data-widget-version="v4"] .mcp-widget-content:has(.mcp-widget-loading) {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+[data-widget-version="v4"] .mcp-widget-loading {
+	flex: 1;
+	min-height: 180px;
+	padding: 0;
+}
+
+/* v4 — Workspace picker as compact list rows. */
+[data-widget-version="v4"] .workspace-picker-grid {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	overflow: hidden;
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius-lg);
+	background: var(--card-bg);
+}
+
+[data-widget-version="v4"] .workspace-card {
+	min-height: 0;
+	padding: var(--space-2) var(--space-3);
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+[data-widget-version="v4"] .workspace-card:not(:last-child) {
+	border-bottom: 1px solid var(--card-border);
+}
+
+[data-widget-version="v4"] .workspace-card:hover {
+	background: var(--card-bg-hover);
+}
+
+[data-widget-version="v4"] .workspace-card .card-glow {
+	display: none;
+}
+
+[data-widget-version="v4"] .workspace-card-inner {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	height: auto;
+	min-height: 0;
+}
+
+[data-widget-version="v4"] .workspace-card-main {
+	flex: 1;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: var(--space-3);
+	min-width: 0;
+	padding-right: 0;
+	overflow: hidden;
+}
+
+[data-widget-version="v4"] .workspace-card-heading {
+	flex: 1;
+	min-width: 0;
+}
+
+[data-widget-version="v4"] .workspace-card-title {
+	min-width: 0;
+}
+
+[data-widget-version="v4"] .workspace-card-meta {
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+[data-widget-version="v4"] .workspace-card-trailing {
+	position: static;
+	flex-shrink: 0;
+}
 .mcp-widget-shell-graph .mcp-widget-glow {
 	display: none;
 }
@@ -203,12 +538,14 @@
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-2);
+	position: relative;
+	z-index: 1;
 	margin: var(--space-4) var(--page-header-px) 0;
 	padding: 0;
 	border: 0;
 	background: transparent;
 	box-shadow: none;
-	opacity: 0.86;
+	opacity: var(--brand-opacity);
 }
 
 .mcp-widget-brand-mark {
@@ -216,7 +553,7 @@
 	width: 20px;
 	height: 20px;
 	place-items: center;
-	color: var(--accent);
+	color: var(--brand-accent);
 }
 
 .mcp-widget-brand-mark svg {
@@ -265,7 +602,7 @@
 	width: 24px;
 	height: 24px;
 	border: 2px solid rgba(255, 255, 255, 0.12);
-	border-top-color: var(--accent);
+	border-top-color: var(--brand-accent);
 	border-radius: 50%;
 	animation: spin 0.8s linear infinite;
 	box-shadow: 0 0 20px rgba(75, 160, 250, 0.42);
@@ -282,7 +619,7 @@
 	min-width: calc(var(--super-loader-size, 42px) + 10px);
 	align-items: center;
 	gap: var(--space-2);
-	color: var(--accent);
+	color: var(--brand-accent);
 }
 
 .super-loader-mark {

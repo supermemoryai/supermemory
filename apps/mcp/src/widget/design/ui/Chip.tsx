@@ -9,7 +9,7 @@ const chipStyles = cva(
 			selected: {
 				true: "bg-accent-muted border-accent text-accent",
 				false:
-					"bg-bg-elevated border-[#0D121A] text-text-secondary hover:border-[#3A4455] hover:bg-bg-control-hover",
+					"bg-bg-elevated border-[var(--card-border)] text-text-secondary hover:border-[var(--card-border-hover)] hover:bg-bg-control-hover",
 			},
 		},
 		defaultVariants: { selected: false },
