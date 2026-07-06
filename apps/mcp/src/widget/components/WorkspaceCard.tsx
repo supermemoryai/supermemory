@@ -41,8 +41,7 @@ export function WorkspaceCard({
 							/>
 						) : null}
 					</div>
-					{(containerTag.documentCount > 0 ||
-						containerTag.memoryCount > 0) && (
+					{(containerTag.documentCount > 0 || containerTag.memoryCount > 0) && (
 						<div className="workspace-card-meta flex items-center gap-(--space-2) text-[11px] leading-normal text-text-muted">
 							<span>
 								{containerTag.documentCount} doc

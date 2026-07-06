@@ -365,7 +365,10 @@ export function Studio() {
 					description="The same widget shell Cursor renders, with mock MCP tool data."
 					title="Cursor widgets"
 				>
-					<div data-widget-version={version} className="flex flex-wrap gap-(--space-8)">
+					<div
+						data-widget-version={version}
+						className="flex flex-wrap gap-(--space-8)"
+					>
 						<Frame label="Picker" width={frameWidth}>
 							<WidgetShell>
 								<Picker

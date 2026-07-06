@@ -289,7 +289,11 @@
 	--accent-start: #4f8df7;
 	--accent-mid: #4f8df7;
 	--accent-end: #8ec8ff;
-	--accent-gradient: linear-gradient(94deg, var(--accent-start), var(--accent-end));
+	--accent-gradient: linear-gradient(
+		94deg,
+		var(--accent-start),
+		var(--accent-end)
+	);
 	--accent: #3f7ee8;
 	--accent-foreground: #ffffff;
 	--accent-hover: #2f6fd8;
@@ -337,7 +341,8 @@
 	--button-secondary-hover: #f1eee7;
 	--button-secondary-text: #111827;
 	--button-secondary-border: #dcd6ca;
-	--button-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(15, 23, 42, 0.1);
+	--button-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(15, 23, 42, 0.1);
 
 	--text-primary: #111827;
 	--text-secondary: #4b5563;
@@ -354,9 +359,12 @@
 	--info-muted: rgba(37, 99, 235, 0.1);
 	--danger: #dc2626;
 
-	--font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-	--font-display: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-	--font-brand: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-sans:
+		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-display:
+		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-brand:
+		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
 	--radius-sm: 4px;
 	--radius-md: 6px;
@@ -400,7 +408,11 @@
 	--accent-start: #6aa6f8;
 	--accent-mid: #6aa6f8;
 	--accent-end: #8bd4ff;
-	--accent-gradient: linear-gradient(94deg, var(--accent-start), var(--accent-end));
+	--accent-gradient: linear-gradient(
+		94deg,
+		var(--accent-start),
+		var(--accent-end)
+	);
 	--accent: #6aa6f8;
 	--accent-foreground: #0f141a;
 	--accent-hover: #82b7ff;
@@ -438,7 +450,8 @@
 
 	--panel-bg: #1c222a;
 	--panel-border: #2b333d;
-	--panel-shadow: 0 14px 34px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+	--panel-shadow:
+		0 14px 34px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.035);
 
 	--button-primary-bg: #eef4ff;
 	--button-primary-hover: #ffffff;
@@ -448,7 +461,8 @@
 	--button-secondary-hover: #27303b;
 	--button-secondary-text: #eef2f7;
 	--button-secondary-border: #34404d;
-	--button-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.22);
+	--button-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.22);
 
 	--text-primary: #f4f6f8;
 	--text-secondary: #c1c9d2;
@@ -465,9 +479,12 @@
 	--info-muted: rgba(139, 188, 255, 0.12);
 	--danger: #fb7185;
 
-	--font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-	--font-display: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-	--font-brand: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-sans:
+		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-display:
+		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-brand:
+		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
 	--radius-sm: 4px;
 	--radius-md: 6px;

@@ -6,9 +6,7 @@
  * "my_custom_workspace"    → "My Custom Workspace"
  */
 export function formatTagLabel(raw: string): string {
-	let slug = raw
-		.replace(/^sm_project_/i, "")
-		.replace(/^sm_/i, "")
+	const slug = raw.replace(/^sm_project_/i, "").replace(/^sm_/i, "")
 
 	return slug
 		.split("_")

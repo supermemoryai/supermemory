@@ -174,7 +174,6 @@
 	opacity: 0.82;
 }
 
-
 /* Studio-only visual variants. Production widgets do not set this attribute. */
 [data-widget-version="v1"] .mcp-widget-shell {
 	--brand-accent: var(--accent);
@@ -210,11 +209,23 @@
 [data-widget-version="v2"] .mcp-widget-shell {
 	--brand-accent: var(--accent);
 	--brand-opacity: 1;
-	--widget-shell-bg: color-mix(in srgb, var(--widget-shell-bg) 86%, var(--bg-muted));
+	--widget-shell-bg: color-mix(
+		in srgb,
+		var(--widget-shell-bg) 86%,
+		var(--bg-muted)
+	);
 	--card-bg: color-mix(in srgb, var(--card-bg) 88%, var(--bg-muted));
 	--panel-bg: color-mix(in srgb, var(--panel-bg) 88%, var(--bg-muted));
-	--widget-glow-mid: color-mix(in srgb, var(--widget-glow-mid) 70%, transparent);
-	--widget-glow-outer: color-mix(in srgb, var(--widget-glow-outer) 70%, transparent);
+	--widget-glow-mid: color-mix(
+		in srgb,
+		var(--widget-glow-mid) 70%,
+		transparent
+	);
+	--widget-glow-outer: color-mix(
+		in srgb,
+		var(--widget-glow-outer) 70%,
+		transparent
+	);
 }
 
 [data-widget-version="v2"] .mcp-widget-shell-graph::before {
@@ -226,14 +237,18 @@
 }
 
 [data-theme="light"] [data-widget-version="v2"] .mcp-widget-shell-graph::before,
-:root:not([data-theme="dark"]) [data-widget-version="v2"] .mcp-widget-shell-graph::before {
+:root:not([data-theme="dark"])
+	[data-widget-version="v2"]
+	.mcp-widget-shell-graph::before {
 	background-image:
 		linear-gradient(rgba(75, 160, 250, 0.045) 1px, transparent 1px),
 		linear-gradient(90deg, rgba(75, 160, 250, 0.045) 1px, transparent 1px);
 }
 
 [data-theme="light"] [data-widget-version="v2"] .mcp-widget-shell-graph::after,
-:root:not([data-theme="dark"]) [data-widget-version="v2"] .mcp-widget-shell-graph::after {
+:root:not([data-theme="dark"])
+	[data-widget-version="v2"]
+	.mcp-widget-shell-graph::after {
 	content: none;
 }
 
@@ -246,7 +261,9 @@
 }
 
 [data-theme="light"] [data-widget-version="v2"] .mcp-soft-button:hover,
-:root:not([data-theme="dark"]) [data-widget-version="v2"] .mcp-soft-button:hover {
+:root:not([data-theme="dark"])
+	[data-widget-version="v2"]
+	.mcp-soft-button:hover {
 	background: var(--button-secondary-hover);
 }
 
@@ -335,12 +352,12 @@
 		),
 		radial-gradient(
 			ellipse 60% 40% at 30% 90%,
-			rgba(71, 168, 253, 0.10) 0%,
+			rgba(71, 168, 253, 0.1) 0%,
 			transparent 60%
 		),
 		radial-gradient(
 			ellipse 60% 40% at 70% 90%,
-			rgba(75, 160, 250, 0.10) 0%,
+			rgba(75, 160, 250, 0.1) 0%,
 			transparent 60%
 		);
 }
@@ -363,7 +380,7 @@
 	--widget-shell-bg: #faf9f7;
 	--card-bg: #ffffff;
 	--card-border: rgba(0, 0, 0, 0.06);
-	--card-border-hover: rgba(0, 0, 0, 0.10);
+	--card-border-hover: rgba(0, 0, 0, 0.1);
 	--card-active-border: rgba(63, 126, 232, 0.32);
 	--card-active-bg: #fafcff;
 	--panel-bg: #ffffff;
@@ -380,7 +397,7 @@
 	--widget-shell-bg: #111518;
 	--card-bg: #181d22;
 	--card-border: rgba(255, 255, 255, 0.06);
-	--card-border-hover: rgba(255, 255, 255, 0.10);
+	--card-border-hover: rgba(255, 255, 255, 0.1);
 	--card-active-border: rgba(106, 166, 248, 0.36);
 	--card-active-bg: #161c24;
 	--panel-bg: #181d22;
