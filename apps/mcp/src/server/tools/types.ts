@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import type { Props } from "../../shared/types"
+import type { ViewMessage } from "../../shared/types"
 import type { RbacContext } from "../auth/rbac"
 import type { SupermemoryClient } from "../client"
 
@@ -16,13 +17,11 @@ export interface ToolDeps {
 		put: <T>(key: string, value: T) => Promise<void>
 	}
 	cachedContainerTags: () => string[]
-	refreshContainerTags: () => Promise<void>
+	refreshContainerTags: () => Promise<boolean>
 	getClientInfo: () => { name: string; version?: string } | null
 	getMcpSessionId: () => string
-	errorResult: (error: unknown) => {
-		content: { type: "text"; text: string }[]
-		isError: true
-	}
+	errorResult: typeof errorResult
+	appErrorResult: typeof appErrorResult
 }
 
 export function errorResult(error: unknown) {
@@ -31,5 +30,27 @@ export function errorResult(error: unknown) {
 	return {
 		content: [{ type: "text" as const, text: `Error: ${message}` }],
 		isError: true as const,
+	}
+}
+
+/** Like errorResult, but includes structuredContent so app widgets render the message. */
+export function appErrorResult(
+	error: unknown,
+	options?: { kind?: "user" | "system"; title?: string },
+) {
+	const message =
+		error instanceof Error ? error.message : "An unexpected error occurred"
+	const kind = options?.kind ?? "system"
+	const text = `Error: ${message}`
+	const structuredContent: ViewMessage = {
+		view: "error",
+		message,
+		kind,
+		title: options?.title,
+	}
+	return {
+		content: [{ type: "text" as const, text }],
+		isError: true as const,
+		structuredContent,
 	}
 }

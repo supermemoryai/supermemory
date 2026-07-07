@@ -3,8 +3,9 @@ import { z } from "zod"
 import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
 import type { ToolDeps } from "./types"
 import {
-	containerTagExists,
+	containerTagValidationUnavailableError,
 	unknownContainerTagError,
+	validateContainerTag,
 } from "./validate-container-tag"
 
 export function register(deps: ToolDeps) {
@@ -26,16 +27,26 @@ export function register(deps: ToolDeps) {
 		async (args) => {
 			const containerTag = (args as { containerTag: string }).containerTag
 			if (!deps.rbac.canRead(containerTag)) {
-				return deps.errorResult(
-					new Error(`No access to container tag '${containerTag}'.`),
+				return deps.appErrorResult(
+					new Error(
+						`You don't have access to '${containerTag}'. Choose a workspace from listSpaces.`,
+					),
+					{ kind: "user", title: "No access to this workspace" },
 				)
 			}
 			try {
-				if (!(await containerTagExists(deps, containerTag))) {
-					return deps.errorResult(unknownContainerTagError(containerTag))
+				const validation = await validateContainerTag(deps, containerTag)
+				if (validation === "missing") {
+					return deps.appErrorResult(unknownContainerTagError(containerTag), {
+						kind: "user",
+						title: "Workspace not found",
+					})
+				}
+				if (validation === "unavailable") {
+					return deps.appErrorResult(containerTagValidationUnavailableError())
 				}
 			} catch (error) {
-				return deps.errorResult(error)
+				return deps.appErrorResult(error)
 			}
 			await deps.storage.put("activeContainerTag", containerTag)
 			const sc: ViewMessage = {

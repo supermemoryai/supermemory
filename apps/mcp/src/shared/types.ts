@@ -91,6 +91,13 @@ export type ViewMessage =
 			documents: DocumentWithMemories[]
 			totalCount: number
 			containerTag?: string
+			pagination?: DocumentsApiResponse["pagination"]
+	  }
+	| {
+			view: "error"
+			message: string
+			kind?: "user" | "system"
+			title?: string
 	  }
 
 export type ViewName = ViewMessage["view"]

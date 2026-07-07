@@ -39,14 +39,15 @@ const MAX_UPLOAD_BYTES = Math.floor(
 	((TRANSPORT_MESSAGE_LIMIT_BYTES - ENVELOPE_ALLOWANCE_BYTES) * 3) / 4,
 )
 
-const FILE_TOO_LARGE_MESSAGE = (size: number) =>
-	`This file is ${formatFileSize(size)}. The maximum upload size is ${formatFileSize(MAX_UPLOAD_BYTES)} — please choose a smaller file.`
+function fileTooLargeMessage(size: number): string {
+	return `This file is ${formatFileSize(size)}. The maximum upload size is ${formatFileSize(MAX_UPLOAD_BYTES)} — please choose a smaller file.`
+}
 
 // The transport-level 413 surfaces as an opaque error string; translate it
 // so the user sees the size limit instead of a generic failure.
 function friendlyUploadError(raw: string, fileSize: number): string {
 	if (/413|too large|payload/i.test(raw)) {
-		return FILE_TOO_LARGE_MESSAGE(fileSize)
+		return fileTooLargeMessage(fileSize)
 	}
 	return raw
 }
@@ -61,13 +62,13 @@ export function Upload({ activeTag, writableTags, onAdvance, onError }: Props) {
 	)
 	const [uploading, setUploading] = useState(false)
 
-	const handleFileSelect = (selected: File) => {
+	function handleFileSelect(selected: File) {
 		if (selected.size > MAX_UPLOAD_BYTES) {
 			log(
 				"warning",
 				`[upload] rejected oversized file: ${selected.name} (${selected.size}B > ${MAX_UPLOAD_BYTES}B)`,
 			)
-			setFileError(FILE_TOO_LARGE_MESSAGE(selected.size))
+			setFileError(fileTooLargeMessage(selected.size))
 			setFile(null)
 			return
 		}

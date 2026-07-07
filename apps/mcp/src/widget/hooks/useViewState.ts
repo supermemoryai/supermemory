@@ -14,6 +14,11 @@ function safeLog(
 	}
 }
 
+function toolResultText(result: CallToolResult): string | null {
+	const item = result.content?.[0]
+	return item?.type === "text" ? item.text : null
+}
+
 type ViewState =
 	| { kind: "loading" }
 	| { kind: "view"; message: ViewMessage }
@@ -54,8 +59,20 @@ export function useViewState(): {
 			setState({ kind: "loading" })
 		}
 		app.ontoolresult = (result: CallToolResult) => {
+			if (result.isError) {
+				const text = toolResultText(result) ?? "Tool returned an error"
+				safeLog("error", `[host] ontoolresult: tool error: ${text}`)
+				setState({ kind: "error", message: text })
+				return
+			}
 			const sc = (result as { structuredContent?: unknown }).structuredContent
 			if (!sc || typeof sc !== "object") {
+				const text = toolResultText(result)
+				if (text) {
+					safeLog("warning", `[host] ontoolresult: text-only result: ${text}`)
+					setState({ kind: "error", message: text })
+					return
+				}
 				safeLog("warning", "[host] ontoolresult: no structuredContent")
 				setState({ kind: "raw", structuredContent: sc })
 				return
