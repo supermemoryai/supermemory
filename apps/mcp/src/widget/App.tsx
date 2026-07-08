@@ -68,7 +68,6 @@ export function WidgetShell({
 
 	return (
 		<div className={shellClassName}>
-			<div aria-hidden className="mcp-widget-glow" />
 			<header className="mcp-widget-brand">
 				<span aria-hidden className="mcp-widget-brand-mark">
 					<svg aria-hidden="true" viewBox="0 0 314 256">
@@ -138,13 +137,12 @@ function renderView(
 		case "confirmation":
 			return <Confirmation containerTag={msg.containerTag} />
 		case "save-success":
-			return <Success containerTag={msg.containerTag} id={msg.id} kind="save" />
+			return <Success containerTag={msg.containerTag} kind="save" />
 		case "upload-success":
 			return (
 				<Success
 					containerTag={msg.containerTag}
 					fileName={msg.fileName}
-					id={msg.id}
 					kind="upload"
 				/>
 			)

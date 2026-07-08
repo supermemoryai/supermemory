@@ -8,18 +8,18 @@ import { cn } from "../lib/cn"
 
 const cardStyles = cva(
 	[
-		"group relative overflow-hidden text-left",
-		"rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] p-4",
-		"transition-all duration-200",
+		"group relative text-left",
+		"rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] p-4",
+		"transition-colors duration-150",
 	].join(" "),
 	{
 		variants: {
 			variant: {
 				default: "",
 				interactive:
-					"cursor-pointer hover:border-[var(--card-border-hover)] hover:bg-[var(--card-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
+					"cursor-pointer hover:border-[var(--card-border-hover)] hover:bg-[var(--card-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
 				active:
-					"cursor-pointer border-[var(--card-active-border)] bg-[var(--card-active-bg)] hover:border-[var(--card-border-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
+					"cursor-pointer border-[var(--card-active-border)] bg-[var(--card-active-bg)] hover:border-[var(--card-active-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
 			},
 		},
 		defaultVariants: { variant: "default" },
@@ -39,12 +39,6 @@ export type CardProps = DivProps | ButtonElementProps
 export const Card = forwardRef<HTMLElement, CardProps>(
 	({ className, variant, as = "div", children, ...props }, ref) => {
 		const cls = cn(cardStyles({ variant }), className)
-		const inner = (
-			<>
-				<div aria-hidden className="card-glow" />
-				{children}
-			</>
-		)
 		if (as === "button") {
 			return (
 				<button
@@ -53,7 +47,7 @@ export const Card = forwardRef<HTMLElement, CardProps>(
 					type="button"
 					{...(props as ButtonHTMLAttributes<HTMLButtonElement>)}
 				>
-					{inner}
+					{children}
 				</button>
 			)
 		}
@@ -63,7 +57,7 @@ export const Card = forwardRef<HTMLElement, CardProps>(
 				ref={ref as React.Ref<HTMLDivElement>}
 				{...(props as HTMLAttributes<HTMLDivElement>)}
 			>
-				{inner}
+				{children}
 			</div>
 		)
 	},

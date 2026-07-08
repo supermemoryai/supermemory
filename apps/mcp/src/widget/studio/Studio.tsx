@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { WidgetShell } from "../App"
 import { WorkspaceCard } from "../components/WorkspaceCard"
 import {
@@ -32,7 +32,6 @@ import {
 
 type Theme = "light" | "dark"
 type Width = "narrow" | "wide" | "cursor"
-type Version = "v1" | "v2" | "v3" | "v4"
 
 const NARROW = 420
 const WIDE = 720
@@ -121,9 +120,8 @@ function Swatch({ name, varName }: { name: string; varName: string }) {
 }
 
 export function Studio() {
-	const [theme, setTheme] = useState<Theme>("light")
-	const [width, setWidth] = useState<Width>("cursor")
-	const [version, setVersion] = useState<Version>("v1")
+	const [theme, setTheme] = useState<Theme>("dark")
+	const [width, setWidth] = useState<Width>("narrow")
 	const frameWidth =
 		width === "narrow" ? NARROW : width === "wide" ? WIDE : CURSOR
 
@@ -131,6 +129,12 @@ export function Studio() {
 		setTheme(t)
 		document.documentElement.setAttribute("data-theme", t)
 	}
+
+	// Keep the document theme in sync so the gallery matches the toggle,
+	// including on first paint.
+	useEffect(() => {
+		document.documentElement.setAttribute("data-theme", theme)
+	}, [theme])
 
 	const saveStub = useStubHandlers("Save")
 	const uploadStub = useStubHandlers("Upload")
@@ -165,23 +169,6 @@ export function Studio() {
 							selected={theme === "dark"}
 						>
 							Dark
-						</Chip>
-					</div>
-					<div className="flex items-center gap-(--space-2)">
-						<span className="text-(length:--text-xs) text-text-muted">
-							Version
-						</span>
-						<Chip onClick={() => setVersion("v1")} selected={version === "v1"}>
-							v1
-						</Chip>
-						<Chip onClick={() => setVersion("v2")} selected={version === "v2"}>
-							v2
-						</Chip>
-						<Chip onClick={() => setVersion("v3")} selected={version === "v3"}>
-							v3
-						</Chip>
-						<Chip onClick={() => setVersion("v4")} selected={version === "v4"}>
-							v4
 						</Chip>
 					</div>
 					<div className="flex items-center gap-(--space-2)">
@@ -365,10 +352,7 @@ export function Studio() {
 					description="The same widget shell Cursor renders, with mock MCP tool data."
 					title="Cursor widgets"
 				>
-					<div
-						data-widget-version={version}
-						className="flex flex-wrap gap-(--space-8)"
-					>
+					<div className="flex flex-wrap gap-(--space-8)">
 						<Frame label="Picker" width={frameWidth}>
 							<WidgetShell>
 								<Picker
@@ -412,11 +396,7 @@ export function Studio() {
 
 						<Frame label="Success (save)" width={frameWidth}>
 							<WidgetShell>
-								<Success
-									containerTag="sm_project_marketing"
-									id="mem_8fa92c"
-									kind="save"
-								/>
+								<Success containerTag="sm_project_marketing" kind="save" />
 							</WidgetShell>
 						</Frame>
 
@@ -425,7 +405,6 @@ export function Studio() {
 								<Success
 									containerTag="sm_project_marketing"
 									fileName="q3-brief.pdf"
-									id="doc_4b71a0"
 									kind="upload"
 								/>
 							</WidgetShell>

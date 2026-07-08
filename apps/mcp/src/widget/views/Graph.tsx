@@ -58,19 +58,25 @@ function readGraphColors(): GraphThemeColors {
 	return out
 }
 
-// Read the graph palette from CSS, and re-read after a theme switch. We can't
-// rely on the package's own useGraphTheme: it watches the `class` attribute,
-// but the MCP host themes via `data-theme`, applied in a passive effect that
-// runs AFTER children render. requestAnimationFrame fires after that effect,
-// so by then `data-theme` (hence the --graph-* values) is current.
+// Read the graph palette from CSS, and re-read whenever the document theme
+// flips. We can't rely on the package's own useGraphTheme (it watches `class`),
+// nor on the `theme` prop alone: the host themes via `data-theme`, and in
+// standalone/Studio the attribute can change without the prop changing. So we
+// observe `data-theme`/`class` on <html> directly and re-read after the next
+// paint (rAF), by which point the --graph-* values are current.
 function useGraphColors(theme: string): GraphThemeColors {
 	const [colors, setColors] = useState<GraphThemeColors>(readGraphColors)
 	useEffect(() => {
-		// `theme` change is the trigger; re-read after the host applies
-		// data-theme (rAF fires after that passive effect).
 		if (!theme) return
-		const id = requestAnimationFrame(() => setColors(readGraphColors()))
-		return () => cancelAnimationFrame(id)
+		const reread = () =>
+			requestAnimationFrame(() => setColors(readGraphColors()))
+		reread()
+		const observer = new MutationObserver(reread)
+		observer.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ["data-theme", "class"],
+		})
+		return () => observer.disconnect()
 	}, [theme])
 	return colors
 }

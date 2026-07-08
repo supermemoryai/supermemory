@@ -79,12 +79,11 @@ export function Save({
 				title="Add Memory"
 			/>
 			<div className="px-(--page-header-px) pb-(--space-6)">
-				<div className="mcp-panel rounded-[20px] border border-[var(--panel-border)] bg-[var(--panel-bg)] p-(--space-4) shadow-[var(--panel-shadow)]">
-					<div aria-hidden className="panel-glow" />
+				<div className="rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] p-(--space-4) shadow-[var(--panel-shadow)]">
 					<Stack gap="lg">
 						<Field label="Memory">
 							<TextArea
-								className="min-h-40 shadow-sm"
+								className="min-h-40"
 								onChange={(e) => setContent(e.target.value)}
 								placeholder="Enter content to save as a memory…"
 								value={content}
@@ -101,10 +100,9 @@ export function Save({
 							</Field>
 						) : null}
 
-						<div className="flex justify-end pt-(--space-2)">
+						<div className="flex justify-end pt-(--space-1)">
 							<ActionGroup>
 								<Button
-									className="mcp-soft-button"
 									disabled={!canSave}
 									loading={saving}
 									onClick={handleSave}

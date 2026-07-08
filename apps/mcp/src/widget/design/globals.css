@@ -3,11 +3,9 @@
 
 @custom-variant dark (&:is([data-theme="dark"] *));
 
-/* Map design tokens to Tailwind utilities. Mirrors console-v2's mapping
- * so utility class names like `bg-bg-primary`, `text-text-primary`,
- * `border-border-accent`, `font-brand`, `text-xs`, `shadow-md` etc.
- * resolve from one source of truth.
- */
+/* Map design tokens to Tailwind utilities so class names like `bg-bg-primary`,
+ * `text-text-primary`, `border-border-accent`, `text-xs`, `shadow-md` resolve
+ * from one source of truth. */
 @theme inline {
 	--color-bg-primary: var(--bg-primary);
 	--color-bg-secondary: var(--bg-secondary);
@@ -20,6 +18,7 @@
 
 	--color-border: var(--border);
 	--color-border-muted: var(--border-muted);
+	--color-border-control: var(--border-control);
 	--color-border-accent: var(--border-accent);
 
 	--color-text-primary: var(--text-primary);
@@ -63,6 +62,7 @@
 	--radius-sm: var(--radius-sm);
 	--radius-md: var(--radius-md);
 	--radius-lg: var(--radius-lg);
+	--radius-xl: var(--radius-xl);
 	--radius-full: var(--radius-full);
 
 	--shadow-sm: var(--shadow-sm);
@@ -70,15 +70,13 @@
 	--shadow-lg: var(--shadow-lg);
 }
 
-/* Excalidraw pattern: NO heights on root containers. The MCP host owns
- * the iframe height; ext-apps' App.autoResize observes documentElement
- * and reports content size back so the host right-sizes the iframe.
- * Setting any height (vh, %, etc.) here breaks that feedback loop.
+/* Excalidraw pattern: NO heights on root containers. The MCP host owns the
+ * iframe height; ext-apps' App.autoResize observes documentElement and reports
+ * content size back so the host right-sizes the iframe. Any height here (vh, %,
+ * etc.) breaks that feedback loop.
  *
- * The reset lives INSIDE @layer base so Tailwind's @layer utilities (which
- * come after base) win — an unlayered universal padding:0 reset would override
- * every padding utility in the widget. box-sizing/margin are belt-and-braces
- * on top of Tailwind preflight. */
+ * The reset lives INSIDE @layer base so Tailwind's @layer utilities win — an
+ * unlayered universal padding:0 would override every padding utility. */
 @layer base {
 	* {
 		margin: 0;
@@ -111,10 +109,13 @@
 	position: relative;
 }
 
+/* ── Shell ────────────────────────────────────────────────────────────────── */
 .mcp-widget-shell {
 	position: relative;
 	isolation: isolate;
-	min-height: 280px;
+	display: flex;
+	flex-direction: column;
+	min-height: 220px;
 	overflow: hidden;
 	background: var(--widget-shell-bg);
 	color: var(--text-primary);
@@ -125,510 +126,153 @@
 	background: var(--widget-shell-graph-bg);
 }
 
-.mcp-widget-shell-graph::before,
-.mcp-widget-shell-graph::after {
-	position: absolute;
-	inset: 0;
-	z-index: 0;
-	pointer-events: none;
-	content: "";
-}
-
-.mcp-widget-shell-graph::before {
-	background-image: radial-gradient(
-		circle at center,
-		rgba(105, 167, 240, 0.25) 1px,
-		transparent 1px
-	);
-	background-size: 32px 32px;
-	mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%);
-}
-
-.mcp-widget-shell-graph::after {
-	background:
-		radial-gradient(
-			ellipse at 50% 112%,
-			rgba(75, 160, 250, 0.42) 0%,
-			rgba(20, 16, 255, 0.3) 34%,
-			transparent 66%
-		),
-		linear-gradient(180deg, rgba(5, 8, 13, 0) 0%, rgba(5, 8, 13, 0.2) 100%);
-}
-
-.mcp-widget-glow {
-	position: absolute;
-	right: -16%;
-	bottom: -44%;
-	left: -16%;
-	z-index: -1;
-	height: 68%;
-	pointer-events: none;
-	background: radial-gradient(
-		ellipse at 50% 42%,
-		var(--widget-glow-inner) 0%,
-		var(--widget-glow-mid) 22%,
-		var(--widget-glow-outer) 46%,
-		transparent 74%
-	);
-	filter: blur(18px);
-	opacity: 0.82;
-}
-
-/* Studio-only visual variants. Production widgets do not set this attribute. */
-[data-widget-version="v1"] .mcp-widget-shell {
-	--brand-accent: var(--accent);
-	--brand-opacity: 0.86;
-	--widget-glow-inner: rgba(255, 255, 255, 0.22);
-	--widget-glow-mid: rgba(71, 168, 253, 0.3);
-	--widget-glow-outer: rgba(20, 16, 255, 0.18);
-	background:
-		linear-gradient(rgba(75, 160, 250, 0.045) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(75, 160, 250, 0.045) 1px, transparent 1px),
-		radial-gradient(
-			circle at 50% 108%,
-			rgba(75, 160, 250, 0.16),
-			transparent 42%
-		),
-		var(--widget-shell-bg);
-	background-size:
-		36px 36px,
-		36px 36px,
-		100% 100%,
-		100% 100%;
-}
-
-[data-widget-version="v1"] .super-loader,
-[data-widget-version="v1"] .spinner {
-	color: var(--accent);
-}
-
-[data-widget-version="v1"] .spinner {
-	border-top-color: var(--accent);
-	box-shadow: 0 0 20px rgba(75, 160, 250, 0.42);
-}
-[data-widget-version="v2"] .mcp-widget-shell {
-	--brand-accent: var(--accent);
-	--brand-opacity: 1;
-	--widget-shell-bg: color-mix(
-		in srgb,
-		var(--widget-shell-bg) 86%,
-		var(--bg-muted)
-	);
-	--card-bg: color-mix(in srgb, var(--card-bg) 88%, var(--bg-muted));
-	--panel-bg: color-mix(in srgb, var(--panel-bg) 88%, var(--bg-muted));
-	--widget-glow-mid: color-mix(
-		in srgb,
-		var(--widget-glow-mid) 70%,
-		transparent
-	);
-	--widget-glow-outer: color-mix(
-		in srgb,
-		var(--widget-glow-outer) 70%,
-		transparent
-	);
-}
-
-[data-widget-version="v2"] .mcp-widget-shell-graph::before {
-	background-image:
-		linear-gradient(rgba(105, 167, 240, 0.12) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(105, 167, 240, 0.12) 1px, transparent 1px);
-	background-size: 32px 32px;
-	mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%);
-}
-
-[data-theme="light"] [data-widget-version="v2"] .mcp-widget-shell-graph::before,
-:root:not([data-theme="dark"])
-	[data-widget-version="v2"]
-	.mcp-widget-shell-graph::before {
-	background-image:
-		linear-gradient(rgba(75, 160, 250, 0.045) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(75, 160, 250, 0.045) 1px, transparent 1px);
-}
-
-[data-theme="light"] [data-widget-version="v2"] .mcp-widget-shell-graph::after,
-:root:not([data-theme="dark"])
-	[data-widget-version="v2"]
-	.mcp-widget-shell-graph::after {
-	content: none;
-}
-
-[data-theme="light"] [data-widget-version="v2"] .mcp-soft-button,
-:root:not([data-theme="dark"]) [data-widget-version="v2"] .mcp-soft-button {
-	background: var(--button-secondary-bg);
-	color: var(--button-secondary-text);
-	border: 1px solid var(--button-secondary-border);
-	box-shadow: var(--shadow-sm);
-}
-
-[data-theme="light"] [data-widget-version="v2"] .mcp-soft-button:hover,
-:root:not([data-theme="dark"])
-	[data-widget-version="v2"]
-	.mcp-soft-button:hover {
-	background: var(--button-secondary-hover);
-}
-
-/* Card/panel glow — hidden by default, activated by v3/v4. */
-.card-glow,
-.panel-glow {
-	display: none;
-}
-
-.mcp-panel {
-	position: relative;
-	overflow: hidden;
-}
-
-.mcp-panel > :not(.panel-glow) {
-	position: relative;
-	z-index: 1;
-}
-
-/* Workspace picker cards — grid layout (default). */
-.workspace-card {
-	min-height: 104px;
-}
-
-.workspace-card-inner {
-	position: relative;
-	display: flex;
-	flex-direction: column;
-	height: 100%;
-	min-height: 56px;
-}
-
-.workspace-card-main {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-1);
-	min-width: 0;
-	padding-right: 72px;
-}
-
-.workspace-card-heading {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	min-width: 0;
-}
-
-.workspace-card-title {
-	flex: 1;
-	min-width: 0;
-}
-
-.workspace-card-trailing {
-	position: absolute;
-	top: 0;
-	right: 0;
-	font-size: 11px;
-	font-weight: 500;
-	line-height: 1;
-}
-
-/* v3 — Bold inner glow on cards/panels (web-app BgGrad-inspired), plain shell background. */
-[data-widget-version="v3"] .mcp-widget-shell {
-	--brand-accent: var(--accent);
-	--brand-opacity: 1;
-	background: var(--widget-shell-bg);
-}
-
-[data-widget-version="v3"] .mcp-widget-glow {
-	display: none;
-}
-
-[data-widget-version="v3"] .card-glow,
-[data-widget-version="v3"] .panel-glow {
-	display: block;
-	position: absolute;
-	inset: 0;
-	z-index: 0;
-	pointer-events: none;
-	background:
-		radial-gradient(
-			ellipse 80% 50% at 50% 100%,
-			rgba(20, 16, 255, 0.12) 0%,
-			rgba(0, 144, 255, 0.08) 30%,
-			transparent 70%
-		),
-		radial-gradient(
-			ellipse 60% 40% at 30% 90%,
-			rgba(71, 168, 253, 0.1) 0%,
-			transparent 60%
-		),
-		radial-gradient(
-			ellipse 60% 40% at 70% 90%,
-			rgba(75, 160, 250, 0.1) 0%,
-			transparent 60%
-		);
-}
-
-/* v4 — Fully refined for white/light + proper dark mode support. */
-[data-widget-version="v4"] .mcp-widget-shell {
-	--brand-accent: var(--accent);
-	--brand-opacity: 1;
-	display: flex;
-	flex-direction: column;
-	background: var(--widget-shell-bg);
-}
-
-[data-widget-version="v4"] .mcp-widget-glow {
-	display: none;
-}
-
-[data-theme="light"] [data-widget-version="v4"] .mcp-widget-shell,
-:root:not([data-theme="dark"]) [data-widget-version="v4"] .mcp-widget-shell {
-	--widget-shell-bg: #faf9f7;
-	--card-bg: #ffffff;
-	--card-border: rgba(0, 0, 0, 0.06);
-	--card-border-hover: rgba(0, 0, 0, 0.1);
-	--card-active-border: rgba(63, 126, 232, 0.32);
-	--card-active-bg: #fafcff;
-	--panel-bg: #ffffff;
-	--panel-border: rgba(0, 0, 0, 0.06);
-	--panel-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 16px rgba(0, 0, 0, 0.03);
-	--bg-control: #fafafa;
-	--bg-control-hover: #f5f5f5;
-	--border-control: rgba(0, 0, 0, 0.08);
-	--text-secondary: #6b7280;
-	--text-muted: #9ca3af;
-}
-
-[data-theme="dark"] [data-widget-version="v4"] .mcp-widget-shell {
-	--widget-shell-bg: #111518;
-	--card-bg: #181d22;
-	--card-border: rgba(255, 255, 255, 0.06);
-	--card-border-hover: rgba(255, 255, 255, 0.1);
-	--card-active-border: rgba(106, 166, 248, 0.36);
-	--card-active-bg: #161c24;
-	--panel-bg: #181d22;
-	--panel-border: rgba(255, 255, 255, 0.06);
-	--panel-shadow: 0 1px 3px rgba(0, 0, 0, 0.16), 0 6px 16px rgba(0, 0, 0, 0.14);
-	--bg-control: #14191f;
-	--bg-control-hover: #1b222a;
-	--border-control: rgba(255, 255, 255, 0.08);
-	--text-secondary: #a0a8b4;
-	--text-muted: #6b7580;
-}
-
-[data-widget-version="v4"] .card-glow,
-[data-widget-version="v4"] .panel-glow {
-	display: block;
-	position: absolute;
-	inset: 0;
-	z-index: 0;
-	pointer-events: none;
-	background: radial-gradient(
-		ellipse 80% 50% at 50% 100%,
-		rgba(20, 16, 255, 0.07) 0%,
-		rgba(0, 144, 255, 0.04) 30%,
-		transparent 70%
-	);
-}
-
-/* v4 — Compact inline wordmark: logo + supermemory, no MCP subtitle. */
-[data-widget-version="v4"] .mcp-widget-brand {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	margin: var(--space-3) var(--page-header-px) 0;
-	padding-bottom: var(--space-3);
-	border-bottom: 1px solid var(--border-muted);
-	opacity: 1;
-}
-
-[data-widget-version="v4"] .mcp-widget-brand-mark {
-	width: 18px;
-	height: 18px;
-}
-
-[data-widget-version="v4"] .mcp-widget-brand-mark svg {
-	width: 15px;
-	height: 12px;
-}
-
-[data-widget-version="v4"] .mcp-widget-brand-copy {
-	flex-direction: row;
-	align-items: center;
-}
-
-[data-widget-version="v4"] .mcp-widget-brand-name {
-	font-family: var(--font-brand);
-	font-size: 13px;
-	font-weight: 600;
-	letter-spacing: -0.02em;
-	line-height: 1;
-}
-
-[data-widget-version="v4"] .mcp-widget-brand-mode {
-	display: none;
-}
-
-/* v4 — Vertically center loading in the shell below the header. */
-[data-widget-version="v4"] .mcp-widget-content:has(.mcp-widget-loading) {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	min-height: 0;
-}
-
-[data-widget-version="v4"] .mcp-widget-loading {
-	flex: 1;
-	min-height: 180px;
-	padding: 0;
-}
-
-/* v4 — Workspace picker as compact list rows. */
-[data-widget-version="v4"] .workspace-picker-grid {
-	display: flex;
-	flex-direction: column;
-	gap: 0;
-	overflow: hidden;
-	border: 1px solid var(--card-border);
-	border-radius: var(--radius-lg);
-	background: var(--card-bg);
-}
-
-[data-widget-version="v4"] .workspace-card {
-	min-height: 0;
-	padding: var(--space-2) var(--space-3);
-	border: 0;
-	border-radius: 0;
-	background: transparent;
-	box-shadow: none;
-}
-
-[data-widget-version="v4"] .workspace-card:not(:last-child) {
-	border-bottom: 1px solid var(--card-border);
-}
-
-[data-widget-version="v4"] .workspace-card:hover {
-	background: var(--card-bg-hover);
-}
-
-[data-widget-version="v4"] .workspace-card .card-glow {
-	display: none;
-}
-
-[data-widget-version="v4"] .workspace-card-inner {
-	flex-direction: row;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-3);
-	height: auto;
-	min-height: 0;
-}
-
-[data-widget-version="v4"] .workspace-card-main {
-	flex: 1;
-	flex-direction: row;
-	flex-wrap: nowrap;
-	align-items: center;
-	gap: var(--space-3);
-	min-width: 0;
-	padding-right: 0;
-	overflow: hidden;
-}
-
-[data-widget-version="v4"] .workspace-card-heading {
-	flex: 1;
-	min-width: 0;
-}
-
-[data-widget-version="v4"] .workspace-card-title {
-	min-width: 0;
-}
-
-[data-widget-version="v4"] .workspace-card-meta {
-	flex-shrink: 0;
-	white-space: nowrap;
-}
-
-[data-widget-version="v4"] .workspace-card-trailing {
-	position: static;
-	flex-shrink: 0;
-}
-.mcp-widget-shell-graph .mcp-widget-glow {
-	display: none;
-}
-
-.mcp-widget-brand {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--space-2);
-	position: relative;
-	z-index: 1;
-	margin: var(--space-4) var(--page-header-px) 0;
-	padding: 0;
-	border: 0;
-	background: transparent;
-	box-shadow: none;
-	opacity: var(--brand-opacity);
-}
-
-.mcp-widget-brand-mark {
-	display: grid;
-	width: 20px;
-	height: 20px;
-	place-items: center;
-	color: var(--brand-accent);
-}
-
-.mcp-widget-brand-mark svg {
-	width: 16px;
-	height: 13px;
-}
-
-.mcp-widget-brand-copy {
-	display: flex;
-	min-width: 0;
-	flex-direction: column;
-	gap: 1px;
-}
-
-.mcp-widget-brand-name {
-	color: var(--text-primary);
-	font-size: 12px;
-	font-weight: 650;
-	line-height: 1;
-}
-
-.mcp-widget-brand-mode {
-	color: var(--text-muted);
-	font-size: 10px;
-	font-weight: 500;
-	line-height: 1.15;
-}
-
-.shadow-inside-out {
-	box-shadow:
-		inset 0 2px 4px rgba(0, 0, 0, 0.3),
-		inset 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
 .mcp-widget-content {
 	position: relative;
 	z-index: 1;
 }
 
 .mcp-widget-shell-graph .mcp-widget-content {
+	flex: 1;
 	min-height: inherit;
 }
 
-/* Spinner — kept as global because primitives can't easily express a CSS animation */
-.spinner {
-	width: 24px;
-	height: 24px;
-	border: 2px solid rgba(255, 255, 255, 0.12);
-	border-top-color: var(--brand-accent);
-	border-radius: 50%;
-	animation: spin 0.8s linear infinite;
-	box-shadow: 0 0 20px rgba(75, 160, 250, 0.42);
+/* ── Brand header — compact inline wordmark with a hairline divider ───────── */
+.mcp-widget-brand {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin: var(--space-3) var(--page-header-px) 0;
+	padding-bottom: var(--space-3);
+	border-bottom: 1px solid var(--border-muted);
 }
 
-@keyframes spin {
-	to {
-		transform: rotate(360deg);
-	}
+.mcp-widget-brand-mark {
+	display: grid;
+	width: 18px;
+	height: 18px;
+	place-items: center;
+	color: var(--accent);
+}
+
+.mcp-widget-brand-mark svg {
+	width: 15px;
+	height: 12px;
+}
+
+.mcp-widget-brand-copy {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-2);
+	min-width: 0;
+}
+
+.mcp-widget-brand-name {
+	color: var(--text-primary);
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	line-height: 1;
+}
+
+.mcp-widget-brand-mode {
+	color: var(--text-muted);
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	line-height: 1;
+}
+
+/* ── Workspace picker — a framed, scrollable list of rows ─────────────────── */
+.workspace-picker-grid {
+	display: flex;
+	flex-direction: column;
+	max-height: 320px;
+	overflow-y: auto;
+	overflow-x: hidden;
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius-lg);
+	background: var(--card-bg);
+	/* Hide scrollbar chrome — the framed list keeps a stable height. */
+	scrollbar-width: none;
+}
+
+.workspace-picker-grid::-webkit-scrollbar {
+	display: none;
+}
+
+.workspace-card {
+	position: relative;
+	display: block;
+	width: 100%;
+	padding: var(--space-3) var(--space-3);
+	text-align: left;
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+
+.workspace-card:not(:last-child) {
+	border-bottom: 1px solid var(--border-muted);
+}
+
+.workspace-card:hover {
+	background: var(--card-bg-hover);
+}
+
+.workspace-card:focus-visible {
+	outline: none;
+	background: var(--card-bg-hover);
+	box-shadow: inset 0 0 0 2px var(--accent-ring);
+}
+
+/* Active workspace is marked by an accent-tinted row + accent-colored name
+ * (see WorkspaceCard) — no rail, no check, so the trailing badge stays aligned. */
+.workspace-card[data-active="true"] {
+	background: var(--card-active-bg);
+}
+
+.workspace-card-inner {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-width: 0;
+}
+
+.workspace-card-main {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1;
+	min-width: 0;
+}
+
+.workspace-card-title {
+	min-width: 0;
+}
+
+.workspace-card-trailing {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	flex-shrink: 0;
+}
+
+/* ── Loading — draw-in wordmark, no glow ──────────────────────────────────── */
+.mcp-widget-content:has(.mcp-widget-loading) {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.mcp-widget-loading {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 180px;
 }
 
 .super-loader {
@@ -636,7 +280,7 @@
 	min-width: calc(var(--super-loader-size, 42px) + 10px);
 	align-items: center;
 	gap: var(--space-2);
-	color: var(--brand-accent);
+	color: var(--accent);
 }
 
 .super-loader-mark {
@@ -689,22 +333,22 @@
 	}
 }
 
-/* The graph canvas needs a definite height in both modes.
+/* ── Graph canvas ─────────────────────────────────────────────────────────── */
+/* The graph needs a definite height in both modes.
  *
  * Inline: derive height from the (stable) width via aspect-ratio — width is
- * fixed by the chat column, so this breaks the autoResize feedback loop.
+ * fixed by the chat column, so this doesn't feed the autoResize loop.
  *
  * Fullscreen: the host expands the iframe, so 100dvh = the fullscreen height.
- * We stay IN FLOW (no position:fixed) — taking the element out of flow
- * collapses the document, autoResize shrinks the iframe, and a fixed inset:0
- * box in a collapsed iframe ends up with zero height (and never recovers on
- * minimize). Keeping it in flow with an explicit height avoids that entirely. */
+ * We stay IN FLOW (no position:fixed) — taking the element out of flow collapses
+ * the document, autoResize shrinks the iframe, and a fixed inset:0 box in a
+ * collapsed iframe ends up with zero height. Keeping it in flow with an explicit
+ * height avoids that. */
 .graph-view {
 	width: 100%;
 	aspect-ratio: 16 / 9;
-	/* Never collapse to 0 during a resize/transition — a 0-size frame makes the
-	 * package drop its "already fitted" flag and re-fit (a camera animation that
-	 * reads as a re-layout). The floor keeps the size continuous. */
+	/* Never collapse to 0 during a resize — a 0-size frame makes the package
+	 * re-fit (a camera animation that reads as a re-layout). */
 	min-height: 420px;
 	position: relative;
 	background: transparent;

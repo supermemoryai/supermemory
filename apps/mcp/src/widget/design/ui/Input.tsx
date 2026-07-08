@@ -2,20 +2,21 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { forwardRef, type InputHTMLAttributes } from "react"
 import { cn } from "../lib/cn"
 
-// Mirrors console-v2's Input with a solid widget surface so the Nova grid stays
-// behind the form instead of bleeding through controls.
+// A recessed field: solid control surface, hairline border, and the console's
+// signature inset shadow. Focus is a clean accent ring — no glow.
 const inputVariants = cva(
 	[
 		"flex w-full",
 		"bg-[var(--bg-control)] text-[var(--text-primary)]",
 		"border border-[var(--border-control)]",
 		"rounded-[var(--radius-lg)]",
+		"shadow-[var(--shadow-inset)]",
 		"placeholder:text-[var(--text-muted)]",
-		"transition-all",
-		"hover:bg-[var(--bg-control-hover)]",
-		"focus-visible:outline-none focus-visible:border-[var(--border-accent)] focus-visible:shadow-[0_0_0_1px_var(--border-accent),0_0_24px_rgba(75,160,250,0.12)]",
+		"transition-colors",
+		"hover:border-[var(--card-border-hover)]",
+		"focus-visible:outline-none focus-visible:border-[var(--border-accent)] focus-visible:shadow-[var(--shadow-inset),0_0_0_2px_var(--accent-ring)]",
 		"disabled:cursor-not-allowed disabled:opacity-50",
-		"aria-invalid:border-[var(--error)] aria-invalid:ring-[var(--error)]",
+		"aria-invalid:border-[var(--error)]",
 		"file:border-0 file:bg-transparent file:text-[length:var(--text-sm)] file:font-medium",
 	].join(" "),
 	{

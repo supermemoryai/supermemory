@@ -3,35 +3,42 @@ import { type ButtonHTMLAttributes, forwardRef, type ReactNode } from "react"
 import { Loader2 } from "../../lib/icons"
 import { cn } from "../lib/cn"
 
-// Mirrors apps/web's pill-shaped inside-out controls while keeping the widget
-// variants small and dependency-free for MCP iframes.
+// Token-driven, theme-aware pill controls. Primary is a high-contrast slab that
+// inverts per theme (dark-on-light / light-on-dark); secondary is a neutral,
+// input-like surface so it never reads as a heavy block on light backgrounds.
 const buttonVariants = cva(
 	[
 		"inline-flex items-center justify-center gap-2",
-		"font-semibold",
+		"font-semibold whitespace-nowrap",
 		"rounded-full",
-		"transition-all cursor-pointer",
+		"transition-colors duration-150 cursor-pointer",
 		"disabled:pointer-events-none disabled:opacity-50",
-		"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35 focus-visible:ring-offset-0",
+		"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-primary)]",
 		"[&_svg:not([class*='size-'])]:size-4 shrink-0",
 	].join(" "),
 	{
 		variants: {
 			variant: {
+				// Nova's "insideOut" primary button: a near-black pill with the
+				// shadow-inside-out recessed inset. Same in both themes, exactly as
+				// the console renders it.
 				primary: [
-					"bg-[#0D121A] text-[#FAFAFA] shadow-inside-out",
-					"hover:bg-[#121820] active:bg-[#080B0F]",
+					"bg-[#0D121A] text-[#FAFAFA]",
+					"shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]",
+					"hover:bg-[#121820] active:bg-[#0A0E14]",
 				].join(" "),
 				secondary: [
-					"bg-[#0D121A] text-[#FAFAFA] shadow-inside-out",
-					"hover:bg-[#121820]",
+					"bg-[var(--bg-control)] text-[var(--text-primary)]",
+					"border border-[var(--border-control)]",
+					"hover:bg-[var(--bg-control-hover)] hover:border-[var(--card-border-hover)]",
 				].join(" "),
-				ghost: ["text-[#737373]", "hover:bg-white/5 hover:text-[#FAFAFA]"].join(
-					" ",
-				),
+				ghost: [
+					"text-[var(--text-secondary)]",
+					"hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)]",
+				].join(" "),
 				danger: [
-					"bg-[#EF4444]/15 text-[#EF4444]",
-					"hover:bg-[#EF4444]/25",
+					"bg-[var(--error-muted)] text-[var(--error)]",
+					"hover:bg-[var(--error-muted)] hover:brightness-95",
 				].join(" "),
 			},
 			size: {
