@@ -1,6 +1,14 @@
 const PROXY_LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
+const DEFAULT_BACKEND_URL = "https://api.supermemory.ai"
 const DEV_APP_ORIGIN = "https://app.dev.supermemory.ai"
 const PROD_APP_ORIGIN = "https://app.supermemory.ai"
+
+export function getBackendUrl(): string {
+	return (process.env.NEXT_PUBLIC_BACKEND_URL ?? DEFAULT_BACKEND_URL).replace(
+		/\/+$/,
+		"",
+	)
+}
 
 export function getAppOriginForCurrentEnvironment(hostname?: string): string {
 	const currentHostname =
