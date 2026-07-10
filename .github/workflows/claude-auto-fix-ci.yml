@@ -19,6 +19,7 @@ jobs:
       github.event.workflow_run.conclusion == 'failure' &&
       github.event.workflow_run.pull_requests[0]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
