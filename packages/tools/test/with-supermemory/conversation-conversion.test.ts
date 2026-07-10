@@ -3,7 +3,7 @@ import type {
 	LanguageModelV2CallOptions,
 	LanguageModelV2Message,
 } from "@ai-sdk/provider"
-import { afterEach, describe, expect, it } from "bun:test"
+import { afterEach, describe, expect, it } from "vitest"
 import { createLogger } from "../../src/shared"
 import { saveMemoryAfterResponse } from "../../src/vercel/middleware"
 
@@ -222,6 +222,60 @@ describe("convertToConversationMessages", () => {
 				],
 			},
 			{ role: "assistant", content: "done" },
+		])
+	})
+
+	it("preserves order when tool result is followed by assistant text in one message", async () => {
+		const params: LanguageModelV2CallOptions = {
+			prompt: [
+				{
+					role: "assistant",
+					content: [
+						{
+							type: "tool-call",
+							toolCallId: "call-6",
+							toolName: "search",
+							input: { query: "project" },
+						},
+						{
+							type: "tool-result",
+							toolCallId: "call-6",
+							toolName: "search",
+							output: {
+								type: "json",
+								value: { memory: "Project memory" },
+							},
+						},
+						{ type: "text", text: "Here is what I found." },
+					],
+				} as unknown as LanguageModelV2Message,
+			],
+		}
+
+		expect(await persistMessages(params, "")).toEqual([
+			{
+				role: "assistant",
+				content: "",
+				tool_calls: [
+					{
+						id: "call-6",
+						type: "function",
+						function: {
+							name: "search",
+							arguments: '{"query":"project"}',
+						},
+					},
+				],
+			},
+			{
+				role: "tool",
+				content: '{"memory":"Project memory"}',
+				tool_call_id: "call-6",
+			},
+			{
+				role: "assistant",
+				content: [{ type: "text", text: "Here is what I found." }],
+			},
 		])
 	})
 

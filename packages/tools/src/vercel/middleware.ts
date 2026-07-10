@@ -77,9 +77,24 @@ export const convertToConversationMessages = (
 			continue
 		}
 
-		const contentParts: ContentPart[] = []
-		const toolCalls: NonNullable<ConversationMessage["tool_calls"]> = []
-		const toolResults: ConversationMessage[] = []
+		let contentParts: ContentPart[] = []
+		let toolCalls: NonNullable<ConversationMessage["tool_calls"]> = []
+
+		// Flush any pending assistant/user content accumulated so far. Called
+		// before each tool-result so a tool result never jumps ahead of the
+		// text/tool-calls that preceded it (or behind text that follows it),
+		// preserving the original chronology for memory extraction.
+		const flushContent = () => {
+			if (contentParts.length > 0 || toolCalls.length > 0) {
+				messages.push({
+					role: msg.role as "user" | "assistant" | "tool",
+					content: contentParts.length > 0 ? contentParts : "",
+					...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+				})
+				contentParts = []
+				toolCalls = []
+			}
+		}
 
 		for (const content of msg.content) {
 			if (content.type === "text" && content.text) {
@@ -106,7 +121,8 @@ export const convertToConversationMessages = (
 					},
 				})
 			} else if (content.type === "tool-result") {
-				toolResults.push({
+				flushContent()
+				messages.push({
 					role: "tool",
 					content: serializeToolOutput(content.output),
 					tool_call_id: content.toolCallId,
@@ -114,14 +130,7 @@ export const convertToConversationMessages = (
 			}
 		}
 
-		if (contentParts.length > 0 || toolCalls.length > 0) {
-			messages.push({
-				role: msg.role as "user" | "assistant" | "tool",
-				content: contentParts.length > 0 ? contentParts : "",
-				...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
-			})
-		}
-		messages.push(...toolResults)
+		flushContent()
 	}
 
 	if (assistantResponseText) {
