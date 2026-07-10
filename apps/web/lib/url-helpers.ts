@@ -158,6 +158,22 @@ export const isTwitterUrl = (url: string): boolean => {
 }
 
 /**
+ * Checks if a URL is a YouTube URL by matching the hostname against
+ * youtube.com / youtu.be (and their subdomains, e.g. www / m).
+ * Lookalike hosts (`notyoutube.com`, `youtube.com.evil.example`) and URLs
+ * that only contain "youtube.com" in the path do not match.
+ */
+export const isYouTubeUrl = (url: string | undefined | null): boolean => {
+	if (!url) return false
+	const parsed = parseWebUrl(url)
+	if (!parsed) return false
+	return (
+		hostnameMatches(parsed.hostname, "youtube.com") ||
+		hostnameMatches(parsed.hostname, "youtu.be")
+	)
+}
+
+/**
  * Checks if a URL is a LinkedIn profile URL (not a company page).
  */
 export const isLinkedInProfileUrl = (url: string): boolean => {
