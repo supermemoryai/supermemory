@@ -5,6 +5,7 @@ import {
 	extractDocumentIdsFromMemoryOutput,
 	extractMemoryToolOutputs,
 	getDocumentSourceUrl,
+	MAX_INLINE_GRAPH_DOCUMENT_IDS,
 	mapDocumentsByKnownIds,
 } from "./chat-memory-tools"
 
@@ -79,6 +80,23 @@ describe("chat memory tool citation mapping", () => {
 		expect(index.has("ignored")).toBe(false)
 	})
 
+	it("ignores unsafe citation ids when building citation links", () => {
+		const index = buildCitationIndex([
+			{
+				output: {
+					results: [
+						{
+							citationId: "bad/id",
+							document: { id: "docA" },
+						},
+					],
+				},
+			},
+		])
+
+		expect(index.has("bad/id")).toBe(false)
+	})
+
 	it("extracts graph highlight document ids from memory outputs", () => {
 		const [output] = extractMemoryToolOutputs(assistantMessage)
 
@@ -88,6 +106,20 @@ describe("chat memory tool citation mapping", () => {
 		expect(
 			extractHighlightDocumentIdsFromMessages([assistantMessage as never]),
 		).toEqual(["topDoc", "docA", "customA"])
+	})
+
+	it("dedupes and caps graph highlight document ids", () => {
+		const documentIds = Array.from(
+			{ length: MAX_INLINE_GRAPH_DOCUMENT_IDS + 5 },
+			(_, index) => `doc-${index}`,
+		)
+
+		expect(
+			extractDocumentIdsFromMemoryOutput({
+				documentIds: ["doc-0", ...documentIds],
+				results: [{ id: "doc-1", documentIds: ["doc-2"] }],
+			}),
+		).toEqual(documentIds.slice(0, MAX_INLINE_GRAPH_DOCUMENT_IDS))
 	})
 
 	it("keeps graph highlights for legacy memory tool states and ids", () => {
