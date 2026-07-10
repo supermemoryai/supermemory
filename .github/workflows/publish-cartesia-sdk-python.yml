@@ -7,6 +7,10 @@ on:
         paths:
             - "packages/cartesia-sdk-python/pyproject.toml"
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: false
+
 jobs:
     publish:
         runs-on: ubuntu-latest
