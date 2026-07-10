@@ -2,6 +2,8 @@ import { getSessionCookie } from "better-auth/cookies"
 import { NextResponse } from "next/server"
 import { getPublicRequestUrl } from "@/lib/url-helpers"
 
+const LOCAL_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
+
 function getAuthSessionCookie(request: Request): string | null {
 	return (
 		getSessionCookie(request) ??
@@ -15,6 +17,11 @@ export default async function proxy(request: Request) {
 
 	console.debug("[PROXY] Path:", url.pathname)
 	console.debug("[PROXY] Method:", request.method)
+
+	if (LOCAL_DEV_HOSTS.has(url.hostname)) {
+		console.debug("[PROXY] Local dev host, allowing access")
+		return NextResponse.next()
+	}
 
 	const sessionCookie = getAuthSessionCookie(request)
 	console.debug("[PROXY] Session cookie exists:", !!sessionCookie)
