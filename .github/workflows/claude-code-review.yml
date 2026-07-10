@@ -6,8 +6,12 @@ on:
 
 jobs:
   claude-review:
+    # Fork PRs run with a read-only token and no secrets/OIDC id-token, so the
+    # Claude action can never authenticate there and the job always fails. Skip
+    # it for forks so those PRs report a clean skipped check instead of a red X.
     if: |
       github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
       github.actor != 'graphite-app[bot]' &&
       github.actor != 'dependabot[bot]'
 
