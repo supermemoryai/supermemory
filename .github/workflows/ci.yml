@@ -3,6 +3,9 @@ name: CI - Type Check, Format & Lint
 on:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   quality-checks:
     name: Quality Checks
