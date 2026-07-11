@@ -13,29 +13,137 @@ function isValidUrl(urlString: string): boolean {
 	}
 }
 
+function isPrivateIPv4Octets(a: number, b: number): boolean {
+	// 0.0.0.0/8, 10/8, 100.64/10 (CGNAT), 127/8 (loopback),
+	// 169.254/16 (link-local / cloud metadata), 172.16/12, 192.168/16
+	if (a === 0) return true
+	if (a === 10) return true
+	if (a === 127) return true
+	if (a === 169 && b === 254) return true
+	if (a === 172 && b >= 16 && b <= 31) return true
+	if (a === 192 && b === 168) return true
+	if (a === 100 && b >= 64 && b <= 127) return true
+	return false
+}
+
+// Parse an IPv6 hostname into its eight 16-bit groups. The WHATWG URL parser
+// already canonicalizes literals, but it leaves the brackets on (e.g. "[::1]")
+// and performs no SSRF filtering. Handles "::" compression and embedded IPv4
+// suffixes (e.g. ::ffff:1.2.3.4). Returns null when not an IPv6 literal.
+function parseIPv6Groups(input: string): number[] | null {
+	let host = input
+	if (host.startsWith("[") && host.endsWith("]")) host = host.slice(1, -1)
+	const zone = host.indexOf("%") // strip scope/zone id, e.g. fe80::1%eth0
+	if (zone !== -1) host = host.slice(0, zone)
+	if (!host.includes(":")) return null
+
+	// Convert an embedded IPv4 tail (e.g. ::ffff:1.2.3.4) into two hex groups.
+	const dot = host.indexOf(".")
+	if (dot !== -1) {
+		const colon = host.lastIndexOf(":", dot)
+		if (colon === -1) return null
+		const octets = host.slice(colon + 1).split(".")
+		if (octets.length !== 4) return null
+		const bytes: number[] = []
+		for (const octet of octets) {
+			if (!/^\d{1,3}$/.test(octet)) return null
+			const n = Number(octet)
+			if (n > 255) return null
+			bytes.push(n)
+		}
+		const hi = (((bytes[0] ?? 0) << 8) | (bytes[1] ?? 0)).toString(16)
+		const lo = (((bytes[2] ?? 0) << 8) | (bytes[3] ?? 0)).toString(16)
+		host = `${host.slice(0, colon + 1)}${hi}:${lo}`
+	}
+
+	const parseSide = (side: string): number[] | null => {
+		if (side === "") return []
+		const groups: number[] = []
+		for (const group of side.split(":")) {
+			if (!/^[0-9a-fA-F]{1,4}$/.test(group)) return null
+			groups.push(Number.parseInt(group, 16))
+		}
+		return groups
+	}
+
+	const halves = host.split("::")
+	if (halves.length > 2) return null
+
+	if (halves.length === 2) {
+		const head = parseSide(halves[0] ?? "")
+		const tail = parseSide(halves[1] ?? "")
+		if (!head || !tail) return null
+		const missing = 8 - head.length - tail.length
+		if (missing < 1) return null
+		return [...head, ...new Array<number>(missing).fill(0), ...tail]
+	}
+
+	const all = parseSide(host)
+	if (all?.length !== 8) return null
+	return all
+}
+
+function isPrivateIPv6(input: string): boolean {
+	const g = parseIPv6Groups(input)
+	if (!g) return false
+
+	// Unspecified (::) and loopback (::1)
+	if (g.every((x) => x === 0)) return true
+	if (g.slice(0, 7).every((x) => x === 0) && g[7] === 1) return true
+
+	// Link-local fe80::/10
+	if (((g[0] ?? 0) & 0xffc0) === 0xfe80) return true
+
+	// Unique local address fc00::/7 (fc00–fdff)
+	if ((((g[0] ?? 0) >> 8) & 0xfe) === 0xfc) return true
+
+	// IPv4-mapped (::ffff:a.b.c.d) and deprecated IPv4-compatible (::a.b.c.d):
+	// re-check the embedded IPv4 against the private ranges so loopback/metadata
+	// can't be reached via an IPv6 wrapper.
+	const firstFiveZero = g.slice(0, 5).every((x) => x === 0)
+	const ipv4Mapped = firstFiveZero && g[5] === 0xffff
+	const ipv4Compatible =
+		firstFiveZero && g[5] === 0 && (g[6] !== 0 || g[7] !== 0)
+	if (ipv4Mapped || ipv4Compatible) {
+		const a = ((g[6] ?? 0) >> 8) & 0xff
+		const b = (g[6] ?? 0) & 0xff
+		return isPrivateIPv4Octets(a, b)
+	}
+
+	return false
+}
+
+// NOTE: This blocks private/loopback/metadata IP *literals* only. It cannot stop
+// DNS rebinding (a public hostname that resolves to a private address), which
+// would require resolving + pinning the address before connecting — not available
+// in the edge fetch runtime here.
 function isPrivateHost(hostname: string): boolean {
 	const lowerHost = hostname.toLowerCase()
 
-	if (
-		lowerHost === "localhost" ||
-		lowerHost === "127.0.0.1" ||
-		lowerHost === "0.0.0.0" ||
-		lowerHost === "::1" ||
-		lowerHost === "::" ||
-		lowerHost.startsWith("127.") ||
-		lowerHost.startsWith("0.0.0.0")
-	) {
+	// Hostname-based loopback (RFC 6761 reserves localhost and *.localhost)
+	if (lowerHost === "localhost" || lowerHost.endsWith(".localhost")) {
 		return true
 	}
 
-	const privateIpPatterns = [
-		/^10\./,
-		/^172\.(1[6-9]|2[0-9]|3[01])\./,
-		/^192\.168\./,
-		/^169\.254\./, // Link-local / Metadata service
-	]
+	// IPv6 literals arrive bracketed (e.g. "[::1]"), so the previous
+	// string-equality checks never matched them.
+	if (lowerHost.includes(":")) {
+		return isPrivateIPv6(lowerHost)
+	}
 
-	return privateIpPatterns.some((pattern) => pattern.test(hostname))
+	// IPv4. The WHATWG URL parser canonicalizes alternate encodings
+	// (decimal/hex/octal, e.g. http://2130706433 -> 127.0.0.1) to dotted-quad,
+	// so matching the dotted form here also blocks those encodings.
+	const octets = lowerHost.split(".")
+	if (
+		octets.length === 4 &&
+		octets.every((o) => /^\d{1,3}$/.test(o) && Number(o) <= 255)
+	) {
+		const [a, b] = octets.map(Number) as [number, number, number, number]
+		return isPrivateIPv4Octets(a, b)
+	}
+
+	return false
 }
 
 // File extensions that are not HTML and can't be scraped for OG data
