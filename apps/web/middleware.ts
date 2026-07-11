@@ -18,7 +18,14 @@ export default async function proxy(request: Request) {
 	console.debug("[PROXY] Path:", url.pathname)
 	console.debug("[PROXY] Method:", request.method)
 
-	if (LOCAL_DEV_HOSTS.has(url.hostname)) {
+	// Development builds only: getPublicRequestUrl trusts x-forwarded-host, so
+	// a hostname check alone could be spoofed in production to skip the /api
+	// 401 gate below. NODE_ENV is inlined at build time, making this dead code
+	// in production bundles.
+	if (
+		process.env.NODE_ENV === "development" &&
+		LOCAL_DEV_HOSTS.has(url.hostname)
+	) {
 		console.debug("[PROXY] Local dev host, allowing access")
 		return NextResponse.next()
 	}
