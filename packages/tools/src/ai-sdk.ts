@@ -40,11 +40,11 @@ export const searchMemoriesTool = (
 						.default(DEFAULT_VALUES.includeFullDocs)
 						.describe(PARAMETER_DESCRIPTIONS.includeFullDocs),
 			limit: strict
-				? z
+				? z.coerce
 						.number()
 						.default(DEFAULT_VALUES.limit)
 						.describe(PARAMETER_DESCRIPTIONS.limit)
-				: z
+				: z.coerce
 						.number()
 						.optional()
 						.default(DEFAULT_VALUES.limit)
@@ -183,16 +183,16 @@ export const documentListTool = (
 				.optional()
 				.describe(PARAMETER_DESCRIPTIONS.containerTag),
 			limit: strict
-				? z
+				? z.coerce
 						.number()
 						.default(DEFAULT_VALUES.limit)
 						.describe(PARAMETER_DESCRIPTIONS.limit)
-				: z
+				: z.coerce
 						.number()
 						.optional()
 						.default(DEFAULT_VALUES.limit)
 						.describe(PARAMETER_DESCRIPTIONS.limit),
-			page: z.number().optional().describe(PARAMETER_DESCRIPTIONS.page),
+			page: z.coerce.number().optional().describe(PARAMETER_DESCRIPTIONS.page),
 		}),
 		execute: async ({ containerTag, limit, page }) => {
 			try {
