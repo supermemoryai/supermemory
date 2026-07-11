@@ -7,7 +7,7 @@ import { cn } from "@lib/utils"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { isFreeTierPlugin } from "@/lib/plugin-catalog"
 import { useCustomer } from "autumn-js/react"
-import { ArrowRight, Check, Loader, XCircle } from "lucide-react"
+import { ArrowRight, Check, Clock3, Loader, XCircle } from "lucide-react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
@@ -23,6 +23,8 @@ import { PENDING_CONNECT_URL_KEY } from "@/lib/constants"
 
 const API_URL =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+const UPGRADE_PLAN_SYNC_TIMEOUT_MS = 10 * 60 * 1000
+const UPGRADE_PLAN_SYNC_RETRY_MS = 3000
 
 function isValidLocalhostCallback(callback: string): boolean {
 	try {
@@ -249,7 +251,13 @@ function PluginAccessList({
 		</div>
 	)
 }
-type Status = "loading" | "creating" | "success" | "error" | "upgrade"
+type Status =
+	| "loading"
+	| "creating"
+	| "success"
+	| "error"
+	| "upgrade"
+	| "upgrade_timeout"
 
 const pageWrapperClass =
 	"flex items-center justify-center min-h-screen bg-background p-4"
@@ -268,6 +276,8 @@ function AuthConnectContent() {
 	const [error, setError] = useState<string | null>(null)
 	const [isUpgrading, setIsUpgrading] = useState(false)
 	const hasAutoConnectedAfterUpgrade = useRef(false)
+	const upgradeSyncStartedAt = useRef<number | null>(null)
+	const upgradeSyncRetryTimer = useRef<number | null>(null)
 
 	const callback = params.get("callback")
 	const client = params.get("client")
@@ -374,16 +384,35 @@ function AuthConnectContent() {
 
 		try {
 			setStatus("creating")
+			if (
+				shouldAutoConnectAfterUpgrade &&
+				eligibleClients.length < requestedClients.length
+			) {
+				const startedAt = upgradeSyncStartedAt.current ?? Date.now()
+				upgradeSyncStartedAt.current = startedAt
+
+				if (Date.now() - startedAt < UPGRADE_PLAN_SYNC_TIMEOUT_MS) {
+					hasAutoConnectedAfterUpgrade.current = false
+					setStatus("loading")
+					if (upgradeSyncRetryTimer.current !== null) {
+						window.clearTimeout(upgradeSyncRetryTimer.current)
+					}
+					upgradeSyncRetryTimer.current = window.setTimeout(() => {
+						upgradeSyncRetryTimer.current = null
+						void autumn.refetch?.()
+					}, UPGRADE_PLAN_SYNC_RETRY_MS)
+					return
+				}
+
+				setStatus("upgrade_timeout")
+				setError(
+					"Your upgrade completed, but Pro access is still syncing. Re-authenticate from the CLI to finish connecting.",
+				)
+				return
+			}
 			if (eligibleClients.length === 0) {
 				setStatus("upgrade")
 				setError(`Upgrade to Pro to connect ${blockedDisplayName}.`)
-				return
-			}
-			if (shouldAutoConnectAfterUpgrade && blockedClients.length > 0) {
-				setStatus("upgrade")
-				setError(
-					"Your plan update is still processing. Please try again in a moment.",
-				)
 				return
 			}
 
@@ -449,6 +478,7 @@ function AuthConnectContent() {
 			setError(err instanceof Error ? err.message : "Failed to get API key")
 		}
 	}, [
+		autumn,
 		blockedClients,
 		blockedDisplayName,
 		callback,
@@ -478,6 +508,21 @@ function AuthConnectContent() {
 		}
 	}
 
+	const retryUpgradeSync = useCallback(() => {
+		upgradeSyncStartedAt.current = Date.now()
+		hasAutoConnectedAfterUpgrade.current = false
+		setError(null)
+		setStatus("loading")
+		void autumn.refetch?.()
+	}, [autumn])
+
+	useEffect(() => {
+		return () => {
+			if (upgradeSyncRetryTimer.current !== null) {
+				window.clearTimeout(upgradeSyncRetryTimer.current)
+			}
+		}
+	}, [])
 	// Show a spinner while session/org data is loading or while we're about
 	// to redirect to onboarding (prevents a brief flash of the connect card).
 	const isAuthLoading =
@@ -785,6 +830,66 @@ function AuthConnectContent() {
 		)
 	}
 
+	if (status === "upgrade_timeout") {
+		return (
+			<div className={pageWrapperClass}>
+				<div className={cardClass}>
+					<div className="flex flex-col items-center gap-5 text-center">
+						<Clock3 className="size-10 text-[#8BC6FF]" />
+						<div>
+							<h2
+								className={dmSans125ClassName(
+									"font-semibold text-[18px] text-[#FAFAFA]",
+								)}
+							>
+								Request timed out
+							</h2>
+							<p
+								className={dmSans125ClassName(
+									"text-[13px] text-[#737373] mt-1",
+								)}
+							>
+								{error ??
+									"Your upgrade completed, but Pro access is still syncing."}
+							</p>
+						</div>
+
+						<div className="w-full rounded-lg border border-[#1E293B] bg-[#0D121A] px-4 py-3 text-left">
+							<p className={dmSans125ClassName("text-[12px] text-[#8B8B8B]")}>
+								Re-authenticate from the CLI to finish connecting.
+							</p>
+							<code className="mt-1 block text-[12px] text-[#8BC6FF]">
+								npx supermemory plugin login
+							</code>
+						</div>
+
+						<div className="flex w-full flex-col gap-2">
+							<button
+								type="button"
+								onClick={retryUpgradeSync}
+								className={cn(
+									"w-full flex items-center justify-center rounded-[10px] h-11",
+									"bg-[#0D121A] border border-[#1E293B] text-[#FAFAFA]",
+									"text-[14px] font-medium cursor-pointer transition-colors hover:bg-[#1E293B]",
+									dmSans125ClassName(),
+								)}
+							>
+								Try syncing again
+							</button>
+							<a
+								href="https://app.supermemory.ai/settings#billing"
+								className={dmSans125ClassName(
+									"text-[12px] text-[#737373] hover:text-[#FAFAFA] transition-colors",
+								)}
+							>
+								View billing
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		)
+	}
 	if (status === "error") {
 		return (
 			<div className={pageWrapperClass}>
