@@ -18,7 +18,7 @@ import { motion } from "motion/react"
 import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { Logo } from "@ui/assets/Logo"
-import { resolveAuthRedirectUrl } from "@/lib/url-helpers"
+import { getBackendUrl, resolveAuthRedirectUrl } from "@/lib/url-helpers"
 import { Loader2 } from "lucide-react"
 
 function isMcpOAuthAuthorizeContext(sp: Pick<URLSearchParams, "get">): boolean {
@@ -276,7 +276,7 @@ export default function LoginPage() {
 		const token = formData.get("token") as string
 		const callbackURL = getCallbackURL()
 		router.push(
-			`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=${encodeURIComponent(callbackURL)}`,
+			`${getBackendUrl()}/api/auth/magic-link/verify?token=${token}&callbackURL=${encodeURIComponent(callbackURL)}`,
 		)
 	}
 
