@@ -501,14 +501,11 @@ export function useDocumentMutations({
 				}
 				formData.append("metadata", JSON.stringify({ sm_source: "consumer" }))
 
-				const response = await fetch(
-					`${getBackendUrl()}/v3/documents/file`,
-					{
-						method: "POST",
-						body: formData,
-						credentials: "include",
-					},
-				)
+				const response = await fetch(`${getBackendUrl()}/v3/documents/file`, {
+					method: "POST",
+					body: formData,
+					credentials: "include",
+				})
 
 				if (!response.ok) {
 					let message = "Failed to upload file"

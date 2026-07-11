@@ -1134,10 +1134,9 @@ export function ChatSidebar({
 	const loadThread = useCallback(
 		async (id: string) => {
 			try {
-				const response = await fetch(
-					`${chatApiBase}/chat/threads/${id}`,
-					{ credentials: "include" },
-				)
+				const response = await fetch(`${chatApiBase}/chat/threads/${id}`, {
+					credentials: "include",
+				})
 				if (response.ok) {
 					const data = await response.json()
 					const uiMessages = data.messages.map(
