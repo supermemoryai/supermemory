@@ -7,6 +7,7 @@ import {
 	TOOL_DESCRIPTIONS,
 	getContainerTags,
 } from "./tools-shared"
+import { forgetMemoryRequest } from "./shared/forget-memory"
 import type { SupermemoryToolsConfig } from "./types"
 
 // Export individual tool creators
@@ -191,23 +192,21 @@ export const documentListTool = (
 						.optional()
 						.default(DEFAULT_VALUES.limit)
 						.describe(PARAMETER_DESCRIPTIONS.limit),
-			offset: z.number().optional().describe(PARAMETER_DESCRIPTIONS.offset),
-			status: z.string().optional().describe(PARAMETER_DESCRIPTIONS.status),
+			page: z.number().optional().describe(PARAMETER_DESCRIPTIONS.page),
 		}),
-		execute: async ({ containerTag, limit, offset, status }) => {
+		execute: async ({ containerTag, limit, page }) => {
 			try {
 				const tag = containerTag || containerTags[0]
 
 				const response = await client.documents.list({
 					containerTags: [tag],
 					limit: limit || DEFAULT_VALUES.limit,
-					...(offset !== undefined && { offset }),
-					...(status && { status }),
+					...(page !== undefined && { page }),
 				})
 
 				return {
 					success: true,
-					documents: response.documents,
+					documents: response.memories,
 					pagination: response.pagination,
 				}
 			} catch (error) {
@@ -236,7 +235,7 @@ export const documentDeleteTool = (
 		}),
 		execute: async ({ documentId }) => {
 			try {
-				await client.documents.delete({ docId: documentId })
+				await client.documents.delete(documentId)
 
 				return {
 					success: true,
@@ -303,11 +302,6 @@ export const memoryForgetTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = new Supermemory({
-		apiKey,
-		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
-	})
-
 	const containerTags = getContainerTags(config)
 
 	return tool({
@@ -335,12 +329,16 @@ export const memoryForgetTool = (
 
 				const tag = containerTag || containerTags[0]
 
-				await client.memories.forget({
-					containerTag: tag,
-					...(memoryId && { id: memoryId }),
-					...(memoryContent && { content: memoryContent }),
-					...(reason && { reason }),
-				})
+				await forgetMemoryRequest(
+					apiKey,
+					{
+						containerTag: tag as string,
+						...(memoryId && { id: memoryId }),
+						...(memoryContent && { content: memoryContent }),
+						...(reason && { reason }),
+					},
+					config?.baseUrl,
+				)
 
 				return {
 					success: true,
