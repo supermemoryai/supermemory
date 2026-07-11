@@ -5,7 +5,7 @@ description: "Every environment variable the self-hosted server understands."
 icon: "settings"
 ---
 
-The self-hosted server aims for **zero configuration** — the only thing it needs is one model provider key, which the first-boot wizard collects interactively (or set it via env var for non-interactive deployments). Everything else below is opt-in, layered on top as you need it.
+The self-hosted server aims for **zero configuration** — the only required input is one LLM provider key, which the first-boot wizard collects interactively (or set via env var for non-interactive deployments). Embeddings default to local English; you can pick another provider in the optional wizard step or via env. Everything else below is opt-in.
 
 The installer writes API keys to `~/.supermemory/env`, which is loaded on every launch. You can also set variables in your shell or a process manager.
 
@@ -18,7 +18,7 @@ The installer writes API keys to `~/.supermemory/env`, which is loaded on every 
 
 ## LLM providers
 
-In production, Supermemory uses its own proprietary models tuned for long-horizon data understanding. Self-hosted, you bring your own: embeddings are computed locally, and a model of your choice powers the intelligent steps — summaries, contextual chunking, and memory extraction. Configure **at least one**:
+In production, Supermemory uses its own proprietary models tuned for long-horizon data understanding. Self-hosted, you bring your own LLM for the intelligent steps — summaries, contextual chunking, and memory extraction. Embeddings default to a local model (no API key) and can optionally use OpenAI, Gemini, or Ollama — see [Embeddings](/self-hosting/embeddings). Configure **at least one** LLM provider:
 
 | Variable | Provider |
 |---|---|
@@ -61,7 +61,20 @@ OPENAI_MODEL=gpt-oss:20b
 
 Nothing to configure. Uploaded files (PDFs, images) are stored on local disk inside `$SUPERMEMORY_DATA_DIR` and served by the server at `/files/:key`.
 
-## Embedding performance
+## Embeddings
+
+By default, vectors are computed locally with `Xenova/bge-base-en-v1.5` (768d) — no embedding API key. On interactive first boot you can pick a different provider after the LLM key step; for Docker/CI set env vars instead.
+
+Full provider table, multilingual guidance, remote examples (OpenAI / Gemini / Ollama), and the re-ingestion / dimension-lock warning: **[Embeddings (self-hosted)](/self-hosting/embeddings)**.
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `SUPERMEMORY_EMBEDDING_PROVIDER` | `local`, `openai`, `gemini`, or OpenAI-compatible remote | `local` |
+| `SUPERMEMORY_EMBEDDING_MODEL` | Model id for the chosen provider | `Xenova/bge-base-en-v1.5` |
+| `SUPERMEMORY_EMBEDDING_DIMENSIONS` | Vector size; must match model and stored data | `768` |
+| `SUPERMEMORY_EMBEDDING_BASE_URL` | Base URL for OpenAI-compatible embedding APIs | unset |
+
+### Embedding performance
 
 Local embeddings are prewarmed at startup with conservative defaults — one worker, minimal CPU footprint. Turn these up if you're ingesting heavily and prefer throughput over headroom:
 
@@ -128,8 +141,13 @@ Any other environment variables you may find referenced in the codebase are plat
 # Persistent data location
 SUPERMEMORY_DATA_DIR=/var/lib/supermemory
 
-# One LLM provider
+# One LLM provider (required for extraction)
 OPENAI_API_KEY=sk-...
+
+# Optional — omit to keep local Xenova/bge-base-en-v1.5 (768d)
+# SUPERMEMORY_EMBEDDING_PROVIDER=openai
+# SUPERMEMORY_EMBEDDING_MODEL=text-embedding-3-small
+# SUPERMEMORY_EMBEDDING_DIMENSIONS=1536
 ```
 
-That's enough for full ingestion, memory extraction, and hybrid search.
+That's enough for full ingestion, memory extraction, and hybrid search with the default local embeddings.

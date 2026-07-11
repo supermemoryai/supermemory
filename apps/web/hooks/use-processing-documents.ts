@@ -37,12 +37,20 @@ export function useProcessingDocuments() {
 		staleTime: 0,
 	})
 
-	const docs =
-		(
-			data as
-				| { documents?: Array<{ id?: string | null; status?: string | null }> }
-				| undefined
-		)?.documents ?? []
+	// Memoized on `data` (kept referentially stable between polls by React
+	// Query's structural sharing) so `processingMap` only changes identity
+	// when the poll payload actually changes — the effect below depends on it.
+	const docs = useMemo(
+		() =>
+			(
+				data as
+					| {
+							documents?: Array<{ id?: string | null; status?: string | null }>
+					  }
+					| undefined
+			)?.documents ?? [],
+		[data],
+	)
 
 	const processingMap = useMemo(() => {
 		const map = new Map<string, string>()
@@ -52,7 +60,6 @@ export function useProcessingDocuments() {
 			}
 		}
 		return map
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [docs])
 
 	// Detect docs that just finished (present in previous poll, absent now).
@@ -80,8 +87,10 @@ export function useProcessingDocuments() {
 			clearTimeout(t1)
 			clearTimeout(t2)
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [processingMap.keys, queryClient.refetchQueries])
+		// `processingMap` (not `processingMap.keys` — that's the shared
+		// Map.prototype method, identical for every map, so the effect would
+		// never re-run and finished docs would never trigger a refresh).
+	}, [processingMap, queryClient])
 
 	return processingMap
 }
