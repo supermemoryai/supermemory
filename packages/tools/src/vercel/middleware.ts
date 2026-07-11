@@ -61,6 +61,7 @@ const serializeToolOutput = (output: unknown): string => {
 export const convertToConversationMessages = (
 	params: LanguageModelCallOptions,
 	assistantResponseText: string,
+	includeToolCalls = false,
 ): ConversationMessage[] => {
 	const messages: ConversationMessage[] = []
 
@@ -111,7 +112,11 @@ export const convertToConversationMessages = (
 					type: "image_url",
 					image_url: { url: content.data },
 				})
-			} else if (content.type === "tool-call" && msg.role === "assistant") {
+			} else if (
+				includeToolCalls &&
+				content.type === "tool-call" &&
+				msg.role === "assistant"
+			) {
 				toolCalls.push({
 					id: content.toolCallId,
 					type: "function",
@@ -120,7 +125,7 @@ export const convertToConversationMessages = (
 						arguments: safeJsonStringify(content.input) || "{}",
 					},
 				})
-			} else if (content.type === "tool-result") {
+			} else if (includeToolCalls && content.type === "tool-result") {
 				flushContent()
 				messages.push({
 					role: "tool",
@@ -152,11 +157,13 @@ export const saveMemoryAfterResponse = async (
 	logger: Logger,
 	apiKey: string,
 	baseUrl: string,
+	includeToolCalls = false,
 ): Promise<void> => {
 	try {
 		const conversationMessages = convertToConversationMessages(
 			params,
 			assistantResponseText,
+			includeToolCalls,
 		)
 
 		const response = await addConversation({
@@ -207,6 +214,12 @@ interface SupermemoryMiddlewareOptions {
 	addMemory?: "always" | "never"
 	/** Custom Supermemory API base URL */
 	baseUrl?: string
+	/**
+	 * Persist assistant tool calls and tool results as part of the saved
+	 * conversation. Off by default: tool payloads are often large and
+	 * low-signal, and would pollute memory extraction.
+	 */
+	includeToolCalls?: boolean
 	/** Custom function to format memory data into the system prompt */
 	promptTemplate?: PromptTemplate
 	/** Max wait (ms) for the pre-LLM `/v4/profile` retrieval. Omit for no limit (e.g. tests). `withSupermemory` sets this internally. */
@@ -220,6 +233,7 @@ interface SupermemoryMiddlewareContext {
 	customId: string
 	mode: MemoryMode
 	addMemory: "always" | "never"
+	includeToolCalls: boolean
 	normalizedBaseUrl: string
 	apiKey: string
 	promptTemplate?: PromptTemplate
@@ -242,6 +256,7 @@ export const createSupermemoryContext = (
 		mode = "profile",
 		addMemory = "always",
 		baseUrl,
+		includeToolCalls = false,
 		promptTemplate,
 		memoryRetrievalTimeoutMs,
 	} = options
@@ -263,6 +278,7 @@ export const createSupermemoryContext = (
 		customId,
 		mode,
 		addMemory,
+		includeToolCalls,
 		normalizedBaseUrl,
 		apiKey,
 		promptTemplate,

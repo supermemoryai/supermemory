@@ -12,6 +12,7 @@ const originalFetch = globalThis.fetch
 const persistMessages = async (
 	params: LanguageModelV2CallOptions,
 	assistantResponseText: string,
+	includeToolCalls = true,
 ) => {
 	let messages: unknown[] | undefined
 
@@ -46,6 +47,7 @@ const persistMessages = async (
 		createLogger(false),
 		"test-api-key",
 		"https://api.example.com",
+		includeToolCalls,
 	)
 
 	return messages
@@ -305,6 +307,52 @@ describe("convertToConversationMessages", () => {
 				content: "No memories found",
 				tool_call_id: "call-3",
 			},
+		])
+	})
+
+	it("drops tool calls and tool results by default", async () => {
+		const params: LanguageModelV2CallOptions = {
+			prompt: [
+				{
+					role: "user",
+					content: [{ type: "text", text: "Search my memories" }],
+				},
+				{
+					role: "assistant",
+					content: [
+						{ type: "text", text: "I will search." },
+						{
+							type: "tool-call",
+							toolCallId: "call-7",
+							toolName: "search",
+							input: { query: "project" },
+						},
+					],
+				} as unknown as LanguageModelV2Message,
+				{
+					role: "tool",
+					content: [
+						{
+							type: "tool-result",
+							toolCallId: "call-7",
+							toolName: "search",
+							output: { type: "json", value: { memory: "Project memory" } },
+						},
+					],
+				} as unknown as LanguageModelV2Message,
+			],
+		}
+
+		expect(await persistMessages(params, "Found it", false)).toEqual([
+			{
+				role: "user",
+				content: [{ type: "text", text: "Search my memories" }],
+			},
+			{
+				role: "assistant",
+				content: [{ type: "text", text: "I will search." }],
+			},
+			{ role: "assistant", content: "Found it" },
 		])
 	})
 })
