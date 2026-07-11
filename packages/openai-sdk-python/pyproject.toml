@@ -26,7 +26,7 @@ classifiers = [
 requires-python = ">=3.8.1"
 dependencies = [
     "openai>=1.102.0",
-    "supermemory>=3.1.0",
+    "supermemory>=3.1.0,<3.5.0",
     "typing-extensions>=4.0.0",
     "requests>=2.25.0",
 ]
