@@ -2,6 +2,8 @@ import Supermemory from "supermemory"
 import {
 	addConversation,
 	type ConversationMessage,
+	type ContentPart,
+	type ToolCall,
 } from "../conversations-client"
 import {
 	createLogger,
@@ -34,32 +36,59 @@ const convertToConversationMessages = (
 				})
 			}
 		} else {
-			const contentParts = msg.content
-				.map((c) => {
-					if (c.type === "text" && c.text) {
-						return {
-							type: "text" as const,
-							text: c.text,
-						}
-					}
-					if (
-						c.type === "file" &&
-						typeof c.data === "string" &&
-						c.mediaType.startsWith("image/")
-					) {
-						return {
-							type: "image_url" as const,
-							image_url: { url: c.data },
-						}
-					}
-					return null
-				})
-				.filter((part) => part !== null)
+			const contentParts: ContentPart[] = []
+			const toolCalls: ToolCall[] = []
 
-			if (contentParts.length > 0) {
+			for (const c of msg.content) {
+				if (c.type === "text" && c.text) {
+					contentParts.push({
+						type: "text",
+						text: c.text,
+					})
+					continue
+				}
+
+				if (
+					c.type === "file" &&
+					typeof c.data === "string" &&
+					c.mediaType.startsWith("image/")
+				) {
+					contentParts.push({
+						type: "image_url",
+						image_url: { url: c.data },
+					})
+					continue
+				}
+
+				if (c.type === "tool-call") {
+					toolCalls.push({
+						id: c.toolCallId,
+						type: "function",
+						function: {
+							name: c.toolName,
+							arguments: JSON.stringify(c.input),
+						},
+					})
+					continue
+				}
+
+				if (c.type === "tool-result") {
+					messages.push({
+						role: "tool",
+						tool_call_id: c.toolCallId,
+						content:
+							typeof c.output === "string"
+								? c.output
+								: JSON.stringify(c.output),
+					})
+				}
+			}
+
+			if (contentParts.length > 0 || toolCalls.length > 0) {
 				messages.push({
 					role: msg.role as "user" | "assistant" | "tool",
 					content: contentParts,
+					...(toolCalls.length > 0 && { tool_calls: toolCalls }),
 				})
 			}
 		}

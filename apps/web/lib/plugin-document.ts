@@ -228,7 +228,7 @@ function parseTranscriptMessages(content: string): {
 	const messages: PluginDocumentMessage[] = []
 	const artifacts: PluginArtifact[] = []
 	const regex = new RegExp(
-		`^\\s*(\\d+)\\.\\s+\\[(${TRANSCRIPT_ROLE_PATTERN})\\]\\s*([\\s\\S]*?)(?=^\\s*\\d+\\.\\s+\\[(?:${TRANSCRIPT_ROLE_PATTERN})\\]\\s*|$)`,
+		`^\\s*(\\d+)\\.\\s+\\[(${TRANSCRIPT_ROLE_PATTERN})\\]\\s*([\\s\\S]*?)(?=^\\s*\\d+\\.\\s+\\[(?:${TRANSCRIPT_ROLE_PATTERN})\\]\\s*|(?![\\s\\S]))`,
 		"gm",
 	)
 

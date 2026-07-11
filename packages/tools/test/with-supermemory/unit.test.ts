@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest"
 import { withSupermemory } from "../../src/vercel"
 import {
 	createSupermemoryContext,
+	saveMemoryAfterResponse,
 	transformParamsWithMemory,
 } from "../../src/vercel/middleware"
 import type {
@@ -535,6 +536,104 @@ describe("Unit: withSupermemory", () => {
 			} finally {
 				vi.useRealTimers()
 			}
+		})
+	})
+
+	describe("Conversation persistence", () => {
+		let fetchMock: ReturnType<typeof vi.fn>
+
+		beforeEach(() => {
+			fetchMock = vi.fn().mockResolvedValue({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						id: "doc-1",
+						conversationId: "conversation-1",
+						status: "queued",
+					}),
+			})
+			globalThis.fetch = fetchMock as unknown as typeof fetch
+		})
+
+		it("preserves Vercel AI SDK tool calls and tool results", async () => {
+			const logger = {
+				debug: vi.fn(),
+				info: vi.fn(),
+				warn: vi.fn(),
+				error: vi.fn(),
+			}
+			const params: LanguageModelV2CallOptions = {
+				prompt: [
+					{
+						role: "user",
+						content: [{ type: "text", text: "Search my memory" }],
+					},
+					{
+						role: "assistant",
+						content: [
+							{
+								type: "tool-call",
+								toolCallId: "call-1",
+								toolName: "searchMemories",
+								input: { query: "coffee" },
+							},
+						],
+					} as unknown as LanguageModelV2Message,
+					{
+						role: "tool",
+						content: [
+							{
+								type: "tool-result",
+								toolCallId: "call-1",
+								toolName: "searchMemories",
+								output: { results: ["dark roast"] },
+							},
+						],
+					} as unknown as LanguageModelV2Message,
+				],
+			}
+
+			await saveMemoryAfterResponse(
+				{} as never,
+				TEST_CONFIG.containerTag,
+				"conversation-1",
+				"Found it.",
+				params,
+				logger,
+				TEST_CONFIG.apiKey,
+				TEST_CONFIG.baseURL,
+			)
+
+			const body = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)
+			expect(body.messages).toEqual([
+				{
+					role: "user",
+					content: [{ type: "text", text: "Search my memory" }],
+				},
+				{
+					role: "assistant",
+					content: [],
+					tool_calls: [
+						{
+							id: "call-1",
+							type: "function",
+							function: {
+								name: "searchMemories",
+								arguments: JSON.stringify({ query: "coffee" }),
+							},
+						},
+					],
+				},
+				{
+					role: "tool",
+					tool_call_id: "call-1",
+					content: JSON.stringify({ results: ["dark roast"] }),
+				},
+				{
+					role: "assistant",
+					content: "Found it.",
+				},
+			])
 		})
 	})
 })
