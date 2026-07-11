@@ -38,6 +38,8 @@ type FlowTool = {
 }
 
 const TOOL_OPTIONS: Record<BrainMode, [FlowTool, ...FlowTool[]]> = {
+	// Team/company-brain onboarding is focused: just get Supermemory into Slack.
+	// Coding agents live under "More tools (full catalog)".
 	team: [
 		{
 			id: "slack",
@@ -45,20 +47,6 @@ const TOOL_OPTIONS: Record<BrainMode, [FlowTool, ...FlowTool[]]> = {
 			blurb: "Ask questions in-channel.",
 			kind: "slack",
 			recommended: true,
-		},
-		{
-			id: "claude-code",
-			label: "Claude Code",
-			blurb: "Shared context in your terminal.",
-			kind: "plugin",
-			pluginId: "claude_code",
-		},
-		{
-			id: "codex",
-			label: "Codex",
-			blurb: "OpenAI's coding agent.",
-			kind: "plugin",
-			pluginId: "codex",
 		},
 	],
 	personal: [
@@ -126,8 +114,8 @@ export function StepIngest({ mode, mcpUrl, onContinue }: Props) {
 	}
 
 	return (
-		<div className="mx-auto w-full max-w-[900px] pb-10">
-			<section className="relative py-4">
+		<div className="mx-auto w-full max-w-[680px] pb-10">
+			<section className="py-4">
 				<div className="mb-6 px-1">
 					<p
 						className={cn(
@@ -139,80 +127,76 @@ export function StepIngest({ mode, mcpUrl, onContinue }: Props) {
 					</p>
 					<p className="mt-1.5 text-[15px] font-medium leading-[1.4] text-[#737373]">
 						{mode === "team"
-							? "Pick where your team asks questions, then set it up."
+							? "Add Supermemory to Slack so your team can ask in any channel."
 							: "Pick the tool you open every day — about 60 seconds."}
 					</p>
 				</div>
 
-				<div className="grid items-start gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
-					{/* Left rail: pick a tool */}
-					<div className="flex flex-col gap-2">
-						{tools.map((tool) => (
-							<FlowToolRow
-								key={tool.id}
-								tool={tool}
-								active={selected === tool.id}
-								onSelect={() => {
-									analytics.onboardingAgentSelected({ agent: tool.id })
-									setSelected(tool.id)
+				<div
+					className="rounded-[22px] bg-[#1B1F24] p-6 md:p-7"
+					style={modalCardStyle}
+				>
+					{tools.length > 1 ? (
+						<>
+							<FlowTabs
+								tools={tools}
+								selected={selected}
+								onSelect={(id) => {
+									analytics.onboardingAgentSelected({ agent: id })
+									setSelected(id)
 								}}
 							/>
-						))}
-						<Link
-							href="/settings/integrations"
-							className="mt-1 inline-flex items-center gap-1.5 px-2 py-1.5 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]"
-						>
-							More tools
-							<span className="text-[#525D6E]">(full catalog)</span>
-							<ExternalLink className="size-3.5" aria-hidden />
-						</Link>
-					</div>
-
-					{/* Right pane: setup detail */}
-					<div
-						className="relative flex min-h-[300px] flex-col overflow-hidden rounded-[22px] bg-[#1B1F24] p-6 md:p-7"
-						style={modalCardStyle}
-					>
-						<div
-							aria-hidden
-							className="absolute -top-px right-10 left-10 h-px"
-							style={{
-								background:
-									"linear-gradient(to right, transparent, rgba(75,160,250,0.4), transparent)",
-							}}
-						/>
-
-						<div className="flex flex-1 flex-col">
-							<div className="mb-5 flex items-center gap-3">
-								<div
-									className="flex size-10 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#14161A]"
-									style={inputBevelStyle}
-								>
-									<ToolIcon id={activeTool.id} />
-								</div>
-								<div>
-									<p className="text-[18px] font-semibold text-[#fafafa]">
-										Set up {activeTool.label}
-									</p>
-									<p className="mt-0.5 text-[12px] font-medium text-[#737373]">
-										{activeTool.blurb}
-									</p>
-								</div>
+							<p className="mt-5 mb-4 px-1 text-[13px] font-medium text-[#737373]">
+								{activeTool.blurb}
+							</p>
+						</>
+					) : (
+						<div className="mb-5 flex items-center gap-3 px-1">
+							<div
+								className="flex size-10 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#14161A]"
+								style={inputBevelStyle}
+							>
+								<ToolIcon id={activeTool.id} />
 							</div>
-
-							{activeTool.kind === "slack" ? (
-								<SlackSetupPanel />
-							) : activeTool.kind === "mcp" ? (
-								<McpGenericSetup mcpUrl={mcpUrl} />
-							) : activeTool.pluginId ? (
-								<PluginSetup
-									key={activeTool.pluginId}
-									pluginId={activeTool.pluginId}
-								/>
-							) : null}
+							<div>
+								<p className="text-[16px] font-semibold text-[#fafafa]">
+									Set up {activeTool.label}
+								</p>
+								<p className="mt-0.5 text-[12px] font-medium text-[#737373]">
+									{activeTool.blurb}
+								</p>
+							</div>
 						</div>
+					)}
 
-						<div className="mt-6 flex items-center justify-end gap-[22px] border-t border-white/[0.06] pt-5">
+					{activeTool.kind === "slack" ? (
+						<SlackSetupPanel />
+					) : activeTool.kind === "mcp" ? (
+						<McpGenericSetup mcpUrl={mcpUrl} />
+					) : activeTool.pluginId ? (
+						<PluginSetup
+							key={activeTool.pluginId}
+							pluginId={activeTool.pluginId}
+						/>
+					) : null}
+
+					<div
+						className={cn(
+							"mt-6 flex items-center gap-3 border-t border-white/[0.06] pt-5",
+							tools.length > 1 ? "justify-between" : "justify-end",
+						)}
+					>
+						{tools.length > 1 && (
+							<Link
+								href="/settings/integrations"
+								className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]"
+							>
+								More tools
+								<span className="text-[#525D6E]">(full catalog)</span>
+								<ExternalLink className="size-3.5" aria-hidden />
+							</Link>
+						)}
+						<div className="flex items-center gap-[22px]">
 							<button
 								type="button"
 								onClick={handleSkip}
@@ -253,77 +237,47 @@ function ToolIcon({ id, className }: { id: FlowToolId; className?: string }) {
 	)
 }
 
-function FlowToolRow({
-	tool,
-	active,
+function FlowTabs({
+	tools,
+	selected,
 	onSelect,
 }: {
-	tool: FlowTool
-	active: boolean
-	onSelect: () => void
+	tools: readonly FlowTool[]
+	selected: FlowToolId
+	onSelect: (id: FlowToolId) => void
 }) {
 	return (
-		<button
-			type="button"
-			onClick={onSelect}
-			aria-pressed={active}
-			className={cn(
-				"group relative flex w-full items-center gap-3 overflow-hidden rounded-[14px] p-3 text-left transition-all duration-150",
-				active
-					? "bg-[#10151D] ring-2 ring-[#4BA0FA]/45"
-					: "bg-[#1B1F24] ring-1 ring-white/[0.05] hover:ring-white/[0.12]",
-			)}
-			style={modalCardStyle}
+		<div
+			className="grid gap-1 rounded-[14px] border border-[rgba(115,115,115,0.2)] bg-[#0D121A] p-1"
+			style={{
+				gridTemplateColumns: `repeat(${tools.length}, minmax(0,1fr))`,
+				boxShadow: "inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
+			}}
 		>
-			{active && (
-				<div
-					aria-hidden
-					className="absolute -top-px right-5 left-5 h-px"
-					style={{
-						background:
-							"linear-gradient(to right, transparent, rgba(75,160,250,0.55), transparent)",
-					}}
-				/>
-			)}
-
-			<div
-				className={cn(
-					"flex size-10 shrink-0 items-center justify-center rounded-[10px] border bg-[#14161A] transition-colors",
-					active ? "border-[#2261CA]/45" : "border-[rgba(82,89,102,0.2)]",
-				)}
-				style={inputBevelStyle}
-			>
-				<ToolIcon id={tool.id} />
-			</div>
-
-			<div className="min-w-0 flex-1">
-				<div className="flex items-center gap-2">
-					<p className="text-[14px] font-semibold leading-tight text-[#fafafa]">
-						{tool.label}
-					</p>
-					{tool.recommended && (
-						<span className="shrink-0 rounded-full bg-[#4BA0FA]/12 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#4BA0FA]">
-							Recommended
-						</span>
-					)}
-				</div>
-				<p className="mt-0.5 truncate text-[12px] font-medium text-[#737373]">
-					{tool.blurb}
-				</p>
-			</div>
-
-			<span
-				aria-hidden
-				className={cn(
-					"flex size-[18px] shrink-0 items-center justify-center rounded-full border transition-colors",
-					active
-						? "border-[#4BA0FA] bg-[#4BA0FA]"
-						: "border-[rgba(82,89,102,0.4)] group-hover:border-[rgba(115,115,115,0.5)]",
-				)}
-			>
-				{active && <Check className="size-3 text-white" />}
-			</span>
-		</button>
+			{tools.map((tool) => {
+				const active = tool.id === selected
+				return (
+					<button
+						key={tool.id}
+						type="button"
+						onClick={() => onSelect(tool.id)}
+						aria-pressed={active}
+						className={cn(
+							"relative flex h-10 items-center justify-center gap-2 rounded-[10px] border border-transparent px-2 text-[13px] font-medium transition-colors",
+							active ? "text-[#fafafa]" : "text-[#737373] hover:text-[#fafafa]",
+						)}
+						style={
+							active
+								? { background: "#00173C", borderColor: "#2261CA66" }
+								: undefined
+						}
+					>
+						<ToolIcon id={tool.id} className="size-4 shrink-0" />
+						<span className="truncate">{tool.label}</span>
+					</button>
+				)
+			})}
+		</div>
 	)
 }
 
@@ -332,26 +286,36 @@ function StepRow({
 	title,
 	done,
 	children,
+	last,
 }: {
 	index: number
 	title: ReactNode
 	done?: boolean
 	children?: ReactNode
+	last?: boolean
 }) {
 	return (
 		<div className="flex gap-3">
-			<span
-				aria-hidden
-				className={cn(
-					"mt-0.5 flex size-[22px] shrink-0 items-center justify-center rounded-full text-[12px] font-semibold transition-colors",
-					done
-						? "bg-[#4BA0FA] text-white"
-						: "border border-[rgba(82,89,102,0.3)] bg-[#14161A] text-[#737373]",
+			<div className="flex flex-col items-center">
+				<span
+					aria-hidden
+					className={cn(
+						"flex size-[22px] shrink-0 items-center justify-center rounded-full text-[12px] font-semibold transition-colors",
+						done
+							? "bg-[#4BA0FA] text-white"
+							: "border border-[rgba(82,89,102,0.3)] bg-[#14161A] text-[#737373]",
+					)}
+				>
+					{done ? <Check className="size-3" /> : index}
+				</span>
+				{!last && (
+					<span
+						aria-hidden
+						className="mt-1.5 w-px flex-1 bg-[rgba(82,89,102,0.3)]"
+					/>
 				)}
-			>
-				{done ? <Check className="size-3" /> : index}
-			</span>
-			<div className="min-w-0 flex-1 pt-0.5">
+			</div>
+			<div className={cn("min-w-0 flex-1 pt-0.5", last ? "pb-0" : "pb-6")}>
 				<div className="text-[13px] font-medium leading-[1.5] text-[#fafafa]">
 					{title}
 				</div>
@@ -370,7 +334,7 @@ function PluginSetup({ pluginId }: { pluginId: string }) {
 	)
 
 	return (
-		<div className="space-y-4">
+		<div>
 			{steps.map((step, i) => (
 				<StepRow key={step.title} index={i + 1} title={step.title}>
 					{step.description ? (
@@ -381,7 +345,7 @@ function PluginSetup({ pluginId }: { pluginId: string }) {
 					{step.code ? <CopyCodeBlock code={step.code} /> : null}
 				</StepRow>
 			))}
-			<StepRow index={steps.length + 1} title="Ask your brain to test it">
+			<StepRow index={steps.length + 1} last title="Ask your brain to test it">
 				<CopyCodeBlock code={TEST_PROMPT} />
 			</StepRow>
 		</div>
@@ -390,7 +354,7 @@ function PluginSetup({ pluginId }: { pluginId: string }) {
 
 function McpGenericSetup({ mcpUrl }: { mcpUrl: string }) {
 	return (
-		<div className="space-y-4">
+		<div>
 			<StepRow index={1} title="Copy your universal MCP URL">
 				<McpUrlRow url={mcpUrl} />
 			</StepRow>
@@ -403,7 +367,7 @@ function McpGenericSetup({ mcpUrl }: { mcpUrl: string }) {
 					<ExternalLink className="size-3.5" aria-hidden />
 				</Link>
 			</StepRow>
-			<StepRow index={3} title="Ask your brain to test it">
+			<StepRow index={3} last title="Ask your brain to test it">
 				<CopyCodeBlock code={TEST_PROMPT} />
 			</StepRow>
 		</div>
@@ -444,35 +408,36 @@ function SlackSetupPanel() {
 	const connected = status?.connected ?? false
 
 	return (
-		<div className="space-y-4">
+		<div>
 			<StepRow
 				index={1}
 				done={connected}
 				title={
-					connected
-						? `Connected to ${status?.teamName ?? "your workspace"}`
-						: "Add Supermemory to your Slack workspace"
-				}
-			>
-				{!connected &&
-					(loading ? (
-						<span className="inline-flex items-center gap-2 text-[12px] font-medium text-[#737373]">
-							<Loader2 className="size-3.5 animate-spin" />
-							Checking…
-						</span>
+					connected ? (
+						`Connected to ${status?.teamName ?? "your workspace"}`
 					) : (
-						<Button
-							variant="insideOut"
-							asChild
-							className="h-9 gap-2 rounded-full px-4 text-[13px] font-medium text-[#fafafa]"
-						>
-							<a href={`${BACKEND}/brain/slack/oauth/install`}>
-								<SlackMark className="size-4" />
-								Add to Slack
-							</a>
-						</Button>
-					))}
-			</StepRow>
+						<div className="flex items-start justify-between gap-3">
+							<span className="pt-1">
+								Add Supermemory to your Slack workspace
+							</span>
+							{loading ? (
+								<span className="inline-flex shrink-0 items-center gap-2 text-[12px] font-medium text-[#737373]">
+									<Loader2 className="size-3.5 animate-spin" />
+									Checking…
+								</span>
+							) : (
+								<a
+									href={`${BACKEND}/brain/slack/oauth/install`}
+									className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-white px-3.5 py-2 text-[13px] font-semibold text-[#1D1C1D] transition-transform hover:scale-[1.02]"
+								>
+									<SlackMark className="size-4" />
+									Add to Slack
+								</a>
+							)}
+						</div>
+					)
+				}
+			/>
 			<StepRow
 				index={2}
 				title={
@@ -482,7 +447,7 @@ function SlackSetupPanel() {
 					</>
 				}
 			/>
-			<StepRow index={3} title="Ask your brain to test it">
+			<StepRow index={3} last title="Ask your brain to test it">
 				<CopyCodeBlock code="@supermemory what do we know about [topic]?" />
 			</StepRow>
 		</div>

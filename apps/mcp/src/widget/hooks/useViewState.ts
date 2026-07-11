@@ -75,10 +75,10 @@ export function useViewState(): {
 		}
 
 		return () => {
-			app.ontoolinput = undefined
-			app.ontoolinputpartial = undefined
-			app.ontoolcancelled = undefined
-			app.ontoolresult = undefined
+			app.ontoolinput = () => {}
+			app.ontoolinputpartial = () => {}
+			app.ontoolcancelled = () => {}
+			app.ontoolresult = () => {}
 			app.onerror = undefined
 		}
 	}, [])

@@ -1,7 +1,7 @@
 "use client"
 
 import { $fetch } from "@lib/api"
-import { hasActivePlan } from "@lib/queries"
+import { useConnectorAccess } from "@/hooks/use-connector-access"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { GoogleDrive, Granola, Notion, OneDrive } from "@ui/assets/icons"
@@ -309,7 +309,7 @@ interface ConnectContentProps {
 export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
-	const isProUser = hasActivePlan(autumn.data?.subscriptions, "api_pro")
+	const { connectorAccess } = useConnectorAccess()
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
 	const [granolaModalOpen, setGranolaModalOpen] = useState(false)
@@ -398,7 +398,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 			provider: ConnectorProvider
 			syncScope?: GDriveSyncScope
 		}) => {
-			if (!canAddConnection && !isProUser) {
+			if (!canAddConnection && !connectorAccess) {
 				throw new Error(
 					"Free plan doesn't include connections. Upgrade to Pro for unlimited connections.",
 				)
@@ -557,7 +557,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												type="button"
 												onClick={() => handleConnect("google-drive")}
 												disabled={
-													!isProUser ||
+													!connectorAccess ||
 													isConnecting ||
 													addConnectionMutation.isPending
 												}
@@ -605,14 +605,14 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 										</div>
 									) : provider === "granola" ? (
 										<>
-											{!isProUser && (
+											{!connectorAccess && (
 												<span className="bg-[#0054AD] text-[#FAFAFA] text-[10px] font-bold px-1.5 py-[2px] rounded-[3px] uppercase tracking-wide">
 													Pro
 												</span>
 											)}
 											<Button
 												onClick={() => {
-													if (!isProUser) {
+													if (!connectorAccess) {
 														handleUpgrade("api_pro")
 														return
 													}
@@ -621,7 +621,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												disabled={isUpgrading || autumn.isLoading}
 												className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 text-[14px] font-medium px-3 py-1.5 h-8"
 											>
-												{!isProUser
+												{!connectorAccess
 													? isUpgrading || autumn.isLoading
 														? "Upgrading..."
 														: "Upgrade"
@@ -634,7 +634,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												handleConnect(provider as ConnectorProvider)
 											}
 											disabled={
-												!isProUser ||
+												!connectorAccess ||
 												isConnecting ||
 												addConnectionMutation.isPending
 											}
@@ -681,7 +681,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 							<DropdownMenuTrigger asChild>
 								<button
 									type="button"
-									disabled={!isProUser || isAnyConnecting}
+									disabled={!connectorAccess || isAnyConnecting}
 									className="flex shrink-0 items-center gap-1.5 bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 disabled:opacity-50 disabled:cursor-not-allowed text-[13px] font-medium rounded-full h-8 px-3 transition-colors"
 								>
 									{isAnyConnecting ? (
@@ -792,7 +792,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 										<DropdownMenuItem
 											disabled={isUpgrading || autumn.isLoading}
 											onClick={() => {
-												if (!isProUser) {
+												if (!connectorAccess) {
 													handleUpgrade("api_pro")
 													return
 												}
@@ -804,14 +804,14 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 											<div className="flex flex-col gap-0.5 min-w-0">
 												<span className="flex items-center gap-1.5 text-[14px] font-medium text-[#FAFAFA] leading-tight">
 													Granola
-													{!isProUser && (
+													{!connectorAccess && (
 														<span className="bg-[#0054AD] text-[#FAFAFA] text-[9px] font-bold px-1 py-px rounded-[3px] uppercase tracking-wide">
 															Pro
 														</span>
 													)}
 												</span>
 												<span className="text-[11px] text-[#737373] leading-tight">
-													{isProUser
+													{connectorAccess
 														? "Meeting notes & transcripts"
 														: "Upgrade to Pro"}
 												</span>
@@ -866,7 +866,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 					className="bg-[#14161A] shadow-inside-out rounded-[12px] px-4 py-6 h-full mb-4 flex flex-col justify-center items-center"
 				>
 					<Zap className="size-6 text-[#737373] mb-3" />
-					{!isProUser ? (
+					{!connectorAccess ? (
 						<>
 							<p className="text-[14px] text-[#737373] mb-4 text-center">
 								{isUpgrading || autumn.isLoading ? (
@@ -945,8 +945,8 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 			/>
 
 			<GranolaConnectModal
-				open={isProUser && granolaModalOpen}
-				onOpenChange={(open) => setGranolaModalOpen(open && isProUser)}
+				open={connectorAccess && granolaModalOpen}
+				onOpenChange={(open) => setGranolaModalOpen(open && connectorAccess)}
 				containerTags={[selectedProject]}
 			/>
 		</div>

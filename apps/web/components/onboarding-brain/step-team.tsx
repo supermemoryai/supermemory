@@ -144,7 +144,7 @@ export function StepTeam({
 	const count = values.invites.length
 
 	return (
-		<div className="max-w-2xl mx-auto space-y-5">
+		<div className="max-w-2xl mx-auto">
 			<section
 				className="rounded-[22px] bg-[#1B1F24] p-7 md:p-8"
 				style={modalCardStyle}
@@ -294,38 +294,38 @@ export function StepTeam({
 						</div>
 					</>
 				)}
-			</section>
 
-			<div className="flex items-center justify-end gap-[22px]">
-				<button
-					type="button"
-					onClick={onSkip ?? onContinue}
-					disabled={submitting}
-					className="text-[#737373] font-medium text-[14px] hover:text-[#999] transition-colors disabled:opacity-50"
-				>
-					Skip for now
-				</button>
-				<Button
-					variant="insideOut"
-					onClick={onContinue}
-					disabled={submitting}
-					className="rounded-full px-5 py-[10px] text-[13px] font-medium text-[#fafafa]"
-				>
-					{submitting ? (
-						<>
-							Sending…
-							<Loader2 className="size-3.5 animate-spin" />
-						</>
-					) : (
-						<>
-							{count > 0
-								? `Send ${count} invite${count === 1 ? "" : "s"}`
-								: "Continue"}
-							<ArrowRight className="size-3.5" />
-						</>
-					)}
-				</Button>
-			</div>
+				<div className="mt-6 flex items-center justify-end gap-[22px] border-t border-white/[0.06] pt-5">
+					<button
+						type="button"
+						onClick={onSkip ?? onContinue}
+						disabled={submitting}
+						className="text-[#737373] font-medium text-[14px] hover:text-[#999] transition-colors disabled:opacity-50"
+					>
+						Skip for now
+					</button>
+					<Button
+						variant="insideOut"
+						onClick={onContinue}
+						disabled={submitting}
+						className="rounded-full px-5 py-[10px] text-[13px] font-medium text-[#fafafa]"
+					>
+						{submitting ? (
+							<>
+								Sending…
+								<Loader2 className="size-3.5 animate-spin" />
+							</>
+						) : (
+							<>
+								{count > 0
+									? `Send ${count} invite${count === 1 ? "" : "s"}`
+									: "Continue"}
+								<ArrowRight className="size-3.5" />
+							</>
+						)}
+					</Button>
+				</div>
+			</section>
 		</div>
 	)
 }

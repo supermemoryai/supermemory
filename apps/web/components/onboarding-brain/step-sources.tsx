@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { useQueryState } from "nuqs"
 import Image from "next/image"
 import { Button } from "@ui/components/button"
 import { Dialog, DialogClose, DialogContent } from "@ui/components/dialog"
 import { GoogleDrive, Granola, Notion, OneDrive } from "@ui/assets/icons"
-import { Logo } from "@ui/assets/Logo"
 import {
 	Select,
 	SelectContent,
@@ -98,9 +99,11 @@ import {
 	type PlanType,
 	useTokenUsage,
 } from "@/hooks/use-token-usage"
+import { GranolaConnectModal } from "@/components/granola-connect-modal"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { $fetch } from "@lib/api"
-import { hasActivePlan } from "@lib/queries"
+import { useAuth } from "@lib/auth-context"
+import { useConnectorAccess } from "@/hooks/use-connector-access"
 import {
 	ADD_MEMORY_SHORTCUT_URL,
 	CHROME_EXTENSION_URL,
@@ -117,6 +120,7 @@ type SourceId =
 	| "gmail"
 	| "github"
 	| "onedrive"
+	| "granola"
 	| "bookmarks"
 	| "chatapps"
 	| "chrome"
@@ -125,6 +129,20 @@ type SourceId =
 type SourceState = "idle" | "connecting" | "connected" | "waitlist"
 type DriveScope = "selective" | "full"
 type RequiredPlan = "pro" | "max"
+
+const PROVIDER_TO_SOURCE: Record<string, SourceId> = {
+	"google-drive": "drive",
+	notion: "notion",
+	onedrive: "onedrive",
+	granola: "granola",
+}
+
+const SOURCE_LABEL: Partial<Record<SourceId, string>> = {
+	drive: "Google Drive",
+	notion: "Notion",
+	onedrive: "OneDrive",
+	granola: "Granola",
+}
 
 const PLAN_LABELS: Record<RequiredPlan, string> = {
 	pro: "Pro",
@@ -224,7 +242,6 @@ export interface SourcesValues {
 
 interface Props {
 	containerTag: string
-	workspaceName: string
 	mode: BrainMode
 	values: SourcesValues
 	onChange: (next: SourcesValues) => void
@@ -281,7 +298,6 @@ function ChatAppsIconCluster() {
 
 export function StepSources({
 	containerTag,
-	workspaceName,
 	mode,
 	values,
 	onChange,
@@ -289,20 +305,99 @@ export function StepSources({
 }: Props) {
 	const [moreOpen, setMoreOpen] = useState(false)
 	const [plansOpen, setPlansOpen] = useState(false)
+	const [granolaOpen, setGranolaOpen] = useState(false)
 	const [requestedPlan, setRequestedPlan] = useState<RequiredPlan>("pro")
 	const [requestedConnector, setRequestedConnector] = useState("This connector")
-	const autumn = useCustomer()
-	const hasPro = hasActivePlan(autumn.data?.subscriptions, "api_pro")
-	const hasMax = hasActivePlan(autumn.data?.subscriptions, "api_max")
-	const planLoading = autumn.isLoading
+	const { hasMax, connectorAccess, loading: planLoading } = useConnectorAccess()
+	const { org, isRestoring } = useAuth()
 
 	useEffect(() => {
 		setMoreOpen(false)
 	}, [])
 
+	const valuesRef = useRef(values)
+	valuesRef.current = values
+	// dedupe toasts across the param + reconcile paths
+	const announced = useRef(new Set<SourceId>())
+	const seeded = useRef(false)
+
+	const markConnected = (ids: SourceId[]) => {
+		const current = valuesRef.current
+		const updates: Partial<Record<SourceId, SourceState>> = {}
+		for (const id of ids) {
+			if (current.connected[id] !== "connected") updates[id] = "connected"
+		}
+		if (Object.keys(updates).length > 0) {
+			onChange({
+				...current,
+				connected: { ...current.connected, ...updates },
+			})
+		}
+	}
+
+	// keyed by org so it re-runs once the active org restores on reload
+	const { data: liveConnections, refetch: refetchConnections } = useQuery({
+		queryKey: ["onboarding-connections", org?.id],
+		queryFn: async () => {
+			const res = await $fetch("@post/connections/list", {
+				body: { containerTags: [] },
+			})
+			if (res.error) return [] as Array<{ provider?: string }>
+			return (res.data ?? []) as Array<{ provider?: string }>
+		},
+		enabled: !isRestoring && !!org?.id,
+		staleTime: 10_000,
+		refetchOnWindowFocus: true,
+	})
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reconcile on fetched connections only
+	useEffect(() => {
+		if (!liveConnections) return
+		const ids = liveConnections
+			.map((c) => (c.provider ? PROVIDER_TO_SOURCE[c.provider] : undefined))
+			.filter((id): id is SourceId => Boolean(id))
+		markConnected(ids)
+		// first load: seed without toasting pre-existing connections
+		if (!seeded.current) {
+			seeded.current = true
+			for (const id of ids) announced.current.add(id)
+			return
+		}
+		for (const id of ids) {
+			if (!announced.current.has(id)) {
+				announced.current.add(id)
+				toast.success(`${SOURCE_LABEL[id] ?? "Source"} connected`)
+			}
+		}
+	}, [liveConnections])
+
+	// Post-OAuth redirect lands with ?connected=<provider> — confirm it instantly.
+	const [connectedParam, setConnectedParam] = useQueryState("connected")
+	// biome-ignore lint/correctness/useExhaustiveDependencies: run when the param arrives
+	useEffect(() => {
+		if (!connectedParam) return
+		const id = PROVIDER_TO_SOURCE[connectedParam]
+		if (id) {
+			markConnected([id])
+			if (!announced.current.has(id)) {
+				announced.current.add(id)
+				toast.success(`${SOURCE_LABEL[id] ?? "Source"} connected`)
+			}
+		}
+		setConnectedParam(null)
+		const t1 = setTimeout(() => void refetchConnections(), 1500)
+		const t2 = setTimeout(() => void refetchConnections(), 4000)
+		return () => {
+			clearTimeout(t1)
+			clearTimeout(t2)
+		}
+	}, [connectedParam])
+
+	// company_brain unlocks pro connectors; max stays gated
 	const isLocked = (plan?: RequiredPlan) => {
 		if (!plan || planLoading) return false
-		return plan === "max" ? !hasMax : !hasPro
+		if (plan === "max") return !hasMax
+		return !connectorAccess
 	}
 
 	const setState = (id: SourceId, state: SourceState) => {
@@ -382,71 +477,91 @@ export function StepSources({
 		<div className="mx-auto w-full max-w-[1400px] pb-10">
 			<section className="relative min-h-[calc(100dvh-136px)] py-4">
 				<div className="absolute inset-x-0 top-[46%] -translate-y-1/2">
-					<div className="flex flex-wrap items-end justify-between gap-3 mb-6 px-1">
-						<div>
-							<p
-								className={cn(
-									"font-semibold text-[#fafafa] text-[22px]",
-									dmSans125ClassName(),
-								)}
-							>
-								{mode === "personal"
-									? "Bring your context together"
-									: "Connect your team's signals"}
-							</p>
-							<p className="text-[#737373] font-medium text-[15px] leading-[1.4] mt-1.5">
-								Start with the sources that carry the most context. Add more
-								anytime.
-							</p>
-						</div>
-						<RoutingChip workspaceName={workspaceName} />
+					<div className="mb-6 px-1">
+						<p
+							className={cn(
+								"font-semibold text-[#fafafa] text-[22px]",
+								dmSans125ClassName(),
+							)}
+						>
+							{mode === "personal"
+								? "Bring your context together"
+								: "Connect your team's signals"}
+						</p>
+						<p className="text-[#737373] font-medium text-[15px] leading-[1.4] mt-1.5">
+							Start with the sources that carry the most context. Add more
+							anytime.
+						</p>
 					</div>
 
 					<div className="grid md:grid-cols-3 gap-4">
-						<SourceCard
-							title="Import bookmarks"
-							blurb="One-shot import of your saved tweets."
-							icon={<XBookmarksIcon className="size-6 text-[#fafafa]" />}
-							state={values.connected.bookmarks ?? "idle"}
-							ctaLabel="Connect"
-							doneLabel="Opened"
-							perks={[
-								"Bookmarks become searchable memories",
-								"One-click import from the X bookmarks tab",
-								"Works via the Chrome extension",
-							]}
-							onConnect={() => openExternal("bookmarks", CHROME_EXTENSION_URL)}
-						/>
-						<SourceCard
-							title="Import from AI chat apps"
-							blurb="Bring memories from ChatGPT, Claude, Grok & more."
-							icon={<ChatAppsIconCluster />}
-							bareIconFrame
-							state={values.connected.chatapps ?? "idle"}
-							ctaLabel="Connect"
-							doneLabel="Opened"
-							perks={[
-								"Sync your ChatGPT memories",
-								"Carry context across every assistant",
-								"Import once, recall anywhere",
-							]}
-							onConnect={() => openExternal("chatapps", CHROME_EXTENSION_URL)}
-						/>
 						{mode === "personal" ? (
-							<NotionSourceCard
-								values={values}
-								isLocked={isLocked}
-								guard={guard}
-								connectRealProvider={connectRealProvider}
-							/>
+							<>
+								<SourceCard
+									title="Import bookmarks"
+									blurb="One-shot import of your saved tweets."
+									icon={<XBookmarksIcon className="size-6 text-[#fafafa]" />}
+									state={values.connected.bookmarks ?? "idle"}
+									ctaLabel="Connect"
+									doneLabel="Opened"
+									perks={[
+										"Bookmarks become searchable memories",
+										"One-click import from the X bookmarks tab",
+										"Works via the Chrome extension",
+									]}
+									onConnect={() =>
+										openExternal("bookmarks", CHROME_EXTENSION_URL)
+									}
+								/>
+								<SourceCard
+									title="Import from AI chat apps"
+									blurb="Bring memories from ChatGPT, Claude, Grok & more."
+									icon={<ChatAppsIconCluster />}
+									bareIconFrame
+									state={values.connected.chatapps ?? "idle"}
+									ctaLabel="Connect"
+									doneLabel="Opened"
+									perks={[
+										"Sync your ChatGPT memories",
+										"Carry context across every assistant",
+										"Import once, recall anywhere",
+									]}
+									onConnect={() =>
+										openExternal("chatapps", CHROME_EXTENSION_URL)
+									}
+								/>
+								<NotionSourceCard
+									mode={mode}
+									values={values}
+									isLocked={isLocked}
+									guard={guard}
+									connectRealProvider={connectRealProvider}
+								/>
+							</>
 						) : (
-							<GoogleDriveSourceCard
-								values={values}
-								onChange={onChange}
-								isLocked={isLocked}
-								guard={guard}
-								connectRealProvider={connectRealProvider}
-							/>
+							<>
+								<NotionSourceCard
+									mode={mode}
+									values={values}
+									isLocked={isLocked}
+									guard={guard}
+									connectRealProvider={connectRealProvider}
+								/>
+								<GranolaSourceCard
+									state={values.connected.granola ?? "idle"}
+									isLocked={isLocked}
+									guard={guard}
+									onOpen={() => setGranolaOpen(true)}
+								/>
+								<GoogleDriveSourceCard
+									mode={mode}
+									values={values}
+									onChange={onChange}
+									isLocked={isLocked}
+									guard={guard}
+									connectRealProvider={connectRealProvider}
+								/>
+							</>
 						)}
 					</div>
 
@@ -465,7 +580,7 @@ export function StepSources({
 								/>
 								More integrations
 								<span className="text-[#525D6E]">
-									(Notion, Gmail, GitHub, OneDrive…)
+									(Gmail, GitHub, OneDrive…)
 								</span>
 							</button>
 							<SourceActions
@@ -486,6 +601,7 @@ export function StepSources({
 									openExternal={openExternal}
 									requestWaitlist={requestWaitlist}
 									connectRealProvider={connectRealProvider}
+									onOpenGranola={() => setGranolaOpen(true)}
 								/>
 							</div>
 						) : null}
@@ -499,6 +615,15 @@ export function StepSources({
 				onOpenChange={setPlansOpen}
 				requestedConnector={requestedConnector}
 				requestedPlan={requestedPlan}
+			/>
+			<GranolaConnectModal
+				open={granolaOpen}
+				onOpenChange={setGranolaOpen}
+				containerTags={[containerTag]}
+				onSuccess={() => {
+					announced.current.add("granola")
+					markConnected(["granola"])
+				}}
 			/>
 		</div>
 	)
@@ -832,12 +957,14 @@ function SourceActions({
 }
 
 function GoogleDriveSourceCard({
+	mode,
 	values,
 	onChange,
 	isLocked,
 	guard,
 	connectRealProvider,
 }: {
+	mode: BrainMode
 	values: SourcesValues
 	onChange: (next: SourcesValues) => void
 	isLocked: (plan?: RequiredPlan) => boolean
@@ -882,17 +1009,21 @@ function GoogleDriveSourceCard({
 					onChange={(s) => onChange({ ...values, driveScope: s })}
 				/>
 			}
-			footerRight={<SpaceChip name="My Drive" />}
+			footerRight={
+				<SpaceChip name={mode === "team" ? "Team Brain" : "My Brain"} />
+			}
 		/>
 	)
 }
 
 function NotionSourceCard({
+	mode,
 	values,
 	isLocked,
 	guard,
 	connectRealProvider,
 }: {
+	mode: BrainMode
 	values: SourcesValues
 	isLocked: (plan?: RequiredPlan) => boolean
 	guard: (
@@ -922,7 +1053,46 @@ function NotionSourceCard({
 			onConnect={guard("pro", "Notion", () =>
 				connectRealProvider("notion", "notion"),
 			)}
-			footerRight={<SpaceChip name="Company Notion" />}
+			footerRight={
+				<SpaceChip name={mode === "team" ? "Team Brain" : "My Brain"} />
+			}
+		/>
+	)
+}
+
+function GranolaSourceCard({
+	state,
+	isLocked,
+	guard,
+	onOpen,
+}: {
+	state: SourceState
+	isLocked: (plan?: RequiredPlan) => boolean
+	guard: (
+		plan: RequiredPlan | undefined,
+		title: string,
+		fn: () => void,
+	) => () => void
+	onOpen: () => void
+}) {
+	return (
+		<SourceCard
+			title="Granola"
+			blurb="Meeting notes into searchable decisions."
+			icon={<Granola className="size-6" />}
+			state={state}
+			ctaLabel="Connect"
+			locked={isLocked("pro")}
+			requiredPlan="pro"
+			perks={[
+				"Meeting notes auto-captured",
+				"Decisions and action items extracted",
+				"Synced after every meeting",
+			]}
+			onConnect={guard("pro", "Granola", () => {
+				analytics.onboardingIntegrationClicked({ integration: "granola" })
+				onOpen()
+			})}
 		/>
 	)
 }
@@ -936,6 +1106,7 @@ function MoreSourcesGrid({
 	openExternal,
 	requestWaitlist,
 	connectRealProvider,
+	onOpenGranola,
 }: {
 	mode: BrainMode
 	values: SourcesValues
@@ -952,6 +1123,7 @@ function MoreSourcesGrid({
 		provider: "google-drive" | "notion" | "onedrive",
 		id: SourceId,
 	) => void
+	onOpenGranola: () => void
 }) {
 	return (
 		<>
@@ -999,20 +1171,14 @@ function MoreSourcesGrid({
 			/>
 			{mode === "personal" ? (
 				<GoogleDriveSourceCard
+					mode={mode}
 					values={values}
 					onChange={onChange}
 					isLocked={isLocked}
 					guard={guard}
 					connectRealProvider={connectRealProvider}
 				/>
-			) : (
-				<NotionSourceCard
-					values={values}
-					isLocked={isLocked}
-					guard={guard}
-					connectRealProvider={connectRealProvider}
-				/>
-			)}
+			) : null}
 			<SourceCard
 				title="OneDrive"
 				blurb="Office docs from OneDrive."
@@ -1060,43 +1226,15 @@ function MoreSourcesGrid({
 				]}
 				onConnect={guard("max", "GitHub", () => requestWaitlist("github"))}
 			/>
-			<SourceCard
-				title="Granola"
-				blurb="Meeting notes into searchable decisions."
-				icon={<Granola className="size-6" />}
-				state="idle"
-				ctaLabel="Connect"
-				locked={isLocked("max")}
-				requiredPlan="max"
-				perks={[
-					"Meeting notes auto-captured",
-					"Decisions and action items extracted",
-					"Synced after every meeting",
-				]}
-				onConnect={guard("max", "Granola", () => {
-					analytics.onboardingIntegrationClicked({ integration: "granola" })
-					toast.info("Granola is coming soon.")
-				})}
-			/>
+			{mode === "personal" ? (
+				<GranolaSourceCard
+					state={values.connected.granola ?? "idle"}
+					isLocked={isLocked}
+					guard={guard}
+					onOpen={onOpenGranola}
+				/>
+			) : null}
 		</>
-	)
-}
-
-function RoutingChip({ workspaceName }: { workspaceName: string }) {
-	return (
-		<div
-			className="inline-flex items-center gap-2 px-3 h-9 rounded-full bg-[#0D121A] border border-[rgba(115,115,115,0.2)] text-[12px]"
-			style={{
-				boxShadow: "inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
-			}}
-			title="All sources route to your brain. You can carve out spaces after setup."
-		>
-			<Logo className="size-3.5 text-[#8B8B8B]" />
-			<span className="text-[#737373] font-medium">Routing to</span>
-			<span className="text-[#fafafa] font-semibold">
-				{workspaceName || "your brain"}
-			</span>
-		</div>
 	)
 }
 
@@ -1167,8 +1305,8 @@ function SourceCard({
 					{headerNote}
 				</div>
 				{isDone ? (
-					<span className="inline-flex items-center gap-1 text-[11px] text-[#4BA0FA] font-semibold uppercase tracking-[0.08em] shrink-0 mt-1">
-						<Check className="size-3" />
+					<span className="inline-flex items-center gap-1.5 rounded-full border border-[#2261CA55] bg-[#2261CA1A] px-2.5 py-1 text-[12px] font-semibold text-[#4BA0FA] shrink-0 mt-0.5">
+						<Check className="size-3.5" />
 						{state === "waitlist" ? "Requested" : (doneLabel ?? "Connected")}
 					</span>
 				) : (

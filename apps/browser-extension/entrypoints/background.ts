@@ -148,7 +148,17 @@ export default defineBackground(() => {
 		eventSource: string,
 	): Promise<{ success: boolean; data?: unknown; error?: string }> => {
 		try {
-			const responseData = await searchMemories(data)
+			let containerTag: string = CONTAINER_TAGS.DEFAULT_PROJECT
+			try {
+				const defaultProject = await getDefaultProject()
+				if (defaultProject?.containerTag) {
+					containerTag = defaultProject.containerTag
+				}
+			} catch (error) {
+				console.warn("Failed to get default project, using fallback:", error)
+			}
+
+			const responseData = await searchMemories(data, containerTag)
 			const response = responseData as {
 				results?: Array<{ memory?: string }>
 			}

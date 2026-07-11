@@ -166,20 +166,26 @@ class SupermemoryCartesiaAgent:
                 timeout=10.0
             )
 
-            static_count = len(response.profile.static) if response.profile.static else 0
-            dynamic_count = len(response.profile.dynamic) if response.profile.dynamic else 0
-            search_count = len(response.search_results.results) if response.search_results and response.search_results.results else 0
-
-            logger.info(f"[Supermemory] Retrieved memories - static: {static_count}, dynamic: {dynamic_count}, search: {search_count}")
+            # A user with no stored memories yet gets a null profile back, which
+            # is a normal case, not an error. Guard against it so we return an
+            # empty profile instead of raising AttributeError on response.profile.
+            profile = getattr(response, "profile", None)
+            profile_static = profile.static if profile is not None and profile.static else []
+            profile_dynamic = profile.dynamic if profile is not None and profile.dynamic else []
 
             search_results = []
             if response.search_results and response.search_results.results:
                 search_results = response.search_results.results
 
+            logger.info(
+                f"[Supermemory] Retrieved memories - static: {len(profile_static)}, "
+                f"dynamic: {len(profile_dynamic)}, search: {len(search_results)}"
+            )
+
             return {
                 "profile": {
-                    "static": response.profile.static or [],
-                    "dynamic": response.profile.dynamic or [],
+                    "static": profile_static,
+                    "dynamic": profile_dynamic,
                 },
                 "search_results": search_results,
             }

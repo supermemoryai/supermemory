@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useCustomer } from "autumn-js/react"
 import { cn } from "@lib/utils"
 import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
-import { hasActivePlan } from "@lib/queries"
 import { $fetch } from "@lib/api"
 import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
@@ -44,6 +43,7 @@ import {
 	Zap,
 } from "lucide-react"
 import { formatRelativeTime } from "@/components/settings/sync-utils"
+import { useConnectorAccess } from "@/hooks/use-connector-access"
 import { useConnectionHealth } from "@/hooks/use-connection-health"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
@@ -2555,8 +2555,11 @@ export function IntegrationsView({
 	const { allProjects } = useContainerTags()
 	const shortcutsConnect = useShortcutsConnect()
 	const autumn = useCustomer({ queryOptions: { enabled: !publicMode } })
-	const hasProProduct =
-		!publicMode && hasActivePlan(autumn.data?.subscriptions, "api_pro")
+	// connectorAccess covers pro-tier connectors (incl. company_brain orgs); plugins
+	// stay on hasProProduct. See useConnectorAccess.
+	const { hasPro: hasProProduct, connectorAccess } = useConnectorAccess({
+		enabled: !publicMode,
+	})
 	const isAutumnLoading = !publicMode && autumn.isLoading
 
 	const [connectingPlugin, setConnectingPlugin] = useState<string | null>(null)
@@ -2601,7 +2604,7 @@ export function IntegrationsView({
 			return response.data as Connection[]
 		},
 		staleTime: 30 * 1000,
-		enabled: !publicMode && hasProProduct,
+		enabled: !publicMode && connectorAccess,
 	})
 
 	const {
@@ -2915,7 +2918,7 @@ export function IntegrationsView({
 			}
 
 			if (target === "granola") {
-				if (!hasProProduct) {
+				if (!connectorAccess) {
 					void setConnectTarget(null)
 					handleUpgrade("api_pro")
 				} else {
@@ -2939,6 +2942,7 @@ export function IntegrationsView({
 		connectTarget,
 		isAutumnLoading,
 		hasProProduct,
+		connectorAccess,
 		publicMode,
 		redirectToLogin,
 		setConnectTarget,
@@ -3397,7 +3401,7 @@ export function IntegrationsView({
 			case "connector": {
 				const count = connectionsByProvider[item.provider].length
 				const isGranola = item.provider === "granola"
-				const needsPlanUpgrade = !isAutumnLoading && !hasProProduct
+				const needsPlanUpgrade = !isAutumnLoading && !connectorAccess
 				if (count > 0) {
 					return (
 						<div className="flex w-full items-center justify-between gap-2">
@@ -3408,7 +3412,7 @@ export function IntegrationsView({
 								onClick={() => {
 									trackCard(item)
 									if (isGranola) {
-										if (!hasProProduct) {
+										if (!connectorAccess) {
 											handleUpgrade("api_pro")
 											return
 										}
@@ -3440,7 +3444,7 @@ export function IntegrationsView({
 						onClick={() => {
 							trackCard(item)
 							if (isGranola) {
-								if (!hasProProduct) {
+								if (!connectorAccess) {
 									handleUpgrade("api_pro")
 									return
 								}
@@ -4260,9 +4264,9 @@ export function IntegrationsView({
 			</Dialog>
 
 			<GranolaConnectModal
-				open={hasProProduct && granolaModalOpen}
+				open={connectorAccess && granolaModalOpen}
 				onOpenChange={(open) => {
-					setGranolaModalOpen(open && hasProProduct)
+					setGranolaModalOpen(open && connectorAccess)
 					if (!open) void setConnectTarget(null)
 				}}
 			/>
