@@ -15,14 +15,16 @@ export function PillButton({
 	children,
 	onClick,
 	disabled,
+	type = "button",
 }: {
 	children: ReactNode
 	onClick?: () => void
 	disabled?: boolean
+	type?: "button" | "submit"
 }) {
 	return (
 		<button
-			type="button"
+			type={type}
 			onClick={onClick}
 			disabled={disabled}
 			className={cn(

@@ -71,6 +71,26 @@ export function getSignupSource(
 		: null
 }
 
+// Company domain captured during team onboarding.
+export function getBrainWorkspaceDomain(
+	metadataRaw: Record<string, unknown> | string | null | undefined,
+): string | null {
+	if (!metadataRaw) return null
+	let metadata: Record<string, unknown>
+	if (typeof metadataRaw === "string") {
+		try {
+			metadata = JSON.parse(metadataRaw) as Record<string, unknown>
+		} catch {
+			return null
+		}
+	} else {
+		metadata = metadataRaw
+	}
+	return typeof metadata.brainWorkspaceDomain === "string"
+		? (metadata.brainWorkspaceDomain as string)
+		: null
+}
+
 // Brain mode chosen during onboarding ("personal" | "team"). Set synchronously
 // at org creation, so it's the reliable pre-webhook signal for company brain.
 export function getBrainMode(

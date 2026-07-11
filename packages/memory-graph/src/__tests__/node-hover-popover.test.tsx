@@ -209,8 +209,8 @@ describe("'View document' button — render guard in JSX", () => {
 		expect(src).toContain("onClick={() => onOpenDocument(documentId)}")
 	})
 
-	it("button label text is 'View document'", () => {
-		expect(src).toContain('label="View document"')
+	it("button label comes from configurable labels", () => {
+		expect(src).toContain("label={labels.viewDocument}")
 	})
 
 	it("button icon is the EyeIcon component (not a string shortcut key)", () => {

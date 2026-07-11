@@ -11,12 +11,15 @@ import Billing from "@/components/settings/billing"
 import Integrations from "@/components/settings/integrations"
 import ConnectionsMCP from "@/components/settings/connections-mcp"
 import CompanyBrainConnections from "@/components/settings/company-brain-connections"
+import { ProactivenessIcon } from "@/components/settings/proactiveness-icon"
+import Proactiveness from "@/components/settings/proactiveness"
 import Support from "@/components/settings/support"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { useIsMobile } from "@hooks/use-mobile"
 import { useLocalStorageUsername } from "@hooks/use-local-storage-username"
+import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import {
 	LogOut,
 	RotateCcw,
@@ -52,6 +55,7 @@ export const TABS = [
 	"integrations",
 	"connections",
 	"company-brain",
+	"proactiveness",
 	"support",
 ] as const
 export type SettingsTab = (typeof TABS)[number]
@@ -93,6 +97,12 @@ const NAV_ITEMS: NavItem[] = [
 		label: "Company Brain",
 		description: "Connect apps to your brain — org and personal",
 		icon: <Building2 className="size-[18px]" />,
+	},
+	{
+		id: "proactiveness",
+		label: "Proactiveness",
+		description: "Scheduled digests and unprompted actions",
+		icon: <ProactivenessIcon className="size-[18px]" />,
 	},
 	{
 		id: "support",
@@ -154,6 +164,14 @@ export function SettingsContent({
 	showIdentity?: boolean
 }) {
 	const { user, org, organizations, setActiveOrg, clearActiveOrg } = useAuth()
+
+	const isCompanyBrain = useHasCompanyBrain()
+	// Company Brain orgs manage tools inside Company Brain; hide the generic tabs.
+	const navItems = isCompanyBrain
+		? NAV_ITEMS.filter(
+				(item) => item.id !== "integrations" && item.id !== "connections",
+			)
+		: NAV_ITEMS
 	const router = useRouter()
 	const isMobile = useIsMobile()
 	const localStorageUsername = useLocalStorageUsername()
@@ -307,7 +325,7 @@ export function SettingsContent({
 							dmSansClassName(),
 						)}
 					>
-						{NAV_ITEMS.map((item) => {
+						{navItems.map((item) => {
 							const isExternal = item.id === "integrations"
 							const isActive = !isExternal && activeTab === item.id
 							return (
@@ -481,6 +499,7 @@ export function SettingsContent({
 						{activeTab === "integrations" && <Integrations />}
 						{activeTab === "connections" && <ConnectionsMCP />}
 						{activeTab === "company-brain" && <CompanyBrainConnections />}
+						{activeTab === "proactiveness" && <Proactiveness />}
 						{activeTab === "support" && <Support />}
 					</ErrorBoundary>
 				</section>

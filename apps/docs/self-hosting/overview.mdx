@@ -24,7 +24,7 @@ No Docker. No database to provision. No config files. It boots in seconds with e
 Run the binary with nothing set and you get a complete memory system:
 
 - **The Supermemory graph engine, embedded** — created automatically on first boot. No database to stand up, no connection strings.
-- **Built-in local embeddings** — vectors are computed on your machine. Nothing is sent anywhere to be embedded.
+- **Built-in local embeddings** — default `Xenova/bge-base-en-v1.5` (768d) on your machine, no API key. Same provider stack as cloud if you opt into OpenAI, Gemini, or Ollama — see [Embeddings](/self-hosting/embeddings).
 - **An API key, generated for you** — printed on first boot, ready to paste into any SDK.
 - **The full Memory API** — `/v3/documents`, `/v4/search`, `/v4/profile`, spaces, the works.
 
@@ -64,7 +64,7 @@ Self-hosted is free, open source, and great for local development, air-gapped en
 |---|---|---|
 | Full Memory API | ✅ | ✅ |
 | Hybrid semantic search | ✅ | ✅ |
-| Local embeddings | ✅ | Managed |
+| Embeddings | Local default (or OpenAI / Gemini / Ollama) | Same provider stack, managed |
 | File ingestion (PDFs, images) | ✅ | ✅ |
 | [Connectors](/connectors/overview) (Google Drive, Notion, Gmail, OneDrive) | — | ✅ |
 | [Supermemory MCP](/supermemory-mcp/mcp) | — | ✅ |
@@ -75,11 +75,14 @@ If you outgrow a single machine — or want connectors, MCP, and the best-tuned 
 
 ## Next steps
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
   <Card title="Quickstart" icon="play" href="/self-hosting/quickstart">
     Install, run, and store your first memory in under two minutes
   </Card>
   <Card title="Configuration" icon="settings" href="/self-hosting/configuration">
     Every environment variable: LLM providers, storage, auth, tuning
+  </Card>
+  <Card title="Embeddings" icon="waypoints" href="/self-hosting/embeddings">
+    Local default, remote providers, multilingual, dimension lock
   </Card>
 </CardGroup>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { useAuth } from "@lib/auth-context"
@@ -17,6 +18,7 @@ import {
 	type SourcesValues,
 } from "@/components/onboarding-brain/step-sources"
 import { StepIngest } from "@/components/onboarding-brain/step-ingest"
+import { CompanyBrainOnboarding } from "@/components/onboarding-brain/company-brain-onboarding"
 import { useFeatureFlagEnabled } from "posthog-js/react"
 import {
 	StepTeam,
@@ -32,10 +34,14 @@ import {
 	generateOrgSlug,
 	generateUsername,
 	workspaceDomainFromEmail,
+	workspaceNameFromDomain,
 	workspaceNameFromEmail,
+	type CompanyBrainConfirmResult,
 } from "@/components/onboarding-brain/types"
 
 const STORAGE_KEY = "supermemory-brain-onboarding-v1"
+const BACKEND =
+	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
 const countsAsConnectedSource = (state: unknown) =>
 	state === "connected" || state === "waitlist"
@@ -53,6 +59,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 export default function BrainOnboardingPage() {
 	const router = useRouter()
 	const params = useSearchParams()
+	const queryClient = useQueryClient()
 	const { user, org, organizations, setActiveOrg, refetchOrganizations } =
 		useAuth()
 
@@ -235,65 +242,78 @@ export default function BrainOnboardingPage() {
 	const [creatingOrg, setCreatingOrg] = useState(false)
 	const creatingOrgRef = useRef(false)
 
-	const ensureOrg = useCallback(async () => {
-		if (!forceCreate && organizations && organizations.length > 0) return
-		const name = (about.workspaceName || suggestedWorkspaceName).trim()
-		const slug = generateOrgSlug(name)
-		const effectiveMode = allowTeam ? mode : "personal"
-		const metadata: BrainMetadata & { signupSource: string } = {
-			signupSource: "consumer",
-			brainOnboardingVersion: "v1",
-			brainMode: effectiveMode,
-			brainWorkspaceName: name,
-			brainWorkspaceDomain:
-				effectiveMode === "team" ? about.workspaceDomain || domain : null,
-			brainContainerTag: containerTag,
-			...(about.about.trim() ? { brainAbout: about.about.trim() } : {}),
-		}
-		const result = await authClient.organization.create({
-			name,
-			slug,
-			metadata,
-		})
-		if (result.error || !result.data?.slug) {
-			throw new Error(
-				getErrorMessage(result.error, "Organization was not created."),
-			)
-		}
-		await setActiveOrg(result.data.slug)
-		if (about.name.trim()) {
-			await authClient.updateUser({
-				name: about.name.trim(),
-				displayUsername: about.name.trim(),
-				username: generateUsername(about.name),
+	const ensureOrg = useCallback(
+		async (domainOverride?: string): Promise<boolean> => {
+			if (!forceCreate && organizations && organizations.length > 0)
+				return false
+			const name = (
+				domainOverride
+					? workspaceNameFromDomain(domainOverride)
+					: about.workspaceName || suggestedWorkspaceName
+			).trim()
+			const slug = generateOrgSlug(name)
+			const effectiveMode = allowTeam ? mode : "personal"
+			const metadata: BrainMetadata & { signupSource: string } = {
+				signupSource: "consumer",
+				brainOnboardingVersion: "v1",
+				brainMode: effectiveMode,
+				brainWorkspaceName: name,
+				brainWorkspaceDomain:
+					effectiveMode === "team"
+						? domainOverride || about.workspaceDomain || domain
+						: null,
+				brainContainerTag: containerTag,
+				...(about.about.trim() ? { brainAbout: about.about.trim() } : {}),
+			}
+			const result = await authClient.organization.create({
+				name,
+				slug,
+				metadata,
 			})
-		}
-		await refetchOrganizations()
-		analytics.onboardingWorkspaceCreated({
+			if (result.error || !result.data?.slug) {
+				throw new Error(
+					getErrorMessage(result.error, "Organization was not created."),
+				)
+			}
+			await setActiveOrg(result.data.slug)
+			if (about.name.trim()) {
+				await authClient.updateUser({
+					name: about.name.trim(),
+					displayUsername: about.name.trim(),
+					username: generateUsername(about.name),
+				})
+			}
+			await refetchOrganizations()
+			analytics.onboardingWorkspaceCreated({
+				mode,
+				has_about: Boolean(about.about.trim()),
+				has_domain: Boolean(
+					mode === "team" && (about.workspaceDomain || domain),
+				),
+			})
+			// Drop new=1 so a reload or back+Continue reuses this org instead of creating a duplicate.
+			if (forceCreate) {
+				const url = new URL(window.location.href)
+				url.searchParams.delete("new")
+				url.searchParams.delete("name")
+				router.replace(url.pathname + url.search, { scroll: false })
+			}
+			return true
+		},
+		[
+			organizations,
+			about,
+			suggestedWorkspaceName,
 			mode,
-			has_about: Boolean(about.about.trim()),
-			has_domain: Boolean(mode === "team" && (about.workspaceDomain || domain)),
-		})
-		// Drop new=1 so a reload or back+Continue reuses this org instead of creating a duplicate.
-		if (forceCreate) {
-			const url = new URL(window.location.href)
-			url.searchParams.delete("new")
-			url.searchParams.delete("name")
-			router.replace(url.pathname + url.search, { scroll: false })
-		}
-	}, [
-		organizations,
-		about,
-		suggestedWorkspaceName,
-		mode,
-		allowTeam,
-		domain,
-		containerTag,
-		setActiveOrg,
-		refetchOrganizations,
-		forceCreate,
-		router,
-	])
+			allowTeam,
+			domain,
+			containerTag,
+			setActiveOrg,
+			refetchOrganizations,
+			forceCreate,
+			router,
+		],
+	)
 
 	const handleAboutContinue = useCallback(async () => {
 		if (creatingOrgRef.current) return
@@ -319,6 +339,73 @@ export default function BrainOnboardingPage() {
 			setCreatingOrg(false)
 		}
 	}, [ensureOrg, goNext, forceCreate, organizations, router])
+
+	// Company Brain (team) onboarding is a single research surface, no stepper.
+	const isCompanyBrain = allowTeam && mode === "team"
+
+	const handleBrainConfirm = useCallback(
+		async (confirmedDomain: string): Promise<CompanyBrainConfirmResult> => {
+			if (creatingOrgRef.current) return { ok: false }
+			creatingOrgRef.current = true
+			setCreatingOrg(true)
+			try {
+				const workspaceName = workspaceNameFromDomain(confirmedDomain)
+				setAbout((a) => ({
+					...a,
+					workspaceDomain: confirmedDomain,
+					workspaceName: workspaceName || a.workspaceName,
+				}))
+				const orgCreated = await ensureOrg(confirmedDomain)
+				// Re-entering onboarding on an existing org ("Try onboarding") must
+				// kick research from the client. New orgs rely on the signup hook after
+				// provisioning — a duplicate /start races and can strand the DO task.
+				if (!orgCreated) {
+					const started = await fetch(`${BACKEND}/brain/research/start`, {
+						method: "POST",
+						credentials: "include",
+						headers: {
+							"content-type": "application/json",
+							"X-App-Source": "nova",
+						},
+						body: JSON.stringify({ domain: confirmedDomain }),
+					})
+						.then((res) => res.ok)
+						.catch(() => false)
+					// Don't advance into the research phase if it never started, else the
+					// poller sits on empty state until timeout.
+					if (!started) {
+						toast.error("Couldn't start research", {
+							description: "Please try again in a moment.",
+						})
+						return { ok: false }
+					}
+				}
+				queryClient.invalidateQueries({ queryKey: ["brain-research-status"] })
+				// ensureOrg already fires this when it creates the org; only emit here
+				// for the existing-org path to avoid a duplicate event.
+				if (!orgCreated) {
+					analytics.onboardingWorkspaceCreated({
+						mode: "team",
+						has_about: false,
+						has_domain: Boolean(confirmedDomain),
+					})
+				}
+				return { ok: true, serverSchedulesResearch: orgCreated }
+			} catch (e) {
+				const message = getErrorMessage(e, "Organization was not created.")
+				console.error("Failed to create organization:", e)
+				analytics.onboardingWorkspaceCreateFailed({ error: message })
+				toast.error("Organization was not created", {
+					description: "Please try again.",
+				})
+				return { ok: false }
+			} finally {
+				creatingOrgRef.current = false
+				setCreatingOrg(false)
+			}
+		},
+		[ensureOrg, queryClient],
+	)
 
 	const [sendingInvites, setSendingInvites] = useState(false)
 	const sendingInvitesRef = useRef(false)
@@ -374,6 +461,19 @@ export default function BrainOnboardingPage() {
 	}, [team.invites, org, goNext])
 
 	const mcpUrl = "https://mcp.supermemory.ai/mcp"
+
+	if (isCompanyBrain) {
+		return (
+			<CompanyBrainOnboarding
+				name={about.name || user?.name || ""}
+				avatarUrl={user?.image ?? null}
+				domain={about.workspaceDomain || domain || ""}
+				submitting={creatingOrg}
+				onConfirm={handleBrainConfirm}
+				onDone={finish}
+			/>
+		)
+	}
 
 	return (
 		<BrainShell
