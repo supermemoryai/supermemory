@@ -7,6 +7,10 @@ on:
         paths: 
             - "packages/tools/package.json"
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: false
+
 jobs:
     publish:
         runs-on: ubuntu-latest
