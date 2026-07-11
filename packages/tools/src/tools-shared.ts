@@ -61,6 +61,11 @@ export function getContainerTags(config?: {
 	projectId?: string
 	containerTags?: string[]
 }): string[] {
+	if (config?.projectId !== undefined && config.containerTags !== undefined) {
+		throw new Error(
+			"Supermemory tools config accepts either projectId or containerTags, not both.",
+		)
+	}
 	if (config?.projectId) {
 		return [`${CONTAINER_TAG_CONSTANTS.projectPrefix}${config.projectId}`]
 	}
