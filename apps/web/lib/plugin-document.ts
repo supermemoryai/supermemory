@@ -227,8 +227,11 @@ function parseTranscriptMessages(content: string): {
 } {
 	const messages: PluginDocumentMessage[] = []
 	const artifacts: PluginArtifact[] = []
+	// The lookahead must end the last message at the true end of input:
+	// with the m flag, a bare $ matches every line end and would cut each
+	// message body off at its first newline.
 	const regex = new RegExp(
-		`^\\s*(\\d+)\\.\\s+\\[(${TRANSCRIPT_ROLE_PATTERN})\\]\\s*([\\s\\S]*?)(?=^\\s*\\d+\\.\\s+\\[(?:${TRANSCRIPT_ROLE_PATTERN})\\]\\s*|$)`,
+		`^\\s*(\\d+)\\.\\s+\\[(${TRANSCRIPT_ROLE_PATTERN})\\]\\s*([\\s\\S]*?)(?=^\\s*\\d+\\.\\s+\\[(?:${TRANSCRIPT_ROLE_PATTERN})\\]\\s*|(?![\\s\\S]))`,
 		"gm",
 	)
 
