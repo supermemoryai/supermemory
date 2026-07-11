@@ -96,7 +96,10 @@ export class ClaudeMemoryTool {
 					}
 					return await this.create(command.path, command.file_text)
 				case "str_replace":
-					if (!command.old_str || !command.new_str) {
+					// new_str may legitimately be "" (deleting text), so only reject
+					// when it is missing entirely. old_str must be non-empty — replacing
+					// the empty string would prepend instead of replacing.
+					if (!command.old_str || command.new_str === undefined) {
 						return {
 							success: false,
 							error: "old_str and new_str are required for str_replace command",
@@ -108,7 +111,11 @@ export class ClaudeMemoryTool {
 						command.new_str,
 					)
 				case "insert":
-					if (command.insert_line === undefined || !command.insert_text) {
+					// insert_text may be "" (inserting a blank line).
+					if (
+						command.insert_line === undefined ||
+						command.insert_text === undefined
+					) {
 						return {
 							success: false,
 							error:
@@ -487,9 +494,9 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			// Delete using the document ID
-			// Note: We'll need to implement this based on supermemory's delete API
-			// For now, we'll return a success message
+			const documentId =
+				readResult.document.documentId ?? this.normalizePathToCustomId(filePath)
+			await this.client.documents.delete(documentId)
 
 			return {
 				success: true,
@@ -544,7 +551,14 @@ export class ClaudeMemoryTool {
 				},
 			})
 
-			// Delete the old document (would need proper delete API)
+			// Remove the old document so the previous path stops showing up in
+			// listings and search. Skip when both paths normalize to the same
+			// customId — the add above already replaced the content.
+			const oldNormalizedId = this.normalizePathToCustomId(oldPath)
+			if (oldNormalizedId !== newNormalizedId) {
+				const oldDocumentId = readResult.document.documentId ?? oldNormalizedId
+				await this.client.documents.delete(oldDocumentId)
+			}
 
 			return {
 				success: true,

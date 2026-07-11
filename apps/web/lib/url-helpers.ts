@@ -96,12 +96,20 @@ export const extractUrls = (
 	const unwrapped = text
 		.replace(MARKDOWN_LINK_REGEX, " $1 ")
 		.replace(ANGLE_LINK_REGEX, " $1 ")
-	const matches = unwrapped.match(URL_TOKEN_REGEX) ?? []
 	const seen = new Set<string>()
 	const urls: string[] = []
 	let duplicates = 0
-	for (const match of matches) {
-		let trimmed = match.trim().replace(/[.,;!]+$/, "")
+	for (const match of unwrapped.matchAll(URL_TOKEN_REGEX)) {
+		const start = match.index ?? 0
+		const end = start + match[0].length
+		const before = start > 0 ? (unwrapped[start - 1] ?? "") : ""
+		const after = end < unwrapped.length ? (unwrapped[end] ?? "") : ""
+		// Skip email addresses: a domain-shaped token ending at "@" is the
+		// local part, one starting right after "@" is the mail domain. Also
+		// skip matches that begin mid-token (e.g. after "_", which the
+		// hostname charset can't include) — those aren't standalone URLs.
+		if (after === "@" || before === "@" || /[\w.-]/.test(before)) continue
+		let trimmed = match[0].trim().replace(/[.,;!]+$/, "")
 		const opens = (trimmed.match(/\(/g) ?? []).length
 		const closes = (trimmed.match(/\)/g) ?? []).length
 		if (closes > opens && trimmed.endsWith(")")) {
@@ -109,7 +117,15 @@ export const extractUrls = (
 		}
 		const normalized = normalizeUrl(trimmed)
 		if (!isValidUrl(normalized)) continue
-		const key = normalized.toLowerCase().replace(/\/+$/, "")
+		// Dedupe on the parsed URL so the scheme and host compare
+		// case-insensitively while the path/query — which are case-sensitive
+		// resources — stay distinct.
+		const parsed = new URL(normalized)
+		const key =
+			`${parsed.origin}${parsed.pathname}${parsed.search}${parsed.hash}`.replace(
+				/\/+$/,
+				"",
+			)
 		if (seen.has(key)) {
 			duplicates++
 			continue
@@ -154,6 +170,22 @@ export const isTwitterUrl = (url: string): boolean => {
 	return (
 		hostnameMatches(parsed.hostname, "twitter.com") ||
 		hostnameMatches(parsed.hostname, "x.com")
+	)
+}
+
+/**
+ * Checks if a URL is a YouTube URL by matching the hostname against
+ * youtube.com / youtu.be (and their subdomains, e.g. www / m).
+ * Lookalike hosts (`notyoutube.com`, `youtube.com.evil.example`) and URLs
+ * that only contain "youtube.com" in the path do not match.
+ */
+export const isYouTubeUrl = (url: string | undefined | null): boolean => {
+	if (!url) return false
+	const parsed = parseWebUrl(url)
+	if (!parsed) return false
+	return (
+		hostnameMatches(parsed.hostname, "youtube.com") ||
+		hostnameMatches(parsed.hostname, "youtu.be")
 	)
 }
 
