@@ -27,6 +27,24 @@ bunx supermemory local
 
 The installer detects your OS and architecture, downloads the right binary, verifies it, and (when run interactively) prompts you for an LLM API key. Supported platforms: macOS (Apple Silicon & Intel), Linux (x64 & arm64).
 
+### Pin or change versions
+
+Pass an explicit version to install (or roll back to) a specific release instead of `latest`:
+
+```bash
+curl -fsSL https://supermemory.ai/install | bash -s -- 0.0.3
+```
+
+Release tags are `server-v<version>` on [GitHub Releases](https://github.com/supermemoryai/supermemory/releases) (for example [`server-v0.0.3`](https://github.com/supermemoryai/supermemory/releases/tag/server-v0.0.3)).
+
+To move to the newest release later:
+
+```bash
+supermemory-server upgrade
+```
+
+The binary may also print an “update available” nag on startup. If you intentionally pinned an older version (for example while debugging a regression), you can ignore that message until you are ready to upgrade.
+
 ## Run
 
 ```bash
