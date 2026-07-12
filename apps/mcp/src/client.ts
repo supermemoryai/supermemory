@@ -358,7 +358,11 @@ export class SupermemoryClient {
 		}
 	}
 
-	// Fetch documents with their memory entries
+	// Fetch documents with their memory entries.
+	// Falls back to this client's container tag when none is given: omitting
+	// containerTags entirely would read across every project, while createMemory
+	// and search stay scoped, so listings would surface documents that recall
+	// can never return.
 	async getDocuments(
 		containerTags?: string[],
 		page = 1,
@@ -378,7 +382,7 @@ export class SupermemoryClient {
 					limit,
 					sort: "createdAt",
 					order: "desc",
-					containerTags,
+					containerTags: containerTags ?? [this.containerTag],
 				}),
 				signal,
 			})
