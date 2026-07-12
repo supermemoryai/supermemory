@@ -2,6 +2,8 @@
  * Shared constants and descriptions for Supermemory tools
  */
 
+import type { MemoryMode } from "./shared/types"
+
 // Tool descriptions
 export const TOOL_DESCRIPTIONS = {
 	searchMemories:
@@ -176,4 +178,30 @@ export function deduplicateMemories(
 		dynamic: dynamicMemories,
 		searchResults: searchMemories,
 	}
+}
+
+/**
+ * Deduplicates memory items against only the sources the given mode actually
+ * injects into the prompt.
+ *
+ * `"query"` mode injects the search results but not the profile, so search
+ * results must not be deduplicated against the profile: a memory present in
+ * both would be dropped as a duplicate of something the model never sees, and
+ * would disappear from the prompt entirely.
+ *
+ * @param mode - The memory retrieval mode
+ * @param data - Profile data with memory items from different sources
+ * @returns Deduplicated memory strings for each source
+ */
+export function deduplicateMemoriesForMode(
+	mode: MemoryMode,
+	data: ProfileWithMemories,
+): DeduplicatedMemories {
+	const injectsProfile = mode !== "query"
+
+	return deduplicateMemories({
+		static: injectsProfile ? data.static : [],
+		dynamic: injectsProfile ? data.dynamic : [],
+		searchResults: data.searchResults,
+	})
 }
