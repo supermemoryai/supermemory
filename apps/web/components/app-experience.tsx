@@ -67,6 +67,7 @@ import {
 } from "@/lib/search-params"
 import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
 import { getToolDocumentSpace } from "@/lib/plugin-space"
+import { getBackendUrl } from "@/lib/url-helpers"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -134,6 +135,7 @@ export function AppExperience() {
 	const { viewMode, setViewMode } = useViewMode()
 	useLegacyViewRedirect()
 	const isCompanyBrain = useHasCompanyBrain()
+	const backendUrl = getBackendUrl()
 
 	// Slack OAuth redirects back here with ?slack=connected — toast then clean up.
 	useEffect(() => {
@@ -331,7 +333,7 @@ export function AppExperience() {
 			queryFn: async (): Promise<SpaceHighlightsResponse> => {
 				const spaceId = selectedProject || "sm_project_default"
 				const forceRefresh = highlightsForceAt > 0
-				const cacheKey = `${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/space-highlights?spaceId=${spaceId}`
+				const cacheKey = `${backendUrl}/v3/space-highlights?spaceId=${spaceId}`
 
 				if (!forceRefresh) {
 					const cache = await caches.open(HIGHLIGHTS_CACHE_NAME)
@@ -345,22 +347,19 @@ export function AppExperience() {
 					}
 				}
 
-				const response = await fetch(
-					`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/space-highlights`,
-					{
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						credentials: "include",
-						body: JSON.stringify({
-							spaceId,
-							highlightsCount: 3,
-							questionsCount: 4,
-							includeHighlights: true,
-							includeQuestions: true,
-							forceRefresh,
-						}),
-					},
-				)
+				const response = await fetch(`${backendUrl}/v3/space-highlights`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					credentials: "include",
+					body: JSON.stringify({
+						spaceId,
+						highlightsCount: 3,
+						questionsCount: 4,
+						includeHighlights: true,
+						includeQuestions: true,
+						forceRefresh,
+					}),
+				})
 
 				if (!response.ok) {
 					throw new Error("Failed to fetch space highlights")
@@ -404,10 +403,9 @@ export function AppExperience() {
 				if (stored) return JSON.parse(stored) as MemoryOfDay
 			} catch {}
 
-			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/memory-of-day`,
-				{ credentials: "include" },
-			)
+			const response = await fetch(`${backendUrl}/v3/memory-of-day`, {
+				credentials: "include",
+			})
 			if (!response.ok) return null
 			const data = (await response.json()) as MemoryOfDay | null
 			if (data) {
