@@ -1,5 +1,5 @@
 import { MESSAGE_TYPES } from "../../utils/constants"
-import { bearerToken, userData } from "../../utils/storage"
+import { isExtensionAuthUrl } from "../../utils/extension-auth"
 import { DOMUtils } from "../../utils/ui-components"
 import { default as TurndownService } from "turndown"
 
@@ -95,35 +95,19 @@ export function setupGlobalKeyboardShortcut() {
 	})
 }
 
-export function setupStorageListener() {
-	window.addEventListener("message", async (event) => {
-		if (event.source !== window) {
-			return
-		}
-		const token = event.data.token
-		const user = event.data.userData
-		if (token && user) {
-			if (
-				!(
-					window.location.hostname === "localhost" ||
-					window.location.hostname === "supermemory.ai" ||
-					window.location.hostname === "app.supermemory.ai"
-				)
-			) {
-				console.log(
-					"Bearer token and user data is only allowed to be used on localhost or supermemory.ai",
-				)
-				return
-			}
+export async function setupExtensionAuth() {
+	if (!isExtensionAuthUrl(window.location.href)) return
 
-			try {
-				await Promise.all([
-					bearerToken.setValue(token),
-					userData.setValue(user),
-				])
-			} catch {
-				// Do nothing
-			}
-		}
-	})
+	try {
+		const response = await browser.runtime.sendMessage({
+			action: MESSAGE_TYPES.SYNC_EXTENSION_AUTH,
+		})
+		if (!response?.success) return
+
+		const url = new URL(window.location.href)
+		url.searchParams.delete("extension-auth-success")
+		window.history.replaceState({}, "", url.toString())
+	} catch {
+		// Do nothing
+	}
 }

@@ -6,7 +6,7 @@ import { initializeGrok } from "./grok"
 import {
 	saveMemory,
 	setupGlobalKeyboardShortcut,
-	setupStorageListener,
+	setupExtensionAuth,
 } from "./shared"
 import { initializeT3 } from "./t3"
 import {
@@ -37,8 +37,8 @@ export default defineContentScript({
 		// Setup global keyboard shortcuts
 		setupGlobalKeyboardShortcut()
 
-		// Setup storage listener
-		setupStorageListener()
+		// Synchronize extension auth without exposing credentials to the page.
+		setupExtensionAuth()
 
 		// Observer for dynamic content changes
 		const observeForDynamicChanges = () => {

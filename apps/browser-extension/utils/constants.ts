@@ -83,6 +83,7 @@ export const MESSAGE_TYPES = {
 	GET_RELATED_MEMORIES: "sm-get-related-memories",
 	CAPTURE_PROMPT: "sm-capture-prompt",
 	FETCH_PROJECTS: "sm-fetch-projects",
+	SYNC_EXTENSION_AUTH: "sm-sync-extension-auth",
 	TWITTER_IMPORT_OPEN_MODAL: "sm-twitter-import-open-modal",
 } as const
 

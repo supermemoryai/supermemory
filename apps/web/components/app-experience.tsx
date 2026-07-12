@@ -159,22 +159,6 @@ export function AppExperience() {
 	const queryClient = useQueryClient()
 	const [highlightsForceAt, setHighlightsForceAt] = useState(0)
 
-	// Chrome extension auth: send session token via postMessage so the content script can store it
-	useEffect(() => {
-		const url = new URL(window.location.href)
-		if (!url.searchParams.get("extension-auth-success")) return
-		const sessionToken = session?.token
-		const userData = { email: user?.email, name: user?.name, userId: user?.id }
-		if (sessionToken && userData.email) {
-			window.postMessage(
-				{ token: encodeURIComponent(sessionToken), userData },
-				window.location.origin,
-			)
-			url.searchParams.delete("extension-auth-success")
-			window.history.replaceState({}, "", url.toString())
-		}
-	}, [user, session])
-
 	// URL-driven modal states
 	const [addDoc, setAddDoc] = useQueryState("add", addDocumentParam)
 	const [isSearchOpen, setIsSearchOpen] = useQueryState("search", searchParam)

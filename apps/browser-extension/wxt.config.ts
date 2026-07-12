@@ -30,11 +30,12 @@ export default defineConfig({
 		name: "supermemory",
 		homepage_url: "https://supermemory.ai",
 		version: "6.1.4",
-		permissions: ["storage", "activeTab", "webRequest", "tabs"],
+		permissions: ["storage", "activeTab", "webRequest", "tabs", "cookies"],
 		host_permissions: [
 			"*://x.com/*",
 			"*://twitter.com/*",
 			"*://supermemory.ai/*",
+			"*://app.supermemory.ai/*",
 			"*://api.supermemory.ai/*",
 			"*://chatgpt.com/*",
 			"*://chat.openai.com/*",

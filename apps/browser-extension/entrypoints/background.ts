@@ -5,11 +5,14 @@ import {
 	fetchProjects,
 } from "../utils/api"
 import {
+	API_ENDPOINTS,
 	CONTAINER_TAGS,
 	MESSAGE_TYPES,
 	POSTHOG_EVENT_KEY,
 } from "../utils/constants"
+import { getExtensionAuthCredentials } from "../utils/extension-auth"
 import { trackEvent } from "../utils/posthog"
+import { bearerToken, userData } from "../utils/storage"
 import { captureTwitterTokens } from "../utils/twitter-auth"
 import {
 	type TwitterImportConfig,
@@ -181,7 +184,34 @@ export default defineBackground(() => {
 	 * Handle extension messages
 	 */
 	browser.runtime.onMessage.addListener(
-		(message: ExtensionMessage, _sender, sendResponse) => {
+		(message: ExtensionMessage, sender, sendResponse) => {
+			if (message.action === MESSAGE_TYPES.SYNC_EXTENSION_AUTH) {
+				;(async () => {
+					try {
+						const pageUrl = sender.url ?? sender.tab?.url ?? ""
+						const cookies = await browser.cookies.getAll({
+							url: API_ENDPOINTS.SUPERMEMORY_API,
+						})
+						const credentials = await getExtensionAuthCredentials(
+							pageUrl,
+							cookies,
+							API_ENDPOINTS.SUPERMEMORY_API,
+						)
+						await Promise.all([
+							bearerToken.setValue(credentials.token),
+							userData.setValue(credentials.user),
+						])
+						sendResponse({ success: true })
+					} catch (error) {
+						sendResponse({
+							success: false,
+							error: error instanceof Error ? error.message : "Unknown error",
+						})
+					}
+				})()
+				return true
+			}
+
 			// Handle Twitter import request
 			if (message.type === MESSAGE_TYPES.BATCH_IMPORT_ALL) {
 				const importConfig: TwitterImportConfig = {
