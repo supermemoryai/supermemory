@@ -378,7 +378,7 @@ export class SupermemoryClient {
 					limit,
 					sort: "createdAt",
 					order: "desc",
-					containerTags,
+					containerTags: containerTags ?? [this.containerTag],
 				}),
 				signal,
 			})
