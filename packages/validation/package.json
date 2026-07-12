@@ -1,6 +1,9 @@
 {
-	"name": "@repo/validation",
-	"version": "0.0.0",
-	"private": true,
-	"type": "module"
+  "name": "@repo/validation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  }
 }
