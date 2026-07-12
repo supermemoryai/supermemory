@@ -609,14 +609,23 @@ export function MemoryGraph({
 	const onSlideshowNodeChangeRef = useRef(onSlideshowNodeChange)
 	onSlideshowNodeChangeRef.current = onSlideshowNodeChange
 
+	// Track the previous slideshow state so deactivation can be distinguished
+	// from unrelated re-runs (e.g. nodes.length changing when pagination
+	// appends documents). Only a true active -> inactive transition should
+	// clear the user's selection.
+	const wasSlideshowActiveRef = useRef(false)
+
 	useEffect(() => {
-		if (!isSlideshowActive || nodes.length === 0) {
-			if (!isSlideshowActive) {
+		if (!isSlideshowActive) {
+			if (wasSlideshowActiveRef.current) {
+				wasSlideshowActiveRef.current = false
 				setSelectedNode(null)
 				simulationRef.current?.coolDown()
 			}
 			return
 		}
+		wasSlideshowActiveRef.current = true
+		if (nodes.length === 0) return
 
 		let lastIdx = -1
 		let coolDownTimer: ReturnType<typeof setTimeout> | null = null
