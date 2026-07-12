@@ -13,6 +13,7 @@ import {
 	createClaudeInputBarElement,
 	DOMUtils,
 } from "../../utils/ui-components"
+import { preparePromptForSubmission } from "../../utils/prompt-capture"
 
 let claudeDebounceTimeout: NodeJS.Timeout | null = null
 let claudeRouteObserver: MutationObserver | null = null
@@ -705,24 +706,24 @@ function setupClaudePromptCapture() {
 		}
 
 		const storedMemories = contentEditableDiv?.dataset.supermemories
-		if (
-			storedMemories &&
-			contentEditableDiv &&
-			!promptContent.includes("Supermemories of user")
-		) {
-			contentEditableDiv.appendChild(document.createTextNode(storedMemories))
-			promptContent =
-				contentEditableDiv.textContent || contentEditableDiv.innerText || ""
+		const { promptToCapture, promptToSubmit } = preparePromptForSubmission(
+			promptContent,
+			storedMemories,
+		)
+		if (contentEditableDiv && promptToSubmit !== promptContent) {
+			contentEditableDiv.appendChild(
+				document.createTextNode(promptToSubmit.slice(promptContent.length)),
+			)
 		}
 
-		if (promptContent.trim()) {
-			console.log(`Claude prompt submitted via ${source}:`, promptContent)
+		if (promptToCapture.trim()) {
+			console.log(`Claude prompt submitted via ${source}:`, promptToCapture)
 
 			try {
 				await browser.runtime.sendMessage({
 					action: MESSAGE_TYPES.CAPTURE_PROMPT,
 					data: {
-						prompt: promptContent,
+						prompt: promptToCapture,
 						platform: "claude",
 						source: source,
 					},

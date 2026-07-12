@@ -10,6 +10,7 @@ import {
 	autoCapturePromptsEnabled,
 } from "../../utils/storage"
 import { createT3InputBarElement, DOMUtils } from "../../utils/ui-components"
+import { preparePromptForSubmission } from "../../utils/prompt-capture"
 
 let t3DebounceTimeout: NodeJS.Timeout | null = null
 let t3RouteObserver: MutationObserver | null = null
@@ -521,30 +522,29 @@ function setupT3PromptCapture() {
 			textarea ||
 			(document.querySelector('div[contenteditable="true"]') as HTMLElement)
 		const storedMemories = textareaElement?.dataset.supermemories
-		if (
-			storedMemories &&
-			textareaElement &&
-			!promptContent.includes("Supermemories of user")
-		) {
+		const { promptToCapture, promptToSubmit } = preparePromptForSubmission(
+			promptContent,
+			storedMemories,
+			textareaElement?.tagName === "TEXTAREA" ? " " : "",
+		)
+		if (textareaElement && promptToSubmit !== promptContent) {
 			if (textareaElement.tagName === "TEXTAREA") {
-				;(textareaElement as HTMLTextAreaElement).value =
-					`${promptContent} ${storedMemories}`
-				promptContent = (textareaElement as HTMLTextAreaElement).value
+				;(textareaElement as HTMLTextAreaElement).value = promptToSubmit
 			} else {
-				textareaElement.appendChild(document.createTextNode(storedMemories))
-				promptContent =
-					textareaElement.textContent || textareaElement.innerText || ""
+				textareaElement.appendChild(
+					document.createTextNode(promptToSubmit.slice(promptContent.length)),
+				)
 			}
 		}
 
-		if (promptContent.trim()) {
-			console.log(`T3 prompt submitted via ${source}:`, promptContent)
+		if (promptToCapture.trim()) {
+			console.log(`T3 prompt submitted via ${source}:`, promptToCapture)
 
 			try {
 				await browser.runtime.sendMessage({
 					action: MESSAGE_TYPES.CAPTURE_PROMPT,
 					data: {
-						prompt: promptContent,
+						prompt: promptToCapture,
 						platform: "t3",
 						source: source,
 					},

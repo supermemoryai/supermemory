@@ -13,6 +13,7 @@ import {
 	createChatGPTInputBarElement,
 	DOMUtils,
 } from "../../utils/ui-components"
+import { preparePromptForSubmission } from "../../utils/prompt-capture"
 
 let chatGPTDebounceTimeout: NodeJS.Timeout | null = null
 let chatGPTRouteObserver: MutationObserver | null = null
@@ -642,23 +643,24 @@ function setupChatGPTPromptCapture() {
 		}
 
 		const storedMemories = promptTextarea?.dataset.supermemories
-		if (
-			storedMemories &&
-			promptTextarea &&
-			!promptContent.includes("Supermemories of user")
-		) {
-			promptTextarea.appendChild(document.createTextNode(storedMemories))
-			promptContent = promptTextarea.textContent || ""
+		const { promptToCapture, promptToSubmit } = preparePromptForSubmission(
+			promptContent,
+			storedMemories,
+		)
+		if (promptTextarea && promptToSubmit !== promptContent) {
+			promptTextarea.appendChild(
+				document.createTextNode(promptToSubmit.slice(promptContent.length)),
+			)
 		}
 
-		if (promptTextarea && promptContent.trim()) {
-			console.log(`ChatGPT prompt submitted via ${source}:`, promptContent)
+		if (promptTextarea && promptToCapture.trim()) {
+			console.log(`ChatGPT prompt submitted via ${source}:`, promptToCapture)
 
 			try {
 				await browser.runtime.sendMessage({
 					action: MESSAGE_TYPES.CAPTURE_PROMPT,
 					data: {
-						prompt: promptContent,
+						prompt: promptToCapture,
 						platform: "chatgpt",
 						source: source,
 					},
