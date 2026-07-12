@@ -113,19 +113,14 @@ export class TwitterImporter {
 			const headers = createTwitterAPIHeaders(tokens)
 
 			// Build API request with pagination
-			const variables =
-				this.config.isFolderImport && this.config.bookmarkCollectionId
-					? buildBookmarkCollectionVariables(this.config.bookmarkCollectionId)
-					: buildRequestVariables(cursor)
-			const urlWithCursor = cursor
-				? `${
-						this.config.isFolderImport && this.config.bookmarkCollectionId
-							? `${BOOKMARK_COLLECTION_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`
-							: BOOKMARKS_URL
-					}&variables=${encodeURIComponent(JSON.stringify(variables))}`
-				: this.config.isFolderImport && this.config.bookmarkCollectionId
-					? `${BOOKMARK_COLLECTION_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`
-					: `${BOOKMARKS_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`
+			const collectionId = this.config.isFolderImport
+				? this.config.bookmarkCollectionId
+				: undefined
+			const variables = collectionId
+				? buildBookmarkCollectionVariables(collectionId, cursor)
+				: buildRequestVariables(cursor)
+			const baseUrl = collectionId ? BOOKMARK_COLLECTION_URL : BOOKMARKS_URL
+			const urlWithCursor = `${baseUrl}&variables=${encodeURIComponent(JSON.stringify(variables))}`
 
 			const response = await fetch(urlWithCursor, {
 				method: "GET",
@@ -199,7 +194,7 @@ export class TwitterImporter {
 				[]
 			const nextCursor = extractNextCursor(instructions)
 
-			if (nextCursor && tweets.length > 0 && !this.config.isFolderImport) {
+			if (nextCursor && tweets.length > 0) {
 				await new Promise((resolve) => setTimeout(resolve, 1000)) // Rate limiting
 				await this.batchImportAll(nextCursor, importedCount, uniqueGroupId)
 			} else {
