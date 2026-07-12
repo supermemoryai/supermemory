@@ -1,6 +1,7 @@
 import type OpenAI from "openai"
 import Supermemory from "supermemory"
 import { addConversation } from "../conversations-client"
+import { validateApiKey } from "../shared"
 import { deduplicateMemories } from "../tools-shared"
 import { createLogger, type Logger } from "../vercel/logger"
 import { convertProfileToMarkdown } from "../vercel/util"
@@ -20,6 +21,8 @@ export interface OpenAIMiddlewareOptions {
 	mode?: "profile" | "query" | "full"
 	addMemory?: "always" | "never"
 	baseUrl?: string
+	/** Supermemory API key (falls back to SUPERMEMORY_API_KEY env var) */
+	apiKey?: string
 }
 
 interface SupermemoryProfileSearch {
@@ -75,22 +78,25 @@ const getLastUserMessage = (
  *
  * @param containerTag - The container tag/identifier for memory search (e.g., user ID, project ID)
  * @param queryText - Optional query text to search for specific memories. If empty, returns all profile memories
+ * @param baseUrl - The Supermemory API base URL
+ * @param apiKey - The Supermemory API key used to authenticate the request
  * @returns Promise that resolves to the SuperMemory profile search response
  * @throws {Error} When the API request fails or returns an error status
  *
  * @example
  * ```typescript
  * // Search with query
- * const results = await supermemoryProfileSearch("user-123", "favorite programming language")
+ * const results = await supermemoryProfileSearch("user-123", "favorite programming language", baseUrl, apiKey)
  *
  * // Get all profile memories
- * const profile = await supermemoryProfileSearch("user-123", "")
+ * const profile = await supermemoryProfileSearch("user-123", "", baseUrl, apiKey)
  * ```
  */
 const supermemoryProfileSearch = async (
 	containerTag: string,
 	queryText: string,
 	baseUrl: string,
+	apiKey: string,
 ): Promise<SupermemoryProfileSearch> => {
 	const payload = queryText
 		? JSON.stringify({
@@ -106,7 +112,7 @@ const supermemoryProfileSearch = async (
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+				Authorization: `Bearer ${apiKey}`,
 			},
 			body: payload,
 		})
@@ -138,6 +144,8 @@ const supermemoryProfileSearch = async (
  * @param containerTag - The container tag/identifier for memory search
  * @param logger - Logger instance for debugging and info output
  * @param mode - Memory search mode: "profile" (all memories), "query" (search-based), or "full" (both)
+ * @param baseUrl - The Supermemory API base URL
+ * @param apiKey - The Supermemory API key used to authenticate the request
  * @returns Promise that resolves to enhanced messages with memory-injected system prompt
  *
  * @example
@@ -150,7 +158,9 @@ const supermemoryProfileSearch = async (
  *   messages,
  *   "user-123",
  *   logger,
- *   "full"
+ *   "full",
+ *   baseUrl,
+ *   apiKey
  * )
  * // Returns messages with system prompt containing relevant memories
  * ```
@@ -161,6 +171,7 @@ const addSystemPrompt = async (
 	logger: Logger,
 	mode: "profile" | "query" | "full",
 	baseUrl: string,
+	apiKey: string,
 ) => {
 	const systemPromptExists = messages.some((msg) => msg.role === "system")
 
@@ -170,6 +181,7 @@ const addSystemPrompt = async (
 		containerTag,
 		queryText,
 		baseUrl,
+		apiKey,
 	)
 
 	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
@@ -400,8 +412,9 @@ const addMemoryTool = async (
  * @param options.verbose - Enable detailed logging of memory operations (default: false)
  * @param options.mode - Memory search mode: "profile" (all memories), "query" (search-based), or "full" (both) (default: "profile")
  * @param options.addMemory - Automatic memory storage mode: "always" or "never" (default: "never")
+ * @param options.apiKey - Supermemory API key to use instead of the SUPERMEMORY_API_KEY environment variable
  * @returns Object with `wrapClient` and `createClient` methods
- * @throws {Error} When SUPERMEMORY_API_KEY environment variable is not set
+ * @throws {Error} When neither `options.apiKey` nor `process.env.SUPERMEMORY_API_KEY` are set
  *
  * @example
  * ```typescript
@@ -421,8 +434,9 @@ export function createOpenAIMiddleware(
 ) {
 	const logger = createLogger(options?.verbose ?? false)
 	const baseUrl = normalizeBaseUrl(options?.baseUrl)
+	const apiKey = validateApiKey(options?.apiKey)
 	const client = new Supermemory({
-		apiKey: process.env.SUPERMEMORY_API_KEY,
+		apiKey,
 		...(baseUrl !== "https://api.supermemory.ai" ? { baseURL: baseUrl } : {}),
 	})
 
@@ -457,6 +471,7 @@ export function createOpenAIMiddleware(
 			containerTag,
 			queryText,
 			baseUrl,
+			apiKey,
 		)
 
 		const memoryCountStatic = memoriesResponse.profile.static?.length || 0
@@ -615,7 +630,7 @@ export function createOpenAIMiddleware(
 						memoryCustomId,
 						logger,
 						messages,
-						process.env.SUPERMEMORY_API_KEY,
+						apiKey,
 						baseUrl,
 					),
 				)
@@ -623,7 +638,7 @@ export function createOpenAIMiddleware(
 		}
 
 		operations.push(
-			addSystemPrompt(messages, containerTag, logger, mode, baseUrl),
+			addSystemPrompt(messages, containerTag, logger, mode, baseUrl, apiKey),
 		)
 
 		const results = await Promise.all(operations)
