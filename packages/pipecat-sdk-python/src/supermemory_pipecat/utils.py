@@ -49,17 +49,45 @@ def format_relative_time(iso_timestamp: str) -> str:
         return ""
 
 
+def extract_search_result_fields(item: Any) -> tuple[str, str]:
+    """Extract (memory, updatedAt) from a search result.
+
+    The Supermemory SDK returns search results as pydantic models
+    (attribute access, snake_case fields), while raw JSON payloads use
+    dicts with camelCase keys — support both so results survive
+    regardless of how they were fetched.
+    """
+    if isinstance(item, dict):
+        memory = item.get("memory", "")
+        updated_at = item.get("updatedAt", "")
+    else:
+        memory = getattr(item, "memory", None) or ""
+        updated_at = getattr(item, "updated_at", None)
+        if updated_at is None:
+            updated_at = getattr(item, "updatedAt", "")
+
+    if not isinstance(memory, str):
+        memory = ""
+    if isinstance(updated_at, datetime):
+        updated_at = updated_at.isoformat()
+    elif not isinstance(updated_at, str):
+        updated_at = ""
+
+    return memory, updated_at
+
+
 def deduplicate_memories(
     static: List[str],
     dynamic: List[str],
-    search_results: List[Dict[str, Any]],
-) -> Dict[str, Union[List[str], List[Dict[str, Any]]]]:
+    search_results: List[Any],
+) -> Dict[str, Union[List[str], List[Any]]]:
     """Deduplicate memories. Priority: static > dynamic > search.
 
     Args:
         static: List of static memory strings.
         dynamic: List of dynamic memory strings.
-        search_results: List of search result dicts with 'memory' and 'updatedAt'.
+        search_results: List of search results ('memory' and 'updatedAt'
+            as dicts or SDK model objects).
     """
     seen = set()
 
@@ -71,10 +99,10 @@ def deduplicate_memories(
                 out.append(m)
         return out
 
-    def unique_search(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def unique_search(results: List[Any]) -> List[Any]:
         out = []
         for r in results:
-            memory = r.get("memory", "")
+            memory, _ = extract_search_result_fields(r)
             if memory and memory not in seen:
                 seen.add(memory)
                 out.append(r)
@@ -116,16 +144,15 @@ def format_memories_to_text(
         sections.append("## Relevant Memories")
         lines = []
         for item in search_results:
-            if isinstance(item, dict):
-                memory = item.get("memory", "")
-                updated_at = item.get("updatedAt", "")
-                time_str = format_relative_time(updated_at) if updated_at else ""
-                if time_str:
-                    lines.append(f"- [{time_str}] {memory}")
-                else:
-                    lines.append(f"- {memory}")
-            else:
+            if isinstance(item, str):
                 lines.append(f"- {item}")
+                continue
+            memory, updated_at = extract_search_result_fields(item)
+            time_str = format_relative_time(updated_at) if updated_at else ""
+            if time_str:
+                lines.append(f"- [{time_str}] {memory}")
+            else:
+                lines.append(f"- {memory}")
         sections.append("\n".join(lines))
 
     if not sections:
