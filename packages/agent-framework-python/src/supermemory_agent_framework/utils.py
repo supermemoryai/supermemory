@@ -101,6 +101,12 @@ def deduplicate_memories(
         if isinstance(item, str):
             trimmed = item.strip()
             return trimmed if trimmed else None
+        # SDK search results are pydantic models, not dicts — read the
+        # memory field off the object so they aren't silently dropped.
+        memory = getattr(item, "memory", None)
+        if isinstance(memory, str):
+            trimmed = memory.strip()
+            return trimmed if trimmed else None
         return None
 
     static_memories: list[str] = []
