@@ -399,7 +399,7 @@ const addMemoryTool = async (
  * @param options.customId - Optional conversation ID to group messages for contextual memory generation
  * @param options.verbose - Enable detailed logging of memory operations (default: false)
  * @param options.mode - Memory search mode: "profile" (all memories), "query" (search-based), or "full" (both) (default: "profile")
- * @param options.addMemory - Automatic memory storage mode: "always" or "never" (default: "never")
+ * @param options.addMemory - Automatic memory storage mode: "always" or "never" (default: "always")
  * @returns Object with `wrapClient` and `createClient` methods
  * @throws {Error} When SUPERMEMORY_API_KEY environment variable is not set
  *
