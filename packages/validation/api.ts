@@ -271,14 +271,10 @@ export const ListMemoriesQuerySchema = z
 				}),
 			}),
 		limit: z
-			.string()
-			.regex(/^\d+$/)
-			.or(z.number())
-			.transform(Number)
-			.refine((value) => value <= 1100, {
-				message: "Limit cannot be greater than 1100",
-			})
-			.default("10")
+			.coerce
+			.number()
+			.max(1100, { message: "Limit cannot be greater than 1100" })
+			.default(10)
 			.openapi({
 				description: "Number of items per page",
 				example: "10",
@@ -288,11 +284,9 @@ export const ListMemoriesQuerySchema = z
 			.default("desc")
 			.openapi({ description: "Sort order", example: "desc" }),
 		page: z
-			.string()
-			.regex(/^\d+$/)
-			.or(z.number())
-			.transform(Number)
-			.default("1")
+			.coerce
+			.number()
+			.default(1)
 			.openapi({ description: "Page number to fetch", example: "1" }),
 		sort: z
 			.enum(["createdAt", "updatedAt"])
@@ -424,15 +418,9 @@ export const SearchRequestSchema = z.object({
 		.number()
 		.int()
 		.positive()
+		.max(100, { message: "limit must be between 1 and 100" })
 		.optional()
 		.default(10)
-		.refine((v) => v === undefined || (v > 0 && v <= 100), {
-			message: "limit must be between 1 and 100",
-			params: {
-				max: 100,
-				min: 1,
-			},
-		})
 		.openapi({
 			description: "Maximum number of results to return",
 			example: 10,
@@ -519,15 +507,9 @@ export const Searchv4RequestSchema = z.object({
 		.number()
 		.int()
 		.positive()
+		.max(100, { message: "limit must be between 1 and 100" })
 		.optional()
 		.default(10)
-		.refine((v) => v === undefined || (v > 0 && v <= 100), {
-			message: "limit must be between 1 and 100",
-			params: {
-				max: 100,
-				min: 1,
-			},
-		})
 		.openapi({
 			description: "Maximum number of results to return",
 			example: 10,
