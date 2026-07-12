@@ -18,6 +18,8 @@ export default defineConfig({
 	dts: {
 		sourcemap: false,
 	},
-	exports: true,
+	// exports are hand-maintained in package.json: tsdown's generator emits
+	// native path separators, producing broken "./openai\\index" on Windows.
+	exports: false,
 	unbundle: true,
 })
