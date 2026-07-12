@@ -56,7 +56,8 @@ jobs:
 
             - name: Build
               if: steps.version-check.outputs.changed == 'true'
-              run: bun run build
+              working-directory: .
+              run: bunx turbo run build --filter='@supermemory/ai-sdk'
 
             - name: Publish
               if: steps.version-check.outputs.changed == 'true'
