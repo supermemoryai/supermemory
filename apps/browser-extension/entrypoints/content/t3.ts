@@ -9,6 +9,11 @@ import {
 	autoSearchEnabled,
 	autoCapturePromptsEnabled,
 } from "../../utils/storage"
+import {
+	buildPromptInjection,
+	createIncludedMemoriesPopup,
+	serializeMemories,
+} from "../../utils/included-memories"
 import { createT3InputBarElement, DOMUtils } from "../../utils/ui-components"
 
 let t3DebounceTimeout: NodeJS.Timeout | null = null
@@ -219,7 +224,12 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 
 		console.log("T3 memories response:", response)
 
-		if (response?.success && response?.data) {
+		if (
+			response?.success &&
+			Array.isArray(response.data) &&
+			response.data.length > 0
+		) {
+			const memories = response.data as string[]
 			let textareaElement = null
 			const supermemoryContainer = document.querySelector(
 				'[data-supermemory-icon-added="true"]',
@@ -238,9 +248,9 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			}
 
 			if (textareaElement) {
-				textareaElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${response.data}`
+				textareaElement.dataset.supermemories = buildPromptInjection(memories)
 
-				iconElement.dataset.memoriesData = response.data
+				iconElement.dataset.memoriesData = serializeMemories(memories)
 
 				updateT3IconFeedback("Included Memories", iconElement)
 			} else {
@@ -296,104 +306,12 @@ function updateT3IconFeedback(
 	`
 
 	if (message === "Included Memories" && iconElement.dataset.memoriesData) {
-		const popup = document.createElement("div")
-		popup.style.cssText = `
-			position: fixed;
-			bottom: 80px;
-			left: 50%;
-			transform: translateX(-50%);
-			background: #1a1a1a;
-			color: white;
-			padding: 0;
-			border-radius: 12px;
-			font-size: 13px;
-			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-			max-width: 500px;
-			max-height: 400px;
-			box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-			z-index: 999999;
-			display: none;
-			border: 1px solid #333;
-		`
-
-		const header = document.createElement("div")
-		header.style.cssText = `
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			padding: 8px;
-			border-bottom: 1px solid #333;
-			opacity: 0.8;
-		`
-		header.innerHTML = `
-			<span style="font-weight: 600; color: #fff;">Included Memories</span>
-		`
-
-		const content = document.createElement("div")
-		content.style.cssText = `
-			padding: 0;
-			max-height: 300px;
-			overflow-y: auto;
-		`
-
-		const memoriesText = iconElement.dataset.memoriesData || ""
-		console.log("Memories text:", memoriesText)
-		const individualMemories = memoriesText
-			.split(/[,\n]/)
-			.map((memory) => memory.trim())
-			.filter((memory) => memory.length > 0 && memory !== ",")
-		console.log("Individual memories:", individualMemories)
-
-		individualMemories.forEach((memory, index) => {
-			const memoryItem = document.createElement("div")
-			memoryItem.style.cssText = `
-				display: flex;
-				align-items: center;
-				gap: 6px;
-				padding: 10px;
-				font-size: 13px;
-				line-height: 1.4;
-			`
-
-			const memoryText = document.createElement("div")
-			memoryText.style.cssText = `
-				flex: 1;
-				color: #e5e5e5;
-			`
-			memoryText.textContent = memory.trim()
-
-			const removeBtn = document.createElement("button")
-			removeBtn.style.cssText = `
-				background: transparent;
-				color: #9ca3af;
-				border: none;
-				padding: 4px;
-				border-radius: 4px;
-				cursor: pointer;
-				flex-shrink: 0;
-				height: fit-content;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-			`
-			removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`
-			removeBtn.dataset.memoryIndex = index.toString()
-
-			removeBtn.addEventListener("mouseenter", () => {
-				removeBtn.style.color = "#ef4444"
-			})
-			removeBtn.addEventListener("mouseleave", () => {
-				removeBtn.style.color = "#9ca3af"
-			})
-
-			memoryItem.appendChild(memoryText)
-			memoryItem.appendChild(removeBtn)
-			content.appendChild(memoryItem)
+		const popupHandle = createIncludedMemoriesPopup({
+			iconElement,
+			getPromptElement: () =>
+				document.querySelector("textarea") ||
+				document.querySelector('div[contenteditable="true"]'),
 		})
-
-		popup.appendChild(header)
-		popup.appendChild(content)
-		document.body.appendChild(popup)
 
 		feedbackDiv.addEventListener("mouseenter", () => {
 			const textSpan = feedbackDiv.querySelector("span:last-child")
@@ -411,69 +329,8 @@ function updateT3IconFeedback(
 
 		feedbackDiv.addEventListener("click", (e) => {
 			e.stopPropagation()
-			popup.style.display = "block"
+			popupHandle.show()
 		})
-
-		document.addEventListener("click", (e) => {
-			if (!popup.contains(e.target as Node)) {
-				popup.style.display = "none"
-			}
-		})
-
-		content.querySelectorAll("button[data-memory-index]").forEach((button) => {
-			const htmlButton = button as HTMLButtonElement
-			htmlButton.addEventListener("click", () => {
-				const index = Number.parseInt(htmlButton.dataset.memoryIndex || "0", 10)
-				const memoryItem = htmlButton.parentElement
-
-				if (memoryItem) {
-					content.removeChild(memoryItem)
-				}
-
-				const currentMemories = (iconElement.dataset.memoriesData || "")
-					.split(/[,\n]/)
-					.map((memory) => memory.trim())
-					.filter((memory) => memory.length > 0 && memory !== ",")
-				currentMemories.splice(index, 1)
-
-				const updatedMemories = currentMemories.join(" ,")
-
-				iconElement.dataset.memoriesData = updatedMemories
-
-				const textareaElement =
-					(document.querySelector("textarea") as HTMLTextAreaElement) ||
-					(document.querySelector('div[contenteditable="true"]') as HTMLElement)
-				if (textareaElement) {
-					textareaElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${updatedMemories}`
-				}
-
-				content
-					.querySelectorAll("button[data-memory-index]")
-					.forEach((btn, newIndex) => {
-						const htmlBtn = btn as HTMLButtonElement
-						htmlBtn.dataset.memoryIndex = newIndex.toString()
-					})
-
-				if (currentMemories.length <= 1) {
-					if (textareaElement?.dataset.supermemories) {
-						delete textareaElement.dataset.supermemories
-						delete iconElement.dataset.memoriesData
-						iconElement.innerHTML = iconElement.dataset.originalHtml || ""
-						delete iconElement.dataset.originalHtml
-					}
-					popup.style.display = "none"
-					if (document.body.contains(popup)) {
-						document.body.removeChild(popup)
-					}
-				}
-			})
-		})
-
-		setTimeout(() => {
-			if (document.body.contains(popup)) {
-				document.body.removeChild(popup)
-			}
-		}, 300000)
 	}
 
 	iconElement.innerHTML = ""

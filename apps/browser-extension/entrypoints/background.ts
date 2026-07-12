@@ -162,9 +162,12 @@ export default defineBackground(() => {
 			const response = responseData as {
 				results?: Array<{ memory?: string }>
 			}
+			// Return raw memory strings; consumers handle numbering/formatting.
 			const memories: string[] = []
-			response.results?.forEach((result, index) => {
-				memories.push(`${index + 1}. ${result.memory} \n`)
+			response.results?.forEach((result) => {
+				if (result.memory) {
+					memories.push(result.memory)
+				}
 			})
 			console.log("Memories:", memories)
 			await trackEvent(eventSource)
