@@ -190,9 +190,9 @@ function CopyableId({
 	)
 }
 
-type Quadrant = "right" | "left" | "above" | "below"
+export type Quadrant = "right" | "left" | "above" | "below"
 
-function pickBestQuadrant(
+export function pickBestQuadrant(
 	screenX: number,
 	screenY: number,
 	nodeRadius: number,
@@ -202,25 +202,23 @@ function pickBestQuadrant(
 	popoverHeight: number,
 ): Quadrant {
 	const gap = 24
-	const spaceRight = containerWidth - (screenX + nodeRadius + gap)
-	const spaceLeft = screenX - nodeRadius - gap
-	const spaceAbove = screenY - nodeRadius - gap
-	const spaceBelow = containerHeight - (screenY + nodeRadius + gap)
-
-	const fits: [Quadrant, number][] = [
-		["right", spaceRight >= popoverWidth ? spaceRight : -1],
-		["left", spaceLeft >= popoverWidth ? spaceLeft : -1],
-		["above", spaceAbove >= popoverHeight ? spaceAbove : -1],
-		["below", spaceBelow >= popoverHeight ? spaceBelow : -1],
+	// [quadrant, available space, space required for the popover to fit]
+	const candidates: [Quadrant, number, number][] = [
+		["right", containerWidth - (screenX + nodeRadius + gap), popoverWidth],
+		["left", screenX - nodeRadius - gap, popoverWidth],
+		["above", screenY - nodeRadius - gap, popoverHeight],
+		["below", containerHeight - (screenY + nodeRadius + gap), popoverHeight],
 	]
 
 	const preferred: Quadrant[] = ["right", "left", "below", "above"]
 	for (const q of preferred) {
-		const entry = fits.find(([dir]) => dir === q)
-		if (entry && entry[1] > 0) return q
+		const entry = candidates.find(([dir]) => dir === q)
+		if (entry && entry[1] >= entry[2]) return q
 	}
 
-	return fits.sort((a, b) => b[1] - a[1])[0]?.[0] ?? "right"
+	// Nothing fits fully — fall back to the side with the most room so the
+	// clamped popover overlaps the node as little as possible.
+	return candidates.sort((a, b) => b[1] - a[1])[0]?.[0] ?? "right"
 }
 
 function truncate(s: string, max: number) {
