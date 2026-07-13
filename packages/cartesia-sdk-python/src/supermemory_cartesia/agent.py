@@ -387,8 +387,14 @@ class SupermemoryCartesiaAgent:
         Yields:
             Output events from the wrapped agent.
         """
-        try:
-            if type(event).__name__ == "UserTurnEnded":
+        # Memory enrichment must never prevent the agent from running, so it
+        # gets its own guard. The agent iteration stays outside of it: with
+        # the old whole-body try/except, an agent error raised mid-stream
+        # (after some chunks were already yielded) triggered a fallback that
+        # re-ran the entire agent — duplicating the visible response and the
+        # LLM call.
+        if type(event).__name__ == "UserTurnEnded":
+            try:
                 logger.info("[Supermemory] Processing UserTurnEnded event")
                 event, memory_context = await self._enrich_event_with_memories(event)
 
@@ -433,17 +439,13 @@ class SupermemoryCartesiaAgent:
                         self._background_tasks.add(task)
                         task.add_done_callback(self._background_tasks.discard)
                         self._messages_sent_count = 1  # CRITICAL: Increment counter to prevent duplicate storage
+            except Exception as e:
+                logger.error(f"[Supermemory] Error in memory enrichment: {e}")
 
-                async for output in self.agent.process(env, event):
-                    yield output
-            else:
-                async for output in self.agent.process(env, event):
-                    yield output
-
-        except Exception as e:
-            logger.error(f"[Supermemory] Error in process: {e}")
-            async for output in self.agent.process(env, event):
-                yield output
+        # Run the wrapped agent exactly once; its errors propagate to the
+        # caller instead of triggering a duplicate run.
+        async for output in self.agent.process(env, event):
+            yield output
 
     def reset_memory_tracking(self) -> None:
         """Reset memory tracking for a new conversation."""
