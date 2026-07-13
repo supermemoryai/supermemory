@@ -24,10 +24,12 @@ export function CopyButton({
 	const [hasCopied, setHasCopied] = React.useState(false)
 
 	useEffect(() => {
-		setTimeout(() => {
+		if (!hasCopied) return
+		const timer = setTimeout(() => {
 			setHasCopied(false)
 		}, 2000)
-	}, [])
+		return () => clearTimeout(timer)
+	}, [hasCopied])
 
 	return (
 		<Button
