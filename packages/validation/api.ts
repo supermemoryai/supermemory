@@ -1115,6 +1115,13 @@ export const DocumentsWithMemoriesQuerySchema = z
 				description: "Optional container tags to filter documents by",
 				example: ["sm_project_default"],
 			}),
+		sources: z
+			.array(z.string().trim().min(1).max(255))
+			.optional()
+			.openapi({
+				description: "Optional document sources to filter by (OR logic)",
+				example: ["claude-code", "codex"],
+			}),
 	})
 	.openapi({
 		description: "Query parameters for listing documents with memory entries",

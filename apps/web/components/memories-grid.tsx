@@ -34,10 +34,18 @@ import { getFaviconUrl, isSupermemoryFileUrl } from "@/lib/url-helpers"
 import { QuickNoteCard } from "./quick-note-card"
 import type { HighlightItem } from "./highlights-card"
 import { Button } from "@ui/components/button"
+import { ToggleGroup, ToggleGroupItem } from "@ui/components/toggle-group"
 import {
+	agentSourceParam,
 	categoriesParam,
 	type IntegrationParamValue,
 } from "@/lib/search-params"
+import {
+	AGENT_SOURCE_FILTERS,
+	agentSourceValues,
+	isAgentsSelection,
+	type AgentSourceFilter,
+} from "@/lib/agent-space"
 import { NovaEmptyState } from "@/components/nova/nova-empty-state"
 import {
 	AlertDialog,
@@ -272,15 +280,29 @@ export function MemoriesGrid({
 	)
 	const { user, isSessionPending } = useAuth()
 	const { effectiveContainerTags, selectedProject } = useProject()
+	const profileContainerTag = selectedProject ?? effectiveContainerTags[0] ?? ""
 	const processingStatusMap = useProcessingDocuments()
 	const isMobile = useIsMobile()
 	const [selectedCategories, setSelectedCategories] = useQueryState(
 		"categories",
 		categoriesParam,
 	)
+	const [selectedAgentSource, setSelectedAgentSource] = useQueryState(
+		"agent",
+		agentSourceParam,
+	)
 	const selectedCategoriesSet = useMemo(
 		() => new Set(selectedCategories),
 		[selectedCategories],
+	)
+	const showAgentFilters = useMemo(
+		() => isAgentsSelection(effectiveContainerTags),
+		[effectiveContainerTags],
+	)
+	const selectedSources = useMemo(
+		() =>
+			showAgentFilters ? agentSourceValues(selectedAgentSource) : undefined,
+		[showAgentFilters, selectedAgentSource],
 	)
 
 	const { data: facetsData } = useQuery({
@@ -303,6 +325,41 @@ export function MemoriesGrid({
 		enabled: !!user,
 	})
 
+	const { data: agentSourceCounts } = useQuery({
+		queryKey: ["agent-source-counts", effectiveContainerTags],
+		queryFn: async (): Promise<Partial<Record<AgentSourceFilter, number>>> => {
+			const entries = await Promise.all(
+				AGENT_SOURCE_FILTERS.map(async (filter) => {
+					const response = await $fetch("@post/documents/documents", {
+						body: {
+							page: 1,
+							limit: 1,
+							sort: "createdAt",
+							order: "desc",
+							containerTags: effectiveContainerTags,
+							sources: [...filter.sources],
+						},
+						disableValidation: true,
+					})
+
+					if (response.error) {
+						throw new Error(
+							response.error?.message || "Failed to fetch agent source count",
+						)
+					}
+
+					const result = response.data as {
+						pagination?: { totalItems?: number }
+					} | null
+					return [filter.value, result?.pagination?.totalItems ?? 0] as const
+				}),
+			)
+			return Object.fromEntries(entries)
+		},
+		staleTime: 5 * 60 * 1000,
+		enabled: !!user && showAgentFilters,
+	})
+
 	const {
 		data,
 		error,
@@ -315,6 +372,7 @@ export function MemoriesGrid({
 			"documents-with-memories",
 			effectiveContainerTags,
 			selectedCategories,
+			selectedSources,
 		],
 		initialPageParam: 1,
 		queryFn: async ({ pageParam }) => {
@@ -327,6 +385,7 @@ export function MemoriesGrid({
 					containerTags: effectiveContainerTags,
 					categories:
 						selectedCategories.length > 0 ? selectedCategories : undefined,
+					sources: selectedSources,
 				},
 				disableValidation: true,
 			})
@@ -383,7 +442,8 @@ export function MemoriesGrid({
 
 	const handleSelectAll = useCallback(() => {
 		setSelectedCategories(null)
-	}, [setSelectedCategories])
+		setSelectedAgentSource(null)
+	}, [setSelectedCategories, setSelectedAgentSource])
 
 	const documents = useMemo(() => {
 		return (
@@ -562,7 +622,7 @@ export function MemoriesGrid({
 
 	return (
 		<div className="relative flex h-full min-h-0 flex-col">
-			{!isEmpty && !isSelectionMode && (
+			{(!isEmpty || (facetsData?.total ?? 0) > 0) && !isSelectionMode && (
 				<div
 					id="filter-pills"
 					className="mb-3 flex flex-col gap-2 pr-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
@@ -573,6 +633,7 @@ export function MemoriesGrid({
 								dmSansClassName(),
 								"shrink-0 whitespace-nowrap rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
 								selectedCategories.length === 0 &&
+									!selectedSources &&
 									"bg-[#00173C] border-[#2261CA33]",
 							)}
 							onClick={handleSelectAll}
@@ -599,6 +660,36 @@ export function MemoriesGrid({
 								<span className="ml-1 text-[#737373]">({facet.count})</span>
 							</Button>
 						))}
+						{showAgentFilters && (
+							<ToggleGroup
+								type="single"
+								value={selectedAgentSource ?? ""}
+								onValueChange={(value) =>
+									setSelectedAgentSource(
+										value ? (value as AgentSourceFilter) : null,
+									)
+								}
+								aria-label="Filter memories by agent"
+								className="gap-1.5"
+							>
+								{AGENT_SOURCE_FILTERS.map((filter) => (
+									<ToggleGroupItem
+										key={filter.value}
+										value={filter.value}
+										aria-label={`Show ${filter.label} memories`}
+										className={cn(
+											dmSansClassName(),
+											"h-auto min-w-0 flex-none shrink-0 rounded-full! border border-[#161F2C]! bg-[#0D121A] px-2.5 py-1 text-xs hover:border-[#2261CA33]! hover:bg-[#00173C] data-[state=on]:border-[#2261CA33]! data-[state=on]:bg-[#00173C]",
+										)}
+									>
+										{filter.label}
+										<span className="ml-1 text-[#737373]">
+											({agentSourceCounts?.[filter.value] ?? 0})
+										</span>
+									</ToggleGroupItem>
+								))}
+							</ToggleGroup>
+						)}
 					</div>
 					<div className="order-1 flex w-full items-center justify-between gap-2 sm:order-2 sm:w-auto sm:justify-start sm:self-start">
 						{/* View mode toggle — segmented control */}
@@ -866,7 +957,7 @@ export function MemoriesGrid({
 						<AnimatePresence initial={false}>
 							{profileOpen && !isMobile && (
 								<SpaceProfilePanel
-									containerTag={selectedProject}
+									containerTag={profileContainerTag}
 									isOpen
 									onClose={() => setProfileOpen(false)}
 								/>
@@ -876,7 +967,7 @@ export function MemoriesGrid({
 				)}
 			</div>
 			<SpaceProfileModal
-				containerTag={selectedProject}
+				containerTag={profileContainerTag}
 				open={profileOpen && isMobile}
 				onOpenChange={setProfileOpen}
 			/>

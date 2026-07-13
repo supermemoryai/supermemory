@@ -43,8 +43,10 @@ import {
 } from "@/lib/ingest-auto-space"
 import { detectPluginSpace, pluginInitial } from "@/lib/plugin-space"
 import { usePluginSpaceMeta } from "@/hooks/use-plugin-space-meta"
+import { groupAgentSpaces, type AgentSpaceGroup } from "@/lib/agent-space"
 import NovaOrb from "@/components/nova/nova-orb"
 import { AutoSpaceIcon } from "@/components/nova/auto-space-icon"
+import { Logo } from "@ui/assets/Logo"
 
 export interface SpaceSelectorProps {
 	selectedProjects: string[]
@@ -158,8 +160,10 @@ export function SpaceSelector({
 	}, [])
 
 	const activeTag = selectedProjects[0] ?? defaultTag
+	const activeTags =
+		selectedProjects.length > 0 ? selectedProjects : [defaultTag]
 	const { data: spaceCountData } = useQuery({
-		queryKey: ["space-selector-count", activeTag],
+		queryKey: ["space-selector-count", activeTags],
 		queryFn: async (): Promise<number> => {
 			const response = await $fetch("@post/documents/documents", {
 				body: {
@@ -167,7 +171,7 @@ export function SpaceSelector({
 					limit: 1,
 					sort: "createdAt",
 					order: "desc",
-					containerTags: [activeTag],
+					containerTags: activeTags,
 				},
 				disableValidation: true,
 			})
@@ -178,7 +182,7 @@ export function SpaceSelector({
 			return data?.pagination?.totalItems ?? 0
 		},
 		staleTime: 30 * 1000,
-		enabled: !!activeTag && activeTag !== AUTO_CHAT_SPACE_ID,
+		enabled: activeTags.length > 0 && !activeTags.includes(AUTO_CHAT_SPACE_ID),
 	})
 
 	const pluginTags = useMemo(
@@ -191,6 +195,13 @@ export function SpaceSelector({
 		[allProjects],
 	)
 	const pluginMetaMap = usePluginSpaceMeta(pluginTags)
+	const agentGroupByTag = useMemo(() => {
+		const map = new Map<string, AgentSpaceGroup<ContainerTagListType>>()
+		for (const group of groupAgentSpaces(allProjects, pluginMetaMap)) {
+			for (const tag of group.containerTags) map.set(tag, group)
+		}
+		return map
+	}, [allProjects, pluginMetaMap])
 
 	const displayInfo = useMemo<{
 		name: string
@@ -222,13 +233,19 @@ export function SpaceSelector({
 			(p: ContainerTagListType) => p.containerTag === containerTag,
 		)
 		const plugin = detectPluginSpace(containerTag)
+		const agentGroup = agentGroupByTag.get(containerTag)
 		const isOwnSpace = isOwnConversationSpace({ containerTag }, user?.id)
-		const projectName = pluginMetaMap.get(containerTag)?.projectName
+		const projectName =
+			agentGroup?.projectName ??
+			agentGroup?.label ??
+			pluginMetaMap.get(containerTag)?.projectName
 		const idForLabel = projectName || plugin?.projectId
 		return {
 			name: plugin
 				? idForLabel
-					? `${plugin.label} · ${idForLabel}`
+					? plugin.pluginId === "agents"
+						? idForLabel
+						: `${plugin.label} · ${idForLabel}`
 					: plugin.label
 				: spaceSelectorDisplayName(found, containerTag, {
 						currentUserId: user?.id,
@@ -242,6 +259,7 @@ export function SpaceSelector({
 		allProjects,
 		selectedProjects,
 		pluginMetaMap,
+		agentGroupByTag,
 		includeAuto,
 		user?.id,
 		defaultTag,
@@ -263,7 +281,7 @@ export function SpaceSelector({
 
 	const handleSelectSpacesApply = useCallback(
 		(selected: string[]) => {
-			const next = selected.slice(0, 1)
+			const next = selected
 			const selectedTag = next[0]
 			setShowSelectSpacesModal(false)
 			onValueChange(next)
@@ -428,7 +446,14 @@ export function SpaceSelector({
 										className="shrink-0 blur-[0.45px]!"
 									/>
 								) : displayInfo.plugin ? (
-									displayInfo.plugin.iconSrc ? (
+									displayInfo.plugin.pluginId === "agents" ? (
+										<Logo
+											className={cn(
+												"shrink-0",
+												compact ? "h-3.5 w-[17px]" : "h-4 w-5",
+											)}
+										/>
+									) : displayInfo.plugin.iconSrc ? (
 										<Image
 											src={displayInfo.plugin.iconSrc}
 											alt=""
@@ -664,7 +689,9 @@ export function SpaceSelector({
 														>
 															<span className="flex items-center gap-2 min-w-0">
 																{plugin ? (
-																	plugin.iconSrc ? (
+																	plugin.pluginId === "agents" ? (
+																		<Logo className="h-4 w-5 shrink-0" />
+																	) : plugin.iconSrc ? (
 																		<Image
 																			src={plugin.iconSrc}
 																			alt=""
@@ -693,14 +720,18 @@ export function SpaceSelector({
 																	{p.containerTag === DEFAULT_PROJECT_ID ? (
 																		"My Space"
 																	) : plugin ? (
-																		<>
-																			{plugin.label}
-																			{plugin.projectId && (
-																				<span className="ml-1.5 text-[11px] text-[#737373]">
-																					· {plugin.projectId}
-																				</span>
-																			)}
-																		</>
+																		plugin.pluginId === "agents" ? (
+																			plugin.projectId || plugin.label
+																		) : (
+																			<>
+																				{plugin.label}
+																				{plugin.projectId && (
+																					<span className="ml-1.5 text-[11px] text-[#737373]">
+																						· {plugin.projectId}
+																					</span>
+																				)}
+																			</>
+																		)
 																	) : (
 																		spaceSelectorDisplayName(
 																			p,

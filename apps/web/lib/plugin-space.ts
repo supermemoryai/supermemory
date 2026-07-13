@@ -1,7 +1,15 @@
 import { normalizePluginClientId } from "@/lib/plugin-catalog"
+import { isAgentContainerTag } from "@/lib/agent-space"
 
 export type PluginSpaceInfo = {
-	pluginId: "claude-code" | "openclaw" | "opencode" | "codex" | "amp" | "hermes"
+	pluginId:
+		| "agents"
+		| "claude-code"
+		| "openclaw"
+		| "opencode"
+		| "codex"
+		| "amp"
+		| "hermes"
 	label: string
 	iconSrc: string | null
 	projectId?: string
@@ -16,10 +24,10 @@ type PluginDef = {
 
 const PLUGINS: PluginDef[] = [
 	{
-		id: "claude-code",
-		label: "Claude Code",
-		iconSrc: "/images/plugins/claude-code.svg",
-		prefixes: ["claudecode"],
+		id: "agents",
+		label: "Agents",
+		iconSrc: null,
+		prefixes: ["user_project", "repo", "claudecode", "codex"],
 	},
 	{
 		id: "openclaw",
@@ -32,12 +40,6 @@ const PLUGINS: PluginDef[] = [
 		label: "OpenCode",
 		iconSrc: "/images/plugins/opencode.svg",
 		prefixes: ["opencode"],
-	},
-	{
-		id: "codex",
-		label: "Codex",
-		iconSrc: "/images/plugins/codex.png",
-		prefixes: ["codex"],
 	},
 	{
 		id: "amp",
@@ -186,8 +188,28 @@ export function detectPluginSpace(
 	containerTag: string,
 ): PluginSpaceInfo | null {
 	if (!containerTag) return null
+	if (isAgentContainerTag(containerTag)) {
+		const agents = PLUGINS[0]
+		if (agents) {
+			const matchingPrefix = agents.prefixes.find(
+				(prefix) =>
+					containerTag === prefix ||
+					(containerTag.startsWith(prefix) &&
+						["_", "-"].includes(containerTag[prefix.length] ?? "")),
+			)
+			if (matchingPrefix) {
+				const rest = containerTag.slice(matchingPrefix.length + 1)
+				return {
+					pluginId: agents.id,
+					label: agents.label,
+					iconSrc: agents.iconSrc,
+					projectId: parsePluginRest(rest).projectId,
+				}
+			}
+		}
+	}
 
-	for (const plugin of PLUGINS) {
+	for (const plugin of PLUGINS.slice(1)) {
 		for (const prefix of plugin.prefixes) {
 			if (containerTag === prefix) {
 				return {
