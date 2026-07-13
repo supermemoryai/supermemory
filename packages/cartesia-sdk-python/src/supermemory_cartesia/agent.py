@@ -477,8 +477,12 @@ class SupermemoryCartesiaAgent:
         Yields:
             Output events from the wrapped agent.
         """
-        try:
-            if type(event).__name__ == "UserTurnEnded":
+        if type(event).__name__ == "UserTurnEnded":
+            memory_context = None
+            # Guard only the enrichment and storage work so a memory failure
+            # cannot stop the agent, and keep the agent call out of the guard
+            # so its own errors are not retried into a duplicate run.
+            try:
                 logger.info("[Supermemory] Processing UserTurnEnded event")
                 event, memory_context = await self._enrich_event_with_memories(event)
 
@@ -505,15 +509,12 @@ class SupermemoryCartesiaAgent:
                         task = asyncio.create_task(self._store_messages(new_messages))
                         self._background_tasks.add(task)
                         task.add_done_callback(self._background_tasks.discard)
+            except Exception as e:
+                logger.error(f"[Supermemory] Error in memory enrichment: {e}")
 
-                async for output in self._process_agent(env, event, memory_context):
-                    yield output
-            else:
-                async for output in self.agent.process(env, event):
-                    yield output
-
-        except Exception as e:
-            logger.error(f"[Supermemory] Error in process: {e}")
+            async for output in self._process_agent(env, event, memory_context):
+                yield output
+        else:
             async for output in self.agent.process(env, event):
                 yield output
 
