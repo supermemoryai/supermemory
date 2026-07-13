@@ -262,29 +262,21 @@ export class ClaudeMemoryTool {
 		viewRange?: [number, number],
 	): Promise<MemoryResponse> {
 		try {
-			const normalizedId = this.normalizePathToCustomId(filePath)
-
-			const response = await this.client.search.execute({
-				q: normalizedId,
-				containerTags: this.containerTags,
-				limit: 1,
-				includeFullDocs: true,
-			})
-
-			// Try to find exact match by customId
-			const exactMatch = response.results?.find(
-				(r) => r.documentId === normalizedId,
-			)
-			const document = exactMatch || response.results?.[0]
-
-			if (!document) {
+			// Same lookup as every mutating command: limit 5 so the exact
+			// customId match is findable among semantic near-neighbours.
+			// With the old limit of 1, a similarly-named file ranking first
+			// made this return the wrong file's contents as a success.
+			const readResult = await this.getFileDocument(filePath)
+			if (!readResult.success || !readResult.document) {
 				return {
 					success: false,
-					error: `File not found: ${filePath}`,
+					error: readResult.error || `File not found: ${filePath}`,
 				}
 			}
 
-			let content = document.content || ""
+			const document = readResult.document
+
+			let content: string = document.raw || document.content || ""
 
 			// Apply line range if specified
 			if (viewRange) {
@@ -393,8 +385,10 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			// Replace the string
-			const newContent = originalContent.replace(oldStr, newStr)
+			// Replace the string. The function replacer keeps `$` sequences
+			// in the replacement literal — a bare string here would expand
+			// patterns like $&, $', and $` and silently corrupt the file.
+			const newContent = originalContent.replace(oldStr, () => newStr)
 
 			// Update the document
 			const normalizedId = this.normalizePathToCustomId(filePath)
@@ -590,11 +584,12 @@ export class ClaudeMemoryTool {
 				includeFullDocs: true,
 			})
 
-			// Try to find exact match by customId first
-			const exactMatch = response.results?.find(
+			// Only accept the exact customId match. Falling back to the top
+			// semantic hit would let callers read — and worse, modify or
+			// delete — a different file than the one they asked for.
+			const document = response.results?.find(
 				(r) => r.documentId === normalizedId,
 			)
-			const document = exactMatch || response.results?.[0]
 
 			if (!document) {
 				return {
