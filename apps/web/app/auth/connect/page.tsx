@@ -278,6 +278,7 @@ function AuthConnectContent() {
 	const hasAutoConnectedAfterUpgrade = useRef(false)
 	const upgradeSyncStartedAt = useRef<number | null>(null)
 	const upgradeSyncRetryTimer = useRef<number | null>(null)
+	const handleConnectRef = useRef<(() => Promise<void>) | null>(null)
 
 	const callback = params.get("callback")
 	const client = params.get("client")
@@ -392,14 +393,19 @@ function AuthConnectContent() {
 				upgradeSyncStartedAt.current = startedAt
 
 				if (Date.now() - startedAt < UPGRADE_PLAN_SYNC_TIMEOUT_MS) {
-					hasAutoConnectedAfterUpgrade.current = false
 					setStatus("loading")
 					if (upgradeSyncRetryTimer.current !== null) {
 						window.clearTimeout(upgradeSyncRetryTimer.current)
 					}
 					upgradeSyncRetryTimer.current = window.setTimeout(() => {
 						upgradeSyncRetryTimer.current = null
-						void autumn.refetch?.()
+						void (async () => {
+							try {
+								await autumn.refetch?.()
+							} finally {
+								void handleConnectRef.current?.()
+							}
+						})()
 					}, UPGRADE_PLAN_SYNC_RETRY_MS)
 					return
 				}
@@ -492,6 +498,10 @@ function AuthConnectContent() {
 		shouldAutoConnectAfterUpgrade,
 	])
 
+	useEffect(() => {
+		handleConnectRef.current = handleConnect
+	}, [handleConnect])
+
 	async function handleUpgrade() {
 		try {
 			setIsUpgrading(true)
@@ -510,7 +520,6 @@ function AuthConnectContent() {
 
 	const retryUpgradeSync = useCallback(() => {
 		upgradeSyncStartedAt.current = Date.now()
-		hasAutoConnectedAfterUpgrade.current = false
 		setError(null)
 		setStatus("loading")
 		void autumn.refetch?.()
