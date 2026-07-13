@@ -7,7 +7,7 @@ import { cn } from "@lib/utils"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { isFreeTierPlugin } from "@/lib/plugin-catalog"
 import { useCustomer } from "autumn-js/react"
-import { ArrowRight, Check, Clock3, Loader, XCircle } from "lucide-react"
+import { ArrowRight, Check, Loader, XCircle } from "lucide-react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
@@ -835,7 +835,7 @@ function AuthConnectContent() {
 			<div className={pageWrapperClass}>
 				<div className={cardClass}>
 					<div className="flex flex-col items-center gap-5 text-center">
-						<Clock3 className="size-10 text-[#8BC6FF]" />
+						<PluginLogoStack clients={requestedClients} />
 						<div>
 							<h2
 								className={dmSans125ClassName(
@@ -854,11 +854,11 @@ function AuthConnectContent() {
 							</p>
 						</div>
 
-						<div className="w-full rounded-lg border border-[#1E293B] bg-[#0D121A] px-4 py-3 text-left">
-							<p className={dmSans125ClassName("text-[12px] text-[#8B8B8B]")}>
-								Re-authenticate from the CLI to finish connecting.
+						<div className="w-full text-left">
+							<p className={dmSans125ClassName("text-[12px] text-[#737373]")}>
+								Re-authenticate from the CLI to finish connecting:
 							</p>
-							<code className="mt-1 block text-[12px] text-[#8BC6FF]">
+							<code className="mt-1.5 block text-[12px] text-[#FAFAFA]">
 								npx supermemory plugin login
 							</code>
 						</div>
@@ -869,8 +869,10 @@ function AuthConnectContent() {
 								onClick={retryUpgradeSync}
 								className={cn(
 									"w-full flex items-center justify-center rounded-[10px] h-11",
-									"bg-[#0D121A] border border-[#1E293B] text-[#FAFAFA]",
-									"text-[14px] font-medium cursor-pointer transition-colors hover:bg-[#1E293B]",
+									"text-[#FAFAFA] text-[14px] font-medium cursor-pointer",
+									"bg-[linear-gradient(182.37deg,#0ff0d2_-91.53%,#5bd3fb_-67.8%,#1e0ff0_95.17%)]",
+									"shadow-[1px_1px_2px_0px_#1A88FF_inset,0_2px_10px_0_rgba(5,1,0,0.20)]",
+									"transition-opacity hover:opacity-90",
 									dmSans125ClassName(),
 								)}
 							>
