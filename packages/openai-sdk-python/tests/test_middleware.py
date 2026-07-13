@@ -1052,9 +1052,15 @@ class TestMemorySearchFailOpen:
     async def test_black_box_async_connection_error(
         self, mock_async_openai_client, mock_openai_response
     ):
-        """Exact repro: the real search path hits a connection error at the
-        HTTP layer, and ``create()`` must still return successfully."""
-        import aiohttp
+        """Exact repro over the aiohttp path: the real search path hits a
+        connection error at the HTTP layer, and ``create()`` must still return
+        successfully.
+
+        ``aiohttp`` is only an optional (``async`` extra) dependency, so this
+        test skips cleanly when it is not installed; the ``requests`` fallback
+        is covered by ``test_black_box_sync_connection_error`` instead.
+        """
+        aiohttp = pytest.importorskip("aiohttp")
 
         original_create = AsyncMock(return_value=mock_openai_response)
         mock_async_openai_client.chat.completions.create = original_create
@@ -1087,9 +1093,16 @@ class TestMemorySearchFailOpen:
     def test_black_box_sync_connection_error(
         self, mock_openai_client, mock_openai_response
     ):
-        """Exact repro for the sync wrapper: a connection error at the HTTP
-        layer must not crash ``create()``."""
-        import aiohttp
+        """Exact repro over the ``requests`` fallback: a connection error at the
+        HTTP layer must not crash ``create()``.
+
+        ``requests`` is a core dependency, so this repro runs in the default dev
+        setup without the optional ``aiohttp`` extra. We force the fallback by
+        making ``import aiohttp`` fail inside ``supermemory_profile_search`` (via
+        ``sys.modules``), which mirrors a production install without the extra.
+        """
+        import sys
+
         import requests
 
         original_create = Mock(return_value=mock_openai_response)
@@ -1100,11 +1113,8 @@ class TestMemorySearchFailOpen:
                 "supermemory_openai.middleware.add_memory_tool",
                 new=AsyncMock(return_value=None),
             ):
-                # Fail whichever HTTP client the search path ends up using.
-                with patch(
-                    "aiohttp.ClientSession.post",
-                    side_effect=aiohttp.ClientConnectionError("connection refused"),
-                ):
+                # Force the requests fallback: `import aiohttp` raises ImportError.
+                with patch.dict(sys.modules, {"aiohttp": None}):
                     with patch(
                         "requests.post",
                         side_effect=requests.exceptions.ConnectionError(
