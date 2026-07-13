@@ -521,7 +521,8 @@ export function useDocumentMutations({
 				const data = (await response.json()) as { id: string }
 
 				if (applyMeta && (title || description)) {
-					await $fetch(`@patch/documents/${data.id}`, {
+					await $fetch("@patch/documents/:id", {
+						params: { id: data.id },
 						body: {
 							metadata: {
 								...(title && { title }),
@@ -642,7 +643,8 @@ export function useDocumentMutations({
 			documentId: string
 			content: string
 		}) => {
-			const response = await $fetch(`@patch/documents/${documentId}`, {
+			const response = await $fetch("@patch/documents/:id", {
+				params: { id: documentId },
 				body: {
 					content,
 					metadata: { sm_source: "consumer" },
