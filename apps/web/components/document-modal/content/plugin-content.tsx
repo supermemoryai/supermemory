@@ -47,24 +47,6 @@ function PluginHeader({ parsed }: { parsed: ParsedPluginDocument }) {
 				>
 					{parsed.pluginLabel}
 				</span>
-				<span
-					className={cn(
-						dmSansClassName(),
-						"inline-flex items-center rounded-full border border-[#1F242C] bg-[#0F1318] px-2.5 py-1 text-[11px] font-medium text-[#B7BDC7]",
-					)}
-				>
-					{parsed.formatLabel}
-				</span>
-				{parsed.identifierLabel && parsed.identifierValue && (
-					<span
-						className={cn(
-							dmSansClassName(),
-							"inline-flex items-center rounded-full border border-[#1F242C] bg-[#0F1318] px-2.5 py-1 text-[11px] font-medium text-[#8E97A3]",
-						)}
-					>
-						{parsed.identifierLabel}: {parsed.identifierValue}
-					</span>
-				)}
 			</div>
 			<p
 				className={cn(

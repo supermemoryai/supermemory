@@ -4,15 +4,8 @@ import { dmSans125ClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { useAuth } from "@lib/auth-context"
 import { authClient } from "@lib/auth"
-import { useOrgSummaries } from "@/hooks/use-org-summaries"
-import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
-import {
-	PLAN_RANK,
-	useTokenUsage,
-	type PlanType,
-} from "@/hooks/use-token-usage"
-import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
+import { Popover, PopoverContent } from "@ui/components/popover"
 import {
 	Select,
 	SelectContent,
@@ -28,33 +21,39 @@ import {
 } from "@ui/components/dropdown-menu"
 import { Dialog, DialogContent, DialogTitle } from "@ui/components/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import {
-	Check,
 	LoaderIcon,
 	ChevronDown,
-	Building2,
 	Users,
 	UserPlus,
 	Mail,
 	MoreHorizontal,
 	UserMinus,
 	X,
+	Pencil,
 	Tag,
 	Plus,
 } from "lucide-react"
-import { useMemo, useRef, useState } from "react"
+import { useQueryState } from "nuqs"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { PopoverAnchor } from "@ui/components/popover"
+import { OrgContext } from "@/components/settings/org-context"
+import { OrgPlanBadge } from "@/components/org-plan-badge"
+import { useTokenUsage } from "@/hooks/use-token-usage"
+import { useOrgSummaries } from "@/hooks/use-org-summaries"
+import { useCustomer } from "autumn-js/react"
+import { FileText, Layers, Plug, Search } from "lucide-react"
+import { $fetch } from "@lib/api"
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
 	return (
 		<p
 			className={cn(
 				dmSans125ClassName(),
-				"font-semibold text-[20px] tracking-[-0.2px] text-[#FAFAFA] px-2",
+				"font-semibold text-[14px] tracking-[-0.14px] text-[#FAFAFA]",
 			)}
 		>
 			{children}
@@ -134,16 +133,11 @@ function isPendingInvitation(invitation: {
 }
 
 export default function Account() {
-	const {
-		user,
-		org,
-		organizations: allOrgs,
-		setActiveOrg,
-		refetchActiveOrg,
-	} = useAuth()
+	const { user, org, refetchActiveOrg, refetchOrganizations } = useAuth()
 	const autumn = useCustomer()
-	const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null)
-	const [orgMenuOpen, setOrgMenuOpen] = useState(false)
+	const { currentPlan, searchesUsed } = useTokenUsage(autumn)
+	const { data: orgSummaries } = useOrgSummaries()
+	const orgSummary = orgSummaries?.find((s) => s.orgId === org?.id)
 	const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
 	const [inviteEmail, setInviteEmail] = useState("")
 	const [inviteRole, setInviteRole] = useState<InviteRole>("member")
@@ -155,6 +149,8 @@ export default function Account() {
 	>([])
 	const [tagQuery, setTagQuery] = useState("")
 	const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
+	const [isEditingOrgName, setIsEditingOrgName] = useState(false)
+	const [orgNameDraft, setOrgNameDraft] = useState("")
 	const tagInputRef = useRef<HTMLInputElement>(null)
 	const tagAnchorRef = useRef<HTMLDivElement>(null)
 	const { allProjects: allContainerTags } = useContainerTags()
@@ -173,28 +169,21 @@ export default function Account() {
 	const showAccessType = inviteRole === "member"
 	const showTagPicker =
 		inviteRole === "member" && inviteAccessType === "restricted"
-	const canSwitchOrg = (allOrgs?.length ?? 0) > 1
-	const { data: orgSummaries } = useOrgSummaries()
 
-	const handleOrgSwitch = async (orgSlug: string, orgId: string) => {
-		if (orgId === org?.id) return
-		setSwitchingOrgId(orgId)
-		try {
-			await setActiveOrg(orgSlug)
-			window.location.reload()
-		} catch (error) {
-			console.error("Failed to switch organization:", error)
-			setSwitchingOrgId(null)
-		}
-	}
+	useEffect(() => {
+		setOrgNameDraft(org?.name ?? "")
+		setIsEditingOrgName(false)
+	}, [org?.name])
 
-	const { currentPlan } = useTokenUsage(autumn)
+	// Deep link: ?invite=1 (e.g. from the dashboard) opens the invite dialog.
+	// Consumed below, once the role is known and only for admins/owners.
+	const [inviteParam, setInviteParam] = useQueryState("invite")
 
 	const activeMemberRoleQuery = useQuery({
 		queryKey: ["organization", org?.id, "active-member-role"],
 		queryFn: async () => {
 			if (!org?.id) return null
-			const result = await authClient.organization.getActiveMemberRole({
+			const result = await authClient.organization.getActiveMember({
 				query: { organizationId: org.id },
 			})
 			if (result.error) {
@@ -210,23 +199,42 @@ export default function Account() {
 		() => org?.members?.find((member) => member.userId === user?.id) ?? null,
 		[org?.members, user?.id],
 	)
+	// Only treat as a personal single-member org when members are actually loaded —
+	// otherwise default to least privilege (member), never owner.
+	const membersLoaded = Array.isArray(org?.members)
 	const isSingleMemberPersonalOrg =
+		membersLoaded &&
 		(org?.members?.length ?? 0) <= 1 &&
 		(!org?.members?.[0]?.userId || org.members[0].userId === user?.id)
-	const currentRole = isSingleMemberPersonalOrg
-		? "owner"
-		: (
-				activeMemberRoleQuery.data ??
-				currentMember?.role ??
-				"member"
-			).toLowerCase()
+	const currentRole = (
+		activeMemberRoleQuery.data ??
+		currentMember?.role ??
+		(isSingleMemberPersonalOrg ? "owner" : "member")
+	).toLowerCase()
 	const canManageTeam = currentRole === "owner" || currentRole === "admin"
 	const isOwner = currentRole === "owner"
+
+	// Consume ?invite=1 only after the role resolves, and only for managers.
+	useEffect(() => {
+		if (inviteParam !== "1" || activeMemberRoleQuery.isLoading) return
+		if (canManageTeam) setInviteDialogOpen(true)
+		setInviteParam(null)
+	}, [
+		inviteParam,
+		activeMemberRoleQuery.isLoading,
+		canManageTeam,
+		setInviteParam,
+	])
 
 	const pendingInvitations = useMemo(
 		() => (org?.invitations ?? []).filter(isPendingInvitation),
 		[org?.invitations],
 	)
+
+	const showTeamCard =
+		!canManageTeam ||
+		pendingInvitations.length > 0 ||
+		(org?.members?.length ?? 0) > 1
 
 	const resetInviteForm = () => {
 		setInviteEmail("")
@@ -345,40 +353,50 @@ export default function Account() {
 		},
 	})
 
+	const updateOrgNameMutation = useMutation({
+		mutationFn: async (name: string) => {
+			if (!org?.id) throw new Error("No active organization")
+			const trimmed = name.trim()
+			if (!trimmed) throw new Error("Enter an organization name")
+			const result = await authClient.organization.update({
+				organizationId: org.id,
+				data: { name: trimmed },
+			})
+			if (result.error) {
+				throw new Error(
+					result.error.message ?? "Failed to update organization name",
+				)
+			}
+			return trimmed
+		},
+		onSuccess: async (name) => {
+			setOrgNameDraft(name)
+			setIsEditingOrgName(false)
+			await Promise.all([refetchActiveOrg(), refetchOrganizations()])
+			toast.success("Organization name updated")
+		},
+		onError: (error) => {
+			toast.error(getErrorMessage(error, "Failed to update organization name"))
+		},
+	})
+
 	const handleInviteSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 		if (!canManageTeam || inviteMemberMutation.isPending) return
 		inviteMemberMutation.mutate()
 	}
 
-	const planByOrgId = useMemo(() => {
-		const map = new Map<string, PlanType>()
-		for (const summary of orgSummaries ?? []) {
-			map.set(summary.orgId, summary.plan)
+	const handleOrgNameSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault()
+		if (!canManageTeam || updateOrgNameMutation.isPending) return
+		const trimmed = orgNameDraft.trim()
+		if (!trimmed || trimmed === org?.name) {
+			setOrgNameDraft(org?.name ?? "")
+			setIsEditingOrgName(false)
+			return
 		}
-		return map
-	}, [orgSummaries])
-
-	const sortedOrgsForMenu = useMemo(() => {
-		if (!allOrgs?.length) return []
-		return [...allOrgs].sort((a, b) => {
-			const planA = resolveOrgPlan(
-				a.id,
-				a.id === org?.id,
-				currentPlan,
-				planByOrgId,
-			)
-			const planB = resolveOrgPlan(
-				b.id,
-				b.id === org?.id,
-				currentPlan,
-				planByOrgId,
-			)
-			const rankDiff = PLAN_RANK[planB] - PLAN_RANK[planA]
-			if (rankDiff !== 0) return rankDiff
-			return a.name.localeCompare(b.name)
-		})
-	}, [allOrgs, org?.id, currentPlan, planByOrgId])
+		updateOrgNameMutation.mutate(trimmed)
+	}
 
 	const memberSince = user?.createdAt
 		? new Date(user.createdAt).toLocaleDateString("en-US", {
@@ -388,30 +406,29 @@ export default function Account() {
 		: "—"
 
 	return (
-		<div className="flex flex-col gap-8 w-full">
-			<section id="profile-details" className="flex flex-col gap-4">
-				<SectionTitle>Profile Details</SectionTitle>
+		<div className="flex flex-col gap-5 w-full">
+			<section id="profile-details">
 				<SettingsCard>
-					<div className="flex flex-col gap-6">
-						{/* Avatar + Name/Email */}
-						<div className="flex min-w-0 items-center gap-4">
-							<div className="relative size-16 rounded-full bg-linear-to-b from-[#0D121A] to-black overflow-hidden shrink-0">
+					<div className="flex flex-col gap-5">
+						{/* Identity */}
+						<div className="flex items-start gap-3">
+							<div className="relative size-11 rounded-full bg-linear-to-b from-[#0D121A] to-black overflow-hidden shrink-0">
 								<Avatar className="size-full">
 									<AvatarImage
 										src={user?.image ?? ""}
 										alt={user?.name ?? "User"}
 										className="object-cover"
 									/>
-									<AvatarFallback className="bg-transparent text-white text-xl">
+									<AvatarFallback className="bg-transparent text-white text-base">
 										{user?.name?.charAt(0) ?? "U"}
 									</AvatarFallback>
 								</Avatar>
 							</div>
-							<div className="flex min-w-0 flex-col gap-1.5">
+							<div className="flex min-w-0 flex-1 flex-col gap-0.5 pt-0.5">
 								<p
 									className={cn(
 										dmSans125ClassName(),
-										"truncate font-semibold text-[20px] tracking-[-0.2px] text-[#FAFAFA]",
+										"truncate font-semibold text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 									)}
 								>
 									{user?.name ?? "—"}
@@ -419,136 +436,208 @@ export default function Account() {
 								<p
 									className={cn(
 										dmSans125ClassName(),
-										"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+										"truncate text-[13px] tracking-[-0.13px] text-[#737373]",
 									)}
 								>
 									{user?.email ?? "—"}
 								</p>
 							</div>
+							<div className="shrink-0">
+								<OrgPlanBadge plan={currentPlan} />
+							</div>
 						</div>
 
-						<div className="flex flex-col gap-4 sm:flex-row">
-							<div className="flex min-w-0 flex-1 flex-col gap-2">
-								<p
+						{/* Fields */}
+						<div className="flex items-start justify-between gap-4">
+							<div className="flex min-w-0 flex-col gap-1">
+								<span
 									className={cn(
 										dmSans125ClassName(),
-										"font-medium text-[16px] tracking-[-0.16px] text-[#737373]",
+										"text-[12px] tracking-[-0.12px] text-[#737373]",
 									)}
 								>
 									Organization
-								</p>
-								<Popover
-									open={orgMenuOpen && canSwitchOrg}
-									onOpenChange={(open) => {
-										if (canSwitchOrg) setOrgMenuOpen(open)
-									}}
-								>
-									<PopoverTrigger
-										disabled={!canSwitchOrg}
-										className={cn(
-											"flex min-w-0 max-w-full items-center gap-2 transition-opacity",
-											canSwitchOrg
-												? "cursor-pointer hover:opacity-90"
-												: "cursor-default",
-											dmSans125ClassName(),
-										)}
+								</span>
+								{isEditingOrgName ? (
+									<form
+										onSubmit={handleOrgNameSubmit}
+										className="flex min-w-0 max-w-full items-center gap-1.5 sm:max-w-[320px]"
 									>
+										<input
+											value={orgNameDraft}
+											onChange={(event) => setOrgNameDraft(event.target.value)}
+											disabled={updateOrgNameMutation.isPending}
+											maxLength={80}
+											className={cn(
+												dmSans125ClassName(),
+												"h-8 min-w-0 flex-1 rounded-[9px] border border-white/10 bg-black/30 px-2.5 text-[13px] font-medium tracking-[-0.13px] text-[#FAFAFA] outline-none transition-colors placeholder:text-[#525252] focus:border-[#4BA0FA]/60",
+											)}
+											placeholder="Organization name"
+										/>
+										<button
+											type="submit"
+											disabled={
+												updateOrgNameMutation.isPending ||
+												!orgNameDraft.trim() ||
+												orgNameDraft.trim() === org?.name
+											}
+											className={cn(
+												dmSans125ClassName(),
+												"inline-flex h-7 items-center justify-center gap-1 rounded-full border border-transparent bg-[#0D121A] px-2.5 text-[11px] font-semibold text-[#FAFAFA] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50",
+											)}
+										>
+											{updateOrgNameMutation.isPending ? (
+												<LoaderIcon className="size-3 animate-spin" />
+											) : null}
+											Save
+										</button>
+										<button
+											type="button"
+											disabled={updateOrgNameMutation.isPending}
+											aria-label="Cancel organization name edit"
+											title="Cancel"
+											onClick={() => {
+												setOrgNameDraft(org?.name ?? "")
+												setIsEditingOrgName(false)
+											}}
+											className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[#737373] shadow-inside-out transition-colors hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-50"
+										>
+											<X className="size-3.5" />
+										</button>
+									</form>
+								) : (
+									<div className="flex min-w-0 items-center gap-1.5">
 										<span
 											className={cn(
 												dmSans125ClassName(),
-												"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+												"truncate font-medium text-[14px] tracking-[-0.14px] text-[#FAFAFA]",
 											)}
 										>
 											{org?.name ?? "Personal"}
 										</span>
-										{canSwitchOrg && (
-											<ChevronDown className="size-4 shrink-0 text-[#737373]" />
-										)}
-									</PopoverTrigger>
-									{canSwitchOrg && (
-										<PopoverContent
-											align="start"
-											className="w-80 max-h-80 overflow-y-auto bg-[#1B1F24] rounded-[12px] border-white/10 p-1.5 shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
+										<span
+											className={cn(
+												dmSans125ClassName(),
+												"inline-flex h-[18px] shrink-0 items-center justify-center rounded-[3px] bg-[#2E353D] px-1.5 text-[10px] font-mono font-medium uppercase tracking-[0.12em] text-[#A3A3A3]",
+											)}
 										>
-											{sortedOrgsForMenu.map((organization) => {
-												const isCurrent = organization.id === org?.id
-												const isSwitching = switchingOrgId === organization.id
-												const plan = resolveOrgPlan(
-													organization.id,
-													isCurrent,
-													currentPlan,
-													planByOrgId,
-												)
-												return (
-													<button
-														key={organization.id}
-														type="button"
-														disabled={isCurrent || isSwitching}
-														onClick={() =>
-															handleOrgSwitch(
-																organization.slug,
-																organization.id,
-															)
-														}
-														className={cn(
-															"w-full flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-left transition-colors",
-															isCurrent
-																? "bg-white/5"
-																: "hover:bg-white/5 cursor-pointer",
-															"disabled:opacity-60 disabled:cursor-default",
-															dmSans125ClassName(),
-														)}
-													>
-														<Building2 className="size-4 text-[#737373] shrink-0" />
-														<p className="min-w-0 flex-1 truncate text-[14px] tracking-[-0.14px] text-[#FAFAFA]">
-															{organization.name}
-														</p>
-														{isSwitching ? (
-															<LoaderIcon className="size-4 shrink-0 animate-spin text-[#4BA0FA]" />
-														) : isCurrent ? (
-															<Check className="size-4 shrink-0 text-[#4BA0FA]" />
-														) : (
-															<span className="size-4 shrink-0" aria-hidden />
-														)}
-														<OrgPlanBadge plan={plan} />
-													</button>
-												)
-											})}
-										</PopoverContent>
-									)}
-								</Popover>
+											{currentRole}
+										</span>
+										{canManageTeam ? (
+											<button
+												type="button"
+												aria-label="Edit organization name"
+												title="Edit organization name"
+												onClick={() => {
+													setOrgNameDraft(org?.name ?? "")
+													setIsEditingOrgName(true)
+												}}
+												className="inline-flex size-5 shrink-0 items-center justify-center rounded-md text-[#737373] transition-colors hover:bg-white/5 hover:text-[#FAFAFA]"
+											>
+												<Pencil className="size-3" />
+											</button>
+										) : null}
+									</div>
+								)}
 							</div>
-							<div className="flex min-w-0 flex-1 flex-col gap-2">
-								<p
+							<div className="flex shrink-0 flex-col items-end gap-1 text-right">
+								<span
 									className={cn(
 										dmSans125ClassName(),
-										"font-medium text-[16px] tracking-[-0.16px] text-[#737373]",
+										"text-[12px] tracking-[-0.12px] text-[#737373]",
 									)}
 								>
 									Member since
-								</p>
-								<p
+								</span>
+								<span
 									className={cn(
 										dmSans125ClassName(),
-										"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+										"font-medium text-[14px] tracking-[-0.14px] text-[#FAFAFA]",
 									)}
 								>
 									{memberSince}
-								</p>
+								</span>
 							</div>
 						</div>
 					</div>
 				</SettingsCard>
 			</section>
 
-			<section id="team-members" className="flex flex-col gap-4">
-				<div className="flex flex-wrap items-center justify-between gap-3 px-2">
+			<section className="flex flex-col gap-3 px-1">
+				<SectionTitle>Overview</SectionTitle>
+				<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+					{[
+						{
+							label: "Memories",
+							value: orgSummary?.documentCount,
+							icon: FileText,
+						},
+						{
+							label: "Spaces",
+							value: orgSummary?.containerTagCount,
+							icon: Layers,
+						},
+						{
+							label: "Connections",
+							value: orgSummary?.activeConnectors,
+							icon: Plug,
+						},
+						{ label: "Searches", value: searchesUsed, icon: Search },
+					].map(({ label, value, icon: Icon }) => (
+						<div
+							key={label}
+							className="flex flex-col gap-3 rounded-[14px] bg-[#14161A] p-4 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]"
+						>
+							<span className="flex size-8 items-center justify-center rounded-[10px] bg-[#0D121A] text-[#737373] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]">
+								<Icon className="size-4" />
+							</span>
+							<div className="flex flex-col gap-0.5">
+								<span
+									className={cn(
+										dmSans125ClassName(),
+										"text-[24px] font-semibold leading-none tracking-[-0.5px] text-[#FAFAFA] tabular-nums",
+									)}
+								>
+									{typeof value === "number" ? value.toLocaleString() : "—"}
+								</span>
+								<span
+									className={cn(
+										dmSans125ClassName(),
+										"text-[12px] tracking-[-0.12px] text-[#737373]",
+									)}
+								>
+									{label}
+								</span>
+							</div>
+						</div>
+					))}
+				</div>
+			</section>
+
+			{canManageTeam && <OrgContext />}
+
+			<DigestPreferences />
+
+			<section id="team-members" className="flex flex-col gap-4 px-1">
+				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div className="flex flex-col gap-1">
-						<SectionTitle>Team members</SectionTitle>
+						<div className="flex items-baseline gap-1.5">
+							<SectionTitle>Team members</SectionTitle>
+							{(org?.members?.length ?? 0) > 0 && (
+								<span
+									className={cn(
+										dmSans125ClassName(),
+										"text-[12px] tabular-nums text-[#737373]",
+									)}
+								>
+									{org?.members?.length}
+								</span>
+							)}
+						</div>
 						<p
 							className={cn(
 								dmSans125ClassName(),
-								"text-[13px] tracking-[-0.13px] text-[#737373] px-2",
+								"text-[13px] tracking-[-0.13px] text-[#737373]",
 							)}
 						>
 							Invite people into {org?.name ?? "your organization"} and manage
@@ -556,17 +645,6 @@ export default function Account() {
 						</p>
 					</div>
 					<div className="flex items-center gap-3">
-						{(org?.members?.length ?? 0) > 0 && (
-							<span
-								className={cn(
-									dmSans125ClassName(),
-									"text-[13px] tracking-[-0.13px] text-[#737373] tabular-nums",
-								)}
-							>
-								{org?.members?.length}{" "}
-								{org?.members?.length === 1 ? "member" : "members"}
-							</span>
-						)}
 						{canManageTeam && (
 							<button
 								type="button"
@@ -583,234 +661,209 @@ export default function Account() {
 						)}
 					</div>
 				</div>
-				<SettingsCard>
-					<div className="flex flex-col gap-5">
-						{!canManageTeam && (
-							<div className="flex items-center gap-3 rounded-[12px] border border-white/[0.06] bg-white/[0.02] p-3">
-								<div className="size-9 rounded-full bg-white/[0.04] flex items-center justify-center shrink-0">
-									<Users className="size-4 text-[#737373]" />
+				{showTeamCard && (
+					<div className="rounded-[14px] bg-[#14161A] p-2 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
+						<div className="flex flex-col gap-2">
+							{!canManageTeam && (
+								<div className="flex items-center gap-3 rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+									<div className="size-8 rounded-full bg-white/[0.04] flex items-center justify-center shrink-0">
+										<Users className="size-4 text-[#737373]" />
+									</div>
+									<p
+										className={cn(
+											dmSans125ClassName(),
+											"text-[12.5px] tracking-[-0.12px] text-[#737373]",
+										)}
+									>
+										Only organization owners and admins can invite teammates or
+										change roles.
+									</p>
 								</div>
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[13px] tracking-[-0.13px] text-[#737373]",
-									)}
-								>
-									Only organization owners and admins can invite teammates or
-									change roles.
-								</p>
-							</div>
-						)}
+							)}
 
-						{pendingInvitations.length > 0 && (
-							<div className="flex flex-col gap-2">
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[11px] uppercase tracking-[0.12em] text-[#737373] font-mono",
-									)}
-								>
-									Pending invitations
-								</p>
-								<ul className="flex flex-col rounded-[12px] border border-white/[0.05] overflow-hidden">
-									{pendingInvitations.map((invitation) => (
-										<li
-											key={invitation.id}
-											className="flex items-center gap-3 px-3 py-2.5 border-t border-white/[0.04] first:border-t-0 bg-white/[0.015]"
-										>
-											<div className="size-9 rounded-full bg-[#0D121A] flex items-center justify-center shrink-0">
-												<Mail className="size-4 text-[#737373]" />
-											</div>
-											<div className="min-w-0 flex-1">
-												<p
-													className={cn(
-														dmSans125ClassName(),
-														"truncate text-[14px] font-medium tracking-[-0.14px] text-[#FAFAFA]",
-													)}
-												>
-													{invitation.email}
-												</p>
-												<p
-													className={cn(
-														dmSans125ClassName(),
-														"text-[12px] tracking-[-0.12px] text-[#737373]",
-													)}
-												>
-													Invited as {formatRole(invitation.role)}
-												</p>
-											</div>
-											{canManageTeam && (
-												<div className="flex shrink-0 items-center gap-1">
-													<button
-														type="button"
-														disabled={cancelInvitationMutation.isPending}
-														onClick={() =>
-															cancelInvitationMutation.mutate(invitation.id)
-														}
-														className="flex size-8 items-center justify-center rounded-[8px] text-[#8A5247] hover:bg-[#1A0F0C]/60 hover:text-[#C73B1B] disabled:opacity-50"
-														aria-label={`Cancel invitation for ${invitation.email}`}
-														title="Cancel invitation"
-													>
-														<X className="size-4" />
-													</button>
-												</div>
-											)}
-										</li>
-									))}
-								</ul>
-							</div>
-						)}
-
-						{org?.members && org.members.length > 0 ? (
-							<ul className="flex flex-col">
-								{[...org.members]
-									.sort((a, b) => {
-										const rolePriority = (r: string) =>
-											r === "owner" ? 0 : r === "admin" ? 1 : 2
-										const diff =
-											rolePriority(a.role.toLowerCase()) -
-											rolePriority(b.role.toLowerCase())
-										if (diff !== 0) return diff
-										return (a.user?.name ?? "").localeCompare(
-											b.user?.name ?? "",
-										)
-									})
-									.map((m, idx) => {
-										const isYou = m.userId === user?.id
-										const memberRole = m.role.toLowerCase()
-										const name = m.user?.name ?? m.user?.email ?? "Unknown"
-										const canEditMember =
-											canManageTeam && !isYou && memberRole !== "owner"
-										return (
+							{pendingInvitations.length > 0 && (
+								<div className="flex flex-col gap-2">
+									<p
+										className={cn(
+											dmSans125ClassName(),
+											"text-[11px] uppercase tracking-[0.12em] text-[#737373] font-mono",
+										)}
+									>
+										Pending invitations
+									</p>
+									<ul className="flex flex-col rounded-[12px] border border-white/[0.05] overflow-hidden">
+										{pendingInvitations.map((invitation) => (
 											<li
-												key={m.id}
-												className={cn(
-													"flex items-center gap-3 py-2.5",
-													idx > 0 && "border-t border-white/[0.04]",
-												)}
+												key={invitation.id}
+												className="flex items-center gap-3 px-3 py-2.5 border-t border-white/[0.04] first:border-t-0 bg-white/[0.015]"
 											>
-												<Avatar className="size-9 shrink-0 bg-[#0D121A]">
-													<AvatarImage
-														src={m.user?.image ?? ""}
-														alt={name}
-														className="object-cover"
-													/>
-													<AvatarFallback className="bg-transparent text-white text-[13px] font-medium">
-														{(name.charAt(0) || "U").toUpperCase()}
-													</AvatarFallback>
-												</Avatar>
-												<div className="flex-1 min-w-0 flex flex-col gap-0.5">
-													<div className="flex items-center gap-2 min-w-0">
-														<span
-															className={cn(
-																dmSans125ClassName(),
-																"font-medium text-[14px] tracking-[-0.14px] text-[#FAFAFA] truncate",
-															)}
+												<div className="size-9 rounded-full bg-[#0D121A] flex items-center justify-center shrink-0">
+													<Mail className="size-4 text-[#737373]" />
+												</div>
+												<div className="min-w-0 flex-1">
+													<p
+														className={cn(
+															dmSans125ClassName(),
+															"truncate text-[14px] font-medium tracking-[-0.14px] text-[#FAFAFA]",
+														)}
+													>
+														{invitation.email}
+													</p>
+													<p
+														className={cn(
+															dmSans125ClassName(),
+															"text-[12px] tracking-[-0.12px] text-[#737373]",
+														)}
+													>
+														Invited as {formatRole(invitation.role)}
+													</p>
+												</div>
+												{canManageTeam && (
+													<div className="flex shrink-0 items-center gap-1">
+														<button
+															type="button"
+															disabled={cancelInvitationMutation.isPending}
+															onClick={() =>
+																cancelInvitationMutation.mutate(invitation.id)
+															}
+															className="flex size-8 items-center justify-center rounded-[8px] text-[#8A5247] hover:bg-[#1A0F0C]/60 hover:text-[#C73B1B] disabled:opacity-50"
+															aria-label={`Cancel invitation for ${invitation.email}`}
+															title="Cancel invitation"
 														>
-															{name}
-														</span>
-														{isYou && (
+															<X className="size-4" />
+														</button>
+													</div>
+												)}
+											</li>
+										))}
+									</ul>
+								</div>
+							)}
+
+							{org?.members && org.members.length > 0 && (
+								<ul className="flex flex-col">
+									{[...org.members]
+										.sort((a, b) => {
+											const rolePriority = (r: string) =>
+												r === "owner" ? 0 : r === "admin" ? 1 : 2
+											const diff =
+												rolePriority(a.role.toLowerCase()) -
+												rolePriority(b.role.toLowerCase())
+											if (diff !== 0) return diff
+											return (a.user?.name ?? "").localeCompare(
+												b.user?.name ?? "",
+											)
+										})
+										.map((m) => {
+											const isYou = m.userId === user?.id
+											const memberRole = m.role.toLowerCase()
+											const name = m.user?.name ?? m.user?.email ?? "Unknown"
+											const canEditMember =
+												canManageTeam && !isYou && memberRole !== "owner"
+											return (
+												<li
+													key={m.id}
+													className="flex items-center gap-3 rounded-[10px] px-3 py-2.5 hover:bg-white/[0.02]"
+												>
+													<Avatar className="size-8 shrink-0 bg-[#0D121A]">
+														<AvatarImage
+															src={m.user?.image ?? ""}
+															alt={name}
+															className="object-cover"
+														/>
+														<AvatarFallback className="bg-transparent text-white text-[13px] font-medium">
+															{(name.charAt(0) || "U").toUpperCase()}
+														</AvatarFallback>
+													</Avatar>
+													<div className="flex-1 min-w-0 flex flex-col gap-0.5">
+														<div className="flex items-center gap-2 min-w-0">
 															<span
 																className={cn(
 																	dmSans125ClassName(),
-																	"text-[10.5px] uppercase tracking-[0.1em] text-[#737373] font-mono",
+																	"font-medium text-[14px] tracking-[-0.14px] text-[#FAFAFA] truncate",
 																)}
 															>
-																You
+																{name}
+															</span>
+															{isYou && (
+																<span
+																	className={cn(
+																		dmSans125ClassName(),
+																		"text-[10.5px] uppercase tracking-[0.1em] text-[#737373] font-mono",
+																	)}
+																>
+																	You
+																</span>
+															)}
+														</div>
+														{m.user?.email && (
+															<span
+																className={cn(
+																	dmSans125ClassName(),
+																	"text-[12px] tracking-[-0.12px] text-[#737373] truncate",
+																)}
+															>
+																{m.user.email}
 															</span>
 														)}
 													</div>
-													{m.user?.email && (
-														<span
-															className={cn(
-																dmSans125ClassName(),
-																"text-[12px] tracking-[-0.12px] text-[#737373] truncate",
-															)}
+													{canEditMember ? (
+														<Select
+															value={memberRole}
+															onValueChange={(value) => {
+																if (value === memberRole) return
+																updateMemberRoleMutation.mutate({
+																	memberId: m.id,
+																	role: value as InviteRole,
+																})
+															}}
 														>
-															{m.user.email}
-														</span>
+															<SelectTrigger className="h-8 w-[112px] rounded-[8px] border-white/[0.08] bg-[#0D0F14] text-[#FAFAFA]">
+																<SelectValue />
+															</SelectTrigger>
+															<SelectContent>
+																<SelectItem value="member">Member</SelectItem>
+																<SelectItem value="admin">Admin</SelectItem>
+															</SelectContent>
+														</Select>
+													) : (
+														<RolePill role={m.role} />
 													)}
-												</div>
-												{canEditMember ? (
-													<Select
-														value={memberRole}
-														onValueChange={(value) => {
-															if (value === memberRole) return
-															updateMemberRoleMutation.mutate({
-																memberId: m.id,
-																role: value as InviteRole,
-															})
-														}}
-													>
-														<SelectTrigger className="h-8 w-[112px] rounded-[8px] border-white/[0.08] bg-[#0D0F14] text-[#FAFAFA]">
-															<SelectValue />
-														</SelectTrigger>
-														<SelectContent>
-															<SelectItem value="member">Member</SelectItem>
-															<SelectItem value="admin">Admin</SelectItem>
-														</SelectContent>
-													</Select>
-												) : (
-													<RolePill role={m.role} />
-												)}
-												{canEditMember && (
-													<DropdownMenu>
-														<DropdownMenuTrigger asChild>
-															<button
-																type="button"
-																className="flex size-8 shrink-0 items-center justify-center rounded-[8px] text-[#737373] hover:bg-white/[0.05] hover:text-[#FAFAFA]"
-																aria-label={`Team actions for ${name}`}
-															>
-																<MoreHorizontal className="size-4" />
-															</button>
-														</DropdownMenuTrigger>
-														<DropdownMenuContent align="end" className="w-44">
-															<DropdownMenuItem
-																className="text-[#C73B1B] focus:text-[#C73B1B]"
-																onSelect={() =>
-																	removeMemberMutation.mutate(m.id)
-																}
-																disabled={
-																	removeMemberMutation.isPending || !isOwner
-																}
-															>
-																<UserMinus className="size-4" />
-																Remove member
-															</DropdownMenuItem>
-														</DropdownMenuContent>
-													</DropdownMenu>
-												)}
-											</li>
-										)
-									})}
-							</ul>
-						) : (
-							<div className="flex items-center gap-3 py-2">
-								<div className="size-9 rounded-full bg-white/[0.04] flex items-center justify-center shrink-0">
-									<Users className="size-4 text-[#737373]" />
-								</div>
-								<div className="flex flex-col">
-									<span
-										className={cn(
-											dmSans125ClassName(),
-											"font-medium text-[14px] tracking-[-0.14px] text-[#FAFAFA]",
-										)}
-									>
-										Just you for now
-									</span>
-									<span
-										className={cn(
-											dmSans125ClassName(),
-											"text-[12px] tracking-[-0.12px] text-[#737373]",
-										)}
-									>
-										Invite teammates to start collaborating.
-									</span>
-								</div>
-							</div>
-						)}
+													{canEditMember && (
+														<DropdownMenu>
+															<DropdownMenuTrigger asChild>
+																<button
+																	type="button"
+																	className="flex size-8 shrink-0 items-center justify-center rounded-[8px] text-[#737373] hover:bg-white/[0.05] hover:text-[#FAFAFA]"
+																	aria-label={`Team actions for ${name}`}
+																>
+																	<MoreHorizontal className="size-4" />
+																</button>
+															</DropdownMenuTrigger>
+															<DropdownMenuContent align="end" className="w-44">
+																<DropdownMenuItem
+																	className="text-[#C73B1B] focus:text-[#C73B1B]"
+																	onSelect={() =>
+																		removeMemberMutation.mutate(m.id)
+																	}
+																	disabled={
+																		removeMemberMutation.isPending || !isOwner
+																	}
+																>
+																	<UserMinus className="size-4" />
+																	Remove member
+																</DropdownMenuItem>
+															</DropdownMenuContent>
+														</DropdownMenu>
+													)}
+												</li>
+											)
+										})}
+								</ul>
+							)}
+						</div>
 					</div>
-				</SettingsCard>
+				)}
 			</section>
 
 			<Dialog
@@ -1163,7 +1216,7 @@ export default function Account() {
 								onClick={() => setInviteDialogOpen(false)}
 								className={cn(
 									dmSans125ClassName(),
-									"h-9 rounded-full border border-[#161F2C] bg-[#0D121A] px-4 text-[13px] font-medium text-[#737373] transition-colors hover:bg-[#14161A] hover:text-white",
+									"h-9 rounded-full px-4 text-[13px] font-medium text-[#737373] transition-colors hover:bg-white/[0.04] hover:text-white",
 								)}
 							>
 								Cancel
@@ -1175,6 +1228,13 @@ export default function Account() {
 									!org?.id ||
 									inviteMemberMutation.isPending ||
 									(showTagPicker && inviteAssignments.length === 0)
+								}
+								title={
+									showTagPicker && inviteAssignments.length === 0
+										? "Select at least one space for restricted access"
+										: !inviteEmail.trim()
+											? "Enter an email address to send an invite"
+											: undefined
 								}
 								className={cn(
 									dmSans125ClassName(),
@@ -1193,5 +1253,72 @@ export default function Account() {
 				</DialogContent>
 			</Dialog>
 		</div>
+	)
+}
+
+function DigestPreferences() {
+	const { data, isLoading } = useQuery({
+		queryKey: ["digest-preferences"],
+		queryFn: async () => {
+			const res = await $fetch("@get/digests/preferences")
+			if (res.error) throw new Error("Failed")
+			return res.data as { digestOptOut: boolean }
+		},
+	})
+
+	const mutation = useMutation({
+		mutationFn: async (digestOptOut: boolean) => {
+			const res = await $fetch("@post/digests/preferences", {
+				body: { digestOptOut },
+			})
+			if (res.error) throw new Error("Failed")
+			return res.data as { digestOptOut: boolean }
+		},
+		onError: () => toast.error("Failed to update preference"),
+	})
+
+	const optOut = mutation.data?.digestOptOut ?? data?.digestOptOut ?? false
+
+	return (
+		<section className="flex flex-col gap-3 px-1">
+			<SectionTitle>Notifications</SectionTitle>
+			<SettingsCard>
+				<div className="flex items-center justify-between gap-4">
+					<div className="flex flex-col gap-0.5">
+						<p
+							className={cn(
+								dmSans125ClassName(),
+								"text-[13px] font-medium text-[#FAFAFA]",
+							)}
+						>
+							Weekly digest
+						</p>
+						<p
+							className={cn(dmSans125ClassName(), "text-[12px] text-[#6B6B6B]")}
+						>
+							Personalized weekly recap of your memories, delivered every Monday
+						</p>
+					</div>
+					<button
+						type="button"
+						role="switch"
+						aria-checked={!optOut}
+						disabled={isLoading || mutation.isPending}
+						onClick={() => mutation.mutate(!optOut)}
+						className={cn(
+							"relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+							!optOut ? "bg-[#2563FF]" : "bg-white/10",
+						)}
+					>
+						<span
+							className={cn(
+								"pointer-events-none inline-block size-4 rounded-full bg-white shadow-sm transition-transform",
+								!optOut ? "translate-x-4" : "translate-x-0",
+							)}
+						/>
+					</button>
+				</div>
+			</SettingsCard>
+		</section>
 	)
 }

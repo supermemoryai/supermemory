@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
-import { Dialog, DialogContent } from "@repo/ui/components/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { cn } from "@lib/utils"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XIcon, Loader2 } from "lucide-react"
@@ -10,6 +10,7 @@ import { Button } from "@ui/components/button"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
 import { analytics } from "@/lib/analytics"
+import { $fetch } from "@lib/api"
 
 const EMOJI_LIST = [
 	"📁",
@@ -62,6 +63,25 @@ const EMOJI_LIST = [
 	"🤍",
 ]
 
+export const CONTEXT_PRESETS: { label: string; text: string }[] = [
+	{
+		label: "Work project",
+		text: "Tracks a work project — decisions, owners, deadlines, and current status.",
+	},
+	{
+		label: "Client",
+		text: "About a client — meetings, requirements, and account context.",
+	},
+	{
+		label: "Research",
+		text: "Research notes — sources, key findings, and open questions.",
+	},
+	{
+		label: "Personal",
+		text: "My personal space — notes, ideas, and things to remember.",
+	},
+]
+
 export function AddSpaceModal({
 	isOpen,
 	onClose,
@@ -72,6 +92,8 @@ export function AddSpaceModal({
 	onCreated?: (containerTag: string) => void
 }) {
 	const [spaceName, setSpaceName] = useState("")
+	const [spaceContext, setSpaceContext] = useState("")
+	const [showContext, setShowContext] = useState(false)
 	const [emoji, setEmoji] = useState("📁")
 	const [isEmojiOpen, setIsEmojiOpen] = useState(false)
 	const { createProjectMutation } = useProjectMutations()
@@ -79,6 +101,8 @@ export function AddSpaceModal({
 	const handleClose = () => {
 		onClose()
 		setSpaceName("")
+		setSpaceContext("")
+		setShowContext(false)
 		setEmoji("📁")
 	}
 
@@ -89,11 +113,18 @@ export function AddSpaceModal({
 		createProjectMutation.mutate(
 			{ name: trimmedName, emoji: emoji || undefined },
 			{
-				onSuccess: (data) => {
+				onSuccess: async (data) => {
 					analytics.spaceCreated()
-					if (data?.containerTag) {
-						onCreated?.(data.containerTag)
+					const tag = data?.containerTag
+					const context = showContext ? spaceContext.trim() : ""
+					if (tag && context) {
+						try {
+							await $fetch(`@patch/container-tags/${tag}`, {
+								body: { entityContext: context },
+							})
+						} catch {}
 					}
+					if (tag) onCreated?.(tag)
 					handleClose()
 				},
 			},
@@ -132,21 +163,21 @@ export function AddSpaceModal({
 				<div className="flex flex-col gap-4">
 					<div className="flex justify-between items-start gap-4">
 						<div className="pl-1 space-y-1 flex-1">
-							<p
+							<DialogTitle
 								className={cn(
 									"font-semibold text-[#fafafa]",
 									dmSans125ClassName(),
 								)}
 							>
-								Create new space
-							</p>
+								New space
+							</DialogTitle>
 							<p
 								className={cn(
-									"text-[#737373] font-medium text-[16px] leading-[1.35]",
+									dmSansClassName(),
+									"text-[#737373] text-[13px] leading-snug",
 								)}
 							>
-								Create spaces to organize your memories and documents and create
-								a context rich environment
+								Group related memories and give Nova context for this space.
 							</p>
 						</div>
 						<DialogPrimitive.Close
@@ -222,6 +253,71 @@ export function AddSpaceModal({
 						/>
 					</div>
 
+					{!showContext ? (
+						<button
+							type="button"
+							onClick={() => setShowContext(true)}
+							className={cn(
+								dmSansClassName(),
+								"flex cursor-pointer items-center gap-1.5 self-start pl-1 text-[13px] font-medium text-[#A3A3A3] transition-colors hover:text-[#fafafa]",
+							)}
+						>
+							<span className="text-[16px] leading-none text-[#737373]">+</span>
+							<span className="inline-flex items-baseline gap-1.5">
+								Tell Nova what to remember
+								<span className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[#4BA0FA]">
+									New
+								</span>
+							</span>
+						</button>
+					) : (
+						<div className="flex flex-col gap-2">
+							<div className="flex items-center gap-1.5 pl-1">
+								<span
+									className={cn(
+										dmSans125ClassName(),
+										"text-[12px] font-medium text-[#A3A3A3]",
+									)}
+								>
+									What to remember
+								</span>
+								<span className="ml-auto text-[11px] text-[#525966]">
+									Optional
+								</span>
+							</div>
+							<textarea
+								value={spaceContext}
+								onChange={(e) => setSpaceContext(e.target.value)}
+								placeholder="Tell Nova what matters here — it shapes which memories get extracted."
+								maxLength={750}
+								className={cn(
+									dmSansClassName(),
+									"min-h-[56px] w-full resize-y rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#14161A] px-4 py-3 text-[14px] leading-relaxed text-[#fafafa] placeholder:text-[#737373] focus:outline-none focus:ring-1 focus:ring-[rgba(115,115,115,0.3)]",
+								)}
+								style={{
+									boxShadow:
+										"0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08), inset 0px 1px 1px 0px rgba(0,0,0,0.08), inset 0px 2px 4px 0px rgba(0,0,0,0.02)",
+								}}
+							/>
+							<div className="flex flex-wrap items-center gap-1.5 pl-1">
+								<span className="text-[11px] text-[#737373]">Try a preset</span>
+								{CONTEXT_PRESETS.map((preset) => (
+									<button
+										key={preset.label}
+										type="button"
+										onClick={() => setSpaceContext(preset.text)}
+										className={cn(
+											dmSansClassName(),
+											"cursor-pointer rounded-full bg-[#1E232B] px-2.5 py-1 text-[11px] font-medium text-[#C8C8C8] transition-colors hover:bg-[#262c36] hover:text-white",
+										)}
+									>
+										{preset.label}
+									</button>
+								))}
+							</div>
+						</div>
+					)}
+
 					<div className="flex items-center justify-end gap-[22px]">
 						<button
 							type="button"
@@ -247,7 +343,7 @@ export function AddSpaceModal({
 								</>
 							) : (
 								<>
-									<span className="text-[10px] mr-1">+</span>
+									<span className="mr-1 text-[16px] leading-none">+</span>
 									Create Space
 								</>
 							)}

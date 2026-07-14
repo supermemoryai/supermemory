@@ -31,13 +31,34 @@ export const metadata: Metadata = {
 		],
 	},
 	manifest: "/manifest.webmanifest",
+	openGraph: {
+		description: "Your memories, wherever you are",
+		images: [
+			{
+				url: "/OG.png",
+				width: 1800,
+				height: 945,
+				alt: "supermemory app",
+			},
+		],
+		siteName: "supermemory",
+		title: "supermemory app",
+		type: "website",
+	},
 	title: "supermemory app",
+	twitter: {
+		card: "summary_large_image",
+		description: "Your memories, wherever you are",
+		images: ["/OG.png"],
+		title: "supermemory app",
+	},
 }
 
 export const viewport: Viewport = {
 	width: "device-width",
 	initialScale: 1,
 	viewportFit: "cover",
+	interactiveWidget: "resizes-content",
 }
 
 export default function RootLayout({

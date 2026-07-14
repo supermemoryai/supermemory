@@ -1,10 +1,12 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ChainEntry } from "../canvas/version-chain"
+import { DEFAULT_HOVER_POPOVER_Z_INDEX, DEFAULT_LABELS } from "../constants"
 import type {
 	DocumentNodeData,
 	GraphNode,
 	GraphThemeColors,
 	MemoryNodeData,
+	ResolvedMemoryGraphLabels,
 } from "../types"
 
 export interface NodeHoverPopoverProps {
@@ -15,6 +17,8 @@ export interface NodeHoverPopoverProps {
 	containerBounds?: DOMRect
 	versionChain?: ChainEntry[] | null
 	colors: GraphThemeColors
+	labels?: ResolvedMemoryGraphLabels
+	zIndex?: number
 	onNavigateNext?: () => void
 	onNavigatePrev?: () => void
 	onNavigateUp?: () => void
@@ -310,6 +314,8 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 		containerBounds,
 		versionChain,
 		colors,
+		labels = DEFAULT_LABELS,
+		zIndex = DEFAULT_HOVER_POPOVER_Z_INDEX,
 		onNavigateNext,
 		onNavigatePrev,
 		onNavigateUp,
@@ -324,20 +330,23 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 
 		const isMemory = node.type === "memory"
 		const data = node.data
+		const hasChain = Boolean(versionChain && versionChain.length > 1)
 
 		const memoryMeta = useMemo(() => {
 			if (!isMemory) return null
 			const md = data as MemoryNodeData
+			const chainVersion = hasChain
+				? versionChain?.find((entry) => entry.id === node.id)?.version
+				: undefined
 			return {
-				version: md.version ?? 1,
+				version: chainVersion ?? md.version ?? 1,
 				isLatest: md.isLatest ?? false,
 				isForgotten: md.isForgotten ?? false,
 				forgetReason: md.forgetReason ?? null,
 				forgetAfter: md.forgetAfter ?? null,
 			}
-		}, [isMemory, data])
+		}, [isMemory, data, hasChain, versionChain, node.id])
 
-		const hasChain = versionChain && versionChain.length > 1
 		const hasForgetInfo =
 			memoryMeta && (memoryMeta.isForgotten || memoryMeta.forgetAfter)
 
@@ -416,7 +425,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 			left: 0,
 			right: 0,
 			bottom: 0,
-			zIndex: 100,
+			zIndex,
 		}
 
 		const svgStyle: React.CSSProperties = {
@@ -516,7 +525,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 					<div style={cardStyle}>
 						{hasChain ? (
 							<VersionTimeline
-								chain={versionChain}
+								chain={versionChain ?? []}
 								colors={colors}
 								currentId={node.id}
 								onSelect={onSelectNode}
@@ -587,7 +596,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 												: colors.popoverTextSecondary,
 									}}
 								>
-									v{memoryMeta.version}{" "}
+									{hasChain ? `v${memoryMeta.version} ` : ""}
 									{memoryMeta.isForgotten
 										? "Forgotten"
 										: memoryMeta.isLatest
@@ -602,7 +611,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 											color: colors.popoverTextSecondary,
 										}}
 									>
-										{docData?.type || "document"}
+										{docData?.type || labels.documentTypeFallback}
 									</span>
 									<span
 										style={{
@@ -610,7 +619,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 											color: colors.popoverTextSecondary,
 										}}
 									>
-										{docData?.memories?.length ?? 0} memories
+										{labels.memoryCount(docData?.memories?.length ?? 0)}
 									</span>
 								</>
 							)}
@@ -620,7 +629,11 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 							{isMemory ? (
 								<CopyableId colors={colors} label="Memory" value={node.id} />
 							) : (
-								<CopyableId colors={colors} label="Document" value={node.id} />
+								<CopyableId
+									colors={colors}
+									label={labels.documentIdLabel}
+									value={node.id}
+								/>
 							)}
 						</div>
 					</div>
@@ -630,7 +643,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 							<NavButton
 								colors={colors}
 								icon={<EyeIcon color={colors.popoverTextMuted} />}
-								label="View document"
+								label={labels.viewDocument}
 								onClick={() => onOpenDocument(documentId)}
 							/>
 						)}
@@ -638,7 +651,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 							<NavButton
 								colors={colors}
 								icon="↑"
-								label={hasChain ? "Older version" : "Go to document"}
+								label={hasChain ? "Older version" : labels.goToDocument}
 								onClick={onNavigateUp}
 							/>
 						)}
@@ -646,20 +659,20 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 							<NavButton
 								colors={colors}
 								icon="↓"
-								label={isMemory ? "Newer version" : "Go to memory"}
+								label={isMemory ? "Newer version" : labels.showMemory}
 								onClick={onNavigateDown}
 							/>
 						)}
 						<NavButton
 							colors={colors}
 							icon="→"
-							label={isMemory ? "Next memory" : "Next document"}
+							label={isMemory ? "Next memory" : labels.nextDocument}
 							onClick={onNavigateNext}
 						/>
 						<NavButton
 							colors={colors}
 							icon="←"
-							label={isMemory ? "Prev memory" : "Prev document"}
+							label={isMemory ? "Prev memory" : labels.previousDocument}
 							onClick={onNavigatePrev}
 						/>
 					</div>

@@ -30,8 +30,70 @@ import {
 	getManualInstallEntry,
 } from "@/lib/mcp-manual-instructions"
 import { ClaudeDesktopManualTimeline } from "@/components/mcp-modal/claude-desktop-manual-timeline"
+import { INSET } from "@/components/integrations/install-steps"
+
+function McpCodeBlock({
+	code,
+	multiline,
+	onCopy,
+}: {
+	code: string
+	multiline?: boolean
+	onCopy?: () => void
+}) {
+	const [copied, setCopied] = useState(false)
+	const copy = () => {
+		navigator.clipboard.writeText(code)
+		setCopied(true)
+		toast.success("Copied to clipboard!")
+		setTimeout(() => setCopied(false), 2000)
+		onCopy?.()
+	}
+	return (
+		<div
+			className={cn(
+				"group flex min-w-0 gap-2 rounded-[10px] border border-white/[0.07] bg-[#0B0E13] px-3 py-2.5",
+				multiline ? "items-start" : "items-center",
+			)}
+		>
+			<div className="relative min-w-0 flex-1">
+				<pre
+					className={cn(
+						"scrollbar-none min-w-0 overflow-x-auto font-mono text-[12px] leading-[1.6] text-[#E4E4E7]",
+						multiline ? "whitespace-pre-wrap break-all" : "whitespace-pre pr-4",
+						dmMonoClassName(),
+					)}
+				>
+					{code}
+				</pre>
+				{!multiline && (
+					<div
+						aria-hidden
+						className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#0B0E13] to-transparent"
+					/>
+				)}
+			</div>
+			<button
+				type="button"
+				aria-label="Copy"
+				onClick={copy}
+				className={cn(
+					"flex size-7 shrink-0 items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80",
+					INSET,
+				)}
+			>
+				{copied ? (
+					<Check className="size-3.5 text-[#4BA0FA]" />
+				) : (
+					<CopyIcon className="size-3.5 text-[#737373]" />
+				)}
+			</button>
+		</div>
+	)
+}
 
 const clients = {
+	antigravity: "Antigravity",
 	chatgpt: "ChatGPT",
 	codex: "Codex",
 	cursor: "Cursor",
@@ -70,6 +132,7 @@ const MCP_CATEGORIES: {
 	{
 		label: "IDEs",
 		items: [
+			{ key: "antigravity", title: "Antigravity", subtitle: "AI IDE" },
 			{ key: "cursor", title: "Cursor", subtitle: "AI IDE" },
 			{ key: "vscode", title: "VS Code", subtitle: "IDE" },
 			{ key: "cline", title: "Cline", subtitle: "VS Code extension" },
@@ -84,6 +147,7 @@ const MCP_CATEGORIES: {
 
 function clientIconSrc(key: ClientKey) {
 	if (key === "mcp-url") return "/mcp-icon.svg"
+	if (key === "antigravity") return "/mcp-supported-tools/antigravity.png"
 	const file = key === "claude-code" ? "claude" : key
 	return `/mcp-supported-tools/${file}.png`
 }
@@ -101,7 +165,8 @@ function ClientToolIcon({
 	return (
 		<div
 			className={cn(
-				"size-10 shrink-0 rounded-[10px] bg-[#0D121A] border border-[#242A33] flex items-center justify-center overflow-hidden",
+				"size-10 shrink-0 rounded-[10px] bg-[#080B0F] flex items-center justify-center overflow-hidden",
+				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]",
 			)}
 		>
 			{failed ? (
@@ -137,7 +202,6 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 		"mcpTab",
 		parseAsStringLiteral(["oneClick", "manual"] as const).withDefault("manual"),
 	)
-	const [isCommandCopied, setIsCommandCopied] = useState(false)
 	const [isManualCopied, setIsManualCopied] = useState(false)
 	const [activeStep, setActiveStep] = useQueryState(
 		"mcpStep",
@@ -170,15 +234,6 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 		return command
 	}
 
-	const copyToClipboard = () => {
-		const command = generateInstallCommand()
-		navigator.clipboard.writeText(command)
-		analytics.mcpInstallCmdCopied()
-		setIsCommandCopied(true)
-		setActiveStep(3)
-		setTimeout(() => setIsCommandCopied(false), 2000)
-	}
-
 	const copyManualSnippet = (text: string) => {
 		navigator.clipboard.writeText(text)
 		analytics.mcpInstallCmdCopied()
@@ -203,17 +258,6 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 					? "manual"
 					: setupTab
 
-	const gradientStep3 =
-		activeStep === 3
-			? {
-					background:
-						"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
-					backgroundClip: "text",
-					WebkitBackgroundClip: "text",
-					WebkitTextFillColor: "transparent",
-				}
-			: undefined
-
 	return (
 		<div
 			className={cn(
@@ -228,11 +272,11 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 							key={category.label}
 							className={cn(
 								"flex flex-col gap-4 py-5 sm:flex-row sm:items-start sm:gap-8",
-								rowIndex > 0 && "border-t border-[#242A33]",
+								rowIndex > 0 && "border-t border-white/[0.06]",
 							)}
 						>
 							<div className="w-full shrink-0 sm:w-30">
-								<p className="text-[13px] font-semibold tracking-[-0.01em] text-[#8B8B8B]">
+								<p className="text-[13px] font-semibold tracking-[-0.01em] text-[#A1A1AA]">
 									{category.label}
 								</p>
 							</div>
@@ -249,9 +293,9 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 											setActiveStep(2)
 										}}
 										className={cn(
-											"group flex w-full min-w-0 items-center gap-3 rounded-xl border border-[#242A33] bg-[#080B0F] p-3.5 text-left transition-colors",
-											"hover:border-[#3273FC4D] hover:bg-[#08142D]",
-											"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3273FC]/40",
+											"group flex w-full min-w-0 items-center gap-3 rounded-[12px] bg-[#0D121A] p-3.5 text-left transition-colors",
+											"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.5)] hover:bg-[#10151D]",
+											"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4BA0FA]/40",
 										)}
 									>
 										<ClientToolIcon clientKey={item.key} title={item.title} />
@@ -259,10 +303,12 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 											<p className="text-sm font-medium text-[#FAFAFA]">
 												{item.title}
 											</p>
-											<p className="text-xs text-[#737373]">{item.subtitle}</p>
+											<p className="text-[12px] text-[#737373]">
+												{item.subtitle}
+											</p>
 										</div>
 										<ChevronRight
-											className="size-4 shrink-0 text-[#525866] transition-transform group-hover:translate-x-0.5"
+											className="size-4 shrink-0 text-[#525D6E] transition-transform group-hover:translate-x-0.5"
 											aria-hidden
 										/>
 									</button>
@@ -270,51 +316,63 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 							</div>
 						</div>
 					))}
-					<p className="pt-1 text-sm text-[#8B8B8B]">
+					<p className="pt-1 text-[13px] text-[#A1A1AA]">
 						You can connect several clients; setup is different for each one.
 					</p>
 				</div>
 			) : (
 				<div className={cn("space-y-4", dmSansClassName())}>
-					<button
-						type="button"
-						onClick={() => {
-							setSelectedClient(null)
-							setActiveStep(1)
-						}}
-						className="text-sm font-medium text-[#8B8B8B] transition-colors hover:text-[#FAFAFA]"
+					{!isEmbedded && (
+						<>
+							<button
+								type="button"
+								onClick={() => {
+									setSelectedClient(null)
+									setActiveStep(1)
+								}}
+								className="text-sm font-medium text-[#A1A1AA] transition-colors hover:text-[#FAFAFA]"
+							>
+								← All clients
+							</button>
+
+							<div className="flex flex-wrap items-center gap-3">
+								<ClientToolIcon
+									clientKey={selectedKey}
+									title={clients[selectedKey]}
+								/>
+								<div>
+									<p className="text-lg font-medium text-[#FAFAFA]">
+										{clients[selectedKey]}
+									</p>
+									<p className="text-sm text-[#737373]">
+										{detailSetup ? setupInstructionsSubtitle(detailSetup) : ""}
+									</p>
+								</div>
+							</div>
+						</>
+					)}
+
+					<div
+						className={cn(
+							"space-y-4",
+							!isEmbedded && "border-t border-white/[0.06] pt-8",
+						)}
 					>
-						← All clients
-					</button>
-
-					<div className="flex flex-wrap items-center gap-3">
-						<ClientToolIcon
-							clientKey={selectedKey}
-							title={clients[selectedKey]}
-						/>
-						<div>
-							<p className="text-lg font-medium text-[#FAFAFA]">
-								{clients[selectedKey]}
-							</p>
-							<p className="text-sm text-[#737373]">
-								{detailSetup ? setupInstructionsSubtitle(detailSetup) : ""}
-							</p>
-						</div>
-					</div>
-
-					<div className="space-y-4 border-t border-[#242A33] pt-8">
 						{detailSetup && mcpClientSetupShowsTabs(detailSetup) ? (
 							<div
-								className="flex w-full max-w-md flex-row gap-1 rounded-full border border-[#3D434D] bg-[#0D121A] p-1"
+								className={cn(
+									"flex w-full flex-row gap-0.5 rounded-full bg-[#0D121A] p-0.5",
+									"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.5)]",
+								)}
 								role="tablist"
 								aria-label="Setup method"
 							>
 								<button
 									className={cn(
-										"min-h-9 flex-1 rounded-full px-3 py-2 text-center text-xs font-medium transition-all",
+										"min-h-8 flex-1 rounded-full px-3 text-center text-[12px] font-medium transition-colors",
 										effectiveSetupTab === "manual"
-											? "border border-[#3D434D] bg-[#080B0F] text-white"
-											: "text-[#8B8B8B] hover:text-white",
+											? "bg-white/[0.10] text-[#FAFAFA]"
+											: "text-[#A1A1AA] hover:text-[#FAFAFA]",
 									)}
 									onClick={() => setSetupTab("manual")}
 									role="tab"
@@ -325,10 +383,10 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 								</button>
 								<button
 									className={cn(
-										"min-h-9 flex-1 rounded-full px-3 py-2 text-center text-xs font-medium transition-all",
+										"min-h-8 flex-1 rounded-full px-3 text-center text-[12px] font-medium transition-colors",
 										effectiveSetupTab === "oneClick"
-											? "border border-[#3D434D] bg-[#080B0F] text-white"
-											: "text-[#8B8B8B] hover:text-white",
+											? "bg-white/[0.10] text-[#FAFAFA]"
+											: "text-[#A1A1AA] hover:text-[#FAFAFA]",
 									)}
 									onClick={() => setSetupTab("oneClick")}
 									role="tab"
@@ -345,47 +403,31 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 								<>
 									{selectedClient === "mcp-url" && (
 										<div className="space-y-2">
-											<p className="text-sm text-[#8B8B8B]">
+											<p className="text-[13px] leading-relaxed text-[#A1A1AA]">
 												Paste this URL into any MCP client that supports remote
 												servers over HTTPS.
 											</p>
-											<div className="relative">
-												<input
-													className={cn(
-														"w-full rounded-lg border border-[#3D434D] bg-black p-2 pr-10 font-mono text-xs text-emerald-400",
-														dmMonoClassName(),
-													)}
-													readOnly
-													value="https://mcp.supermemory.ai/mcp"
-												/>
-												<button
-													type="button"
-													className="absolute top-1 right-1 cursor-pointer p-1"
-													onClick={() => {
-														navigator.clipboard.writeText(
-															"https://mcp.supermemory.ai/mcp",
-														)
-														analytics.mcpInstallCmdCopied()
-														toast.success("Copied to clipboard!")
-														setActiveStep(3)
-													}}
-												>
-													<CopyIcon className="size-4 text-[#8B8B8B] hover:text-white" />
-												</button>
-											</div>
+											<McpCodeBlock
+												code="https://mcp.supermemory.ai/mcp"
+												onCopy={() => {
+													analytics.mcpInstallCmdCopied()
+													toast.success("Copied to clipboard!")
+													setActiveStep(3)
+												}}
+											/>
 										</div>
 									)}
 									{selectedClient === "cursor" && (
 										<div className="space-y-4">
-											<p className="text-sm text-[#8B8B8B]">
+											<p className="text-[13px] leading-relaxed text-[#A1A1AA]">
 												Open the link below to add supermemory in Cursor, or use
 												Manual instructions to edit{" "}
-												<code className="text-xs text-emerald-400/90">
+												<code className="font-mono text-[12px] text-[#8BC6FF]">
 													~/.cursor/mcp.json
 												</code>
 												.
 											</p>
-											<div className="flex flex-col items-center gap-4 rounded-xl border border-[#1e3a2f] bg-[#0a1510] p-6">
+											<div className="flex flex-col items-center gap-4 rounded-[10px] border border-white/[0.07] bg-[#0B0E13] p-6">
 												<a
 													href={getCursorDeeplink()}
 													onClick={() => {
@@ -411,50 +453,18 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 									{selectedClient !== "mcp-url" &&
 										selectedClient !== "cursor" && (
 											<div className="space-y-2">
-												<p className="text-sm text-[#8B8B8B]">
+												<p className="text-[13px] leading-relaxed text-[#A1A1AA]">
 													Run this command in your terminal. It installs the MCP
 													for {clients[selectedKey]} and starts OAuth when
 													needed.
 												</p>
-												<div className="relative">
-													<input
-														className={cn(
-															"w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-xl py-4 pr-28 pl-3 text-xs text-white",
-															dmMonoClassName(),
-														)}
-														style={{
-															border: "1px solid rgba(61, 67, 77, 0.10)",
-															background: "#0D121A",
-														}}
-														readOnly
-														value={generateInstallCommand()}
-													/>
-													<button
-														type="button"
-														className={cn(
-															"absolute top-[5px] right-1 flex cursor-pointer items-center gap-2 rounded-[10px] px-3 py-2",
-															dmSansClassName(),
-														)}
-														style={{
-															background:
-																"linear-gradient(180deg, #267BF1 40.23%, #15468B 100%), linear-gradient(180deg, #0D121A -26.14%, #000 100%)",
-															border: "1px solid #000",
-														}}
-														onClick={copyToClipboard}
-													>
-														{isCommandCopied ? (
-															<>
-																<Check className="size-4 text-white" />
-																<span className="text-white">Copied</span>
-															</>
-														) : (
-															<>
-																<CopyIcon className="size-5 text-white stroke-[2px]" />
-																<span className="text-white">Copy</span>
-															</>
-														)}
-													</button>
-												</div>
+												<McpCodeBlock
+													code={generateInstallCommand()}
+													onCopy={() => {
+														analytics.mcpInstallCmdCopied()
+														setActiveStep(3)
+													}}
+												/>
 											</div>
 										)}
 								</>
@@ -464,7 +474,7 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 									if (manual.kind === "chatgpt") {
 										return (
 											<div className="space-y-3">
-												<ol className="list-decimal space-y-2 pl-5 text-sm text-[#8B8B8B]">
+												<ol className="list-decimal space-y-2 pl-5 text-[13px] leading-relaxed text-[#A1A1AA]">
 													<li>Open ChatGPT in your browser.</li>
 													<li>
 														Go to Settings → Apps → Advanced settings → enable
@@ -478,27 +488,15 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 														Paste the URL below and complete OAuth in ChatGPT.
 													</li>
 												</ol>
-												<div className="relative">
-													<input
-														className={cn(
-															"w-full rounded-lg border border-[#3D434D] bg-black p-2 pr-10 font-mono text-xs text-emerald-400",
-															dmMonoClassName(),
-														)}
-														readOnly
-														value={CHATGPT_REMOTE_MCP_URL}
-													/>
-													<button
-														type="button"
-														className="absolute top-1 right-1 cursor-pointer p-1"
-														onClick={() =>
-															copyManualSnippet(CHATGPT_REMOTE_MCP_URL)
-														}
-													>
-														<CopyIcon className="size-4 text-[#8B8B8B] hover:text-white" />
-													</button>
-												</div>
+												<McpCodeBlock
+													code={CHATGPT_REMOTE_MCP_URL}
+													onCopy={() => {
+														analytics.mcpInstallCmdCopied()
+														setActiveStep(3)
+													}}
+												/>
 												<a
-													className="inline-block text-sm text-[#4BA0FA] underline hover:text-[#6BB8FF]"
+													className="inline-block text-[13px] text-[#4BA0FA] underline hover:text-[#8BC6FF]"
 													href="https://developers.openai.com/api/docs/guides/developer-mode/"
 													rel="noopener noreferrer"
 													target="_blank"
@@ -523,36 +521,21 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 										const snippet = buildMcpUrlRemoteJson("your-api-key-here")
 										return (
 											<div className="space-y-3">
-												<p className="text-sm text-[#8B8B8B]">
+												<p className="text-[13px] leading-relaxed text-[#A1A1AA]">
 													Add this to your client&apos;s MCP config. Replace the
 													placeholder with an API key from supermemory settings
 													(Integrations).
 												</p>
-												<div className="relative">
-													<pre className="max-w-full overflow-x-auto rounded-lg border border-[#3D434D] bg-black p-4 pr-12 text-xs">
-														<code
-															className={cn(
-																"block font-mono whitespace-pre-wrap break-all text-emerald-400",
-																dmMonoClassName(),
-															)}
-														>
-															{snippet}
-														</code>
-													</pre>
-													<button
-														type="button"
-														className="absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded bg-[#0D121A] hover:bg-[#1a1a1a]"
-														onClick={() => copyManualSnippet(snippet)}
-													>
-														{isManualCopied ? (
-															<span className="text-emerald-500">✓</span>
-														) : (
-															<CopyIcon className="size-3.5" />
-														)}
-													</button>
-												</div>
+												<McpCodeBlock
+													code={snippet}
+													multiline
+													onCopy={() => {
+														analytics.mcpInstallCmdCopied()
+														setActiveStep(3)
+													}}
+												/>
 												{detailSetup?.oneClick ? (
-													<p className="text-xs text-[#737373]">
+													<p className="text-[12px] text-[#737373]">
 														Use Bearer auth in headers, or switch to One click
 														setup and paste the HTTPS URL if your client
 														supports OAuth only.
@@ -563,35 +546,22 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 									}
 									return (
 										<div className="space-y-3">
-											<p className="text-sm text-[#8B8B8B]">{manual.paths}</p>
-											<p className="text-sm text-[#8B8B8B]">
+											<p className="text-[13px] leading-relaxed text-[#A1A1AA]">
+												{manual.paths}
+											</p>
+											<p className="text-[13px] leading-relaxed text-[#A1A1AA]">
 												Merge the snippet with your existing file (create it if
 												needed). Restart the client and complete OAuth when
 												prompted.
 											</p>
-											<div className="relative">
-												<pre className="max-w-full overflow-x-auto rounded-lg border border-[#3D434D] bg-black p-4 pr-12 text-xs">
-													<code
-														className={cn(
-															"block font-mono whitespace-pre-wrap break-all text-emerald-400",
-															dmMonoClassName(),
-														)}
-													>
-														{manual.snippet}
-													</code>
-												</pre>
-												<button
-													type="button"
-													className="absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded bg-[#0D121A] hover:bg-[#1a1a1a]"
-													onClick={() => copyManualSnippet(manual.snippet)}
-												>
-													{isManualCopied ? (
-														<span className="text-emerald-500">✓</span>
-													) : (
-														<CopyIcon className="size-3.5" />
-													)}
-												</button>
-											</div>
+											<McpCodeBlock
+												code={manual.snippet}
+												multiline
+												onCopy={() => {
+													analytics.mcpInstallCmdCopied()
+													setActiveStep(3)
+												}}
+											/>
 										</div>
 									)
 								})()
@@ -599,47 +569,47 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 						</div>
 					</div>
 
-					<div className="border-t border-[#242A33] pt-8">
-						<h3
-							className="mb-4 text-lg font-medium text-white"
-							style={gradientStep3}
-						>
-							{detailSetup != null &&
-							mcpClientShowsManual(detailSetup, effectiveSetupTab)
-								? selectedClient === "chatgpt"
-									? "Finish in ChatGPT"
-									: selectedClient === "claude"
-										? "Finish in Claude Desktop"
-										: "Save and restart"
-								: selectedClient === "cursor"
-									? "Finish in Cursor"
-									: "Run in terminal"}
-						</h3>
-						{activeStep === 3 && (
-							<p
+					{!isEmbedded && (
+						<div className="border-t border-white/[0.06] pt-6">
+							<h3
 								className={cn(
-									"flex items-center gap-2 rounded-xl p-4 pl-3 font-mono text-xs text-white",
-									dmMonoClassName(),
+									dmSansClassName(),
+									"mb-3 text-[15px] font-semibold tracking-[-0.01em] text-[#FAFAFA]",
 								)}
-								style={{
-									border: "1px solid rgba(61, 67, 77, 0.10)",
-									background: "#0D121A",
-								}}
 							>
-								<SyncLogoIcon className="size-4" />
 								{detailSetup != null &&
 								mcpClientShowsManual(detailSetup, effectiveSetupTab)
 									? selectedClient === "chatgpt"
-										? "Complete app setup in ChatGPT, then enable it for your chat."
+										? "Finish in ChatGPT"
 										: selectedClient === "claude"
-											? "After Connectors, complete any prompts so supermemory is enabled for chat."
-											: "Save your config, restart the client, and sign in if prompted."
+											? "Finish in Claude Desktop"
+											: "Save and restart"
 									: selectedClient === "cursor"
-										? "Complete the install in Cursor and sign in with OAuth if asked."
-										: "Waiting for installation"}
-							</p>
-						)}
-					</div>
+										? "Finish in Cursor"
+										: "Run in terminal"}
+							</h3>
+							{activeStep === 3 && (
+								<p
+									className={cn(
+										dmSansClassName(),
+										"flex items-center gap-2 rounded-[10px] border border-white/[0.07] bg-[#0B0E13] p-3 text-[12px] text-[#A1A1AA]",
+									)}
+								>
+									<SyncLogoIcon className="size-4 shrink-0 text-[#4BA0FA]" />
+									{detailSetup != null &&
+									mcpClientShowsManual(detailSetup, effectiveSetupTab)
+										? selectedClient === "chatgpt"
+											? "Complete app setup in ChatGPT, then enable it for your chat."
+											: selectedClient === "claude"
+												? "After Connectors, complete any prompts so supermemory is enabled for chat."
+												: "Save your config, restart the client, and sign in if prompted."
+										: selectedClient === "cursor"
+											? "Complete the install in Cursor and sign in with OAuth if asked."
+											: "Waiting for installation"}
+								</p>
+							)}
+						</div>
+					)}
 				</div>
 			)}
 		</div>

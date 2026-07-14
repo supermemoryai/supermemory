@@ -10,6 +10,10 @@ icon: "terminal"
 - **Implicit** (hooks) — automatically recalls context before each prompt and captures conversations after each session.
 - **Explicit** (skills) — lets you or the agent save, search, and manage memories on demand.
 
+<Tip>
+**Prefer to keep everything on your machine?** This plugin works with [self-hosted Supermemory](/self-hosting/overview) — run `npx supermemory local`, then `export SUPERMEMORY_API_URL="http://localhost:6767"` (or set `baseUrl` in `~/.codex/supermemory.json`) and use the API key printed on first boot.
+</Tip>
+
 ## Get Your API Key
 
 Create a Supermemory API key from the [API Keys](https://console.supermemory.ai/keys) page, then export it in your shell profile:
@@ -45,7 +49,7 @@ This command:
 - Copies hook and skill scripts to `~/.codex/supermemory/`
 - Enables `codex_hooks = true` in `~/.codex/config.toml`
 - Registers `UserPromptSubmit` (recall) and `Stop` (capture) hooks in `~/.codex/hooks.json`
-- Installs `supermemory-search`, `supermemory-save`, and `supermemory-forget` skills to `~/.codex/skills/`
+- Installs `supermemory-search`, `supermemory-save`, `supermemory-forget`, and `supermemory-status` skills to `~/.codex/skills/`
 
 Restart Codex CLI after installing.
 
@@ -77,13 +81,14 @@ Tags are generated automatically — no configuration needed. You can override t
 
 ## Explicit Memory Skills
 
-The installer includes three skills that Codex auto-discovers from `~/.codex/skills/`. They use the same `SUPERMEMORY_CODEX_API_KEY` as the hooks — no separate login needed.
+The installer includes four skills that Codex auto-discovers from `~/.codex/skills/`. They use the same `SUPERMEMORY_CODEX_API_KEY` as the hooks — no separate login needed.
 
 | Skill | Description |
 |-------|-------------|
 | `supermemory-search` | Search your memories by natural-language query |
 | `supermemory-save` | Save important project knowledge to memory |
 | `supermemory-forget` | Remove outdated or incorrect memories |
+| `supermemory-status` | Check Supermemory connection, hook, config, and skill status |
 
 These skills let you interact with memory explicitly — for example:
 
@@ -91,6 +96,7 @@ These skills let you interact with memory explicitly — for example:
 > Remember that this project uses Vitest for unit tests and Playwright for E2E.
 > What do you remember about our database schema?
 > Forget the memory about the old API endpoint.
+> Is Supermemory connected?
 ```
 
 ## Verify Installation
@@ -107,7 +113,7 @@ codex-supermemory status:
   API key:       ✓ set (SUPERMEMORY_CODEX_API_KEY)
   Hook scripts:  ✓ installed at ~/.codex/supermemory
   hooks.json:    ✓ registered (implicit memory)
-  Skills:        ✓ installed (supermemory-search, supermemory-save, supermemory-forget)
+  Skills:        ✓ installed (supermemory-search, supermemory-save, supermemory-forget, supermemory-status)
   config.toml:   ✓ exists
 
 All good! Memory is active.

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 
+const SUPERMEMORY_API_BASE_URL = "https://api.supermemory.ai"
+
 export async function POST(request: Request) {
 	try {
 		const body = await request.json()
@@ -9,6 +11,7 @@ export async function POST(request: Request) {
 			limit = 500,
 			sort = "createdAt",
 			order = "desc",
+			containerTags,
 		} = body
 
 		if (!apiKey) {
@@ -18,22 +21,27 @@ export async function POST(request: Request) {
 			)
 		}
 
-		const response = await fetch(
-			"https://api.supermemory.ai/v3/documents/documents",
-			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${apiKey}`,
-				},
-				body: JSON.stringify({
-					page,
-					limit,
-					sort,
-					order,
-				}),
-			},
+		const graphUrl = new URL(
+			"/v3/documents/documents",
+			SUPERMEMORY_API_BASE_URL,
 		)
+
+		const response = await fetch(graphUrl, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${apiKey}`,
+			},
+			body: JSON.stringify({
+				page,
+				limit,
+				sort,
+				order,
+				...(Array.isArray(containerTags) && containerTags.length > 0
+					? { containerTags }
+					: {}),
+			}),
+		})
 
 		if (!response.ok) {
 			const errorData = await response.json().catch(() => ({}))

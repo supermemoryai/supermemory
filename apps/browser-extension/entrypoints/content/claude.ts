@@ -29,6 +29,7 @@ export function initializeClaude() {
 	}
 
 	setTimeout(() => {
+		addSupermemoryButtonToClaudeMemoryDialog()
 		addSupermemoryIconToClaudeInput()
 		setupClaudeAutoFetch()
 	}, 2000)
@@ -59,6 +60,7 @@ function setupClaudeRouteChangeDetection() {
 			currentUrl = window.location.href
 			console.log("Claude route changed, re-adding supermemory icon")
 			setTimeout(() => {
+				addSupermemoryButtonToClaudeMemoryDialog()
 				addSupermemoryIconToClaudeInput()
 				setupClaudeAutoFetch()
 			}, 1000)
@@ -79,10 +81,13 @@ function setupClaudeRouteChangeDetection() {
 					if (node.nodeType === Node.ELEMENT_NODE) {
 						const element = node as Element
 						if (
+							element.querySelector?.('[role="dialog"]') ||
 							element.querySelector?.('div[contenteditable="true"]') ||
 							element.querySelector?.("textarea") ||
+							element.matches?.('[role="dialog"]') ||
 							element.matches?.('div[contenteditable="true"]') ||
-							element.matches?.("textarea")
+							element.matches?.("textarea") ||
+							element.textContent?.includes("Manage memory")
 						) {
 							shouldRecheck = true
 						}
@@ -95,6 +100,7 @@ function setupClaudeRouteChangeDetection() {
 			claudeObserverThrottle = setTimeout(() => {
 				try {
 					claudeObserverThrottle = null
+					addSupermemoryButtonToClaudeMemoryDialog()
 					addSupermemoryIconToClaudeInput()
 					setupClaudeAutoFetch()
 				} catch (error) {
@@ -261,6 +267,190 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 		} catch (feedbackError) {
 			console.error("Failed to update Claude error feedback:", feedbackError)
 		}
+	}
+}
+
+function getClaudeMemoryDialog(): HTMLElement | null {
+	const dialogs = Array.from(
+		document.querySelectorAll<HTMLElement>('[role="dialog"]'),
+	)
+
+	for (const dialog of dialogs) {
+		const heading = Array.from(dialog.querySelectorAll("h1, h2, h3")).find(
+			(element) => element.textContent?.trim() === "Manage memory",
+		)
+		if (heading) return dialog
+	}
+
+	const candidates = Array.from(document.querySelectorAll<HTMLElement>("div"))
+		.filter((element) => {
+			const text = element.textContent || ""
+			if (
+				!text.includes("Manage memory") ||
+				!text.includes("Here's what Claude remembers")
+			) {
+				return false
+			}
+
+			const rect = element.getBoundingClientRect()
+			return rect.width > 400 && rect.height > 250
+		})
+		.sort((a, b) => {
+			const rectA = a.getBoundingClientRect()
+			const rectB = b.getBoundingClientRect()
+			return rectA.width * rectA.height - rectB.width * rectB.height
+		})
+
+	return candidates[0] || null
+}
+
+function getClaudeMemoryText(dialog: HTMLElement): string {
+	const clonedDialog = dialog.cloneNode(true) as HTMLElement
+	clonedDialog.querySelector("#supermemory-save-button")?.remove()
+
+	const sanitizeClaudeMemoryText = (text: string) =>
+		text
+			.replace(/^Memories from Claude:\s*/i, "")
+			.split("\n")
+			.map((line) => line.trim())
+			.filter(
+				(line) =>
+					line &&
+					line !== "Tell Claude what to remember or forget..." &&
+					line !== "Save to supermemory",
+			)
+			.join("\n")
+			.trim()
+
+	const memorySections = Array.from(
+		clonedDialog.querySelectorAll<HTMLElement>(
+			"article, section, [class*='border'], [class*='rounded']",
+		),
+	)
+		.map((element) => element.innerText || element.textContent || "")
+		.map(sanitizeClaudeMemoryText)
+		.filter((text) => {
+			return (
+				text.length > 80 &&
+				!text.includes("Manage edits") &&
+				!text.includes("Save to supermemory") &&
+				!text.includes("Tell Claude what to remember or forget")
+			)
+		})
+		.sort((a, b) => b.length - a.length)
+
+	if (memorySections[0]) return memorySections[0]
+
+	return sanitizeClaudeMemoryText(
+		clonedDialog.innerText || clonedDialog.textContent || "",
+	)
+}
+
+function addSupermemoryButtonToClaudeMemoryDialog() {
+	const memoryDialog = getClaudeMemoryDialog()
+	if (!memoryDialog) return
+
+	if (memoryDialog.querySelector("#supermemory-save-button")) return
+
+	const supermemoryButton = document.createElement("button")
+	supermemoryButton.id = "supermemory-save-button"
+
+	const iconUrl = browser.runtime.getURL("/icon-16.png")
+
+	supermemoryButton.innerHTML = `
+        <div style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;">
+          <img src="${iconUrl}" alt="supermemory" style="width: 16px; height: 16px; flex-shrink: 0; border-radius: 2px;" />
+          <span style="white-space: nowrap;">Save to supermemory</span>
+        </div>
+      `
+
+	supermemoryButton.style.cssText = `
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: auto !important;
+        min-width: 190px !important;
+        background: #1C2026 !important;
+        color: white !important;
+        border: 1px solid #1C2026 !important;
+        border-radius: 9999px !important;
+        padding: 10px 16px !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        line-height: 20px !important;
+        white-space: nowrap !important;
+        margin: 8px 0 8px 0 !important;
+        transform: translateX(-16px) !important;
+        cursor: pointer !important;
+        font-family: inherit !important;
+      `
+
+	supermemoryButton.addEventListener("mouseenter", () => {
+		supermemoryButton.style.backgroundColor = "#2B2E33"
+	})
+
+	supermemoryButton.addEventListener("mouseleave", () => {
+		supermemoryButton.style.backgroundColor = "#1C2026"
+	})
+
+	supermemoryButton.addEventListener("click", async () => {
+		await saveClaudeMemoriesToSupermemory(memoryDialog)
+	})
+
+	const introText = Array.from(
+		memoryDialog.querySelectorAll<HTMLElement>("p, div"),
+	).find((element) =>
+		element.textContent?.includes("Here's what Claude remembers"),
+	)
+
+	if (introText?.parentElement) {
+		introText.parentElement.insertBefore(
+			supermemoryButton,
+			introText.nextSibling,
+		)
+		return
+	}
+
+	const heading = Array.from(memoryDialog.querySelectorAll("h1, h2, h3")).find(
+		(element) => element.textContent?.trim() === "Manage memory",
+	)
+
+	if (heading?.parentElement) {
+		heading.parentElement.insertBefore(supermemoryButton, heading.nextSibling)
+		return
+	}
+
+	memoryDialog.insertBefore(supermemoryButton, memoryDialog.firstChild)
+}
+
+async function saveClaudeMemoriesToSupermemory(memoryDialog: HTMLElement) {
+	try {
+		DOMUtils.showToast("loading")
+
+		const memoryText = getClaudeMemoryText(memoryDialog)
+		if (!memoryText) {
+			DOMUtils.showToast("error")
+			return
+		}
+
+		const response = await browser.runtime.sendMessage({
+			action: MESSAGE_TYPES.SAVE_MEMORY,
+			data: {
+				html: memoryText,
+			},
+			actionSource: "claude_memories_dialog",
+		})
+
+		console.log({ response })
+
+		if (response.success) {
+			DOMUtils.showToast("success")
+		} else {
+			DOMUtils.showToast("error")
+		}
+	} catch (error) {
+		console.error("Error saving Claude memories to supermemory:", error)
+		DOMUtils.showToast("error")
 	}
 }
 

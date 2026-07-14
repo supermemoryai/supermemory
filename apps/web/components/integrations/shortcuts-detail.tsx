@@ -23,14 +23,18 @@ import Image from "next/image"
 import { useId, useState } from "react"
 import { toast } from "sonner"
 
+type ShortcutType = "add" | "search"
+
 function PillButton({
 	children,
 	onClick,
 	disabled,
+	className,
 }: {
 	children: React.ReactNode
-	onClick?: () => void
+	onClick?: (e: React.MouseEvent) => void
 	disabled?: boolean
+	className?: string
 }) {
 	return (
 		<button
@@ -45,6 +49,7 @@ function PillButton({
 				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
 				"disabled:opacity-50 disabled:cursor-not-allowed",
 				dmSans125ClassName(),
+				className,
 			)}
 		>
 			{children}
@@ -52,17 +57,14 @@ function PillButton({
 	)
 }
 
-export function ShortcutsDetail() {
+export function useShortcutsConnect() {
 	const { org } = useAuth()
-	const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+	const [showSetupDialog, setShowSetupDialog] = useState(false)
 	const [apiKey, setApiKey] = useState("")
 	const [copied, setCopied] = useState(false)
-	const [selectedShortcutType, setSelectedShortcutType] = useState<
-		"add" | "search" | null
-	>(null)
-	const apiKeyId = useId()
+	const [shortcutType, setShortcutType] = useState<ShortcutType | null>(null)
 
-	const handleCopyApiKey = async (key: string) => {
+	const copyApiKey = async (key: string) => {
 		try {
 			await navigator.clipboard.writeText(key)
 			setCopied(true)
@@ -73,20 +75,24 @@ export function ShortcutsDetail() {
 		}
 	}
 
-	const createApiKeyMutation = useMutation({
+	const createKeyMutation = useMutation({
 		mutationFn: async () => {
+			if (!org?.id) throw new Error("Organization ID is required")
 			const res = await authClient.apiKey.create({
-				metadata: { organizationId: org?.id, type: "ios-shortcut" },
+				metadata: { organizationId: org.id, type: "ios-shortcut" },
 				name: `ios-${generateId().slice(0, 8)}`,
-				prefix: `sm_${org?.id}_`,
+				prefix: `sm_${org.id}_`,
 			})
-			return res.key
+			if (res.error)
+				throw new Error(res.error.message ?? "Failed to create API key")
+			if (!res.data?.key) throw new Error("API key missing from response")
+			return res.data.key
 		},
 		onSuccess: (key) => {
 			setApiKey(key)
-			setShowApiKeyModal(true)
+			setShowSetupDialog(true)
 			setCopied(false)
-			handleCopyApiKey(key)
+			copyApiKey(key)
 		},
 		onError: (error) => {
 			toast.error("Failed to create API key", {
@@ -95,18 +101,223 @@ export function ShortcutsDetail() {
 		},
 	})
 
-	const handleShortcutClick = (type: "add" | "search") => {
-		setSelectedShortcutType(type)
-		createApiKeyMutation.mutate()
+	const connect = (type: ShortcutType) => {
+		if (createKeyMutation.isPending) return
+		setShortcutType(type)
+		createKeyMutation.mutate()
 	}
 
-	const handleOpenShortcut = () => {
-		if (selectedShortcutType === "add") {
+	const openShortcut = () => {
+		if (shortcutType === "add") {
 			window.open(ADD_MEMORY_SHORTCUT_URL, "_blank")
-		} else if (selectedShortcutType === "search") {
+		} else if (shortcutType === "search") {
 			window.open(SEARCH_MEMORY_SHORTCUT_URL, "_blank")
 		}
 	}
+
+	const dialog = (
+		<ShortcutsSetupDialog
+			apiKey={apiKey}
+			copied={copied}
+			onCopy={() => copyApiKey(apiKey)}
+			onOpenChange={(open) => {
+				setShowSetupDialog(open)
+				if (!open) {
+					setShortcutType(null)
+					setApiKey("")
+					setCopied(false)
+				}
+			}}
+			onOpenShortcut={openShortcut}
+			open={showSetupDialog}
+			shortcutType={shortcutType}
+		/>
+	)
+
+	return {
+		connect,
+		dialog,
+		isPending: createKeyMutation.isPending,
+		pendingType: createKeyMutation.isPending ? shortcutType : null,
+	}
+}
+
+export type ShortcutsConnectController = ReturnType<typeof useShortcutsConnect>
+
+export function ShortcutsConnectButtons({
+	controller,
+}: {
+	controller: ShortcutsConnectController
+}) {
+	const { connect, isPending, pendingType } = controller
+	return (
+		<div className="flex flex-col gap-2 sm:flex-row">
+			<PillButton
+				className="h-9 flex-none"
+				onClick={(e) => {
+					e.stopPropagation()
+					connect("add")
+				}}
+				disabled={isPending}
+			>
+				{pendingType === "add" ? (
+					<Loader className="size-4 text-[#FAFAFA] animate-spin" />
+				) : (
+					<Plus className="size-4 text-[#FAFAFA]" />
+				)}
+				<span className="text-[13px] text-[#FAFAFA] font-medium whitespace-nowrap">
+					{pendingType === "add" ? "Creating..." : "Add memory shortcut"}
+				</span>
+			</PillButton>
+			<PillButton
+				className="h-9 flex-none"
+				onClick={(e) => {
+					e.stopPropagation()
+					connect("search")
+				}}
+				disabled={isPending}
+			>
+				{pendingType === "search" ? (
+					<Loader className="size-4 text-[#FAFAFA] animate-spin" />
+				) : (
+					<Search className="size-4 text-[#FAFAFA]" />
+				)}
+				<span className="text-[13px] text-[#FAFAFA] font-medium whitespace-nowrap">
+					{pendingType === "search" ? "Creating..." : "Search memory shortcut"}
+				</span>
+			</PillButton>
+		</div>
+	)
+}
+
+function ShortcutsSetupDialog({
+	apiKey,
+	copied,
+	onCopy,
+	onOpenChange,
+	onOpenShortcut,
+	open,
+	shortcutType,
+}: {
+	apiKey: string
+	copied: boolean
+	onCopy: () => void
+	onOpenChange: (open: boolean) => void
+	onOpenShortcut: () => void
+	open: boolean
+	shortcutType: ShortcutType | null
+}) {
+	const apiKeyId = useId()
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogPortal>
+				<DialogContent className="bg-[#14161A] border border-white/10 text-[#FAFAFA] md:max-w-md z-100">
+					<DialogHeader>
+						<DialogTitle
+							className={cn(
+								dmSans125ClassName(),
+								"text-[#FAFAFA] text-lg font-semibold",
+							)}
+						>
+							Setup Apple Shortcut
+						</DialogTitle>
+					</DialogHeader>
+					<div className="space-y-4">
+						<div className="space-y-2">
+							<label
+								htmlFor={apiKeyId}
+								className={cn(
+									dmSans125ClassName(),
+									"text-sm font-medium text-[#737373]",
+								)}
+							>
+								Your API Key
+							</label>
+							<div className="flex items-center gap-2">
+								<input
+									id={apiKeyId}
+									type="text"
+									value={apiKey}
+									readOnly
+									className={cn(
+										"flex-1 bg-[#0D121A] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#FAFAFA] font-mono",
+										dmSans125ClassName(),
+									)}
+								/>
+								<button
+									type="button"
+									onClick={onCopy}
+									className="p-2 rounded-lg bg-[#0D121A] border border-white/10 text-[#737373] hover:text-[#FAFAFA] transition-colors"
+								>
+									{copied ? (
+										<Check className="size-4 text-[#4BA0FA]" />
+									) : (
+										<Copy className="size-4" />
+									)}
+								</button>
+							</div>
+						</div>
+						<div className="space-y-3">
+							<h4
+								className={cn(
+									dmSans125ClassName(),
+									"text-sm font-medium text-[#737373]",
+								)}
+							>
+								Follow these steps:
+							</h4>
+							<div className="space-y-2">
+								{[
+									'Click "Add to Shortcuts" below to open the shortcut',
+									"Paste your API key when prompted",
+									"Start using your shortcut!",
+								].map((text, i) => (
+									<div key={text} className="flex items-start gap-3">
+										<div className="shrink-0 size-6 bg-[#4BA0FA]/20 text-[#4BA0FA] rounded-full flex items-center justify-center text-xs font-medium">
+											{i + 1}
+										</div>
+										<p
+											className={cn(
+												dmSans125ClassName(),
+												"text-sm text-[#737373]",
+											)}
+										>
+											{text}
+										</p>
+									</div>
+								))}
+							</div>
+						</div>
+						<button
+							type="button"
+							onClick={onOpenShortcut}
+							disabled={!shortcutType}
+							className={cn(
+								"w-full flex items-center justify-center gap-2",
+								"bg-[#4BA0FA] hover:bg-[#4BA0FA]/90 text-white",
+								"rounded-lg h-11 px-4 font-medium text-sm",
+								"disabled:opacity-50 disabled:cursor-not-allowed transition-colors",
+								dmSans125ClassName(),
+							)}
+						>
+							<Image
+								src="/images/ios-shortcuts.png"
+								alt="iOS Shortcuts"
+								width={16}
+								height={16}
+							/>
+							Add to Shortcuts
+						</button>
+					</div>
+				</DialogContent>
+			</DialogPortal>
+		</Dialog>
+	)
+}
+
+export function ShortcutsDetail() {
+	const controller = useShortcutsConnect()
+	const { connect, dialog, isPending, pendingType } = controller
 
 	return (
 		<>
@@ -140,36 +351,24 @@ export function ShortcutsDetail() {
 					</div>
 
 					<div className="flex gap-4">
-						<PillButton
-							onClick={() => handleShortcutClick("add")}
-							disabled={createApiKeyMutation.isPending}
-						>
-							{createApiKeyMutation.isPending &&
-							selectedShortcutType === "add" ? (
+						<PillButton onClick={() => connect("add")} disabled={isPending}>
+							{pendingType === "add" ? (
 								<Loader className="size-4 text-[#FAFAFA] animate-spin" />
 							) : (
 								<Plus className="size-4 text-[#FAFAFA]" />
 							)}
 							<span className="text-[14px] text-[#FAFAFA] font-medium">
-								{createApiKeyMutation.isPending &&
-								selectedShortcutType === "add"
-									? "Creating..."
-									: "Add memory shortcut"}
+								{pendingType === "add" ? "Creating..." : "Add memory shortcut"}
 							</span>
 						</PillButton>
-						<PillButton
-							onClick={() => handleShortcutClick("search")}
-							disabled={createApiKeyMutation.isPending}
-						>
-							{createApiKeyMutation.isPending &&
-							selectedShortcutType === "search" ? (
+						<PillButton onClick={() => connect("search")} disabled={isPending}>
+							{pendingType === "search" ? (
 								<Loader className="size-4 text-[#FAFAFA] animate-spin" />
 							) : (
 								<Search className="size-4 text-[#FAFAFA]" />
 							)}
 							<span className="text-[14px] text-[#FAFAFA] font-medium">
-								{createApiKeyMutation.isPending &&
-								selectedShortcutType === "search"
+								{pendingType === "search"
 									? "Creating..."
 									: "Search memory shortcut"}
 							</span>
@@ -177,120 +376,7 @@ export function ShortcutsDetail() {
 					</div>
 				</div>
 			</div>
-
-			<Dialog
-				open={showApiKeyModal}
-				onOpenChange={(open: boolean) => {
-					setShowApiKeyModal(open)
-					if (!open) {
-						setSelectedShortcutType(null)
-						setApiKey("")
-						setCopied(false)
-					}
-				}}
-			>
-				<DialogPortal>
-					<DialogContent className="bg-[#14161A] border border-white/10 text-[#FAFAFA] md:max-w-md z-100">
-						<DialogHeader>
-							<DialogTitle
-								className={cn(
-									dmSans125ClassName(),
-									"text-[#FAFAFA] text-lg font-semibold",
-								)}
-							>
-								Setup Apple Shortcut
-							</DialogTitle>
-						</DialogHeader>
-						<div className="space-y-4">
-							<div className="space-y-2">
-								<label
-									htmlFor={apiKeyId}
-									className={cn(
-										dmSans125ClassName(),
-										"text-sm font-medium text-[#737373]",
-									)}
-								>
-									Your API Key
-								</label>
-								<div className="flex items-center gap-2">
-									<input
-										id={apiKeyId}
-										type="text"
-										value={apiKey}
-										readOnly
-										className={cn(
-											"flex-1 bg-[#0D121A] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#FAFAFA] font-mono",
-											dmSans125ClassName(),
-										)}
-									/>
-									<button
-										type="button"
-										onClick={() => handleCopyApiKey(apiKey)}
-										className="p-2 rounded-lg bg-[#0D121A] border border-white/10 text-[#737373] hover:text-[#FAFAFA] transition-colors"
-									>
-										{copied ? (
-											<Check className="size-4 text-[#4BA0FA]" />
-										) : (
-											<Copy className="size-4" />
-										)}
-									</button>
-								</div>
-							</div>
-							<div className="space-y-3">
-								<h4
-									className={cn(
-										dmSans125ClassName(),
-										"text-sm font-medium text-[#737373]",
-									)}
-								>
-									Follow these steps:
-								</h4>
-								<div className="space-y-2">
-									{[
-										'Click "Add to Shortcuts" below to open the shortcut',
-										"Paste your API key when prompted",
-										"Start using your shortcut!",
-									].map((text, i) => (
-										<div key={text} className="flex items-start gap-3">
-											<div className="shrink-0 size-6 bg-[#4BA0FA]/20 text-[#4BA0FA] rounded-full flex items-center justify-center text-xs font-medium">
-												{i + 1}
-											</div>
-											<p
-												className={cn(
-													dmSans125ClassName(),
-													"text-sm text-[#737373]",
-												)}
-											>
-												{text}
-											</p>
-										</div>
-									))}
-								</div>
-							</div>
-							<button
-								type="button"
-								onClick={handleOpenShortcut}
-								disabled={!selectedShortcutType}
-								className={cn(
-									"w-full flex items-center justify-center gap-2",
-									"bg-[#4BA0FA] hover:bg-[#4BA0FA]/90 text-white",
-									"rounded-lg h-11 px-4 font-medium text-sm",
-									"disabled:opacity-50 disabled:cursor-not-allowed transition-colors",
-									dmSans125ClassName(),
-								)}
-							>
-								<Image
-									src="/images/ios-shortcuts.png"
-									alt="iOS Shortcuts"
-									width={16}
-									height={16}
-								/>
-								Add to Shortcuts
-							</button>
-						</div>
-					</DialogContent>
-				</DialogPortal>
-			</Dialog>
+			{dialog}
 		</>
 	)
 }

@@ -1,0 +1,56 @@
+---
+title: "Local vs. Enterprise"
+sidebarTitle: "Local vs. Enterprise"
+description: "Supermemory local is for builders. Supermemory Enterprise is for organizations."
+icon: "building-2"
+---
+
+Supermemory local — the self-hosted binary — is free, open source, and built for individual developers: local-first workflows, prototyping, air-gapped experiments, privacy-sensitive side projects.
+
+**Supermemory Enterprise** is the full platform, run for your organization: the same memory engine with proprietary models, organizational controls, and infrastructure that scales with you — without you operating any of it.
+
+## At a glance
+
+| | Supermemory local | Enterprise |
+|---|---|---|
+| **Memory engine** | Full graph engine, embedded | Full graph engine, managed |
+| **Models** | Bring your own key (any provider, incl. fully offline) | Proprietary models tuned for long-horizon data understanding |
+| **Authentication** | Single auto-generated API key | Organization-wide authentication and access controls |
+| **Team access** | Single org on one machine | Multi-member organizations, roles, and scoped API keys |
+| **Observability** | Server logs | Control dashboard: usage analytics, ingestion monitoring, request logs |
+| **Control** | Env vars on your box | Org-wide settings, key management, and governance from the console |
+| **Connectors** | — | Google Drive, Notion, Gmail, OneDrive with continuous background sync |
+| **Scalability** | One machine, one process | Globally distributed, scales elastically with your workload |
+| **Hosting** | You run it | Fully managed — or dedicated deployments for compliance needs |
+| **Support** | Community ([GitHub](https://git.new/memory)) | Dedicated support, onboarding, and SLAs |
+
+## What Enterprise adds
+
+### Auth and team access
+
+Local runs as a single-tenant server with one API key. Enterprise gives your whole organization structured access: member roles, and API keys scoped per environment, per team, or per app — all revocable from one place.
+
+### Observability and the control dashboard
+
+Local gives you logs. Enterprise gives you the console: live usage analytics, ingestion pipeline visibility, search and request logs, and per-key attribution — so you always know what your agents are remembering, and what it costs.
+
+### Memory quality
+
+Local runs the extraction pipeline on whatever model you bring. Enterprise runs it on Supermemory's proprietary models, purpose-tuned for long-horizon data understanding — higher-quality memories at a lower effective cost than any bring-your-own-key setup.
+
+### Scale and hosting
+
+Local is bounded by one machine — which is the point. Enterprise runs on globally distributed infrastructure that scales with your ingestion volume and query load, with no capacity planning on your side. For strict data residency or compliance requirements, dedicated deployment options are available.
+
+## Moving between them
+
+The two speak the same API. Code written against your local server moves to Enterprise by changing the `baseURL` — and vice versa. Prototype locally, ship on Enterprise.
+
+<CardGroup cols={2}>
+  <Card title="Talk to us" icon="mail" href="mailto:dhravya@supermemory.com">
+    Get a walkthrough of Supermemory Enterprise for your team
+  </Card>
+  <Card title="Start locally" icon="terminal" href="/self-hosting/quickstart">
+    Install the binary and build against the same API today
+  </Card>
+</CardGroup>

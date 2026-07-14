@@ -96,7 +96,10 @@ export class ClaudeMemoryTool {
 					}
 					return await this.create(command.path, command.file_text)
 				case "str_replace":
-					if (!command.old_str || !command.new_str) {
+					// new_str may legitimately be "" (deleting text), so only reject
+					// when it is missing entirely. old_str must be non-empty — replacing
+					// the empty string would prepend instead of replacing.
+					if (!command.old_str || command.new_str === undefined) {
 						return {
 							success: false,
 							error: "old_str and new_str are required for str_replace command",
@@ -108,7 +111,11 @@ export class ClaudeMemoryTool {
 						command.new_str,
 					)
 				case "insert":
-					if (command.insert_line === undefined || !command.insert_text) {
+					// insert_text may be "" (inserting a blank line).
+					if (
+						command.insert_line === undefined ||
+						command.insert_text === undefined
+					) {
 						return {
 							success: false,
 							error:
@@ -283,7 +290,13 @@ export class ClaudeMemoryTool {
 			if (viewRange) {
 				const lines = content.split("\n")
 				const [startLine, endLine] = viewRange
-				const selectedLines = lines.slice(startLine - 1, endLine)
+				// `endLine === -1` is the documented sentinel for "read to the end
+				// of the file" (same convention as Anthropic's text-editor tool).
+				// Passing it straight to Array.slice would be interpreted as a
+				// from-the-end index and silently drop the final line, so map any
+				// negative end to the array length.
+				const sliceEnd = endLine < 0 ? lines.length : endLine
+				const selectedLines = lines.slice(startLine - 1, sliceEnd)
 
 				// Format with line numbers
 				const numberedLines = selectedLines.map(
@@ -481,9 +494,9 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			// Delete using the document ID
-			// Note: We'll need to implement this based on supermemory's delete API
-			// For now, we'll return a success message
+			const documentId =
+				readResult.document.documentId ?? this.normalizePathToCustomId(filePath)
+			await this.client.documents.delete(documentId)
 
 			return {
 				success: true,
@@ -538,7 +551,14 @@ export class ClaudeMemoryTool {
 				},
 			})
 
-			// Delete the old document (would need proper delete API)
+			// Remove the old document so the previous path stops showing up in
+			// listings and search. Skip when both paths normalize to the same
+			// customId — the add above already replaced the content.
+			const oldNormalizedId = this.normalizePathToCustomId(oldPath)
+			if (oldNormalizedId !== newNormalizedId) {
+				const oldDocumentId = readResult.document.documentId ?? oldNormalizedId
+				await this.client.documents.delete(oldDocumentId)
+			}
 
 			return {
 				success: true,

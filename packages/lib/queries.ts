@@ -7,7 +7,12 @@ import { $fetch } from "./api"
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
 
-export const PLAN_TIERS = ["api_pro", "api_scale", "api_enterprise"] as const
+export const PLAN_TIERS = [
+	"api_pro",
+	"api_max",
+	"api_scale",
+	"api_enterprise",
+] as const
 export type PlanTier = (typeof PLAN_TIERS)[number]
 
 export type SubscriptionStatusMap = Record<
@@ -17,6 +22,7 @@ export type SubscriptionStatusMap = Record<
 
 const DEFAULT_SUBSCRIPTION_STATUS: SubscriptionStatusMap = {
 	api_pro: { allowed: false, status: null },
+	api_max: { allowed: false, status: null },
 	api_scale: { allowed: false, status: null },
 	api_enterprise: { allowed: false, status: null },
 }
@@ -55,6 +61,33 @@ export function hasActivePlan(
 	minimumTier: PlanTier,
 ): boolean {
 	return isAllowedFrom(getSubscriptionStatus(subscriptions), minimumTier)
+}
+
+export type CanceledSubscription = { planId: string; endsAt: number | null }
+
+// A subscription scheduled to cancel at period end: still active, but canceledAt is set.
+export function getCanceledSubscription(
+	subscriptions:
+		| Array<{
+				planId: string
+				status?: string
+				canceledAt?: number | null
+				currentPeriodEnd?: number | null
+				expiresAt?: number | null
+		  }>
+		| undefined,
+): CanceledSubscription | null {
+	const sub = subscriptions?.find(
+		(s) =>
+			s.status === "active" &&
+			s.canceledAt != null &&
+			(PLAN_TIERS as readonly string[]).includes(s.planId),
+	)
+	if (!sub) return null
+	return {
+		planId: sub.planId,
+		endsAt: sub.currentPeriodEnd ?? sub.expiresAt ?? null,
+	}
 }
 
 export const useDeleteDocument = (selectedProject: string) => {

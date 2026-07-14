@@ -1,11 +1,21 @@
 import { memo, useState } from "react"
-import type { GraphEdge, GraphNode, GraphThemeColors } from "../types"
+import { DEFAULT_LABELS } from "../constants"
+import type {
+	GraphEdge,
+	GraphNode,
+	GraphThemeColors,
+	ResolvedMemoryGraphLabels,
+} from "../types"
 
 interface LegendProps {
 	nodes?: GraphNode[]
 	edges?: GraphEdge[]
 	isLoading?: boolean
 	colors: GraphThemeColors
+	labels?: ResolvedMemoryGraphLabels
+	hoveredNode?: string | null
+	compact?: boolean
+	maxHeight?: number
 }
 
 function HexagonIcon({
@@ -38,29 +48,97 @@ function HexagonIcon({
 function LineIcon({
 	color,
 	dashed = false,
+	arrow = false,
 }: {
 	color: string
 	dashed?: boolean
+	arrow?: boolean
 }) {
 	return (
-		<div
+		<svg
+			aria-hidden="true"
+			height="12"
+			viewBox="0 0 16 12"
+			width="16"
 			style={{
-				width: 12,
-				height: 12,
-				display: "flex",
-				alignItems: "center",
-				justifyContent: "center",
 				flexShrink: 0,
 			}}
 		>
-			<div
-				style={{
-					width: 12,
-					height: 0,
-					borderTop: `2.5px ${dashed ? "dashed" : "solid"} ${color}`,
-				}}
+			<line
+				stroke={color}
+				strokeDasharray={dashed ? "3 2" : undefined}
+				strokeLinecap="round"
+				strokeWidth="2"
+				x1="1.5"
+				x2={arrow ? "12" : "14.5"}
+				y1="6"
+				y2="6"
 			/>
+			{arrow && (
+				<path
+					d="M10 3l4 3-4 3"
+					fill="none"
+					stroke={color}
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					strokeWidth="2"
+				/>
+			)}
+		</svg>
+	)
+}
+
+function ClusterSwatches() {
+	const swatches = ["#58C7E8", "#E7BC52", "#74D680", "#D47B75", "#A789E8"]
+	return (
+		<div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+			{swatches.map((color) => (
+				<span
+					key={color}
+					style={{
+						width: 7,
+						height: 12,
+						borderRadius: 999,
+						backgroundColor: color,
+					}}
+				/>
+			))}
 		</div>
+	)
+}
+
+function UpdateMarkerIcon({ colors }: { colors: GraphThemeColors }) {
+	return (
+		<svg
+			aria-hidden="true"
+			height="14"
+			viewBox="0 0 14 14"
+			width="14"
+			style={{ flexShrink: 0 }}
+		>
+			<polygon
+				fill={colors.memFill}
+				points="7,1.5 12,4.25 12,9.75 7,12.5 2,9.75 2,4.25"
+				stroke={colors.memStrokeDefault}
+				strokeWidth="0.7"
+			/>
+			<circle
+				cx="10.2"
+				cy="3.8"
+				fill={colors.popoverBg}
+				r="2.4"
+				stroke={colors.edgeUpdates}
+				strokeWidth="1"
+			/>
+			<path
+				d="M9.1 3.8h1.7l-.5-.5m.5.5-.5.5"
+				fill="none"
+				stroke={colors.edgeUpdates}
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				strokeWidth="0.8"
+			/>
+		</svg>
 	)
 }
 
@@ -186,11 +264,44 @@ function StatRow({
 	)
 }
 
+function countEdgesByType(edges: GraphEdge[], edgeType: GraphEdge["edgeType"]) {
+	return edges.filter((edge) => edge.edgeType === edgeType).length
+}
+
+function getActiveUpdateCount(
+	edges: GraphEdge[],
+	hoveredNode: string | null | undefined,
+) {
+	if (!hoveredNode) return 0
+	return edges.filter((edge) => {
+		if (edge.edgeType !== "updates") return false
+		const sourceId =
+			typeof edge.source === "string" ? edge.source : edge.source.id
+		const targetId =
+			typeof edge.target === "string" ? edge.target : edge.target.id
+		return sourceId === hoveredNode || targetId === hoveredNode
+	}).length
+}
+
+function isUpdateMemoryNode(node: GraphNode) {
+	if (node.type !== "memory") return false
+	const data = node.data
+	if (!("isLatest" in data)) return false
+	if (data.isLatest === false || data.parentMemoryId) return true
+	return Object.values(data.memoryRelations ?? {}).some(
+		(relation) => relation === "updates",
+	)
+}
+
 export const Legend = memo(function Legend({
 	nodes = [],
 	edges = [],
 	isLoading: _isLoading = false,
 	colors,
+	labels = DEFAULT_LABELS,
+	hoveredNode,
+	compact = false,
+	maxHeight,
 }: LegendProps) {
 	const [isExpanded, setIsExpanded] = useState(false)
 	const [connectionsExpanded, setConnectionsExpanded] = useState(true)
@@ -198,10 +309,22 @@ export const Legend = memo(function Legend({
 	const memoryCount = nodes.filter((n) => n.type === "memory").length
 	const documentCount = nodes.filter((n) => n.type === "document").length
 	const connectionCount = edges.length
+	const derivesCount = countEdgesByType(edges, "derives")
+	const updatesCount = countEdgesByType(edges, "updates")
+	const extendsCount = countEdgesByType(edges, "extends")
+	const activeUpdateCount = getActiveUpdateCount(edges, hoveredNode)
+	const clusterCount = new Set(
+		nodes
+			.filter((node) => node.type === "memory")
+			.map((node) => node.clusterKey)
+			.filter(Boolean),
+	).size
+	const updateNodeCount = nodes.filter(isUpdateMemoryNode).length
 
 	const outerStyle: React.CSSProperties = {
 		overflow: "hidden",
-		width: 214,
+		width: compact ? "min(214px, calc(100vw - 32px))" : 214,
+		maxWidth: "100%",
 	}
 
 	const cardStyle: React.CSSProperties = {
@@ -209,6 +332,7 @@ export const Legend = memo(function Legend({
 		backgroundColor: colors.controlBg,
 		border: `1px solid ${colors.controlBorder}`,
 		boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)",
+		maxHeight,
 	}
 
 	const headerBtnStyle: React.CSSProperties = {
@@ -217,6 +341,7 @@ export const Legend = memo(function Legend({
 		alignItems: "center",
 		gap: 6,
 		width: "100%",
+		justifyContent: "flex-start",
 		cursor: "pointer",
 		outline: "none",
 		background: "none",
@@ -256,11 +381,43 @@ export const Legend = memo(function Legend({
 		color: colors.textPrimary,
 	}
 
+	const countStyle: React.CSSProperties = {
+		fontSize: 12,
+		color: colors.textMuted,
+	}
+
+	const detailTextStyle: React.CSSProperties = {
+		fontSize: 11,
+		lineHeight: 1.35,
+		color: colors.textMuted,
+	}
+
 	const statusRowStyle: React.CSSProperties = {
 		display: "flex",
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 8,
+	}
+
+	const edgeDescriptionStyle: React.CSSProperties = {
+		...detailTextStyle,
+		marginLeft: 24,
+		marginTop: 2,
+	}
+
+	const expandedContentStyle: React.CSSProperties = {
+		marginTop: 16,
+		display: "flex",
+		flexDirection: "column",
+		gap: 16,
+		...(compact
+			? {
+					maxHeight: maxHeight ? Math.max(maxHeight - 56, 112) : 220,
+					overflowY: "auto",
+					overscrollBehavior: "contain",
+					paddingRight: 2,
+				}
+			: {}),
 	}
 
 	return (
@@ -281,14 +438,7 @@ export const Legend = memo(function Legend({
 					</button>
 
 					{isExpanded && (
-						<div
-							style={{
-								marginTop: 16,
-								display: "flex",
-								flexDirection: "column",
-								gap: 16,
-							}}
-						>
+						<div style={expandedContentStyle}>
 							{/* Statistics section */}
 							<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
 								<span style={sectionLabelStyle}>Statistics</span>
@@ -320,7 +470,7 @@ export const Legend = memo(function Legend({
 												}}
 											/>
 										}
-										label="Documents"
+										label={labels.documentGroup}
 										colors={colors}
 									/>
 									<StatRow
@@ -374,30 +524,89 @@ export const Legend = memo(function Legend({
 											style={{
 												display: "flex",
 												flexDirection: "column",
-												gap: 6,
+												gap: 8,
 											}}
 										>
-											<div style={rowStyle}>
-												<div style={rowLeftStyle}>
-													<LineIcon color={colors.edgeDerives} />
-													<span style={edgeLabelStyle}>Derives</span>
+											<div>
+												<div style={rowStyle}>
+													<div style={rowLeftStyle}>
+														<LineIcon color={colors.edgeDerives} />
+														<span style={edgeLabelStyle}>
+															{labels.documentSourceEdge}
+														</span>
+													</div>
+													<span style={countStyle}>{derivesCount}</span>
+												</div>
+												<div style={edgeDescriptionStyle}>
+													{labels.documentToMemoryEdge}
 												</div>
 											</div>
-											<div style={rowStyle}>
-												<div style={rowLeftStyle}>
-													<LineIcon color={colors.edgeUpdates} />
-													<span style={edgeLabelStyle}>Updates</span>
+											<div>
+												<div style={rowStyle}>
+													<div style={rowLeftStyle}>
+														<LineIcon color={colors.edgeUpdates} arrow />
+														<span style={edgeLabelStyle}>Updates</span>
+													</div>
+													<span style={countStyle}>{updatesCount}</span>
+												</div>
+												<div style={edgeDescriptionStyle}>
+													Older memory to newer memory
 												</div>
 											</div>
-											<div style={rowStyle}>
-												<div style={rowLeftStyle}>
-													<LineIcon color={colors.edgeExtends} dashed />
-													<span style={edgeLabelStyle}>Extends</span>
+											<div>
+												<div style={rowStyle}>
+													<div style={rowLeftStyle}>
+														<LineIcon color={colors.edgeExtends} />
+														<span style={edgeLabelStyle}>Related</span>
+													</div>
+													<span style={countStyle}>{extendsCount}</span>
+												</div>
+												<div style={edgeDescriptionStyle}>
+													Supporting or extended memory
 												</div>
 											</div>
 										</div>
 									</StatRow>
 								</div>
+							</div>
+
+							<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+								<span style={sectionLabelStyle}>Color</span>
+								<div style={statusRowStyle}>
+									<ClusterSwatches />
+									<div
+										style={{
+											display: "flex",
+											flexDirection: "column",
+											gap: 2,
+										}}
+									>
+										<span style={edgeLabelStyle}>Cluster</span>
+										<span style={detailTextStyle}>
+											Same document or connected memory group
+										</span>
+									</div>
+								</div>
+								<div style={rowStyle}>
+									<span style={detailTextStyle}>Visible clusters</span>
+									<span style={countStyle}>{clusterCount}</span>
+								</div>
+								{activeUpdateCount > 0 && (
+									<div
+										style={{
+											borderRadius: 8,
+											border: `1px solid ${colors.edgeUpdates}`,
+											backgroundColor: `${colors.edgeUpdates}22`,
+											padding: 8,
+											color: colors.textPrimary,
+											fontSize: 12,
+											lineHeight: 1.35,
+										}}
+									>
+										{activeUpdateCount} update link
+										{activeUpdateCount === 1 ? "" : "s"} connected to hover
+									</div>
+								)}
 							</div>
 
 							{/* Memory Status section */}
@@ -406,6 +615,21 @@ export const Legend = memo(function Legend({
 								<div
 									style={{ display: "flex", flexDirection: "column", gap: 6 }}
 								>
+									<div style={statusRowStyle}>
+										<UpdateMarkerIcon colors={colors} />
+										<div
+											style={{
+												display: "flex",
+												flexDirection: "column",
+												gap: 2,
+											}}
+										>
+											<span style={edgeLabelStyle}>Update chain</span>
+											<span style={detailTextStyle}>
+												{updateNodeCount} memories have versions
+											</span>
+										</div>
+									</div>
 									<div style={statusRowStyle}>
 										<HexagonIcon
 											fill={colors.memFill}

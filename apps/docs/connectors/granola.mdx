@@ -1,0 +1,213 @@
+---
+title: "Granola Connector"
+description: "Sync AI meeting notes and transcripts from Granola into your Supermemory knowledge base"
+icon: "/images/granola.svg"
+---
+
+Connect Granola to sync AI meeting notes and transcripts into your Supermemory knowledge base. The connector uses a Granola API key, so there is no OAuth redirect flow.
+
+<Note>
+The Granola connector requires a **Pro Plan** or higher in Supermemory and a Granola plan that can create API keys. In Granola, create one from **Settings > Connectors > API keys**.
+</Note>
+
+## Quick Setup
+
+### From the Console
+
+1. Open the [Supermemory Console](https://console.supermemory.ai).
+2. Go to **Connectors**.
+3. Find the **Granola** row and click **Connect**.
+4. Paste your Granola API key.
+5. Optionally set a document limit and container tag.
+6. Click **Connect**.
+
+The console creates the connection and starts the initial sync automatically.
+
+<Note>
+The console limits connector setup to 500 documents. Use the API setup below for higher `documentLimit` values, up to 10,000.
+</Note>
+
+### With the API
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    import Supermemory from 'supermemory';
+
+    const client = new Supermemory({
+      apiKey: process.env.SUPERMEMORY_API_KEY!
+    });
+
+    const connection = await client.connections.create('granola', {
+      metadata: {
+        apiKey: process.env.GRANOLA_API_KEY!
+      },
+      containerTags: ['org-123', 'meeting-notes'],
+      documentLimit: 1000
+    });
+
+    console.log('Granola connection:', connection.id);
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from supermemory import Supermemory
+    import os
+
+    client = Supermemory(api_key=os.environ["SUPERMEMORY_API_KEY"])
+
+    connection = client.connections.create(
+        'granola',
+        metadata={
+            'apiKey': os.environ["GRANOLA_API_KEY"]
+        },
+        container_tags=['org-123', 'meeting-notes'],
+        document_limit=1000
+    )
+
+    print(f'Granola connection: {connection.id}')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/connections/granola" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "metadata": {
+          "apiKey": "'"$GRANOLA_API_KEY"'"
+        },
+        "containerTags": ["org-123", "meeting-notes"],
+        "documentLimit": 1000
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+Supermemory validates the Granola API key before creating the connection. The initial sync starts automatically after the connection is created.
+
+## Configuration Options
+
+For Granola, provider-specific fields are passed inside the top-level `metadata` object. General connection options stay top-level.
+
+| Parameter | Location | Required | Description |
+|-----------|----------|----------|-------------|
+| `apiKey` | `metadata.apiKey` | Yes | Granola API key from **Settings > Connectors > API keys** |
+| `containerTags` | top-level | No | Tags for organizing imported notes by user, organization, project, or tenant |
+| `documentLimit` | top-level | No | Maximum notes to sync per connection (default: 10,000) |
+
+<Note>
+In the Python SDK, use `container_tags` and `document_limit` for top-level options, but keep the Granola metadata key in camelCase: `apiKey`.
+</Note>
+
+## What Gets Synced
+
+Granola notes are synced as markdown documents. Each document can include:
+
+- Note title
+- Meeting time, attendees, and meeting URL when Granola returns them
+- AI-generated summary when present
+- Full transcript when present
+
+### Document Metadata
+
+Each synced note includes searchable metadata:
+
+| Field | Description |
+|-------|-------------|
+| `type` | Always `granola` |
+| `title` | Granola note title |
+| `createdAt` | Granola note creation timestamp |
+| `updatedAt` | Granola note update timestamp |
+| `url` | Granola note URL, when available |
+| `attendees` | Attendee names or emails, when available |
+| `meetingStart` | Calendar event start time, when available |
+
+You can filter searches using these metadata fields:
+
+```typescript
+const results = await client.search.documents({
+  q: "customer onboarding discussion",
+  containerTags: ['org-123'],
+  filters: JSON.stringify({
+    AND: [
+      { key: "type", value: "granola", negate: false },
+      { key: "attendees", value: "alex@company.com", negate: false }
+    ]
+  })
+});
+```
+
+## Connection Management
+
+### Delete Connection
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    await client.connections.deleteByID('conn_granola_abc123');
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    client.connections.delete_by_id('conn_granola_abc123')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X DELETE "https://api.supermemory.ai/v3/connections/conn_granola_abc123" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+By default, deleting a connection removes all synced documents from Supermemory. To keep documents, pass `deleteDocuments=false` as a query parameter: `DELETE /v3/connections/:id?deleteDocuments=false`
+</Warning>
+
+### Manual Sync
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    await client.connections.import('granola', {
+      containerTags: ['org-123']
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    client.connections.import_(
+        'granola',
+        container_tags=['org-123']
+    )
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/connections/granola/import" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"containerTags": ["org-123"]}'
+    ```
+  </Tab>
+</Tabs>
+
+## Sync Behavior
+
+| Feature | Behavior |
+|---------|----------|
+| **Initial sync** | Fetches Granola notes up to `documentLimit` |
+| **Incremental sync** | Uses Granola `updated_at` timestamps to fetch notes changed since the previous sync |
+| **Transcript handling** | Fetches each note with transcript content included |
+| **Sync schedule** | Initial sync after connection creation + manual triggers |
+| **Document limit** | 10,000 notes per connection (default) |
+
+## Troubleshooting
+
+| Error | Solution |
+|-------|----------|
+| `Granola API key is required` | Include a non-empty `metadata.apiKey` value when creating the connection |
+| `Granola API key is invalid` | Create a new key in Granola and reconnect |
+| `Could not reach Granola API` | Retry after checking Granola API availability and network access |
+| Missing notes | Check `documentLimit`; if the workspace has more notes than the limit, only notes up to the limit are imported |

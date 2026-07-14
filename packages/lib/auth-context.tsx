@@ -18,6 +18,23 @@ type OrganizationListItem = NonNullable<
 
 const STORAGE_KEY = "supermemory-consumer-last-org-slug"
 
+// Reads ?org=<slug> from the URL once and removes it, so a deep link that
+// selects an org doesn't re-fire on refresh or back-navigation.
+function consumeRequestedOrgSlug(): string | null {
+	if (typeof window === "undefined") return null
+	const params = new URLSearchParams(window.location.search)
+	const slug = params.get("org")
+	if (!slug) return null
+	params.delete("org")
+	const qs = params.toString()
+	window.history.replaceState(
+		null,
+		"",
+		`${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`,
+	)
+	return slug
+}
+
 interface AuthContextType {
 	session: SessionData["session"] | null
 	user: SessionData["user"] | null
@@ -111,12 +128,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		const run = async () => {
 			try {
+				// OAuth consent owns org selection for the authorization transaction.
+				const shouldRestoreSavedOrg =
+					typeof window === "undefined" ||
+					window.location.pathname !== "/oauth/consent"
+
 				if (orgs.length === 0) {
 					if (!cancelled) setOrg(null)
 					return
 				}
 
 				const activeOrgId = session.session.activeOrganizationId
+
+				// Deep link (?org=<slug>) takes priority — used when arriving from
+				// the console. Strip the param so refresh/back doesn't re-trigger.
+				const requestedSlug = consumeRequestedOrgSlug()
+				if (requestedSlug) {
+					const match = orgs.find((o) => o.slug === requestedSlug)
+					if (match) {
+						if (activeOrgId === match.id) {
+							const full = await authClient.organization.getFullOrganization()
+							if (!cancelled) setOrg(full?.data ?? null)
+						} else {
+							await setActiveOrg(requestedSlug)
+						}
+						return
+					}
+				}
 
 				if (orgs.length === 1) {
 					const one = orgs[0]
@@ -130,19 +168,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					return
 				}
 
-				const savedSlug = localStorage.getItem(STORAGE_KEY)
-				if (savedSlug) {
-					const match = orgs.find((o) => o.slug === savedSlug)
-					if (match) {
-						if (activeOrgId === match.id) {
-							const full = await authClient.organization.getFullOrganization()
-							if (!cancelled) setOrg(full?.data ?? null)
-						} else {
-							await setActiveOrg(savedSlug)
+				if (shouldRestoreSavedOrg) {
+					const savedSlug = localStorage.getItem(STORAGE_KEY)
+					if (savedSlug) {
+						const match = orgs.find((o) => o.slug === savedSlug)
+						if (match) {
+							if (activeOrgId === match.id) {
+								const full = await authClient.organization.getFullOrganization()
+								if (!cancelled) setOrg(full?.data ?? null)
+							} else {
+								await setActiveOrg(savedSlug)
+							}
+							return
 						}
-						return
+						localStorage.removeItem(STORAGE_KEY)
 					}
-					localStorage.removeItem(STORAGE_KEY)
 				}
 
 				if (activeOrgId) {

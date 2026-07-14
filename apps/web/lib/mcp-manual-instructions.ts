@@ -8,6 +8,14 @@ export const SUPERMEMORY_MCP_OAUTH_JSON = `{
   }
 }`
 
+export const ANTIGRAVITY_MCP_SNIPPET = `{
+    "mcpServers": {
+        "supermemory": {
+            "serverUrl": "${CHATGPT_REMOTE_MCP_URL}"
+        }
+    }
+}`
+
 export function buildMcpUrlRemoteJson(apiKeyPlaceholder: string) {
 	return `{
   "supermemory-mcp": {
@@ -52,6 +60,14 @@ export function getManualInstallEntry(clientKey: string): ManualInstallEntry {
 			return { kind: "chatgpt" }
 		case "mcp-url":
 			return { kind: "generic-remote" }
+		case "antigravity":
+			return {
+				kind: "file",
+				paths:
+					"Antigravity: ~/.gemini/config/mcp_config.json. Merge the block into your existing [mcp_servers] section.",
+				snippet: ANTIGRAVITY_MCP_SNIPPET,
+				format: "json",
+			}
 		case "codex":
 			return {
 				kind: "file",

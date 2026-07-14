@@ -1,4 +1,8 @@
 import type { UIMessage } from "@ai-sdk/react"
+import {
+	extractDocumentIdsFromMemoryOutput,
+	extractMemoryToolOutputs,
+} from "@/lib/chat-memory-tools"
 import { memoryResultsFromSearchToolOutput } from "@/lib/chat-search-memory-results"
 
 const UUID_IN_STRING =
@@ -42,7 +46,8 @@ export function documentIdsFromBashText(text: string): string[] {
 	const found = new Set<string>()
 	// [doc:<nanoid>] annotations from sgrep --include-doc-ids (highest confidence)
 	for (const m of text.matchAll(DOC_ANNOTATION)) {
-		found.add(m[1])
+		const id = m[1]
+		if (id) found.add(id)
 	}
 	// Standard UUID format
 	for (const m of text.matchAll(UUID_IN_STRING)) {
@@ -52,7 +57,8 @@ export function documentIdsFromBashText(text: string): string[] {
 	const quoted = /"documentId"\s*:\s*"([^"]+)"/g
 	let q = quoted.exec(text)
 	while (q !== null) {
-		found.add(q[1])
+		const id = q[1]
+		if (id) found.add(id)
 		q = quoted.exec(text)
 	}
 	return [...found]
@@ -136,9 +142,23 @@ export function extractHighlightDocumentIdsFromMessages(
 		if (message.role !== "assistant") continue
 		const parts = message.parts
 		if (!parts) continue
+		for (const memoryOutput of extractMemoryToolOutputs(message)) {
+			for (const id of extractDocumentIdsFromMemoryOutput(
+				memoryOutput.output,
+			)) {
+				ids.add(id)
+			}
+		}
 
 		for (const part of parts) {
 			const p = part as Record<string, unknown>
+			if (
+				p.type === "tool-searchMemories" ||
+				p.type === "tool-recallContext" ||
+				p.type === "tool-discoverSpaces"
+			) {
+				continue
+			}
 
 			if (p.type === "source-document") {
 				const sid = (p as { sourceId?: unknown }).sourceId

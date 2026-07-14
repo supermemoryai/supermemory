@@ -103,6 +103,7 @@ export async function validateOAuthToken(
 			headers: {
 				Authorization: `Bearer ${token}`,
 			},
+			signal: AbortSignal.timeout(30_000),
 		})
 
 		if (!sessionResponse.ok) {

@@ -72,6 +72,16 @@
 								"pages": ["intro", "quickstart", "vibe-coding"]
 							},
 							{
+								"group": "Self-Hosting",
+								"pages": [
+									"self-hosting/overview",
+									"self-hosting/quickstart",
+									"self-hosting/configuration",
+									"self-hosting/embeddings",
+									"self-hosting/local-vs-enterprise"
+								]
+							},
+							{
 								"group": "Concepts",
 								"pages": [
 									"concepts/how-it-works",
@@ -79,6 +89,7 @@
 									"concepts/content-types",
 									"concepts/super-rag",
 									"concepts/memory-vs-rag",
+									"concepts/container-tags",
 									"concepts/filtering",
 									"concepts/user-profiles",
 									"concepts/customization",
@@ -94,7 +105,11 @@
 									{
 										"group": "Manage Content",
 										"icon": "folder-cog",
-										"pages": ["document-operations", "memory-operations"]
+										"pages": [
+											"document-operations",
+											"memory-operations",
+											"memory-review"
+										]
 									},
 									"overview/use-cases"
 								]
@@ -112,6 +127,7 @@
 											"connectors/gmail",
 											"connectors/onedrive",
 											"connectors/s3",
+											"connectors/granola",
 											"connectors/github",
 											"connectors/web-crawler"
 										]
@@ -295,7 +311,7 @@
 				"anchors": [
 					{
 						"anchor": "Changelog",
-						"pages": ["changelog/overview"]
+						"pages": ["changelog/overview", "changelog/plugins"]
 					}
 				],
 				"tab": "Changelog"

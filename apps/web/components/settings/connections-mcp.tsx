@@ -4,7 +4,7 @@ import { dmSans125ClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { $fetch } from "@lib/api"
 import { hasActivePlan } from "@lib/queries"
-import { GoogleDrive, Notion, OneDrive, Zoom } from "@ui/assets/icons"
+import { GoogleDrive, Granola, Notion, OneDrive, Zoom } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
@@ -23,8 +23,8 @@ import { useQueryState } from "nuqs"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { analytics } from "@/lib/analytics"
-import { ConnectAIModal } from "@/components/connect-ai-modal"
 import { AddDocumentModal } from "@/components/add-document"
+import { useRouter } from "next/navigation"
 import { RemoveConnectionDialog } from "@/components/remove-connection-dialog"
 import { addDocumentParam } from "@/lib/search-params"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
@@ -33,7 +33,10 @@ import { SyncStatusBadge } from "@/components/settings/sync-status-badge"
 import { SyncHistoryPanel } from "@/components/settings/sync-history-panel"
 import { useConnectionHealth } from "@/hooks/use-connection-health"
 import { useTriggerSync } from "@/hooks/use-trigger-sync"
-import { formatRelativeTime } from "@/components/settings/sync-utils"
+import {
+	formatRelativeTime,
+	getConnectionSubtitle,
+} from "@/components/settings/sync-utils"
 import type { ImportProvider } from "@/components/settings/sync-utils"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
@@ -73,6 +76,12 @@ const CONNECTORS = {
 		description: "Sync meeting notes, transcripts, and AI summaries",
 		icon: Zoom,
 		documentLabel: "meetings",
+	},
+	granola: {
+		title: "Granola",
+		description: "Sync AI meeting notes and transcripts",
+		icon: Granola,
+		documentLabel: "notes",
 	},
 } as const
 
@@ -237,7 +246,7 @@ function ConnectionRow({
 								"font-medium text-[16px] tracking-[-0.16px] text-[#737373]",
 							)}
 						>
-							{connection.email || "Unknown"}
+							{getConnectionSubtitle(connection)}
 						</span>
 					</div>
 					<div className="flex items-center gap-0.5">
@@ -418,7 +427,7 @@ export default function ConnectionsMCP() {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
 	const [addDoc, setAddDoc] = useQueryState("add", addDocumentParam)
-	const [mcpModalOpen, setMcpModalOpen] = useState(false)
+	const router = useRouter()
 	const [removeDialog, setRemoveDialog] = useState<{
 		open: boolean
 		connection: Connection | null
@@ -706,14 +715,14 @@ export default function ConnectionsMCP() {
 							</a>
 						</p>
 
-						<ConnectAIModal open={mcpModalOpen} onOpenChange={setMcpModalOpen}>
-							<PillButton onClick={() => setMcpModalOpen(true)}>
-								<Plus className="size-[10px] text-[#FAFAFA]" />
-								<span className="text-[14px] tracking-[-0.14px] text-[#FAFAFA] font-medium">
-									Connect your AI to Supermemory
-								</span>
-							</PillButton>
-						</ConnectAIModal>
+						<PillButton
+							onClick={() => router.push("/integrations?cat=ai-clients")}
+						>
+							<Plus className="size-[10px] text-[#FAFAFA]" />
+							<span className="text-[14px] tracking-[-0.14px] text-[#FAFAFA] font-medium">
+								Connect your AI to Supermemory
+							</span>
+						</PillButton>
 					</div>
 				</ConnectionsCard>
 			</div>

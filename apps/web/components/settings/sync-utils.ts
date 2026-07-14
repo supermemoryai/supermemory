@@ -43,9 +43,17 @@ export const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
 	"web-crawler": "Web Crawler",
 	s3: "S3",
 	zoom: "Zoom",
+	granola: "Granola",
 }
 
-/** Provider type union matching the backend import endpoint */
+export function getConnectionSubtitle(conn: {
+	provider: string
+	email?: string | null
+}): string {
+	if (conn.provider === "granola") return "Granola workspace"
+	return conn.email || "Unknown"
+}
+
 export type ImportProvider =
 	| "google-drive"
 	| "notion"
@@ -55,3 +63,4 @@ export type ImportProvider =
 	| "web-crawler"
 	| "s3"
 	| "zoom"
+	| "granola"

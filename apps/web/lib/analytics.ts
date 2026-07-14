@@ -1,13 +1,53 @@
 import posthog from "posthog-js"
+import type { BrainStep } from "@/components/onboarding-brain/types"
 
-// Helper function to safely capture events
+const pendingEvents: Array<{
+	eventName: string
+	properties?: Record<string, unknown>
+}> = []
+let flushTimer: ReturnType<typeof setInterval> | undefined
+let flushTimeout: ReturnType<typeof setTimeout> | undefined
+
+const flushPendingEvents = () => {
+	if (!posthog.__loaded) return
+	while (pendingEvents.length > 0) {
+		const event = pendingEvents.shift()
+		if (!event) return
+		posthog.capture(event.eventName, event.properties)
+	}
+	if (flushTimer) {
+		clearInterval(flushTimer)
+		flushTimer = undefined
+	}
+	if (flushTimeout) {
+		clearTimeout(flushTimeout)
+		flushTimeout = undefined
+	}
+}
+
+const scheduleFlush = () => {
+	if (flushTimer) return
+	flushTimer = setInterval(flushPendingEvents, 200)
+	flushTimeout = setTimeout(() => {
+		if (!flushTimer) return
+		clearInterval(flushTimer)
+		flushTimer = undefined
+		flushTimeout = undefined
+		pendingEvents.length = 0
+	}, 10000)
+}
+
 const safeCapture = (
 	eventName: string,
 	properties?: Record<string, unknown>,
 ) => {
 	if (posthog.__loaded) {
+		flushPendingEvents()
 		posthog.capture(eventName, properties)
+		return
 	}
+	pendingEvents.push({ eventName, properties })
+	scheduleFlush()
 }
 
 export const analytics = {
@@ -30,7 +70,7 @@ export const analytics = {
 	chatDeleted: () => safeCapture("chat_deleted"),
 
 	viewModeChanged: (
-		mode: "dashboard" | "graph" | "list" | "integrations" | "chat",
+		mode: "dashboard" | "graph" | "list" | "integrations" | "chat" | "digests",
 	) => safeCapture("view_mode_changed", { mode }),
 
 	documentCardClicked: () => safeCapture("document_card_clicked"),
@@ -40,19 +80,19 @@ export const analytics = {
 	upgradeCompleted: () => safeCapture("upgrade_completed"),
 	billingPortalOpened: () => safeCapture("billing_portal_opened"),
 
-	connectionAdded: (provider: string) =>
-		safeCapture("connection_added", { provider }),
 	connectionDeleted: () => safeCapture("connection_deleted"),
-	connectionAuthStarted: () => safeCapture("connection_auth_started"),
-	connectionAuthCompleted: () => safeCapture("connection_auth_completed"),
-	connectionAuthFailed: () => safeCapture("connection_auth_failed"),
+	connectionAuthStarted: (props: { provider: string }) =>
+		safeCapture("connection_auth_started", props),
 
-	nextAppResearchCtaDismissed: () =>
-		safeCapture("next_app_research_cta_dismissed"),
-	nextAppResearchCtaBookCallClicked: () =>
-		safeCapture("next_app_research_cta_book_call_clicked"),
-	nextAppResearchCtaLobbysideCallClicked: () =>
-		safeCapture("next_app_research_cta_lobbyside_call_clicked"),
+	// integrations surface (main Nova page)
+	integrationCardClicked: (props: { kind: string; id: string; name: string }) =>
+		safeCapture("integration_card_clicked", props),
+	integrationInfoModalClosed: (props: {
+		kind: string
+		id: string
+		name: string
+		close_reason: "dismiss" | "close_button" | "im_good" | "action"
+	}) => safeCapture("integration_info_modal_closed", props),
 
 	mcpViewOpened: () => safeCapture("mcp_view_opened"),
 	mcpInstallCmdCopied: () => safeCapture("mcp_install_cmd_copied"),
@@ -72,24 +112,47 @@ export const analytics = {
 	addDocumentModalOpened: () => safeCapture("add_document_modal_opened"),
 
 	// onboarding analytics
-	onboardingStepViewed: (props: { step: string; trigger: "user" | "auto" }) =>
-		safeCapture("onboarding_step_viewed", props),
+	onboardingStarted: (props: { mode: string; entry_step: BrainStep }) =>
+		safeCapture("onboarding_started", props),
 
-	onboardingNameSubmitted: (props: { name_length: number }) =>
-		safeCapture("onboarding_name_submitted", props),
+	onboardingStepViewed: (props: {
+		step: BrainStep
+		index: number
+		trigger: "user" | "auto"
+	}) => safeCapture("onboarding_step_viewed", props),
 
-	onboardingProfileSubmitted: (props: {
-		has_twitter: boolean
-		has_linkedin: boolean
-		other_links_count: number
-		description_length: number
-	}) => safeCapture("onboarding_profile_submitted", props),
+	onboardingStepCompleted: (props: { step: BrainStep; index: number }) =>
+		safeCapture("onboarding_step_completed", props),
 
-	onboardingRelatableSelected: (props: { options: string[] }) =>
-		safeCapture("onboarding_relatable_selected", props),
+	onboardingModeSelected: (props: { mode: string }) =>
+		safeCapture("onboarding_mode_selected", props),
+
+	onboardingWorkspaceCreated: (props: {
+		mode: string
+		has_about: boolean
+		has_domain: boolean
+	}) => safeCapture("onboarding_workspace_created", props),
+
+	onboardingWorkspaceCreateFailed: (props: { error: string }) =>
+		safeCapture("onboarding_workspace_create_failed", props),
 
 	onboardingIntegrationClicked: (props: { integration: string }) =>
 		safeCapture("onboarding_integration_clicked", props),
+
+	onboardingSourcesCompleted: (props: { connected_count: number }) =>
+		safeCapture("onboarding_sources_completed", props),
+
+	onboardingAgentSelected: (props: { agent: string }) =>
+		safeCapture("onboarding_agent_selected", props),
+
+	onboardingIngestCompleted: () => safeCapture("onboarding_ingest_completed"),
+
+	onboardingIngestSkipped: () => safeCapture("onboarding_ingest_skipped"),
+
+	onboardingInvitesSent: (props: { sent: number; failed: number }) =>
+		safeCapture("onboarding_invites_sent", props),
+
+	onboardingTeamSkipped: () => safeCapture("onboarding_team_skipped"),
 
 	onboardingChromeExtensionClicked: (props: {
 		source: "onboarding" | "settings" | "integrations"
@@ -97,10 +160,15 @@ export const analytics = {
 
 	onboardingMcpDetailOpened: () => safeCapture("onboarding_mcp_detail_opened"),
 
-	onboardingXBookmarksDetailOpened: () =>
-		safeCapture("onboarding_x_bookmarks_detail_opened"),
+	onboardingSkipped: (props: { from_step: BrainStep }) =>
+		safeCapture("onboarding_skipped", props),
 
-	onboardingCompleted: () => safeCapture("onboarding_completed"),
+	onboardingCompleted: (props: {
+		mode: string
+		steps_completed: number
+		sources_connected: number
+		invites_sent: number
+	}) => safeCapture("onboarding_completed", props),
 
 	// main app analytics
 	searchOpened: (props: {
@@ -120,6 +188,9 @@ export const analytics = {
 	// chat analytics
 	chatMessageSent: (props: {
 		source: "typed" | "suggested" | "highlight" | "home"
+		attachment_count?: number
+		saved_attachment_count?: number
+		temporary_attachment_count?: number
 	}) => safeCapture("chat_message_sent", props),
 
 	chatSuggestedQuestionClicked: () =>
@@ -151,7 +222,14 @@ export const analytics = {
 
 	// settings / spaces / docs analytics
 	settingsTabChanged: (props: {
-		tab: "account" | "billing" | "integrations" | "connections" | "support"
+		tab:
+			| "account"
+			| "billing"
+			| "integrations"
+			| "connections"
+			| "company-brain"
+			| "proactiveness"
+			| "support"
 	}) => safeCapture("settings_tab_changed", props),
 
 	spaceCreated: () => safeCapture("space_created"),
@@ -171,4 +249,19 @@ export const analytics = {
 
 	documentEdited: (props: { document_id: string }) =>
 		safeCapture("document_edited", props),
+
+	// weekly digest
+	digestViewed: (props: { digest_id: string; iso_week: string }) =>
+		safeCapture("digest_viewed", props),
+	digestFeedback: (props: {
+		digest_id: string
+		iso_week: string
+		rating: "up" | "down"
+	}) => safeCapture("digest_feedback", props),
+	digestFeedbackDetail: (props: {
+		digest_id: string
+		iso_week: string
+		rating: "up" | "down" | null
+		message: string
+	}) => safeCapture("digest_feedback_detail", props),
 }

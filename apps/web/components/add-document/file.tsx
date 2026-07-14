@@ -8,7 +8,7 @@ import { useHotkeys } from "react-hotkeys-hook"
 import { toast } from "sonner"
 
 export const FILE_ACCEPT =
-	"image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.mdx,text/markdown"
+	"image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.mdx,.json,.html,.htm,text/markdown,application/json,text/html"
 
 export type FileQueueItemStatus = "pending" | "uploading" | "success" | "error"
 
@@ -46,15 +46,32 @@ function isAcceptedFile(file: File): boolean {
 		".txt",
 		".md",
 		".mdx",
+		".json",
+		".html",
+		".htm",
 	])
 	if (allowedExt.has(ext)) return true
 	if (file.type.startsWith("image/")) return true
 	if (file.type === "text/markdown") return true
+	if (file.type === "application/json") return true
+	if (file.type === "text/html") return true
 	return false
 }
 
 function fileQueueKey(file: File): string {
 	return `${file.name}:${file.size}:${file.lastModified}`
+}
+
+function formatFileSize(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`
+	const units = ["KB", "MB", "GB", "TB"]
+	let size = bytes / 1024
+	let i = 0
+	while (size >= 1024 && i < units.length - 1) {
+		size /= 1024
+		i++
+	}
+	return `${size.toFixed(size < 10 ? 1 : 0)} ${units[i]}`
 }
 
 export function FileContent({
@@ -194,9 +211,12 @@ export function FileContent({
 			)}
 		>
 			<div className="flex flex-col gap-2">
-				<p className="text-[16px] font-medium pl-2">
-					Upload files (images, PDF, documents, sheets, markdown)
-				</p>
+				<div className="flex flex-col gap-0.5 pl-2">
+					<p className="text-[16px] font-medium">Upload files</p>
+					<p className="text-[#737373] text-xs">
+						Images, PDF, documents, sheets, markdown, HTML
+					</p>
+				</div>
 				<label
 					onDragOver={handleDragOver}
 					onDragLeave={handleDragLeave}
@@ -281,7 +301,7 @@ export function FileContent({
 										{item.file.name}
 									</p>
 									<p className="text-[#737373] text-xs">
-										{(item.file.size / 1024 / 1024).toFixed(2)} MB
+										{formatFileSize(item.file.size)}
 									</p>
 									{item.status === "error" && item.errorMessage ? (
 										<p className="text-red-400 text-xs mt-1 flex items-center gap-1">

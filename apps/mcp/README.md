@@ -110,6 +110,24 @@ Search memories and get user profile.
 | `includeProfile` | boolean | No | Include user profile summary. Default: `true` |
 | `containerTag` | string | No | Project tag to scope the search |
 
+### `listMemories`
+
+Enumerate stored memories grouped by their source document, newest first. Returns only the extracted memory facts — never document content — so responses stay small enough for client output limits. Use it to audit what is on file (e.g. before forgetting stale memories); use `recall` for topic-based search.
+
+```json
+{
+  "page": 1,
+  "limit": 10,
+  "containerTag": "optional-project-tag"
+}
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | integer | No | Page number (1-based). Default: `1` |
+| `limit` | integer | No | Documents per page, each grouping its extracted memories. Default: `10`, max: `50` |
+| `containerTag` | string | No | Project tag to scope the listing |
+
 ### `whoAmI`
 
 Get the current logged-in user's information.
@@ -169,6 +187,55 @@ bun run dev
 The server will start at `http://localhost:8788`.
 
 **Note:** For local development, you also need the main Supermemory API running at the `API_URL` for OAuth token validation.
+
+### End-to-End Tests
+
+The `e2e/` suite drives a real MCP server over streamable HTTP (no mocks) and asserts the
+core journey: handshake → tool/resource/prompt discovery → `whoAmI` → `listProjects` →
+`memory` save → `recall` round-trip, plus `memory-graph`/`fetch-graph-data`, resource reads,
+the `context` prompt, container-tag isolation, and auth rejections.
+
+```bash
+export SUPERMEMORY_API_KEY=sm_...                          # staging key (required; tests skip without it)
+export SUPERMEMORY_MCP_URL=https://mcp.supermemory.ai/mcp  # optional, this is the default
+export SUPERMEMORY_API_URL=https://api.supermemory.ai      # optional, OAuth authorization server
+bun run test:e2e
+```
+
+| File | Covers |
+|------|--------|
+| `e2e/auth.test.ts` | `GET /` info, OAuth discovery, 401 on missing/invalid token (runs without a key) |
+| `e2e/oauth.test.ts` | OAuth discovery chain, dynamic client registration, token-endpoint negatives, real refresh→access token round-trip |
+| `e2e/discovery.test.ts` | handshake, tools/resources/prompts listing, `whoAmI`, `listProjects` |
+| `e2e/memory.test.ts` | save→recall round-trip, profile variants, `forget`, container scoping, bad args |
+| `e2e/list-memories.test.ts` | `listMemories` discovery, save→list round-trip, pagination, arg validation |
+| `e2e/root-scope.test.ts` | `x-sm-project` header strips the `containerTag` param and scopes the whole connection |
+| `e2e/graph.test.ts` | `memory-graph`, `fetch-graph-data`, resource reads, `context` prompt |
+
+#### OAuth flow tests
+
+`mcp.supermemory.ai` is an OAuth **resource server**; the **authorization server** is the main
+API (`api.supermemory.ai`, better-auth). `oauth.test.ts` covers the real flow in tiers:
+
+- **A–C (no secrets)** — discovery chain, dynamic client registration, and token/authorize
+  negatives. These exercise the protocol wiring with no key and no browser, so they always run.
+- **D (real token)** — exchanges a seeded `refresh_token` for an `access_token` and connects to
+  `/mcp` with it, exercising the OAuth-token validation path (not the `sm_` API-key path). It
+  **skips** unless both env vars below are set.
+
+```bash
+# One-time capture (opens a browser for login + consent, prints the env vars):
+bun e2e/capture-oauth-token.ts
+export SUPERMEMORY_MCP_CLIENT_ID=...
+export SUPERMEMORY_MCP_REFRESH_TOKEN=...
+```
+
+Notes:
+- Tests **skip** (not fail) without `SUPERMEMORY_API_KEY`; Tier D OAuth tests skip without the
+  refresh-token env vars — so CI is safe without secrets.
+- `recall` is eventually-consistent (save → ingestion pipeline → memories), so the round-trip
+  **polls up to ~90s**. `forget` removal is slower still and is asserted as best-effort.
+- The suite uses unique per-run markers and forgets them in teardown to avoid polluting the account.
 
 ### Deploy
 

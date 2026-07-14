@@ -3,7 +3,7 @@
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import dynamic from "next/dynamic"
-import { isTwitterUrl } from "@/lib/url-helpers"
+import { isTwitterUrl, isYouTubeUrl } from "@/lib/url-helpers"
 import { ImagePreview } from "./image-preview"
 import { TweetContent } from "./tweet"
 import { NotionDoc } from "./notion-doc"
@@ -67,7 +67,7 @@ function getContentType(document: DocumentWithMemories | null): ContentType {
 	if (document.type === "google_doc") return "google_doc"
 	if (document.type === "google_sheet") return "google_sheet"
 	if (document.type === "google_slide") return "google_slide"
-	if (document.url?.includes("youtube.com")) return "youtube"
+	if (isYouTubeUrl(document.url)) return "youtube"
 	if (document.type === "webpage") return "webpage"
 
 	return null
@@ -88,7 +88,13 @@ export function DocumentContent({
 
 	switch (contentType) {
 		case "image":
-			return <ImagePreview url={document.url ?? ""} title={document.title} />
+			return (
+				<ImagePreview
+					url={document.url ?? ""}
+					title={document.title}
+					documentId={document.id}
+				/>
+			)
 
 		case "tweet":
 			return (

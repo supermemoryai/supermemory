@@ -1,4 +1,30 @@
 const PROXY_LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
+const DEFAULT_BACKEND_URL = "https://api.supermemory.ai"
+const DEV_APP_ORIGIN = "https://app.dev.supermemory.ai"
+const PROD_APP_ORIGIN = "https://app.supermemory.ai"
+
+export function getBackendUrl(): string {
+	return (process.env.NEXT_PUBLIC_BACKEND_URL ?? DEFAULT_BACKEND_URL).replace(
+		/\/+$/,
+		"",
+	)
+}
+
+export function getAppOriginForCurrentEnvironment(hostname?: string): string {
+	const currentHostname =
+		hostname ?? (typeof window !== "undefined" ? window.location.hostname : "")
+	const normalized = currentHostname.toLowerCase()
+	const isLocalOrDev =
+		process.env.NODE_ENV !== "production" ||
+		PROXY_LOCAL_HOSTS.has(normalized) ||
+		normalized.includes("app.dev.supermemory")
+
+	return isLocalOrDev ? DEV_APP_ORIGIN : PROD_APP_ORIGIN
+}
+
+export function getBillingSettingsUrl(hostname?: string): string {
+	return `${getAppOriginForCurrentEnvironment(hostname)}/settings#billing`
+}
 
 /** Reconstruct the browser-facing URL when running behind portless (or similar). */
 export function getPublicRequestUrl(request: Request): URL {
@@ -59,19 +85,115 @@ export const isValidUrl = (url: string): boolean => {
  */
 export const normalizeUrl = (url: string): string => {
 	if (!url.trim()) return ""
-	if (url.startsWith("http://") || url.startsWith("https://")) {
+	if (/^https?:\/\//i.test(url)) {
 		return url
 	}
 	return `https://${url}`
+}
+
+const URL_TOKEN_REGEX =
+	/(?:https?:\/\/)?(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:[/?#][^\s<>[\]"'`]*)?/g
+const MARKDOWN_LINK_REGEX = /\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/g
+const ANGLE_LINK_REGEX = /<(https?:\/\/[^\s>]+)>/g
+
+/** Pull every distinct URL out of a free-text blob; handles markdown `[t](url)`, `<url>`, and bare links. */
+export const extractUrls = (
+	text: string,
+): { urls: string[]; duplicates: number } => {
+	if (!text.trim()) return { urls: [], duplicates: 0 }
+	const unwrapped = text
+		.replace(MARKDOWN_LINK_REGEX, " $1 ")
+		.replace(ANGLE_LINK_REGEX, " $1 ")
+	const seen = new Set<string>()
+	const urls: string[] = []
+	let duplicates = 0
+	for (const match of unwrapped.matchAll(URL_TOKEN_REGEX)) {
+		const start = match.index ?? 0
+		const end = start + match[0].length
+		const before = start > 0 ? (unwrapped[start - 1] ?? "") : ""
+		const after = end < unwrapped.length ? (unwrapped[end] ?? "") : ""
+		// Skip email addresses: a domain-shaped token ending at "@" is the
+		// local part, one starting right after "@" is the mail domain. Also
+		// skip matches that begin mid-token (e.g. after "_", which the
+		// hostname charset can't include) — those aren't standalone URLs.
+		if (after === "@" || before === "@" || /[\w.-]/.test(before)) continue
+		let trimmed = match[0].trim().replace(/[.,;!]+$/, "")
+		const opens = (trimmed.match(/\(/g) ?? []).length
+		const closes = (trimmed.match(/\)/g) ?? []).length
+		if (closes > opens && trimmed.endsWith(")")) {
+			trimmed = trimmed.replace(/\)+$/, "").replace(/[.,;!]+$/, "")
+		}
+		const normalized = normalizeUrl(trimmed)
+		if (!isValidUrl(normalized)) continue
+		// Dedupe on the parsed URL so the scheme and host compare
+		// case-insensitively while the path/query — which are case-sensitive
+		// resources — stay distinct.
+		const parsed = new URL(normalized)
+		const key =
+			`${parsed.origin}${parsed.pathname}${parsed.search}${parsed.hash}`.replace(
+				/\/+$/,
+				"",
+			)
+		if (seen.has(key)) {
+			duplicates++
+			continue
+		}
+		seen.add(key)
+		urls.push(normalized)
+	}
+	return { urls, duplicates }
+}
+
+const parseWebUrl = (url: string): URL | null => {
+	const trimmed = url.trim()
+	if (!trimmed) return null
+
+	try {
+		const parsed = new URL(trimmed)
+		return parsed.protocol === "http:" || parsed.protocol === "https:"
+			? parsed
+			: null
+	} catch {
+		try {
+			return new URL(`https://${trimmed}`)
+		} catch {
+			return null
+		}
+	}
+}
+
+const hostnameMatches = (hostname: string, domain: string): boolean => {
+	const normalizedHostname = hostname.toLowerCase()
+	return (
+		normalizedHostname === domain || normalizedHostname.endsWith(`.${domain}`)
+	)
 }
 
 /**
  * Checks if a URL is a Twitter/X URL.
  */
 export const isTwitterUrl = (url: string): boolean => {
-	const normalizedUrl = url.toLowerCase()
+	const parsed = parseWebUrl(url)
+	if (!parsed) return false
 	return (
-		normalizedUrl.includes("twitter.com") || normalizedUrl.includes("x.com")
+		hostnameMatches(parsed.hostname, "twitter.com") ||
+		hostnameMatches(parsed.hostname, "x.com")
+	)
+}
+
+/**
+ * Checks if a URL is a YouTube URL by matching the hostname against
+ * youtube.com / youtu.be (and their subdomains, e.g. www / m).
+ * Lookalike hosts (`notyoutube.com`, `youtube.com.evil.example`) and URLs
+ * that only contain "youtube.com" in the path do not match.
+ */
+export const isYouTubeUrl = (url: string | undefined | null): boolean => {
+	if (!url) return false
+	const parsed = parseWebUrl(url)
+	if (!parsed) return false
+	return (
+		hostnameMatches(parsed.hostname, "youtube.com") ||
+		hostnameMatches(parsed.hostname, "youtu.be")
 	)
 }
 
@@ -79,11 +201,11 @@ export const isTwitterUrl = (url: string): boolean => {
  * Checks if a URL is a LinkedIn profile URL (not a company page).
  */
 export const isLinkedInProfileUrl = (url: string): boolean => {
-	const normalizedUrl = url.toLowerCase()
-	return (
-		normalizedUrl.includes("linkedin.com/in/") &&
-		!normalizedUrl.includes("linkedin.com/company/")
-	)
+	const parsed = parseWebUrl(url)
+	if (!parsed || !hostnameMatches(parsed.hostname, "linkedin.com")) return false
+
+	const [section, handle] = parsed.pathname.split("/").filter(Boolean)
+	return section?.toLowerCase() === "in" && Boolean(handle)
 }
 
 /**

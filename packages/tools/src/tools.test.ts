@@ -310,7 +310,7 @@ describe("@supermemory/tools", () => {
 				const definitions = openAi.getToolDefinitions()
 
 				expect(definitions).toBeDefined()
-				expect(definitions.length).toBe(2)
+				expect(definitions.length).toBe(7)
 
 				// Check searchMemories
 				const searchTool = definitions.find(

@@ -58,6 +58,7 @@ export const DOMAINS = {
 	TWITTER: ["x.com", "twitter.com"],
 	CHATGPT: ["chatgpt.com", "chat.openai.com"],
 	CLAUDE: ["claude.ai"],
+	GROK: ["grok.com", "x.ai"],
 	T3: ["t3.chat"],
 	SUPERMEMORY: ["localhost", "supermemory.ai", "app.supermemory.ai"],
 } as const

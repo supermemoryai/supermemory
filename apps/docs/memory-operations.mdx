@@ -121,28 +121,163 @@ Use **Create Memories** when you already know the exact facts to store (user pre
 
 ## Forget Memory
 
-Soft-delete a memory — excluded from search results but preserved in the system. Use this when you might want to restore later.
+Soft-delete a single memory — excluded from search results but preserved in the database. Identify it by `id` or by exact `content`, scoped to its `containerTag`.
 
 <Tabs>
   <Tab title="fetch">
     ```typescript
-    await fetch("https://api.supermemory.ai/v4/memories/mem_abc123/forget", {
-      method: "POST",
+    await fetch("https://api.supermemory.ai/v4/memories", {
+      method: "DELETE",
       headers: {
-        "Authorization": `Bearer ${API_KEY}`
-      }
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        // Identify by ID or by exact content
+        id: "mem_abc123",
+        // content: "John prefers dark mode",
+        containerTag: "user_123",
+        reason: "outdated information"
+      })
     });
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v4/memories/mem_abc123/forget" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+    curl -X DELETE "https://api.supermemory.ai/v4/memories" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "id": "mem_abc123",
+        "containerTag": "user_123",
+        "reason": "outdated information"
+      }'
     ```
   </Tab>
 </Tabs>
 
-The memory will no longer appear in search results but remains in the database.
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | string | * | Memory ID to forget |
+| `content` | string | * | Exact content match to forget (alternative to ID) |
+| `containerTag` | string | yes | Container tag / space the memory belongs to |
+| `reason` | string | no | Optional reason recorded as `forgetReason` |
+
+\* Either `id` or `content` must be provided.
+
+The memory will no longer appear in search results but remains in the database (`isForgotten=true`).
+
+---
+
+## Forget Matching
+
+Forget **everything** about a topic in one call. You give a prompt or a query; the service semantically searches the container's memories, an LLM decides which ones are genuinely about your target, and those are soft-deleted. Use this for "forget everything about X" rather than deleting memories one by one.
+
+<Warning>
+This is a bulk, destructive operation. Always **`dryRun` first** to review what would be forgotten, then re-run with `dryRun: false`. The match is semantic, so a too-broad query can select more than you intend — `threshold` and `maxForget` bound the blast radius.
+</Warning>
+
+<Tabs>
+  <Tab title="fetch">
+    ```typescript
+    // 1) Preview
+    const preview = await fetch("https://api.supermemory.ai/v4/memories/forget-matching", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        query: "forget everything about Project Titan",
+        containerTag: "user_123",
+        dryRun: true
+      })
+    }).then((r) => r.json());
+    // preview.candidates → [{ id, memory, score }, ...]
+
+    // 2) Apply
+    const result = await fetch("https://api.supermemory.ai/v4/memories/forget-matching", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        query: "forget everything about Project Titan",
+        containerTag: "user_123",
+        dryRun: false,
+        reason: "project cancelled"
+      })
+    }).then((r) => r.json());
+    // result.forgotten → [{ id, memory, score }, ...]
+    // result.forgetBatchId → tagged on every forgotten memory for traceability
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Preview
+    curl -X POST "https://api.supermemory.ai/v4/memories/forget-matching" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "query": "forget everything about Project Titan",
+        "containerTag": "user_123",
+        "dryRun": true
+      }'
+
+    # Apply
+    curl -X POST "https://api.supermemory.ai/v4/memories/forget-matching" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "query": "forget everything about Project Titan",
+        "containerTag": "user_123",
+        "dryRun": false,
+        "reason": "project cancelled"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | yes | What to forget — a natural-language instruction ("forget everything about Project Titan") or a bare topic ("Project Titan") |
+| `containerTag` | string | yes | Container tag / space to scope the operation to |
+| `dryRun` | boolean | no | When `true`, returns what *would* be forgotten without changing anything. Defaults to `false` |
+| `threshold` | number | no | Similarity floor (0–1) for candidate memories. Lower casts a wider net. Defaults to `0.5` |
+| `maxForget` | number | no | Safety cap on how many memories may be forgotten in one call (1–500). Defaults to `100` |
+| `reason` | string | no | Reason recorded as `forgetReason` on each forgotten memory |
+
+### Response
+
+```json
+{
+  "dryRun": false,
+  "count": 3,
+  "forgetBatchId": "VcuQoGRz4hA4ak5Xu6DRUN",
+  "summary": "Forgot 3 memories about \"Project Titan\".",
+  "forgotten": [
+    { "id": "mem_1", "memory": "Project Titan ships in Q3", "score": 0.82 }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `dryRun` | boolean | Whether this was a preview or a real forget |
+| `count` | number | Number of memories selected (dryRun) or forgotten (apply) |
+| `forgetBatchId` | string \| null | ID tagged on every memory forgotten in this call; `null` on dryRun |
+| `summary` | string | One-line summary of the operation (e.g. `Forgot 3 memories about "Project Titan".`) |
+| `candidates` | array | On `dryRun`: the memories that **would** be forgotten (`{ id, memory, score }`) |
+| `forgotten` | array | On apply: the memories that **were** forgotten (`{ id, memory, score }`) |
+
+<Note>
+Identity is server-owned: the LLM only ever references opaque handles for the memories a search returned, so it can never forget a memory outside the results it reviewed, and every operation is scoped to the `containerTag` you pass.
+</Note>
 
 ---
 
@@ -201,6 +336,7 @@ Update a memory by creating a new version. The original is preserved with `isLat
 
 ## Next Steps
 
+- [Review Inferred Memories](/memory-review) — Approve or decline low-confidence memories
 - [Document Operations](/document-operations) — Manage documents (SDK supported)
 - [Search](/search) — Query your memories
 - [Ingesting Content](/add-memories) — Add new content

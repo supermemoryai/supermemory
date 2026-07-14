@@ -4,15 +4,26 @@ import { dmSans125ClassName } from "@/lib/fonts"
 import { PLAN_DISPLAY_NAMES, useTokenUsage } from "@/hooks/use-token-usage"
 import { cn } from "@lib/utils"
 import { useAuth } from "@lib/auth-context"
+import { getCanceledSubscription } from "@lib/queries"
 import {
 	Dialog,
 	DialogClose,
 	DialogContent,
 	DialogTrigger,
 } from "@ui/components/dialog"
+import { Logo } from "@ui/assets/Logo"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useCustomer } from "autumn-js/react"
+import { usePostHog } from "@lib/posthog"
 import {
+	CANCEL_REASONS,
+	cancelReasonNeedsDetail,
+	type CancelReasonValue,
+} from "./cancel-reasons"
+import {
+	Check,
+	ChevronLeft,
+	ChevronRight,
 	Coins,
 	ExternalLink,
 	LoaderIcon,
@@ -21,15 +32,52 @@ import {
 	Settings,
 	X,
 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
 const API_BASE =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
+const BOOK_CALL_HREF = "https://cal.com/maheshthedev/15min"
+
+function GoogleMeetIcon({ className }: { className?: string }) {
+	return (
+		<svg
+			className={className}
+			viewBox="0 0 87.5 72"
+			xmlns="http://www.w3.org/2000/svg"
+			aria-hidden="true"
+		>
+			<path
+				fill="#00832d"
+				d="M49.5 36l8.53 9.75 11.47 7.33 2-17.02-2-16.64-11.69 6.44z"
+			/>
+			<path
+				fill="#0066da"
+				d="M0 51.5V66c0 3.315 2.685 6 6 6h14.5l3-10.96-3-9.54-9.95-3z"
+			/>
+			<path fill="#e94235" d="M20.5 0L0 20.5l10.55 3 9.95-3 2.95-9.41z" />
+			<path fill="#2684fc" d="M20.5 20.5H0v31h20.5z" />
+			<path
+				fill="#00ac47"
+				d="M82.6 8.68L69.5 19.42v33.66l13.16 10.79c1.97 1.54 4.85.135 4.85-2.37V11c0-2.535-2.945-3.925-4.91-2.32zM49.5 36v15.5h-29V72h43c3.315 0 6-2.685 6-6V53.08z"
+			/>
+			<path
+				fill="#ffba00"
+				d="M63.5 0h-43v20.5h29V36l20-16.57V6c0-3.315-2.685-6-6-6z"
+			/>
+		</svg>
+	)
+}
+
 const CREDIT_FEATURE_ID = "usd_credits"
 const TOP_UP_PLAN_ID = "credits_topup"
 const TOP_UP_AMOUNTS = [10, 25, 50, 100] as const
+const PLAN_CARD_ACTION_CLASS =
+	"inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] text-[14px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+
+const SURFACE_SHADOW =
+	"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset"
 
 type BillingInvoice = {
 	planIds?: string[]
@@ -60,6 +108,106 @@ type AutoTopupsResponse =
 			autoTopup: AutoTopupConfig | null
 	  }
 	| { ok: false; reason: string; message?: string }
+
+type PlanCardDefinition = {
+	id: "free" | "pro" | "max" | "scale" | "enterprise"
+	name: string
+	price: string
+	period: string
+	credits: string
+	productId: "api_free" | "api_pro" | "api_max" | "api_scale" | "api_enterprise"
+	description: string
+	includesFrom?: string
+	features: string[]
+	isContactSales?: boolean
+	mostPopular?: boolean
+}
+
+const PLAN_CARDS: PlanCardDefinition[] = [
+	{
+		id: "free",
+		name: "Free",
+		price: "$0",
+		period: "",
+		credits: "$5",
+		productId: "api_free",
+		description: "Try supermemory with no commitment",
+		features: [
+			"Pay-as-you-go after $5 runs out",
+			"Full search and memory access",
+			"Email support",
+		],
+	},
+	{
+		id: "pro",
+		name: "Pro",
+		price: "$19",
+		period: "/mo",
+		credits: "$20",
+		productId: "api_pro",
+		description: "For people building with AI memory",
+		features: [
+			"Auto top-up when balance runs low",
+			"Google Drive, Notion, OneDrive & Granola connectors",
+			"All plugins (Claude Code, Cursor, Hermes...)",
+			"Priority support",
+		],
+	},
+]
+
+const ADVANCED_PLAN_CARDS: PlanCardDefinition[] = [
+	{
+		id: "max",
+		name: "Max",
+		price: "$100",
+		period: "/mo",
+		credits: "$130",
+		productId: "api_max",
+		description: "For power users who outgrow Pro",
+		includesFrom: "Pro",
+		mostPopular: true,
+		features: ["6× the credits of Pro", "Gmail connector", "Priority support"],
+	},
+	{
+		id: "scale",
+		name: "Scale",
+		price: "$399",
+		period: "/mo",
+		credits: "$600",
+		productId: "api_scale",
+		description: "For teams and production workloads",
+		includesFrom: "Max",
+		features: [
+			"Auto top-up & spend caps",
+			"S3 & Web Crawler connectors",
+			"Dedicated support",
+		],
+	},
+	{
+		id: "enterprise",
+		name: "Enterprise",
+		price: "Custom",
+		period: "",
+		credits: "Unlimited",
+		productId: "api_enterprise",
+		description: "Custom deployments with dedicated engineering",
+		includesFrom: "Scale",
+		features: [
+			"Custom metering & billing",
+			"Custom integrations & SSO",
+			"Forward-deployed engineer",
+		],
+		isContactSales: true,
+	},
+]
+
+const PLAN_RANK: Record<PlanCardDefinition["id"], number> = {
+	free: 0,
+	pro: 1,
+	max: 2,
+	scale: 3,
+	enterprise: 4,
+}
 
 function SectionTitle({
 	children,
@@ -99,6 +247,102 @@ function SettingsCard({
 			)}
 		>
 			{children}
+		</div>
+	)
+}
+
+function PlanCard({
+	action,
+	plan,
+}: {
+	action: React.ReactNode
+	plan: PlanCardDefinition
+}) {
+	return (
+		<div
+			className={cn(
+				"relative flex min-h-[416px] flex-col overflow-hidden rounded-[14px] border p-5",
+				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+				plan.mostPopular
+					? "border-[#4BA0FA]/40 bg-[#14161A]"
+					: "border-white/[0.08] bg-[#14161A]",
+			)}
+		>
+			{plan.mostPopular ? (
+				<span className="absolute right-5 top-5 inline-flex h-[18px] items-center rounded-[3px] bg-[#4BA0FA] px-1.5 text-[10px] font-bold uppercase tracking-[0.36px] text-[#00171A]">
+					Most popular
+				</span>
+			) : null}
+			<p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#737373]">
+				{plan.name}
+			</p>
+
+			<div className="mt-3 flex items-baseline gap-1">
+				<span
+					className={cn(
+						dmSans125ClassName(),
+						"text-[34px] font-bold leading-none tracking-[-0.34px] text-[#FAFAFA] tabular-nums",
+					)}
+				>
+					{plan.price}
+				</span>
+				{plan.period ? (
+					<span className="text-[13px] text-[#737373]">{plan.period}</span>
+				) : null}
+			</div>
+
+			<p
+				className={cn(
+					dmSans125ClassName(),
+					"mt-2 text-[13px] leading-snug text-[#A3A3A3]",
+				)}
+			>
+				{plan.description}
+			</p>
+
+			{plan.isContactSales ? null : (
+				<div className="mt-5 flex items-center gap-2 rounded-[8px] bg-white/[0.04] px-3 py-2.5 text-[#A3A3A3]">
+					<Coins className="size-3.5 shrink-0 text-[#737373]" />
+					<div className="min-w-0">
+						<p className="text-[12px] font-semibold leading-none text-[#C8D0DA] tabular-nums">
+							{plan.credits}
+						</p>
+						<p className="mt-0.5 text-[10px] leading-none text-[#737373]">
+							of usage included
+						</p>
+					</div>
+				</div>
+			)}
+
+			{plan.includesFrom ? (
+				<div className="mt-5 flex items-center gap-3">
+					<div className="h-px flex-1 bg-white/[0.08]" />
+					<span className="whitespace-nowrap text-[10px] text-[#737373]">
+						Everything in {plan.includesFrom}, plus
+					</span>
+					<div className="h-px flex-1 bg-white/[0.08]" />
+				</div>
+			) : null}
+
+			<ul
+				className={cn(
+					"mb-6 flex flex-1 flex-col gap-3",
+					plan.includesFrom ? "mt-5" : "mt-5",
+					plan.isContactSales && !plan.includesFrom && "mt-7",
+				)}
+			>
+				{plan.features.map((feature) => (
+					<li
+						className="flex items-start gap-2 text-[13px] leading-snug text-[#C8D0DA]"
+						key={feature}
+					>
+						<Check className="mt-0.5 size-3.5 shrink-0 text-[#737373]" />
+						<span>{feature}</span>
+					</li>
+				))}
+			</ul>
+
+			{action}
 		</div>
 	)
 }
@@ -214,6 +458,7 @@ function getInvoiceProductLabel(productId: string | undefined): string {
 	const planMap: Record<string, string> = {
 		api_free: "Free",
 		api_pro: "Pro",
+		api_max: "Max",
 		api_scale: "Scale",
 		api_enterprise: "Enterprise",
 		memory_free: "Free",
@@ -231,11 +476,19 @@ function getInvoiceProductLabel(productId: string | undefined): string {
 export default function Billing() {
 	const queryClient = useQueryClient()
 	const { user, org } = useAuth()
-	const autumn = useCustomer({ expand: ["payment_method"] })
+	const autumn = useCustomer()
+	const posthog = usePostHog()
 	const [isUpgrading, setIsUpgrading] = useState(false)
 	const [isCancelling, setIsCancelling] = useState(false)
+	const [isResuming, setIsResuming] = useState(false)
 	const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+	const [cancelReason, setCancelReason] = useState<CancelReasonValue | null>(
+		null,
+	)
+	const [cancelDetail, setCancelDetail] = useState("")
 	const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false)
+	const [isPlanCarouselActive, setIsPlanCarouselActive] = useState(false)
+	const [planPage, setPlanPage] = useState<0 | 1>(0)
 	const [topUpAmount, setTopUpAmount] = useState<number>(25)
 	const [customTopUpAmount, setCustomTopUpAmount] = useState("")
 	const [topUpPendingAmount, setTopUpPendingAmount] = useState<number | null>(
@@ -261,6 +514,17 @@ export default function Billing() {
 		isLoading: isCheckingStatus,
 		daysRemaining,
 	} = useTokenUsage(autumn)
+
+	// Open the carousel to the page holding the current plan (Max/Scale/Enterprise live on page 2).
+	const didAutoOpenPlanPage = useRef(false)
+	useEffect(() => {
+		if (didAutoOpenPlanPage.current || isCheckingStatus) return
+		didAutoOpenPlanPage.current = true
+		if (ADVANCED_PLAN_CARDS.some((p) => p.id === currentPlan)) {
+			setIsPlanCarouselActive(true)
+			setPlanPage(1)
+		}
+	}, [isCheckingStatus, currentPlan])
 
 	const balance = autumn.data?.balances?.[CREDIT_FEATURE_ID]
 	const creditRemaining =
@@ -333,11 +597,11 @@ export default function Billing() {
 
 	const planDisplayNames = PLAN_DISPLAY_NAMES
 
-	const handleUpgrade = async () => {
+	const handleUpgrade = async (planId: "api_pro" | "api_max" | "api_scale") => {
 		setIsUpgrading(true)
 		try {
 			const result = await autumn.attach({
-				planId: "api_pro",
+				planId,
 				successUrl: `${window.location.origin}/settings#billing`,
 			})
 			if ((result as { paymentUrl?: string })?.paymentUrl) {
@@ -354,9 +618,58 @@ export default function Billing() {
 	}
 
 	const cancellablePlanId =
-		currentPlan === "pro" || currentPlan === "scale"
+		currentPlan === "pro" || currentPlan === "max" || currentPlan === "scale"
 			? (`api_${currentPlan}` as const)
 			: null
+
+	const cancelNeedsDetail =
+		cancelReason != null && cancelReasonNeedsDetail(cancelReason)
+	const canConfirmCancel =
+		cancelReason != null &&
+		(!cancelNeedsDetail || cancelDetail.trim().length > 0)
+
+	const canceledSub = getCanceledSubscription(autumn.data?.subscriptions)
+	const isPlanCanceling = canceledSub != null
+	const cancelEndsAt =
+		canceledSub?.endsAt != null ? normalizeTimestamp(canceledSub.endsAt) : null
+	const cancelEndsLabel =
+		cancelEndsAt != null
+			? new Date(cancelEndsAt).toLocaleDateString("en-US", {
+					month: "short",
+					day: "numeric",
+					year: "numeric",
+				})
+			: "the end of your billing period"
+	const cancelEndsDays =
+		cancelEndsAt != null
+			? Math.max(
+					0,
+					Math.ceil((cancelEndsAt - Date.now()) / (1000 * 60 * 60 * 24)),
+				)
+			: null
+
+	const handleResumeSubscription = async () => {
+		if (!canceledSub || isResuming) return
+		setIsResuming(true)
+		try {
+			await autumn.updateSubscription({
+				planId: canceledSub.planId,
+				cancelAction: "uncancel",
+			})
+			autumn.refetch?.()
+			toast.success(`${planDisplayNames[currentPlan]} subscription resumed.`)
+		} catch (error) {
+			console.error(error)
+			toast.error("Failed to resume subscription. Please try again.")
+		} finally {
+			setIsResuming(false)
+		}
+	}
+
+	const resetCancelForm = () => {
+		setCancelReason(null)
+		setCancelDetail("")
+	}
 
 	const handleCancelSubscription = async () => {
 		if (!cancellablePlanId) return
@@ -366,8 +679,18 @@ export default function Billing() {
 				planId: cancellablePlanId,
 				cancelAction: "cancel_end_of_cycle",
 			})
+			if (posthog?.__loaded) {
+				posthog.capture("subscription_cancelled", {
+					reason: cancelReason,
+					reason_detail: cancelDetail.trim() || null,
+					plan: currentPlan,
+					plan_id: cancellablePlanId,
+					surface: "nova",
+				})
+			}
 			autumn.refetch?.()
 			setIsCancelDialogOpen(false)
+			resetCancelForm()
 			toast.success(
 				`Subscription cancelled. ${planDisplayNames[currentPlan]} features remain active until the end of your billing period.`,
 			)
@@ -490,6 +813,99 @@ export default function Billing() {
 		})
 	}
 
+	const getPlanCardAction = (plan: PlanCardDefinition) => {
+		const disabled = isUpgrading || isCheckingStatus || autumn.isLoading
+		const isCurrentPlan = plan.id === currentPlan
+		const isIncludedPlan = PLAN_RANK[currentPlan] > PLAN_RANK[plan.id]
+
+		if (plan.id === "free") {
+			return (
+				<button
+					type="button"
+					disabled
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"border border-white/[0.04] bg-white/[0.02] text-[#737373]",
+					)}
+				>
+					{hasPaidPlan ? "Included with current plan" : "Your current plan"}
+				</button>
+			)
+		}
+
+		if (isCurrentPlan) {
+			return (
+				<button
+					type="button"
+					disabled
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"border border-white/[0.04] bg-white/[0.02] text-[#737373]",
+					)}
+				>
+					Your current plan
+				</button>
+			)
+		}
+
+		if (isIncludedPlan) {
+			return (
+				<button
+					type="button"
+					disabled
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"border border-white/[0.04] bg-white/[0.02] text-[#737373]",
+					)}
+				>
+					Included with {planDisplayNames[currentPlan]}
+				</button>
+			)
+		}
+
+		if (plan.isContactSales) {
+			return (
+				<a
+					href="mailto:support@supermemory.com?subject=Enterprise%20plan"
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"border border-white/[0.08] bg-transparent text-[#FAFAFA] hover:bg-white/[0.04]",
+					)}
+				>
+					Contact sales
+				</a>
+			)
+		}
+
+		const checkoutPlanId =
+			plan.productId === "api_pro" ||
+			plan.productId === "api_max" ||
+			plan.productId === "api_scale"
+				? plan.productId
+				: null
+		if (!checkoutPlanId) return null
+
+		return (
+			<button
+				type="button"
+				onClick={() => handleUpgrade(checkoutPlanId)}
+				disabled={disabled}
+				className={cn(
+					dmSans125ClassName(),
+					PLAN_CARD_ACTION_CLASS,
+					"bg-[#0054AD] text-[#FAFAFA] hover:bg-[#0B65C9]",
+				)}
+			>
+				{disabled ? <LoaderIcon className="size-4 animate-spin" /> : null}
+				Upgrade to {plan.name}
+			</button>
+		)
+	}
+
 	return (
 		<div className="flex w-full flex-col gap-7">
 			<section id="billing-subscription" className="flex flex-col gap-4">
@@ -509,8 +925,20 @@ export default function Billing() {
 											? `${planDisplayNames[currentPlan]} plan`
 											: "Free plan"}
 									</p>
-									<Pill tone={hasPaidPlan ? "active" : "muted"}>
-										{hasPaidPlan ? "Active" : "Free"}
+									<Pill
+										tone={
+											isPlanCanceling
+												? "warning"
+												: hasPaidPlan
+													? "active"
+													: "muted"
+										}
+									>
+										{isPlanCanceling
+											? "Cancelling"
+											: hasPaidPlan
+												? "Active"
+												: "Free"}
 									</Pill>
 								</div>
 								<p
@@ -519,9 +947,11 @@ export default function Billing() {
 										"mt-1 text-[13px] leading-relaxed text-[#A3A3A3]",
 									)}
 								>
-									{hasPaidPlan
-										? "Expanded memory, connections, and usage for this workspace."
-										: "Upgrade when you need more workspace usage and integrations."}
+									{isPlanCanceling
+										? `Cancels on ${cancelEndsLabel}${cancelEndsDays !== null ? ` · ${cancelEndsDays} day${cancelEndsDays !== 1 ? "s" : ""} left` : ""}. You'll move to Free after that.`
+										: hasPaidPlan
+											? "Expanded memory, connections, and usage for this workspace."
+											: "Upgrade when you need more workspace usage and integrations."}
 								</p>
 							</div>
 
@@ -537,10 +967,28 @@ export default function Billing() {
 									<Settings className="size-3.5 text-[#737373]" />
 									Manage
 								</button>
-								{cancellablePlanId ? (
+								{isPlanCanceling ? (
+									<button
+										type="button"
+										onClick={() => void handleResumeSubscription()}
+										disabled={isResuming}
+										className={cn(
+											dmSans125ClassName(),
+											"inline-flex h-9 items-center gap-2 rounded-[9px] bg-[#0054AD] px-3 text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#0B65C9] disabled:cursor-not-allowed disabled:opacity-50",
+										)}
+									>
+										{isResuming ? (
+											<LoaderIcon className="size-3.5 animate-spin" />
+										) : null}
+										Resume plan
+									</button>
+								) : cancellablePlanId ? (
 									<Dialog
 										open={isCancelDialogOpen}
-										onOpenChange={setIsCancelDialogOpen}
+										onOpenChange={(open) => {
+											setIsCancelDialogOpen(open)
+											if (!open) resetCancelForm()
+										}}
 									>
 										<DialogTrigger asChild>
 											<button
@@ -555,7 +1003,7 @@ export default function Billing() {
 										</DialogTrigger>
 										<DialogContent
 											showCloseButton={false}
-											className="w-[min(420px,calc(100vw-32px))] rounded-[18px] border border-white/10 bg-[#14161A] p-5 shadow-[0px_16px_60px_rgba(0,0,0,0.55)]"
+											className="w-[min(760px,calc(100vw-32px))] rounded-[18px] border border-white/10 bg-[#14161A] p-5 shadow-[0px_16px_60px_rgba(0,0,0,0.55)] sm:max-w-[760px]"
 										>
 											<div className="flex items-start justify-between gap-4">
 												<div>
@@ -590,32 +1038,177 @@ export default function Billing() {
 													</button>
 												</DialogClose>
 											</div>
-											<div className="mt-5 flex items-center justify-end gap-3">
-												<DialogClose asChild>
-													<button
-														type="button"
-														className={cn(
-															dmSans125ClassName(),
-															"h-9 px-3 text-[13px] font-medium text-[#A3A3A3] transition-colors hover:text-[#FAFAFA]",
-														)}
-													>
-														Keep plan
-													</button>
-												</DialogClose>
-												<button
-													type="button"
-													onClick={() => void handleCancelSubscription()}
-													disabled={isCancelling}
-													className={cn(
-														dmSans125ClassName(),
-														"inline-flex h-9 items-center gap-2 rounded-[9px] bg-[#290F0A] px-3 text-[13px] font-medium text-[#C73B1B] transition-opacity disabled:cursor-not-allowed disabled:opacity-50",
-													)}
-												>
-													{isCancelling ? (
-														<LoaderIcon className="size-3.5 animate-spin" />
-													) : null}
-													Cancel subscription
-												</button>
+
+											<div className="@container">
+												<div className="grid gap-4 @xl:grid-cols-[1fr_auto_1fr] @xl:gap-5">
+													<div className="relative flex flex-col overflow-hidden rounded-[14px] border border-[#1E4FA0]/25 bg-gradient-to-b from-[#121826] to-[#0C0E13] p-5">
+														<Logo className="pointer-events-none absolute -right-8 -bottom-10 z-0 h-56 w-auto opacity-[0.03]" />
+														<div className="relative z-10 flex flex-1 flex-col">
+															<div className="flex items-center gap-2.5">
+																<GoogleMeetIcon className="h-[18px] w-auto" />
+																<p
+																	className={cn(
+																		dmSans125ClassName(),
+																		"text-[15px] font-semibold tracking-[-0.01em] text-white",
+																	)}
+																>
+																	Talk to us first
+																</p>
+															</div>
+															<p
+																className={cn(
+																	dmSans125ClassName(),
+																	"mt-3 text-[13px] leading-relaxed text-[#AEBCD8]",
+																)}
+															>
+																Give us 15 minutes before you go — a quick call
+																with the team where we'll:
+															</p>
+															<ul className="mt-3 flex flex-col gap-2.5">
+																{[
+																	"Fix anything that's not working for you",
+																	"Help you integrate Supermemory the right way",
+																	"Get a discount to stay",
+																].map((benefit) => (
+																	<li
+																		className={cn(
+																			dmSans125ClassName(),
+																			"flex items-start gap-2 text-[13px] leading-snug text-[#D4DEEE]",
+																		)}
+																		key={benefit}
+																	>
+																		<Check
+																			className="mt-0.5 size-[15px] shrink-0 text-[#3FD37E]"
+																			strokeWidth={2.5}
+																		/>
+																		<span>{benefit}</span>
+																	</li>
+																))}
+															</ul>
+															<a
+																href={BOOK_CALL_HREF}
+																target="_blank"
+																rel="noreferrer"
+																onClick={() => {
+																	if (posthog?.__loaded) {
+																		posthog.capture(
+																			"cancel_book_call_clicked",
+																			{
+																				plan: currentPlan,
+																				surface: "nova",
+																			},
+																		)
+																	}
+																}}
+																className={cn(
+																	dmSans125ClassName(),
+																	"group mt-auto inline-flex h-10 items-center justify-center gap-1.5 rounded-[10px] bg-[#0054AD] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#0B65C9]",
+																)}
+															>
+																Book a call
+																<ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+															</a>
+														</div>
+													</div>
+
+													<div className="flex items-center justify-center">
+														<span className="rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[#737373]">
+															or
+														</span>
+													</div>
+
+													<div className="flex flex-1 flex-col rounded-[14px] border border-white/10 bg-gradient-to-b from-[#12151B] to-[#0C0E13] p-5">
+														<p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#737373]">
+															Why are you leaving?
+														</p>
+														<div className="mt-2 flex flex-col gap-0.5">
+															{CANCEL_REASONS.map((option) => {
+																const selected = cancelReason === option.value
+																return (
+																	<button
+																		key={option.value}
+																		type="button"
+																		onClick={() =>
+																			setCancelReason(option.value)
+																		}
+																		className={cn(
+																			dmSans125ClassName(),
+																			"flex items-center gap-2.5 rounded-[8px] px-2 py-1.5 text-left text-[13px] transition-colors",
+																			selected
+																				? "text-[#FAFAFA]"
+																				: "text-[#A3A3A3] hover:bg-white/[0.03]",
+																		)}
+																	>
+																		<span
+																			className={cn(
+																				"flex size-4 shrink-0 items-center justify-center rounded-full border",
+																				selected
+																					? "border-[#0054AD]"
+																					: "border-white/25",
+																			)}
+																		>
+																			{selected ? (
+																				<span className="size-2 rounded-full bg-[#0054AD]" />
+																			) : null}
+																		</span>
+																		{option.label}
+																	</button>
+																)
+															})}
+														</div>
+														{cancelReason !== null ? (
+															<div className="mt-3">
+																<label
+																	className={cn(
+																		dmSans125ClassName(),
+																		"text-[13px] text-[#A3A3A3]",
+																	)}
+																	htmlFor="cancel-detail"
+																>
+																	{cancelNeedsDetail
+																		? "Tell us more (required)"
+																		: "Anything else? (optional)"}
+																</label>
+																<textarea
+																	className="mt-2 min-h-[72px] w-full resize-none rounded-[9px] border border-white/10 bg-[#0D121A] px-3 py-2 text-[13px] text-[#FAFAFA] outline-none placeholder:text-[#3F4651] focus:border-white/25"
+																	id="cancel-detail"
+																	onChange={(e) =>
+																		setCancelDetail(e.target.value)
+																	}
+																	placeholder="What could we have done better?"
+																	value={cancelDetail}
+																/>
+															</div>
+														) : null}
+														<div className="mt-auto pt-5">
+															<DialogClose asChild>
+																<button
+																	type="button"
+																	className={cn(
+																		dmSans125ClassName(),
+																		"h-9 w-full text-[13px] font-medium text-[#A3A3A3] transition-colors hover:text-[#FAFAFA]",
+																	)}
+																>
+																	Keep plan
+																</button>
+															</DialogClose>
+															<button
+																type="button"
+																onClick={() => void handleCancelSubscription()}
+																disabled={isCancelling || !canConfirmCancel}
+																className={cn(
+																	dmSans125ClassName(),
+																	"mt-1.5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] border border-[#C73B1B]/25 bg-[#290F0A] text-[13px] font-semibold text-[#E5604A] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50",
+																)}
+															>
+																{isCancelling ? (
+																	<LoaderIcon className="size-3.5 animate-spin" />
+																) : null}
+																Cancel subscription
+															</button>
+														</div>
+													</div>
+												</div>
 											</div>
 										</DialogContent>
 									</Dialog>
@@ -668,343 +1261,322 @@ export default function Billing() {
 									: "Usage resets with your billing cycle"}
 							</p>
 						</div>
-
-						{!hasPaidPlan ? (
-							<button
-								type="button"
-								onClick={handleUpgrade}
-								disabled={isUpgrading || isCheckingStatus || autumn.isLoading}
-								className={cn(
-									dmSans125ClassName(),
-									"inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] bg-[#0054AD] text-[14px] font-semibold text-[#FAFAFA] transition-colors hover:bg-[#0B65C9] disabled:cursor-not-allowed disabled:opacity-60",
-								)}
-							>
-								{isUpgrading || isCheckingStatus || autumn.isLoading ? (
-									<LoaderIcon className="size-4 animate-spin" />
-								) : null}
-								Upgrade to Pro - $19/month
-							</button>
-						) : null}
 					</div>
 				</SettingsCard>
 			</section>
 
-			<section className="flex flex-col gap-4">
-				<SectionTitle>Credits</SectionTitle>
-
-				<SettingsCard>
-					<div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-						<div className="min-w-0 flex-1">
-							<p className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
-								Usage this period
-							</p>
-							<div className="mt-4 flex items-baseline gap-1 text-[13px] text-[#A3A3A3]">
-								<span className="font-semibold text-[#FAFAFA]">
-									{planUsagePct < 1 && planUsagePct > 0
-										? "< 1"
-										: Math.round(planUsagePct)}
-									%
-								</span>
-								<span>of monthly usage</span>
-								<span className="text-[#737373]">
-									{daysRemaining !== null
-										? `· resets in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}`
-										: "· resets with your billing cycle"}
-								</span>
-							</div>
-							<div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#2E353D]">
-								<div
-									className="h-full rounded-full bg-[#4BA0FA]"
-									style={{ width: `${planUsagePct}%` }}
-								/>
-							</div>
-							<p className="mt-3 text-[12px] text-[#737373]">
-								{planUsagePct > 0
-									? `${formatUsd(usdSpent)} used this period`
-									: "No usage yet this period"}
-							</p>
-						</div>
-
-						<div className="flex shrink-0 flex-col gap-2 sm:min-w-[170px]">
-							<Dialog
-								open={isCreditsDialogOpen}
-								onOpenChange={setIsCreditsDialogOpen}
-							>
-								<DialogTrigger asChild>
-									<button
-										type="button"
-										className={cn(
-											dmSans125ClassName(),
-											"inline-flex h-9 items-center justify-center gap-2 rounded-[9px] bg-[#0054AD] px-3 text-[13px] font-semibold text-[#FAFAFA] transition-colors hover:bg-[#0B65C9]",
-										)}
-									>
-										<Plus className="size-3.5" />
-										Buy credits
-									</button>
-								</DialogTrigger>
-								<DialogContent
-									showCloseButton={false}
-									className="w-[min(560px,calc(100vw-32px))] rounded-[18px] border border-[#1C2B3E] bg-[#0B0D12] p-6 shadow-[0px_18px_70px_rgba(0,0,0,0.72)]"
+			<section id="billing-plans" className="flex flex-col gap-4">
+				<SectionTitle
+					aside={
+						isPlanCarouselActive ? (
+							<div className="flex items-center gap-1.5">
+								<button
+									type="button"
+									onClick={() => setPlanPage(0)}
+									disabled={planPage === 0}
+									className="flex size-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02] text-[#A3A3A3] transition-colors hover:bg-white/[0.05] hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-35"
+									aria-label="Show Free and Pro plans"
 								>
-									<div className="flex items-start justify-between gap-4">
-										<div>
-											<p
-												className={cn(
-													dmSans125ClassName(),
-													"text-[22px] font-semibold tracking-[-0.22px] text-[#FAFAFA]",
-												)}
-											>
-												Buy Credits
-											</p>
-											<p
-												className={cn(
-													dmSans125ClassName(),
-													"mt-2 text-[15px] text-[#A3A3A3]",
-												)}
-											>
-												Add USD to your balance for metered usage.
-											</p>
-										</div>
-										<DialogClose asChild>
-											<button
-												type="button"
-												className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#0D121A] text-[#737373] transition-colors hover:text-[#FAFAFA]"
-											>
-												<X className="size-5" />
-											</button>
-										</DialogClose>
-									</div>
-
-									<div className="mt-8 flex flex-col gap-5">
-										<div className="flex flex-col gap-3">
-											<p
-												className={cn(
-													dmSans125ClassName(),
-													"text-[16px] font-semibold text-[#FAFAFA]",
-												)}
-											>
-												Choose an amount
-											</p>
-											<FieldSelect
-												value={topUpAmount}
-												values={TOP_UP_AMOUNTS}
-												prefix="$"
-												onChange={(value) => {
-													setTopUpAmount(value)
-													setCustomTopUpAmount("")
-												}}
-												disabled={topUpPendingAmount !== null}
-											/>
-											<div className="flex flex-col gap-2">
-												<label
-													htmlFor="custom-topup-amount"
-													className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]"
-												>
-													Custom amount (USD)
-												</label>
-												<input
-													id="custom-topup-amount"
-													inputMode="decimal"
-													min={1}
-													onChange={(event) =>
-														setCustomTopUpAmount(event.target.value)
-													}
-													placeholder="e.g. 75"
-													type="number"
-													value={customTopUpAmount}
-													className="h-11 rounded-[10px] border border-white/10 bg-[#080B10] px-3 text-[14px] text-[#FAFAFA] outline-none placeholder:text-[#737373] focus:border-[#0054AD]"
-												/>
-											</div>
-										</div>
-
-										<div className="h-px bg-white/[0.06]" />
-
-										<div className="flex flex-col gap-4">
-											<div className="flex items-center justify-between">
-												<p className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
-													Auto reload
-												</p>
-												<span className="text-[12px] text-[#737373]">
-													{autoTopUpEnabled ? "on" : "off"}
-												</span>
-											</div>
-
-											<div className="flex items-center justify-between gap-4">
-												<p
-													className={cn(
-														dmSans125ClassName(),
-														"text-[16px] text-[#FAFAFA]",
-													)}
-												>
-													Auto reload is{" "}
-													{autoTopUpEnabled ? "enabled" : "disabled"}
-												</p>
-												<button
-													type="button"
-													disabled={
-														isSavingAutoTopUp ||
-														!isAdmin ||
-														(!hasPaymentMethod && !activeAutoTopUp?.enabled)
-													}
-													onClick={() =>
-														handleAutoReloadToggle(!autoTopUpEnabled)
-													}
-													className={cn(
-														dmSans125ClassName(),
-														"inline-flex h-9 min-w-[96px] items-center justify-center rounded-[9px] border border-white/10 bg-[#0D121A] px-3 text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24] disabled:cursor-not-allowed disabled:opacity-45",
-													)}
-												>
-													{autoTopUpEnabled ? "Disable" : "Enable"}
-												</button>
-											</div>
-
-											{!hasPaymentMethod && !activeAutoTopUp?.enabled ? (
-												<p className="text-[13px] text-[#737373]">
-													Save a card in Manage Billing to enable automatic
-													reloads.
-												</p>
-											) : null}
-
-											<div
-												className={cn(
-													"grid gap-3 rounded-[10px] border border-white/[0.06] bg-[#0D121A] p-3 transition-[filter,opacity] sm:grid-cols-2",
-													!autoTopUpEnabled &&
-														"pointer-events-none select-none opacity-45 blur-[3px]",
-												)}
-											>
-												<div className="flex flex-col gap-2">
-													<label
-														htmlFor="auto-topup-threshold"
-														className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]"
-													>
-														Threshold (USD)
-													</label>
-													<input
-														id="auto-topup-threshold"
-														disabled={!autoTopUpEnabled || isSavingAutoTopUp}
-														inputMode="decimal"
-														min={0}
-														onChange={(event) => {
-															const value = Number.parseFloat(
-																event.target.value,
-															)
-															setAutoTopUpThreshold(
-																Number.isFinite(value) ? value : 0,
-															)
-														}}
-														type="number"
-														value={
-															Number.isFinite(autoTopUpThreshold)
-																? autoTopUpThreshold
-																: ""
-														}
-														className="h-10 rounded-[8px] border border-white/10 bg-[#080B10] px-3 text-[13px] text-[#FAFAFA] outline-none focus:border-[#0054AD] disabled:opacity-60"
-													/>
-												</div>
-												<div className="flex flex-col gap-2">
-													<label
-														htmlFor="auto-topup-amount"
-														className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]"
-													>
-														Reload amount (USD)
-													</label>
-													<input
-														id="auto-topup-amount"
-														disabled={!autoTopUpEnabled || isSavingAutoTopUp}
-														inputMode="decimal"
-														min={0.01}
-														onChange={(event) => {
-															const value = Number.parseFloat(
-																event.target.value,
-															)
-															setAutoTopUpAmount(
-																Number.isFinite(value) ? value : 0,
-															)
-														}}
-														type="number"
-														value={
-															Number.isFinite(autoTopUpAmount)
-																? autoTopUpAmount
-																: ""
-														}
-														className="h-10 rounded-[8px] border border-white/10 bg-[#080B10] px-3 text-[13px] text-[#FAFAFA] outline-none focus:border-[#0054AD] disabled:opacity-60"
-													/>
-												</div>
-												<div className="sm:col-span-2">
-													<button
-														type="button"
-														onClick={() => void handleSaveAutoTopUp()}
-														disabled={isSavingAutoTopUp || !isAdmin}
-														className={cn(
-															dmSans125ClassName(),
-															"inline-flex h-9 w-full items-center justify-center gap-2 rounded-[8px] border border-white/10 bg-[#080B10] text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24] disabled:cursor-not-allowed disabled:opacity-60",
-														)}
-													>
-														{isSavingAutoTopUp ? (
-															<LoaderIcon className="size-3.5 animate-spin" />
-														) : null}
-														Save threshold &amp; reload amount
-													</button>
-												</div>
-											</div>
-										</div>
-
-										<button
-											type="button"
-											onClick={() => void handleTopUp(selectedTopUpAmount)}
-											disabled={
-												topUpPendingAmount !== null ||
-												!isAdmin ||
-												selectedTopUpAmount <= 0
-											}
-											className={cn(
-												dmSans125ClassName(),
-												"inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-[#0054AD] text-[14px] font-bold text-[#FAFAFA] transition-colors hover:bg-[#0B65C9] disabled:cursor-not-allowed disabled:opacity-60",
-											)}
-										>
-											{topUpPendingAmount !== null ? (
-												<LoaderIcon className="size-4 animate-spin" />
-											) : null}
-											Buy {formatUsd(selectedTopUpAmount)} in credits
-										</button>
-
-										{!isAdmin ? (
-											<p className="text-center text-[11px] text-[#737373]">
-												Only owners/admins can purchase credits.
-											</p>
-										) : null}
-									</div>
-								</DialogContent>
-							</Dialog>
-							<button
-								type="button"
-								onClick={() => setIsCreditsDialogOpen(true)}
-								disabled={!isAdmin}
-								className="inline-flex h-8 items-center justify-center gap-2 rounded-[8px] text-[12px] font-medium text-[#A3A3A3] transition-colors hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
-							>
-								<span
-									className="size-1.5 rounded-full"
-									style={{
-										backgroundColor: autoTopUpEnabled ? "#4BA0FA" : "#737373",
-									}}
+									<ChevronLeft className="size-4" />
+								</button>
+								<button
+									type="button"
+									onClick={() => setPlanPage(1)}
+									disabled={planPage === 1}
+									className="flex size-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02] text-[#A3A3A3] transition-colors hover:bg-white/[0.05] hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-35"
+									aria-label="Show Max, Scale and Enterprise plans"
+								>
+									<ChevronRight className="size-4" />
+								</button>
+							</div>
+						) : undefined
+					}
+				>
+					Plans
+				</SectionTitle>
+				<div className="overflow-hidden">
+					<div
+						className="flex gap-4 transition-transform duration-300 ease-out"
+						style={{
+							transform:
+								planPage === 1 ? "translateX(calc(-100% - 1rem))" : "none",
+						}}
+					>
+						<div className="grid w-full shrink-0 gap-4 md:grid-cols-2">
+							{PLAN_CARDS.map((plan) => (
+								<PlanCard
+									action={getPlanCardAction(plan)}
+									key={plan.id}
+									plan={plan}
 								/>
-								Auto reload: {autoTopUpEnabled ? "on" : "off"}
-							</button>
+							))}
+						</div>
+						<div className="grid w-full shrink-0 gap-4 md:grid-cols-3">
+							{ADVANCED_PLAN_CARDS.map((plan) => (
+								<PlanCard
+									action={getPlanCardAction(plan)}
+									key={plan.id}
+									plan={plan}
+								/>
+							))}
 						</div>
 					</div>
-				</SettingsCard>
+				</div>
+				{isPlanCarouselActive ? null : (
+					<div className="flex justify-end px-2 pt-1">
+						<button
+							type="button"
+							onClick={() => {
+								setIsPlanCarouselActive(true)
+								setPlanPage(1)
+							}}
+							className={cn(
+								dmSans125ClassName(),
+								"inline-flex items-center justify-center gap-2 text-[13px] font-semibold text-[#A3A3A3] transition-colors hover:text-[#FAFAFA]",
+							)}
+						>
+							<span className="relative after:absolute after:right-0 after:-bottom-0.5 after:left-0 after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 hover:after:scale-x-100">
+								Other plans
+							</span>
+							<span className="translate-x-1 text-[15px]" aria-hidden="true">
+								&rarr;
+							</span>
+						</button>
+					</div>
+				)}
+			</section>
 
-				{hasPaidPlan ? (
+			<Dialog open={isCreditsDialogOpen} onOpenChange={setIsCreditsDialogOpen}>
+				<DialogContent
+					showCloseButton={false}
+					style={{ boxShadow: SURFACE_SHADOW }}
+					className="w-[min(560px,calc(100vw-32px))] rounded-[22px] border border-white/[0.12] bg-[#1B1F24] p-6"
+				>
+					<div className="flex items-start justify-between gap-4">
+						<div>
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"text-[22px] font-semibold tracking-[-0.22px] text-[#FAFAFA]",
+								)}
+							>
+								Buy Credits
+							</p>
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"mt-2 text-[15px] text-[#A3A3A3]",
+								)}
+							>
+								Add USD to your balance for metered usage.
+							</p>
+						</div>
+						<DialogClose asChild>
+							<button
+								type="button"
+								className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#0D121A] text-[#737373] transition-colors hover:text-[#FAFAFA]"
+							>
+								<X className="size-5" />
+							</button>
+						</DialogClose>
+					</div>
+
+					<div className="mt-8 flex flex-col gap-5">
+						<div className="flex flex-col gap-3">
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"text-[16px] font-semibold text-[#FAFAFA]",
+								)}
+							>
+								Choose an amount
+							</p>
+							<FieldSelect
+								value={topUpAmount}
+								values={TOP_UP_AMOUNTS}
+								prefix="$"
+								onChange={(value) => {
+									setTopUpAmount(value)
+									setCustomTopUpAmount("")
+								}}
+								disabled={topUpPendingAmount !== null}
+							/>
+							<div className="flex flex-col gap-2">
+								<label
+									htmlFor="custom-topup-amount"
+									className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]"
+								>
+									Custom amount (USD)
+								</label>
+								<input
+									id="custom-topup-amount"
+									inputMode="decimal"
+									min={1}
+									onChange={(event) => setCustomTopUpAmount(event.target.value)}
+									placeholder="e.g. 75"
+									type="number"
+									value={customTopUpAmount}
+									className="h-11 rounded-[10px] border border-white/10 bg-[#080B10] px-3 text-[14px] text-[#FAFAFA] outline-none placeholder:text-[#737373] focus:border-[#0054AD]"
+								/>
+							</div>
+						</div>
+
+						<div className="h-px bg-white/[0.06]" />
+
+						<div className="flex flex-col gap-4">
+							<div className="flex items-center justify-between">
+								<p className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
+									Auto reload
+								</p>
+								<span className="text-[12px] text-[#737373]">
+									{autoTopUpEnabled ? "on" : "off"}
+								</span>
+							</div>
+
+							<div className="flex items-center justify-between gap-4">
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"text-[16px] text-[#FAFAFA]",
+									)}
+								>
+									Auto reload is {autoTopUpEnabled ? "enabled" : "disabled"}
+								</p>
+								<button
+									type="button"
+									disabled={
+										isSavingAutoTopUp ||
+										!isAdmin ||
+										(!hasPaymentMethod && !activeAutoTopUp?.enabled)
+									}
+									onClick={() => handleAutoReloadToggle(!autoTopUpEnabled)}
+									className={cn(
+										dmSans125ClassName(),
+										"inline-flex h-9 min-w-[96px] items-center justify-center rounded-[9px] border border-white/10 bg-[#0D121A] px-3 text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24] disabled:cursor-not-allowed disabled:opacity-45",
+									)}
+								>
+									{autoTopUpEnabled ? "Disable" : "Enable"}
+								</button>
+							</div>
+
+							{!hasPaymentMethod && !activeAutoTopUp?.enabled ? (
+								<p className="text-[13px] text-[#737373]">
+									Save a card in Manage Billing to enable automatic reloads.
+								</p>
+							) : null}
+
+							<div
+								className={cn(
+									"grid gap-3 rounded-[10px] border border-white/[0.06] bg-[#0D121A] p-3 transition-[filter,opacity] sm:grid-cols-2",
+									!autoTopUpEnabled &&
+										"pointer-events-none select-none opacity-45 blur-[3px]",
+								)}
+							>
+								<div className="flex flex-col gap-2">
+									<label
+										htmlFor="auto-topup-threshold"
+										className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]"
+									>
+										Threshold (USD)
+									</label>
+									<input
+										id="auto-topup-threshold"
+										disabled={!autoTopUpEnabled || isSavingAutoTopUp}
+										inputMode="decimal"
+										min={0}
+										onChange={(event) => {
+											const value = Number.parseFloat(event.target.value)
+											setAutoTopUpThreshold(Number.isFinite(value) ? value : 0)
+										}}
+										type="number"
+										value={
+											Number.isFinite(autoTopUpThreshold)
+												? autoTopUpThreshold
+												: ""
+										}
+										className="h-10 rounded-[8px] border border-white/10 bg-[#080B10] px-3 text-[13px] text-[#FAFAFA] outline-none focus:border-[#0054AD] disabled:opacity-60"
+									/>
+								</div>
+								<div className="flex flex-col gap-2">
+									<label
+										htmlFor="auto-topup-amount"
+										className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]"
+									>
+										Reload amount (USD)
+									</label>
+									<input
+										id="auto-topup-amount"
+										disabled={!autoTopUpEnabled || isSavingAutoTopUp}
+										inputMode="decimal"
+										min={0.01}
+										onChange={(event) => {
+											const value = Number.parseFloat(event.target.value)
+											setAutoTopUpAmount(Number.isFinite(value) ? value : 0)
+										}}
+										type="number"
+										value={
+											Number.isFinite(autoTopUpAmount) ? autoTopUpAmount : ""
+										}
+										className="h-10 rounded-[8px] border border-white/10 bg-[#080B10] px-3 text-[13px] text-[#FAFAFA] outline-none focus:border-[#0054AD] disabled:opacity-60"
+									/>
+								</div>
+								<div className="sm:col-span-2">
+									<button
+										type="button"
+										onClick={() => void handleSaveAutoTopUp()}
+										disabled={isSavingAutoTopUp || !isAdmin}
+										className={cn(
+											dmSans125ClassName(),
+											"inline-flex h-9 w-full items-center justify-center gap-2 rounded-[8px] border border-white/10 bg-[#080B10] text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24] disabled:cursor-not-allowed disabled:opacity-60",
+										)}
+									>
+										{isSavingAutoTopUp ? (
+											<LoaderIcon className="size-3.5 animate-spin" />
+										) : null}
+										Save threshold &amp; reload amount
+									</button>
+								</div>
+							</div>
+						</div>
+
+						<button
+							type="button"
+							onClick={() => void handleTopUp(selectedTopUpAmount)}
+							disabled={
+								topUpPendingAmount !== null ||
+								!isAdmin ||
+								selectedTopUpAmount <= 0
+							}
+							className={cn(
+								dmSans125ClassName(),
+								"inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-[#0054AD] text-[14px] font-bold text-[#FAFAFA] transition-colors hover:bg-[#0B65C9] disabled:cursor-not-allowed disabled:opacity-60",
+							)}
+						>
+							{topUpPendingAmount !== null ? (
+								<LoaderIcon className="size-4 animate-spin" />
+							) : null}
+							Buy {formatUsd(selectedTopUpAmount)} in credits
+						</button>
+
+						{!isAdmin ? (
+							<p className="text-center text-[11px] text-[#737373]">
+								Only owners/admins can purchase credits.
+							</p>
+						) : null}
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			{hasPaidPlan ? (
+				<section className="flex flex-col gap-4">
+					<SectionTitle>Credits</SectionTitle>
 					<SettingsCard className="border border-dashed border-white/10 bg-[#14161A]/70">
 						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 							<div className="flex min-w-0 items-start gap-3">
 								<Coins className="mt-1 size-4 shrink-0 text-[#4BA0FA]" />
 								<div className="min-w-0">
 									<p className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
-										Top-up credits{" "}
-										<span className="font-normal normal-case tracking-normal text-[#A3A3A3]">
-											(optional)
-										</span>
+										Top-up credits
 									</p>
 									<p
 										className={cn(
@@ -1034,12 +1606,12 @@ export default function Billing() {
 								)}
 							>
 								<Plus className="size-3.5" />
-								{creditRemaining > 0 ? "Add more" : "Add credits"}
+								{creditRemaining > 0 ? "Add more" : "Buy credits"}
 							</button>
 						</div>
 					</SettingsCard>
-				) : null}
-			</section>
+				</section>
+			) : null}
 
 			<section className="flex flex-col gap-4">
 				<SectionTitle>Invoice history</SectionTitle>

@@ -1,3 +1,117 @@
+const COMPANY_BRAIN_PRODUCT_ID = "company_brain"
+
+// Add-on resolved by product presence, not tier.
+// better-auth returns org.metadata as a JSON string, so accept string or object.
+export function hasCompanyBrain(
+	metadataRaw: Record<string, unknown> | string | null | undefined,
+): boolean {
+	if (!metadataRaw) return false
+	let metadata: Record<string, unknown>
+	if (typeof metadataRaw === "string") {
+		try {
+			metadata = JSON.parse(metadataRaw) as Record<string, unknown>
+		} catch {
+			return false
+		}
+	} else {
+		metadata = metadataRaw
+	}
+	const overrides = metadata.featureOverrides as
+		| Record<string, { allow?: boolean }>
+		| undefined
+	const override = overrides?.[COMPANY_BRAIN_PRODUCT_ID]
+	if (override) return Boolean(override.allow)
+	const activeProducts = Array.isArray(metadata.activeProducts)
+		? (metadata.activeProducts as string[])
+		: []
+	return activeProducts.includes(COMPANY_BRAIN_PRODUCT_ID)
+}
+
+// Explicit concierge override for company_brain, or undefined when none is set.
+export function getCompanyBrainOverride(
+	metadataRaw: Record<string, unknown> | string | null | undefined,
+): boolean | undefined {
+	if (!metadataRaw) return undefined
+	let metadata: Record<string, unknown>
+	if (typeof metadataRaw === "string") {
+		try {
+			metadata = JSON.parse(metadataRaw) as Record<string, unknown>
+		} catch {
+			return undefined
+		}
+	} else {
+		metadata = metadataRaw
+	}
+	const overrides = metadata.featureOverrides as
+		| Record<string, { allow?: boolean }>
+		| undefined
+	const override = overrides?.[COMPANY_BRAIN_PRODUCT_ID]
+	return override ? Boolean(override.allow) : undefined
+}
+
+// Origin of the org. Consumer (app.supermemory) orgs get company_brain attached,
+// but the add-on lands async — signupSource is set at creation, so it's the
+// reliable "this org uses brain spaces" signal in the UI.
+export function getSignupSource(
+	metadataRaw: Record<string, unknown> | string | null | undefined,
+): string | null {
+	if (!metadataRaw) return null
+	let metadata: Record<string, unknown>
+	if (typeof metadataRaw === "string") {
+		try {
+			metadata = JSON.parse(metadataRaw) as Record<string, unknown>
+		} catch {
+			return null
+		}
+	} else {
+		metadata = metadataRaw
+	}
+	return typeof metadata.signupSource === "string"
+		? (metadata.signupSource as string)
+		: null
+}
+
+// Company domain captured during team onboarding.
+export function getBrainWorkspaceDomain(
+	metadataRaw: Record<string, unknown> | string | null | undefined,
+): string | null {
+	if (!metadataRaw) return null
+	let metadata: Record<string, unknown>
+	if (typeof metadataRaw === "string") {
+		try {
+			metadata = JSON.parse(metadataRaw) as Record<string, unknown>
+		} catch {
+			return null
+		}
+	} else {
+		metadata = metadataRaw
+	}
+	return typeof metadata.brainWorkspaceDomain === "string"
+		? (metadata.brainWorkspaceDomain as string)
+		: null
+}
+
+// Brain mode chosen during onboarding ("personal" | "team"). Set synchronously
+// at org creation, so it's the reliable pre-webhook signal for company brain.
+export function getBrainMode(
+	metadataRaw: Record<string, unknown> | string | null | undefined,
+): string | null {
+	if (!metadataRaw) return null
+	let metadata: Record<string, unknown>
+	if (typeof metadataRaw === "string") {
+		try {
+			metadata = JSON.parse(metadataRaw) as Record<string, unknown>
+		} catch {
+			return null
+		}
+	} else {
+		metadata = metadataRaw
+	}
+	return typeof metadata.brainMode === "string"
+		? (metadata.brainMode as string)
+		: null
+}
+
 /**
  * Format a number with K/M suffix for display
  * @example formatUsageNumber(1500000) => "1.5M"

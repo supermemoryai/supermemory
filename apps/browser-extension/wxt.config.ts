@@ -29,7 +29,7 @@ export default defineConfig({
 	manifest: {
 		name: "supermemory",
 		homepage_url: "https://supermemory.ai",
-		version: "6.1.3",
+		version: "6.1.4",
 		permissions: ["storage", "activeTab", "webRequest", "tabs"],
 		host_permissions: [
 			"*://x.com/*",
@@ -38,6 +38,10 @@ export default defineConfig({
 			"*://api.supermemory.ai/*",
 			"*://chatgpt.com/*",
 			"*://chat.openai.com/*",
+			"*://grok.com/*",
+			"*://*.grok.com/*",
+			"*://x.ai/*",
+			"*://*.x.ai/*",
 			"https://*.posthog.com/*",
 		],
 		web_accessible_resources: [

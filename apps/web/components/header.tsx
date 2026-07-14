@@ -19,6 +19,7 @@ import {
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
+import { getBillingSettingsUrl } from "@/lib/url-helpers"
 import { GraphIcon, IntegrationsIcon } from "@/components/integration-icons"
 import {
 	DropdownMenu,
@@ -29,7 +30,6 @@ import {
 } from "@ui/components/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
 import { useProject } from "@/stores"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { SpaceSelector } from "./space-selector"
 import { useIsMobile } from "@hooks/use-mobile"
@@ -43,6 +43,9 @@ import { useCustomer } from "autumn-js/react"
 import { useTokenUsage } from "@/hooks/use-token-usage"
 import { useOrgSummaries } from "@/hooks/use-org-summaries"
 import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
+import { useSettingsModal } from "@/components/settings/settings-modal"
+import { useHasCompanyBrain } from "@/hooks/use-company-brain"
+import { CompanyBrainHeader } from "@/components/company-brain-header"
 
 interface HeaderProps {
 	onAddMemory?: () => void
@@ -64,7 +67,15 @@ const brainTileClass = (active: boolean) =>
 			: "border-white/[0.08] bg-white/[0.04] text-white/70",
 	)
 
-export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
+export function Header(props: HeaderProps) {
+	const hasCompanyBrain = useHasCompanyBrain()
+	if (hasCompanyBrain) {
+		return <CompanyBrainHeader onOpenSearch={props.onOpenSearch} />
+	}
+	return <PersonalBrainHeader {...props} />
+}
+
+function PersonalBrainHeader({ onAddMemory, onOpenSearch }: HeaderProps) {
 	const { user, isRestoring, org, organizations, setActiveOrg } = useAuth()
 	const autumn = useCustomer()
 	const { currentPlan } = useTokenUsage(autumn)
@@ -73,13 +84,14 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 		(orgSummaries ?? []).map((s) => [s.orgId, s.plan] as const),
 	)
 	const { selectedProjects, setSelectedProjects } = useProject()
-	const router = useRouter()
+	const { openSettings } = useSettingsModal()
 	const isMobile = useIsMobile()
 	const [feedbackOpen, setFeedbackOpen] = useQueryState(
 		"feedback",
 		feedbackParam,
 	)
 	const { viewMode, setViewMode } = useViewMode()
+	const billingSettingsUrl = getBillingSettingsUrl()
 
 	const handleFeedback = () => setFeedbackOpen(true)
 
@@ -205,6 +217,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 							selectedProjects={selectedProjects}
 							onValueChange={setSelectedProjects}
 							enableDelete
+							enableEdit
 						/>
 					</>
 				)}
@@ -353,6 +366,15 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 								}}
 							>
 								<DropdownMenuItem
+									asChild
+									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
+								>
+									<a href={billingSettingsUrl}>
+										<Logo className="h-4 w-5 shrink-0" />
+										Upgrade
+									</a>
+								</DropdownMenuItem>
+								<DropdownMenuItem
 									onClick={onAddMemory}
 									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
@@ -410,7 +432,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 									Feedback
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									onClick={() => router.push("/settings")}
+									onClick={() => openSettings()}
 									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
 									<Settings className="size-4 text-[#737373]" />
@@ -421,6 +443,27 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 					</>
 				) : (
 					<>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									asChild
+									className={cn(
+										"rounded-full! h-9! min-h-9 shrink-0 border border-[#2261CA33] bg-[#00173C] !text-white hover:bg-[#001F50]",
+										"max-lg:w-9 max-lg:min-w-9 max-lg:justify-center max-lg:gap-0 max-lg:px-0",
+										"lg:min-w-0 lg:gap-1.5 lg:px-3 lg:font-semibold",
+										dmSansClassName(),
+									)}
+								>
+									<a href={billingSettingsUrl} aria-label="Upgrade">
+										<Logo className="h-3.5 w-[17px] shrink-0 lg:h-4 lg:w-5" />
+										<span className="max-lg:sr-only">Upgrade</span>
+									</a>
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" className={dmSansClassName()}>
+								Upgrade
+							</TooltipContent>
+						</Tooltip>
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button
@@ -472,7 +515,41 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 	)
 }
 
-export function PublicHeader() {
+export function PublicHeader({
+	variant = "default",
+}: {
+	variant?: "default" | "integrations"
+}) {
+	if (variant === "integrations") {
+		return (
+			<div className="relative z-10 flex shrink-0 items-center justify-between gap-2 p-2.5 md:p-3">
+				<Link
+					href="/integrations"
+					className="flex items-center gap-2 transition-opacity hover:opacity-90"
+				>
+					<Logo className="h-6 md:h-7" />
+					<p className="text-base leading-none font-medium text-white/90 sm:text-lg">
+						supermemory
+					</p>
+				</Link>
+
+				<Link href="/login?redirect=%2Fintegrations">
+					<button
+						type="button"
+						className={cn(
+							"flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-95 sm:px-5 sm:text-[15px]",
+							"bg-[linear-gradient(100deg,#426BFF_0%,#2D1CFF_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]",
+							dmSansClassName(),
+						)}
+					>
+						<Logo className="h-4 w-5 shrink-0" />
+						Log in with Supermemory
+					</button>
+				</Link>
+			</div>
+		)
+	}
+
 	return (
 		<div className="relative z-10 flex shrink-0 items-center justify-between gap-2 p-2.5 md:p-3">
 			<Link
@@ -508,7 +585,7 @@ export function PublicHeader() {
 						Sign in
 					</button>
 				</Link>
-				<Link href="/login/new">
+				<Link href="/login">
 					<button
 						type="button"
 						className={cn(

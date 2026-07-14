@@ -2,6 +2,8 @@ import { getSessionCookie } from "better-auth/cookies"
 import { NextResponse } from "next/server"
 import { getPublicRequestUrl } from "@/lib/url-helpers"
 
+const LOCAL_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
+
 function getAuthSessionCookie(request: Request): string | null {
 	return (
 		getSessionCookie(request) ??
@@ -16,6 +18,18 @@ export default async function proxy(request: Request) {
 	console.debug("[PROXY] Path:", url.pathname)
 	console.debug("[PROXY] Method:", request.method)
 
+	// Development builds only: getPublicRequestUrl trusts x-forwarded-host, so
+	// a hostname check alone could be spoofed in production to skip the /api
+	// 401 gate below. NODE_ENV is inlined at build time, making this dead code
+	// in production bundles.
+	if (
+		process.env.NODE_ENV === "development" &&
+		LOCAL_DEV_HOSTS.has(url.hostname)
+	) {
+		console.debug("[PROXY] Local dev host, allowing access")
+		return NextResponse.next()
+	}
+
 	const sessionCookie = getAuthSessionCookie(request)
 	console.debug("[PROXY] Session cookie exists:", !!sessionCookie)
 
@@ -28,6 +42,19 @@ export default async function proxy(request: Request) {
 
 	// MCP setup page is public — no auth required
 	if (url.searchParams.get("view") === "mcp") {
+		return NextResponse.next()
+	}
+
+	// Integrations index is public in guest mode; actions still require login.
+	if (url.pathname === "/" && url.searchParams.get("view") === "integrations") {
+		return NextResponse.next()
+	}
+
+	// Real integrations routes, public in guest mode (mirrors view=integrations / view=mcp).
+	if (
+		url.pathname === "/integrations" ||
+		url.pathname === "/integrations/mcp"
+	) {
 		return NextResponse.next()
 	}
 

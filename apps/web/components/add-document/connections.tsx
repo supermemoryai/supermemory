@@ -1,10 +1,10 @@
 "use client"
 
 import { $fetch } from "@lib/api"
-import { hasActivePlan } from "@lib/queries"
+import { useConnectorAccess } from "@/hooks/use-connector-access"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { GoogleDrive, Notion, OneDrive, Zoom } from "@ui/assets/icons"
+import { GoogleDrive, Granola, Notion, OneDrive, Zoom } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import {
 	Check,
@@ -31,12 +31,16 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
+import { GranolaConnectModal } from "@/components/granola-connect-modal"
 import { RemoveConnectionDialog } from "@/components/remove-connection-dialog"
 import { SyncStatusBadge } from "@/components/settings/sync-status-badge"
 import { SyncHistoryPanel } from "@/components/settings/sync-history-panel"
 import { useConnectionHealth } from "@/hooks/use-connection-health"
 import { useTriggerSync } from "@/hooks/use-trigger-sync"
-import { formatRelativeTime } from "@/components/settings/sync-utils"
+import {
+	formatRelativeTime,
+	getConnectionSubtitle,
+} from "@/components/settings/sync-utils"
 import type { ImportProvider } from "@/components/settings/sync-utils"
 
 type GDriveSyncScope = "scoped" | "full"
@@ -48,7 +52,7 @@ const GDRIVE_SCOPE_LABELS: Record<GDriveSyncScope, string> = {
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
-type ConnectorProvider = "google-drive" | "notion" | "onedrive" | "zoom"
+type ConnectorProvider = "google-drive" | "notion" | "onedrive" | "zoom" | "granola"
 
 const CONNECTORS: Record<
 	ConnectorProvider,
@@ -82,6 +86,12 @@ const CONNECTORS: Record<
 		description: "Sync meeting notes, transcripts, and AI summaries",
 		documentLabel: "meetings",
 		icon: Zoom,
+	},
+	granola: {
+		title: "Granola",
+		description: "Sync AI meeting notes and transcripts",
+		documentLabel: "notes",
+		icon: Granola,
 	},
 } as const
 
@@ -168,7 +178,7 @@ function ConnectionRow({
 								"truncate text-[14px] text-[#737373]",
 							)}
 						>
-							{connection.email || "Unknown"}
+							{getConnectionSubtitle(connection)}
 						</span>
 					</div>
 					<div className="flex shrink-0 items-center gap-0.5">
@@ -305,9 +315,10 @@ interface ConnectContentProps {
 export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
-	const isProUser = hasActivePlan(autumn.data?.subscriptions, "api_pro")
+	const { connectorAccess } = useConnectorAccess()
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
+	const [granolaModalOpen, setGranolaModalOpen] = useState(false)
 	const [gdriveSyncScope, setGdriveSyncScope] =
 		useState<GDriveSyncScope>("scoped")
 	const [isUpgrading, setIsUpgrading] = useState(false)
@@ -320,11 +331,11 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const projects = (queryClient.getQueryData<Project[]>(["projects"]) ||
 		[]) as Project[]
 
-	const handleUpgrade = async () => {
+	const handleUpgrade = async (planId: "api_pro" | "api_max" = "api_pro") => {
 		setIsUpgrading(true)
 		try {
 			const result = await autumn.attach({
-				planId: "api_pro",
+				planId,
 				successUrl: window.location.href,
 			})
 			if (result?.paymentUrl) {
@@ -393,7 +404,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 			provider: ConnectorProvider
 			syncScope?: GDriveSyncScope
 		}) => {
-			if (!canAddConnection && !isProUser) {
+			if (!canAddConnection && !connectorAccess) {
 				throw new Error(
 					"Free plan doesn't include connections. Upgrade to Pro for unlimited connections.",
 				)
@@ -552,7 +563,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												type="button"
 												onClick={() => handleConnect("google-drive")}
 												disabled={
-													!isProUser ||
+													!connectorAccess ||
 													isConnecting ||
 													addConnectionMutation.isPending
 												}
@@ -598,13 +609,38 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												</DropdownMenuContent>
 											</DropdownMenu>
 										</div>
+									) : provider === "granola" ? (
+										<>
+											{!connectorAccess && (
+												<span className="bg-[#0054AD] text-[#FAFAFA] text-[10px] font-bold px-1.5 py-[2px] rounded-[3px] uppercase tracking-wide">
+													Pro
+												</span>
+											)}
+											<Button
+												onClick={() => {
+													if (!connectorAccess) {
+														handleUpgrade("api_pro")
+														return
+													}
+													setGranolaModalOpen(true)
+												}}
+												disabled={isUpgrading || autumn.isLoading}
+												className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 text-[14px] font-medium px-3 py-1.5 h-8"
+											>
+												{!connectorAccess
+													? isUpgrading || autumn.isLoading
+														? "Upgrading..."
+														: "Upgrade"
+													: "Connect"}
+											</Button>
+										</>
 									) : (
 										<Button
 											onClick={() =>
 												handleConnect(provider as ConnectorProvider)
 											}
 											disabled={
-												!isProUser ||
+												!connectorAccess ||
 												isConnecting ||
 												addConnectionMutation.isPending
 											}
@@ -651,7 +687,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 							<DropdownMenuTrigger asChild>
 								<button
 									type="button"
-									disabled={!isProUser || isAnyConnecting}
+									disabled={!connectorAccess || isAnyConnecting}
 									className="flex shrink-0 items-center gap-1.5 bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 disabled:opacity-50 disabled:cursor-not-allowed text-[13px] font-medium rounded-full h-8 px-3 transition-colors"
 								>
 									{isAnyConnecting ? (
@@ -776,6 +812,34 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												</span>
 											</div>
 										</DropdownMenuItem>
+										<DropdownMenuItem
+											disabled={isUpgrading || autumn.isLoading}
+											onClick={() => {
+												if (!connectorAccess) {
+													handleUpgrade("api_pro")
+													return
+												}
+												setGranolaModalOpen(true)
+											}}
+											className="flex items-start gap-2.5 px-3 py-2.5 rounded-md cursor-pointer text-white opacity-60 hover:opacity-100 hover:bg-[#293952]/40 focus:bg-[#293952]/40 focus:opacity-100 data-disabled:opacity-40 data-disabled:cursor-not-allowed data-disabled:hover:bg-transparent"
+										>
+											<Granola className="size-5 mt-0.5 shrink-0" />
+											<div className="flex flex-col gap-0.5 min-w-0">
+												<span className="flex items-center gap-1.5 text-[14px] font-medium text-[#FAFAFA] leading-tight">
+													Granola
+													{!connectorAccess && (
+														<span className="bg-[#0054AD] text-[#FAFAFA] text-[9px] font-bold px-1 py-px rounded-[3px] uppercase tracking-wide">
+															Pro
+														</span>
+													)}
+												</span>
+												<span className="text-[11px] text-[#737373] leading-tight">
+													{connectorAccess
+														? "Meeting notes & transcripts"
+														: "Upgrade to Pro"}
+												</span>
+											</div>
+										</DropdownMenuItem>
 									</div>
 								</div>
 							</DropdownMenuContent>
@@ -825,7 +889,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 					className="bg-[#14161A] shadow-inside-out rounded-[12px] px-4 py-6 h-full mb-4 flex flex-col justify-center items-center"
 				>
 					<Zap className="size-6 text-[#737373] mb-3" />
-					{!isProUser ? (
+					{!connectorAccess ? (
 						<>
 							<p className="text-[14px] text-[#737373] mb-4 text-center">
 								{isUpgrading || autumn.isLoading ? (
@@ -837,7 +901,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 									<>
 										<button
 											type="button"
-											onClick={handleUpgrade}
+											onClick={() => handleUpgrade()}
 											className="underline text-[#737373] hover:text-white transition-colors cursor-pointer"
 										>
 											Upgrade to Pro
@@ -901,6 +965,12 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 					}
 				}}
 				isDeleting={deleteConnectionMutation.isPending}
+			/>
+
+			<GranolaConnectModal
+				open={connectorAccess && granolaModalOpen}
+				onOpenChange={(open) => setGranolaModalOpen(open && connectorAccess)}
+				containerTags={[selectedProject]}
 			/>
 		</div>
 	)

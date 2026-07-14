@@ -81,6 +81,8 @@ export interface GraphNode {
 	data: DocumentNodeData | MemoryNodeData
 	size: number
 	borderColor: string
+	clusterKey?: string | null
+	clusterColor?: string | null
 	isHovered: boolean
 	isDragging: boolean
 	// D3-force simulation properties
@@ -128,6 +130,27 @@ export interface GraphThemeColors {
 	popoverTextMuted: string
 	controlBg: string
 	controlBorder: string
+}
+
+export interface MemoryGraphLabels {
+	documentGroup?: string
+	documentTypeFallback?: string
+	documentSourceEdge?: string
+	documentToMemoryEdge?: string
+	memoryCount?: (count: number) => string
+	documentIdLabel?: string
+	viewDocument?: string
+	goToDocument?: string
+	nextDocument?: string
+	previousDocument?: string
+	showMemory?: string
+	loadingMoreDocuments?: (count: number) => string
+}
+
+export type ResolvedMemoryGraphLabels = Required<MemoryGraphLabels>
+
+export interface MemoryGraphLayering {
+	hoverPopoverZIndex?: number
 }
 
 export interface GraphCanvasProps {
@@ -193,6 +216,10 @@ export interface MemoryGraphProps {
 	totalCount?: number
 	/** Callback when user wants to view full document content */
 	onOpenDocument?: (documentId: string) => void
+	/** Custom user-facing labels (partial) - merged with defaults */
+	labels?: MemoryGraphLabels
+	/** Overlay layering controls */
+	layering?: MemoryGraphLayering
 }
 
 export interface ChainEntry {

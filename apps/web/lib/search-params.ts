@@ -29,6 +29,7 @@ const viewLiterals = [
 	"list",
 	"integrations",
 	"chat",
+	"digests",
 	// Integration sub-views — each card is its own view
 	"mcp",
 	"plugins",

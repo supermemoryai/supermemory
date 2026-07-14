@@ -7,26 +7,25 @@ import {
 } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { $fetch } from "@lib/api"
-import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
-import type { z } from "zod"
 import { useAuth } from "@lib/auth-context"
 import { analytics } from "@/lib/analytics"
+import { fetchSpaceSettings, spaceSettingsKey } from "@/hooks/use-space-context"
+import { getBackendUrl } from "@/lib/url-helpers"
 
-type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
+/** Pull the human-readable message out of a $fetch error (handles `{error}`/`{message}`/string). */
+function fetchErrorMessage(err: unknown, fallback: string): string {
+	if (typeof err === "string") return err
+	if (err && typeof err === "object") {
+		const e = err as { error?: unknown; message?: unknown }
+		if (typeof e.error === "string") return e.error
+		if (typeof e.message === "string") return e.message
+	}
+	return fallback
+}
 
 interface DocumentWithId {
 	id?: string
 	customId?: string | null
-}
-
-interface DocumentsQueryData {
-	documents: DocumentWithId[]
-	totalCount: number
-}
-
-type InfiniteQueryData = {
-	pages: DocumentsResponse[]
-	pageParams: number[]
 }
 
 interface UseDocumentMutationsOptions {
@@ -212,6 +211,9 @@ function restoreQueriesFromSnapshot(
 }
 
 const FILE_UPLOAD_CONCURRENCY = 3
+const BULK_LINK_BATCH_SIZE = 500
+const fullDocumentQueryKey = (documentId: string) =>
+	["document-full", documentId] as const
 
 export type FileUploadEntry = { id: string; file: File }
 
@@ -226,7 +228,23 @@ export function useDocumentMutations({
 	const queryClient = useQueryClient()
 	const { user } = useAuth()
 
-	const entityContext = `This is ${user?.name ?? "a user"}, saving items in a personal knowledge management system. This may be websites, links, notes, journals, PDFs, etc. Understand the user from it into a graph.`
+	const defaultEntityContext = `This is ${user?.name ?? "a user"}, saving items in a personal knowledge management system. This may be websites, links, notes, journals, PDFs, etc. Understand the user from it into a graph.`
+
+	// Skip when the space has its own context — sending one would overwrite the stored value.
+	const resolveEntityContext = async (
+		project: string,
+	): Promise<string | undefined> => {
+		try {
+			const settings = await queryClient.fetchQuery({
+				queryKey: spaceSettingsKey(project),
+				queryFn: () => fetchSpaceSettings(project),
+				staleTime: 60 * 1000,
+			})
+			return settings?.entityContext ? undefined : defaultEntityContext
+		} catch {
+			return defaultEntityContext
+		}
+	}
 
 	const noteMutation = useMutation({
 		mutationFn: async ({
@@ -236,11 +254,12 @@ export function useDocumentMutations({
 			content: string
 			project: string
 		}) => {
+			const entityContext = await resolveEntityContext(project)
 			const response = await $fetch("@post/documents", {
 				body: {
 					content,
 					containerTags: [project],
-					entityContext,
+					...(entityContext !== undefined ? { entityContext } : {}),
 					metadata: { sm_source: "consumer" },
 				},
 			})
@@ -300,11 +319,12 @@ export function useDocumentMutations({
 
 	const linkMutation = useMutation({
 		mutationFn: async ({ url, project }: { url: string; project: string }) => {
+			const entityContext = await resolveEntityContext(project)
 			const response = await $fetch("@post/documents", {
 				body: {
 					content: url,
 					containerTags: [project],
-					entityContext,
+					...(entityContext !== undefined ? { entityContext } : {}),
 					metadata: { sm_source: "consumer" },
 				},
 			})
@@ -362,6 +382,100 @@ export function useDocumentMutations({
 		},
 	})
 
+	const bulkLinkMutation = useMutation({
+		mutationFn: async ({
+			urls,
+			project,
+		}: {
+			urls: string[]
+			project: string
+		}): Promise<{ success: number; failed: number }> => {
+			let success = 0
+			let failed = 0
+
+			for (let i = 0; i < urls.length; i += BULK_LINK_BATCH_SIZE) {
+				const chunk = urls.slice(i, i + BULK_LINK_BATCH_SIZE)
+				const response = await $fetch("@post/documents/batch", {
+					body: {
+						documents: chunk.map((url) => ({
+							content: url,
+							containerTags: [project],
+							entityContext,
+							metadata: { sm_source: "consumer" },
+						})),
+					},
+				})
+				if (response.error) {
+					throw new Error(response.error?.message || "Failed to add links")
+				}
+				success += response.data?.success ?? 0
+				failed += response.data?.failed ?? 0
+			}
+
+			return { success, failed }
+		},
+		onMutate: async ({ urls, project }) => {
+			const previousQueries = await cancelAndSnapshotQueries(queryClient)
+			const now = new Date().toISOString()
+
+			for (const url of urls) {
+				const optimisticMemory: OptimisticMemory = {
+					id: `temp-${crypto.randomUUID()}`,
+					content: "",
+					url,
+					title: "Processing...",
+					description: "Extracting content...",
+					containerTags: [project],
+					createdAt: now,
+					updatedAt: now,
+					status: "queued",
+					type: "link",
+					metadata: {
+						processingStage: "queued",
+						processingMessage: "Added to processing queue",
+					},
+					memoryEntries: [],
+					isOptimistic: true,
+				}
+				queryClient.setQueriesData(
+					{ queryKey: ["documents-with-memories"] },
+					(old) => addOptimisticMemoryToQueryData(old, optimisticMemory),
+				)
+			}
+
+			return { previousQueries }
+		},
+		onError: (error, _variables, context) => {
+			restoreQueriesFromSnapshot(queryClient, context?.previousQueries)
+			toast.error("Failed to add links", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			})
+		},
+		onSuccess: (data, variables) => {
+			for (let i = 0; i < data.success; i++) {
+				analytics.documentAdded({ type: "link", project_id: variables.project })
+			}
+			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
+			queryClient.invalidateQueries({ queryKey: ["processing-documents"] })
+			if (data.failed === 0) {
+				toast.success(`${data.success} links added!`, {
+					description: "Your links are being processed",
+				})
+				onClose?.()
+				return
+			}
+			if (data.success === 0) {
+				toast.error("Failed to add links", {
+					description: `All ${data.failed} links failed`,
+				})
+				return
+			}
+			toast.warning("Some links failed", {
+				description: `${data.success} added, ${data.failed} failed`,
+			})
+		},
+	})
+
 	const fileMutation = useMutation({
 		mutationFn: async ({
 			fileEntries,
@@ -376,22 +490,22 @@ export function useDocumentMutations({
 		}): Promise<FileUploadBatchResult> => {
 			const applyMeta = fileEntries.length === 1
 			const failures: { id: string; message: string }[] = []
+			const entityContext = await resolveEntityContext(project)
 
 			const uploadOne = async (entry: FileUploadEntry) => {
 				const formData = new FormData()
 				formData.append("file", entry.file)
 				formData.append("containerTags", JSON.stringify([project]))
-				formData.append("entityContext", entityContext)
+				if (entityContext !== undefined) {
+					formData.append("entityContext", entityContext)
+				}
 				formData.append("metadata", JSON.stringify({ sm_source: "consumer" }))
 
-				const response = await fetch(
-					`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/documents/file`,
-					{
-						method: "POST",
-						body: formData,
-						credentials: "include",
-					},
-				)
+				const response = await fetch(`${getBackendUrl()}/v3/documents/file`, {
+					method: "POST",
+					body: formData,
+					credentials: "include",
+				})
 
 				if (!response.ok) {
 					let message = "Failed to upload file"
@@ -544,6 +658,10 @@ export function useDocumentMutations({
 		onSuccess: (_data, variables) => {
 			analytics.documentEdited({ document_id: variables.documentId })
 			toast.success("Document saved successfully!")
+			queryClient.setQueryData(
+				fullDocumentQueryKey(variables.documentId),
+				variables.content,
+			)
 			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 		},
 		onError: (error) => {
@@ -560,7 +678,9 @@ export function useDocumentMutations({
 			})
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to delete document")
+				throw new Error(
+					fetchErrorMessage(response.error, "Failed to delete document"),
+				)
 			}
 
 			return response.data
@@ -584,6 +704,10 @@ export function useDocumentMutations({
 		onSuccess: (_data, variables) => {
 			analytics.documentDeleted({ document_id: variables.documentId })
 			toast.success("Document deleted successfully!")
+			queryClient.removeQueries({
+				queryKey: fullDocumentQueryKey(variables.documentId),
+				exact: true,
+			})
 			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 			onClose?.()
 		},
@@ -596,7 +720,9 @@ export function useDocumentMutations({
 			})
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to delete documents")
+				throw new Error(
+					fetchErrorMessage(response.error, "Failed to delete documents"),
+				)
 			}
 
 			return response.data
@@ -623,6 +749,12 @@ export function useDocumentMutations({
 			toast.success(
 				`${variables.documentIds.length} document${variables.documentIds.length === 1 ? "" : "s"} deleted`,
 			)
+			for (const documentId of variables.documentIds) {
+				queryClient.removeQueries({
+					queryKey: fullDocumentQueryKey(documentId),
+					exact: true,
+				})
+			}
 			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 		},
 	})
@@ -630,6 +762,7 @@ export function useDocumentMutations({
 	return {
 		noteMutation,
 		linkMutation,
+		bulkLinkMutation,
 		fileMutation,
 		updateMutation,
 		deleteMutation,

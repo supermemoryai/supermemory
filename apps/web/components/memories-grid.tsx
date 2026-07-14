@@ -6,6 +6,7 @@ import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import { useCallback, memo, useMemo, useState, useRef, useEffect } from "react"
 import { useQueryState } from "nuqs"
+import { AnimatePresence } from "motion/react"
 import type { z } from "zod"
 import { Masonry, useInfiniteLoader } from "masonic"
 import { dmSansClassName } from "@/lib/fonts"
@@ -54,11 +55,21 @@ import {
 	CheckIcon,
 	LayoutGrid,
 	Loader,
+	MoreHorizontal,
 	Trash2Icon,
+	UserRound,
 	XIcon,
 } from "lucide-react"
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@ui/components/dropdown-menu"
 import { useProcessingDocuments } from "@/hooks/use-processing-documents"
 import { TimelineView } from "./timeline-view"
+import { SpaceProfilePanel } from "@/components/space-profile-panel"
+import { SpaceProfileModal } from "@/components/space-profile-modal"
 
 // Document category type
 type DocumentCategory =
@@ -249,6 +260,7 @@ export function MemoriesGrid({
 	emptyStateProps,
 }: MemoriesGridProps) {
 	const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+	const [profileOpen, setProfileOpen] = useState(false)
 	const [localViewMode, setLocalViewMode] = useState<"grid" | "timeline">(
 		() => {
 			if (typeof window === "undefined") return "grid"
@@ -259,7 +271,7 @@ export function MemoriesGrid({
 		},
 	)
 	const { user, isSessionPending } = useAuth()
-	const { effectiveContainerTags } = useProject()
+	const { effectiveContainerTags, selectedProject } = useProject()
 	const processingStatusMap = useProcessingDocuments()
 	const isMobile = useIsMobile()
 	const [selectedCategories, setSelectedCategories] = useQueryState(
@@ -346,6 +358,14 @@ export function MemoriesGrid({
 		setLocalViewMode(mode)
 		localStorage.setItem("memories-view-mode", mode)
 	}, [])
+
+	const handleToggleProfile = useCallback(() => {
+		if (isMobile) {
+			setProfileOpen(true)
+			return
+		}
+		setProfileOpen((open) => !open)
+	}, [isMobile])
 
 	const handleCategoryToggle = useCallback(
 		(category: DocumentCategory) => {
@@ -541,7 +561,7 @@ export function MemoriesGrid({
 		documents.every((d) => d.id && selectedDocumentIds.has(d.id))
 
 	return (
-		<div className="relative">
+		<div className="relative flex h-full min-h-0 flex-col">
 			{!isEmpty && !isSelectionMode && (
 				<div
 					id="filter-pills"
@@ -621,17 +641,52 @@ export function MemoriesGrid({
 								Timeline
 							</button>
 						</div>
-						{onEnterSelectionMode && (
-							<button
-								type="button"
-								aria-label="Select documents"
-								title="Select documents"
-								className="size-8 flex items-center justify-center rounded-full border border-[#161F2C] bg-[#0D121A] hover:bg-[#00173C] hover:border-[#2261CA33] transition-colors cursor-pointer"
-								onClick={onEnterSelectionMode}
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									aria-label="More memory actions"
+									className={cn(
+										dmSansClassName(),
+										"inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 text-xs font-medium transition-colors cursor-pointer",
+										profileOpen
+											? "border-[#2261CA33] bg-[#00173C] text-white"
+											: "text-[#737373] hover:bg-white/5",
+									)}
+								>
+									<MoreHorizontal className="size-3.5" />
+									More
+								</button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="end"
+								className={cn(
+									"min-w-[180px] rounded-xl border border-[#2E3033] p-1.5 shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+									dmSansClassName(),
+								)}
+								style={{
+									background:
+										"linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
+								}}
 							>
-								<BoxSelect className="size-4 text-[#737373]" />
-							</button>
-						)}
+								{onEnterSelectionMode && (
+									<DropdownMenuItem
+										onSelect={onEnterSelectionMode}
+										className="gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-[#293952]/40"
+									>
+										<BoxSelect className="size-4 text-[#737373]" />
+										Select memories
+									</DropdownMenuItem>
+								)}
+								<DropdownMenuItem
+									onSelect={handleToggleProfile}
+									className="gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-[#293952]/40"
+								>
+									<UserRound className="size-4 text-[#737373]" />
+									Space profile
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</div>
 				</div>
 			)}
@@ -749,64 +804,82 @@ export function MemoriesGrid({
 				</AlertDialogContent>
 			</AlertDialog>
 
-			{error ? (
-				<div className="h-full flex items-center justify-center p-4">
-					<div className="text-center text-muted-foreground">
-						Error loading documents: {error.message}
-					</div>
-				</div>
-			) : isPending ? (
-				<MemoriesGridLoading />
-			) : showNovaEmptyState ? (
-				<NovaEmptyState
-					onAddMemory={emptyStateProps.onAddMemory}
-					onOpenIntegrations={emptyStateProps.onOpenIntegrations}
-					isAllSpaces={emptyStateProps.isAllSpaces}
-					spaceName={emptyStateProps.spaceName}
-					onSwitchToAllSpaces={emptyStateProps.onSwitchToAllSpaces}
-				/>
-			) : isEmpty ? (
-				<div className="h-full flex items-center justify-center p-4">
-					<div className="text-center text-muted-foreground">
-						No memories found
-					</div>
-				</div>
-			) : (
-				<div className="h-full overflow-auto scrollbar-thin">
-					{localViewMode === "timeline" ? (
-						<TimelineView
-							documents={documents}
-							onOpenDocument={onOpenDocument}
-							hasNextPage={hasNextPage}
-							isFetchingNextPage={isFetchingNextPage}
-							onLoadMore={loadMoreDocuments}
-							isSelectionMode={isSelectionMode}
-							selectedDocumentIds={selectedDocumentIds}
-							onToggleSelection={onToggleSelection}
-						/>
-					) : (
-						<Masonry
-							key={masonryKey}
-							items={masonryItems}
-							render={renderMasonryItem}
-							itemKey={getMasonryItemKey}
-							columnGutter={0}
-							rowGutter={0}
-							columnWidth={260}
-							maxColumnCount={isMobile ? 1 : undefined}
-							itemHeightEstimate={200}
-							overscanBy={3}
-							onRender={maybeLoadMore}
-						/>
-					)}
-
-					{isLoadingMore && localViewMode === "grid" && (
-						<div className="py-10 flex items-center justify-center">
-							<Loader className="size-10 animate-spin text-sky-400" />
+			<div className="min-h-0 flex-1">
+				{error ? (
+					<div className="h-full flex items-center justify-center p-4">
+						<div className="text-center text-muted-foreground">
+							Error loading documents: {error.message}
 						</div>
-					)}
-				</div>
-			)}
+					</div>
+				) : isPending ? (
+					<MemoriesGridLoading />
+				) : showNovaEmptyState ? (
+					<NovaEmptyState
+						onAddMemory={emptyStateProps.onAddMemory}
+						onOpenIntegrations={emptyStateProps.onOpenIntegrations}
+						isAllSpaces={emptyStateProps.isAllSpaces}
+						spaceName={emptyStateProps.spaceName}
+						onSwitchToAllSpaces={emptyStateProps.onSwitchToAllSpaces}
+					/>
+				) : isEmpty ? (
+					<div className="h-full flex items-center justify-center p-4">
+						<div className="text-center text-muted-foreground">
+							No memories found
+						</div>
+					</div>
+				) : (
+					<div className="flex h-full min-h-0 gap-4">
+						<div className="min-w-0 flex-1 overflow-auto scrollbar-thin">
+							{localViewMode === "timeline" ? (
+								<TimelineView
+									documents={documents}
+									onOpenDocument={onOpenDocument}
+									hasNextPage={hasNextPage}
+									isFetchingNextPage={isFetchingNextPage}
+									onLoadMore={loadMoreDocuments}
+									isSelectionMode={isSelectionMode}
+									selectedDocumentIds={selectedDocumentIds}
+									onToggleSelection={onToggleSelection}
+								/>
+							) : (
+								<Masonry
+									key={masonryKey}
+									items={masonryItems}
+									render={renderMasonryItem}
+									itemKey={getMasonryItemKey}
+									columnGutter={0}
+									rowGutter={0}
+									columnWidth={260}
+									maxColumnCount={isMobile ? 1 : undefined}
+									itemHeightEstimate={200}
+									overscanBy={3}
+									onRender={maybeLoadMore}
+								/>
+							)}
+
+							{isLoadingMore && localViewMode === "grid" && (
+								<div className="py-10 flex items-center justify-center">
+									<Loader className="size-10 animate-spin text-sky-400" />
+								</div>
+							)}
+						</div>
+						<AnimatePresence initial={false}>
+							{profileOpen && !isMobile && (
+								<SpaceProfilePanel
+									containerTag={selectedProject}
+									isOpen
+									onClose={() => setProfileOpen(false)}
+								/>
+							)}
+						</AnimatePresence>
+					</div>
+				)}
+			</div>
+			<SpaceProfileModal
+				containerTag={selectedProject}
+				open={profileOpen && isMobile}
+				onOpenChange={setProfileOpen}
+			/>
 		</div>
 	)
 }

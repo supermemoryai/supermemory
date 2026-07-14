@@ -14,6 +14,7 @@ import { useIsMobile } from "@hooks/use-mobile"
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { SearchIcon, Settings, Home, Plus, Code2, Loader2 } from "lucide-react"
 import { DocumentIcon } from "@/components/document-icon"
+import { useSettingsModal } from "@/components/settings/settings-modal"
 import { $fetch } from "@lib/api"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
@@ -52,6 +53,7 @@ export function DocumentsCommandPalette({
 }: DocumentsCommandPaletteProps) {
 	const isMobile = useIsMobile()
 	const router = useRouter()
+	const { openSettings } = useSettingsModal()
 	const queryClient = useQueryClient()
 	const [search, setSearch] = useState("")
 	const [selectedIndex, setSelectedIndex] = useState(0)
@@ -86,7 +88,7 @@ export function DocumentsCommandPalette({
 			id: "settings",
 			label: "Go to Settings",
 			icon: <Settings className="size-4 text-[#737373]" />,
-			action: () => close(() => router.push("/settings")),
+			action: () => close(() => openSettings()),
 		},
 		...(onAddMemory
 			? [

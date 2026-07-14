@@ -105,7 +105,7 @@ const tabs = [
 		id: "connect" as const,
 		icon: ZapIcon,
 		title: "Connect knowledge bases",
-		compactLabel: "Connections",
+		compactLabel: "Connect",
 		description: "Sync with Google Drive, Notion and OneDrive and import data",
 		isPro: true,
 	},
@@ -147,9 +147,10 @@ export function AddDocument({
 	const fileDataRef = useRef(fileData)
 	fileDataRef.current = fileData
 
-	const { noteMutation, linkMutation, fileMutation } = useDocumentMutations({
-		onClose,
-	})
+	const { noteMutation, linkMutation, bulkLinkMutation, fileMutation } =
+		useDocumentMutations({
+			onClose,
+		})
 
 	const autumn = useCustomer()
 	const {
@@ -187,13 +188,30 @@ export function AddDocument({
 
 	const handleLinkSubmit = useCallback(
 		(data: LinkData) => {
+			// In bulk mode the selection is the source of truth, not the raw textarea.
+			if (data.bulkUrls) {
+				if (data.bulkUrls.length >= 2) {
+					bulkLinkMutation.mutate({
+						urls: data.bulkUrls,
+						project: localSelectedProject,
+					})
+					return
+				}
+				const [onlyUrl] = data.bulkUrls
+				if (onlyUrl) {
+					linkMutation.mutate({ url: onlyUrl, project: localSelectedProject })
+					return
+				}
+				toast.error("Select at least one link")
+				return
+			}
 			if (!data.url.trim()) {
 				toast.error("Please enter a URL")
 				return
 			}
 			linkMutation.mutate({ url: data.url, project: localSelectedProject })
 		},
-		[linkMutation, localSelectedProject],
+		[linkMutation, bulkLinkMutation, localSelectedProject],
 	)
 
 	const handleFileSubmit = useCallback(
@@ -263,6 +281,14 @@ export function AddDocument({
 		setFileData(data)
 	}, [])
 
+	const handleNoteImportLinks = useCallback(
+		(urls: string[]) => {
+			setLinkData({ url: urls.join("\n"), title: "", description: "" })
+			setActiveTab("link")
+		},
+		[setActiveTab],
+	)
+
 	const handleButtonClick = () => {
 		switch (activeTab) {
 			case "note":
@@ -278,11 +304,32 @@ export function AddDocument({
 	}
 
 	const isSubmitting =
-		noteMutation.isPending || linkMutation.isPending || fileMutation.isPending
+		noteMutation.isPending ||
+		linkMutation.isPending ||
+		bulkLinkMutation.isPending ||
+		fileMutation.isPending
 
 	const fileTabHasPending = fileData.items.some((i) => i.status === "pending")
 	const fileTabSubmitDisabled =
 		activeTab === "file" && (!fileTabHasPending || isSubmitting)
+
+	const linkBulkCount = linkData.bulkUrls?.length ?? 0
+	const linkTabSubmitDisabled =
+		activeTab === "link" &&
+		linkData.bulkUrls !== undefined &&
+		linkBulkCount === 0
+
+	const spaceSelector = (
+		<SpaceSelector
+			selectedProjects={[localSelectedProject]}
+			onValueChange={(projects) =>
+				setLocalSelectedProject(projects[0] ?? localSelectedProject)
+			}
+			variant="insideOut"
+			compact={isMobile}
+			triggerClassName={cn(isMobile && "h-12 shrink-0")}
+		/>
+	)
 
 	return (
 		<div className="flex h-full min-h-0 flex-col overflow-hidden text-white md:flex-row md:space-x-5">
@@ -445,11 +492,29 @@ export function AddDocument({
 					isMobile ? "w-full px-4 pt-1" : "w-2/3 px-1",
 				)}
 			>
+				{isMobile && (
+					<div className="mb-3 flex h-10 w-full shrink-0 items-center overflow-hidden rounded-full border border-[#1F2937] bg-[#0D121A] p-1">
+						{tabs.map((tab) => (
+							<TabButton
+								key={tab.id}
+								active={activeTab === tab.id}
+								onClick={() => setActiveTab(tab.id)}
+								icon={tab.icon}
+								title={tab.title}
+								compactLabel={tab.compactLabel}
+								description={tab.description}
+								isPro={tab.isPro}
+								compact
+							/>
+						))}
+					</div>
+				)}
 				<div className="min-h-0 flex-1 overflow-auto scrollbar-thin">
 					{activeTab === "note" && (
 						<NoteContent
 							onSubmit={handleNoteSubmit}
 							onContentChange={handleNoteContentChange}
+							onImportLinks={handleNoteImportLinks}
 							isSubmitting={noteMutation.isPending}
 							isOpen={isOpen}
 							initialContent={noteContent}
@@ -459,7 +524,9 @@ export function AddDocument({
 						<LinkContent
 							onSubmit={handleLinkSubmit}
 							onDataChange={handleLinkDataChange}
-							isSubmitting={linkMutation.isPending}
+							isSubmitting={
+								linkMutation.isPending || bulkLinkMutation.isPending
+							}
 							isOpen={isOpen}
 							initialData={linkData}
 						/>
@@ -487,38 +554,14 @@ export function AddDocument({
 							: "justify-between gap-2 pt-3",
 					)}
 				>
-					{isMobile && (
-						<div className="flex h-10 w-full shrink-0 items-center overflow-hidden rounded-full border border-[#1F2937] bg-[#0D121A] p-1">
-							{tabs.map((tab) => (
-								<TabButton
-									key={tab.id}
-									active={activeTab === tab.id}
-									onClick={() => setActiveTab(tab.id)}
-									icon={tab.icon}
-									title={tab.title}
-									compactLabel={tab.compactLabel}
-									description={tab.description}
-									isPro={tab.isPro}
-									compact
-								/>
-							))}
-						</div>
-					)}
-					{!isMobile && (
-						<SpaceSelector
-							selectedProjects={[localSelectedProject]}
-							onValueChange={(projects) =>
-								setLocalSelectedProject(projects[0] ?? localSelectedProject)
-							}
-							variant="insideOut"
-						/>
-					)}
+					{!isMobile && spaceSelector}
 					<div
 						className={cn(
 							"flex items-center gap-2",
 							isMobile ? "w-full" : "justify-end",
 						)}
 					>
+						{isMobile && spaceSelector}
 						{!isMobile && (
 							<Button
 								variant="ghost"
@@ -534,15 +577,19 @@ export function AddDocument({
 								variant="insideOut"
 								onClick={handleButtonClick}
 								disabled={
-									activeTab === "file" ? fileTabSubmitDisabled : isSubmitting
+									activeTab === "file"
+										? fileTabSubmitDisabled
+										: isSubmitting || linkTabSubmitDisabled
 								}
-								className={cn(isMobile && "h-12 w-full px-5 text-[15px]")}
+								className={cn(isMobile && "h-12 flex-1 px-5 text-[15px]")}
 							>
 								{isSubmitting ? (
 									<>
 										<Loader2 className="size-4 animate-spin mr-2" />
 										Adding…
 									</>
+								) : activeTab === "link" && linkBulkCount >= 2 ? (
+									`+ Add ${linkBulkCount} memories`
 								) : (
 									<>
 										+ Add {activeTab}{" "}

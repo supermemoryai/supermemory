@@ -1,6 +1,11 @@
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
-import { detectPluginSource, pluginIconByLabel } from "@/lib/plugin-space"
+import {
+	detectPluginSource,
+	detectPluginSpace,
+	pluginIconByLabel,
+	type PluginSpaceInfo,
+} from "@/lib/plugin-space"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -8,9 +13,18 @@ type DocumentWithMemories = DocumentsResponse["documents"][0]
 export type PluginDocumentKind =
 	| "codex-session"
 	| "codex-save"
+	| "plugin-session"
+	| "plugin-save"
 	| "amp-thread"
 	| "openclaw-session"
 	| "claude-code-doc"
+
+type PluginIdentity = {
+	pluginId: PluginSpaceInfo["pluginId"]
+	label: string
+	iconSrc: string | null
+	projectId?: string
+}
 
 export interface PluginArtifact {
 	label: string
@@ -76,9 +90,106 @@ function formatClientName(value: string | null | undefined): string | null {
 	if (lower === "claude code") return "Claude Code"
 	if (lower === "opencode") return "OpenCode"
 	if (lower === "openclaw") return "OpenClaw"
+	if (lower === "hermes") return "Hermes"
 	if (lower === "amp") return "Amp"
 
 	return normalized.replace(/\b\w/g, (match) => match.toUpperCase())
+}
+
+function pluginIdentityFromSource(
+	value: string | null | undefined,
+): PluginIdentity | null {
+	if (!value) return null
+
+	const normalized = value.trim().toLowerCase().replace(/_/g, "-")
+	if (!normalized) return null
+
+	switch (normalized) {
+		case "claude-code":
+		case "claude-code-plugin":
+			return {
+				pluginId: "claude-code",
+				label: "Claude Code",
+				iconSrc: "/images/plugins/claude-code.svg",
+			}
+		case "codex":
+			return {
+				pluginId: "codex",
+				label: "Codex",
+				iconSrc: "/images/plugins/codex.png",
+			}
+		case "openclaw":
+			return {
+				pluginId: "openclaw",
+				label: "OpenClaw",
+				iconSrc: "/images/plugins/openclaw.svg",
+			}
+		case "hermes":
+			return {
+				pluginId: "hermes",
+				label: "Hermes",
+				iconSrc: "/images/plugins/hermes.svg",
+			}
+		case "opencode":
+			return {
+				pluginId: "opencode",
+				label: "OpenCode",
+				iconSrc: "/images/plugins/opencode.svg",
+			}
+		case "amp":
+			return {
+				pluginId: "amp",
+				label: "Amp",
+				iconSrc: null,
+			}
+		default:
+			return null
+	}
+}
+
+function pluginIdentityFromSpace(
+	document: DocumentWithMemories,
+): PluginIdentity | null {
+	const documentWithTags = document as DocumentWithMemories & {
+		containerTags?: unknown
+	}
+	const containerTags = Array.isArray(documentWithTags.containerTags)
+		? documentWithTags.containerTags.filter(
+				(tag): tag is string => typeof tag === "string" && !!tag,
+			)
+		: []
+	const memorySpaceTags = Array.isArray(document.memoryEntries)
+		? document.memoryEntries
+				.map((entry) => entry?.spaceContainerTag)
+				.filter((tag): tag is string => typeof tag === "string" && !!tag)
+		: []
+
+	for (const tag of [...containerTags, ...memorySpaceTags]) {
+		const plugin = detectPluginSpace(tag)
+		if (plugin) return plugin
+	}
+
+	return null
+}
+
+function getDocumentPluginIdentity(
+	document: DocumentWithMemories,
+	metadata: Record<string, unknown>,
+): PluginIdentity | null {
+	const sourceCandidates = [
+		typeof document.source === "string" ? document.source : null,
+		typeof metadata.sm_source === "string" ? metadata.sm_source : null,
+		typeof metadata.sm_internal_mcp_client_name === "string"
+			? metadata.sm_internal_mcp_client_name
+			: null,
+	]
+
+	for (const source of sourceCandidates) {
+		const plugin = pluginIdentityFromSource(source)
+		if (plugin) return plugin
+	}
+
+	return pluginIdentityFromSpace(document)
 }
 
 function extractArtifacts(text: string): {
@@ -116,8 +227,11 @@ function parseTranscriptMessages(content: string): {
 } {
 	const messages: PluginDocumentMessage[] = []
 	const artifacts: PluginArtifact[] = []
+	// The lookahead must end the last message at the true end of input:
+	// with the m flag, a bare $ matches every line end and would cut each
+	// message body off at its first newline.
 	const regex = new RegExp(
-		`^\\s*(\\d+)\\.\\s+\\[(${TRANSCRIPT_ROLE_PATTERN})\\]\\s*([\\s\\S]*?)(?=^\\s*\\d+\\.\\s+\\[(?:${TRANSCRIPT_ROLE_PATTERN})\\]\\s*|$)`,
+		`^\\s*(\\d+)\\.\\s+\\[(${TRANSCRIPT_ROLE_PATTERN})\\]\\s*([\\s\\S]*?)(?=^\\s*\\d+\\.\\s+\\[(?:${TRANSCRIPT_ROLE_PATTERN})\\]\\s*|(?![\\s\\S]))`,
 		"gm",
 	)
 
@@ -180,7 +294,12 @@ function takePreview(text: string, maxLength = 180): string {
 	return `${normalized.slice(0, maxLength - 1).trimEnd()}...`
 }
 
-function parseSaveSections(content: string): ParsedPluginDocument | null {
+function parseSaveSections(
+	content: string,
+	plugin: PluginIdentity | null,
+): ParsedPluginDocument | null {
+	if (!plugin) return null
+
 	const match = content.match(/\[SAVE:([^\]]+)\]([\s\S]*?)\[\/SAVE\]/i)
 	if (!match) return null
 
@@ -238,12 +357,13 @@ function parseSaveSections(content: string): ParsedPluginDocument | null {
 		"Saved project note"
 
 	return {
-		kind: "codex-save",
-		pluginLabel: "Codex",
+		kind: plugin.pluginId === "codex" ? "codex-save" : "plugin-save",
+		pluginLabel: plugin.label,
+		pluginIconSrc: plugin.iconSrc ?? undefined,
 		formatLabel: "Saved note",
 		title: "Saved memory note",
 		preview: takePreview(
-			sections[0]?.value ?? "Saved project knowledge from Codex",
+			sections[0]?.value ?? `Saved project knowledge from ${plugin.label}`,
 			140,
 		),
 		summary: takePreview(summary, 220),
@@ -259,9 +379,10 @@ function parseSaveSections(content: string): ParsedPluginDocument | null {
 function parseSessionTranscript(
 	content: string,
 	config: {
-		kind: "codex-session" | "amp-thread"
+		kind: "codex-session" | "amp-thread" | "plugin-session"
 		headerLabel: "Session" | "Amp thread"
 		pluginLabel: string
+		pluginIconSrc?: string | null
 		formatLabel: string
 	},
 ): ParsedPluginDocument | null {
@@ -289,6 +410,7 @@ function parseSessionTranscript(
 	return {
 		kind: config.kind,
 		pluginLabel: config.pluginLabel,
+		pluginIconSrc: config.pluginIconSrc ?? undefined,
 		formatLabel: config.formatLabel,
 		title: `${config.pluginLabel} conversation`,
 		preview: takePreview(previewSource, 140),
@@ -302,7 +424,17 @@ function parseSessionTranscript(
 	}
 }
 
-function parseOpenClawTranscript(content: string): ParsedPluginDocument | null {
+function parseRoleBlockTranscript(
+	content: string,
+	plugin: PluginIdentity | null,
+): ParsedPluginDocument | null {
+	if (
+		!plugin ||
+		(plugin.pluginId !== "openclaw" && plugin.pluginId !== "hermes")
+	) {
+		return null
+	}
+
 	const { messages, artifacts } = parseRoleBlockMessages(content)
 	if (messages.length === 0) return null
 
@@ -312,14 +444,44 @@ function parseOpenClawTranscript(content: string): ParsedPluginDocument | null {
 		"Conversation"
 
 	return {
-		kind: "openclaw-session",
-		pluginLabel: "OpenClaw",
+		kind:
+			plugin.pluginId === "openclaw" ? "openclaw-session" : "plugin-session",
+		pluginLabel: plugin.label,
+		pluginIconSrc: plugin.iconSrc ?? undefined,
 		formatLabel: "Conversation",
-		title: "OpenClaw conversation",
+		title: `${plugin.label} conversation`,
 		preview: takePreview(previewSource, 140),
-		summary: `${messages.length} message${messages.length === 1 ? "" : "s"} captured from OpenClaw.`,
+		summary: `${messages.length} message${messages.length === 1 ? "" : "s"} captured from ${plugin.label}.`,
 		artifacts,
 		messages,
+		sections: [],
+		rawContent: content,
+	}
+}
+
+function parsePluginSpaceNote(
+	document: DocumentWithMemories,
+	content: string,
+	plugin: PluginIdentity | null,
+): ParsedPluginDocument | null {
+	if (!plugin) return null
+
+	const summary = typeof document.summary === "string" ? document.summary : ""
+	const memoryText = firstMemoryEntryText(document)
+	const preview = takePreview(memoryText || summary || content, 220)
+
+	return {
+		kind: plugin.pluginId === "codex" ? "codex-save" : "plugin-save",
+		pluginLabel: plugin.label,
+		pluginIconSrc: plugin.iconSrc ?? undefined,
+		formatLabel: "Note",
+		title:
+			(typeof document.title === "string" && document.title.trim()) ||
+			`${plugin.label} memory`,
+		preview,
+		summary: takePreview(summary || memoryText || content, 220),
+		artifacts: [],
+		messages: [],
 		sections: [],
 		rawContent: content,
 	}
@@ -417,7 +579,8 @@ export function claudeCodeTokenBadge(
 	document: DocumentWithMemories,
 ): string | null {
 	const meta = (document.metadata ?? {}) as Record<string, unknown>
-	if (getDocumentPluginSource(document, meta) !== "claude-code-plugin") {
+	const plugin = getDocumentPluginIdentity(document, meta)
+	if (plugin?.pluginId !== "claude-code") {
 		return null
 	}
 	const tokens = document.tokenCount
@@ -431,9 +594,25 @@ function parseClaudeCodeByMetadata(
 ): ParsedPluginDocument | null {
 	const docSource = getDocumentPluginSource(document, metadata)
 	let source = detectPluginSource(metadata, docSource)
+	const plugin = getDocumentPluginIdentity(document, metadata)
 
 	const rawContent =
 		typeof document.content === "string" ? document.content : ""
+
+	if (!source && plugin?.pluginId === "claude-code") {
+		const project =
+			typeof metadata.project === "string" && metadata.project.trim()
+				? metadata.project.trim()
+				: plugin.projectId
+		source = {
+			pluginId: "claude-code",
+			label: "Claude Code",
+			iconSrc: "/images/plugins/claude-code.svg",
+			projectName: project,
+			formatLabel: "Session",
+			type: "session_turn",
+		}
+	}
 
 	if (!source) {
 		if (CLAUDE_CODE_CONTENT_RE.test(rawContent)) {
@@ -488,10 +667,7 @@ export function parsePluginDocument(
 	if (!document) return null
 
 	const metadata = (document.metadata ?? {}) as Record<string, unknown>
-
-	if (getDocumentPluginSource(document, metadata) === "claude-code-plugin") {
-		return withIcon(parseClaudeCodeByMetadata(document, metadata))
-	}
+	const plugin = getDocumentPluginIdentity(document, metadata)
 
 	const content = normalizeContent(
 		typeof document.content === "string" ? document.content : "",
@@ -504,40 +680,53 @@ export function parsePluginDocument(
 	)
 
 	if (content) {
-		const codexSave = parseSaveSections(content)
-		if (codexSave) {
+		const saveDoc = parseSaveSections(content, plugin)
+		if (saveDoc) {
 			if (clientName) {
-				codexSave.clientLabel = "Client"
-				codexSave.clientValue = clientName
+				saveDoc.clientLabel = "Client"
+				saveDoc.clientValue = clientName
 			}
-			return withIcon(codexSave)
+			return withIcon(saveDoc)
 		}
 
-		const codexSession = parseSessionTranscript(content, {
-			kind: "codex-session",
-			headerLabel: "Session",
-			pluginLabel: "Codex",
-			formatLabel: "Conversation",
-		})
-		if (codexSession) {
-			if (clientName) {
-				codexSession.clientLabel = "Client"
-				codexSession.clientValue = clientName
-			}
-			return withIcon(codexSession)
+		if (plugin?.pluginId === "claude-code") {
+			return withIcon(parseClaudeCodeByMetadata(document, metadata))
 		}
 
-		const ampThread = parseSessionTranscript(content, {
-			kind: "amp-thread",
-			headerLabel: "Amp thread",
-			pluginLabel: "Amp",
-			formatLabel: "Conversation",
-		})
-		if (ampThread) return withIcon(ampThread)
+		if (plugin?.pluginId === "codex") {
+			const codexSession = parseSessionTranscript(content, {
+				kind: "codex-session",
+				headerLabel: "Session",
+				pluginLabel: plugin.label,
+				pluginIconSrc: plugin.iconSrc,
+				formatLabel: "Conversation",
+			})
+			if (codexSession) {
+				if (clientName) {
+					codexSession.clientLabel = "Client"
+					codexSession.clientValue = clientName
+				}
+				return withIcon(codexSession)
+			}
+		}
 
-		const openClawSession = parseOpenClawTranscript(content)
-		if (openClawSession) return withIcon(openClawSession)
+		if (plugin?.pluginId === "amp") {
+			const ampThread = parseSessionTranscript(content, {
+				kind: "amp-thread",
+				headerLabel: "Amp thread",
+				pluginLabel: plugin.label,
+				pluginIconSrc: plugin.iconSrc,
+				formatLabel: "Conversation",
+			})
+			if (ampThread) return withIcon(ampThread)
+		}
+
+		const roleBlockSession = parseRoleBlockTranscript(content, plugin)
+		if (roleBlockSession) return withIcon(roleBlockSession)
 	}
+
+	const pluginSpaceNote = parsePluginSpaceNote(document, content, plugin)
+	if (pluginSpaceNote) return withIcon(pluginSpaceNote)
 
 	return withIcon(parseClaudeCodeByMetadata(document, metadata))
 }
