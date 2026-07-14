@@ -52,7 +52,12 @@ const GDRIVE_SCOPE_LABELS: Record<GDriveSyncScope, string> = {
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
-type ConnectorProvider = "google-drive" | "notion" | "onedrive" | "zoom" | "granola"
+type ConnectorProvider =
+	| "google-drive"
+	| "notion"
+	| "onedrive"
+	| "zoom"
+	| "granola"
 
 const CONNECTORS: Record<
 	ConnectorProvider,
