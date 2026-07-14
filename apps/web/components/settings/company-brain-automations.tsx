@@ -1,6 +1,5 @@
 "use client"
 
-import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
 import { cn } from "@lib/utils"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -43,6 +42,7 @@ import {
 	TooltipTrigger,
 } from "@ui/components/tooltip"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
+import { useOrgMemberRole } from "@/hooks/use-org-member-role"
 import { dmSans125ClassName } from "@/lib/fonts"
 
 const BACKEND =
@@ -873,16 +873,7 @@ export default function CompanyBrainAutomations() {
 	const removeDraft = (key: number) =>
 		setDrafts((d) => d.filter((x) => x.key !== key))
 
-	const roleQuery = useQuery({
-		queryKey: ["company-brain-automations", "role"],
-		queryFn: async () =>
-			(await authClient.organization.getActiveMember()).data?.role ?? null,
-		staleTime: 60_000,
-		enabled: isCompanyBrain,
-	})
-	const isAdmin = ["owner", "admin"].includes(
-		(roleQuery.data ?? "").toLowerCase(),
-	)
+	const { isAdmin } = useOrgMemberRole(isCompanyBrain)
 
 	const listQuery = useQuery({
 		queryKey: ["company-brain-automations", "list", org?.id],

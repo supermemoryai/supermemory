@@ -1,8 +1,7 @@
 "use client"
 
-import { authClient } from "@lib/auth"
+import { useOrgMemberRole } from "@/hooks/use-org-member-role"
 import { cn } from "@lib/utils"
-import { useQuery } from "@tanstack/react-query"
 import { Loader2, Lock } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -223,15 +222,7 @@ export default function CompanyBrainConnections() {
 	const [customName, setCustomName] = useState("")
 	const [customServerUrl, setCustomServerUrl] = useState("")
 
-	const roleQuery = useQuery({
-		queryKey: ["company-brain-connections", "role"],
-		queryFn: async () =>
-			(await authClient.organization.getActiveMember()).data?.role ?? null,
-		staleTime: 60_000,
-		enabled: isCompanyBrain,
-	})
-	const role = (roleQuery.data ?? "").toLowerCase()
-	const isAdmin = role === "owner" || role === "admin"
+	const { isAdmin } = useOrgMemberRole(isCompanyBrain)
 
 	const load = useCallback(async () => {
 		const [catRes, connRes, slackRes] = await Promise.all([

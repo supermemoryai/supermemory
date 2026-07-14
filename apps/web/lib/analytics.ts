@@ -228,6 +228,7 @@ export const analytics = {
 			| "integrations"
 			| "connections"
 			| "company-brain"
+			| "company-brain-models"
 			| "proactiveness"
 			| "support"
 	}) => safeCapture("settings_tab_changed", props),
