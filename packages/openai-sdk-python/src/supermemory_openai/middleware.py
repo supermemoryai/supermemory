@@ -229,8 +229,9 @@ async def add_memory_tool(
         if custom_id is not None:
             add_params["custom_id"] = custom_id
 
-        # Handle both sync and async supermemory clients
-        result = client.memories.add(**add_params)
+        # supermemory 3.x: document creation lives on the top-level add() API.
+        # Handle both sync and async clients.
+        result = client.add(**add_params)
         if inspect.isawaitable(result):
             response = await result
         else:
