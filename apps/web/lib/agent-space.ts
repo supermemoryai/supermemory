@@ -1,4 +1,5 @@
 export type AgentContainerKind =
+	| "canonical-project"
 	| "personal"
 	| "project"
 	| "legacy-personal"
@@ -21,6 +22,7 @@ export const AGENT_SOURCE_FILTERS: ReadonlyArray<{
 
 export type AgentSpaceMetadata = {
 	projectName?: string
+	projectId?: string
 }
 
 export type AgentSpaceGroup<T extends { containerTag: string }> = {
@@ -37,6 +39,7 @@ const TAG_PATTERNS: Array<{
 	kind: AgentContainerKind
 	pattern: RegExp
 }> = [
+	{ kind: "canonical-project", pattern: /^repo_(.+)__([0-9a-f]{16})$/i },
 	{ kind: "personal", pattern: /^user_project_([0-9a-f]{6,64})$/i },
 	{ kind: "project", pattern: /^repo_(.+)$/i },
 	{
@@ -56,10 +59,21 @@ const TAG_PATTERNS: Array<{
 function matchAgentTag(containerTag: string): {
 	kind: AgentContainerKind
 	id: string
+	projectId?: string
+	projectSlug?: string
 } | null {
 	for (const definition of TAG_PATTERNS) {
 		const match = containerTag.match(definition.pattern)
-		if (match?.[1]) return { kind: definition.kind, id: match[1] }
+		if (!match?.[1]) continue
+		if (definition.kind === "canonical-project" && match[2]) {
+			return {
+				kind: definition.kind,
+				id: match[2],
+				projectId: match[2].toLowerCase(),
+				projectSlug: match[1],
+			}
+		}
+		return { kind: definition.kind, id: match[1] }
 	}
 	return null
 }
@@ -99,20 +113,22 @@ function humanizeProjectId(value: string): string {
 
 function tagPriority(containerTag: string): number {
 	switch (getAgentContainerKind(containerTag)) {
-		case "personal":
+		case "canonical-project":
 			return 0
+		case "personal":
+			return 1
 		case "legacy-personal":
-			return containerTag.startsWith("claudecode_project_") ? 1 : 4
+			return containerTag.startsWith("claudecode_project_") ? 2 : 5
 		case "project":
-			return 2
-		case "legacy-project":
 			return 3
+		case "legacy-project":
+			return 4
 		default:
 			return 5
 	}
 }
 
-function groupIdentity(
+function legacyGroupIdentity(
 	containerTag: string,
 	projectName: string | undefined,
 ): { key: string; label: string; kind: AgentSpaceGroup<never>["kind"] } {
@@ -159,6 +175,41 @@ function groupIdentity(
 	}
 }
 
+function normalizeProjectId(value: string | undefined): string | undefined {
+	const normalized = value?.trim().toLowerCase()
+	return normalized || undefined
+}
+
+function addProjectToGroup<T extends { containerTag: string }>(
+	grouped: Map<string, AgentSpaceGroup<T>>,
+	key: string,
+	label: string,
+	kind: AgentSpaceGroup<T>["kind"],
+	project: T,
+	projectName: string | undefined,
+) {
+	const existing = grouped.get(key)
+	if (existing) {
+		existing.projects.push(project)
+		existing.containerTags.push(project.containerTag)
+		if (!existing.projectName && projectName) {
+			existing.projectName = projectName
+			existing.label = projectName
+		}
+		return
+	}
+
+	grouped.set(key, {
+		key,
+		label,
+		projectName,
+		kind,
+		representative: project,
+		projects: [project],
+		containerTags: [project.containerTag],
+	})
+}
+
 /**
  * Collapse the physical Claude/Codex containers into one selectable Agents row
  * per project. Every returned container tag remains real; the UI never writes
@@ -169,33 +220,54 @@ export function groupAgentSpaces<T extends { containerTag: string }>(
 	metadata: ReadonlyMap<string, AgentSpaceMetadata>,
 ): AgentSpaceGroup<T>[] {
 	const grouped = new Map<string, AgentSpaceGroup<T>>()
+	const legacyProjects: Array<{
+		project: T
+		projectName: string | undefined
+	}> = []
+	const canonicalKeysByName = new Map<string, string[]>()
 
 	for (const project of projects) {
-		if (!isAgentContainerTag(project.containerTag)) continue
-		const projectName = normalizeProjectName(
-			metadata.get(project.containerTag)?.projectName,
+		const match = matchAgentTag(project.containerTag)
+		if (!match) continue
+		const spaceMetadata = metadata.get(project.containerTag)
+		const projectName = normalizeProjectName(spaceMetadata?.projectName)
+		const projectId = normalizeProjectId(
+			spaceMetadata?.projectId ?? match.projectId,
 		)
-		const identity = groupIdentity(project.containerTag, projectName)
-		const existing = grouped.get(identity.key)
-		if (existing) {
-			existing.projects.push(project)
-			existing.containerTags.push(project.containerTag)
-			if (!existing.projectName && projectName) {
-				existing.projectName = projectName
-				existing.label = projectName
-			}
+		if (!projectId) {
+			legacyProjects.push({ project, projectName })
 			continue
 		}
 
-		grouped.set(identity.key, {
-			key: identity.key,
-			label: identity.label,
+		const key = `project-id:${projectId}`
+		const label =
+			projectName || humanizeProjectId(match.projectSlug ?? "") || "Project"
+		addProjectToGroup(grouped, key, label, "project", project, projectName)
+		if (projectName) {
+			const normalizedName = projectName.toLocaleLowerCase()
+			const keys = canonicalKeysByName.get(normalizedName) ?? []
+			if (!keys.includes(key)) keys.push(key)
+			canonicalKeysByName.set(normalizedName, keys)
+		}
+	}
+
+	for (const { project, projectName } of legacyProjects) {
+		const identity = legacyGroupIdentity(project.containerTag, projectName)
+		const canonicalMatches = projectName
+			? (canonicalKeysByName.get(projectName.toLocaleLowerCase()) ?? [])
+			: []
+		const key =
+			identity.kind === "project" && canonicalMatches.length === 1
+				? canonicalMatches[0]!
+				: identity.key
+		addProjectToGroup(
+			grouped,
+			key,
+			projectName ?? identity.label,
+			identity.kind,
+			project,
 			projectName,
-			kind: identity.kind,
-			representative: project,
-			projects: [project],
-			containerTags: [project.containerTag],
-		})
+		)
 	}
 
 	return [...grouped.values()]
