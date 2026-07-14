@@ -3,6 +3,11 @@ name: CI - Type Check, Format & Lint
 on:
   pull_request:
 
+# Least-privilege token: this workflow only checks out the repo and runs
+# typecheck/lint. It does not need write access.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
