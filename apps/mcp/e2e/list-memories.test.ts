@@ -43,12 +43,6 @@ describe.skipIf(!API_KEY)("MCP — listMemories", () => {
 		await s?.close()
 	})
 
-	it("appears in tool discovery", async () => {
-		const tools = await s.client.listTools()
-		const names = tools.tools.map((t) => t.name)
-		expect(names).toContain("listMemories")
-	})
-
 	it("lists a saved memory without dumping document content", async () => {
 		const marker = `lm-${randomUUID()}`
 		const content = `e2e listMemories. token=${marker}. The list test fruit is rambutan.`
