@@ -181,7 +181,6 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			}
 		}
 
-
 		if (!userQuery.trim()) {
 			return
 		}
@@ -212,7 +211,6 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			}),
 			timeoutPromise,
 		])
-
 
 		if (response?.success && response?.data) {
 			let textareaElement = null
@@ -486,7 +484,7 @@ function setupT3PromptCapture() {
 	}
 	document.body.setAttribute("data-t3-prompt-capture-setup", "true")
 
-	const captureT3PromptContent = async (source: string) => {
+	const captureT3PromptContent = async (_source: string) => {
 		const autoCapture = (await autoCapturePromptsEnabled.getValue()) ?? false
 
 		if (!autoCapture) {
@@ -530,7 +528,6 @@ function setupT3PromptCapture() {
 		}
 
 		if (promptContent.trim()) {
-
 			try {
 				await browser.runtime.sendMessage({
 					action: MESSAGE_TYPES.CAPTURE_PROMPT,

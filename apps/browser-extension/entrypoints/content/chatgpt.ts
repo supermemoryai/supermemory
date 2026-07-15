@@ -703,7 +703,6 @@ function setupChatGPTPromptCapture() {
 			debugChatGPT("prompt submitted", {
 				source,
 				promptLength: promptContent.length,
-
 			})
 			try {
 				await browser.runtime.sendMessage({

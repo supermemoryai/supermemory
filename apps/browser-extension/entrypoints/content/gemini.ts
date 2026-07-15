@@ -363,7 +363,6 @@ function getInputText(input: GeminiInput | null): string {
 	return input.innerText || input.textContent || ""
 }
 
-
 async function getRelatedMemoriesForGemini(actionSource: string) {
 	try {
 		const isAutoSearch =

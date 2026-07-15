@@ -199,7 +199,6 @@ export class TwitterImporter {
 				[]
 			const nextCursor = extractNextCursor(instructions)
 
-
 			if (nextCursor && tweets.length > 0 && !this.config.isFolderImport) {
 				await new Promise((resolve) => setTimeout(resolve, 1000)) // Rate limiting
 				await this.batchImportAll(nextCursor, importedCount, uniqueGroupId)
