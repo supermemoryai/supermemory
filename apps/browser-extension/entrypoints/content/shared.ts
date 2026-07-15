@@ -73,7 +73,6 @@ export async function saveMemory(
 			actionSource,
 		})) as APIResponse
 
-		console.log("Response from extension:", response)
 		if (response?.success) {
 			DOMUtils.showToast("success")
 			return response
@@ -121,9 +120,6 @@ export function setupStorageListener() {
 					window.location.hostname === "app.supermemory.ai"
 				)
 			) {
-				console.log(
-					"Bearer token and user data is only allowed to be used on localhost or supermemory.ai",
-				)
 				return
 			}
 

@@ -28,7 +28,7 @@ let chatGPTDebounceTimeout: NodeJS.Timeout | null = null
 let chatGPTRouteObserver: MutationObserver | null = null
 let chatGPTUrlCheckInterval: NodeJS.Timeout | null = null
 let chatGPTObserverThrottle: NodeJS.Timeout | null = null
-const CHATGPT_DEBUG = true
+const CHATGPT_DEBUG = false
 const CHATGPT_LOG_PREFIX = "[supermemory:chatgpt]"
 
 export function initializeChatGPT() {
@@ -208,7 +208,9 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 					promptElement,
 					response.data,
 				)
-				console.log("Prompt element dataset:", memoryText)
+				debugChatGPT("memory suggestion rendered", {
+					memoryLength: memoryText.length,
+				})
 
 				iconElement.dataset.memoriesData = String(response.data)
 
@@ -348,7 +350,9 @@ async function saveMemoriesToSupermemory() {
 			actionSource: "chatgpt_memories_dialog",
 		})
 
-		console.log({ response })
+		debugChatGPT("memory dialog saved", {
+			success: response.success,
+		})
 
 		if (response.success) {
 			DOMUtils.showToast("success")
@@ -685,7 +689,7 @@ function setupChatGPTPromptCapture() {
 		const autoCapture = (await autoCapturePromptsEnabled.getValue()) ?? false
 
 		if (!autoCapture) {
-			console.log("Auto capture prompts is disabled, skipping prompt capture")
+			debugChatGPT("auto prompt capture disabled")
 			return
 		}
 		const promptTextarea = document.getElementById("prompt-textarea")
@@ -696,8 +700,11 @@ function setupChatGPTPromptCapture() {
 		}
 
 		if (promptTextarea && promptContent.trim()) {
-			console.log(`ChatGPT prompt submitted via ${source}:`, promptContent)
+			debugChatGPT("prompt submitted", {
+				source,
+				promptLength: promptContent.length,
 
+			})
 			try {
 				await browser.runtime.sendMessage({
 					action: MESSAGE_TYPES.CAPTURE_PROMPT,

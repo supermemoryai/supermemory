@@ -26,7 +26,6 @@ export function initializeT3() {
 	}
 
 	setTimeout(() => {
-		console.log("Adding supermemory icon to T3 input")
 		addSupermemoryIconToT3Input()
 		setupT3AutoFetch()
 	}, 2000)
@@ -55,7 +54,6 @@ function setupT3RouteChangeDetection() {
 	const checkForRouteChange = () => {
 		if (window.location.href !== currentUrl) {
 			currentUrl = window.location.href
-			console.log("T3 route changed, re-adding supermemory icon")
 			setTimeout(() => {
 				addSupermemoryIconToT3Input()
 				setupT3AutoFetch()
@@ -183,10 +181,8 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			}
 		}
 
-		console.log("T3 query extracted:", userQuery)
 
 		if (!userQuery.trim()) {
-			console.log("No query text found for T3")
 			return
 		}
 
@@ -217,7 +213,6 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			timeoutPromise,
 		])
 
-		console.log("T3 memories response:", response)
 
 		if (response?.success && response?.data) {
 			let textareaElement = null
@@ -337,12 +332,10 @@ function updateT3IconFeedback(
 		`
 
 		const memoriesText = iconElement.dataset.memoriesData || ""
-		console.log("Memories text:", memoriesText)
 		const individualMemories = memoriesText
 			.split(/[,\n]/)
 			.map((memory) => memory.trim())
 			.filter((memory) => memory.length > 0 && memory !== ",")
-		console.log("Individual memories:", individualMemories)
 
 		individualMemories.forEach((memory, index) => {
 			const memoryItem = document.createElement("div")
@@ -497,7 +490,6 @@ function setupT3PromptCapture() {
 		const autoCapture = (await autoCapturePromptsEnabled.getValue()) ?? false
 
 		if (!autoCapture) {
-			console.log("Auto capture prompts is disabled, skipping prompt capture")
 			return
 		}
 		let promptContent = ""
@@ -538,7 +530,6 @@ function setupT3PromptCapture() {
 		}
 
 		if (promptContent.trim()) {
-			console.log(`T3 prompt submitted via ${source}:`, promptContent)
 
 			try {
 				await browser.runtime.sendMessage({

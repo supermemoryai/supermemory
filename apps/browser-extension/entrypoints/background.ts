@@ -232,7 +232,6 @@ export default defineBackground(() => {
 			response.results?.forEach((result, index) => {
 				memories.push(`${index + 1}. ${result.memory} \n`)
 			})
-			console.log("Memories:", memories)
 			await trackEvent(eventSource)
 			return { success: true, data: memories }
 		} catch (error) {
@@ -312,9 +311,6 @@ export default defineBackground(() => {
 							platform: string
 							source: string
 						}
-						console.log("=== PROMPT CAPTURED ===")
-						console.log(messageData)
-						console.log("========================")
 
 						const memoryData: MemoryData = {
 							content: messageData.prompt,

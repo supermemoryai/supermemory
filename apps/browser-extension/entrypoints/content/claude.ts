@@ -396,10 +396,12 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 			}
 		}
 
-		console.log("Claude query extracted:", userQuery)
+		debugClaude("query extracted", {
+			queryLength: userQuery.length,
+		})
 
 		if (!userQuery.trim()) {
-			console.log("No query text found for Claude")
+			debugClaude("memory search skipped because query is empty")
 			return
 		}
 
@@ -438,7 +440,9 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 			timeoutPromise,
 		])
 
-		console.log("Claude memories response:", response)
+		debugClaude("memory search response", {
+			success: response?.success,
+		})
 
 		if (response?.success && response?.data) {
 			const textareaElement = document.querySelector(
@@ -451,7 +455,9 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 					textareaElement,
 					response.data,
 				)
-				console.log("Text element dataset:", memoryText)
+				debugClaude("memory suggestion rendered", {
+					memoryLength: memoryText.length,
+				})
 
 				iconElement.dataset.memoriesData = String(response.data)
 
@@ -670,7 +676,9 @@ async function saveClaudeMemoriesToSupermemory(memoryDialog: HTMLElement) {
 			actionSource: "claude_memories_dialog",
 		})
 
-		console.log({ response })
+		debugClaude("memory dialog saved", {
+			success: response.success,
+		})
 
 		if (response.success) {
 			DOMUtils.showToast("success")
@@ -720,7 +728,7 @@ function setupClaudePromptCapture() {
 		const autoCapture = (await autoCapturePromptsEnabled.getValue()) ?? false
 
 		if (!autoCapture) {
-			console.log("Auto capture prompts is disabled, skipping prompt capture")
+			debugClaude("auto prompt capture disabled")
 			return
 		}
 		let promptContent = ""
@@ -741,7 +749,10 @@ function setupClaudePromptCapture() {
 		}
 
 		if (promptContent.trim()) {
-			console.log(`Claude prompt submitted via ${source}:`, promptContent)
+			debugClaude("prompt submitted", {
+				source,
+				promptLength: promptContent.length,
+			})
 
 			try {
 				await browser.runtime.sendMessage({

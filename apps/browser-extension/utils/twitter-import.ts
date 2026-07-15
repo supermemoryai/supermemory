@@ -186,8 +186,6 @@ export class TwitterImporter {
 				if (documents.length > 0) {
 					await saveAllTweets(documents)
 				}
-				console.log("Tweets saved")
-				console.log("Documents:", documents)
 			} catch (error) {
 				console.error("Error saving tweets batch:", error)
 				await this.config.onError(error as Error)
@@ -201,8 +199,6 @@ export class TwitterImporter {
 				[]
 			const nextCursor = extractNextCursor(instructions)
 
-			console.log("Next cursor:", nextCursor)
-			console.log("Tweets length:", tweets.length)
 
 			if (nextCursor && tweets.length > 0 && !this.config.isFolderImport) {
 				await new Promise((resolve) => setTimeout(resolve, 1000)) // Rate limiting

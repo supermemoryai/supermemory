@@ -28,7 +28,7 @@ let geminiDebounceTimeout: NodeJS.Timeout | null = null
 let geminiRouteObserver: MutationObserver | null = null
 let geminiUrlCheckInterval: NodeJS.Timeout | null = null
 let geminiObserverThrottle: NodeJS.Timeout | null = null
-const GEMINI_DEBUG = true
+const GEMINI_DEBUG = false
 const GEMINI_LOG_PREFIX = "[supermemory:gemini]"
 
 type GeminiInput = HTMLElement | HTMLTextAreaElement
@@ -363,20 +363,6 @@ function getInputText(input: GeminiInput | null): string {
 	return input.innerText || input.textContent || ""
 }
 
-function _appendStoredMemories(input: GeminiInput, storedMemories: string) {
-	if (input instanceof HTMLTextAreaElement) {
-		const promptContent = input.value || ""
-		input.value = `${promptContent}${storedMemories}`
-		input.dispatchEvent(new Event("input", { bubbles: true }))
-		return input.value
-	}
-
-	input.appendChild(document.createTextNode(storedMemories))
-	input.dispatchEvent(
-		new InputEvent("input", { bubbles: true, inputType: "insertText" }),
-	)
-	return input.innerText || input.textContent || ""
-}
 
 async function getRelatedMemoriesForGemini(actionSource: string) {
 	try {
@@ -504,7 +490,7 @@ function setupGeminiPromptCapture() {
 		debugGemini("capture requested", { source, autoCapture })
 
 		if (!autoCapture) {
-			console.log("Auto capture prompts is disabled, skipping prompt capture")
+			debugGemini("auto prompt capture disabled")
 			return
 		}
 
