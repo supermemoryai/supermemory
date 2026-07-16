@@ -411,7 +411,7 @@ function TileSkeleton({ showDivider = false }: { showDivider?: boolean }) {
 function SlackBanner() {
 	return (
 		<section
-			className="relative overflow-hidden rounded-[18px] bg-[#1B1F24] p-5"
+			className="relative overflow-hidden rounded-[18px] bg-[#1B1F24] p-3.5 sm:p-5"
 			style={cardStyle}
 		>
 			<div
@@ -422,37 +422,45 @@ function SlackBanner() {
 						"linear-gradient(to right, transparent, rgba(75,160,250,0.45), transparent)",
 				}}
 			/>
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-				<div className="flex items-center gap-3.5">
+			<div className="flex items-center justify-between gap-3 sm:gap-4">
+				<div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
 					<div
-						className="flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#080B0F]"
+						className="flex size-10 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#080B0F] sm:size-12"
 						style={tileStyle}
 					>
-						<SlackMark className="size-7" />
+						<SlackMark className="size-6 sm:size-7" />
 					</div>
 					<div className="min-w-0">
 						<p
 							className={cn(
-								"text-[16px] font-semibold text-[#fafafa]",
+								"truncate text-[15px] font-semibold leading-tight text-[#fafafa] sm:text-[16px]",
 								dmSans125ClassName(),
 							)}
 						>
-							Company Brain in Slack
+							<span className="sm:hidden">Slack agent</span>
+							<span className="hidden sm:inline">Company Brain in Slack</span>
 						</p>
-						<p className="mt-0.5 text-[13px] font-medium leading-[1.5] text-[#737373]">
-							Install Supermemory so your team can{" "}
-							<span className="text-[#A1A1AA]">@supermemory</span> in any
-							channel.
+						<p className="mt-1 truncate text-[12px] font-medium leading-[1.45] text-[#737373] sm:mt-0.5 sm:text-[13px] sm:leading-[1.5]">
+							<span className="sm:hidden">
+								Ask <span className="text-[#A1A1AA]">@supermemory</span> from
+								any channel.
+							</span>
+							<span className="hidden sm:inline">
+								Install Supermemory so your team can{" "}
+								<span className="text-[#A1A1AA]">@supermemory</span> in any
+								channel.
+							</span>
 						</p>
 					</div>
 				</div>
 
 				<a
 					href={`${BACKEND}/brain/slack/oauth/install`}
-					className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg bg-white px-4 py-2.5 text-[14px] font-semibold text-[#1D1C1D] transition-transform hover:scale-[1.02] sm:self-auto"
+					className="inline-flex shrink-0 items-center justify-center rounded-lg bg-white px-3 py-1.5 text-[13px] font-semibold text-[#1D1C1D] transition-transform hover:scale-[1.02] sm:gap-2 sm:px-4 sm:py-2.5 sm:text-[14px]"
 				>
-					<SlackMark className="size-[18px]" />
-					Add to Slack
+					<SlackMark className="hidden sm:block sm:size-[18px]" />
+					<span className="sm:hidden">Add</span>
+					<span className="hidden sm:inline">Add to Slack</span>
 				</a>
 			</div>
 		</section>

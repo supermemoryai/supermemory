@@ -184,16 +184,16 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 	}, [setFeedbackOpen])
 
 	return (
-		<div className="relative z-10 flex shrink-0 items-center justify-between gap-1.5 p-2.5 md:gap-2 md:p-3">
-			<div className="z-10! flex min-w-0 shrink items-center justify-center gap-1.5 md:gap-3">
+		<div className="relative z-10 flex shrink-0 items-center justify-between gap-1 px-2 py-2 md:gap-2 md:p-3">
+			<div className="z-10! flex min-w-0 flex-1 shrink items-center justify-start gap-1.5 md:flex-none md:justify-center md:gap-3">
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<button
 							type="button"
-							className="relative flex max-w-[min(52vw,240px)] shrink-0 cursor-pointer items-center rounded-lg px-1.5 py-1 transition-colors hover:bg-white/5 outline-none focus-visible:outline-none md:-ml-2 before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']"
+							className="relative flex min-w-0 max-w-[31vw] shrink cursor-pointer items-center rounded-lg px-1 py-1 transition-colors hover:bg-white/5 outline-none focus-visible:outline-none min-[380px]:max-w-[9rem] sm:max-w-[min(52vw,240px)] md:-ml-2 md:max-w-[min(52vw,240px)] md:shrink-0 md:px-1.5 before:absolute before:-inset-x-1 before:-inset-y-2 before:content-[''] md:before:-inset-x-2 md:before:-inset-y-2.5"
 						>
 							<div
-								className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-[rgba(82,89,102,0.2)] bg-[#14161A]"
+								className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-[rgba(82,89,102,0.2)] bg-[#14161A] sm:size-8"
 								style={{
 									boxShadow:
 										"0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08)",
@@ -205,7 +205,7 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 									<Building2 className="size-4 text-[#737373]" />
 								)}
 							</div>
-							<div className="ml-2 min-w-0 flex flex-col items-start justify-center">
+							<div className="ml-1.5 min-w-0 flex flex-col items-start justify-center max-[340px]:hidden sm:ml-2">
 								<p className="max-w-full truncate text-[10px] leading-tight text-[#6B6B6B] sm:text-[11px]">
 									Company Brain
 								</p>
@@ -381,7 +381,7 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 				</div>
 			)}
 
-			<div className="z-10! flex shrink-0 items-center gap-1.5">
+			<div className="z-10! flex min-w-0 shrink-0 items-center gap-1.5">
 				{isMobile ? (
 					<>
 						<SpaceSelector
@@ -389,12 +389,14 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 							onValueChange={setSelectedProjects}
 							enableDelete={false}
 							compact
+							triggerClassName="max-w-[34vw] shrink min-[380px]:max-w-[9rem]"
 						/>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button
 									variant="headers"
-									className="rounded-full text-base gap-2 h-10!"
+									aria-label="Open navigation menu"
+									className="size-9! min-h-9 min-w-9 rounded-full px-0! text-base"
 								>
 									<MenuIcon className="size-4" />
 								</Button>
