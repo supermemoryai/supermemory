@@ -79,7 +79,7 @@
 							{
 								"group": "Start Here",
 								"pages": [
-									"index",
+									"overview",
 									"quickstart",
 									"vibe-coding"
 								]
@@ -387,7 +387,7 @@
 			"source": "/integrations/clawdbot"
 		},
 		{
-			"destination": "/",
+			"destination": "/overview",
 			"permanent": false,
 			"source": "/"
 		},
@@ -640,7 +640,7 @@
 		},
 		{
 			"source": "/overview/why-supermemory",
-			"destination": "/"
+			"destination": "/overview"
 		},
 		{
 			"source": "/supermemory-mcp/introduction",
@@ -672,7 +672,7 @@
 		},
 		{
 			"source": "/memory-api/introduction",
-			"destination": "/"
+			"destination": "/overview"
 		},
 		{
 			"source": "/memory-api/sdks/anthropic-claude-memory",
@@ -728,7 +728,7 @@
 		},
 		{
 			"source": "/introduction",
-			"destination": "/"
+			"destination": "/overview"
 		},
 		{
 			"source": "/memory-api/connectors/advanced/bring-your-own-key",
@@ -748,7 +748,7 @@
 		},
 		{
 			"source": "/intro",
-			"destination": "/"
+			"destination": "/overview"
 		}
 	],
 	"styling": {
