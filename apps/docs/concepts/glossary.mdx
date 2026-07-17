@@ -14,7 +14,7 @@ import Supermemory from "supermemory"
 
 const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
 
-await client.memories.add({
+await client.add({
   content: "Sarah's being promoted to VP of Product", // becomes a document
   containerTag: "user_4f8a", // the isolation boundary
   customId: "slack-thread-9917", // your stable id for this document
@@ -27,7 +27,7 @@ from supermemory import Supermemory
 
 client = Supermemory()
 
-client.memories.add(
+client.add(
     content="Sarah's being promoted to VP of Product",
     container_tag="user_4f8a",
     custom_id="slack-thread-9917",
@@ -49,8 +49,6 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 
 </CodeGroup>
 
-{/* CONFIRM: python — memories.add kwargs mirrored from the published pypi search style; verify against the shipped package */}
-
 The content becomes a **document**, the pipeline derives **memories** from it, the memories join the **graph**, and the **profile** for `user_4f8a` updates. The rest of this page defines each of those words — plus the ones that control the process.
 
 ## From content to memory
@@ -65,7 +63,7 @@ An individual fact derived from your documents by the ingestion pipeline — a c
 
 ### Chunk
 
-A slice of a document, sized for retrieval. Search matches at the chunk level, so you get the relevant passage instead of a 40-page document. On memory search you pull them with `include: { chunks: true }`; document search returns matching chunks directly. How chunks, memories, and the graph combine at query time is the subject of [hybrid search](/concepts/hybrid-search).
+A slice of a document, sized for retrieval. Search matches at the chunk level, so you get the relevant passage instead of a 40-page document. On memory search you pull them in with `searchMode: "hybrid"`; document search returns matching chunks directly. How chunks, memories, and the graph combine at query time is the subject of [hybrid search](/concepts/hybrid-search).
 
 ### Dreaming
 

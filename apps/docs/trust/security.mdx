@@ -158,7 +158,7 @@ Deletion is permanent and there's no recovery — gate this behind your own conf
 
 Supermemory has two removal mechanisms, and for compliance work you must use the right one:
 
-- **Delete (v3, document-level) is the erasure path.** `DELETE /v3/documents/:id` (`client.memories.delete(id)` in the SDK) removes one document; `DELETE /v3/documents/bulk` removes everything under a container tag. This is hard removal — use it for right-to-erasure requests.
+- **Delete (v3, document-level) is the erasure path.** `DELETE /v3/documents/:id` (`client.documents.delete(id)` in the SDK) removes one document; `DELETE /v3/documents/bulk` removes everything under a container tag. This is hard removal — use it for right-to-erasure requests.
 - **Forget (v4, memory-level) is a product feature, not erasure.** `DELETE /v4/memories` and `POST /v4/memories/forget-matching` soft-delete individual derived facts: the memory stops appearing in search results but is preserved in the database (`isForgotten: true`), so the system can reason about what it used to believe. That's the right tool for "the user corrected an outdated fact" — and the wrong tool for "the user invoked their legal right to be forgotten."
 
 For a single stale fact rather than a whole user, forget is what you want:

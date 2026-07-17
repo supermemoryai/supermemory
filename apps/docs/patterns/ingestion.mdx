@@ -22,7 +22,7 @@ Instead, give each session a `customId` and send the conversation to it as it gr
 <CodeGroup>
 
 ```typescript TypeScript
-await client.memories.add({
+await client.add({
   content: `user: My daughter Maya got into NYU — she starts in the fall.
 assistant: Congratulations! Is she excited about New York?
 user: Thrilled. We're flying out August 20th to move her in.`,
@@ -54,8 +54,6 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 
 </CodeGroup>
 
-{/* CONFIRM: python — client.add signature mirrored from quickstart.mdx; no Python SDK in repos to verify against */}
-
 When more messages arrive, send them to the same `customId` — either the new messages alone or the full updated transcript. Supermemory links them to the existing document and processes only what's new, so you're not re-paying for the turns it already saw.
 
 This is why full-conversation ingestion is cheaper, not only better: fifty turns as one growing document is one document deriving memories from coherent context. Fifty turns as fifty documents is fifty isolated ingestion jobs, each missing the context the others hold.
@@ -63,7 +61,7 @@ This is why full-conversation ingestion is cheaper, not only better: fifty turns
 Two details worth knowing:
 
 - **Include both sides.** Assistant turns carry facts too — what was recommended, what was agreed, what the user confirmed. Strip the assistant and you lose half the session's meaning. (What *not* to learn from assistant turns — unconfirmed claims — is covered in the [AI companion pattern](/patterns/ai-companion).)
-- **`customId` constraints:** max 100 characters, alphanumeric with hyphens, underscores, and colons. Use an ID from your own database — that's what it's for. <!-- CONFIRM: the 100-char + charset rule is what file uploads validate; the batch endpoint validates 255 chars and single add doesn't validate length — which limit do we document? -->
+- **`customId` constraints:** max 100 characters, alphanumeric with hyphens, underscores, and dots. Use an ID from your own database — that's what it's for.
 
 ## Close the window at ~50 turns or ~4 hours
 
@@ -73,7 +71,7 @@ A session shouldn't grow forever. Past a point, one document stops being "a cohe
 // derive the window from your session, not a global counter
 const windowId = `chat_8821_w${session.windowIndex}`;
 
-await client.memories.add({
+await client.add({
   content: session.transcriptSinceWindowStart,
   customId: windowId,
   containerTag: "user_4f8a",
@@ -203,7 +201,7 @@ The full error and limit reference is at [errors and limits](/errors-and-limits)
 **Poll status before you judge the results.** Batch acceptance means *queued*, not *searchable*. Each document moves through `queued → extracting → chunking → embedding → indexing → done`, and its memories are queryable once it hits `done`. To verify an import, poll the IDs the batch returned:
 
 ```typescript
-const doc = await client.memories.get("doc_x2ka91");
+const doc = await client.documents.get("doc_x2ka91");
 if (doc.status === "done") {
   // memories from this document are now searchable
 } else if (doc.status === "failed") {
@@ -220,7 +218,7 @@ There's no bulk "is my whole import done" call yet — poll the IDs you care abo
 Where it can matter: two writes to the *same* `customId` fired in quick succession. In rare cases the second can be picked up while the first is still processing, and the updates race. Two ways to make that impossible:
 
 - **Send the full accumulated transcript each time** instead of only the delta. Then the latest write contains everything, and whichever write lands last is complete on its own. It's the least machinery and costs little extra — unchanged content is recognized and not reprocessed.
-- **Wait for `done` before the next write** to the same `customId`, polling `client.memories.get(id)`. Use this when deltas are large and you'd rather sequence than resend.
+- **Wait for `done` before the next write** to the same `customId`, polling `client.documents.get(id)`. Use this when deltas are large and you'd rather sequence than resend.
 
 For backfills, the batch endpoint sidesteps the question: one request, distinct `customId`s per document, no interleaved writes to the same session.
 

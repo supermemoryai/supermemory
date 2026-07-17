@@ -7,8 +7,6 @@ Supermemory's REST API has two live versions, v3 and v4, and both are current. N
 
 Here's the seam in one program:
 
-{/* CONFIRM: python — client.add vs client.memories.add naming is inconsistent across published docs; mirrored add-memories.mdx and search.mdx */}
-
 <CodeGroup>
 ```typescript TypeScript
 import Supermemory from "supermemory"
@@ -16,7 +14,7 @@ import Supermemory from "supermemory"
 const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
 
 // hits POST /v3/documents
-await client.memories.add({
+await client.add({
   content: "Sarah's being promoted to VP of Product in March",
   containerTag: "user_4f8a",
 })
@@ -95,12 +93,12 @@ Every document-level and account-level endpoint, all on v3:
 
 | Endpoint | What it does | TS SDK method |
 |---|---|---|
-| `POST /v3/documents` | Add a document | `client.memories.add()` |
-| `POST /v3/documents/file` | Upload a file | `client.memories.uploadFile()` |
-| `POST /v3/documents/list` | List documents | `client.memories.list()` |
-| `GET /v3/documents/{id}` | Get a document | `client.memories.get()` |
-| `PATCH /v3/documents/{id}` | Update a document | `client.memories.update()` |
-| `DELETE /v3/documents/{id}` | Delete a document | `client.memories.delete()` |
+| `POST /v3/documents` | Add a document | `client.add()` |
+| `POST /v3/documents/file` | Upload a file | `client.documents.uploadFile()` |
+| `POST /v3/documents/list` | List documents | `client.documents.list()` |
+| `GET /v3/documents/{id}` | Get a document | `client.documents.get()` |
+| `PATCH /v3/documents/{id}` | Update a document | `client.documents.update()` |
+| `DELETE /v3/documents/{id}` | Delete a document | `client.documents.delete()` |
 | `DELETE /v3/documents/bulk` | Bulk delete (including by container tag) | raw HTTP |
 | `POST /v3/search` | Search document chunks (RAG-style) | `client.search.documents()` |
 | `GET` / `PATCH /v3/settings` | Org settings | `client.settings.get()` / `.update()` |
@@ -113,7 +111,7 @@ The documents family also includes batch add, fetch by IDs, chunks, and versions
 
 Two things in this map trip people up, so let's name them:
 
-**Yes, `client.memories.add()` calls `/v3/documents`.** The SDK is named for the mental model — you add content, supermemory derives memories from it. The route is named for what's actually stored: a document, from which memories are derived. Same operation, two vocabularies. The [glossary](/concepts/glossary) keeps them straight.
+**Yes, `client.add()` calls `/v3/documents`.** The SDK is named for the mental model — you add content, supermemory derives memories from it. The route is named for what's actually stored: a document, from which memories are derived. Same operation, two vocabularies. The [glossary](/concepts/glossary) keeps them straight.
 
 **The SDK covers two of the nine v4 endpoints.** `client.search.memories()` and `client.profile()` are the v4 surface in the TS SDK today. The rest — memory update, forget, forget-matching, list, conversations — are raw HTTP for now. They work fine with `fetch`; they don't have typed wrappers yet.
 

@@ -86,6 +86,51 @@ The response is ranked memories, not chunks:
 
 Search returns the top N — there's no pagination. If you need to walk everything in a container, list documents instead.
 
+## Blend in document chunks: `searchMode`
+
+By default, `search.memories` returns memories only — derived facts, no raw chunks. `searchMode` is the mode selector that decides what comes back:
+
+<CodeGroup>
+```typescript TypeScript
+const results = await client.search.memories({
+  q: "what does Sarah do at the company?",
+  containerTag: "user_4f8a",
+  searchMode: "hybrid", // memories + the chunks that back them
+});
+```
+
+```python Python
+results = client.search.memories(
+    q="what does Sarah do at the company?",
+    container_tag="user_4f8a",
+    search_mode="hybrid",
+)
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "what does Sarah do at the company?",
+    "containerTag": "user_4f8a",
+    "searchMode": "hybrid"
+  }'
+```
+</CodeGroup>
+
+The three modes:
+
+| `searchMode` | Returns |
+|---|---|
+| `memories` (default) | Derived memories only |
+| `hybrid` | Memories **and** the document chunks that back them |
+| `documents` | Document chunks only — no memories |
+
+If your search results seem biased toward one source, or you're getting facts back but none of the underlying chunk content to cite, this is the knob you're missing. `memories` is deliberately lean. Switch to `hybrid` when you want the fact and the passage it came from in a single v4 call, or `documents` when you only need raw chunks.
+
+`include: { chunks: true }` does the same thing and is kept for back-compat — it auto-switches the call to `hybrid`. It's deprecated; reach for `searchMode: "hybrid"` in new code.
+
 ## Search documents
 
 When you want the source content itself — RAG, citations, "find the clause" — search documents:
@@ -235,7 +280,6 @@ const results = await client.search.memories({
   containerTag: "user_4f8a",
   include: {
     documents: true,       // source document + its metadata
-    chunks: true,          // relevant chunks from those documents
     relatedMemories: true, // graph neighbors of each memory
     summaries: true,       // document summaries
   },
@@ -248,7 +292,6 @@ results = client.search.memories(
     container_tag="user_4f8a",
     include={
         "documents": True,
-        "chunks": True,
         "related_memories": True,
         "summaries": True,
     },
@@ -264,15 +307,12 @@ curl -X POST "https://api.supermemory.ai/v4/search" \
     "containerTag": "user_4f8a",
     "include": {
       "documents": true,
-      "chunks": true,
       "relatedMemories": true,
       "summaries": true
     }
   }'
 ```
 </CodeGroup>
-
-<!-- CONFIRM: python — include kwarg shape (dict with snake_case keys) unverified against pypi SDK -->
 
 The one that catches people: **metadata lives on documents, not memories.** A memory's `metadata` field reflects its source document — so if you need document metadata (titles, your custom fields) alongside memory results, set `include: { documents: true }` rather than making a second call.
 
@@ -281,7 +321,7 @@ Two more worth knowing:
 - `relatedMemories` pulls in graph neighbors — memories connected to your hits. If your recall feels like it's returning the fact but missing its context, this is usually the fix.
 - `forgottenMemories` includes memories that were explicitly forgotten or expired past their TTL. Off by default, which is what you want; turn it on for audit or debugging views. [Graph memory](/concepts/graph-memory) covers how forgetting works.
 
-`include: { chunks: true }` is also the fast path for "memories plus supporting evidence": one v4 call instead of a memory search followed by per-document fetches.
+For "memories plus supporting evidence" — the fact and the chunk it came from in one v4 call instead of a memory search followed by per-document fetches — use [`searchMode: "hybrid"`](#blend-in-document-chunks-searchmode). (`include: { chunks: true }` still works and auto-switches to hybrid, but it's deprecated back-compat.)
 
 ## Filter with metadata
 

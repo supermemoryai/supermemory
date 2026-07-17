@@ -57,7 +57,7 @@ import Supermemory from "supermemory";
 const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
 // write path: the full session, both sides of the conversation
-await client.memories.add({
+await client.add({
   content: sessionTranscript, // markdown ingests better than raw JSON
   containerTag: "user_4f8a",
   customId: "user_4f8a_session_0093",
@@ -119,8 +119,6 @@ curl -X POST "https://api.supermemory.ai/v4/search" \
 ```
 
 </CodeGroup>
-
-<!-- CONFIRM: python — client.add signature mirrored from add-memories.mdx; verify custom_id kwarg is accepted -->
 
 Notice what you *didn't* do: you never wrote a memory by hand. You don't decide what's worth remembering — the ingestion pipeline derives memories from what you feed it, connects them in the [graph](/concepts/graph-memory), and keeps the profile current. Your real design decisions are the ones this page is about: what to feed it, and how to partition it.
 

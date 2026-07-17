@@ -16,7 +16,7 @@ import Supermemory from "supermemory";
 
 const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
-await client.memories.add({
+await client.add({
   content: "Sarah's being promoted to VP of Product",
   containerTag: "user_4f8a",
 });
@@ -32,7 +32,7 @@ from supermemory import Supermemory
 
 client = Supermemory()
 
-client.memories.add(
+client.add(
     content="Sarah's being promoted to VP of Product",
     container_tag="user_4f8a",
 )

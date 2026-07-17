@@ -13,7 +13,7 @@ import Supermemory from "supermemory";
 const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
 // the researcher writes what it found
-await client.memories.add({
+await client.add({
   content: "Competitor pricing scan: Vanta starts at $7,500/yr, Drata is quote-only, both gate SSO behind enterprise tiers...",
   containerTag: "proj_atlas",
   customId: "ep_2041_research_notes",
@@ -34,7 +34,7 @@ from supermemory import Supermemory
 client = Supermemory()
 
 # the researcher writes what it found
-client.memories.add(
+client.add(
     content="Competitor pricing scan: Vanta starts at $7,500/yr, Drata is quote-only, both gate SSO behind enterprise tiers...",
     container_tag="proj_atlas",
     custom_id="ep_2041_research_notes",
@@ -105,7 +105,7 @@ Each agent writes its full output — findings, drafts, decisions, not only conc
 
 ```typescript TypeScript
 // the planner ships its plan into the same container
-await client.memories.add({
+await client.add({
   content: "# Launch plan for Atlas\n\nWeek 1: undercut Vanta's entry tier at $5,900...",
   containerTag: "proj_atlas",
   customId: "ep_2041_plan_v1",
@@ -114,7 +114,7 @@ await client.memories.add({
 ```
 
 ```python Python
-client.memories.add(
+client.add(
     content="# Launch plan for Atlas\n\nWeek 1: undercut Vanta's entry tier at $5,900...",
     container_tag="proj_atlas",
     custom_id="ep_2041_plan_v1",
@@ -154,7 +154,7 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
   }'
 ```
 
-The TypeScript SDK doesn't type `filterByMetadata` yet — send it over REST until it lands. <!-- CONFIRM: filterByMetadata not in supermemory@3.10.0 TS typings; verify current SDK before removing this caveat --> See [filtered writes](/add-memories#filtered-writes) for how the context scoping works.
+`filterByMetadata` isn't in the `supermemory@4.x` TS typings yet — the backend accepts it, so send it over REST until it lands. See [filtered writes](/add-memories#filtered-writes) for how the context scoping works.
 
 ## Filter reads per role
 
@@ -270,7 +270,7 @@ Filtered search gives the next agent everything upstream — but "everything" is
 
 ```typescript TypeScript
 // researcher is done — write the baton
-await client.memories.add({
+await client.add({
   content: `# Research handoff — Atlas ep_2041
 
 ## Decided
@@ -288,7 +288,7 @@ await client.memories.add({
 ```
 
 ```python Python
-client.memories.add(
+client.add(
     content=handoff_markdown,
     container_tag="proj_atlas",
     custom_id="ep_2041_handoff_research",
@@ -340,24 +340,24 @@ Default to keeping episode memories. Cross-episode recall is most of the payoff 
 
 ```typescript TypeScript
 // find everything ep_2041 wrote...
-const { memories } = await client.memories.list({
+const { memories } = await client.documents.list({
   containerTags: ["proj_atlas"],
   filters: { AND: [{ key: "episode", value: "ep_2041" }] },
   limit: 100,
 });
 
 // ...and remove it
-await Promise.all(memories.map((m) => client.memories.delete(m.id)));
+await Promise.all(memories.map((m) => client.documents.delete(m.id)));
 ```
 
 ```python Python
-page = client.memories.list(
+page = client.documents.list(
     container_tags=["proj_atlas"],
     filters={"AND": [{"key": "episode", "value": "ep_2041"}]},
     limit=100,
 )
 for m in page.memories:
-    client.memories.delete(m.id)
+    client.documents.delete(m.id)
 ```
 
 ```bash cURL

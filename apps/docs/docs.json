@@ -8,8 +8,7 @@
 				"python",
 				"curl"
 			]
-		},
-		"openapi": "https://api.supermemory.ai/v3/openapi"
+		}
 	},
 	"colors": {
 		"dark": "#1E3A8A",
@@ -291,8 +290,7 @@
 				"anchors": [
 					{
 						"anchor": "API Reference",
-						"icon": "unplug",
-						"openapi": "https://api.supermemory.ai/v3/openapi"
+						"icon": "unplug"
 					}
 				],
 				"tab": "API Reference"

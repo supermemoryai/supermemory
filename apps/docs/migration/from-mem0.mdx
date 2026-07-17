@@ -36,7 +36,7 @@ data = mem0.get_memory_export(memory_export_id=export["id"])
 supermemory = Supermemory(api_key="your_supermemory_api_key")
 for memory in data["memories"]:
     if memory.get("content"):
-        supermemory.memories.add(
+        supermemory.add(
             content=memory["content"],
             container_tag="imported_from_mem0"
         )

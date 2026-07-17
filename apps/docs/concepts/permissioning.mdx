@@ -17,7 +17,7 @@ import Supermemory from "supermemory";
 const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
 // POST /v3/documents
-await client.memories.add({
+await client.add({
   content: "Sarah's being promoted to VP of Product in March",
   containerTag: "user_4f8a",              // the isolation boundary
   metadata: {
@@ -96,7 +96,7 @@ Agent role is a dimension, not a boundary. The fix:
 
 ```typescript
 // one container per tenant, role as metadata
-await client.memories.add({
+await client.add({
   content: "Customer confirmed they're migrating off Postgres by Q3",
   containerTag: "org_acme",
   metadata: { agent_role: "support" },
@@ -239,7 +239,7 @@ The default architecture. One container per user, tag derived from your own auth
 ```typescript
 const tag = `user_${session.user.id}`;
 
-await client.memories.add({
+await client.add({
   content: message.content,
   containerTag: tag,
   customId: conversationId,   // same conversation, same document
@@ -261,14 +261,14 @@ The hybrid every team product needs: facts the whole org should know, plus facts
 
 ```typescript
 // shared knowledge → the org container
-await client.memories.add({
+await client.add({
   content: "We ship releases on Thursdays; hotfixes anytime",
   containerTag: "org_acme",
   metadata: { team: "platform" },
 });
 
 // private facts → the user's container
-await client.memories.add({
+await client.add({
   content: "Priya prefers async standups and no meetings before 10am",
   containerTag: "user_priya",
 });
@@ -298,7 +298,7 @@ Multiple agents serving one tenant share that tenant's container (the anti-patte
 3. **A handoff-summary memory with a stable `customId`.** When one agent hands off to another, it writes a summary of state; the stable ID means each handoff updates the same document instead of piling up near-duplicates:
 
 ```typescript
-await client.memories.add({
+await client.add({
   content: "Handoff: customer verified, refund approved for $240, awaiting card confirmation",
   containerTag: "org_acme",
   customId: "handoff_ticket_8813",   // same id on every update → one document

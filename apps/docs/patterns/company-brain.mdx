@@ -134,9 +134,7 @@ curl -X POST "https://api.supermemory.ai/v4/search" \
 
 </CodeGroup>
 
-<!-- CONFIRM: python — search.memories kwargs mirrored from published search page -->
-
-And the reverse works too: `client.memories.add({ content, containerTag: "team_growth" })` puts a memory into the same brain the team is asking questions of. If they want to feed it programmatically — internal tools, ETL from systems without a connector — the [ingestion patterns](/patterns/ingestion) page covers how to do that well.
+And the reverse works too: `client.add({ content, containerTag: "team_growth" })` puts a memory into the same brain the team is asking questions of. If they want to feed it programmatically — internal tools, ETL from systems without a connector — the [ingestion patterns](/patterns/ingestion) page covers how to do that well.
 
 That's the whole idea: the same engine your engineers build on, with a door your entire team can walk through.
 

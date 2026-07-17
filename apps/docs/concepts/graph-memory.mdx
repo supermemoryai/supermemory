@@ -16,13 +16,13 @@ import Supermemory from "supermemory";
 
 const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
-await client.memories.add({
+await client.add({
   content: "Sarah's favorite color is red",
   containerTag: "user_4f8a",
 });
 
 // three weeks later
-await client.memories.add({
+await client.add({
   content: "Sarah said she's over red — black is her favorite now",
   containerTag: "user_4f8a",
 });
@@ -40,13 +40,13 @@ from supermemory import Supermemory
 
 client = Supermemory()
 
-client.memories.add(
+client.add(
     content="Sarah's favorite color is red",
     container_tag="user_4f8a",
 )
 
 # three weeks later
-client.memories.add(
+client.add(
     content="Sarah said she's over red — black is her favorite now",
     container_tag="user_4f8a",
 )

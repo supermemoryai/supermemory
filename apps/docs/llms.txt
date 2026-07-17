@@ -36,7 +36,7 @@ import Supermemory from "supermemory";
 const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
 // add — POST /v3/documents
-await client.memories.add({
+await client.add({
   content: "Sarah's being promoted to VP of Product",
   containerTag: "user_4f8a",          // singular, always
   metadata: { channel: "slack" },     // dimensions within the boundary

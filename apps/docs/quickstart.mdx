@@ -52,7 +52,7 @@ const facts = [
 ];
 
 for (const content of facts) {
-  await client.memories.add({ content, containerTag: "user_4f8a" });
+  await client.add({ content, containerTag: "user_4f8a" });
 }
 ```
 
@@ -234,7 +234,7 @@ while (true) {
   console.log(`assistant: ${answer}`);
 
   // store the exchange so it becomes memory for next time
-  await memory.memories.add({
+  await memory.add({
     content: `user: ${question}\nassistant: ${answer}`,
     containerTag: "user_4f8a",
   });

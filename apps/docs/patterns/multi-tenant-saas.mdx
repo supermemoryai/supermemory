@@ -121,7 +121,7 @@ import Supermemory from "supermemory";
 
 const client = new Supermemory({ apiKey: scopedKey }); // safe in the browser
 
-await client.memories.add({
+await client.add({
   content: sessionTranscript, // the whole session, both sides, as markdown
   containerTag: "user_4f8a",
   customId: "user_4f8a_session_0093",
@@ -157,8 +157,6 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 
 </CodeGroup>
 
-<!-- CONFIRM: python — client.add with custom_id kwarg mirrored from published add-memories examples; verify against the pypi package -->
-
 Notice what `metadata` is doing: `channel` and `plan` are dimensions *within* the user's boundary — things you'll filter by at search time. They're metadata precisely because they don't need walls between them. If you catch yourself creating tags like `user_4f8a_web` and `user_4f8a_mobile`, stop: that's two containers that can't see each other, which means the assistant on mobile forgets what the user said on web. Tag = boundary, metadata = dimension. The [permissioning page](/concepts/permissioning) has the full anti-pattern gallery.
 
 The ingestion side has its own craft — session windows, markdown over raw JSON, extracting from both turns. That's all in [ingestion best practices](/patterns/ingestion); it applies unchanged here.
@@ -175,7 +173,7 @@ Writes route by audience. Private chat goes to the user container as above. Shar
 <CodeGroup>
 
 ```typescript TypeScript
-await client.memories.add({
+await client.add({
   content: "Decision from planning: Acme is standardizing on usage-based pricing for Q4.",
   containerTag: "org_acme",
   metadata: { author: "user_4f8a" },
@@ -199,7 +197,7 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 
 </CodeGroup>
 
-<!-- CONFIRM: filterByMetadata is accepted by POST /v3/documents (verified in backend schema) but is not in the TS SDK's typed AddParams — confirm typings before publishing the TS tab as-is -->
+One caveat on that TypeScript tab: `filterByMetadata` isn't in the `supermemory@4.x` typed `AddParams` yet. The backend accepts it, so send it over REST until it's typed.
 
 `filterByMetadata` is a [filtered write](/add-memories#filtered-writes): new memories are generated using only existing memories that match the filter as context. Without it, everything in `org_acme` is fair game as ingestion context, and a shared container full of many people's notes starts blending them. Pair it with `entityContext` on the org container — a one-time description like "This container holds Acme's shared workspace knowledge; individual members are contributors, not the subject" — so extraction knows the container is about the org, not any one person. `entityContext` mechanics live in [Customization](/concepts/customization).
 

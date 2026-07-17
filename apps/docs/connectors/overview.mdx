@@ -110,7 +110,7 @@ for (const conn of connections) {
 }
 
 // then verify the imported documents themselves
-const docs = await client.memories.list({
+const docs = await client.documents.list({
   containerTags: ['user_4f8a'],
 });
 ```
@@ -122,7 +122,7 @@ for conn in connections:
     print(conn.provider, conn.email, conn.created_at)
 
 # then verify the imported documents themselves
-docs = client.memories.list(container_tags=['user_4f8a'])
+docs = client.documents.list(container_tags=['user_4f8a'])
 ```
 
 ```bash cURL

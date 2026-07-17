@@ -17,7 +17,7 @@ import Supermemory from "supermemory";
 
 const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
-const doc = await client.memories.add({
+const doc = await client.add({
   content:
     "Notes from the Tokyo offsite: Sarah presented the Q3 roadmap to the exec team and it landed well. She's currently our design lead.",
   containerTag: "user_4f8a",
@@ -32,7 +32,7 @@ from supermemory import Supermemory
 
 client = Supermemory()
 
-doc = client.memories.add(
+doc = client.add(
     content="Notes from the Tokyo offsite: Sarah presented the Q3 roadmap to the exec team and it landed well. She's currently our design lead.",
     container_tag="user_4f8a",
 )
@@ -50,7 +50,6 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 
 </CodeGroup>
 
-<!-- CONFIRM: python — every Python tab on this page mirrors the published pypi pattern; verify against the released Python SDK -->
 <!-- CONFIRM: add response shape { id, status } — not covered by SDK-TRUTH -->
 
 The call returns immediately with an `id` and a status of `queued`. Processing happens asynchronously — you don't wait on ingestion to serve your users.
@@ -78,22 +77,22 @@ Poll the document until it's done:
 <CodeGroup>
 
 ```typescript TypeScript
-let status = await client.memories.get(doc.id);
+let status = await client.documents.get(doc.id);
 
 while (status.status !== "done" && status.status !== "failed") {
   await new Promise((r) => setTimeout(r, 2000));
-  status = await client.memories.get(doc.id);
+  status = await client.documents.get(doc.id);
 }
 ```
 
 ```python Python
 import time
 
-status = client.memories.get(doc.id)
+status = client.documents.get(doc.id)
 
 while status.status not in ("done", "failed"):
     time.sleep(2)
-    status = client.memories.get(doc.id)
+    status = client.documents.get(doc.id)
 ```
 
 ```bash cURL
@@ -165,7 +164,7 @@ This is where supermemory stops behaving like a vector store. A second document 
 <CodeGroup>
 
 ```typescript TypeScript
-await client.memories.add({
+await client.add({
   content:
     "Sarah's being promoted to VP of Product. She starts the new role next month.",
   containerTag: "user_4f8a",
@@ -173,7 +172,7 @@ await client.memories.add({
 ```
 
 ```python Python
-client.memories.add(
+client.add(
     content="Sarah's being promoted to VP of Product. She starts the new role next month.",
     container_tag="user_4f8a",
 )
@@ -249,8 +248,6 @@ curl -X DELETE "https://api.supermemory.ai/v4/memories" \
 
 </CodeGroup>
 
-<!-- CONFIRM: `reason` field on DELETE /v4/memories — not in SDK-TRUTH; verify or drop -->
-
 Forgotten memories stop appearing in search — unless you ask for them back with `include: { forgottenMemories: true }` on `client.search.memories`. That's the escape hatch when a forget was wrong.
 
 For bulk cleanup there's `POST /v4/memories/forget-matching`: you give it a natural-language query ("forget everything about Project Titan"), an agent searches the container and soft-forgets the matches. It caps at 100 memories per call by default (500 max, via `maxForget`), and `dryRun: true` returns what *would* be forgotten without touching anything. Always dry-run first:
@@ -271,11 +268,11 @@ curl -X POST "https://api.supermemory.ai/v4/memories/forget-matching" \
 <CodeGroup>
 
 ```typescript TypeScript
-await client.memories.delete("doc_x1k2m9");
+await client.documents.delete("doc_x1k2m9");
 ```
 
 ```python Python
-client.memories.delete("doc_x1k2m9")
+client.documents.delete("doc_x1k2m9")
 ```
 
 ```bash cURL

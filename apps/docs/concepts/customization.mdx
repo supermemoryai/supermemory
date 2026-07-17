@@ -63,13 +63,12 @@ Inline, when you add content:
 <CodeGroup>
 
 ```typescript TypeScript
-await client.memories.add({
+await client.add({
   content: "Asked about logo variations for dark backgrounds again — leaning toward the mono version.",
   containerTag: "user_4f8a",
   entityContext: `Design conversations between john@acme.com and the Brand.ai assistant.
 "The logo" means Acme's primary mark. Focus on John's design preferences and constraints.`,
 });
-// entityContext isn't in the SDK's TS typings yet — the API accepts it
 ```
 
 ```bash cURL
@@ -85,8 +84,6 @@ curl -X POST https://api.supermemory.ai/v3/documents \
 
 </CodeGroup>
 
-<!-- CONFIRM: entityContext on add() is accepted by POST /v3/documents (verified in backend validation) but is not in supermemory@3.10.0 TS typings — confirm minimum SDK version before publishing -->
-
 Or directly on the tag, without ingesting anything. The TS SDK doesn't expose a container-tag update method yet, so this one is a REST call:
 
 ```bash cURL
@@ -98,7 +95,7 @@ curl -X PATCH https://api.supermemory.ai/v3/container-tags/user_4f8a \
   }'
 ```
 
-<!-- CONFIRM: does a newer SDK than 3.10.0 expose containerTags.update? Reinstate a TS tab if so. PATCH /v3/container-tags/{tag} is admin-gated in the backend (roleGate ROLE_ADMIN) — confirm which API keys pass that gate before documenting the restriction. -->
+<!-- CONFIRM: PATCH /v3/container-tags/{tag} is admin-gated in the backend (roleGate ROLE_ADMIN) — confirm which API keys pass that gate before documenting the restriction. -->
 
 Either way, entity context **persists on the tag**. Pass it on one `add()` call and it's stored — every future document in that container is processed with it, including connector syncs landing in the same tag, until you overwrite it or set it to `null`. It's tag state, not a per-request option. If that's not what you expected, it's the one behavior on this page worth rereading.
 
