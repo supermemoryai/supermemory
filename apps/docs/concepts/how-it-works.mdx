@@ -50,7 +50,7 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 
 </CodeGroup>
 
-<!-- CONFIRM: add response shape { id, status } — not covered by SDK-TRUTH -->
+{/* CONFIRM: add response shape { id, status } — not covered by SDK-TRUTH */}
 
 The call returns immediately with an `id` and a status of `queued`. Processing happens asynchronously — you don't wait on ingestion to serve your users.
 
@@ -67,7 +67,7 @@ flowchart LR
 
 The canonical status enum is: `unknown → queued → extracting → chunking → embedding → indexing → done | failed`. Any stage can end in `failed`; `unknown` only appears briefly before the document is queued.
 
-- **extracting** — the content comes out of whatever it was wrapped in: OCR for images, transcription for video, parsing for PDFs and pages. <!-- CONFIRM: OCR + video transcription as supported extraction paths -->
+- **extracting** — the content comes out of whatever it was wrapped in: OCR for images, transcription for video, parsing for PDFs and pages. {/* CONFIRM: OCR + video transcription as supported extraction paths */}
 - **chunking** — the raw content is split into retrieval-sized pieces.
 - **embedding** — chunks get vector representations.
 - **indexing** — this is where the interesting part happens: our memory model derives memories from the content and wires them into the graph.
@@ -102,7 +102,7 @@ curl "https://api.supermemory.ai/v3/documents/doc_x1k2m9" \
 
 </CodeGroup>
 
-`done` means one specific thing: **the memories derived from this document are queryable.** Not "stored", not "received" — queryable. Once you see `done`, a search in the same container will find them. Indexing propagates within a couple of seconds. <!-- CONFIRM: eventual consistency ~2s publishable -->
+`done` means one specific thing: **the memories derived from this document are queryable.** Not "stored", not "received" — queryable. Once you see `done`, a search in the same container will find them. Indexing propagates within a couple of seconds. {/* CONFIRM: eventual consistency ~2s publishable */}
 
 If a document lands in `failed`, the content usually couldn't be extracted — see [errors and limits](/errors-and-limits) for what to check.
 
@@ -155,7 +155,7 @@ curl -X POST "https://api.supermemory.ai/v4/search" \
 }
 ```
 
-<!-- CONFIRM: v4 search result shape ("memory", "similarity") — not covered by SDK-TRUTH -->
+{/* CONFIRM: v4 search result shape ("memory", "similarity") — not covered by SDK-TRUTH */}
 
 ## Add a related document, watch memories change
 
@@ -192,7 +192,7 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 
 Three kinds of relations can come out of that comparison:
 
-<!-- CONFIRM: relation names (Updates/Extends/Derives), the `isLatest` field name, and "derived memories carry lower confidence" — verify against the graph implementation -->
+{/* CONFIRM: relation names (Updates/Extends/Derives), the `isLatest` field name, and "derived memories carry lower confidence" — verify against the graph implementation */}
 
 **Updates** — the new fact supersedes an old one. "Sarah is the design lead" and "Sarah is VP of Product" can't both be current. Supermemory keeps both memories but flips `isLatest`: the old one becomes history, the new one becomes the answer. Search returns the latest version by default, so "what role does Sarah have?" now says VP of Product — and the history is still there if you ask for it. This is how contradictions resolve without losing the timeline.
 
@@ -208,7 +208,7 @@ This is also why [profiles](/concepts/user-profiles) stay current without you ma
 
 You're not the only one working on this container. About 5 minutes after ingestion, **dreaming** kicks in: a background consolidation pass that revisits recent memories, strengthens connections across documents, and tidies up what the fast path missed. It's the same idea as sleep consolidating your day.
 
-Dreaming has its own status (`dreaming` / `done`), separate from document processing — a document being `done` doesn't wait on it, and search works fine while it runs. You can disable dreaming through the API if you need fully deterministic ingestion. <!-- CONFIRM: exact disable param -->
+Dreaming has its own status (`dreaming` / `done`), separate from document processing — a document being `done` doesn't wait on it, and search works fine while it runs. You can disable dreaming through the API if you need fully deterministic ingestion. {/* CONFIRM: exact disable param */}
 
 The practical takeaway: recall right after `done` is good; recall a few minutes later can be better connected. Don't benchmark cross-document inference in the first minute after ingestion.
 

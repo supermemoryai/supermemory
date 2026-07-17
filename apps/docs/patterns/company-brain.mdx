@@ -40,7 +40,7 @@ flowchart LR
     sources --> engine --> out
 ```
 
-You enable Company Brain for your organization from the supermemory app, connect sources, and invite your team. <!-- CONFIRM: enablement flow and plan availability -->
+You enable Company Brain for your organization from the supermemory app, connect sources, and invite your team. {/* CONFIRM: enablement flow and plan availability */}
 
 ## It's a door, not a separate product
 
@@ -64,7 +64,7 @@ Container tags are immutable after creation, and splitting one over-broad brain 
 
 The non-negotiable rule for shared memory: someone who can't open a document in the source shouldn't be able to get its contents out of the brain. Memory that leaks across access boundaries is worse than no memory.
 
-The way you enforce this maps directly onto scoping. Content synced from a shared team drive belongs in that team's container. Content from a private or restricted source gets its own container rather than being mixed into a broader one — the container boundary *is* the access boundary, and memories in one container never influence answers from another. For anything programmatic, [scoped API keys](/concepts/permissioning) restrict a key to specific container tags, so the boundary is enforced server-side rather than by whoever wrote the calling code. <!-- CONFIRM: automatic per-user permission inheritance from connector source ACLs -->
+The way you enforce this maps directly onto scoping. Content synced from a shared team drive belongs in that team's container. Content from a private or restricted source gets its own container rather than being mixed into a broader one — the container boundary *is* the access boundary, and memories in one container never influence answers from another. For anything programmatic, [scoped API keys](/concepts/permissioning) restrict a key to specific container tags, so the boundary is enforced server-side rather than by whoever wrote the calling code. {/* CONFIRM: automatic per-user permission inheritance from connector source ACLs */}
 
 One honest limitation to plan around: a container is an all-or-nothing boundary, **not** a per-document ACL. If a source mixes broadly shared and tightly restricted content, don't sync it into one container and hope — split the sync, or leave the restricted part out. [Connector](/connectors/overview) sync scopes let you pick folders rather than syncing everything.
 

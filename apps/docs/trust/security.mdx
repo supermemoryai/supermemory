@@ -5,7 +5,7 @@ description: "Tenant isolation you can enforce with a key, encryption, SOC 2 Typ
 icon: "shield-halved"
 ---
 
-This page is written for your security review. It covers the isolation model and how to enforce it, encryption, compliance status (SOC 2 Type 2 <!-- CONFIRM: publishable SOC 2 Type 2 wording -->, GDPR, HIPAA/BAA), what we do and don't do with your data, and the exact API calls that implement a right-to-erasure request. Where an answer is a document rather than an API call, the [last section](#request-the-reports) tells you how to get it.
+This page is written for your security review. It covers the isolation model and how to enforce it, encryption, compliance status (SOC 2 Type 2 {/* CONFIRM: publishable SOC 2 Type 2 wording */}, GDPR, HIPAA/BAA), what we do and don't do with your data, and the exact API calls that implement a right-to-erasure request. Where an answer is a document rather than an API call, the [last section](#request-the-reports) tells you how to get it.
 
 ## The isolation guarantee: scoped API keys
 
@@ -77,23 +77,23 @@ Human access works the same way: organization members can be restricted to speci
 
 ## Encryption in transit and at rest
 
-Your data is encrypted in transit and at rest. <!-- CONFIRM: encryption specifics — TLS version, at-rest cipher (AES-256?), key management details -->
+Your data is encrypted in transit and at rest. {/* CONFIRM: encryption specifics — TLS version, at-rest cipher (AES-256?), key management details */}
 
 On self-hosted deployments, encryption keys are yours: the enterprise and managed on-prem tiers run inside your infrastructure, so key custody follows your own KMS setup. One gotcha worth knowing before it bites: on self-hosted installs, stored data is encrypted against your configured key — lose or rotate that key incorrectly and existing data becomes unreadable. The setup and recovery notes are in [self-hosting troubleshooting](/self-hosting/troubleshooting).
 
 ## Compliance status
 
-**SOC 2 Type 2.** Supermemory is SOC 2 Type 2 certified. <!-- CONFIRM: exact publishable statement — "certified" vs "audited/report available", audit period, auditor --> The report is available under NDA — see [how to request it](#request-the-reports).
+**SOC 2 Type 2.** Supermemory is SOC 2 Type 2 certified. {/* CONFIRM: exact publishable statement — "certified" vs "audited/report available", audit period, auditor */} The report is available under NDA — see [how to request it](#request-the-reports).
 
-**GDPR.** Supermemory supports GDPR-compliant deployments: a Data Processing Agreement (DPA) is available <!-- CONFIRM: DPA availability + whether self-serve or on request -->, and the right-to-erasure mechanics are a first-class API operation, [documented below](#delete-a-users-data-the-right-to-erasure-path) — not a support ticket.
+**GDPR.** Supermemory supports GDPR-compliant deployments: a Data Processing Agreement (DPA) is available {/* CONFIRM: DPA availability + whether self-serve or on request */}, and the right-to-erasure mechanics are a first-class API operation, [documented below](#delete-a-users-data-the-right-to-erasure-path) — not a support ticket.
 
-**HIPAA.** A Business Associate Agreement (BAA) is available on the managed cloud only. <!-- CONFIRM: BAA availability + cloud-only scope --> The scoping matters, so here's the reasoning: a BAA covers infrastructure *we* operate and audit. On a self-hosted deployment the infrastructure is yours, so there's nothing for us to attest — you inherit your own cloud's compliance posture instead (which is often exactly what a healthcare security team wants; see [deployment tiers](/self-hosting/tiers)).
+**HIPAA.** A Business Associate Agreement (BAA) is available on the managed cloud only. {/* CONFIRM: BAA availability + cloud-only scope */} The scoping matters, so here's the reasoning: a BAA covers infrastructure *we* operate and audit. On a self-hosted deployment the infrastructure is yours, so there's nothing for us to attest — you inherit your own cloud's compliance posture instead (which is often exactly what a healthcare security team wants; see [deployment tiers](/self-hosting/tiers)).
 
 If you're evaluating for a regulated environment, the practical split is: managed cloud when you want our controls and paperwork to cover you, self-hosted when your controls must cover everything.
 
 ## Your data is not training data
 
-We don't train models on your data. <!-- CONFIRM: exact scope of no-training commitment — all customers or paid plans only; contractual wording -->
+We don't train models on your data. {/* CONFIRM: exact scope of no-training commitment — all customers or paid plans only; contractual wording */}
 
 Worth understanding *how* that's true mechanically, because it's a common source of skepticism. Supermemory's ingestion pipeline runs a custom fine-tuned memory model — but fine-tuning happened before your data ever arrived. When you ingest content, the model derives memories from it at inference time; nothing about your content updates model weights. The derived state (memories, graph, [profiles](/concepts/user-profiles)) lives inside your container as data, not inside any model — which is also why deleting a container [actually removes what was learned from it](#delete-a-users-data-the-right-to-erasure-path).
 
@@ -101,7 +101,7 @@ Worth understanding *how* that's true mechanically, because it's a common source
 
 Data residency comes in four shapes, from most managed to most yours:
 
-- **Managed cloud** — the default. <!-- CONFIRM: cloud hosting region(s) and whether region pinning / EU residency is available -->
+- **Managed cloud** — the default. {/* CONFIRM: cloud hosting region(s) and whether region pinning / EU residency is available */}
 - **Managed on-prem** — we operate supermemory inside your cloud account; data never leaves your VPC.
 - **Enterprise self-hosted** — you run everything, including on air-gapped infrastructure.
 - **Local binary** — for development and small workloads, entirely on your machine.
@@ -148,7 +148,7 @@ curl -X DELETE "https://api.supermemory.ai/v3/documents/bulk" \
 
 </CodeGroup>
 
-This removes the user's documents and the memories derived from them. <!-- CONFIRM: derived memories, graph edges, and profile fully cleared by bulk delete; backup/retention window before data is unrecoverable --> If the user held a scoped key, revoke it too: `DELETE /v3/auth/scoped-key/:keyId` takes effect immediately.
+This removes the user's documents and the memories derived from them. {/* CONFIRM: derived memories, graph edges, and profile fully cleared by bulk delete; backup/retention window before data is unrecoverable */} If the user held a scoped key, revoke it too: `DELETE /v3/auth/scoped-key/:keyId` takes effect immediately.
 
 <Warning>
 Deletion is permanent and there's no recovery — gate this behind your own confirmation flow. Note that deleting documents does **not** restore used quota: you're billed at ingestion, not for storage held. See [usage & billing](/trust/usage-and-billing).
@@ -214,7 +214,7 @@ And `forget-matching` handles "forget everything about X" agentically, with a `d
 
 ## Request the reports
 
-For anything that's a document rather than an API call — the SOC 2 report, the DPA, a BAA, or answers to a security questionnaire — reach the team through your account contact, or at the address on [console.supermemory.ai](https://console.supermemory.ai). <!-- CONFIRM: security/report-request contact address (security@supermemory.ai?) --> The SOC 2 report ships under NDA; the DPA and BAA come back countersigned.
+For anything that's a document rather than an API call — the SOC 2 report, the DPA, a BAA, or answers to a security questionnaire — reach the team through your account contact, or at the address on [console.supermemory.ai](https://console.supermemory.ai). {/* CONFIRM: security/report-request contact address (security@supermemory.ai?) */} The SOC 2 report ships under NDA; the DPA and BAA come back countersigned.
 
 ---
 

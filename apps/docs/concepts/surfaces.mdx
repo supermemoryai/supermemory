@@ -158,7 +158,7 @@ The result is the derived memory, not the raw Notion page:
 }
 ```
 
-**Out, door two: Claude Desktop, via MCP.** With the [MCP server](/supermemory-mcp/mcp) connected to the same account, asking Claude "what's the plan for the old billing API?" makes it call the search tool against the same store. No re-ingestion, no export — the memory the connector created is the memory MCP finds. <!-- CONFIRM: hosted MCP container-tag scoping — how the MCP session maps to team_billing -->
+**Out, door two: Claude Desktop, via MCP.** With the [MCP server](/supermemory-mcp/mcp) connected to the same account, asking Claude "what's the plan for the old billing API?" makes it call the search tool against the same store. No re-ingestion, no export — the memory the connector created is the memory MCP finds. {/* CONFIRM: hosted MCP container-tag scoping — how the MCP session maps to team_billing */}
 
 **Out, door three: your coding agent, via a plugin.** With the [Claude Code plugin](/integrations/claude-code) installed, the hook injects relevant memories when you start working on billing code — so the agent knows about the March 1 sunset before it suggests building against the legacy endpoint. You never asked it to check. That's the point of hooks.
 
@@ -173,7 +173,7 @@ Two websites, one recurring support question. Here's the map:
 | Console | [console.supermemory.ai](https://console.supermemory.ai) | Developers | Create and scope API keys, manage your org and billing, set up connectors, watch usage |
 | App | [app.supermemory.ai](https://app.supermemory.ai) | End users | Chat with your memories — the consumer product, which is itself one more door into the engine |
 
-The console is where every developer workflow starts: **API Keys → Create API Key** gets you the `sm_...` key that the SDK, curl examples, plugins, and SMFS mounts all use. The app can also issue API keys, and plugins accept a key from either surface. <!-- CONFIRM: app and console share one login/account -->
+The console is where every developer workflow starts: **API Keys → Create API Key** gets you the `sm_...` key that the SDK, curl examples, plugins, and SMFS mounts all use. The app can also issue API keys, and plugins accept a key from either surface. {/* CONFIRM: app and console share one login/account */}
 
 The MCP server is the exception on auth: it supports OAuth, so tools like Claude Desktop can connect without you handling a key at all. Under the hood it's still your account, still the same engine.
 

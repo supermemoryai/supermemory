@@ -21,10 +21,10 @@ Webhook support varies by provider. Google Drive, Gmail, Notion, and OneDrive pu
 GitHub is the one to watch: it syncs on a delay of a few hours, **not** in real time. If you push a commit and search for it a minute later, it won't be there yet. Trigger a [manual sync](#trigger-a-sync-manually) when you need a repo picked up sooner.
 
 <Note>
-Changes are debounced for about 10 minutes before a sync picks them up. If a user saves a file five times in a row, you get one sync, not five — but it also means even webhook-backed connectors aren't instant. <!-- CONFIRM: 10-min debounce — verified for S3 in support threads; confirm whether it applies to all providers -->
+Changes are debounced for about 10 minutes before a sync picks them up. If a user saves a file five times in a row, you get one sync, not five — but it also means even webhook-backed connectors aren't instant. {/* CONFIRM: 10-min debounce — verified for S3 in support threads; confirm whether it applies to all providers */}
 </Note>
 
-Files over 50MB are skipped during sync. <!-- CONFIRM: 50MB per-file connector limit --> They show up as failures in the sync history rather than failing the whole run.
+Files over 50MB are skipped during sync. {/* CONFIRM: 50MB per-file connector limit */} They show up as failures in the sync history rather than failing the whole run.
 
 ## Trigger a sync manually
 

@@ -6,7 +6,7 @@ mode: "center"
 icon: "book-open"
 ---
 
-Supermemory is a context engine. You feed it everything — chat sessions, files, URLs, connector data — and it derives memories, a knowledge graph, and live profiles. When your app needs context, supermemory serves the right slice back in ~300ms. <!-- CONFIRM: publishable latency figure -->
+Supermemory is a context engine. You feed it everything — chat sessions, files, URLs, connector data — and it derives memories, a knowledge graph, and live profiles. When your app needs context, supermemory serves the right slice back in ~300ms. {/* CONFIRM: publishable latency figure */}
 
 The whole loop is two calls:
 
@@ -95,6 +95,6 @@ Every surface below is a door into the same engine — one store of memories, on
 
 Most "memory layers" are a vector store that retrieves the nearest chunk. Supermemory understands what it stores: facts carry time, entities connect across sessions, contradictions resolve to what's true *now*, and irrelevant details fade.
 
-- **State of the art** on LongMemEval and LoCoMo — and [MemoryBench](/memorybench/overview) lets you reproduce the numbers yourself. <!-- CONFIRM: exact benchmark figures + ConvoMem -->
-- **Fast enough for the hot path**: profile reads ~100ms, search P50 ~300ms. <!-- CONFIRM: publishable latency figures -->
+- **State of the art** on LongMemEval and LoCoMo — and [MemoryBench](/memorybench/overview) lets you reproduce the numbers yourself. {/* CONFIRM: exact benchmark figures + ConvoMem */}
+- **Fast enough for the hot path**: profile reads ~100ms, search P50 ~300ms. {/* CONFIRM: publishable latency figures */}
 - **Yours to run**: the same engine powers the cloud API, a free local binary, and on-prem enterprise deploys.

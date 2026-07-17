@@ -11,7 +11,7 @@ You create a connection, your user completes OAuth (or supplies credentials, for
 
 ## What you can connect
 
-<!-- CONFIRM: plan matrix — verify per-plan availability against current billing config before publish -->
+{/* CONFIRM: plan matrix — verify per-plan availability against current billing config before publish */}
 
 | Connector | What syncs | Plan | Sync behavior |
 |-----------|-----------|------|---------------|
@@ -151,7 +151,7 @@ Every connector has edges. These are the ones that surprise people.
 
 By default, after OAuth your user completes a file-and-folder picker, and **only the items they select** sync. If they pick one folder out of twenty, you sync one folder out of twenty. Users who expect "connect Drive, get Drive" will report missing files — set that expectation in your UI before they hit connect.
 
-Whole-Drive sync exists: pass `metadata.syncScope: "full"` when you create the connection and the picker is skipped. But broad Drive access runs into Google's rules, not ours. Google treats full-Drive scopes as restricted: consent screens show an unverified-app warning until your OAuth app passes Google's verification, and restricted scopes carry a recurring security assessment per client ID — a cost you own, annually. <!-- CONFIRM: Google verification/annual security assessment specifics -->
+Whole-Drive sync exists: pass `metadata.syncScope: "full"` when you create the connection and the picker is skipped. But broad Drive access runs into Google's rules, not ours. Google treats full-Drive scopes as restricted: consent screens show an unverified-app warning until your OAuth app passes Google's verification, and restricted scopes carry a recurring security assessment per client ID — a cost you own, annually. {/* CONFIRM: Google verification/annual security assessment specifics */}
 
 The production path for whole-Drive sync is a [custom OAuth app](/connectors/google-drive#custom-oauth-application): register your own Google client, complete verification under your brand, then point supermemory at it with `client.settings.update({ googleDriveCustomKeyEnabled: true, ... })`. Your users see your name on the consent screen instead of a warning.
 
@@ -161,14 +161,14 @@ The production path for whole-Drive sync is a [custom OAuth app](/connectors/goo
 - **Granola** has no automatic sync. You trigger imports manually.
 - **Web Crawler** recrawls on a schedule, so page edits take time to appear. It respects robots.txt — pages it's told not to fetch won't sync.
 - **Notion** connects to one workspace per authorization. To switch accounts, delete the connection and reconnect.
-- **Large files**: connector files over 50MB are skipped. <!-- CONFIRM: 50MB per-file connector limit -->
+- **Large files**: connector files over 50MB are skipped. {/* CONFIRM: 50MB per-file connector limit */}
 
 ## What doesn't exist yet
 
 Sources people often ask about that don't sync today:
 
 - **Microsoft Teams, Outlook, and SharePoint** — no connectors today. OneDrive covers files in Microsoft 365, but Teams messages, Outlook mail, and SharePoint sites do **not** sync.
-- **HubSpot** — in development, not shipped. <!-- CONFIRM: HubSpot in development -->
+- **HubSpot** — in development, not shipped. {/* CONFIRM: HubSpot in development */}
 - **Slack, Jira, Confluence, Linear** — not available as connectors.
 
 If your source isn't listed, you don't have to wait. The document API is itself a connector surface: pull from the source's API, add each item with a `customId` (so re-adds update instead of duplicate), and you've built the sync yourself. [Ingestion best practices](/patterns/ingestion) walks through the pattern.
@@ -216,7 +216,7 @@ curl -X DELETE "https://api.supermemory.ai/v3/connections/conn_9f2c1b?deleteDocu
 The default delete is permanent — the documents and the memories derived from them are gone, and deletion does **not** restore used quota. If you only need to pause sync, pass `deleteDocuments=false` so the documents stay, then reconnect later.
 </Warning>
 
-The SDK doesn't type `deleteDocuments` as a method parameter — it's a query parameter on the request, which is why the examples pass it through the request options. <!-- CONFIRM: python — extra_query kwarg name against the published pypi package -->
+The SDK doesn't type `deleteDocuments` as a method parameter — it's a query parameter on the request, which is why the examples pass it through the request options. {/* CONFIRM: python — extra_query kwarg name against the published pypi package */}
 
 That's the whole surface: connect, verify, disconnect. Everything a connector imports lives in the same engine as your API-added content — one search, one graph, one set of profiles.
 

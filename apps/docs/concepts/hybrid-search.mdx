@@ -399,10 +399,10 @@ Any condition takes `negate: true` to invert it. There's no `!=` operator — fo
 
 There is **no** boolean filter type. Store flags as the strings `"true"`/`"false"` (or `1`/`0` and filter numerically) and match with string equality.
 
-The limits: <!-- CONFIRM: filter limits still true in v4 -->
+The limits: {/* CONFIRM: filter limits still true in v4 */}
 
 - Max 200 conditions per query, 8 nesting levels. If you're anywhere near either, your metadata schema wants restructuring — usually into fewer, more meaningful keys.
-- Metadata keys must match `^[a-zA-Z0-9_-]+$` — no spaces, no dots. <!-- CONFIRM: metadata key charset -->
+- Metadata keys must match `^[a-zA-Z0-9_-]+$` — no spaces, no dots. {/* CONFIRM: metadata key charset */}
 
 One thing filters are **not** for: tenant isolation. A filter is a query-time convenience; a [container tag](/concepts/permissioning) is a data boundary, enforced by scoped keys. Put the tenant in the container tag, and use metadata for dimensions inside it — channel, agent role, stage.
 
@@ -438,7 +438,7 @@ If the last turn is too elliptical on its own ("what about the second one?"), re
 
 ## Know your latency budget
 
-What to expect per call, so you can decide which knobs fit inside your budget: <!-- CONFIRM: latency figures publishable -->
+What to expect per call, so you can decide which knobs fit inside your budget: {/* CONFIRM: latency figures publishable */}
 
 | Configuration | Expectation |
 |---|---|
@@ -449,7 +449,7 @@ What to expect per call, so you can decide which knobs fit inside your budget: <
 
 Everything on at once is still well under a second, but in a voice agent or a per-keystroke flow you'll feel it. A pattern that works: defaults on the hot path, `rewriteQuery` + `rerank` on the explicit "search my memory" action where the user expects a beat of thinking.
 
-One more timing fact: new memories become searchable within a couple of seconds of processing finishing — writes are eventually consistent. <!-- CONFIRM: ~2s eventual consistency --> Don't write a memory and assert on its retrieval in the same request cycle.
+One more timing fact: new memories become searchable within a couple of seconds of processing finishing — writes are eventually consistent. {/* CONFIRM: ~2s eventual consistency */} Don't write a memory and assert on its retrieval in the same request cycle.
 
 That's the whole tuning surface — two endpoints, five knobs, one query-construction rule. Most setups need exactly one change from the defaults, and now you know which one.
 

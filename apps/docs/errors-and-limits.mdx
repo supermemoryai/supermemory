@@ -27,7 +27,7 @@ These three get mixed up constantly, and one of them lies to you right now. Here
 | `5xx` | Something broke on our side | Retry with backoff; if it persists, tell us |
 
 <Warning>
-A 401 doesn't always mean your key is bad. Right now, running out of quota can also surface as a `401 Unauthorized` — the request gets rejected during auth before billing gets the chance to return a proper 402. We're fixing this. Until then: if a key that worked yesterday suddenly returns 401, [check your usage](#check-your-usage) before you rotate keys or dig through your auth code. <!-- CONFIRM: quota exhaustion surfacing as 401 — not verifiable in API code; confirm current behavior and fix status -->
+A 401 doesn't always mean your key is bad. Right now, running out of quota can also surface as a `401 Unauthorized` — the request gets rejected during auth before billing gets the chance to return a proper 402. We're fixing this. Until then: if a key that worked yesterday suddenly returns 401, [check your usage](#check-your-usage) before you rotate keys or dig through your auth code. {/* CONFIRM: quota exhaustion surfacing as 401 — not verifiable in API code; confirm current behavior and fix status */}
 </Warning>
 
 The 402 body tells you which meter you exhausted:
@@ -49,7 +49,7 @@ Two limits apply:
 The per-key default can be raised. If your workload genuinely needs more than 500 requests a minute on one key, reach out and we'll set a per-key override. But first consider whether you should be batching — [`POST /v3/documents/batch`](/add-memories) turns many adds into one request, and most bursty ingestion workloads fit under the limit once batched.
 
 <Note>
-Load-testing? You may hit Cloudflare's WAF at the edge before you ever reach the API's rate limiter — blocked requests that never show up in your API logs. That's edge protection, not a supermemory error. Contact us before running a serious load test and we'll make sure your traffic gets through. <!-- CONFIRM: WAF allowlisting process for load tests -->
+Load-testing? You may hit Cloudflare's WAF at the edge before you ever reach the API's rate limiter — blocked requests that never show up in your API logs. That's edge protection, not a supermemory error. Contact us before running a serious load test and we'll make sure your traffic gets through. {/* CONFIRM: WAF allowlisting process for load tests */}
 </Note>
 
 ## Handle 429s with backoff
@@ -168,14 +168,14 @@ Only escalate to exponential delays if you're still getting 429s after honoring 
 
 Rate limits reset every minute. Quota doesn't — it's your plan's monthly allowance, and when it runs out you get 402s (or, today, sometimes 401s — see above) until it refreshes or you top up.
 
-What happens next depends on your plan: on Scale, overage kicks in automatically and you keep going, billed for what you use; on Pro, you top up manually from the console. <!-- CONFIRM: overage behavior by plan (Scale auto, Pro manual) -->
+What happens next depends on your plan: on Scale, overage kicks in automatically and you keep going, billed for what you use; on Pro, you top up manually from the console. {/* CONFIRM: overage behavior by plan (Scale auto, Pro manual) */}
 
 Two things to know so quota doesn't surprise you:
 
 - **You're charged on ingestion, not retrieval.** Search is essentially free; the tokens you process when adding content are the cost driver. If you're burning quota faster than expected, look at what you're ingesting, not how often you're searching.
 - **Deleting documents does not restore used quota.** The tokens were spent processing the content on the way in. Deleting cleans up your data — it doesn't refund the work.
 
-The full cost model — what "tokens processed" counts, plan matrices, the cheaper `taskType` lever for retrieval-only ingestion <!-- CONFIRM: taskType param name --> — lives in [usage & billing](/trust/usage-and-billing).
+The full cost model — what "tokens processed" counts, plan matrices, the cheaper `taskType` lever for retrieval-only ingestion {/* CONFIRM: taskType param name */} — lives in [usage & billing](/trust/usage-and-billing).
 
 ## Check your usage
 

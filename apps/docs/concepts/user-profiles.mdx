@@ -82,7 +82,7 @@ The two arrays split by how long-lived a fact is, not by topic:
 - **`static`** — durable facts: who they are, what they do, standing preferences. This is the stuff that's true next month.
 - **`dynamic`** — recent episodes and current state: what they're working on, what happened lately. Entries carry `[Recent]` or `[YYYY-MM-DD]` prefixes so your model can weigh recency; strip them if you only want the text.
 
-Static populates as the engine sees the same durable facts hold up across ingestions — a brand-new container won't have a settled static section after one message, and early on you'll mostly see dynamic entries. <!-- CONFIRM: exact static-population timing/threshold --> Older dynamic context doesn't pile up forever either: it gets periodically consolidated into denser summaries, so the profile stays compact instead of growing with the container.
+Static populates as the engine sees the same durable facts hold up across ingestions — a brand-new container won't have a settled static section after one message, and early on you'll mostly see dynamic entries. {/* CONFIRM: exact static-population timing/threshold */} Older dynamic context doesn't pile up forever either: it gets periodically consolidated into denser summaries, so the profile stays compact instead of growing with the container.
 
 Beyond the lifespan axis, you can define **buckets** — topical categories like `preferences` or `goals` that a classifier assigns memories to at ingestion time. Every org starts with a built-in `preferences` bucket; you define more in the console, and request them with `include: ["buckets"]` on the profile call. Buckets and `filterPrompt` (your rules for what's worth remembering at all) are the two levers that shape what lands in a profile — bucket descriptions steer where facts get filed, `filterPrompt` steers what gets extracted in the first place. Mechanics for both are in the [profile API reference](/user-profiles) and [Customization](/concepts/customization).
 
@@ -167,7 +167,7 @@ ${memories ?? ""}
 If you're on the Vercel AI SDK, `withSupermemory` does this injection for you — see the [AI SDK integration](/integrations/ai-sdk).
 
 <Note>
-The profile call is a read — it doesn't count as ingestion, so calling it on every message costs you latency, not quota. It's fast enough to sit in the hot path. <!-- CONFIRM: profile latency ~100ms publishable -->
+The profile call is a read — it doesn't count as ingestion, so calling it on every message costs you latency, not quota. It's fast enough to sit in the hot path. {/* CONFIRM: profile latency ~100ms publishable */}
 </Note>
 
 ## What profiles are not

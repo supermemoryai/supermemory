@@ -253,7 +253,7 @@ Because each container maintains its own profile, per-user personalization comes
 
 ### One container per client (agencies)
 
-You run one supermemory organization; each of your clients is a container: `client_hartwell`, `client_meridian`. This is a real data boundary — one client's memories never inform another's — and it makes the commercial mechanics clean: you can meter, report, and delete per client. Container tags have no per-tag cost and big containers carry no performance penalty, so there's no reason to pool clients. Per-client usage breakdown for rebilling: <!-- CONFIRM: per-container usage breakdown surface (console or /v3/analytics) --> track ingestion per container. If a client gets direct API access, hand them a scoped key for their own container — they can't reach the others even on purpose.
+You run one supermemory organization; each of your clients is a container: `client_hartwell`, `client_meridian`. This is a real data boundary — one client's memories never inform another's — and it makes the commercial mechanics clean: you can meter, report, and delete per client. Container tags have no per-tag cost and big containers carry no performance penalty, so there's no reason to pool clients. Per-client usage breakdown for rebilling: {/* CONFIRM: per-container usage breakdown surface (console or /v3/analytics) */} track ingestion per container. If a client gets direct API access, hand them a scoped key for their own container — they can't reach the others even on purpose.
 
 ### Shared org memory + private user memory
 
@@ -333,7 +333,7 @@ You'll see a plural `containerTags` array on some v3 endpoints — document sear
 
 ## Limits and immutability
 
-- **Capacity:** a container holds up to 10M items <!-- CONFIRM: 10M -->, and large containers don't get slower — there's no performance penalty for putting a big tenant in one container. Don't shard a tenant across tags for scale reasons; you'd only be breaking your own boundary.
+- **Capacity:** a container holds up to 10M items {/* CONFIRM: 10M */}, and large containers don't get slower — there's no performance penalty for putting a big tenant in one container. Don't shard a tenant across tags for scale reasons; you'd only be breaking your own boundary.
 - **Tags are immutable.** A container tag can't be renamed after creation — the tag string is the container's identity. Decide your naming convention before production data lands. If you end up with two tags that should be one (a migration, or the dual-ID mistake above), consolidate them with the merge endpoint under `/v3/container-tags`.
 - **Naming:** ≤100 characters, `^[a-zA-Z0-9_:-]+$`. Spaces, slashes, and `@` are rejected at request time.
 
@@ -349,7 +349,7 @@ curl -X DELETE "https://api.supermemory.ai/v3/documents/bulk" \
   -d '{ "containerTags": ["user_4f8a"] }'
 ```
 
-This removes the user's documents and the memories derived from them <!-- CONFIRM: derived memories and profile fully cleared by bulk delete -->. If the user also had a scoped key, revoke it with `DELETE /v3/auth/scoped-key/:id` — revocation is immediate.
+This removes the user's documents and the memories derived from them {/* CONFIRM: derived memories and profile fully cleared by bulk delete */}. If the user also had a scoped key, revoke it with `DELETE /v3/auth/scoped-key/:id` — revocation is immediate.
 
 <Warning>
 Deletion is permanent — there's no recovery, so gate this behind your own confirmation flow. And note that deleting documents does **not** restore used quota; you're billed at ingestion, not for storage held.

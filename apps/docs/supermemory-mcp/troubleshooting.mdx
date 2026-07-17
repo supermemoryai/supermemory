@@ -68,7 +68,7 @@ args = ["-y", "mcp-remote@latest", "https://mcp.supermemory.ai/mcp"]
 
 </CodeGroup>
 
-<!-- CONFIRM: Codex config.toml shape (mcp_servers table) against current Codex CLI docs -->
+{/* CONFIRM: Codex config.toml shape (mcp_servers table) against current Codex CLI docs */}
 
 For the screenshot-backed Claude Desktop walkthrough (Settings → Developer → Edit Config, then Connectors), see [Claude Desktop](/supermemory-mcp/claude-desktop). For the one-line CLI install that works across clients, see [Setup and Usage](/supermemory-mcp/setup).
 
@@ -90,7 +90,7 @@ rm -rf ~/.mcp-auth
 npx clear-npx-cache
 ```
 
-<!-- CONFIRM: ~/.mcp-auth as mcp-remote's token cache path; clear-npx-cache as the recommended cache-clearing step -->
+{/* CONFIRM: ~/.mcp-auth as mcp-remote's token cache path; clear-npx-cache as the recommended cache-clearing step */}
 
 Then restart your client and complete the login once. One client, one fresh auth — the loop breaks.
 
@@ -134,7 +134,7 @@ Supermemory's OAuth server rejects scope strings it doesn't recognize, and some 
 1. Update the client (or gateway) to its latest version — current versions request scopes correctly.
 2. If your config explicitly sets a `scope` value, remove it and let the discovery flow negotiate.
 
-<!-- CONFIRM: which scope strings the supermemory OAuth server accepts -->
+{/* CONFIRM: which scope strings the supermemory OAuth server accepts */}
 
 If neither works — some third-party gateways hardcode their scope request — use [API key auth](#fix-the-re-auth-loop) instead. It bypasses the OAuth handshake completely, scopes and all.
 
@@ -154,7 +154,7 @@ If the flow completes in the browser ("you can close this window") but the clien
 
 **Symptom:** "My memories are going to the wrong org" — you're a member of multiple organizations, and after connecting via MCP, saved memories show up under your personal org (or a different org) instead of the one you selected in the dashboard.
 
-This is a known issue: your active organization can get dropped during the MCP OAuth flow, and the session falls back to your default org. <!-- CONFIRM: exact fallback behavior when activeOrganizationId is dropped --> Memories saved in that state are in the engine and searchable — they're under the wrong container, not lost.
+This is a known issue: your active organization can get dropped during the MCP OAuth flow, and the session falls back to your default org. {/* CONFIRM: exact fallback behavior when activeOrganizationId is dropped */} Memories saved in that state are in the engine and searchable — they're under the wrong container, not lost.
 
 The deterministic fix is API key auth. API keys are created inside an organization and carry that context with every request — there's no session state to drop:
 

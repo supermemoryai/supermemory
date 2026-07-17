@@ -17,10 +17,22 @@ Most memory layers are a vector store that retrieves the nearest chunk. That wor
 
 You can't patch these with a retrieval trick. Fixing them takes extraction that understands time and identity, a graph that revises itself when new information lands, and a store shaped for that data. That's what the rest of this page describes.
 
-<Frame caption="The supermemory context engine, end to end">
-  <!-- TODO(dhravya): drop the architecture disclosure diagram here — ingestion pipeline → data engine → retrieval fan-out. Placeholder image path until supplied. -->
-  <img src="/images/architecture-diagram.png" alt="Architecture diagram: documents flow through the ingestion pipeline into the data engine; retrieval fans out across semantic, keyword, and graph indexes in parallel" />
-</Frame>
+{/* TODO(dhravya): drop the architecture disclosure diagram here — ingestion pipeline → data engine → retrieval fan-out. Wrap in <Frame caption="The supermemory context engine, end to end"> when the image lands. */}
+
+```text
+  [documents you ingest]
+           |
+   ingestion pipeline        (custom memory model:
+           |                  extract → relate → derive)
+  +--------+--------+
+  |        |        |
+memories  graph  profiles
+  +--------+--------+
+           |
+   hybrid retrieval          (semantic + keyword + graph,
+           |                  fanned out in parallel)
+   your app's context
+```
 
 ## What happens when you ingest
 
@@ -30,7 +42,7 @@ Every document — an API call, a file, a connector item, a chat session — goe
 
 Extraction runs on a custom fine-tuned memory model that we host — not a prompt wrapped around a general-purpose LLM. It's trained on one job: reading raw content and pulling out the facts worth remembering. Each fact carries provenance — where it came from — and time — when it was true. Running our own model is also why ingestion stays cheap at volume — a frontier model doing this work per document would dominate your bill.
 
-Self-hosted tiers run on-device variants of the same model, at 400M and 2B parameters. <!-- CONFIRM: 400M/2B on-device variant sizes publishable (stated on Lenovo call) --> See [self-hosting tiers](/self-hosting/tiers) for which variant runs where.
+Self-hosted tiers run on-device variants of the same model, at 400M and 2B parameters. {/* CONFIRM: 400M/2B on-device variant sizes publishable (stated on Lenovo call) */} See [self-hosting tiers](/self-hosting/tiers) for which variant runs where.
 
 ### Derivation: Updates, Extends, Derives
 
@@ -56,7 +68,7 @@ For each [container tag](/concepts/permissioning), the engine maintains a [profi
 
 About five minutes after ingestion, the engine revisits the new memories with the whole graph in view — consolidating related memories and drawing connections that weren't visible while documents were streaming in one at a time. We call it dreaming, because that's roughly the job sleep does for your brain.
 
-Dreaming is why a container keeps getting better after `done`. If you need fully deterministic post-ingest state, you can disable it via the API. <!-- CONFIRM: exact param/endpoint for disabling dreaming -->
+Dreaming is why a container keeps getting better after `done`. If you need fully deterministic post-ingest state, you can disable it via the API. {/* CONFIRM: exact param/endpoint for disabling dreaming */}
 
 ## Why one store, not three
 
@@ -74,7 +86,7 @@ A search doesn't pick one index — it fans out to all three in parallel:
 2. **Keyword** — exact terms, for the names, IDs, and jargon that embeddings blur.
 3. **Graph** — walks relations outward from matched memories, pulling in connected facts the query never mentioned.
 
-Results merge under a unified score. Because the fan-out runs in parallel inside one store, the graph walk adds about 20ms over a plain vector lookup <!-- CONFIRM: ~20ms graph/merge delta — verbal only (Uber/Harmix calls) --> — connected recall without a second round trip.
+Results merge under a unified score. Because the fan-out runs in parallel inside one store, the graph walk adds about 20ms over a plain vector lookup {/* CONFIRM: ~20ms graph/merge delta — verbal only (Uber/Harmix calls) */} — connected recall without a second round trip.
 
 One call hits all three:
 
@@ -142,7 +154,7 @@ The query never said "Sarah" — the graph resolved the entity. From here you tu
 
 ## Where the milliseconds go
 
-Numbers you can plan around: <!-- CONFIRM: all latency numbers in this table — stated verbally (CBRE call); confirm publishable before ship -->
+Numbers you can plan around: {/* CONFIRM: all latency numbers in this table — stated verbally (CBRE call); confirm publishable before ship */}
 
 | Operation | Typical latency |
 |---|---|

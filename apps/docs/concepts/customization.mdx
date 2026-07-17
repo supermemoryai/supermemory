@@ -17,7 +17,7 @@ Here's the whole surface at a glance:
 | `entityContext` | One container tag | **Who or what the entity is** — grounding for extraction | On `add()`, or `PATCH /v3/container-tags/{tag}` |
 | Organization Context | Entire org | The console's no-code editor for `filterPrompt` | console → Settings → Organization Context |
 
-That third row isn't a separate field. The console's Organization Context panel writes the same `filterPrompt` setting the API does — it's the same lever with a UI on it. <!-- CONFIRM: does the console cap Organization Context length? Couldn't find a 750-char (or any) cap in console-v2 code -->
+That third row isn't a separate field. The console's Organization Context panel writes the same `filterPrompt` setting the API does — it's the same lever with a UI on it. {/* CONFIRM: does the console cap Organization Context length? Couldn't find a 750-char (or any) cap in console-v2 code */}
 
 ## Set org-wide rules with filterPrompt
 
@@ -95,7 +95,7 @@ curl -X PATCH https://api.supermemory.ai/v3/container-tags/user_4f8a \
   }'
 ```
 
-<!-- CONFIRM: PATCH /v3/container-tags/{tag} is admin-gated in the backend (roleGate ROLE_ADMIN) — confirm which API keys pass that gate before documenting the restriction. -->
+{/* CONFIRM: PATCH /v3/container-tags/{tag} is admin-gated in the backend (roleGate ROLE_ADMIN) — confirm which API keys pass that gate before documenting the restriction. */}
 
 Either way, entity context **persists on the tag**. Pass it on one `add()` call and it's stored — every future document in that container is processed with it, including connector syncs landing in the same tag, until you overwrite it or set it to `null`. It's tag state, not a per-request option. If that's not what you expected, it's the one behavior on this page worth rereading.
 
@@ -202,7 +202,7 @@ curl -X PATCH https://api.supermemory.ai/v3/settings \
 
 </CodeGroup>
 
-Use 256–512 when you need precise citations, 1024–2048 for long-form analysis, and `-1` unless you've measured a reason not to. <!-- CONFIRM: recommended ranges — these are editorial guidance, not from code -->
+Use 256–512 when you need precise citations, 1024–2048 for long-form analysis, and `-1` unless you've measured a reason not to. {/* CONFIRM: recommended ranges — these are editorial guidance, not from code */}
 
 **Connector branding** lets the OAuth screen say "Log in to YourApp" instead of "Log in to Supermemory" by supplying your own client credentials (`googleDriveCustomKeyEnabled` + client ID/secret, and the same pattern for Notion and OneDrive). Setup steps are in the [connectors overview](/connectors/overview).
 

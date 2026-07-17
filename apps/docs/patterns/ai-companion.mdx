@@ -73,7 +73,7 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 
 The extraction model reads the full arc of the session and derives memories with real provenance — who said what, when, and how it connects to what it already knows. A few minutes after ingestion, background consolidation ([dreaming](/concepts/how-it-works)) links the new facts into the graph.
 
-You don't have to wait for the window to close before the session becomes memory. Flush the growing transcript every few turns with the **same** `customId` — the re-add updates that session's document instead of creating a duplicate. <!-- CONFIRM: re-add with same customId updates the document in place --> That gives you near-live memory during long sessions without turn-by-turn cost.
+You don't have to wait for the window to close before the session becomes memory. Flush the growing transcript every few turns with the **same** `customId` — the re-add updates that session's document instead of creating a duplicate. {/* CONFIRM: re-add with same customId updates the document in place */} That gives you near-live memory during long sessions without turn-by-turn cost.
 
 <Note>
 One session window = one document. Don't be tempted to make it one document per day or per week — a 4-hour window is roughly the span a human would recall as "one conversation," and the extraction quality tracks that intuition.

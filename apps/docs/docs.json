@@ -387,11 +387,6 @@
 			"source": "/integrations/clawdbot"
 		},
 		{
-			"destination": "/overview",
-			"permanent": false,
-			"source": "/"
-		},
-		{
 			"destination": "/concepts/how-it-works",
 			"permanent": true,
 			"source": "/how-it-works"
