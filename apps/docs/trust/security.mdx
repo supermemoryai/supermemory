@@ -1,0 +1,238 @@
+---
+title: "Security & Compliance"
+sidebarTitle: "Security"
+description: "Tenant isolation you can enforce with a key, encryption, SOC 2 Type 2, GDPR and HIPAA posture, and how to actually delete a user's data."
+icon: "shield-halved"
+---
+
+This page is written for your security review. It covers the isolation model and how to enforce it, encryption, compliance status (SOC 2 Type 2 <!-- CONFIRM: publishable SOC 2 Type 2 wording -->, GDPR, HIPAA/BAA), what we do and don't do with your data, and the exact API calls that implement a right-to-erasure request. Where an answer is a document rather than an API call, the [last section](#request-the-reports) tells you how to get it.
+
+## The isolation guarantee: scoped API keys
+
+Here's the question every reviewer asks, so let's answer it first: *"Suppose I'm a malicious developer — or a compromised client, or a prompt-injected agent. `containerTag` is only a request parameter. What stops me from changing it and reading another user's memories?"*
+
+If the caller holds your org-wide API key: nothing. That key can touch every container in your organization — that's what an org key is for, and it should never leave your server. Anything closer to the user gets a **scoped key** instead: a key bound to exactly one [container tag](/concepts/permissioning) at creation time.
+
+To mint one, call the scoped-key endpoint from your server with your org key:
+
+<CodeGroup>
+
+```typescript TypeScript
+// POST /v3/auth/scoped-key — server-side only, never from the client
+const res = await fetch("https://api.supermemory.ai/v3/auth/scoped-key", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    containerTag: "user_4f8a",
+    expiresInDays: 30,
+  }),
+});
+const { key } = await res.json();
+// hand `key` to the client session — it can only ever see user_4f8a
+```
+
+```python Python
+# POST /v3/auth/scoped-key — server-side only, never from the client
+import os
+import requests
+
+res = requests.post(
+    "https://api.supermemory.ai/v3/auth/scoped-key",
+    headers={"Authorization": f"Bearer {os.environ['SUPERMEMORY_API_KEY']}"},
+    json={"containerTag": "user_4f8a", "expiresInDays": 30},
+)
+key = res.json()["key"]
+# hand key to the client session — it can only ever see user_4f8a
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/auth/scoped-key" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "containerTag": "user_4f8a",
+    "expiresInDays": 30
+  }'
+```
+
+</CodeGroup>
+
+The boundary is then enforced at the data layer, not in your application code:
+
+- A request naming any **other** container tag is rejected with `403 Forbidden`.
+- A request that omits the tag is automatically scoped to the key's own container.
+- The key only reaches memory endpoints (`/v3/documents`, `/v3/search`, `/v4/search`, `/v4/memories`, `/v4/profile`, `/v4/conversations`, `/v3/container-tags`) — no billing, account, or key-management routes.
+- Revocation is immediate: `DELETE /v3/auth/scoped-key/:keyId`, and the key gets `401` from that moment on.
+
+So the answer for your review, in print: the attacker can change the parameter, and the API refuses the request. Isolation doesn't depend on your code being correct — it depends on which key the caller holds, and the check runs server-side on every request, not in a client library that could be patched out.
+
+The SDK has no helper for key management yet — mint and revoke via the REST endpoint as above. Full parameters (rate-limit overrides, naming, expiry bounds) are in the [authentication reference](/authentication), and the complete multi-tenant design — including the mistakes to avoid — is in [permissioning](/concepts/permissioning).
+
+<Note>
+Human access works the same way: organization members can be restricted to specific container tags in the console, with the same 403 behavior applied to people instead of keys.
+</Note>
+
+## Encryption in transit and at rest
+
+Your data is encrypted in transit and at rest. <!-- CONFIRM: encryption specifics — TLS version, at-rest cipher (AES-256?), key management details -->
+
+On self-hosted deployments, encryption keys are yours: the enterprise and managed on-prem tiers run inside your infrastructure, so key custody follows your own KMS setup. One gotcha worth knowing before it bites: on self-hosted installs, stored data is encrypted against your configured key — lose or rotate that key incorrectly and existing data becomes unreadable. The setup and recovery notes are in [self-hosting troubleshooting](/self-hosting/troubleshooting).
+
+## Compliance status
+
+**SOC 2 Type 2.** Supermemory is SOC 2 Type 2 certified. <!-- CONFIRM: exact publishable statement — "certified" vs "audited/report available", audit period, auditor --> The report is available under NDA — see [how to request it](#request-the-reports).
+
+**GDPR.** Supermemory supports GDPR-compliant deployments: a Data Processing Agreement (DPA) is available <!-- CONFIRM: DPA availability + whether self-serve or on request -->, and the right-to-erasure mechanics are a first-class API operation, [documented below](#delete-a-users-data-the-right-to-erasure-path) — not a support ticket.
+
+**HIPAA.** A Business Associate Agreement (BAA) is available on the managed cloud only. <!-- CONFIRM: BAA availability + cloud-only scope --> The scoping matters, so here's the reasoning: a BAA covers infrastructure *we* operate and audit. On a self-hosted deployment the infrastructure is yours, so there's nothing for us to attest — you inherit your own cloud's compliance posture instead (which is often exactly what a healthcare security team wants; see [deployment tiers](/self-hosting/tiers)).
+
+If you're evaluating for a regulated environment, the practical split is: managed cloud when you want our controls and paperwork to cover you, self-hosted when your controls must cover everything.
+
+## Your data is not training data
+
+We don't train models on your data. <!-- CONFIRM: exact scope of no-training commitment — all customers or paid plans only; contractual wording -->
+
+Worth understanding *how* that's true mechanically, because it's a common source of skepticism. Supermemory's ingestion pipeline runs a custom fine-tuned memory model — but fine-tuning happened before your data ever arrived. When you ingest content, the model derives memories from it at inference time; nothing about your content updates model weights. The derived state (memories, graph, [profiles](/concepts/user-profiles)) lives inside your container as data, not inside any model — which is also why deleting a container [actually removes what was learned from it](#delete-a-users-data-the-right-to-erasure-path).
+
+## Choose where your data lives
+
+Data residency comes in four shapes, from most managed to most yours:
+
+- **Managed cloud** — the default. <!-- CONFIRM: cloud hosting region(s) and whether region pinning / EU residency is available -->
+- **Managed on-prem** — we operate supermemory inside your cloud account; data never leaves your VPC.
+- **Enterprise self-hosted** — you run everything, including on air-gapped infrastructure.
+- **Local binary** — for development and small workloads, entirely on your machine.
+
+If "data cannot leave our environment" is a hard requirement (it was the number-one blocker for more than one enterprise we've worked with), the answer isn't a cloud configuration flag — it's picking the right tier. The full matrix, including scale ceilings and what the OSS tier lacks, is in [deployment tiers](/self-hosting/tiers).
+
+## Delete a user's data: the right-to-erasure path
+
+The container boundary is also the deletion boundary. A GDPR erasure request, an offboarded tenant, and an ended client contract are all the same operation: bulk-delete everything under the container tag.
+
+<CodeGroup>
+
+```typescript TypeScript
+// DELETE /v3/documents/bulk — removes every document in the container
+// (no SDK helper yet — call the endpoint directly)
+await fetch("https://api.supermemory.ai/v3/documents/bulk", {
+  method: "DELETE",
+  headers: {
+    Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ containerTags: ["user_4f8a"] }),
+});
+```
+
+```python Python
+# DELETE /v3/documents/bulk — removes every document in the container
+import os
+import requests
+
+requests.delete(
+    "https://api.supermemory.ai/v3/documents/bulk",
+    headers={"Authorization": f"Bearer {os.environ['SUPERMEMORY_API_KEY']}"},
+    json={"containerTags": ["user_4f8a"]},
+)
+```
+
+```bash cURL
+curl -X DELETE "https://api.supermemory.ai/v3/documents/bulk" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "containerTags": ["user_4f8a"] }'
+```
+
+</CodeGroup>
+
+This removes the user's documents and the memories derived from them. <!-- CONFIRM: derived memories, graph edges, and profile fully cleared by bulk delete; backup/retention window before data is unrecoverable --> If the user held a scoped key, revoke it too: `DELETE /v3/auth/scoped-key/:keyId` takes effect immediately.
+
+<Warning>
+Deletion is permanent and there's no recovery — gate this behind your own confirmation flow. Note that deleting documents does **not** restore used quota: you're billed at ingestion, not for storage held. See [usage & billing](/trust/usage-and-billing).
+</Warning>
+
+### Know the difference: delete vs forget
+
+Supermemory has two removal mechanisms, and for compliance work you must use the right one:
+
+- **Delete (v3, document-level) is the erasure path.** `DELETE /v3/documents/:id` (`client.memories.delete(id)` in the SDK) removes one document; `DELETE /v3/documents/bulk` removes everything under a container tag. This is hard removal — use it for right-to-erasure requests.
+- **Forget (v4, memory-level) is a product feature, not erasure.** `DELETE /v4/memories` and `POST /v4/memories/forget-matching` soft-delete individual derived facts: the memory stops appearing in search results but is preserved in the database (`isForgotten: true`), so the system can reason about what it used to believe. That's the right tool for "the user corrected an outdated fact" — and the wrong tool for "the user invoked their legal right to be forgotten."
+
+For a single stale fact rather than a whole user, forget is what you want:
+
+<CodeGroup>
+
+```typescript TypeScript
+// DELETE /v4/memories — soft-delete one memory by id or exact content
+await fetch("https://api.supermemory.ai/v4/memories", {
+  method: "DELETE",
+  headers: {
+    Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    id: "mem_abc123",
+    containerTag: "user_4f8a",
+    reason: "outdated information",
+  }),
+});
+```
+
+```python Python
+# DELETE /v4/memories — soft-delete one memory by id or exact content
+import os
+import requests
+
+requests.delete(
+    "https://api.supermemory.ai/v4/memories",
+    headers={"Authorization": f"Bearer {os.environ['SUPERMEMORY_API_KEY']}"},
+    json={
+        "id": "mem_abc123",
+        "containerTag": "user_4f8a",
+        "reason": "outdated information",
+    },
+)
+```
+
+```bash cURL
+curl -X DELETE "https://api.supermemory.ai/v4/memories" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "mem_abc123",
+    "containerTag": "user_4f8a",
+    "reason": "outdated information"
+  }'
+```
+
+</CodeGroup>
+
+And `forget-matching` handles "forget everything about X" agentically, with a `dryRun` mode to preview the blast radius before committing. Both are covered in depth in [memory operations](/memory-operations).
+
+## Request the reports
+
+For anything that's a document rather than an API call — the SOC 2 report, the DPA, a BAA, or answers to a security questionnaire — reach the team through your account contact, or at the address on [console.supermemory.ai](https://console.supermemory.ai). <!-- CONFIRM: security/report-request contact address (security@supermemory.ai?) --> The SOC 2 report ships under NDA; the DPA and BAA come back countersigned.
+
+---
+
+That's it — every answer on this page is either an API call you can test or a document you can request.
+
+## Where next
+
+<Columns cols={2}>
+  <Card title="Permissioning & multi-tenancy" href="/concepts/permissioning">
+    The complete isolation model — container tags, metadata, scoped keys, and the anti-patterns.
+  </Card>
+  <Card title="Deployment tiers" href="/self-hosting/tiers">
+    Cloud, managed on-prem, enterprise self-hosted, and local — pick by residency requirement.
+  </Card>
+  <Card title="Authentication" href="/authentication">
+    Scoped-key parameters, rate-limit overrides, and revocation.
+  </Card>
+  <Card title="Usage & billing" href="/trust/usage-and-billing">
+    What you're charged for, and why deletion doesn't restore quota.
+  </Card>
+</Columns>

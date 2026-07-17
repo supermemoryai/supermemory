@@ -1,84 +1,52 @@
 ---
-title: "Connectors Overview"
-description: "Integrate Google Drive, Gmail, Notion, OneDrive, GitHub, Granola and Web Crawler to automatically sync documents into your knowledge base"
+title: "Connectors"
+description: "Sync content from Google Drive, Notion, Gmail, OneDrive, GitHub, S3, Granola, and the web into supermemory — and know each connector's limits before you commit."
 sidebarTitle: "Overview"
 icon: "layers"
 ---
 
-Connect external platforms to automatically sync documents into supermemory. Supported connectors include Google Drive, Gmail, Notion, OneDrive, GitHub, Granola and Web Crawler with real-time synchronization and intelligent content processing.
+Connectors pull content from the tools your users already work in and feed it into the same ingestion pipeline as everything else. A synced Notion page becomes a document, the pipeline derives memories from it, and those memories show up in [search](/search), [profiles](/concepts/user-profiles), and every other surface — exactly as if you'd added it through the API.
 
-## Supported Connectors
+You create a connection, your user completes OAuth (or supplies credentials, for S3 and Granola), and sync starts. That's the whole integration.
 
-<CardGroup cols={2}>
-  <Card title="Google Drive" icon="google-drive" href="/connectors/google-drive">
-    **Google Docs, Slides, Sheets**
+## What you can connect
 
-    Real-time sync via webhooks. Supports shared drives, nested folders, and collaborative documents.
-  </Card>
+<!-- CONFIRM: plan matrix — verify per-plan availability against current billing config before publish -->
 
-  <Card title="Gmail" icon="mail" href="/connectors/gmail">
-    **Email Threads**
+| Connector | What syncs | Plan | Sync behavior |
+|-----------|-----------|------|---------------|
+| [Notion](/connectors/notion) | Pages, databases, blocks | All paid plans | Webhooks + every ~4h |
+| [Google Drive](/connectors/google-drive) | Docs, Sheets, Slides, PDFs | All paid plans | Webhooks + every ~4h |
+| [OneDrive](/connectors/onedrive) | Word, Excel, PowerPoint | All paid plans | Webhooks + every ~4h |
+| [Gmail](/connectors/gmail) | Email threads | Scale and up | Pub/Sub webhooks + every ~4h |
+| [GitHub](/connectors/github) | Documentation files in repos | Scale and up | Delayed — hours, not real-time |
+| [S3](/connectors/s3) | Files in S3-compatible buckets | Scale and up | Scheduled |
+| [Web Crawler](/connectors/web-crawler) | Web pages, docs sites | Scale and up | Scheduled recrawl |
+| [Granola](/connectors/granola) | Meeting notes, transcripts | Pro and up | Manual only |
 
-    Real-time sync via Pub/Sub webhooks. Syncs threads with full conversation history and metadata.
-  </Card>
+The default cadence: a full import on connect, a scheduled pass roughly every 4 hours, webhook-triggered updates where the provider supports them, and manual sync on demand. The table above notes where a connector deviates — Granola is manual-only, for example. The details — debounce windows, webhook renewal, monitoring endpoints — live in [sync lifecycle](/connectors/sync-lifecycle).
 
-  <Card title="Notion" icon="notion" href="/connectors/notion">
-    **Pages, Databases, Blocks**
+## Connect your first source
 
-    Instant sync of workspace content. Handles rich formatting, embeds, and database properties.
-  </Card>
-
-  <Card title="OneDrive" icon="microsoft" href="/connectors/onedrive">
-    **Word, Excel, PowerPoint**
-
-    Scheduled sync every 4 hours. Supports personal and business accounts with file versioning.
-  </Card>
-  
-  
-  <Card title="GitHub" icon="github" href="/connectors/github">
-    **GitHub Repositories**
-
-    Real-time incremental sync via webhooks. Supports documentation files in repositories.
-  </Card>
-
-  <Card title="Granola" icon="/images/granola.svg" href="/connectors/granola">
-    **Meeting notes and transcripts**
-
-    Syncs AI meeting notes, summaries, attendees, and transcripts from your Granola workspace.
-  </Card>
-
-  <Card title="Web Crawler" icon="globe" href="/connectors/web-crawler">
-    **Web Pages, Documentation**
-
-    Crawl websites automatically with robots.txt compliance. Scheduled recrawling keeps content up to date.
-  </Card>
-</CardGroup>
-
-## Quick Start
-
-### 1. Create Connection
+Create a connection to get an auth link, then send your user to it:
 
 <CodeGroup>
 
-```typescript Typescript
+```typescript TypeScript
 import Supermemory from 'supermemory';
 
 const client = new Supermemory({
-  apiKey: process.env.SUPERMEMORY_API_KEY!
+  apiKey: process.env.SUPERMEMORY_API_KEY,
 });
 
 const connection = await client.connections.create('notion', {
-  redirectUrl: 'https://yourapp.com/callback',
-  containerTags: ['user-123', 'workspace-alpha'],
-  documentLimit: 5000,
-  metadata: { department: 'sales' }
+  redirectUrl: 'https://yourapp.com/integrations/callback',
+  containerTags: ['user_4f8a'],
 });
 
-// Redirect user to complete OAuth
-console.log('Auth URL:', connection.authLink);
-console.log('Expires in:', connection.expiresIn);
-// Output: Auth URL: https://api.notion.com/v1/oauth/authorize?...
-// Output: Expires in: 1 hour
+// send the user here to authorize
+console.log(connection.authLink);
+console.log(connection.expiresIn); // "1 hour"
 ```
 
 ```python Python
@@ -89,282 +57,172 @@ client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 
 connection = client.connections.create(
     'notion',
-    redirect_url='https://yourapp.com/callback',
-    container_tags=['user-123', 'workspace-alpha'],
-    document_limit=5000,
-    metadata={'department': 'sales'}
+    redirect_url='https://yourapp.com/integrations/callback',
+    container_tags=['user_4f8a'],
 )
 
-# Redirect user to complete OAuth
-print(f'Auth URL: {connection.auth_link}')
-print(f'Expires in: {connection.expires_in}')
-# Output: Auth URL: https://api.notion.com/v1/oauth/authorize?...
-# Output: Expires in: 1 hour
+# send the user here to authorize
+print(connection.auth_link)
+print(connection.expires_in)  # "1 hour"
 ```
 
 ```bash cURL
+# POST /v3/connections/{provider}
 curl -X POST "https://api.supermemory.ai/v3/connections/notion" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "redirectUrl": "https://yourapp.com/callback",
-    "containerTags": ["user-123", "workspace-alpha"],
-    "documentLimit": 5000,
-    "metadata": {"department": "sales"}
+    "redirectUrl": "https://yourapp.com/integrations/callback",
+    "containerTags": ["user_4f8a"]
   }'
 
-# Response: {
+# {
+#   "id": "conn_9f2c1b",
 #   "authLink": "https://api.notion.com/v1/oauth/authorize?...",
 #   "expiresIn": "1 hour",
-#   "id": "conn_abc123",
-#   "redirectsTo": "https://yourapp.com/callback"
+#   "redirectsTo": "https://yourapp.com/integrations/callback"
 # }
 ```
 
 </CodeGroup>
 
-### 2. Handle OAuth Callback
+The auth link expires in one hour. Generate it when the user clicks "connect", not ahead of time — a stale link means a failed OAuth and a confused user.
 
-After user completes OAuth, the connection is automatically established and sync begins.
+Once they authorize, sync starts on its own. There's no second API call to make. Everything the connection imports is tagged with the `containerTags` you set at creation, so a per-user tag keeps each user's synced content inside their own boundary — the same [permissioning](/concepts/permissioning) model as the rest of supermemory.
 
-### 3. Monitor Sync Status
+<Note>
+The connections API takes `containerTags` as an array — it's a v3 endpoint. Keep one tag per isolation boundary anyway; tags on a connection are fixed after creation, so pick the tag as carefully as you'd pick it for a document.
+</Note>
+
+## Check what synced
+
+List connections to see what's active, and list documents to see what actually got imported:
 
 <CodeGroup>
 
-```typescript Typescript
-import Supermemory from 'supermemory';
-
-const client = new Supermemory({
-  apiKey: process.env.SUPERMEMORY_API_KEY!
-});
-
-// List all connections using SDK
+```typescript TypeScript
 const connections = await client.connections.list({
-  containerTags: ['user-123', 'workspace-alpha']
+  containerTags: ['user_4f8a'],
 });
 
-connections.forEach(conn => {
-  console.log('Connection:', conn.id);
-  console.log('Provider:', conn.provider);
-  console.log('Email:', conn.email);
-  console.log('Created:', conn.createdAt);
-});
+for (const conn of connections) {
+  console.log(conn.provider, conn.email, conn.createdAt);
+}
 
-// List synced documents (memories) using SDK
-const memories = await client.documents.list({
-  containerTags: ['user-123', 'workspace-alpha']
+// then verify the imported documents themselves
+const docs = await client.memories.list({
+  containerTags: ['user_4f8a'],
 });
-
-console.log(`Synced ${memories.memories.length} documents`);
-// Output: Synced 45 documents
 ```
 
 ```python Python
-from supermemory import Supermemory
-import os
-
-client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
-
-# List all connections using SDK
-connections = client.connections.list(
-    container_tags=['user-123', 'workspace-alpha']
-)
+connections = client.connections.list(container_tags=['user_4f8a'])
 
 for conn in connections:
-    print(f'Connection: {conn.id}')
-    print(f'Provider: {conn.provider}')
-    print(f'Email: {conn.email}')
-    print(f'Created: {conn.created_at}')
+    print(conn.provider, conn.email, conn.created_at)
 
-# List synced documents (memories) using SDK
-memories = client.documents.list(container_tags=['user-123', 'workspace-alpha'])
-
-print(f'Synced {len(memories.memories)} documents')
-# Output: Synced 45 documents
+# then verify the imported documents themselves
+docs = client.memories.list(container_tags=['user_4f8a'])
 ```
 
 ```bash cURL
-# List all connections
+# POST /v3/connections/list
 curl -X POST "https://api.supermemory.ai/v3/connections/list" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"containerTags": ["user-123", "workspace-alpha"]}'
+  -d '{"containerTags": ["user_4f8a"]}'
 
-# Response: [{"id": "conn_abc", "provider": "notion", "email": "user@example.com", ...}]
-
-# List synced documents
+# POST /v3/documents/list
 curl -X POST "https://api.supermemory.ai/v3/documents/list" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"containerTags": ["user-123", "workspace-alpha"]}'
-
-# Response: {"results": [...], "totalCount": 45}
+  -d '{"containerTags": ["user_4f8a"]}'
 ```
 
 </CodeGroup>
 
-## How Connectors Work
+Each imported document carries a processing status (`queued → extracting → chunking → embedding → indexing → done`, or `failed`), so polling the document list tells you exactly how far an import has gotten. The full verification recipe — and how long indexing should take — is in the [connectors FAQ](/connectors/faq).
 
-### Authentication Flow
+## Know the limits before you commit
 
-1. **Create Connection**: Call `/v3/connections/{provider}` to get an OAuth URL, or create a direct credential-based connection for Granola or Web Crawler
-2. **User Authorization**: Redirect user to complete OAuth flow when the provider requires it
-3. **Automatic Setup**: Connection established, sync begins immediately
-4. **Continuous Sync**: Real-time updates via webhooks + scheduled sync every 4 hours (or scheduled recrawling for Web Crawler)
+Every connector has edges. These are the ones that surprise people.
 
-### Document Processing Pipeline
+### Google Drive syncs what the user picks — not the whole Drive
 
-```mermaid
-graph TD
-    A[External Document] --> B[Webhook/Schedule Trigger]
-    B --> C[Content Extraction]
-    C --> D[Chunking & Embedding]
-    D --> E[Index in Supermemory]
+By default, after OAuth your user completes a file-and-folder picker, and **only the items they select** sync. If they pick one folder out of twenty, you sync one folder out of twenty. Users who expect "connect Drive, get Drive" will report missing files — set that expectation in your UI before they hit connect.
 
-    E --> F[Searchable Memory]
-    E --> G[Document Search]
-```
+Whole-Drive sync exists: pass `metadata.syncScope: "full"` when you create the connection and the picker is skipped. But broad Drive access runs into Google's rules, not ours. Google treats full-Drive scopes as restricted: consent screens show an unverified-app warning until your OAuth app passes Google's verification, and restricted scopes carry a recurring security assessment per client ID — a cost you own, annually. <!-- CONFIRM: Google verification/annual security assessment specifics -->
 
-### Sync Mechanisms
+The production path for whole-Drive sync is a [custom OAuth app](/connectors/google-drive#custom-oauth-application): register your own Google client, complete verification under your brand, then point supermemory at it with `client.settings.update({ googleDriveCustomKeyEnabled: true, ... })`. Your users see your name on the consent screen instead of a warning.
 
-| Provider | Real-time Sync | Scheduled Sync | Manual Sync |
-|----------|---------------|----------------|-------------|
-| **Google Drive** | ✅ Webhooks (7-day expiry) | ✅ Every 4 hours | ✅ On-demand |
-| **Gmail** | ✅ Pub/Sub (7-day expiry) | ✅ Every 4 hours | ✅ On-demand |
-| **Notion** | ✅ Webhooks | ✅ Every 4 hours | ✅ On-demand |
-| **OneDrive** | ✅ Webhooks (30-day expiry) | ✅ Every 4 hours | ✅ On-demand |
-| **GitHub** | ✅ Webhooks | ✅ Every 4 hours | ✅ On-demand |
-| **Granola** | ❌ Not supported | ❌ Not supported | ✅ On-demand |
-| **Web Crawler** | ❌ Not supported | ✅ Scheduled recrawling (7+ days) | ✅ On-demand |
+### The rest, briefly
 
+- **GitHub** syncs on a delay — changes land in hours, not seconds. Don't build "push to repo, query immediately" flows on it.
+- **Granola** has no automatic sync. You trigger imports manually.
+- **Web Crawler** recrawls on a schedule, so page edits take time to appear. It respects robots.txt — pages it's told not to fetch won't sync.
+- **Notion** connects to one workspace per authorization. To switch accounts, delete the connection and reconnect.
+- **Large files**: connector files over 50MB are skipped. <!-- CONFIRM: 50MB per-file connector limit -->
 
-## Connection Management
+## What doesn't exist yet
 
-### List All Connections
+Sources people often ask about that don't sync today:
+
+- **Microsoft Teams, Outlook, and SharePoint** — no connectors today. OneDrive covers files in Microsoft 365, but Teams messages, Outlook mail, and SharePoint sites do **not** sync.
+- **HubSpot** — in development, not shipped. <!-- CONFIRM: HubSpot in development -->
+- **Slack, Jira, Confluence, Linear** — not available as connectors.
+
+If your source isn't listed, you don't have to wait. The document API is itself a connector surface: pull from the source's API, add each item with a `customId` (so re-adds update instead of duplicate), and you've built the sync yourself. [Ingestion best practices](/patterns/ingestion) walks through the pattern.
+
+## Disconnect a source
+
+Deleting a connection stops sync — and deletes the imported documents with it, because `deleteDocuments` defaults to `true` on `DELETE /v3/connections/{connectionId}`. To keep what's already imported, say so explicitly:
 
 <CodeGroup>
 
-```typescript Typescript
-import Supermemory from 'supermemory';
+```typescript TypeScript
+// stop syncing and delete the imported documents (the default)
+await client.connections.deleteByID('conn_9f2c1b');
 
-const client = new Supermemory({
-  apiKey: process.env.SUPERMEMORY_API_KEY!
-});
-
-const connections = await client.connections.list({
-  containerTags: ['org-123']
+// stop syncing, keep everything already imported
+await client.connections.deleteByID('conn_9f2c1b', {
+  query: { deleteDocuments: false },
 });
 ```
 
 ```python Python
-from supermemory import Supermemory
-import os
+# stop syncing and delete the imported documents (the default)
+client.connections.delete_by_id('conn_9f2c1b')
 
-client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
-
-connections = client.connections.list(container_tags=['org-123'])
-
-for conn in connections:
-    print(f"{conn.provider}: {conn.email} ({conn.id})")
-    print(f"Documents: {conn.document_limit or 'unlimited'}")
-    print(f"Expires: {conn.expires_at or 'never'}")
-# Output: notion: user@company.com (conn_abc123)
-# Output: Documents: 5000
-# Output: Expires: never
-```
-
-```bash cURL
-curl -X POST "https://api.supermemory.ai/v3/connections/list" \
-  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"containerTags": ["org-123"]}'
-
-# Response: [
-#   {
-#     "id": "conn_abc123",
-#     "provider": "notion",
-#     "email": "user@company.com",
-#     "documentLimit": 5000,
-#     "createdAt": "2024-01-15T10:30:00.000Z"
-#   }
-# ]
-```
-
-</CodeGroup>
-
-### Delete Connections
-
-The `DELETE /v3/connections/:connectionId` endpoint accepts an optional `deleteDocuments` query parameter:
-
-| Parameter | Type | Default | Description |
-| --- | --- | --- | --- |
-| `deleteDocuments` | boolean | `true` | When `true`, all documents imported by the connection are permanently deleted. When `false`, the connection is removed but documents are kept. |
-
-<Note>
-Setting `deleteDocuments=false` is useful when you want to disconnect an integration without losing the memories that were already imported.
-</Note>
-
-<CodeGroup>
-
-```typescript Typescript
-import Supermemory from 'supermemory';
-
-const client = new Supermemory({
-  apiKey: process.env.SUPERMEMORY_API_KEY!
-});
-
-// Delete connection and all imported documents (default)
-const result = await client.connections.deleteByID(connectionId);
-
-// Delete connection but keep imported documents
-const result = await client.connections.deleteByID(connectionId, {
-  deleteDocuments: false
-});
-
-// Or delete by provider (requires container tags)
-const result = await client.connections.deleteByProvider('notion', {
-  containerTags: ['user-123']
-});
-
-console.log('Deleted:', result.id, result.provider);
-
-```
-
-```python Python
-from supermemory import Supermemory
-import os
-
-client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
-
-# Delete connection and all imported documents (default)
-result = client.connections.delete_by_id(connection_id)
-
-# Delete connection but keep imported documents
-result = client.connections.delete_by_id(connection_id, delete_documents=False)
-
-# Or delete by provider (requires container tags)
-result = client.connections.delete_by_provider(
-    provider='notion',
-    container_tags=['user-123']
+# stop syncing, keep everything already imported
+client.connections.delete_by_id(
+    'conn_9f2c1b',
+    extra_query={'deleteDocuments': 'false'},
 )
-
-print(f"Deleted: {result.id} {result.provider}")
-
 ```
 
 ```bash cURL
-# Delete connection and all imported documents (default)
-curl -X DELETE "https://api.supermemory.ai/v3/connections/conn_abc123" \
+# DELETE /v3/connections/{connectionId} — deletes imported documents too
+curl -X DELETE "https://api.supermemory.ai/v3/connections/conn_9f2c1b" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
-# Delete connection but keep imported documents
-curl -X DELETE "https://api.supermemory.ai/v3/connections/conn_abc123?deleteDocuments=false" \
+# keep the imported documents
+curl -X DELETE "https://api.supermemory.ai/v3/connections/conn_9f2c1b?deleteDocuments=false" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
-
-# Response: {
-#   "id": "conn_abc123",
-#   "provider": "notion"
-# }
 ```
 
 </CodeGroup>
+
+<Warning>
+The default delete is permanent — the documents and the memories derived from them are gone, and deletion does **not** restore used quota. If you only need to pause sync, pass `deleteDocuments=false` so the documents stay, then reconnect later.
+</Warning>
+
+The SDK doesn't type `deleteDocuments` as a method parameter — it's a query parameter on the request, which is why the examples pass it through the request options. <!-- CONFIRM: python — extra_query kwarg name against the published pypi package -->
+
+That's the whole surface: connect, verify, disconnect. Everything a connector imports lives in the same engine as your API-added content — one search, one graph, one set of profiles.
+
+## Where next
+
+- [Sync lifecycle](/connectors/sync-lifecycle) — cadence, debounce, webhook renewal, and monitoring sync runs
+- [Connectors FAQ](/connectors/faq) — expired auth links, immutable tags, verifying imports
+- [Google Drive](/connectors/google-drive) — the custom OAuth app setup in full
+- [Ingestion best practices](/patterns/ingestion) — build your own connector on the document API

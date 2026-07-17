@@ -1,0 +1,185 @@
+---
+title: "Troubleshooting"
+description: "Fixes for the most-reported supermemory MCP problems: re-auth loops, random browser tabs, OAuth scope errors, stuck logins, and memories landing in the wrong organization."
+icon: "wrench"
+---
+
+If the supermemory MCP connection breaks, your memories are fine. MCP is a door into the same engine your app reads via the API — one store of memories, one graph, one set of profiles. Everything on this page is about fixing the door, not the data. Fix the connection and everything you saved is still there.
+
+Most problems on this page come down to one of three things: the wrong URL, a stale cached token, or an org mismatch during login. Start with the URL check — it takes ten seconds.
+
+## Check the URL first
+
+The MCP server lives at `https://mcp.supermemory.ai/mcp`. Not `api.supermemory.ai/mcp` — that host is the REST API, not the MCP server, and it's a common miss when copying config between tools.
+
+To verify the server is reachable and speaking OAuth, hit its discovery endpoint:
+
+```bash
+curl https://mcp.supermemory.ai/.well-known/oauth-protected-resource
+```
+
+You should get JSON back describing the authorization server. If you do, the server is up and your problem is client-side — keep reading.
+
+## Match your client to its config
+
+"Where does the config go for my client?" is the most common setup question. Here's the matrix:
+
+| Client | Transport | Config location |
+|---|---|---|
+| Claude Desktop | `npx mcp-remote` (stdio bridge) | `claude_desktop_config.json` |
+| Cursor | Remote URL directly | `~/.cursor/mcp.json` |
+| Codex | `npx mcp-remote` (stdio bridge) | `~/.codex/config.toml` |
+
+Claude Desktop and Codex talk to local stdio servers, so they reach the remote server through [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) — a small bridge that handles the OAuth flow and forwards requests. Cursor connects to the URL directly. Pick your client:
+
+<CodeGroup>
+
+```json Claude Desktop
+{
+  "mcpServers": {
+    "supermemory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@latest",
+        "https://mcp.supermemory.ai/mcp"
+      ]
+    }
+  }
+}
+```
+
+```json Cursor
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp"
+    }
+  }
+}
+```
+
+```toml Codex
+# ~/.codex/config.toml
+[mcp_servers.supermemory]
+command = "npx"
+args = ["-y", "mcp-remote@latest", "https://mcp.supermemory.ai/mcp"]
+```
+
+</CodeGroup>
+
+<!-- CONFIRM: Codex config.toml shape (mcp_servers table) against current Codex CLI docs -->
+
+For the screenshot-backed Claude Desktop walkthrough (Settings → Developer → Edit Config, then Connectors), see [Claude Desktop](/supermemory-mcp/claude-desktop). For the one-line CLI install that works across clients, see [Setup and Usage](/supermemory-mcp/setup).
+
+<Note>
+  Pin `mcp-remote@latest` in the args, exactly as shown. `npx` caches package versions, and a stale cached `mcp-remote` is behind most of the auth bugs below.
+</Note>
+
+## Fix the re-auth loop
+
+**Symptom:** "Why does it keep asking me to log in again?" You authenticate, it works for a while, then the client demands login again — sometimes every session, sometimes mid-conversation.
+
+Here's what's happening. `mcp-remote` caches your OAuth tokens on disk. When a refresh token has already been rotated — because another client used it, or a previous session refreshed and the cache didn't update — the client replays the old token, the server rejects it, and you're back at the login screen. Codex hits this more often — the symptom there is an "OAuth authorization required" error even though you logged in moments ago.
+
+The fix is a clean slate:
+
+```bash
+# quit your MCP client first, then:
+rm -rf ~/.mcp-auth
+npx clear-npx-cache
+```
+
+<!-- CONFIRM: ~/.mcp-auth as mcp-remote's token cache path; clear-npx-cache as the recommended cache-clearing step -->
+
+Then restart your client and complete the login once. One client, one fresh auth — the loop breaks.
+
+If you're still looping after that, skip OAuth entirely. API keys don't rotate under you:
+
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer sm_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+Get a key from [app.supermemory.ai](https://app.supermemory.ai). Keys start with `sm_`, and when one is present the server skips OAuth entirely.
+
+## Stop the random browser tabs
+
+**Symptom:** "supermemory keeps opening random browser tabs" — auth pages appear while you're working, sometimes several in a row, without you touching anything.
+
+This is a known issue with older versions of `mcp-remote`. When a cached token expires, old versions open a fresh browser tab for every retry instead of refreshing quietly — so a background token refresh turns into a stack of tabs. The fix is to reinstall with the current version:
+
+1. Quit your MCP client completely.
+2. Clear the cached auth state: `rm -rf ~/.mcp-auth`
+3. Clear npx's package cache so it actually fetches the new version: `npx clear-npx-cache`
+4. Make sure your config says `mcp-remote@latest` (not a pinned older version).
+5. Restart the client and log in once when the single, intentional tab opens.
+
+After this, token refreshes happen without opening anything. If tabs come back days later, your config is probably resolving an old `mcp-remote` again — check step 4 first.
+
+## Fix "unsupported scope" errors
+
+**Symptom:** login fails with an error about unsupported scopes — commonly a client requesting `read write` and the server rejecting it.
+
+Supermemory's OAuth server rejects scope strings it doesn't recognize, and some clients and MCP gateways send their own default scopes during the handshake. Two fixes, in order:
+
+1. Update the client (or gateway) to its latest version — current versions request scopes correctly.
+2. If your config explicitly sets a `scope` value, remove it and let the discovery flow negotiate.
+
+<!-- CONFIRM: which scope strings the supermemory OAuth server accepts -->
+
+If neither works — some third-party gateways hardcode their scope request — use [API key auth](#fix-the-re-auth-loop) instead. It bypasses the OAuth handshake completely, scopes and all.
+
+## Get past a stuck login popup
+
+**Symptom:** you click connect, a login window opens (or doesn't), and the flow never completes. The client sits on "waiting for authentication".
+
+Three causes cover nearly every report:
+
+- **A popup blocker ate the window.** Allow popups for your client, or watch your terminal — `mcp-remote` prints the auth URL, and you can open it by hand in any browser.
+- **You finished login in the wrong browser profile.** The auth flow completes in your default browser. If you're logged into supermemory in a different profile or browser, copy the auth URL into the profile where you're actually signed in.
+- **The auth attempt went stale.** If the window sat open for a long time before you completed it, close everything, restart the client, and go through the flow in one sitting.
+
+If the flow completes in the browser ("you can close this window") but the client still says it's waiting, you're likely holding a stale cached token — do the [clean-slate reset](#fix-the-re-auth-loop) and try once more.
+
+## Fix memories landing in the wrong organization
+
+**Symptom:** "My memories are going to the wrong org" — you're a member of multiple organizations, and after connecting via MCP, saved memories show up under your personal org (or a different org) instead of the one you selected in the dashboard.
+
+This is a known issue: your active organization can get dropped during the MCP OAuth flow, and the session falls back to your default org. <!-- CONFIRM: exact fallback behavior when activeOrganizationId is dropped --> Memories saved in that state are in the engine and searchable — they're under the wrong container, not lost.
+
+The deterministic fix is API key auth. API keys are created inside an organization and carry that context with every request — there's no session state to drop:
+
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer sm_key_from_the_right_org"
+      }
+    }
+  }
+}
+```
+
+Create the key while the correct organization is selected in [app.supermemory.ai](https://app.supermemory.ai). If you'd rather stay on OAuth: switch to the correct org in the dashboard first, then do a full re-auth (`rm -rf ~/.mcp-auth`, restart, log in), and confirm with the `whoAmI` tool before saving anything you care about.
+
+---
+
+That's the whole list — URL, tokens, scopes, org context. If you hit something this page doesn't cover, the MCP server is [open source](https://github.com/supermemoryai/supermemory/tree/main/apps/mcp), and an issue there with your client name and the exact error gets eyes fastest.
+
+**Where next:**
+
+- [MCP Overview](/supermemory-mcp/mcp) — the tools, resources, and prompts the server exposes
+- [Setup and Usage](/supermemory-mcp/setup) — first-time install for every client
+- [Claude Desktop](/supermemory-mcp/claude-desktop) — the screenshot walkthrough
+- [Errors and limits](/errors-and-limits) — API-side errors, rate limits, and backoff

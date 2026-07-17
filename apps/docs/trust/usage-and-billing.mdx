@@ -1,0 +1,233 @@
+---
+title: "Usage & billing"
+description: "What counts against your quota, what's free, and how to track spend per API key."
+---
+
+You're billed for what supermemory processes, not what it stores. Tokens are counted once, at ingestion — searches, profile reads, and memory injection don't draw them down.
+
+Start by checking where you stand:
+
+<CodeGroup>
+
+```typescript TypeScript
+const res = await fetch("https://api.supermemory.ai/v3/auth/billing/usage", {
+  headers: { Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}` },
+});
+
+const { items, periodStart, periodEnd } = await res.json();
+```
+
+```python Python
+import requests
+
+res = requests.get(
+    "https://api.supermemory.ai/v3/auth/billing/usage",
+    headers={"Authorization": f"Bearer {SUPERMEMORY_API_KEY}"},
+)
+
+usage = res.json()
+```
+
+```bash cURL
+curl "https://api.supermemory.ai/v3/auth/billing/usage" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+</CodeGroup>
+
+You get back each meter with its usage and limit, plus your current billing period:
+
+```json
+{
+  "items": [
+    { "name": "sm tokens text", "used": 184203, "limit": 1000000, "unit": "tokens" },
+    { "name": "sm search queries", "used": 4210, "limit": 100000, "unit": "queries" }
+  ],
+  "periodStart": "2026-07-01T00:00:00.000Z",
+  "periodEnd": "2026-08-01T00:00:00.000Z"
+}
+```
+
+<!-- CONFIRM: billing usage response shape and exact meter names -->
+
+One thing to know up front: scoped API keys can **not** read billing endpoints — they return a 403. Use an unscoped key, or check the billing page in the console instead. <!-- CONFIRM: scoped-key 403 on billing endpoints -->
+
+## What "tokens processed" counts
+
+Every document you add — via the API, a connector, MCP, or any other door — goes through the ingestion pipeline. The tokens of the **extracted content** are what's metered. Not your raw upload size, not the embeddings, not the memories derived from it: the token count of the text supermemory pulled out of your document.
+
+Two meters exist:
+
+- **Text tokens** — plain text, tweets, markdown.
+- **Rich content tokens** — PDFs, images, files, web pages. Anything that needs extraction before it's text.
+
+Rich content costs more per token than plain text, because extraction does more work. <!-- CONFIRM: text vs rich meter split and relative pricing --> If you can send markdown instead of a PDF of the same content, send markdown — it's also what the [ingestion guide](/patterns/ingestion) recommends for quality reasons.
+
+Updates are billed on the **delta**. When you update a document (or re-add one with the same `customId`), you're charged only for the token count *increase* over what that document already cost. Re-processing unchanged content bills zero. So appending a session to an existing conversation document charges you for the new turns, not the whole history again — this is why [ingesting full conversations under one `customId`](/patterns/ingestion) is cheaper than adding every turn as its own document. <!-- CONFIRM: delta billing on updates and customId re-adds -->
+
+And the reads are not on this meter at all:
+
+- **Search** is metered per query, not per token — and priced low enough that it's effectively free at any realistic volume. Ingestion is where your money goes.
+- **Profile reads** don't consume tokens. A `client.profile({ containerTag })` call isn't metered; add a `q` and it counts as one search query.
+- **Memory injection** — the AI SDK wrapper putting a profile or search results into your prompt — is a profile/search read under the hood, so it follows the same rules. It never consumes ingestion tokens. <!-- CONFIRM: injection billing — verified in code (read paths only hit the search-query meter), confirm this is the publishable statement -->
+- **Storage is free.** A document you ingested in January costs nothing to keep in July.
+
+## Deleting documents does not restore quota
+
+The meter counts processing, and the processing already happened. Deleting a document removes its content, chunks, and derived memories — but the tokens it consumed stay consumed. Your quota is a record of work done, not a measure of what's currently stored.
+
+Your quota refreshes at the start of each billing period. Unused quota doesn't roll over. <!-- CONFIRM: monthly refresh cadence + no-rollover on all plans -->
+
+If you're near the limit, deleting old documents won't buy you headroom — upgrading or waiting for the reset will.
+
+## Model your costs
+
+The mental math is short:
+
+1. **Ingestion is the cost driver.** Estimate the tokens in what you'll send — that's most of your bill.
+2. **Search is ~free.** Query as much as you want; per-query pricing is negligible next to ingestion.
+3. **Profiles are cheap to use.** A profile fits in roughly a 1k-token budget and its shape is stable between updates, so it's prompt-cache-friendly on the LLM side too.
+4. **Send conversations, not turns.** One document per session with a `customId` beats one document per message — better memories *and* delta billing.
+
+## Cut costs with `taskType: "superrag"`
+
+If a set of documents only needs to be searchable — you'll never want derived memories, a graph, or profile contributions from it — ingest it with `taskType: "superrag"`. That runs the retrieval-only pipeline (extract, chunk, embed) and skips memory derivation, at about 5x cheaper per token than the default `"memory"` task type. <!-- CONFIRM: taskType param name and "superrag"/"memory" values -->
+
+A support-docs corpus is the typical case:
+
+<CodeGroup>
+
+```typescript TypeScript
+const res = await fetch("https://api.supermemory.ai/v3/documents", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    content: "https://help.acme.dev/articles/refund-policy",
+    containerTag: "acme_help_center",
+    taskType: "superrag",
+  }),
+});
+```
+
+```python Python
+import requests
+
+requests.post(
+    "https://api.supermemory.ai/v3/documents",
+    headers={"Authorization": f"Bearer {SUPERMEMORY_API_KEY}"},
+    json={
+        "content": "https://help.acme.dev/articles/refund-policy",
+        "containerTag": "acme_help_center",
+        "taskType": "superrag",
+    },
+)
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "https://help.acme.dev/articles/refund-policy",
+    "containerTag": "acme_help_center",
+    "taskType": "superrag"
+  }'
+```
+
+</CodeGroup>
+
+Use `"memory"` (the default) for anything about your users — conversations, preferences, facts you want the engine to reason over. Use `"superrag"` for reference material you only retrieve. The examples above use raw `POST /v3/documents` because the TS SDK typings don't include `taskType` yet.
+
+<Note>
+Documents ingested with `"superrag"` show up in [document search](/search) but don't produce memories, so they won't appear in memory search results or [profiles](/concepts/user-profiles).
+</Note>
+
+## Track usage per API key
+
+If you run one key per environment — or per tenant — you can see exactly which key spent what. `GET /v3/analytics/usage` breaks usage down by key, including tokens:
+
+<CodeGroup>
+
+```typescript TypeScript
+const res = await fetch(
+  "https://api.supermemory.ai/v3/analytics/usage?period=30d",
+  { headers: { Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}` } },
+);
+
+const { byKey } = await res.json();
+```
+
+```python Python
+import requests
+
+res = requests.get(
+    "https://api.supermemory.ai/v3/analytics/usage",
+    params={"period": "30d"},
+    headers={"Authorization": f"Bearer {SUPERMEMORY_API_KEY}"},
+)
+
+by_key = res.json()["byKey"]
+```
+
+```bash cURL
+curl "https://api.supermemory.ai/v3/analytics/usage?period=30d" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+</CodeGroup>
+
+Each entry in `byKey` carries the token total for that key:
+
+```json
+{
+  "byKey": [
+    {
+      "keyId": "key_prod_4f8a",
+      "keyName": "Production API",
+      "count": 23410,
+      "tokensUsed": 1284203,
+      "avgDuration": 98.7,
+      "lastUsed": "2026-07-15T14:35:00Z"
+    }
+  ],
+  "usage": [
+    { "type": "add", "count": 1523, "avgDuration": 245.5 },
+    { "type": "search", "count": 3421, "avgDuration": 89.2 }
+  ]
+}
+```
+
+The endpoint also accepts `from`/`to` (ISO 8601) instead of `period`, and paginates with `page` and `limit`. <!-- CONFIRM: analytics usage response fields and query params --> The same family has `/v3/analytics/errors` and `/v3/analytics/logs` for error breakdowns and request-level logs.
+
+## Handle running out
+
+When a meter is exhausted, writes start returning `402` with a body that names the meter:
+
+```json
+{
+  "error": "Text tokens limit reached",
+  "details": "You've run out of credits. Top up to continue."
+}
+```
+
+<!-- CONFIRM: 402 status and exact body shape -->
+
+Catch the `402` in your ingestion path and queue the writes — reads keep working, so your app degrades to "remembers everything up to now" rather than breaking. Whether usage past the included quota bills as overage or hard-blocks depends on your plan and its overage setting. <!-- CONFIRM: overage defaults and availability by plan -->
+
+## Manage invoices, downgrades, and cancellation
+
+Invoices, payment methods, plan changes, and cancellation all live in the console's billing settings. <!-- CONFIRM: exact console navigation path --> Only org admins can manage billing.
+
+When you downgrade or cancel, your data is not deleted — you keep read access, and ingestion is governed by the lower plan's quota from the next billing period. <!-- CONFIRM: plan-downgrade data behavior — verify data retention and any limits enforcement on existing over-quota data -->
+
+That's the whole meter: pay when supermemory processes, read for ~free, and delete for hygiene — not refunds.
+
+## Where next
+
+- [Ingestion best practices](/patterns/ingestion) — the patterns that make ingestion cheaper *and* produce better memories
+- [Errors and limits](/errors-and-limits) — rate limits, the 429 shape, and backoff
+- [User profiles](/concepts/user-profiles) — what that ~1k-token budget buys you
+- [Security](/trust/security) — scoped keys, deletion mechanics, and compliance

@@ -1,133 +1,317 @@
 ---
 title: Quickstart
-description: Make your first API call to Supermemory - add and retrieve memories.
+description: Teach supermemory four scattered facts, watch it connect them into an answer you never gave it, then wire memory into a chat loop that survives restarts.
 icon: "play"
 ---
 
-<Tip>
-**Using Vercel AI SDK?** Check out the [AI SDK integration](/integrations/ai-sdk) for the cleanest implementation with `@supermemory/tools/ai-sdk`.
-</Tip>
+By the end of this page, supermemory will answer a question you never told it the answer to. You'll add four facts as if they came from four different sessions, ask a question that requires connecting all of them, and then wire the same memory into a chat loop — one you can kill, restart, and still have it remember.
 
-<Tip>
-**Prefer to run it locally?** Supermemory is also a [self-hostable single binary](/self-hosting/overview) — `curl -fsSL https://supermemory.ai/install | bash` and you're running.
-</Tip>
+## Get an API key
 
-## Memory API
+Grab a key from the [developer console](https://console.supermemory.ai) — click **API Keys → Create API Key**.
 
-**Step 1.** Sign up for [Supermemory's Developer Platform](http://console.supermemory.ai) to get the API key. Click on **API Keys -> Create API Key** to generate one.
+One thing that trips people up: **console.supermemory.ai** is the developer console, where your API keys, logs, and usage live. **app.supermemory.ai** is the consumer app — a product built on the same engine, but not where keys come from. If you're reading this page, you want the console.
 
-![create api key](./images/create-api.png)
+Install the SDK and export your key:
 
-**Step 2.** Install the SDK and set your API key:
+<CodeGroup>
 
-<Tabs>
-<Tab title="Python">
-```bash
-pip install supermemory
-export SUPERMEMORY_API_KEY="YOUR_API_KEY"
-```
-</Tab>
-<Tab title="TypeScript">
-```bash
+```bash TypeScript
 npm install supermemory
-export SUPERMEMORY_API_KEY="YOUR_API_KEY"
+export SUPERMEMORY_API_KEY="sm_..."
 ```
-</Tab>
-</Tabs>
 
-**Step 3.** Here's everything you need to add memory to your LLM:
-
-<Tabs>
-<Tab title="Python">
-```python
-from supermemory import Supermemory
-
-client = Supermemory()
-USER_ID = "dhravya"
-
-conversation = [
-    {"role": "assistant", "content": "Hello, how are you doing?"},
-    {"role": "user", "content": "Hello! I am Dhravya. I am 20 years old. I love to code!"},
-    {"role": "user", "content": "Can I go to the club?"},
-]
-
-# Get user profile + relevant memories for context
-profile = client.profile(container_tag=USER_ID, q=conversation[-1]["content"])
-
-static = "\n".join(profile.profile.static)
-dynamic = "\n".join(profile.profile.dynamic)
-memories = "\n".join(r.get("memory", "") for r in profile.search_results.results)
-
-context = f"""Static profile:
-{static}
-
-Dynamic profile:
-{dynamic}
-
-Relevant memories:
-{memories}"""
-
-# Build messages with memory-enriched context
-messages = [{"role": "system", "content": f"User context:\n{context}"}, *conversation]
-
-# response = llm.chat(messages=messages)
-
-# Store conversation for future context
-client.add(
-    content="\n".join(f"{m['role']}: {m['content']}" for m in conversation),
-    container_tag=USER_ID,
-)
+```bash Python
+pip install supermemory
+export SUPERMEMORY_API_KEY="sm_..."
 ```
-</Tab>
-<Tab title="TypeScript">
-```typescript
+
+```bash curl
+# no install — the key is enough
+export SUPERMEMORY_API_KEY="sm_..."
+```
+
+</CodeGroup>
+
+## Teach it four scattered facts
+
+Add four memories, the way they'd actually arrive in a real app — one at a time, from different sessions, none of them telling the whole story:
+
+<CodeGroup>
+
+```typescript TypeScript
 import Supermemory from "supermemory";
 
-const client = new Supermemory();
-const USER_ID = "dhravya";
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
-const conversation = [
-  { role: "assistant", content: "Hello, how are you doing?" },
-  { role: "user", content: "Hello! I am Dhravya. I am 20 years old. I love to code!" },
-  { role: "user", content: "Can I go to the club?" },
+const facts = [
+  "Just got back from Tokyo — the team offsite went great",
+  "Sarah presented the Q3 roadmap at the offsite",
+  "Sarah's being promoted to VP of Product",
+  "I need a gift idea for my VP of Product",
 ];
 
-// Get user profile + relevant memories for context
-const profile = await client.profile({
-  containerTag: USER_ID,
-  q: conversation.at(-1)!.content,
-});
-
-const context = `Static profile:
-${profile.profile.static.join("\n")}
-
-Dynamic profile:
-${profile.profile.dynamic.join("\n")}
-
-Relevant memories:
-${profile.searchResults.results.map((r) => r.memory).join("\n")}`;
-
-// Build messages with memory-enriched context
-const messages = [{ role: "system", content: `User context:\n${context}` }, ...conversation];
-
-// const response = await llm.chat({ messages });
-
-// Store conversation for future context
-await client.add({
-  content: conversation.map((m) => `${m.role}: ${m.content}`).join("\n"),
-  containerTag: USER_ID,
-});
+for (const content of facts) {
+  await client.memories.add({ content, containerTag: "user_4f8a" });
+}
 ```
-</Tab>
-</Tabs>
 
-That's it! Supermemory automatically:
-- Extracts memories from conversations
-- Builds and maintains user profiles (static facts + dynamic context)
-- Returns relevant context for personalized LLM responses
+```python Python
+from supermemory import Supermemory
 
-<Tip>
-**Optional:** Use the `threshold` parameter to filter search results by relevance score. For example: `client.profile(container_tag=USER_ID, threshold=0.7, q=query)` will only include results with a score above 0.7.
-</Tip>
+client = Supermemory()  # reads SUPERMEMORY_API_KEY
 
-Learn more about [User Profiles](/user-profiles) and [Search](/search).
+facts = [
+    "Just got back from Tokyo — the team offsite went great",
+    "Sarah presented the Q3 roadmap at the offsite",
+    "Sarah's being promoted to VP of Product",
+    "I need a gift idea for my VP of Product",
+]
+
+for content in facts:
+    client.add(content=content, container_tag="user_4f8a")
+```
+
+```bash curl
+for content in \
+  "Just got back from Tokyo — the team offsite went great" \
+  "Sarah presented the Q3 roadmap at the offsite" \
+  "Sarah's being promoted to VP of Product" \
+  "I need a gift idea for my VP of Product"
+do
+  curl -X POST "https://api.supermemory.ai/v3/documents" \
+    -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+    -H "Content-Type: application/json" \
+    -d "{\"content\": \"$content\", \"containerTag\": \"user_4f8a\"}"
+done
+```
+
+</CodeGroup>
+
+The `containerTag` is the isolation boundary — use one per user (or tenant, or project), and everything you add and search stays inside it. More on that in [container tags](/concepts/permissioning).
+
+Look at what you actually said. Two facts mention Sarah. One mentions a VP of Product. None of them say Sarah *is* your VP of Product. That's the gap supermemory fills.
+
+Each document runs through an ingestion pipeline — `queued → extracting → chunking → embedding → indexing → done` — and `done` means its memories are queryable. Four short texts take a few seconds. What happens inside that pipeline is covered in [how it works](/concepts/how-it-works).
+
+## Ask the question you never answered
+
+Now ask something that requires connecting all four facts:
+
+<CodeGroup>
+
+```typescript TypeScript
+const results = await client.search.memories({
+  q: "What gift should I get, and why?",
+  containerTag: "user_4f8a",
+  include: { relatedMemories: true },
+});
+
+console.log(JSON.stringify(results, null, 2));
+```
+
+```python Python
+results = client.search.memories(
+    q="What gift should I get, and why?",
+    container_tag="user_4f8a",
+    include={"relatedMemories": True},
+)
+print(results)
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "What gift should I get, and why?",
+    "containerTag": "user_4f8a",
+    "include": { "relatedMemories": true }
+  }'
+```
+
+</CodeGroup>
+
+The response looks something like this (abbreviated — your derived memories will be worded differently, because the model derives them rather than copying your text):
+
+```json
+{
+  "results": [
+    {
+      "id": "mem_01hq3v...",
+      "memory": "Sarah is being promoted to VP of Product",
+      "similarity": 0.81,
+      "context": {
+        "parents": [
+          {
+            "memory": "Sarah presented the Q3 roadmap at the Tokyo offsite",
+            "relation": "extends",
+            "version": -1
+          }
+        ],
+        "children": [
+          {
+            "memory": "User needs a gift idea for their VP of Product, Sarah",
+            "relation": "derives",
+            "version": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "mem_01hq4c...",
+      "memory": "User needs a gift idea for their VP of Product",
+      "similarity": 0.76,
+      "…": "…"
+    }
+  ],
+  "total": 4,
+  "timing": 287
+}
+```
+
+Read that `context` block again. You asked about a gift. Supermemory connected: gift → *your VP of Product* → *that's Sarah* → *who presented the Q3 roadmap at the Tokyo offsite*. It resolved an entity chain you never stated — "Sarah" in one session and "my VP of Product" in another are the same person, and the graph knows it. The `relatedMemories` include exposes those edges: `updates`, `extends`, and `derives` relations between memories, with negative versions for parents and positive for children.
+
+If the results come back thin, the pipeline hasn't finished deriving memories yet — wait a few seconds and search again. This is normal: extraction is asynchronous, and recall is only as fresh as the last completed run.
+
+This is the difference between memory and retrieval. A vector store would return the four nearest chunks and leave the reasoning to you. Supermemory hands your LLM the already-connected answer. The full picture is in [graph memory](/concepts/graph-memory).
+
+## Wire it into a chat loop
+
+Searching from a script is a demo. The real shape is a chat loop where memory reads and writes happen on every turn. With the AI SDK it's one wrapper; with the raw SDK you do the two calls yourself:
+
+<CodeGroup>
+
+```typescript AI SDK (TypeScript)
+// npm install ai @ai-sdk/openai @supermemory/tools
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { withSupermemory } from "@supermemory/tools/ai-sdk";
+import * as readline from "node:readline/promises";
+
+const model = withSupermemory(openai("gpt-5"), {
+  containerTag: "user_4f8a",
+  customId: `session-${Date.now()}`, // groups this session into one document
+});
+
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+while (true) {
+  const prompt = await rl.question("you: ");
+  const { text } = await generateText({ model, prompt });
+  console.log(`assistant: ${text}`);
+}
+```
+
+```typescript TypeScript
+// npm install supermemory openai
+import Supermemory from "supermemory";
+import OpenAI from "openai";
+import * as readline from "node:readline/promises";
+
+const memory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
+const llm = new OpenAI();
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+while (true) {
+  const question = await rl.question("you: ");
+
+  // pull the user's profile plus memories relevant to this message
+  const { profile, searchResults } = await memory.profile({ containerTag: "user_4f8a", q: question });
+  const context = [
+    ...profile.static,
+    ...profile.dynamic,
+    ...(searchResults?.results.map((m) => m.memory) ?? []),
+  ].join("\n");
+
+  const res = await llm.chat.completions.create({
+    model: "gpt-5",
+    messages: [
+      { role: "system", content: `What you know about this user:\n${context}` },
+      { role: "user", content: question },
+    ],
+  });
+  const answer = res.choices[0].message.content;
+  console.log(`assistant: ${answer}`);
+
+  // store the exchange so it becomes memory for next time
+  await memory.memories.add({
+    content: `user: ${question}\nassistant: ${answer}`,
+    containerTag: "user_4f8a",
+  });
+}
+```
+
+```python Python
+# pip install supermemory openai
+from supermemory import Supermemory
+from openai import OpenAI
+
+memory = Supermemory()
+llm = OpenAI()
+
+while True:
+    question = input("you: ")
+
+    # pull the user's profile plus memories relevant to this message
+    result = memory.profile(container_tag="user_4f8a", q=question)
+    memories = result.search_results.results if result.search_results else []
+    context = "\n".join(
+        [*result.profile.static, *result.profile.dynamic, *[m.memory for m in memories]]
+    )
+
+    res = llm.chat.completions.create(
+        model="gpt-5",
+        messages=[
+            {"role": "system", "content": f"What you know about this user:\n{context}"},
+            {"role": "user", "content": question},
+        ],
+    )
+    answer = res.choices[0].message.content
+    print(f"assistant: {answer}")
+
+    # store the exchange so it becomes memory for next time
+    memory.add(content=f"user: {question}\nassistant: {answer}", container_tag="user_4f8a")
+```
+
+</CodeGroup>
+
+In the AI SDK version, `withSupermemory` handles both directions for you: it injects the user's [profile](/concepts/user-profiles) before each call and saves the conversation after (that's the default `addMemory: "always"`). Both `containerTag` and `customId` are required — `containerTag` says *whose* memory this is, `customId` says *which conversation*, so every turn of a session lands in one document instead of scattering into fragments. Whole conversations extract better than one-line snippets, so keep the `customId` stable for the life of a session. Details in the [AI SDK integration](/integrations/ai-sdk).
+
+Run it and ask something:
+
+```
+you: What gift should I get for the person being promoted?
+assistant: You're looking for a gift for Sarah, who's being promoted to
+VP of Product. Given she presented the Q3 roadmap at your Tokyo offsite,
+something that nods to that trip could land well — …
+```
+
+## Kill it, restart it, ask again
+
+Now the part that separates memory from a long prompt. Stop the process — Ctrl+C, gone, context window and all. Start it again and ask:
+
+```
+you: who's getting promoted?
+assistant: Sarah — she's being promoted to VP of Product.
+```
+
+Nothing was reloaded from disk and no conversation history was replayed. The memory lives in supermemory, not in your process, so recall survives restarts, redeploys, and switching models entirely. And because every surface is a door into the same engine, the memories you created here are also visible to [MCP clients, connectors, and every other surface](/concepts/surfaces) using the same container tag.
+
+That's it — you've watched supermemory resolve an entity chain you never stated, and your app now remembers users across sessions.
+
+## Where next
+
+<Columns cols={2}>
+  <Card title="How it works" icon="cog" href="/concepts/how-it-works">
+    The lifecycle of a document: statuses, derived memories, and how new facts update old ones.
+  </Card>
+  <Card title="Graph memory" icon="waypoints" href="/concepts/graph-memory">
+    How entity resolution and memory relations produced the chain you saw above.
+  </Card>
+  <Card title="User profiles" icon="user" href="/concepts/user-profiles">
+    The derived understanding you injected in the chat loop, and when to use it over search.
+  </Card>
+  <Card title="Permissioning" icon="lock" href="/concepts/permissioning">
+    Container tags, metadata, and scoped keys — how to isolate real tenants before you ship.
+  </Card>
+</Columns>

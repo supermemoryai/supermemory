@@ -1,0 +1,196 @@
+---
+title: "Sync lifecycle"
+description: "When connectors sync, how to trigger a sync yourself, and how to see exactly what synced and what failed."
+---
+
+Once a connector is set up, supermemory keeps it in sync on its own. This page shows you when those syncs happen, how to force one, and how to check a sync's history down to the individual file that failed — so you can answer "did my user's Drive actually sync?" without guessing.
+
+## When syncs happen
+
+Every connector syncs on the same four triggers:
+
+| Trigger | When it fires | `triggerType` in sync history |
+| --- | --- | --- |
+| On connect | Immediately after the user completes OAuth | `manual` |
+| Scheduled | Roughly every 4 hours | `cron` |
+| Webhook | When the provider pushes a change notification (where supported) | `event` |
+| Manual | When you call the import endpoint | `manual` |
+
+Webhook support varies by provider. Google Drive, Gmail, Notion, and OneDrive push change notifications, so edits usually land within minutes. Granola has no change notifications — it relies on the schedule and manual syncs. The web crawler recrawls on a schedule instead of listening for changes.
+
+GitHub is the one to watch: it syncs on a delay of a few hours, **not** in real time. If you push a commit and search for it a minute later, it won't be there yet. Trigger a [manual sync](#trigger-a-sync-manually) when you need a repo picked up sooner.
+
+<Note>
+Changes are debounced for about 10 minutes before a sync picks them up. If a user saves a file five times in a row, you get one sync, not five — but it also means even webhook-backed connectors aren't instant. <!-- CONFIRM: 10-min debounce — verified for S3 in support threads; confirm whether it applies to all providers -->
+</Note>
+
+Files over 50MB are skipped during sync. <!-- CONFIRM: 50MB per-file connector limit --> They show up as failures in the sync history rather than failing the whole run.
+
+## Trigger a sync manually
+
+You don't have to wait for the schedule. Kick off a sync for a provider yourself:
+
+<CodeGroup>
+
+```typescript TypeScript
+import Supermemory from "supermemory";
+
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
+
+await client.connections.import("google-drive", {
+  containerTags: ["user_4f8a"], // only sync this user's connections
+});
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/connections/google-drive/import" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"containerTags": ["user_4f8a"]}'
+
+# 202 Importing connections...
+```
+
+</CodeGroup>
+
+The endpoint is `POST /v3/connections/{provider}/import`. It returns `202` immediately — the sync runs in the background. Omit `containerTags` to sync every connection you have for that provider. To find out when it finished, check the sync history.
+
+## Check sync history
+
+Every sync — scheduled, webhook, or manual — is recorded as a sync run. List them with `GET /v3/connections/{connectionId}/sync-runs`:
+
+<CodeGroup>
+
+```typescript TypeScript
+const res = await fetch(
+  `https://api.supermemory.ai/v3/connections/${connectionId}/sync-runs`,
+  { headers: { Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}` } },
+);
+const runs = await res.json();
+```
+
+```bash cURL
+curl "https://api.supermemory.ai/v3/connections/NkT3mVqR7wXzLp2cFdY9Sb/sync-runs" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+</CodeGroup>
+
+Runs come back newest first:
+
+```json
+[
+  {
+    "id": "Wq7pJm2xTk9rZcV4nGdY3f",
+    "connectionId": "NkT3mVqR7wXzLp2cFdY9Sb",
+    "status": "completed",
+    "triggerType": "cron",
+    "startedAt": "2026-07-17T08:00:12.000Z",
+    "completedAt": "2026-07-17T08:03:41.000Z",
+    "itemsProcessed": 128,
+    "itemsFailed": 2,
+    "error": null
+  }
+]
+```
+
+`status` is one of `running`, `completed`, or `failed`. A `failed` run means the sync itself broke (`error` tells you why — an expired token, usually). A `completed` run with `itemsFailed > 0` means the sync finished but some individual files didn't make it — that's what the failures endpoint is for.
+
+<Note>
+These endpoints aren't in the SDK yet, so you call them over REST directly. The connection ID comes from `client.connections.list()`.
+</Note>
+
+## See exactly what failed
+
+When `itemsFailed` is non-zero, ask for the per-file details with `GET /v3/connections/{connectionId}/sync-runs/{syncRunId}/failures`:
+
+```bash cURL
+curl "https://api.supermemory.ai/v3/connections/NkT3mVqR7wXzLp2cFdY9Sb/sync-runs/Wq7pJm2xTk9rZcV4nGdY3f/failures" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+```json
+{
+  "failures": [
+    {
+      "id": "Hf4tRm8kQw2nXp7cJdV5Yz",
+      "customId": null,
+      "title": "Q3 planning deck.pptx",
+      "type": "onedrive",
+      "updatedAt": "2026-07-17T08:02:10.000Z",
+      "errorCode": "ONEDRIVE_EXPORT_TOO_LARGE",
+      "errorMessage": "This file is too large for OneDrive to export. Reach out to support."
+    }
+  ],
+  "truncated": false
+}
+```
+
+Error codes are provider-specific (`ONEDRIVE_EXPORT_TOO_LARGE`, `GITHUB_FILE_TOO_LARGE`, `S3_OBJECT_TOO_LARGE`, …); when a failure can't be classified, you get `PROCESSING_FAILED` with a generic message.
+
+`truncated: true` means there were more failures than the response returns — treat the list as a sample, not a census. Failures are snapshots taken at failure time, so they stay accurate even after a later run retries the same file.
+
+## Build a sync monitor
+
+Put the pieces together: trigger a sync, poll until it finishes, surface what failed. This is the loop behind a "Sync now" button with real status:
+
+```typescript
+import Supermemory from "supermemory";
+
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
+const BASE = "https://api.supermemory.ai";
+const headers = { Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}` };
+
+async function syncAndReport(
+  connectionId: string,
+  provider: "notion" | "google-drive" | "onedrive" | "web-crawler",
+) {
+  const since = Date.now();
+  await client.connections.import(provider, { containerTags: ["user_4f8a"] });
+
+  while (true) {
+    await new Promise((r) => setTimeout(r, 15_000)); // poll every 15s
+    const runs = await fetch(
+      `${BASE}/v3/connections/${connectionId}/sync-runs`,
+      { headers },
+    ).then((r) => r.json());
+
+    // newest first — find the run our trigger started
+    const run = runs.find((r) => new Date(r.startedAt).getTime() >= since);
+    if (!run || run.status === "running") continue;
+
+    if (run.status === "failed") {
+      return { ok: false, error: run.error };
+    }
+    if (run.itemsFailed > 0) {
+      const { failures, truncated } = await fetch(
+        `${BASE}/v3/connections/${connectionId}/sync-runs/${run.id}/failures`,
+        { headers },
+      ).then((r) => r.json());
+      return { ok: true, processed: run.itemsProcessed, failures, truncated };
+    }
+    return { ok: true, processed: run.itemsProcessed, failures: [] };
+  }
+}
+```
+
+Polling is the honest answer here: there's **no** sync-completion webhook today. You can't register a URL and get notified when a run finishes — if you need push-style updates in your own app, run this poll server-side and notify your users from there. A completion webhook is a known gap; until it ships, `sync-runs` is the source of truth.
+
+That's the whole lifecycle: connect, let the schedule and webhooks do their job, force a sync when you can't wait, and read `sync-runs` when you need receipts.
+
+## Where next
+
+<Columns cols={2}>
+  <Card title="Connectors overview" href="/connectors/overview">
+    Create connections, handle OAuth, and manage what each provider syncs.
+  </Card>
+  <Card title="Connector FAQ" href="/connectors/faq">
+    Scopes, folder selection, disconnect behavior, and the questions support gets weekly.
+  </Card>
+  <Card title="Troubleshooting" href="/connectors/troubleshooting">
+    What to do when a connection stops syncing or OAuth fails.
+  </Card>
+  <Card title="Ingestion patterns" href="/patterns/ingestion">
+    Building your own source instead? The document API is the connector surface.
+  </Card>
+</Columns>

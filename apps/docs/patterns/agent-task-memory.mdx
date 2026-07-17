@@ -1,0 +1,253 @@
+---
+title: "Give your agents task memory"
+description: "Configure memory extraction for agents that do work instead of chat — and regression-test recall with a MemoryBench golden set so config changes never silently break it."
+---
+
+Out of the box, supermemory's extraction is tuned for conversational memory: who the user is, what they prefer, what changed in their life. That's the right default for companions and assistants. But if your agent runs tasks — browser automation, QA runs, deploy pipelines, support triage — the facts worth remembering are about *systems*, not people. Feed task transcripts through the conversational defaults and extraction looks for a person to learn about, finds none, and keeps very little.
+
+This is the most common reason an agent evaluation shows no lift. The agent was never going to get better at re-running checkout tests by remembering "the user works in QA." It gets better by remembering that the `#login-btn` selector died in the March redesign and `data-testid="checkout-login"` is the one that works.
+
+The fix is two prompts and an eval harness. You'll set an org-wide filter prompt so extraction knows your domain, set entity context per container so it knows what each container *is*, then build a golden set with [MemoryBench](/memorybench/overview) so you can prove recall improved — and catch it if a later change quietly makes it worse.
+
+## Know what task memory looks like
+
+Run the two kinds of content through the "what would a colleague remember?" test from the [patterns overview](/patterns/overview):
+
+| | Conversational memory | Task memory |
+| --- | --- | --- |
+| Source content | Chat sessions between a user and your product | Run logs, tool-call transcripts, task outcomes |
+| Facts worth keeping | "Sarah's being promoted to VP of Product", prefers async updates | "Staging checkout renders the login form inside an iframe", "retry twice on 502 from the payments sandbox" |
+| Entity the memory attaches to | A person | An environment, a workflow, a system under test |
+| What the profile becomes | Who this user is | How this world behaves |
+
+Both run on the same engine — same graph, same [profiles](/concepts/user-profiles), same [hybrid search](/concepts/hybrid-search). The difference is entirely in what you tell extraction to look for. Left unconfigured, it looks for the left column.
+
+## Point extraction at your domain
+
+The filter prompt rides along with every ingestion and tells the memory model what matters and what to skip. It's a settings change, so it applies to your whole org — every container, every future add. Enable LLM filtering and describe your domain:
+
+<CodeGroup>
+
+```typescript TypeScript
+import Supermemory from "supermemory";
+
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
+
+await client.settings.update({
+  shouldLLMFilter: true,
+  filterPrompt: `You are ingesting run logs from a browser-automation agent
+that tests web apps across environments.
+
+Index:
+- Selectors, waits, and workarounds that made a step succeed
+- Environment quirks (auth flows, feature flags, rate limits, flaky endpoints)
+- Failure causes and their confirmed fixes
+- Differences between staging and production behavior
+
+Skip:
+- Routine step-by-step narration of successful runs
+- Timestamps, request IDs, and other per-run noise
+- Secrets, tokens, and credentials`,
+});
+```
+
+```bash cURL
+# PATCH /v3/settings
+curl -X PATCH "https://api.supermemory.ai/v3/settings" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shouldLLMFilter": true,
+    "filterPrompt": "You are ingesting run logs from a browser-automation agent... Index: selectors and workarounds that made a step succeed... Skip: per-run noise, secrets."
+  }'
+```
+
+</CodeGroup>
+
+Write the prompt like an onboarding doc for a new teammate: what your agents do, what's worth remembering, what's noise. Concrete beats abstract — "selectors and waits that made a step succeed" extracts better than "important technical details".
+
+Settings apply to new content only. Memories that already exist aren't reprocessed, so set the filter prompt *before* you backfill — or re-ingest after changing it and let [content hashing](/patterns/ingestion) handle the documents that didn't change.
+
+## Describe each container with entity context
+
+The filter prompt covers your org. Entity context covers one [container tag](/concepts/glossary): a short description (up to 1500 characters) of what lives in that container, used during processing to guide what gets extracted and which entity it attaches to. For a task container, this is where you tell the engine "the entity here is a system, not a user."
+
+You can set it inline on any add — it persists on the container tag afterward:
+
+<CodeGroup>
+
+```typescript TypeScript
+// the TS SDK doesn't type entityContext on add yet — hit the endpoint directly
+await fetch("https://api.supermemory.ai/v3/documents", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    content: runTranscript,
+    containerTag: "agent_checkout_staging",
+    customId: "run_2026-07-17_0412",
+    entityContext:
+      "Run history for the checkout-flow test agent on staging. " +
+      "Track how the environment behaves: selectors, auth quirks, flaky endpoints, " +
+      "and which fixes worked. Individual operators are not the subject.",
+  }),
+});
+```
+
+```bash cURL
+# POST /v3/documents
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "step 3 failed: #login-btn not found. Recovered via [data-testid=checkout-login]...",
+    "containerTag": "agent_checkout_staging",
+    "customId": "run_2026-07-17_0412",
+    "entityContext": "Run history for the checkout-flow test agent on staging. Track selectors, auth quirks, flaky endpoints, and which fixes worked."
+  }'
+```
+
+</CodeGroup>
+
+Or set it once on the container's settings, without ingesting anything:
+
+<CodeGroup>
+
+```typescript TypeScript
+await fetch(
+  "https://api.supermemory.ai/v3/container-tags/agent_checkout_staging",
+  {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      entityContext:
+        "Run history for the checkout-flow test agent on staging. " +
+        "Track selectors, auth quirks, flaky endpoints, and which fixes worked.",
+    }),
+  },
+);
+```
+
+```bash cURL
+# PATCH /v3/container-tags/{containerTag}
+curl -X PATCH "https://api.supermemory.ai/v3/container-tags/agent_checkout_staging" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entityContext": "Run history for the checkout-flow test agent on staging. Track selectors, auth quirks, flaky endpoints, and which fixes worked."
+  }'
+```
+
+</CodeGroup>
+
+The two prompts stack: the filter prompt says what your org cares about, entity context says what this container is. One container per environment or workflow keeps entity context specific — `agent_checkout_staging` and `agent_checkout_prod` behave differently, so they're different containers. If several agents share one world, keep one container and split roles with metadata instead — that's the [multi-agent pattern](/patterns/multi-agent).
+
+## Ingest runs, then search like an operator
+
+With both prompts in place, feed whole runs, not fragments. One document per run, markdown over raw JSON, a stable `customId` so re-ingesting a run updates it instead of duplicating it — the same write path as every other pattern, detailed in [ingestion best practices](/patterns/ingestion). Then recall is a question an operator would ask:
+
+<CodeGroup>
+
+```typescript TypeScript
+const results = await client.search.memories({
+  q: "how do we get past the login step on staging checkout?",
+  containerTag: "agent_checkout_staging",
+  limit: 5,
+});
+```
+
+```python Python
+results = client.search.memories(
+    q="how do we get past the login step on staging checkout?",
+    container_tag="agent_checkout_staging",
+    limit=5,
+)
+```
+
+```bash cURL
+# POST /v4/search
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "how do we get past the login step on staging checkout?",
+    "containerTag": "agent_checkout_staging",
+    "limit": 5
+  }'
+```
+
+</CodeGroup>
+
+<!-- CONFIRM: python — kwargs mirrored from the patterns/overview page; verify against the published pypi package -->
+
+When the configuration is right, results read like operational knowledge:
+
+```json
+{
+  "results": [
+    {
+      "memory": "On staging checkout, the login button's #login-btn id was removed in the March redesign; [data-testid=checkout-login] is the working selector.",
+      "similarity": 0.87,
+      "updatedAt": "2026-07-17T04:14:02Z"
+    },
+    {
+      "memory": "The staging login form renders inside an iframe, so selectors need the frame context first.",
+      "similarity": 0.79,
+      "…": "…"
+    }
+  ],
+  "total": 5,
+  "timing": 312
+}
+```
+
+If they still read like facts about a person — or come back near-empty — your filter prompt and entity context aren't describing what the transcripts actually contain. Which raises the real question: how do you know it's right, other than eyeballing five results?
+
+## Build a golden set
+
+A golden set is your agent's exam: real questions it will ask memory at runtime, paired with the answers a correct memory system must produce. Pull them from actual runs — every time memory should have saved a run and didn't, that's a golden question. A few from the checkout agent:
+
+```jsonl
+{"question": "which selector works for login on staging checkout?", "groundTruth": "data-testid=checkout-login; the #login-btn id was removed in the March redesign"}
+{"question": "how should the agent handle a 502 from the payments sandbox?", "groundTruth": "retry twice with backoff; the sandbox recovers within seconds"}
+{"question": "why do selectors fail on the staging login form?", "groundTruth": "the form renders inside an iframe, so the frame context is required first"}
+```
+
+Aim for a few dozen questions before you trust the numbers. Keep the set in version control next to the prompts it validates — the filter prompt, the entity context, and the golden set change together or not at all.
+
+## Regression-test with MemoryBench
+
+[MemoryBench](/memorybench/overview) is supermemory's open-source eval framework, and it accepts custom benchmarks: implement the `Benchmark` interface — your golden questions from `getQuestions()`, your run transcripts as haystack sessions, your expected answers from `getGroundTruth()` — and register it alongside the built-in ones. The [extend-benchmark guide](/memorybench/extend-benchmark) walks through the interface.
+
+Once registered, every configuration change gets a before-and-after:
+
+```bash
+# baseline with today's prompts
+bun run src/index.ts run -p supermemory -b checkout-golden -j gpt-4o -r baseline-jul17
+
+# ...change the filter prompt or entity context, re-ingest...
+
+# score the change against the same golden set
+bun run src/index.ts run -p supermemory -b checkout-golden -j gpt-4o -r filterprompt-v2
+
+# inspect what got worse, question by question
+bun run src/index.ts show-failures -r filterprompt-v2
+```
+
+Each run writes its results to `data/runs/{runId}/`, so comparing two configurations is comparing two run directories — or two [MemScore](/memorybench/memscore) numbers, if you want a single figure to track.
+
+This matters beyond your own edits. Prompts drift, teammates "improve" the filter prompt, and we ship model updates on our side. A retrieval regression is silent — nothing errors, the agent's answers get slightly worse, and you find out from users. The golden set turns that into a diff: run it on a schedule or in CI, gate on your baseline score, and a regression becomes a failing check with `show-failures` pointing at the exact questions that broke.
+
+That's the full loop — extraction that knows your domain, containers that know what they are, and an eval that proves it stays that way. Your agent stops relearning the same broken selector every run, and you'll know before your users if that ever stops being true.
+
+## Where next
+
+- [Ingestion best practices](/patterns/ingestion) — feed run transcripts so extraction has something to work with
+- [Multi-agent systems](/patterns/multi-agent) — several agents sharing one world, split by metadata
+- [MemoryBench quickstart](/memorybench/quickstart) — get the harness running before you write a custom benchmark
+- [Customization](/concepts/customization) — the full settings surface: filter prompts, entity context, chunk size

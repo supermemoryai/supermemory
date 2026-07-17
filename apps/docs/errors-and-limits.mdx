@@ -1,0 +1,260 @@
+---
+title: "Errors & rate limits"
+description: "What supermemory's error responses actually mean, the rate limits you'll hit, and how to handle both without guessing."
+---
+
+Every supermemory error comes back as JSON with an `error` field. Some responses carry more — a `code`, a `details` string, a `retryAfterSeconds` — but `error` is the one field you can always count on:
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+There's no uniform envelope beyond that. This page gives you the shapes that matter, the status codes that get confused with each other, and retry logic that reads what the server tells you instead of sleeping for a fixed 60 seconds.
+
+## Tell 401, 402, and 429 apart
+
+These three get mixed up constantly, and one of them lies to you right now. Here's what each one means:
+
+| Status | What it means | What to do |
+|--------|---------------|------------|
+| `400` | Your request body or params failed validation | Fix the request — the `error` message names the problem |
+| `401` | Your key is missing, invalid, or not allowed to touch this resource | Check the key — but read the warning below first |
+| `402` | You've used up your plan's quota | Top up or upgrade — retrying won't help |
+| `404` | The document or memory doesn't exist | Check the id; remember deletes are permanent |
+| `429` | You're sending requests faster than your rate limit | Back off and retry — see below |
+| `5xx` | Something broke on our side | Retry with backoff; if it persists, tell us |
+
+<Warning>
+A 401 doesn't always mean your key is bad. Right now, running out of quota can also surface as a `401 Unauthorized` — the request gets rejected during auth before billing gets the chance to return a proper 402. We're fixing this. Until then: if a key that worked yesterday suddenly returns 401, [check your usage](#check-your-usage) before you rotate keys or dig through your auth code. <!-- CONFIRM: quota exhaustion surfacing as 401 — not verifiable in API code; confirm current behavior and fix status -->
+</Warning>
+
+The 402 body tells you which meter you exhausted:
+
+```json
+{
+  "error": "Text tokens limit reached",
+  "details": "You've run out of credits. Top up to continue."
+}
+```
+
+## Know the rate limits
+
+Two limits apply:
+
+- **Per API key: 500 requests per minute.** This is the one you'll feel in production — every request authenticated with a key counts against that key's own budget.
+- **Global: 100 requests per minute** for requests that aren't authenticated with an API key (session and auth traffic).
+
+The per-key default can be raised. If your workload genuinely needs more than 500 requests a minute on one key, reach out and we'll set a per-key override. But first consider whether you should be batching — [`POST /v3/documents/batch`](/add-memories) turns many adds into one request, and most bursty ingestion workloads fit under the limit once batched.
+
+<Note>
+Load-testing? You may hit Cloudflare's WAF at the edge before you ever reach the API's rate limiter — blocked requests that never show up in your API logs. That's edge protection, not a supermemory error. Contact us before running a serious load test and we'll make sure your traffic gets through. <!-- CONFIRM: WAF allowlisting process for load tests -->
+</Note>
+
+## Handle 429s with backoff
+
+When you exceed your limit, the response tells you exactly how long to wait — in the body and in the standard `Retry-After` header:
+
+```http
+HTTP/2 429
+Retry-After: 12
+
+{
+  "error": "API key rate limit exceeded. Try again shortly.",
+  "code": "RATE_LIMITED",
+  "retryAfterSeconds": 12
+}
+```
+
+Don't hardcode a 60-second sleep. Honor `retryAfterSeconds`, add a little jitter so parallel workers don't stampede back at the same instant, and cap your retries:
+
+<CodeGroup>
+
+```typescript TypeScript
+async function fetchWithBackoff(
+  url: string,
+  init: RequestInit,
+  maxRetries = 5,
+): Promise<Response> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const res = await fetch(url, init);
+    if (res.status !== 429) return res;
+
+    const body = await res.json().catch(() => null);
+    // prefer the body field, fall back to the header
+    const waitSeconds =
+      body?.retryAfterSeconds ??
+      Number(res.headers.get("Retry-After") ?? 1);
+
+    // jitter so parallel workers don't retry in lockstep
+    const delayMs = waitSeconds * 1000 + Math.random() * 500;
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+  throw new Error("Rate limited after " + maxRetries + " retries");
+}
+
+const res = await fetchWithBackoff(
+  "https://api.supermemory.ai/v3/documents",
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      content: "Sarah's being promoted to VP of Product",
+      containerTag: "user_4f8a",
+    }),
+  },
+);
+```
+
+```python Python
+import os
+import random
+import time
+
+import requests
+
+
+def request_with_backoff(method, url, max_retries=5, **kwargs):
+    for attempt in range(max_retries):
+        res = requests.request(method, url, **kwargs)
+        if res.status_code != 429:
+            return res
+
+        # prefer the body field, fall back to the header
+        try:
+            wait_seconds = res.json().get("retryAfterSeconds")
+        except ValueError:
+            wait_seconds = None
+        if wait_seconds is None:
+            wait_seconds = int(res.headers.get("Retry-After", 1))
+
+        # jitter so parallel workers don't retry in lockstep
+        time.sleep(wait_seconds + random.uniform(0, 0.5))
+
+    raise RuntimeError(f"Rate limited after {max_retries} retries")
+
+
+res = request_with_backoff(
+    "POST",
+    "https://api.supermemory.ai/v3/documents",
+    headers={"Authorization": f"Bearer {os.environ['SUPERMEMORY_API_KEY']}"},
+    json={
+        "content": "Sarah's being promoted to VP of Product",
+        "containerTag": "user_4f8a",
+    },
+)
+```
+
+```bash cURL
+# curl honors the Retry-After header on 429 when you pass --retry
+curl --retry 5 -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Sarah'\''s being promoted to VP of Product",
+    "containerTag": "user_4f8a"
+  }'
+```
+
+</CodeGroup>
+
+Only escalate to exponential delays if you're still getting 429s after honoring the server's number — that usually means many workers are sharing one key, and the real fix is batching or a per-key override, not longer sleeps.
+
+## Understand what happens at quota
+
+Rate limits reset every minute. Quota doesn't — it's your plan's monthly allowance, and when it runs out you get 402s (or, today, sometimes 401s — see above) until it refreshes or you top up.
+
+What happens next depends on your plan: on Scale, overage kicks in automatically and you keep going, billed for what you use; on Pro, you top up manually from the console. <!-- CONFIRM: overage behavior by plan (Scale auto, Pro manual) -->
+
+Two things to know so quota doesn't surprise you:
+
+- **You're charged on ingestion, not retrieval.** Search is essentially free; the tokens you process when adding content are the cost driver. If you're burning quota faster than expected, look at what you're ingesting, not how often you're searching.
+- **Deleting documents does not restore used quota.** The tokens were spent processing the content on the way in. Deleting cleans up your data — it doesn't refund the work.
+
+The full cost model — what "tokens processed" counts, plan matrices, the cheaper `taskType` lever for retrieval-only ingestion <!-- CONFIRM: taskType param name --> — lives in [usage & billing](/trust/usage-and-billing).
+
+## Check your usage
+
+Before you debug a mystery 401 or wonder where your quota went, ask the API. `GET /v3/analytics/usage` breaks usage down by request type, by hour, and — the part most people miss — by API key, including `tokensUsed` per key:
+
+<CodeGroup>
+
+```typescript TypeScript
+const res = await fetch(
+  "https://api.supermemory.ai/v3/analytics/usage?period=24h",
+  {
+    headers: {
+      Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    },
+  },
+);
+const usage = await res.json();
+```
+
+```python Python
+import os
+
+import requests
+
+res = requests.get(
+    "https://api.supermemory.ai/v3/analytics/usage",
+    params={"period": "24h"},
+    headers={"Authorization": f"Bearer {os.environ['SUPERMEMORY_API_KEY']}"},
+)
+usage = res.json()
+```
+
+```bash cURL
+curl "https://api.supermemory.ai/v3/analytics/usage?period=24h" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+</CodeGroup>
+
+The `byKey` array is where quota mysteries get solved — it tells you which key is doing the spending:
+
+```json
+{
+  "usage": [
+    { "type": "add", "count": 1523, "avgDuration": 245.5, "lastUsed": "…" },
+    { "type": "search", "count": 3421, "avgDuration": 89.2, "lastUsed": "…" }
+  ],
+  "byKey": [
+    {
+      "keyId": "key_prod_a1b2",
+      "keyName": "Production API",
+      "count": 2341,
+      "tokensUsed": 184023,
+      "avgDuration": 98.7,
+      "lastUsed": "…"
+    }
+  ],
+  "hourly": ["…"],
+  "pagination": { "currentPage": 1, "limit": 20, "totalItems": 4, "totalPages": 1 }
+}
+```
+
+`period` accepts `24h`, `7d`, `30d`, or `all`; pass `from`/`to` (ISO 8601) instead when you need a specific window. There's also `GET /v3/analytics/errors` for error breakdowns by status code and `GET /v3/analytics/logs` for full request logs when you need to see exactly what a failing request sent.
+
+That's the whole failure surface: one error shape, three status codes worth memorizing, and a server that tells you when to retry. Wire up the backoff once and you won't think about this page again.
+
+## Where next
+
+<Columns cols={2}>
+  <Card title="Usage & billing" href="/trust/usage-and-billing">
+    What tokens count, plan limits, overage, and the cost-model mental math.
+  </Card>
+  <Card title="API versioning" href="/versioning">
+    Which endpoints are v3 vs v4, and how the SDK bridges both.
+  </Card>
+  <Card title="Ingestion patterns" href="/patterns/ingestion">
+    Batch and session-window patterns that keep you under the rate limits.
+  </Card>
+  <Card title="Add memories" href="/add-memories">
+    The document API, batching, and per-request error handling.
+  </Card>
+</Columns>

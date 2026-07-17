@@ -1,152 +1,301 @@
 ---
-title: "How Supermemory Works"
-description: "Understanding the knowledge graph architecture that powers intelligent memory"
+title: "How supermemory works"
+description: "Follow one document from ingestion to memories, graph edges, dreaming, and deletion — everything that happens after you call add."
 icon: "cpu"
 ---
 
+The fastest way to understand supermemory is to follow one document all the way through: you add it, a pipeline derives memories from it, those memories connect into a graph, a second document changes what the first one meant, and eventually something gets forgotten or deleted. This page walks that whole lifecycle. Every other page in the docs assumes you've seen it.
 
-Supermemory isn't just another document storage system. It's designed to mirror how human memory actually works - forming connections, evolving over time, and generating insights from accumulated knowledge.
+## Add a document
 
-![](/images/graph-view.png)
+Everything starts with a document — any content you hand to supermemory: raw text, a chat session, a file, a URL, a connector item. Let's add one:
 
-## The Mental Model
+<CodeGroup>
 
-Traditional systems store files. Supermemory creates a living knowledge graph.
+```typescript TypeScript
+import Supermemory from "supermemory";
 
-<CardGroup cols={2}>
-  <Card title="Traditional Systems" icon="folder">
-    - Static files in folders
-    - No connections between content
-    - Search matches keywords
-    - Information stays frozen
-  </Card>
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
-  <Card title="Supermemory" icon="network">
-    - Dynamic knowledge graph
-    - Rich relationships between memories
-    - Semantic understanding
-    - Information evolves and connects
-  </Card>
-</CardGroup>
+const doc = await client.memories.add({
+  content:
+    "Notes from the Tokyo offsite: Sarah presented the Q3 roadmap to the exec team and it landed well. She's currently our design lead.",
+  containerTag: "user_4f8a",
+});
 
-## Documents vs Memories
+console.log(doc);
+// { id: "doc_x1k2m9", status: "queued" }
+```
 
-Understanding this distinction is crucial to using Supermemory effectively.
+```python Python
+from supermemory import Supermemory
 
-### Documents: Your Raw Input
+client = Supermemory()
 
-Documents are what you provide - the raw materials:
-- PDF files you upload
-- Web pages you save
-- Text you paste
-- Images with text
-- Videos to transcribe
+doc = client.memories.add(
+    content="Notes from the Tokyo offsite: Sarah presented the Q3 roadmap to the exec team and it landed well. She's currently our design lead.",
+    container_tag="user_4f8a",
+)
+```
 
-Think of documents as books you hand to Supermemory. See [Content Types](/concepts/content-types) for the full list of supported formats.
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Notes from the Tokyo offsite: Sarah presented the Q3 roadmap to the exec team and it landed well. She'\''s currently our design lead.",
+    "containerTag": "user_4f8a"
+  }'
+```
 
-### Memories: Intelligent Knowledge Units
+</CodeGroup>
 
-Memories are what Supermemory creates - the understanding:
-- Semantic chunks with meaning
-- Embedded for similarity search
-- Connected through relationships
-- Dynamically updated over time
+<!-- CONFIRM: python — every Python tab on this page mirrors the published pypi pattern; verify against the released Python SDK -->
+<!-- CONFIRM: add response shape { id, status } — not covered by SDK-TRUTH -->
 
-Think of memories as the insights and connections your brain makes after reading those books.
+The call returns immediately with an `id` and a status of `queued`. Processing happens asynchronously — you don't wait on ingestion to serve your users.
+
+The `containerTag` decides whose memory this becomes. One tag per user, tenant, or project — it's a hard isolation boundary, not a label. If you're building multi-tenant, read [permissioning](/concepts/permissioning) before you pick a tagging scheme.
+
+## Track it through the pipeline
+
+Your document moves through a fixed set of stages:
+
+```mermaid
+flowchart LR
+  A[queued] --> B[extracting] --> C[chunking] --> D[embedding] --> E[indexing] --> F[done]
+```
+
+The canonical status enum is: `unknown → queued → extracting → chunking → embedding → indexing → done | failed`. Any stage can end in `failed`; `unknown` only appears briefly before the document is queued.
+
+- **extracting** — the content comes out of whatever it was wrapped in: OCR for images, transcription for video, parsing for PDFs and pages. <!-- CONFIRM: OCR + video transcription as supported extraction paths -->
+- **chunking** — the raw content is split into retrieval-sized pieces.
+- **embedding** — chunks get vector representations.
+- **indexing** — this is where the interesting part happens: our memory model derives memories from the content and wires them into the graph.
+
+Poll the document until it's done:
+
+<CodeGroup>
+
+```typescript TypeScript
+let status = await client.memories.get(doc.id);
+
+while (status.status !== "done" && status.status !== "failed") {
+  await new Promise((r) => setTimeout(r, 2000));
+  status = await client.memories.get(doc.id);
+}
+```
+
+```python Python
+import time
+
+status = client.memories.get(doc.id)
+
+while status.status not in ("done", "failed"):
+    time.sleep(2)
+    status = client.memories.get(doc.id)
+```
+
+```bash cURL
+curl "https://api.supermemory.ai/v3/documents/doc_x1k2m9" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+</CodeGroup>
+
+`done` means one specific thing: **the memories derived from this document are queryable.** Not "stored", not "received" — queryable. Once you see `done`, a search in the same container will find them. Indexing propagates within a couple of seconds. <!-- CONFIRM: eventual consistency ~2s publishable -->
+
+If a document lands in `failed`, the content usually couldn't be extracted — see [errors and limits](/errors-and-limits) for what to check.
+
+## See what got created
+
+One `add` call produces several different things, and the counts in the [console](https://console.supermemory.ai) reflect that. For the offsite note above you'd see something like: 1 document, a handful of chunks, and a few memories. The counts don't match each other — that's expected, and it confuses almost everyone at first. Here's what each one is:
+
+- **The document** — your source, kept verbatim, with its `metadata` and `customId`. This is the unit you list, update, and delete.
+- **Chunks** — slices of the raw content, embedded for retrieval. They exist so [document search](/concepts/hybrid-search) can find the right passage in a long file. A 50-page PDF might produce hundreds of them.
+- **Memories** — facts the memory model *derived* from the content, each with provenance (which document it came from) and a place in time. Our example note yields memories like "Sarah presented the Q3 roadmap at the Tokyo offsite" and "Sarah is the design lead."
+- **Graph edges** — relations connecting those memories to each other and to entities like *Sarah*. You can see them in the console's graph view; [graph memory](/concepts/graph-memory) explains how they're built.
 
 <Note>
-**Key Insight**: When you upload a 50-page PDF, Supermemory doesn't just store it. It breaks it into hundreds of interconnected memories, each understanding its context and relationships to your other knowledge.
+A memory is **not** a chunk. A chunk is a slice of what you said; a memory is what supermemory understood. Most memory products only have chunks — they retrieve the nearest slice of text and call it memory. Supermemory keeps both, because they answer different questions: chunks answer "where did the source say this", memories answer "what's true about this user."
 </Note>
 
-
-## Memory Relationships
-
-![](/images/memories-inferred.png)
-
-The graph connects memories through three types of relationships. For a deeper dive into how these relationships work, see [Graph Memory](/concepts/graph-memory).
-
-### Updates: Information Changes
-
-When new information contradicts or updates existing knowledge, Supermemory creates an "update" relationship.
+That distinction is why there are two search endpoints. `client.search.documents` (POST /v3/search) searches chunks — use it for RAG over files. `client.search.memories` (POST /v4/search) searches derived facts — use it for personalization and agent context. To watch the memories exist:
 
 <CodeGroup>
-```text Original Memory
-"You work at Supermemory as a content engineer"
+
+```typescript TypeScript
+const results = await client.search.memories({
+  q: "what role does Sarah have?",
+  containerTag: "user_4f8a",
+});
 ```
 
-```text New Memory (Updates Original)
-"You now work at Supermemory as the CMO"
+```python Python
+results = client.search.memories(
+    q="what role does Sarah have?",
+    container_tag="user_4f8a",
+)
 ```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "q": "what role does Sarah have?", "containerTag": "user_4f8a" }'
+```
+
 </CodeGroup>
 
-The system tracks which memory is latest with an `isLatest` field, ensuring searches return current information.
+```json
+{
+  "results": [
+    { "memory": "Sarah is the design lead", "similarity": 0.78, … },
+    …
+  ]
+}
+```
 
-### Extends: Information Enriches
+<!-- CONFIRM: v4 search result shape ("memory", "similarity") — not covered by SDK-TRUTH -->
 
-When new information adds to existing knowledge without replacing it, Supermemory creates an "extends" relationship.
+## Add a related document, watch memories change
 
-Continuing our "working at supermemory" analogy, a memory about what you work on would extend the memory about your role given above.
+This is where supermemory stops behaving like a vector store. A second document doesn't sit inertly next to the first — the pipeline compares its new facts against the memories that already exist in the container, and relates them. Add a follow-up a week later:
 
 <CodeGroup>
-```text Original Memory
-"You work at Supermemory as the CMO"
+
+```typescript TypeScript
+await client.memories.add({
+  content:
+    "Sarah's being promoted to VP of Product. She starts the new role next month.",
+  containerTag: "user_4f8a",
+});
 ```
 
-```text New Memory (Extension) - Separate From Previous
-"Your work consists of ensuring the docs are up to date, making marketing campaigns, SEO, etc."
+```python Python
+client.memories.add(
+    content="Sarah's being promoted to VP of Product. She starts the new role next month.",
+    container_tag="user_4f8a",
+)
 ```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Sarah'\''s being promoted to VP of Product. She starts the new role next month.",
+    "containerTag": "user_4f8a"
+  }'
+```
+
 </CodeGroup>
 
-Both memories remain valid and searchable, providing richer context.
+Three kinds of relations can come out of that comparison:
 
-### Derives: Information Infers
+<!-- CONFIRM: relation names (Updates/Extends/Derives), the `isLatest` field name, and "derived memories carry lower confidence" — verify against the graph implementation -->
 
-The most sophisticated relationship - when Supermemory infers new connections from patterns in your knowledge.
+**Updates** — the new fact supersedes an old one. "Sarah is the design lead" and "Sarah is VP of Product" can't both be current. Supermemory keeps both memories but flips `isLatest`: the old one becomes history, the new one becomes the answer. Search returns the latest version by default, so "what role does Sarah have?" now says VP of Product — and the history is still there if you ask for it. This is how contradictions resolve without losing the timeline.
+
+**Extends** — the new fact enriches an old one without replacing it. "She starts the new role next month" extends the promotion fact. Both stay valid, both stay searchable, and recall gets richer instead of noisier.
+
+**Derives** — the model infers a connection neither document stated. From "Sarah presented the Q3 roadmap at the Tokyo offsite" and "Sarah's being promoted to VP of Product", it can derive that the presentation and the promotion are related — context your user never typed. Derived memories are inferences, so they carry lower confidence than stated facts; [graph memory](/concepts/graph-memory) covers how to review them.
+
+The exact memories the model derives from any given text will vary — treat the examples above as the shape of the behavior, not a transcript. But the mechanism is the guarantee: every new document is reconciled against what's already known, per container. That's the difference between accumulating text and maintaining an understanding.
+
+This is also why [profiles](/concepts/user-profiles) stay current without you managing them — the profile is computed from the latest state of the container, so the moment the Updates relation lands, the profile says VP of Product too.
+
+## Let it dream
+
+You're not the only one working on this container. About 5 minutes after ingestion, **dreaming** kicks in: a background consolidation pass that revisits recent memories, strengthens connections across documents, and tidies up what the fast path missed. It's the same idea as sleep consolidating your day.
+
+Dreaming has its own status (`dreaming` / `done`), separate from document processing — a document being `done` doesn't wait on it, and search works fine while it runs. You can disable dreaming through the API if you need fully deterministic ingestion. <!-- CONFIRM: exact disable param -->
+
+The practical takeaway: recall right after `done` is good; recall a few minutes later can be better connected. Don't benchmark cross-document inference in the first minute after ingestion.
+
+## Forget a memory, delete a document
+
+Two removal operations exist, at two different levels, and they behave differently on purpose.
+
+**Forgetting is memory-level and soft** (v4). The memory is marked forgotten and excluded from recall — but not destroyed. You need the memory's `id` or its exact content:
 
 <CodeGroup>
-```text Memory 1
-"Dhravya is the founder of Supermemory"
+
+```typescript TypeScript
+await fetch("https://api.supermemory.ai/v4/memories", {
+  method: "DELETE",
+  headers: {
+    Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    containerTag: "user_4f8a",
+    content: "Sarah is the design lead",
+    reason: "outdated after promotion",
+  }),
+});
 ```
 
-```text Memory 2
-"Dhravya frequently discusses AI and machine learning innovations"
+```bash cURL
+curl -X DELETE "https://api.supermemory.ai/v4/memories" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "containerTag": "user_4f8a",
+    "content": "Sarah is the design lead",
+    "reason": "outdated after promotion"
+  }'
 ```
 
-```text Derived Memory
-"Supermemory is likely an AI-focused company"
-```
 </CodeGroup>
 
-These inferences help surface insights you might not have explicitly stated.
+<!-- CONFIRM: `reason` field on DELETE /v4/memories — not in SDK-TRUTH; verify or drop -->
 
-## Processing Pipeline
+Forgotten memories stop appearing in search — unless you ask for them back with `include: { forgottenMemories: true }` on `client.search.memories`. That's the escape hatch when a forget was wrong.
 
-Understanding the pipeline helps you optimize your usage:
+For bulk cleanup there's `POST /v4/memories/forget-matching`: you give it a natural-language query ("forget everything about Project Titan"), an agent searches the container and soft-forgets the matches. It caps at 100 memories per call by default (500 max, via `maxForget`), and `dryRun: true` returns what *would* be forgotten without touching anything. Always dry-run first:
 
-| Stage | What Happens |
-|-------|-------------|
-| **Queued** | Document waiting to process
-| **Extracting** | Content being extracted |
-| **Chunking** | Creating memory chunks |
-| **Embedding** | Generating vectors |
-| **Indexing** | Building relationships |
-| **Done** | Fully searchable |
+```bash
+curl -X POST "https://api.supermemory.ai/v4/memories/forget-matching" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "containerTag": "user_4f8a",
+    "query": "forget everything about the Tokyo offsite",
+    "dryRun": true
+  }'
+```
 
-<Note>
-**Tip**: Larger documents and videos take longer. A 100-page PDF might take 1-2 minutes, while a 1-hour video could take 5-10 minutes.
-</Note>
+**Deleting is document-level and hard** (v3). `DELETE /v3/documents/:id` removes the document, its chunks, and the memories derived from it:
 
+<CodeGroup>
 
-## Next Steps
+```typescript TypeScript
+await client.memories.delete("doc_x1k2m9");
+```
 
-Now that you understand how Supermemory works:
+```python Python
+client.memories.delete("doc_x1k2m9")
+```
 
-<CardGroup cols={2}>
-  <Card title="Add Memories" icon="plus" href="/add-memories">
-    Start adding content to your knowledge graph
-  </Card>
+```bash cURL
+curl -X DELETE "https://api.supermemory.ai/v3/documents/doc_x1k2m9" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
 
-  <Card title="Search Memories" icon="search" href="/search">
-    Learn to query your knowledge effectively
-  </Card>
-</CardGroup>
+</CodeGroup>
+
+<Warning>
+Hard delete is permanent, and it does **not** restore ingestion quota — you're charged when content is processed, not while it's stored. If there's any chance you'll want the knowledge back, forget the specific memories instead; forgotten memories are recoverable, deleted documents aren't. Billing details live in [usage and billing](/trust/usage-and-billing).
+</Warning>
+
+The rule of thumb matches the [API versioning](/versioning) split: memory-level operations (add, update, forget, profile) are v4; document-level and account-level operations are v3. Forget when a fact is wrong or stale. Delete when the source itself shouldn't exist — a user exercising deletion rights, a document ingested by mistake.
+
+That's the whole lifecycle. Everything else in supermemory — profiles, search tuning, permissioning — builds on this loop.
+
+## Where next
+
+- [Graph memory](/concepts/graph-memory) — `isLatest`, temporal reasoning, and how forgetting really works
+- [Hybrid search](/concepts/hybrid-search) — the full tuning surface for recall
+- [Architecture](/concepts/architecture) — the memory model and data engine behind the pipeline
+- [Ingestion patterns](/patterns/ingestion) — how to shape sessions and files so the pipeline derives better memories

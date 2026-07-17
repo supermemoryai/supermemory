@@ -1,0 +1,248 @@
+---
+title: "Ingestion best practices"
+description: "How to feed supermemory so it derives better memories for fewer tokens — session windows, formats, backfills, and the ordering guarantees you can rely on."
+---
+
+What supermemory remembers is decided at ingestion. The [pipeline](/concepts/how-it-works) derives memories from whatever you send it — so the shape of what you send is the biggest quality lever you have, bigger than any search parameter. This page is the playbook: how to package conversations, what format to use, what to sync at scale, and how to backfill history without double-ingesting.
+
+One cost fact frames everything here: you're charged on ingestion, and search is essentially free. Every recommendation below improves memory quality *and* lowers what you process. There's no tradeoff to weigh — the good pattern is also the cheap one. The full cost model is in [usage and billing](/trust/usage-and-billing).
+
+## Send the whole conversation, not each turn
+
+The most common mistake: calling `add` once per chat message. It feels natural — a message arrives, you store it. But the memory model derives facts from context, and a single turn has almost none:
+
+```
+user: She said yes to the August date!
+```
+
+Who said yes? To what? Ingested alone, this produces a vague memory or nothing useful. Ingested as part of the session, the model resolves "she" to a person mentioned twenty turns earlier and derives a real fact with the date attached.
+
+Instead, give each session a `customId` and send the conversation to it as it grows:
+
+<CodeGroup>
+
+```typescript TypeScript
+await client.memories.add({
+  content: `user: My daughter Maya got into NYU — she starts in the fall.
+assistant: Congratulations! Is she excited about New York?
+user: Thrilled. We're flying out August 20th to move her in.`,
+  customId: "chat_8821",
+  containerTag: "user_4f8a",
+});
+```
+
+```python Python
+client.add(
+    content="""user: My daughter Maya got into NYU — she starts in the fall.
+assistant: Congratulations! Is she excited about New York?
+user: Thrilled. We're flying out August 20th to move her in.""",
+    custom_id="chat_8821",
+    container_tag="user_4f8a",
+)
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "user: My daughter Maya got into NYU — she starts in the fall.\nassistant: Congratulations! Is she excited about New York?\nuser: Thrilled. We are flying out August 20th to move her in.",
+    "customId": "chat_8821",
+    "containerTag": "user_4f8a"
+  }'
+```
+
+</CodeGroup>
+
+{/* CONFIRM: python — client.add signature mirrored from quickstart.mdx; no Python SDK in repos to verify against */}
+
+When more messages arrive, send them to the same `customId` — either the new messages alone or the full updated transcript. Supermemory links them to the existing document and processes only what's new, so you're not re-paying for the turns it already saw.
+
+This is why full-conversation ingestion is cheaper, not only better: fifty turns as one growing document is one document deriving memories from coherent context. Fifty turns as fifty documents is fifty isolated ingestion jobs, each missing the context the others hold.
+
+Two details worth knowing:
+
+- **Include both sides.** Assistant turns carry facts too — what was recommended, what was agreed, what the user confirmed. Strip the assistant and you lose half the session's meaning. (What *not* to learn from assistant turns — unconfirmed claims — is covered in the [AI companion pattern](/patterns/ai-companion).)
+- **`customId` constraints:** max 100 characters, alphanumeric with hyphens, underscores, and colons. Use an ID from your own database — that's what it's for. <!-- CONFIRM: the 100-char + charset rule is what file uploads validate; the batch endpoint validates 255 chars and single add doesn't validate length — which limit do we document? -->
+
+## Close the window at ~50 turns or ~4 hours
+
+A session shouldn't grow forever. Past a point, one document stops being "a coherent conversation" and becomes a transcript dump. The working rule: roll to a new `customId` after roughly 50 turns or 4 hours of activity, whichever comes first:
+
+```typescript
+// derive the window from your session, not a global counter
+const windowId = `chat_8821_w${session.windowIndex}`;
+
+await client.memories.add({
+  content: session.transcriptSinceWindowStart,
+  customId: windowId,
+  containerTag: "user_4f8a",
+});
+```
+
+Memories from all windows land in the same container and connect in the [graph](/concepts/graph-memory), so nothing is lost at the boundary — you're only bounding how much any single ingestion job has to chew through.
+
+Send windows as sessions close, in real time. You don't need to accumulate a day's conversations and cron them in overnight — the pipeline already groups related documents during processing (dynamic dreaming, the default), so batching for coherence is handled on our side.
+
+## Format for the reader, not the parser
+
+The extraction model reads your content the way a person would. Markdown and PDFs ingest well. Raw JSON ingests badly:
+
+```json
+{"role": "user", "content": "We're flying out August 20th", "timestamp": 1755648000, "id": "msg_9f2c", "session": "chat_8821", "client_version": "2.4.1"}
+```
+
+Most of those tokens are envelope, not meaning — and envelope tokens count toward what you process. Worse, the structure buries the one sentence that matters in field names the model has to see past. Strip transcripts down before ingesting:
+
+```
+user: We're flying out August 20th
+```
+
+The same goes for documents: if you're ingesting exports from another system, convert to markdown first rather than posting the API response verbatim. Put the machine-readable bits — session ID, channel, source — in `metadata`, where they're filterable, instead of in `content`, where they're noise.
+
+<Note>
+Files (PDF, images, video) go through `client.memories.uploadFile` or the [connectors](/connectors/overview), which handle extraction for you. This section is about content you assemble yourself.
+</Note>
+
+## Choose what deserves memory
+
+At scale, the question isn't "how do I ingest everything" — it's "what should I ingest at all". The test: would a sharp colleague *remember* this, or would they *look it up*?
+
+**Ingest:** conversations, meeting notes, decisions and their reasoning, support threads, documents people actually reference, preferences, corrections.
+
+**Don't ingest:** application logs, high-churn machine state, records your app should query from its own database, entire codebases. If you want your agents to know engineering conventions, ingest the org-level rules and architecture docs — not every source file.
+
+For reference corpora you only need retrieval over — a documentation set, a policy archive — there's a middle path: `taskType: "superrag"` ingests for search without full memory derivation, at about 5x lower cost. It's a `POST /v3/documents` body param (not yet in the TS SDK's typings, so call the endpoint directly):
+
+```bash
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "https://cdn.newfront.com/policies/cyber-liability-2026.pdf",
+    "containerTag": "org_newfront",
+    "taskType": "superrag"
+  }'
+```
+
+The default (`taskType: "memory"`) gives you the full context layer with retrieval built in. Use `superrag` when the content is something to search, not something to understand. The full decision framework — memory vs cold storage vs prompt — is in the [patterns overview](/patterns/overview).
+
+## Backfill history in batches
+
+When you onboard supermemory with months of existing conversations, don't loop over `add` one call at a time — you'll spend most of the backfill inside rate limits (API keys get 500 requests per 60 seconds). Use the batch endpoint, which takes up to 600 documents per request:
+
+<CodeGroup>
+
+```typescript TypeScript
+// the SDK doesn't expose batch yet — call the endpoint directly
+const res = await fetch("https://api.supermemory.ai/v3/documents/batch", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    containerTag: "user_4f8a",
+    documents: sessions.map((s) => ({
+      content: s.markdown,
+      customId: s.id,
+      metadata: { channel: s.channel },
+    })),
+  }),
+});
+
+const { results, success, failed } = await res.json();
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v3/documents/batch" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "containerTag": "user_4f8a",
+    "documents": [
+      { "content": "user: ...\nassistant: ...", "customId": "chat_8801" },
+      { "content": "user: ...\nassistant: ...", "customId": "chat_8802" }
+    ]
+  }'
+```
+
+</CodeGroup>
+
+The response tells you per-document what happened:
+
+```json
+{
+  "results": [
+    { "id": "doc_x2ka91", "status": "queued" },
+    { "id": "doc_p8mm42", "status": "queued" }
+  ],
+  "success": 2,
+  "failed": 0
+}
+```
+
+Failed items come back with `status: "error"` and an `error` message, with `id` empty — collect those and retry them; the successes don't need resending.
+
+Three things make a backfill safe to run, and safe to re-run:
+
+**Dedup is built in — lean on it.** Every document gets a content hash. Re-send identical content with the same `customId`, metadata, and container tag, and supermemory recognizes the existing document instead of creating a second one. Re-send *changed* content under an existing `customId` and it updates the document, processing only the diff. So a crashed backfill script is fine: run it again from the top. As long as every document carries a `customId`, the re-run is idempotent.
+
+**Back off on 429s properly.** When you hit a rate limit, the response includes `retryAfterSeconds` in the body and a `Retry-After` header — wait that long, not a guessed 60 seconds:
+
+```typescript
+if (res.status === 429) {
+  const { retryAfterSeconds } = await res.json();
+  await new Promise((r) => setTimeout(r, retryAfterSeconds * 1000));
+  // then retry the same batch
+}
+```
+
+The full error and limit reference is at [errors and limits](/errors-and-limits).
+
+**Poll status before you judge the results.** Batch acceptance means *queued*, not *searchable*. Each document moves through `queued → extracting → chunking → embedding → indexing → done`, and its memories are queryable once it hits `done`. To verify an import, poll the IDs the batch returned:
+
+```typescript
+const doc = await client.memories.get("doc_x2ka91");
+if (doc.status === "done") {
+  // memories from this document are now searchable
+} else if (doc.status === "failed") {
+  // re-add this one
+}
+```
+
+There's no bulk "is my whole import done" call yet — poll the IDs you care about, or spot-check with a search you know the backfilled data should answer. A large backfill processes asynchronously and won't all be `done` the moment the requests return; budget for that in your onboarding flow rather than searching immediately and concluding the import failed.
+
+## Know the ordering guarantees
+
+`add` returns `{ id, status: "queued" }` and the pipeline processes asynchronously. Documents are **not** guaranteed to finish processing in the order you submitted them. Usually that doesn't matter — memories carry their own temporal information, and the graph reconciles facts regardless of arrival order.
+
+Where it can matter: two writes to the *same* `customId` fired in quick succession. In rare cases the second can be picked up while the first is still processing, and the updates race. Two ways to make that impossible:
+
+- **Send the full accumulated transcript each time** instead of only the delta. Then the latest write contains everything, and whichever write lands last is complete on its own. It's the least machinery and costs little extra — unchanged content is recognized and not reprocessed.
+- **Wait for `done` before the next write** to the same `customId`, polling `client.memories.get(id)`. Use this when deltas are large and you'd rather sequence than resend.
+
+For backfills, the batch endpoint sidesteps the question: one request, distinct `customId`s per document, no interleaved writes to the same session.
+
+<Warning>
+Don't send the same `customId` from two concurrent workers — for example, a live-ingestion path and a backfill script covering the same sessions. Partition by time so exactly one writer owns a session, or run the backfill to completion before enabling live writes.
+</Warning>
+
+That's it — your ingestion now matches how the memory model actually works: whole conversations, human-readable formats, deliberate scope, and backfills you can re-run without fear.
+
+## Where next
+
+<Columns cols={2}>
+  <Card title="AI companion pattern" icon="heart" href="/patterns/ai-companion">
+    Session windows in a full production loop — plus hallucination hygiene and profile injection.
+  </Card>
+  <Card title="How it works" icon="cog" href="/concepts/how-it-works">
+    What happens between "queued" and "done" — extraction, memory derivation, dreaming.
+  </Card>
+  <Card title="Usage and billing" icon="credit-card" href="/trust/usage-and-billing">
+    What "tokens processed" counts, and why ingestion is the cost driver.
+  </Card>
+  <Card title="Connector sync lifecycle" icon="refresh-cw" href="/connectors/sync-lifecycle">
+    When ingestion comes from connectors instead of your code — cadence, limits, monitoring.
+  </Card>
+</Columns>

@@ -1,0 +1,187 @@
+---
+title: "API versioning"
+description: "The honest map of v3 and v4 — which endpoints live where, what the SDK actually calls, and how we ship changes."
+---
+
+Supermemory's REST API has two live versions, v3 and v4, and both are current. Neither is deprecated. The rule of thumb: **memory-level operations are v4; document-level and account-level operations are v3.** The SDK bridges both, so on a normal day you never think about it. This page is for the other days — raw HTTP calls, log spelunking, or wondering why `add` and `search` show different URLs in your traces.
+
+Here's the seam in one program:
+
+{/* CONFIRM: python — client.add vs client.memories.add naming is inconsistent across published docs; mirrored add-memories.mdx and search.mdx */}
+
+<CodeGroup>
+```typescript TypeScript
+import Supermemory from "supermemory"
+
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
+
+// hits POST /v3/documents
+await client.memories.add({
+  content: "Sarah's being promoted to VP of Product in March",
+  containerTag: "user_4f8a",
+})
+
+// hits POST /v4/search
+const results = await client.search.memories({
+  q: "what's changing for Sarah?",
+  containerTag: "user_4f8a",
+})
+```
+
+```python Python
+from supermemory import Supermemory
+
+client = Supermemory()
+
+# hits POST /v3/documents
+client.add(
+    content="Sarah's being promoted to VP of Product in March",
+    container_tag="user_4f8a",
+)
+
+# hits POST /v4/search
+results = client.search.memories(
+    q="what's changing for Sarah?",
+    container_tag="user_4f8a",
+)
+```
+
+```bash cURL
+# storing is v3
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Sarah'\''s being promoted to VP of Product in March",
+    "containerTag": "user_4f8a"
+  }'
+
+# searching is v4
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "what'\''s changing for Sarah?",
+    "containerTag": "user_4f8a"
+  }'
+```
+</CodeGroup>
+
+One program, two versions, zero migration work on your side. That's the design, not an accident.
+
+## The rule of thumb
+
+If an operation touches individual **memories** — searching them, updating them, forgetting them, reading the [profile](/concepts/user-profiles) derived from them — it's v4. If it touches **documents** (the content you ingested) or your **account** (keys, settings, analytics, connections, container tags), it's v3.
+
+Why two versions exist at all: when we rebuilt the memory layer — the [graph](/concepts/graph-memory), profiles, forgetting — the old memory surface couldn't express the new behavior, so memory operations got a new version. The document and account plumbing didn't need to change, so it didn't. Versioning per-operation instead of flag-day-migrating everything means your existing v3 integrations kept working while v4 shipped.
+
+## The endpoint map
+
+Every memory-level endpoint, all on v4:
+
+| Endpoint | What it does | TS SDK method |
+|---|---|---|
+| `POST /v4/search` | Search memories | `client.search.memories()` |
+| `POST /v4/profile` | Get a container's profile | `client.profile()` |
+| `POST /v4/profile/buckets` | Profile bucket operations | raw HTTP |
+| `POST /v4/memories` | Add a memory | raw HTTP (the SDK adds via v3 — see below) |
+| `PATCH /v4/memories` | Update a memory | raw HTTP |
+| `DELETE /v4/memories` | Forget one memory | raw HTTP |
+| `POST /v4/memories/forget-matching` | Mass-forget by prompt/query (`dryRun` to preview, `maxForget` caps deletions — default 100, max 500) | raw HTTP |
+| `POST /v4/memories/list` | List memories | raw HTTP |
+| `POST /v4/conversations` | Ingest a conversation | raw HTTP |
+
+Every document-level and account-level endpoint, all on v3:
+
+| Endpoint | What it does | TS SDK method |
+|---|---|---|
+| `POST /v3/documents` | Add a document | `client.memories.add()` |
+| `POST /v3/documents/file` | Upload a file | `client.memories.uploadFile()` |
+| `POST /v3/documents/list` | List documents | `client.memories.list()` |
+| `GET /v3/documents/{id}` | Get a document | `client.memories.get()` |
+| `PATCH /v3/documents/{id}` | Update a document | `client.memories.update()` |
+| `DELETE /v3/documents/{id}` | Delete a document | `client.memories.delete()` |
+| `DELETE /v3/documents/bulk` | Bulk delete (including by container tag) | raw HTTP |
+| `POST /v3/search` | Search document chunks (RAG-style) | `client.search.documents()` |
+| `GET` / `PATCH /v3/settings` | Org settings | `client.settings.get()` / `.update()` |
+| `/v3/connections/*` | Connector management | `client.connections.*` |
+| `/v3/container-tags/*` | List container tags; `POST /v3/container-tags/merge` merges two | raw HTTP |
+| `/v3/analytics/*` | Usage, logs, errors | raw HTTP |
+| `/v3/auth/*` | Keys, billing, team | console, mostly |
+
+The documents family also includes batch add, fetch by IDs, chunks, and versions — see [document operations](/document-operations) for those.
+
+Two things in this map trip people up, so let's name them:
+
+**Yes, `client.memories.add()` calls `/v3/documents`.** The SDK is named for the mental model — you add content, supermemory derives memories from it. The route is named for what's actually stored: a document, from which memories are derived. Same operation, two vocabularies. The [glossary](/concepts/glossary) keeps them straight.
+
+**The SDK covers two of the nine v4 endpoints.** `client.search.memories()` and `client.profile()` are the v4 surface in the TS SDK today. The rest — memory update, forget, forget-matching, list, conversations — are raw HTTP for now. They work fine with `fetch`; they don't have typed wrappers yet.
+
+<Note>
+Requests to `/v3/memories/*` respond with a 308 redirect to `/v3/documents/*`. Old integrations keep working — most HTTP clients follow 308 and preserve the method and body. Update your paths when convenient, not urgently.
+</Note>
+
+## Known seam behaviors
+
+Two versions sharing one store means the seams occasionally show. These are the ones we know about, with the workaround attached.
+
+### Container-tag charset
+
+Both versions now validate container tags with the same rule: alphanumeric characters, hyphens, underscores, and colons (`^[a-zA-Z0-9_:-]+$`), max 100 characters. But v3 write endpoints historically accepted a wider charset than v4 search validates. If you created tags before validation converged — say with dots or spaces — v3 stored your data under them without complaint, and v4 search now rejects the tag. The data isn't gone; the tag fails v4's validation, so your searches come back empty or erroring.
+
+The fix: container tags are immutable, but you can merge one into another. Merge the old tag into a compliant one with `POST /v3/container-tags/merge`, then use the new tag everywhere. If you're generating tags from user input, sanitize to the charset above before writing.
+
+### Deleted-connection results
+
+{/* CONFIRM: deleted-connection seam — v4 returning stale memories while v3 doesn't is not in the verified facts list; sourced from support reports, needs engineering confirmation */}
+
+After you disconnect a [connector](/connectors/overview), v4 search can still return memories derived from that connection's documents, while `POST /v3/search` doesn't. This is a known issue, not intended behavior.
+
+Until it's fixed: pass `deleteDocuments: true` when disconnecting, which removes the connection's documents and the memories derived from them. If you've already disconnected and kept the documents, delete them explicitly — `DELETE /v3/documents/bulk` scoped to the right filter — and the stale results go with them.
+
+### Metadata on v4 search results
+
+This one looks like a seam bug but isn't: `client.search.memories()` results don't carry your metadata by default, because metadata lives on documents, **not** on the memories derived from them. Ask for the documents and you get it back:
+
+```typescript
+const results = await client.search.memories({
+  q: "what's changing for Sarah?",
+  containerTag: "user_4f8a",
+  include: { documents: true }, // brings document metadata along
+})
+```
+
+## The containerTags array is deprecated
+
+On writes, `containerTags` (the array) is deprecated in favor of `containerTag` (singular). It still works — sending it won't break anything today — but sending *both* on one request is rejected:
+
+```
+Cannot specify both containerTag and containerTags.
+Use containerTag only (containerTags is deprecated).
+```
+
+There's no removal date announced. When one is scheduled, it follows the change policy below — changelog entry, deprecation window, migration note.
+
+Two clarifications, because this deprecation gets misread:
+
+- **`containerTags` on `POST /v3/search` is not deprecated.** Plural is the current, correct shape for document search — that endpoint filters across containers by design. The deprecation is about the array form on writes.
+- **v4 search takes exactly one `containerTag`, on purpose.** The wildcard cross-container search from v3 is gone in v4 because a container tag is an isolation boundary, and search that silently crosses boundaries is how tenant data leaks. If you genuinely need to search several containers, run the queries in parallel and merge — the pattern is written up in [permissioning](/concepts/permissioning).
+
+## How we ship changes
+
+Every API change lands in the [changelog](/changelog/overview) — that's the single place to watch, and it's where breaking changes get their migration notes.
+
+The policy for anything breaking: it's announced in the changelog before it happens, it gets a deprecation window before removal, and the old behavior keeps working through that window. {/* CONFIRM: deprecation window length — no verified number, so none stated */} Deprecated things degrade politely, not abruptly — you've seen two examples on this page already: `/v3/memories/*` still 308-redirects instead of 404ing, and the `containerTags` array still writes correctly. That's the standard we hold new deprecations to. If an API change ever catches you by surprise, that's a bug in our process — tell us.
+
+## Where this is heading
+
+Honestly: toward v4 as the single memory surface. The storage endpoints already exist there (`POST /v4/memories`, `POST /v4/conversations`), and the SDK will move onto them over time. The v3 document and account endpoints aren't going anywhere on any near timeline — they're the stable plumbing under every SDK method in the table above, and consolidation will happen through the changelog-and-deprecation-window process, not a flag day. Build on what the SDK gives you today; when methods move versions underneath you, your code shouldn't have to change.
+
+That's the whole map — two versions, one rule of thumb, and an SDK that hides most of it.
+
+## Where next
+
+- [Errors and limits](/errors-and-limits) — what the error codes actually mean, and how to handle 429s
+- [Permissioning](/concepts/permissioning) — container tags, scoped keys, and the cross-container search pattern
+- [Add memories](/add-memories) — ingestion done well: `customId`, session windows, batching
+- [Changelog](/changelog/overview) — where every API change is announced

@@ -1,0 +1,167 @@
+---
+title: "Architecture"
+description: "What's inside the context engine: the memory model, the facts-on-facts graph, the data engine, and where the milliseconds go."
+---
+
+Supermemory is a context engine. You feed it documents; it derives memories, connects them into a knowledge graph, maintains a profile per entity, and serves the right context back when your app asks — in a few hundred milliseconds. This page is the machinery tour: what runs when you ingest, what the store looks like, and where the latency goes.
+
+If you'd rather build first, start with the [quickstart](/quickstart). Come back here when you're deciding whether supermemory can be a primitive in your architecture, like Postgres or Redis.
+
+## Why memory needs its own engine
+
+Most memory layers are a vector store that retrieves the nearest chunk. That works until your users have history, and then it fails in three specific ways:
+
+- **No time.** Your user said "I like red" in March and "black now, actually" in June. Nearest-chunk retrieval returns both, with no idea which is current. Embeddings don't encode "this replaced that."
+- **No identity.** "Sarah," "the VP of Product," and "she" are three different strings to a chunk index. Ask "what should I get my VP of Product?" and the facts about Sarah never surface, because nothing resolved them to the same person.
+- **No updates.** Chunks are immutable. When facts change, an append-only store accumulates contradictions and hands your LLM all of them.
+
+You can't patch these with a retrieval trick. Fixing them takes extraction that understands time and identity, a graph that revises itself when new information lands, and a store shaped for that data. That's what the rest of this page describes.
+
+<Frame caption="The supermemory context engine, end to end">
+  <!-- TODO(dhravya): drop the architecture disclosure diagram here — ingestion pipeline → data engine → retrieval fan-out. Placeholder image path until supplied. -->
+  <img src="/images/architecture-diagram.png" alt="Architecture diagram: documents flow through the ingestion pipeline into the data engine; retrieval fans out across semantic, keyword, and graph indexes in parallel" />
+</Frame>
+
+## What happens when you ingest
+
+Every document — an API call, a file, a connector item, a chat session — goes through the same pipeline. You can watch it happen: documents move through `queued → extracting → chunking → embedding → indexing → done`, and `done` means the derived memories are queryable. [How it works](/concepts/how-it-works) follows one document through the full lifecycle; here's what each stage is actually doing.
+
+### Extraction: a model built for memory
+
+Extraction runs on a custom fine-tuned memory model that we host — not a prompt wrapped around a general-purpose LLM. It's trained on one job: reading raw content and pulling out the facts worth remembering. Each fact carries provenance — where it came from — and time — when it was true. Running our own model is also why ingestion stays cheap at volume — a frontier model doing this work per document would dominate your bill.
+
+Self-hosted tiers run on-device variants of the same model, at 400M and 2B parameters. <!-- CONFIRM: 400M/2B on-device variant sizes publishable (stated on Lenovo call) --> See [self-hosting tiers](/self-hosting/tiers) for which variant runs where.
+
+### Derivation: Updates, Extends, Derives
+
+New facts don't land in a vacuum. Each derived memory is compared against what the container already knows, and the pipeline records one of three relations:
+
+- **Updates** — the new fact supersedes an old one. "Sarah's being promoted to VP of Product" updates "Sarah is Director of Product." Both survive, but the old one is marked stale (`isLatest: false`), so search prioritizes the current fact and history stays queryable.
+- **Extends** — the new fact enriches without replacing. "Sarah presented the Q3 roadmap at the offsite" extends what's known about Sarah; nothing gets contradicted.
+- **Derives** — the pipeline infers a fact neither document stated. "I need a gift for my VP of Product" plus the promotion memory derives a connection to Sarah — an entity chain you never wrote down.
+
+This is the step vector stores skip entirely, and it's why supermemory can answer "who's getting promoted?" from a session that never said so. [Graph memory](/concepts/graph-memory) covers temporal resolution, conflicts, and forgetting in depth.
+
+### The graph: facts on facts, not triplets
+
+Classic knowledge graphs store triplets: `(Sarah, promoted_to, VP of Product)`. Triplets are clean to draw and lossy to live with — a triplet has nowhere to put *when* it happened, *who said so*, whether it's confirmed or inferred, or the condition it depends on. Squeeze "Sarah's being promoted to VP of Product next quarter, per the offsite discussion" into a triplet and everything after the comma is gone.
+
+Supermemory's graph puts whole facts at the nodes and draws relations between facts. A fact keeps its nuance — time, provenance, confidence — and later facts attach to earlier ones; the Updates/Extends/Derives structure above is materialized as edges. When retrieval walks the graph, it walks through statements, not stripped-down predicates.
+
+### Profiles
+
+For each [container tag](/concepts/permissioning), the engine maintains a [profile](/concepts/user-profiles): its current derived understanding of that entity, split into static facts (stable — name, role, durable preferences) and dynamic ones (recent, shifting). The profile samples the container — it's recomputed as memories change, not assembled at query time. That's what makes fetching it a read instead of a computation, and safe to prompt-cache.
+
+### Dreaming
+
+About five minutes after ingestion, the engine revisits the new memories with the whole graph in view — consolidating related memories and drawing connections that weren't visible while documents were streaming in one at a time. We call it dreaming, because that's roughly the job sleep does for your brain.
+
+Dreaming is why a container keeps getting better after `done`. If you need fully deterministic post-ingest state, you can disable it via the API. <!-- CONFIRM: exact param/endpoint for disabling dreaming -->
+
+## Why one store, not three
+
+We didn't set out to build a database. But the shape above — facts with time and provenance, edges between facts, precomputed profiles, all isolated per container tag — doesn't map onto an off-the-shelf vector store. And gluing a vector DB to a graph DB to a keyword index means three network hops and three consistency stories on every query. So memories, the graph, and profiles live in one store, laid out so a single query can hit all of them:
+
+- **Memories** are indexed three ways at write time: embedded for semantic similarity, indexed for keyword match, and wired into the graph through their relations.
+- **Profiles** are precomputed per container tag and refreshed as memories change.
+- **Container tags** are real isolation boundaries, not a `WHERE` clause — which is why [scoped API keys](/concepts/permissioning) are an enforceable guardrail, and why large containers don't slow down.
+
+### Retrieval fans out
+
+A search doesn't pick one index — it fans out to all three in parallel:
+
+1. **Semantic** — embedding similarity, for meaning-shaped queries.
+2. **Keyword** — exact terms, for the names, IDs, and jargon that embeddings blur.
+3. **Graph** — walks relations outward from matched memories, pulling in connected facts the query never mentioned.
+
+Results merge under a unified score. Because the fan-out runs in parallel inside one store, the graph walk adds about 20ms over a plain vector lookup <!-- CONFIRM: ~20ms graph/merge delta — verbal only (Uber/Harmix calls) --> — connected recall without a second round trip.
+
+One call hits all three:
+
+<CodeGroup>
+```ts TypeScript
+import Supermemory from "supermemory"
+
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
+
+const results = await client.search.memories({
+  q: "what gift should I get for my VP of Product?",
+  containerTag: "user_4f8a",
+  include: { relatedMemories: true },
+})
+```
+
+```python Python
+from supermemory import Supermemory
+import os
+
+client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
+
+results = client.search.memories(
+    q="what gift should I get for my VP of Product?",
+    container_tag="user_4f8a",
+    include={"relatedMemories": True},
+)
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "what gift should I get for my VP of Product?",
+    "containerTag": "user_4f8a",
+    "include": { "relatedMemories": true }
+  }'
+```
+</CodeGroup>
+
+The connected facts come back attached — that's the `relatedMemories` include:
+
+```json
+{
+  "results": [
+    {
+      "memory": "Sarah is being promoted to VP of Product",
+      "similarity": 0.91,
+      "context": {
+        "parents": [
+          {
+            "memory": "Sarah presented the Q3 roadmap at the offsite",
+            "relation": "extends"
+          }
+        ]
+      }
+    },
+    …
+  ]
+}
+```
+
+The query never said "Sarah" — the graph resolved the entity. From here you tune, not rebuild: `rewriteQuery` fires parallel query rewrites and merges the results (costs latency, not money — and it's what makes "last week" match the right time period), `rerank` re-scores the merged set for precision, `threshold` trades recall for it. [Hybrid search](/concepts/hybrid-search) documents the whole tuning surface.
+
+## Where the milliseconds go
+
+Numbers you can plan around: <!-- CONFIRM: all latency numbers in this table — stated verbally (CBRE call); confirm publishable before ship -->
+
+| Operation | Typical latency |
+|---|---|
+| Profile fetch (`POST /v4/profile`) | ~100ms |
+| Memory search (`POST /v4/search`), P50 | ~300ms |
+| Memory search, P99 | ~400ms |
+| `rerank: true` | +~100ms |
+| `rewriteQuery: true` | adds latency (parallel rewrites, merged) |
+| New memories visible after processing | ~2s |
+
+The split that matters is cached versus computed. Profiles are the cached path: precomputed, stable between ingestions, and sized to a roughly 1k-token budget so they sit at the top of a prompt-cached system message without breaking the cache. Search is computed per query. The pattern that falls out — profile in the cacheable system prompt, a search per user message — is worked through in [user profiles](/concepts/user-profiles).
+
+One consistency note: after a document reaches `done`, its new memories take about 2 seconds to become visible to search. Search immediately after adding and you might not see them — poll the document's status and give it a beat, or design the flow so ingestion and recall aren't in the same breath.
+
+That's the engine: a model that extracts facts with time and identity attached, a graph that revises itself, and a store that answers from three indexes at once. Every surface — SDK, MCP, connectors, [all of them](/concepts/surfaces) — is a door into this same machinery.
+
+## Where next
+
+- [How it works](/concepts/how-it-works) — follow one document through the pipeline, status by status
+- [Graph memory](/concepts/graph-memory) — temporal reasoning, conflicts, and forgetting
+- [Hybrid search](/concepts/hybrid-search) — the full retrieval tuning surface
+- [User profiles](/concepts/user-profiles) — injecting the profile into your prompt, cache-friendly

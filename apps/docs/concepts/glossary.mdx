@@ -1,0 +1,185 @@
+---
+title: "Glossary"
+description: "Every supermemory term, defined once — and linked to the page that goes deep."
+---
+
+Every term in these docs is defined once, here. When another page says "memory" or "container tag", this is exactly what it means. Skim the headings; each entry links to the page that goes deep.
+
+Most of the vocabulary shows up in a single add call:
+
+<CodeGroup>
+
+```typescript TypeScript
+import Supermemory from "supermemory"
+
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
+
+await client.memories.add({
+  content: "Sarah's being promoted to VP of Product", // becomes a document
+  containerTag: "user_4f8a", // the isolation boundary
+  customId: "slack-thread-9917", // your stable id for this document
+  metadata: { channel: "slack", team: "product" }, // dimensions inside the boundary
+})
+```
+
+```python Python
+from supermemory import Supermemory
+
+client = Supermemory()
+
+client.memories.add(
+    content="Sarah's being promoted to VP of Product",
+    container_tag="user_4f8a",
+    custom_id="slack-thread-9917",
+    metadata={"channel": "slack", "team": "product"},
+)
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Sarah'\''s being promoted to VP of Product",
+    "containerTag": "user_4f8a",
+    "customId": "slack-thread-9917",
+    "metadata": { "channel": "slack", "team": "product" }
+  }'
+```
+
+</CodeGroup>
+
+{/* CONFIRM: python — memories.add kwargs mirrored from the published pypi search style; verify against the shipped package */}
+
+The content becomes a **document**, the pipeline derives **memories** from it, the memories join the **graph**, and the **profile** for `user_4f8a` updates. The rest of this page defines each of those words — plus the ones that control the process.
+
+## From content to memory
+
+### Document
+
+The unit of ingestion. Anything you feed supermemory — a text note, a full chat session, a file, a URL, an item pulled in by a [connector](#connector) — is stored as a document. The document keeps your original content; the pipeline derives [memories](#memory) from it. Document-level operations (add, list, delete) live under v3, like `POST /v3/documents` above — see [versioning](/versioning) for the full endpoint map, and [content types](/concepts/content-types) for what you can ingest.
+
+### Memory
+
+An individual fact derived from your documents by the ingestion pipeline — a custom fine-tuned memory model, not a chunking script. Each memory carries provenance (which document it came from) and time (when it was true), and memories interconnect into the [graph](/concepts/graph-memory) as entities and relations. Memories are what `client.search.memories` (`POST /v4/search`) returns. Memory-level operations run on v4 — the rule of thumb is in [versioning](/versioning). For when to search memories versus raw content, read [memory vs RAG](/concepts/memory-vs-rag).
+
+### Chunk
+
+A slice of a document, sized for retrieval. Search matches at the chunk level, so you get the relevant passage instead of a 40-page document. On memory search you pull them with `include: { chunks: true }`; document search returns matching chunks directly. How chunks, memories, and the graph combine at query time is the subject of [hybrid search](/concepts/hybrid-search).
+
+### Dreaming
+
+A background consolidation pass over recently ingested memories. It runs about 5 minutes after ingestion and connects new facts to what's already known. Dreaming has its own status (`dreaming` → `done`), separate from document processing status — your memories are queryable as soon as processing hits `done`; dreaming improves them after. You can disable it via the API. {/* CONFIRM: exact param for disabling dreaming */}
+
+## What supermemory knows
+
+### Profile
+
+The current derived understanding of whatever a [container tag](#container-tag) holds — usually one user. There's one profile per container tag: the profile samples the container. You fetch it with one call:
+
+<CodeGroup>
+
+```typescript TypeScript
+const result = await client.profile({ containerTag: "user_4f8a" })
+```
+
+```python Python
+result = client.profile(container_tag="user_4f8a")
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v4/profile" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "containerTag": "user_4f8a" }'
+```
+
+</CodeGroup>
+
+The shape is two lists:
+
+```json
+{
+  "profile": {
+    "static": ["Product manager at Vantor", "Prefers direct, short answers"],
+    "dynamic": ["Preparing for Sarah's promotion to VP of Product", "…"]
+  }
+}
+```
+
+Profiles are what you inject into your system prompt. The full injection pattern is in [user profiles](/concepts/user-profiles).
+
+### Static vs dynamic memory
+
+The two halves of a profile. **Static** memories are durable facts that stay true across sessions — name, role, long-held preferences. **Dynamic** memories are what's current and changing — what the user is working on this week. The split exists so you can cache the stable part and refresh the changing part. [User profiles](/concepts/user-profiles) covers when each populates and how to prompt with them.
+
+### Bucket
+
+A named grouping that shapes what a profile tracks, managed under the profile endpoint (`POST /v4/profile/buckets`). Use buckets when one flat profile isn't enough structure for your use case. {/* CONFIRM: bucket semantics — precise definition and config shape */} Details live in [user profiles](/concepts/user-profiles).
+
+## Boundaries
+
+### Container tag
+
+The isolation boundary. One container tag per tenant, user, or project — everything inside it (documents, memories, graph, profile) is scoped to it, and nothing crosses it. Older docs and the console sometimes call this a "space"; same thing, and these docs say container tag. Two things to know up front: `containerTag` is singular everywhere you write it, and tags are immutable after creation — pick IDs you control (your internal user ID, not a third-party auth ID you might migrate away from). Large containers carry no performance penalty. The full multi-tenancy design guide is [permissioning](/concepts/permissioning).
+
+### Metadata
+
+Dimensions *within* a boundary. Metadata is key-value pairs on documents, and search filters on it. The rule that keeps multi-tenant systems sane: container tag for who owns the data, metadata for slicing it — agent role, channel, pipeline stage. Encoding role into the tag is the classic anti-pattern; it silos agents that should share memory. Metadata lives on documents, so when you need it back from memory search, pass `include: { documents: true }`. See [permissioning](/concepts/permissioning) for the recipes.
+
+### Scoped key
+
+An API key restricted to specific container tags. It's the multi-tenant guardrail: a key minted for `user_4f8a` cannot read or write any other container, even if it leaks into client-side code. If you're building anything multi-tenant, scoped keys are not optional hardening — they're the design. How to mint and use them: [permissioning](/concepts/permissioning).
+
+### customId
+
+Your own stable identifier for a document. Add content with the same `customId` again and supermemory updates that document instead of creating a duplicate. This is the mechanism behind the best ingestion pattern we know: one conversation session, one `customId`, re-added as the session grows — the whole thread stays one document. The pattern in full: [ingestion best practices](/patterns/ingestion).
+
+## Shaping what's remembered
+
+### filterPrompt
+
+Org-wide, plain-language rules about *what to remember* — and what to skip: "Remember decisions and preferences; ignore small talk." It applies at ingestion, to every container in your org.
+
+### entityContext
+
+A per-container description of *who or what the entity is*. It's fed to the memory model at ingestion, so it changes what gets extracted, prioritized, and skipped — an entity described as "a QA automation agent" produces different memories from the same content than "a personal companion".
+
+### Organization Context
+
+The console's no-code editor for [filterPrompt](#filterprompt) — the same org-wide setting with a UI on it, not a separate field. The two levers, `filterPrompt` and `entityContext`, are additive: your prompts are prepended to supermemory's base extraction rules, never replacing them. How to tune them, including the task-memory configuration, is in [customization](/concepts/customization).
+
+### Forgetting and TTL
+
+Memories can expire, but supermemory only sets an expiry when the content states explicitly time-bound intent: "remind me a week from now" produces an expiring memory; "I take this medication for a week" does **not** — that's a fact worth keeping. To forget deliberately, `DELETE /v4/memories` takes a memory ID or the exact content. For agentic mass-forgetting there's `POST /v4/memories/forget-matching`, with a `dryRun` flag and a `maxForget` cap (default 100, max 500) so an agent can't wipe a container by accident.
+
+## Ways in
+
+### Surface
+
+A door into the engine. The API and SDKs, MCP, plugins and hooks, the filesystem mount (SMFS — each mount scoped to exactly one container tag), connectors, and Company Brain are all surfaces — doors into the *same* engine. One store of memories, one graph, one set of profiles: anything ingested through any door is retrievable through every other door. No surface is a separate product, and no surface has its own memory. Which door fits which situation: [surfaces](/concepts/surfaces).
+
+### Connector
+
+A surface where content flows in on its own. Connect Notion, Google Drive, OneDrive, or the web crawler and synced items become [documents](#document), same as anything you add by API. Connector auth links expire after 1 hour; syncs run on connect, roughly every 4 hours, on webhooks where the provider supports them, and on demand. Disconnecting keeps the documents unless you pass `deleteDocuments: true`. Start at the [connectors overview](/connectors/overview); the sync details are in the [sync lifecycle](/connectors/sync-lifecycle).
+
+---
+
+That's the whole vocabulary — seventeen terms, and every other page in these docs builds on them without redefining any.
+
+## Where next
+
+<Columns cols={2}>
+  <Card title="How it works" href="/concepts/how-it-works">
+    The pipeline that turns documents into memories, the graph, and profiles.
+  </Card>
+  <Card title="Permissioning" href="/concepts/permissioning">
+    Design multi-tenant isolation with container tags, metadata, and scoped keys.
+  </Card>
+  <Card title="Surfaces" href="/concepts/surfaces">
+    Pick the right door into the engine for your situation.
+  </Card>
+  <Card title="Quickstart" href="/quickstart">
+    Add your first memory and search it back in a few minutes.
+  </Card>
+</Columns>

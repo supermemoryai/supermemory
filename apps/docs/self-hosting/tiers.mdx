@@ -1,0 +1,151 @@
+---
+title: "Deployment tiers"
+sidebarTitle: "Deployment tiers"
+description: "Pick where supermemory runs: cloud, the local binary, managed on-prem, or a dedicated enterprise deployment."
+icon: "layers"
+---
+
+Supermemory runs in four places: our cloud, a binary on your machine, a managed deployment inside your own cloud account, or dedicated enterprise infrastructure. All four speak the same API — code written against one moves to another by changing the `baseURL`. This page tells you which one to start on, and when to move.
+
+If you're here to build, start on cloud:
+
+<CodeGroup>
+```typescript TypeScript
+import Supermemory from "supermemory"
+
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
+
+const results = await client.search.memories({
+  q: "what did Sarah decide about the launch?",
+  containerTag: "user_4f8a",
+})
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"q": "what did Sarah decide about the launch?", "containerTag": "user_4f8a"}'
+```
+</CodeGroup>
+
+If you can't send data to anyone's cloud — or you want to prototype offline — start with the [local binary](/self-hosting/quickstart) and read on.
+
+## The four tiers at a glance
+
+| | Cloud | Local binary | Managed on-prem | Enterprise |
+|---|---|---|---|---|
+| **Where it runs** | Our infrastructure | Your machine | Your cloud account, run by us | Dedicated infrastructure, run by us |
+| **Cost** | Usage-based plans | Free, open source | Contract | Contract |
+| **Memory models** | Hosted fine-tuned models | Bring your own (or on-device) | Hosted or in-VPC models | Hosted, in-VPC, or BYO |
+| **Comfortable scale** | Grows with your plan | ~1k documents | Production scale {/* CONFIRM: 100M ceiling */} | Largest deployments {/* CONFIRM: 1T-vector claim */} |
+| **[Connectors](/connectors/overview)** | ✅ | — | ✅ | ✅ |
+| **Multi-tenant (scoped keys, orgs)** | ✅ | — | ✅ | ✅ |
+| **Who operates it** | Us | You | Us | Us |
+
+{/* CONFIRM: per-tier scale ceilings — verbal numbers from calls were ~1k local / 100k free cloud / 100M managed / 1T vectors enterprise; only the ~1k local figure is spec-confirmed */}
+
+## Cloud: the default
+
+The [hosted platform](https://console.supermemory.ai) is the full product: the ingestion pipeline running on supermemory's own fine-tuned memory models, [connectors](/connectors/overview) with continuous background sync, [Supermemory MCP](/supermemory-mcp/mcp), scoped API keys for multi-tenant isolation, and infrastructure that scales without capacity planning on your side.
+
+Unless something is stopping you from sending data to a managed service, build here. Every other tier exists for a constraint — residency, compliance, air-gapping, or working offline — not because it's a better product.
+
+Get an API key from the console and follow the [quickstart](/quickstart).
+
+## Local binary: free, on your machine
+
+`supermemory local` {/* CONFIRM: package name — spec says @supermemory/local; live docs install via `npx supermemory local` / curl script */} is the open-source, self-contained binary. No Docker, no database to provision — it boots in seconds with the graph engine and local embeddings embedded:
+
+<CodeGroup>
+```bash curl
+curl -fsSL https://supermemory.ai/install | bash
+```
+
+```bash npx
+npx supermemory local
+```
+</CodeGroup>
+
+It's built for prototyping, air-gapped experiments, and privacy-sensitive side projects. It runs the full Memory API — `POST /v3/documents`, `POST /v4/search`, `POST /v4/profile` — on one machine, one process.
+
+Be honest with yourself about the ceiling: the local binary is comfortable up to around **1,000 documents**. Past that, ingestion and search still work, but you're running a production memory workload on a laptop-grade setup with none of the operational tooling. Around ~1,000 ingestions is the point to graduate — either to cloud (one `baseURL` change) or to a managed deployment if data can't leave your walls.
+
+What local does **not** have, so you don't discover it mid-build:
+
+- **No connectors.** Google Drive, Notion, Gmail, and OneDrive sync are cloud-side services. Locally, you ingest through the document API yourself.
+- **No multi-tenant controls.** One auto-generated API key, one org, no scoped keys. Fine for one developer; not a guardrail for tenants.
+- **No managed scale.** One machine is the whole deployment — which is the point, until it isn't.
+- **No Supermemory MCP.** The hosted MCP endpoint is a cloud surface. {/* CONFIRM: full local feature-gap list beyond what /self-hosting/overview states */}
+
+For the full comparison, see [Local vs. Enterprise](/self-hosting/local-vs-enterprise). For setup, the [self-hosting quickstart](/self-hosting/quickstart).
+
+## Managed on-prem: your cloud, our operations
+
+When compliance or data residency rules out a shared cloud but you don't want to operate a memory engine yourself, we deploy and run supermemory inside your own cloud account — AWS today, with GCP and Azure deployments handled with our team {/* CONFIRM: current per-cloud availability */}. Your data stays inside your VPC; we handle upgrades, scaling, and operations.
+
+This is your tier when you've evaluated on the local binary and now need production scale behind your own firewall. It carries the platform features local lacks — connectors, scoped keys, the console — inside your boundary. {/* CONFIRM: exact feature parity of managed on-prem vs cloud (connectors may require egress) */}
+
+[Email us](mailto:dhravya@supermemory.com) to scope a deployment.
+
+## Enterprise: dedicated everything
+
+Enterprise is a dedicated deployment sized for the largest workloads: dedicated infrastructure, organizational controls, SLAs, and a support path that isn't a shared inbox. It's the same engine — the difference is scale, isolation, and the contract around it. See [Local vs. Enterprise](/self-hosting/local-vs-enterprise) for what the platform adds over the binary, and [security](/trust/security) for the compliance posture.
+
+## Which model runs where
+
+The ingestion pipeline needs a model to derive memories from your documents. Which model depends on where you run:
+
+- **Cloud (and managed deployments):** supermemory's own fine-tuned memory models {/* CONFIRM: model names — fine-tuned Qwen / GPT-OSS-20B mentioned verbally; not published */}. They're purpose-tuned for memory extraction and long-horizon data understanding — higher-quality memories at a lower effective cost than pointing a general-purpose frontier model at the same pipeline.
+- **Local, bring your own:** point the binary at any OpenAI-compatible endpoint — OpenAI, Anthropic, Gemini, Groq, or a local runtime like Ollama. Extraction quality tracks the model you bring. See [configuration](/self-hosting/configuration).
+- **Local, fully offline:** run a small model on-device and nothing leaves your machine. {/* CONFIRM: on-device 400M/2B small-model availability and names */} `gpt-oss:20b` via Ollama is a known-good pairing today — see [runs fully offline](/self-hosting/overview#runs-fully-offline).
+
+One distinction that trips people up: the model you configure locally is the *interpreter* — the LLM the pipeline uses to extract memories. It is **not** your app's chat model. Your application keeps calling whatever LLM it already uses; supermemory's model only does the memory work.
+
+## Move between tiers without rewriting
+
+Every tier speaks the same API, so graduating is a config change, not a migration:
+
+<CodeGroup>
+```typescript TypeScript
+import Supermemory from "supermemory"
+
+// local binary during development
+const client = new Supermemory({
+  apiKey: "sm_...", // printed on first boot
+  baseURL: "http://localhost:6767",
+})
+
+// cloud in production: drop baseURL, use your console key
+const prod = new Supermemory({
+  apiKey: process.env.SUPERMEMORY_API_KEY,
+})
+```
+
+```bash curl
+# local
+curl -X POST "http://localhost:6767/v4/search" \
+  -H "Authorization: Bearer sm_..." \
+  -H "Content-Type: application/json" \
+  -d '{"q": "what did Sarah decide about the launch?", "containerTag": "user_4f8a"}'
+
+# cloud: same request, different host
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"q": "what did Sarah decide about the launch?", "containerTag": "user_4f8a"}'
+```
+</CodeGroup>
+
+<Note>
+The API moves with you; your data doesn't move automatically. When you graduate off local, re-ingest into the new deployment — keep your source documents (or use `customId` on every ingest so a replay is idempotent). {/* CONFIRM: no local→cloud export/import tool exists */}
+</Note>
+
+That's the whole decision: start on cloud unless a constraint says otherwise, prototype on the free binary when it does, and graduate before ~1k ingestions becomes your problem.
+
+## Where next
+
+- [Self-hosting quickstart](/self-hosting/quickstart) — install the binary and store your first memory
+- [Local vs. Enterprise](/self-hosting/local-vs-enterprise) — the full feature comparison
+- [Configuration](/self-hosting/configuration) — every env var: providers, storage, tuning
+- [Self-hosting troubleshooting](/self-hosting/troubleshooting) — air-gapped installs, resource minimums, BYO storage

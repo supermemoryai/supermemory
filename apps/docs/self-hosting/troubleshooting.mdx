@@ -1,0 +1,211 @@
+---
+title: "Self-Hosting Troubleshooting"
+sidebarTitle: "Troubleshooting"
+description: "Fixes for the problems you'll actually hit self-hosting — missing data, upload errors, air-gapped installs, encryption, daemons, and clean uninstalls."
+icon: "wrench"
+---
+
+Most self-host problems trace back to one of three things: the server isn't looking at the data directory you think it is, the data was encrypted on a different machine, or the embedding model can't be downloaded. This page covers all three, plus running the server as a daemon and removing it cleanly.
+
+## Find where your data lives
+
+The server keeps everything in a handful of predictable places:
+
+| Path | Contents |
+|---|---|
+| `./.supermemory/` (or `$SUPERMEMORY_DATA_DIR`) | The encrypted graph engine data, uploaded files, your auto-generated API key, the auth secret, and the `models/` embedding cache |
+| `~/.supermemory/env` | Provider API keys saved by the installer, loaded on every launch |
+| `~/.supermemory/bin/` | The `supermemory-server` binary and its version file |
+| `~/.local/bin/supermemory-server` | A wrapper script that sources the env file, then runs the binary |
+
+The default data directory is `./.supermemory` — **relative to wherever you started the server**. Start it from a different directory and you get a brand-new, empty server with a brand-new API key. If your memories "disappeared", this is almost always why: `cd` back to the original directory, or find the old `.supermemory` folder and point the server at it:
+
+```bash
+SUPERMEMORY_DATA_DIR=/home/sam/projects/agent/.supermemory supermemory-server
+```
+
+For anything beyond a quick experiment, set `SUPERMEMORY_DATA_DIR` to an absolute path once (in `~/.supermemory/env` or your process manager) and never think about it again.
+
+## Fix "invalid local file storage key"
+
+If `POST /v3/documents/file` fails with `invalid local file storage key`, the server refused the storage key it derived for your file. That guard exists for a reason — keys containing path separators (`/`, `\`), null bytes, or `.`/`..` are rejected outright to prevent path traversal into the data directory. The problem is that older builds could derive a bad key from an unusual filename, like a name with a path baked into it or a strange extension.
+
+Two fixes, in order:
+
+1. **Update the binary.** Current builds strip paths and sanitize extensions before deriving the key. Re-run the installer — it checks the version file and skips the download if you're already current:
+
+```bash
+curl -fsSL https://supermemory.ai/install | bash
+```
+
+2. **Upload with a plain filename.** If a specific file still trips it, rename it to letters, digits, and one extension before uploading:
+
+```bash
+mv "C:\Users\sam\Q3 report.pdf" q3-report.pdf
+curl http://localhost:6767/v3/documents/file \
+  -H "Authorization: Bearer sm_..." \
+  -F "file=@q3-report.pdf"
+```
+
+## Install where HuggingFace is unreachable
+
+The default local embedding model (`Xenova/bge-base-en-v1.5`) downloads from HuggingFace on first boot. In air-gapped environments — or regions where huggingface.co is blocked — that download fails. There's no mirror setting to point at instead. {/* CONFIRM: no HF_ENDPOINT/mirror support in the local embedding path */} But the server checks its cache before it ever touches the network: if the model files are already on disk, it loads them with local files only and makes no outbound call.
+
+So you provision the cache yourself: {/* CONFIRM: air-gapped steps verified end-to-end on a clean offline machine */}
+
+1. On any machine that can reach HuggingFace, install and boot the server once. The model lands in `$SUPERMEMORY_DATA_DIR/models/`.
+2. Copy that `models/` directory into the data directory on the air-gapped machine:
+
+```bash
+scp -r ./.supermemory/models airgapped-box:/var/lib/supermemory/models
+```
+
+3. Boot the server on the air-gapped machine. It finds the complete cache and skips the download entirely.
+
+The server considers the cache complete when these files exist under `models/Xenova/bge-base-en-v1.5/`:
+
+| File | What it is |
+|---|---|
+| `config.json` | Model configuration |
+| `tokenizer.json` | Tokenizer weights |
+| `tokenizer_config.json` | Tokenizer configuration |
+| `onnx/model_quantized.onnx` | The quantized model weights (the big one) |
+
+If any of them is missing or truncated, the server falls back to downloading — which is exactly the failure you're avoiding, so verify all four copied.
+
+The model cache is plain files, not encrypted — it moves between machines freely. Your data directory does **not**; see [the encryption section](#keep-the-encryption-key-with-the-data) before copying anything else.
+
+<Note>
+If you'd rather not ship model files around, point embeddings at any OpenAI-compatible endpoint inside your network — an Ollama box works. Set `SUPERMEMORY_EMBEDDING_PROVIDER`, `SUPERMEMORY_EMBEDDING_BASE_URL`, `SUPERMEMORY_EMBEDDING_MODEL`, and `SUPERMEMORY_EMBEDDING_DIMENSIONS` together — see [Embeddings](/self-hosting/embeddings). The same trick covers the LLM side via `OPENAI_BASE_URL` — see [fully offline models](/self-hosting/configuration#fully-offline-with-local-models).
+</Note>
+
+## Bring your own Postgres or Qdrant
+
+You can't — not on the local binary, and that's by design. The local server ships with an embedded, encrypted storage engine: one process, one data directory, nothing to provision. There is no supported way to point it at an external Postgres or a Qdrant cluster, and env vars you might find in the codebase for external databases are ignored by the local build.
+
+If you need supermemory running on your own database and vector infrastructure — for compliance, existing ops tooling, or scale beyond one machine — that's the managed on-prem deployment, where BYO Postgres and vector store wiring is set up with you during deployment. {/* CONFIRM: BYO Postgres/Qdrant scope and wiring details for managed on-prem */} See [Local vs. Enterprise](/self-hosting/local-vs-enterprise) for where the line sits, or [reach out](mailto:dhravya@supermemory.com).
+
+## Give the server enough resources
+
+The local binary is built to degrade gracefully rather than crash: searches are always served immediately, and ingestion runs through a queue that's allowed to grow the server's memory by at most `SUPERMEMORY_EMBEDDING_RAM_LIMIT` (default 1 GB) above its post-boot baseline. Past that, new documents wait in the queue until memory drops — nothing is dropped, ingestion slows down instead.
+
+That said, undersized machines hurt in predictable ways:
+
+- **Small VPS getting OOM-killed?** The 1 GB default headroom sits on top of a fixed baseline (embedded storage engine + local embeddings). On a 2 GB box, lower the ceiling and concurrency: `SUPERMEMORY_EMBEDDING_RAM_LIMIT=512mb` and `SUPERMEMORY_INGEST_CONCURRENCY=1`. Adds drain slowly; the server stays up.
+- **Bulk import crawling on a big machine?** Raise both: `SUPERMEMORY_EMBEDDING_RAM_LIMIT=4gb`, and turn up the [embedding worker pool](/self-hosting/configuration#embedding-performance).
+- **Planning a serious deployment?** Budget at least 4 cores and 4 GB of RAM. {/* CONFIRM: 4 cores / 4 GB minimum */} If you're also running the interpreter LLM locally (Ollama with a ~20B model), budget around 12 GB of RAM total for the stack. {/* CONFIRM: ~12 GB figure for a fully local setup */}
+
+The server prints its memory limit at boot and shows a live `[ingest]` status line whenever adds are queued — watch that before reaching for bigger hardware.
+
+## Keep the encryption key with the data
+
+Everything in the data directory is encrypted with AES-256-GCM, and the key is derived from the machine's identity: `/etc/machine-id` on Linux, the hardware platform UUID on macOS, or — when the OS provides neither, as in most containers — a `machine-key` file the server mints inside the data directory itself.
+
+The gotcha: **you need the same key to decrypt.** Copy `$SUPERMEMORY_DATA_DIR` to a different machine and the server there derives a different key — your backup won't open. What that means in practice:
+
+- **Linux to Linux:** back up `/etc/machine-id` alongside the data directory, and restore both. Same machine id, same key, data opens.
+- **Containers:** there's usually no OS machine id, so the key material lives in the `machine-key` file inside the data directory. Volume-mount the data directory and it travels with your data — container rebuilds and host moves are fine.
+- **macOS:** the key is tied to the hardware UUID, which you can't carry to another Mac. Treat local data as bound to that machine; to migrate, re-ingest on the new one.
+
+<Warning>
+A data directory without its machine identity is unrecoverable — there's no key-escrow or recovery flow. Decide how you'll preserve the identity (machine-id backup on Linux, volume-mounted data dir in containers) **before** you need the restore.
+</Warning>
+
+One historical failure mode worth knowing: very old builds could derive the key from the hostname, so a DHCP-driven hostname change silently locked a store out of its own data. Current builds keep the legacy hostname key as a decrypt-only fallback and re-encrypt under the stable machine id on the next write — the store heals itself. If you're locked out after a hostname change, update the binary and boot again before assuming the data is gone.
+
+## Run the server as a daemon
+
+The binary has no built-in daemon mode — use your OS's service manager. The wrapper at `~/.local/bin/supermemory-server` already sources `~/.supermemory/env`, so your provider keys load without extra configuration. The one thing you must do: set `SUPERMEMORY_DATA_DIR` to an absolute path, because a daemon's working directory is not your shell's — without it, the service boots a fresh empty store.
+
+On Linux, a systemd unit:
+
+```ini
+# /etc/systemd/system/supermemory.service
+[Unit]
+Description=Supermemory server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=sam
+ExecStart=/home/sam/.local/bin/supermemory-server
+Environment=SUPERMEMORY_DATA_DIR=/var/lib/supermemory
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable it and it starts now and on every boot:
+
+```bash
+sudo systemctl enable --now supermemory
+```
+
+On macOS, a launchd agent:
+
+```xml
+<!-- ~/Library/LaunchAgents/ai.supermemory.server.plist -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>ai.supermemory.server</string>
+  <key>ProgramArguments</key>
+  <array><string>/Users/sam/.local/bin/supermemory-server</string></array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>SUPERMEMORY_DATA_DIR</key><string>/Users/sam/supermemory-data</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+</dict>
+</plist>
+```
+
+Load it:
+
+```bash
+launchctl load ~/Library/LaunchAgents/ai.supermemory.server.plist
+```
+
+Then confirm it's serving:
+
+```bash
+curl http://localhost:6767/v3/search \
+  -H "Authorization: Bearer sm_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "q": "anything", "containerTags": ["user_dhravya"] }'
+```
+
+Service managers run with a stripped-down PATH — one reason to stay on a current binary, since older builds could fail to read the macOS machine id under launchd and derive the wrong encryption key. Current builds resolve system tools by absolute path.
+
+## Uninstall cleanly
+
+Everything the installer touched lives in three places. Remove them and the server is gone:
+
+```bash
+# the wrapper script
+rm -f ~/.local/bin/supermemory-server
+
+# the binary, downloads, and saved provider keys
+rm -rf ~/.supermemory
+
+# your data — wherever you ran the server, or $SUPERMEMORY_DATA_DIR
+rm -rf ./.supermemory
+```
+
+If you daemonized it, also disable the service (`sudo systemctl disable --now supermemory` or `launchctl unload` the plist) and delete the unit file.
+
+<Warning>
+The data directory is the only copy of your memories, and it's encrypted to this machine — once deleted, there's no recovery. If you might come back, keep the data directory (and on Linux, a copy of `/etc/machine-id`) and delete only the binary.
+</Warning>
+
+If you hit something that isn't here, [open an issue](https://git.new/memory) — this page grows from real reports.
+
+## Where next
+
+- [Configuration](/self-hosting/configuration) — every env var the server understands
+- [Embeddings](/self-hosting/embeddings) — local default, remote providers, the dimension lock
+- [Local vs. Enterprise](/self-hosting/local-vs-enterprise) — when to graduate off the local binary
+- [Errors and limits](/errors-and-limits) — API-level errors and rate limits, cloud and local

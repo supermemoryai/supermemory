@@ -1,19 +1,104 @@
 ---
-title: "How Graph Memory Works"
+title: "Graph Memory"
 sidebarTitle: "Graph Memory"
-description: "Automatic memory evolution, knowledge updates, and intelligent forgetting"
+description: "How supermemory tells current facts from outdated ones, resolves contradictions, and forgets on schedule"
 icon: "vector-square"
 ---
 
-Supermemory builds a living knowledge graph where memories connect to other memories. Unlike traditional knowledge graphs with entity-relation-entity triples, Supermemory's graph is **facts built on top of other facts**.
+Most memory layers are a vector store that retrieves the nearest chunk. Supermemory derives individual facts from what you ingest and connects them into a graph — which is what lets it tell current from outdated, keep history without polluting search, and forget things when they stop being true.
 
-## Memory Relationships
+You don't manage any of this. Feed it a contradiction and watch what comes back:
 
-When you add content, Supermemory extracts facts and automatically connects them to existing memories through three relationship types:
+<CodeGroup>
 
-### Updates: Information Changes
+```typescript TypeScript
+import Supermemory from "supermemory";
 
-When new information contradicts existing knowledge:
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
+
+await client.memories.add({
+  content: "Sarah's favorite color is red",
+  containerTag: "user_4f8a",
+});
+
+// three weeks later
+await client.memories.add({
+  content: "Sarah said she's over red — black is her favorite now",
+  containerTag: "user_4f8a",
+});
+
+const results = await client.search.memories({
+  q: "what's Sarah's favorite color?",
+  containerTag: "user_4f8a",
+});
+// → "Sarah's favorite color is black"
+// the red memory still exists — it's just no longer current
+```
+
+```python Python
+from supermemory import Supermemory
+
+client = Supermemory()
+
+client.memories.add(
+    content="Sarah's favorite color is red",
+    container_tag="user_4f8a",
+)
+
+# three weeks later
+client.memories.add(
+    content="Sarah said she's over red — black is her favorite now",
+    container_tag="user_4f8a",
+)
+
+results = client.search.memories(
+    q="what's Sarah's favorite color?",
+    container_tag="user_4f8a",
+)
+# → "Sarah's favorite color is black"
+# the red memory still exists — it's just no longer current
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Sarah'\''s favorite color is red",
+    "containerTag": "user_4f8a"
+  }'
+
+# three weeks later
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Sarah said she'\''s over red — black is her favorite now",
+    "containerTag": "user_4f8a"
+  }'
+
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "what'\''s Sarah'\''s favorite color?",
+    "containerTag": "user_4f8a"
+  }'
+```
+
+</CodeGroup>
+
+Both memories exist. One is current. That distinction — and the machinery behind it — is what this page explains.
+
+## Facts on facts, not triplets
+
+Traditional knowledge graphs store entity-relation-entity triples: `(Alex, works_at, Stripe)`. Triples are tidy, but real facts don't fit them. "Alex works at Stripe as a PM, though he's still ramping up and misses his old team" is one fact with texture — squeeze it into triples and the nuance is gone.
+
+Supermemory stores full statements as memories, each with provenance (which document it came from) and time (when it was stated, and when the events it describes happened). The graph edges connect *statements to statements*, not entities to entities. Entities like "Sarah" or "Stripe" emerge from the memories that mention them — they're what the graph is *about*, not what it's made of.
+
+When a new memory lands, the ingestion pipeline connects it to existing memories through three relationship types:
+
+**Updates** — the new fact contradicts an old one:
 
 ```
 Memory 1: "Alex works at Google as a software engineer"
@@ -22,125 +107,318 @@ Memory 2: "Alex just started at Stripe as a PM"
 Memory 2 UPDATES Memory 1
 ```
 
-The system tracks which memory is latest with `isLatest`, so searches return current information while preserving history.
-
-### Extends: Information Enriches
-
-When new information adds detail without replacing:
+**Extends** — the new fact adds detail without replacing anything:
 
 ```
 Memory 1: "Alex works at Stripe as a PM"
-Memory 2: "Alex focuses on payments infrastructure and leads a team of 5"
+Memory 2: "Alex leads a team of 5 on payments infrastructure"
          ↓
 Memory 2 EXTENDS Memory 1
 ```
 
-Both memories remain valid—searches get richer context.
+Both stay valid; searches get richer context.
 
-### Derives: Information Infers
-
-When Supermemory infers new facts from patterns:
+**Derives** — supermemory infers a new fact from patterns across existing ones:
 
 ```
 Memory 1: "Alex is a PM at Stripe"
-Memory 2: "Alex frequently discusses payment APIs and fraud detection"
+Memory 2: "Alex keeps bringing up payment APIs and fraud detection"
          ↓
 Derived: "Alex likely works on Stripe's core payments product"
 ```
 
-These inferences surface insights you didn't explicitly state.
+Derived memories are guesses, and they're treated as guesses — more on that in [confirming inferences](#confirm-or-decline-what-the-graph-inferred) below.
 
----
+Most of this connecting happens at ingestion. A background consolidation pass — dreaming — runs about 5 minutes after ingestion and does the slower work: finding cross-document connections and deriving new facts.
 
-## Automatic Memory Extraction
+## Current vs. outdated: `isLatest`
 
-From a single conversation, Supermemory extracts multiple connected memories:
+Here's the answer to the most common quality question we get: *"I told it I like red, then I told it I like black — why do both memories exist?"*
 
-**Input:**
-> "Had a great call with Alex. He's enjoying the new PM role at Stripe, though the
-> payments infrastructure work is intense. He moved to Seattle for the job—got a
-> place in Capitol Hill. Wants to grab dinner next time I'm in town."
+Because both **should** exist. "Sarah liked red until March" is real information — an agent that knows it can say "you used to be a red person, what changed?" What matters isn't deleting the old fact, it's knowing which one is current. Every memory carries an `isLatest` flag. When an *updates* relationship forms, the superseded memory gets `isLatest: false` and the new one becomes the current version.
 
-**Extracted memories:**
-- Alex works at Stripe as a PM
-- Alex works on payments infrastructure *(extends role memory)*
-- Alex lives in Seattle, Capitol Hill *(new fact)*
-- Alex wants to meet for dinner *(episodic)*
+Search only returns current versions. Superseded memories are filtered out entirely — you'll never get "red" back for "what's Sarah's favorite color?", but the history is preserved in the version chain, not destroyed.
 
-Each fact is connected to related memories automatically.
+Two more temporal mechanics worth knowing:
 
----
+- **Effective dating.** Memories distinguish when something was *said* from when it *happened*. If you ingest last month's meeting notes today, the facts are dated to the meeting, not to the upload. You can set this explicitly with `temporalContext` (`documentDate`, `eventDate`) when creating memories through `POST /v4/memories`.
+- **Temporal queries.** Turn on `rewriteQuery` in search and time-anchored questions ("what did Sarah decide last week?") get period-matched — results from that window rank first. It adds latency but no extra cost. Details on [hybrid search](/concepts/hybrid-search).
 
-## Automatic Forgetting
+You can also update a memory yourself. `PATCH /v4/memories` creates a new version and keeps the original with `isLatest: false` — the same mechanism the graph uses, under your control:
 
-Supermemory knows when memories become irrelevant:
+<CodeGroup>
 
-**Time-based forgetting**: Temporary facts are automatically forgotten when they expire.
-
-```
-"I have an exam tomorrow"
-         ↓
-    After the exam date passes → automatically forgotten
-
-"Meeting with Alex at 3pm today"
-         ↓
-    After today → automatically forgotten
-```
-
-**Contradiction resolution**: When new facts contradict old ones, the Update relationship ensures searches return current information.
-
-**Noise filtering**: Casual, non-meaningful content doesn't become permanent memories.
-
----
-
-## Memory Types
-
-Supermemory distinguishes memory types automatically:
-
-| Type | Example | Behavior |
-|------|---------|----------|
-| **Facts** | "Alex is a PM at Stripe" | Persists until updated |
-| **Preferences** | "Alex prefers morning meetings" | Strengthens with repetition |
-| **Episodes** | "Met Alex for coffee Tuesday" | Decays unless significant |
-
----
-
-## What You Don't Do
-
-All of this is automatic. You don't:
-- Define relationships manually
-- Tag memory types
-- Clean up old memories
-- Resolve contradictions
-
-Just add content and search naturally:
-
-```typescript
-await client.add({
-  content: "Alex mentioned he just started at Stripe"
+```typescript TypeScript
+await fetch("https://api.supermemory.ai/v4/memories", {
+  method: "PATCH",
+  headers: {
+    Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    id: "mem_abc123",
+    newContent: "Sarah's favorite color is forest green",
+  }),
 });
-
-const results = await client.search({
-  query: "where does Alex work?"
-});
-// → Stripe (latest), previously Google (historical)
 ```
 
----
+```bash cURL
+curl -X PATCH "https://api.supermemory.ai/v4/memories" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "mem_abc123",
+    "newContent": "Sarah'\''s favorite color is forest green"
+  }'
+```
 
-## Learn More
+</CodeGroup>
 
-<CardGroup cols={2}>
-  <Card title="How It Works" icon="cpu" href="/concepts/how-it-works">
-    Deep dive into the architecture
+## Forgetting
+
+A memory that's wrong is worse than no memory. Supermemory forgets three ways: on a schedule, by your explicit instruction, and by decay.
+
+### The expiry rule
+
+When content expresses a fact that *stops being true at a knowable time*, the derived memory gets a `forgetAfter` timestamp. After that time passes, it's auto-forgotten — gone from search without any action from you.
+
+The rule is precise, and it trips people up, so here it is exactly: **a memory expires only when the content anchors an end time to the present.**
+
+- "I'm visiting Tokyo for a week **from now**" → expiring memory, gone in a week
+- "I have an exam tomorrow" → gone after tomorrow
+- "I'm visiting Tokyo for a week" → **permanent** — that's a duration, not a deadline. Nothing says *which* week
+
+If the model didn't create an expiry and you want one, set it yourself — `forgetAfter` is writable on both create and update, and `null` clears it:
+
+<CodeGroup>
+
+```typescript TypeScript
+await fetch("https://api.supermemory.ai/v4/memories", {
+  method: "PATCH",
+  headers: {
+    Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    id: "mem_abc123",
+    newContent: "Sarah is on parental leave",
+    forgetAfter: "2026-10-01T00:00:00Z",
+    forgetReason: "leave ends October 1",
+  }),
+});
+```
+
+```bash cURL
+curl -X PATCH "https://api.supermemory.ai/v4/memories" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "mem_abc123",
+    "newContent": "Sarah is on parental leave",
+    "forgetAfter": "2026-10-01T00:00:00Z",
+    "forgetReason": "leave ends October 1"
+  }'
+```
+
+</CodeGroup>
+
+Forgotten isn't deleted. The memory stays in storage with `isForgotten: true` and leaves search — unless you ask for it back with `include: { forgottenMemories: true }` on [`search.memories`](/search). Useful when your agent needs to answer "didn't I mention a Tokyo trip at some point?"
+
+### Forget one memory
+
+`DELETE /v4/memories` forgets a single memory. It needs the memory's `id` **or** its exact content — a paraphrase or partial match returns a 400. If you don't have the id, search first and take it from the result:
+
+<CodeGroup>
+
+```typescript TypeScript
+await fetch("https://api.supermemory.ai/v4/memories", {
+  method: "DELETE",
+  headers: {
+    Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    id: "mem_abc123",
+    containerTag: "user_4f8a",
+    reason: "user asked to remove it",
+  }),
+});
+```
+
+```bash cURL
+curl -X DELETE "https://api.supermemory.ai/v4/memories" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "mem_abc123",
+    "containerTag": "user_4f8a",
+    "reason": "user asked to remove it"
+  }'
+```
+
+</CodeGroup>
+
+### Forget a whole topic
+
+For "forget everything about Project Titan", one-by-one deletion doesn't scale. `POST /v4/memories/forget-matching` takes a natural-language instruction, semantically searches the container, has an LLM judge which candidates are genuinely about your target, and soft-deletes those. `maxForget` caps the blast radius (default 100, max 500).
+
+<Warning>
+This is a bulk destructive operation, and the match is semantic — a broad query can catch more than you meant. Always run it with `dryRun: true` first, review the candidates, then re-run with `dryRun: false`.
+</Warning>
+
+Preview first, then apply:
+
+<CodeGroup>
+
+```typescript TypeScript
+// 1) preview what would be forgotten
+const preview = await fetch(
+  "https://api.supermemory.ai/v4/memories/forget-matching",
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query: "forget everything about Project Titan",
+      containerTag: "user_4f8a",
+      dryRun: true,
+    }),
+  },
+).then((r) => r.json());
+// preview.candidates → [{ id, memory, score }, …]
+
+// 2) apply
+await fetch("https://api.supermemory.ai/v4/memories/forget-matching", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    query: "forget everything about Project Titan",
+    containerTag: "user_4f8a",
+    dryRun: false,
+    reason: "project cancelled",
+  }),
+});
+```
+
+```bash cURL
+# preview
+curl -X POST "https://api.supermemory.ai/v4/memories/forget-matching" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "forget everything about Project Titan",
+    "containerTag": "user_4f8a",
+    "dryRun": true
+  }'
+
+# apply
+curl -X POST "https://api.supermemory.ai/v4/memories/forget-matching" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "forget everything about Project Titan",
+    "containerTag": "user_4f8a",
+    "dryRun": false,
+    "reason": "project cancelled"
+  }'
+```
+
+</CodeGroup>
+
+Full parameters and response shapes are on [Memory Operations](/memory-operations).
+
+### Decay
+
+Not every memory earns permanence. Episodic content — "met Alex for coffee Tuesday" — decays unless it turns out to matter, while stated facts persist until updated and repeated preferences strengthen. Casual filler never becomes a memory in the first place. {/* CONFIRM: decay/reinforcement behavior — not verified against backend code, needs Dhravya sign-off */} You can mark a memory as a permanent identity trait (name, profession, hometown) with `isStatic: true` on `POST /v4/memories` — static memories are exempt from decay and anchor the [profile](/concepts/user-profiles).
+
+## When facts conflict
+
+Contradictions inside one container resolve through the *updates* relationship you've already seen: newest wins `isLatest`, history survives. But when memories arrive from multiple sources — a support knowledge base, Slack threads, scraped docs — "newest" isn't always "most trustworthy." A Slack message from last night shouldn't override the curated KB article it misremembers.
+
+For that, supermemory applies **source priority**: conflicting facts resolve in favor of the higher-priority source, not just the more recent one. A typical ordering for a support deployment puts the knowledge base above Slack, and Slack above scraped marketing pages. {/* CONFIRM: source-priority defaults and configuration surface — verified as a capability from customer deployments, config not yet in public API */}
+
+Two related worries, answered honestly:
+
+- **"Will my assistant's hallucinations become memories?"** Extraction pulls facts from both user and assistant turns — assistant turns carry real signal ("the plan we agreed on"). But that means a confidently wrong assistant statement *can* be remembered. If that risk matters for your app, constrain extraction with a `filterPrompt` ("only remember facts the user stated or confirmed") — see [Customization](/concepts/customization) — and use the review queue below as the safety net.
+- **"Can I just overwrite a memory?"** Yes — `PATCH /v4/memories` with `newContent` is an explicit overwrite. The old version is kept (`isLatest: false`) rather than destroyed, so an overwrite is never data loss.
+
+## Confirm or decline what the graph inferred
+
+Derived memories are inferences, and inferences are sometimes wrong — an inference that misreads the pattern can be off in a meaningful fraction of cases. {/* CONFIRM: publishable inference error rate (~20–30% from internal measurement) */} So supermemory doesn't treat its guesses like your statements. Every derived memory is flagged `isInference: true` and **down-weighted in search** until a human (or your app) reviews it.
+
+The review queue is per container tag: list the pending inferences, then approve, decline, or undo:
+
+<CodeGroup>
+
+```typescript TypeScript
+// the queue: inferred memories awaiting review, strongest-supported first
+const { memories } = await fetch(
+  "https://api.supermemory.ai/v3/container-tags/user_4f8a/inferred",
+  { headers: { Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}` } },
+).then((r) => r.json());
+
+// approve one — it now ranks like a stated fact
+await fetch(
+  `https://api.supermemory.ai/v3/container-tags/user_4f8a/inferred/${memories[0].id}/review`,
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action: "approve" }),
+  },
+);
+```
+
+```bash cURL
+curl "https://api.supermemory.ai/v3/container-tags/user_4f8a/inferred" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+curl -X POST \
+  "https://api.supermemory.ai/v3/container-tags/user_4f8a/inferred/mem_abc123/review" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "approve"}'
+```
+
+</CodeGroup>
+
+Approving clears `isInference` so the memory ranks like a stated fact. Declining forgets it. You don't have to review anything — unreviewed inferences still work, they just rank below what was said outright. The full endpoint reference, including undo and queue ordering, is on [Memory Review](/memory-review).
+
+## Read the graph view
+
+The console's graph view shows all of this state directly. Open any memory and its badges tell you where it sits:
+
+| Badge | Meaning |
+|-------|---------|
+| **Latest** | The current version of a fact — what search returns |
+| **Static** | A permanent identity trait, exempt from decay |
+| **Inference** | Derived by the graph, not stated — down-weighted until reviewed |
+| **Forgotten** | Expired, declined, or explicitly forgotten — out of search, still inspectable |
+
+If you're debugging why a fact did or didn't come back in search, this is the fastest place to look: an unexpected *Forgotten* or a missing *Latest* usually explains it in one glance.
+
+That's the whole machine — and you never operate it. You ingest, and answers stay right as the world underneath them changes.
+
+## Where next
+
+<Columns cols={2}>
+  <Card title="Memory Review" icon="list-checks" href="/memory-review">
+    Build an approve/decline experience on the inference queue
   </Card>
-  <Card title="Memory vs RAG" icon="scale" href="/concepts/memory-vs-rag">
-    When to use memory vs document retrieval
+  <Card title="Hybrid Search" icon="magnifying-glass" href="/concepts/hybrid-search">
+    How latest-fact ranking, rewriteQuery, and the graph combine at query time
   </Card>
-  <Card title="User Profiles" icon="user" href="/user-profiles">
-    Automatic summaries from the graph
+  <Card title="Memory Operations" icon="wrench" href="/memory-operations">
+    Full reference for update, forget, and forget-matching
   </Card>
-  <Card title="Add Memories" icon="plus" href="/add-memories">
-    Start building your knowledge graph
+  <Card title="User Profiles" icon="user" href="/concepts/user-profiles">
+    The derived understanding the graph maintains per container
   </Card>
-</CardGroup>
+</Columns>

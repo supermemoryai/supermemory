@@ -1,0 +1,310 @@
+---
+title: "Connector FAQ"
+sidebarTitle: "FAQ"
+description: "Answers to the six questions that come up most when running connectors in production."
+icon: "circle-question"
+---
+
+Six questions cover most of what goes wrong with connectors in production. Here they are, with the fix for each one.
+
+## Why did my auth link stop working?
+
+Auth links expire one hour after you create them. If you generate the link when the user loads your settings page and they click "Connect" the next morning, they'll hit a dead link.
+
+The fix: create the connection at click time, not at render time, and redirect immediately:
+
+<CodeGroup>
+
+```typescript TypeScript
+import Supermemory from "supermemory";
+
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
+
+// runs when the user clicks "Connect Google Drive" — not before
+const connection = await client.connections.create("google-drive", {
+  redirectUrl: "https://yourapp.com/settings/integrations",
+  containerTags: ["user_4f8a"],
+});
+
+// send them straight there; don't store this URL
+console.log(connection.authLink);
+console.log(connection.expiresIn);
+// Output: https://api.supermemory.ai/v3/connections/auth/redirect?state=...
+// Output: 1 hour
+```
+
+```python Python
+from supermemory import Supermemory
+import os
+
+client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
+
+# runs when the user clicks "Connect Google Drive" — not before
+connection = client.connections.create(
+    "google-drive",
+    redirect_url="https://yourapp.com/settings/integrations",
+    container_tags=["user_4f8a"],
+)
+
+# send them straight there; don't store this URL
+print(connection.auth_link)
+print(connection.expires_in)
+# Output: https://api.supermemory.ai/v3/connections/auth/redirect?state=...
+# Output: 1 hour
+```
+
+```bash cURL
+# POST /v3/connections/{provider}
+curl -X POST "https://api.supermemory.ai/v3/connections/google-drive" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redirectUrl": "https://yourapp.com/settings/integrations",
+    "containerTags": ["user_4f8a"]
+  }'
+
+# Response: {
+#   "id": "conn_9d2f",
+#   "authLink": "https://api.supermemory.ai/v3/connections/auth/redirect?state=...",
+#   "expiresIn": "1 hour",
+#   "redirectsTo": "https://yourapp.com/settings/integrations"
+# }
+```
+
+</CodeGroup>
+
+An expired link isn't a problem for anything already connected — it only blocks the OAuth handshake it was minted for. Create a fresh one and the user is back in business.
+
+## Can I change the container tag on an existing connection?
+
+No. Container tags are set when you create the connection and there's no update endpoint — they're immutable after creation, the same as tags on documents. This is deliberate: tags are [isolation boundaries](/concepts/permissioning), and moving a boundary under live data is how tenants end up seeing each other's memories.
+
+If a connection is pointing at the wrong tag, recreate it:
+
+<CodeGroup>
+
+```typescript TypeScript
+// remove the mistagged connection (and its documents — see the next question)
+await client.connections.deleteByID("conn_9d2f");
+
+// reconnect under the right tag; the user goes through OAuth again
+const connection = await client.connections.create("google-drive", {
+  redirectUrl: "https://yourapp.com/settings/integrations",
+  containerTags: ["user_4f8a"],
+});
+```
+
+```bash cURL
+# remove the mistagged connection (and its documents — see the next question)
+curl -X DELETE "https://api.supermemory.ai/v3/connections/conn_9d2f" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+# reconnect under the right tag; the user goes through OAuth again
+curl -X POST "https://api.supermemory.ai/v3/connections/google-drive" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redirectUrl": "https://yourapp.com/settings/integrations",
+    "containerTags": ["user_4f8a"]
+  }'
+```
+
+</CodeGroup>
+
+Documents already synced keep the tag they were created with. If you deleted the connection but kept its documents, they stay under the old tag — the new connection syncs fresh copies under the new one.
+
+<Note>
+The connections API takes `containerTags` as an array (it's a v3 endpoint). Keep it to one tag per connection — one tag per user or tenant is the pattern that keeps isolation clean.
+</Note>
+
+## If I disconnect, do I lose everything it synced?
+
+By default, yes. Deleting a connection also deletes every document it imported — and the memories derived from them.
+
+<Warning>
+`DELETE /v3/connections/{connectionId}` defaults to `deleteDocuments=true`. If you want to disconnect without losing the imported content, pass `deleteDocuments=false` — the documents are detached from the connection and kept.
+</Warning>
+
+The default path, through the SDK:
+
+```typescript
+// removes the connection AND every document it imported
+await client.connections.deleteByID("conn_9d2f");
+```
+
+The TypeScript SDK doesn't expose the `deleteDocuments` flag yet, so for the keep-documents path, call the endpoint directly:
+
+```bash
+# disconnect but keep everything that was synced
+curl -X DELETE "https://api.supermemory.ai/v3/connections/conn_9d2f?deleteDocuments=false" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+# Response: { "id": "conn_9d2f", "provider": "google-drive" }
+```
+
+Kept documents stay searchable, keep their container tags and memories, and behave like any document you added yourself. But they're orphaned from their source: nothing will ever update or delete them again, even if the file changes or disappears upstream. Use this when the user is churning off the integration but their history should stay useful.
+
+## Can my users pick specific folders instead of syncing everything?
+
+Yes, on Google Drive — that's the `"selected"` sync scope, and it's the default for new connections. After the OAuth consent screen, the user lands in supermemory's hosted file picker and chooses exactly which files and folders to sync. Nothing outside their selection is touched.
+
+You control this with `metadata.syncScope` on the create call:
+
+<CodeGroup>
+
+```typescript TypeScript
+// default behavior — user picks files/folders after OAuth
+const scoped = await client.connections.create("google-drive", {
+  redirectUrl: "https://yourapp.com/settings/integrations",
+  containerTags: ["user_4f8a"],
+  metadata: { syncScope: "selected" },
+});
+
+// whole-Drive sync — skips the picker entirely
+const full = await client.connections.create("google-drive", {
+  redirectUrl: "https://yourapp.com/settings/integrations",
+  containerTags: ["user_4f8a"],
+  metadata: { syncScope: "full" },
+});
+```
+
+```python Python
+# default behavior — user picks files/folders after OAuth
+scoped = client.connections.create(
+    "google-drive",
+    redirect_url="https://yourapp.com/settings/integrations",
+    container_tags=["user_4f8a"],
+    metadata={"syncScope": "selected"},
+)
+
+# whole-Drive sync — skips the picker entirely
+full = client.connections.create(
+    "google-drive",
+    redirect_url="https://yourapp.com/settings/integrations",
+    container_tags=["user_4f8a"],
+    metadata={"syncScope": "full"},
+)
+```
+
+```bash cURL
+# POST /v3/connections/google-drive
+curl -X POST "https://api.supermemory.ai/v3/connections/google-drive" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redirectUrl": "https://yourapp.com/settings/integrations",
+    "containerTags": ["user_4f8a"],
+    "metadata": { "syncScope": "selected" }
+  }'
+```
+
+</CodeGroup>
+
+With `"selected"`, the picker step is part of the connect flow — imports don't start until the user finishes it. Users can reopen the picker later to change their selection from the supermemory console. `"full"` syncs everything the OAuth grant can see and sends the user straight back to your `redirectUrl`.
+
+Full-Drive scopes run into Google's app-verification rules — the [connector overview](/connectors/overview) covers what that costs before you default to `"full"`, and the [Google Drive connector](/connectors/google-drive) page has the full connect flow, including bringing your own OAuth app.
+
+## How do I verify what actually got indexed?
+
+List the documents a connection has imported, and read each one's `status`:
+
+<CodeGroup>
+
+```typescript TypeScript
+const docs = await client.connections.listDocuments("google-drive", {
+  containerTags: ["user_4f8a"],
+});
+
+for (const doc of docs) {
+  console.log(doc.title, doc.status);
+}
+```
+
+```python Python
+docs = client.connections.list_documents(
+    "google-drive",
+    container_tags=["user_4f8a"],
+)
+
+for doc in docs:
+    print(doc.title, doc.status)
+```
+
+```bash cURL
+# POST /v3/connections/{provider}/documents
+curl -X POST "https://api.supermemory.ai/v3/connections/google-drive/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"containerTags": ["user_4f8a"]}'
+```
+
+</CodeGroup>
+
+```json
+[
+  { "id": "dq4x…", "title": "Q3 planning notes", "status": "done", "type": "google_doc", … },
+  { "id": "dr7b…", "title": "Roadmap review", "status": "embedding", … },
+  { "id": "dk2m…", "title": "Legacy budget sheet", "status": "failed", … }
+]
+```
+
+Every file moves through the same pipeline: `queued → extracting → chunking → embedding → indexing → done`. `done` means the document's memories are derived and queryable — that's the state to wait for before you promise the user their data is searchable. `failed` means that file didn't make it; trigger a manual sync (below) to retry, and check the file isn't oversized or a type the connector doesn't support.
+
+## How long does indexing take, and when does it sync again?
+
+A connection syncs at four points:
+
+1. **On connect** — the first import starts as soon as OAuth (and the folder picker, if scoped) completes.
+2. **On change, where the provider supports webhooks** — Google Drive, Gmail, Notion, and OneDrive push changes in near real time.
+3. **On schedule** — a full reconciliation pass runs roughly every 4 hours, which catches anything webhooks missed.
+4. **On demand** — whenever you trigger a sync yourself:
+
+<CodeGroup>
+
+```typescript TypeScript
+// force a sync right now, e.g. after the user asks "why isn't my doc showing up?"
+await client.connections.import("google-drive", {
+  containerTags: ["user_4f8a"],
+});
+```
+
+```python Python
+# force a sync right now, e.g. after the user asks "why isn't my doc showing up?"
+client.connections.import_(
+    "google-drive",
+    container_tags=["user_4f8a"],
+)
+```
+
+```bash cURL
+# POST /v3/connections/{provider}/import
+curl -X POST "https://api.supermemory.ai/v3/connections/google-drive/import" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"containerTags": ["user_4f8a"]}'
+```
+
+</CodeGroup>
+
+How long the initial import takes scales with how much you're importing — a folder of docs clears the pipeline quickly, a whole Drive takes a while, and each file becomes queryable individually as it reaches `done` rather than waiting for the whole batch. One exception worth knowing: the GitHub connector syncs on a delay measured in hours, not real time — don't build a "push and immediately search" flow on top of it.
+
+If files sit in `extracting` or `embedding` far longer than their neighbors, a manual import usually unsticks them. The full cadence details — debounce windows, per-file limits, and the sync-run monitoring endpoints — live in [sync lifecycle](/connectors/sync-lifecycle).
+
+That's the six. If your question isn't here, it's probably a provider quirk — check the [connector overview](/connectors/overview) for per-provider limitations.
+
+## Where next
+
+<Columns cols={2}>
+  <Card title="Sync lifecycle" href="/connectors/sync-lifecycle">
+    Cadence, debounce, limits, and monitoring sync runs.
+  </Card>
+  <Card title="Connector overview" href="/connectors/overview">
+    Every provider, its status, and its limitations up front.
+  </Card>
+  <Card title="Permissioning" href="/concepts/permissioning">
+    Why container tags are immutable, and how isolation works.
+  </Card>
+  <Card title="Errors and limits" href="/errors-and-limits">
+    Rate limits, error shapes, and how to back off.
+  </Card>
+</Columns>

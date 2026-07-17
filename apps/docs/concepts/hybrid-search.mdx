@@ -1,0 +1,421 @@
+---
+title: "Hybrid Search"
+description: "How supermemory retrieval works — the two search surfaces, every tuning knob, and how to construct queries that actually recall."
+---
+
+Supermemory search combines semantic similarity, keyword matching, and the knowledge graph in one call. This page makes that call a glass box: which endpoint to hit, what each parameter actually does, what it costs in latency, and how to phrase queries so the right memory comes back.
+
+If you want the request/response reference, that's the [Search](/search) page. This one is about tuning.
+
+## Pick your search surface
+
+There are two search calls, and they answer different questions:
+
+| | `search.memories` | `search.documents` |
+|---|---|---|
+| Endpoint | `POST /v4/search` | `POST /v3/search` |
+| Returns | Derived memories — individual facts with provenance and time | Document chunks — the raw content you ingested |
+| Container scoping | `containerTag` (singular) | `containerTags` (array) |
+| Cutoff knob | `threshold` | `chunkThreshold` |
+| Use it for | "What does this user prefer?" — agents, companions, personalization | "What does the contract say?" — RAG, citations, document Q&A |
+
+The rule of thumb: **memories answer questions about entities, documents answer questions about content.** A memory search for "coffee preferences" returns the fact "Prefers oat milk lattes, switched from soy in March." A document search returns the chunk of the chat transcript where they said it.
+
+The `containerTag`/`containerTags` split isn't a typo — memory search is a v4 endpoint, document search is v3, and the seam shows. The [versioning page](/versioning) maps the whole boundary. When you see a `containerTags` array on a v4 call in older examples, it's deprecated — use the singular form.
+
+## Search memories
+
+The canonical call for memory use cases:
+
+<CodeGroup>
+```typescript TypeScript
+import Supermemory from "supermemory";
+
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
+
+const results = await client.search.memories({
+  q: "what does Sarah do at the company?",
+  containerTag: "user_4f8a",
+  limit: 5,
+});
+```
+
+```python Python
+from supermemory import Supermemory
+
+client = Supermemory()
+
+results = client.search.memories(
+    q="what does Sarah do at the company?",
+    container_tag="user_4f8a",
+    limit=5,
+)
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "what does Sarah do at the company?",
+    "containerTag": "user_4f8a",
+    "limit": 5
+  }'
+```
+</CodeGroup>
+
+The response is ranked memories, not chunks:
+
+```json
+{
+  "results": [
+    {
+      "id": "mem_8k2j",
+      "memory": "Sarah is being promoted to VP of Product, effective next quarter",
+      "similarity": 0.92,
+      "metadata": { "channel": "slack" },
+      "updatedAt": "2026-07-02T18:04:11.000Z",
+      "version": 2
+    },
+    …
+  ],
+  "timing": 287,
+  "total": 5
+}
+```
+
+Search returns the top N — there's no pagination. If you need to walk everything in a container, list documents instead.
+
+## Search documents
+
+When you want the source content itself — RAG, citations, "find the clause" — search documents:
+
+<CodeGroup>
+```typescript TypeScript
+const results = await client.search.documents({
+  q: "termination notice period",
+  containerTags: ["client_acme"],
+  limit: 5,
+  includeSummary: true,
+});
+```
+
+```python Python
+results = client.search.documents(
+    q="termination notice period",
+    container_tags=["client_acme"],
+    limit=5,
+    include_summary=True,
+)
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "termination notice period",
+    "containerTags": ["client_acme"],
+    "limit": 5,
+    "includeSummary": true
+  }'
+```
+</CodeGroup>
+
+Document search has a few knobs memory search doesn't:
+
+- `docId` — scope the search to one document. Use this to find chunks inside a very large file instead of feeding the whole thing to your model.
+- `includeFullDocs` — return the full document alongside matching chunks, when your model needs complete context.
+- `onlyMatchingChunks` — by default you get the previous and next chunk around each match for context. Set this to `true` to get only the matching chunk.
+
+## Rewrite the query
+
+`rewriteQuery` takes your query, generates several rewrites, runs them all in parallel, then merges and deduplicates the results:
+
+<CodeGroup>
+```typescript TypeScript
+const results = await client.search.memories({
+  q: "what did the team ship last week?",
+  containerTag: "org_vantel",
+  rewriteQuery: true,
+});
+```
+
+```python Python
+results = client.search.memories(
+    q="what did the team ship last week?",
+    container_tag="org_vantel",
+    rewrite_query=True,
+)
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "what did the team ship last week?",
+    "containerTag": "org_vantel",
+    "rewriteQuery": true
+  }'
+```
+</CodeGroup>
+
+Two things happen when you turn it on:
+
+1. **Recall widens.** Short or ambiguous queries ("pricing", "the migration") get expanded into variants that catch phrasings your original query would miss.
+2. **Temporal terms get handled.** "Last week" stops being two literal tokens to embed — results from that period get prioritized. If your users ask time-anchored questions, this is the flag that makes them work.
+
+The cost is latency, not money — rewriting adds roughly 400ms and there's no extra charge. So don't leave it on globally. Turn it on for user-facing natural-language queries, and leave it off when your query is already a well-formed question or you're on a tight latency budget.
+
+## Rerank the results
+
+`rerank: true` re-scores the candidate set against your query with a stronger model before returning it:
+
+<CodeGroup>
+```typescript TypeScript
+const results = await client.search.memories({
+  q: "concerns raised about the enterprise rollout",
+  containerTag: "org_vantel",
+  rerank: true,
+});
+```
+
+```python Python
+results = client.search.memories(
+    q="concerns raised about the enterprise rollout",
+    container_tag="org_vantel",
+    rerank=True,
+)
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "concerns raised about the enterprise rollout",
+    "containerTag": "org_vantel",
+    "rerank": true
+  }'
+```
+</CodeGroup>
+
+It adds ~100ms. Worth it when precision matters more than speed — a support agent citing an answer, a report pulling exact facts. Skip it when you're fetching broad context to stuff into a prompt anyway; the model will do its own filtering.
+
+## Set the cutoff: `threshold` and `chunkThreshold`
+
+Both are 0-to-1 sensitivity dials, and they live on different surfaces:
+
+- `threshold` (memory search) — 0 is least sensitive (more memories, looser matches), 1 is most sensitive (fewer memories, accurate matches).
+- `chunkThreshold` (document search) — same semantics, applied to chunk selection.
+
+```typescript
+// broad context sweep — accept looser matches
+await client.search.memories({ q, containerTag, threshold: 0.3 });
+
+// precise lookup — only near-certain matches
+await client.search.memories({ q, containerTag, threshold: 0.8 });
+```
+
+Start without a threshold and look at the `similarity` scores you get back for real queries. Then set the cutoff just below where your good results sit. Tuning it blind is guessing.
+
+<Note>
+Document search also has a `documentThreshold` parameter. It's deprecated and ignored — v3 search uses `chunkThreshold` only.
+</Note>
+
+## Pull in more with `include`
+
+Memory search returns lean results by default. `include` attaches related data to each result in the same call:
+
+<CodeGroup>
+```typescript TypeScript
+const results = await client.search.memories({
+  q: "onboarding blockers",
+  containerTag: "user_4f8a",
+  include: {
+    documents: true,       // source document + its metadata
+    chunks: true,          // relevant chunks from those documents
+    relatedMemories: true, // graph neighbors of each memory
+    summaries: true,       // document summaries
+  },
+});
+```
+
+```python Python
+results = client.search.memories(
+    q="onboarding blockers",
+    container_tag="user_4f8a",
+    include={
+        "documents": True,
+        "chunks": True,
+        "related_memories": True,
+        "summaries": True,
+    },
+)
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "onboarding blockers",
+    "containerTag": "user_4f8a",
+    "include": {
+      "documents": true,
+      "chunks": true,
+      "relatedMemories": true,
+      "summaries": true
+    }
+  }'
+```
+</CodeGroup>
+
+<!-- CONFIRM: python — include kwarg shape (dict with snake_case keys) unverified against pypi SDK -->
+
+The one that catches people: **metadata lives on documents, not memories.** A memory's `metadata` field reflects its source document — so if you need document metadata (titles, your custom fields) alongside memory results, set `include: { documents: true }` rather than making a second call.
+
+Two more worth knowing:
+
+- `relatedMemories` pulls in graph neighbors — memories connected to your hits. If your recall feels like it's returning the fact but missing its context, this is usually the fix.
+- `forgottenMemories` includes memories that were explicitly forgotten or expired past their TTL. Off by default, which is what you want; turn it on for audit or debugging views. [Graph memory](/concepts/graph-memory) covers how forgetting works.
+
+`include: { chunks: true }` is also the fast path for "memories plus supporting evidence": one v4 call instead of a memory search followed by per-document fetches.
+
+## Filter with metadata
+
+Filters narrow results by the metadata you attached at ingestion. They work on both surfaces, always wrapped in `AND` or `OR`:
+
+<CodeGroup>
+```typescript TypeScript
+const results = await client.search.memories({
+  q: "escalation history",
+  containerTag: "org_vantel",
+  filters: {
+    AND: [
+      { key: "channel", value: "support" },
+      {
+        OR: [
+          { key: "severity", value: "high" },
+          { filterType: "numeric", key: "priority", value: "7", numericOperator: ">=" },
+        ],
+      },
+    ],
+  },
+});
+```
+
+```python Python
+results = client.search.memories(
+    q="escalation history",
+    container_tag="org_vantel",
+    filters={
+        "AND": [
+            {"key": "channel", "value": "support"},
+            {
+                "OR": [
+                    {"key": "severity", "value": "high"},
+                    {"filterType": "numeric", "key": "priority", "value": "7", "numericOperator": ">="},
+                ]
+            },
+        ]
+    },
+)
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "escalation history",
+    "containerTag": "org_vantel",
+    "filters": {
+      "AND": [
+        { "key": "channel", "value": "support" },
+        {
+          "OR": [
+            { "key": "severity", "value": "high" },
+            { "filterType": "numeric", "key": "priority", "value": "7", "numericOperator": ">=" }
+          ]
+        }
+      ]
+    }
+  }'
+```
+</CodeGroup>
+
+The grammar:
+
+| Filter type | Shape | Matches |
+|---|---|---|
+| String equality (default) | `{ key: "status", value: "active" }` | Exact string match |
+| String contains | `{ filterType: "string_contains", key: "title", value: "renewal" }` | Substring (add `ignoreCase: true` for case-insensitive) |
+| Numeric | `{ filterType: "numeric", key: "priority", value: "7", numericOperator: ">=" }` | `=`, `<`, `<=`, `>`, `>=` — note `value` is a string even for numbers |
+| Array contains | `{ filterType: "array_contains", key: "participants", value: "sarah@vantel.com" }` | Membership in an array-valued field |
+
+Any condition takes `negate: true` to invert it. There's no `!=` operator — for "not equal", use `=` with `negate: true`.
+
+There is **no** boolean filter type. Store flags as the strings `"true"`/`"false"` (or `1`/`0` and filter numerically) and match with string equality.
+
+The limits: <!-- CONFIRM: filter limits still true in v4 -->
+
+- Max 200 conditions per query, 8 nesting levels. If you're anywhere near either, your metadata schema wants restructuring — usually into fewer, more meaningful keys.
+- Metadata keys must match `^[a-zA-Z0-9_-]+$` — no spaces, no dots. <!-- CONFIRM: metadata key charset -->
+
+One thing filters are **not** for: tenant isolation. A filter is a query-time convenience; a [container tag](/concepts/permissioning) is a data boundary, enforced by scoped keys. Put the tenant in the container tag, and use metadata for dimensions inside it — channel, agent role, stage.
+
+## Send the last turn, not the transcript
+
+The most common search quality bug isn't a parameter. It's the query. Teams wire up a chat agent and send the whole conversation as `q`:
+
+```typescript
+// don't: the query is now an average of everything ever said
+const results = await client.search.memories({
+  q: conversation.map((m) => `${m.role}: ${m.content}`).join("\n"),
+  containerTag: "user_4f8a",
+});
+```
+
+An embedding of a 30-turn transcript is a blurry average of thirty topics. The actual question — the last thing the user said — drowns in it, and you get plausible-but-wrong context back.
+
+Send the last turn instead:
+
+```typescript
+// do: search on what the user just asked
+const lastTurn = conversation.at(-1).content;
+// "wait, what did we decide about annual billing?"
+
+const results = await client.search.memories({
+  q: lastTurn,
+  containerTag: "user_4f8a",
+  rewriteQuery: true, // handles the vague phrasing and the "we decided" back-reference
+});
+```
+
+If the last turn is too elliptical on its own ("what about the second one?"), resolve the reference first — prepend the one previous turn, or have your model rewrite it into a standalone question before searching. But the ceiling is one or two turns of context, not the transcript.
+
+## Know your latency budget
+
+What to expect per call, so you can decide which knobs fit inside your budget: <!-- CONFIRM: latency figures publishable -->
+
+| Configuration | Expectation |
+|---|---|
+| Memory search, defaults | P50 ~300ms, P99 ~400ms |
+| + `rerank` | add ~100ms |
+| + `rewriteQuery` | add ~400ms |
+| Profile fetch | ~100ms |
+
+Everything on at once is still well under a second, but in a voice agent or a per-keystroke flow you'll feel it. A pattern that works: defaults on the hot path, `rewriteQuery` + `rerank` on the explicit "search my memory" action where the user expects a beat of thinking.
+
+One more timing fact: new memories become searchable within a couple of seconds of processing finishing — writes are eventually consistent. <!-- CONFIRM: ~2s eventual consistency --> Don't write a memory and assert on its retrieval in the same request cycle.
+
+That's the whole tuning surface — two endpoints, five knobs, one query-construction rule. Most setups need exactly one change from the defaults, and now you know which one.
+
+## Where next
+
+- [Search API reference](/search) — every parameter and the full response schemas
+- [Permissioning](/concepts/permissioning) — container tags, metadata dimensions, and scoped keys
+- [Graph memory](/concepts/graph-memory) — how memories, temporal reasoning, and forgetting shape what search returns
+- [User profiles](/concepts/user-profiles) — when you want standing context instead of a per-query search
