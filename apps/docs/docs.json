@@ -3,7 +3,11 @@
 	"api": {
 		"examples": {
 			"defaults": "required",
-			"languages": ["javascript", "python", "curl"]
+			"languages": [
+				"javascript",
+				"python",
+				"curl"
+			]
 		},
 		"openapi": "https://api.supermemory.ai/v3/openapi"
 	},
@@ -13,7 +17,12 @@
 		"primary": "#1E3A8A"
 	},
 	"contextual": {
-		"options": ["copy", "view", "chatgpt", "claude"]
+		"options": [
+			"copy",
+			"view",
+			"chatgpt",
+			"claude"
+		]
 	},
 	"favicon": "/favicon.png",
 	"fonts": {
@@ -69,7 +78,11 @@
 						"pages": [
 							{
 								"group": "Getting Started",
-								"pages": ["intro", "quickstart", "vibe-coding"]
+								"pages": [
+									"intro",
+									"quickstart",
+									"vibe-coding"
+								]
 							},
 							{
 								"group": "Self-Hosting",
@@ -142,7 +155,10 @@
 									{
 										"group": "From another provider",
 										"icon": "truck",
-										"pages": ["migration/from-mem0", "migration/from-zep"]
+										"pages": [
+											"migration/from-mem0",
+											"migration/from-zep"
+										]
 									}
 								]
 							}
@@ -157,7 +173,9 @@
 							{
 								"group": "Setups",
 								"icon": "layers",
-								"pages": ["supermemory-mcp/claude-desktop"]
+								"pages": [
+									"supermemory-mcp/claude-desktop"
+								]
 							}
 						]
 					},
@@ -213,7 +231,9 @@
 							{
 								"group": "Migration Guides",
 								"icon": "arrow-up-right",
-								"pages": ["migration/tools-v2-upgrade"]
+								"pages": [
+									"migration/tools-v2-upgrade"
+								]
 							}
 						]
 					}
@@ -258,7 +278,10 @@
 							"memorybench/github",
 							{
 								"group": "Getting Started",
-								"pages": ["memorybench/installation", "memorybench/quickstart"]
+								"pages": [
+									"memorybench/installation",
+									"memorybench/quickstart"
+								]
 							},
 							{
 								"group": "Development",
@@ -274,7 +297,8 @@
 								"pages": [
 									"memorybench/memscore",
 									"memorybench/cli",
-									"memorybench/integrations"
+									"memorybench/integrations",
+									"memorybench/supported-models"
 								]
 							}
 						]
@@ -311,7 +335,10 @@
 				"anchors": [
 					{
 						"anchor": "Changelog",
-						"pages": ["changelog/overview", "changelog/plugins"]
+						"pages": [
+							"changelog/overview",
+							"changelog/plugins"
+						]
 					}
 				],
 				"tab": "Changelog"
@@ -548,6 +575,138 @@
 			"destination": "/add-memories",
 			"permanent": true,
 			"source": "/memory-api/overview"
+		},
+		{
+			"source": "/ai-sdk/examples",
+			"destination": "/integrations/ai-sdk"
+		},
+		{
+			"source": "/ai-sdk/npm",
+			"destination": "/integrations/ai-sdk"
+		},
+		{
+			"source": "/cookbook/inf-chat-blog",
+			"destination": "/cookbook/overview"
+		},
+		{
+			"source": "/memory-api/connectors/google-drive",
+			"destination": "/connectors/google-drive"
+		},
+		{
+			"source": "/memory-api/connectors/overview",
+			"destination": "/connectors/overview"
+		},
+		{
+			"source": "/memory-api/creation/adding-memories",
+			"destination": "/add-memories"
+		},
+		{
+			"source": "/memory-api/creation/status",
+			"destination": "/document-operations"
+		},
+		{
+			"source": "/openai-sdks/usage",
+			"destination": "/integrations/openai"
+		},
+		{
+			"source": "/overview/why-supermemory",
+			"destination": "/intro"
+		},
+		{
+			"source": "/supermemory-mcp/introduction",
+			"destination": "/supermemory-mcp/mcp"
+		},
+		{
+			"source": "/supermemory-mcp/technology",
+			"destination": "/supermemory-mcp/mcp"
+		},
+		{
+			"source": "/memory-graph/npm",
+			"destination": "/integrations/memory-graph"
+		},
+		{
+			"source": "/memory-router/overview",
+			"destination": "/integrations/ai-sdk"
+		},
+		{
+			"source": "/memory-router/usage",
+			"destination": "/integrations/ai-sdk"
+		},
+		{
+			"source": "/memory-router/with-memory-api",
+			"destination": "/integrations/ai-sdk"
+		},
+		{
+			"source": "/memory-api/features/reranking",
+			"destination": "/search"
+		},
+		{
+			"source": "/memory-api/introduction",
+			"destination": "/intro"
+		},
+		{
+			"source": "/memory-api/sdks/anthropic-claude-memory",
+			"destination": "/integrations/claude-memory"
+		},
+		{
+			"source": "/memory-api/sdks/python",
+			"destination": "/integrations/supermemory-sdk"
+		},
+		{
+			"source": "/memory-api/sdks/supermemory-npm",
+			"destination": "/integrations/supermemory-sdk"
+		},
+		{
+			"source": "/memory-api/sdks/supermemory-pypi",
+			"destination": "/integrations/supermemory-sdk"
+		},
+		{
+			"source": "/memory-api/sdks/typescript",
+			"destination": "/integrations/supermemory-sdk"
+		},
+		{
+			"source": "/memory-api/searching/searching-memories",
+			"destination": "/search"
+		},
+		{
+			"source": "/model-enhancement/context-extender",
+			"destination": "/integrations/ai-sdk"
+		},
+		{
+			"source": "/model-enhancement/getting-started",
+			"destination": "/integrations/ai-sdk"
+		},
+		{
+			"source": "/model-enhancement/identifying-users",
+			"destination": "/integrations/ai-sdk"
+		},
+		{
+			"source": "/memory-api/features/auto-multi-modal",
+			"destination": "/concepts/content-types"
+		},
+		{
+			"source": "/memory-api/features/content-cleaner",
+			"destination": "/concepts/customization"
+		},
+		{
+			"source": "/memory-api/features/filtering",
+			"destination": "/concepts/filtering"
+		},
+		{
+			"source": "/memory-api/features/query-rewriting",
+			"destination": "/search"
+		},
+		{
+			"source": "/introduction",
+			"destination": "/intro"
+		},
+		{
+			"source": "/memory-api/connectors/advanced/bring-your-own-key",
+			"destination": "/connectors/overview"
+		},
+		{
+			"source": "/memory-api/connectors/creating-connection",
+			"destination": "/connectors/overview"
 		}
 	],
 	"styling": {
