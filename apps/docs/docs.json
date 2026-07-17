@@ -131,7 +131,7 @@
 									"patterns/agent-task-memory",
 									"patterns/company-brain",
 									"patterns/ingestion",
-									"overview/use-cases"
+									"use-cases"
 								]
 							},
 							{
@@ -749,6 +749,10 @@
 		{
 			"source": "/intro",
 			"destination": "/overview"
+		},
+		{
+			"source": "/overview/use-cases",
+			"destination": "/use-cases"
 		}
 	],
 	"styling": {
