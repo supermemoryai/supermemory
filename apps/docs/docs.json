@@ -8,7 +8,8 @@
 				"python",
 				"curl"
 			]
-		}
+		},
+		"openapi": "openapi.json"
 	},
 	"colors": {
 		"dark": "#1E3A8A",
@@ -290,7 +291,8 @@
 				"anchors": [
 					{
 						"anchor": "API Reference",
-						"icon": "unplug"
+						"icon": "unplug",
+						"openapi": "openapi.json"
 					}
 				],
 				"tab": "API Reference"
