@@ -77,7 +77,7 @@
 						"anchor": "Developer Platform",
 						"pages": [
 							{
-								"group": "Getting Started",
+								"group": "Start Here",
 								"pages": [
 									"intro",
 									"quickstart",
@@ -85,28 +85,20 @@
 								]
 							},
 							{
-								"group": "Self-Hosting",
+								"group": "The Context Engine",
 								"pages": [
-									"self-hosting/overview",
-									"self-hosting/quickstart",
-									"self-hosting/configuration",
-									"self-hosting/embeddings",
-									"self-hosting/local-vs-enterprise"
-								]
-							},
-							{
-								"group": "Concepts",
-								"pages": [
+									"concepts/architecture",
 									"concepts/how-it-works",
 									"concepts/graph-memory",
-									"concepts/content-types",
-									"concepts/super-rag",
-									"concepts/memory-vs-rag",
-									"concepts/container-tags",
-									"concepts/filtering",
+									"concepts/hybrid-search",
 									"concepts/user-profiles",
+									"concepts/permissioning",
+									"concepts/surfaces",
+									"concepts/memory-vs-rag",
+									"concepts/super-rag",
+									"concepts/content-types",
 									"concepts/customization",
-									"authentication"
+									"concepts/glossary"
 								]
 							},
 							{
@@ -124,6 +116,21 @@
 											"memory-review"
 										]
 									},
+									"versioning",
+									"errors-and-limits",
+									"authentication"
+								]
+							},
+							{
+								"group": "Building on supermemory",
+								"pages": [
+									"patterns/overview",
+									"patterns/multi-tenant-saas",
+									"patterns/ai-companion",
+									"patterns/multi-agent",
+									"patterns/agent-task-memory",
+									"patterns/company-brain",
+									"patterns/ingestion",
 									"overview/use-cases"
 								]
 							},
@@ -145,8 +152,30 @@
 											"connectors/web-crawler"
 										]
 									},
+									"connectors/faq",
+									"connectors/sync-lifecycle",
 									"connectors/troubleshooting",
 									"memory-api/connectors/managing-resources"
+								]
+							},
+							{
+								"group": "Ops and trust",
+								"pages": [
+									"trust/usage-and-billing",
+									"trust/security",
+									"analytics"
+								]
+							},
+							{
+								"group": "Self-Hosting",
+								"pages": [
+									"self-hosting/overview",
+									"self-hosting/quickstart",
+									"self-hosting/tiers",
+									"self-hosting/configuration",
+									"self-hosting/embeddings",
+									"self-hosting/troubleshooting",
+									"self-hosting/local-vs-enterprise"
 								]
 							},
 							{
@@ -176,7 +205,8 @@
 								"pages": [
 									"supermemory-mcp/claude-desktop"
 								]
-							}
+							},
+							"supermemory-mcp/troubleshooting"
 						]
 					},
 					{
@@ -447,7 +477,7 @@
 			"source": "/zapier"
 		},
 		{
-			"destination": "/concepts/filtering",
+			"destination": "/concepts/hybrid-search",
 			"permanent": true,
 			"source": "/search/filtering"
 		},
@@ -690,7 +720,7 @@
 		},
 		{
 			"source": "/memory-api/features/filtering",
-			"destination": "/concepts/filtering"
+			"destination": "/concepts/hybrid-search"
 		},
 		{
 			"source": "/memory-api/features/query-rewriting",
@@ -707,6 +737,14 @@
 		{
 			"source": "/memory-api/connectors/creating-connection",
 			"destination": "/connectors/overview"
+		},
+		{
+			"source": "/concepts/container-tags",
+			"destination": "/concepts/permissioning"
+		},
+		{
+			"source": "/concepts/filtering",
+			"destination": "/concepts/hybrid-search"
 		}
 	],
 	"styling": {
