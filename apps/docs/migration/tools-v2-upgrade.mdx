@@ -34,7 +34,7 @@ npm install @supermemory/tools@^2.0.0
 // v1.4.x
 import { withSupermemory } from '@supermemory/tools/ai-sdk';
 
-const model = withSupermemory(openai('gpt-4'), 'user-123', {
+const model = withSupermemory(openai('gpt-4o'), 'user-123', {
   conversationId: 'conv-456',
   mode: 'full',
 });
@@ -44,7 +44,7 @@ const model = withSupermemory(openai('gpt-4'), 'user-123', {
 // v2.0.0
 import { withSupermemory } from '@supermemory/tools/ai-sdk';
 
-const model = withSupermemory(openai('gpt-4'), {
+const model = withSupermemory(openai('gpt-4o'), {
   containerTag: 'user-123',
   customId: 'conv-456',
   mode: 'full',
@@ -139,7 +139,7 @@ If you were relying on `verbose: false` implicitly while passing `verbose: true`
 Across all four integrations, `addMemory` now defaults to `"always"`. If your v1.4.x code relied on the old default of `"never"`, set it explicitly:
 
 ```typescript
-const model = withSupermemory(openai('gpt-4'), {
+const model = withSupermemory(openai('gpt-4o'), {
   containerTag: 'user-123',
   customId: 'conv-456',
   addMemory: 'never', // preserve v1.4.x behavior

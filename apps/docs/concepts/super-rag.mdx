@@ -95,13 +95,13 @@ Supermemory combines the best of both approaches in every search:
   </Card>
 </CardGroup>
 
-With `searchMode: "hybrid"` (the default), you get both:
+Search memories and include the matching documents, and you get both:
 
 ```typescript
-const results = await client.search({
+const results = await client.search.memories({
   q: "how do I deploy the app?",
   containerTag: "user_123",
-  searchMode: "hybrid"
+  include: { documents: true }
 });
 
 // Returns:
@@ -121,8 +121,9 @@ Two flags give you fine-grained control over result quality:
 Re-scores results using a cross-encoder model for better relevance:
 
 ```typescript
-const results = await client.search({
+const results = await client.search.memories({
   q: "complex technical question",
+  containerTag: "user_123",
   rerank: true  // +~100ms, significantly better ranking
 });
 ```
@@ -134,8 +135,9 @@ const results = await client.search({
 Expands your query to capture more relevant results:
 
 ```typescript
-const results = await client.search({
+const results = await client.search.memories({
   q: "how to auth",
+  containerTag: "user_123",
   rewriteQuery: true  // Expands to "authentication login oauth jwt..."
 });
 ```

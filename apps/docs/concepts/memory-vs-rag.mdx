@@ -205,7 +205,7 @@ client.add(
 # Add a user-specific memory
 client.add(
     content="User prefers Android over iOS",
-    container_tags=["user_123"],  # User-specific
+    container_tag="user_123",  # User-specific
     metadata={
         "type": "preference",
         "confidence": "high"
@@ -216,9 +216,9 @@ client.add(
 ### 3. Hybrid Retrieval
 ```python
 # Search combines both approaches
-results = client.documents.search(
-    query="What phone should I recommend?",
-    container_tags=["user_123"],  # Gets user memories
+results = client.search.memories(
+    q="What phone should I recommend?",
+    container_tag="user_123",  # Gets user memories
     # Also searches general knowledge
 )
 

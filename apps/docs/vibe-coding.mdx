@@ -171,17 +171,17 @@ import { supermemoryTools } from '@supermemory/tools/ai-sdk'
 
 // Option 1: Agent tools (recommended for agentic flows)
 const result = await streamText({
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: anthropic('claude-sonnet-4-5'),
   prompt: userMessage,
   tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY, {
-    containerTag: userId  // singular string — never an array
+    containerTags: [userId]  // the tools config takes an array; API bodies use singular containerTag
   })
 })
 // Agent gets searchMemories, addMemory, fetchMemory tools
 
 // Option 2: Profile middleware (automatic context injection)
 import { withSupermemory } from '@supermemory/tools/ai-sdk'
-const modelWithMemory = withSupermemory(anthropic('claude-3-5-sonnet-20241022'), {
+const modelWithMemory = withSupermemory(anthropic('claude-sonnet-4-5'), {
   containerTag: userId,
   customId: 'conversation-1',
 })
@@ -236,15 +236,14 @@ import Supermemory from 'supermemory'
 const client = new Supermemory()
 
 // Search for relevant memories
-const results = await client.search({
+const results = await client.search.memories({
   q: userMessage,
   containerTag: userId,
-  searchMode: 'hybrid',  // Searches memories + document chunks
   limit: 5
 })
 
 // Build context
-const context = results.results.map(r => r.memory || r.chunk).join('\n')
+const context = results.results.map(r => r.memory).join('\n')
 
 // Send to LLM with context
 const messages = [

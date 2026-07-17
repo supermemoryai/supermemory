@@ -77,7 +77,6 @@ export const searchMemories = action({
     return await memory.search.memories({
       q: query,
       containerTag: userId,
-      searchMode: "hybrid",
       limit: limit ?? 10,
     });
   },

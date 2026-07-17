@@ -14,7 +14,7 @@ Raw text, conversations, notes, or any string content.
 ```typescript
 await client.add({
   content: "User prefers dark mode and uses vim keybindings",
-  containerTags: ["user_123"]
+  containerTag: "user_123"
 });
 ```
 
@@ -29,7 +29,7 @@ Send a URL and Supermemory fetches, extracts, and indexes the content.
 ```typescript
 await client.add({
   content: "https://docs.example.com/api-reference",
-  containerTags: ["documentation"]
+  containerTag: "documentation"
 });
 ```
 

@@ -369,12 +369,12 @@ If the question cannot be answered from the provided documents, respond with: "I
           maxTokens: 1000
         })
 
-        return result.toAIStreamResponse({
-          data: {
+        return result.toUIMessageStreamResponse({
+          messageMetadata: () => ({
             sources,
             searchResultsCount: searchResults.results.length,
             totalResults: searchResults.total
-          }
+          })
         })
 
       } catch (error) {
@@ -525,7 +525,7 @@ If the question cannot be answered from the provided documents, respond with: "I
 'use client'
 
 import { useState, useRef } from 'react'
-import { useChat } from 'ai/react'
+import { useChat } from '@ai-sdk/react'
 import { DocumentProcessor } from '@/lib/document-processor'
 
 interface Document {

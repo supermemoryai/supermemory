@@ -125,7 +125,7 @@ Get a specific document with its processing status.
     ```typescript
     const doc = await client.documents.get("doc_abc123");
 
-    console.log(doc.status);  // "queued" | "processing" | "done" | "failed"
+    console.log(doc.status);  // "queued" | "extracting" | "chunking" | "embedding" | "indexing" | "done" | "failed"
     console.log(doc.content);
     ```
   </Tab>
@@ -153,6 +153,7 @@ Get a specific document with its processing status.
 | `extracting` | Extracting content (OCR, transcription) |
 | `chunking` | Breaking into searchable pieces |
 | `embedding` | Creating vector representations |
+| `indexing` | Indexing for retrieval |
 | `done` | Ready for search |
 | `failed` | Processing failed |
 

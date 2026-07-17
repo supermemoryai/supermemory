@@ -385,7 +385,7 @@ When you add content, Supermemory:
 Track progress with `GET /v3/documents/{id}`:
 ```typescript
 const doc = await client.documents.get("abc123");
-console.log(doc.status); // "queued" | "processing" | "done"
+console.log(doc.status); // "queued" | "extracting" | "chunking" | "embedding" | "indexing" | "done" | "failed"
 ```
 
 <AccordionGroup>
@@ -479,4 +479,4 @@ console.log(doc.status); // "queued" | "processing" | "done"
 
 - [Search Memories](/search) — Query your content
 - [User Profiles](/user-profiles) — Get user context
-- [Organizing & Filtering](/concepts/filtering) — Container tags and metadata
+- [Organizing & Filtering](/concepts/hybrid-search) — Container tags and metadata

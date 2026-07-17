@@ -36,7 +36,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     });
 
     // Add a memory
-    await client.add({ content: "Meeting notes from Q1 planning", containerTags: ["user_123"] });
+    await client.add({ content: "Meeting notes from Q1 planning", containerTag: "user_123" });
 
     // Search memories
     const response = await client.search.documents({
@@ -57,7 +57,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     // Add with metadata
     await client.add({
       content: "Technical design doc",
-      containerTags: ["user_123"],
+      containerTag: "user_123",
       metadata: { category: "engineering", priority: "high" }
     });
 
@@ -98,7 +98,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     )
 
     # Add a memory
-    client.add(content="Meeting notes from Q1 planning", container_tags=["user_123"])
+    client.add(content="Meeting notes from Q1 planning", container_tag="user_123")
 
     # Search memories
     response = client.search.documents(
@@ -119,7 +119,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     # Add with metadata
     client.add(
         content="Technical design doc",
-        container_tags=["user_123"],
+        container_tag="user_123",
         metadata={"category": "engineering", "priority": "high"}
     )
 

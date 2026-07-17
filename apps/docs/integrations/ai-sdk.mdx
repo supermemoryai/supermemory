@@ -74,19 +74,19 @@ Both `containerTag` and `customId` are required.
 **Profile Mode (Default)** - Retrieves the user's complete profile:
 
 ```typescript
-const model = withSupermemory(openai("gpt-4"), { containerTag: "user-123", customId: "conv-1", mode: "profile" })
+const model = withSupermemory(openai("gpt-4o"), { containerTag: "user-123", customId: "conv-1", mode: "profile" })
 ```
 
 **Query Mode** - Searches memories based on the user's message:
 
 ```typescript
-const model = withSupermemory(openai("gpt-4"), { containerTag: "user-123", customId: "conv-1", mode: "query" })
+const model = withSupermemory(openai("gpt-4o"), { containerTag: "user-123", customId: "conv-1", mode: "query" })
 ```
 
 **Full Mode** - Combines profile AND query-based search:
 
 ```typescript
-const model = withSupermemory(openai("gpt-4"), { containerTag: "user-123", customId: "conv-1", mode: "full" })
+const model = withSupermemory(openai("gpt-4o"), { containerTag: "user-123", customId: "conv-1", mode: "full" })
 ```
 
 ### Custom Prompt Templates
@@ -107,7 +107,7 @@ const claudePrompt = (data: MemoryPromptData) => `
 </context>
 `.trim()
 
-const model = withSupermemory(anthropic("claude-3-sonnet"), {
+const model = withSupermemory(anthropic("claude-sonnet-4-5"), {
   containerTag: "user-123",
   customId: "conv-1",
   mode: "full",
@@ -118,7 +118,7 @@ const model = withSupermemory(anthropic("claude-3-sonnet"), {
 ### Verbose Logging
 
 ```typescript
-const model = withSupermemory(openai("gpt-4"), {
+const model = withSupermemory(openai("gpt-4o"), {
   containerTag: "user-123",
   customId: "conv-1",
   verbose: true,
@@ -166,7 +166,7 @@ import { supermemoryTools } from "@supermemory/tools/ai-sdk"
 const anthropic = createAnthropic({ apiKey: "YOUR_ANTHROPIC_KEY" })
 
 const result = await streamText({
-  model: anthropic("claude-3-sonnet"),
+  model: anthropic("claude-sonnet-4-5"),
   prompt: "Remember that my name is Alice",
   tools: supermemoryTools("YOUR_SUPERMEMORY_KEY")
 })
@@ -189,7 +189,7 @@ const result = await streamText({
 
 ```typescript
 const result = await streamText({
-  model: anthropic("claude-3-sonnet"),
+  model: anthropic("claude-sonnet-4-5"),
   prompt: "Remember that I'm allergic to peanuts",
   tools: supermemoryTools("API_KEY")
 })

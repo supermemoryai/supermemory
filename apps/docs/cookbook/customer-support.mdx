@@ -480,12 +480,12 @@ If you cannot resolve the issue completely, prepare a clear summary for escalati
           }
         })
 
-        return result.toAIStreamResponse({
-          data: {
+        return result.toUIMessageStreamResponse({
+          messageMetadata: () => ({
             needsEscalation,
             customerTier: customer.tier,
             contextCount: contextResults.length
-          }
+          })
         })
 
       } catch (error) {
@@ -724,7 +724,7 @@ If you cannot resolve the issue completely, prepare a clear summary for escalati
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useChat } from 'ai/react'
+import { useChat } from '@ai-sdk/react'
 import { CustomerContextManager } from '@/lib/customer-context'
 
 interface Customer {

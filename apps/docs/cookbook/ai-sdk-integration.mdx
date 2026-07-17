@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const { messages } = await request.json()
 
   const result = await streamText({
-    model: anthropic('claude-3-sonnet-20240229'),
+    model: anthropic('claude-sonnet-4-5'),
     messages,
     tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!),
     system: `You are a helpful personal assistant. When users share information about themselves,
@@ -32,14 +32,14 @@ export async function POST(request: Request) {
     personalized responses. Always be proactive about remembering important details.`
   })
 
-  return result.toAIStreamResponse()
+  return result.toUIMessageStreamResponse()
 }
 ```
 
 ```typescript Client Component
 'use client'
 
-import { useChat } from 'ai/react'
+import { useChat } from '@ai-sdk/react'
 
 export default function PersonalAssistant() {
   const { messages, input, handleInputChange, handleSubmit } = useChat()
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
     4. Always be empathetic and solution-focused`
   })
 
-  return result.toAIStreamResponse()
+  return result.toUIMessageStreamResponse()
 }
 ```
 
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
   const { messages, userId, courseId } = await request.json()
 
   const result = await streamText({
-    model: anthropic('claude-3-haiku-20240307'),
+    model: anthropic('claude-haiku-4-5'),
     messages,
     tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
       containerTags: [userId]
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
     4. Tracking topics they've mastered vs topics they need more help with`
   })
 
-  return result.toAIStreamResponse()
+  return result.toUIMessageStreamResponse()
 }
 ```
 
@@ -177,7 +177,7 @@ export async function POST(request: Request) {
     4. Track research progress and important discoveries`
   })
 
-  return result.toAIStreamResponse()
+  return result.toUIMessageStreamResponse()
 }
 ```
 
@@ -230,7 +230,7 @@ export async function POST(request: Request) {
   const { messages, repositoryId } = await request.json()
 
   const result = await streamText({
-    model: anthropic('claude-3-sonnet-20240229'),
+    model: anthropic('claude-sonnet-4-5'),
     messages,
     tools: {
       // Use individual tools for more control
@@ -262,7 +262,7 @@ export async function POST(request: Request) {
     4. Learn from debugging sessions and common issues`
   })
 
-  return result.toAIStreamResponse()
+  return result.toUIMessageStreamResponse()
 }
 ```
 
@@ -313,7 +313,7 @@ export async function POST(request: Request) {
     3. Search for conflicts using searchMemories`
   })
 
-  return result.toAIStreamResponse()
+  return result.toUIMessageStreamResponse()
 }
 ```
 

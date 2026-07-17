@@ -610,10 +610,10 @@ Later:
 #### Return Streaming Response
 
 ```typescript
-    return result.toAIStreamResponse()
+    return result.toUIMessageStreamResponse()
 ```
 
-`toAIStreamResponse()` converts the streaming result into a format the frontend can consume. It:
+`toUIMessageStreamResponse()` converts the streaming result into a format the frontend can consume. It:
 - Sets appropriate headers for streaming
 - Formats data for the `useChat` hook
 - Handles errors gracefully
@@ -643,7 +643,7 @@ Catches any errors (API failures, tool errors, etc.) and returns a clean error r
 | **Memory Search** | Manual `search_user_memories()` call | AI SDK calls `searchMemories` tool automatically |
 | **Memory Add** | Manual `add_user_memory()` call | AI SDK calls `addMemory` tool automatically |
 | **Tool Decision** | You decide when to search/add | AI decides based on conversation context |
-| **Streaming** | Manual SSE formatting | `toAIStreamResponse()` handles it |
+| **Streaming** | Manual SSE formatting | `toUIMessageStreamResponse()` handles it |
 | **Error Handling** | Try/catch in each function | AI SDK handles tool errors |
 
 **Python = Manual Control**
@@ -660,7 +660,7 @@ Replace `app/page.tsx`:
 
 ```typescript
 'use client'
-import { useChat } from 'ai/react'
+import { useChat } from '@ai-sdk/react'
 import { useState } from 'react'
 
 export default function ChatPage() {
@@ -824,7 +824,7 @@ Create `scripts/check-memories.ts`:
 const userId = "your_user_id_here"
 const containerTag = `user_${userId}`
 
-const response = await fetch('https://api.supermemory.ai/v3/memories', {
+const response = await fetch('https://api.supermemory.ai/v3/documents/list', {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
