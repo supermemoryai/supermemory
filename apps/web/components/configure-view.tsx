@@ -27,7 +27,8 @@ const SECTIONS: {
 	{
 		id: "models",
 		label: "Models",
-		description: "Choose the models used for reasoning, triage, and research.",
+		description:
+			"Pick how fast or thorough your brain should be. Fine-tune each task under Advanced.",
 		icon: Cpu,
 	},
 	{

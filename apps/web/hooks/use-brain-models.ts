@@ -7,13 +7,17 @@ const BACKEND =
 const BASE = `${BACKEND}/brain/models`
 
 export type BrainModelRole = "main" | "triage" | "research"
+export type BrainReasoningEffort = "low" | "medium" | "high" | "xhigh"
+export type BrainReasoningKey = "mainEffort" | "triageEffort" | "researchEffort"
 
-export type BrainModelConfig = Record<BrainModelRole, string>
+export type BrainModelConfig = Record<BrainModelRole, string> &
+	Partial<Record<BrainReasoningKey, BrainReasoningEffort>>
 
 export type BrainModelsResponse = {
 	resolved: BrainModelConfig
 	defaults: BrainModelConfig
-	choices: Record<BrainModelRole, string[]>
+	choices: Record<BrainModelRole, string[]> &
+		Partial<Record<BrainReasoningKey, BrainReasoningEffort[]>>
 }
 
 export function useBrainModels(enabled: boolean) {
