@@ -14,11 +14,13 @@ import type {
 	MemoryGraphProps,
 	ResolvedMemoryGraphLabels,
 } from "../types"
+import { searchNodes } from "../utils/node-search"
 import { GraphCanvas } from "./graph-canvas"
 import { Legend } from "./legend"
 import { LoadingIndicator } from "./loading-indicator"
 import { NavigationControls } from "./navigation-controls"
 import { NodeHoverPopover } from "./node-hover-popover"
+import { SearchControl } from "./search-control"
 
 export function MemoryGraph({
 	documents = [],
@@ -41,6 +43,8 @@ export function MemoryGraph({
 	onOpenDocument,
 	labels: labelOverrides,
 	layering,
+	showSearch = true,
+	searchPlaceholder,
 }: MemoryGraphProps) {
 	const resolvedLabels = useMemo<ResolvedMemoryGraphLabels>(
 		() => ({ ...DEFAULT_LABELS, ...labelOverrides }),
@@ -69,6 +73,9 @@ export function MemoryGraph({
 	const [hoveredNode, setHoveredNode] = useState<string | null>(null)
 	const [selectedNode, setSelectedNode] = useState<string | null>(null)
 	const [zoomDisplay, setZoomDisplay] = useState(50)
+	const [searchQuery, setSearchQuery] = useState("")
+	const [searchIndex, setSearchIndex] = useState(0)
+	const searchInputRef = useRef<HTMLInputElement>(null)
 	// Monotonic counter that increments on any viewport change (pan or zoom)
 	// Used as a dependency proxy to recalculate popover positions
 	const [viewportVersion, setViewportVersion] = useState(0)
@@ -447,6 +454,12 @@ export function MemoryGraph({
 				case "_":
 					handleZoomOut()
 					break
+				case "/":
+					if (showSearch) {
+						e.preventDefault()
+						searchInputRef.current?.focus()
+					}
+					break
 				case "Escape":
 					setSelectedNode(null)
 					break
@@ -455,7 +468,7 @@ export function MemoryGraph({
 
 		window.addEventListener("keydown", handler)
 		return () => window.removeEventListener("keydown", handler)
-	}, [handleAutoFit, handleCenter, handleZoomIn, handleZoomOut])
+	}, [handleAutoFit, handleCenter, handleZoomIn, handleZoomOut, showSearch])
 
 	// Arrow key navigation through nodes
 	const selectAndCenter = useCallback(
@@ -472,6 +485,61 @@ export function MemoryGraph({
 		},
 		[nodes, containerSize.width, containerSize.height],
 	)
+
+	// Node search — find documents/memories by text and step through matches.
+	const searchMatches = useMemo(
+		() => (showSearch ? searchNodes(nodes, searchQuery) : []),
+		[showSearch, nodes, searchQuery],
+	)
+	const matchCount = searchMatches.length
+
+	// Keep the focused index in range as the match set changes (typing, data
+	// reloads, pagination).
+	useEffect(() => {
+		setSearchIndex((i) => (matchCount === 0 ? 0 : Math.min(i, matchCount - 1)))
+	}, [matchCount])
+
+	const currentMatchId = searchMatches[searchIndex]?.id ?? null
+
+	// Focus (select + center) the current match whenever it changes.
+	useEffect(() => {
+		if (currentMatchId) selectAndCenter(currentMatchId)
+	}, [currentMatchId, selectAndCenter])
+
+	// Highlight the documents behind every match (memory matches highlight their
+	// parent document) so the user can see where results sit, merged with any
+	// externally-supplied highlights.
+	const effectiveHighlightIds = useMemo(() => {
+		if (!highlightsVisible) return []
+		if (matchCount === 0) return highlightDocumentIds
+		const ids = new Set(highlightDocumentIds)
+		for (const node of searchMatches) {
+			if (node.type === "document") ids.add(node.id)
+			else if ("documentId" in node.data) ids.add(node.data.documentId)
+		}
+		return [...ids]
+	}, [highlightsVisible, highlightDocumentIds, searchMatches, matchCount])
+
+	const handleSearchChange = useCallback((value: string) => {
+		setSearchQuery(value)
+		setSearchIndex(0)
+	}, [])
+
+	const handleSearchNext = useCallback(() => {
+		if (matchCount === 0) return
+		setSearchIndex((i) => (i + 1) % matchCount)
+	}, [matchCount])
+
+	const handleSearchPrev = useCallback(() => {
+		if (matchCount === 0) return
+		setSearchIndex((i) => (i - 1 + matchCount) % matchCount)
+	}, [matchCount])
+
+	const handleSearchClear = useCallback(() => {
+		setSearchQuery("")
+		setSearchIndex(0)
+		setSelectedNode(null)
+	}, [])
 
 	const navigateUp = useCallback(() => {
 		if (!selectedNode) return
@@ -773,7 +841,7 @@ export function MemoryGraph({
 						colors={colors}
 						edges={edges}
 						height={containerSize.height}
-						highlightDocumentIds={highlightsVisible ? highlightDocumentIds : []}
+						highlightDocumentIds={effectiveHighlightIds}
 						nodes={nodes}
 						onNodeClick={handleNodeClick}
 						onNodeDragEnd={handleNodeDragEnd}
@@ -812,6 +880,21 @@ export function MemoryGraph({
 
 				{containerSize.width > 0 && (
 					<div style={bottomLeftStackStyle}>
+						{showSearch && nodes.length > 0 && (
+							<SearchControl
+								colors={colors}
+								compact={isCompactViewport}
+								currentIndex={searchIndex}
+								inputRef={searchInputRef}
+								matchCount={matchCount}
+								onClear={handleSearchClear}
+								onNext={handleSearchNext}
+								onPrev={handleSearchPrev}
+								onQueryChange={handleSearchChange}
+								placeholder={searchPlaceholder}
+								query={searchQuery}
+							/>
+						)}
 						<NavigationControls
 							nodes={nodes}
 							compact={isCompactViewport}
