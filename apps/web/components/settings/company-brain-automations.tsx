@@ -8,26 +8,19 @@ import {
 	CalendarClock,
 	ChevronDown,
 	ChevronUp,
-	FilePlus2,
 	FileText,
 	GitPullRequest,
 	Info,
 	LifeBuoy,
 	ListTodo,
 	Loader2,
-	Lock,
 	MessageCircleQuestion,
 	Plus,
+	Radar,
 	Trash2,
 } from "lucide-react"
 import { useRef, useState } from "react"
 import { toast } from "sonner"
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@ui/components/dropdown-menu"
 import {
 	Select,
 	SelectContent,
@@ -42,7 +35,6 @@ import {
 	TooltipTrigger,
 } from "@ui/components/tooltip"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
-import { useOrgMemberRole } from "@/hooks/use-org-member-role"
 import { dmSans125ClassName } from "@/lib/fonts"
 
 const BACKEND =
@@ -167,7 +159,7 @@ const PRESETS: Preset[] = [
 	{
 		id: "standup",
 		category: "team",
-		label: "Daily standup",
+		label: "Morning checkup",
 		description:
 			"Shipped work, decisions, blockers & open questions from the last 24h.",
 		icon: CalendarClock,
@@ -179,7 +171,7 @@ const PRESETS: Preset[] = [
 	{
 		id: "weekly-recap",
 		category: "team",
-		label: "Weekly team recap",
+		label: "Company progress",
 		description:
 			"Decisions, shipped work & unresolved threads from the past week.",
 		icon: CalendarClock,
@@ -237,6 +229,18 @@ const PRESETS: Preset[] = [
 		time: "09:00",
 	},
 	{
+		id: "competitor-check",
+		category: "product",
+		label: "Competitor check",
+		description: "What competitors shipped, announced, or changed this week.",
+		icon: Radar,
+		prompt:
+			"Check what our competitors shipped, announced, or changed recently — launches, pricing changes, and anything the team should react to.",
+		frequency: "weekly",
+		weekday: 1,
+		time: "09:00",
+	},
+	{
 		id: "release-notes",
 		category: "product",
 		label: "Release notes draft",
@@ -273,36 +277,10 @@ function sortPresets(connected: Set<string>): Preset[] {
 	return [...PRESETS].sort((a, b) => rank(a) - rank(b))
 }
 
-// Up to 3 presets spanning distinct categories (connection-preferred order).
-function galleryPresets(sorted: Preset[]): Preset[] {
-	const seen = new Set<Category>()
-	const out: Preset[] = []
-	for (const p of sorted) {
-		if (seen.has(p.category)) continue
-		seen.add(p.category)
-		out.push(p)
-		if (out.length === 3) break
-	}
-	return out
-}
-
 function cadenceLabel(p: Preset): string {
 	if (p.frequency === "weekly")
 		return `Weekly · ${WEEKDAYS[p.weekday ?? 1] ?? "Mon"} ${p.time}`
 	return `Daily · ${p.time}`
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-	return (
-		<p
-			className={cn(
-				dmSans125ClassName(),
-				"font-semibold text-[14px] tracking-[-0.14px] text-[#FAFAFA]",
-			)}
-		>
-			{children}
-		</p>
-	)
 }
 
 const controlClass = cn(
@@ -317,9 +295,6 @@ const selectContentClass = cn(
 const selectItemClass =
 	"cursor-pointer rounded-[8px] text-[13px] text-[#FAFAFA] hover:bg-white/10 hover:text-white data-[highlighted]:bg-white/10 data-[highlighted]:text-white focus:bg-white/10 focus:text-white"
 const DM_VALUE = "__dm__"
-
-const menuItemClass =
-	"cursor-pointer gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-white/85 hover:bg-white/[0.06] hover:text-white data-[highlighted]:bg-white/[0.06] data-[highlighted]:text-white focus:bg-white/[0.06] focus:text-white"
 
 function AutomationCard({
 	initial,
@@ -830,7 +805,7 @@ function AutomationRow({
 	)
 }
 
-function PresetTile({
+function PresetCard({
 	preset,
 	onPick,
 }: {
@@ -844,19 +819,31 @@ function PresetTile({
 			onClick={onPick}
 			className={cn(
 				dmSans125ClassName(),
-				"flex items-center gap-3 rounded-[10px] border border-white/[0.06] bg-[#14161A] px-3 py-2.5 text-left transition-colors hover:border-white/[0.12] hover:bg-[#171A1F]",
+				"flex min-w-0 cursor-pointer flex-col justify-between gap-3 rounded-xl bg-[#14161A] p-4 text-left",
+				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)] transition-colors hover:bg-[#171A1F]",
 			)}
-			title={preset.description}
 		>
-			<Icon className="size-4 shrink-0 text-[#9A9A9A]" />
-			<span className="flex min-w-0 flex-1 flex-col">
-				<span className="truncate text-[13px] font-medium text-[#FAFAFA]">
-					{preset.label}
-				</span>
-				<span className="truncate text-[11px] text-[#6B6B6B]">
+			<div className="flex min-w-0 items-start gap-3">
+				<div className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[#080B0F] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]">
+					<Icon className="size-4 text-[#9A9A9A]" />
+				</div>
+				<div className="min-w-0 pt-0.5">
+					<p className="truncate font-semibold text-[14px] tracking-[-0.15px] text-[#FAFAFA]">
+						{preset.label}
+					</p>
+					<p className="mt-1 line-clamp-2 break-words text-[12px] font-medium leading-5 text-[#737373]">
+						{preset.description}
+					</p>
+				</div>
+			</div>
+			<div className="flex min-h-9 items-center justify-between gap-3 border-[#1E293B]/50 border-t pt-3">
+				<span className="text-[12px] font-medium text-[#737373]">
 					{cadenceLabel(preset)}
 				</span>
-			</span>
+				<span className="text-[12px] font-medium text-[#8B929E]">
+					Use template
+				</span>
+			</div>
 		</button>
 	)
 }
@@ -872,8 +859,6 @@ export default function CompanyBrainAutomations() {
 		setDrafts((d) => [...d, { key: draftKey.current++, draft }])
 	const removeDraft = (key: number) =>
 		setDrafts((d) => d.filter((x) => x.key !== key))
-
-	const { isAdmin } = useOrgMemberRole(isCompanyBrain)
 
 	const listQuery = useQuery({
 		queryKey: ["company-brain-automations", "list", org?.id],
@@ -926,71 +911,12 @@ export default function CompanyBrainAutomations() {
 			queryKey: ["company-brain-automations", "list"],
 		})
 	}
-	const showGallery = automations.length === 0 && drafts.length === 0
+	const usedTitles = new Set(automations.map((a) => a.title))
+	const availablePresets = presets.filter((p) => !usedTitles.has(p.label))
+	const hasList = automations.length > 0 || drafts.length > 0
 
 	return (
 		<section className="flex flex-col gap-3 px-1">
-			<div className="flex flex-col gap-0.5">
-				<div className="flex items-center justify-between gap-3">
-					<SectionTitle>Channel automations</SectionTitle>
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<button
-								type="button"
-								className={cn(
-									dmSans125ClassName(),
-									"inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 px-3 text-[12px] font-medium text-[#9A9A9A] transition-colors hover:bg-white/[0.04] hover:text-[#FAFAFA]",
-								)}
-							>
-								<Plus className="size-3.5" />
-								New automation
-							</button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent
-							align="end"
-							className={cn(
-								dmSans125ClassName(),
-								"min-w-[240px] rounded-xl border-white/[0.08] bg-[#1B1F24] p-1.5",
-							)}
-						>
-							<DropdownMenuItem
-								onClick={() => addDraft(emptyDraft())}
-								className={menuItemClass}
-							>
-								<FilePlus2 className="size-4 text-[#737373]" />
-								Blank automation
-							</DropdownMenuItem>
-							{presets.map((p) => {
-								const Icon = p.icon
-								return (
-									<DropdownMenuItem
-										key={p.id}
-										onClick={() => addDraft(presetToDraft(p))}
-										className={menuItemClass}
-									>
-										<Icon className="size-4 text-[#737373]" />
-										{p.label}
-									</DropdownMenuItem>
-								)
-							})}
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</div>
-
-				<span
-					className={cn(
-						dmSans125ClassName(),
-						"flex items-center gap-1.5 text-[12px] text-[#6B6B6B]",
-					)}
-				>
-					<Lock className="size-3 shrink-0" />
-					Read-only scheduled summaries posted to a channel.{" "}
-					{isAdmin
-						? "You manage all across the org."
-						: "You manage the ones you create."}
-				</span>
-			</div>
-
 			<div className="flex flex-col gap-3">
 				{automations.map((a) =>
 					openId === a.id ? (
@@ -1035,40 +961,37 @@ export default function CompanyBrainAutomations() {
 					/>
 				))}
 
-				{showGallery ? (
-					<div className="flex flex-col gap-2">
-						<p
-							className={cn(dmSans125ClassName(), "text-[12px] text-[#6B6B6B]")}
-						>
-							Start from a template:
-						</p>
-						<div className="flex flex-col gap-2">
-							{galleryPresets(presets).map((p) => (
-								<PresetTile
-									key={p.id}
-									preset={p}
-									onPick={() => addDraft(presetToDraft(p))}
-								/>
-							))}
-							<button
-								type="button"
-								onClick={() => addDraft(emptyDraft())}
-								className={cn(
-									dmSans125ClassName(),
-									"flex items-center justify-center gap-2 rounded-[10px] border border-dashed border-white/[0.1] bg-transparent px-3 py-2.5 text-[13px] text-[#9A9A9A] transition-colors hover:border-white/20 hover:text-[#FAFAFA]",
-								)}
-							>
-								<Plus className="size-4" />
-								Start from scratch
-							</button>
-						</div>
-						<p
-							className={cn(dmSans125ClassName(), "text-[11px] text-[#5A5A5A]")}
-						>
-							More templates in the New automation menu.
-						</p>
-					</div>
+				{hasList ? (
+					<p
+						className={cn(
+							dmSans125ClassName(),
+							"pt-2 text-[12px] font-medium text-[#6B6B6B]",
+						)}
+					>
+						Templates
+					</p>
 				) : null}
+				<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+					{availablePresets.map((p) => (
+						<PresetCard
+							key={p.id}
+							preset={p}
+							onPick={() => addDraft(presetToDraft(p))}
+						/>
+					))}
+					<button
+						type="button"
+						onClick={() => addDraft(emptyDraft())}
+						className={cn(
+							dmSans125ClassName(),
+							"flex min-h-[104px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#2A313C] border-dashed",
+							"text-[13px] font-medium text-[#737B87] transition-colors hover:border-[#3A4150] hover:text-[#FAFAFA]",
+						)}
+					>
+						<Plus className="size-4" />
+						New automation
+					</button>
+				</div>
 			</div>
 		</section>
 	)

@@ -19,11 +19,11 @@ import {
 	ExternalLink,
 	Home,
 	LifeBuoy,
-	Link2,
 	LayoutGrid,
 	MenuIcon,
 	SearchIcon,
 	Settings,
+	Settings2,
 	UserPlus,
 	ChevronRight,
 	Sun,
@@ -35,7 +35,7 @@ import { DomainLogo } from "@/components/onboarding-brain/step-about"
 import { FeedbackModal } from "@/components/feedback-modal"
 import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
 import { SlackMark } from "@/components/brain-connector-icons"
-import { GraphIcon, IntegrationsIcon } from "@/components/integration-icons"
+import { GraphIcon } from "@/components/integration-icons"
 import { SpaceSelector } from "@/components/space-selector"
 import { UserProfileMenu } from "@/components/user-profile-menu"
 import { useTokenUsage } from "@/hooks/use-token-usage"
@@ -121,7 +121,6 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 		feedbackParam,
 	)
 	const [, setInvite] = useQueryState("invite")
-	const [settingsTab] = useQueryState("settings")
 	const { data: slackStatus } = useSlackStatus()
 
 	const planByOrgId = new Map(
@@ -140,10 +139,10 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 		?.role?.toLowerCase()
 	const canInvite = memberRole === "owner" || memberRole === "admin"
 
-	const isOverview = viewMode === "dashboard" && settingsTab !== "company-brain"
+	const isOverview = viewMode === "dashboard"
 	const isGraph = viewMode === "graph"
 	const isMemories = viewMode === "list"
-	const isConnections = settingsTab === "company-brain"
+	const isConfigure = viewMode === "configure"
 	const slackConnected = slackStatus?.connected ?? false
 
 	const selectOrg = useCallback(
@@ -166,9 +165,9 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 		void setViewMode("list")
 	}, [setViewMode])
 
-	const goConnections = useCallback(() => {
-		openSettings("company-brain")
-	}, [openSettings])
+	const goConfigure = useCallback(() => {
+		void setViewMode("configure")
+	}, [setViewMode])
 
 	const goIntegrations = useCallback(() => {
 		void setViewMode("integrations")
@@ -184,8 +183,8 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 	}, [setFeedbackOpen])
 
 	return (
-		<div className="relative z-10 flex shrink-0 items-center justify-between gap-1 px-2 py-2 md:gap-2 md:p-3">
-			<div className="z-10! flex min-w-0 flex-1 shrink items-center justify-start gap-1.5 md:flex-none md:justify-center md:gap-3">
+		<div className="relative z-10 flex shrink-0 items-center justify-between gap-1 px-2 py-2 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-2 md:p-3">
+			<div className="z-10! flex min-w-0 flex-1 shrink items-center justify-start gap-1.5 md:justify-self-start md:gap-3">
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<button
@@ -264,9 +263,9 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 								Home
 							</Link>
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={goConnections} className={menuItemClass}>
-							<Link2 className="size-4 text-[#737373]" />
-							Connections
+						<DropdownMenuItem onClick={goConfigure} className={menuItemClass}>
+							<Settings2 className="size-4 text-[#737373]" />
+							Configure
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onClick={goIntegrations}
@@ -318,7 +317,7 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 			</div>
 
 			{!isMobile && (
-				<div className="z-10! flex min-w-0 max-w-full flex-1 items-center justify-center gap-1.5 overflow-hidden px-1">
+				<div className="z-10! flex min-w-0 max-w-full items-center justify-center gap-1.5 overflow-hidden px-1 md:justify-self-center">
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<button
@@ -364,24 +363,24 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 						<button
 							type="button"
 							role="tab"
-							aria-selected={isConnections}
-							onClick={goConnections}
-							className={tabClass(isConnections)}
+							aria-selected={isConfigure}
+							onClick={goConfigure}
+							className={tabClass(isConfigure)}
 						>
-							<IntegrationsIcon className="size-3.5 shrink-0 sm:size-4" />
-							Connections
+							<Settings2 className="size-3.5 shrink-0 sm:size-4" />
+							Configure
 						</button>
 					</div>
 					<SlackNavButton
 						connected={slackConnected}
 						teamName={slackStatus?.teamName ?? null}
-						active={isConnections && slackConnected}
-						onManage={goConnections}
+						active={isConfigure && slackConnected}
+						onManage={goConfigure}
 					/>
 				</div>
 			)}
 
-			<div className="z-10! flex min-w-0 shrink-0 items-center gap-1.5">
+			<div className="z-10! flex min-w-0 shrink-0 items-center gap-1.5 md:justify-self-end">
 				{isMobile ? (
 					<>
 						<SpaceSelector
@@ -431,11 +430,11 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 									Memories
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									onClick={goConnections}
+									onClick={goConfigure}
 									className={menuItemClass}
 								>
-									<IntegrationsIcon className="size-4 text-[#737373]" />
-									Connections
+									<Settings2 className="size-4 text-[#737373]" />
+									Configure
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={goIntegrations}
@@ -446,7 +445,7 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 								</DropdownMenuItem>
 								{slackConnected ? (
 									<DropdownMenuItem
-										onClick={goConnections}
+										onClick={goConfigure}
 										className={menuItemClass}
 									>
 										<SlackMark className="size-4" />

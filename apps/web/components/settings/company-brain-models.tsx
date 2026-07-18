@@ -75,7 +75,11 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 	)
 }
 
-export default function CompanyBrainModels() {
+export default function CompanyBrainModels({
+	showHeading = true,
+}: {
+	showHeading?: boolean
+}) {
 	const isCompanyBrain = useHasCompanyBrain()
 	const { isAdmin } = useOrgMemberRole(isCompanyBrain)
 
@@ -106,15 +110,17 @@ export default function CompanyBrainModels() {
 
 	return (
 		<section className="flex flex-col gap-4 px-1">
-			<div className="flex flex-col gap-0.5">
-				<SectionTitle>Models</SectionTitle>
-				<span
-					className={cn(dmSans125ClassName(), "text-[12px] text-[#9A9A9A]")}
-				>
-					Choose which models Company Brain uses. Applies to this organization
-					only.
-				</span>
-			</div>
+			{showHeading ? (
+				<div className="flex flex-col gap-0.5">
+					<SectionTitle>Models</SectionTitle>
+					<span
+						className={cn(dmSans125ClassName(), "text-[12px] text-[#9A9A9A]")}
+					>
+						Choose which models Company Brain uses. Applies to this organization
+						only.
+					</span>
+				</div>
+			) : null}
 
 			{modelsQuery.isLoading ? (
 				<div className="flex items-center gap-2 text-[13px] text-[#9A9A9A]">
