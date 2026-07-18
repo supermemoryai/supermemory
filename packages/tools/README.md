@@ -272,7 +272,7 @@ const openaiWithSupermemory = withSupermemory(openai, {
   containerTag: "user-123",      // Required: identifies the user/container
   customId: "conversation-456",  // Required: groups messages into the same document 
   mode: "full",
-  addMemory: "always",           // Default: "always"
+  addMemory: "always",           // Default: "never"; set "always" to auto-save
   verbose: true,
 })
 
@@ -296,7 +296,7 @@ const openaiWithSupermemory = withSupermemory(openai, {
   containerTag: "user-123",      // Required: identifies the user/container
   customId: "conversation-456",  // Required: groups messages for contextual memory
   mode: "full",                  // "profile" | "query" | "full"
-  addMemory: "always",           // "always" (default) | "never"
+  addMemory: "always",           // "always" | "never" (default)
   verbose: true,                 // Enable detailed logging
 })
 ```
@@ -651,7 +651,7 @@ interface WithSupermemoryOptions {
   customId: string      // Required: groups messages into the same document 
   verbose?: boolean
   mode?: "profile" | "query" | "full"
-  addMemory?: "always" | "never"  // Default: "always"
+  addMemory?: "always" | "never"  // OpenAI default: "never"; AI SDK default: "always"
   /** Optional Supermemory API key. Use this in browser environments. */
   apiKey?: string
   baseUrl?: string
@@ -664,7 +664,7 @@ interface WithSupermemoryOptions {
 - **customId**: Required. Custom ID to group messages into a single document for contextual memory generation
 - **verbose**: Enable detailed logging of memory search and injection process (default: false)
 - **mode**: Memory search mode - "profile" (default), "query", or "full"
-- **addMemory**: Automatic memory storage mode - "always" (default) or "never"
+- **addMemory**: Automatic memory storage mode - "always" or "never". OpenAI middleware defaults to "never"; AI SDK middleware defaults to "always".
 - **skipMemoryOnError**: If memory retrieval fails or hits the internal timeout, continue with the original prompt (default: true)
 
 ## Available Tools
