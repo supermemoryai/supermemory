@@ -20,7 +20,9 @@ import {
  * @param options.customId - Required. Custom ID to group messages into a single document for contextual memory generation
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile" (default), "query", or "full"
- * @param options.addMemory - Optional mode for memory addition: "always" (default), "never"
+ * @param options.addMemory - Optional mode for memory addition: "always", "never" (default)
+ * @param options.apiKey - Optional Supermemory API key to use instead of the environment variable
+ * @param options.baseUrl - Optional base URL for the Supermemory API (default: "https://api.supermemory.ai")
  *
  * @returns An OpenAI client with SuperMemory middleware injected for both Chat Completions and Responses APIs
  *
@@ -56,15 +58,18 @@ import {
  * })
  * ```
  *
- * @throws {Error} When SUPERMEMORY_API_KEY environment variable is not set
- * @throws {Error} When supermemory API request fails
+ * @throws {Error} When neither `options.apiKey` nor `process.env.SUPERMEMORY_API_KEY` are set
  */
 export function withSupermemory(
 	openaiClient: OpenAI,
 	options: OpenAIMiddlewareOptions,
 ) {
-	if (!process.env.SUPERMEMORY_API_KEY) {
-		throw new Error("SUPERMEMORY_API_KEY is not set")
+	const apiKey = options.apiKey ?? process.env.SUPERMEMORY_API_KEY
+
+	if (!apiKey) {
+		throw new Error(
+			"SUPERMEMORY_API_KEY is not set — provide it via `options.apiKey` or set `process.env.SUPERMEMORY_API_KEY`",
+		)
 	}
 
 	if (!options.containerTag) {
@@ -82,13 +87,14 @@ export function withSupermemory(
 	const { containerTag } = options
 	const verbose = options.verbose ?? false
 	const mode = options.mode ?? "profile"
-	const addMemory = options.addMemory ?? "always"
+	const addMemory = options.addMemory ?? "never"
 
 	const openaiWithSupermemory = createOpenAIMiddleware(
 		openaiClient,
 		containerTag,
 		{
 			...options,
+			apiKey,
 			verbose,
 			mode,
 			addMemory,

@@ -19,6 +19,7 @@ export interface OpenAIMiddlewareOptions {
 	verbose?: boolean
 	mode?: "profile" | "query" | "full"
 	addMemory?: "always" | "never"
+	apiKey?: string
 	baseUrl?: string
 }
 
@@ -29,6 +30,48 @@ interface SupermemoryProfileSearch {
 	}
 	searchResults: {
 		results: Array<{ memory: string; metadata?: Record<string, unknown> }>
+	}
+}
+
+const formatMemoriesForInjection = (
+	memoriesResponse: SupermemoryProfileSearch,
+	mode: "profile" | "query" | "full",
+	context: "chat" | "responses",
+) => {
+	const deduplicated = deduplicateMemories({
+		static: memoriesResponse.profile.static,
+		dynamic: memoriesResponse.profile.dynamic,
+		searchResults:
+			mode === "query" ? [] : memoriesResponse.searchResults?.results,
+	})
+	const searchResultsForPrompt =
+		mode === "query"
+			? deduplicateMemories({
+					searchResults: memoriesResponse.searchResults?.results,
+				}).searchResults
+			: deduplicated.searchResults
+
+	const profileData =
+		mode !== "query"
+			? convertProfileToMarkdown({
+					profile: {
+						static: deduplicated.static,
+						dynamic: deduplicated.dynamic,
+					},
+					searchResults: { results: [] },
+				})
+			: ""
+	const searchResultsMemories =
+		mode !== "profile"
+			? `Search results for user's ${context === "chat" ? "recent message" : "input"}: \n${searchResultsForPrompt
+					.map((memory) => `- ${memory}`)
+					.join("\n")}`
+			: ""
+
+	return {
+		memories: `${profileData}\n${searchResultsMemories}`.trim(),
+		deduplicated,
+		searchResultsForPrompt,
 	}
 }
 
@@ -91,6 +134,7 @@ const supermemoryProfileSearch = async (
 	containerTag: string,
 	queryText: string,
 	baseUrl: string,
+	apiKey: string,
 ): Promise<SupermemoryProfileSearch> => {
 	const payload = queryText
 		? JSON.stringify({
@@ -106,7 +150,7 @@ const supermemoryProfileSearch = async (
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+				Authorization: `Bearer ${apiKey}`,
 			},
 			body: payload,
 		})
@@ -161,6 +205,7 @@ const addSystemPrompt = async (
 	logger: Logger,
 	mode: "profile" | "query" | "full",
 	baseUrl: string,
+	apiKey: string,
 ) => {
 	const systemPromptExists = messages.some((msg) => msg.role === "system")
 
@@ -170,6 +215,7 @@ const addSystemPrompt = async (
 		containerTag,
 		queryText,
 		baseUrl,
+		apiKey,
 	)
 
 	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
@@ -184,11 +230,8 @@ const addSystemPrompt = async (
 		mode,
 	})
 
-	const deduplicated = deduplicateMemories({
-		static: memoriesResponse.profile.static,
-		dynamic: memoriesResponse.profile.dynamic,
-		searchResults: memoriesResponse.searchResults?.results,
-	})
+	const { memories, deduplicated, searchResultsForPrompt } =
+		formatMemoriesForInjection(memoriesResponse, mode, "chat")
 
 	logger.debug("Memory deduplication completed for chat API", {
 		static: {
@@ -201,28 +244,9 @@ const addSystemPrompt = async (
 		},
 		searchResults: {
 			original: memoriesResponse.searchResults?.results?.length,
-			deduplicated: deduplicated.searchResults.length,
+			deduplicated: searchResultsForPrompt.length,
 		},
 	})
-
-	const profileData =
-		mode !== "query"
-			? convertProfileToMarkdown({
-					profile: {
-						static: deduplicated.static,
-						dynamic: deduplicated.dynamic,
-					},
-					searchResults: { results: [] },
-				})
-			: ""
-	const searchResultsMemories =
-		mode !== "profile"
-			? `Search results for user's recent message: \n${deduplicated.searchResults
-					.map((memory) => `- ${memory}`)
-					.join("\n")}`
-			: ""
-
-	const memories = `${profileData}\n${searchResultsMemories}`.trim()
 
 	if (memories) {
 		logger.debug("Memory content preview for chat API", {
@@ -400,6 +424,8 @@ const addMemoryTool = async (
  * @param options.verbose - Enable detailed logging of memory operations (default: false)
  * @param options.mode - Memory search mode: "profile" (all memories), "query" (search-based), or "full" (both) (default: "profile")
  * @param options.addMemory - Automatic memory storage mode: "always" or "never" (default: "never")
+ * @param options.apiKey - Optional Supermemory API key to use instead of the environment variable
+ * @param options.baseUrl - Optional base URL for the Supermemory API (default: "https://api.supermemory.ai")
  * @returns Object with `wrapClient` and `createClient` methods
  * @throws {Error} When SUPERMEMORY_API_KEY environment variable is not set
  *
@@ -420,15 +446,23 @@ export function createOpenAIMiddleware(
 	options?: OpenAIMiddlewareOptions,
 ) {
 	const logger = createLogger(options?.verbose ?? false)
+	const apiKey = options?.apiKey ?? process.env.SUPERMEMORY_API_KEY
+
+	if (!apiKey) {
+		throw new Error(
+			"SUPERMEMORY_API_KEY is not set — provide it via `options.apiKey` or set `process.env.SUPERMEMORY_API_KEY`",
+		)
+	}
+
 	const baseUrl = normalizeBaseUrl(options?.baseUrl)
 	const client = new Supermemory({
-		apiKey: process.env.SUPERMEMORY_API_KEY,
+		apiKey,
 		...(baseUrl !== "https://api.supermemory.ai" ? { baseURL: baseUrl } : {}),
 	})
 
 	const customId = options?.customId
 	const mode = options?.mode ?? "profile"
-	const addMemory = options?.addMemory ?? "always"
+	const addMemory = options?.addMemory ?? "never"
 
 	const originalCreate = openaiClient.chat.completions.create
 	const originalResponsesCreate = openaiClient.responses?.create
@@ -457,6 +491,7 @@ export function createOpenAIMiddleware(
 			containerTag,
 			queryText,
 			baseUrl,
+			apiKey,
 		)
 
 		const memoryCountStatic = memoriesResponse.profile.static?.length || 0
@@ -471,11 +506,8 @@ export function createOpenAIMiddleware(
 			mode,
 		})
 
-		const deduplicated = deduplicateMemories({
-			static: memoriesResponse.profile.static,
-			dynamic: memoriesResponse.profile.dynamic,
-			searchResults: memoriesResponse.searchResults?.results,
-		})
+		const { memories, deduplicated, searchResultsForPrompt } =
+			formatMemoriesForInjection(memoriesResponse, mode, context)
 
 		logger.debug(`Memory deduplication completed for ${context} API`, {
 			static: {
@@ -488,28 +520,9 @@ export function createOpenAIMiddleware(
 			},
 			searchResults: {
 				original: memoriesResponse.searchResults?.results?.length,
-				deduplicated: deduplicated.searchResults.length,
+				deduplicated: searchResultsForPrompt.length,
 			},
 		})
-
-		const profileData =
-			mode !== "query"
-				? convertProfileToMarkdown({
-						profile: {
-							static: deduplicated.static,
-							dynamic: deduplicated.dynamic,
-						},
-						searchResults: { results: [] },
-					})
-				: ""
-		const searchResultsMemories =
-			mode !== "profile"
-				? `Search results for user's ${context === "chat" ? "recent message" : "input"}: \n${deduplicated.searchResults
-						.map((memory) => `- ${memory}`)
-						.join("\n")}`
-				: ""
-
-		const memories = `${profileData}\n${searchResultsMemories}`.trim()
 
 		if (memories) {
 			logger.debug(`Memory content preview for ${context} API`, {
@@ -565,17 +578,25 @@ export function createOpenAIMiddleware(
 			),
 		)
 
-		const results = await Promise.all(operations)
-		const memories = results[results.length - 1] // Memory search result is always last
+		try {
+			const results = await Promise.all(operations)
+			const memories = results[results.length - 1]
+			if (memories) {
+				return originalResponsesCreate.call(openaiClient.responses, {
+					...params,
+					instructions: `${params.instructions || ""}\n\n${memories}`.trim(),
+				})
+			}
+		} catch (error) {
+			logger.warn(
+				"Supermemory retrieval failed; continuing without injected memories",
+				{
+					error: error instanceof Error ? error.message : "Unknown error",
+				},
+			)
+		}
 
-		const enhancedInstructions = memories
-			? `${params.instructions || ""}\n\n${memories}`.trim()
-			: params.instructions
-
-		return originalResponsesCreate.call(openaiClient.responses, {
-			...params,
-			instructions: enhancedInstructions,
-		})
+		return originalResponsesCreate.call(openaiClient.responses, params)
 	}
 
 	const createWithMemory = async (
@@ -615,7 +636,7 @@ export function createOpenAIMiddleware(
 						memoryCustomId,
 						logger,
 						messages,
-						process.env.SUPERMEMORY_API_KEY,
+						apiKey,
 						baseUrl,
 					),
 				)
@@ -623,11 +644,23 @@ export function createOpenAIMiddleware(
 		}
 
 		operations.push(
-			addSystemPrompt(messages, containerTag, logger, mode, baseUrl),
+			addSystemPrompt(messages, containerTag, logger, mode, baseUrl, apiKey),
 		)
 
-		const results = await Promise.all(operations)
-		const enhancedMessages = results[results.length - 1] // Enhanced messages result is always last
+		let enhancedMessages = messages
+		try {
+			const results = await Promise.all(operations)
+			enhancedMessages = results[
+				results.length - 1
+			] as OpenAI.Chat.Completions.ChatCompletionMessageParam[]
+		} catch (error) {
+			logger.warn(
+				"Supermemory retrieval failed; continuing without injected memories",
+				{
+					error: error instanceof Error ? error.message : "Unknown error",
+				},
+			)
+		}
 
 		return originalCreate.call(openaiClient.chat.completions, {
 			...params,
