@@ -83,6 +83,13 @@ const controlClass = cn(
 	"h-9 w-full rounded-[10px] border border-white/[0.08] bg-[#0D0F14] px-3 text-[13px] text-[#FAFAFA] outline-none disabled:opacity-50",
 )
 const fieldLabel = cn(dmSans125ClassName(), "text-[12px] text-[#9A9A9A]")
+// borderless text control; the New automation button stays the only real button here.
+// dark: overrides are required because the base trigger sets dark:bg-input/30.
+const inlineControlClass = cn(
+	dmSans125ClassName(),
+	"h-8 w-auto gap-1.5 border-0 bg-transparent px-0 py-0 text-[12px] font-medium text-[#9A9A9A] shadow-none transition-colors hover:text-[#FAFAFA] disabled:opacity-50",
+	"dark:bg-transparent dark:hover:bg-transparent",
+)
 const selectContentClass = cn(
 	dmSans125ClassName(),
 	"rounded-[10px] border-white/[0.08] bg-[#1B1F24] text-[#FAFAFA] shadow-[0px_8px_24px_rgba(0,0,0,0.5)]",
@@ -499,7 +506,7 @@ function AutomationCard({
 										value={ch.id}
 										className={selectItemClass}
 									>
-										{ch.isPrivate ? "🔒 " : "# "}
+										{ch.isPrivate ? "🔒 " : "#"}
 										{ch.name}
 									</SelectItem>
 								))}
@@ -511,8 +518,8 @@ function AutomationCard({
 						/>
 					</div>
 
-					<div className="flex gap-3">
-						<div className="flex flex-1 flex-col gap-1">
+					<div className="flex flex-wrap gap-3">
+						<div className="flex min-w-[120px] flex-1 flex-col gap-1">
 							<span className={fieldLabel}>Frequency</span>
 							<Select
 								value={draft.frequency}
@@ -546,7 +553,7 @@ function AutomationCard({
 						</div>
 
 						{draft.frequency === "weekly" ? (
-							<div className="flex flex-1 flex-col gap-1">
+							<div className="flex min-w-[110px] flex-1 flex-col gap-1">
 								<span className={fieldLabel}>Day</span>
 								<Select
 									value={String(draft.weekday)}
@@ -571,7 +578,7 @@ function AutomationCard({
 							</div>
 						) : null}
 
-						<label className="flex flex-1 flex-col gap-1">
+						<label className="flex min-w-[120px] flex-1 flex-col gap-1">
 							<span className={fieldLabel}>Time</span>
 							<input
 								type="time"
@@ -581,34 +588,51 @@ function AutomationCard({
 								onChange={(e) => set("time", e.target.value)}
 							/>
 						</label>
+
+						<div className="flex min-w-[200px] flex-[1.4] flex-col gap-1">
+							<span className={cn(fieldLabel, "flex items-center gap-1")}>
+								Timezone
+								<TooltipProvider>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<button
+												type="button"
+												className="inline-flex text-[#6B6B6B] hover:text-[#9A9A9A]"
+												tabIndex={-1}
+											>
+												<Info className="size-3" />
+											</button>
+										</TooltipTrigger>
+										<TooltipContent className="max-w-[260px]">
+											GMT shows the current offset. The saved city timezone
+											keeps this local time correct through daylight-saving
+											changes.
+										</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
+							</span>
+							<select
+								aria-label="Timezone"
+								className={cn(controlClass, "cursor-pointer")}
+								disabled={disabled}
+								value={draft.timezone}
+								onChange={(event) => set("timezone", event.target.value)}
+							>
+								{timezoneChoices.map((option) => (
+									<option key={option.value} value={option.value}>
+										{option.label}
+									</option>
+								))}
+							</select>
+						</div>
 					</div>
 
-					<label className="flex flex-col gap-1">
-						<span className={fieldLabel}>Schedule timezone</span>
-						<select
-							aria-label="Schedule timezone"
-							className={cn(controlClass, "cursor-pointer")}
-							disabled={disabled}
-							value={draft.timezone}
-							onChange={(event) => set("timezone", event.target.value)}
-						>
-							{timezoneChoices.map((option) => (
-								<option key={option.value} value={option.value}>
-									{option.label}
-								</option>
-							))}
-						</select>
-						<span className="text-[11px] text-[#5E5E5E]">
-							GMT shows the current offset. The saved city timezone keeps this
-							local time correct through daylight-saving changes.
+					{draft.rawCron ? (
+						<span className="text-[11px] text-[#8B7447]">
+							Advanced Slack schedule ({draft.rawCron}) is preserved until you
+							change the frequency, day, or time.
 						</span>
-						{draft.rawCron ? (
-							<span className="text-[11px] text-[#8B7447]">
-								Advanced Slack schedule ({draft.rawCron}) is preserved until you
-								change the frequency, day, or time.
-							</span>
-						) : null}
-					</label>
+					) : null}
 				</div>
 			</div>
 
@@ -1099,75 +1123,8 @@ export default function CompanyBrainAutomations() {
 
 	return (
 		<section className="flex flex-col gap-5 px-1">
-			<div className="flex flex-col items-stretch justify-between gap-3 rounded-[14px] bg-[#14161A] px-4 py-3 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)] sm:flex-row sm:items-center sm:gap-4">
-				<div className="min-w-0">
-					<p
-						className={cn(
-							dmSans125ClassName(),
-							"text-[13px] font-medium text-[#FAFAFA]",
-						)}
-					>
-						Default automation channel
-					</p>
-					<p className="mt-0.5 text-[11px] text-[#6B6B6B]">
-						Team automations created in Slack post here unless another channel
-						is named.
-					</p>
-				</div>
-				<div className="flex w-full flex-col gap-1 sm:w-[280px] sm:shrink-0">
-					<div className="flex items-center gap-2">
-						<Select
-							value={defaultChannelId || undefined}
-							onValueChange={(value) => updateDefaultChannel.mutate(value)}
-							disabled={
-								settingsQuery.data?.canEdit !== true ||
-								settingsQuery.isPending ||
-								Boolean(settingsError) ||
-								channelLoad.pending ||
-								Boolean(channelLoad.error) ||
-								channelLoad.connected === false ||
-								updateDefaultChannel.isPending ||
-								!publicChannels.length
-							}
-						>
-							<SelectTrigger className={controlClass}>
-								<SelectValue placeholder="Select a public channel…" />
-							</SelectTrigger>
-							<SelectContent className={selectContentClass}>
-								{publicChannels.map((channel) => (
-									<SelectItem
-										key={channel.id}
-										value={channel.id}
-										className={selectItemClass}
-									>
-										# {channel.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						{updateDefaultChannel.isPending ? (
-							<Loader2 className="size-4 shrink-0 animate-spin text-[#737373]" />
-						) : null}
-					</div>
-					{defaultChannelHint ? (
-						<p className="flex items-center gap-2 text-[11px] text-[#737373]">
-							<span>{defaultChannelHint}</span>
-							{retryDefaultChannel ? (
-								<button
-									type="button"
-									onClick={retryDefaultChannel}
-									className="shrink-0 text-[#9A9A9A] underline underline-offset-2 hover:text-[#FAFAFA]"
-								>
-									{settingsError || channelLoad.error ? "Retry" : "Refresh"}
-								</button>
-							) : null}
-						</p>
-					) : null}
-				</div>
-			</div>
-
 			<div className="flex flex-col gap-3">
-				<div className="flex items-center justify-between gap-3">
+				<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
 					<p
 						className={cn(
 							dmSans125ClassName(),
@@ -1176,18 +1133,73 @@ export default function CompanyBrainAutomations() {
 					>
 						Your automations
 					</p>
-					<button
-						type="button"
-						onClick={() => addDraft(emptyAutomationDraft(defaultChannelId))}
-						className={cn(
-							dmSans125ClassName(),
-							"inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 px-3 text-[12px] font-medium text-[#9A9A9A] transition-colors hover:bg-white/[0.04] hover:text-[#FAFAFA]",
-						)}
-					>
-						<Plus className="size-3.5" />
-						New automation
-					</button>
+					<div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+						<div className="flex items-center gap-1.5">
+							<Select
+								value={defaultChannelId || undefined}
+								onValueChange={(value) => updateDefaultChannel.mutate(value)}
+								disabled={
+									settingsQuery.data?.canEdit !== true ||
+									settingsQuery.isPending ||
+									Boolean(settingsError) ||
+									channelLoad.pending ||
+									Boolean(channelLoad.error) ||
+									channelLoad.connected === false ||
+									updateDefaultChannel.isPending ||
+									!publicChannels.length
+								}
+							>
+								<SelectTrigger
+									size="sm"
+									className={inlineControlClass}
+									title="Team automations created in Slack post here unless another channel is named."
+								>
+									<span className="text-[#6B6B6B]">Default channel</span>
+									<SelectValue placeholder="none" />
+								</SelectTrigger>
+								<SelectContent className={selectContentClass}>
+									{publicChannels.map((channel) => (
+										<SelectItem
+											key={channel.id}
+											value={channel.id}
+											className={selectItemClass}
+										>
+											#{channel.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							{updateDefaultChannel.isPending ? (
+								<Loader2 className="size-3 shrink-0 animate-spin text-[#737373]" />
+							) : null}
+						</div>
+						<button
+							type="button"
+							onClick={() => addDraft(emptyAutomationDraft(defaultChannelId))}
+							className={cn(
+								dmSans125ClassName(),
+								"inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 px-3 text-[12px] font-medium text-[#9A9A9A] transition-colors hover:bg-white/[0.04] hover:text-[#FAFAFA]",
+							)}
+						>
+							<Plus className="size-3.5" />
+							New automation
+						</button>
+					</div>
 				</div>
+				{defaultChannelHint ? (
+					<p className="flex items-center justify-end gap-2 text-[11px] text-[#737373]">
+						<span>{defaultChannelHint}</span>
+						{retryDefaultChannel ? (
+							<button
+								type="button"
+								onClick={retryDefaultChannel}
+								className="shrink-0 text-[#9A9A9A] underline underline-offset-2 hover:text-[#FAFAFA]"
+							>
+								{settingsError || channelLoad.error ? "Retry" : "Refresh"}
+							</button>
+						) : null}
+					</p>
+				) : null}
 				{automations.map((a) =>
 					openId === a.id ? (
 						<AutomationCard
