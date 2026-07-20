@@ -8,6 +8,7 @@ import {
 	CalendarClock,
 	ChevronDown,
 	ChevronUp,
+	ExternalLink,
 	FileText,
 	GitPullRequest,
 	Info,
@@ -19,7 +20,7 @@ import {
 	Radar,
 	Trash2,
 } from "lucide-react"
-import { useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import {
 	Select,
@@ -36,251 +37,45 @@ import {
 } from "@ui/components/tooltip"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { dmSans125ClassName } from "@/lib/fonts"
+import {
+	type Automation,
+	type AutomationCatalogTemplate,
+	type AutomationChannel,
+	type AutomationDraft,
+	type AutomationSettings,
+	type Frequency,
+	type TimezoneOption,
+	automationToDraft,
+	catalogTemplateToDraft,
+	DEFAULT_AUTOMATION_PROMPT,
+	emptyAutomationDraft,
+	fromLocalCron,
+	sortCatalogTemplates,
+	timezoneDisplayLabel,
+	timezoneOptions,
+	toLocalCron,
+	WEEKDAYS,
+} from "./company-brain-automations/domain"
 
 const BACKEND =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 const BASE = `${BACKEND}/brain/automations`
 
-type Automation = {
-	id: string
-	enabled: boolean
-	title: string
-	channelId: string
-	deliverTo: "channel" | "dm"
-	prompt: string
-	cron: string
-	timezone: string | null
-	createdBy: string | null
-}
-type Channel = { id: string; name: string; isPrivate: boolean }
-type Frequency = "daily" | "weekly"
-
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
-const DEFAULT_PROMPT =
-	"Summarize what's happened recently across the connected tools and channels: open items, unanswered questions, decisions, and anything the team should know. Keep it a short, scannable recap."
-
-// Local day/time -> UTC cron; the Date roundtrip carries any day rollover.
-function toUtcCron(
-	time: string,
-	frequency: Frequency,
-	weekday: number,
-): string | null {
-	const [hh, mm] = time.split(":").map(Number)
-	if (
-		hh === undefined ||
-		mm === undefined ||
-		Number.isNaN(hh) ||
-		Number.isNaN(mm)
-	)
-		return null
-	const d = new Date()
-	d.setHours(hh, mm, 0, 0)
-	if (frequency === "weekly")
-		d.setDate(d.getDate() + ((weekday - d.getDay() + 7) % 7))
-	const m = d.getUTCMinutes()
-	const h = d.getUTCHours()
-	return frequency === "daily"
-		? `${m} ${h} * * *`
-		: `${m} ${h} * * ${d.getUTCDay()}`
+function iconForTemplate(template: AutomationCatalogTemplate): LucideIcon {
+	if (template.id === "unanswered") return MessageCircleQuestion
+	if (template.id === "prs-review") return GitPullRequest
+	if (template.id === "issue-triage") return ListTodo
+	if (template.id === "customer-signal") return LifeBuoy
+	if (template.id === "competitor-check") return Radar
+	if (template.id === "release-notes") return FileText
+	return CalendarClock
 }
 
-function fromUtcCron(
-	cron: string,
-): { frequency: Frequency; weekday: number; time: string } | null {
-	const parts = cron.trim().split(/\s+/)
-	if (parts.length !== 5) return null
-	const [min, hr, , , dow] = parts
-	const mm = Number(min)
-	const hh = Number(hr)
-	if (Number.isNaN(mm) || Number.isNaN(hh)) return null
-	const d = new Date()
-	d.setUTCHours(hh, mm, 0, 0)
-	const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
-	if (dow === "*") return { frequency: "daily", weekday: 1, time }
-	const targetDow = Number(dow)
-	if (Number.isNaN(targetDow)) return null
-	d.setUTCDate(d.getUTCDate() + ((targetDow - d.getUTCDay() + 7) % 7))
-	return { frequency: "weekly", weekday: d.getDay(), time }
-}
-
-type Draft = {
-	title: string
-	channelId: string
-	deliverTo: "channel" | "dm"
-	prompt: string
-	frequency: Frequency
-	weekday: number
-	time: string
-	enabled: boolean
-}
-
-function toDraft(a: Automation): Draft {
-	const parsed = fromUtcCron(a.cron)
-	return {
-		title: a.title,
-		channelId: a.channelId,
-		deliverTo: a.deliverTo === "dm" ? "dm" : "channel",
-		prompt: a.prompt,
-		frequency: parsed?.frequency ?? "daily",
-		weekday: parsed?.weekday ?? 1,
-		time: parsed?.time ?? "09:00",
-		enabled: a.enabled,
+function cadenceLabel(template: AutomationCatalogTemplate): string {
+	if (template.cadence.frequency === "weekly") {
+		return `Weekly · ${WEEKDAYS[template.cadence.weekday ?? 1] ?? "Mon"} ${template.cadence.time}`
 	}
-}
-
-const emptyDraft = (): Draft => ({
-	title: "",
-	channelId: "",
-	deliverTo: "channel",
-	prompt: DEFAULT_PROMPT,
-	frequency: "daily",
-	weekday: 1,
-	time: "09:00",
-	enabled: true,
-})
-
-type Category = "team" | "engineering" | "support" | "product"
-
-type Preset = {
-	id: string
-	label: string
-	description: string
-	icon: LucideIcon
-	category: Category
-	requiresApps?: string[]
-	prompt: string
-	frequency: Frequency
-	weekday?: number
-	time: string
-}
-
-const PRESETS: Preset[] = [
-	{
-		id: "standup",
-		category: "team",
-		label: "Morning checkup",
-		description:
-			"Shipped work, decisions, blockers & open questions from the last 24h.",
-		icon: CalendarClock,
-		prompt:
-			"Give a short standup for this channel: what happened in the last 24 hours across our connected tools and this channel — work shipped, decisions made, blockers, and open questions. Keep it tight and scannable.",
-		frequency: "daily",
-		time: "09:00",
-	},
-	{
-		id: "weekly-recap",
-		category: "team",
-		label: "Company progress",
-		description:
-			"Decisions, shipped work & unresolved threads from the past week.",
-		icon: CalendarClock,
-		prompt:
-			"Weekly recap for the team: decisions made, work shipped, and unresolved threads across our connected tools and channels over the past 7 days.",
-		frequency: "weekly",
-		weekday: 1,
-		time: "09:00",
-	},
-	{
-		id: "unanswered",
-		category: "team",
-		label: "Unanswered questions",
-		description: "Questions in this channel from the last 24h with no reply.",
-		icon: MessageCircleQuestion,
-		prompt:
-			"Surface questions asked in this channel in the last 24 hours that haven't gotten a reply yet, so nothing slips through.",
-		frequency: "daily",
-		time: "16:00",
-	},
-	{
-		id: "prs-review",
-		category: "engineering",
-		label: "PRs awaiting review",
-		description: "Open PRs waiting on review; flags stale ones.",
-		icon: GitPullRequest,
-		requiresApps: ["github"],
-		prompt:
-			"List open pull requests awaiting review. Flag any with no activity for 2+ days. Group by repository.",
-		frequency: "daily",
-		time: "09:30",
-	},
-	{
-		id: "issue-triage",
-		category: "engineering",
-		label: "Issue triage",
-		description: "New or unassigned issues that need a response.",
-		icon: ListTodo,
-		requiresApps: ["github", "linear"],
-		prompt:
-			"Summarize new or unassigned issues from the last 24 hours that need triage or a response.",
-		frequency: "daily",
-		time: "09:00",
-	},
-	{
-		id: "customer-signal",
-		category: "support",
-		label: "Customer signal",
-		description: "Recent customer issues & feedback and their status.",
-		icon: LifeBuoy,
-		requiresApps: ["plain", "linear"],
-		prompt:
-			"Recap customer issues and feedback raised recently across our tools and channels, with their current status.",
-		frequency: "daily",
-		time: "09:00",
-	},
-	{
-		id: "competitor-check",
-		category: "product",
-		label: "Competitor check",
-		description: "What competitors shipped, announced, or changed this week.",
-		icon: Radar,
-		prompt:
-			"Check what our competitors shipped, announced, or changed recently — launches, pricing changes, and anything the team should react to.",
-		frequency: "weekly",
-		weekday: 1,
-		time: "09:00",
-	},
-	{
-		id: "release-notes",
-		category: "product",
-		label: "Release notes draft",
-		description: "Draft notes from PRs merged since the last digest.",
-		icon: FileText,
-		requiresApps: ["github"],
-		prompt:
-			"Draft release notes from pull requests merged since the last digest, grouped into features, fixes, and chores.",
-		frequency: "weekly",
-		weekday: 5,
-		time: "16:00",
-	},
-]
-
-function presetToDraft(p: Preset): Draft {
-	return {
-		title: p.label,
-		channelId: "",
-		deliverTo: "channel",
-		prompt: p.prompt,
-		frequency: p.frequency,
-		weekday: p.weekday ?? 1,
-		time: p.time,
-		enabled: true,
-	}
-}
-
-// Connected-app presets first, universal next, unconnected-app presets last.
-function sortPresets(connected: Set<string>): Preset[] {
-	const rank = (p: Preset) => {
-		if (!p.requiresApps) return 1
-		return p.requiresApps.some((a) => connected.has(a)) ? 0 : 2
-	}
-	return [...PRESETS].sort((a, b) => rank(a) - rank(b))
-}
-
-function cadenceLabel(p: Preset): string {
-	if (p.frequency === "weekly")
-		return `Weekly · ${WEEKDAYS[p.weekday ?? 1] ?? "Mon"} ${p.time}`
-	return `Daily · ${p.time}`
+	return `Daily · ${template.cadence.time}`
 }
 
 const controlClass = cn(
@@ -295,42 +90,208 @@ const selectContentClass = cn(
 const selectItemClass =
 	"cursor-pointer rounded-[8px] text-[13px] text-[#FAFAFA] hover:bg-white/10 hover:text-white data-[highlighted]:bg-white/10 data-[highlighted]:text-white focus:bg-white/10 focus:text-white"
 const DM_VALUE = "__dm__"
+const CHANNEL_STATUS_VALUE = "__channel_status__"
+
+async function apiError(response: Response, fallback: string): Promise<Error> {
+	const body = (await response.json().catch(() => ({}))) as { error?: string }
+	return new Error(body.error ?? fallback)
+}
+
+type AutomationChannelsResponse = {
+	connected: boolean
+	channels: AutomationChannel[]
+	defaultAutomationChannel: string | null
+}
+
+async function fetchAutomationChannels(
+	forceRefresh = false,
+): Promise<AutomationChannelsResponse> {
+	const res = await fetch(
+		`${BASE}/channels${forceRefresh ? "?refresh=1" : ""}`,
+		{
+			credentials: "include",
+		},
+	)
+	if (!res.ok) throw await apiError(res, "Couldn't load Slack channels.")
+	const body = (await res.json()) as {
+		connected?: boolean
+		channels?: AutomationChannel[]
+		defaultAutomationChannel?: string | null
+	}
+	return {
+		connected: body.connected !== false,
+		channels: body.channels ?? [],
+		defaultAutomationChannel:
+			typeof body.defaultAutomationChannel === "string"
+				? body.defaultAutomationChannel
+				: null,
+	}
+}
+
+type ChannelLoadState = {
+	pending: boolean
+	error: string | null
+	connected: boolean | null
+	retry: () => void
+}
+
+function OwnerChip({ label }: { label?: string }) {
+	if (!label) return null
+	return (
+		<span className="shrink-0 rounded-full border border-white/10 px-2 py-1 text-[11px] text-[#9A9A9A]">
+			{label}
+		</span>
+	)
+}
+
+function SlackSourceLink({
+	sourceThreadUrl,
+}: {
+	sourceThreadUrl?: string | null
+}) {
+	if (!sourceThreadUrl?.startsWith("https://")) return null
+	return (
+		<a
+			href={sourceThreadUrl}
+			target="_blank"
+			rel="noreferrer"
+			className="inline-flex shrink-0 items-center gap-1 text-[11px] text-[#6B6B6B] transition-colors hover:text-[#FAFAFA]"
+			title="Open the Slack thread where this automation was created"
+		>
+			Slack thread
+			<ExternalLink className="size-2.5" />
+		</a>
+	)
+}
+
+function ChannelLoadHint({
+	state,
+	hasChannels,
+}: {
+	state: ChannelLoadState
+	hasChannels: boolean
+}) {
+	if (
+		!state.pending &&
+		!state.error &&
+		state.connected !== false &&
+		hasChannels
+	) {
+		return null
+	}
+	const message = state.pending
+		? "Loading Slack channels…"
+		: state.error
+			? state.error
+			: state.connected === false
+				? "Connect Slack to deliver automations to a channel."
+				: "Company Brain isn't in any channels yet. Add it to a channel, then refresh."
+	return (
+		<span className="flex items-center gap-2 text-[11px] text-[#737373]">
+			<span>{message}</span>
+			{!state.pending && state.connected !== false ? (
+				<button
+					type="button"
+					onClick={state.retry}
+					className="shrink-0 text-[#9A9A9A] underline underline-offset-2 hover:text-[#FAFAFA]"
+				>
+					{state.error ? "Retry" : "Refresh"}
+				</button>
+			) : null}
+		</span>
+	)
+}
+
+function QueryErrorNotice({
+	message,
+	onRetry,
+}: {
+	message: string
+	onRetry: () => void
+}) {
+	return (
+		<div className="flex items-center justify-center gap-2 rounded-[12px] border border-white/[0.06] border-dashed px-4 py-4 text-center text-[12px] text-[#737373]">
+			<span>{message}</span>
+			<button
+				type="button"
+				onClick={onRetry}
+				className="shrink-0 text-[#9A9A9A] underline underline-offset-2 hover:text-[#FAFAFA]"
+			>
+				Retry
+			</button>
+		</div>
+	)
+}
 
 function AutomationCard({
 	initial,
 	id,
 	channels,
+	channelLoad,
+	timezoneChoices: supportedTimezoneChoices,
 	ownerLabel,
+	sourceThreadUrl,
 	onDone,
+	onChanged,
 	onCancelNew,
 	onCollapse,
 }: {
-	initial: Draft
+	initial: AutomationDraft
 	id: string | null
-	channels: Channel[]
+	channels: AutomationChannel[]
+	channelLoad: ChannelLoadState
+	timezoneChoices: TimezoneOption[]
 	ownerLabel?: string
+	sourceThreadUrl?: string | null
 	onDone: () => void
+	onChanged: () => void
 	onCancelNew?: () => void
 	onCollapse?: () => void
 }) {
-	const [draft, setDraft] = useState<Draft>(initial)
-	const set = <K extends keyof Draft>(k: K, v: Draft[K]) =>
-		setDraft((d) => ({ ...d, [k]: v }))
+	const [draft, setDraft] = useState<AutomationDraft>(initial)
+	const timezoneChoices = useMemo(() => {
+		if (
+			supportedTimezoneChoices.some((option) => option.value === draft.timezone)
+		) {
+			return supportedTimezoneChoices
+		}
+		return timezoneOptions(new Date(), [
+			...supportedTimezoneChoices.map((option) => option.value),
+			draft.timezone,
+		])
+	}, [draft.timezone, supportedTimezoneChoices])
+	const set = <K extends keyof AutomationDraft>(
+		k: K,
+		v: AutomationDraft[K],
+	) => {
+		const changesSchedule = k === "frequency" || k === "weekday" || k === "time"
+		setDraft((draft) => ({
+			...draft,
+			[k]: v,
+			...(changesSchedule ? { rawCron: null } : {}),
+			...(k !== "frequency" && draft.frequency === "advanced" && changesSchedule
+				? { frequency: "daily" as const }
+				: {}),
+		}))
+	}
 
 	const body = () => {
 		if (!draft.title.trim()) throw new Error("Give the automation a name.")
 		if (draft.deliverTo === "channel" && !draft.channelId)
 			throw new Error("Pick a channel to post to.")
-		const cron = toUtcCron(draft.time, draft.frequency, draft.weekday)
+		const cron =
+			draft.rawCron ?? toLocalCron(draft.time, draft.frequency, draft.weekday)
 		if (!cron) throw new Error("Pick a valid time.")
+		if (!draft.timezone.trim()) throw new Error("Enter an IANA timezone.")
 		return {
 			title: draft.title.trim(),
 			deliverTo: draft.deliverTo,
 			channelId: draft.deliverTo === "dm" ? null : draft.channelId,
-			prompt: draft.prompt.trim() || DEFAULT_PROMPT,
+			prompt: draft.prompt.trim() || DEFAULT_AUTOMATION_PROMPT,
 			cron,
-			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+			timezone: draft.timezone.trim(),
 			enabled: draft.enabled,
+			catalogId: draft.catalogId,
 		}
 	}
 
@@ -369,11 +330,25 @@ function AutomationCard({
 				ok?: boolean
 				reason?: string
 				error?: string
+				outcome?: "deliver" | "skip" | "complete"
 			}
 			if (!res.ok || b.ok === false)
 				throw new Error(b.reason ?? b.error ?? "Couldn't run.")
+			return b.outcome ?? "deliver"
 		},
-		onSuccess: () => toast.success("Automation triggered — check the channel."),
+		onSuccess: (outcome) => {
+			toast.success(
+				outcome === "complete"
+					? "Condition met — automation completed without posting."
+					: outcome === "skip"
+						? "Automation checked and skipped this occurrence."
+						: "Automation triggered — check the channel.",
+			)
+			if (outcome === "complete") {
+				setDraft((current) => ({ ...current, enabled: false }))
+			}
+			onChanged()
+		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Couldn't run."),
 	})
@@ -414,16 +389,8 @@ function AutomationCard({
 						value={draft.title}
 						onChange={(e) => set("title", e.target.value)}
 					/>
-					{ownerLabel ? (
-						<span
-							className={cn(
-								dmSans125ClassName(),
-								"shrink-0 rounded-full border border-white/10 px-2 py-1 text-[11px] text-[#9A9A9A]",
-							)}
-						>
-							{ownerLabel}
-						</span>
-					) : null}
+					<OwnerChip label={ownerLabel} />
+					<SlackSourceLink sourceThreadUrl={sourceThreadUrl} />
 				</div>
 				{onCollapse ? (
 					<button
@@ -464,14 +431,14 @@ function AutomationCard({
 							"h-full min-h-[120px] w-full flex-1 resize-none rounded-[10px] border border-white/[0.08] bg-[#0D0F14] px-3 py-2 text-[13px] leading-[1.5] text-[#FAFAFA] outline-none disabled:opacity-50",
 						)}
 						disabled={disabled}
-						placeholder={DEFAULT_PROMPT}
+						placeholder={DEFAULT_AUTOMATION_PROMPT}
 						value={draft.prompt}
 						onChange={(e) => set("prompt", e.target.value)}
 					/>
 				</label>
 
 				<div className="flex flex-col gap-3">
-					<label className="flex flex-col gap-1">
+					<div className="flex flex-col gap-1">
 						<span className={cn(fieldLabel, "flex items-center gap-1")}>
 							Deliver to
 							<TooltipProvider>
@@ -511,6 +478,21 @@ function AutomationCard({
 								<SelectItem value={DM_VALUE} className={selectItemClass}>
 									📩 Direct message to me
 								</SelectItem>
+								{!channels.length ? (
+									<SelectItem
+										value={CHANNEL_STATUS_VALUE}
+										className={cn(selectItemClass, "cursor-default opacity-60")}
+										disabled
+									>
+										{channelLoad.pending
+											? "Loading Slack channels…"
+											: channelLoad.error
+												? "Slack channels unavailable"
+												: channelLoad.connected === false
+													? "Slack isn't connected"
+													: "No Slack channels available"}
+									</SelectItem>
+								) : null}
 								{channels.map((ch) => (
 									<SelectItem
 										key={ch.id}
@@ -523,7 +505,11 @@ function AutomationCard({
 								))}
 							</SelectContent>
 						</Select>
-					</label>
+						<ChannelLoadHint
+							state={channelLoad}
+							hasChannels={channels.length > 0}
+						/>
+					</div>
 
 					<div className="flex gap-3">
 						<div className="flex flex-1 flex-col gap-1">
@@ -537,8 +523,20 @@ function AutomationCard({
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent className={selectContentClass}>
+									{draft.frequency === "advanced" ? (
+										<SelectItem
+											value="advanced"
+											className={selectItemClass}
+											disabled
+										>
+											Advanced cron
+										</SelectItem>
+									) : null}
 									<SelectItem value="daily" className={selectItemClass}>
 										Daily
+									</SelectItem>
+									<SelectItem value="weekdays" className={selectItemClass}>
+										Weekdays
 									</SelectItem>
 									<SelectItem value="weekly" className={selectItemClass}>
 										Weekly
@@ -584,6 +582,33 @@ function AutomationCard({
 							/>
 						</label>
 					</div>
+
+					<label className="flex flex-col gap-1">
+						<span className={fieldLabel}>Schedule timezone</span>
+						<select
+							aria-label="Schedule timezone"
+							className={cn(controlClass, "cursor-pointer")}
+							disabled={disabled}
+							value={draft.timezone}
+							onChange={(event) => set("timezone", event.target.value)}
+						>
+							{timezoneChoices.map((option) => (
+								<option key={option.value} value={option.value}>
+									{option.label}
+								</option>
+							))}
+						</select>
+						<span className="text-[11px] text-[#5E5E5E]">
+							GMT shows the current offset. The saved city timezone keeps this
+							local time correct through daylight-saving changes.
+						</span>
+						{draft.rawCron ? (
+							<span className="text-[11px] text-[#8B7447]">
+								Advanced Slack schedule ({draft.rawCron}) is preserved until you
+								change the frequency, day, or time.
+							</span>
+						) : null}
+					</label>
 				</div>
 			</div>
 
@@ -665,12 +690,12 @@ function AutomationRow({
 	onChanged,
 }: {
 	automation: Automation
-	channels: Channel[]
+	channels: AutomationChannel[]
 	ownerLabel?: string
 	onExpand: () => void
 	onChanged: () => void
 }) {
-	const parsed = fromUtcCron(automation.cron)
+	const parsed = fromLocalCron(automation.cron)
 	const target =
 		automation.deliverTo === "dm"
 			? "DM to you"
@@ -678,8 +703,11 @@ function AutomationRow({
 	const cadence = parsed
 		? parsed.frequency === "weekly"
 			? `Weekly ${WEEKDAYS[parsed.weekday] ?? "Mon"} ${parsed.time}`
-			: `Daily ${parsed.time}`
-		: "Not scheduled"
+			: parsed.frequency === "weekdays"
+				? `Weekdays ${parsed.time}`
+				: `Daily ${parsed.time}`
+		: `Cron ${automation.cron}`
+	const scheduleLabel = `${cadence} · ${timezoneDisplayLabel(automation.timezone || "UTC")}`
 
 	const toggle = useMutation({
 		mutationFn: async () => {
@@ -696,6 +724,7 @@ function AutomationRow({
 					cron: automation.cron,
 					timezone: automation.timezone,
 					enabled: !automation.enabled,
+					catalogId: automation.catalogId,
 				}),
 			})
 			if (res.status === 403)
@@ -717,11 +746,22 @@ function AutomationRow({
 				ok?: boolean
 				reason?: string
 				error?: string
+				outcome?: "deliver" | "skip" | "complete"
 			}
 			if (!res.ok || b.ok === false)
 				throw new Error(b.reason ?? b.error ?? "Couldn't run.")
+			return b.outcome ?? "deliver"
 		},
-		onSuccess: () => toast.success("Automation triggered — check the channel."),
+		onSuccess: (outcome) => {
+			toast.success(
+				outcome === "complete"
+					? "Condition met — automation completed without posting."
+					: outcome === "skip"
+						? "Automation checked and skipped this occurrence."
+						: "Automation triggered — check the channel.",
+			)
+			onChanged()
+		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Couldn't run."),
 	})
@@ -753,30 +793,33 @@ function AutomationRow({
 				/>
 			</button>
 
-			<button
-				type="button"
-				onClick={onExpand}
-				className="flex min-w-0 flex-1 flex-col text-left"
-			>
-				<span className="flex items-center gap-2">
-					<span
+			<div className="flex min-w-0 flex-1 flex-col text-left">
+				<div className="flex min-w-0 items-center gap-2">
+					<button
+						type="button"
+						onClick={onExpand}
 						className={cn(
 							dmSans125ClassName(),
-							"truncate text-[13px] font-medium text-[#FAFAFA]",
+							"min-w-0 truncate text-[13px] font-medium text-[#FAFAFA]",
 						)}
 					>
 						{automation.title}
-					</span>
-					{ownerLabel ? (
-						<span className="shrink-0 rounded-full border border-white/10 px-1.5 py-0.5 text-[10px] text-[#9A9A9A]">
-							{ownerLabel}
-						</span>
-					) : null}
-				</span>
-				<span className="truncate text-[12px] text-[#6B6B6B]">
-					{target} · {cadence}
-				</span>
-			</button>
+					</button>
+					<OwnerChip label={ownerLabel} />
+					<SlackSourceLink
+						sourceThreadUrl={
+							automation.origin === "slack" ? automation.sourceThreadUrl : null
+						}
+					/>
+				</div>
+				<button
+					type="button"
+					onClick={onExpand}
+					className="truncate text-left text-[12px] text-[#6B6B6B]"
+				>
+					{target} · {scheduleLabel}
+				</button>
+			</div>
 
 			<button
 				type="button"
@@ -809,10 +852,10 @@ function PresetCard({
 	preset,
 	onPick,
 }: {
-	preset: Preset
+	preset: AutomationCatalogTemplate
 	onPick: () => void
 }) {
-	const Icon = preset.icon
+	const Icon = iconForTemplate(preset)
 	return (
 		<button
 			type="button"
@@ -852,10 +895,13 @@ export default function CompanyBrainAutomations() {
 	const isCompanyBrain = useHasCompanyBrain()
 	const { user, org } = useAuth()
 	const queryClient = useQueryClient()
-	const [drafts, setDrafts] = useState<{ key: number; draft: Draft }[]>([])
+	const [drafts, setDrafts] = useState<
+		{ key: number; draft: AutomationDraft }[]
+	>([])
 	const [openId, setOpenId] = useState<string | null>(null)
+	const supportedTimezoneChoices = useMemo(() => timezoneOptions(), [])
 	const draftKey = useRef(0)
-	const addDraft = (draft: Draft) =>
+	const addDraft = (draft: AutomationDraft) =>
 		setDrafts((d) => [...d, { key: draftKey.current++, draft }])
 	const removeDraft = (key: number) =>
 		setDrafts((d) => d.filter((x) => x.key !== key))
@@ -864,20 +910,48 @@ export default function CompanyBrainAutomations() {
 		queryKey: ["company-brain-automations", "list", org?.id],
 		queryFn: async () => {
 			const res = await fetch(`${BASE}/`, { credentials: "include" })
-			if (!res.ok) throw new Error("failed")
+			if (!res.ok) throw await apiError(res, "Couldn't load automations.")
 			return ((await res.json()) as { automations: Automation[] }).automations
 		},
-		enabled: isCompanyBrain,
+		enabled: isCompanyBrain && !!org?.id,
 	})
 
 	const channelsQuery = useQuery({
 		queryKey: ["company-brain-automations", "channels", org?.id],
+		queryFn: () => fetchAutomationChannels(),
+		enabled: isCompanyBrain && !!org?.id,
+		staleTime: 60_000,
+	})
+
+	const catalogQuery = useQuery({
+		queryKey: ["company-brain-automations", "catalog"],
 		queryFn: async () => {
-			const res = await fetch(`${BASE}/channels`, { credentials: "include" })
-			if (!res.ok) return [] as Channel[]
-			return ((await res.json()) as { channels: Channel[] }).channels ?? []
+			const res = await fetch(`${BASE}/catalog`, { credentials: "include" })
+			if (!res.ok) {
+				throw await apiError(res, "Couldn't load automation templates.")
+			}
+			return (
+				(
+					(await res.json()) as {
+						templates: AutomationCatalogTemplate[]
+					}
+				).templates ?? []
+			)
 		},
-		enabled: isCompanyBrain,
+		enabled: isCompanyBrain && !!org?.id,
+		staleTime: 5 * 60_000,
+	})
+
+	const settingsQuery = useQuery({
+		queryKey: ["company-brain-automations", "settings", org?.id],
+		queryFn: async () => {
+			const res = await fetch(`${BASE}/settings`, { credentials: "include" })
+			if (!res.ok) {
+				throw await apiError(res, "Couldn't load automation settings.")
+			}
+			return (await res.json()) as AutomationSettings
+		},
+		enabled: isCompanyBrain && !!org?.id,
 	})
 
 	const appsQuery = useQuery({
@@ -886,21 +960,80 @@ export default function CompanyBrainAutomations() {
 			const res = await fetch(`${BACKEND}/brain/mcp-connections/`, {
 				credentials: "include",
 			})
-			if (!res.ok) return [] as string[]
+			if (!res.ok) {
+				throw await apiError(res, "Couldn't check connected apps.")
+			}
 			const body = (await res.json()) as {
 				connections?: { serverSlug: string }[]
 			}
 			return (body.connections ?? []).map((c) => c.serverSlug)
 		},
-		enabled: isCompanyBrain,
+		enabled: isCompanyBrain && !!org?.id,
+	})
+
+	const updateDefaultChannel = useMutation({
+		mutationFn: async (channelId: string) => {
+			const res = await fetch(`${BASE}/settings`, {
+				method: "PATCH",
+				credentials: "include",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({ defaultAutomationChannel: channelId }),
+			})
+			const body = (await res.json().catch(() => ({}))) as {
+				error?: string
+				defaultAutomationChannel?: string
+			}
+			if (!res.ok)
+				throw new Error(body.error ?? "Couldn't update the default channel.")
+			return body.defaultAutomationChannel ?? channelId
+		},
+		onSuccess: (defaultAutomationChannel) => {
+			queryClient.setQueryData<AutomationSettings>(
+				["company-brain-automations", "settings", org?.id],
+				(current) => ({
+					defaultAutomationChannel,
+					canEdit: current?.canEdit ?? true,
+				}),
+			)
+			void queryClient.invalidateQueries({
+				queryKey: ["company-brain-automations", "settings", org?.id],
+			})
+			toast.success("Default automation channel updated.")
+		},
+		onError: (error) =>
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Couldn't update the default channel.",
+			),
 	})
 
 	if (!isCompanyBrain) return null
 
-	const channels = channelsQuery.data ?? []
+	const channels = channelsQuery.data?.channels ?? []
+	const publicChannels = channels.filter((channel) => !channel.isPrivate)
+	const channelError =
+		channelsQuery.error instanceof Error ? channelsQuery.error.message : null
+	const channelLoad: ChannelLoadState = {
+		pending: channelsQuery.isPending || channelsQuery.isFetching,
+		error: channelError,
+		connected: channelsQuery.data?.connected ?? null,
+		retry: () => {
+			void queryClient
+				.fetchQuery({
+					queryKey: ["company-brain-automations", "channels", org?.id],
+					queryFn: () => fetchAutomationChannels(true),
+					staleTime: 0,
+				})
+				.catch(() => undefined)
+		},
+	}
 	const automations = listQuery.data ?? []
-	const presets = sortPresets(new Set(appsQuery.data ?? []))
-	const nameFor = (userId: string | null): string | undefined => {
+	const templates = sortCatalogTemplates(
+		catalogQuery.data ?? [],
+		new Set(appsQuery.data ?? []),
+	)
+	const ownerLabelFor = (userId: string | null): string | undefined => {
 		if (!userId) return undefined
 		if (userId === user?.id) return "You"
 		const m = org?.members?.find((mem) => mem.userId === userId)
@@ -908,27 +1041,169 @@ export default function CompanyBrainAutomations() {
 	}
 	const refresh = () => {
 		void queryClient.invalidateQueries({
-			queryKey: ["company-brain-automations", "list"],
+			queryKey: ["company-brain-automations", "list", org?.id],
 		})
 	}
-	const usedTitles = new Set(automations.map((a) => a.title))
-	const availablePresets = presets.filter((p) => !usedTitles.has(p.label))
-	const hasList = automations.length > 0 || drafts.length > 0
+	const listError =
+		listQuery.error instanceof Error ? listQuery.error.message : null
+	const catalogError =
+		catalogQuery.error instanceof Error ? catalogQuery.error.message : null
+	const appsError =
+		appsQuery.error instanceof Error ? appsQuery.error.message : null
+	const usedCatalogIds = new Set(
+		automations.flatMap((automation) =>
+			automation.catalogId ? [automation.catalogId] : [],
+		),
+	)
+	const availableTemplates =
+		listQuery.data !== undefined && catalogQuery.data !== undefined
+			? templates.filter((template) => !usedCatalogIds.has(template.id))
+			: []
+	const defaultChannelId =
+		settingsQuery.data?.defaultAutomationChannel ??
+		channelsQuery.data?.defaultAutomationChannel ??
+		""
+	const settingsError =
+		settingsQuery.error instanceof Error ? settingsQuery.error.message : null
+	const defaultChannelMissing = Boolean(
+		defaultChannelId &&
+			!publicChannels.some((channel) => channel.id === defaultChannelId),
+	)
+	const defaultChannelHint = settingsQuery.isPending
+		? "Loading automation settings…"
+		: settingsError
+			? settingsError
+			: settingsQuery.data?.canEdit === false
+				? "Only organization owners and admins can change this setting."
+				: channelLoad.pending
+					? "Loading Slack channels…"
+					: channelLoad.error
+						? channelLoad.error
+						: channelLoad.connected === false
+							? "Connect Slack before choosing a default channel."
+							: !publicChannels.length
+								? "No public channels are available. Add Company Brain to one, then refresh."
+								: defaultChannelMissing
+									? "The saved default is no longer available. Choose another channel."
+									: null
+	const retryDefaultChannel = settingsError
+		? () => {
+				void settingsQuery.refetch()
+			}
+		: channelLoad.error ||
+				(channelLoad.connected !== false &&
+					!channelLoad.pending &&
+					!publicChannels.length)
+			? channelLoad.retry
+			: null
 
 	return (
-		<section className="flex flex-col gap-3 px-1">
+		<section className="flex flex-col gap-5 px-1">
+			<div className="flex flex-col items-stretch justify-between gap-3 rounded-[14px] bg-[#14161A] px-4 py-3 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)] sm:flex-row sm:items-center sm:gap-4">
+				<div className="min-w-0">
+					<p
+						className={cn(
+							dmSans125ClassName(),
+							"text-[13px] font-medium text-[#FAFAFA]",
+						)}
+					>
+						Default automation channel
+					</p>
+					<p className="mt-0.5 text-[11px] text-[#6B6B6B]">
+						Team automations created in Slack post here unless another channel
+						is named.
+					</p>
+				</div>
+				<div className="flex w-full flex-col gap-1 sm:w-[280px] sm:shrink-0">
+					<div className="flex items-center gap-2">
+						<Select
+							value={defaultChannelId || undefined}
+							onValueChange={(value) => updateDefaultChannel.mutate(value)}
+							disabled={
+								settingsQuery.data?.canEdit !== true ||
+								settingsQuery.isPending ||
+								Boolean(settingsError) ||
+								channelLoad.pending ||
+								Boolean(channelLoad.error) ||
+								channelLoad.connected === false ||
+								updateDefaultChannel.isPending ||
+								!publicChannels.length
+							}
+						>
+							<SelectTrigger className={controlClass}>
+								<SelectValue placeholder="Select a public channel…" />
+							</SelectTrigger>
+							<SelectContent className={selectContentClass}>
+								{publicChannels.map((channel) => (
+									<SelectItem
+										key={channel.id}
+										value={channel.id}
+										className={selectItemClass}
+									>
+										# {channel.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						{updateDefaultChannel.isPending ? (
+							<Loader2 className="size-4 shrink-0 animate-spin text-[#737373]" />
+						) : null}
+					</div>
+					{defaultChannelHint ? (
+						<p className="flex items-center gap-2 text-[11px] text-[#737373]">
+							<span>{defaultChannelHint}</span>
+							{retryDefaultChannel ? (
+								<button
+									type="button"
+									onClick={retryDefaultChannel}
+									className="shrink-0 text-[#9A9A9A] underline underline-offset-2 hover:text-[#FAFAFA]"
+								>
+									{settingsError || channelLoad.error ? "Retry" : "Refresh"}
+								</button>
+							) : null}
+						</p>
+					) : null}
+				</div>
+			</div>
+
 			<div className="flex flex-col gap-3">
+				<div className="flex items-center justify-between gap-3">
+					<p
+						className={cn(
+							dmSans125ClassName(),
+							"text-[12px] font-medium text-[#9A9A9A]",
+						)}
+					>
+						Your automations
+					</p>
+					<button
+						type="button"
+						onClick={() => addDraft(emptyAutomationDraft(defaultChannelId))}
+						className={cn(
+							dmSans125ClassName(),
+							"inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 px-3 text-[12px] font-medium text-[#9A9A9A] transition-colors hover:bg-white/[0.04] hover:text-[#FAFAFA]",
+						)}
+					>
+						<Plus className="size-3.5" />
+						New automation
+					</button>
+				</div>
 				{automations.map((a) =>
 					openId === a.id ? (
 						<AutomationCard
 							key={a.id}
 							id={a.id}
-							initial={toDraft(a)}
+							initial={automationToDraft(a)}
 							channels={channels}
+							channelLoad={channelLoad}
+							timezoneChoices={supportedTimezoneChoices}
+							ownerLabel={ownerLabelFor(a.createdBy)}
+							sourceThreadUrl={a.origin === "slack" ? a.sourceThreadUrl : null}
 							onDone={() => {
 								setOpenId(null)
 								refresh()
 							}}
+							onChanged={refresh}
 							onCollapse={() => setOpenId(null)}
 						/>
 					) : (
@@ -936,11 +1211,7 @@ export default function CompanyBrainAutomations() {
 							key={a.id}
 							automation={a}
 							channels={channels}
-							ownerLabel={
-								a.createdBy && a.createdBy !== user?.id
-									? nameFor(a.createdBy)
-									: undefined
-							}
+							ownerLabel={ownerLabelFor(a.createdBy)}
 							onExpand={() => setOpenId(a.id)}
 							onChanged={refresh}
 						/>
@@ -953,45 +1224,85 @@ export default function CompanyBrainAutomations() {
 						id={null}
 						initial={draft}
 						channels={channels}
+						channelLoad={channelLoad}
+						timezoneChoices={supportedTimezoneChoices}
 						onDone={() => {
 							removeDraft(key)
 							refresh()
 						}}
+						onChanged={refresh}
 						onCancelNew={() => removeDraft(key)}
 					/>
 				))}
-
-				{hasList ? (
-					<p
-						className={cn(
-							dmSans125ClassName(),
-							"pt-2 text-[12px] font-medium text-[#6B6B6B]",
-						)}
-					>
-						Templates
+				{listQuery.isPending ? (
+					<p className="text-[12px] text-[#6B6B6B]">Loading automations…</p>
+				) : null}
+				{listError ? (
+					<QueryErrorNotice
+						message={listError}
+						onRetry={() => {
+							void listQuery.refetch()
+						}}
+					/>
+				) : null}
+				{listQuery.data !== undefined &&
+				!listError &&
+				!automations.length &&
+				!drafts.length ? (
+					<p className="rounded-[12px] border border-white/[0.06] border-dashed px-4 py-5 text-center text-[12px] text-[#6B6B6B]">
+						No automations yet. Start with a template or create your own.
 					</p>
 				) : null}
+			</div>
+
+			<div className="flex flex-col gap-3">
+				<p
+					className={cn(
+						dmSans125ClassName(),
+						"text-[12px] font-medium text-[#9A9A9A]",
+					)}
+				>
+					Templates
+				</p>
 				<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-					{availablePresets.map((p) => (
+					{availableTemplates.map((template) => (
 						<PresetCard
-							key={p.id}
-							preset={p}
-							onPick={() => addDraft(presetToDraft(p))}
+							key={template.id}
+							preset={template}
+							onPick={() =>
+								addDraft(catalogTemplateToDraft(template, defaultChannelId))
+							}
 						/>
 					))}
-					<button
-						type="button"
-						onClick={() => addDraft(emptyDraft())}
-						className={cn(
-							dmSans125ClassName(),
-							"flex min-h-[104px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#2A313C] border-dashed",
-							"text-[13px] font-medium text-[#737B87] transition-colors hover:border-[#3A4150] hover:text-[#FAFAFA]",
-						)}
-					>
-						<Plus className="size-4" />
-						New automation
-					</button>
 				</div>
+				{catalogQuery.isPending || listQuery.isPending ? (
+					<p className="text-[12px] text-[#6B6B6B]">Loading templates…</p>
+				) : null}
+				{catalogError ? (
+					<QueryErrorNotice
+						message={catalogError}
+						onRetry={() => {
+							void catalogQuery.refetch()
+						}}
+					/>
+				) : null}
+				{appsError && !catalogError ? (
+					<QueryErrorNotice
+						message={appsError}
+						onRetry={() => {
+							void appsQuery.refetch()
+						}}
+					/>
+				) : null}
+				{catalogQuery.data !== undefined &&
+				listQuery.data !== undefined &&
+				!catalogError &&
+				!listError &&
+				!availableTemplates.length ? (
+					<p className="rounded-[12px] border border-white/[0.06] border-dashed px-4 py-5 text-center text-[12px] text-[#6B6B6B]">
+						All templates are already in your automations.
+					</p>
+				) : null}
 			</div>
 		</section>
 	)
