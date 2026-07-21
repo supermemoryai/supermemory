@@ -1,11 +1,18 @@
 import { memo, useState } from "react"
-import type { GraphEdge, GraphNode, GraphThemeColors } from "../types"
+import { DEFAULT_LABELS } from "../constants"
+import type {
+	GraphEdge,
+	GraphNode,
+	GraphThemeColors,
+	ResolvedMemoryGraphLabels,
+} from "../types"
 
 interface LegendProps {
 	nodes?: GraphNode[]
 	edges?: GraphEdge[]
 	isLoading?: boolean
 	colors: GraphThemeColors
+	labels?: ResolvedMemoryGraphLabels
 	hoveredNode?: string | null
 	compact?: boolean
 	maxHeight?: number
@@ -291,6 +298,7 @@ export const Legend = memo(function Legend({
 	edges = [],
 	isLoading: _isLoading = false,
 	colors,
+	labels = DEFAULT_LABELS,
 	hoveredNode,
 	compact = false,
 	maxHeight,
@@ -462,7 +470,7 @@ export const Legend = memo(function Legend({
 												}}
 											/>
 										}
-										label="Documents"
+										label={labels.documentGroup}
 										colors={colors}
 									/>
 									<StatRow
@@ -523,12 +531,14 @@ export const Legend = memo(function Legend({
 												<div style={rowStyle}>
 													<div style={rowLeftStyle}>
 														<LineIcon color={colors.edgeDerives} />
-														<span style={edgeLabelStyle}>Document source</span>
+														<span style={edgeLabelStyle}>
+															{labels.documentSourceEdge}
+														</span>
 													</div>
 													<span style={countStyle}>{derivesCount}</span>
 												</div>
 												<div style={edgeDescriptionStyle}>
-													Document to memory
+													{labels.documentToMemoryEdge}
 												</div>
 											</div>
 											<div>

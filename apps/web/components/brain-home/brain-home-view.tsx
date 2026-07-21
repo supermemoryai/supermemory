@@ -4,8 +4,10 @@ import { $fetch } from "@lib/api"
 import { useAuth } from "@lib/auth-context"
 import { cn } from "@lib/utils"
 import { useQuery } from "@tanstack/react-query"
-import { ArrowRight, Check, FileText, Loader2 } from "lucide-react"
+import { ArrowRight, Check, FileText, Loader2, UserPlus } from "lucide-react"
 import Link from "next/link"
+import { useQueryState } from "nuqs"
+import { useSettingsModal } from "@/components/settings/settings-modal"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { ConnectionsBoard } from "./connections-board"
 
@@ -21,6 +23,7 @@ type RecentDoc = {
 	id?: string
 	title?: string | null
 	createdAt?: string | Date | null
+	updatedAt?: string | Date | null
 }
 
 function useBrainOverview() {
@@ -45,6 +48,27 @@ function useBrainOverview() {
 				documents?: RecentDoc[]
 				pagination?: { totalItems?: number }
 			}
+		},
+		staleTime: 60_000,
+		enabled,
+	})
+
+	const lastUpdated = useQuery({
+		queryKey: ["brain-last-updated", org?.id],
+		queryFn: async () => {
+			const res = await $fetch("@post/documents/documents", {
+				body: {
+					page: 1,
+					limit: 1,
+					sort: "updatedAt",
+					order: "desc",
+					containerTags: [],
+				},
+				disableValidation: true,
+			})
+			if (res.error) return null
+			const docs = (res.data as { documents?: RecentDoc[] })?.documents
+			return docs?.[0]?.updatedAt ?? null
 		},
 		staleTime: 60_000,
 		enabled,
@@ -103,11 +127,18 @@ function useBrainOverview() {
 		(brain.data?.slack ? 1 : 0) +
 		(connectors.data?.length ?? 0)
 
+	const currentRole = org?.members
+		?.find((m) => m.userId === user?.id)
+		?.role?.toLowerCase()
+
 	return {
 		loading: docs.isPending,
 		recentDocs: docs.data?.documents ?? [],
+		lastUpdatedAt: lastUpdated.data ?? null,
 		memoriesCount,
 		connectedCount,
+		membersCount: org?.members?.length ?? 0,
+		canInvite: currentRole === "owner" || currentRole === "admin",
 		hasSource: connectedCount > 0,
 		hasAgent: mcp.data ?? false,
 		hasMemory: memoriesCount > 0,
@@ -119,22 +150,33 @@ export function BrainHomeView() {
 	const stepsDone = [o.hasSource, o.hasAgent, o.hasMemory].filter(
 		Boolean,
 	).length
+	const showGettingStarted = !o.loading && stepsDone < 3
 
 	return (
 		<div className="mx-auto max-w-[1080px] space-y-6">
 			<StatsRow
 				memories={o.memoriesCount}
 				connected={o.connectedCount}
+				members={o.membersCount}
+				canInvite={o.canInvite}
 				setupDone={stepsDone}
+				lastUpdatedAt={o.lastUpdatedAt}
 			/>
 			<ConnectionsBoard />
-			<div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+			<div
+				className={cn(
+					"grid gap-6",
+					showGettingStarted && "lg:grid-cols-[minmax(0,1fr)_340px]",
+				)}
+			>
 				<RecentMemories docs={o.recentDocs} loading={o.loading} />
-				<GettingStarted
-					hasSource={o.hasSource}
-					hasAgent={o.hasAgent}
-					hasMemory={o.hasMemory}
-				/>
+				{showGettingStarted && (
+					<GettingStarted
+						hasSource={o.hasSource}
+						hasAgent={o.hasAgent}
+						hasMemory={o.hasMemory}
+					/>
+				)}
 			</div>
 		</div>
 	)
@@ -143,27 +185,67 @@ export function BrainHomeView() {
 function StatsRow({
 	memories,
 	connected,
+	members,
+	canInvite,
 	setupDone,
+	lastUpdatedAt,
 }: {
 	memories: number
 	connected: number
+	members: number
+	canInvite: boolean
 	setupDone: number
+	lastUpdatedAt: string | Date | null
 }) {
-	const tiles = [
+	const { openSettings } = useSettingsModal()
+	const [, setInvite] = useQueryState("invite")
+
+	const onInvite = () => {
+		setInvite("1")
+		openSettings("account")
+	}
+
+	const tiles: {
+		label: string
+		value: string
+		action?: React.ReactNode
+	}[] = [
 		{ label: "Memories", value: memories.toLocaleString() },
 		{ label: "Connected sources", value: String(connected) },
-		{ label: "Setup", value: `${setupDone}/3` },
+		{
+			label: "Active members",
+			value: String(members),
+			action: canInvite ? (
+				<button
+					type="button"
+					onClick={onInvite}
+					className="inline-flex items-center gap-1 text-[11px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]"
+				>
+					<UserPlus className="size-3" />
+					Invite
+				</button>
+			) : undefined,
+		},
+		setupDone < 3
+			? { label: "Setup", value: `${setupDone}/3` }
+			: {
+					label: "Last updated",
+					value: formatWhen(lastUpdatedAt) || "—",
+				},
 	]
 	return (
 		<section
-			className="grid grid-cols-3 divide-x divide-white/[0.04] rounded-[16px] bg-[#1B1F24]"
+			className="grid grid-cols-2 divide-white/[0.04] rounded-[16px] bg-[#1B1F24] sm:grid-cols-4 sm:divide-x"
 			style={cardStyle}
 		>
 			{tiles.map((t) => (
 				<div key={t.label} className="px-5 py-4">
-					<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#737373]">
-						{t.label}
-					</p>
+					<div className="flex items-start justify-between gap-2">
+						<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#737373]">
+							{t.label}
+						</p>
+						{t.action}
+					</div>
 					<p
 						className={cn(
 							"mt-1.5 text-[22px] font-semibold leading-none tabular-nums text-[#fafafa]",

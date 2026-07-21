@@ -44,6 +44,8 @@ import { useTokenUsage } from "@/hooks/use-token-usage"
 import { useOrgSummaries } from "@/hooks/use-org-summaries"
 import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
 import { useSettingsModal } from "@/components/settings/settings-modal"
+import { useHasCompanyBrain } from "@/hooks/use-company-brain"
+import { CompanyBrainHeader } from "@/components/company-brain-header"
 
 interface HeaderProps {
 	onAddMemory?: () => void
@@ -65,7 +67,15 @@ const brainTileClass = (active: boolean) =>
 			: "border-white/[0.08] bg-white/[0.04] text-white/70",
 	)
 
-export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
+export function Header(props: HeaderProps) {
+	const hasCompanyBrain = useHasCompanyBrain()
+	if (hasCompanyBrain) {
+		return <CompanyBrainHeader onOpenSearch={props.onOpenSearch} />
+	}
+	return <PersonalBrainHeader {...props} />
+}
+
+function PersonalBrainHeader({ onAddMemory, onOpenSearch }: HeaderProps) {
 	const { user, isRestoring, org, organizations, setActiveOrg } = useAuth()
 	const autumn = useCustomer()
 	const { currentPlan } = useTokenUsage(autumn)

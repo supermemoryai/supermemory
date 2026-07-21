@@ -35,6 +35,7 @@ import {
 	Tag,
 	Plus,
 } from "lucide-react"
+import { useQueryState } from "nuqs"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useContainerTags } from "@/hooks/use-container-tags"
@@ -174,6 +175,10 @@ export default function Account() {
 		setIsEditingOrgName(false)
 	}, [org?.name])
 
+	// Deep link: ?invite=1 (e.g. from the dashboard) opens the invite dialog.
+	// Consumed below, once the role is known and only for admins/owners.
+	const [inviteParam, setInviteParam] = useQueryState("invite")
+
 	const activeMemberRoleQuery = useQuery({
 		queryKey: ["organization", org?.id, "active-member-role"],
 		queryFn: async () => {
@@ -208,6 +213,18 @@ export default function Account() {
 	).toLowerCase()
 	const canManageTeam = currentRole === "owner" || currentRole === "admin"
 	const isOwner = currentRole === "owner"
+
+	// Consume ?invite=1 only after the role resolves, and only for managers.
+	useEffect(() => {
+		if (inviteParam !== "1" || activeMemberRoleQuery.isLoading) return
+		if (canManageTeam) setInviteDialogOpen(true)
+		setInviteParam(null)
+	}, [
+		inviteParam,
+		activeMemberRoleQuery.isLoading,
+		canManageTeam,
+		setInviteParam,
+	])
 
 	const pendingInvitations = useMemo(
 		() => (org?.invitations ?? []).filter(isPendingInvitation),

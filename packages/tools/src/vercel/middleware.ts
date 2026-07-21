@@ -1,6 +1,7 @@
 import Supermemory from "supermemory"
 import {
 	addConversation,
+	type ContentPart,
 	type ConversationMessage,
 } from "../conversations-client"
 import {
@@ -15,16 +16,57 @@ import {
 import { type LanguageModelCallOptions, getLastUserMessage } from "./util"
 import { extractQueryText, injectMemoriesIntoParams } from "./memory-prompt"
 
-const convertToConversationMessages = (
+const safeJsonStringify = (value: unknown): string => {
+	try {
+		return JSON.stringify(value) ?? ""
+	} catch {
+		return ""
+	}
+}
+
+const serializeToolOutput = (output: unknown): string => {
+	if (typeof output === "string") return output
+	if (typeof output !== "object" || output === null) {
+		return safeJsonStringify(output)
+	}
+
+	const wrapper = output as {
+		type?: unknown
+		value?: unknown
+		reason?: unknown
+	}
+
+	if (
+		(wrapper.type === "text" || wrapper.type === "error-text") &&
+		typeof wrapper.value === "string"
+	) {
+		return wrapper.value
+	}
+	if (
+		wrapper.type === "json" ||
+		wrapper.type === "error-json" ||
+		wrapper.type === "content"
+	) {
+		return safeJsonStringify(wrapper.value)
+	}
+	if (wrapper.type === "execution-denied") {
+		return typeof wrapper.reason === "string" && wrapper.reason
+			? wrapper.reason
+			: "Tool execution denied"
+	}
+
+	return safeJsonStringify(output)
+}
+
+export const convertToConversationMessages = (
 	params: LanguageModelCallOptions,
 	assistantResponseText: string,
+	includeToolCalls = false,
 ): ConversationMessage[] => {
 	const messages: ConversationMessage[] = []
 
 	for (const msg of params.prompt) {
-		if (msg.role === "system") {
-			continue
-		}
+		if (msg.role === "system") continue
 
 		if (typeof msg.content === "string") {
 			if (msg.content) {
@@ -33,36 +75,67 @@ const convertToConversationMessages = (
 					content: msg.content,
 				})
 			}
-		} else {
-			const contentParts = msg.content
-				.map((c) => {
-					if (c.type === "text" && c.text) {
-						return {
-							type: "text" as const,
-							text: c.text,
-						}
-					}
-					if (
-						c.type === "file" &&
-						typeof c.data === "string" &&
-						c.mediaType.startsWith("image/")
-					) {
-						return {
-							type: "image_url" as const,
-							image_url: { url: c.data },
-						}
-					}
-					return null
-				})
-				.filter((part) => part !== null)
+			continue
+		}
 
-			if (contentParts.length > 0) {
+		let contentParts: ContentPart[] = []
+		let toolCalls: NonNullable<ConversationMessage["tool_calls"]> = []
+
+		// Flush any pending assistant/user content accumulated so far. Called
+		// before each tool-result so a tool result never jumps ahead of the
+		// text/tool-calls that preceded it (or behind text that follows it),
+		// preserving the original chronology for memory extraction.
+		const flushContent = () => {
+			if (contentParts.length > 0 || toolCalls.length > 0) {
 				messages.push({
 					role: msg.role as "user" | "assistant" | "tool",
-					content: contentParts,
+					content: contentParts.length > 0 ? contentParts : "",
+					...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+				})
+				contentParts = []
+				toolCalls = []
+			}
+		}
+
+		for (const content of msg.content) {
+			if (content.type === "text" && content.text) {
+				contentParts.push({
+					type: "text",
+					text: content.text,
+				})
+			} else if (
+				content.type === "file" &&
+				typeof content.data === "string" &&
+				content.mediaType.startsWith("image/")
+			) {
+				contentParts.push({
+					type: "image_url",
+					image_url: { url: content.data },
+				})
+			} else if (
+				includeToolCalls &&
+				content.type === "tool-call" &&
+				msg.role === "assistant"
+			) {
+				toolCalls.push({
+					id: content.toolCallId,
+					type: "function",
+					function: {
+						name: content.toolName,
+						arguments: safeJsonStringify(content.input) || "{}",
+					},
+				})
+			} else if (includeToolCalls && content.type === "tool-result") {
+				flushContent()
+				messages.push({
+					role: "tool",
+					content: serializeToolOutput(content.output),
+					tool_call_id: content.toolCallId,
 				})
 			}
 		}
+
+		flushContent()
 	}
 
 	if (assistantResponseText) {
@@ -84,11 +157,13 @@ export const saveMemoryAfterResponse = async (
 	logger: Logger,
 	apiKey: string,
 	baseUrl: string,
+	includeToolCalls = false,
 ): Promise<void> => {
 	try {
 		const conversationMessages = convertToConversationMessages(
 			params,
 			assistantResponseText,
+			includeToolCalls,
 		)
 
 		const response = await addConversation({
@@ -139,6 +214,12 @@ interface SupermemoryMiddlewareOptions {
 	addMemory?: "always" | "never"
 	/** Custom Supermemory API base URL */
 	baseUrl?: string
+	/**
+	 * Persist assistant tool calls and tool results as part of the saved
+	 * conversation. Off by default: tool payloads are often large and
+	 * low-signal, and would pollute memory extraction.
+	 */
+	includeToolCalls?: boolean
 	/** Custom function to format memory data into the system prompt */
 	promptTemplate?: PromptTemplate
 	/** Max wait (ms) for the pre-LLM `/v4/profile` retrieval. Omit for no limit (e.g. tests). `withSupermemory` sets this internally. */
@@ -152,6 +233,7 @@ interface SupermemoryMiddlewareContext {
 	customId: string
 	mode: MemoryMode
 	addMemory: "always" | "never"
+	includeToolCalls: boolean
 	normalizedBaseUrl: string
 	apiKey: string
 	promptTemplate?: PromptTemplate
@@ -174,6 +256,7 @@ export const createSupermemoryContext = (
 		mode = "profile",
 		addMemory = "always",
 		baseUrl,
+		includeToolCalls = false,
 		promptTemplate,
 		memoryRetrievalTimeoutMs,
 	} = options
@@ -195,6 +278,7 @@ export const createSupermemoryContext = (
 		customId,
 		mode,
 		addMemory,
+		includeToolCalls,
 		normalizedBaseUrl,
 		apiKey,
 		promptTemplate,

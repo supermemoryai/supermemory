@@ -1,0 +1,135 @@
+---
+title: "Embeddings (self-hosted)"
+sidebarTitle: "Embeddings"
+description: "Local and remote embedding providers for Supermemory local — defaults, env vars, multilingual options, and dimension lock."
+icon: "waypoints"
+---
+
+Self-hosted Supermemory uses the **same embedding provider stack** as the hosted platform: local ONNX models, OpenAI, Gemini, or any OpenAI-compatible embeddings endpoint (including Ollama). LLM keys power extraction and summarization; embeddings are configured separately.
+
+## Defaults
+
+| | |
+|---|---|
+| Provider | `local` |
+| Model | `Xenova/bge-base-en-v1.5` |
+| Dimensions | `768` |
+| API key | None — runs on your machine |
+
+Press Enter at the optional first-boot picker to keep this default. Nothing is sent off-box to embed.
+
+<Warning>
+The default local model is **English-only**. Non-English content can ingest successfully while dense semantic recall stays weak. See [Multilingual](#multilingual).
+</Warning>
+
+## First-time setup (interactive)
+
+On first boot with a TTY, Supermemory asks for an LLM API key (required), then optionally which embedding model to use.
+
+1. Choose or paste an LLM provider key (OpenAI, Anthropic, Gemini, Groq, or OpenAI-compatible).
+2. Optionally pick an embedding provider/model. **Press Enter to keep the local English model.**
+3. Choices are saved encrypted under your data directory (`$SUPERMEMORY_DATA_DIR`, typically `./.supermemory` / `~/.supermemory`).
+
+Boot order is intentional: LLM keys load first so remote embedding options can reuse them (for example OpenAI or Gemini embeddings with the same key).
+
+<Tip>
+**First boot (terminal):** Supermemory asks for an LLM API key (required), then optionally which embedding model to use. Press Enter to keep the local English model. Choices are saved encrypted under your data directory.
+</Tip>
+
+## Configuration (env)
+
+For Docker, CI, or any non-interactive deploy, set env vars — there is **no interactive prompt without a TTY**.
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `SUPERMEMORY_EMBEDDING_PROVIDER` | Embedding backend: `local`, `openai`, `gemini`, or an OpenAI-compatible remote (`ollama` / custom base URL) | `local` |
+| `SUPERMEMORY_EMBEDDING_MODEL` | Model id for the chosen provider | `Xenova/bge-base-en-v1.5` (local) |
+| `SUPERMEMORY_EMBEDDING_DIMENSIONS` | Vector size; must match the model and any already-stored data | `768` (local default) |
+| `SUPERMEMORY_EMBEDDING_BASE_URL` | Base URL for OpenAI-compatible embedding APIs (Ollama, vLLM, etc.) | unset |
+| `OPENAI_API_KEY` | Used when provider is `openai` (or compatible) if not otherwise supplied | unset |
+| `GEMINI_API_KEY` | Used when provider is `gemini` | unset |
+
+Local worker tuning (throughput only — does not change model or dimensions):
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `SUPERMEMORY_LOCAL_EMBEDDING_POOL_SIZE` | Number of embedding workers | `1` |
+| `SUPERMEMORY_LOCAL_EMBEDDING_WASM_THREADS` | Compute threads per worker | `1` |
+| `SUPERMEMORY_LOCAL_EMBEDDING_BATCH_SIZE` | Texts per worker dispatch | `8` |
+| `SUPERMEMORY_LOCAL_EMBEDDING_IDLE_TIMEOUT_MS` | Idle time before workers shut down | `120000` |
+| `SUPERMEMORY_SKIP_EMBEDDING_PREWARM` | Skip startup prewarm, load on first use | unset |
+
+Ingestion memory headroom is controlled by `SUPERMEMORY_EMBEDDING_RAM_LIMIT` — see [Memory limits & ingestion queue](/self-hosting/configuration#memory-limits--ingestion-queue).
+
+<Tip>
+**Docker / production:** Set at least one LLM key and, if you don’t want local embeddings, set `SUPERMEMORY_EMBEDDING_PROVIDER` / `SUPERMEMORY_EMBEDDING_MODEL` / `SUPERMEMORY_EMBEDDING_DIMENSIONS` (and base URL or API key as needed). There is no interactive prompt without a TTY.
+</Tip>
+
+## Multilingual
+
+The default `Xenova/bge-base-en-v1.5` model is trained for English. For German, Dutch, and other non-English corpora, dense recall can fail even when hybrid keyword search still finds rare tokens.
+
+For multilingual or non-English deployments, switch **before** large backfills:
+
+```bash
+# Example: local multilingual (set dimensions to match the model)
+SUPERMEMORY_EMBEDDING_PROVIDER=local
+SUPERMEMORY_EMBEDDING_MODEL=Xenova/bge-m3
+SUPERMEMORY_EMBEDDING_DIMENSIONS=1024
+```
+
+Or use a remote multilingual embedding API (OpenAI, Gemini, or Ollama with a multilingual embed model). Set provider, model, and dimensions together. Changing them later requires a fresh data directory or full re-ingestion — see below.
+
+## Remote providers
+
+### Local (default)
+
+```bash
+# Explicit local default — no embedding API key
+SUPERMEMORY_EMBEDDING_PROVIDER=local
+SUPERMEMORY_EMBEDDING_MODEL=Xenova/bge-base-en-v1.5
+SUPERMEMORY_EMBEDDING_DIMENSIONS=768
+```
+
+### OpenAI
+
+```bash
+OPENAI_API_KEY=sk-...
+SUPERMEMORY_EMBEDDING_PROVIDER=openai
+SUPERMEMORY_EMBEDDING_MODEL=text-embedding-3-small
+SUPERMEMORY_EMBEDDING_DIMENSIONS=1536
+```
+
+### Gemini
+
+```bash
+GEMINI_API_KEY=...
+SUPERMEMORY_EMBEDDING_PROVIDER=gemini
+SUPERMEMORY_EMBEDDING_MODEL=text-embedding-004
+SUPERMEMORY_EMBEDDING_DIMENSIONS=768
+```
+
+### Ollama (OpenAI-compatible)
+
+```bash
+SUPERMEMORY_EMBEDDING_PROVIDER=openai
+SUPERMEMORY_EMBEDDING_BASE_URL=http://localhost:11434/v1
+OPENAI_API_KEY=ollama
+SUPERMEMORY_EMBEDDING_MODEL=nomic-embed-text
+SUPERMEMORY_EMBEDDING_DIMENSIONS=768
+```
+
+Use the dimension published for your chosen model. A mismatch with vectors already in the store fails boot.
+
+## Changing models later
+
+<Warning>
+**Not supported in place.** Embeddings from different models (or different dimensions) are not comparable. Start from a fresh data directory or re-ingest all content so vectors stay in one space. If configured dimensions disagree with stored data, the server **refuses to boot**.
+</Warning>
+
+**Changing embeddings later:** Not supported in place. Start from a fresh data directory or re-ingest all content so vectors stay comparable.
+
+## Related
+
+- [Configuration](/self-hosting/configuration) — LLM providers, storage, ingestion limits
+- [Quickstart](/self-hosting/quickstart) — install and first memory

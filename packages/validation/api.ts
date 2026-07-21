@@ -346,14 +346,13 @@ export const SearchRequestSchema = z.object({
 		.number()
 		.optional()
 		.default(0)
-		.refine((v) => v === undefined || (v >= 0 && v <= 1), {
+		.refine((v) => v >= 0 && v <= 1, {
 			message: "chunkThreshold must be between 0 and 1",
 			params: {
 				max: 1,
 				min: 0,
 			},
 		})
-		.transform(Number)
 		.openapi({
 			description:
 				"Threshold / sensitivity for chunk selection. 0 is least sensitive (returns most chunks, more results), 1 is most sensitive (returns lesser chunks, accurate results)",
@@ -378,14 +377,13 @@ export const SearchRequestSchema = z.object({
 		.number()
 		.optional()
 		.default(0)
-		.refine((v) => v === undefined || (v >= 0 && v <= 1), {
+		.refine((v) => v >= 0 && v <= 1, {
 			message: "documentThreshold must be between 0 and 1",
 			params: {
 				max: 1,
 				min: 0,
 			},
 		})
-		.transform(Number)
 		.openapi({
 			description:
 				"Threshold / sensitivity for document selection. 0 is least sensitive (returns most documents, more results), 1 is most sensitive (returns lesser documents, accurate results)",
@@ -473,14 +471,13 @@ export const Searchv4RequestSchema = z.object({
 		.number()
 		.optional()
 		.default(0.6)
-		.refine((v) => v === undefined || (v >= 0 && v <= 1), {
+		.refine((v) => v >= 0 && v <= 1, {
 			message: "documentThreshold must be between 0 and 1",
 			params: {
 				max: 1,
 				min: 0,
 			},
 		})
-		.transform(Number)
 		.openapi({
 			description:
 				"Threshold / sensitivity for memories selection. 0 is least sensitive (returns most memories, more results), 1 is most sensitive (returns lesser memories, accurate results)",

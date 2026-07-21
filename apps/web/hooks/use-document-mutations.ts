@@ -10,6 +10,7 @@ import { $fetch } from "@lib/api"
 import { useAuth } from "@lib/auth-context"
 import { analytics } from "@/lib/analytics"
 import { fetchSpaceSettings, spaceSettingsKey } from "@/hooks/use-space-context"
+import { getBackendUrl } from "@/lib/url-helpers"
 
 /** Pull the human-readable message out of a $fetch error (handles `{error}`/`{message}`/string). */
 function fetchErrorMessage(err: unknown, fallback: string): string {
@@ -500,14 +501,11 @@ export function useDocumentMutations({
 				}
 				formData.append("metadata", JSON.stringify({ sm_source: "consumer" }))
 
-				const response = await fetch(
-					`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/documents/file`,
-					{
-						method: "POST",
-						body: formData,
-						credentials: "include",
-					},
-				)
+				const response = await fetch(`${getBackendUrl()}/v3/documents/file`, {
+					method: "POST",
+					body: formData,
+					credentials: "include",
+				})
 
 				if (!response.ok) {
 					let message = "Failed to upload file"

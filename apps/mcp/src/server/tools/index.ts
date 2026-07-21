@@ -2,6 +2,7 @@ import * as addMemory from "./add-memory"
 import * as fetchGraphData from "./fetch-graph-data"
 import * as guidedSave from "./guided-save"
 import * as listContainerTags from "./list-container-tags"
+import * as listMemories from "./list-memories"
 import * as memoryGraph from "./memory-graph"
 import * as saveMemory from "./save-memory"
 import * as searchMemory from "./search-memory"
@@ -15,6 +16,7 @@ import * as whoAmI from "./who-am-i"
 export function registerAllTools(deps: ToolDeps) {
 	// Always available
 	searchMemory.register(deps)
+	listMemories.register(deps)
 	listContainerTags.register(deps)
 	whoAmI.register(deps)
 	selectWorkspace.register(deps)

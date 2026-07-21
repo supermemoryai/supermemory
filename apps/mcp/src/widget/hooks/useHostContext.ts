@@ -16,7 +16,7 @@ export function useHostContext(): McpUiHostContext | null {
 		app.onhostcontextchanged = handler
 		return () => {
 			if (app.onhostcontextchanged === handler) {
-				app.onhostcontextchanged = undefined
+				app.onhostcontextchanged = () => {}
 			}
 		}
 	}, [])
