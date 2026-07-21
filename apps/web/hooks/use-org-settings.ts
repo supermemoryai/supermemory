@@ -54,14 +54,15 @@ export function useUpdateOrgSettings() {
 				body: settings,
 			})
 			if (response.error) {
-				throw new Error("Failed to save settings", {
-					cause: response.error.message,
+				throw new Error(response.error.message || "Failed to save settings", {
+					cause: response.error,
 				})
 			}
 			return response.data
 		},
-		onSuccess: async (data) => {
-			const queryKey = ["settings", "org", orgId] as const
+		onMutate: () => ({ orgId }),
+		onSuccess: async (data, _settings, mutationContext) => {
+			const queryKey = ["settings", "org", mutationContext.orgId] as const
 			const canonicalSettings = data?.settings
 			if (canonicalSettings) {
 				queryClient.setQueryData<OrgSettings>(queryKey, (current) =>

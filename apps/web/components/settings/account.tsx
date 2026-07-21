@@ -617,9 +617,17 @@ export default function Account() {
 				</div>
 			</section>
 
-			{canManageTeam && <OrgContext />}
-
-			{canManageTeam && isCompanyBrain && <WorkspacePersona />}
+			{canManageTeam && (
+				<div className="flex flex-col gap-5">
+					<OrgContext />
+					{isCompanyBrain && (
+						<>
+							<div aria-hidden="true" className="mx-1 h-px bg-white/[0.055]" />
+							<WorkspacePersona key={org?.id} />
+						</>
+					)}
+				</div>
+			)}
 
 			<DigestPreferences />
 
