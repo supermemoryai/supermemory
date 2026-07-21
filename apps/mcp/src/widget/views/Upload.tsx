@@ -30,7 +30,7 @@ function formatFileSize(bytes: number): string {
 const ACCEPT = ".txt,.pdf,.png,.jpg,.jpeg,.mp4"
 
 export function Upload({ activeTag, writableTags, onAdvance, onError }: Props) {
-	const { callTool, updateContext } = useApp()
+	const { callTool, sendMessage } = useApp()
 	const log = useLog()
 	const [file, setFile] = useState<File | null>(null)
 	const [selectedTag, setSelectedTag] = useState<string | null>(
@@ -62,21 +62,18 @@ export function Upload({ activeTag, writableTags, onAdvance, onError }: Props) {
 				onError(result.error ?? "Upload failed")
 				return
 			}
-			try {
-				await updateContext(
-					`The user uploaded "${file.name}" to the Supermemory workspace "${selectedTag}" from the interactive widget.`,
-					{
-						supermemory: {
-							activeWorkspace: selectedTag,
-							lastAction: "file-uploaded",
-							fileName: file.name,
-						},
-					},
-				)
-			} catch (error) {
-				log("warning", `[upload] model context update failed: ${error}`)
-			}
+			const documentId =
+				result.data.view === "upload-success" ? result.data.id : undefined
 			onAdvance(result.data)
+			const notification = await sendMessage(
+				`I used the Supermemory widget to upload "${file.name}" to workspace "${selectedTag}"${documentId ? ` (document ID: ${documentId})` : ""}. The file is already uploaded; do not upload it again.`,
+			)
+			if (!notification.ok) {
+				log(
+					"warning",
+					`[upload] agent notification failed: ${notification.error}`,
+				)
+			}
 		} catch (err) {
 			log("error", `[upload] threw: ${err}`)
 			onError(String(err))

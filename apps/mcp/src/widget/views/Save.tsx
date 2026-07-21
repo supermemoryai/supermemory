@@ -27,7 +27,7 @@ export function Save({
 	onAdvance,
 	onError,
 }: Props) {
-	const { callTool, updateContext } = useApp()
+	const { callTool, sendMessage } = useApp()
 	const log = useLog()
 	const [content, setContent] = useState(prefill ?? "")
 	const [selectedTag, setSelectedTag] = useState<string | null>(
@@ -63,20 +63,15 @@ export function Save({
 			onError(result.error ?? "Failed to save memory")
 			return
 		}
-		try {
-			await updateContext(
-				`The user saved a memory to the Supermemory workspace "${selectedTag}" from the interactive widget.`,
-				{
-					supermemory: {
-						activeWorkspace: selectedTag,
-						lastAction: "memory-saved",
-					},
-				},
-			)
-		} catch (error) {
-			log("warning", `[save] model context update failed: ${error}`)
-		}
+		const memoryId =
+			result.data.view === "save-success" ? result.data.id : undefined
 		onAdvance(result.data)
+		const notification = await sendMessage(
+			`I used the Supermemory widget to save a memory to workspace "${selectedTag}"${memoryId ? ` (memory ID: ${memoryId})` : ""}. The memory is already saved; do not save it again.`,
+		)
+		if (!notification.ok) {
+			log("warning", `[save] agent notification failed: ${notification.error}`)
+		}
 	}
 
 	return (

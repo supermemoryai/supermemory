@@ -48,19 +48,19 @@ export function useApp() {
 			},
 
 			/** Inject a user message into the conversation. Triggers a new agent turn. */
-			sendMessage(content: string) {
-				return app.sendMessage({
-					role: "user",
-					content: [{ type: "text", text: content }],
-				})
-			},
-
-			/** Update ambient model context. Model sees on next user message. */
-			updateContext(text: string, structuredContent?: Record<string, unknown>) {
-				return app.updateModelContext({
-					content: [{ type: "text", text }],
-					structuredContent,
-				})
+			async sendMessage(content: string): Promise<ToolCallResult> {
+				try {
+					const result = await app.sendMessage({
+						role: "user",
+						content: [{ type: "text", text: content }],
+					})
+					if (result.isError) {
+						return { ok: false, error: "Host rejected the message" }
+					}
+					return { ok: true }
+				} catch (err) {
+					return { ok: false, error: String(err) }
+				}
 			},
 
 			/** Send a structured log line to the host. */
