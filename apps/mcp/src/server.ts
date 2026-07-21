@@ -835,7 +835,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	private async refreshContainerTags(): Promise<void> {
 		try {
 			const client = this.getClient()
-			this.cachedContainerTags = await client.getProjects()
+			this.cachedContainerTags = await client.getContainerTags()
 			this.containerTagsLastFetchedAt = Date.now()
 		} catch (error) {
 			console.error("Failed to fetch container tags:", error)

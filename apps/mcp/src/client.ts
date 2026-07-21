@@ -57,14 +57,14 @@ export interface ProfileResponse {
 	searchResults?: SearchResult
 }
 
-export interface Project {
+export interface ContainerTag {
 	id: string
 	name: string
 	containerTag: string
 	createdAt: string
 	updatedAt: string
 	isExperimental: boolean
-	documentCount?: number
+	isNova: boolean
 }
 
 // Documents API types
@@ -329,11 +329,13 @@ export class SupermemoryClient {
 		}
 	}
 
-	// Get projects list
-	async getProjects(options?: { signal?: AbortSignal }): Promise<string[]> {
+	// Get every container tag available to the current organization member
+	async getContainerTags(options?: {
+		signal?: AbortSignal
+	}): Promise<string[]> {
 		try {
 			const signal = options?.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS)
-			const response = await fetch(`${this.apiUrl}/v3/projects`, {
+			const response = await fetch(`${this.apiUrl}/v3/container-tags/list`, {
 				method: "GET",
 				headers: {
 					Authorization: `Bearer ${this.bearerToken}`,
@@ -346,13 +348,13 @@ export class SupermemoryClient {
 				if (response.status === 401) {
 					throw new Error("Authentication failed. Please re-authenticate.")
 				}
-				throw new Error(`Failed to fetch projects: ${response.statusText}`)
+				throw new Error(
+					`Failed to fetch container tags: ${response.statusText}`,
+				)
 			}
 
-			const data = (await response.json()) as {
-				projects: Project[]
-			}
-			return data.projects?.map((p) => p.containerTag) || []
+			const data = (await response.json()) as ContainerTag[]
+			return data.map((entry) => entry.containerTag)
 		} catch (error) {
 			this.handleError(error)
 		}
