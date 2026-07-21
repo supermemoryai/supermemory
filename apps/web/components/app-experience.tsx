@@ -29,6 +29,7 @@ import { RaycastDetail } from "@/components/integrations/raycast-detail"
 import { PluginsDetail } from "@/components/integrations/plugins-detail"
 import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
 import { OnboardingConfetti } from "@/components/onboarding-brain/onboarding-confetti"
+import { SlackHandoff } from "@/components/onboarding-brain/slack-handoff"
 import { AddDocumentModal } from "@/components/add-document"
 import { DocumentModal } from "@/components/document-modal"
 import { DocumentsCommandPalette } from "@/components/documents-command-palette"
@@ -138,16 +139,23 @@ export function AppExperience() {
 	const isCompanyBrain = useHasCompanyBrain()
 	const backendUrl = getBackendUrl()
 
-	// Slack OAuth redirects back here with ?slack=connected — toast then clean up.
+	// ?slack=connected: CB orgs get the handoff takeover, everyone else a toast.
+	const [slackHandoff, setSlackHandoff] = useState<{
+		team: string | null
+	} | null>(null)
 	useEffect(() => {
 		const sp = new URLSearchParams(window.location.search)
 		if (sp.get("slack") !== "connected") return
 		const team = sp.get("team")
-		toast.success(
-			team
-				? `Supermemory added to ${team} on Slack`
-				: "Supermemory added to your Slack",
-		)
+		if (isCompanyBrain) {
+			setSlackHandoff({ team })
+		} else {
+			toast.success(
+				team
+					? `Supermemory added to ${team} on Slack`
+					: "Supermemory added to your Slack",
+			)
+		}
 		sp.delete("slack")
 		sp.delete("team")
 		const qs = sp.toString()
@@ -156,7 +164,7 @@ export function AppExperience() {
 			"",
 			window.location.pathname + (qs ? `?${qs}` : ""),
 		)
-	}, [])
+	}, [isCompanyBrain])
 	const queryClient = useQueryClient()
 	const [highlightsForceAt, setHighlightsForceAt] = useState(0)
 
@@ -616,6 +624,12 @@ export function AppExperience() {
 	return (
 		<HotkeysProvider>
 			<OnboardingConfetti />
+			{slackHandoff && (
+				<SlackHandoff
+					teamName={slackHandoff.team}
+					onDismiss={() => setSlackHandoff(null)}
+				/>
+			)}
 			<div
 				className={cn(
 					"relative flex min-h-dvh flex-col bg-[#05080D]",

@@ -1,7 +1,7 @@
 import type OpenAI from "openai"
 import Supermemory from "supermemory"
 import { addConversation } from "../conversations-client"
-import { deduplicateMemories } from "../tools-shared"
+import { deduplicateMemoriesForMode } from "../tools-shared"
 import { createLogger, type Logger } from "../vercel/logger"
 import { convertProfileToMarkdown } from "../vercel/util"
 
@@ -184,7 +184,7 @@ const addSystemPrompt = async (
 		mode,
 	})
 
-	const deduplicated = deduplicateMemories({
+	const deduplicated = deduplicateMemoriesForMode(mode, {
 		static: memoriesResponse.profile.static,
 		dynamic: memoriesResponse.profile.dynamic,
 		searchResults: memoriesResponse.searchResults?.results,
@@ -471,7 +471,7 @@ export function createOpenAIMiddleware(
 			mode,
 		})
 
-		const deduplicated = deduplicateMemories({
+		const deduplicated = deduplicateMemoriesForMode(mode, {
 			static: memoriesResponse.profile.static,
 			dynamic: memoriesResponse.profile.dynamic,
 			searchResults: memoriesResponse.searchResults?.results,
