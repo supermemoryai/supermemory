@@ -26,26 +26,7 @@ Add this to your MCP client config (Claude Desktop, Cursor, Windsurf, etc.):
 }
 ```
 
-The server uses **OAuth authentication** by default. Your MCP client will automatically discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
-
-## API Key Authentication (Alternative)
-
-If you prefer to use an API key instead of OAuth, get one from [app.supermemory.ai](https://app.supermemory.ai) and pass it in the `Authorization` header:
-
-```json
-{
-  "mcpServers": {
-    "supermemory": {
-      "url": "https://mcp.supermemory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer sm_your_api_key_here"
-      }
-    }
-  }
-}
-```
-
-API keys start with `sm_` and are automatically detected. When an API key is provided, OAuth authentication is skipped.
+The server requires **OAuth authentication**. Your MCP client will automatically discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
 
 ## Project Scoping (Optional)
 

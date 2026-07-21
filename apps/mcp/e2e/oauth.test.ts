@@ -98,7 +98,7 @@ describe("MCP — OAuth protocol (no secrets)", () => {
 	})
 })
 
-// Tier D — real OAuth token through /mcp, exercising validateOAuthToken (not the sm_ branch); needs a seeded refresh token.
+// Tier D — real OAuth token through /mcp; needs a seeded refresh token.
 describe.skipIf(!OAUTH_REFRESH_TOKEN || !OAUTH_CLIENT_ID)(
 	"MCP — real OAuth token round-trip",
 	() => {
@@ -122,8 +122,8 @@ describe.skipIf(!OAUTH_REFRESH_TOKEN || !OAUTH_CLIENT_ID)(
 			await s?.close()
 		})
 
-		it("mints an OAuth access token that is not an sm_ API key", () => {
-			expect(accessToken.startsWith("sm_")).toBe(false)
+		it("mints a JWT access token for the MCP resource", () => {
+			expect(accessToken.split(".")).toHaveLength(3)
 		})
 
 		it("connects to /mcp with the OAuth token and resolves identity", async () => {

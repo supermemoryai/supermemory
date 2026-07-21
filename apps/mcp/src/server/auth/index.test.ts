@@ -1,6 +1,6 @@
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose"
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import { fetchSession, validateApiKey, validateOAuthToken } from "./index"
+import { fetchSession, validateOAuthToken } from "./index"
 
 const API_URL = "https://api.example.com"
 const ISSUER = `${API_URL}/api/auth`
@@ -73,20 +73,15 @@ describe("MCP authentication", () => {
 		).resolves.toBeNull()
 	})
 
-	it("introspects opaque API keys through v3/session", async () => {
-		const fetchSpy = vi.fn().mockResolvedValue(
-			new Response(JSON.stringify({ user: { id: "user_api_key" } }), {
-				status: 200,
-			}),
-		)
+	it("rejects opaque API keys without an API request", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => {})
+		const fetchSpy = vi.fn()
 		vi.stubGlobal("fetch", fetchSpy)
 
-		await expect(validateApiKey("sm_test", `${API_URL}/`)).resolves.toEqual({
-			userId: "user_api_key",
-			bearerToken: "sm_test",
-		})
-		expect(fetchSpy).toHaveBeenCalledOnce()
-		expect(fetchSpy.mock.calls[0][0]).toBe(`${API_URL}/v3/session`)
+		await expect(
+			validateOAuthToken("sm_test", API_URL, MCP_RESOURCE, keySet),
+		).resolves.toBeNull()
+		expect(fetchSpy).not.toHaveBeenCalled()
 	})
 
 	it("surfaces on-demand session failures to the calling tool", async () => {

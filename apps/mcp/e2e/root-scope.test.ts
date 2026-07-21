@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { describe, expect, it } from "vitest"
 import {
-	AUTH_CREDENTIALS_AVAILABLE,
+	OAUTH_CREDENTIALS_AVAILABLE,
 	callTool,
 	connect,
 	recallUntil,
@@ -18,7 +18,7 @@ const propsOf = (tools: ToolLike[], name: string): Record<string, unknown> =>
 
 // Fixed tag (not a per-run UUID) so the test doesn't mint a new project each run.
 const SCOPE_TAG = "sm_e2e_root"
-const describeWithAuth = describe.skipIf(!AUTH_CREDENTIALS_AVAILABLE)
+const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
 // x-sm-project locks the connection to one project: strips containerTag from schemas and scopes every op — distinct from the per-call arg.
 describeWithAuth("MCP — x-sm-project root scoping", () => {

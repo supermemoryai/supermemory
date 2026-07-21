@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import {
-	AUTH_CREDENTIALS_AVAILABLE,
+	OAUTH_CREDENTIALS_AVAILABLE,
 	callTool,
 	connect,
 	type Session,
 	textOf,
 } from "./helpers"
 
-describe.skipIf(!AUTH_CREDENTIALS_AVAILABLE)("MCP — listMemories", () => {
+describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — listMemories", () => {
 	let s: Session
 
 	beforeAll(async () => {

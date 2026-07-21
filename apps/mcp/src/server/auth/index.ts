@@ -10,10 +10,6 @@ export interface AuthUser {
 
 const remoteJwks = new Map<string, ReturnType<typeof createRemoteJWKSet>>()
 
-export function isApiKey(token: string): boolean {
-	return token.startsWith("sm_")
-}
-
 function authIssuer(apiUrl: string): string {
 	return `${apiUrl.replace(/\/+$/, "")}/api/auth`
 }
@@ -50,22 +46,6 @@ export async function fetchSession(
 	}
 
 	return session
-}
-
-export async function validateApiKey(
-	apiKey: string,
-	apiUrl: string,
-): Promise<AuthUser | null> {
-	try {
-		const session = await fetchSession(apiKey, apiUrl)
-		return {
-			userId: session.user.id,
-			bearerToken: apiKey,
-		}
-	} catch (error) {
-		console.error("API key validation error:", error)
-		return null
-	}
 }
 
 export async function validateOAuthToken(

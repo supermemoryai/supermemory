@@ -182,21 +182,6 @@ Add this to your MCP client config:
 }
 ```
 
-Or use an API key instead of OAuth:
-
-```json
-{
-  "mcpServers": {
-    "supermemory": {
-      "url": "https://mcp.supermemory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer sm_your_api_key_here"
-      }
-    }
-  }
-}
-```
-
 ---
 
 ## Build with Supermemory (API)

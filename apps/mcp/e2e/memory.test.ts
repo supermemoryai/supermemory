@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import {
-	AUTH_CREDENTIALS_AVAILABLE,
+	OAUTH_CREDENTIALS_AVAILABLE,
 	callTool,
 	connect,
 	recallUntil,
@@ -9,7 +9,7 @@ import {
 	textOf,
 } from "./helpers"
 
-describe.skipIf(!AUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => {
+describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => {
 	let s: Session
 	const created: Array<{ content: string; containerTag?: string }> = []
 

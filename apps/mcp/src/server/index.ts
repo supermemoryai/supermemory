@@ -3,27 +3,12 @@ import { cors } from "hono/cors"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 import type { Props } from "../shared/types"
 import { SupermemoryMCP } from "./agent"
-import {
-	type AuthUser,
-	isApiKey,
-	validateApiKey,
-	validateOAuthToken,
-} from "./auth"
+import { validateOAuthToken } from "./auth"
 
 type Bindings = {
 	MCP_SERVER: DurableObjectNamespace
 	API_URL?: string
 	MCP_RESOURCE?: string
-}
-
-async function resolveAuth(
-	token: string,
-	apiUrl: string,
-	mcpResource: string,
-): Promise<AuthUser | null> {
-	return isApiKey(token)
-		? await validateApiKey(token, apiUrl)
-		: await validateOAuthToken(token, apiUrl, mcpResource)
 }
 
 export type { Props }
@@ -141,7 +126,7 @@ async function handleMcpRequest(
 		})
 	}
 
-	const authUser = await resolveAuth(token, apiUrl, mcpResource)
+	const authUser = await validateOAuthToken(token, apiUrl, mcpResource)
 
 	if (!authUser) {
 		return new Response(
@@ -149,9 +134,7 @@ async function handleMcpRequest(
 				jsonrpc: "2.0",
 				error: {
 					code: -32000,
-					message: isApiKey(token)
-						? "Invalid or expired API key"
-						: "Invalid or expired token",
+					message: "Invalid or expired token",
 				},
 				id: null,
 			}),

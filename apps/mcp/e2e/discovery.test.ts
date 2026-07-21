@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import {
-	AUTH_CREDENTIALS_AVAILABLE,
+	OAUTH_CREDENTIALS_AVAILABLE,
 	callTool,
 	connect,
 	textOf,
@@ -14,7 +14,7 @@ const EXPECTED_TOOLS = [
 	"whoAmI",
 	"memory-graph",
 ]
-const describeWithAuth = describe.skipIf(!AUTH_CREDENTIALS_AVAILABLE)
+const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
 describeWithAuth("MCP — discovery & identity", () => {
 	let s: Session

@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import {
-	AUTH_CREDENTIALS_AVAILABLE,
+	OAUTH_CREDENTIALS_AVAILABLE,
 	callTool,
 	connect,
 	type Session,
 	textOf,
 } from "./helpers"
-const describeWithAuth = describe.skipIf(!AUTH_CREDENTIALS_AVAILABLE)
+const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
 describeWithAuth("MCP — graph, resources & prompts", () => {
 	let s: Session

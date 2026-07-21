@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import {
-	AUTH_CREDENTIALS_AVAILABLE,
+	OAUTH_CREDENTIALS_AVAILABLE,
 	callTool,
 	connect,
 	type Session,
 } from "./helpers"
 
-describe.skipIf(!AUTH_CREDENTIALS_AVAILABLE)(
+describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 	"MCP - on-demand widget permissions",
 	() => {
 		let session: Session

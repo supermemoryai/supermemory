@@ -18,7 +18,7 @@ const mcpHeaders = (auth?: string) => ({
 	...(auth ? { Authorization: auth } : {}),
 })
 
-// No API key needed — exercises the public surface and auth rejections.
+// No credentials needed — exercises the public surface and auth rejections.
 describe("MCP — transport & auth (raw HTTP)", () => {
 	it("GET / returns service info", async () => {
 		const res = await fetch(`${ORIGIN}/`)
@@ -52,7 +52,7 @@ describe("MCP — transport & auth (raw HTTP)", () => {
 		expect(res.headers.get("www-authenticate")).toMatch(/Bearer/)
 	})
 
-	it("rejects an invalid API key (401 with JSON-RPC error)", async () => {
+	it("rejects an opaque API key as an invalid OAuth token", async () => {
 		const res = await fetch(MCP_URL, {
 			method: "POST",
 			headers: mcpHeaders("Bearer sm_invalid_key_for_e2e"),

@@ -27,7 +27,6 @@ When users interact with any connected AI application, the system captures relev
 ### Key Features
 
 - **OAuth Authentication** - Secure login through Supermemory accounts
-- **API Key Support** - Alternative authentication for automation and CI/CD
 - **Persistent Memory** - Save and recall information across sessions
 - **User Profiles** - Auto-generated profiles from stored memories
 - **Project Scoping** - Organize memories by project with `x-sm-project` header
@@ -36,7 +35,7 @@ When users interact with any connected AI application, the system captures relev
 
 1. User interacts with any MCP-compatible AI client
 2. The client connects to `https://mcp.supermemory.ai/mcp`
-3. OAuth flow authenticates the user (or API key validates directly)
+3. OAuth flow authenticates the user
 4. During conversations, relevant information is stored using the `memory` tool
 5. When context is needed, the `recall` tool retrieves relevant memories
 6. The AI assistant accesses this persistent context regardless of which platform is being used
@@ -45,8 +44,7 @@ When users interact with any connected AI application, the system captures relev
 
 ### Authentication Model
 
-- **OAuth by default** - Secure authentication through Supermemory accounts
-- **API key alternative** - Keys start with `sm_` for programmatic access
+- **OAuth required** - Secure authentication through Supermemory accounts
 - **Session isolation** - Complete user data separation per account
 
 ### Privacy Features

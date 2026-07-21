@@ -28,26 +28,7 @@ Add to your MCP client config:
 }
 ```
 
-The server uses **OAuth** by default. Your client will discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
-
-### API Key Authentication (Alternative)
-
-If you prefer API keys over OAuth, get one from [app.supermemory.ai](https://app.supermemory.ai) and pass it in the `Authorization` header:
-
-```json
-{
-  "mcpServers": {
-    "supermemory": {
-      "url": "https://mcp.supermemory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer sm_your_api_key_here"
-      }
-    }
-  }
-}
-```
-
-API keys start with `sm_` and skip OAuth when provided.
+The server requires **OAuth**. Your client will discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
 
 ### Project Scoping
 
@@ -126,4 +107,3 @@ You can access this in Cursor and Claude Code by just doing /context, which will
 <Card title="MCP Server Source Code" icon="github" href="https://github.com/supermemoryai/supermemory/tree/main/apps/mcp">
   View the open-source implementation
 </Card>
-
