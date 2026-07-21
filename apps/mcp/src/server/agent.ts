@@ -9,15 +9,14 @@ import { registerProfileResource } from "./resources/profile"
 import { registerWidgetResource } from "./resources/widget"
 import { registerAllTools } from "./tools"
 import { errorResult } from "./tools/types"
-import type { WorkspaceState } from "./workspace-state"
 
 type Env = {
-	MCP_SERVER: DurableObjectNamespace
-	WORKSPACE_STATE: DurableObjectNamespace<WorkspaceState>
+	MCP_SERVER: DurableObjectNamespace<SupermemoryMCP>
 	API_URL?: string
 }
 
 const DEFAULT_API_URL = "https://api.supermemory.ai"
+const ACTIVE_CONTAINER_TAG_KEY = "activeContainerTag"
 
 export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	private clientInfo: { name: string; version?: string } | null = null
@@ -92,16 +91,28 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	}
 
 	private workspaceState() {
-		const key = `${this.props.userId}:${this.props.organizationId ?? "default"}`
-		return this.env.WORKSPACE_STATE.getByName(key)
+		const userId = this.props?.userId
+		if (!userId) throw new Error("Authenticated user ID is required")
+		const organizationId = this.props?.organizationId ?? "default"
+		return this.env.MCP_SERVER.getByName(
+			`workspace-state:${userId}:${organizationId}`,
+		)
 	}
 
 	private getActiveContainerTag(): Promise<string | undefined> {
-		return this.workspaceState().getActiveContainerTag()
+		return this.workspaceState().readActiveContainerTag()
 	}
 
 	private setActiveContainerTag(containerTag: string): Promise<void> {
-		return this.workspaceState().setActiveContainerTag(containerTag)
+		return this.workspaceState().writeActiveContainerTag(containerTag)
+	}
+
+	async readActiveContainerTag(): Promise<string | undefined> {
+		return this.ctx.storage.get<string>(ACTIVE_CONTAINER_TAG_KEY)
+	}
+
+	async writeActiveContainerTag(containerTag: string): Promise<void> {
+		await this.ctx.storage.put(ACTIVE_CONTAINER_TAG_KEY, containerTag)
 	}
 
 	private getSession() {
