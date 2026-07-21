@@ -39,6 +39,7 @@ import { useQueryState } from "nuqs"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useContainerTags } from "@/hooks/use-container-tags"
+import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { PopoverAnchor } from "@ui/components/popover"
 import { WorkspacePersona } from "@/components/settings/workspace-persona"
 import { OrgPlanBadge } from "@/components/org-plan-badge"
@@ -135,6 +136,7 @@ function isPendingInvitation(invitation: {
 export default function Account() {
 	const { user, org, refetchActiveOrg, refetchOrganizations } = useAuth()
 	const autumn = useCustomer()
+	const isCompanyBrain = useHasCompanyBrain()
 	const { currentPlan, searchesUsed } = useTokenUsage(autumn)
 	const { data: orgSummaries } = useOrgSummaries()
 	const orgSummary = orgSummaries?.find((s) => s.orgId === org?.id)
@@ -614,7 +616,7 @@ export default function Account() {
 				</div>
 			</section>
 
-			{canManageTeam && <WorkspacePersona />}
+			{canManageTeam && isCompanyBrain && <WorkspacePersona />}
 
 			<DigestPreferences />
 

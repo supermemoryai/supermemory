@@ -3,8 +3,6 @@ import { toast } from "sonner"
 import { $fetch } from "@lib/api"
 import { useAuth } from "@lib/auth-context"
 
-const API_BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"}/v3`
-
 export type OrgSettings = {
 	shouldLLMFilter: boolean
 	filterPrompt: string | null
@@ -52,25 +50,19 @@ export function useUpdateOrgSettings() {
 
 	return useMutation({
 		mutationFn: async (settings: Partial<OrgSettings>) => {
-			const res = await fetch(`${API_BASE}/settings`, {
-				method: "PATCH",
-				credentials: "include",
-				headers: {
-					"Content-Type": "application/json",
-					"X-App-Source": "nova",
-				},
-				body: JSON.stringify(settings),
+			const response = await $fetch("@patch/settings", {
+				body: settings,
 			})
-			if (!res.ok) {
-				const body = (await res.json().catch(() => ({}))) as {
-					message?: string
-				}
-				throw new Error(body?.message || "Failed to save settings")
+			if (response.error) {
+				throw new Error(response.error.message || "Failed to save settings")
 			}
-			return res.json()
+			return response.data
 		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["settings", "org", orgId] })
+		onSuccess: (_data, settings) => {
+			queryClient.setQueryData<OrgSettings>(
+				["settings", "org", orgId],
+				(current) => (current ? { ...current, ...settings } : current),
+			)
 			toast.success("Settings saved")
 		},
 		onError: (error) => {

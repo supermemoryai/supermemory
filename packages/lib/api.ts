@@ -33,10 +33,11 @@ import {
 const SettingsResponseSchema = z.object({
 	message: z.string(),
 	settings: z.object({
-		excludeItems: z.array(z.string().min(1).max(20)).optional(),
-		filterPrompt: z.string().min(1).max(750).optional(),
-		includeItems: z.array(z.string().min(1).max(20)).optional(),
+		excludeItems: z.array(z.string().min(1).max(20)).nullable().optional(),
+		filterPrompt: z.string().min(1).max(750).nullable().optional(),
+		includeItems: z.array(z.string().min(1).max(20)).nullable().optional(),
 		shouldLLMFilter: z.boolean().optional(),
+		workspacePersona: z.string().max(1500).nullable().optional(),
 	}),
 })
 
