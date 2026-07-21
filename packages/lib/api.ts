@@ -29,16 +29,10 @@ import {
 	UpdateContainerTagSettingsRequestSchema,
 } from "../validation/api"
 
-// Settings response schema - this is custom to console (not in shared validation)
-const SettingsResponseSchema = z.object({
-	message: z.string(),
-	settings: z.object({
-		excludeItems: z.array(z.string().min(1).max(20)).nullable().optional(),
-		filterPrompt: z.string().max(750).nullable().optional(),
-		includeItems: z.array(z.string().min(1).max(20)).nullable().optional(),
-		shouldLLMFilter: z.boolean().optional(),
-		workspacePrompt: z.string().max(1500).nullable().optional(),
-	}),
+const UpdateSettingsResponseSchema = z.object({
+	orgId: z.string(),
+	orgSlug: z.string(),
+	updated: SettingsRequestSchema,
 })
 
 // Analytics request schema - custom to console
@@ -196,11 +190,11 @@ export const apiSchema = createSchema({
 
 	// Settings operations
 	"@get/settings": {
-		output: z.object({}).passthrough(),
+		output: SettingsRequestSchema,
 	},
 	"@patch/settings": {
 		input: SettingsRequestSchema,
-		output: SettingsResponseSchema,
+		output: UpdateSettingsResponseSchema,
 	},
 	"@post/settings/reset": {
 		input: z.object({ confirmation: z.string() }),

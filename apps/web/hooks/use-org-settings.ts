@@ -11,10 +11,6 @@ export type OrgSettings = {
 	excludeItems?: string[] | null
 }
 
-type OrgSettingsResponse = {
-	settings?: Partial<OrgSettings>
-} & Partial<OrgSettings>
-
 export function useOrgSettings() {
 	const { org } = useAuth()
 	const orgId = org?.id ?? ""
@@ -22,14 +18,11 @@ export function useOrgSettings() {
 	return useQuery({
 		queryKey: ["settings", "org", orgId],
 		queryFn: async (): Promise<OrgSettings> => {
-			const response = await $fetch("@get/settings", {
-				disableValidation: true,
-			})
+			const response = await $fetch("@get/settings")
 			if (response.error) {
 				throw new Error(response.error.message || "Failed to load settings")
 			}
-			const data = response.data as OrgSettingsResponse | null
-			const settings = data?.settings ?? data ?? {}
+			const settings = response.data ?? {}
 			return {
 				shouldLLMFilter: settings.shouldLLMFilter ?? false,
 				filterPrompt: settings.filterPrompt ?? null,
@@ -63,7 +56,7 @@ export function useUpdateOrgSettings() {
 		onMutate: () => ({ orgId }),
 		onSuccess: async (data, _settings, mutationContext) => {
 			const queryKey = ["settings", "org", mutationContext.orgId] as const
-			const canonicalSettings = data?.settings
+			const canonicalSettings = data?.updated
 			if (canonicalSettings) {
 				queryClient.setQueryData<OrgSettings>(queryKey, (current) =>
 					current ? { ...current, ...canonicalSettings } : current,
