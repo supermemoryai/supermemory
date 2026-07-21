@@ -21,7 +21,8 @@ import {
 const BACKEND =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
-// No forms: sign up → org auto-created → Slack install. The bot asks the rest.
+// No forms: sign up → org auto-created → Slack install.
+// After OAuth, mono attaches api_scale (14d trial) + company_brain (200 credits).
 export default function BrainEntryPage() {
 	const router = useRouter()
 	const { user, org, organizations, setActiveOrg, refetchOrganizations } =
