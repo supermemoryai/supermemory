@@ -1,15 +1,26 @@
 "use client"
 
 import { cn } from "@lib/utils"
-import { Blocks, CalendarClock, Cpu } from "lucide-react"
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@ui/components/alert-dialog"
+import { Blocks, BookOpenText, CalendarClock, Cpu } from "lucide-react"
 import { useState } from "react"
 import CompanyBrainConnections from "@/components/settings/company-brain-connections"
 import CompanyBrainModels from "@/components/settings/company-brain-models"
+import CompanyBrainSkills from "@/components/settings/company-brain-skills"
 import Proactiveness from "@/components/settings/proactiveness"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { dmSans125ClassName } from "@/lib/fonts"
 
-type ConfigureSection = "company-brain" | "models" | "automations"
+type ConfigureSection = "company-brain" | "models" | "automations" | "skills"
 
 const SECTIONS: {
 	id: ConfigureSection
@@ -38,13 +49,38 @@ const SECTIONS: {
 			"Read-only scheduled summaries posted to Slack channels or DMs. You manage the ones you create.",
 		icon: CalendarClock,
 	},
+	{
+		id: "skills",
+		label: "Skills",
+		description:
+			"Teach Company Brain your team's repeatable processes, formats, and voice with reusable Markdown playbooks.",
+		icon: BookOpenText,
+	},
 ]
 
 export function ConfigureView() {
 	const [activeSection, setActiveSection] =
 		useState<ConfigureSection>("company-brain")
+	const [skillsDirty, setSkillsDirty] = useState(false)
+	const [pendingSection, setPendingSection] = useState<ConfigureSection | null>(
+		null,
+	)
 	const active = SECTIONS.find((section) => section.id === activeSection)
 	if (!active) return null
+	const requestSection = (section: ConfigureSection) => {
+		if (section === activeSection) return
+		if (activeSection === "skills" && skillsDirty) {
+			setPendingSection(section)
+			return
+		}
+		setActiveSection(section)
+	}
+	const confirmSectionChange = () => {
+		if (!pendingSection) return
+		setSkillsDirty(false)
+		setActiveSection(pendingSection)
+		setPendingSection(null)
+	}
 
 	return (
 		<div
@@ -73,7 +109,7 @@ export function ConfigureView() {
 									key={section.id}
 									type="button"
 									aria-current={isActive ? "page" : undefined}
-									onClick={() => setActiveSection(section.id)}
+									onClick={() => requestSection(section.id)}
 									className={cn(
 										"flex shrink-0 items-center gap-2.5 rounded-[8px] px-3 py-2 text-left text-[13px] font-medium transition-colors",
 										isActive
@@ -87,7 +123,7 @@ export function ConfigureView() {
 											isActive ? "text-[#FAFAFA]" : "text-[#737B87]",
 										)}
 									/>
-									{section.label}
+									<span>{section.label}</span>
 								</button>
 							)
 						})}
@@ -118,6 +154,8 @@ export function ConfigureView() {
 								<CompanyBrainConnections />
 							) : activeSection === "models" ? (
 								<CompanyBrainModels showHeading={false} />
+							) : activeSection === "skills" ? (
+								<CompanyBrainSkills onUnsavedChangesChange={setSkillsDirty} />
 							) : (
 								<Proactiveness />
 							)}
@@ -125,6 +163,31 @@ export function ConfigureView() {
 					</div>
 				</div>
 			</section>
+
+			<AlertDialog
+				open={pendingSection !== null}
+				onOpenChange={(open) => {
+					if (!open) setPendingSection(null)
+				}}
+			>
+				<AlertDialogContent className="border-white/[0.08] bg-[#191D24] text-[#FAFAFA]">
+					<AlertDialogHeader>
+						<AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+						<AlertDialogDescription className="text-[#8B929E]">
+							Leaving Skills will discard your unsaved skill changes.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Keep editing</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={confirmSectionChange}
+							className="bg-red-600 text-white hover:bg-red-500"
+						>
+							Discard and leave
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	)
 }
