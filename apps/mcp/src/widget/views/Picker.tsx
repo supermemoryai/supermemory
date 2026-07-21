@@ -60,7 +60,10 @@ export function Picker({
 			`I selected "${containerTag}" as my active Supermemory workspace. Use this workspace for future Supermemory actions until I select another one.`,
 		)
 		if (!notification.ok) {
-			log("warning", `[picker] agent notification failed: ${notification.error}`)
+			log(
+				"warning",
+				`[picker] agent notification failed: ${notification.error}`,
+			)
 		}
 	}
 
