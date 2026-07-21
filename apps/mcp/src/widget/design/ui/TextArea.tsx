@@ -1,22 +1,22 @@
 import { forwardRef, type TextareaHTMLAttributes } from "react"
 import { cn } from "../lib/cn"
 
-// Multi-line counterpart to Input. Same surface treatment (transparent,
-// soft hover, focus shadow, aria-invalid). No height variants — caller
-// controls min-height via className.
+// Multi-line counterpart to Input — same recessed field, inset shadow, and clean
+// accent focus ring.
 const textAreaClass = [
 	"flex w-full",
-	"bg-transparent text-[var(--text-primary)]",
-	"border border-[var(--border)]",
+	"bg-[var(--bg-control)] text-[var(--text-primary)]",
+	"border border-[var(--border-control)]",
 	"rounded-[var(--radius-lg)]",
-	"px-[var(--space-3)] py-[var(--space-2)]",
+	"shadow-[var(--shadow-inset)]",
+	"px-[var(--space-3)] py-[var(--space-3)]",
 	"text-[length:var(--text-sm)] leading-normal font-sans",
 	"placeholder:text-[var(--text-muted)]",
 	"transition-colors resize-y",
-	"hover:bg-[var(--text-muted)]/10",
-	"focus-visible:outline-none focus-visible:shadow-[0_0_0_1px_var(--border)]",
+	"hover:border-[var(--card-border-hover)]",
+	"focus-visible:outline-none focus-visible:border-[var(--border-accent)] focus-visible:shadow-[var(--shadow-inset),0_0_0_2px_var(--accent-ring)]",
 	"disabled:cursor-not-allowed disabled:opacity-50",
-	"aria-invalid:border-[var(--error)] aria-invalid:ring-[var(--error)]",
+	"aria-invalid:border-[var(--error)]",
 ].join(" ")
 
 export interface TextAreaProps

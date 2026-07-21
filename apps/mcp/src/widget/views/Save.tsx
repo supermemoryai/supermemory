@@ -11,6 +11,7 @@ import {
 } from "../design/ui"
 import { useApp } from "../hooks/useApp"
 import { useLog } from "../hooks/useLog"
+import { formatTagLabel } from "../lib/formatTag"
 
 interface Props {
 	activeTag?: string | null
@@ -42,7 +43,12 @@ export function Save({
 	}, [selectedTag, writableTags])
 
 	const options = useMemo(
-		() => writableTags.map((tag) => ({ value: tag, label: tag })),
+		() =>
+			writableTags.map((tag) => ({
+				value: tag,
+				label: formatTagLabel(tag),
+				description: tag,
+			})),
 		[writableTags],
 	)
 
@@ -84,39 +90,41 @@ export function Save({
 				title="Add Memory"
 			/>
 			<div className="px-(--page-header-px) pb-(--space-6)">
-				<Stack gap="lg">
-					<Field label="Memory">
-						<TextArea
-							className="min-h-40"
-							onChange={(e) => setContent(e.target.value)}
-							placeholder="Enter content to save as a memory…"
-							value={content}
-						/>
-					</Field>
-
-					{writableTags.length > 0 ? (
-						<Field label="Workspace">
-							<WorkspaceSelect
-								onValueChange={setSelectedTag}
-								options={options}
-								value={selectedTag}
+				<div className="rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] p-(--space-4) shadow-[var(--panel-shadow)]">
+					<Stack gap="lg">
+						<Field label="Memory">
+							<TextArea
+								className="min-h-40"
+								onChange={(e) => setContent(e.target.value)}
+								placeholder="Enter content to save as a memory…"
+								value={content}
 							/>
 						</Field>
-					) : null}
 
-					<div className="flex justify-end border-t border-border-muted pt-(--space-4)">
-						<ActionGroup>
-							<Button
-								disabled={!canSave}
-								loading={saving}
-								onClick={handleSave}
-								variant="primary"
-							>
-								{saving ? "Saving" : "Save memory"}
-							</Button>
-						</ActionGroup>
-					</div>
-				</Stack>
+						{writableTags.length > 0 ? (
+							<Field label="Workspace">
+								<WorkspaceSelect
+									onValueChange={setSelectedTag}
+									options={options}
+									value={selectedTag}
+								/>
+							</Field>
+						) : null}
+
+						<div className="flex justify-end pt-(--space-1)">
+							<ActionGroup>
+								<Button
+									disabled={!canSave}
+									loading={saving}
+									onClick={handleSave}
+									variant="primary"
+								>
+									{saving ? "Saving" : "Save memory"}
+								</Button>
+							</ActionGroup>
+						</div>
+					</Stack>
+				</div>
 			</div>
 		</div>
 	)

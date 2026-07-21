@@ -57,11 +57,11 @@ export function FileUpload({
 			className={cn(
 				"flex min-h-[180px] flex-col items-center justify-center gap-(--space-3)",
 				"py-(--space-12) px-(--space-6)",
-				"border-2 border-dashed rounded-(--radius-lg)",
-				"cursor-pointer transition-colors",
+				"border border-dashed rounded-(--radius-lg)",
+				"bg-[var(--bg-control)] cursor-pointer shadow-[var(--shadow-inset)] transition-colors",
 				dragOver
-					? "border-accent bg-accent-muted/30"
-					: "border-border hover:bg-bg-muted/40",
+					? "border-accent bg-[var(--accent-muted)]"
+					: "border-[var(--border-control)] hover:border-[var(--card-border-hover)] hover:bg-[var(--bg-control-hover)]",
 				disabled && "pointer-events-none opacity-50",
 				className,
 			)}

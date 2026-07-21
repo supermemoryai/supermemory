@@ -11,6 +11,7 @@ import {
 } from "../design/ui"
 import { useApp } from "../hooks/useApp"
 import { useLog } from "../hooks/useLog"
+import { formatTagLabel } from "../lib/formatTag"
 import { FileText, X } from "../lib/icons"
 import { readFileAsBase64 } from "../lib/readFileAsBase64"
 
@@ -39,7 +40,12 @@ export function Upload({ activeTag, writableTags, onAdvance, onError }: Props) {
 	const [uploading, setUploading] = useState(false)
 
 	const options = useMemo(
-		() => writableTags.map((tag) => ({ value: tag, label: tag })),
+		() =>
+			writableTags.map((tag) => ({
+				value: tag,
+				label: formatTagLabel(tag),
+				description: tag,
+			})),
 		[writableTags],
 	)
 
@@ -89,59 +95,61 @@ export function Upload({ activeTag, writableTags, onAdvance, onError }: Props) {
 				title="Upload File"
 			/>
 			<div className="px-(--page-header-px) pb-(--space-6)">
-				<Stack gap="lg">
-					{file ? (
-						<div className="flex items-center justify-between gap-(--space-3) rounded-(--radius-lg) border border-border bg-bg-elevated p-(--space-3)">
-							<div className="flex min-w-0 items-center gap-(--space-3)">
-								<FileText className="size-5 shrink-0 text-text-secondary" />
-								<div className="flex min-w-0 flex-col">
-									<span className="truncate text-(length:--text-sm) font-medium text-text-primary">
-										{file.name}
-									</span>
-									<span className="text-(length:--text-xs) font-mono text-text-muted">
-										{formatFileSize(file.size)}
-									</span>
+				<div className="rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] p-(--space-4) shadow-[var(--panel-shadow)]">
+					<Stack gap="lg">
+						{file ? (
+							<div className="flex items-center justify-between gap-(--space-3) rounded-(--radius-lg) border border-[var(--border-control)] bg-[var(--bg-control)] p-(--space-3) shadow-[var(--shadow-inset)]">
+								<div className="flex min-w-0 items-center gap-(--space-3)">
+									<FileText className="size-5 shrink-0 text-text-secondary" />
+									<div className="flex min-w-0 flex-col">
+										<span className="truncate text-(length:--text-sm) font-medium text-text-primary">
+											{file.name}
+										</span>
+										<span className="text-(length:--text-xs) font-mono text-text-muted">
+											{formatFileSize(file.size)}
+										</span>
+									</div>
 								</div>
+								<Button
+									aria-label="Remove file"
+									iconLeft={<X className="size-4" />}
+									onClick={() => setFile(null)}
+									size="icon"
+									variant="ghost"
+								/>
 							</div>
-							<Button
-								aria-label="Remove file"
-								iconLeft={<X className="size-4" />}
-								onClick={() => setFile(null)}
-								size="icon"
-								variant="ghost"
+						) : (
+							<FileUpload
+								accept={ACCEPT}
+								description="Supports TXT, PDF, PNG, JPG, MP4"
+								onFile={setFile}
 							/>
+						)}
+
+						{writableTags.length > 0 ? (
+							<Field label="Workspace">
+								<WorkspaceSelect
+									onValueChange={setSelectedTag}
+									options={options}
+									value={selectedTag}
+								/>
+							</Field>
+						) : null}
+
+						<div className="flex justify-end pt-(--space-1)">
+							<ActionGroup>
+								<Button
+									disabled={!canUpload}
+									loading={uploading}
+									onClick={handleUpload}
+									variant="primary"
+								>
+									{uploading ? "Uploading" : "Upload file"}
+								</Button>
+							</ActionGroup>
 						</div>
-					) : (
-						<FileUpload
-							accept={ACCEPT}
-							description="Supports TXT, PDF, PNG, JPG, MP4"
-							onFile={setFile}
-						/>
-					)}
-
-					{writableTags.length > 0 ? (
-						<Field label="Workspace">
-							<WorkspaceSelect
-								onValueChange={setSelectedTag}
-								options={options}
-								value={selectedTag}
-							/>
-						</Field>
-					) : null}
-
-					<div className="flex justify-end border-t border-border-muted pt-(--space-4)">
-						<ActionGroup>
-							<Button
-								disabled={!canUpload}
-								loading={uploading}
-								onClick={handleUpload}
-								variant="primary"
-							>
-								{uploading ? "Uploading" : "Upload file"}
-							</Button>
-						</ActionGroup>
-					</div>
-				</Stack>
+					</Stack>
+				</div>
 			</div>
 		</div>
 	)

@@ -1,6 +1,6 @@
 import type { ContainerTag, ContainerTagAccess } from "../../shared/types"
-import { Card, Stack } from "../design/ui"
-import { Check, Package } from "../lib/icons"
+import { cn } from "../design/lib/cn"
+import { formatTagLabel } from "../lib/formatTag"
 import { PermissionBadge } from "./PermissionBadge"
 
 interface Props {
@@ -16,51 +16,39 @@ export function WorkspaceCard({
 	access,
 	onClick,
 }: Props) {
-	const name = containerTag.name || containerTag.containerTag
+	const name = containerTag.name || formatTagLabel(containerTag.containerTag)
+	const docs = containerTag.documentCount
+	const mems = containerTag.memoryCount
+	const meta =
+		docs > 0 || mems > 0
+			? `${docs} doc${docs === 1 ? "" : "s"} · ${mems} ${mems === 1 ? "memory" : "memories"}`
+			: "No memories yet"
+
 	return (
-		<Card
-			as="button"
-			className="w-full"
+		<button
+			className="workspace-card"
+			data-active={active}
 			onClick={() => onClick(containerTag.containerTag)}
-			variant={active ? "active" : "interactive"}
+			type="button"
 		>
-			<Stack gap="sm">
-				<Stack align="center" direction="row" gap="sm" justify="between">
-					<span className="flex min-w-0 items-center gap-(--space-2)">
-						{containerTag.emoji ? (
-							<span aria-hidden className="text-base leading-none">
-								{containerTag.emoji}
-							</span>
-						) : (
-							<Package className="size-4 shrink-0 text-text-secondary" />
+			<span className="workspace-card-inner">
+				<span className="workspace-card-main">
+					<span
+						className={cn(
+							"workspace-card-title truncate text-sm font-medium",
+							active ? "text-accent" : "text-text-primary",
 						)}
-						<span
-							className="truncate text-(length:--text-sm) font-semibold text-text-primary"
-							style={{ fontFamily: "var(--font-brand)" }}
-						>
-							{name}
-						</span>
+					>
+						{name}
 					</span>
-					{active ? <Check className="size-4 shrink-0 text-accent" /> : null}
-				</Stack>
-				<div className="truncate font-mono text-(length:--text-xs) text-text-muted">
-					{containerTag.containerTag}
-				</div>
-				{(containerTag.documentCount > 0 || containerTag.memoryCount > 0) && (
-					<div className="flex items-center gap-(--space-3) text-(length:--text-xs) text-text-muted">
-						<span>
-							{containerTag.documentCount} doc
-							{containerTag.documentCount === 1 ? "" : "s"}
-						</span>
-						<span aria-hidden>·</span>
-						<span>
-							{containerTag.memoryCount}{" "}
-							{containerTag.memoryCount === 1 ? "memory" : "memories"}
-						</span>
-					</div>
-				)}
-				{access ? <PermissionBadge permission={access.permission} /> : null}
-			</Stack>
-		</Card>
+					<span className="workspace-card-meta text-[11px] leading-normal text-text-muted">
+						{meta}
+					</span>
+				</span>
+				<span className="workspace-card-trailing">
+					{access ? <PermissionBadge permission={access.permission} /> : null}
+				</span>
+			</span>
+		</button>
 	)
 }

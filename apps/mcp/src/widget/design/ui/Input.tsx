@@ -2,20 +2,21 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { forwardRef, type InputHTMLAttributes } from "react"
 import { cn } from "../lib/cn"
 
-// Mirrors console-v2's Input: transparent surface, soft hover tint,
-// focus shadow, aria-invalid styling. Sizes sm/md/lg match component heights.
+// A recessed field: solid control surface, hairline border, and the console's
+// signature inset shadow. Focus is a clean accent ring — no glow.
 const inputVariants = cva(
 	[
 		"flex w-full",
-		"bg-transparent text-[var(--text-primary)]",
-		"border border-[var(--border)]",
+		"bg-[var(--bg-control)] text-[var(--text-primary)]",
+		"border border-[var(--border-control)]",
 		"rounded-[var(--radius-lg)]",
+		"shadow-[var(--shadow-inset)]",
 		"placeholder:text-[var(--text-muted)]",
 		"transition-colors",
-		"hover:bg-[var(--text-muted)]/10",
-		"focus-visible:outline-none focus-visible:shadow-[0_0_0_1px_var(--border)]",
+		"hover:border-[var(--card-border-hover)]",
+		"focus-visible:outline-none focus-visible:border-[var(--border-accent)] focus-visible:shadow-[var(--shadow-inset),0_0_0_2px_var(--accent-ring)]",
 		"disabled:cursor-not-allowed disabled:opacity-50",
-		"aria-invalid:border-[var(--error)] aria-invalid:ring-[var(--error)]",
+		"aria-invalid:border-[var(--error)]",
 		"file:border-0 file:bg-transparent file:text-[length:var(--text-sm)] file:font-medium",
 	].join(" "),
 	{

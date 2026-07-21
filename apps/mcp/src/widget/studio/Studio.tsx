@@ -1,4 +1,5 @@
-import { type ReactNode, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
+import { WidgetShell } from "../App"
 import { WorkspaceCard } from "../components/WorkspaceCard"
 import {
 	ActionGroup,
@@ -30,10 +31,11 @@ import {
 } from "./mocks"
 
 type Theme = "light" | "dark"
-type Width = "narrow" | "wide"
+type Width = "narrow" | "wide" | "cursor"
 
 const NARROW = 420
 const WIDE = 720
+const CURSOR = 1120
 
 // A no-op handler set for views. In the Studio there is no MCP host, so
 // widget-initiated tool calls would reject; that's fine — we only review
@@ -118,14 +120,21 @@ function Swatch({ name, varName }: { name: string; varName: string }) {
 }
 
 export function Studio() {
-	const [theme, setTheme] = useState<Theme>("light")
+	const [theme, setTheme] = useState<Theme>("dark")
 	const [width, setWidth] = useState<Width>("narrow")
-	const frameWidth = width === "narrow" ? NARROW : WIDE
+	const frameWidth =
+		width === "narrow" ? NARROW : width === "wide" ? WIDE : CURSOR
 
 	const applyTheme = (t: Theme) => {
 		setTheme(t)
 		document.documentElement.setAttribute("data-theme", t)
 	}
+
+	// Keep the document theme in sync so the gallery matches the toggle,
+	// including on first paint.
+	useEffect(() => {
+		document.documentElement.setAttribute("data-theme", theme)
+	}, [theme])
 
 	const saveStub = useStubHandlers("Save")
 	const uploadStub = useStubHandlers("Upload")
@@ -175,11 +184,17 @@ export function Studio() {
 						<Chip onClick={() => setWidth("wide")} selected={width === "wide"}>
 							Wide {WIDE}
 						</Chip>
+						<Chip
+							onClick={() => setWidth("cursor")}
+							selected={width === "cursor"}
+						>
+							Cursor {CURSOR}
+						</Chip>
 					</div>
 				</div>
 			</div>
 
-			<div className="mx-auto flex max-w-5xl flex-col gap-(--space-12) px-(--space-6) py-(--space-8)">
+			<div className="mx-auto flex max-w-5xl flex-col-reverse gap-(--space-12) px-(--space-6) py-(--space-8)">
 				{/* ── Primitives ───────────────────────────────────────── */}
 				<Section
 					description="Atoms from design/ui — fully interactive, no host needed."
@@ -226,7 +241,7 @@ export function Studio() {
 								<div className="flex flex-wrap items-center gap-(--space-2)">
 									<Chip selected>Selected</Chip>
 									<Chip>Unselected</Chip>
-									<Chip>sm_project_marketing</Chip>
+									<Chip>Marketing</Chip>
 								</div>
 							</div>
 
@@ -334,73 +349,86 @@ export function Studio() {
 
 				{/* ── Views ────────────────────────────────────────────── */}
 				<Section
-					description="Full views with mock data, rendered at the selected width. Click events show below each frame (no host, so tool calls won't fire)."
-					title="Views"
+					description="The same widget shell Cursor renders, with mock MCP tool data."
+					title="Cursor widgets"
 				>
 					<div className="flex flex-wrap gap-(--space-8)">
 						<Frame label="Picker" width={frameWidth}>
-							<Picker
-								activeTag="sm_project_marketing"
-								assignedTags={mockAssignedTags}
-								containerTags={mockContainerTags}
-								onAdvance={pickerStub.onAdvance}
-								onError={pickerStub.onError}
-							/>
+							<WidgetShell>
+								<Picker
+									activeTag="sm_project_marketing"
+									assignedTags={mockAssignedTags}
+									containerTags={mockContainerTags}
+									onAdvance={pickerStub.onAdvance}
+									onError={pickerStub.onError}
+								/>
+							</WidgetShell>
 						</Frame>
 
 						<Frame label="Save" width={frameWidth}>
-							<Save
-								activeTag="sm_project_marketing"
-								onAdvance={saveStub.onAdvance}
-								onError={saveStub.onError}
-								prefill="The Q3 launch will target fintech enterprise buyers."
-								writableTags={mockWritableTags}
-							/>
+							<WidgetShell>
+								<Save
+									activeTag="sm_project_marketing"
+									onAdvance={saveStub.onAdvance}
+									onError={saveStub.onError}
+									prefill="The Q3 launch will target fintech enterprise buyers."
+									writableTags={mockWritableTags}
+								/>
+							</WidgetShell>
 						</Frame>
 
 						<Frame label="Upload" width={frameWidth}>
-							<Upload
-								activeTag="sm_project_marketing"
-								onAdvance={uploadStub.onAdvance}
-								onError={uploadStub.onError}
-								writableTags={mockWritableTags}
-							/>
+							<WidgetShell>
+								<Upload
+									activeTag="sm_project_marketing"
+									onAdvance={uploadStub.onAdvance}
+									onError={uploadStub.onError}
+									writableTags={mockWritableTags}
+								/>
+							</WidgetShell>
 						</Frame>
 
 						<Frame label="Confirmation" width={frameWidth}>
-							<Confirmation containerTag="sm_project_marketing" />
+							<WidgetShell>
+								<Confirmation containerTag="sm_project_marketing" />
+							</WidgetShell>
 						</Frame>
 
 						<Frame label="Success (save)" width={frameWidth}>
-							<Success
-								containerTag="sm_project_marketing"
-								id="mem_8fa92c"
-								kind="save"
-							/>
+							<WidgetShell>
+								<Success containerTag="sm_project_marketing" kind="save" />
+							</WidgetShell>
 						</Frame>
 
 						<Frame label="Success (upload)" width={frameWidth}>
-							<Success
-								containerTag="sm_project_marketing"
-								fileName="q3-brief.pdf"
-								id="doc_4b71a0"
-								kind="upload"
-							/>
+							<WidgetShell>
+								<Success
+									containerTag="sm_project_marketing"
+									fileName="q3-brief.pdf"
+									kind="upload"
+								/>
+							</WidgetShell>
 						</Frame>
 
 						<Frame label="Error" width={frameWidth}>
-							<ErrorView message="No write access to container tag 'sm_project_eng_rfcs'." />
+							<WidgetShell>
+								<ErrorView message="No write access to container tag 'sm_project_eng_rfcs'." />
+							</WidgetShell>
 						</Frame>
 
 						<Frame label="Loading" width={frameWidth}>
-							<Loading />
+							<WidgetShell>
+								<Loading />
+							</WidgetShell>
 						</Frame>
 
 						<Frame label="Graph (@supermemory/memory-graph)" width={frameWidth}>
-							<Graph
-								documents={mockDocuments}
-								totalCount={mockDocuments.length}
-							/>
+							<WidgetShell immersive>
+								<Graph
+									documents={mockDocuments}
+									totalCount={mockDocuments.length}
+								/>
+							</WidgetShell>
 						</Frame>
 					</div>
 

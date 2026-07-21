@@ -8,7 +8,8 @@ import { WorkspaceCard } from "../components/WorkspaceCard"
 import { Input, PageHeader } from "../design/ui"
 import { useApp } from "../hooks/useApp"
 import { useLog } from "../hooks/useLog"
-import { Search } from "../lib/icons"
+import { formatTagLabel } from "../lib/formatTag"
+import { Package, Search } from "../lib/icons"
 
 interface Props {
 	containerTags: ContainerTag[]
@@ -70,55 +71,68 @@ export function Picker({
 	const count = containerTags.length
 	const description =
 		count === 0
-			? "No workspaces available."
-			: `${count} workspace${count === 1 ? "" : "s"} available — select one to set your active context.`
+			? "Create a workspace in Supermemory to get started."
+			: "Pick the workspace to save and recall from."
 
 	return (
 		<div className="flex flex-col">
-			<PageHeader description={description} title="Select Workspace" />
-			<div className="flex flex-col gap-(--space-4) px-(--page-header-px) pb-(--space-6)">
-				{count >= SEARCH_THRESHOLD ? (
-					<div className="relative max-w-sm">
-						<Search className="pointer-events-none absolute left-(--space-3) top-1/2 size-4 -translate-y-1/2 text-text-muted" />
-						<Input
-							className="pl-(--space-8)"
-							onChange={(e) => setQuery(e.target.value)}
-							placeholder="Search workspaces…"
-							value={query}
-						/>
-					</div>
-				) : null}
-
-				{/* Bounded, scrollable list — keeps a stable height so filtering or a
-				    long workspace list doesn't resize (jump) the whole widget. */}
-				<div className="min-h-[220px] max-h-[60vh] overflow-y-auto pr-1">
-					{filtered.length === 0 ? (
-						<p className="py-(--space-6) text-center text-(length:--text-sm) text-text-muted">
-							No workspaces match “{query}”.
+			<PageHeader description={description} title="Workspaces" />
+			<div className="flex flex-col gap-(--space-3) px-(--page-header-px) pb-(--space-6)">
+				{count === 0 ? (
+					<div className="flex flex-col items-center gap-(--space-2) rounded-xl border border-border bg-[var(--card-bg)] px-(--space-6) py-(--space-10) text-center">
+						<Package className="size-7 text-text-muted" />
+						<p className="text-(length:--text-sm) font-medium text-text-primary">
+							No workspaces yet
 						</p>
-					) : (
-						<div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-(--space-3)">
-							{filtered.map((tag) => {
-								const access = assignedTags?.find(
-									(t) => t.containerTag === tag.containerTag,
-								)
-								return (
-									<WorkspaceCard
-										access={access}
-										active={activeTag === tag.containerTag}
-										containerTag={tag}
-										key={tag.id || tag.containerTag}
-										onClick={handleSelect}
-									/>
-								)
-							})}
-						</div>
-					)}
-				</div>
+						<p className="max-w-xs text-(length:--text-xs) leading-relaxed text-text-muted">
+							Workspaces you create in Supermemory show up here, ready to save
+							and recall from.
+						</p>
+					</div>
+				) : (
+					<>
+						{count >= SEARCH_THRESHOLD ? (
+							<div className="relative">
+								<Search className="pointer-events-none absolute left-(--space-3) top-1/2 size-4 -translate-y-1/2 text-text-muted" />
+								<Input
+									className="pl-(--space-8)"
+									onChange={(e) => setQuery(e.target.value)}
+									placeholder="Search workspaces…"
+									value={query}
+								/>
+							</div>
+						) : null}
+
+						{filtered.length === 0 ? (
+							<div className="workspace-picker-grid items-center justify-center py-(--space-8)">
+								<p className="px-(--space-4) text-center text-(length:--text-sm) text-text-muted">
+									No workspaces match “{query}”.
+								</p>
+							</div>
+						) : (
+							<div className="workspace-picker-grid">
+								{filtered.map((tag) => {
+									const access = assignedTags?.find(
+										(t) => t.containerTag === tag.containerTag,
+									)
+									return (
+										<WorkspaceCard
+											access={access}
+											active={activeTag === tag.containerTag}
+											containerTag={tag}
+											key={tag.id || tag.containerTag}
+											onClick={handleSelect}
+										/>
+									)
+								})}
+							</div>
+						)}
+					</>
+				)}
 
 				{pending ? (
 					<p className="text-(length:--text-xs) text-text-muted">
-						Setting workspace to {pending}…
+						Setting workspace to {formatTagLabel(pending)}…
 					</p>
 				) : null}
 			</div>

@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { type ReactNode, useEffect } from "react"
 import type { ViewMessage } from "../shared/types"
 import { useApplyHostTheme } from "./hooks/useApplyHostTheme"
 import { useLog } from "./hooks/useLog"
@@ -25,15 +25,70 @@ export function App() {
 		}
 	}, [state, log])
 
-	if (state.kind === "loading") return <Loading />
-	if (state.kind === "error") return <ErrorView message={state.message} />
+	if (state.kind === "loading") {
+		return (
+			<WidgetShell>
+				<Loading />
+			</WidgetShell>
+		)
+	}
+	if (state.kind === "error") {
+		return (
+			<WidgetShell>
+				<ErrorView message={state.message} />
+			</WidgetShell>
+		)
+	}
 	if (state.kind === "raw") {
 		return (
-			<ErrorView message="Received unrecognized response from server. Try again." />
+			<WidgetShell>
+				<ErrorView message="Received unrecognized response from server. Try again." />
+			</WidgetShell>
 		)
 	}
 
-	return renderView(state.message, setView, setError)
+	const isGraphView = state.message.view === "graph"
+	return (
+		<WidgetShell immersive={isGraphView}>
+			{renderView(state.message, setView, setError)}
+		</WidgetShell>
+	)
+}
+
+export function WidgetShell({
+	children,
+	immersive = false,
+}: {
+	children: ReactNode
+	immersive?: boolean
+}) {
+	const shellClassName = immersive
+		? "mcp-widget-shell mcp-widget-shell-graph"
+		: "mcp-widget-shell"
+
+	return (
+		<div className={shellClassName}>
+			<header className="mcp-widget-brand">
+				<span aria-hidden className="mcp-widget-brand-mark">
+					<svg aria-hidden="true" viewBox="0 0 314 256">
+						<path
+							d="M313.728 100.982H197.297V0H159.68V109.567C159.68 121.205 164.284 132.381 172.466 140.615L267.535 236.283L294.134 209.517L223.917 138.858H313.75V101.004L313.728 100.982Z"
+							fill="currentColor"
+						/>
+						<path
+							d="M19.616 46.5043L89.8323 117.163H0V155.017H116.431V255.999H154.048V146.432C154.048 134.795 149.444 123.618 141.262 115.384L46.2144 19.7383L19.616 46.5043Z"
+							fill="currentColor"
+						/>
+					</svg>
+				</span>
+				<span className="mcp-widget-brand-copy">
+					<span className="mcp-widget-brand-name">supermemory</span>
+					<span className="mcp-widget-brand-mode">MCP</span>
+				</span>
+			</header>
+			<main className="mcp-widget-content">{children}</main>
+		</div>
+	)
 }
 
 function renderView(
@@ -82,13 +137,12 @@ function renderView(
 		case "confirmation":
 			return <Confirmation containerTag={msg.containerTag} />
 		case "save-success":
-			return <Success containerTag={msg.containerTag} id={msg.id} kind="save" />
+			return <Success containerTag={msg.containerTag} kind="save" />
 		case "upload-success":
 			return (
 				<Success
 					containerTag={msg.containerTag}
 					fileName={msg.fileName}
-					id={msg.id}
 					kind="upload"
 				/>
 			)

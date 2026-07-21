@@ -7,14 +7,19 @@ import {
 import { cn } from "../lib/cn"
 
 const cardStyles = cva(
-	"text-left bg-bg-elevated border border-border rounded-lg p-4 transition-colors duration-150",
+	[
+		"group relative text-left",
+		"rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] p-4",
+		"transition-colors duration-150",
+	].join(" "),
 	{
 		variants: {
 			variant: {
 				default: "",
 				interactive:
-					"cursor-pointer hover:bg-bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
-				active: "cursor-pointer border-accent bg-accent-muted",
+					"cursor-pointer hover:border-[var(--card-border-hover)] hover:bg-[var(--card-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
+				active:
+					"cursor-pointer border-[var(--card-active-border)] bg-[var(--card-active-bg)] hover:border-[var(--card-active-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
 			},
 		},
 		defaultVariants: { variant: "default" },
@@ -32,7 +37,7 @@ type ButtonElementProps = ButtonHTMLAttributes<HTMLButtonElement> &
 export type CardProps = DivProps | ButtonElementProps
 
 export const Card = forwardRef<HTMLElement, CardProps>(
-	({ className, variant, as = "div", ...props }, ref) => {
+	({ className, variant, as = "div", children, ...props }, ref) => {
 		const cls = cn(cardStyles({ variant }), className)
 		if (as === "button") {
 			return (
@@ -41,7 +46,9 @@ export const Card = forwardRef<HTMLElement, CardProps>(
 					ref={ref as React.Ref<HTMLButtonElement>}
 					type="button"
 					{...(props as ButtonHTMLAttributes<HTMLButtonElement>)}
-				/>
+				>
+					{children}
+				</button>
 			)
 		}
 		return (
@@ -49,7 +56,9 @@ export const Card = forwardRef<HTMLElement, CardProps>(
 				className={cls}
 				ref={ref as React.Ref<HTMLDivElement>}
 				{...(props as HTMLAttributes<HTMLDivElement>)}
-			/>
+			>
+				{children}
+			</div>
 		)
 	},
 )

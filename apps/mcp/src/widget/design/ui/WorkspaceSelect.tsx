@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react"
-import { Check, ChevronDown, Package, Search } from "../../lib/icons"
+import { ChevronDown, Search } from "../../lib/icons"
 import { cn } from "../lib/cn"
 import { Button } from "./Button"
 import { Popover, PopoverContent, PopoverTrigger } from "./Popover"
@@ -63,13 +63,12 @@ export function WorkspaceSelect({
 						<Button
 							brandFont={false}
 							className={cn(
-								"w-full justify-between normal-case tracking-normal",
-								"focus-visible:ring-0 focus-visible:ring-offset-0",
-								"data-[state=open]:bg-bg-muted",
+								"workspace-select-trigger w-full justify-between normal-case tracking-normal font-medium",
+								"shadow-[var(--shadow-inset)]",
+								"data-[state=open]:border-[var(--border-accent)]",
 								className,
 							)}
 							disabled={disabled}
-							iconLeft={<Package className="size-4 text-text-secondary" />}
 							iconRight={<ChevronDown className="size-3 text-text-muted" />}
 							size="sm"
 							type="button"
@@ -111,12 +110,13 @@ export function WorkspaceSelect({
 								return (
 									<button
 										className={cn(
-											"flex items-start justify-between gap-(--space-2)",
+											"flex items-start gap-(--space-2)",
 											"px-(--space-3) py-(--space-2)",
 											"rounded-(--radius-md)",
-											"text-left cursor-pointer",
-											"hover:bg-bg-muted transition-colors",
+											"text-left cursor-pointer transition-colors",
+											"hover:bg-bg-muted",
 											"focus-visible:outline-none focus-visible:bg-bg-muted",
+											isSelected && "bg-accent-muted",
 										)}
 										key={option.value}
 										onClick={() => {
@@ -127,10 +127,15 @@ export function WorkspaceSelect({
 									>
 										<span className="flex min-w-0 flex-col gap-0.5">
 											<span className="flex items-center gap-(--space-2)">
-												{option.icon ?? (
-													<Package className="size-3.5 text-text-muted shrink-0" />
-												)}
-												<span className="text-(length:--text-sm) text-text-primary truncate">
+												{option.icon ?? null}
+												<span
+													className={cn(
+														"text-(length:--text-sm) truncate",
+														isSelected
+															? "font-medium text-accent"
+															: "text-text-primary",
+													)}
+												>
 													{option.label}
 												</span>
 											</span>
@@ -140,9 +145,6 @@ export function WorkspaceSelect({
 												</span>
 											) : null}
 										</span>
-										{isSelected ? (
-											<Check className="size-3.5 text-accent shrink-0 mt-0.5" />
-										) : null}
 									</button>
 								)
 							})

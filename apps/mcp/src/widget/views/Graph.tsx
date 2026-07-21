@@ -58,19 +58,25 @@ function readGraphColors(): GraphThemeColors {
 	return out
 }
 
-// Read the graph palette from CSS, and re-read after a theme switch. We can't
-// rely on the package's own useGraphTheme: it watches the `class` attribute,
-// but the MCP host themes via `data-theme`, applied in a passive effect that
-// runs AFTER children render. requestAnimationFrame fires after that effect,
-// so by then `data-theme` (hence the --graph-* values) is current.
+// Read the graph palette from CSS, and re-read whenever the document theme
+// flips. We can't rely on the package's own useGraphTheme (it watches `class`),
+// nor on the `theme` prop alone: the host themes via `data-theme`, and in
+// standalone/Studio the attribute can change without the prop changing. So we
+// observe `data-theme`/`class` on <html> directly and re-read after the next
+// paint (rAF), by which point the --graph-* values are current.
 function useGraphColors(theme: string): GraphThemeColors {
 	const [colors, setColors] = useState<GraphThemeColors>(readGraphColors)
 	useEffect(() => {
-		// `theme` change is the trigger; re-read after the host applies
-		// data-theme (rAF fires after that passive effect).
 		if (!theme) return
-		const id = requestAnimationFrame(() => setColors(readGraphColors()))
-		return () => cancelAnimationFrame(id)
+		const reread = () =>
+			requestAnimationFrame(() => setColors(readGraphColors()))
+		reread()
+		const observer = new MutationObserver(reread)
+		observer.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ["data-theme", "class"],
+		})
+		return () => observer.disconnect()
 	}, [theme])
 	return colors
 }
@@ -151,6 +157,14 @@ export function Graph({ documents, totalCount }: Props) {
 	// mid-session theme switch re-themes the canvas.
 	const theme = (ctx?.theme as string | undefined) ?? "light"
 	const colors = useGraphColors(theme)
+	const graphColors = useMemo<Partial<GraphThemeColors>>(
+		() => ({
+			...colors,
+			bg: "transparent",
+			edgeDerives: "#9ca3af",
+		}),
+		[colors],
+	)
 
 	const fullscreenSupported = useMemo(() => {
 		const modes = (
@@ -186,16 +200,21 @@ export function Graph({ documents, totalCount }: Props) {
 
 	return (
 		<div className="relative">
-			<div className={cn("graph-view", mode === "fullscreen" && "fullscreen")}>
+			<div
+				className={cn(
+					"graph-view overflow-hidden",
+					mode === "fullscreen" && "fullscreen",
+				)}
+			>
 				{/* No remount on toggle. The CSS just resizes the container; the
 				    package's ResizeObserver re-lays-out and its node cache keeps
 				    positions stable, so expand/minimize is instant with no reload.
 				    Theme is fed reactively via the colors prop. */}
 				<MemoryGraph
-					colors={colors}
+					colors={graphColors}
 					documents={graphDocuments}
 					totalCount={totalCount}
-					variant="console"
+					variant="consumer"
 				/>
 			</div>
 			{fullscreenSupported ? (
@@ -203,7 +222,7 @@ export function Graph({ documents, totalCount }: Props) {
 					aria-label={
 						mode === "fullscreen" ? "Exit fullscreen" : "Enter fullscreen"
 					}
-					className="absolute top-4 right-4 z-40 inline-flex items-center justify-center w-9 h-9 rounded-md bg-bg-elevated/80 backdrop-blur border border-border text-text-secondary hover:text-text-primary hover:bg-bg-muted transition-colors"
+					className="absolute top-3 right-3 z-40 inline-flex items-center justify-center w-9 h-9 rounded-full bg-bg-elevated/90 backdrop-blur border border-border text-text-secondary hover:text-text-primary hover:bg-bg-muted transition-colors"
 					onClick={toggleFullscreen}
 					title={mode === "fullscreen" ? "Exit fullscreen" : "Fullscreen"}
 					type="button"

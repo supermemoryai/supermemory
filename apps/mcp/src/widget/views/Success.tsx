@@ -1,15 +1,14 @@
-import { Badge, Stack } from "../design/ui"
-import { CheckCircle } from "../lib/icons"
+import { WorkspaceChip } from "../components/WorkspaceChip"
+import { Stack } from "../design/ui"
+import { Check } from "../lib/icons"
 
 interface SaveProps {
 	kind: "save"
-	id: string
 	containerTag: string
 }
 
 interface UploadProps {
 	kind: "upload"
-	id: string
 	fileName: string
 	containerTag: string
 }
@@ -21,19 +20,18 @@ export function Success(props: Props) {
 	return (
 		<Stack
 			align="center"
-			className="px-(--page-header-px) py-(--space-10) text-center"
+			className="mx-(--page-header-px) my-(--space-6) rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-(--page-header-px) py-(--space-10) text-center shadow-[var(--panel-shadow)]"
 			gap="md"
 		>
-			<CheckCircle className="size-12 text-success" />
+			<span className="flex size-11 items-center justify-center rounded-full bg-[var(--success-muted)] text-success">
+				<Check className="size-6" />
+			</span>
 			<Stack align="center" gap="xs">
-				<div className="text-(length:--text-sm) font-medium text-text-primary">
+				<div className="text-(length:--text-sm) font-semibold text-text-primary">
 					{isUpload ? `Uploaded ${props.fileName}` : "Memory saved"}
 				</div>
-				<Badge variant="accent">{props.containerTag}</Badge>
+				<WorkspaceChip containerTag={props.containerTag} />
 			</Stack>
-			<p className="break-all font-mono text-(length:--text-xs) text-text-muted">
-				{props.id}
-			</p>
 		</Stack>
 	)
 }

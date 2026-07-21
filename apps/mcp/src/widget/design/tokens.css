@@ -1,64 +1,80 @@
-/* Design tokens for Supermemory MCP widget.
+/* Design tokens for the Supermemory MCP widget.
  *
- * Mirrors console-v2's tokens 1:1 so brand identity is consistent across
- * surfaces. Diverge only when the widget's iframed context demands it.
+ * The widget renders inside a host chat surface (Cursor, Claude, ChatGPT). It
+ * should read as a native extension of the Supermemory console, whose language
+ * is: flat cool-neutral surfaces, a signature recessed inset-shadow on inputs,
+ * one restrained blue accent, and DM Sans. No gradients, no glows, no grids.
  *
- * Dark mode: MCP host applies `data-theme="dark"` on <body> via
- * `applyDocumentTheme`. Tailwind's `dark:` variant is wired in globals.css
- * via `@custom-variant dark (&:is([data-theme="dark"] *))`.
+ * The host applies `data-theme="light" | "dark"` on the document via ext-apps'
+ * `applyDocumentTheme`; Tailwind's `dark:` variant is wired in globals.css via
+ * `@custom-variant dark (&:is([data-theme="dark"] *))`. When no host is present
+ * (standalone / Studio) we fall back to the OS preference.
  */
 
+/* ── Light (default) ──────────────────────────────────────────────────────── */
 :root,
 [data-theme="light"] {
 	color-scheme: light;
 
-	/* Accent gradient (Supermemory brand) */
-	--accent-start: #1148f7;
-	--accent-mid: #117dff;
-	--accent-end: #cdf4ff;
-	--accent-gradient: linear-gradient(
-		135deg,
-		var(--accent-start),
-		var(--accent-mid),
-		var(--accent-end)
-	);
-
-	/* Accent solid */
-	--accent: #117dff;
+	/* Accent — one restrained blue. Deeper than the dark accent so it stays
+	 * legible as text/border on white. */
+	--accent: #2e6fe6;
 	--accent-foreground: #ffffff;
-	--accent-hover: #1148f7;
-	--accent-muted: #cdf4ff;
+	--accent-hover: #2560d0;
+	--accent-muted: rgba(46, 111, 230, 0.1);
+	--accent-ring: rgba(46, 111, 230, 0.35);
 
-	/* Backgrounds (warm subtle) */
-	--bg-primary: #faf9f4;
-	--bg-secondary: #f3f1ec;
-	--bg-muted: #e8e5e0;
+	/* Surfaces — cool light neutrals. The shell is the widget's own canvas;
+	 * cards/panels sit a step brighter (white) so borders + shadow read. */
+	--app-bg: #eef1f6;
+	--widget-shell-bg: #f5f7fa;
+	--widget-shell-graph-bg: #f5f7fa;
+
+	--bg-primary: #f5f7fa;
+	--bg-secondary: #eef1f6;
+	--bg-muted: #e7ebf1;
 	--bg-elevated: #ffffff;
-	--bg-overlay: rgba(250, 249, 244, 0.7);
+	--bg-overlay: rgba(245, 247, 250, 0.8);
+	--bg-panel: #ffffff;
+	--bg-control: #ffffff;
+	--bg-control-hover: #f4f6fa;
 
-	/* Borders */
-	--border: #e3e0db;
-	--border-muted: #f0ede8;
-	--border-accent: var(--accent);
+	--border: #e2e7ef;
+	--border-muted: #edf0f5;
+	--border-control: #dce2ea;
+	--border-accent: rgba(46, 111, 230, 0.45);
 
-	/* Text */
-	--text-primary: #0a0a0a;
-	--text-secondary: #525252;
-	--text-muted: #a3a3a3;
+	--card-bg: #ffffff;
+	--card-bg-hover: #f6f8fb;
+	--card-border: #e2e7ef;
+	--card-border-hover: #d2dae5;
+	--card-active-bg: rgba(46, 111, 230, 0.06);
+	--card-active-border: rgba(46, 111, 230, 0.4);
+
+	--panel-bg: #ffffff;
+	--panel-border: #e2e7ef;
+	--panel-shadow:
+		0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 26px rgba(15, 23, 42, 0.05);
+
+	/* Signature recessed shadow — subtle in light so fields read as inset
+	 * without going muddy. */
+	--shadow-inset: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+	--shadow-inset-strong: inset 1px 1px 3px rgba(15, 23, 42, 0.08);
+
+	--text-primary: #0f1729;
+	--text-secondary: #55617a;
+	--text-muted: #8b95a7;
 	--text-inverse: #ffffff;
 
-	/* Status colors (soft pastel) */
-	--success: #4ade80;
-	--success-muted: rgba(74, 222, 128, 0.18);
-	--error: #f87171;
-	--error-muted: rgba(248, 113, 113, 0.18);
-	--warning: #fbbf24;
-	--warning-muted: rgba(251, 191, 36, 0.18);
-	--info: #60a5fa;
-	--info-muted: rgba(96, 165, 250, 0.18);
-
-	/* Action colors */
-	--danger: #ef4444;
+	--success: #15935a;
+	--success-muted: rgba(21, 147, 90, 0.12);
+	--error: #d64545;
+	--error-muted: rgba(214, 69, 69, 0.12);
+	--warning: #b7791f;
+	--warning-muted: rgba(183, 121, 31, 0.12);
+	--info: #2e6fe6;
+	--info-muted: rgba(46, 111, 230, 0.12);
+	--danger: #d64545;
 
 	/* Spacing scale (4px base) */
 	--space-1: 4px;
@@ -72,11 +88,11 @@
 	--space-12: 48px;
 	--space-16: 64px;
 
-	/* Typography */
-	--font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-	--font-display:
-		"Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
-	--font-brand: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+	/* Typography — DM Sans throughout, mirroring the console. */
+	--font-sans:
+		"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-display: var(--font-sans);
+	--font-brand: var(--font-sans);
 	--font-mono:
 		ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
@@ -94,13 +110,13 @@
 	--font-bold: 700;
 
 	--leading-tight: 1.25;
-	--leading-normal: 1.5;
-	--leading-relaxed: 1.75;
+	--leading-normal: 1.4;
+	--leading-relaxed: 1.55;
 
 	/* Unified component heights */
 	--height-xs: 28px;
-	--height-sm: 32px;
-	--height-md: 36px;
+	--height-sm: 34px;
+	--height-md: 38px;
 	--height-lg: 44px;
 
 	/* Icon sizes */
@@ -109,169 +125,242 @@
 	--icon-md: 20px;
 	--icon-lg: 24px;
 
-	/* Radius */
-	--radius-sm: 3px;
-	--radius-md: 4px;
-	--radius-lg: 6px;
+	/* Radius — a touch rounder than the console for a consumer feel. */
+	--radius-sm: 6px;
+	--radius-md: 8px;
+	--radius-lg: 12px;
+	--radius-xl: 16px;
 	--radius-full: 9999px;
 
-	/* Border width */
 	--border-width: 1px;
 
-	/* Page layout (mirrors console-v2 — widget iframes are narrow so we
-	 * use the mobile values throughout: 16px horizontal, 16-24px vertical). */
+	/* Page layout — widget iframes are narrow, so use compact values. */
 	--page-header-px: var(--space-4);
 	--page-header-py: var(--space-4);
 	--page-title-size: var(--text-lg);
 	--page-title-weight: var(--font-semibold);
-	--page-title-mt: var(--space-5);
+	--page-title-mt: var(--space-4);
 
-	/* Shadows */
-	--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-	--shadow-md:
-		0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-	--shadow-lg:
-		0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+	/* Panel shadow family (also exposed to Tailwind as shadow-sm/md/lg). */
+	--shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+	--shadow-md: 0 6px 18px rgba(15, 23, 42, 0.08);
+	--shadow-lg: 0 18px 40px rgba(15, 23, 42, 0.12);
 
 	/* Host-provided iframe dimensions; fallback for standalone dev. */
 	--host-height: 100vh;
 	--host-width: 100vw;
 
-	/* Memory graph canvas — read by @supermemory/memory-graph's useGraphTheme.
-	 * Mirrors console-v2 so the widget graph matches the console exactly. */
-	--graph-bg: var(--bg-secondary);
-	--graph-doc-fill: #e8e5e0;
-	--graph-doc-stroke: #d4d0cb;
-	--graph-doc-inner: #f3f1ec;
-	--graph-mem-fill: #dbeafe;
-	--graph-mem-fill-hover: #bfdbfe;
-	--graph-mem-stroke: #3b82f6;
-	--graph-accent: var(--accent);
-	--graph-text-primary: var(--text-primary);
-	--graph-text-secondary: var(--text-secondary);
-	--graph-text-muted: var(--text-muted);
-	/* Edge / legend colors — bright + "hot" so derives/updates/extends read
-	 * clearly against the light canvas (dark mode keeps its own hot set below). */
-	--graph-edge-derives: #f59e0b;
-	--graph-edge-updates: #8b5cf6;
-	--graph-edge-extends: #0ea5e9;
-	--graph-mem-border-forgotten: #dc2626;
-	--graph-mem-border-expiring: #d97706;
-	--graph-mem-border-recent: #059669;
-	--graph-glow: #3b82f6;
-	--graph-icon: #6b7280;
-	--graph-popover-bg: var(--bg-elevated);
-	--graph-popover-border: var(--border);
-	--graph-popover-text-primary: var(--text-primary);
-	--graph-popover-text-secondary: var(--text-secondary);
-	--graph-popover-text-muted: var(--text-muted);
-	--graph-control-bg: var(--bg-elevated);
-	--graph-control-border: var(--border);
+	/* Memory graph canvas — read by @supermemory/memory-graph's theme.
+	 * Neutral fills, one accent, semantic (not decorative) relation edges. */
+	--graph-bg: transparent;
+	--graph-doc-fill: #f2f5f9;
+	--graph-doc-stroke: #dce2ea;
+	--graph-doc-inner: #ffffff;
+	--graph-mem-fill: #eaf1fc;
+	--graph-mem-fill-hover: #dde9fb;
+	--graph-mem-stroke: #2e6fe6;
+	--graph-accent: #2e6fe6;
+	--graph-text-primary: #0f1729;
+	--graph-text-secondary: #55617a;
+	--graph-text-muted: #8b95a7;
+	--graph-edge-derives: #b0b7c3;
+	--graph-edge-updates: #2e6fe6;
+	--graph-edge-extends: #0e9488;
+	--graph-mem-border-forgotten: #d64545;
+	--graph-mem-border-expiring: #b7791f;
+	--graph-mem-border-recent: #15935a;
+	--graph-glow: rgba(46, 111, 230, 0.35);
+	--graph-icon: #8b95a7;
+	--graph-popover-bg: #ffffff;
+	--graph-popover-border: #e2e7ef;
+	--graph-popover-text-primary: #0f1729;
+	--graph-popover-text-secondary: #55617a;
+	--graph-popover-text-muted: #8b95a7;
+	--graph-control-bg: #ffffff;
+	--graph-control-border: #e2e7ef;
 }
 
+/* ── Dark ─────────────────────────────────────────────────────────────────── */
 [data-theme="dark"] {
 	color-scheme: dark;
 
-	--bg-primary: #0a0a0a;
-	--bg-secondary: #171717;
-	--bg-muted: #262626;
-	--bg-elevated: #1c1c1c;
-	--bg-overlay: rgba(10, 10, 10, 0.7);
+	--accent: #4ba0fa;
+	--accent-foreground: #0a0f16;
+	--accent-hover: #66b0ff;
+	--accent-muted: rgba(75, 160, 250, 0.14);
+	--accent-ring: rgba(75, 160, 250, 0.4);
 
-	--border: #2e2e2e;
-	--border-muted: #1f1f1f;
+	--app-bg: #080c11;
+	--widget-shell-bg: #0b1119;
+	--widget-shell-graph-bg: #0b1119;
 
-	--text-primary: #fafafa;
-	--text-secondary: #a3a3a3;
-	--text-muted: #8a8a8a;
-	--text-inverse: #0a0a0a;
+	--bg-primary: #0b1119;
+	--bg-secondary: #0e1620;
+	--bg-muted: #17212f;
+	--bg-elevated: #101822;
+	--bg-overlay: rgba(11, 17, 25, 0.8);
+	--bg-panel: #101822;
+	--bg-control: #0d141d;
+	--bg-control-hover: #131d2a;
 
-	--success-muted: rgba(74, 222, 128, 0.2);
-	--error-muted: rgba(248, 113, 113, 0.2);
-	--warning-muted: rgba(251, 191, 36, 0.2);
-	--info-muted: rgba(96, 165, 250, 0.2);
+	--border: #1f2b3b;
+	--border-muted: #172230;
+	--border-control: #263141;
+	--border-accent: rgba(75, 160, 250, 0.4);
 
-	--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-	--shadow-md:
-		0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-	--shadow-lg:
-		0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+	--card-bg: #101822;
+	--card-bg-hover: #131d2a;
+	--card-border: #1f2b3b;
+	--card-border-hover: #2b3a4e;
+	--card-active-bg: rgba(75, 160, 250, 0.1);
+	--card-active-border: rgba(75, 160, 250, 0.45);
 
-	/* Memory graph canvas — dark (mirrors console-v2) */
-	--graph-bg: #0f1419;
-	--graph-doc-fill: #1b1f24;
-	--graph-doc-stroke: #2a2f36;
-	--graph-doc-inner: #13161a;
-	--graph-mem-fill: #0d2034;
-	--graph-mem-fill-hover: #112840;
-	--graph-mem-stroke: #3b73b8;
-	--graph-edge-derives: #fbbf24;
-	--graph-edge-updates: #a78bfa;
-	--graph-edge-extends: #38bdf8;
-	--graph-mem-border-forgotten: #ef4444;
-	--graph-mem-border-expiring: #f59e0b;
-	--graph-mem-border-recent: #10b981;
-	--graph-glow: #3b73b8;
-	--graph-icon: #3b73b8;
-	--graph-popover-bg: #0c1829;
-	--graph-popover-border: #1a2333;
-	--graph-popover-text-primary: #ffffff;
-	--graph-popover-text-secondary: #e2e8f0;
-	--graph-popover-text-muted: #94a3b8;
-	--graph-control-bg: #0c1829;
-	--graph-control-border: #1a2333;
+	--panel-bg: #101822;
+	--panel-border: #1f2b3b;
+	--panel-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 1px 2px rgba(0, 0, 0, 0.4),
+		0 14px 34px rgba(0, 0, 0, 0.35);
+
+	/* Signature inset — the console's recessed emboss. */
+	--shadow-inset: inset 2px 2px 5px rgba(4, 8, 13, 0.55);
+	--shadow-inset-strong: inset 2.4px 2.4px 4.5px rgba(6, 10, 16, 0.7);
+
+	--text-primary: #eef2f7;
+	--text-secondary: #a9b4c2;
+	--text-muted: #6f7d8f;
+	--text-inverse: #0b1119;
+
+	--success: #34d399;
+	--success-muted: rgba(52, 211, 153, 0.14);
+	--error: #f87171;
+	--error-muted: rgba(248, 113, 113, 0.14);
+	--warning: #fbbf24;
+	--warning-muted: rgba(251, 191, 36, 0.14);
+	--info: #4ba0fa;
+	--info-muted: rgba(75, 160, 250, 0.14);
+	--danger: #f87171;
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+	--shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+	--shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.5);
+
+	--graph-bg: transparent;
+	--graph-doc-fill: #131d2a;
+	--graph-doc-stroke: #2b3a4e;
+	--graph-doc-inner: #0d141d;
+	--graph-mem-fill: #122437;
+	--graph-mem-fill-hover: #172d44;
+	--graph-mem-stroke: #4ba0fa;
+	--graph-accent: #4ba0fa;
+	--graph-text-primary: #eef2f7;
+	--graph-text-secondary: #a9b4c2;
+	--graph-text-muted: #6f7d8f;
+	--graph-edge-derives: #5b6675;
+	--graph-edge-updates: #4ba0fa;
+	--graph-edge-extends: #2dd4bf;
+	--graph-mem-border-forgotten: #f87171;
+	--graph-mem-border-expiring: #fbbf24;
+	--graph-mem-border-recent: #34d399;
+	--graph-glow: rgba(75, 160, 250, 0.45);
+	--graph-icon: #6f7d8f;
+	--graph-popover-bg: #101822;
+	--graph-popover-border: #1f2b3b;
+	--graph-popover-text-primary: #eef2f7;
+	--graph-popover-text-secondary: #a9b4c2;
+	--graph-popover-text-muted: #6f7d8f;
+	--graph-control-bg: #101822;
+	--graph-control-border: #1f2b3b;
 }
 
+/* ── Standalone / no host: follow the OS preference ───────────────────────── */
 @media (prefers-color-scheme: dark) {
-	:root:not([data-theme="light"]) {
+	:root:not([data-theme="light"]):not([data-theme="dark"]) {
 		color-scheme: dark;
 
-		--bg-primary: #0a0a0a;
-		--bg-secondary: #171717;
-		--bg-muted: #262626;
-		--bg-elevated: #1c1c1c;
-		--bg-overlay: rgba(10, 10, 10, 0.7);
+		--accent: #4ba0fa;
+		--accent-foreground: #0a0f16;
+		--accent-hover: #66b0ff;
+		--accent-muted: rgba(75, 160, 250, 0.14);
+		--accent-ring: rgba(75, 160, 250, 0.4);
 
-		--border: #2e2e2e;
-		--border-muted: #1f1f1f;
+		--app-bg: #080c11;
+		--widget-shell-bg: #0b1119;
+		--widget-shell-graph-bg: #0b1119;
 
-		--text-primary: #fafafa;
-		--text-secondary: #a3a3a3;
-		--text-muted: #8a8a8a;
-		--text-inverse: #0a0a0a;
+		--bg-primary: #0b1119;
+		--bg-secondary: #0e1620;
+		--bg-muted: #17212f;
+		--bg-elevated: #101822;
+		--bg-overlay: rgba(11, 17, 25, 0.8);
+		--bg-panel: #101822;
+		--bg-control: #0d141d;
+		--bg-control-hover: #131d2a;
 
-		--success-muted: rgba(74, 222, 128, 0.2);
-		--error-muted: rgba(248, 113, 113, 0.2);
-		--warning-muted: rgba(251, 191, 36, 0.2);
-		--info-muted: rgba(96, 165, 250, 0.2);
+		--border: #1f2b3b;
+		--border-muted: #172230;
+		--border-control: #263141;
+		--border-accent: rgba(75, 160, 250, 0.4);
 
-		--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-		--shadow-md:
-			0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-		--shadow-lg:
-			0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+		--card-bg: #101822;
+		--card-bg-hover: #131d2a;
+		--card-border: #1f2b3b;
+		--card-border-hover: #2b3a4e;
+		--card-active-bg: rgba(75, 160, 250, 0.1);
+		--card-active-border: rgba(75, 160, 250, 0.45);
 
-		--graph-bg: #0f1419;
-		--graph-doc-fill: #1b1f24;
-		--graph-doc-stroke: #2a2f36;
-		--graph-doc-inner: #13161a;
-		--graph-mem-fill: #0d2034;
-		--graph-mem-fill-hover: #112840;
-		--graph-mem-stroke: #3b73b8;
-		--graph-edge-derives: #fbbf24;
-		--graph-edge-updates: #a78bfa;
-		--graph-edge-extends: #38bdf8;
-		--graph-mem-border-forgotten: #ef4444;
-		--graph-mem-border-expiring: #f59e0b;
-		--graph-mem-border-recent: #10b981;
-		--graph-glow: #3b73b8;
-		--graph-icon: #3b73b8;
-		--graph-popover-bg: #0c1829;
-		--graph-popover-border: #1a2333;
-		--graph-popover-text-primary: #ffffff;
-		--graph-popover-text-secondary: #e2e8f0;
-		--graph-popover-text-muted: #94a3b8;
-		--graph-control-bg: #0c1829;
-		--graph-control-border: #1a2333;
+		--panel-bg: #101822;
+		--panel-border: #1f2b3b;
+		--panel-shadow:
+			inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 1px 2px rgba(0, 0, 0, 0.4),
+			0 14px 34px rgba(0, 0, 0, 0.35);
+
+		--shadow-inset: inset 2px 2px 5px rgba(4, 8, 13, 0.55);
+		--shadow-inset-strong: inset 2.4px 2.4px 4.5px rgba(6, 10, 16, 0.7);
+
+		--text-primary: #eef2f7;
+		--text-secondary: #a9b4c2;
+		--text-muted: #6f7d8f;
+		--text-inverse: #0b1119;
+
+		--success: #34d399;
+		--success-muted: rgba(52, 211, 153, 0.14);
+		--error: #f87171;
+		--error-muted: rgba(248, 113, 113, 0.14);
+		--warning: #fbbf24;
+		--warning-muted: rgba(251, 191, 36, 0.14);
+		--info: #4ba0fa;
+		--info-muted: rgba(75, 160, 250, 0.14);
+		--danger: #f87171;
+
+		--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+		--shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+		--shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.5);
+
+		--graph-bg: transparent;
+		--graph-doc-fill: #131d2a;
+		--graph-doc-stroke: #2b3a4e;
+		--graph-doc-inner: #0d141d;
+		--graph-mem-fill: #122437;
+		--graph-mem-fill-hover: #172d44;
+		--graph-mem-stroke: #4ba0fa;
+		--graph-accent: #4ba0fa;
+		--graph-text-primary: #eef2f7;
+		--graph-text-secondary: #a9b4c2;
+		--graph-text-muted: #6f7d8f;
+		--graph-edge-derives: #5b6675;
+		--graph-edge-updates: #4ba0fa;
+		--graph-edge-extends: #2dd4bf;
+		--graph-mem-border-forgotten: #f87171;
+		--graph-mem-border-expiring: #fbbf24;
+		--graph-mem-border-recent: #34d399;
+		--graph-glow: rgba(75, 160, 250, 0.45);
+		--graph-icon: #6f7d8f;
+		--graph-popover-bg: #101822;
+		--graph-popover-border: #1f2b3b;
+		--graph-popover-text-primary: #eef2f7;
+		--graph-popover-text-secondary: #a9b4c2;
+		--graph-popover-text-muted: #6f7d8f;
+		--graph-control-bg: #101822;
+		--graph-control-border: #1f2b3b;
 	}
 }
