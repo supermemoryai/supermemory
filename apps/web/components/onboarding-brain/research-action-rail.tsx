@@ -13,7 +13,7 @@ import {
 	brainConnectorIcon,
 	SlackMark,
 } from "@/components/brain-connector-icons"
-import { useSettingsModal } from "@/components/settings/settings-modal"
+import { useRouter } from "next/navigation"
 import { useResearchStatus } from "@/hooks/use-research-status"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { cardSurfaceStyle, inputBevelStyle, inputClass } from "./step-about"
@@ -83,7 +83,7 @@ export function ResearchActionRail({
 	onStatsChange?: (stats: ParallelSetupStats) => void
 }) {
 	const { org } = useAuth()
-	const { openSettings } = useSettingsModal()
+	const router = useRouter()
 	const { events } = useResearchStatus()
 	const [catalog, setCatalog] = useState<CatalogEntry[] | null>(null)
 	const [rows, setRows] = useState<ConnRow[]>([])
@@ -448,7 +448,7 @@ export function ResearchActionRail({
 																onConnect={connect}
 																onBrowse={() => {
 																	pauseRotation()
-																	openSettings("company-brain")
+																	router.push("/?view=configure")
 																}}
 															/>
 														)}

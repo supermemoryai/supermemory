@@ -5,11 +5,11 @@ import { ArrowRight, Loader2 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { dmSans125ClassName } from "@/lib/fonts"
-import { useSettingsModal } from "@/components/settings/settings-modal"
+import { useViewMode } from "@/lib/view-mode-context"
 import { brainConnectorIcon, SlackMark } from "../brain-connector-icons"
 
-// Apps surfaced on the dashboard; the rest live behind "More" in settings.
-const FEATURED_SLUGS = ["linear", "granola", "sentry"] as const
+// Preferred ordering for the dashboard; only unconnected apps are surfaced.
+const FEATURED_SLUGS: readonly string[] = ["linear", "granola", "sentry"]
 // Example prompts on the right card — can include apps not shown on the left.
 const PREVIEW_PROMPT_SLUGS = ["linear", "granola", "github", "sentry"] as const
 
@@ -155,76 +155,91 @@ export function ConnectionsBoard() {
 		}
 	}
 
-	const { openSettings } = useSettingsModal()
+	const { setViewMode } = useViewMode()
 	const apps = catalog ?? []
 	const loading = catalog === null
-	const featured = FEATURED_SLUGS.map((slug) =>
-		apps.find((a) => a.slug === slug),
-	).filter((a): a is CatalogEntry => Boolean(a))
+	const unconnected = apps.filter((a) => !isConnected(a.slug))
+	const featured = [
+		...FEATURED_SLUGS.map((slug) =>
+			unconnected.find((a) => a.slug === slug),
+		).filter((a): a is CatalogEntry => Boolean(a)),
+		...unconnected.filter((a) => !FEATURED_SLUGS.includes(a.slug)),
+	].slice(0, 3)
+	const overflow = unconnected.filter((a) => !featured.includes(a))
 	const previewApps = PREVIEW_PROMPT_SLUGS.map((slug) =>
 		apps.find((a) => a.slug === slug),
 	).filter((a): a is CatalogEntry => Boolean(a))
-	const remainingCount = Math.max(apps.length - featured.length, 0)
 	const connectedCount = apps.filter((a) => isConnected(a.slug)).length
+	const showBoard = loading || unconnected.length > 0
 
 	return (
 		<div className="space-y-4">
 			{slack && !slack.connected && <SlackBanner />}
 
 			<div className="grid items-start gap-4 lg:grid-cols-5">
-				<section
-					className="relative flex h-fit min-w-0 flex-col gap-2 overflow-hidden rounded-[18px] bg-[#1B1F24] p-5 lg:col-span-3"
-					style={cardStyle}
-				>
-					<div>
-						<p
-							className={cn(
-								"text-[15px] font-semibold text-[#fafafa]",
-								dmSans125ClassName(),
-							)}
-						>
-							Connect your tools
-						</p>
-						<p className="mt-0.5 text-[12px] font-medium text-[#737373]">
-							Give your Slack agent live access to the apps your team already
-							uses.
-						</p>
-					</div>
-
-					<div className="overflow-hidden rounded-[12px] bg-[#14161A]">
-						{loading ? (
-							Array.from({ length: 3 }).map((_, i) => (
-								<TileSkeleton key={i} showDivider={i < 2} />
-							))
-						) : (
-							<>
-								{featured.map((entry, i) => (
-									<AppTile
-										key={entry.slug}
-										icon={brainConnectorIcon(entry.slug, entry.name, "size-5")}
-										name={entry.name}
-										subtitle={titleCase(entry.category)}
-										connected={isConnected(entry.slug)}
-										busy={busy === entry.slug}
-										onConnect={() => connect(entry)}
-										showDivider={i < featured.length - 1 || remainingCount > 0}
-									/>
-								))}
-								{remainingCount > 0 && (
-									<MoreTile
-										count={remainingCount}
-										onClick={() => openSettings("company-brain")}
-									/>
+				{showBoard ? (
+					<section
+						className="relative flex h-fit min-w-0 flex-col gap-2 overflow-hidden rounded-[18px] bg-[#1B1F24] p-5 lg:col-span-3"
+						style={cardStyle}
+					>
+						<div>
+							<p
+								className={cn(
+									"text-[15px] font-semibold text-[#fafafa]",
+									dmSans125ClassName(),
 								)}
-							</>
-						)}
-					</div>
-				</section>
+							>
+								Connect your tools
+							</p>
+							<p className="mt-0.5 text-[12px] font-medium text-[#737373]">
+								Give your Slack agent live access to the apps your team already
+								uses.
+							</p>
+						</div>
+
+						<div className="overflow-hidden rounded-[12px] bg-[#14161A]">
+							{loading ? (
+								Array.from({ length: 3 }).map((_, i) => (
+									<TileSkeleton key={i} showDivider={i < 2} />
+								))
+							) : (
+								<>
+									{featured.map((entry, i) => (
+										<AppTile
+											key={entry.slug}
+											icon={brainConnectorIcon(
+												entry.slug,
+												entry.name,
+												"size-5",
+											)}
+											name={entry.name}
+											subtitle={titleCase(entry.category)}
+											connected={isConnected(entry.slug)}
+											busy={busy === entry.slug}
+											onConnect={() => connect(entry)}
+											showDivider={
+												i < featured.length - 1 || overflow.length > 0
+											}
+										/>
+									))}
+									{overflow.length > 0 && (
+										<MoreTile
+											count={overflow.length}
+											names={overflow.slice(0, 3).map((a) => a.name)}
+											onClick={() => void setViewMode("configure")}
+										/>
+									)}
+								</>
+							)}
+						</div>
+					</section>
+				) : null}
 
 				<AgentPreview
 					apps={previewApps}
 					isConnected={isConnected}
 					connectedCount={connectedCount}
+					wide={!showBoard}
 				/>
 			</div>
 		</div>
@@ -235,10 +250,12 @@ function AgentPreview({
 	apps,
 	isConnected,
 	connectedCount,
+	wide = false,
 }: {
 	apps: CatalogEntry[]
 	isConnected: (slug: string) => boolean
 	connectedCount: number
+	wide?: boolean
 }) {
 	const prompts = apps
 		.filter((a) => AGENT_PROMPTS[a.slug])
@@ -252,7 +269,10 @@ function AgentPreview({
 
 	return (
 		<section
-			className="relative flex h-fit min-w-0 flex-col gap-2 overflow-hidden rounded-[18px] bg-[#1B1F24] p-5 lg:col-span-2"
+			className={cn(
+				"relative flex h-fit min-w-0 flex-col gap-2 overflow-hidden rounded-[18px] bg-[#1B1F24] p-5",
+				wide ? "lg:col-span-5" : "lg:col-span-2",
+			)}
 			style={cardStyle}
 		>
 			<div className="flex items-center gap-2">
@@ -359,7 +379,15 @@ function AppTile({
 	)
 }
 
-function MoreTile({ count, onClick }: { count: number; onClick: () => void }) {
+function MoreTile({
+	count,
+	names,
+	onClick,
+}: {
+	count: number
+	names: string[]
+	onClick: () => void
+}) {
 	return (
 		<button
 			type="button"
@@ -380,7 +408,8 @@ function MoreTile({ count, onClick }: { count: number; onClick: () => void }) {
 					{count} more {count === 1 ? "app" : "apps"}
 				</p>
 				<p className="mt-1 truncate text-[11px] font-medium leading-none text-[#737373]">
-					Notion, PostHog, Plain and more
+					{names.join(", ")}
+					{count > names.length ? " and more" : ""}
 				</p>
 			</div>
 			<div className="flex w-[88px] shrink-0 justify-end">
@@ -411,7 +440,7 @@ function TileSkeleton({ showDivider = false }: { showDivider?: boolean }) {
 function SlackBanner() {
 	return (
 		<section
-			className="relative overflow-hidden rounded-[18px] bg-[#1B1F24] p-5"
+			className="relative overflow-hidden rounded-[18px] bg-[#1B1F24] p-3.5 sm:p-5"
 			style={cardStyle}
 		>
 			<div
@@ -422,37 +451,45 @@ function SlackBanner() {
 						"linear-gradient(to right, transparent, rgba(75,160,250,0.45), transparent)",
 				}}
 			/>
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-				<div className="flex items-center gap-3.5">
+			<div className="flex items-center justify-between gap-3 sm:gap-4">
+				<div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
 					<div
-						className="flex size-12 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#080B0F]"
+						className="flex size-10 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(82,89,102,0.2)] bg-[#080B0F] sm:size-12"
 						style={tileStyle}
 					>
-						<SlackMark className="size-7" />
+						<SlackMark className="size-6 sm:size-7" />
 					</div>
 					<div className="min-w-0">
 						<p
 							className={cn(
-								"text-[16px] font-semibold text-[#fafafa]",
+								"truncate text-[15px] font-semibold leading-tight text-[#fafafa] sm:text-[16px]",
 								dmSans125ClassName(),
 							)}
 						>
-							Company Brain in Slack
+							<span className="sm:hidden">Slack agent</span>
+							<span className="hidden sm:inline">Company Brain in Slack</span>
 						</p>
-						<p className="mt-0.5 text-[13px] font-medium leading-[1.5] text-[#737373]">
-							Install Supermemory so your team can{" "}
-							<span className="text-[#A1A1AA]">@supermemory</span> in any
-							channel.
+						<p className="mt-1 truncate text-[12px] font-medium leading-[1.45] text-[#737373] sm:mt-0.5 sm:text-[13px] sm:leading-[1.5]">
+							<span className="sm:hidden">
+								Ask <span className="text-[#A1A1AA]">@supermemory</span> from
+								any channel.
+							</span>
+							<span className="hidden sm:inline">
+								Install Supermemory so your team can{" "}
+								<span className="text-[#A1A1AA]">@supermemory</span> in any
+								channel.
+							</span>
 						</p>
 					</div>
 				</div>
 
 				<a
 					href={`${BACKEND}/brain/slack/oauth/install`}
-					className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg bg-white px-4 py-2.5 text-[14px] font-semibold text-[#1D1C1D] transition-transform hover:scale-[1.02] sm:self-auto"
+					className="inline-flex shrink-0 items-center justify-center rounded-lg bg-white px-3 py-1.5 text-[13px] font-semibold text-[#1D1C1D] transition-transform hover:scale-[1.02] sm:gap-2 sm:px-4 sm:py-2.5 sm:text-[14px]"
 				>
-					<SlackMark className="size-[18px]" />
-					Add to Slack
+					<SlackMark className="hidden sm:block sm:size-[18px]" />
+					<span className="sm:hidden">Add</span>
+					<span className="hidden sm:inline">Add to Slack</span>
 				</a>
 			</div>
 		</section>

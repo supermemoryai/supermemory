@@ -390,6 +390,7 @@ export function useDocumentMutations({
 			urls: string[]
 			project: string
 		}): Promise<{ success: number; failed: number }> => {
+			const entityContext = await resolveEntityContext(project)
 			let success = 0
 			let failed = 0
 
@@ -400,7 +401,7 @@ export function useDocumentMutations({
 						documents: chunk.map((url) => ({
 							content: url,
 							containerTags: [project],
-							entityContext,
+							...(entityContext !== undefined ? { entityContext } : {}),
 							metadata: { sm_source: "consumer" },
 						})),
 					},
