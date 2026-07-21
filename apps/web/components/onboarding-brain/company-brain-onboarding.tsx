@@ -43,12 +43,21 @@ const BACKEND =
 type Phase = "confirm" | "research"
 
 function normalizeDomain(input: string): string {
-	return input
+	const host = input
 		.trim()
 		.toLowerCase()
 		.replace(/^https?:\/\//, "")
 		.replace(/^www\./, "")
 		.replace(/\/.*$/, "")
+
+	// The confirmation card is often filled with a company name (for example,
+	// "Zomato") even though research needs a hostname. Preserve explicit TLDs,
+	// and make the common single-label case usable without a failed API round trip.
+	if (/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(host)) {
+		return `${host}.com`
+	}
+
+	return host
 }
 
 export function CompanyBrainOnboarding({
@@ -306,30 +315,35 @@ function DockedHeader({
 }) {
 	const brandName = workspaceNameFromDomain(domain) || domain
 	return (
-		<div className="flex items-center gap-3">
+		<div className="flex min-w-0 items-center gap-3">
 			<div
 				className="size-8 rounded-[8px] bg-[#14161A] border border-[rgba(82,89,102,0.2)] flex items-center justify-center overflow-hidden shrink-0"
 				style={inputBevelStyle}
 			>
 				<DomainLogo domain={domain} />
 			</div>
-			<span className="text-[14px] font-semibold text-[#fafafa]">
-				{brandName}
-			</span>
-			<span
-				className={cn(
-					"text-[12px] font-medium",
-					done ? "text-[#5CD68A]" : "text-[#737373]",
-				)}
-			>
-				{done ? "Company Brain ready" : "Building your Company Brain…"}
-			</span>
+			<div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-center md:gap-3">
+				<span
+					title={brandName}
+					className="min-w-0 truncate text-[14px] font-semibold text-[#fafafa] md:flex-1"
+				>
+					{brandName}
+				</span>
+				<span
+					className={cn(
+						"shrink-0 whitespace-nowrap text-[12px] font-medium",
+						done ? "text-[#5CD68A]" : "text-[#737373]",
+					)}
+				>
+					{done ? "Company Brain ready" : "Building your Company Brain…"}
+				</span>
+			</div>
 			{done ? (
 				<Button
 					type="button"
 					onClick={onContinue}
 					className={cn(
-						"ml-auto rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#1D1C1D] shadow-[0_4px_24px_rgba(75,160,250,0.25)] hover:bg-white/95",
+						"ml-auto shrink-0 rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#1D1C1D] shadow-[0_4px_24px_rgba(75,160,250,0.25)] hover:bg-white/95",
 						dmSans125ClassName(),
 					)}
 				>
@@ -337,7 +351,7 @@ function DockedHeader({
 					<ArrowRight className="size-3.5" />
 				</Button>
 			) : (
-				<Loader2 className="size-3.5 animate-spin text-[#4BA0FA] ml-auto" />
+				<Loader2 className="ml-auto size-3.5 shrink-0 animate-spin text-[#4BA0FA]" />
 			)}
 		</div>
 	)

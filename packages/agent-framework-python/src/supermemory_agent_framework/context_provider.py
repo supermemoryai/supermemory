@@ -9,7 +9,13 @@ following the same pattern as the built-in Mem0 integration.
 
 from typing import Any, Literal, Optional
 
-from agent_framework import BaseContextProvider
+try:
+    from agent_framework import BaseContextProvider
+except ImportError:
+    # Renamed in agent-framework-core 1.0.0 stable; the interface is
+    # unchanged (source_id __init__, before_run/after_run hooks with
+    # identical keyword-only signatures).
+    from agent_framework import ContextProvider as BaseContextProvider
 
 from .connection import AgentSupermemory
 from .utils import (

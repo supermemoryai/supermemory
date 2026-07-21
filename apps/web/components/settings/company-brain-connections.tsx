@@ -1,10 +1,22 @@
 "use client"
 
-import { authClient } from "@lib/auth"
+import { useOrgMemberRole } from "@/hooks/use-org-member-role"
 import { cn } from "@lib/utils"
-import { useQuery } from "@tanstack/react-query"
-import { Loader2, Lock } from "lucide-react"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+import { ChevronDown, Loader2, Plus, XIcon } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "@ui/components/dialog"
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@ui/components/dropdown-menu"
 import { toast } from "sonner"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
@@ -33,7 +45,6 @@ type ConnRow = {
 	userId: string | null
 }
 type SlackStatus = { connected: boolean; teamName: string | null }
-type Scope = "org" | "user"
 
 function titleCase(s: string) {
 	return s.replace(/\b\w/g, (c) => c.toUpperCase())
@@ -48,28 +59,20 @@ function slugifyMcpName(value: string) {
 		.slice(0, 63)
 }
 
-function SecondaryButton({
-	children,
-	href,
-}: {
-	children: React.ReactNode
-	href: string
-}) {
-	return (
-		<a
-			href={href}
-			className={cn(
-				dmSans125ClassName(),
-				"inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[#1E293B] bg-[#0D121A] px-4 h-9",
-				"text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#1E293B]",
-			)}
-		>
-			{children}
-		</a>
-	)
-}
+const pillLinkClass = cn(
+	"relative flex h-8 min-w-[94px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-3 sm:h-9 sm:min-w-[116px] sm:px-5",
+	"text-[12px] font-medium text-[#FAFAFA] sm:text-[14px]",
+	"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
+	"cursor-pointer transition-opacity hover:opacity-80",
+)
 
-function StatusDot({ connected }: { connected: boolean }) {
+function ScopeChip({
+	label,
+	connected,
+}: {
+	label: string
+	connected: boolean
+}) {
 	return (
 		<span
 			className={cn(
@@ -84,19 +87,22 @@ function StatusDot({ connected }: { connected: boolean }) {
 					connected ? "bg-[#00AC3F]" : "bg-[#3A4150]",
 				)}
 			/>
-			{connected ? "Connected" : "Not connected"}
+			{label}
 		</span>
 	)
 }
+
+const menuItemClass =
+	"gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 
 function AppCard({
 	name,
 	subtitle,
 	icon,
-	connected,
-	canConnect,
-	canDisconnect,
-	lockedHint,
+	userConnected,
+	orgConnected,
+	isAdmin,
+	personalOnly,
 	busy,
 	onConnect,
 	onDisconnect,
@@ -104,16 +110,20 @@ function AppCard({
 	name: string
 	subtitle: string
 	icon: React.ReactNode
-	connected: boolean
-	canConnect: boolean
-	canDisconnect: boolean
-	lockedHint?: string
+	userConnected: boolean
+	orgConnected: boolean
+	isAdmin: boolean
+	personalOnly?: boolean
 	busy: boolean
-	onConnect: () => void
-	onDisconnect: () => void
+	onConnect: (shared: boolean) => void
+	onDisconnect: (shared: boolean) => void
 }) {
+	const anyConnected = userConnected || orgConnected
+	const showOrgChip = !personalOnly && (orgConnected || isAdmin)
+	const adminMenu = isAdmin && !personalOnly
+
 	return (
-		<div className="flex min-h-[152px] min-w-0 flex-col justify-between gap-4 rounded-xl bg-[#14161A] p-4 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
+		<div className="flex min-w-0 flex-col justify-between gap-3 rounded-xl bg-[#14161A] p-4 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
 			<div className="flex min-w-0 items-start gap-3">
 				<div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-[#080B0F] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]">
 					{icon}
@@ -138,67 +148,154 @@ function AppCard({
 				</div>
 			</div>
 			<div className="flex min-h-9 items-center justify-between gap-3 border-[#1E293B]/50 border-t pt-3">
-				<StatusDot connected={connected} />
-				{connected && canDisconnect ? (
-					<PillButton onClick={onDisconnect} disabled={busy}>
+				<div className="flex min-w-0 items-center gap-3">
+					{personalOnly || !anyConnected ? (
+						<ScopeChip
+							label={userConnected ? "Connected" : "Not connected"}
+							connected={userConnected}
+						/>
+					) : (
+						<>
+							<ScopeChip label="You" connected={userConnected} />
+							{showOrgChip ? (
+								<ScopeChip label="Workspace" connected={orgConnected} />
+							) : null}
+						</>
+					)}
+				</div>
+				{adminMenu ? (
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<button
+								type="button"
+								disabled={busy}
+								className={cn(
+									dmSans125ClassName(),
+									"relative flex h-8 min-w-[94px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-3 sm:h-9 sm:min-w-[116px] sm:px-5",
+									"text-[12px] font-medium text-[#FAFAFA] sm:text-[14px]",
+									"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
+									"cursor-pointer transition-opacity hover:opacity-80",
+									"disabled:cursor-not-allowed disabled:opacity-50",
+								)}
+							>
+								{busy ? (
+									<Loader2 className="size-3.5 animate-spin" />
+								) : (
+									<>
+										{anyConnected ? "Manage" : "Connect"}
+										<ChevronDown className="size-3.5 text-[#737373]" />
+									</>
+								)}
+							</button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent
+							align="end"
+							className={cn(
+								dmSans125ClassName(),
+								"min-w-[220px] rounded-xl border border-white/[0.08] p-1.5 shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+							)}
+							style={{
+								background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
+							}}
+						>
+							<DropdownMenuItem
+								className={menuItemClass}
+								onClick={() =>
+									userConnected ? onDisconnect(false) : onConnect(false)
+								}
+							>
+								{userConnected ? "Disconnect my account" : "Connect my account"}
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								className={menuItemClass}
+								onClick={() =>
+									orgConnected ? onDisconnect(true) : onConnect(true)
+								}
+							>
+								{orgConnected
+									? "Disconnect workspace"
+									: "Connect for workspace"}
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				) : userConnected ? (
+					<PillButton onClick={() => onDisconnect(false)} disabled={busy}>
 						{busy && <Loader2 className="size-3.5 animate-spin" />}
 						Disconnect
 					</PillButton>
-				) : (
-					!connected &&
-					(canConnect ? (
-						<PillButton onClick={onConnect} disabled={busy}>
-							{busy && <Loader2 className="size-3.5 animate-spin" />}
-							Connect
-						</PillButton>
-					) : lockedHint ? (
-						<span className="flex items-center gap-1 text-[12px] font-medium text-[#737373]">
-							<Lock className="size-3" />
-							{lockedHint}
-						</span>
-					) : null)
+				) : personalOnly ? null : (
+					<PillButton onClick={() => onConnect(false)} disabled={busy}>
+						{busy && <Loader2 className="size-3.5 animate-spin" />}
+						Connect
+					</PillButton>
 				)}
 			</div>
 		</div>
 	)
 }
 
-function ScopeToggle({
-	scope,
-	onChange,
+function SlackCard({
+	status,
+	isAdmin,
+	installHref,
 }: {
-	scope: Scope
-	onChange: (s: Scope) => void
+	status: SlackStatus | null
+	isAdmin: boolean
+	installHref: string
 }) {
-	const items: { id: Scope; label: string }[] = [
-		{ id: "org", label: "Organization" },
-		{ id: "user", label: "Personal" },
-	]
+	const connected = status?.connected ?? false
 	return (
-		<div className="inline-flex rounded-full border border-[#1E293B] bg-[#0D121A] p-1">
-			{items.map((it) => (
-				<button
-					key={it.id}
-					type="button"
-					onClick={() => onChange(it.id)}
-					className={cn(
-						dmSans125ClassName(),
-						"rounded-full px-4 h-8 text-[13px] font-medium transition-colors",
-						scope === it.id
-							? "bg-[#1E293B] text-[#FAFAFA]"
-							: "text-[#737373] hover:text-[#FAFAFA]",
-					)}
-				>
-					{it.label}
-				</button>
-			))}
+		<div className="flex min-w-0 flex-col justify-between gap-3 rounded-xl bg-[#14161A] p-4 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
+			<div className="flex min-w-0 items-start gap-3">
+				<div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-[#080B0F] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]">
+					<SlackMark className="size-5" />
+				</div>
+				<div className="min-w-0 pt-0.5">
+					<p
+						className={cn(
+							dmSans125ClassName(),
+							"truncate font-semibold text-[14px] tracking-[-0.15px] text-[#FAFAFA]",
+						)}
+					>
+						Slack
+					</p>
+					<p
+						className={cn(
+							dmSans125ClassName(),
+							"mt-1 line-clamp-2 break-words text-[12px] font-medium leading-5 text-[#737373]",
+						)}
+					>
+						Messaging
+					</p>
+				</div>
+			</div>
+			<div className="flex min-h-9 items-center justify-between gap-3 border-[#1E293B]/50 border-t pt-3">
+				<ScopeChip
+					label={
+						connected
+							? status?.teamName
+								? `Workspace · ${status.teamName}`
+								: "Workspace"
+							: "Not connected"
+					}
+					connected={connected}
+				/>
+				{isAdmin ? (
+					<a
+						href={installHref}
+						className={cn(dmSans125ClassName(), pillLinkClass)}
+					>
+						{connected ? "Reconnect" : "Connect"}
+					</a>
+				) : null}
+			</div>
 		</div>
 	)
 }
 
 function RowSkeleton() {
 	return (
-		<div className="min-h-[152px] rounded-xl bg-[#14161A] p-4 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
+		<div className="rounded-xl bg-[#14161A] p-4 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
 			<div className="flex items-center gap-3">
 				<div className="size-10 animate-pulse rounded-[10px] bg-[#1c1f24]" />
 				<div className="space-y-2">
@@ -206,7 +303,7 @@ function RowSkeleton() {
 					<div className="h-2.5 w-32 animate-pulse rounded bg-[#1c1f24]" />
 				</div>
 			</div>
-			<div className="mt-8 h-8 w-28 animate-pulse rounded-full bg-[#1c1f24] ml-auto" />
+			<div className="mt-5 h-8 w-28 animate-pulse rounded-full bg-[#1c1f24] ml-auto" />
 		</div>
 	)
 }
@@ -219,19 +316,11 @@ export default function CompanyBrainConnections() {
 	const [rows, setRows] = useState<ConnRow[]>([])
 	const [slackStatus, setSlackStatus] = useState<SlackStatus | null>(null)
 	const [busy, setBusy] = useState<string | null>(null)
-	const [scope, setScope] = useState<Scope>("user")
+	const [customOpen, setCustomOpen] = useState(false)
 	const [customName, setCustomName] = useState("")
 	const [customServerUrl, setCustomServerUrl] = useState("")
 
-	const roleQuery = useQuery({
-		queryKey: ["company-brain-connections", "role"],
-		queryFn: async () =>
-			(await authClient.organization.getActiveMember()).data?.role ?? null,
-		staleTime: 60_000,
-		enabled: isCompanyBrain,
-	})
-	const role = (roleQuery.data ?? "").toLowerCase()
-	const isAdmin = role === "owner" || role === "admin"
+	const { isAdmin } = useOrgMemberRole(isCompanyBrain)
 
 	const load = useCallback(async () => {
 		const [catRes, connRes, slackRes] = await Promise.all([
@@ -388,8 +477,12 @@ export default function CompanyBrainConnections() {
 			}
 			if (data.authUrl) {
 				window.open(data.authUrl, "_blank", "noopener")
+				setCustomOpen(false)
+				setCustomName("")
+				setCustomServerUrl("")
 			} else if (data.ok) {
 				toast.success(`${slug} connected.`)
+				setCustomOpen(false)
 				setCustomName("")
 				setCustomServerUrl("")
 				await load()
@@ -461,43 +554,9 @@ export default function CompanyBrainConnections() {
 					!catalogSlugs.has(row.serverSlug),
 			)
 		: []
-	const shared = scope === "org"
-	const description = shared
-		? "Connected by admins. Used for reads when you haven't connected your own."
-		: "Your personal accounts, used for your actions and your reads."
-
 	return (
 		<div className="space-y-5">
-			<div className="flex items-center justify-between gap-3">
-				<ScopeToggle scope={scope} onChange={setScope} />
-				{slackStatus?.connected && slackStatus.teamName ? (
-					<p
-						className={cn(
-							dmSans125ClassName(),
-							"ml-auto text-[13px] font-medium text-[#737373]",
-						)}
-					>
-						Slack · {slackStatus.teamName}
-					</p>
-				) : null}
-				{isAdmin ? (
-					<SecondaryButton href={`${BACKEND}/brain/slack/oauth/install`}>
-						<SlackMark className="size-4" />
-						Reconnect Slack
-					</SecondaryButton>
-				) : null}
-			</div>
-
-			<p
-				className={cn(
-					dmSans125ClassName(),
-					"px-1 text-[13px] font-medium text-[#737373]",
-				)}
-			>
-				{description}
-			</p>
-
-			<div className="grid gap-3 md:grid-cols-2">
+			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 				{loading ? (
 					<>
 						<RowSkeleton />
@@ -506,100 +565,128 @@ export default function CompanyBrainConnections() {
 					</>
 				) : (
 					<>
-						{!shared && isStaff ? (
-							<form
-								onSubmit={connectCustom}
-								className="flex min-h-[152px] min-w-0 flex-col justify-between gap-3 rounded-xl bg-[#14161A] p-4 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]"
-							>
-								<div>
-									<p
-										className={cn(
-											dmSans125ClassName(),
-											"text-[14px] font-semibold text-[#FAFAFA]",
-										)}
-									>
-										Custom MCP server
-									</p>
-									<p
-										className={cn(
-											dmSans125ClassName(),
-											"mt-1 line-clamp-2 text-[12px] font-medium text-[#737373]",
-										)}
-									>
-										Add a personal OAuth MCP server by URL.
-									</p>
-								</div>
-								<div className="space-y-2">
-									<input
-										value={customName}
-										onChange={(event) => setCustomName(event.target.value)}
-										placeholder="Name"
-										className="h-8 w-full rounded-full border border-[#1E293B] bg-[#0D121A] px-3 text-[12px] font-medium text-[#FAFAFA] outline-none placeholder:text-[#5F6673] focus:border-[#334155]"
-									/>
-									<input
-										value={customServerUrl}
-										onChange={(event) => setCustomServerUrl(event.target.value)}
-										placeholder="https://example.com/mcp"
-										className="h-8 w-full rounded-full border border-[#1E293B] bg-[#0D121A] px-3 text-[12px] font-medium text-[#FAFAFA] outline-none placeholder:text-[#5F6673] focus:border-[#334155]"
-									/>
-									<div className="flex justify-end border-[#1E293B]/50 border-t pt-3">
-										<PillButton
-											type="submit"
-											disabled={busy?.startsWith("custom:") ?? false}
-										>
-											{busy?.startsWith("custom:") && (
-												<Loader2 className="size-3.5 animate-spin" />
-											)}
-											Connect
-										</PillButton>
-									</div>
-								</div>
-							</form>
-						) : null}
-
+						<SlackCard
+							status={slackStatus}
+							isAdmin={isAdmin}
+							installHref={`${BACKEND}/brain/slack/oauth/install`}
+						/>
 						{apps.map((entry) => (
 							<AppCard
-								key={`${scope}-${entry.slug}`}
+								key={entry.slug}
 								name={entry.name}
 								subtitle={titleCase(entry.category)}
 								icon={brainConnectorIcon(entry.slug, entry.name)}
-								connected={isConnected(entry.slug, shared)}
-								canConnect={shared ? isAdmin : true}
-								canDisconnect={shared ? isAdmin : true}
-								lockedHint={shared ? "Admin only" : undefined}
-								busy={busy === `${entry.slug}:${scope}`}
-								onConnect={() => connect(entry, shared)}
-								onDisconnect={() => disconnect(entry, shared)}
+								userConnected={isConnected(entry.slug, false)}
+								orgConnected={isConnected(entry.slug, true)}
+								isAdmin={isAdmin}
+								busy={busy?.startsWith(`${entry.slug}:`) ?? false}
+								onConnect={(shared) => connect(entry, shared)}
+								onDisconnect={(shared) => disconnect(entry, shared)}
 							/>
 						))}
-						{!shared &&
-							customRows.map((row) => (
-								<AppCard
-									key={`custom-${row.serverSlug}`}
-									name={titleCase(row.serverSlug.replace(/-/g, " "))}
-									subtitle={row.serverUrl ?? "Custom OAuth MCP"}
-									icon={brainConnectorIcon(row.serverSlug, row.serverSlug)}
-									connected
-									canConnect={false}
-									canDisconnect
-									busy={busy === `${row.serverSlug}:user`}
-									onConnect={() => {}}
-									onDisconnect={() =>
-										disconnect(
-											{
-												slug: row.serverSlug,
-												name: titleCase(row.serverSlug.replace(/-/g, " ")),
-												category: "Custom OAuth MCP",
-												authType: "oauth",
-											},
-											false,
-										)
-									}
-								/>
-							))}
+						{customRows.map((row) => (
+							<AppCard
+								key={`custom-${row.serverSlug}`}
+								name={titleCase(row.serverSlug.replace(/-/g, " "))}
+								subtitle={row.serverUrl ?? "Custom OAuth MCP"}
+								icon={brainConnectorIcon(row.serverSlug, row.serverSlug)}
+								userConnected
+								orgConnected={false}
+								isAdmin={false}
+								personalOnly
+								busy={busy === `${row.serverSlug}:user`}
+								onConnect={() => {}}
+								onDisconnect={() =>
+									disconnect(
+										{
+											slug: row.serverSlug,
+											name: titleCase(row.serverSlug.replace(/-/g, " ")),
+											category: "Custom OAuth MCP",
+											authType: "oauth",
+										},
+										false,
+									)
+								}
+							/>
+						))}
+						{isStaff ? (
+							<button
+								type="button"
+								onClick={() => setCustomOpen(true)}
+								className={cn(
+									dmSans125ClassName(),
+									"flex min-h-[104px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#2A313C] border-dashed",
+									"text-[13px] font-medium text-[#737B87] transition-colors hover:border-[#3A4150] hover:text-[#FAFAFA]",
+								)}
+							>
+								<Plus className="size-4" />
+								Add custom MCP
+							</button>
+						) : null}
 					</>
 				)}
 			</div>
+
+			<Dialog open={customOpen} onOpenChange={setCustomOpen}>
+				<DialogContent
+					className={cn(
+						"w-[90%]! max-w-[440px]! flex flex-col gap-4 rounded-[22px] border-none bg-[#1B1F24] p-4",
+						dmSans125ClassName(),
+					)}
+					style={{
+						boxShadow:
+							"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+					}}
+					showCloseButton={false}
+				>
+					<div className="flex items-start justify-between gap-4">
+						<DialogHeader className="flex-1 space-y-1 pl-1">
+							<DialogTitle className="font-semibold text-[#FAFAFA]">
+								Custom MCP server
+							</DialogTitle>
+							<p className="text-[13px] font-medium leading-[1.35] text-[#737373]">
+								Add a personal OAuth MCP server by URL.
+							</p>
+						</DialogHeader>
+						<DialogPrimitive.Close
+							className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[rgba(115,115,115,0.2)] bg-[#0D121A] transition-opacity hover:opacity-100 focus:outline-hidden"
+							style={{
+								boxShadow:
+									"0 0.711px 2.842px 0 rgba(0, 0, 0, 0.25), 0.178px 0.178px 0.178px 0 rgba(255, 255, 255, 0.10) inset",
+							}}
+						>
+							<XIcon className="size-4 text-[#737373]" />
+							<span className="sr-only">Close</span>
+						</DialogPrimitive.Close>
+					</div>
+
+					<form onSubmit={connectCustom} className="flex flex-col gap-2">
+						<input
+							value={customName}
+							onChange={(event) => setCustomName(event.target.value)}
+							placeholder="Name"
+							className="h-9 w-full rounded-full border border-[#1E293B] bg-[#0D121A] px-3.5 text-[13px] font-medium text-[#FAFAFA] outline-none placeholder:text-[#5F6673] focus:border-[#334155]"
+						/>
+						<input
+							value={customServerUrl}
+							onChange={(event) => setCustomServerUrl(event.target.value)}
+							placeholder="https://example.com/mcp"
+							className="h-9 w-full rounded-full border border-[#1E293B] bg-[#0D121A] px-3.5 text-[13px] font-medium text-[#FAFAFA] outline-none placeholder:text-[#5F6673] focus:border-[#334155]"
+						/>
+						<div className="flex justify-end pt-2">
+							<PillButton
+								type="submit"
+								disabled={busy?.startsWith("custom:") ?? false}
+							>
+								{busy?.startsWith("custom:") && (
+									<Loader2 className="size-3.5 animate-spin" />
+								)}
+								Connect
+							</PillButton>
+						</div>
+					</form>
+				</DialogContent>
+			</Dialog>
 		</div>
 	)
 }
