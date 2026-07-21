@@ -41,6 +41,7 @@ import { toast } from "sonner"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { PopoverAnchor } from "@ui/components/popover"
+import { OrgContext } from "@/components/settings/org-context"
 import { WorkspacePersona } from "@/components/settings/workspace-persona"
 import { OrgPlanBadge } from "@/components/org-plan-badge"
 import { useTokenUsage } from "@/hooks/use-token-usage"
@@ -615,6 +616,8 @@ export default function Account() {
 					))}
 				</div>
 			</section>
+
+			{canManageTeam && <OrgContext />}
 
 			{canManageTeam && isCompanyBrain && <WorkspacePersona />}
 

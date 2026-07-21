@@ -60,11 +60,15 @@ export function useUpdateOrgSettings() {
 			}
 			return response.data
 		},
-		onSuccess: (_data, settings) => {
-			queryClient.setQueryData<OrgSettings>(
-				["settings", "org", orgId],
-				(current) => (current ? { ...current, ...settings } : current),
-			)
+		onSuccess: async (data) => {
+			const queryKey = ["settings", "org", orgId] as const
+			const canonicalSettings = data?.settings
+			if (canonicalSettings) {
+				queryClient.setQueryData<OrgSettings>(queryKey, (current) =>
+					current ? { ...current, ...canonicalSettings } : current,
+				)
+			}
+			await queryClient.invalidateQueries({ queryKey, exact: true })
 			toast.success("Settings saved")
 		},
 		onError: (error) => {
