@@ -54,7 +54,9 @@ export function useUpdateOrgSettings() {
 				body: settings,
 			})
 			if (response.error) {
-				throw new Error(response.error.message || "Failed to save settings")
+				throw new Error("Failed to save settings", {
+					cause: response.error.message,
+				})
 			}
 			return response.data
 		},
