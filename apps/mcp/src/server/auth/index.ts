@@ -5,6 +5,7 @@ const FETCH_TIMEOUT_MS = 30_000
 
 export interface AuthUser {
 	userId: string
+	organizationId?: string
 	bearerToken: string
 }
 
@@ -66,6 +67,10 @@ export async function validateOAuthToken(
 		}
 		return {
 			userId: payload.sub,
+			organizationId:
+				typeof payload.organization_id === "string"
+					? payload.organization_id
+					: undefined,
 			bearerToken: token,
 		}
 	} catch (error) {

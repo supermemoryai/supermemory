@@ -4,9 +4,11 @@ import type { ContentfulStatusCode } from "hono/utils/http-status"
 import type { Props } from "../shared/types"
 import { SupermemoryMCP } from "./agent"
 import { validateOAuthToken } from "./auth"
+import { WorkspaceState } from "./workspace-state"
 
 type Bindings = {
 	MCP_SERVER: DurableObjectNamespace
+	WORKSPACE_STATE: DurableObjectNamespace<WorkspaceState>
 	API_URL?: string
 	MCP_RESOURCE?: string
 }
@@ -154,6 +156,7 @@ async function handleMcpRequest(
 		...c.executionCtx,
 		props: {
 			userId: authUser.userId,
+			organizationId: authUser.organizationId,
 			bearerToken: authUser.bearerToken,
 			containerTag,
 		} satisfies Props,
@@ -174,6 +177,6 @@ app.all("/mcp/*", async (c) => {
 	return handleMcpRequest(c)
 })
 
-export { SupermemoryMCP }
+export { SupermemoryMCP, WorkspaceState }
 
 export default app

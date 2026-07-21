@@ -119,6 +119,7 @@ export type ViewName = ViewMessage["view"]
 // Auth context passed from the OAuth/API-key middleware into the McpAgent via ctx.props.
 export type Props = {
 	userId: string
+	organizationId?: string
 	bearerToken: string
 	containerTag?: string
 }

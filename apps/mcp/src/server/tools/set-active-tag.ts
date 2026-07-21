@@ -28,7 +28,7 @@ export function register(deps: ToolDeps) {
 						new Error(`No access to container tag '${containerTag}'.`),
 					)
 				}
-				await deps.storage.put("activeContainerTag", containerTag)
+				await deps.setActiveContainerTag(containerTag)
 				const sc: ViewMessage = {
 					view: "confirmation",
 					containerTag,

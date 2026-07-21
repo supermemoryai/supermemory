@@ -16,7 +16,7 @@ export function register(deps: ToolDeps) {
 		async () => {
 			try {
 				const [activeTag, tags, session] = await Promise.all([
-					deps.storage.get<string>("activeContainerTag"),
+					deps.getActiveContainerTag(),
 					deps.getClient().listContainerTags(),
 					deps.getSession(),
 				])

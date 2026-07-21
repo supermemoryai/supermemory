@@ -9,9 +9,11 @@ import { registerProfileResource } from "./resources/profile"
 import { registerWidgetResource } from "./resources/widget"
 import { registerAllTools } from "./tools"
 import { errorResult } from "./tools/types"
+import type { WorkspaceState } from "./workspace-state"
 
 type Env = {
 	MCP_SERVER: DurableObjectNamespace
+	WORKSPACE_STATE: DurableObjectNamespace<WorkspaceState>
 	API_URL?: string
 }
 
@@ -49,12 +51,11 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			getSession: () => this.getSession(),
 			resolveContainerTag: (explicit?: string) =>
 				this.resolveContainerTag(explicit),
-			storage: {
-				get: <T>(key: string) => this.ctx.storage.get<T>(key),
-				put: <T>(key: string, value: T) => this.ctx.storage.put(key, value),
-			},
+			getActiveContainerTag: () => this.getActiveContainerTag(),
+			setActiveContainerTag: (containerTag: string) =>
+				this.setActiveContainerTag(containerTag),
 			getClientInfo: () => this.clientInfo,
-			getMcpSessionId: () => this.ctx.id.name ?? "unknown",
+			getMcpSessionId: () => this.getSessionId(),
 			errorResult,
 		}
 
@@ -83,10 +84,24 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	private async resolveContainerTag(
 		explicit?: string,
 	): Promise<string | undefined> {
+		if (this.props?.containerTag) return this.props.containerTag
 		if (explicit) return explicit
-		const activeTag = await this.ctx.storage.get<string>("activeContainerTag")
+		const activeTag = await this.getActiveContainerTag()
 		if (activeTag) return activeTag
-		return this.props?.containerTag
+		return undefined
+	}
+
+	private workspaceState() {
+		const key = `${this.props.userId}:${this.props.organizationId ?? "default"}`
+		return this.env.WORKSPACE_STATE.getByName(key)
+	}
+
+	private getActiveContainerTag(): Promise<string | undefined> {
+		return this.workspaceState().getActiveContainerTag()
+	}
+
+	private setActiveContainerTag(containerTag: string): Promise<void> {
+		return this.workspaceState().setActiveContainerTag(containerTag)
 	}
 
 	private getSession() {

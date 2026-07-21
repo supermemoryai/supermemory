@@ -10,10 +10,8 @@ export interface ToolDeps {
 	getClient: (containerTag?: string) => SupermemoryClient
 	getSession: () => Promise<SessionInfo>
 	resolveContainerTag: (explicit?: string) => Promise<string | undefined>
-	storage: {
-		get: <T>(key: string) => Promise<T | undefined>
-		put: <T>(key: string, value: T) => Promise<void>
-	}
+	getActiveContainerTag: () => Promise<string | undefined>
+	setActiveContainerTag: (containerTag: string) => Promise<void>
 	getClientInfo: () => { name: string; version?: string } | null
 	getMcpSessionId: () => string
 	errorResult: (error: unknown) => {

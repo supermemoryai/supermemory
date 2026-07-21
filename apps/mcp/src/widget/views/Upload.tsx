@@ -30,7 +30,7 @@ function formatFileSize(bytes: number): string {
 const ACCEPT = ".txt,.pdf,.png,.jpg,.jpeg,.mp4"
 
 export function Upload({ activeTag, writableTags, onAdvance, onError }: Props) {
-	const { callTool } = useApp()
+	const { callTool, updateContext } = useApp()
 	const log = useLog()
 	const [file, setFile] = useState<File | null>(null)
 	const [selectedTag, setSelectedTag] = useState<string | null>(
@@ -61,6 +61,20 @@ export function Upload({ activeTag, writableTags, onAdvance, onError }: Props) {
 				log("error", `[upload] failed: ${result.error}`)
 				onError(result.error ?? "Upload failed")
 				return
+			}
+			try {
+				await updateContext(
+					`The user uploaded "${file.name}" to the Supermemory workspace "${selectedTag}" from the interactive widget.`,
+					{
+						supermemory: {
+							activeWorkspace: selectedTag,
+							lastAction: "file-uploaded",
+							fileName: file.name,
+						},
+					},
+				)
+			} catch (error) {
+				log("warning", `[upload] model context update failed: ${error}`)
 			}
 			onAdvance(result.data)
 		} catch (err) {

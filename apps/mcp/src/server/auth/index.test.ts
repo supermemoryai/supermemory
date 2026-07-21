@@ -47,7 +47,11 @@ describe("MCP authentication", () => {
 
 		await expect(
 			validateOAuthToken(token, API_URL, MCP_RESOURCE, keySet),
-		).resolves.toEqual({ userId: "user_test", bearerToken: token })
+		).resolves.toEqual({
+			userId: "user_test",
+			organizationId: "org_test",
+			bearerToken: token,
+		})
 		expect(fetchSpy).not.toHaveBeenCalled()
 	})
 

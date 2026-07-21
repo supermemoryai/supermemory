@@ -4,6 +4,7 @@ import {
 	callTool,
 	connect,
 	type Session,
+	textOf,
 } from "./helpers"
 
 describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
@@ -42,7 +43,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 			).toBe(true)
 		})
 
-		it("sets an active workspace only from the visible list", async () => {
+		it("shares the selected workspace across MCP transport sessions", async () => {
 			const picker = await callTool(session.client, "select-workspace")
 			const pickerContent = picker.structuredContent as {
 				containerTags?: Array<{ containerTag: string }>
@@ -58,6 +59,17 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 				view: "confirmation",
 				containerTag: firstTag,
 			})
+
+			const separateSession = await connect()
+			try {
+				const identity = await callTool(separateSession.client, "whoAmI")
+				expect(identity.isError).toBeFalsy()
+				expect(JSON.parse(textOf(identity))).toMatchObject({
+					activeWorkspace: firstTag,
+				})
+			} finally {
+				await separateSession.close()
+			}
 		})
 
 		it("loads guided-save writable choices on demand", async () => {

@@ -20,7 +20,7 @@ export function register(deps: ToolDeps) {
 				const [tags, session, activeTag] = await Promise.all([
 					client.listContainerTags(),
 					deps.getSession(),
-					deps.storage.get<string>("activeContainerTag"),
+					deps.getActiveContainerTag(),
 				])
 				const assignedTags = effectiveContainerTagAccess(
 					tags.map((tag) => tag.containerTag),

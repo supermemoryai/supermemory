@@ -28,7 +28,7 @@ export function Picker({
 	onAdvance,
 	onError,
 }: Props) {
-	const { callTool } = useApp()
+	const { callTool, updateContext } = useApp()
 	const log = useLog()
 	const [pending, setPending] = useState<string | null>(null)
 	const [query, setQuery] = useState("")
@@ -54,6 +54,19 @@ export function Picker({
 			log("error", `[picker] set-active-tag failed: ${result.error}`)
 			onError(result.error ?? "Failed to set active workspace")
 			return
+		}
+		try {
+			await updateContext(
+				`The user selected the Supermemory workspace "${containerTag}". Use this as the active workspace for future Supermemory actions unless the user selects another workspace.`,
+				{
+					supermemory: {
+						activeWorkspace: containerTag,
+						lastAction: "workspace-selected",
+					},
+				},
+			)
+		} catch (error) {
+			log("warning", `[picker] model context update failed: ${error}`)
 		}
 		onAdvance(result.data)
 	}

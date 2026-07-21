@@ -20,7 +20,7 @@ export function register(deps: ToolDeps) {
 			try {
 				const prefill = (args as { prefill?: string }).prefill
 				const [activeTag, tags, session] = await Promise.all([
-					deps.storage.get<string>("activeContainerTag"),
+					deps.getActiveContainerTag(),
 					deps.getClient().listContainerTags(),
 					deps.getSession(),
 				])

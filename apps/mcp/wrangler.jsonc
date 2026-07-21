@@ -27,6 +27,10 @@
 			{
 				"name": "MCP_SERVER",
 				"class_name": "SupermemoryMCP"
+			},
+			{
+				"name": "WORKSPACE_STATE",
+				"class_name": "WorkspaceState"
 			}
 		]
 	},
@@ -35,6 +39,10 @@
 		{
 			"tag": "v1",
 			"new_sqlite_classes": ["SupermemoryMCP"]
+		},
+		{
+			"tag": "v2",
+			"new_sqlite_classes": ["WorkspaceState"]
 		}
 	],
 

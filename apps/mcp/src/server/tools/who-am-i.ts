@@ -11,7 +11,7 @@ export function register(deps: ToolDeps) {
 			try {
 				const [session, activeTag] = await Promise.all([
 					deps.getSession(),
-					deps.storage.get<string>("activeContainerTag"),
+					deps.getActiveContainerTag(),
 				])
 				return {
 					content: [

@@ -56,9 +56,10 @@ export function useApp() {
 			},
 
 			/** Update ambient model context. Model sees on next user message. */
-			updateContext(text: string) {
+			updateContext(text: string, structuredContent?: Record<string, unknown>) {
 				return app.updateModelContext({
 					content: [{ type: "text", text }],
+					structuredContent,
 				})
 			},
 
