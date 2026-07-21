@@ -28,13 +28,6 @@ export function register(deps: ToolDeps) {
 				limit?: number
 			}
 			try {
-				if (args.containerTag && !deps.rbac.canRead(args.containerTag)) {
-					return deps.errorResult(
-						new Error(
-							`No read access to container tag '${args.containerTag}'.`,
-						),
-					)
-				}
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
 				const client = deps.getClient(effectiveTag)
 				const containerTags = effectiveTag ? [effectiveTag] : undefined

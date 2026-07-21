@@ -1,5 +1,6 @@
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import { effectiveContainerTagAccess } from "../auth/rbac"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -16,15 +17,21 @@ export function register(deps: ToolDeps) {
 		async () => {
 			try {
 				const client = deps.getClient()
-				const tags = await client.listContainerTags()
-
-				const activeTag = await deps.storage.get<string>("activeContainerTag")
+				const [tags, session, activeTag] = await Promise.all([
+					client.listContainerTags(),
+					deps.getSession(),
+					deps.storage.get<string>("activeContainerTag"),
+				])
+				const assignedTags = effectiveContainerTagAccess(
+					tags.map((tag) => tag.containerTag),
+					session,
+				)
 
 				const sc: ViewMessage = {
 					view: "picker",
 					containerTags: tags,
 					activeTag,
-					assignedTags: deps.rbac.isRestricted ? deps.rbac.assignedTags : null,
+					assignedTags,
 				}
 
 				return {

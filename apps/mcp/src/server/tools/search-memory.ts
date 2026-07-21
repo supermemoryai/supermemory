@@ -3,8 +3,8 @@ import { getMemoryText } from "../client"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
-	const containerTagField: Record<string, z.ZodTypeAny> = deps.rbac
-		.hasRootContainerTag
+	const containerTagField: Record<string, z.ZodTypeAny> = deps.props
+		?.containerTag
 		? {}
 		: {
 				containerTag: z
@@ -36,13 +36,6 @@ export function register(deps: ToolDeps) {
 				containerTag?: string
 			}
 			try {
-				if (args.containerTag && !deps.rbac.canRead(args.containerTag)) {
-					return deps.errorResult(
-						new Error(
-							`No read access to container tag '${args.containerTag}'.`,
-						),
-					)
-				}
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
 				const client = deps.getClient(effectiveTag)
 

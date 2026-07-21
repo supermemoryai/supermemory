@@ -1,7 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import { API_KEY, callTool, connect, type Session, textOf } from "./helpers"
+import {
+	AUTH_CREDENTIALS_AVAILABLE,
+	callTool,
+	connect,
+	type Session,
+	textOf,
+} from "./helpers"
+const describeWithAuth = describe.skipIf(!AUTH_CREDENTIALS_AVAILABLE)
 
-describe.skipIf(!API_KEY)("MCP — graph, resources & prompts", () => {
+describeWithAuth("MCP — graph, resources & prompts", () => {
 	let s: Session
 
 	beforeAll(async () => {
@@ -43,11 +50,13 @@ describe.skipIf(!API_KEY)("MCP — graph, resources & prompts", () => {
 		expect(typeof res.contents[0].text).toBe("string")
 	})
 
-	it("reads the projects resource as JSON", async () => {
-		const res = await s.client.readResource({ uri: "supermemory://projects" })
+	it("reads the container-tags resource as JSON", async () => {
+		const res = await s.client.readResource({
+			uri: "supermemory://container-tags",
+		})
 		const text = res.contents[0].text as string
 		const parsed = JSON.parse(text)
-		expect(Array.isArray(parsed.projects)).toBe(true)
+		expect(Array.isArray(parsed.containerTags)).toBe(true)
 	})
 
 	it("gets the context prompt as a system message", async () => {

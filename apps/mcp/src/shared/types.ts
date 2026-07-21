@@ -3,7 +3,28 @@
 
 export interface ContainerTagAccess {
 	containerTag: string
-	permission: string // "read" | "write"
+	permission: "read" | "write"
+}
+
+export interface SessionScope {
+	type: "full" | "scoped"
+	permission?: "read" | "write"
+	tag?: string
+	tags?: string[]
+	rateLimit?: number
+	expires?: string
+}
+
+export interface SessionInfo {
+	user: {
+		id: string
+		email?: string
+		name?: string
+	}
+	role?: string
+	accessType?: "full" | "restricted"
+	containerTags?: ContainerTagAccess[] | null
+	scope?: SessionScope
 }
 
 export interface ContainerTag {
@@ -98,13 +119,8 @@ export type ViewName = ViewMessage["view"]
 // Auth context passed from the OAuth/API-key middleware into the McpAgent via ctx.props.
 export type Props = {
 	userId: string
-	apiKey: string
+	bearerToken: string
 	containerTag?: string
-	email?: string
-	name?: string
-	role?: string
-	accessType?: string
-	assignedTags?: ContainerTagAccess[] | null
 }
 
 // MCP resource URI for the widget bundle.

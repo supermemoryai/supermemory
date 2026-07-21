@@ -14,7 +14,6 @@ import * as uploadFileSubmit from "./upload-file-submit"
 import * as whoAmI from "./who-am-i"
 
 export function registerAllTools(deps: ToolDeps) {
-	// Always available
 	searchMemory.register(deps)
 	listMemories.register(deps)
 	listContainerTags.register(deps)
@@ -23,13 +22,9 @@ export function registerAllTools(deps: ToolDeps) {
 	setActiveTag.register(deps)
 	memoryGraph.register(deps)
 	fetchGraphData.register(deps)
-
-	// Write-gated (RBAC)
-	if (deps.rbac.hasWriteAccess) {
-		addMemory.register(deps)
-		guidedSave.register(deps)
-		saveMemory.register(deps)
-		uploadFile.register(deps)
-		uploadFileSubmit.register(deps)
-	}
+	addMemory.register(deps)
+	guidedSave.register(deps)
+	saveMemory.register(deps)
+	uploadFile.register(deps)
+	uploadFileSubmit.register(deps)
 }

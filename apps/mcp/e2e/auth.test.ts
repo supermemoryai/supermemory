@@ -62,4 +62,15 @@ describe("MCP — transport & auth (raw HTTP)", () => {
 		const body = (await res.json()) as { error?: { message?: string } }
 		expect(body.error?.message).toMatch(/invalid|expired/i)
 	})
+
+	it("rejects a malformed OAuth bearer without API introspection", async () => {
+		const res = await fetch(MCP_URL, {
+			method: "POST",
+			headers: mcpHeaders("Bearer not-a-jwt"),
+			body: initBody,
+		})
+		expect(res.status).toBe(401)
+		const body = (await res.json()) as { error?: { message?: string } }
+		expect(body.error?.message).toMatch(/invalid|expired/i)
+	})
 })

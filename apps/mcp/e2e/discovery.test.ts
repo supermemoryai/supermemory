@@ -1,15 +1,22 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import { API_KEY, callTool, connect, textOf, type Session } from "./helpers"
+import {
+	AUTH_CREDENTIALS_AVAILABLE,
+	callTool,
+	connect,
+	textOf,
+	type Session,
+} from "./helpers"
 
 const EXPECTED_TOOLS = [
-	"memory",
-	"recall",
-	"listProjects",
+	"add_memory",
+	"search_memory",
+	"listSpaces",
 	"whoAmI",
 	"memory-graph",
 ]
+const describeWithAuth = describe.skipIf(!AUTH_CREDENTIALS_AVAILABLE)
 
-describe.skipIf(!API_KEY)("MCP — discovery & identity", () => {
+describeWithAuth("MCP — discovery & identity", () => {
 	let s: Session
 
 	beforeAll(async () => {
@@ -25,11 +32,11 @@ describe.skipIf(!API_KEY)("MCP — discovery & identity", () => {
 		for (const t of EXPECTED_TOOLS) expect(names).toContain(t)
 	})
 
-	it("lists profile & projects resources", async () => {
+	it("lists profile and container-tag resources", async () => {
 		const { resources } = await s.client.listResources()
 		const uris = resources.map((r) => r.uri)
 		expect(uris).toContain("supermemory://profile")
-		expect(uris).toContain("supermemory://projects")
+		expect(uris).toContain("supermemory://container-tags")
 	})
 
 	it("lists the context prompt", async () => {
@@ -44,8 +51,8 @@ describe.skipIf(!API_KEY)("MCP — discovery & identity", () => {
 		expect(parsed.userId).toBeTruthy()
 	})
 
-	it("listProjects returns content", async () => {
-		const res = await callTool(s.client, "listProjects", { refresh: true })
+	it("listSpaces returns content", async () => {
+		const res = await callTool(s.client, "listSpaces")
 		expect(res.isError).toBeFalsy()
 		expect(textOf(res).length).toBeGreaterThan(0)
 	})

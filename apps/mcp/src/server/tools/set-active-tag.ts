@@ -21,24 +21,29 @@ export function register(deps: ToolDeps) {
 		},
 		async (args) => {
 			const containerTag = (args as { containerTag: string }).containerTag
-			if (!deps.rbac.canRead(containerTag)) {
-				return deps.errorResult(
-					new Error(`No access to container tag '${containerTag}'.`),
-				)
-			}
-			await deps.storage.put("activeContainerTag", containerTag)
-			const sc: ViewMessage = {
-				view: "confirmation",
-				containerTag,
-			}
-			return {
-				content: [
-					{
-						type: "text" as const,
-						text: `Active workspace set to ${containerTag}`,
-					},
-				],
-				structuredContent: sc,
+			try {
+				const tags = await deps.getClient().listContainerTags()
+				if (!tags.some((tag) => tag.containerTag === containerTag)) {
+					return deps.errorResult(
+						new Error(`No access to container tag '${containerTag}'.`),
+					)
+				}
+				await deps.storage.put("activeContainerTag", containerTag)
+				const sc: ViewMessage = {
+					view: "confirmation",
+					containerTag,
+				}
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: `Active workspace set to ${containerTag}`,
+						},
+					],
+					structuredContent: sc,
+				}
+			} catch (error) {
+				return deps.errorResult(error)
 			}
 		},
 	)

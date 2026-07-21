@@ -30,14 +30,6 @@ export function register(deps: ToolDeps) {
 				containerTag: string
 			}
 			try {
-				if (!deps.rbac.canWrite(args.containerTag)) {
-					return deps.errorResult(
-						new Error(
-							`No write access to container tag '${args.containerTag}'.`,
-						),
-					)
-				}
-
 				const binaryString = atob(args.fileData)
 				const bytes = new Uint8Array(binaryString.length)
 				for (let i = 0; i < binaryString.length; i++) {

@@ -4,8 +4,7 @@ import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
-	const inputSchema: Record<string, z.ZodTypeAny> = deps.rbac
-		.hasRootContainerTag
+	const inputSchema: Record<string, z.ZodTypeAny> = deps.props?.containerTag
 		? {}
 		: {
 				containerTag: z
@@ -27,11 +26,6 @@ export function register(deps: ToolDeps) {
 		async (rawArgs) => {
 			try {
 				const explicit = (rawArgs as { containerTag?: string }).containerTag
-				if (explicit && !deps.rbac.canRead(explicit)) {
-					return deps.errorResult(
-						new Error(`No read access to container tag '${explicit}'.`),
-					)
-				}
 				const effectiveTag = await deps.resolveContainerTag(explicit)
 				const client = deps.getClient(effectiveTag)
 				const containerTags = effectiveTag ? [effectiveTag] : undefined

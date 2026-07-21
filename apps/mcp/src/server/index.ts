@@ -9,47 +9,21 @@ import {
 	validateApiKey,
 	validateOAuthToken,
 } from "./auth"
-import { getCachedAuth, putCachedAuth } from "./auth/cache"
 
 type Bindings = {
 	MCP_SERVER: DurableObjectNamespace
 	API_URL?: string
-	AUTH_CACHE?: KVNamespace
+	MCP_RESOURCE?: string
 }
 
-// Per-request validation, but cached against an introspected result keyed
-// by SHA-256(token). Hot path: ~5ms KV lookup. Cold path: ~400ms upstream
-// introspection (same as today). TTL 5 min — matches Better Auth's cookie
-// cache. Fail-open if KV is unavailable so we never hard-fail auth.
 async function resolveAuth(
 	token: string,
 	apiUrl: string,
-	kv: KVNamespace | undefined,
+	mcpResource: string,
 ): Promise<AuthUser | null> {
-	if (kv) {
-		try {
-			const cached = await getCachedAuth(kv, token)
-			if (cached) {
-				console.log("[auth] cache-hit")
-				return cached
-			}
-		} catch (err) {
-			console.warn("[auth] cache-error:", err)
-		}
-	}
-
-	console.log("[auth] cache-miss")
-	const user = isApiKey(token)
+	return isApiKey(token)
 		? await validateApiKey(token, apiUrl)
-		: await validateOAuthToken(token, apiUrl)
-
-	if (user && kv) {
-		// Best-effort write; never block the request on cache write
-		void putCachedAuth(kv, token, user).catch((err) =>
-			console.warn("[auth] cache-write-error:", err),
-		)
-	}
-	return user
+		: await validateOAuthToken(token, apiUrl, mcpResource)
 }
 
 export type { Props }
@@ -93,9 +67,10 @@ app.get("/", (c) => {
 // URL with `/mcp` appended.
 function resourceMetadata(c: Context<{ Bindings: Bindings }>) {
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
+	const mcpResource = c.env.MCP_RESOURCE || DEFAULT_MCP_RESOURCE
 
 	return c.json({
-		resource: DEFAULT_MCP_RESOURCE,
+		resource: mcpResource,
 		authorization_servers: [apiUrl],
 		scopes_supported: ["openid", "profile", "email", "offline_access"],
 		bearer_methods_supported: ["header"],
@@ -145,6 +120,7 @@ async function handleMcpRequest(
 	const token = authHeader?.replace(/^Bearer\s+/i, "")
 	const containerTag = c.req.header("x-sm-project")
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
+	const mcpResource = c.env.MCP_RESOURCE || DEFAULT_MCP_RESOURCE
 
 	// Build absolute resource_metadata URL from incoming request (works
 	// behind tunnels where the scheme/host differ from localhost)
@@ -165,7 +141,7 @@ async function handleMcpRequest(
 		})
 	}
 
-	const authUser = await resolveAuth(token, apiUrl, c.env.AUTH_CACHE)
+	const authUser = await resolveAuth(token, apiUrl, mcpResource)
 
 	if (!authUser) {
 		return new Response(
@@ -195,13 +171,8 @@ async function handleMcpRequest(
 		...c.executionCtx,
 		props: {
 			userId: authUser.userId,
-			apiKey: authUser.apiKey,
+			bearerToken: authUser.bearerToken,
 			containerTag,
-			email: authUser.email,
-			name: authUser.name,
-			role: authUser.role,
-			accessType: authUser.accessType,
-			assignedTags: authUser.containerTags,
 		} satisfies Props,
 	} as ExecutionContext & { props: Props }
 

@@ -23,13 +23,6 @@ export function register(deps: ToolDeps) {
 		async (rawArgs) => {
 			const args = rawArgs as { content: string; containerTag: string }
 			try {
-				if (!deps.rbac.canWrite(args.containerTag)) {
-					return deps.errorResult(
-						new Error(
-							`No write access to container tag '${args.containerTag}'.`,
-						),
-					)
-				}
 				const client = deps.getClient(args.containerTag)
 				const result = await client.createMemory(args.content)
 				const sc: ViewMessage = {

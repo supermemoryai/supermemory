@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { McpAgent } from "agents/mcp"
 import type { Props } from "../shared/types"
-import { buildRbacContext } from "./auth/rbac"
+import { fetchSession } from "./auth"
 import { SupermemoryClient } from "./client"
 import { registerContextPrompt } from "./prompts/context"
 import { registerContainerTagsResource } from "./resources/container-tags"
@@ -13,14 +13,12 @@ import { errorResult } from "./tools/types"
 type Env = {
 	MCP_SERVER: DurableObjectNamespace
 	API_URL?: string
-	AUTH_CACHE?: KVNamespace
 }
 
 const DEFAULT_API_URL = "https://api.supermemory.ai"
 
 export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	private clientInfo: { name: string; version?: string } | null = null
-	private cachedContainerTagsList: string[] = []
 
 	// @ts-expect-error - agents/mcp ships its own bundled @modelcontextprotocol/sdk;
 	// our installed sdk has a private `_serverInfo` field with a different declaration.
@@ -44,30 +42,17 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			}
 		}
 
-		await this.refreshContainerTags()
-
-		const rbac = buildRbacContext(this.props)
-
-		if (rbac.isRestricted && rbac.assignedTags.length === 1) {
-			await this.ctx.storage.put(
-				"activeContainerTag",
-				rbac.assignedTags[0].containerTag,
-			)
-		}
-
 		const deps = {
 			server: this.server,
 			props: this.props,
-			rbac,
 			getClient: (containerTag?: string) => this.getClient(containerTag),
+			getSession: () => this.getSession(),
 			resolveContainerTag: (explicit?: string) =>
 				this.resolveContainerTag(explicit),
 			storage: {
 				get: <T>(key: string) => this.ctx.storage.get<T>(key),
 				put: <T>(key: string, value: T) => this.ctx.storage.put(key, value),
 			},
-			cachedContainerTags: () => this.cachedContainerTagsList,
-			refreshContainerTags: () => this.refreshContainerTags(),
 			getClientInfo: () => this.clientInfo,
 			getMcpSessionId: () => this.ctx.id.name ?? "unknown",
 			errorResult,
@@ -81,7 +66,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 
 		registerContextPrompt(
 			this.server,
-			rbac,
+			!!this.props?.containerTag,
 			(tag) => this.getClient(tag),
 			(explicit) => this.resolveContainerTag(explicit),
 		)
@@ -89,7 +74,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 
 	private getClient(containerTag?: string): SupermemoryClient {
 		return new SupermemoryClient(
-			this.props?.apiKey || "",
+			this.props?.bearerToken || "",
 			containerTag || this.props?.containerTag,
 			this.env.API_URL || DEFAULT_API_URL,
 		)
@@ -100,16 +85,14 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	): Promise<string | undefined> {
 		if (explicit) return explicit
 		const activeTag = await this.ctx.storage.get<string>("activeContainerTag")
-		return activeTag || this.props?.containerTag
+		if (activeTag) return activeTag
+		return this.props?.containerTag
 	}
 
-	private async refreshContainerTags(): Promise<void> {
-		try {
-			const client = this.getClient()
-			const tags = await client.listContainerTags()
-			this.cachedContainerTagsList = tags.map((t) => t.containerTag)
-		} catch (error) {
-			console.error("Failed to refresh container tags:", error)
-		}
+	private getSession() {
+		return fetchSession(
+			this.props?.bearerToken || "",
+			this.env.API_URL || DEFAULT_API_URL,
+		)
 	}
 }

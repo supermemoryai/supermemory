@@ -1,27 +1,55 @@
-/**
- * Authentication via API introspection.
- * Validates OAuth tokens and API keys by calling the main Supermemory API.
- * Extended with RBAC data (role, accessType, containerTags).
- */
-
-import type { ContainerTagAccess } from "../../shared/types"
+import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose"
+import type { SessionInfo } from "../../shared/types"
 
 const FETCH_TIMEOUT_MS = 30_000
 
-export type { ContainerTagAccess }
-
 export interface AuthUser {
 	userId: string
-	apiKey: string
-	email?: string
-	name?: string
-	role?: string // "owner" | "admin" | "member"
-	accessType?: string // "full" | "restricted"
-	containerTags?: ContainerTagAccess[] | null
+	bearerToken: string
 }
+
+const remoteJwks = new Map<string, ReturnType<typeof createRemoteJWKSet>>()
 
 export function isApiKey(token: string): boolean {
 	return token.startsWith("sm_")
+}
+
+function authIssuer(apiUrl: string): string {
+	return `${apiUrl.replace(/\/+$/, "")}/api/auth`
+}
+
+function getRemoteJwks(jwksUrl: string) {
+	let keySet = remoteJwks.get(jwksUrl)
+	if (!keySet) {
+		keySet = createRemoteJWKSet(new URL(jwksUrl))
+		remoteJwks.set(jwksUrl, keySet)
+	}
+	return keySet
+}
+
+export async function fetchSession(
+	bearerToken: string,
+	apiUrl: string,
+): Promise<SessionInfo> {
+	const response = await fetch(`${apiUrl.replace(/\/+$/, "")}/v3/session`, {
+		method: "GET",
+		headers: { Authorization: `Bearer ${bearerToken}` },
+		signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+	})
+
+	if (!response.ok) {
+		throw Object.assign(
+			new Error(`Session request failed with status ${response.status}`),
+			{ status: response.status },
+		)
+	}
+
+	const session = (await response.json()) as SessionInfo | null
+	if (!session?.user?.id) {
+		throw new Error("Missing user.id in session response")
+	}
+
+	return session
 }
 
 export async function validateApiKey(
@@ -29,47 +57,10 @@ export async function validateApiKey(
 	apiUrl: string,
 ): Promise<AuthUser | null> {
 	try {
-		const response = await fetch(`${apiUrl}/v3/session`, {
-			method: "GET",
-			headers: { Authorization: `Bearer ${apiKey}` },
-			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-		})
-
-		if (!response.ok) {
-			const status = response.status
-			if (status === 401) {
-				console.error("API key validation failed: Invalid or expired")
-			} else if (status === 403) {
-				console.error("API key validation failed: Blocked or forbidden")
-			} else if (status === 429) {
-				console.error("API key validation failed: Rate limited")
-			} else {
-				console.error("API key validation failed:", status)
-			}
-			return null
-		}
-
-		const data = (await response.json()) as {
-			user?: { id?: string; email?: string; name?: string }
-			role?: string
-			accessType?: string
-			containerTags?: ContainerTagAccess[] | null
-			error?: string
-		} | null
-
-		if (!data?.user?.id) {
-			console.error("Missing user.id in session response")
-			return null
-		}
-
+		const session = await fetchSession(apiKey, apiUrl)
 		return {
-			userId: data.user.id,
-			apiKey,
-			email: data.user.email,
-			name: data.user.name,
-			role: data.role,
-			accessType: data.accessType,
-			containerTags: data.containerTags,
+			userId: session.user.id,
+			bearerToken: apiKey,
 		}
 	} catch (error) {
 		console.error("API key validation error:", error)
@@ -80,84 +71,25 @@ export async function validateApiKey(
 export async function validateOAuthToken(
 	token: string,
 	apiUrl: string,
+	audience: string,
+	keySet?: JWTVerifyGetKey,
 ): Promise<AuthUser | null> {
 	try {
-		const response = await fetch(`${apiUrl}/v3/mcp/session-with-key`, {
-			method: "GET",
-			headers: { Authorization: `Bearer ${token}` },
-			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+		const issuer = authIssuer(apiUrl)
+		const verifier = keySet ?? getRemoteJwks(`${issuer}/jwks`)
+		const { payload } = await jwtVerify(token, verifier, {
+			issuer,
+			audience,
 		})
-
-		if (!response.ok) {
-			const status = response.status
-			if (status === 401) {
-				console.error("Token validation failed: Invalid or expired")
-			} else if (status === 403) {
-				console.error("Token validation failed: Blocked or forbidden")
-			} else if (status === 429) {
-				console.error("Token validation failed: Rate limited")
-			} else {
-				console.error("Token validation failed:", status)
-			}
+		if (typeof payload.sub !== "string" || payload.sub.length === 0) {
 			return null
 		}
-
-		const data = (await response.json()) as {
-			userId?: string
-			apiKey?: string
-			email?: string
-			name?: string
-			error?: string
-		} | null
-
-		if (!data?.userId || !data?.apiKey) {
-			console.error("Missing userId or apiKey in session response")
-			return null
-		}
-
-		// Fetch RBAC data using the exchanged API key.
-		// Fail-closed: if RBAC fetch fails or is non-OK, return null. A
-		// transient failure here previously left accessType=undefined, which
-		// `buildRbacContext` interpreted as "not restricted" — silently
-		// elevating a restricted user.
-		let role: string | undefined
-		let accessType: string | undefined
-		let containerTags: ContainerTagAccess[] | null = null
-
-		try {
-			const rbacResponse = await fetch(`${apiUrl}/v3/session`, {
-				method: "GET",
-				headers: { Authorization: `Bearer ${data.apiKey}` },
-				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-			})
-			if (!rbacResponse.ok) {
-				console.error("RBAC fetch returned non-OK:", rbacResponse.status)
-				return null
-			}
-			const rbac = (await rbacResponse.json()) as {
-				role?: string
-				accessType?: string
-				containerTags?: ContainerTagAccess[] | null
-			}
-			role = rbac.role
-			accessType = rbac.accessType
-			containerTags = rbac.containerTags ?? null
-		} catch (err) {
-			console.error("Failed to fetch RBAC data:", err)
-			return null
-		}
-
 		return {
-			userId: data.userId,
-			apiKey: data.apiKey,
-			email: data.email,
-			name: data.name,
-			role,
-			accessType,
-			containerTags,
+			userId: payload.sub,
+			bearerToken: token,
 		}
 	} catch (error) {
-		console.error("Token validation error:", error)
+		console.error("OAuth token validation error:", error)
 		return null
 	}
 }

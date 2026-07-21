@@ -1,6 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
-import type { Props } from "../../shared/types"
-import type { RbacContext } from "../auth/rbac"
+import type { Props, SessionInfo } from "../../shared/types"
 import type { SupermemoryClient } from "../client"
 
 // Dependencies passed to every tool's register() function.
@@ -8,15 +7,13 @@ import type { SupermemoryClient } from "../client"
 export interface ToolDeps {
 	server: McpServer
 	props: Props | undefined
-	rbac: RbacContext
 	getClient: (containerTag?: string) => SupermemoryClient
+	getSession: () => Promise<SessionInfo>
 	resolveContainerTag: (explicit?: string) => Promise<string | undefined>
 	storage: {
 		get: <T>(key: string) => Promise<T | undefined>
 		put: <T>(key: string, value: T) => Promise<void>
 	}
-	cachedContainerTags: () => string[]
-	refreshContainerTags: () => Promise<void>
 	getClientInfo: () => { name: string; version?: string } | null
 	getMcpSessionId: () => string
 	errorResult: (error: unknown) => {

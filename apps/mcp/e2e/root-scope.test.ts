@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto"
 import { describe, expect, it } from "vitest"
-import { API_KEY, callTool, connect, recallUntil, textOf } from "./helpers"
+import {
+	AUTH_CREDENTIALS_AVAILABLE,
+	callTool,
+	connect,
+	recallUntil,
+	textOf,
+} from "./helpers"
 
 type ToolLike = {
 	name: string
@@ -12,9 +18,10 @@ const propsOf = (tools: ToolLike[], name: string): Record<string, unknown> =>
 
 // Fixed tag (not a per-run UUID) so the test doesn't mint a new project each run.
 const SCOPE_TAG = "sm_e2e_root"
+const describeWithAuth = describe.skipIf(!AUTH_CREDENTIALS_AVAILABLE)
 
 // x-sm-project locks the connection to one project: strips containerTag from schemas and scopes every op — distinct from the per-call arg.
-describe.skipIf(!API_KEY)("MCP — x-sm-project root scoping", () => {
+describeWithAuth("MCP — x-sm-project root scoping", () => {
 	it("strips containerTag from tool schemas when x-sm-project is set", async () => {
 		const scoped = await connect({ containerTag: SCOPE_TAG })
 		const plain = await connect()
@@ -22,11 +29,17 @@ describe.skipIf(!API_KEY)("MCP — x-sm-project root scoping", () => {
 			const scopedTools = (await scoped.client.listTools()).tools
 			const plainTools = (await plain.client.listTools()).tools
 
-			expect(propsOf(plainTools, "memory")).toHaveProperty("containerTag")
-			expect(propsOf(plainTools, "recall")).toHaveProperty("containerTag")
+			expect(propsOf(plainTools, "add_memory")).toHaveProperty("containerTag")
+			expect(propsOf(plainTools, "search_memory")).toHaveProperty(
+				"containerTag",
+			)
 
-			expect(propsOf(scopedTools, "memory")).not.toHaveProperty("containerTag")
-			expect(propsOf(scopedTools, "recall")).not.toHaveProperty("containerTag")
+			expect(propsOf(scopedTools, "add_memory")).not.toHaveProperty(
+				"containerTag",
+			)
+			expect(propsOf(scopedTools, "search_memory")).not.toHaveProperty(
+				"containerTag",
+			)
 		} finally {
 			await scoped.close()
 			await plain.close()
@@ -39,7 +52,7 @@ describe.skipIf(!API_KEY)("MCP — x-sm-project root scoping", () => {
 
 		const rooted = await connect({ containerTag: SCOPE_TAG })
 		try {
-			const save = await callTool(rooted.client, "memory", {
+			const save = await callTool(rooted.client, "add_memory", {
 				content,
 				action: "save",
 			})
@@ -53,7 +66,7 @@ describe.skipIf(!API_KEY)("MCP — x-sm-project root scoping", () => {
 			)
 			expect(found, "marker not found within its root scope").not.toBeNull()
 		} finally {
-			await callTool(rooted.client, "memory", {
+			await callTool(rooted.client, "add_memory", {
 				content,
 				action: "forget",
 			}).catch(() => {})

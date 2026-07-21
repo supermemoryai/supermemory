@@ -1,42 +1,34 @@
-import type { ContainerTagAccess, Props } from "../../shared/types"
+import type { ContainerTagAccess, SessionInfo } from "../../shared/types"
 
-export interface RbacContext {
-	isRestricted: boolean
-	assignedTags: ContainerTagAccess[]
-	writeTags: ContainerTagAccess[]
-	hasWriteAccess: boolean
-	hasRootContainerTag: boolean
-	// Defense-in-depth: short-circuit before hitting the API so we surface a
-	// clear permission-denied to the model instead of a downstream 403.
-	// API still enforces authoritatively via containerTagGuard.
-	canRead: (containerTag: string) => boolean
-	canWrite: (containerTag: string) => boolean
-}
+export function effectiveContainerTagAccess(
+	containerTags: string[],
+	session: SessionInfo,
+): ContainerTagAccess[] {
+	const memberAccess = new Map(
+		(session.containerTags ?? []).map((access) => [
+			access.containerTag,
+			access.permission,
+		]),
+	)
+	const scopedTags = new Set(
+		session.scope?.tags ?? (session.scope?.tag ? [session.scope.tag] : []),
+	)
 
-export function buildRbacContext(props: Props | undefined): RbacContext {
-	const isRestricted = props?.accessType === "restricted"
-	const assignedTags: ContainerTagAccess[] = props?.assignedTags ?? []
-	const writeTags = assignedTags.filter((t) => t.permission === "write")
-	const hasWriteAccess = !isRestricted || writeTags.length > 0
-	const hasRootContainerTag = !!props?.containerTag
+	return containerTags.map((containerTag) => {
+		let permission: ContainerTagAccess["permission"] = "write"
 
-	const canRead = (containerTag: string): boolean => {
-		if (!isRestricted) return true
-		return assignedTags.some((t) => t.containerTag === containerTag)
-	}
+		if (session.accessType === "restricted") {
+			permission = memberAccess.get(containerTag) ?? "read"
+		}
 
-	const canWrite = (containerTag: string): boolean => {
-		if (!isRestricted) return true
-		return writeTags.some((t) => t.containerTag === containerTag)
-	}
+		if (
+			session.scope?.type === "scoped" &&
+			(session.scope.permission === "read" ||
+				(scopedTags.size > 0 && !scopedTags.has(containerTag)))
+		) {
+			permission = "read"
+		}
 
-	return {
-		isRestricted,
-		assignedTags,
-		writeTags,
-		hasWriteAccess,
-		hasRootContainerTag,
-		canRead,
-		canWrite,
-	}
+		return { containerTag, permission }
+	})
 }

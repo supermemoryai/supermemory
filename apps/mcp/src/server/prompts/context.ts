@@ -1,23 +1,21 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from "zod"
-import type { RbacContext } from "../auth/rbac"
 import type { SupermemoryClient } from "../client"
 
 export function registerContextPrompt(
 	server: McpServer,
-	rbac: RbacContext,
+	hasRootContainerTag: boolean,
 	getClient: (tag?: string) => SupermemoryClient,
 	resolveContainerTag: (explicit?: string) => Promise<string | undefined>,
 ) {
-	const containerTagField: Record<string, z.ZodTypeAny> =
-		rbac.hasRootContainerTag
-			? {}
-			: {
-					containerTag: z
-						.string()
-						.max(128, "Container tag exceeds maximum length")
-						.optional(),
-				}
+	const containerTagField: Record<string, z.ZodTypeAny> = hasRootContainerTag
+		? {}
+		: {
+				containerTag: z
+					.string()
+					.max(128, "Container tag exceeds maximum length")
+					.optional(),
+			}
 
 	const argsSchema = {
 		includeRecent: z.boolean().optional().default(true),
@@ -36,19 +34,6 @@ export function registerContextPrompt(
 				containerTag?: string
 			}
 			try {
-				if (args.containerTag && !rbac.canRead(args.containerTag)) {
-					return {
-						messages: [
-							{
-								role: "user" as const,
-								content: {
-									type: "text" as const,
-									text: `No access to container tag '${args.containerTag}'.`,
-								},
-							},
-						],
-					}
-				}
 				const effectiveTag = await resolveContainerTag(args.containerTag)
 				const client = getClient(effectiveTag)
 				const profileResult = await client.getProfile()

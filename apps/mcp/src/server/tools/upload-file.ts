@@ -1,5 +1,6 @@
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import { effectiveContainerTagAccess } from "../auth/rbac"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -13,27 +14,33 @@ export function register(deps: ToolDeps) {
 			_meta: { ui: { resourceUri: SUPERMEMORY_RESOURCE_URI } },
 		},
 		async () => {
-			const activeTag = await deps.storage.get<string>("activeContainerTag")
+			try {
+				const [activeTag, tags, session] = await Promise.all([
+					deps.storage.get<string>("activeContainerTag"),
+					deps.getClient().listContainerTags(),
+					deps.getSession(),
+				])
+				const writableTags = effectiveContainerTagAccess(
+					tags.map((tag) => tag.containerTag),
+					session,
+				)
+					.filter((access) => access.permission === "write")
+					.map((access) => access.containerTag)
 
-			let writableTags: string[]
-			if (deps.rbac.isRestricted) {
-				writableTags = deps.rbac.writeTags.map((t) => t.containerTag)
-			} else {
-				const tags = await deps.getClient().listContainerTags()
-				writableTags = tags.map((t) => t.containerTag)
-			}
+				const sc: ViewMessage = {
+					view: "upload",
+					activeTag,
+					writableTags,
+				}
 
-			const sc: ViewMessage = {
-				view: "upload",
-				activeTag,
-				writableTags,
-			}
-
-			return {
-				content: [
-					{ type: "text" as const, text: "Opening file upload form..." },
-				],
-				structuredContent: sc,
+				return {
+					content: [
+						{ type: "text" as const, text: "Opening file upload form..." },
+					],
+					structuredContent: sc,
+				}
+			} catch (error) {
+				return deps.errorResult(error)
 			}
 		},
 	)
