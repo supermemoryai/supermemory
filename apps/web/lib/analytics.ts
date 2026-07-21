@@ -222,14 +222,7 @@ export const analytics = {
 
 	// settings / spaces / docs analytics
 	settingsTabChanged: (props: {
-		tab:
-			| "account"
-			| "billing"
-			| "integrations"
-			| "connections"
-			| "company-brain"
-			| "proactiveness"
-			| "support"
+		tab: "account" | "billing" | "integrations" | "connections" | "support"
 	}) => safeCapture("settings_tab_changed", props),
 
 	spaceCreated: () => safeCapture("space_created"),

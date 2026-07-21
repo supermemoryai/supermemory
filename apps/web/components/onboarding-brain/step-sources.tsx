@@ -474,9 +474,9 @@ export function StepSources({
 	}
 
 	return (
-		<div className="mx-auto w-full max-w-[1400px] pb-10">
-			<section className="relative min-h-[calc(100dvh-136px)] py-4">
-				<div className="absolute inset-x-0 top-[46%] -translate-y-1/2">
+		<div className="mx-auto w-full max-w-[1400px] pb-28 md:pb-10">
+			<section className="relative min-h-[calc(100dvh-136px)] py-3 md:py-4">
+				<div className="md:absolute md:inset-x-0 md:top-[46%] md:-translate-y-1/2">
 					<div className="mb-6 px-1">
 						<p
 							className={cn(
@@ -494,7 +494,7 @@ export function StepSources({
 						</p>
 					</div>
 
-					<div className="grid md:grid-cols-3 gap-4">
+					<div className="grid gap-3 md:grid-cols-3 md:gap-4">
 						{mode === "personal" ? (
 							<>
 								<SourceCard
@@ -565,7 +565,7 @@ export function StepSources({
 						)}
 					</div>
 
-					<div className="absolute left-0 right-0 top-full mt-6 px-1">
+					<div className="mt-4 px-1 md:absolute md:left-0 md:right-0 md:top-full md:mt-6">
 						<div className="flex items-center justify-between gap-3">
 							<button
 								type="button"
@@ -579,7 +579,7 @@ export function StepSources({
 									)}
 								/>
 								More integrations
-								<span className="text-[#525D6E]">
+								<span className="hidden text-[#525D6E] sm:inline">
 									(Gmail, GitHub, OneDrive…)
 								</span>
 							</button>
@@ -591,7 +591,7 @@ export function StepSources({
 						</div>
 
 						{moreOpen ? (
-							<div className="mt-10 grid md:grid-cols-3 gap-4">
+							<div className="mt-4 grid gap-3 md:mt-10 md:grid-cols-3 md:gap-4">
 								<MoreSourcesGrid
 									mode={mode}
 									values={values}
@@ -929,22 +929,21 @@ function SourceActions({
 	return (
 		<div
 			className={cn(
-				"mt-6 flex items-center justify-end gap-[22px] px-1",
+				"mt-4 flex items-center justify-end gap-3 px-1 md:mt-6 md:gap-[22px]",
 				className,
 			)}
 		>
 			<button
 				type="button"
 				onClick={onContinue}
-				className="text-[#737373] font-medium text-[14px] hover:text-[#999] transition-colors"
+				className="hidden text-[#737373] font-medium text-[14px] transition-colors hover:text-[#999] sm:inline"
 			>
 				Skip for now
 			</button>
 			<Button
 				variant="insideOut"
 				onClick={onContinue}
-				disabled={connectedCount === 0}
-				className="rounded-full px-5 py-[10px] text-[13px] font-medium text-[#fafafa]"
+				className="rounded-full px-4 py-2 text-[13px] font-medium text-[#fafafa] md:px-5 md:py-[10px]"
 			>
 				Continue
 				{connectedCount > 0 && (
@@ -1276,16 +1275,16 @@ function SourceCard({
 	return (
 		<div
 			className={cn(
-				"min-h-[190px] rounded-[18px] p-5 transition-colors bg-[#1B1F24] flex flex-col",
+				"min-h-[146px] rounded-[18px] bg-[#1B1F24] p-3.5 transition-colors flex flex-col md:min-h-[190px] md:p-5",
 				isDone && "ring-1 ring-[#2261CA33]",
 			)}
 			style={modalCardStyle}
 		>
-			<div className="grid grid-cols-[48px_minmax(0,1fr)_auto] items-start gap-3">
+			<div className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-2.5 md:grid-cols-[48px_minmax(0,1fr)_auto] md:gap-3">
 				<div className="pt-0.5">
 					<div
 						className={cn(
-							"size-12 rounded-[12px] flex items-center justify-center shrink-0",
+							"size-10 rounded-[12px] flex items-center justify-center shrink-0 md:size-12",
 							bareIconFrame
 								? "bg-transparent border border-transparent"
 								: "bg-[#14161A] border border-[rgba(82,89,102,0.2)]",
@@ -1296,10 +1295,10 @@ function SourceCard({
 					</div>
 				</div>
 				<div className="min-w-0 pr-1">
-					<p className="text-[15px] leading-tight font-semibold text-[#fafafa]">
+					<p className="text-[14px] leading-tight font-semibold text-[#fafafa] md:text-[15px]">
 						{title}
 					</p>
-					<p className="text-[12px] text-[#737373] mt-1 leading-[1.35] font-medium">
+					<p className="mt-0.5 text-[11.5px] text-[#737373] leading-[1.3] font-medium md:mt-1 md:text-[12px] md:leading-[1.35]">
 						{blurb}
 					</p>
 					{headerNote}
@@ -1320,7 +1319,7 @@ function SourceCard({
 								: undefined
 						}
 						className={cn(
-							"shrink-0 rounded-full h-9 px-4 text-[13px] font-medium text-[#fafafa] gap-1.5",
+							"h-8 shrink-0 rounded-full px-3 text-[12px] font-medium text-[#fafafa] gap-1.5 md:h-9 md:px-4 md:text-[13px]",
 							disabled && "opacity-50",
 						)}
 					>
@@ -1336,15 +1335,15 @@ function SourceCard({
 				)}
 			</div>
 
-			<ul className="mt-4 space-y-1.5">
+			<ul className="mt-3 space-y-1 md:mt-4 md:space-y-1.5">
 				{perks.map((p) => (
 					<li
 						key={p}
-						className="flex items-start gap-2.5 text-[12px] text-[#737373] font-medium leading-[1.5]"
+						className="flex items-start gap-2 text-[11px] text-[#737373] font-medium leading-[1.35] md:gap-2.5 md:text-[12px] md:leading-[1.5]"
 					>
 						<span
 							aria-hidden
-							className="size-1 rounded-full bg-[#525D6E] shrink-0 mt-[7px]"
+							className="size-1 rounded-full bg-[#525D6E] shrink-0 mt-[6px] md:mt-[7px]"
 						/>
 						<span>{p}</span>
 					</li>
@@ -1352,7 +1351,7 @@ function SourceCard({
 			</ul>
 
 			{(footerLeft || footerRight) && (
-				<div className="mt-auto pt-4 flex items-end justify-between gap-3">
+				<div className="mt-auto flex items-end justify-between gap-3 pt-3 md:pt-4">
 					<div>{footerLeft}</div>
 					<div className="pb-1.5">{footerRight}</div>
 				</div>
@@ -1364,10 +1363,10 @@ function SourceCard({
 function SpaceChip({ name }: { name: string }) {
 	return (
 		<div
-			className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#737373]"
+			className="inline-flex items-center gap-1 text-[10px] font-medium text-[#737373] md:gap-1.5 md:text-[11px]"
 			title={`This source will save into the "${name}" space.`}
 		>
-			<span className="text-[10px] uppercase tracking-[0.08em] text-[#525D6E]">
+			<span className="text-[9px] uppercase tracking-[0.08em] text-[#525D6E] md:text-[10px]">
 				Saves to
 			</span>
 			<FolderOpen className="size-3 text-[#737373]" />

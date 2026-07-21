@@ -317,7 +317,7 @@
     },
     "packages/tools": {
       "name": "@supermemory/tools",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "dependencies": {
         "@ai-sdk/anthropic": "^2.0.25",
         "@ai-sdk/openai": "^2.0.23",

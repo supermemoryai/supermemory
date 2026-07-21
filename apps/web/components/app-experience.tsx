@@ -20,6 +20,7 @@ import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { MemoriesGrid } from "@/components/memories-grid"
 import { GraphLayoutView } from "@/components/graph-layout-view"
 import { IntegrationsView, DetailWrapper } from "@/components/integrations-view"
+import { ConfigureView } from "@/components/configure-view"
 import { MCPDetailView } from "@/components/mcp-modal/mcp-detail-view"
 import { XBookmarksDetailView } from "@/components/onboarding/x-bookmarks-detail-view"
 import { ChromeDetail } from "@/components/integrations/chrome-detail"
@@ -697,6 +698,10 @@ export function AppExperience() {
 											publicMode={isPublicIntegrations}
 											onOpenDocument={handleOpenDocument}
 										/>
+									</div>
+								) : viewMode === "configure" ? (
+									<div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 pt-2! md:p-6">
+										<ConfigureView />
 									</div>
 								) : viewMode === "mcp" ? (
 									<MCPDetailView
