@@ -124,5 +124,5 @@ export type Props = {
 	containerTag?: string
 }
 
-// MCP resource URI for the widget bundle.
-export const SUPERMEMORY_RESOURCE_URI = "ui://supermemory/app.html"
+// Hosts cache MCP UI resources by URI, so bump this when shipping a new widget bundle.
+export const SUPERMEMORY_RESOURCE_URI = "ui://supermemory/app-v2.html"

@@ -28,7 +28,7 @@ export function Picker({
 	onAdvance,
 	onError,
 }: Props) {
-	const { callTool, sendMessage } = useApp()
+	const { callTool, updateModelContext } = useApp()
 	const log = useLog()
 	const [pending, setPending] = useState<string | null>(null)
 	const [query, setQuery] = useState("")
@@ -56,13 +56,13 @@ export function Picker({
 			return
 		}
 		onAdvance(result.data)
-		const notification = await sendMessage(
-			`I selected "${containerTag}" as my active Supermemory workspace. Use this workspace for future Supermemory actions until I select another one.`,
+		const contextUpdate = await updateModelContext(
+			`Supermemory workspace selection changed. Active workspace: "${containerTag}". Use it for future Supermemory actions until another workspace is selected.`,
 		)
-		if (!notification.ok) {
+		if (!contextUpdate.ok) {
 			log(
 				"warning",
-				`[picker] agent notification failed: ${notification.error}`,
+				`[picker] model context update failed: ${contextUpdate.error}`,
 			)
 		}
 	}

@@ -47,16 +47,12 @@ export function useApp() {
 				}
 			},
 
-			/** Inject a user message into the conversation. Triggers a new agent turn. */
-			async sendMessage(content: string): Promise<ToolCallResult> {
+			/** Make widget state available to the model on a future turn. */
+			async updateModelContext(content: string): Promise<ToolCallResult> {
 				try {
-					const result = await app.sendMessage({
-						role: "user",
+					await app.updateModelContext({
 						content: [{ type: "text", text: content }],
 					})
-					if (result.isError) {
-						return { ok: false, error: "Host rejected the message" }
-					}
 					return { ok: true }
 				} catch (err) {
 					return { ok: false, error: String(err) }
