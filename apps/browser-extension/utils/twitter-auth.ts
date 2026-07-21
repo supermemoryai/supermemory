@@ -51,7 +51,6 @@ export async function captureTwitterTokens(
 	if (authHeader?.value && cookieHeader?.value && csrfHeader?.value) {
 		const tokensAlreadyLogged = await getTokensLogged()
 		if (!tokensAlreadyLogged) {
-			console.log("Twitter auth tokens captured successfully")
 			await setTokensLogged()
 		}
 

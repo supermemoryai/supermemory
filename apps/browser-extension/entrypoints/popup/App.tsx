@@ -2,7 +2,12 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import "./App.css"
 import { validateAuthToken } from "../../utils/api"
-import { MESSAGE_TYPES, STORAGE_KEYS, UI_CONFIG } from "../../utils/constants"
+import {
+	getSupermemoryLoginUrl,
+	MESSAGE_TYPES,
+	STORAGE_KEYS,
+	UI_CONFIG,
+} from "../../utils/constants"
 import {
 	useDefaultProject,
 	useProjects,
@@ -253,6 +258,7 @@ function App() {
 	const [autoCapturePromptsEnabled, setAutoCapturePromptsEnabled] =
 		useState<boolean>(false)
 	const [authInvalidated, setAuthInvalidated] = useState<boolean>(false)
+	const [saveError, setSaveError] = useState<string | null>(null)
 
 	const queryClient = useQueryClient()
 	const { data: projects = [], isLoading: loadingProjects } = useProjects({
@@ -375,29 +381,70 @@ function App() {
 
 	const handleSaveCurrentPage = async () => {
 		setSaving(true)
+		setSaveError(null)
 
 		try {
 			const tabs = await chrome.tabs.query({
 				active: true,
 				currentWindow: true,
 			})
-			if (tabs.length > 0 && tabs[0].id) {
-				const response = await chrome.tabs.sendMessage(tabs[0].id, {
-					action: MESSAGE_TYPES.SAVE_MEMORY,
-					actionSource: "popup",
-				})
+			const tab = tabs[0]
+			let response: { success?: boolean; error?: string } | undefined
 
-				if (response?.success) {
-					await chrome.tabs.sendMessage(tabs[0].id, {
-						action: MESSAGE_TYPES.SHOW_TOAST,
-						state: "success",
+			if (tab?.id) {
+				try {
+					response = await chrome.tabs.sendMessage(tab.id, {
+						action: MESSAGE_TYPES.SAVE_MEMORY,
+						actionSource: "popup",
 					})
+				} catch (contentScriptError) {
+					console.warn("Content script save failed:", contentScriptError)
+				}
+			}
+
+			if (response && !response.success) {
+				throw new Error(response.error || "Failed to save current page")
+			}
+
+			if (!response) {
+				const fallbackUrl = tab?.url || currentUrl
+				const fallbackTitle = tab?.title || currentTitle || "Current Page"
+
+				if (!fallbackUrl) {
+					throw new Error("No active page URL found")
+				}
+
+				response = await chrome.runtime.sendMessage({
+					action: MESSAGE_TYPES.SAVE_MEMORY,
+					actionSource: "popup_fallback",
+					data: {
+						url: fallbackUrl,
+						title: fallbackTitle,
+						content: `${fallbackTitle}\n\n${fallbackUrl}`,
+					},
+				})
+			}
+
+			if (response?.success) {
+				if (tab?.id) {
+					await chrome.tabs
+						.sendMessage(tab.id, {
+							action: MESSAGE_TYPES.SHOW_TOAST,
+							state: "success",
+						})
+						.catch(() => undefined)
 				}
 
 				window.close()
+				return
 			}
+
+			throw new Error(response?.error || "Failed to save current page")
 		} catch (error) {
 			console.error("Failed to save current page:", error)
+			setSaveError(
+				error instanceof Error ? error.message : "Could not save page",
+			)
 
 			try {
 				const tabs = await chrome.tabs.query({
@@ -413,8 +460,6 @@ function App() {
 			} catch (toastError) {
 				console.error("Failed to show error toast:", toastError)
 			}
-
-			window.close()
 		} finally {
 			setSaving(false)
 		}
@@ -592,7 +637,7 @@ function App() {
 						>
 							<img
 								alt="supermemory"
-								src="./icon-48.png"
+								src="./new_logo.png"
 								className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[29px] h-[29px]"
 							/>
 						</div>
@@ -600,11 +645,9 @@ function App() {
 							<span className="text-[11px] font-medium text-[#737373] leading-normal">
 								Your
 							</span>
-							<img
-								alt="supermemory"
-								src="./logo-fullmark.svg"
-								className="h-[14.5px] w-auto"
-							/>
+							<span className="text-[15px] font-semibold leading-none text-white">
+								supermemory
+							</span>
 						</div>
 					</div>
 				</div>
@@ -658,7 +701,7 @@ function App() {
 					>
 						<img
 							alt="supermemory"
-							src="./icon-48.png"
+							src="./new_logo.png"
 							className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[29px] h-[29px]"
 						/>
 					</div>
@@ -672,11 +715,9 @@ function App() {
 								return name.endsWith("s") ? `${name}'` : `${name}'s`
 							})()}
 						</span>
-						<img
-							alt="supermemory"
-							src="./logo-fullmark.svg"
-							className="h-[14.5px] w-auto"
-						/>
+						<span className="text-[15px] font-semibold leading-none text-white">
+							supermemory
+						</span>
 					</div>
 				</div>
 				{userSignedIn && (
@@ -931,6 +972,11 @@ function App() {
 
 										{saving ? "Saving..." : "Add to supermemory"}
 									</button>
+									{saveError && (
+										<p className="mt-2 text-xs leading-snug text-red-300">
+											{saveError}
+										</p>
+									)}
 								</div>
 							</div>
 						) : activeTab === "imports" ? (
@@ -1269,13 +1315,13 @@ function App() {
 								</h2>
 
 								<ul className="list-none p-0 m-0 text-left">
-									<li className="py-1.5 text-sm text-neutral-400 relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-neutral-500 before:font-bold">
+									<li className="py-1.5 text-sm text-neutral-400 relative pl-5 before:content-['-'] before:absolute before:left-0 before:text-neutral-500 before:font-bold">
 										Save any page to your supermemory
 									</li>
-									<li className="py-1.5 text-sm text-neutral-400 relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-neutral-500 before:font-bold">
+									<li className="py-1.5 text-sm text-neutral-400 relative pl-5 before:content-['-'] before:absolute before:left-0 before:text-neutral-500 before:font-bold">
 										Import all your Twitter / X Bookmarks
 									</li>
-									<li className="py-1.5 text-sm text-neutral-400 relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-neutral-500 before:font-bold">
+									<li className="py-1.5 text-sm text-neutral-400 relative pl-5 before:content-['-'] before:absolute before:left-0 before:text-neutral-500 before:font-bold">
 										Import your ChatGPT Memories
 									</li>
 								</ul>
@@ -1300,9 +1346,7 @@ function App() {
 								className="w-full py-3 px-6 bg-[#2d3f5c] text-white border-none rounded-3xl text-base font-medium cursor-pointer transition-colors duration-200 hover:bg-[#3d5270] disabled:bg-neutral-600 disabled:cursor-not-allowed"
 								onClick={() => {
 									chrome.tabs.create({
-										url: import.meta.env.PROD
-											? "https://app.supermemory.ai/login"
-											: "http://localhost:3000/login",
+										url: getSupermemoryLoginUrl(),
 									})
 								}}
 								type="button"
