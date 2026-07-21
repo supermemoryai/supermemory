@@ -58,13 +58,16 @@ export interface ProfileResponse {
 }
 
 export interface ContainerTag {
-	id: string
-	name: string
 	containerTag: string
-	createdAt: string
-	updatedAt: string
-	isExperimental: boolean
-	isNova: boolean
+}
+
+function isContainerTag(value: unknown): value is ContainerTag {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		"containerTag" in value &&
+		typeof value.containerTag === "string"
+	)
 }
 
 // Documents API types
@@ -348,13 +351,15 @@ export class SupermemoryClient {
 				if (response.status === 401) {
 					throw new Error("Authentication failed. Please re-authenticate.")
 				}
-				throw new Error(
-					`Failed to fetch container tags: ${response.statusText}`,
-				)
+				throw new Error("Failed to fetch container tags", {
+					cause: response.statusText,
+				})
 			}
 
-			const data = (await response.json()) as ContainerTag[]
-			return data.map((entry) => entry.containerTag)
+			const data: unknown = await response.json()
+			return Array.isArray(data)
+				? data.filter(isContainerTag).map((entry) => entry.containerTag)
+				: []
 		} catch (error) {
 			this.handleError(error)
 		}

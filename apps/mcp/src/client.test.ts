@@ -65,4 +65,68 @@ describe("SupermemoryClient", () => {
 			}),
 		)
 	})
+
+	it("ignores malformed container tag entries", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi
+				.fn()
+				.mockResolvedValue(
+					new Response(
+						JSON.stringify([
+							null,
+							{},
+							{ containerTag: 42 },
+							{ containerTag: "project-valid" },
+						]),
+					),
+				),
+		)
+
+		const client = new SupermemoryClient(
+			"sm_test",
+			undefined,
+			"https://api.example.com",
+		)
+
+		await expect(client.getContainerTags()).resolves.toEqual(["project-valid"])
+	})
+
+	it("returns an empty list for a malformed response", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(new Response(JSON.stringify({ projects: [] }))),
+		)
+
+		const client = new SupermemoryClient(
+			"sm_test",
+			undefined,
+			"https://api.example.com",
+		)
+
+		await expect(client.getContainerTags()).resolves.toEqual([])
+	})
+
+	it("preserves the upstream failure as an error cause", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(
+				new Response(null, {
+					status: 503,
+					statusText: "Service Unavailable",
+				}),
+			),
+		)
+
+		const client = new SupermemoryClient(
+			"sm_test",
+			undefined,
+			"https://api.example.com",
+		)
+
+		await expect(client.getContainerTags()).rejects.toMatchObject({
+			cause: "Service Unavailable",
+			message: "Failed to fetch container tags",
+		})
+	})
 })
