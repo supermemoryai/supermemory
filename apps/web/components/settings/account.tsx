@@ -42,7 +42,7 @@ import { useContainerTags } from "@/hooks/use-container-tags"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { PopoverAnchor } from "@ui/components/popover"
 import { OrgContext } from "@/components/settings/org-context"
-import { WorkspacePersona } from "@/components/settings/workspace-persona"
+import { WorkspacePrompt } from "@/components/settings/workspace-prompt"
 import { OrgPlanBadge } from "@/components/org-plan-badge"
 import { useTokenUsage } from "@/hooks/use-token-usage"
 import { useOrgSummaries } from "@/hooks/use-org-summaries"
@@ -623,7 +623,7 @@ export default function Account() {
 					{isCompanyBrain && (
 						<>
 							<div aria-hidden="true" className="mx-1 h-px bg-white/[0.055]" />
-							<WorkspacePersona key={org?.id} />
+							<WorkspacePrompt key={org?.id} />
 						</>
 					)}
 				</div>

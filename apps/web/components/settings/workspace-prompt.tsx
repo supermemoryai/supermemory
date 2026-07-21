@@ -7,9 +7,9 @@ import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { useAuth } from "@lib/auth-context"
 
-const DESCRIPTION_ID = "workspace-persona-description"
-const COUNTER_ID = "workspace-persona-counter"
-const HEADING_ID = "workspace-persona-heading"
+const DESCRIPTION_ID = "workspace-prompt-description"
+const COUNTER_ID = "workspace-prompt-counter"
+const HEADING_ID = "workspace-prompt-heading"
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
 	return (
@@ -25,10 +25,10 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 	)
 }
 
-function PersonaHeader() {
+function PromptHeader() {
 	return (
 		<div className="min-w-0">
-			<SectionHeading>Workspace Persona</SectionHeading>
+			<SectionHeading>Workspace Prompt</SectionHeading>
 			<p
 				id={DESCRIPTION_ID}
 				className={cn(
@@ -36,49 +36,52 @@ function PersonaHeader() {
 					"text-[13px] tracking-[-0.13px] text-[#737373]",
 				)}
 			>
-				Guide how Company Brain communicates and works with your workspace.
+				Set persistent guidance for operating preferences, priorities, source
+				and tool choices, workflows, terminology, formatting, and communication
+				style. This guidance cannot override fixed safety, access, or approval
+				constraints.
 			</p>
 		</div>
 	)
 }
 
-export function WorkspacePersona() {
+export function WorkspacePrompt() {
 	const { org } = useAuth()
 	const settingsQuery = useOrgSettings()
 	const updateSettings = useUpdateOrgSettings()
-	const [persona, setPersona] = useState("")
-	const syncedPersona = useRef<{ orgId: string; value: string } | null>(null)
+	const [prompt, setPrompt] = useState("")
+	const syncedPrompt = useRef<{ orgId: string; value: string } | null>(null)
 
-	const savedPersona = settingsQuery.data?.workspacePersona ?? ""
-	const dirty = persona.trim() !== savedPersona.trim()
+	const savedPrompt = settingsQuery.data?.workspacePrompt ?? ""
+	const dirty = prompt.trim() !== savedPrompt.trim()
 
 	useEffect(() => {
 		if (!settingsQuery.data) return
 
-		const nextPersona = settingsQuery.data.workspacePersona ?? ""
+		const nextPrompt = settingsQuery.data.workspacePrompt ?? ""
 		const orgId = org?.id ?? ""
-		const previous = syncedPersona.current
+		const previous = syncedPrompt.current
 
-		setPersona((current) => {
-			if (!previous || previous.orgId !== orgId) return nextPersona
-			return current === previous.value ? nextPersona : current
+		setPrompt((current) => {
+			if (!previous || previous.orgId !== orgId) return nextPrompt
+			return current === previous.value ? nextPrompt : current
 		})
-		syncedPersona.current = { orgId, value: nextPersona }
+		syncedPrompt.current = { orgId, value: nextPrompt }
 	}, [org?.id, settingsQuery.data])
 
 	const handleSave = () => {
 		updateSettings.mutate({
-			workspacePersona: persona.trim() ? persona.trim() : null,
+			workspacePrompt: prompt.trim() ? prompt.trim() : null,
 		})
 	}
 
 	return (
 		<section
-			id="workspace-persona"
+			id="workspace-prompt"
 			aria-labelledby={HEADING_ID}
 			className="flex flex-col gap-3 px-1"
 		>
-			<PersonaHeader />
+			<PromptHeader />
 
 			{settingsQuery.isLoading ? (
 				<div
@@ -88,14 +91,14 @@ export function WorkspacePersona() {
 					)}
 				>
 					<LoaderIcon className="size-3 animate-spin" />
-					Loading workspace persona…
+					Loading workspace prompt…
 				</div>
 			) : settingsQuery.isError ? (
 				<div
 					className={cn(dmSansClassName(), "flex flex-col items-start gap-2")}
 				>
 					<p className="text-[13px] text-[#A3A3A3]">
-						Workspace persona could not be loaded.
+						Workspace prompt could not be loaded.
 					</p>
 					<button
 						type="button"
@@ -114,9 +117,9 @@ export function WorkspacePersona() {
 					<textarea
 						aria-labelledby={HEADING_ID}
 						aria-describedby={`${DESCRIPTION_ID} ${COUNTER_ID}`}
-						value={persona}
-						onChange={(event) => setPersona(event.target.value)}
-						placeholder="Describe your workspace's goals, communication style, and how you prefer Company Brain to collaborate with your team..."
+						value={prompt}
+						onChange={(event) => setPrompt(event.target.value)}
+						placeholder="Add persistent guidance for how Company Brain should operate across your workspace..."
 						maxLength={1500}
 						className="min-h-[96px] w-full resize-y rounded-[12px] border border-white/[0.08] bg-[#0D121A] px-3.5 py-3 text-[13px] leading-relaxed text-[#FAFAFA] placeholder:text-[#525966] focus:border-white/[0.16] focus:outline-none"
 					/>
@@ -125,13 +128,13 @@ export function WorkspacePersona() {
 							id={COUNTER_ID}
 							className="text-[11px] text-[#737373] tabular-nums"
 						>
-							{persona.length}/1500
+							{prompt.length}/1500
 						</span>
 						{dirty && (
 							<div className="flex items-center gap-2">
 								<button
 									type="button"
-									onClick={() => setPersona(savedPersona)}
+									onClick={() => setPrompt(savedPrompt)}
 									disabled={updateSettings.isPending}
 									className={cn(
 										dmSansClassName(),

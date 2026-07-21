@@ -6,7 +6,7 @@ import { useAuth } from "@lib/auth-context"
 export type OrgSettings = {
 	shouldLLMFilter: boolean
 	filterPrompt: string | null
-	workspacePersona: string | null
+	workspacePrompt: string | null
 	includeItems?: string[] | null
 	excludeItems?: string[] | null
 }
@@ -33,7 +33,7 @@ export function useOrgSettings() {
 			return {
 				shouldLLMFilter: settings.shouldLLMFilter ?? false,
 				filterPrompt: settings.filterPrompt ?? null,
-				workspacePersona: settings.workspacePersona ?? null,
+				workspacePrompt: settings.workspacePrompt ?? null,
 				includeItems: settings.includeItems ?? null,
 				excludeItems: settings.excludeItems ?? null,
 			}

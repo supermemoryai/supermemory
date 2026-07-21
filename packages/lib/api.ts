@@ -37,7 +37,7 @@ const SettingsResponseSchema = z.object({
 		filterPrompt: z.string().max(750).nullable().optional(),
 		includeItems: z.array(z.string().min(1).max(20)).nullable().optional(),
 		shouldLLMFilter: z.boolean().optional(),
-		workspacePersona: z.string().max(1500).nullable().optional(),
+		workspacePrompt: z.string().max(1500).nullable().optional(),
 	}),
 })
 
