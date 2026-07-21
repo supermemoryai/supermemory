@@ -24,6 +24,7 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 const DEFAULT_API_URL = "https://api.supermemory.ai"
 const DEFAULT_MCP_URL = "https://mcp.supermemory.ai"
+const MCP_DOCS_URL = "https://supermemory.ai/docs/supermemory-mcp/mcp"
 
 const mcpBaseUrl = (c: Context<{ Bindings: Bindings }>) => {
 	if (c.env.MCP_URL) return c.env.MCP_URL.replace(/\/$/, "")
@@ -61,7 +62,7 @@ app.get("/", (c) => {
 		name: "supermemory-mcp",
 		version: "4.0.0",
 		description: "Give your AI a memory",
-		docs: "https://docs.supermemory.ai/mcp",
+		docs: MCP_DOCS_URL,
 	})
 })
 
@@ -73,7 +74,7 @@ const protectedResourceHandler = (c: Context<{ Bindings: Bindings }>) => {
 		authorization_servers: [apiUrl],
 		scopes_supported: ["openid", "profile", "email", "offline_access"],
 		bearer_methods_supported: ["header"],
-		resource_documentation: "https://docs.supermemory.ai/mcp",
+		resource_documentation: MCP_DOCS_URL,
 	})
 }
 app.get("/.well-known/oauth-protected-resource", protectedResourceHandler)
