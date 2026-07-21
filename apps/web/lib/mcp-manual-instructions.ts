@@ -30,8 +30,7 @@ export function buildMcpUrlRemoteJson(apiKeyPlaceholder: string) {
 }
 
 export const CODEX_MCP_TOML = `[mcp_servers.supermemory]
-command = "npx"
-args = ["-y", "mcp-remote@latest", "https://mcp.supermemory.ai/mcp"]
+url = "${CHATGPT_REMOTE_MCP_URL}"
 `
 
 /** Full file merge target: Claude Desktop `claude_desktop_config.json` → `mcpServers`. */
