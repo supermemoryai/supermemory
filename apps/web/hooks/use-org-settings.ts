@@ -8,6 +8,7 @@ const API_BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermem
 export type OrgSettings = {
 	shouldLLMFilter: boolean
 	filterPrompt: string | null
+	workspacePersona: string | null
 	includeItems?: string[] | null
 	excludeItems?: string[] | null
 }
@@ -34,6 +35,7 @@ export function useOrgSettings() {
 			return {
 				shouldLLMFilter: settings.shouldLLMFilter ?? false,
 				filterPrompt: settings.filterPrompt ?? null,
+				workspacePersona: settings.workspacePersona ?? null,
 				includeItems: settings.includeItems ?? null,
 				excludeItems: settings.excludeItems ?? null,
 			}

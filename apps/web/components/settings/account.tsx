@@ -40,7 +40,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { PopoverAnchor } from "@ui/components/popover"
-import { OrgContext } from "@/components/settings/org-context"
+import { WorkspacePersona } from "@/components/settings/workspace-persona"
 import { OrgPlanBadge } from "@/components/org-plan-badge"
 import { useTokenUsage } from "@/hooks/use-token-usage"
 import { useOrgSummaries } from "@/hooks/use-org-summaries"
@@ -614,7 +614,7 @@ export default function Account() {
 				</div>
 			</section>
 
-			{canManageTeam && <OrgContext />}
+			{canManageTeam && <WorkspacePersona />}
 
 			<DigestPreferences />
 
