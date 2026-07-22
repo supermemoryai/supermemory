@@ -1,9 +1,9 @@
 export const DHRAVYA = {
   name: "Dhravya Shah",
-  avatar: "/images/company-brain/dhravya-slack-icon.jpg",
+  avatar: "/docs/images/company-brain/dhravya-slack-icon.jpg",
 };
 
-export const BOT_AVATAR = "/images/company-brain/supermemory-slack-icon.png";
+export const BOT_AVATAR = "/docs/images/company-brain/supermemory-slack-icon.png";
 
 export const Mention = ({ children, self = false }) => (
   <span
@@ -92,7 +92,7 @@ export const SlackThread = ({
         <div className="flex items-center gap-2 border-b border-black/10 px-4 py-3 dark:border-white/10">
           <div className="relative h-6 w-6 flex-none">
             <img
-              src={dmWith?.avatar || "/images/company-brain/supermemory-slack-icon.png"}
+              src={dmWith?.avatar || "/docs/images/company-brain/supermemory-slack-icon.png"}
               alt={dmWith?.name || "DM"}
               className="h-6 w-6 rounded-md object-cover"
             />
@@ -221,8 +221,8 @@ export const SlackMessage = ({
   children,
 }) => {
   const SELF_NAME = "Dhravya Shah";
-  const SELF_AVATAR = "/images/company-brain/dhravya-slack-icon.jpg";
-  const BOT_AVATAR = "/images/company-brain/supermemory-slack-icon.png";
+  const SELF_AVATAR = "/docs/images/company-brain/dhravya-slack-icon.jpg";
+  const BOT_AVATAR = "/docs/images/company-brain/supermemory-slack-icon.png";
 
   const resolvedName = bot ? "supermemory" : self ? SELF_NAME : name || SELF_NAME;
   const resolvedAvatar = bot ? BOT_AVATAR : self ? SELF_AVATAR : avatar;
