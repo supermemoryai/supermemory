@@ -467,10 +467,10 @@ export function MemoryGraph({
 					n.x,
 					n.y,
 					containerSize.width,
-					containerSize.height,
+					graphFitHeight,
 				)
 		},
-		[nodes, containerSize.width, containerSize.height],
+		[nodes, containerSize.width, graphFitHeight],
 	)
 
 	const navigateUp = useCallback(() => {
