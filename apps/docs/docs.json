@@ -45,6 +45,10 @@
 	"navbar": {
 		"links": [
 			{
+				"href": "https://supermemory.ai/changelog",
+				"label": "Changelog"
+			},
+			{
 				"href": "mailto:support@supermemory.com",
 				"label": "Support"
 			}
