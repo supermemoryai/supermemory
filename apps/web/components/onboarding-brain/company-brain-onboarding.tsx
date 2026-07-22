@@ -35,6 +35,7 @@ interface CompanyBrainOnboardingProps {
 	submitting: boolean
 	onConfirm: (domain: string) => Promise<CompanyBrainConfirmResult>
 	onDone: () => void
+	onUsePersonal: () => void
 }
 
 const BACKEND =
@@ -67,6 +68,7 @@ export function CompanyBrainOnboarding({
 	submitting,
 	onConfirm,
 	onDone,
+	onUsePersonal,
 }: CompanyBrainOnboardingProps) {
 	const [phase, setPhase] = useState<Phase>("confirm")
 	const [domain, setDomain] = useState(initialDomain)
@@ -239,7 +241,15 @@ export function CompanyBrainOnboarding({
 				</motion.div>
 
 				{phase === "confirm" && (
-					<div className="w-full max-w-xl mx-auto mt-5 flex items-center justify-end px-1">
+					<div className="w-full max-w-xl mx-auto mt-5 flex items-center justify-between gap-4 px-1">
+						<button
+							type="button"
+							onClick={onUsePersonal}
+							disabled={submitting}
+							className="text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa] disabled:opacity-50"
+						>
+							Use a personal workspace instead
+						</button>
 						<Button
 							variant="insideOut"
 							onClick={handleConfirm}
