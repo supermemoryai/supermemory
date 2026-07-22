@@ -125,11 +125,15 @@ offsite city are common picks. Tokyo offsites often inspire travel-themed gifts.
 		if (r.context) {
 			console.log(
 				"  context parents:",
-				(r.context.parents ?? []).map((p: any) => p.memory?.slice?.(0, 80) ?? p),
+				(r.context.parents ?? []).map(
+					(p: any) => p.memory?.slice?.(0, 80) ?? p,
+				),
 			)
 			console.log(
 				"  context children:",
-				(r.context.children ?? []).map((c: any) => c.memory?.slice?.(0, 80) ?? c),
+				(r.context.children ?? []).map(
+					(c: any) => c.memory?.slice?.(0, 80) ?? c,
+				),
 			)
 		}
 	}
@@ -183,7 +187,8 @@ offsite city are common picks. Tokyo offsites often inspire travel-themed gifts.
 		"## Profile (dynamic)",
 		...p2.dynamic,
 		"## Related memories",
-		...(sr2?.results?.map((m: any) => m.memory ?? m.content).filter(Boolean) ?? []),
+		...(sr2?.results?.map((m: any) => m.memory ?? m.content).filter(Boolean) ??
+			[]),
 		"## Docs",
 		...docBits.map((t: string) => t.slice(0, 200)),
 	].join("\n")
@@ -218,7 +223,8 @@ offsite city are common picks. Tokyo offsites often inspire travel-themed gifts.
 	}
 	console.log(checks)
 
-	const hardFail = !checks.convQueued || !checks.docQueued || !checks.contextNonEmpty
+	const hardFail =
+		!checks.convQueued || !checks.docQueued || !checks.contextNonEmpty
 	const softIssues = Object.entries(checks)
 		.filter(([k, v]) => !v && k !== "relatedPresent")
 		.map(([k]) => k)
@@ -228,9 +234,14 @@ offsite city are common picks. Tokyo offsites often inspire travel-themed gifts.
 		process.exit(1)
 	}
 	if (softIssues.length) {
-		console.warn("\n⚠ Soft issues (flow ran but weak results):", softIssues.join(", "))
+		console.warn(
+			"\n⚠ Soft issues (flow ran but weak results):",
+			softIssues.join(", "),
+		)
 		if (!checks.relatedPresent) {
-			console.warn("  (relatedMemories edges may need more time / different query)")
+			console.warn(
+				"  (relatedMemories edges may need more time / different query)",
+			)
 		}
 		process.exit(0)
 	}
