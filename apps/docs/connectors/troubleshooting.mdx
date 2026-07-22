@@ -78,7 +78,7 @@ curl -X POST "https://api.supermemory.ai/v3/documents/list" \
 // correct - exact match with OAuth app settings
 const connection = await client.connections.create('notion', {
   redirectUrl: 'https://yourapp.com/auth/notion/callback',
-  containerTags: ['user-123']
+  containerTag: 'user-123'
 });
 
 // Wrong - URL doesn't match
@@ -122,7 +122,7 @@ await client.connections.deleteByProvider('google-drive', {
 
 const newConnection = await client.connections.create('google-drive', {
   redirectUrl: 'https://yourapp.com/callback',
-  containerTags: ['user-123']
+  containerTag: 'user-123'
 });
 
 // User must re-authenticate
@@ -138,7 +138,7 @@ window.location.href = newConnection.authLink;
 ```typescript
 const connection = await client.connections.create('onedrive', {
   redirectUrl: 'https://yourapp.com/callback',
-  containerTags: ['user-123'],
+  containerTag: 'user-123',
   documentLimit: 500  // Start with fewer documents
 });
 ```
@@ -215,7 +215,7 @@ await client.connections.deleteByProvider('gmail', {
 
 const newConnection = await client.connections.create('gmail', {
   redirectUrl: 'https://yourapp.com/callback',
-  containerTags: ['user-123']
+  containerTag: 'user-123'
 });
 ```
 

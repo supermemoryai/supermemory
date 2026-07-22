@@ -1,0 +1,145 @@
+---
+title: "What is Supermemory?"
+description: "Supermemory is the long term and short term context and memory infrastructure for agents."
+sidebarTitle: "What is Supermemory?"
+icon: "book-open"
+mode: "wide"
+---
+
+export const BuildingBlock = ({ icon, title, href }) => {
+  return (
+    <a
+      href={href}
+      className="group flex flex-row items-center gap-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-4 no-underline transition-all duration-200 hover:border-gray-300 dark:hover:border-zinc-600 hover:shadow-sm"
+    >
+      <img
+        src={icon}
+        alt=""
+        className="h-16 w-16 shrink-0 object-contain"
+      />
+      <span className="text-sm font-medium leading-snug text-gray-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+        {title}
+      </span>
+    </a>
+  )
+}
+
+Supermemory is **context infrastructure for AI agents**. We're one of the leading memory providers, with components to go beyond memory and configure it to be perfect for every usecase.
+
+It provides all the building blocks — Memory, Retrieval, Profiles, Connectors, Extractors, Evals, observability, and more.
+
+<div className="not-prose my-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+  <BuildingBlock
+    icon="/images/building-blocks/memory-router.svg"
+    title="Memory & Continual Learning"
+    href="/concepts/graph-memory"
+  />
+  <BuildingBlock
+    icon="/images/building-blocks/document-retrieval.svg"
+    title="SuperRAG (Retrieval)"
+    href="/concepts/super-rag"
+  />
+  <BuildingBlock
+    icon="/images/building-blocks/file-systems.svg"
+    title="Filesystems"
+    href="/smfs/overview"
+  />
+  <BuildingBlock
+    icon="/images/building-blocks/user-profiles.svg"
+    title="Profiles"
+    href="/concepts/user-profiles"
+  />
+  <BuildingBlock
+    icon="/images/building-blocks/connectors.svg"
+    title="Connectors"
+    href="/connectors/overview"
+  />
+  <BuildingBlock
+    icon="/images/building-blocks/extractor.svg"
+    title="Extractors"
+    href="/concepts/content-types"
+  />
+  <BuildingBlock
+    icon="/images/building-blocks/qualitative-analysis.svg"
+    title="Qualitative Analysis"
+    href="https://supermemory.ai/research"
+  />
+  <BuildingBlock
+    icon="/images/building-blocks/hermes.svg"
+    title="Plugins"
+    href="/supermemory-mcp/mcp"
+  />
+  <BuildingBlock
+    icon="/images/building-blocks/brain-head.png"
+    title="Company Brain"
+    href="/company-brain/overview"
+  />
+</div>
+
+With supermemory, developers can provide perfect recall about their users to build AI agents that are more intelligent, more personalized, and more consistent.
+
+It is the [state of the art](https://supermemory.ai/research) across multiple different benchmarks, like LongMemEval and LoCoMo. It's also the best in a lot of independantly run benchmarks, like the [SWEContext](https://arxiv.org/pdf/2602.08316) bench.
+
+## How does it work? (at a glance)
+
+![](/images/232.png)
+
+- You send Supermemory raw data in any format - text, files, and chats, or connect it to the data sources
+- Supermemory [intelligently indexes them](/concepts/how-it-works) using our user understanding model and builds a semantic understanding graph on top of an entity (e.g., a user, a document, a project, an organization). We call these entities `containerTag`
+- This knowledge is now traversed by the agent, and an automatic profile is built for it. The agent may now use it for memory operations or for retrieval.
+
+## Why add memory to your agent?
+
+Without memory, every session starts from zero. The model cannot know what the user preferred last week, which project they are on, or that a fact has changed since yesterday.
+
+**Memory** gives an agent durable understanding of *people and entities over time* — preferences, decisions, relationships, corrections. **Retrieval (RAG)** grounds answers in *documents and knowledge bases*. You usually want both.
+
+By adding memory to your agent, you can:
+
+- **Personalize** — remember preferences, roles, and history across sessions without stuffing the full chat log into every prompt
+- **Stay correct as facts change** — “I love Adidas” then “switching to Puma” should not leave both preferences equally true
+- **Ground answers** — pull the right policy, ticket, or doc when the question needs source material
+- **Ship multi-tenant products** — isolate each user or workspace so one customer’s memory never leaks into another’s
+
+You can think of memory as the always-on context a skilled teammate would carry — not a search box over raw logs.
+
+For the full category argument (vs DIY vectors, thin memory wrappers, pure RAG), see [Comparison](/overview/comparison) and [Memory vs RAG](/concepts/memory-vs-rag).
+
+## Why Supermemory?
+
+- **State of the art on long-horizon memory** — #1 on [LongMemEval](https://supermemory.ai/research), [LoCoMo](https://supermemory.ai/research), and [ConvoMem](https://supermemory.ai/research), plus independent benches like [SWEContext](https://arxiv.org/pdf/2602.08316)
+- **Memory is a graph, not a blob store** — facts [update, connect, and forget](/concepts/graph-memory) in real time; not nearest-neighbor chunks alone
+- **User profiles built in** — static + dynamic context the agent should [always know](/concepts/user-profiles), ~ready for the prompt
+- **Memory + SuperRAG in one engine** — personalize *and* ground on the same `containerTag` / context pool
+- **Every door, one store** — API, [MCP](/supermemory-mcp/mcp), plugins, [SMFS](/smfs/overview), connectors, and Company Brain share the same memories
+- **Multimodal by default** — text, chats, PDFs, images, video, code via [extractors](/concepts/content-types) and [connectors](/connectors/overview)
+- **Run it your way** — managed cloud or [self-host](/self-hosting/overview) as a single binary (including offline)
+
+![memory graph](/images/readme-memory-graph.png)
+
+<Note>
+Memory, profiles, and SuperRAG share the **same context pool** when you use the same isolation (`containerTag`). Mix and match for your product! A container can be anything - a user, a project, team, organization, etc.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="play" href="/quickstart">
+    Make your first API call in minutes
+  </Card>
+  <Card title="How it Works" icon="cpu" href="/concepts/how-it-works">
+    Understand the knowledge graph architecture
+  </Card>
+  <Card title="Comparison" icon="scale" href="/overview/comparison">
+    vs DIY vectors, thin memory layers, pure RAG
+  </Card>
+  <Card title="Self-host it" icon="server" href="/self-hosting/overview">
+    One binary, zero config, fully offline
+  </Card>
+  <Card title="Billing & plans" icon="credit-card" href="/overview/billing">
+    Credits, SM tokens, and how usage works
+  </Card>
+  <Card title="Security & compliance" icon="shield" href="/overview/security">
+    SOC 2, GDPR, HIPAA BAA, encryption
+  </Card>
+</CardGroup>

@@ -1,146 +1,189 @@
 ---
-title: "How Graph Memory Works"
-sidebarTitle: "Graph Memory"
-description: "Automatic memory evolution, knowledge updates, and intelligent forgetting"
+title: "Graph memory"
+sidebarTitle: "Graph memory"
+description: "How facts connect, update, and stay true — memory relationships, temporal truth, and automatic forgetting."
 icon: "vector-square"
 ---
 
-Supermemory builds a living knowledge graph where memories connect to other memories. Unlike traditional knowledge graphs with entity-relation-entity triples, Supermemory's graph is **facts built on top of other facts**.
+**How understanding is stored and stays true over time.**
 
-## Memory Relationships
+Supermemory builds a **living knowledge graph of facts on top of other facts** — not a static folder of embeddings, and not classic entity–relation–entity triples you maintain by hand.
 
-When you add content, Supermemory extracts facts and automatically connects them to existing memories through three relationship types:
+The **pipeline** that turns a chat or file into memories is [How it works](/concepts/how-it-works).
 
-### Updates: Information Changes
+This page is the **model**: what a memory is, how edges form, and why agents utilize supermemory's graph
 
-When new information contradicts existing knowledge:
+## Try it
 
-```
-Memory 1: "Alex works at Google as a software engineer"
-Memory 2: "Alex just started at Stripe as a PM"
-         ↓
-Memory 2 UPDATES Memory 1
-```
-
-The system tracks which memory is latest with `isLatest`, so searches return current information while preserving history.
-
-### Extends: Information Enriches
-
-When new information adds detail without replacing:
-
-```
-Memory 1: "Alex works at Stripe as a PM"
-Memory 2: "Alex focuses on payments infrastructure and leads a team of 5"
-         ↓
-Memory 2 EXTENDS Memory 1
-```
-
-Both memories remain valid—searches get richer context.
-
-### Derives: Information Infers
-
-When Supermemory infers new facts from patterns:
-
-```
-Memory 1: "Alex is a PM at Stripe"
-Memory 2: "Alex frequently discusses payment APIs and fraud detection"
-         ↓
-Derived: "Alex likely works on Stripe's core payments product"
-```
-
-These inferences surface insights you didn't explicitly state.
-
----
-
-## Automatic Memory Extraction
-
-From a single conversation, Supermemory extracts multiple connected memories:
-
-**Input:**
-> "Had a great call with Alex. He's enjoying the new PM role at Stripe, though the
-> payments infrastructure work is intense. He moved to Seattle for the job—got a
-> place in Capitol Hill. Wants to grab dinner next time I'm in town."
-
-**Extracted memories:**
-- Alex works at Stripe as a PM
-- Alex works on payments infrastructure *(extends role memory)*
-- Alex lives in Seattle, Capitol Hill *(new fact)*
-- Alex wants to meet for dinner *(episodic)*
-
-Each fact is connected to related memories automatically.
-
----
-
-## Automatic Forgetting
-
-Supermemory knows when memories become irrelevant:
-
-**Time-based forgetting**: Temporary facts are automatically forgotten when they expire.
-
-```
-"I have an exam tomorrow"
-         ↓
-    After the exam date passes → automatically forgotten
-
-"Meeting with Alex at 3pm today"
-         ↓
-    After today → automatically forgotten
-```
-
-**Contradiction resolution**: When new facts contradict old ones, the Update relationship ensures searches return current information.
-
-**Noise filtering**: Casual, non-meaningful content doesn't become permanent memories.
-
----
-
-## Memory Types
-
-Supermemory distinguishes memory types automatically:
-
-| Type | Example | Behavior |
-|------|---------|----------|
-| **Facts** | "Alex is a PM at Stripe" | Persists until updated |
-| **Preferences** | "Alex prefers morning meetings" | Strengthens with repetition |
-| **Episodes** | "Met Alex for coffee Tuesday" | Decays unless significant |
-
----
-
-## What You Don't Do
-
-All of this is automatic. You don't:
-- Define relationships manually
-- Tag memory types
-- Clean up old memories
-- Resolve contradictions
-
-Just add content and search naturally:
+Get a key from the [developer console](https://console.supermemory.ai) — **API Keys → Create API Key** — then add a memory and pull it back with related edges:
 
 ```typescript
+import Supermemory from "supermemory";
+
+const client = new Supermemory({ apiKey: "sm_..." }); // from console.supermemory.ai → API Keys
+
 await client.add({
-  content: "Alex mentioned he just started at Stripe"
+  content: "Alex mentioned he just started at Stripe",
+  containerTag: "user_123",
 });
 
 const results = await client.search({
-  query: "where does Alex work?"
+  q: "where does Alex work?",
+  containerTag: "user_123",
+  include: { relatedMemories: true },
 });
-// → Stripe (latest), previously Google (historical)
 ```
 
----
+Full walkthrough with a live example: [Quickstart](/quickstart).
 
-## Learn More
+![](/images/graph-view.png)
+
+## Documents vs memories
+
+| | **Documents** | **Memories** |
+|---|---|---|
+| **What** | Raw input you send | Facts Supermemory extracts |
+| **Examples** | PDF, chat log, Drive file, URL | “Alex is a PM at Stripe” |
+| **Role** | Source of truth for RAG / SuperRAG | Personal and entity state over time |
+| **Lifecycle** | You add / update / delete | Graph updates, extends, derives, forgets |
+
+Think of documents as books you hand the system. Memories are the insights it keeps — connected to each other as new content arrives.
+
+<Note>
+Uploading a long PDF does more than store bytes: Supermemory derives many memories and links them to what it already knows about that entity or user. Chunks of the document remain available for [SuperRAG](/concepts/super-rag) grounding.
+</Note>
+
+## Properties and rules of memories
+
+1. Memories are atomic - Each memory has enough information and context about one particular topic
+2. They always build on top of each other - with `updates`, the model knows the history, a memory `extends` from other memories, and new facts are derived (`derives` relation) from existing knowledg.e
+
+## Memory relationships
+
+![](/images/memories-inferred.png)
+
+When content is processed, new facts connect to existing ones through three relationship types.
+
+### Updates — information changes
+
+New fact **replaces** what was true before for search purposes; history can remain for audit.
+
+```text
+Memory 1: "Alex works at Google as a software engineer"
+Memory 2: "Alex just started at Stripe as a PM"
+         → Memory 2 UPDATES Memory 1
+```
+
+`isLatest` (and related graph fields) keep retrieval on the current fact without erasing the past.
+
+### Extends — information enriches
+
+New fact **adds detail** without invalidating the old one.
+
+```text
+Memory 1: "Alex works at Stripe as a PM"
+Memory 2: "Alex focuses on payments and leads a team of 5"
+         → Memory 2 EXTENDS Memory 1
+```
+
+Both stay valid; context gets richer.
+
+### Derives — information infers
+
+Supermemory **infers** a fact you never stated in one place, from patterns across memories.
+
+```text
+Memory 1: "Alex is a PM at Stripe"
+Memory 2: "Alex frequently discusses payment APIs and fraud detection"
+         → Derived: "Alex likely works on Stripe's core payments product"
+```
+
+That is the same class of “entity chain” you see in the [quickstart](/quickstart) (gift → VP of Product → Sarah → Tokyo offsite). Search can expose edges via `include.relatedMemories` — see [Search API](/recall/search).
+
+## Automatic extraction (one input → many facts)
+
+**Input:**
+
+> Had a great call with Alex. He's enjoying the new PM role at Stripe, though the payments work is intense. He moved to Seattle for the job—Capitol Hill. Wants dinner next time I'm in town.
+
+**Example extracted memories:**
+
+- Alex works at Stripe as a PM
+- Alex works on payments infrastructure *(extends role)*
+- Alex lives in Seattle, Capitol Hill
+- Alex wants to meet for dinner *(episodic)*
+
+You do not define schema or draw edges. You [add content](/ingestion/add-memories); the graph updates.
+
+## Dreaming keeps the graph alive
+
+Ingest is not a one-shot snapshot. After (and alongside) indexing, **dreaming** continues building the graph: extracting facts, linking related memories, resolving updates, and producing derives you never stated in one place.
+
+By default Supermemory uses **`dreaming: "dynamic"`** — related documents are grouped so memories form from **coherent units** (e.g. a real multi-turn session), not each isolated write in isolation. That is why production quality is higher when you keep a stable `customId` on conversations and let dynamic dreaming do its job.
+
+Use **`dreaming: "instant"`** when this document must hit the graph immediately (demos, “search right after add”). That path processes the document alone and costs an extra operation.
+
+How to set the flag, statuses, and when `done` means what: [How it works → Dreaming](/concepts/how-it-works#dreaming-how-memories-enter-the-graph) and [Processing modes](/ingestion/add-memories#processing-modes).
+
+## Memory types
+
+| Type | Example | Behavior |
+| --- | --- | --- |
+| **Facts** | “Alex is a PM at Stripe” | Persists until updated |
+| **Preferences** | “Alex prefers morning meetings” | Strengthens with repetition |
+| **Episodes** | “Met Alex for coffee Tuesday” | Decays unless significant |
+
+## Automatic forgetting
+
+- **Time-based** — temporary facts drop after they expire (“exam tomorrow”, “meeting at 3pm today”).
+- **Contradiction** — updates win for “what’s true now.”
+- **Noise filtering** — casual, non-meaningful chatter is less likely to become durable memory.
+
+For explicit product controls (forget, review low-confidence derives), see [Forget & update](/recall/memory-operations) and [Memory review](/recall/memory-review).
+
+## What you don’t do
+
+You do **not** hand-maintain the graph. You:
+
+1. Ingest under a [container tag](/concepts/container-tags)
+2. Wait for the [pipeline](/concepts/how-it-works) when needed
+3. [Search](/recall/search) or load a [profile](/recall/user-profiles)
+
+```typescript
+await client.add({
+  content: "Alex mentioned he just started at Stripe",
+  containerTag: "user_123",
+});
+
+const results = await client.search({
+  q: "where does Alex work?",
+  containerTag: "user_123",
+  include: { relatedMemories: true },
+});
+// Prefer latest work fact (Stripe); history remains in the graph
+```
+
+## Related in the docs
+
+| If you need… | Go to |
+| --- | --- |
+| Pipeline statuses, dreaming, documents in | [How it works](/concepts/how-it-works) |
+| Memory vs document retrieval | [Memory vs RAG](/concepts/memory-vs-rag) · [SuperRAG](/concepts/super-rag) |
+| Always-on summary of a user | [Profiles](/concepts/user-profiles) |
+| Isolation / tenants | [Multi-tenancy](/concepts/container-tags) |
+| API: add / search / forget | [Ingestion](/ingestion/add-memories) · [Search](/recall/search) · [Forget & update](/recall/memory-operations) |
 
 <CardGroup cols={2}>
-  <Card title="How It Works" icon="cpu" href="/concepts/how-it-works">
-    Deep dive into the architecture
+  <Card title="How it works" icon="cpu" href="/concepts/how-it-works">
+    Ingest pipeline, statuses, and outputs.
   </Card>
   <Card title="Memory vs RAG" icon="scale" href="/concepts/memory-vs-rag">
-    When to use memory vs document retrieval
+    When to use memory vs document retrieval.
   </Card>
-  <Card title="User Profiles" icon="user" href="/user-profiles">
-    Automatic summaries from the graph
+  <Card title="Profiles" icon="user" href="/concepts/user-profiles">
+    Static + dynamic context built from the graph.
   </Card>
-  <Card title="Add Memories" icon="plus" href="/add-memories">
-    Start building your knowledge graph
+  <Card title="Quickstart" icon="play" href="/quickstart">
+    See entity chains in a full conversation + document flow.
   </Card>
 </CardGroup>

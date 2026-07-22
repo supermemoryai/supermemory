@@ -8,12 +8,36 @@ icon: "/images/opencode-logo.png"
 [OpenCode-Supermemory](https://github.com/supermemoryai/opencode-supermemory) is an OpenCode plugin that gives your AI persistent memory across sessions. Your agent remembers what you worked on — across sessions, across projects.
 
 <Tip>
-**Prefer to keep everything on your machine?** This plugin works with [self-hosted Supermemory](/self-hosting/overview) — run `npx supermemory local`, then `export SUPERMEMORY_API_URL="http://localhost:6767"` and use the API key printed on first boot.
+**Prefer to keep everything on your machine?** This plugin works with [self-hosted Supermemory](/self-hosting/overview) — run `npx supermemory local`, then set `apiKey` / base URL in `~/.config/opencode/supermemory.jsonc` and use the API key printed on first boot.
 </Tip>
 
-## Get Your API Key
+## Install the Plugin
 
-Create a Supermemory API key from the [API Keys](https://console.supermemory.ai/keys) page, then add it to your shell profile so it persists across sessions:
+```bash
+bunx opencode-supermemory@latest install
+```
+
+For LLM agents (non-interactive):
+
+```bash
+bunx opencode-supermemory@latest install --no-tui
+```
+
+## Authenticate
+
+Browser login (recommended):
+
+```bash
+bunx opencode-supermemory@latest login
+```
+
+Check the connection any time:
+
+```bash
+bunx opencode-supermemory@latest status
+```
+
+Or set an API key manually from [app.supermemory.ai](https://app.supermemory.ai/?view=integrations) / [API Keys](https://console.supermemory.ai/keys):
 
 <Tabs>
   <Tab title="macOS / Linux (zsh)">
@@ -36,18 +60,6 @@ Create a Supermemory API key from the [API Keys](https://console.supermemory.ai/
   </Tab>
 </Tabs>
 
-## Install the Plugin
-
-```bash
-bunx opencode-supermemory@latest install
-```
-
-For LLM agents (non-interactive):
-
-```bash
-bunx opencode-supermemory@latest install --no-tui
-```
-
 Ensure your `~/.config/opencode/opencode.jsonc` contains:
 
 ```json
@@ -60,7 +72,7 @@ Ensure your `~/.config/opencode/opencode.jsonc` contains:
 
 Once installed, the plugin runs automatically:
 
-- **Context Injection** — On session start, relevant memories are fetched and injected into the agent's context. This includes user preferences, project knowledge, and past interactions.
+- **Context Injection** — On session start, relevant memories are fetched and injected into the agent's context (user profile, project knowledge, semantic matches).
 - **Keyword Detection** — Phrases like "remember" or "save this" trigger automatic storage.
 - **Smart Compaction** — At 80% context capacity, sessions are summarized and saved as memories.
 - **Privacy Protection** — Content within `<private>` tags never persists.
@@ -111,13 +123,16 @@ Create `~/.config/opencode/supermemory.jsonc`:
 
 ```jsonc
 {
-  "apiKey": "sm_...",              // Or use SUPERMEMORY_API_KEY env var
+  "apiKey": "sm_...",              // Or use SUPERMEMORY_API_KEY / browser login
   "similarityThreshold": 0.6,      // Minimum match score (0-1)
   "maxMemories": 5,                // Memories per injection
   "maxProjectMemories": 10,        // Project memory listings
   "maxProfileItems": 5,            // Profile facts injected
   "injectProfile": true,           // Include user preferences in context
   "containerTagPrefix": "opencode", // Tag prefix for scoping
+  "userContainerTag": "my-user-tag",       // Optional override
+  "projectContainerTag": "my-project-tag", // Optional override
+  "keywordPatterns": ["log\\s+this"],      // Extra auto-save triggers
   "compactionThreshold": 0.80      // Context usage ratio for summarization
 }
 ```
@@ -133,7 +148,7 @@ tail -f ~/.opencode-supermemory.log
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="GitHub Repository" icon="github" href="https://github.com/supermemoryai/opencode-supermemory">
+  <Card title="GitHub Repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/opencode-supermemory">
     Source code, issues, and detailed README.
   </Card>
 

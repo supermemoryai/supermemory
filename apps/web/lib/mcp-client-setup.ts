@@ -60,10 +60,10 @@ export function mcpClientShowsManual(
 
 export function setupInstructionsSubtitle(setup: McpSetupAvailability): string {
 	if (mcpClientSetupShowsTabs(setup)) {
-		return "Choose manual instructions or one click setup (CLI, deeplink, or paste URL)."
+		return "Choose manual instructions or one click setup (deeplink, URL, or config)."
 	}
 	if (setup.manual) {
 		return "Follow the steps below to finish setup."
 	}
-	return "Use the command or link below, then complete OAuth if prompted."
+	return "Use the URL or config below, then complete OAuth if prompted."
 }

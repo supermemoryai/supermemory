@@ -1,0 +1,50 @@
+---
+title: "Greeting New Teammates"
+sidebarTitle: "Greeting Teammates"
+description: "Connect card, welcome DM, and first answer — activation on day one"
+icon: "user-plus"
+---
+
+import { SlackThread, SlackMessage, BOT_AVATAR } from "/snippets/slack-message.mdx";
+
+## The scenario
+
+A new hire joins the Slack workspace. They shouldn't need a web signup form or a long handbook read before Company Brain is useful — the whole first experience happens in Slack.
+
+## What happens
+
+They get a connect card, tap **Connect me**, and receive a welcome DM:
+
+<SlackThread type="dm" dmWith={{ name: "supermemory", avatar: BOT_AVATAR }}>
+  <SlackMessage bot time="9:02 AM">
+    Welcome to **Acme**. Here's what I know, what I can access, and what I keep private.
+
+    Try one of these:
+    1. What does Acme do?
+    2. Who owns onboarding?
+    3. Where do we track bugs?
+  </SlackMessage>
+  <SlackMessage name="Sam" color="#36C5F0" time="9:03 AM">
+    What does Acme do?
+  </SlackMessage>
+  <SlackMessage bot time="9:03 AM">
+    Acme builds memory infrastructure for AI apps — shared context for teams and agents. *(from the company profile your admin seeded at setup)*
+  </SlackMessage>
+</SlackThread>
+
+Right after the first answer, they're prompted to connect personal tools (Linear, Notion) so day-two questions can hit live data.
+
+## What's really going on
+
+This is the [member join flow](/company-brain/setup) told as a scenario. Tapping **Connect me** creates a passwordless account from their Slack email, provisions their private [employee memory](/company-brain/permissions), and consumes a seat. The three starter questions are seeded so the first useful answer happens on the first tap — that's the activation moment.
+
+No web app required for the new hire. Admins still do the one-time workspace + Slack install on the web.
+
+<CardGroup cols={2}>
+  <Card title="Setup and onboarding" icon="rocket" href="/company-brain/setup">
+    The full admin + member flow.
+  </Card>
+  <Card title="Permissions" icon="shield-check" href="/company-brain/permissions">
+    Employee memory vs. public and private channel memory.
+  </Card>
+</CardGroup>

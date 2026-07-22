@@ -12,17 +12,13 @@ A standalone MCP (Model Context Protocol) server for Supermemory that gives AI a
 
 ## Setup
 
-### Quick Install (Recommended)
+### Server URL
 
-```bash
-npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client claude --oauth=yes
+```text
+https://mcp.supermemory.ai/mcp
 ```
 
-Replace `claude` with your MCP client: `claude`, `cursor`, `windsurf`, etc.
-
-### Manual Configuration
-
-Add to your MCP client config (Claude Desktop, Cursor, Windsurf, etc.):
+Add to your MCP client config (Claude, Cursor, Windsurf, VS Code, etc.):
 
 ```json
 {

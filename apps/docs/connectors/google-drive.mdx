@@ -1,7 +1,7 @@
 ---
 title: "Google Drive Connector"
 description: "Connect Google Drive to sync documents into your Supermemory knowledge base"
-icon: "google-drive"
+icon: "/images/google-drive-icon.svg"
 ---
 
 Connect Google Drive to sync documents into your Supermemory knowledge base with OAuth authentication and custom app support.
@@ -33,7 +33,7 @@ If you use scoped sync and the user has not finished the picker yet, **scheduled
 
     const connection = await client.connections.create('google-drive', {
       redirectUrl: 'https://yourapp.com/auth/google-drive/callback',
-      containerTags: ['user-123', 'gdrive-sync'],
+      containerTag: 'user-123',
       documentLimit: 3000,
       metadata: {
         source: 'google-drive',
@@ -57,7 +57,7 @@ If you use scoped sync and the user has not finished the picker yet, **scheduled
     connection = client.connections.create(
         'google-drive',
         redirect_url='https://yourapp.com/auth/google-drive/callback',
-        container_tags=['user-123', 'gdrive-sync'],
+        container_tag='user-123',
         document_limit=3000,
         metadata={
             'source': 'google-drive',
@@ -78,7 +78,7 @@ If you use scoped sync and the user has not finished the picker yet, **scheduled
       -H "Content-Type: application/json" \
       -d '{
         "redirectUrl": "https://yourapp.com/auth/google-drive/callback",
-        "containerTags": ["user-123", "gdrive-sync"],
+        "containerTag": "user-123",
         "documentLimit": 3000,
         "metadata": {
           "source": "google-drive",
@@ -105,7 +105,7 @@ After the user grants permissions, Google redirects through Supermemory to finis
     ```typescript
     // Get connection details
     const connection = await client.connections.getByTags('google-drive', {
-      containerTags: ['user-123', 'gdrive-sync']
+      containerTags: ['user-123']
     });
     ```
   </Tab>
@@ -114,13 +114,13 @@ After the user grants permissions, Google redirects through Supermemory to finis
     # Get connection details
     connection = client.connections.get_by_tags(
         'google-drive',
-        container_tags=['user-123', 'gdrive-sync']
+        container_tags=['user-123']
     )
 
     # List synced documents
     documents = client.connections.list_documents(
         'google-drive',
-        container_tags=['user-123', 'gdrive-sync']
+        container_tags=['user-123']
     )
     ```
   </Tab>
@@ -131,7 +131,7 @@ After the user grants permissions, Google redirects through Supermemory to finis
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "containerTags": ["user-123", "gdrive-sync"],
+        "containerTags": ["user-123"],
         "provider": "google-drive"
       }'
 
@@ -140,7 +140,7 @@ After the user grants permissions, Google redirects through Supermemory to finis
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "containerTags": ["user-123", "gdrive-sync"],
+        "containerTags": ["user-123"],
         "source": "google-drive"
       }'
     ```
@@ -153,6 +153,10 @@ Based on the API type definitions, Google Drive documents are identified with th
 - `google_doc` - Google Docs
 - `google_slide` - Google Slides
 - `google_sheet` - Google Sheets
+
+<Note>
+Drive documents are converted to markdown before ingestion. This conversion is lossy — some formatting may not be preserved.
+</Note>
 
 ## Connection Management
 

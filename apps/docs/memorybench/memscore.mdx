@@ -1,120 +1,91 @@
 ---
-title: "MemScore"
-description: "A composite metric for comparing memory providers across quality, latency, and token efficiency"
+title: "Measuring Results"
+description: "How MemoryBench scores a run — qualitative judging and quantitative metrics"
+sidebarTitle: "Measuring"
+icon: "gauge"
 ---
 
-## What is MemScore?
+Every question goes through the same pipeline — **ingest → search → answer → evaluate → report** — and produces two different kinds of signal: a **qualitative** judgment on whether the answer was actually right, and **quantitative** measurements of how fast and how expensive getting there was. MemoryBench keeps both instead of collapsing everything into a single number.
 
-MemScore is a composite metric that captures three dimensions of memory provider performance in a single line:
+## Qualitative: was the answer right?
 
-```
-accuracy% / latencyMs / contextTok
-```
+Correctness isn't decided by string matching — a **judge LLM** (GPT-4o, Claude Sonnet, or Gemini Flash, your choice) compares the provider's answer against ground truth and returns a verdict:
 
-For example:
-
-```
-85% / 120ms / 1500tok
+```typescript
+{ score: 0 | 1, label: "correct" | "incorrect", explanation: string }
 ```
 
-This tells you the provider achieved **85% accuracy**, with an average search latency of **120ms**, sending **1,500 tokens** of context to the answering model per question.
-
-## Components
-
-| Component | What it measures | Source |
-|-----------|-----------------|--------|
-| **Quality** | Answer accuracy as a percentage | `(correct / total) * 100` from judge evaluations |
-| **Latency** | Average search response time in milliseconds | Mean of all search phase durations |
-| **Tokens** | Average context tokens sent to the answering model | Client-side token count of retrieved context per question |
-
-<Note>
-MemScore is not a single number — it's a triple. This is intentional. Collapsing quality, latency, and cost into one score hides important tradeoffs. A provider with 90% accuracy at 5,000 tokens is very different from one with 90% accuracy at 500 tokens.
-</Note>
-
-## How token counting works
-
-MemoryBench counts tokens client-side using provider-specific tokenizers:
-
-| Model provider | Tokenizer | Method |
-|----------------|-----------|--------|
-| **OpenAI** | `js-tiktoken` | Exact count using `o200k_base` or `cl100k_base` encoding |
-| **Anthropic** | `@anthropic-ai/tokenizer` | Exact count using Anthropic's tokenizer |
-| **Google** | Approximation | `Math.ceil(text.length / 4)` |
-
-Three token values are tracked per question:
-
-- **`promptTokens`** — Total tokens in the full prompt (instructions + context + question)
-- **`basePromptTokens`** — Tokens in the prompt without any retrieved context
-- **`contextTokens`** — Tokens in just the retrieved context string
-
-The MemScore uses `contextTokens` because it isolates what the memory provider actually contributed.
-
-## Where MemScore appears
-
-### CLI output
-
-After a benchmark run completes, MemScore is printed in the summary:
-
-```
-SUMMARY:
-  Total Questions: 50
-  Correct: 43
-  Accuracy: 86.00%
-
-  Quality:  86%
-  Latency:  145ms (avg)
-  Tokens:   1,823 (avg context sent to answering model)
-
-  MemScore: 86% / 145ms / 1823tok
-```
-
-### Web UI
-
-The MemScore card appears at the top of the run overview page. Per-question token counts are shown next to each model answer in both the question list and detail views.
-
-### Report JSON
-
-The `report.json` file includes both a display string and structured components:
-
-```json
-{
-  "memscore": "86% / 145ms / 1823tok",
-  "memscoreComponents": {
-    "quality": 86,
-    "latencyMs": 145,
-    "contextTokens": 1823
-  },
-  "tokens": {
-    "totalTokens": 142500,
-    "basePromptTokens": 21000,
-    "contextTokens": 91150,
-    "avgTokensPerQuestion": 2850,
-    "avgBasePromptTokens": 420,
-    "avgContextTokens": 1823
-  }
-}
-```
-
-Use `memscoreComponents` for programmatic comparisons — it avoids parsing the display string.
-
-## Comparing providers
-
-MemScore is most useful when comparing providers on the same benchmark:
+The judge is judge-agnostic on purpose — score the same run with two different judges if you want to sanity-check that a result isn't an artifact of one model's grading bias. The prompt the judge uses can also vary by question type (temporal questions get graded differently than abstention questions, for example), and providers can supply their own judge prompts if their answers need custom framing.
 
 ```bash
-bun run src/index.ts compare -p supermemory,mem0,zep -b locomo -j gpt-4o
+# Grade a run with a different judge
+bun run src/index.ts run -p supermemory -b locomo -j sonnet-4
 ```
 
-Each provider's report will include its own MemScore, making it easy to see tradeoffs at a glance:
+## Quantitative: how fast, how much
 
-| Provider | MemScore |
-|----------|----------|
-| Provider A | `88% / 145ms / 1200tok` |
-| Provider B | `82% / 80ms / 2400tok` |
-| Provider C | `85% / 110ms / 1800tok` |
+Alongside the correctness verdict, every question also records hard numbers:
 
-In this example, Provider A has the highest accuracy but the slowest search. Provider B is the fastest but sends the most context without achieving the best accuracy — suggesting its retrieval may be less precise. Provider C lands in the middle on all three axes. There's no single "winner" — the right choice depends on whether you prioritize quality, speed, or token efficiency.
+| Metric | What it measures |
+|---|---|
+| **Accuracy** | Judge score (0–1) averaged across all questions, and broken down per question type |
+| **Latency** | Search time and answer-generation time per question (p50 / p95 across a run) |
+| **Context tokens** | How much context was sent to the answering model — a proxy for retrieval cost |
+| **Success rate** | Percentage of questions that completed without erroring (failures are excluded from accuracy, not counted against it) |
 
-## Backward compatibility
+## MemScore
 
-Runs from before MemScore was added will still work. If token data is not present in the checkpoint, the `memscore`, `memscoreComponents`, and `tokens` fields will be `undefined` in the report. The CLI and web UI gracefully skip the MemScore display when data is unavailable.
+The report doesn't reduce these to one score. **MemScore** reports the three that matter for a production decision side by side:
+
+```
+MemScore: 86% / 145ms / 1823tok
+          ▲     ▲       ▲
+          │     │       └─ context tokens sent to the answering model (cost)
+          │     └───────── search latency
+          └─────────────── answer accuracy vs. ground truth
+```
+
+A provider that's 2% more accurate but 5x slower and 3x more expensive in context tokens isn't unambiguously "better" — MemScore leaves that trade-off to you instead of picking weights for you.
+
+## Reading the numbers
+
+Rough bands, from running MemoryBench across the built-in benchmarks:
+
+| Accuracy | Read |
+|---|---|
+| 80%+ | Excellent, production-ready |
+| 70–80% | Good, some room to improve |
+| 60–70% | Adequate, likely needs tuning |
+| `<60%` | Investigate — retrieval, prompts, or indexing likely need work |
+
+| Search latency | Read |
+|---|---|
+| `<100ms` | Excellent (vector-search level) |
+| 100–300ms | Good, typical API latency |
+| 300–500ms | Adequate for most use cases |
+| `>500ms` | Slow — worth optimizing |
+
+Per-question-type breakdowns are usually more useful than the headline number: strong on LoCoMo but weak on LongMemEval means good temporal/cross-session recall but weak dense-retrieval; the reverse means the opposite. That's what tells you what to actually go fix.
+
+## Digging into a specific run
+
+```bash
+bun run src/index.ts status -r my-run             # progress / summary
+bun run src/index.ts show-failures -r my-run       # full context on what got graded wrong
+bun run src/index.ts serve                         # web UI at localhost:3000 for visual inspection
+```
+
+Results and checkpoints for every run live at `data/runs/{runId}/report.json`, with per-question-type accuracy, latency percentiles, and per-question token counts.
+
+---
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Adding a Provider" icon="plug" href="/memorybench/extend-provider">
+    Get your own system into a run that produces these numbers.
+  </Card>
+  <Card title="Building a Benchmark" icon="flask-conical" href="/memorybench/extend-benchmark">
+    Measure against scenarios specific to your product.
+  </Card>
+</CardGroup>

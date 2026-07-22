@@ -200,9 +200,9 @@ results = client.search(
 ```
 
 ```python Supermemory
-results = client.documents.search(
-    query="user preferences",
-    container_tags=["user_alice"]
+results = client.search.memories(
+    q="user preferences",
+    container_tag="user_alice"
 )
 ```
 
@@ -247,6 +247,6 @@ For enterprise migrations, [contact us](mailto:support@supermemory.ai) for assis
 
 ## Next Steps
 
-1. [Explore](/how-it-works) how Supermemory works
+1. [Explore](/concepts/how-it-works) how Supermemory works
 2. Read the [quickstart](/quickstart) and add and retrieve your first memories
 3. [Connect](/connectors/overview) to Google Drive, Notion, and OneDrive with automatic syncing

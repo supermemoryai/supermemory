@@ -9,9 +9,9 @@ sidebarTitle: "From Zep"
 | Zep AI | Supermemory |
 |--------|-------------|
 | Sessions & Messages | Documents & Container Tags |
-| `session.create()` | Use `containerTags` parameter |
-| `memory.add(session_id, ...)` | `add({containerTag: [...]})` |
-| `memory.search(session_id, {text: ...})` | `search.execute({q: ..., containerTags: [...]})` |
+| `session.create()` | Use `containerTag` parameter |
+| `memory.add(session_id, ...)` | `add({containerTag: "..."})` |
+| `memory.search(session_id, {text: ...})` | `search.execute({q: ..., containerTag: "..."})` |
 
 ## Installation
 
@@ -56,7 +56,7 @@ session = client.session.create(
 
 ```python Supermemory
 # No explicit session creation - use containerTag
-containerTag = ["user_123"]
+containerTag = "user_123"
 ```
 
 </CodeGroup>
@@ -75,7 +75,7 @@ client.memory.add(
 ```python Supermemory
 client.add({
     "content": "User prefers dark mode",
-    "containerTag": ["user_123"]
+    "containerTag": "user_123"
 })
 ```
 
@@ -95,7 +95,7 @@ results = client.memory.search(
 ```python Supermemory
 results = client.search.execute({
     "q": "preferences",
-    "containerTag": ["user_123"],
+    "containerTag": "user_123",
     "limit": 5
 })
 ```
@@ -112,7 +112,7 @@ memories = client.memory.get(session_id="user_123")
 
 ```python Supermemory
 documents = client.documents.list({
-    "containerTag": ["user_123"],
+    "containerTags": ["user_123"],
     "limit": 100
 })
 ```
@@ -122,7 +122,7 @@ documents = client.documents.list({
 ## Migration Steps
 
 1. **Replace client initialization** - Use Supermemory client instead of Zep
-2. **Map sessions to container tags** - Replace `session_id="user_123"` with `containerTag: ["user_123"]`
+2. **Map sessions to container tags** - Replace `session_id="user_123"` with `containerTag: "user_123"`
 3. **Update method calls** - Use `add()` and `search.execute()` instead of `memory.add()` and `memory.search()`
 4. **Change search parameter** - Use `q` instead of `text`
 5. **Handle async processing** - Documents process asynchronously (status: `queued` → `done`)
@@ -152,7 +152,7 @@ results = client.memory.search("user_123", {
 from supermemory import Supermemory
 
 client = Supermemory(api_key="...")
-containerTag = ["user_123"]
+containerTag = "user_123"
 
 client.add({
     "content": "I love Python",
@@ -203,7 +203,7 @@ for (const sessionId of sessionIds) {
     if (mem.content) {
       await supermemory.add({
         content: mem.content,
-        containerTag: [`session_${sessionId}`, `user_${memory.user_id || "unknown"}`],
+        containerTag: `session:${sessionId}:user:${memory.user_id || "unknown"}`,
         metadata: {
           role: mem.role,
           type: "message",
@@ -238,7 +238,7 @@ for session_id in session_ids:
         if mem.content:
             supermemory.add({
                 "content": mem.content,
-                "containerTag": [f"session_{session_id}", f"user_{memory.user_id or 'unknown'}"],
+                "containerTag": f"session:{session_id}:user:{memory.user_id or 'unknown'}",
                 "metadata": {
                     "role": mem.role,
                     "type": "message",
@@ -315,9 +315,9 @@ async function migrateFromZep(
   // Import to Supermemory
   let totalMemories = 0;
   for (const [sessionId, data] of Object.entries(exportedData) as any) {
-    const containerTag = ["imported_from_zep", `session_${sessionId}`];
+    let containerTag = `imported_from_zep:session:${sessionId}`;
     if (data.session.user_id) {
-      containerTag.push(`user_${data.session.user_id}`);
+      containerTag += `:user:${data.session.user_id}`;
     }
 
     for (const memory of data.memories) {
@@ -368,5 +368,5 @@ migrateFromZep(
 ## Resources
 
 - [Supermemory SDKs](/integrations/supermemory-sdk)
-- [API Reference](/memory-api/overview)
-- [Search Documentation](/search)
+- [API Reference](/api-reference/overview)
+- [Search Documentation](/recall/search)
