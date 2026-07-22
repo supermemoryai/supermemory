@@ -31,6 +31,17 @@ export class InputHandler {
 	private lastTouchCenter = { x: 0, y: 0 }
 	private isTouchGesture = false
 
+	// Tap detection: touch browsers never fire the synthesized click because
+	// onTouchStart calls preventDefault(), so taps are detected manually.
+	private static readonly TAP_MOVE_THRESHOLD = 10
+	private tapCandidate = false
+	private touchStartX = 0
+	private touchStartY = 0
+	// World point under the finger at touchstart, captured before any panning so
+	// the release hit-test is not thrown off by sub-threshold pans during the tap.
+	private touchStartWorldX = 0
+	private touchStartWorldY = 0
+
 	private boundMouseDown: (e: MouseEvent) => void
 	private boundMouseMove: (e: MouseEvent) => void
 	private boundMouseUp: (e: MouseEvent) => void
@@ -241,6 +252,7 @@ export class InputHandler {
 
 		if (touches.length >= 2) {
 			this.isTouchGesture = true
+			this.tapCandidate = false
 			const t0 = touches[0]
 			const t1 = touches[1]
 			if (!t0 || !t1) return
@@ -258,6 +270,15 @@ export class InputHandler {
 			const rect = this.canvas.getBoundingClientRect()
 			this.lastMouseX = t.clientX - rect.left
 			this.lastMouseY = t.clientY - rect.top
+			this.touchStartX = this.lastMouseX
+			this.touchStartY = this.lastMouseY
+			const startWorld = this.viewport.screenToWorld(
+				this.lastMouseX,
+				this.lastMouseY,
+			)
+			this.touchStartWorldX = startWorld.x
+			this.touchStartWorldY = startWorld.y
+			this.tapCandidate = true
 			this.isPanning = true
 		}
 	}
@@ -299,6 +320,13 @@ export class InputHandler {
 			const rect = this.canvas.getBoundingClientRect()
 			const x = t.clientX - rect.left
 			const y = t.clientY - rect.top
+			if (
+				this.tapCandidate &&
+				Math.hypot(x - this.touchStartX, y - this.touchStartY) >
+					InputHandler.TAP_MOVE_THRESHOLD
+			) {
+				this.tapCandidate = false
+			}
 			this.viewport.pan(x - this.lastMouseX, y - this.lastMouseY)
 			this.lastMouseX = x
 			this.lastMouseY = y
@@ -312,6 +340,16 @@ export class InputHandler {
 		}
 		if (e.touches.length === 0) {
 			this.isPanning = false
+			if (this.tapCandidate) {
+				this.tapCandidate = false
+				// Use the world point captured at touchstart, not the start screen
+				// point re-projected through the (possibly panned) current viewport.
+				const node = this.spatialIndex.queryPoint(
+					this.touchStartWorldX,
+					this.touchStartWorldY,
+				)
+				this.callbacks.onNodeClick(node?.id ?? null)
+			}
 		}
 	}
 }
