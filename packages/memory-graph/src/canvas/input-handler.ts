@@ -37,6 +37,10 @@ export class InputHandler {
 	private tapCandidate = false
 	private touchStartX = 0
 	private touchStartY = 0
+	// World point under the finger at touchstart, captured before any panning so
+	// the release hit-test is not thrown off by sub-threshold pans during the tap.
+	private touchStartWorldX = 0
+	private touchStartWorldY = 0
 
 	private boundMouseDown: (e: MouseEvent) => void
 	private boundMouseMove: (e: MouseEvent) => void
@@ -268,6 +272,12 @@ export class InputHandler {
 			this.lastMouseY = t.clientY - rect.top
 			this.touchStartX = this.lastMouseX
 			this.touchStartY = this.lastMouseY
+			const startWorld = this.viewport.screenToWorld(
+				this.lastMouseX,
+				this.lastMouseY,
+			)
+			this.touchStartWorldX = startWorld.x
+			this.touchStartWorldY = startWorld.y
 			this.tapCandidate = true
 			this.isPanning = true
 		}
@@ -332,11 +342,12 @@ export class InputHandler {
 			this.isPanning = false
 			if (this.tapCandidate) {
 				this.tapCandidate = false
-				const world = this.viewport.screenToWorld(
-					this.touchStartX,
-					this.touchStartY,
+				// Use the world point captured at touchstart, not the start screen
+				// point re-projected through the (possibly panned) current viewport.
+				const node = this.spatialIndex.queryPoint(
+					this.touchStartWorldX,
+					this.touchStartWorldY,
 				)
-				const node = this.spatialIndex.queryPoint(world.x, world.y)
 				this.callbacks.onNodeClick(node?.id ?? null)
 			}
 		}

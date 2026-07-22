@@ -147,6 +147,23 @@ describe("InputHandler touch tap-to-select", () => {
 		expect(clicks).toEqual([])
 	})
 
+	it("hit-tests a jittery tap against the node under the finger at touchstart", () => {
+		// Zoomed out, a few-pixel finger jitter maps to a large world-space shift.
+		// The sub-threshold move still pans the viewport, so re-projecting the
+		// start screen point through the panned transform lands well off the node.
+		// zoom 0.25: world (100, 100) renders at screen (25, 25).
+		viewport.zoomImmediate(0.25, 0, 0)
+
+		fire("touchstart", touchEvent([touch(25, 25)]))
+		// 8px screen jitter (below the 10px tap threshold) that pans the viewport
+		fire("touchmove", touchEvent([touch(33, 25)]))
+		fire("touchend", touchEvent([]))
+
+		// the jitter did move the viewport, but the tap still resolves the node
+		expect(viewport.panX).toBe(8)
+		expect(clicks).toEqual(["doc-1"])
+	})
+
 	it("hit-tests the tap through the current viewport transform", () => {
 		// zoom 2x, pan (50, 50): world (100, 100) renders at screen (250, 250)
 		viewport.pan(50, 50)
