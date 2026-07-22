@@ -128,13 +128,23 @@ You can find them here:
 - OpenCode plugin: https://github.com/supermemoryai/opencode-supermemory
 - Hermes agent (Supermemory memory provider): https://github.com/NousResearch/hermes-agent
 
-### MCP - Quick install
+### MCP
 
-```bash
-npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client claude --oauth=yes
+Server URL:
+
+```text
+https://mcp.supermemory.ai/mcp
 ```
 
-Replace `claude` with your client: `cursor`, `windsurf`, `vscode`, etc.
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp"
+    }
+  }
+}
+```
 
 Read more about our MCP here - https://supermemory.ai/docs/supermemory-mcp/mcp
 
@@ -265,7 +275,7 @@ const agent = new Agent(withSupermemory(config, "user-123", { mode: "full" }));
 
 ```typescript
 // Hybrid (default) — RAG + Memory in one query
-const results = await client.search.memories({
+const results = await client.search({
   q: "how do I deploy?",
   containerTag: "user_123",
   searchMode: "hybrid",
@@ -273,7 +283,7 @@ const results = await client.search.memories({
 // Returns deployment docs (RAG) + user's deploy preferences (Memory)
 
 // Memories only
-const results = await client.search.memories({
+const results = await client.search({
   q: "user preferences",
   containerTag: "user_123",
   searchMode: "memories",
@@ -307,8 +317,8 @@ Real-time webhooks. Documents automatically processed, chunked, and searchable.
 |---|---|
 | `client.add()` | Store content — text, conversations, URLs, HTML |
 | `client.profile()` | User profile + optional search in one call |
-| `client.search.memories()` | Hybrid search across memories and documents |
-| `client.search.documents()` | Document search with metadata filters |
+| `client.search()` | Hybrid search across memories and documents (`searchMode`) |
+| `client.search.documents()` | Document search with metadata filters (legacy v3 response shape) |
 | `client.documents.uploadFile()` | Upload PDFs, images, videos, code |
 | `client.documents.list()` | List and filter documents |
 | `client.settings.update()` | Configure memory extraction and chunking |

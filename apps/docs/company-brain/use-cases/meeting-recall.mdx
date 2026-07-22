@@ -1,0 +1,38 @@
+---
+title: "Meeting Recall"
+sidebarTitle: "Meeting Recall"
+description: "Ask what was decided in a meeting and get the answer from synced notes"
+icon: "calendar-check"
+---
+
+import { SlackThread, SlackMessage, Mention } from "/snippets/slack-message.mdx";
+
+## The scenario
+
+Someone missed the Acme call — or was there and forgot the outcome. They ask in Slack and get the decision, with a path back to the source notes.
+
+## What happens
+
+<SlackThread channel="#sales">
+  <SlackMessage self time="4:05 PM">
+    <Mention>supermemory</Mention> what did we decide in the meeting with Acme?
+  </SlackMessage>
+  <SlackMessage bot time="4:05 PM">
+    Acme is moving to annual billing at the current rate, with a 90-day pilot on the enterprise SSO add-on. Follow-up owned by **Priya**, due Friday. *(from Granola notes, Acme QBR — Jun 11)*
+  </SlackMessage>
+</SlackThread>
+
+## What's really going on
+
+Meeting notes come in through a [connector](/company-brain/connectors) — Granola for live meeting notes, or Drive/Notion if notes land there. Once synced, they live in [public channel memory](/company-brain/permissions), so anyone on the team can ask about them. The answer cites the source so you can open the original notes and verify.
+
+Ask about a decision, an owner, a date, or "what did we promise them" — plain language is fine.
+
+<CardGroup cols={2}>
+  <Card title="Permissions" icon="shield-check" href="/company-brain/permissions">
+    Why meeting notes land in public channel memory.
+  </Card>
+  <Card title="Connectors" icon="plug" href="/company-brain/connectors">
+    Connect Granola, Drive, or Notion.
+  </Card>
+</CardGroup>

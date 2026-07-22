@@ -42,7 +42,7 @@ The console limits connector setup to 500 documents. Use the API setup below for
       metadata: {
         apiKey: process.env.GRANOLA_API_KEY!
       },
-      containerTags: ['org-123', 'meeting-notes'],
+      containerTag: 'org-123',
       documentLimit: 1000
     });
 
@@ -61,7 +61,7 @@ The console limits connector setup to 500 documents. Use the API setup below for
         metadata={
             'apiKey': os.environ["GRANOLA_API_KEY"]
         },
-        container_tags=['org-123', 'meeting-notes'],
+        container_tag='org-123',
         document_limit=1000
     )
 
@@ -77,7 +77,7 @@ The console limits connector setup to 500 documents. Use the API setup below for
         "metadata": {
           "apiKey": "'"$GRANOLA_API_KEY"'"
         },
-        "containerTags": ["org-123", "meeting-notes"],
+        "containerTag": "org-123",
         "documentLimit": 1000
       }'
     ```
@@ -93,7 +93,7 @@ For Granola, provider-specific fields are passed inside the top-level `metadata`
 | Parameter | Location | Required | Description |
 |-----------|----------|----------|-------------|
 | `apiKey` | `metadata.apiKey` | Yes | Granola API key from **Settings > Connectors > API keys** |
-| `containerTags` | top-level | No | Tags for organizing imported notes by user, organization, project, or tenant |
+| `containerTag` | top-level | No | Tag for organizing imported notes by user, organization, project, or tenant |
 | `documentLimit` | top-level | No | Maximum notes to sync per connection (default: 10,000) |
 
 <Note>
@@ -126,9 +126,10 @@ Each synced note includes searchable metadata:
 You can filter searches using these metadata fields:
 
 ```typescript
-const results = await client.search.documents({
+const results = await client.search({
   q: "customer onboarding discussion",
-  containerTags: ['org-123'],
+  containerTag: 'org-123',
+  searchMode: "documents",
   filters: JSON.stringify({
     AND: [
       { key: "type", value: "granola", negate: false },

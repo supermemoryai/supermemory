@@ -1,0 +1,334 @@
+---
+title: "Billing & usage"
+description: "Enterprise-grade reference for Supermemory metering — SM tokens, operations, search, SuperRAG, plans, diff billing, and programmatic usage APIs."
+sidebarTitle: "Billing & usage"
+icon: "credit-card"
+---
+
+Supermemory billing is **usage-based USD credits**. Plans include a monthly credit balance; metered product usage draws that balance down. You manage plan, invoices, top-ups, and auto top-up in the [Developer Console](https://console.supermemory.ai).
+
+List prices and the public rate card also live on [supermemory.ai/pricing](https://supermemory.ai/pricing). This page is the **contract-level model**: what we meter, when tokens are free (already seen), what an operation is, plan feature gates, and how to read usage programmatically.
+
+<Note>
+Console charts are **estimates**. Invoice / customer-portal line items are authoritative.
+</Note>
+
+## Mental model
+
+```text
+PLAN (Free · Pro · Scale · Enterprise)
+     │  includes monthly USD credits
+     ▼
+USD CREDIT BALANCE  ──draw──►  METERS
+                                 ├── sm_tokens_text / sm_tokens_rich     (Memory ingest)
+                                 ├── sm_superrag_text / sm_superrag_rich (SuperRAG task)
+                                 ├── sm_search_queries                  (Search / profile)
+                                 └── sm_operations                      (platform ops)
+```
+
+1. You hold a **USD credit balance** (`usd_credits`).
+2. Product activity increments **meters** (tokens, queries, operations).
+3. Each meter unit multiplies by a **USD-per-unit** rate and debits the balance.
+4. **Re-ingesting the same document under the same `customId` only bills the net-new token delta** — already-seen content is effectively **fully discounted**.
+
+---
+
+## Meters (what we count)
+
+| Feature ID | UI label | What counts | Unit |
+|---|---|---|---|
+| `sm_tokens_text` | Memory tokens (text) | Billable **new** tokens on Memory-path ingest for text-like content (`text`, `tweet`, `github_markdown`) | tokens |
+| `sm_tokens_rich` | Memory tokens (rich) | Billable **new** tokens on Memory-path ingest for multimodal / extraction-heavy types (PDF, media, etc.) | tokens |
+| `sm_superrag_text` | SuperRAG tokens (text) | Billable **new** tokens when the task type is SuperRAG (text) | tokens |
+| `sm_superrag_rich` | SuperRAG tokens (rich) | Billable **new** tokens when the task type is SuperRAG (rich) | tokens |
+| `sm_search_queries` | Search queries | Each search / profile call that runs retrieval (v3 search, v4 search, v4 profile with search) | queries |
+| `sm_operations` | Operations | Counted platform operations not fully attributed to token meters (e.g. certain ingest modes such as **instant dreaming**, and other non-token platform actions) | operations |
+
+### List rates (USD)
+
+These match the console meter table (USD **per unit**; ×1000 ≈ price per 1K units):
+
+| Meter | USD per unit | Approx per 1K units |
+|---|---|---|
+| `sm_tokens_text` | 0.000005 | **0.005 USD** / 1K tokens |
+| `sm_tokens_rich` | 0.00001 | **0.010 USD** / 1K tokens |
+| `sm_superrag_text` | 0.000001 | **0.001 USD** / 1K tokens |
+| `sm_superrag_rich` | 0.000002 | **0.002 USD** / 1K tokens |
+| `sm_search_queries` | 0.000005 | **0.005 USD** / 1K queries |
+| `sm_operations` | 0.0001 | **0.10 USD** / 1K operations |
+
+Rates can change; treat [pricing](https://supermemory.ai/pricing) + your invoice as source of truth.
+
+### Memory vs SuperRAG tokens
+
+Ingestion is attributed by **task type**:
+
+- **Memory** (`taskType: "memory"`) → `sm_tokens_text` / `sm_tokens_rich`
+- **SuperRAG** (`taskType: "superrag"`) → `sm_superrag_text` / `sm_superrag_rich`
+
+Text-like document types bill on the **text** meters; everything else bills as **rich** (OCR, video/audio, heavy extractors).
+
+### What is an operation?
+
+**`sm_operations`** is the meter for discrete platform work that is not “how many tokens did we embed.” Examples include:
+
+- **`dreaming: "instant"`** — processes a document’s memory extraction immediately (does not wait for dynamic batch dreaming). Documented as **one extra operation per document** on top of normal token metering. See [Processing modes](/ingestion/add-memories#processing-modes).
+- Other non-token platform actions the product attributes to the operations meter (console: “counted platform operations not attributed to token or search meters”).
+
+Search is primarily metered as **`sm_search_queries`** (one unit per gated search/profile request). Prefer thinking of operations as **extra platform work**, not as a synonym for “API call.”
+
+### Search and profile
+
+| Call | Typical meter |
+|---|---|
+| `POST /v3/search`, `POST /v4/search`, `client.search.*` | `sm_search_queries` (+1) |
+| `POST /v4/profile` when it runs retrieval | `sm_search_queries` (+1) |
+
+If the org is out of balance, search/profile can return **402** (payment required) depending on gate configuration.
+
+---
+
+## Full discount on already-seen tokens (diff billing)
+
+This is the most important cost control in production agents.
+
+### How it works
+
+When you re-add content under the **same `customId`** (same org / document identity), the pipeline:
+
+1. Loads the **previous extracted content** for that document
+2. Computes **full** token count of the merged/updated document
+3. Bills only:
+
+```text
+billableTokens = max(0, fullTokenCount - previousTokenCount)
+```
+
+So **tokens Supermemory has already processed are not billed again**. Unchanged content is a **full discount** on the token meters. Only the **net-new delta** (and any new rich extraction on that delta) draws credits.
+
+This is why long-lived agent loops stay cheap: re-sync the same conversation `customId`, re-upload the same policy doc, or connector re-sync with stable IDs — you pay for **new** material, not the whole history every time.
+
+### Requirements
+
+| Requirement | Why |
+|---|---|
+| **Stable `customId`** | Identity for “this is the same document.” Max length 255. |
+| **Same org / key** | Documents are org-scoped. |
+| **Update path, not full replace** | Full replace clears previous content for billing purposes (`isFullReplace` treats previous tokens as 0). Prefer append/update with the same `customId` for chat. |
+
+### Practical patterns
+
+```typescript
+// Session stays one document — only new turns bill tokens
+await client.add({
+  content: "user: " + msg + "\nassistant: " + reply,
+  containerTag: userId,
+  customId: "chat_" + sessionId, // stable for the session
+  dreaming: "instant", // optional: +1 operation, faster memory
+});
+```
+
+Connectors already use stable IDs (e.g. Drive file id, Gmail thread id, `s3://bucket/key`) so re-syncs diff-bill automatically.
+
+### What is not free
+
+- **First** ingest of content still bills full token count
+- **Search / profile** still bill query meters every call
+- **Instant dreaming** still bills the **operation** surcharge when used
+- **Brand-new `customId`** = brand-new document = full tokens
+
+---
+
+## Credits and balance behavior
+
+| Concept | Behavior |
+|---|---|
+| **Included plan credits** | Monthly USD allowance tied to the plan (resets each billing period; **no rollover**) |
+| **Top-up credits** | Purchased USD credits (console presets e.g. 10 / 25 / 50 / 100 USD). Persist until used (do not expire with the calendar month the way subscription inclusion does) |
+| **Spend order** | Plan inclusion is consumed before top-up balance (Autumn merges both into `usd_credits`) |
+| **Auto top-up** | Configurable in console for paid plans — adds credits when balance is low |
+| **Spend caps** | Scale+ supports hard caps so usage cannot run away |
+| **Depleted balance** | Metered APIs may block (e.g. **402**) until top-up or period reset |
+
+### Plan credit inclusion (approximate)
+
+| Plan | Product ID | Included credits / month |
+|---|---|---|
+| Free | `api_free` | **5 USD** |
+| Pro | `api_pro` | **20 USD** |
+| Scale | `api_scale` | **600 USD** |
+| Enterprise | `api_enterprise` | Custom / unlimited by contract |
+
+Legacy product IDs (`memory_free`, `memory_starter`, `memory_growth`, `memory_enterprise`) still resolve for existing customers.
+
+---
+
+## Plans and feature access
+
+Usage meters are shared; **feature gates** differ by tier.
+
+### Plan summary
+
+| Plan | Price (list) | Included credits | Best for |
+|---|---|---|---|
+| **Free** | 0 USD | 5 USD | Evaluate API, prototypes |
+| **Pro** | 19 USD/mo | 20 USD | Developers, plugins, core connectors |
+| **Scale** | 399 USD/mo | 600 USD | Production, full connectors, teams |
+| **Enterprise** | Custom | Contract | SSO, custom metering, FDE, air-gap |
+
+### Feature matrix (code gates)
+
+| Feature | Free | Pro | Scale | Enterprise |
+|---|---|---|---|---|
+| Memory API, search, profiles | Yes | Yes | Yes | Yes |
+| Diff / delta token billing | Yes | Yes | Yes | Yes |
+| Plugins (Claude Code, Cursor, Hermes, …) | — | Yes | Yes | Yes |
+| Team management | — | Yes | Yes | Yes |
+| Google Drive, OneDrive, Notion connectors | — | Yes | Yes | Yes |
+| Gmail, GitHub, S3, Web Crawler connectors | — | — | Yes | Yes |
+| User Insights | — | — | Yes | Yes |
+| Org seat limit (members) | 1 | 3 | Unlimited | Unlimited |
+| Auto top-up | Limited | Yes | Yes | Contract |
+| Spend caps | — | — | Yes | Contract |
+| Custom metering / SSO / dedicated deploy | — | — | — | Yes |
+
+Overrides can be applied per org in metadata (`featureOverrides`) for enterprise deals.
+
+### HTTP behavior when gated
+
+- **403** — plan too low for a **feature** (e.g. connector not on Free)
+- **402** — **quota / credits** exhausted for a metered call (search, tokens, etc.)
+
+---
+
+## Programmatic access
+
+All of the following require an **org-admin capable** credential. **Scoped API keys cannot read billing** (403).
+
+Base: `https://api.supermemory.ai`  
+Auth: `Authorization: Bearer YOUR_API_KEY`
+
+### Summary — plan + high-level usage
+
+`GET /v3/auth/billing`
+
+```bash
+curl -s https://api.supermemory.ai/v3/auth/billing \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+Typical fields:
+
+```json
+{
+  "plan": "pro",
+  "usage": {
+    "tokens": { "used": 120000, "limit": 0 },
+    "queries": { "used": 4200, "limit": 0 }
+  },
+  "credits": {},
+  "resetDate": "2026-08-01T00:00:00.000Z",
+  "orgName": "Acme",
+  "billingEmail": "billing@acme.com"
+}
+```
+
+CLI:
+
+```bash
+npx supermemory billing show
+npx supermemory billing usage
+```
+
+### Feature breakdown (Autumn features)
+
+`GET /v3/auth/billing/usage`
+
+Returns per-feature `used` / `limit` / `unit` for the org’s Autumn customer features (including `usd_credits`, token meters, search, operations), plus period bounds when available.
+
+```bash
+curl -s https://api.supermemory.ai/v3/auth/billing/usage \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+### Meter events (day × feature)
+
+`GET /v3/auth/billing/usage-events`
+
+Optional query: `?start=<ISO>&end=<ISO>` to override the billing period.
+
+```bash
+curl -s "https://api.supermemory.ai/v3/auth/billing/usage-events" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+Response includes `byFeature`, `byDay`, `memoryTotal`, `superragTotal`, period start/end.
+
+### Auto top-up config
+
+```http
+GET  /v3/auth/billing/auto-topups
+PATCH /v3/auth/billing/auto-topups
+```
+
+### Invoices
+
+`GET /v3/auth/billing/invoices`
+
+### Product / request analytics (not the same as USD meters)
+
+For **request volume**, errors, and per-key traffic (ops monitoring, not USD ledger):
+
+`GET /v3/analytics/usage?period=24h|7d|30d`
+
+See [Analytics](/overview/analytics).
+
+### TypeScript sketch
+
+```typescript
+const headers = {
+  Authorization: "Bearer " + process.env.SUPERMEMORY_API_KEY,
+};
+
+const billing = await fetch("https://api.supermemory.ai/v3/auth/billing", {
+  headers,
+}).then((r) => r.json());
+
+const usage = await fetch("https://api.supermemory.ai/v3/auth/billing/usage", {
+  headers,
+}).then((r) => r.json());
+
+const events = await fetch(
+  "https://api.supermemory.ai/v3/auth/billing/usage-events",
+  { headers },
+).then((r) => r.json());
+
+console.log({
+  plan: billing.plan,
+  resetDate: billing.resetDate,
+  usage,
+  events,
+});
+```
+
+---
+
+## Cost control checklist (production)
+
+1. **Always set stable `customId`** on conversations and docs so re-sync is free on old tokens.
+2. Prefer **session-level** conversation documents over one-line micro-adds (better memory **and** less wasted processing).
+3. Use **`dreaming: "instant"`** only when you need immediate memory (extra operation); default `"dynamic"` batches extraction.
+4. Cache **profiles** short-TTL in your app if you call them every turn.
+5. Scope with **`containerTag`** so you can delete/export a tenant without scanning the org.
+6. Enable **spend caps / auto top-up** on Scale for predictable production.
+7. Pull **`/v3/auth/billing/usage-events`** into your own FinOps dashboard for per-day Memory vs SuperRAG spend.
+
+---
+
+## Related
+
+- [Pricing page](https://supermemory.ai/pricing) — live plan marketing rates
+- [Console billing](https://console.supermemory.ai) — plan, invoices, top-ups
+- [Add context](/ingestion/add-memories) — `customId`, `dreaming`
+- [Analytics](/overview/analytics) — request-level observability
+- [Security & compliance](/overview/security) — trust posture for enterprise review

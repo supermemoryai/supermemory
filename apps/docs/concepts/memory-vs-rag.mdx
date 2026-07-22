@@ -216,10 +216,10 @@ client.add(
 ### 3. Hybrid Retrieval
 ```python
 # Search combines both approaches
-results = client.documents.search(
-    query="What phone should I recommend?",
-    container_tags=["user_123"],  # Gets user memories
-    # Also searches general knowledge
+results = client.search.memories(
+    q="What phone should I recommend?",
+    container_tag="user_123",  # Gets user memories
+    search_mode="hybrid",  # Also searches general knowledge
 )
 
 # Results include:
@@ -250,10 +250,10 @@ Supermemory provides both capabilities in a unified platform, ensuring your agen
   <Card title="Super RAG" icon="bolt" href="/concepts/super-rag">
     Our managed RAG solution
   </Card>
-  <Card title="Add Memories" icon="plus" href="/add-memories">
+  <Card title="Add Memories" icon="plus" href="/ingestion/add-memories">
     Start ingesting content
   </Card>
-  <Card title="Search" icon="search" href="/search">
+  <Card title="Search" icon="search" href="/recall/search">
     Query your memories and documents
   </Card>
 </CardGroup>

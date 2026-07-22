@@ -1,22 +1,55 @@
 ---
 title: "Overview"
-description: "Give your AI assistants persistent memory with the Model Context Protocol"
+description: "Unified memory for Claude, Cursor, and every MCP client — one layer across all your tools"
 icon: "brain-circuit"
 ---
 
-Supermemory MCP Server 4.0 gives AI assistants (Claude, Cursor, Windsurf, etc.) persistent memory across conversations. Built on Cloudflare Workers with Durable Objects for scalable, persistent connections.
+Most AI tools forget you the moment the tab closes. You re-explain preferences, restate project context, and re-teach the same lessons in Claude, Cursor, ChatGPT, and everything else.
 
-## Quick Install
+**Supermemory MCP** is a single memory layer that plugs into any MCP-compatible client. Connect once, and the same long-term memory follows you across tools — coding agents, chat apps, IDEs, and whatever you add next.
 
-```bash
-npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client claude --oauth=yes
+## What you get
+
+- **Unified memory across tools** — Facts you save in Claude are available in Cursor (and vice versa). One brain, many surfaces.
+- **Memory that compounds** — Preferences, decisions, and project knowledge accumulate instead of resetting every session.
+- **Profiles that stay current** — Supermemory builds a living user profile from what you share, so assistants start with who you are — not a blank slate.
+- **Project-scoped context** — Keep work, personal, and client work separate with optional project tags.
+- **Works where you already work** — Claude (Connectors), Cursor, Windsurf, VS Code, Cline, and any client that speaks MCP.
+
+### Why a small tool surface is intentional
+
+Supermemory MCP exposes a **minimal** set of tools on purpose.
+
+Assistants don’t need a kitchen-sink API to remember well. They need a few durable actions: save what matters, recall what’s relevant, and know who the user is. Fewer tools means less confusion for the model, clearer behavior, and more reliable use in production.
+
+| Surface | Role |
+| --- | --- |
+| **`memory`** | Save or forget something durable |
+| **`recall`** | Search memories + optionally load the user profile |
+| **`whoAmI`** | Confirm the authenticated user / session |
+| **`context` prompt** | Inject a ready-to-use profile system message (`/context` in many clients) |
+| **Profile / projects resources** | Raw profile and project list for clients that read MCP resources |
+
+That’s enough for agents to build real continuity — without tool sprawl.
+
+## How it fits together
+
+1. You connect your client to `https://mcp.supermemory.ai/mcp` (OAuth or API key).
+2. During conversations, the model stores important facts with **`memory`**.
+3. When context is needed, **`recall`** (and the profile) pull the right history back in.
+4. Switch tools tomorrow — same account, same memory.
+
+Under the hood, the server runs on **Cloudflare Workers** with Durable Objects for scalable, sticky sessions. Your data is isolated per account; open-source implementation is on GitHub.
+
+## Connect
+
+Server URL:
+
+```text
+https://mcp.supermemory.ai/mcp
 ```
 
-Replace `claude` with your MCP client: `cursor`, `windsurf`, `vscode`, etc.
-
-## Manual Configuration
-
-Add to your MCP client config:
+Add it to your MCP client config:
 
 ```json
 {
@@ -28,7 +61,9 @@ Add to your MCP client config:
 }
 ```
 
-The server uses **OAuth** by default. Your client will discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
+The server uses **OAuth** by default. Your client discovers the authorization server via `/.well-known/oauth-protected-resource` and prompts you to sign in.
+
+For Claude (Settings → Connectors), see **[Claude Desktop](/supermemory-mcp/claude-desktop)**. For client-specific examples, see **[Setup and Usage](/supermemory-mcp/setup)**.
 
 ### API Key Authentication (Alternative)
 
@@ -104,8 +139,10 @@ Get the current logged-in user's information. Returns `{ userId, email, name, cl
 ### `context`
 
 Inject user profile and preferences as system context for AI conversations. Returns a formatted message with the user's stable preferences and recent activity.
-You can access this in Cursor and Claude Code by just doing /context, which will give the LLMs just enough context to use and query supermemory more.
-**Purpose:** Unlike the `recall` tool (which searches for specific information) or the `profile` resource (which returns raw data), the `context` prompt provides a pre-formatted system message designed for context injection at the start of conversations.
+
+In Cursor and Claude Code you can often invoke this with **`/context`**, which gives the model enough profile context to use and query Supermemory effectively.
+
+**Purpose:** Unlike the `recall` tool (search for specific information) or the `profile` resource (raw data), the `context` prompt is a pre-formatted system message for conversation start.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -113,17 +150,21 @@ You can access this in Cursor and Claude Code by just doing /context, which will
 | `includeRecent` | boolean | No | Include recent activity in the profile. Default: `true` |
 
 **Output format:**
-- Includes instructions to save new memories using the `memory` tool
+- Instructions to save new memories using the `memory` tool
 - **Stable Preferences:** Long-term user facts and preferences
 - **Recent Activity:** Recent interactions and context (when `includeRecent` is `true`)
 - Fallback message when no profile exists yet
 
 **When to use:**
-- Use `context` prompt for automatic system context injection at conversation start
-- Use `recall` tool when you need to search for specific information
-- Use `profile` resource when you need raw profile data for custom processing
+- **`context` prompt** — automatic system context at conversation start
+- **`recall` tool** — search for specific information
+- **`profile` resource** — raw profile data for custom processing
 
-<Card title="MCP Server Source Code" icon="github" href="https://github.com/supermemoryai/supermemory/tree/main/apps/mcp">
-  View the open-source implementation
-</Card>
-
+<CardGroup cols={2}>
+  <Card title="Setup and Usage" icon="settings" href="/supermemory-mcp/setup">
+    Client configs, API keys, and project scoping.
+  </Card>
+  <Card title="MCP Server Source" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/supermemory/tree/main/apps/mcp">
+    Open-source implementation.
+  </Card>
+</CardGroup>

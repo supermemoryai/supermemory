@@ -25,7 +25,7 @@ Connect Gmail to automatically sync email threads into your supermemory knowledg
 
     const connection = await client.connections.create('gmail', {
       redirectUrl: 'https://yourapp.com/auth/gmail/callback',
-      containerTags: ['user-123', 'gmail-sync'],
+      containerTag: 'user-123',
       documentLimit: 5000,
       metadata: {
         source: 'gmail',
@@ -48,7 +48,7 @@ Connect Gmail to automatically sync email threads into your supermemory knowledg
     connection = client.connections.create(
         'gmail',
         redirect_url='https://yourapp.com/auth/gmail/callback',
-        container_tags=['user-123', 'gmail-sync'],
+        container_tag='user-123',
         document_limit=5000,
         metadata={
             'source': 'gmail',
@@ -68,7 +68,7 @@ Connect Gmail to automatically sync email threads into your supermemory knowledg
       -H "Content-Type: application/json" \
       -d '{
         "redirectUrl": "https://yourapp.com/auth/gmail/callback",
-        "containerTags": ["user-123", "gmail-sync"],
+        "containerTag": "user-123",
         "documentLimit": 5000,
         "metadata": {
           "source": "gmail",
@@ -90,7 +90,7 @@ After user grants permissions, Google redirects to your callback URL. The connec
     ```typescript
     // Get connection details
     const connection = await client.connections.getByTags('gmail', {
-      containerTags: ['user-123', 'gmail-sync']
+      containerTags: ['user-123']
     });
 
     console.log('Connected email:', connection.email);
@@ -98,7 +98,7 @@ After user grants permissions, Google redirects to your callback URL. The connec
 
     // List synced email threads
     const documents = await client.documents.list({
-      containerTags: ['user-123', 'gmail-sync']
+      containerTags: ['user-123']
     });
 
     console.log(`Synced ${documents.memories.length} email threads`);
@@ -109,7 +109,7 @@ After user grants permissions, Google redirects to your callback URL. The connec
     # Get connection details
     connection = client.connections.get_by_tags(
         'gmail',
-        container_tags=['user-123', 'gmail-sync']
+        container_tags=['user-123']
     )
 
     print(f'Connected email: {connection.email}')
@@ -117,7 +117,7 @@ After user grants permissions, Google redirects to your callback URL. The connec
 
     # List synced email threads
     documents = client.documents.list(
-        container_tags=['user-123', 'gmail-sync']
+        container_tags=['user-123']
     )
 
     print(f'Synced {len(documents.memories)} email threads')
@@ -130,7 +130,7 @@ After user grants permissions, Google redirects to your callback URL. The connec
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "containerTags": ["user-123", "gmail-sync"],
+        "containerTags": ["user-123"],
         "provider": "gmail"
       }'
 
@@ -139,7 +139,7 @@ After user grants permissions, Google redirects to your callback URL. The connec
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "containerTags": ["user-123", "gmail-sync"],
+        "containerTags": ["user-123"],
         "source": "gmail"
       }'
     ```
@@ -177,9 +177,10 @@ Each synced thread includes searchable metadata:
 You can filter searches using these metadata fields:
 
 ```typescript
-const results = await client.search.documents({
+const results = await client.search({
   q: "project update",
-  containerTags: ['user-123'],
+  containerTag: 'user-123',
+  searchMode: "documents",
   filters: JSON.stringify({
     AND: [
       { key: "type", value: "gmail_thread", negate: false },
@@ -408,7 +409,7 @@ await client.connections.deleteByProvider('gmail', {
 
 const newConnection = await client.connections.create('gmail', {
   redirectUrl: 'https://yourapp.com/auth/gmail/callback',
-  containerTags: ['user-123']
+  containerTag: 'user-123'
 });
 
 // User must re-authenticate

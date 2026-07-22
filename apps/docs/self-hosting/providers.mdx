@@ -1,0 +1,62 @@
+---
+title: "Using supermemory local with different providers"
+sidebarTitle: "Providers"
+description: "Copy-paste .env setup for Ollama, OpenAI, Anthropic, Gemini, and OpenRouter"
+icon: "route"
+---
+
+Supermemory local needs one model provider to power summaries, contextual chunking, and memory extraction. Pick the tab for whichever one you already have a key for. For the full variable reference (fast/text model overrides, offline setup, tuning), see [Configuration](/self-hosting/configuration).
+
+<Tabs>
+<Tab title="Ollama">
+Fully offline — no API key leaves your machine. Any OpenAI-compatible local runner works the same way (LM Studio, vLLM, llama.cpp server); this is the Ollama version.
+
+```bash
+ollama pull gpt-oss:20b
+```
+
+```bash .env
+OPENAI_BASE_URL=http://localhost:11434/v1
+OPENAI_API_KEY=ollama        # any non-empty string — Ollama doesn't check it
+OPENAI_MODEL=gpt-oss:20b
+```
+
+`gpt-oss:20b` is a good default for a laptop-class GPU. Bigger models work if you have the VRAM — set `OPENAI_MODEL` to whatever you've pulled.
+</Tab>
+
+<Tab title="OpenAI">
+```bash .env
+OPENAI_API_KEY=sk-...
+```
+
+That's it — defaults to `gpt-5.1`. Override with `OPENAI_MODEL` if you want a different one.
+</Tab>
+
+<Tab title="Anthropic">
+```bash .env
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Runs on `claude-haiku-4-5` — this one isn't currently configurable via env var.
+</Tab>
+
+<Tab title="Gemini">
+```bash .env
+GEMINI_API_KEY=...
+```
+
+Runs on `gemini-3.1-flash-lite-preview` — also not currently overridable. This is the only key that also unlocks image, video, and high-fidelity PDF understanding (see the [full provider table](/self-hosting/configuration#llm-providers)).
+</Tab>
+
+<Tab title="OpenRouter">
+OpenRouter isn't a native provider — it's OpenAI-compatible, so it slots into the same `OPENAI_BASE_URL` path as Ollama:
+
+```bash .env
+OPENAI_BASE_URL=https://openrouter.ai/api/v1
+OPENAI_API_KEY=sk-or-...
+OPENAI_MODEL=openai/gpt-4o-mini
+```
+
+Set `OPENAI_MODEL` to any model slug from [OpenRouter's model list](https://openrouter.ai/models) — routing, fallback, and pricing all follow OpenRouter's own rules from there.
+</Tab>
+</Tabs>

@@ -61,9 +61,45 @@ OPENAI_MODEL=gpt-oss:20b
 
 Nothing to configure. Uploaded files (PDFs, images) are stored on local disk inside `$SUPERMEMORY_DATA_DIR` and served by the server at `/files/:key`.
 
+## Embedding models
+
+By default, embeddings run on the bundled local model (`Xenova/bge-base-en-v1.5`, 768-dim, English-only) — no network, no key. Swap in a remote provider if you need multilingual coverage or want to match embeddings you already generate elsewhere:
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `SUPERMEMORY_EMBEDDING_PROVIDER` | `local` \| `openai` \| `openai-compatible` \| `google` | `local` |
+| `SUPERMEMORY_EMBEDDING_MODEL` | Model id — HF id for `local`, provider model id for remote | `Xenova/bge-base-en-v1.5` |
+| `SUPERMEMORY_EMBEDDING_DIMENSIONS` | Output dimensionality. Required for models not in the known-dimension list (e.g. `text-embedding-3-large`) | inferred where possible |
+| `SUPERMEMORY_EMBEDDING_API_KEY` | Remote provider key | falls back to `OPENAI_API_KEY` / `GEMINI_API_KEY` |
+| `SUPERMEMORY_EMBEDDING_BASE_URL` | Remote endpoint URL | `openai-compatible` also falls back to `OPENAI_BASE_URL`; plain `openai` does not |
+
+```bash
+# Multilingual local model — swap the HF id, dimensions are inferred
+SUPERMEMORY_EMBEDDING_MODEL=Xenova/multilingual-e5-large
+
+# OpenAI embeddings
+SUPERMEMORY_EMBEDDING_PROVIDER=openai
+SUPERMEMORY_EMBEDDING_MODEL=text-embedding-3-small
+
+# Any OpenAI-compatible embedding endpoint (e.g. Ollama)
+SUPERMEMORY_EMBEDDING_PROVIDER=openai-compatible
+SUPERMEMORY_EMBEDDING_BASE_URL=http://localhost:11434/v1
+SUPERMEMORY_EMBEDDING_MODEL=nomic-embed-text
+
+# Gemini embeddings
+SUPERMEMORY_EMBEDDING_PROVIDER=google
+SUPERMEMORY_EMBEDDING_MODEL=gemini-embedding-001
+```
+
+<Warning>
+Changing the model or dimensionality after you've already ingested data requires re-ingestion — the store enforces one embedding dimension at a time, and a boot-time check fails fast if the configured dimension doesn't match what's already there. Only reshape a fresh, empty store.
+</Warning>
+
+pgvector's HNSW index caps out at 2000 dimensions. `text-embedding-3-large` (3072-dim natively) needs `SUPERMEMORY_EMBEDDING_DIMENSIONS` set to something ≤2000 to fit — the `text-embedding-3-*` family and Gemini support this kind of output reduction; models like `text-embedding-ada-002` don't and must run at their native size.
+
 ## Embedding performance
 
-Local embeddings are prewarmed at startup with conservative defaults — one worker, minimal CPU footprint. Turn these up if you're ingesting heavily and prefer throughput over headroom:
+Local embeddings are prewarmed at startup with conservative defaults — one worker, minimal CPU footprint. Turn these up if you're ingesting heavily and prefer throughput over headroom (remote embedding providers ignore these — there's no local worker pool to tune):
 
 | Variable | Purpose | Default |
 |---|---|---|

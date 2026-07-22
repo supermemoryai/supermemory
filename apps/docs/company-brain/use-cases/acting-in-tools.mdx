@@ -1,0 +1,54 @@
+---
+title: "Acting in Tools"
+sidebarTitle: "Acting in Tools"
+description: "List open PRs, create Linear issues — actions run under your own account"
+icon: "wrench"
+---
+
+import { SlackThread, SlackMessage, Mention, AgentLink } from "/snippets/slack-message.mdx";
+
+## The scenario
+
+You don't just want to *know* something — you want Company Brain to do the next step in GitHub or Linear for you.
+
+## What happens
+
+### Read from a tool
+
+<SlackThread channel="#eng">
+  <SlackMessage self time="3:22 PM">
+    <Mention>supermemory</Mention> what are my open PRs in the web repo?
+  </SlackMessage>
+  <SlackMessage bot time="3:22 PM">
+    You have **3 open PRs** on `supermemory/web`:
+    - `#1199` staff custom MCP connection cards — review requested
+    - `#1197` company brain onboarding research UI — changes requested
+    - `#1181` brain connections board — approved, not merged
+  </SlackMessage>
+</SlackThread>
+
+### Write to a tool
+
+<SlackThread channel="#eng">
+  <SlackMessage self time="3:24 PM">
+    <Mention>supermemory</Mention> create a Linear issue: fix the onboarding redirect
+  </SlackMessage>
+  <SlackMessage bot time="3:24 PM">
+    Created **ENG-842** — *Fix the onboarding redirect* in Engineering, assigned to you. <AgentLink href="https://linear.app">Open in Linear</AgentLink>
+  </SlackMessage>
+</SlackThread>
+
+## What's really going on
+
+Both turns use [tool connectors](/company-brain/connectors) (GitHub, Linear). Reads try your **personal** connection first and fall back to the org-shared one. **Writes always run under your own account** — so the Linear issue is attributed to you, never silently as "the org."
+
+If you haven't connected the tool and neither has the org, Company Brain can ask a teammate to [lease](/company-brain/permissions#leasing-borrowing-access-for-one-request) temporary access for that one request.
+
+<CardGroup cols={2}>
+  <Card title="Permissions" icon="shield-check" href="/company-brain/permissions">
+    Personal vs org tools, and how leasing works.
+  </Card>
+  <Card title="Connectors" icon="plug" href="/company-brain/connectors">
+    Connect GitHub, Linear, and the rest.
+  </Card>
+</CardGroup>

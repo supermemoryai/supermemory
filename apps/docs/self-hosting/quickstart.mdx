@@ -101,7 +101,7 @@ curl http://localhost:6767/v3/documents \
 <Tabs>
 <Tab title="TypeScript">
 ```typescript
-const results = await client.search.memories({
+const results = await client.search({
   q: "what food should I avoid?",
   containerTag: "user_dhravya",
 })
@@ -109,7 +109,7 @@ const results = await client.search.memories({
 </Tab>
 <Tab title="Python">
 ```python
-results = client.search.memories(
+results = client.search(
     q="what food should I avoid?",
     container_tag="user_dhravya",
 )

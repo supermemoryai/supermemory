@@ -1,0 +1,42 @@
+---
+title: "Meeting Scheduling"
+sidebarTitle: "Scheduling"
+description: "Find free time and send a calendar invite from Slack"
+icon: "calendar-plus"
+---
+
+import { SlackThread, SlackMessage, Mention } from "/snippets/slack-message.mdx";
+
+<Note>
+**Coming soon.** Calendar scheduling isn't in Company Brain yet — there's no calendar connector in the catalog today. This page shows the experience we're building toward, using a real exchange from our own team.
+</Note>
+
+## The scenario
+
+A teammate needs help and doesn't want to play calendar ping-pong. They ask in Slack; Company Brain checks availability and offers to book the slot.
+
+## What it will look like
+
+<SlackThread channel="#eng">
+  <SlackMessage name="Sam" color="#36C5F0" time="1:12 PM">
+    Dhravya are you free this afternoon? need some help with dev setup
+  </SlackMessage>
+  <SlackMessage bot time="1:12 PM">
+    Dhravya is free at **2:00 PM**. Sending an invite to block **20 mins** on both your calendars.
+  </SlackMessage>
+</SlackThread>
+
+## What's really going on
+
+When this ships, it will be a [tool connector](/company-brain/connectors) against the calendar — same personal-vs-org rules and [write-under-your-account](/company-brain/permissions) attribution as Linear or GitHub. Creating an invite is a write, so it runs as the person who has the calendar connected (or via an explicit [lease](/company-brain/permissions#leasing-borrowing-access-for-one-request) if someone else is lending access for that one request).
+
+Until then: ask Company Brain for *context* around scheduling ("who's the right person for dev setup?" / "when did we last pair on this?") and book the time the usual way.
+
+<CardGroup cols={2}>
+  <Card title="Permissions" icon="shield-check" href="/company-brain/permissions">
+    How personal tools and leasing will apply to calendar.
+  </Card>
+  <Card title="What you can do" icon="sparkles" href="/company-brain/use-cases/overview">
+    Back to all scenarios — including what's shipped today.
+  </Card>
+</CardGroup>

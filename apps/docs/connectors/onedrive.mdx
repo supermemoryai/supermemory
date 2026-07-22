@@ -1,7 +1,7 @@
 ---
 title: "OneDrive Connector"
 description: "Sync Microsoft Office documents from OneDrive with scheduled synchronization and business account support"
-icon: "microsoft"
+icon: "/images/microsoft-icon.svg"
 ---
 
 
@@ -22,7 +22,7 @@ const client = new Supermemory({
 
 const connection = await client.connections.create('onedrive', {
   redirectUrl: 'https://yourapp.com/auth/onedrive/callback',
-  containerTags: ['user-123', 'onedrive-sync'],
+  containerTag: 'user-123',
   documentLimit: 1500,
   metadata: {
     source: 'onedrive',
@@ -46,7 +46,7 @@ client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 connection = client.connections.create(
     'onedrive',
     redirect_url='https://yourapp.com/auth/onedrive/callback',
-    container_tags=['user-123', 'onedrive-sync'],
+    container_tag='user-123',
     document_limit=1500,
     metadata={
         'source': 'onedrive',
@@ -67,7 +67,7 @@ curl -X POST "https://api.supermemory.ai/v3/connections/onedrive" \
   -H "Content-Type: application/json" \
   -d '{
     "redirectUrl": "https://yourapp.com/auth/onedrive/callback",
-    "containerTags": ["user-123", "onedrive-sync"],
+    "containerTag": "user-123",
     "documentLimit": 1500,
     "metadata": {
       "source": "onedrive",
@@ -95,26 +95,26 @@ After user grants permissions, Microsoft redirects to your callback URL. The con
   ```typescript Typescript
     // Check connection details
     const connection = await client.connections.getByTags('onedrive', {
-      containerTags: ['user-123', 'onedrive-sync']
+      containerTags: ['user-123']
     });
 
 
     // List synced Office documents
     const documents = await client.connections.listDocuments('onedrive', {
-      containerTags: ['user-123', 'onedrive-sync']
+      containerTags: ['user-123']
     });
     ```
   ```python Python
     # Check connection details
     connection = client.connections.get_by_tags(
         'onedrive',
-        container_tags=['user-123', 'onedrive-sync']
+        container_tags=['user-123']
     )
 
     # List synced Office documents
     documents = client.connections.list_documents(
         'onedrive',
-        container_tags=['user-123', 'onedrive-sync']
+        container_tags=['user-123']
     )
     ```
   ```bash cURL
@@ -123,7 +123,7 @@ After user grants permissions, Microsoft redirects to your callback URL. The con
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "containerTags": ["user-123", "onedrive-sync"],
+        "containerTags": ["user-123"],
         "provider": "onedrive"
       }'
 
@@ -132,7 +132,7 @@ After user grants permissions, Microsoft redirects to your callback URL. The con
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "containerTags": ["user-123", "onedrive-sync"],
+        "containerTags": ["user-123"],
         "source": "onedrive"
       }'
     ```
@@ -268,7 +268,7 @@ For production deployments, configure your own Microsoft application:
     // Then create connections using your custom app
     const connection = await client.connections.create('onedrive', {
       redirectUrl: 'https://yourapp.com/callback',
-      containerTags: ['org-456', 'user-789'],
+      containerTag: 'user-789',
       metadata: { customApp: true }
     });
     ```
@@ -284,7 +284,7 @@ For production deployments, configure your own Microsoft application:
     connection = client.connections.create(
         'onedrive',
         redirect_url='https://yourapp.com/callback',
-        container_tags=['org-456', 'user-789'],
+        container_tag='user-789',
         metadata={'customApp': True}
     )
     ```

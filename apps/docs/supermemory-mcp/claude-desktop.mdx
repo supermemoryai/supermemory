@@ -1,64 +1,46 @@
 ---
 title: "Claude Desktop"
-description: "Manual setup for supermemory MCP in Claude Desktop with step-by-step screenshots"
+description: "Connect Supermemory MCP in Claude via Settings → Connectors"
 icon: "monitor"
 sidebarTitle: "Claude Desktop"
 ---
 
-This guide walks through the **manual** install for [Claude Desktop](https://claude.ai/download): edit `claude_desktop_config.json`, add the supermemory server, then finish in **Connectors**. For a one-line CLI install instead, see [Setup and Usage](/supermemory-mcp/setup).
+This guide walks through adding Supermemory as a **custom connector** in [Claude](https://claude.ai) (Desktop or web): open **Settings → Connectors**, add the MCP URL, connect, and authorize. For other clients and API-key auth, see [Setup and Usage](/supermemory-mcp/setup).
 
-<Note>
-  Config file location: **macOS** `~/Library/Application Support/Claude/claude_desktop_config.json` · **Windows** `%APPDATA%\Claude\claude_desktop_config.json`
-</Note>
+## Step 1 — Open Connectors and add a custom connector
 
-## Step 1 — Copy the configuration
+In Claude, open **Settings → Connectors**. Click **Add**, then choose **Add custom connector**.
 
-Copy the supermemory block below. You will paste it inside `mcpServers` in a later step.
+![Claude settings Connectors page with Add custom connector highlighted](/images/supermemory-mcp/claude-desktop/step-1.jpg)
 
-```json
-{
-  "mcpServers": {
-    "supermemory": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote@latest",
-        "https://mcp.supermemory.ai/mcp"
-      ]
-    }
-  }
-}
-```
+## Step 2 — Enter name and remote MCP URL
 
-This is the same configuration shown in the supermemory dashboard when you choose **Claude Desktop** for MCP setup.
+In the **Add custom connector** dialog:
 
-## Step 2 — Open Developer settings and Edit Config
+| Field | Value |
+| --- | --- |
+| **Name** | `Supermemory` (or any label you prefer) |
+| **Remote MCP server URL** | `https://mcp.supermemory.ai/mcp` |
 
-In Claude Desktop, open **Settings → Developer**, then click **Edit Config**.
+Leave **OAuth Client ID** and **OAuth Client Secret** empty unless you have custom OAuth credentials. Click **Add**.
 
-![Claude Desktop settings: Developer in the sidebar and Edit Config highlighted](/images/supermemory-mcp/claude-desktop/step-1.png)
+![Add custom connector dialog with Supermemory name and mcp.supermemory.ai URL](/images/supermemory-mcp/claude-desktop/step-2.png)
 
-## Step 3 — Open claude_desktop_config.json
+## Step 3 — Connect
 
-When `claude_desktop_config.json` opens in your editor, keep it ready for the next step.
+Supermemory appears under your connectors. Click **Connect**.
 
-![File list with claude_desktop_config.json selected](/images/supermemory-mcp/claude-desktop/step-2.png)
+![Connectors list with supermemory and Connect button](/images/supermemory-mcp/claude-desktop/step-3.png)
 
-## Step 4 — Paste under mcpServers and save
+## Step 4 — Authorize
 
-Paste what you copied under `mcpServers` (merge with existing servers if the file already has some), then save.
+You’ll be redirected to Supermemory to sign in and choose access scopes (for example **Read + Write** or **Full access**). Select the scopes you want, then click **Authorize**.
 
-![JSON editor showing supermemory mcpServers configuration](/images/supermemory-mcp/claude-desktop/step-3.png)
+![Authorize MCP screen with scope options and Authorize button](/images/supermemory-mcp/claude-desktop/step-4.png)
 
-## Step 5 — Restart and configure in Connectors
+## Done
 
-Restart Claude Desktop. Open **Settings → Connectors**, find **supermemory**, and click **Configure**.
-
-![Claude Desktop Connectors settings with supermemory and Configure highlighted](/images/supermemory-mcp/claude-desktop/step-4.png)
-
-## Step 6 — Done
-
-supermemory is installed in your Claude Desktop and ready to use.
+Supermemory is connected and ready to use in Claude. You can change or revoke access later from **Settings → Connectors**.
 
 ---
 

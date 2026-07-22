@@ -1,110 +1,74 @@
 ---
-title: "Use Cases"
-description: "What can you do with supermemory?"
-mode: "wide"
+title: "Use cases"
+description: "What teams build with Supermemory — agents, knowledge, multi-tenant products, and tools."
+sidebarTitle: "Use cases"
+icon: "lightbulb"
 ---
 
-Explore what you can build with supermemory:
+Supermemory is one context engine. These are the shapes teams ship on top of it.
 
-<CardGroup cols="3">
-  <Card title="Chat with ____" icon="message-circle">
-    Quickly built apps to chat with:
+## Agents that remember
 
-    • Your Twitter bookmarks \
-    • Your PDF documents \
-    • Your company documentation \
-    ...and more\!
+<CardGroup cols={2}>
+  <Card title="Personal assistants" icon="message-circle">
+    Preferences, people, projects, and decisions across sessions — without replaying the entire chat history into every prompt.
   </Card>
-  <Card title="Smart Search" icon="search">
-    Search everything with AI:
-
-    • Product recommendations \
-    • Document similarity matching \
-    • Research paper analysis
-
-    ...and more\!
+  <Card title="Customer support agents" icon="headphones">
+    Account history, past tickets, and product facts at answer time. Isolate each customer with a container tag.
   </Card>
-  <Card title="Assistants & Agents" icon="chart-line">
-    Build agents with infinite context for:
-
-    • Email management \
-    • Meeting summarization \
-    • Calendar organization \
-    ...and more\!
+  <Card title="Sales & success copilots" icon="handshake">
+    Remember the account, stakeholders, and last commitments. Profiles keep “always know” context warm.
   </Card>
-  <Card title="Second Brain" icon="brain">
-    Build your own second brain:
-
-    • Organize your notes, ideas, and resources
-
-    • Connect concepts across documents
-
-    • Never lose track of insights or inspiration
-
-    ...and more\!
+  <Card title="Coding agents" icon="terminal">
+    Project conventions, past decisions, and repo context via API, MCP, or plugins (Claude Code, Codex, OpenClaw, and more).
   </Card>
-  <Card title="Content Writing & Brand Voice" icon="pencil-line">
-    For agencies and creators:
+</CardGroup>
 
-    • Maintain consistent tone and style
-    • Analyze your brand’s unique voice
-    • Write with context-aware suggestions
+## Knowledge and retrieval
 
-    ...and more\!
+<CardGroup cols={2}>
+  <Card title="Chat with your stack" icon="files">
+    Drive, Notion, Gmail, OneDrive, S3, GitHub, web crawler — sync sources, then ask questions with managed SuperRAG.
   </Card>
-  <Card title="Healthcare & Medical Records" icon="hospital">
-    For clinics, hospitals, and researchers:
-
-    • Securely summarize patient records
-
-    • Extract key info from medical history
-
-    • Support clinical decisions with AI
-
-    ...and more\!
+  <Card title="Company knowledge hubs" icon="building-2">
+    Policies, wikis, and internal docs as shared memory for the team — API or Company Brain.
   </Card>
-  <Card title="Community & Support Chatbots" icon="users">
-    For online communities and businesses:
-
-    • Powered by your chat or forum history
-
-    • Instant, accurate answers
-
-    • Reduce support load
-
-    ...and more\!
+  <Card title="Research & analysis" icon="search">
+    Papers, notes, and long documents with multimodal ingestion (PDF, images, audio/video) and hybrid search.
   </Card>
-  <Card title="Education & Study Tools" icon="book">
-    For students and educators:
-
-    • Flashcards and quizzes from your notes
-
-    • Search across textbooks and lectures
-
-    • Personalized study assistants
-
-    ...and more\!
+  <Card title="Legal & compliance search" icon="scale">
+    Contracts and policy corpora with strict isolation and audit-friendly deletion paths. See [Security](/overview/security).
   </Card>
-  <Card title="Legal & Compliance Search" icon="scale">
-    For law firms and compliance teams:
+</CardGroup>
 
-    • Search through contracts and case law
+## Multi-tenant products
 
-    • Extract clauses, obligations, and risks
+If you are building a SaaS that needs memory **per end user** (or per workspace):
 
-    • Keep up with regulatory changes
+1. Map each user/workspace to a **container tag**
+2. Ingest conversations and files into that tag
+3. Search / load **profiles** only inside that tag
+4. Issue **scoped keys** when the client must not cross tenants
+5. On account deletion, erase that container’s data
 
-    ...and more\!
+Deep dive lives in Developer Platform concepts ([container tags](/concepts/container-tags), [user profiles](/concepts/user-profiles)).
+
+## Surfaces (same engine)
+
+| If you want to… | Start here |
+|---|---|
+| Call the Memory API from your app | [Quickstart](/quickstart) |
+| Use Claude / Cursor / coding agents | [Plugins & MCP](/supermemory-mcp/mcp) |
+| Give the whole company a knowledge brain | Company Brain (from [docs home](/)) |
+| Keep data on your machines | [Self-hosting](/self-hosting/overview) |
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="What is Supermemory?" icon="book-open" href="/overview/what-is-supermemory">
+    Product overview and mental model.
   </Card>
-  <Card title="Enterprise Knowledge Hubs" icon="briefcase-business">
-    For companies and teams:
-
-    • Centralize all internal documentation
-
-    • Search across wikis, policies, and emails
-
-    • Onboard new hires faster
-
-    ...and more\!
+  <Card title="Developer Platform" icon="code" href="/overview/what-is-supermemory">
+    Concepts, API guides, and integrations.
   </Card>
 </CardGroup>
