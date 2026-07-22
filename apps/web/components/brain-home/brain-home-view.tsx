@@ -219,7 +219,7 @@ function StatsRow({
 				<button
 					type="button"
 					onClick={onInvite}
-					className="inline-flex items-center gap-1 text-[11px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]"
+					className="hidden items-center gap-1 text-[11px] font-medium text-[#737373] transition-colors hover:text-[#fafafa] sm:inline-flex"
 				>
 					<UserPlus className="size-3" />
 					Invite
@@ -235,28 +235,61 @@ function StatsRow({
 	]
 	return (
 		<section
-			className="grid grid-cols-2 divide-white/[0.04] rounded-[16px] bg-[#1B1F24] sm:grid-cols-4 sm:divide-x"
+			className="grid grid-cols-4 divide-x divide-white/[0.04] overflow-hidden rounded-[16px] bg-[#1B1F24]"
 			style={cardStyle}
 		>
-			{tiles.map((t) => (
-				<div key={t.label} className="px-5 py-4">
-					<div className="flex items-start justify-between gap-2">
-						<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#737373]">
-							{t.label}
+			{tiles.map((t, index) => (
+				<div
+					key={t.label}
+					className={cn(
+						"relative min-w-0 px-3 py-3 sm:px-5 sm:py-4",
+						index === 2 && canInvite && "pr-8 sm:pr-5",
+					)}
+				>
+					<div className="flex min-w-0 items-start justify-between gap-2">
+						<p className="min-w-0 truncate text-[8px] font-semibold uppercase leading-tight tracking-[0.08em] text-[#737373] sm:text-[10px] sm:tracking-[0.12em]">
+							<MobileStatLabel label={t.label} />
 						</p>
 						{t.action}
 					</div>
 					<p
 						className={cn(
-							"mt-1.5 text-[22px] font-semibold leading-none tabular-nums text-[#fafafa]",
+							"mt-1 text-[17px] font-semibold leading-none tabular-nums text-[#fafafa] sm:mt-1.5 sm:text-[22px]",
 							dmSans125ClassName(),
 						)}
 					>
 						{t.value}
 					</p>
+					{index === 2 && canInvite && (
+						<button
+							type="button"
+							onClick={onInvite}
+							aria-label="Invite teammates"
+							title="Invite teammates"
+							className="absolute right-1.5 bottom-1.5 inline-flex size-6 items-center justify-center rounded-md bg-white/[0.03] text-[#737373] transition-colors hover:bg-white/[0.07] hover:text-[#fafafa] sm:hidden"
+						>
+							<UserPlus className="size-3" />
+						</button>
+					)}
 				</div>
 			))}
 		</section>
+	)
+}
+
+function MobileStatLabel({ label }: { label: string }) {
+	const mobile =
+		label === "Connected sources"
+			? "Sources"
+			: label === "Active members"
+				? "Members"
+				: label
+
+	return (
+		<>
+			<span className="sm:hidden">{mobile}</span>
+			<span className="hidden sm:inline">{label}</span>
+		</>
 	)
 }
 

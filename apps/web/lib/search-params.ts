@@ -28,6 +28,7 @@ const viewLiterals = [
 	"graph",
 	"list",
 	"integrations",
+	"configure",
 	"chat",
 	"digests",
 	// Integration sub-views — each card is its own view

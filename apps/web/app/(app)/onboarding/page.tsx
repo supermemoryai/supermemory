@@ -86,8 +86,6 @@ export default function BrainOnboardingPage() {
 		() => workspaceDomainFromEmail(user?.email),
 		[user?.email],
 	)
-
-	// Team (Company Brain) onboarding is gated behind a private-beta flag.
 	const allowTeam = useFeatureFlagEnabled("company-brain-beta") ?? false
 	const [mode, setMode] = useState<BrainMode>(detectedMode)
 	const [about, setAbout] = useState<AboutValues>({
@@ -339,8 +337,6 @@ export default function BrainOnboardingPage() {
 			setCreatingOrg(false)
 		}
 	}, [ensureOrg, goNext, forceCreate, organizations, router])
-
-	// Company Brain (team) onboarding is a single research surface, no stepper.
 	const isCompanyBrain = allowTeam && mode === "team"
 
 	const handleBrainConfirm = useCallback(

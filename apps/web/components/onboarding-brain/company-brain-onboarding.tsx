@@ -43,12 +43,21 @@ const BACKEND =
 type Phase = "confirm" | "research"
 
 function normalizeDomain(input: string): string {
-	return input
+	const host = input
 		.trim()
 		.toLowerCase()
 		.replace(/^https?:\/\//, "")
 		.replace(/^www\./, "")
 		.replace(/\/.*$/, "")
+
+	// The confirmation card is often filled with a company name (for example,
+	// "Zomato") even though research needs a hostname. Preserve explicit TLDs,
+	// and make the common single-label case usable without a failed API round trip.
+	if (/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(host)) {
+		return `${host}.com`
+	}
+
+	return host
 }
 
 export function CompanyBrainOnboarding({
@@ -67,6 +76,11 @@ export function CompanyBrainOnboarding({
 	const queryClient = useQueryClient()
 	const { status: researchStatus } = useResearchStatus(phase === "research")
 	const researchDone = researchStatus === "done"
+	// One-shot retry: re-kick research once on a terminal error.
+	const retryStage = useRef<"idle" | "started" | "rerunning" | "exhausted">(
+		"idle",
+	)
+	const [retryUi, setRetryUi] = useState<null | "retrying" | "exhausted">(null)
 
 	const handleConfirm = async () => {
 		if (!clean || submitting) return
@@ -110,6 +124,48 @@ export function CompanyBrainOnboarding({
 		}, 40_000)
 		return () => window.clearTimeout(timer)
 	}, [phase, serverSchedulesResearch, clean, queryClient])
+
+	// "error" lingers a render after re-kicking, so only arm the second-error
+	// branch once the re-run is observed running.
+	useEffect(() => {
+		if (phase !== "research" || !clean) return
+		const stage = retryStage.current
+		if (researchStatus === "error" && stage === "idle") {
+			retryStage.current = "started"
+			setRetryUi("retrying")
+			void (async () => {
+				// A failed restart never reaches queued/running, and polling is off on
+				// error — without this the UI would say "retrying" forever.
+				const ok = await fetch(`${BACKEND}/brain/research/start`, {
+					method: "POST",
+					credentials: "include",
+					headers: {
+						"content-type": "application/json",
+						"X-App-Source": "nova",
+					},
+					body: JSON.stringify({ domain: clean }),
+				})
+					.then((res) => res.ok)
+					.catch(() => false)
+				if (!ok) {
+					retryStage.current = "exhausted"
+					setRetryUi("exhausted")
+					return
+				}
+				queryClient.invalidateQueries({ queryKey: ["brain-research-status"] })
+			})()
+		} else if (
+			(researchStatus === "queued" || researchStatus === "running") &&
+			stage === "started"
+		) {
+			retryStage.current = "rerunning"
+		} else if (researchStatus === "error" && stage === "rerunning") {
+			retryStage.current = "exhausted"
+			setRetryUi("exhausted")
+		} else if (researchStatus === "done") {
+			setRetryUi(null)
+		}
+	}, [phase, clean, researchStatus, queryClient])
 
 	return (
 		<div
@@ -173,6 +229,8 @@ export function CompanyBrainOnboarding({
 								<DockedHeader
 									domain={clean}
 									done={researchDone}
+									retrying={retryUi === "retrying"}
+									exhausted={retryUi === "exhausted"}
 									onContinue={onDone}
 								/>
 							</motion.div>
@@ -298,54 +356,76 @@ function ConfirmBody({
 function DockedHeader({
 	domain,
 	done,
+	retrying,
+	exhausted,
 	onContinue,
 }: {
 	domain: string
 	done: boolean
+	retrying: boolean
+	exhausted: boolean
 	onContinue: () => void
 }) {
 	const brandName = workspaceNameFromDomain(domain) || domain
+	const showSpinner = !done && !exhausted
+	const statusLabel = done
+		? "Company Brain ready"
+		: exhausted
+			? "Couldn't finish — you can continue"
+			: retrying
+				? "Retrying research…"
+				: "Building your Company Brain…"
+	const statusColor = done
+		? "text-[#5CD68A]"
+		: exhausted
+			? "text-[#E5A45A]"
+			: "text-[#737373]"
 	return (
-		<div className="flex items-center gap-3">
+		<div className="flex min-w-0 items-center gap-3">
 			<div
 				className="size-8 rounded-[8px] bg-[#14161A] border border-[rgba(82,89,102,0.2)] flex items-center justify-center overflow-hidden shrink-0"
 				style={inputBevelStyle}
 			>
 				<DomainLogo domain={domain} />
 			</div>
-			<span className="text-[14px] font-semibold text-[#fafafa]">
-				{brandName}
-			</span>
-			<span
-				className={cn(
-					"text-[12px] font-medium",
-					done ? "text-[#5CD68A]" : "text-[#737373]",
-				)}
-			>
-				{done ? "Company Brain ready" : "Building your Company Brain…"}
-			</span>
-			{done ? (
-				<Button
-					type="button"
-					onClick={onContinue}
+			<div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-center md:gap-3">
+				<span
+					title={brandName}
+					className="min-w-0 truncate text-[14px] font-semibold text-[#fafafa] md:flex-1"
+				>
+					{brandName}
+				</span>
+				<span
 					className={cn(
-						"ml-auto rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#1D1C1D] shadow-[0_4px_24px_rgba(75,160,250,0.25)] hover:bg-white/95",
-						dmSans125ClassName(),
+						"flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[12px] font-medium",
+						statusColor,
 					)}
 				>
-					Continue
-					<ArrowRight className="size-3.5" />
-				</Button>
-			) : (
-				<Loader2 className="size-3.5 animate-spin text-[#4BA0FA] ml-auto" />
-			)}
+					{showSpinner && (
+						<Loader2 className="size-3 animate-spin text-[#4BA0FA]" />
+					)}
+					{statusLabel}
+				</span>
+			</div>
+			{/* Never gated on research; the admin can move on while it keeps working. */}
+			<Button
+				type="button"
+				onClick={onContinue}
+				className={cn(
+					"ml-auto shrink-0 rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#1D1C1D] shadow-[0_4px_24px_rgba(75,160,250,0.25)] hover:bg-white/95",
+					dmSans125ClassName(),
+				)}
+			>
+				Continue
+				<ArrowRight className="size-3.5" />
+			</Button>
 		</div>
 	)
 }
 
 function ResearchTranscript() {
 	const { status, events } = useResearchStatus()
-	const running = status !== "done"
+	const running = status !== "done" && status !== "error"
 	const scrollRef = useRef<HTMLDivElement>(null)
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: scroll on new events

@@ -7,9 +7,14 @@ on:
         paths:
             - "packages/openai-sdk-python/pyproject.toml"
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: false
+
 jobs:
     publish:
         runs-on: ubuntu-latest
+        timeout-minutes: 15
         permissions:
             contents: read
             id-token: write

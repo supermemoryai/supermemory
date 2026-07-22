@@ -47,8 +47,12 @@ First boot sets everything up — the embedded Supermemory graph engine, local e
 Save that API key — it's your bearer token for every request.
 
 <Note>
-In production, Supermemory runs proprietary models tuned for long-horizon data understanding. Self-hosted, you bring any model: if no provider key is set, first boot launches an interactive setup wizard — pick a provider (OpenAI, Anthropic, Gemini, Groq, or any OpenAI-compatible endpoint like Ollama), paste your key, and it's saved encrypted for every future launch. See [all providers](/self-hosting/configuration#llm-providers), including [fully-offline local models](/self-hosting/configuration#fully-offline-with-local-models).
+In production, Supermemory runs proprietary models tuned for long-horizon data understanding. Self-hosted, you bring any model: if no provider key is set, first boot launches an interactive setup wizard — pick a provider (OpenAI, Anthropic, Gemini, Groq, or any OpenAI-compatible endpoint like Ollama), paste your key, and it's saved encrypted for every future launch. After the LLM key, you can optionally pick an embedding model (press Enter to keep local `Xenova/bge-base-en-v1.5`). See [all providers](/self-hosting/configuration#llm-providers), [embeddings](/self-hosting/embeddings), and [fully-offline local models](/self-hosting/configuration#fully-offline-with-local-models).
 </Note>
+
+<Tip>
+**Docker / non-interactive:** set an LLM key via env and, if you don’t want local embeddings, set `SUPERMEMORY_EMBEDDING_PROVIDER` / `MODEL` / `DIMENSIONS`. There is no wizard without a TTY.
+</Tip>
 
 ## Add your first memory
 
@@ -141,9 +145,12 @@ By default, all state lives in a single directory you can back up or move:
 
 ## Next steps
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
   <Card title="Configuration" icon="settings" href="/self-hosting/configuration">
     LLM providers, local models, performance tuning
+  </Card>
+  <Card title="Embeddings" icon="waypoints" href="/self-hosting/embeddings">
+    Local default, OpenAI / Gemini / Ollama, multilingual
   </Card>
   <Card title="Memory API" icon="book-open" href="/quickstart">
     The full API — it all works against your local server

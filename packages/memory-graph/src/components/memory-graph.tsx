@@ -3,6 +3,7 @@ import {
 	DENSE_GRAPH_STATIC_THRESHOLD,
 	ForceSimulation,
 } from "../canvas/simulation"
+import { DEFAULT_HOVER_POPOVER_Z_INDEX, DEFAULT_LABELS } from "../constants"
 import { VersionChainIndex } from "../canvas/version-chain"
 import type { ViewportState } from "../canvas/viewport"
 import { useGraphData } from "../hooks/use-graph-data"
@@ -11,6 +12,7 @@ import type {
 	GraphApiDocument,
 	GraphThemeColors,
 	MemoryGraphProps,
+	ResolvedMemoryGraphLabels,
 } from "../types"
 import { GraphCanvas } from "./graph-canvas"
 import { Legend } from "./legend"
@@ -37,7 +39,15 @@ export function MemoryGraph({
 	colors: colorOverrides,
 	totalCount,
 	onOpenDocument,
+	labels: labelOverrides,
+	layering,
 }: MemoryGraphProps) {
+	const resolvedLabels = useMemo<ResolvedMemoryGraphLabels>(
+		() => ({ ...DEFAULT_LABELS, ...labelOverrides }),
+		[labelOverrides],
+	)
+	const hoverPopoverZIndex =
+		layering?.hoverPopoverZIndex ?? DEFAULT_HOVER_POPOVER_Z_INDEX
 	const resolvedColors = useGraphTheme(colorOverrides)
 	const colors = useMemo<GraphThemeColors>(
 		() =>
@@ -397,8 +407,8 @@ export function MemoryGraph({
 	}, [containerSize.width, graphFitHeight])
 
 	// Wrap onOpenDocument to dismiss the popover before opening the modal.
-	// Without this, the popover (z-index: 100) stays mounted on top of the
-	// document modal (z-50), obscuring it and intercepting clicks.
+	// Without this, the popover overlay stays mounted on top of the
+	// document modal, obscuring it and intercepting clicks.
 	const handleOpenDocument = useCallback(
 		(documentId: string) => {
 			setSelectedNode(null)
@@ -748,6 +758,7 @@ export function MemoryGraph({
 			<LoadingIndicator
 				isLoading={isLoading}
 				isLoadingMore={isLoadingMore}
+				labels={resolvedLabels}
 				totalLoaded={totalCount ?? documents.length}
 				colors={colors}
 			/>
@@ -783,7 +794,9 @@ export function MemoryGraph({
 					<NodeHoverPopover
 						colors={colors}
 						containerBounds={containerBounds ?? undefined}
+						labels={resolvedLabels}
 						node={activeNodeData}
+						zIndex={hoverPopoverZIndex}
 						nodeRadius={activePopoverPosition.nodeRadius}
 						onNavigateDown={navigateDown}
 						onNavigateNext={navigateNext}
@@ -812,6 +825,7 @@ export function MemoryGraph({
 						<Legend
 							colors={colors}
 							edges={edges}
+							labels={resolvedLabels}
 							hoveredNode={hoveredNode}
 							compact={isCompactViewport}
 							isLoading={isLoading}

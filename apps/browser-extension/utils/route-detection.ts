@@ -39,7 +39,6 @@ export function createRouteDetection(
 	const checkForRouteChange = () => {
 		if (window.location.href !== currentUrl) {
 			currentUrl = window.location.href
-			console.log(`${config.platform} route changed, re-initializing`)
 			setTimeout(config.reinitCallback, 1000)
 		}
 	}

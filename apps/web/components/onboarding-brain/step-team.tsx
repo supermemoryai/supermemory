@@ -144,14 +144,14 @@ export function StepTeam({
 	const count = values.invites.length
 
 	return (
-		<div className="max-w-2xl mx-auto">
+		<div className="max-w-2xl mx-auto pb-24 md:pb-0">
 			<section
-				className="rounded-[22px] bg-[#1B1F24] p-7 md:p-8"
+				className="rounded-[22px] bg-[#1B1F24] p-5 md:p-8"
 				style={modalCardStyle}
 			>
-				<div className="flex items-start gap-4">
+				<div className="flex items-start gap-3 md:gap-4">
 					<div
-						className="size-12 rounded-[14px] bg-[#14161A] border border-[rgba(82,89,102,0.2)] flex items-center justify-center shrink-0"
+						className="size-11 rounded-[14px] bg-[#14161A] border border-[rgba(82,89,102,0.2)] flex items-center justify-center shrink-0 md:size-12"
 						style={inputBevelStyle}
 					>
 						<Users className="size-5 text-[#fafafa]" />
@@ -159,13 +159,13 @@ export function StepTeam({
 					<div className="min-w-0 flex-1">
 						<p
 							className={cn(
-								"text-[20px] font-semibold text-[#fafafa]",
+								"text-[19px] font-semibold text-[#fafafa] md:text-[20px]",
 								dmSans125ClassName(),
 							)}
 						>
 							Invite your team
 						</p>
-						<p className="text-[14px] text-[#737373] mt-1 leading-[1.5] font-medium">
+						<p className="text-[13px] text-[#737373] mt-1 leading-[1.45] font-medium md:text-[14px] md:leading-[1.5]">
 							A brain gets sharper as more people contribute. You can also do
 							this later.
 						</p>
@@ -177,9 +177,9 @@ export function StepTeam({
 						e.preventDefault()
 						addInvites(draft)
 					}}
-					className="mt-6 flex gap-2"
+					className="mt-5 flex min-w-0 gap-2 md:mt-6"
 				>
-					<div className="relative flex-1">
+					<div className="relative min-w-0 flex-1">
 						<Mail className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#737373]" />
 						<Input
 							value={draft}
@@ -191,8 +191,8 @@ export function StepTeam({
 									addInvites(pasted)
 								}
 							}}
-							placeholder={`alex@${domainOrFallback}, sam@${domainOrFallback}, …`}
-							className={cn(inputClass, "pl-10")}
+							placeholder={`alex@${domainOrFallback}`}
+							className={cn(inputClass, "min-w-0 pl-10")}
 							style={inputBevelStyle}
 						/>
 					</div>
@@ -200,19 +200,19 @@ export function StepTeam({
 						type="submit"
 						variant="insideOut"
 						disabled={!draft.trim()}
-						className="rounded-full h-12 px-4 text-[13px] font-medium text-[#fafafa]"
+						className="h-12 shrink-0 rounded-full px-3.5 text-[13px] font-medium text-[#fafafa] md:px-4"
 					>
 						<Plus className="size-4" />
 						Add
 					</Button>
 				</form>
 
-				<p className="text-[11px] text-[#525D6E] font-medium mt-2 pl-2">
+				<p className="text-[11px] text-[#525D6E] font-medium mt-2 pl-1 md:pl-2">
 					Paste multiple emails at once — we'll split them for you.
 				</p>
 
 				{count === 0 ? (
-					<div className="mt-6 rounded-[14px] border border-dashed border-[rgba(82,89,102,0.3)] bg-[#14161A]/40 px-5 py-8 text-center">
+					<div className="mt-5 rounded-[14px] border border-dashed border-[rgba(82,89,102,0.3)] bg-[#14161A]/40 px-4 py-7 text-center md:mt-6 md:px-5 md:py-8">
 						<p className="text-[13px] text-[#737373] font-medium">
 							No invites yet.
 						</p>
@@ -242,11 +242,11 @@ export function StepTeam({
 								</div>
 							)}
 						</div>
-						<div className="mt-3 space-y-1.5 max-h-[280px] overflow-y-auto scrollbar-thin pr-1">
+						<div className="mt-3 space-y-1.5 max-h-[240px] overflow-y-auto scrollbar-thin pr-1 md:max-h-[280px]">
 							{values.invites.map((inv) => (
 								<div
 									key={inv.email}
-									className="flex items-center gap-3 rounded-[12px] bg-[#14161A] border border-[rgba(82,89,102,0.2)] px-3 py-2"
+									className="flex flex-wrap items-center gap-2 rounded-[12px] bg-[#14161A] border border-[rgba(82,89,102,0.2)] px-3 py-2 sm:flex-nowrap md:gap-3"
 									style={inputBevelStyle}
 								>
 									<div className="size-7 rounded-full bg-[#0D121A] border border-[rgba(115,115,115,0.15)] flex items-center justify-center shrink-0">
@@ -263,7 +263,7 @@ export function StepTeam({
 											setRole(inv.email, r as "admin" | "member")
 										}
 									>
-										<SelectTrigger className="w-24 h-7 bg-transparent border border-[rgba(82,89,102,0.2)] rounded-full text-[#A1A1AA] text-[11px] font-medium px-3 shadow-none focus:ring-0">
+										<SelectTrigger className="h-7 w-24 bg-transparent border border-[rgba(82,89,102,0.2)] rounded-full text-[#A1A1AA] text-[11px] font-medium px-3 shadow-none focus:ring-0">
 											<SelectValue />
 										</SelectTrigger>
 										<SelectContent className="bg-[#14161A] border-[rgba(82,89,102,0.2)] rounded-[12px]">
@@ -295,12 +295,12 @@ export function StepTeam({
 					</>
 				)}
 
-				<div className="mt-6 flex items-center justify-end gap-[22px] border-t border-white/[0.06] pt-5">
+				<div className="mt-5 flex items-center justify-end gap-3 border-t border-white/[0.06] pt-4 md:mt-6 md:gap-[22px] md:pt-5">
 					<button
 						type="button"
 						onClick={onSkip ?? onContinue}
 						disabled={submitting}
-						className="text-[#737373] font-medium text-[14px] hover:text-[#999] transition-colors disabled:opacity-50"
+						className="text-[#737373] font-medium text-[13px] transition-colors hover:text-[#999] disabled:opacity-50 md:text-[14px]"
 					>
 						Skip for now
 					</button>
@@ -308,7 +308,7 @@ export function StepTeam({
 						variant="insideOut"
 						onClick={onContinue}
 						disabled={submitting}
-						className="rounded-full px-5 py-[10px] text-[13px] font-medium text-[#fafafa]"
+						className="rounded-full px-4 py-2 text-[13px] font-medium text-[#fafafa] md:px-5 md:py-[10px]"
 					>
 						{submitting ? (
 							<>

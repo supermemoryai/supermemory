@@ -106,6 +106,24 @@ Search memories and get user profile.
 | `includeProfile` | boolean | No | Include user profile summary. Default: `true` |
 | `containerTag` | string | No | Project tag to scope the search |
 
+### `listMemories`
+
+Enumerate stored memories grouped by their source document, newest first. Returns only the extracted memory facts — never document content — so responses stay small enough for client output limits. Use it to audit what is on file (e.g. before forgetting stale memories); use `recall` for topic-based search.
+
+```json
+{
+  "page": 1,
+  "limit": 10,
+  "containerTag": "optional-project-tag"
+}
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | integer | No | Page number (1-based). Default: `1` |
+| `limit` | integer | No | Documents per page, each grouping its extracted memories. Default: `10`, max: `50` |
+| `containerTag` | string | No | Project tag to scope the listing |
+
 ### `whoAmI`
 
 Get the current logged-in user's information.
@@ -186,6 +204,7 @@ bun run test:e2e
 | `e2e/oauth.test.ts` | OAuth discovery chain, dynamic client registration, token-endpoint negatives, real refresh→access token round-trip |
 | `e2e/discovery.test.ts` | handshake, tools/resources/prompts listing, `whoAmI`, `listProjects` |
 | `e2e/memory.test.ts` | save→recall round-trip, profile variants, `forget`, container scoping, bad args |
+| `e2e/list-memories.test.ts` | `listMemories` discovery, save→list round-trip, pagination, arg validation |
 | `e2e/root-scope.test.ts` | `x-sm-project` header strips the `containerTag` param and scopes the whole connection |
 | `e2e/graph.test.ts` | `memory-graph`, `fetch-graph-data`, resource reads, `context` prompt |
 

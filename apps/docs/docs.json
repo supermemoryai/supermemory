@@ -180,6 +180,7 @@
 											"self-hosting/overview",
 											"self-hosting/quickstart",
 											"self-hosting/configuration",
+											"self-hosting/embeddings",
 											"self-hosting/providers",
 											"self-hosting/local-vs-enterprise"
 										]

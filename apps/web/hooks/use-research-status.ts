@@ -23,7 +23,7 @@ export type ResearchEvent = {
 }
 
 export type ResearchState = {
-	status: "queued" | "running" | "done" | null
+	status: "queued" | "running" | "done" | "error" | null
 	domain: string | null
 	findings: number
 	events: ResearchEvent[]
@@ -54,7 +54,9 @@ export function useResearchStatus(enabled = true) {
 		refetchInterval: (query) => {
 			const status = query.state.data?.status
 			const polls = query.state.dataUpdateCount
-			if (status === "done" || polls >= MAX_POLLS) return false
+			// error is terminal too — keep polling only while it can still progress.
+			if (status === "done" || status === "error" || polls >= MAX_POLLS)
+				return false
 			return POLL_INTERVAL_MS
 		},
 		staleTime: 0,
