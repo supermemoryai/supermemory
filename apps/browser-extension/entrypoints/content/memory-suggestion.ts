@@ -12,6 +12,52 @@ export function buildSupermemoryText(memories: unknown): string {
 	return `\n\n${SUPERMEMORY_PREFIX} ${memoryText}`
 }
 
+function normalizeMemoryList(memories: unknown): string[] {
+	const list = Array.isArray(memories)
+		? memories
+		: memories == null
+			? []
+			: [memories]
+	return list
+		.map((memory) => (typeof memory === "string" ? memory : String(memory)))
+		.map((memory) => memory.trim())
+		.filter((memory) => memory.length > 0)
+}
+
+/**
+ * Serialize the memory list for storage on a `data-*` attribute. Memories are
+ * free text that can contain commas and newlines, so they are stored as JSON
+ * rather than joined into a single string, otherwise a memory with a comma in
+ * it is split into fragments when the popup reads it back. Returns an empty
+ * string for an empty list so existing truthiness checks on the attribute
+ * (memories present vs not) keep working.
+ */
+export function serializeMemoriesForDataset(memories: unknown): string {
+	const list = normalizeMemoryList(memories)
+	return list.length > 0 ? JSON.stringify(list) : ""
+}
+
+/**
+ * Read back a memory list written by {@link serializeMemoriesForDataset}.
+ * Falls back to the legacy comma/newline split so any value written by older
+ * code (or a plain joined string) still renders.
+ */
+export function parseMemoriesFromDataset(
+	raw: string | null | undefined,
+): string[] {
+	if (!raw) return []
+	try {
+		const parsed = JSON.parse(raw)
+		if (Array.isArray(parsed)) return normalizeMemoryList(parsed)
+	} catch {
+		// Not JSON — fall through to the legacy delimiter split.
+	}
+	return raw
+		.split(/[,\n]/)
+		.map((memory) => memory.trim())
+		.filter((memory) => memory.length > 0 && memory !== ",")
+}
+
 export function showMemorySuggestion(
 	platform: string,
 	input: SuggestionInput,
@@ -305,10 +351,7 @@ export function showMarkerPopover(
 			color: rgba(255, 255, 255, 0.76);
 		`
 
-		memories
-			.split(/[,\n]/)
-			.map((memory) => memory.trim())
-			.filter((memory) => memory.length > 0 && memory !== ",")
+		parseMemoriesFromDataset(memories)
 			.slice(0, 5)
 			.forEach((memory) => {
 				const item = document.createElement("div")
