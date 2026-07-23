@@ -4,7 +4,7 @@ import { $fetch } from "@lib/api"
 import { useConnectorAccess } from "@/hooks/use-connector-access"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { GoogleDrive, Granola, Notion, OneDrive } from "@ui/assets/icons"
+import { GoogleDrive, Granola, Notion, OneDrive, Zoom } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import {
 	Check,
@@ -52,7 +52,12 @@ const GDRIVE_SCOPE_LABELS: Record<GDriveSyncScope, string> = {
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
-type ConnectorProvider = "google-drive" | "notion" | "onedrive" | "granola"
+type ConnectorProvider =
+	| "google-drive"
+	| "notion"
+	| "onedrive"
+	| "zoom"
+	| "granola"
 
 const CONNECTORS: Record<
 	ConnectorProvider,
@@ -80,6 +85,12 @@ const CONNECTORS: Record<
 		description: "Access your Microsoft Office documents",
 		documentLabel: "documents",
 		icon: OneDrive,
+	},
+	zoom: {
+		title: "Zoom",
+		description: "Sync meeting notes, transcripts, and AI summaries",
+		documentLabel: "meetings",
+		icon: Zoom,
 	},
 	granola: {
 		title: "Granola",
@@ -786,6 +797,23 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												</span>
 												<span className="text-[11px] text-[#737373] leading-tight">
 													Office documents
+												</span>
+											</div>
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											onClick={() => {
+												setConnectingProvider("zoom")
+												addConnectionMutation.mutate({ provider: "zoom" })
+											}}
+											className="flex items-start gap-2.5 px-3 py-2.5 rounded-md cursor-pointer text-white opacity-60 hover:opacity-100 hover:bg-[#293952]/40 focus:bg-[#293952]/40 focus:opacity-100"
+										>
+											<Zoom className="size-5 mt-0.5 shrink-0" />
+											<div className="flex flex-col gap-0.5 min-w-0">
+												<span className="text-[14px] font-medium text-[#FAFAFA] leading-tight">
+													Zoom
+												</span>
+												<span className="text-[11px] text-[#737373] leading-tight">
+													Meetings & transcripts
 												</span>
 											</div>
 										</DropdownMenuItem>

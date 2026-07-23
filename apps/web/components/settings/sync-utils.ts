@@ -42,6 +42,7 @@ export const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
 	github: "GitHub",
 	"web-crawler": "Web Crawler",
 	s3: "S3",
+	zoom: "Zoom",
 	granola: "Granola",
 }
 
@@ -61,4 +62,5 @@ export type ImportProvider =
 	| "github"
 	| "web-crawler"
 	| "s3"
+	| "zoom"
 	| "granola"
