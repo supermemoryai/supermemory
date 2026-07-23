@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto"
-import { describe, expect, it } from "vitest"
-import { API_KEY, callTool, connect, recallUntil, textOf } from "./helpers"
+import { afterAll, describe, expect, it } from "vitest"
+import {
+	API_KEY,
+	callTool,
+	connect,
+	deleteDocument,
+	documentIdOf,
+	recallUntil,
+	textOf,
+} from "./helpers"
 
 type ToolLike = {
 	name: string
@@ -15,6 +23,14 @@ const SCOPE_TAG = "sm_e2e_root"
 
 // x-sm-project locks the connection to one project: strips containerTag from schemas and scopes every op — distinct from the per-call arg.
 describe.skipIf(!API_KEY)("MCP — x-sm-project root scoping", () => {
+	const createdDocumentIds: string[] = []
+
+	afterAll(async () => {
+		await Promise.all(
+			createdDocumentIds.map((documentId) => deleteDocument(documentId)),
+		)
+	}, 330_000)
+
 	it("strips containerTag from tool schemas when x-sm-project is set", async () => {
 		const scoped = await connect({ containerTag: SCOPE_TAG })
 		const plain = await connect()
@@ -45,6 +61,9 @@ describe.skipIf(!API_KEY)("MCP — x-sm-project root scoping", () => {
 			})
 			expect(save.isError).toBeFalsy()
 			expect(textOf(save)).toContain(SCOPE_TAG)
+			const documentId = documentIdOf(save)
+			expect(documentId).toBeTruthy()
+			if (documentId) createdDocumentIds.push(documentId)
 
 			const found = await recallUntil(
 				rooted.client,
@@ -53,10 +72,6 @@ describe.skipIf(!API_KEY)("MCP — x-sm-project root scoping", () => {
 			)
 			expect(found, "marker not found within its root scope").not.toBeNull()
 		} finally {
-			await callTool(rooted.client, "memory", {
-				content,
-				action: "forget",
-			}).catch(() => {})
 			await rooted.close()
 		}
 

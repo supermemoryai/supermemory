@@ -115,6 +115,10 @@ function limitByChars(text: string, maxChars = MAX_CHARS): string {
 	return text.length > maxChars ? `${text.slice(0, maxChars)}...` : text
 }
 
+function previewByChars(text: string): string {
+	return text.length > 200 ? `${text.slice(0, 100)}...${text.slice(-97)}` : text
+}
+
 // Type for SDK search result item
 interface SDKResult {
 	id: string
@@ -360,7 +364,7 @@ export class SupermemoryClient {
 						content,
 						candidate.id,
 					)
-					return `- confirmationToken: ${confirmation}\n  similarity: ${candidate.similarity.toFixed(2)}\n  content: ${JSON.stringify(limitByChars(getMemoryText(candidate) || candidate.content || "", 200))}`
+					return `- confirmationToken: ${confirmation}\n  similarity: ${candidate.similarity.toFixed(2)}\n  content: ${JSON.stringify(previewByChars(getMemoryText(candidate) || candidate.content || ""))}`
 				}),
 			)
 

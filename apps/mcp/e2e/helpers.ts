@@ -1,5 +1,9 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
+import {
+	ElicitRequestSchema,
+	type ElicitResult,
+} from "@modelcontextprotocol/sdk/types.js"
 
 export const MCP_URL =
 	process.env.SUPERMEMORY_MCP_URL ?? "https://mcp.supermemory.ai/mcp"
@@ -89,12 +93,45 @@ export function textOf(res: CallResult): string {
 		.join("\n")
 }
 
+export function documentIdOf(res: CallResult): string | undefined {
+	return textOf(res).match(/id: ([^)]+)/)?.[1]
+}
+
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+export async function deleteDocument(
+	documentId: string,
+	{ tries = 60, delayMs = 5000 } = {},
+): Promise<void> {
+	if (!API_KEY) throw new Error("SUPERMEMORY_API_KEY is required")
+	for (let i = 0; i < tries; i++) {
+		const response = await fetch(
+			`${API_URL}/v3/documents/${encodeURIComponent(documentId)}`,
+			{
+				method: "DELETE",
+				headers: { Authorization: `Bearer ${API_KEY}` },
+			},
+		)
+		if (response.ok || response.status === 404) return
+		if (response.status !== 409) {
+			throw new Error(
+				`Document cleanup failed for ${documentId}: ${response.status}`,
+			)
+		}
+		if (i < tries - 1) await sleep(delayMs)
+	}
+	throw new Error(`Document cleanup remained busy for ${documentId}`)
+}
 
 export type Session = { client: Client; close: () => Promise<void> }
 
 export async function connect(
-	opts: { apiKey?: string; token?: string; containerTag?: string } = {},
+	opts: {
+		apiKey?: string
+		token?: string
+		containerTag?: string
+		onElicitation?: () => ElicitResult | Promise<ElicitResult>
+	} = {},
 ): Promise<Session> {
 	const headers: Record<string, string> = {
 		Authorization: `Bearer ${opts.token ?? opts.apiKey ?? API_KEY}`,
@@ -104,7 +141,15 @@ export async function connect(
 	const transport = new StreamableHTTPClientTransport(new URL(MCP_URL), {
 		requestInit: { headers },
 	})
-	const client = new Client({ name: "sm-mcp-e2e", version: "0.0.1" })
+	const client = new Client(
+		{ name: "sm-mcp-e2e", version: "0.0.1" },
+		opts.onElicitation
+			? { capabilities: { elicitation: { form: {} } } }
+			: undefined,
+	)
+	if (opts.onElicitation) {
+		client.setRequestHandler(ElicitRequestSchema, opts.onElicitation)
+	}
 	await client.connect(transport)
 	return {
 		client,
@@ -161,26 +206,7 @@ export async function forgetUntilForgotten(
 			action: "forget",
 			...(containerTag ? { containerTag } : {}),
 		})
-		const previewText = textOf(res)
-		if (!res.isError && /Successfully forgot/i.test(previewText)) {
-			return previewText
-		}
-
-		const confirmationToken = previewText.match(/confirmationToken: (\S+)/)?.[1]
-		if (confirmationToken) {
-			const confirmed = await callTool(client, "memory", {
-				content,
-				action: "forget",
-				confirmationToken,
-				...(containerTag ? { containerTag } : {}),
-			})
-			if (
-				!confirmed.isError &&
-				/Successfully forgot/i.test(textOf(confirmed))
-			) {
-				return textOf(confirmed)
-			}
-		}
+		if (!res.isError && /forgot/i.test(textOf(res))) return textOf(res)
 		await sleep(delayMs)
 	}
 	return null

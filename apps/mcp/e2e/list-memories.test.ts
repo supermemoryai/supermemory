@@ -1,16 +1,17 @@
 import { randomUUID } from "node:crypto"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import {
+	API_URL,
 	API_KEY,
 	callTool,
 	connect,
+	deleteDocument,
 	type Session,
 	sleep,
 	textOf,
 } from "./helpers"
 
-// listMemories reads extracted memory entries, which appear only after the
-// async ingestion pipeline finishes — poll like recallUntil does.
+// listMemories can be briefly eventually-consistent after fixture creation.
 async function listUntil(
 	s: Session,
 	needle: string,
@@ -28,30 +29,45 @@ async function listUntil(
 
 describe.skipIf(!API_KEY)("MCP — listMemories", () => {
 	let s: Session
-	const created: string[] = []
+	const createdDocumentIds: string[] = []
 
 	beforeAll(async () => {
 		s = await connect()
 	})
 	afterAll(async () => {
-		for (const content of created) {
-			await callTool(s.client, "memory", {
-				content,
-				action: "forget",
-			}).catch(() => {})
+		try {
+			await Promise.all(
+				createdDocumentIds.map((documentId) => deleteDocument(documentId)),
+			)
+		} finally {
+			await s?.close()
 		}
-		await s?.close()
-	})
+	}, 330_000)
 
 	it("lists a saved memory without dumping document content", async () => {
 		const marker = `lm-${randomUUID()}`
 		const content = `e2e listMemories. token=${marker}. The list test fruit is rambutan.`
-		created.push(content)
+		const created = await fetch(`${API_URL}/v4/memories`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${API_KEY}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				containerTag: "sm_project_default",
+				memories: [{ content }],
+			}),
+		})
+		expect(
+			created.ok,
+			`memory fixture creation failed: ${created.status}`,
+		).toBe(true)
+		const documentId = ((await created.json()) as { documentId?: string })
+			.documentId
+		expect(documentId).toBeTruthy()
+		if (documentId) createdDocumentIds.push(documentId)
 
-		const save = await callTool(s.client, "memory", { content, action: "save" })
-		expect(save.isError).toBeFalsy()
-
-		const listing = await listUntil(s, marker)
+		const listing = await listUntil(s, marker, { tries: 6, delayMs: 1000 })
 		expect(
 			listing,
 			`listMemories never returned marker ${marker}`,

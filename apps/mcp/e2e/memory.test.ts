@@ -5,9 +5,9 @@ import {
 	API_KEY,
 	callTool,
 	connect,
-	forgetUntilForgotten,
+	deleteDocument,
+	documentIdOf,
 	recallUntil,
-	recallUntilAbsent,
 	sleep,
 	type Session,
 	textOf,
@@ -15,30 +15,30 @@ import {
 
 describe.skipIf(!API_KEY)("MCP — memory behaviors", () => {
 	let s: Session
-	const created: Array<{ content: string; containerTag?: string }> = []
+	const createdDocumentIds: string[] = []
 
 	beforeAll(async () => {
 		s = await connect()
 	})
 	afterAll(async () => {
-		for (const { content, containerTag } of created) {
-			await forgetUntilForgotten(s.client, content, {
-				tries: 3,
-				delayMs: 1000,
-				containerTag,
-			}).catch(() => {})
+		try {
+			await Promise.all(
+				createdDocumentIds.map((documentId) => deleteDocument(documentId)),
+			)
+		} finally {
+			await s?.close()
 		}
-		await s?.close()
-	})
+	}, 330_000)
 
 	it("save → recall round-trips the saved memory", async () => {
 		const marker = `rt-${randomUUID()}`
 		const content = `e2e round-trip. token=${marker}. The test fruit is dragonfruit.`
-		created.push({ content })
-
 		const save = await callTool(s.client, "memory", { content, action: "save" })
 		expect(save.isError).toBeFalsy()
 		expect(textOf(save)).toMatch(/Saved memory/i)
+		const documentId = documentIdOf(save)
+		expect(documentId).toBeTruthy()
+		if (documentId) createdDocumentIds.push(documentId)
 
 		const found = await recallUntil(s.client, "test fruit dragonfruit", marker)
 		expect(found, `recall never returned marker ${marker}`).not.toBeNull()
@@ -68,62 +68,90 @@ describe.skipIf(!API_KEY)("MCP — memory behaviors", () => {
 	it("forget accepts and removes a saved memory", async () => {
 		const marker = `fg-${randomUUID()}`
 		const content = `e2e forget target. token=${marker}. Secret animal is axolotl.`
-		created.push({ content })
-
-		await callTool(s.client, "memory", { content, action: "save" })
-		const found = await recallUntil(s.client, "secret animal axolotl", marker)
-		expect(found, "memory should exist before forget").not.toBeNull()
-
-		// Polls forget until it confirms real removal ("forgot"), past the extraction window.
-		const forgotten = await forgetUntilForgotten(s.client, content)
+		const created = await fetch(`${API_URL}/v4/memories`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${API_KEY}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				containerTag: "sm_project_default",
+				memories: [{ content }],
+			}),
+		})
 		expect(
-			forgotten,
-			`forget never confirmed removal for ${marker} (memory entry never extracted in time)`,
-		).not.toBeNull()
-
-		const gone = await recallUntilAbsent(
-			s.client,
-			"secret animal axolotl",
-			marker,
-		)
-		if (!gone) {
-			console.warn(
-				`[e2e] forget confirmed but ${marker} still indexed after ~60s (eventual deletion)`,
-			)
+			created.ok,
+			`memory fixture creation failed: ${created.status}`,
+		).toBe(true)
+		const fixture = (await created.json()) as {
+			documentId?: string
+			memories?: Array<{ id: string }>
 		}
+		expect(fixture.documentId).toBeTruthy()
+		expect(fixture.memories?.[0]?.id).toBeTruthy()
+		if (fixture.documentId) createdDocumentIds.push(fixture.documentId)
+
+		const forgotten = await callTool(s.client, "memory", {
+			content,
+			action: "forget",
+		})
+		expect(forgotten.isError).toBeFalsy()
+		expect(textOf(forgotten)).toMatch(
+			/Successfully forgot memory \(exact match\)/i,
+		)
+
+		const verify = await fetch(`${API_URL}/v4/memories`, {
+			method: "DELETE",
+			headers: {
+				Authorization: `Bearer ${API_KEY}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				id: fixture.memories?.[0]?.id,
+				containerTag: "sm_project_default",
+			}),
+		})
+		expect(verify.status).toBe(404)
 	}, 240_000)
 
 	it("forget previews similar memories and requires signed confirmation", async () => {
 		const containerTag = "sm_e2e_safe_forget"
 		const marker = `safe-fg-${randomUUID()}`
 		const content = `e2e safe forget target. token=${marker}. Vault color is marigold.`
-		const scoped = await connect({ containerTag })
+		let confirmForget = true
+		const scoped = await connect({
+			containerTag,
+			onElicitation: () =>
+				confirmForget
+					? { action: "accept", content: { confirm: true } }
+					: { action: "decline" },
+		})
 		let documentId: string | undefined
 
 		try {
-			const saved = await callTool(scoped.client, "memory", {
-				content,
-				action: "save",
+			const created = await fetch(`${API_URL}/v4/memories`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${API_KEY}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					containerTag,
+					memories: [{ content }],
+				}),
 			})
-			documentId = textOf(saved).match(/id: ([^)]+)/)?.[1]
-			expect(documentId, "save should return a source document ID").toBeTruthy()
-
-			let extractedMemory = ""
-			for (let i = 0; i < 18; i++) {
-				const listed = await callTool(scoped.client, "listMemories")
-				extractedMemory =
-					textOf(listed)
-						.split("\n")
-						.find((line) => line.startsWith("- ") && line.includes(marker))
-						?.slice(2) ?? ""
-				if (extractedMemory) break
-				await sleep(5000)
-			}
 			expect(
-				extractedMemory,
-				"saved content should produce an extracted memory",
+				created.ok,
+				`memory fixture creation failed: ${created.status}`,
+			).toBe(true)
+			documentId = ((await created.json()) as { documentId?: string })
+				.documentId
+			expect(
+				documentId,
+				"fixture should return a source document ID",
 			).toBeTruthy()
-			const nearMatch = `${extractedMemory} please`
+			if (documentId) createdDocumentIds.push(documentId)
+			const nearMatch = `${content} please`
 
 			let previewText = ""
 			for (let i = 0; i < 18; i++) {
@@ -139,8 +167,11 @@ describe.skipIf(!API_KEY)("MCP — memory behaviors", () => {
 			expect(previewText).toContain(
 				"No exact memory matched. No changes were made.",
 			)
-			const confirmationToken = previewText.match(
-				/confirmationToken: (\S+)/,
+			const matchingCandidate = previewText
+				.split(/(?=- confirmationToken: )/)
+				.find((candidate) => candidate.includes(marker))
+			const confirmationToken = matchingCandidate?.match(
+				/^- confirmationToken: (\S+)/,
 			)?.[1]
 			expect(
 				confirmationToken,
@@ -170,12 +201,24 @@ describe.skipIf(!API_KEY)("MCP — memory behaviors", () => {
 				"Invalid or expired forget confirmation. No changes were made.",
 			)
 
+			confirmForget = false
+			const declined = await callTool(scoped.client, "memory", {
+				content: nearMatch,
+				action: "forget",
+				confirmationToken,
+			})
+			expect(declined.isError).toBeFalsy()
+			expect(textOf(declined)).toContain(
+				"Forget cancelled. No changes were made.",
+			)
+
 			const afterPreview = await callTool(scoped.client, "listMemories")
 			expect(
 				textOf(afterPreview),
 				"preview must not delete the candidate",
 			).toContain(marker)
 
+			confirmForget = true
 			const confirmed = await callTool(scoped.client, "memory", {
 				content: nearMatch,
 				action: "forget",
@@ -195,13 +238,6 @@ describe.skipIf(!API_KEY)("MCP — memory behaviors", () => {
 			}
 			expect(removed, "confirmed candidate should be removed").toBe(true)
 		} finally {
-			if (documentId) {
-				const cleanup = await fetch(`${API_URL}/v3/documents/${documentId}`, {
-					method: "DELETE",
-					headers: { Authorization: `Bearer ${API_KEY}` },
-				})
-				expect(cleanup.ok || cleanup.status === 404).toBe(true)
-			}
 			await scoped.close()
 		}
 	}, 300_000)
@@ -212,13 +248,14 @@ describe.skipIf(!API_KEY)("MCP — memory behaviors", () => {
 		const tagB = "sm_e2e_scope_b"
 		const marker = `sc-${randomUUID()}`
 		const content = `e2e scoping. token=${marker}. Project color is teal.`
-		created.push({ content, containerTag: tagA })
-
-		await callTool(s.client, "memory", {
+		const save = await callTool(s.client, "memory", {
 			content,
 			action: "save",
 			containerTag: tagA,
 		})
+		const documentId = documentIdOf(save)
+		expect(documentId).toBeTruthy()
+		if (documentId) createdDocumentIds.push(documentId)
 
 		const inA = await recallUntil(s.client, "project color teal", marker, {
 			containerTag: tagA,
