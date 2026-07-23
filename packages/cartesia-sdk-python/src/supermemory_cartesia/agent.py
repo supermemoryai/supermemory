@@ -377,6 +377,55 @@ class SupermemoryCartesiaAgent:
             logger.error(f"[Supermemory] Error in memory enrichment: {e}")
             return event, None
 
+    async def _prepare_user_turn(self, event: Event) -> Event:
+        """Prepare a user turn with memory context and background persistence."""
+        logger.info("[Supermemory] Processing UserTurnEnded event")
+        event, memory_context = await self._enrich_event_with_memories(event)
+
+        # Clean up old memory context and inject new one if available
+        if hasattr(self.agent, 'config'):
+            original_prompt = getattr(self.agent.config, 'system_prompt', '')
+            # Always remove old memory context if present to prevent stale data
+            if MEMORY_TAG_START in original_prompt:
+                original_prompt = re.sub(
+                    rf'{re.escape(MEMORY_TAG_START)}.*?{re.escape(MEMORY_TAG_END)}\s*',
+                    '',
+                    original_prompt,
+                    flags=re.DOTALL
+                )
+                logger.debug("[Supermemory] Removed old memory context from system prompt")
+
+            # Inject new memory context if available
+            if memory_context:
+                self.agent.config.system_prompt = f"{memory_context}\n\n{original_prompt}"
+                logger.info("[Supermemory] Injected new memory context into system prompt")
+            else:
+                # No new memories, but we cleaned up old ones
+                self.agent.config.system_prompt = original_prompt
+                logger.debug("[Supermemory] No new memories to inject, using clean prompt")
+
+        # Store conversation in background
+        if hasattr(event, 'history') and event.history:
+            messages = self._extract_conversation_from_history(event.history)
+            unsent = messages[self._messages_sent_count:]
+            if unsent:
+                logger.info(f"[Supermemory] Queuing {len(unsent)} messages for storage")
+                task = asyncio.create_task(self._store_messages(unsent))
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
+                self._messages_sent_count = len(messages)
+        else:
+            # No history yet, store just the current user message
+            user_content = self._extract_user_message(event)
+            if user_content:
+                logger.info(f"[Supermemory] No history, storing current user message: {user_content[:50]}...")
+                task = asyncio.create_task(self._store_messages([{"role": "user", "content": user_content}]))
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
+                self._messages_sent_count = 1  # CRITICAL: Increment counter to prevent duplicate storage
+
+        return event
+
     async def process(self, env: Any, event: Event) -> AsyncGenerator[Event, None]:
         """Process events with memory enrichment.
 
@@ -387,63 +436,14 @@ class SupermemoryCartesiaAgent:
         Yields:
             Output events from the wrapped agent.
         """
-        try:
-            if type(event).__name__ == "UserTurnEnded":
-                logger.info("[Supermemory] Processing UserTurnEnded event")
-                event, memory_context = await self._enrich_event_with_memories(event)
+        if type(event).__name__ == "UserTurnEnded":
+            try:
+                event = await self._prepare_user_turn(event)
+            except Exception as e:
+                logger.error(f"[Supermemory] Error preparing user turn: {e}")
 
-                # Clean up old memory context and inject new one if available
-                if hasattr(self.agent, 'config'):
-                    original_prompt = getattr(self.agent.config, 'system_prompt', '')
-                    # Always remove old memory context if present to prevent stale data
-                    if MEMORY_TAG_START in original_prompt:
-                        original_prompt = re.sub(
-                            rf'{re.escape(MEMORY_TAG_START)}.*?{re.escape(MEMORY_TAG_END)}\s*',
-                            '',
-                            original_prompt,
-                            flags=re.DOTALL
-                        )
-                        logger.debug("[Supermemory] Removed old memory context from system prompt")
-
-                    # Inject new memory context if available
-                    if memory_context:
-                        self.agent.config.system_prompt = f"{memory_context}\n\n{original_prompt}"
-                        logger.info("[Supermemory] Injected new memory context into system prompt")
-                    else:
-                        # No new memories, but we cleaned up old ones
-                        self.agent.config.system_prompt = original_prompt
-                        logger.debug("[Supermemory] No new memories to inject, using clean prompt")
-
-                # Store conversation in background
-                if hasattr(event, 'history') and event.history:
-                    messages = self._extract_conversation_from_history(event.history)
-                    unsent = messages[self._messages_sent_count:]
-                    if unsent:
-                        logger.info(f"[Supermemory] Queuing {len(unsent)} messages for storage")
-                        task = asyncio.create_task(self._store_messages(unsent))
-                        self._background_tasks.add(task)
-                        task.add_done_callback(self._background_tasks.discard)
-                        self._messages_sent_count = len(messages)
-                else:
-                    # No history yet, store just the current user message
-                    user_content = self._extract_user_message(event)
-                    if user_content:
-                        logger.info(f"[Supermemory] No history, storing current user message: {user_content[:50]}...")
-                        task = asyncio.create_task(self._store_messages([{"role": "user", "content": user_content}]))
-                        self._background_tasks.add(task)
-                        task.add_done_callback(self._background_tasks.discard)
-                        self._messages_sent_count = 1  # CRITICAL: Increment counter to prevent duplicate storage
-
-                async for output in self.agent.process(env, event):
-                    yield output
-            else:
-                async for output in self.agent.process(env, event):
-                    yield output
-
-        except Exception as e:
-            logger.error(f"[Supermemory] Error in process: {e}")
-            async for output in self.agent.process(env, event):
-                yield output
+        async for output in self.agent.process(env, event):
+            yield output
 
     def reset_memory_tracking(self) -> None:
         """Reset memory tracking for a new conversation."""
