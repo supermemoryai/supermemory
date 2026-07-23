@@ -2839,7 +2839,8 @@ export function IntegrationsView({
 			if (result.error)
 				throw new Error(result.error.message, { cause: result.error })
 			const refreshed = await refetchKeys()
-			if (refreshed.error) throw refreshed.error
+			if (refreshed.error)
+				throw new Error(refreshed.error.message, { cause: refreshed.error })
 			toast.success("Plugin disconnected")
 		} catch {
 			toast.error("Failed to disconnect plugin")
