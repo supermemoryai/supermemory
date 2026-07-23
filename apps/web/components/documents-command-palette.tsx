@@ -199,10 +199,16 @@ export function DocumentsCommandPalette({
 		for (const a of actions) items.push(a)
 	}
 
-	// Reset selection on items change
+	// biome-ignore lint/correctness/useExhaustiveDependencies: search is the trigger — snap the selection back to the top result whenever the query changes
 	useEffect(() => {
 		setSelectedIndex(0)
-	}, [])
+	}, [search])
+
+	// Keep the selection in range when the list shrinks (async results
+	// replacing recent docs, refetches, etc.)
+	useEffect(() => {
+		setSelectedIndex((i) => Math.min(i, Math.max(items.length - 1, 0)))
+	}, [items.length])
 
 	// Scroll selected into view
 	useEffect(() => {
