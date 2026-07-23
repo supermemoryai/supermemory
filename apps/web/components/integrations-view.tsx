@@ -1022,8 +1022,9 @@ function ItemInfoDialog({
 	)
 }
 
-function DisconnectButton({ onConfirm }: { onConfirm: () => void }) {
+function DisconnectButton({ onConfirm }: { onConfirm: () => Promise<void> }) {
 	const [confirming, setConfirming] = useState(false)
+	const [pending, setPending] = useState(false)
 	useEffect(() => {
 		if (!confirming) return
 		const t = setTimeout(() => setConfirming(false), 3000)
@@ -1032,16 +1033,28 @@ function DisconnectButton({ onConfirm }: { onConfirm: () => void }) {
 	return (
 		<button
 			type="button"
-			onClick={() => (confirming ? onConfirm() : setConfirming(true))}
+			disabled={pending}
+			onClick={async () => {
+				if (!confirming) {
+					setConfirming(true)
+					return
+				}
+				setPending(true)
+				try {
+					await onConfirm()
+				} finally {
+					setPending(false)
+				}
+			}}
 			className={cn(
 				dmSans125ClassName(),
-				"shrink-0 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+				"min-h-8 shrink-0 rounded-md px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-50",
 				confirming
 					? "bg-red-500/15 text-red-400"
 					: "text-[#737373] hover:bg-white/5 hover:text-red-400",
 			)}
 		>
-			{confirming ? "Confirm" : "Disconnect"}
+			{pending ? "Disconnecting…" : confirming ? "Confirm" : "Disconnect"}
 		</button>
 	)
 }
@@ -1049,19 +1062,22 @@ function DisconnectButton({ onConfirm }: { onConfirm: () => void }) {
 function ActiveButton({
 	count,
 	lastActive,
+	name,
 	onClick,
 }: {
 	count: number
 	lastActive?: string | null
+	name: string
 	onClick: () => void
 }) {
 	return (
 		<button
 			type="button"
+			aria-label={`Manage ${name} connections`}
 			onClick={onClick}
 			className={cn(
 				dmSans125ClassName(),
-				"group flex shrink-0 cursor-pointer items-center gap-1.5 text-[12px] font-medium text-[#00AC3F] transition-colors sm:text-[13px]",
+				"group flex min-h-8 shrink-0 cursor-pointer items-center gap-1.5 text-[12px] font-medium text-[#00AC3F] transition-colors sm:min-h-0 sm:text-[13px]",
 			)}
 		>
 			<span className="size-[7px] rounded-full bg-[#00AC3F]" />
@@ -1069,7 +1085,7 @@ function ActiveButton({
 				{count > 1 ? `${count} active` : "Active"}
 			</span>
 			{count <= 1 && lastActive && (
-				<span className="text-[11px] font-normal text-[#737373]">
+				<span className="hidden text-[11px] font-normal text-[#737373] sm:inline">
 					· {formatRelativeTime(lastActive)}
 				</span>
 			)}
@@ -2142,7 +2158,10 @@ function ItemCard({
 				<div className="flex w-auto shrink-0 items-center justify-end gap-2 sm:w-full sm:justify-between">
 					{/* biome-ignore lint/a11y/noStaticElementInteractions: stop card click from swallowing the status action. */}
 					<div
-						className="hidden min-w-0 flex-1 sm:flex"
+						className={cn(
+							"min-w-0 flex-1",
+							kind === "plugin" && statusSlot ? "flex" : "hidden sm:flex",
+						)}
 						onClick={(e) => e.stopPropagation()}
 						onKeyDown={(e) => e.stopPropagation()}
 					>
@@ -2816,9 +2835,13 @@ export function IntegrationsView({
 
 	const handleRevokePluginKey = async (keyId: string) => {
 		try {
-			await authClient.apiKey.delete({ keyId })
+			const result = await authClient.apiKey.delete({ keyId })
+			if (result.error)
+				throw new Error(result.error.message, { cause: result.error })
+			const refreshed = await refetchKeys()
+			if (refreshed.error)
+				throw new Error(refreshed.error.message, { cause: refreshed.error })
 			toast.success("Plugin disconnected")
-			refetchKeys()
 		} catch {
 			toast.error("Failed to disconnect plugin")
 		}
@@ -3608,6 +3631,7 @@ export function IntegrationsView({
 					<ActiveButton
 						count={activeCountByPlugin.get(item.pluginId) ?? 0}
 						lastActive={activeKey.lastRequest}
+						name={item.name}
 						onClick={() => {
 							trackCard(item)
 							setConnectedPluginId(item.pluginId)
@@ -4015,7 +4039,7 @@ export function IntegrationsView({
 								: "Connection"}
 						</p>
 						{connectedDialogKeys.length > 0 ? (
-							<div className="flex flex-col gap-1.5">
+							<div className="flex max-h-[40dvh] flex-col gap-1.5 overflow-y-auto pr-1">
 								{connectedDialogKeys.map((key) => (
 									<div
 										key={key.keyId}
@@ -4025,7 +4049,7 @@ export function IntegrationsView({
 											{key.keyStart ? `${key.keyStart}...` : "API key"}
 										</span>
 										<DisconnectButton
-											onConfirm={() => void handleRevokePluginKey(key.keyId)}
+											onConfirm={() => handleRevokePluginKey(key.keyId)}
 										/>
 									</div>
 								))}
