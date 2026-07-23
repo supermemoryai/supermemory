@@ -1,0 +1,68 @@
+---
+title: "API Reference"
+description: "Interactive reference for the Supermemory HTTP API — ingest, search, profiles, memories, connectors, and settings."
+icon: "unplug"
+---
+
+This is the **contract-level** reference for Supermemory: methods, paths, parameters, and the playground.
+
+For narrative guides (when to use what, patterns, SDKs), start with the [Quickstart](/quickstart) and [Using supermemory](/ingestion/add-memories).
+
+## Base URL
+
+```
+https://api.supermemory.ai
+```
+
+Self-hosted: use your instance URL (for example `http://localhost:6767`). See [Self-hosting](/self-hosting/overview).
+
+## Authentication
+
+All endpoints use a Bearer API key. Create one in the [developer console](https://console.supermemory.ai).
+
+```bash
+Authorization: Bearer sm_...
+```
+
+Details: [API keys & auth](/authentication).
+
+## Mental model
+
+| Group | What it does |
+| --- | --- |
+| **Ingest** | Add documents, files, batches, and conversations into the pipeline |
+| **Documents** | Get status, list, update, delete, chunks, and file URLs |
+| **Search** | Semantic recall — memories, documents, or hybrid |
+| **Profiles** | Static + dynamic facts for a container (user / entity) |
+| **Memories** | Create, list, update, and forget extracted memory entries |
+| **Container tags** | Multi-tenant settings, merge, and delete for a container |
+| **Connections** | OAuth connectors (Drive, Notion, Gmail, …) and sync |
+| **Settings** | Org-level customization, buckets, and reset |
+
+Same `containerTag` scopes ingest, search, and profiles — one engine, multiple ways out.
+
+## Suggested order
+
+1. **Ingest** — `POST /v3/documents` (SDK: `client.add`)
+2. **Documents** — `GET /v3/documents/{id}` until `status: "done"`
+3. **Search** — `POST /v4/search`
+4. **Profiles** — `POST /v4/profile`
+
+Full walkthrough with conversation + document examples: [Quickstart](/quickstart).
+
+## SDKs
+
+Official clients wrap this API:
+
+- TypeScript: `npm install supermemory`
+- Python: `pip install supermemory`
+
+See [Supermemory SDK](/integrations/supermemory-sdk).
+
+Playground snippets come from the OpenAPI spec: official **TypeScript / Python SDK** samples via `x-codeSamples`, plus cURL. (After API deploy — until then you may still see generic HTTP snippets.)
+
+SDK generation is migrating off Stainless SaaS to **stlc** soon; documented OpenAPI samples will then be produced by the SDK build instead of a hand-maintained map.
+
+## OpenAPI
+
+Spec (live): [https://api.supermemory.ai/v3/openapi](https://api.supermemory.ai/v3/openapi)

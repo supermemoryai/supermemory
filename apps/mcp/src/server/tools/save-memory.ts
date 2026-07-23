@@ -1,6 +1,7 @@
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
 import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import { MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -13,6 +14,7 @@ export function register(deps: ToolDeps) {
 				content: z.string().min(1),
 				containerTag: z.string().min(1),
 			},
+			annotations: MEMORY_TOOL_ANNOTATIONS,
 			_meta: {
 				ui: {
 					resourceUri: SUPERMEMORY_RESOURCE_URI,

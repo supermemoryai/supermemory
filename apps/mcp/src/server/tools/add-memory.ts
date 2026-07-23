@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -27,6 +28,7 @@ export function register(deps: ToolDeps) {
 			description:
 				"Add (save) or forget a memory in the user's ACTIVE workspace. Defaults to 'save'. The target workspace is the one the user selected via select-workspace; pass containerTag only to override it. Use 'forget' when information is outdated or the user asks to remove it.",
 			inputSchema,
+			annotations: MEMORY_TOOL_ANNOTATIONS,
 		},
 		async (rawArgs) => {
 			const args = rawArgs as {

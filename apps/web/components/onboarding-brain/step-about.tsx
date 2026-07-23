@@ -11,7 +11,6 @@ import {
 	Building2,
 	LayoutGrid,
 	Loader2,
-	Mail,
 	Plug,
 	Terminal,
 	UserPlus,
@@ -35,7 +34,6 @@ export interface AboutValues {
 interface Props {
 	mode: BrainMode
 	onModeChange: (m: BrainMode) => void
-	allowTeam: boolean
 	domain: string | null
 	suggestedWorkspaceName: string
 	defaultName: string
@@ -63,7 +61,6 @@ export const inputClass =
 export function StepAbout({
 	mode,
 	onModeChange,
-	allowTeam,
 	domain,
 	suggestedWorkspaceName,
 	defaultName,
@@ -86,8 +83,7 @@ export function StepAbout({
 		if (Object.keys(patch).length > 0) onChange({ ...values, ...patch })
 	}, [defaultName, suggestedWorkspaceName, domain])
 
-	const teamGated = mode === "team" && !allowTeam
-	const isTeam = mode === "team" && !teamGated
+	const isTeam = mode === "team"
 
 	// Default the workspace name per mode: name-derived for Personal (field hidden),
 	// email-derived for Team unless the user has typed their own.
@@ -161,9 +157,7 @@ export function StepAbout({
 	}, [isTeam])
 
 	const canContinue =
-		!teamGated &&
-		values.name.trim().length > 0 &&
-		values.workspaceName.trim().length > 0
+		values.name.trim().length > 0 && values.workspaceName.trim().length > 0
 
 	return (
 		<div className="max-w-xl mx-auto space-y-5">
@@ -270,83 +264,67 @@ export function StepAbout({
 						)}
 					</AnimatePresence>
 
-					{!teamGated && (
-						<div>
-							<div className="mb-2 flex items-center justify-between gap-2 pl-2">
-								<p className="font-semibold text-[14px] text-[#737373]">
-									{isTeam ? (
-										"What does your company do?"
-									) : (
-										<>
-											What are you here for?{" "}
-											<span className="text-[#525D6E] font-medium">
-												(optional)
-											</span>
-										</>
-									)}
-								</p>
-								{isTeam &&
-									(drafting ? (
-										<span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-[#737373]">
-											<Loader2 className="size-3 animate-spin" />
-											Drafting from your site…
+					<div>
+						<div className="mb-2 flex items-center justify-between gap-2 pl-2">
+							<p className="font-semibold text-[14px] text-[#737373]">
+								{isTeam ? (
+									"What does your company do?"
+								) : (
+									<>
+										What are you here for?{" "}
+										<span className="text-[#525D6E] font-medium">
+											(optional)
 										</span>
-									) : drafted ? (
-										<span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-[#525D6E]">
-											<Wand2 className="size-3" />
-											Drafted from your site · edit anything
-										</span>
-									) : null)}
-							</div>
-							<Textarea
-								value={drafting ? "" : values.about}
-								onChange={(e) => {
-									aboutTouched.current = true
-									setDrafted(false)
-									onChange({ ...values, about: e.target.value })
-								}}
-								placeholder={
-									drafting
-										? ""
-										: isTeam
-											? "A sentence or two — what your company builds, who you serve, how the team works."
-											: "A sentence or two — what you do, what you're hoping the brain helps with."
-								}
-								rows={3}
-								disabled={drafting}
-								className={cn(
-									inputClass,
-									"h-auto resize-none py-3 leading-[1.5]",
-									drafting && "opacity-60",
+									</>
 								)}
-								style={inputBevelStyle}
-							/>
+							</p>
+							{isTeam &&
+								(drafting ? (
+									<span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-[#737373]">
+										<Loader2 className="size-3 animate-spin" />
+										Drafting from your site…
+									</span>
+								) : drafted ? (
+									<span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-[#525D6E]">
+										<Wand2 className="size-3" />
+										Drafted from your site · edit anything
+									</span>
+								) : null)}
 						</div>
-					)}
+						<Textarea
+							value={drafting ? "" : values.about}
+							onChange={(e) => {
+								aboutTouched.current = true
+								setDrafted(false)
+								onChange({ ...values, about: e.target.value })
+							}}
+							placeholder={
+								drafting
+									? ""
+									: isTeam
+										? "A sentence or two — what your company builds, who you serve, how the team works."
+										: "A sentence or two — what you do, what you're hoping the brain helps with."
+							}
+							rows={3}
+							disabled={drafting}
+							className={cn(
+								inputClass,
+								"h-auto resize-none py-3 leading-[1.5]",
+								drafting && "opacity-60",
+							)}
+							style={inputBevelStyle}
+						/>
+					</div>
 				</div>
 
-				{teamGated ? (
-					<motion.div
-						key="gate"
-						initial={{ opacity: 0, y: 8 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.22, ease: "easeOut" }}
-						className="mt-6"
-					>
-						<TeamBetaGate onUsePersonal={() => onModeChange("personal")} />
-					</motion.div>
-				) : (
-					<motion.div
-						key={`perks-${mode}`}
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						transition={{ duration: 0.2 }}
-					>
-						<PerksFooter
-							perks={mode === "team" ? TEAM_PERKS : PERSONAL_PERKS}
-						/>
-					</motion.div>
-				)}
+				<motion.div
+					key={`perks-${mode}`}
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.2 }}
+				>
+					<PerksFooter perks={mode === "team" ? TEAM_PERKS : PERSONAL_PERKS} />
+				</motion.div>
 			</section>
 
 			<div className="flex items-center justify-end gap-[22px] px-1">
@@ -426,57 +404,6 @@ export function DomainLogo({ domain }: { domain: string }) {
 			className="size-6 object-contain"
 			onError={() => setIdx((i) => i + 1)}
 		/>
-	)
-}
-
-function TeamBetaGate({ onUsePersonal }: { onUsePersonal: () => void }) {
-	return (
-		<div
-			className="relative overflow-hidden rounded-[14px] bg-[#1B1F24] p-5 md:p-6"
-			style={cardSurfaceStyle}
-		>
-			<div
-				aria-hidden
-				className="absolute -top-px left-0 right-0 h-px"
-				style={{
-					background:
-						"linear-gradient(to right, transparent, rgba(75,160,250,0.3), transparent)",
-				}}
-			/>
-			<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4BA0FA]">
-				Private beta
-			</p>
-			<p
-				className={cn(
-					"mt-1.5 text-[15px] font-semibold leading-snug text-[#fafafa]",
-					dmSans125ClassName(),
-				)}
-			>
-				Team workspaces are invite-only
-			</p>
-			<p className="mt-1.5 text-[13px] leading-relaxed text-[#737373]">
-				We're onboarding teams to Company Brain one at a time. Email us for
-				access — or start with a personal workspace and invite your team later.
-			</p>
-			<div className="mt-4 flex w-full flex-col items-center gap-2.5">
-				<a
-					href="mailto:support@supermemory.com?subject=Company%20Brain%20beta%20access"
-					className="group inline-flex items-center gap-2 rounded-[10px] border border-[rgba(82,89,102,0.2)] bg-[#14161A] px-3.5 py-2 text-[13px] font-medium text-[#fafafa] transition-colors hover:border-[rgba(75,160,250,0.4)]"
-				>
-					<Mail className="size-3.5 text-[#4BA0FA]" />
-					support@supermemory.com
-					<ArrowRight className="size-3.5 text-[#525D6E] transition-colors group-hover:text-[#fafafa]" />
-				</a>
-				<button
-					type="button"
-					onClick={onUsePersonal}
-					className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]"
-				>
-					Start with a personal workspace
-					<ArrowRight className="size-3.5" />
-				</button>
-			</div>
-		</div>
 	)
 }
 

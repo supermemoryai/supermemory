@@ -2,6 +2,8 @@
 
 import { dmSans125ClassName } from "@/lib/fonts"
 import { PLAN_DISPLAY_NAMES, useTokenUsage } from "@/hooks/use-token-usage"
+import { useHasCompanyBrain } from "@/hooks/use-company-brain"
+import { getBrainTrialInfo } from "@/lib/billing-utils"
 import { cn } from "@lib/utils"
 import { useAuth } from "@lib/auth-context"
 import { getCanceledSubscription } from "@lib/queries"
@@ -181,6 +183,42 @@ const ADVANCED_PLAN_CARDS: PlanCardDefinition[] = [
 			"Auto top-up & spend caps",
 			"S3 & Web Crawler connectors",
 			"Dedicated support",
+		],
+	},
+	{
+		id: "enterprise",
+		name: "Enterprise",
+		price: "Custom",
+		period: "",
+		credits: "Unlimited",
+		productId: "api_enterprise",
+		description: "Custom deployments with dedicated engineering",
+		includesFrom: "Scale",
+		features: [
+			"Custom metering & billing",
+			"Custom integrations & SSO",
+			"Forward-deployed engineer",
+		],
+		isContactSales: true,
+	},
+]
+
+// Company Brain workspaces only sell Scale / Enterprise (no Free, Pro, Max).
+const COMPANY_BRAIN_PLAN_CARDS: PlanCardDefinition[] = [
+	{
+		id: "scale",
+		name: "Scale",
+		price: "$399",
+		period: "/mo",
+		credits: "$600",
+		productId: "api_scale",
+		description: "Company Brain for your team, with production usage",
+		mostPopular: true,
+		features: [
+			"Company Brain Slack agent & shared memory",
+			"$600 monthly usage credits when paid",
+			"Auto top-up & spend caps",
+			"Team connectors & dedicated support",
 		],
 	},
 	{
@@ -478,6 +516,11 @@ export default function Billing() {
 	const { user, org } = useAuth()
 	const autumn = useCustomer()
 	const posthog = usePostHog()
+	const isCompanyBrain = useHasCompanyBrain()
+	const brainTrial = useMemo(
+		() => getBrainTrialInfo(org?.metadata as Record<string, unknown> | string),
+		[org?.metadata],
+	)
 	const [isUpgrading, setIsUpgrading] = useState(false)
 	const [isCancelling, setIsCancelling] = useState(false)
 	const [isResuming, setIsResuming] = useState(false)
@@ -511,20 +554,57 @@ export default function Billing() {
 		planUsagePct,
 		currentPlan,
 		hasPaidPlan,
+		isTrialing: autumnTrialing,
+		trialEndsAtMs: autumnTrialEndsAtMs,
 		isLoading: isCheckingStatus,
 		daysRemaining,
 	} = useTokenUsage(autumn)
 
+	const brainTrialStillOpen =
+		brainTrial.status === "active" &&
+		(brainTrial.endsAtMs == null || brainTrial.endsAtMs > Date.now())
+	const isBrainTrialEnded =
+		isCompanyBrain &&
+		(brainTrial.status === "expired" ||
+			brainTrial.status === "exhausted" ||
+			(brainTrial.status === "active" &&
+				brainTrial.endsAtMs != null &&
+				brainTrial.endsAtMs <= Date.now()))
+	const isOnTrial =
+		!isBrainTrialEnded &&
+		(autumnTrialing || (isCompanyBrain && brainTrialStillOpen))
+	const trialEndsAtMs = brainTrial.endsAtMs ?? autumnTrialEndsAtMs ?? null
+	const trialDaysLeft =
+		brainTrial.daysRemaining ??
+		(trialEndsAtMs != null
+			? Math.max(
+					0,
+					Math.ceil((trialEndsAtMs - Date.now()) / (1000 * 60 * 60 * 24)),
+				)
+			: null)
+	const trialEndsLabel =
+		trialEndsAtMs != null
+			? new Date(trialEndsAtMs).toLocaleDateString("en-US", {
+					month: "short",
+					day: "numeric",
+					year: "numeric",
+				})
+			: null
+	const trialCredits = brainTrial.credits ?? (isOnTrial ? 200 : null)
+	const showPlanUsage = hasPaidPlan || isOnTrial || isCompanyBrain
+
 	// Open the carousel to the page holding the current plan (Max/Scale/Enterprise live on page 2).
+	// Company Brain orgs only list Scale + Enterprise — no carousel.
 	const didAutoOpenPlanPage = useRef(false)
 	useEffect(() => {
+		if (isCompanyBrain) return
 		if (didAutoOpenPlanPage.current || isCheckingStatus) return
 		didAutoOpenPlanPage.current = true
 		if (ADVANCED_PLAN_CARDS.some((p) => p.id === currentPlan)) {
 			setIsPlanCarouselActive(true)
 			setPlanPage(1)
 		}
-	}, [isCheckingStatus, currentPlan])
+	}, [isCheckingStatus, currentPlan, isCompanyBrain])
 
 	const balance = autumn.data?.balances?.[CREDIT_FEATURE_ID]
 	const creditRemaining =
@@ -834,6 +914,25 @@ export default function Billing() {
 			)
 		}
 
+		// Trial Scale: primary CTA is activate paid Scale (not a dead "current" state).
+		if (plan.id === "scale" && (isOnTrial || isBrainTrialEnded)) {
+			return (
+				<button
+					type="button"
+					onClick={() => handleUpgrade("api_scale")}
+					disabled={disabled}
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"bg-[#0054AD] text-[#FAFAFA] hover:bg-[#0B65C9]",
+					)}
+				>
+					{disabled ? <LoaderIcon className="size-4 animate-spin" /> : null}
+					Activate Scale
+				</button>
+			)
+		}
+
 		if (isCurrentPlan) {
 			return (
 				<button
@@ -901,7 +1000,9 @@ export default function Billing() {
 				)}
 			>
 				{disabled ? <LoaderIcon className="size-4 animate-spin" /> : null}
-				Upgrade to {plan.name}
+				{isCompanyBrain && plan.id === "scale"
+					? "Activate Scale"
+					: `Upgrade to ${plan.name}`}
 			</button>
 		)
 	}
@@ -914,31 +1015,43 @@ export default function Billing() {
 					<div className="flex flex-col gap-5">
 						<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 							<div className="min-w-0">
-								<div className="flex items-center gap-3">
+								<div className="flex flex-wrap items-center gap-3">
 									<p
 										className={cn(
 											dmSans125ClassName(),
 											"font-semibold text-[18px] tracking-[-0.18px] text-[#FAFAFA]",
 										)}
 									>
-										{hasPaidPlan
-											? `${planDisplayNames[currentPlan]} plan`
-											: "Free plan"}
+										{isOnTrial ||
+										isBrainTrialEnded ||
+										(isCompanyBrain && currentPlan === "scale")
+											? "Scale plan"
+											: hasPaidPlan
+												? `${planDisplayNames[currentPlan]} plan`
+												: "Free plan"}
 									</p>
 									<Pill
 										tone={
-											isPlanCanceling
+											isPlanCanceling || isBrainTrialEnded
 												? "warning"
-												: hasPaidPlan
+												: isOnTrial
 													? "active"
-													: "muted"
+													: hasPaidPlan
+														? "active"
+														: "muted"
 										}
 									>
 										{isPlanCanceling
 											? "Cancelling"
-											: hasPaidPlan
-												? "Active"
-												: "Free"}
+											: isBrainTrialEnded
+												? brainTrial.status === "exhausted"
+													? "Credits used up"
+													: "Trial ended"
+												: isOnTrial
+													? "Free trial"
+													: hasPaidPlan
+														? "Active"
+														: "Free"}
 									</Pill>
 								</div>
 								<p
@@ -948,11 +1061,44 @@ export default function Billing() {
 									)}
 								>
 									{isPlanCanceling
-										? `Cancels on ${cancelEndsLabel}${cancelEndsDays !== null ? ` · ${cancelEndsDays} day${cancelEndsDays !== 1 ? "s" : ""} left` : ""}. You'll move to Free after that.`
-										: hasPaidPlan
-											? "Expanded memory, connections, and usage for this workspace."
-											: "Upgrade when you need more workspace usage and integrations."}
+										? `Cancels on ${cancelEndsLabel}${cancelEndsDays !== null ? ` · ${cancelEndsDays} day${cancelEndsDays !== 1 ? "s" : ""} left` : ""}.${isCompanyBrain ? "" : " You'll move to Free after that."}`
+										: isOnTrial
+											? [
+													trialEndsLabel
+														? `Ends ${trialEndsLabel}${trialDaysLeft != null ? ` · ${trialDaysLeft} day${trialDaysLeft !== 1 ? "s" : ""} left` : ""}`
+														: null,
+													trialCredits != null
+														? `$${trialCredits} trial credits`
+														: null,
+												]
+													.filter(Boolean)
+													.join(" · ")
+											: isBrainTrialEnded
+												? "Trial ended. Activate Scale to restore access."
+												: hasPaidPlan
+													? "Expanded memory, connections, and usage for this workspace."
+													: "Upgrade when you need more workspace usage and integrations."}
 								</p>
+								{isBrainTrialEnded ? (
+									<div className="mt-3">
+										<button
+											type="button"
+											onClick={() => void handleUpgrade("api_scale")}
+											disabled={
+												isUpgrading || isCheckingStatus || autumn.isLoading
+											}
+											className={cn(
+												dmSans125ClassName(),
+												"inline-flex h-7 items-center gap-1.5 rounded-[7px] bg-[#0054AD] px-2.5 text-[12px] font-semibold text-[#FAFAFA] transition-colors hover:bg-[#0B65C9] disabled:opacity-60",
+											)}
+										>
+											{isUpgrading ? (
+												<LoaderIcon className="size-3 animate-spin" />
+											) : null}
+											Activate Scale
+										</button>
+									</div>
+								) : null}
 							</div>
 
 							<div className="flex shrink-0 items-center gap-2">
@@ -1216,51 +1362,64 @@ export default function Billing() {
 							</div>
 						</div>
 
-						<div className="flex flex-col gap-2">
-							<div className="flex items-center justify-between gap-3">
+						{showPlanUsage ? (
+							<div className="flex flex-col gap-2">
+								<div className="flex items-center justify-between gap-3">
+									<p
+										className={cn(
+											dmSans125ClassName(),
+											"text-[13px] font-medium text-[#A3A3A3]",
+										)}
+									>
+										{isOnTrial ? "Trial credit usage" : "Plan usage"}
+									</p>
+									<p
+										className={cn(
+											dmSans125ClassName(),
+											"text-[13px] font-semibold tabular-nums text-[#FAFAFA]",
+										)}
+									>
+										{formatUsd(usdSpent)}
+										{usdIncluded > 0 ? (
+											<span className="font-medium text-[#737373]">
+												{" "}
+												/ {formatUsd(usdIncluded)}
+											</span>
+										) : null}
+										<span className="ml-2 text-[#A3A3A3]">
+											{planUsagePct < 1 && planUsagePct > 0
+												? "< 1"
+												: Math.round(planUsagePct)}
+											% used
+										</span>
+									</p>
+								</div>
+								<div className="h-2 w-full overflow-hidden rounded-full bg-[#2E353D]">
+									<div
+										className="h-full rounded-full bg-[#4BA0FA] transition-all"
+										style={{
+											width: `${planUsagePct}%`,
+											background:
+												planUsagePct > 80
+													? "#C73B1B"
+													: "linear-gradient(90deg, #2368D2 0%, #4BA0FA 100%)",
+										}}
+									/>
+								</div>
 								<p
 									className={cn(
 										dmSans125ClassName(),
-										"text-[13px] font-medium text-[#A3A3A3]",
+										"text-[12px] text-[#737373]",
 									)}
 								>
-									Plan usage
-								</p>
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[13px] font-semibold tabular-nums text-[#FAFAFA]",
-									)}
-								>
-									{planUsagePct < 1 && planUsagePct > 0
-										? "< 1"
-										: Math.round(planUsagePct)}
-									% used
+									{isOnTrial
+										? "Credits apply for the trial period"
+										: daysRemaining !== null
+											? `Resets in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}`
+											: "Usage resets with your billing cycle"}
 								</p>
 							</div>
-							<div className="h-2 w-full overflow-hidden rounded-full bg-[#2E353D]">
-								<div
-									className="h-full rounded-full bg-[#4BA0FA] transition-all"
-									style={{
-										width: `${planUsagePct}%`,
-										background:
-											planUsagePct > 80
-												? "#C73B1B"
-												: "linear-gradient(90deg, #2368D2 0%, #4BA0FA 100%)",
-									}}
-								/>
-							</div>
-							<p
-								className={cn(
-									dmSans125ClassName(),
-									"text-[12px] text-[#737373]",
-								)}
-							>
-								{daysRemaining !== null
-									? `Resets in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}`
-									: "Usage resets with your billing cycle"}
-							</p>
-						</div>
+						) : null}
 					</div>
 				</SettingsCard>
 			</section>
@@ -1268,7 +1427,7 @@ export default function Billing() {
 			<section id="billing-plans" className="flex flex-col gap-4">
 				<SectionTitle
 					aside={
-						isPlanCarouselActive ? (
+						!isCompanyBrain && isPlanCarouselActive ? (
 							<div className="flex items-center gap-1.5">
 								<button
 									type="button"
@@ -1294,55 +1453,81 @@ export default function Billing() {
 				>
 					Plans
 				</SectionTitle>
-				<div className="overflow-hidden">
-					<div
-						className="flex gap-4 transition-transform duration-300 ease-out"
-						style={{
-							transform:
-								planPage === 1 ? "translateX(calc(-100% - 1rem))" : "none",
-						}}
-					>
-						<div className="grid w-full shrink-0 gap-4 md:grid-cols-2">
-							{PLAN_CARDS.map((plan) => (
-								<PlanCard
-									action={getPlanCardAction(plan)}
-									key={plan.id}
-									plan={plan}
-								/>
-							))}
-						</div>
-						<div className="grid w-full shrink-0 gap-4 md:grid-cols-3">
-							{ADVANCED_PLAN_CARDS.map((plan) => (
-								<PlanCard
-									action={getPlanCardAction(plan)}
-									key={plan.id}
-									plan={plan}
-								/>
-							))}
-						</div>
+				{isCompanyBrain ? (
+					<div className="grid w-full gap-4 md:grid-cols-2">
+						{COMPANY_BRAIN_PLAN_CARDS.map((plan) => (
+							<PlanCard
+								action={getPlanCardAction(plan)}
+								key={plan.id}
+								plan={
+									plan.id === "scale" && isOnTrial && trialCredits != null
+										? {
+												...plan,
+												credits: `$${trialCredits} trial / $600 paid`,
+												description:
+													"14-day free trial with Company Brain — activate anytime",
+											}
+										: plan
+								}
+							/>
+						))}
 					</div>
-				</div>
-				{isPlanCarouselActive ? null : (
-					<div className="flex justify-end px-2 pt-1">
-						<button
-							type="button"
-							onClick={() => {
-								setIsPlanCarouselActive(true)
-								setPlanPage(1)
-							}}
-							className={cn(
-								dmSans125ClassName(),
-								"inline-flex items-center justify-center gap-2 text-[13px] font-semibold text-[#A3A3A3] transition-colors hover:text-[#FAFAFA]",
-							)}
-						>
-							<span className="relative after:absolute after:right-0 after:-bottom-0.5 after:left-0 after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 hover:after:scale-x-100">
-								Other plans
-							</span>
-							<span className="translate-x-1 text-[15px]" aria-hidden="true">
-								&rarr;
-							</span>
-						</button>
-					</div>
+				) : (
+					<>
+						<div className="overflow-hidden">
+							<div
+								className="flex gap-4 transition-transform duration-300 ease-out"
+								style={{
+									transform:
+										planPage === 1 ? "translateX(calc(-100% - 1rem))" : "none",
+								}}
+							>
+								<div className="grid w-full shrink-0 gap-4 md:grid-cols-2">
+									{PLAN_CARDS.map((plan) => (
+										<PlanCard
+											action={getPlanCardAction(plan)}
+											key={plan.id}
+											plan={plan}
+										/>
+									))}
+								</div>
+								<div className="grid w-full shrink-0 gap-4 md:grid-cols-3">
+									{ADVANCED_PLAN_CARDS.map((plan) => (
+										<PlanCard
+											action={getPlanCardAction(plan)}
+											key={plan.id}
+											plan={plan}
+										/>
+									))}
+								</div>
+							</div>
+						</div>
+						{isPlanCarouselActive ? null : (
+							<div className="flex justify-end px-2 pt-1">
+								<button
+									type="button"
+									onClick={() => {
+										setIsPlanCarouselActive(true)
+										setPlanPage(1)
+									}}
+									className={cn(
+										dmSans125ClassName(),
+										"inline-flex items-center justify-center gap-2 text-[13px] font-semibold text-[#A3A3A3] transition-colors hover:text-[#FAFAFA]",
+									)}
+								>
+									<span className="relative after:absolute after:right-0 after:-bottom-0.5 after:left-0 after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 hover:after:scale-x-100">
+										Other plans
+									</span>
+									<span
+										className="translate-x-1 text-[15px]"
+										aria-hidden="true"
+									>
+										&rarr;
+									</span>
+								</button>
+							</div>
+						)}
+					</>
 				)}
 			</section>
 
@@ -1567,16 +1752,16 @@ export default function Billing() {
 				</DialogContent>
 			</Dialog>
 
-			{hasPaidPlan ? (
+			{hasPaidPlan || isOnTrial ? (
 				<section className="flex flex-col gap-4">
 					<SectionTitle>Credits</SectionTitle>
-					<SettingsCard className="border border-dashed border-white/10 bg-[#14161A]/70">
-						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+					{isOnTrial ? (
+						<SettingsCard>
 							<div className="flex min-w-0 items-start gap-3">
 								<Coins className="mt-1 size-4 shrink-0 text-[#4BA0FA]" />
 								<div className="min-w-0">
 									<p className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
-										Top-up credits
+										Trial credits
 									</p>
 									<p
 										className={cn(
@@ -1584,32 +1769,72 @@ export default function Billing() {
 											"mt-2 text-[14px] font-semibold text-[#FAFAFA]",
 										)}
 									>
-										{creditRemaining > 0
-											? `${formatUsd(creditRemaining)} available`
-											: "No top-up credits yet"}
+										{formatUsd(creditRemaining)} remaining
+										{usdIncluded > 0 ? (
+											<span className="font-medium text-[#737373]">
+												{" "}
+												of {formatUsd(usdIncluded)}
+											</span>
+										) : trialCredits != null ? (
+											<span className="font-medium text-[#737373]">
+												{" "}
+												of {formatUsd(trialCredits)}
+											</span>
+										) : null}
 									</p>
 									<p className="mt-2 text-[12px] leading-snug text-[#737373]">
-										Optional add-on that{" "}
+										Company Brain trials include{" "}
 										<span className="font-semibold text-[#A3A3A3]">
-											rolls over
+											${trialCredits ?? 200}
 										</span>{" "}
-										month-to-month, separate from your monthly usage above.
+										in usage credits. Paid Scale includes $600/mo. Top-ups are
+										available after you activate.
 									</p>
 								</div>
 							</div>
-							<button
-								type="button"
-								onClick={() => setIsCreditsDialogOpen(true)}
-								className={cn(
-									dmSans125ClassName(),
-									"inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-[9px] border border-white/10 bg-[#0D121A] px-3 text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24]",
-								)}
-							>
-								<Plus className="size-3.5" />
-								{creditRemaining > 0 ? "Add more" : "Buy credits"}
-							</button>
-						</div>
-					</SettingsCard>
+						</SettingsCard>
+					) : (
+						<SettingsCard className="border border-dashed border-white/10 bg-[#14161A]/70">
+							<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+								<div className="flex min-w-0 items-start gap-3">
+									<Coins className="mt-1 size-4 shrink-0 text-[#4BA0FA]" />
+									<div className="min-w-0">
+										<p className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
+											Top-up credits
+										</p>
+										<p
+											className={cn(
+												dmSans125ClassName(),
+												"mt-2 text-[14px] font-semibold text-[#FAFAFA]",
+											)}
+										>
+											{creditRemaining > 0
+												? `${formatUsd(creditRemaining)} available`
+												: "No top-up credits yet"}
+										</p>
+										<p className="mt-2 text-[12px] leading-snug text-[#737373]">
+											Optional add-on that{" "}
+											<span className="font-semibold text-[#A3A3A3]">
+												rolls over
+											</span>{" "}
+											month-to-month, separate from your monthly usage above.
+										</p>
+									</div>
+								</div>
+								<button
+									type="button"
+									onClick={() => setIsCreditsDialogOpen(true)}
+									className={cn(
+										dmSans125ClassName(),
+										"inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-[9px] border border-white/10 bg-[#0D121A] px-3 text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24]",
+									)}
+								>
+									<Plus className="size-3.5" />
+									{creditRemaining > 0 ? "Add more" : "Buy credits"}
+								</button>
+							</div>
+						</SettingsCard>
+					)}
 				</section>
 			) : null}
 

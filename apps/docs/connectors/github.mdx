@@ -1,7 +1,7 @@
 ---
 title: "GitHub Connector"
 description: "Connect GitHub repositories to sync documentation files into your Supermemory knowledge base"
-icon: "github"
+icon: "/images/github-icon.svg"
 ---
 
 Connect GitHub repositories to sync documentation files into your Supermemory knowledge base with OAuth authentication, webhook support, and automatic incremental syncing.
@@ -25,7 +25,7 @@ The GitHub connector requires a **Scale Plan** or **Enterprise Plan**.
 
     const connection = await client.connections.create('github', {
       redirectUrl: 'https://yourapp.com/auth/github/callback',
-      containerTags: ['user-123', 'github-sync'],
+      containerTag: 'user-123',
       documentLimit: 5000,
       metadata: {
         source: 'github',
@@ -48,7 +48,7 @@ The GitHub connector requires a **Scale Plan** or **Enterprise Plan**.
     connection = client.connections.create(
         'github',
         redirect_url='https://yourapp.com/auth/github/callback',
-        container_tags=['user-123', 'github-sync'],
+        container_tag='user-123',
         document_limit=10000,
         metadata={
             'source': 'github',
@@ -68,7 +68,7 @@ The GitHub connector requires a **Scale Plan** or **Enterprise Plan**.
       -H "Content-Type: application/json" \
       -d '{
         "redirectUrl": "https://yourapp.com/auth/github/callback",
-        "containerTags": ["user-123", "github-sync"],
+        "containerTag": "user-123",
         "documentLimit": 5000,
         "metadata": {
           "source": "github",
@@ -95,7 +95,7 @@ After the user grants permissions, GitHub redirects to your callback URL. The co
 Unlike other connectors, GitHub requires repository selection before syncing begins. This gives your users control over which repositories to index.
 
 <Note>
-**Generic Endpoints:** GitHub uses the generic resource management endpoints (Get Resources and Configure Connection) that work for any provider supporting resource management. See [Managing Connection Resources](/memory-api/connectors/managing-resources) for detailed API documentation.
+**Generic Endpoints:** GitHub uses the generic resource management endpoints (Get Resources and Configure Connection) that work for any provider supporting resource management. See [Managing Connection Resources](/connectors/managing-resources) for detailed API documentation.
 </Note>
 
 <Tabs>

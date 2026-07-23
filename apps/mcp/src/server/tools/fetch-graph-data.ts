@@ -1,6 +1,7 @@
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
 import { SUPERMEMORY_RESOURCE_URI } from "../../shared/types"
+import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -14,6 +15,7 @@ export function register(deps: ToolDeps) {
 				page: z.number().optional().default(1),
 				limit: z.number().optional().default(200),
 			},
+			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 			_meta: {
 				ui: {
 					resourceUri: SUPERMEMORY_RESOURCE_URI,

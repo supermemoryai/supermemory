@@ -1,0 +1,87 @@
+---
+title: "Setup and Onboarding"
+sidebarTitle: "Setup"
+description: "Creating a team workspace and installing it into Slack"
+icon: "rocket"
+---
+
+Setting up Company Brain is two admin steps: create the workspace, then install it into Slack. Everyone else joins on their own after that — see [Greeting new teammates](/company-brain/use-cases/greeting).
+
+## 1. Create your team workspace
+
+Creating a workspace sets up your shared **Team Brain** and your private **My Brain** in one step.
+
+<Steps>
+  <Step title="Sign up">
+    Head to [app.supermemory.ai](https://app.supermemory.ai) and create an account.
+  </Step>
+  <Step title="Choose Team">
+    On the **About** step, switch from **Personal** to **Team**.
+
+    <Note>
+    Team workspaces are invite-only during the private beta. Not invited yet? Email **support@supermemory.com**, or start Personal and invite your team once you're in.
+    </Note>
+
+    ![Personal/Team toggle on sign-up, with the private-beta invite notice for Team](/images/company-brain/signup-team-toggle.png)
+  </Step>
+  <Step title="Add your company domain and confirm">
+    Enter your domain (for example `acme.com`) and confirm. Supermemory researches the company from there and seeds a starting profile, before any source finishes syncing.
+
+    ![Company domain step — Supermemory researches the company from the domain to set up its Brain](/images/company-brain/signup-company-domain.png)
+  </Step>
+  <Step title="Add to Slack, connect apps, and invite your team">
+    All three run in parallel with research, and none of them block it:
+
+    - **Add to Slack** — kicks off the install flow below.
+    - **Connect apps** — Linear, Granola, Sentry, and more.
+    - **Invite teammates** — now, not later. No per-seat pricing, so invite everyone in your Slack.
+
+    ![Research in progress, with Add to Slack and Connect apps available alongside it](/images/company-brain/signup-research-connect.png)
+  </Step>
+  <Step title="You're ready">
+    Supermemory's already learned a real amount about your company by the time research finishes. Watch Slack for a DM from it walking you through what it can do.
+
+    ![The finished research — real notes about the company and founder, ready to search](/images/company-brain/signup-research-complete.png)
+  </Step>
+</Steps>
+
+<Note>
+**Try it:** ask `What does {your company} do?` — you should get a real answer from the seeded profile.
+</Note>
+
+## 2. Install into Slack (admin)
+
+<AccordionGroup>
+  <Accordion title="Don't have a Slack workspace yet?">
+    Go to [app.slack.com](https://app.slack.com) to create one first — Company Brain installs into an existing workspace, it doesn't create one for you.
+
+    ![Naming a new Slack workspace](/images/company-brain/slack-create-workspace.png)
+  </Accordion>
+</AccordionGroup>
+
+<Steps>
+  <Step title="Confirm company and domain">
+    Click **Install to Slack**. Not an admin? This triggers Slack's own request-to-install flow instead.
+  </Step>
+  <Step title="Hand off to Slack">
+    The web app hands off immediately — "we've DM'd you in Slack."
+  </Step>
+  <Step title="Home channel">
+    The agent creates `#company-brain`, posts an intro there, and announces itself once in `#general`.
+  </Step>
+  <Step title="Approve channels to read">
+    You approve each channel with a tap — it never joins one silently.
+  </Step>
+  <Step title="Add your team">
+    Invite people with a picker, a workspace-wide toggle, or email.
+  </Step>
+</Steps>
+
+<CardGroup cols={2}>
+  <Card title="Greeting new teammates" icon="user-plus" href="/company-brain/use-cases/greeting">
+    What member join looks like from a new hire's side.
+  </Card>
+  <Card title="The permissions graph" icon="shield-check" href="/company-brain/permissions">
+    What each person can see once they're in.
+  </Card>
+</CardGroup>

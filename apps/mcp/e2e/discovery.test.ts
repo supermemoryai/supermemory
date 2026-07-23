@@ -16,6 +16,28 @@ const EXPECTED_TOOLS = [
 ]
 const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
+const READ_ONLY_TOOL_NAMES = [
+	"search_memory",
+	"listMemories",
+	"listSpaces",
+	"whoAmI",
+	"memory-graph",
+]
+
+const READ_ONLY_ANNOTATIONS = {
+	readOnlyHint: true,
+	destructiveHint: false,
+	idempotentHint: true,
+	openWorldHint: false,
+}
+
+const MEMORY_TOOL_ANNOTATIONS = {
+	readOnlyHint: false,
+	destructiveHint: true,
+	idempotentHint: false,
+	openWorldHint: false,
+}
+
 describeWithAuth("MCP — discovery & identity", () => {
 	let s: Session
 
@@ -30,6 +52,20 @@ describeWithAuth("MCP — discovery & identity", () => {
 		const { tools } = await s.client.listTools()
 		const names = tools.map((t) => t.name)
 		for (const t of EXPECTED_TOOLS) expect(names).toContain(t)
+	})
+
+	it("marks read-only tools as non-destructive", async () => {
+		const { tools } = await s.client.listTools()
+		for (const name of READ_ONLY_TOOL_NAMES) {
+			const tool = tools.find((t) => t.name === name)
+			expect(tool?.annotations).toMatchObject(READ_ONLY_ANNOTATIONS)
+		}
+	})
+
+	it("marks add_memory as mutating", async () => {
+		const { tools } = await s.client.listTools()
+		const memory = tools.find((t) => t.name === "add_memory")
+		expect(memory?.annotations).toMatchObject(MEMORY_TOOL_ANNOTATIONS)
 	})
 
 	it("lists profile and container-tag resources", async () => {

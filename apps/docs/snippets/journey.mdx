@@ -1,0 +1,35 @@
+export const Journey = ({ children }) => (
+  <div className="not-prose relative my-8 flex flex-col gap-9">
+    <div className="absolute left-[13px] top-3 bottom-3 w-px bg-gray-200 dark:bg-zinc-800" />
+    {children}
+  </div>
+);
+
+export const JourneyStep = ({ number, title, children }) => (
+  <div className="relative pl-10">
+    <div className="absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900 text-sm font-semibold text-gray-700 dark:text-zinc-300">
+      {number}
+    </div>
+    <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-zinc-50">
+      {title}
+    </h3>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+      {children}
+    </div>
+  </div>
+);
+
+export const JourneyItem = ({ icon, title, href }) => (
+  <a
+    href={href}
+    className="group flex items-center gap-2.5 rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 px-3.5 py-2.5 no-underline text-[13px] font-medium text-gray-700 dark:text-zinc-300 transition-colors duration-150 hover:border-gray-300 dark:hover:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-800/60 hover:text-gray-900 dark:hover:text-zinc-50"
+  >
+    {icon && (
+      <Icon
+        icon={icon}
+        className="h-3.5 w-3.5 shrink-0 text-gray-400 dark:text-zinc-500 group-hover:text-gray-600 dark:group-hover:text-zinc-300"
+      />
+    )}
+    {title}
+  </a>
+);

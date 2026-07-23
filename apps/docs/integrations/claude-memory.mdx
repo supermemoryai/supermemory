@@ -121,6 +121,10 @@ All memory paths must start with `/memories/`:
 /memories/context/current.txt   # Current context
 ```
 
+<Note>
+Paths are normalized for storage: `/memories/preferences` is stored as `--memories--preferences`.
+</Note>
+
 ## Commands Reference
 
 ### View (Read/List)
@@ -255,6 +259,15 @@ runConversation()
 SUPERMEMORY_API_KEY=your_supermemory_key
 ANTHROPIC_API_KEY=your_anthropic_key
 ```
+
+## Comparison with Other Approaches
+
+| Feature | Claude Memory Tool | OpenAI SDK Tools | AI SDK Tools |
+|---------|-------------------|------------------|--------------|
+| Automatic memory | ✅ Claude decides | ❌ Manual control | ❌ Manual control |
+| Filesystem metaphor | ✅ Files/directories | ❌ Flat storage | ❌ Flat storage |
+| Path organization | ✅ Hierarchical | ❌ Tags only | ❌ Tags only |
+| Integration | Anthropic SDK only | OpenAI SDK only | Vercel AI SDK |
 
 ## Next Steps
 

@@ -48,12 +48,14 @@ Once configured, the provider runs through Hermes’s normal memory lifecycle:
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `supermemory_store` | Store an explicit memory. |
-| `supermemory_search` | Search by semantic similarity. |
-| `supermemory_forget` | Forget a memory by ID or best-match query. |
-| `supermemory_profile` | Retrieve persistent profile and recent context. |
+Kebab-case names are registered for the agent; snake_case aliases remain supported.
+
+| Tool | Alias | Description |
+|------|-------|-------------|
+| `supermemory-save` | `supermemory_store` | Store an explicit memory. |
+| `supermemory-search` | `supermemory_search` | Search by semantic similarity. |
+| `supermemory-forget` | `supermemory_forget` | Forget a memory by ID or best-match query. |
+| `supermemory-profile` | `supermemory_profile` | Retrieve persistent profile and recent context. |
 
 ## Commands
 
@@ -139,7 +141,7 @@ If you run your own supermemory API, set **`base_url`** (and any other host-spec
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Hermes + plugin README" icon="github" href="https://github.com/NousResearch/hermes-agent/tree/main/plugins/memory/supermemory">
+  <Card title="Hermes + plugin README" icon="/docs/images/github-icon.svg" href="https://github.com/NousResearch/hermes-agent/tree/main/plugins/memory/supermemory">
     Full config table, env vars, and multi-container details.
   </Card>
 
@@ -148,4 +150,4 @@ If you run your own supermemory API, set **`base_url`** (and any other host-spec
   </Card>
 </CardGroup>
 
-Questions about the API or product? [Discord](https://supermemory.link/discord) · [support@supermemory.com](mailto:support@supermemory.com) · [Developer docs](/intro)
+Questions about the API or product? [Discord](https://supermemory.link/discord) · [support@supermemory.com](mailto:support@supermemory.com) · [Developer docs](/overview/what-is-supermemory)

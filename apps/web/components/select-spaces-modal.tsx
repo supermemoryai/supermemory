@@ -41,6 +41,7 @@ import {
 	type PluginSpaceInfo,
 } from "@/lib/plugin-space"
 import { usePluginSpaceMeta } from "@/hooks/use-plugin-space-meta"
+import { groupAgentSpaces, type AgentSpaceGroup } from "@/lib/agent-space"
 import {
 	PLUGIN_CATALOG,
 	spacePluginIdToCatalogId,
@@ -53,6 +54,7 @@ import NovaOrb from "@/components/nova/nova-orb"
 import { AutoSpaceIcon } from "@/components/nova/auto-space-icon"
 import { SpaceGlyph } from "./space-glyph"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
+import { Logo } from "@ui/assets/Logo"
 
 interface SelectSpacesModalProps {
 	isOpen: boolean
@@ -93,6 +95,8 @@ type Category = {
 	count: number
 }
 
+const AGENT_CATALOG_IDS = ["claude_code", "codex"] as const
+
 export function SelectSpacesModal({
 	isOpen,
 	onClose,
@@ -122,6 +126,10 @@ export function SelectSpacesModal({
 	const editInputRef = useRef<HTMLInputElement | null>(null)
 	const editingContainerTag = editingProject?.containerTag
 	const currentSelection = selectedProjects[0] ?? ""
+	const selectedTagSet = useMemo(
+		() => new Set(selectedProjects),
+		[selectedProjects],
+	)
 	const isMobile = useIsMobile()
 
 	const pluginTags = useMemo(
@@ -134,10 +142,25 @@ export function SelectSpacesModal({
 
 	const pluginMetaMap = usePluginSpaceMeta(pluginTags)
 	const hasCompanyBrain = useHasCompanyBrain()
+	const agentGroups = useMemo(
+		() => groupAgentSpaces(projects, pluginMetaMap),
+		[projects, pluginMetaMap],
+	)
+	const agentGroupByTag = useMemo(() => {
+		const map = new Map<string, AgentSpaceGroup<ContainerTagListType>>()
+		for (const group of agentGroups) {
+			for (const tag of group.containerTags) map.set(tag, group)
+		}
+		return map
+	}, [agentGroups])
 
 	const allSpaces = useMemo(() => {
 		const rest = projects
 			.filter((p) => p.containerTag !== DEFAULT_PROJECT_ID)
+			.filter((p) => {
+				const group = agentGroupByTag.get(p.containerTag)
+				return !group || group.representative.containerTag === p.containerTag
+			})
 			.sort(compareSpacesUserFirst)
 		// Company brain orgs use real Private + Team Brain spaces; skip the
 		// synthetic "My Space" default that would otherwise duplicate Private.
@@ -153,7 +176,7 @@ export function SelectSpacesModal({
 			updatedAt: "",
 		} as ContainerTagListType
 		return [defaultSpace, ...rest]
-	}, [projects, hasCompanyBrain])
+	}, [projects, hasCompanyBrain, agentGroupByTag])
 
 	const { categories, connectedCatalogIds } = useMemo<{
 		categories: Category[]
@@ -188,6 +211,10 @@ export function SelectSpacesModal({
 			.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
 		const connectedIds = new Set<string>()
 		for (const pluginId of pluginCounts.keys()) {
+			if (pluginId === "agents") {
+				for (const catalogId of AGENT_CATALOG_IDS) connectedIds.add(catalogId)
+				continue
+			}
 			const catalogId = spacePluginIdToCatalogId(pluginId)
 			if (catalogId) connectedIds.add(catalogId)
 		}
@@ -295,12 +322,34 @@ export function SelectSpacesModal({
 		}
 		return ids
 	}, [apiKeys])
+	const availablePluginIds = useMemo(
+		() => availablePluginsData?.plugins ?? Object.keys(PLUGIN_CATALOG),
+		[availablePluginsData],
+	)
+	const agentDiscoverCatalogIds = useMemo(
+		() =>
+			AGENT_CATALOG_IDS.filter(
+				(id) =>
+					availablePluginIds.includes(id) &&
+					(!apiKeyConnectedIds.has(id) && !connectedCatalogIds.has(id)
+						? true
+						: newKey?.pluginId === id),
+			),
+		[
+			availablePluginIds,
+			apiKeyConnectedIds,
+			connectedCatalogIds,
+			newKey?.pluginId,
+		],
+	)
 
 	const discoverCategories = useMemo<Category[]>(() => {
-		const availableIds =
-			availablePluginsData?.plugins ?? Object.keys(PLUGIN_CATALOG)
-		return availableIds
+		const categories: Category[] = availablePluginIds
 			.filter((id) => !!PLUGIN_CATALOG[id])
+			.filter(
+				(id) =>
+					!AGENT_CATALOG_IDS.some((agentCatalogId) => agentCatalogId === id),
+			)
 			.filter(
 				(id) => !apiKeyConnectedIds.has(id) && !connectedCatalogIds.has(id),
 			)
@@ -314,7 +363,22 @@ export function SelectSpacesModal({
 					count: 0,
 				}
 			})
-	}, [availablePluginsData, apiKeyConnectedIds, connectedCatalogIds])
+		if (agentDiscoverCatalogIds.length > 0) {
+			categories.unshift({
+				id: "discover:agents",
+				label: "Agents",
+				iconSrc: null,
+				emoji: null,
+				count: 0,
+			})
+		}
+		return categories
+	}, [
+		availablePluginIds,
+		agentDiscoverCatalogIds.length,
+		apiKeyConnectedIds,
+		connectedCatalogIds,
+	])
 
 	const connectMutation = useMutation({
 		mutationFn: async (pluginId: string) => {
@@ -327,7 +391,7 @@ export function SelectSpacesModal({
 			if (!res.ok) {
 				if (res.status === 403) {
 					throw new Error(
-						"This plugin requires a Pro plan. Hermes is available on the Free plan.",
+						"Plugin access was denied. Check your plan or try again.",
 					)
 				}
 				const errorData = (await res.json().catch(() => ({}))) as {
@@ -392,10 +456,12 @@ export function SelectSpacesModal({
 			setIsBulkDeleteMode(false)
 			setBulkDeleteTags(new Set())
 			setLastBulkDeleteTag(null)
-			onApply([containerTag])
+			onApply(
+				agentGroupByTag.get(containerTag)?.containerTags ?? [containerTag],
+			)
 			setSearchQuery("")
 		},
-		[onApply],
+		[agentGroupByTag, onApply],
 	)
 
 	const handleSelectAuto = useCallback(() => {
@@ -467,7 +533,11 @@ export function SelectSpacesModal({
 		const query = searchQuery.trim().toLowerCase()
 		return byCategory.filter((p) => {
 			const plugin = detectPluginSpace(p.containerTag)
-			const projectName = pluginMetaMap.get(p.containerTag)?.projectName
+			const agentGroup = agentGroupByTag.get(p.containerTag)
+			const projectName =
+				agentGroup?.projectName ??
+				agentGroup?.label ??
+				pluginMetaMap.get(p.containerTag)?.projectName
 			const displayName = spaceSelectorDisplayName(p, p.containerTag, {
 				currentUserId: user?.id,
 			})
@@ -480,7 +550,14 @@ export function SelectSpacesModal({
 				(projectName?.toLowerCase().includes(query) ?? false)
 			)
 		})
-	}, [allSpaces, activeCategory, searchQuery, pluginMetaMap, user?.id])
+	}, [
+		allSpaces,
+		activeCategory,
+		searchQuery,
+		pluginMetaMap,
+		agentGroupByTag,
+		user?.id,
+	])
 
 	const recentProjects = useMemo<ContainerTagListType[]>(() => {
 		if (!recents?.length) return []
@@ -488,13 +565,19 @@ export function SelectSpacesModal({
 		if (activeCategory !== "all") return []
 		const byTag = new Map(allSpaces.map((p) => [p.containerTag, p]))
 		const out: ContainerTagListType[] = []
+		const seen = new Set<string>()
 		for (const tag of recents) {
-			const p = byTag.get(tag)
-			if (p) out.push(p)
+			const representativeTag =
+				agentGroupByTag.get(tag)?.representative.containerTag ?? tag
+			const p = byTag.get(representativeTag)
+			if (p && !seen.has(p.containerTag)) {
+				seen.add(p.containerTag)
+				out.push(p)
+			}
 			if (out.length >= 5) break
 		}
 		return out
-	}, [recents, searchQuery, activeCategory, allSpaces])
+	}, [recents, searchQuery, activeCategory, allSpaces, agentGroupByTag])
 
 	const recentSet = useMemo(
 		() => new Set(recentProjects.map((p) => p.containerTag)),
@@ -525,9 +608,13 @@ export function SelectSpacesModal({
 	const visibleBulkDeleteTags = useMemo(
 		() =>
 			[...recentProjects, ...mainList]
-				.filter((project) => project.containerTag !== DEFAULT_PROJECT_ID)
+				.filter(
+					(project) =>
+						project.containerTag !== DEFAULT_PROJECT_ID &&
+						!agentGroupByTag.has(project.containerTag),
+				)
 				.map((project) => project.containerTag),
-		[recentProjects, mainList],
+		[recentProjects, mainList, agentGroupByTag],
 	)
 
 	const toggleBulkDeleteTag = useCallback(
@@ -564,6 +651,7 @@ export function SelectSpacesModal({
 				.filter(
 					(project) =>
 						project.containerTag !== DEFAULT_PROJECT_ID &&
+						!agentGroupByTag.has(project.containerTag) &&
 						bulkDeleteTags.has(project.containerTag),
 				)
 				.map((project) => ({
@@ -573,18 +661,22 @@ export function SelectSpacesModal({
 					}),
 					containerTag: project.containerTag,
 				})),
-		[allSpaces, bulkDeleteTags, user?.id],
+		[allSpaces, bulkDeleteTags, agentGroupByTag, user?.id],
 	)
 
 	const bulkDeleteCount = bulkDeleteProjects.length
 
 	const renderRow = useCallback(
 		(project: ContainerTagListType) => {
-			const isSelected = currentSelection === project.containerTag
+			const agentGroup = agentGroupByTag.get(project.containerTag)
+			const isSelected = agentGroup
+				? agentGroup.containerTags.some((tag) => selectedTagSet.has(tag))
+				: currentSelection === project.containerTag
 			const plugin = detectPluginSpace(project.containerTag)
-			const pluginProjectName = pluginMetaMap.get(
-				project.containerTag,
-			)?.projectName
+			const pluginProjectName =
+				agentGroup?.projectName ??
+				agentGroup?.label ??
+				pluginMetaMap.get(project.containerTag)?.projectName
 			const pluginIdLabel = pluginProjectName || plugin?.projectId
 			const displayName = spaceSelectorDisplayName(
 				project,
@@ -610,7 +702,7 @@ export function SelectSpacesModal({
 					: "Only you"
 				: null
 			const canEdit = !isDefault && !plugin && !isOwnSpace
-			const canBulkDelete = enableDelete && !isDefault
+			const canBulkDelete = enableDelete && !isDefault && !agentGroup
 			const isEditing = editingProject?.containerTag === project.containerTag
 			const isBulkDeleteSelected = bulkDeleteTags.has(project.containerTag)
 			const trimmedEditName = editingProject?.name.trim() ?? ""
@@ -718,7 +810,7 @@ export function SelectSpacesModal({
 							className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer focus:outline-none focus:ring-0 disabled:cursor-not-allowed"
 						>
 							{plugin ? (
-								plugin.iconSrc ? (
+								plugin.pluginId === "agents" ? null : plugin.iconSrc ? (
 									<Image
 										src={plugin.iconSrc}
 										alt=""
@@ -798,14 +890,18 @@ export function SelectSpacesModal({
 									title={plugin ? project.containerTag : displayName}
 								>
 									{plugin ? (
-										<>
-											{plugin.label}
-											{pluginIdLabel && (
-												<span className="ml-1.5 text-[12px] text-[#737373]">
-													· {pluginIdLabel}
-												</span>
-											)}
-										</>
+										plugin.pluginId === "agents" ? (
+											(pluginIdLabel ?? plugin.label)
+										) : (
+											<>
+												{plugin.label}
+												{pluginIdLabel && (
+													<span className="ml-1.5 text-[12px] text-[#737373]">
+														· {pluginIdLabel}
+													</span>
+												)}
+											</>
+										)
 									) : (
 										displayName
 									)}
@@ -838,6 +934,7 @@ export function SelectSpacesModal({
 					)}
 					{enableDelete &&
 						!isDefault &&
+						!agentGroup &&
 						!isEditing &&
 						!isBulkDeleteMode &&
 						onDeleteRequest && (
@@ -862,8 +959,10 @@ export function SelectSpacesModal({
 		},
 		[
 			cancelEditing,
+			agentGroupByTag,
 			bulkDeleteTags,
 			currentSelection,
+			selectedTagSet,
 			editingProject,
 			enableDelete,
 			handleEditKeyDown,
@@ -922,16 +1021,7 @@ export function SelectSpacesModal({
 		)
 	}, [currentSelection, handleSelectAuto])
 
-	const renderCategoryChip = (
-		category: {
-			id: string
-			label: string
-			count?: number
-			iconSrc?: string
-			emoji?: string
-		},
-		isDiscover: boolean,
-	) => {
+	const renderCategoryChip = (category: Category, isDiscover: boolean) => {
 		const isActive = activeCategory === category.id
 		return (
 			<button
@@ -954,6 +1044,9 @@ export function SelectSpacesModal({
 								isActive ? "text-[#fafafa]" : "text-[#737373]",
 							)}
 						/>
+					) : category.id === "plugin:agents" ||
+						category.id === "discover:agents" ? (
+						<Logo className="h-[18px] w-[22px]" />
 					) : category.iconSrc ? (
 						<Image
 							src={category.iconSrc}
@@ -993,16 +1086,29 @@ export function SelectSpacesModal({
 		)
 	}
 
+	const discoverPanelContent =
+		activeDiscoverId === "agents" ? (
+			<AgentsDiscoverPanel
+				catalogIds={agentDiscoverCatalogIds}
+				connectingPluginId={connectingPluginId}
+				newKey={newKey}
+				onConnect={(catalogId) => connectMutation.mutate(catalogId)}
+				onDismissKey={() => setNewKey(null)}
+			/>
+		) : (
+			<DiscoverPanel
+				catalogId={activeDiscoverId ?? ""}
+				isConnecting={connectingPluginId === activeDiscoverId}
+				newKey={newKey?.pluginId === activeDiscoverId ? newKey.key : null}
+				onConnect={() => {
+					if (activeDiscoverId) connectMutation.mutate(activeDiscoverId)
+				}}
+				onDismissKey={() => setNewKey(null)}
+			/>
+		)
+
 	const rightPanelContent = activeCategory.startsWith("discover:") ? (
-		<DiscoverPanel
-			catalogId={activeDiscoverId ?? ""}
-			isConnecting={connectingPluginId === activeDiscoverId}
-			newKey={newKey?.pluginId === activeDiscoverId ? newKey.key : null}
-			onConnect={() => {
-				if (activeDiscoverId) connectMutation.mutate(activeDiscoverId)
-			}}
-			onDismissKey={() => setNewKey(null)}
-		/>
+		discoverPanelContent
 	) : (
 		<>
 			<div className="relative shrink-0">
@@ -1314,6 +1420,8 @@ export function SelectSpacesModal({
 														isActive ? "text-[#fafafa]" : "text-[#737373]",
 													)}
 												/>
+											) : category.id === "plugin:agents" ? (
+												<Logo className="h-[18px] w-[22px]" />
 											) : category.iconSrc ? (
 												<Image
 													src={category.iconSrc}
@@ -1372,7 +1480,9 @@ export function SelectSpacesModal({
 												)}
 											>
 												<span className="shrink-0 w-5 h-5 flex items-center justify-center">
-													{category.iconSrc ? (
+													{category.id === "discover:agents" ? (
+														<Logo className="h-[18px] w-[22px]" />
+													) : category.iconSrc ? (
 														<Image
 															src={category.iconSrc}
 															alt=""
@@ -1404,17 +1514,7 @@ export function SelectSpacesModal({
 
 					<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
 						{activeCategory.startsWith("discover:") ? (
-							<DiscoverPanel
-								catalogId={activeDiscoverId ?? ""}
-								isConnecting={connectingPluginId === activeDiscoverId}
-								newKey={
-									newKey?.pluginId === activeDiscoverId ? newKey.key : null
-								}
-								onConnect={() => {
-									if (activeDiscoverId) connectMutation.mutate(activeDiscoverId)
-								}}
-								onDismissKey={() => setNewKey(null)}
-							/>
+							discoverPanelContent
 						) : (
 							<>
 								<div className="relative">
@@ -1535,6 +1635,85 @@ export function SelectSpacesModal({
 					)}
 			</DialogContent>
 		</Dialog>
+	)
+}
+
+function AgentsDiscoverPanel({
+	catalogIds,
+	connectingPluginId,
+	newKey,
+	onConnect,
+	onDismissKey,
+}: {
+	catalogIds: readonly string[]
+	connectingPluginId: string | null
+	newKey: { pluginId: string; key: string } | null
+	onConnect: (catalogId: string) => void
+	onDismissKey: () => void
+}) {
+	const [activeCatalogId, setActiveCatalogId] = useState(
+		newKey?.pluginId ?? catalogIds[0] ?? "codex",
+	)
+
+	useEffect(() => {
+		if (newKey?.pluginId && catalogIds.includes(newKey.pluginId)) {
+			setActiveCatalogId(newKey.pluginId)
+			return
+		}
+		if (!catalogIds.includes(activeCatalogId)) {
+			setActiveCatalogId(catalogIds[0] ?? "codex")
+		}
+	}, [activeCatalogId, catalogIds, newKey?.pluginId])
+
+	if (catalogIds.length === 0) {
+		return (
+			<p className="py-8 text-center text-sm text-[#737373]">
+				Claude Code and Codex are connected.
+			</p>
+		)
+	}
+
+	return (
+		<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+			<div className="flex items-center gap-2">
+				<div className="mr-1 flex size-9 shrink-0 items-center justify-center rounded-[9px] border border-[#1E293B] bg-[#080B0F]">
+					<Logo className="h-[22px] w-[27px]" />
+				</div>
+				<div className="min-w-0 flex-1">
+					<p className="text-sm font-semibold text-[#FAFAFA]">Agents</p>
+					<p className="text-[11px] text-[#737373]">
+						Claude Code and Codex share project memory
+					</p>
+				</div>
+				{catalogIds.map((catalogId) => {
+					const info = PLUGIN_CATALOG[catalogId]
+					if (!info) return null
+					return (
+						<button
+							key={catalogId}
+							type="button"
+							onClick={() => setActiveCatalogId(catalogId)}
+							className={cn(
+								"flex size-9 items-center justify-center rounded-[9px] border transition-colors",
+								activeCatalogId === catalogId
+									? "border-[#4BA0FA]/60 bg-[#00173C]"
+									: "border-[#1E293B] bg-[#080B0F] opacity-60 hover:opacity-100",
+							)}
+							aria-label={`Set up ${info.name}`}
+						>
+							<Image src={info.icon} alt="" width={20} height={20} />
+						</button>
+					)
+				})}
+			</div>
+			<DiscoverPanel
+				catalogId={activeCatalogId}
+				isConnecting={connectingPluginId === activeCatalogId}
+				newKey={newKey?.pluginId === activeCatalogId ? newKey.key : null}
+				onConnect={() => onConnect(activeCatalogId)}
+				onDismissKey={onDismissKey}
+			/>
+		</div>
 	)
 }
 

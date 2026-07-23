@@ -1,0 +1,248 @@
+---
+title: "Agents, skills and MCP"
+description: "Set up coding agents to integrate Supermemory — CLI, skill, and docs MCP."
+sidebarTitle: "Agents, skills and MCP"
+icon: "bot"
+---
+
+This page is for **building with Supermemory** using coding agents: scaffolding a project, following the real API, and searching product docs.
+
+It is **not** the consumer Memory MCP (give Claude/Cursor long-term memory about *you*). That is a separate product surface — see [Supermemory MCP](/supermemory-mcp/mcp).
+
+| Path | How | For |
+|---|---|---|
+| **CLI** | `npx supermemory` | Setup, smoke tests, agent-driven integration |
+| **Skill** | `npx skills add … --skill supermemory` | Teach the agent the real API surface |
+| **Docs MCP** | `https://supermemory.ai/docs/mcp` | Search these docs while the agent codes |
+
+## CLI
+
+Agents (and humans) can set things up from the terminal easily using our CLI
+
+```bash
+npx supermemory
+```
+
+Useful for coding agents:
+
+```bash
+npx supermemory setup              # detect project, launch/print integration flow
+npx supermemory setup --prompt     # print integration prompt only
+npx supermemory setup --json       # machine-readable output
+npx supermemory help --json        # agent-readable command catalog
+npx supermemory help --all
+```
+
+Also available for smoke tests against your key: `add`, `search`, `profile`, `docs`, `tags`, `config`, `whoami`. Auth via first-run credentials or `SUPERMEMORY_API_KEY`.
+
+```bash
+npx supermemory add "User prefers TypeScript" --tag user_123
+npx supermemory search "language preference" --tag user_123
+npx supermemory profile --tag user_123
+```
+
+## Skill
+
+Install the official skill so the agent uses the real endpoints, auth, and `containerTag` rules instead of hallucinating APIs:
+
+```bash
+npx skills add https://github.com/supermemoryai/skills --skill supermemory
+```
+
+Source: [github.com/supermemoryai/skills](https://github.com/supermemoryai/skills).
+
+<Tip>
+Best combo for coding agents: **skill** + **docs MCP** + **`npx supermemory setup`**.
+</Tip>
+
+## Docs MCP
+
+Remote MCP that lets the agent **search Supermemory documentation** while it implements an integration.
+
+Server URL:
+
+```text
+https://supermemory.ai/docs/mcp
+```
+
+### Setup by client
+
+<Tabs>
+  <Tab title="Cursor">
+    Add to `~/.cursor/mcp.json`:
+
+    ```json
+    {
+      "mcpServers": {
+        "supermemory-docs": {
+          "url": "https://supermemory.ai/docs/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Claude Code">
+    ```bash
+    claude mcp add --transport http supermemory-docs https://supermemory.ai/docs/mcp
+    ```
+
+    Or project `.mcp.json`:
+
+    ```json
+    {
+      "mcpServers": {
+        "supermemory-docs": {
+          "type": "http",
+          "url": "https://supermemory.ai/docs/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Codex">
+    ```bash
+    codex mcp add supermemory-docs --url https://supermemory.ai/docs/mcp
+    ```
+
+    Or `~/.codex/config.toml`:
+
+    ```toml
+    [mcp_servers.supermemory-docs]
+    url = "https://supermemory.ai/docs/mcp"
+    ```
+  </Tab>
+
+  <Tab title="OpenCode">
+    ```json
+    {
+      "mcp": {
+        "supermemory-docs": {
+          "type": "remote",
+          "url": "https://supermemory.ai/docs/mcp",
+          "enabled": true
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="VS Code">
+    Add to `.vscode/mcp.json`:
+
+    ```json
+    {
+      "servers": {
+        "supermemory-docs": {
+          "type": "http",
+          "url": "https://supermemory.ai/docs/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Other">
+    ```json
+    {
+      "mcpServers": {
+        "supermemory-docs": {
+          "url": "https://supermemory.ai/docs/mcp"
+        }
+      }
+    }
+    ```
+
+    Stdio-only clients can proxy:
+
+    ```json
+    {
+      "mcpServers": {
+        "supermemory-docs": {
+          "command": "npx",
+          "args": ["-y", "mcp-remote", "https://supermemory.ai/docs/mcp"]
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Starter prompt (docs + setup)
+
+```text
+You are integrating Supermemory into my app.
+
+- Use the supermemory-docs MCP (or https://supermemory.ai/docs/llms.txt) before inventing endpoints.
+- Prefer `npx supermemory setup` / the supermemory skill for correct auth, containerTag, and SDK usage.
+- Canonical writes: POST /v3/documents · search: POST /v4/search · profile: POST /v4/profile
+- Auth: Authorization: Bearer $SUPERMEMORY_API_KEY only
+- Always scope with containerTag (singular) on write and search
+- For demos use dreaming: "instant" when memories must be ready right after status done
+```
+
+### Integrate prompt (optional)
+
+If the skill is not installed, paste a fuller prompt so the agent asks the right product questions:
+
+<Accordion title="Copy full integration prompt" icon="copy">
+````
+You are integrating Supermemory into my application. Supermemory provides user memory, semantic search, and automatic knowledge extraction for AI applications.
+
+Note: You can always reference the documentation by using the **supermemory-docs MCP** or content on **supermemory.ai/docs**. Prefer `npx supermemory setup` / `npx supermemory help --json` when scaffolding.
+
+CANONICAL API SURFACE (use these, nothing else):
+
+- Auth header: `Authorization: Bearer $SUPERMEMORY_API_KEY` — the only supported auth header
+- Write content:     POST https://api.supermemory.ai/v3/documents
+- Search:            POST https://api.supermemory.ai/v4/search
+- Profile + search:  POST https://api.supermemory.ai/v4/profile
+- Settings:          PATCH https://api.supermemory.ai/v3/settings
+- Scoping:           `containerTag` (singular string) in the JSON body — never in a header
+- SDK:               `client.add()`, `client.search()`, `client.profile()`
+
+DO NOT USE — deprecated, undocumented, or fabricated:
+
+- Endpoints:  /v1/anything, /v3/memories, /v3/search   (use /v3/documents and /v4/search)
+- Headers:    x-supermemory-api-key, x-api-key, x-sm-user-id (for API auth)
+- Body keys:  containerTags (plural) on writes as the only scope, userId, spaces
+- Mixing:     `rerank` and `rewriteQuery` on /v4/search only — never on /v3/search
+
+SCOPING IS LOAD-BEARING. Every write and every search MUST include `containerTag`.
+
+Prefer for tutorials:
+- Ingest conversations with customId + dreaming: "instant" when you need memories immediately
+- Wait until document status is done before search
+- search with searchMode: "documents" for RAG, search (+ relatedMemories) for the graph, profile for always-on context
+
+STEP 1: Ask what I'm building, integration style (AI SDK / OpenAI / Direct SDK / API), data model (user/org/both), profiles yes/no.
+STEP 2: Install supermemory (npm/pip), set SUPERMEMORY_API_KEY from https://console.supermemory.ai
+STEP 3: Generate complete working code.
+
+DOCS: https://supermemory.ai/docs
+````
+</Accordion>
+
+## Memory MCP (different product)
+
+Want your **assistant** to remember you across chats (save/recall/profile in Claude, Cursor, etc.)? That is the **Memory MCP**, not the docs MCP:
+
+→ [Supermemory MCP](/supermemory-mcp/mcp)
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="play" href="/quickstart">
+    Conversation + document ingest, RAG, graph, profile, harness.
+  </Card>
+  <Card title="Memory MCP" icon="brain-circuit" href="/supermemory-mcp/mcp">
+    Persistent memory for assistants — separate from docs setup.
+  </Card>
+  <Card title="Plugins" icon="puzzle" href="/integrations/openclaw">
+    Claude Code, OpenClaw, Codex, Hermes, and more.
+  </Card>
+  <Card title="AI SDK" icon="triangle" href="/integrations/ai-sdk">
+    withSupermemory and memory tools in app code.
+  </Card>
+</CardGroup>

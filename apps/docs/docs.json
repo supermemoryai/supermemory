@@ -3,9 +3,10 @@
 	"api": {
 		"examples": {
 			"defaults": "required",
-			"languages": ["javascript", "python", "curl"]
+			"languages": ["typescript", "python", "bash"],
+			"prefill": true
 		},
-		"openapi": "https://api.supermemory.ai/v3/openapi"
+		"openapi": "https://api.supermemory.ai/v4/openapi"
 	},
 	"colors": {
 		"dark": "#1E3A8A",
@@ -13,7 +14,7 @@
 		"primary": "#1E3A8A"
 	},
 	"contextual": {
-		"options": ["copy", "view", "chatgpt", "claude"]
+		"options": ["copy", "view", "assistant", "chatgpt", "claude"]
 	},
 	"favicon": "/favicon.png",
 	"fonts": {
@@ -44,6 +45,10 @@
 	"navbar": {
 		"links": [
 			{
+				"href": "https://supermemory.ai/changelog",
+				"label": "Changelog"
+			},
+			{
 				"href": "mailto:support@supermemory.com",
 				"label": "Support"
 			}
@@ -57,28 +62,22 @@
 	"navigation": {
 		"tabs": [
 			{
+				"tab": "Overview",
+				"pages": ["index"]
+			},
+			{
 				"icon": "code",
 				"anchors": [
 					{
-						"anchor": "Your Dashboard",
-						"href": "https://console.supermemory.ai",
-						"icon": "play"
-					},
-					{
-						"anchor": "Developer Platform",
+						"anchor": "Developer Platform (API)",
 						"pages": [
 							{
 								"group": "Getting Started",
-								"pages": ["intro", "quickstart", "vibe-coding"]
-							},
-							{
-								"group": "Self-Hosting",
 								"pages": [
-									"self-hosting/overview",
-									"self-hosting/quickstart",
-									"self-hosting/configuration",
-									"self-hosting/embeddings",
-									"self-hosting/local-vs-enterprise"
+									"overview/what-is-supermemory",
+									"overview/comparison",
+									"quickstart",
+									"agents-and-mcp"
 								]
 							},
 							{
@@ -87,41 +86,47 @@
 									"concepts/how-it-works",
 									"concepts/graph-memory",
 									"concepts/content-types",
-									"concepts/super-rag",
-									"concepts/memory-vs-rag",
-									"concepts/container-tags",
-									"concepts/filtering",
-									"concepts/user-profiles",
-									"concepts/customization",
-									"authentication"
+									{
+										"group": "Retrieval",
+										"icon": "search",
+										"pages": ["concepts/super-rag", "concepts/memory-vs-rag"]
+									},
+									{
+										"group": "Multi-tenancy and filtering",
+										"icon": "users",
+										"pages": [
+											"concepts/multi-tenancy",
+											"concepts/multi-tenancy-examples",
+											"concepts/container-tags",
+											"concepts/filtering"
+										]
+									},
+									{
+										"group": "User Profiles",
+										"icon": "id-card",
+										"pages": ["concepts/user-profiles", "user-profiles/buckets"]
+									}
 								]
 							},
 							{
 								"group": "Using supermemory",
 								"pages": [
-									"add-memories",
-									"search",
-									"user-profiles",
+									"using-supermemory",
+									"authentication",
+									"concepts/customization",
 									{
-										"group": "Manage Content",
-										"icon": "folder-cog",
+										"group": "Ingestion",
+										"icon": "download",
 										"pages": [
-											"document-operations",
-											"memory-operations",
-											"memory-review"
+											"ingestion/add-memories",
+											"ingestion/document-operations"
 										]
 									},
-									"overview/use-cases"
-								]
-							},
-							{
-								"group": "Connectors and sync",
-								"pages": [
-									"connectors/overview",
 									{
 										"group": "Connectors",
 										"icon": "plug",
 										"pages": [
+											"connectors/overview",
 											"connectors/notion",
 											"connectors/google-drive",
 											"connectors/gmail",
@@ -129,11 +134,80 @@
 											"connectors/s3",
 											"connectors/granola",
 											"connectors/github",
-											"connectors/web-crawler"
+											"connectors/web-crawler",
+											"connectors/troubleshooting",
+											"connectors/managing-resources"
 										]
 									},
-									"connectors/troubleshooting",
-									"memory-api/connectors/managing-resources"
+									{
+										"group": "Recall",
+										"icon": "upload",
+										"pages": [
+											"recall/search",
+											"recall/user-profiles",
+											"recall/memory-operations",
+											"recall/memory-review"
+										]
+									},
+									{
+										"group": "SMFS",
+										"icon": "database",
+										"pages": [
+											"smfs/overview",
+											"smfs/install",
+											"smfs/mount",
+											"smfs/bash-tool",
+											"smfs/bash-tool-python",
+											{
+												"group": "Providers",
+												"icon": "cloud",
+												"pages": [
+													"smfs/providers/daytona",
+													"smfs/providers/e2b",
+													"smfs/providers/vercel",
+													"smfs/providers/cloudflare"
+												]
+											},
+											"smfs/examples"
+										]
+									},
+									"concepts/rules"
+								]
+							},
+							{
+								"group": "Deployment",
+								"pages": [
+									{
+										"group": "Supermemory local",
+										"icon": "server",
+										"pages": [
+											"self-hosting/overview",
+											"self-hosting/quickstart",
+											"self-hosting/configuration",
+											"self-hosting/embeddings",
+											"self-hosting/providers",
+											"self-hosting/local-vs-enterprise"
+										]
+									}
+								]
+							},
+							{
+								"group": "Other resources",
+								"pages": [
+									{
+										"group": "Benchmarking",
+										"icon": "flask-conical",
+										"pages": [
+											"memorybench/overview",
+											"memorybench/extend-benchmark",
+											"memorybench/extend-provider",
+											"memorybench/memscore"
+										]
+									},
+									"overview/billing",
+									"overview/security",
+									"overview/use-cases",
+									"overview/analytics"
 								]
 							},
 							{
@@ -149,48 +223,8 @@
 						]
 					},
 					{
-						"anchor": "Supermemory MCP",
-						"icon": "terminal",
-						"pages": [
-							"supermemory-mcp/mcp",
-							"supermemory-mcp/setup",
-							{
-								"group": "Setups",
-								"icon": "layers",
-								"pages": ["supermemory-mcp/claude-desktop"]
-							}
-						]
-					},
-					{
-						"anchor": "SMFS",
-						"icon": "database",
-						"pages": [
-							"smfs/overview",
-							"smfs/install",
-							"smfs/mount",
-							"smfs/bash-tool",
-							"smfs/bash-tool-python",
-							{
-								"group": "Providers",
-								"icon": "cloud",
-								"pages": [
-									"smfs/providers/daytona",
-									"smfs/providers/e2b",
-									"smfs/providers/vercel",
-									"smfs/providers/cloudflare"
-								]
-							},
-							"smfs/examples"
-						]
-					}
-				],
-				"tab": "Developer Platform"
-			},
-			{
-				"icon": "plug",
-				"anchors": [
-					{
 						"anchor": "API Integrations",
+						"icon": "plug",
 						"pages": [
 							"integrations/supermemory-sdk",
 							"integrations/ai-sdk",
@@ -207,6 +241,7 @@
 							"integrations/memory-graph",
 							"integrations/claude-memory",
 							"integrations/pipecat",
+							"integrations/cartesia",
 							"integrations/n8n",
 							"integrations/viasocket",
 							"integrations/zapier",
@@ -216,113 +251,204 @@
 								"pages": ["migration/tools-v2-upgrade"]
 							}
 						]
+					},
+					{
+						"anchor": "API Reference",
+						"icon": "unplug",
+						"openapi": "https://api.supermemory.ai/v4/openapi",
+						"pages": [
+							"api-reference/overview",
+							"authentication",
+							{
+								"group": "Ingest",
+								"icon": "download",
+								"pages": [
+									"api-reference/ingest",
+									"POST /v3/documents",
+									"POST /v3/documents/file",
+									"POST /v3/documents/batch",
+									"POST /v4/conversations",
+									"GET /v3/documents/{id}"
+								]
+							},
+							{
+								"group": "Recall",
+								"icon": "search",
+								"pages": [
+									"api-reference/search",
+									"POST /v4/search",
+									"POST /v3/search",
+									"api-reference/profiles",
+									"POST /v4/profile",
+									"POST /v4/profile/buckets"
+								]
+							},
+							{
+								"group": "Documents",
+								"icon": "file-text",
+								"pages": [
+									"api-reference/documents",
+									"POST /v3/documents/list",
+									"GET /v3/documents/processing",
+									"PATCH /v3/documents/{id}",
+									"DELETE /v3/documents/{id}",
+									"DELETE /v3/documents/bulk",
+									"GET /v3/documents/{id}/chunks",
+									"GET /v3/documents/{id}/file-url"
+								]
+							},
+							{
+								"group": "Memories",
+								"icon": "database",
+								"pages": [
+									"api-reference/memories",
+									"POST /v4/memories",
+									"POST /v4/memories/list",
+									"PATCH /v4/memories",
+									"DELETE /v4/memories",
+									"POST /v4/memories/forget-matching"
+								]
+							},
+							{
+								"group": "Container tags",
+								"icon": "tags",
+								"pages": [
+									"api-reference/container-tags",
+									"GET /v3/container-tags/{containerTag}",
+									"PATCH /v3/container-tags/{containerTag}",
+									"DELETE /v3/container-tags/{containerTag}",
+									"POST /v3/container-tags/merge",
+									"GET /v3/container-tags/merge/{mergeId}"
+								]
+							},
+							{
+								"group": "Connections",
+								"icon": "plug",
+								"pages": [
+									"api-reference/connections",
+									"POST /v3/connections/{provider}",
+									"POST /v3/connections/list",
+									"GET /v3/connections/{connectionId}",
+									"POST /v3/connections/{connectionId}/configure",
+									"GET /v3/connections/{connectionId}/resources",
+									"POST /v3/connections/{provider}/import",
+									"POST /v3/connections/{provider}/documents",
+									"POST /v3/connections/{provider}/connection",
+									"DELETE /v3/connections/{connectionId}",
+									"DELETE /v3/connections/{provider}"
+								]
+							},
+							{
+								"group": "Settings",
+								"icon": "settings",
+								"pages": [
+									"api-reference/settings",
+									"GET /v3/settings",
+									"PATCH /v3/settings",
+									"POST /v3/settings/suggest-buckets",
+									"POST /v3/settings/reset"
+								]
+							}
+						]
 					}
 				],
-				"tab": "API Integrations"
+				"tab": "Developer Platform"
 			},
 			{
 				"icon": "puzzle",
 				"anchors": [
 					{
-						"anchor": "Plugins",
+						"anchor": "Plugins and MCP",
+						"icon": "puzzle",
 						"pages": [
-							"integrations/openclaw",
-							"integrations/claude-code",
-							"integrations/opencode",
-							"integrations/codex",
-							"integrations/hermes"
-						]
-					}
-				],
-				"tab": "Plugins"
-			},
-			{
-				"icon": "book-open",
-				"anchors": [
-					{
-						"anchor": "API Reference",
-						"icon": "unplug",
-						"openapi": "https://api.supermemory.ai/v3/openapi"
-					}
-				],
-				"tab": "API Reference"
-			},
-			{
-				"icon": "flask-conical",
-				"anchors": [
-					{
-						"anchor": "MemoryBench",
-						"icon": "flask-conical",
-						"pages": [
-							"memorybench/overview",
-							"memorybench/github",
 							{
-								"group": "Getting Started",
-								"pages": ["memorybench/installation", "memorybench/quickstart"]
-							},
-							{
-								"group": "Development",
+								"group": "Supermemory MCP",
+								"icon": "terminal",
 								"pages": [
-									"memorybench/architecture",
-									"memorybench/extend-provider",
-									"memorybench/extend-benchmark",
-									"memorybench/contributing"
+									"supermemory-mcp/mcp",
+									"supermemory-mcp/setup",
+									{
+										"group": "Setups",
+										"icon": "layers",
+										"pages": ["supermemory-mcp/claude-desktop"]
+									}
 								]
 							},
 							{
-								"group": "Reference",
+								"group": "Plugins",
+								"icon": "puzzle",
 								"pages": [
-									"memorybench/memscore",
-									"memorybench/cli",
-									"memorybench/integrations"
+									"integrations/openclaw",
+									"integrations/claude-code",
+									"integrations/opencode",
+									"integrations/codex",
+									"integrations/hermes"
 								]
 							}
 						]
 					}
 				],
-				"tab": "MemoryBench"
+				"tab": "Plugins and MCP"
 			},
 			{
-				"icon": "chef-hat",
-				"anchors": [
+				"tab": "Company Brain",
+				"groups": [
 					{
-						"anchor": "Cookbook",
-						"icon": "chef-hat",
+						"group": "Concepts",
 						"pages": [
-							"cookbook/overview",
-							{
-								"group": "Quick Start Recipes",
-								"pages": [
-									"cookbook/personal-assistant",
-									"cookbook/document-qa",
-									"cookbook/customer-support",
-									"cookbook/ai-sdk-integration",
-									"cookbook/perplexity-supermemory",
-									"cookbook/chat-with-gdrive"
-								]
-							}
+							"company-brain/overview",
+							"company-brain/setup",
+							"company-brain/permissions",
+							"company-brain/connectors",
+							"company-brain/automations",
+							"company-brain/outside-slack"
+						]
+					},
+					{
+						"group": "What you can do",
+						"pages": [
+							"company-brain/use-cases/overview",
+							"company-brain/use-cases/support",
+							"company-brain/use-cases/incidents",
+							"company-brain/use-cases/support-escalation",
+							"company-brain/use-cases/meeting-recall",
+							"company-brain/use-cases/knowledge-recall",
+							"company-brain/use-cases/acting-in-tools",
+							"company-brain/use-cases/greeting",
+							"company-brain/use-cases/sandbox-debugging",
+							"company-brain/use-cases/long-horizon-research",
+							"company-brain/use-cases/meeting-scheduling"
 						]
 					}
-				],
-				"tab": "Cookbook"
-			},
-			{
-				"icon": "list-ordered",
-				"anchors": [
-					{
-						"anchor": "Changelog",
-						"pages": ["changelog/overview", "changelog/plugins"]
-					}
-				],
-				"tab": "Changelog"
+				]
 			}
 		]
 	},
 	"redirects": [
 		{
-			"destination": "/changelog/overview",
+			"destination": "/agents-and-mcp",
+			"permanent": true,
+			"source": "/vibe-coding"
+		},
+		{
+			"destination": "/overview/what-is-supermemory",
+			"permanent": true,
+			"source": "/intro"
+		},
+		{
+			"destination": "/",
 			"permanent": true,
 			"source": "/changelog/developer-platform"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/changelog/overview"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/changelog/plugins"
 		},
 		{
 			"destination": "/integrations/openclaw",
@@ -330,9 +456,9 @@
 			"source": "/integrations/clawdbot"
 		},
 		{
-			"destination": "/intro",
-			"permanent": false,
-			"source": "/"
+			"destination": "/",
+			"permanent": true,
+			"source": "/introduction"
 		},
 		{
 			"destination": "/concepts/how-it-works",
@@ -425,62 +551,62 @@
 			"source": "/search/filtering"
 		},
 		{
-			"destination": "/add-memories",
+			"destination": "/ingestion/add-memories",
 			"permanent": true,
 			"source": "/add-memories/overview"
 		},
 		{
-			"destination": "/add-memories",
+			"destination": "/ingestion/add-memories",
 			"permanent": true,
 			"source": "/add-memories/parameters"
 		},
 		{
-			"destination": "/add-memories",
+			"destination": "/ingestion/add-memories",
 			"permanent": true,
 			"source": "/memory-api/ingesting"
 		},
 		{
-			"destination": "/add-memories",
+			"destination": "/ingestion/add-memories",
 			"permanent": true,
 			"source": "/add-memories/examples/basic"
 		},
 		{
-			"destination": "/add-memories",
+			"destination": "/ingestion/add-memories",
 			"permanent": true,
 			"source": "/add-memories/examples/file-upload"
 		},
 		{
-			"destination": "/search",
+			"destination": "/recall/search",
 			"permanent": true,
 			"source": "/search/overview"
 		},
 		{
-			"destination": "/search",
+			"destination": "/recall/search",
 			"permanent": true,
 			"source": "/search/parameters"
 		},
 		{
-			"destination": "/search",
+			"destination": "/recall/search",
 			"permanent": true,
 			"source": "/search/response-schema"
 		},
 		{
-			"destination": "/search",
+			"destination": "/recall/search",
 			"permanent": true,
 			"source": "/search/query-rewriting"
 		},
 		{
-			"destination": "/search",
+			"destination": "/recall/search",
 			"permanent": true,
 			"source": "/search/reranking"
 		},
 		{
-			"destination": "/search",
+			"destination": "/recall/search",
 			"permanent": true,
 			"source": "/search/examples/document-search"
 		},
 		{
-			"destination": "/search",
+			"destination": "/recall/search",
 			"permanent": true,
 			"source": "/search/examples/memory-search"
 		},
@@ -490,12 +616,12 @@
 			"source": "/user-profiles/overview"
 		},
 		{
-			"destination": "/user-profiles",
+			"destination": "/recall/user-profiles",
 			"permanent": true,
 			"source": "/user-profiles/api"
 		},
 		{
-			"destination": "/user-profiles",
+			"destination": "/recall/user-profiles",
 			"permanent": true,
 			"source": "/user-profiles/examples"
 		},
@@ -505,37 +631,37 @@
 			"source": "/user-profiles/use-cases"
 		},
 		{
-			"destination": "/add-memories",
+			"destination": "/ingestion/add-memories",
 			"permanent": true,
 			"source": "/update-delete-memories/overview"
 		},
 		{
-			"destination": "/document-operations",
+			"destination": "/ingestion/document-operations",
 			"permanent": true,
 			"source": "/memory-api/track-progress"
 		},
 		{
-			"destination": "/document-operations",
+			"destination": "/ingestion/document-operations",
 			"permanent": true,
 			"source": "/list-memories/overview"
 		},
 		{
-			"destination": "/document-operations",
+			"destination": "/ingestion/document-operations",
 			"permanent": true,
 			"source": "/list-memories/examples/basic"
 		},
 		{
-			"destination": "/document-operations",
+			"destination": "/ingestion/document-operations",
 			"permanent": true,
 			"source": "/list-memories/examples/filtering"
 		},
 		{
-			"destination": "/document-operations",
+			"destination": "/ingestion/document-operations",
 			"permanent": true,
 			"source": "/list-memories/examples/pagination"
 		},
 		{
-			"destination": "/document-operations",
+			"destination": "/ingestion/document-operations",
 			"permanent": true,
 			"source": "/list-memories/examples/monitoring"
 		},
@@ -545,13 +671,288 @@
 			"source": "/org-settings"
 		},
 		{
-			"destination": "/add-memories",
+			"destination": "/ingestion/add-memories",
 			"permanent": true,
 			"source": "/memory-api/overview"
+		},
+		{
+			"destination": "/integrations/ai-sdk",
+			"permanent": true,
+			"source": "/ai-sdk/examples"
+		},
+		{
+			"destination": "/integrations/ai-sdk",
+			"permanent": true,
+			"source": "/ai-sdk/npm"
+		},
+		{
+			"destination": "/connectors/overview",
+			"permanent": true,
+			"source": "/memory-api/connectors/advanced/bring-your-own-key"
+		},
+		{
+			"destination": "/connectors/overview",
+			"permanent": true,
+			"source": "/memory-api/connectors/creating-connection"
+		},
+		{
+			"destination": "/connectors/overview",
+			"permanent": true,
+			"source": "/memory-api/connectors/overview"
+		},
+		{
+			"destination": "/connectors/google-drive",
+			"permanent": true,
+			"source": "/memory-api/connectors/google-drive"
+		},
+		{
+			"destination": "/connectors/managing-resources",
+			"permanent": true,
+			"source": "/memory-api/connectors/managing-resources"
+		},
+		{
+			"destination": "/ingestion/add-memories",
+			"permanent": true,
+			"source": "/memory-api/creation/adding-memories"
+		},
+		{
+			"destination": "/ingestion/document-operations",
+			"permanent": true,
+			"source": "/memory-api/creation/status"
+		},
+		{
+			"destination": "/concepts/content-types",
+			"permanent": true,
+			"source": "/memory-api/features/auto-multi-modal"
+		},
+		{
+			"destination": "/concepts/customization",
+			"permanent": true,
+			"source": "/memory-api/features/content-cleaner"
+		},
+		{
+			"destination": "/concepts/filtering",
+			"permanent": true,
+			"source": "/memory-api/features/filtering"
+		},
+		{
+			"destination": "/recall/search",
+			"permanent": true,
+			"source": "/memory-api/features/query-rewriting"
+		},
+		{
+			"destination": "/recall/search",
+			"permanent": true,
+			"source": "/memory-api/features/reranking"
+		},
+		{
+			"destination": "/overview/what-is-supermemory",
+			"permanent": true,
+			"source": "/memory-api/introduction"
+		},
+		{
+			"destination": "/integrations/claude-memory",
+			"permanent": true,
+			"source": "/memory-api/sdks/anthropic-claude-memory"
+		},
+		{
+			"destination": "/integrations/supermemory-sdk",
+			"permanent": true,
+			"source": "/memory-api/sdks/python"
+		},
+		{
+			"destination": "/integrations/supermemory-sdk",
+			"permanent": true,
+			"source": "/memory-api/sdks/typescript"
+		},
+		{
+			"destination": "/integrations/supermemory-sdk",
+			"permanent": true,
+			"source": "/memory-api/sdks/supermemory-npm"
+		},
+		{
+			"destination": "/integrations/supermemory-sdk",
+			"permanent": true,
+			"source": "/memory-api/sdks/supermemory-pypi"
+		},
+		{
+			"destination": "/recall/search",
+			"permanent": true,
+			"source": "/memory-api/searching/searching-memories"
+		},
+		{
+			"destination": "/integrations/memory-graph",
+			"permanent": true,
+			"source": "/memory-graph/npm"
+		},
+		{
+			"destination": "/integrations/ai-sdk",
+			"permanent": true,
+			"source": "/memory-router/overview"
+		},
+		{
+			"destination": "/integrations/ai-sdk",
+			"permanent": true,
+			"source": "/memory-router/usage"
+		},
+		{
+			"destination": "/integrations/ai-sdk",
+			"permanent": true,
+			"source": "/memory-router/with-memory-api"
+		},
+		{
+			"destination": "/integrations/ai-sdk",
+			"permanent": true,
+			"source": "/model-enhancement/context-extender"
+		},
+		{
+			"destination": "/integrations/ai-sdk",
+			"permanent": true,
+			"source": "/model-enhancement/getting-started"
+		},
+		{
+			"destination": "/integrations/ai-sdk",
+			"permanent": true,
+			"source": "/model-enhancement/identifying-users"
+		},
+		{
+			"destination": "/integrations/openai",
+			"permanent": true,
+			"source": "/openai-sdks/usage"
+		},
+		{
+			"destination": "/overview/comparison",
+			"permanent": true,
+			"source": "/overview/why-supermemory"
+		},
+		{
+			"destination": "/supermemory-mcp/mcp",
+			"permanent": true,
+			"source": "/supermemory-mcp/introduction"
+		},
+		{
+			"destination": "/supermemory-mcp/mcp",
+			"permanent": true,
+			"source": "/supermemory-mcp/technology"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/cookbook/overview"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/cookbook/document-qa"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/cookbook/ai-sdk-integration"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/cookbook/customer-support"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/cookbook/personal-assistant"
+		},
+		{
+			"destination": "https://supermemory.ai/blog/building-an-ai-compliance-chatbot-with-supermemory-and-google-drive/",
+			"permanent": true,
+			"source": "/cookbook/chat-with-gdrive"
+		},
+		{
+			"destination": "https://supermemory.ai/blog/extending-context-windows-in-llms/",
+			"permanent": true,
+			"source": "/cookbook/inf-chat-blog"
+		},
+		{
+			"destination": "https://supermemory.ai/blog/build-your-own-perplexity-in-15-minutes-with-supermemory/",
+			"permanent": true,
+			"source": "/cookbook/perplexity-supermemory"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/memorybench/architecture"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/memorybench/cli"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/memorybench/contributing"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/memorybench/github"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/memorybench/installation"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/memorybench/integrations"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/memorybench/quickstart"
+		},
+		{
+			"destination": "/",
+			"permanent": true,
+			"source": "/memorybench/supported-models"
+		},
+		{
+			"destination": "/ingestion/add-memories",
+			"permanent": true,
+			"source": "/add-memories"
+		},
+		{
+			"destination": "/ingestion/document-operations",
+			"permanent": true,
+			"source": "/document-operations"
+		},
+		{
+			"destination": "/recall/search",
+			"permanent": true,
+			"source": "/search"
+		},
+		{
+			"destination": "/recall/user-profiles",
+			"permanent": true,
+			"source": "/user-profiles"
+		},
+		{
+			"destination": "/recall/memory-operations",
+			"permanent": true,
+			"source": "/memory-operations"
+		},
+		{
+			"destination": "/recall/memory-review",
+			"permanent": true,
+			"source": "/memory-review"
+		},
+		{
+			"destination": "/overview/analytics",
+			"permanent": true,
+			"source": "/analytics"
 		}
 	],
 	"styling": {
 		"eyebrows": "breadcrumbs"
 	},
-	"theme": "mint"
+	"theme": "aspen"
 }

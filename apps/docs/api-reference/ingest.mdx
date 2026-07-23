@@ -1,0 +1,21 @@
+---
+title: "Ingest"
+sidebarTitle: "Overview"
+description: "Add documents, files, batches, and conversations to Supermemory."
+icon: "book-open"
+---
+
+Send raw content into the processing pipeline. Supermemory extracts memories, chunks for RAG, and updates profiles asynchronously.
+
+| Endpoint | Use when |
+| --- | --- |
+| `POST /v3/documents` | Text, URLs, or structured content |
+| `POST /v3/documents/file` | Binary file upload |
+| `POST /v3/documents/batch` | Many documents in one request |
+| `POST /v4/conversations` | Chat sessions with turn-aware ingest |
+
+**Guides:** [Add memories](/ingestion/add-memories) · [Quickstart](/quickstart)
+
+<Tip>
+Use a stable `customId` (conversation id, doc id) so re-sends upsert instead of duplicating. Pass `dreaming: "instant"` when the next step is memory search or profiles.
+</Tip>

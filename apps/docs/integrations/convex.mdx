@@ -74,7 +74,7 @@ export const addMemory = action({
 export const searchMemories = action({
   args: { userId: v.string(), query: v.string(), limit: v.optional(v.number()) },
   handler: async (ctx, { userId, query, limit }) => {
-    return await memory.search.memories({
+    return await memory.search({
       q: query,
       containerTag: userId,
       searchMode: "hybrid",
@@ -193,10 +193,10 @@ export const listMemories = query({
 ## Related docs
 
 <CardGroup cols={2}>
-  <Card title="User profiles" icon="user" href="/user-profiles">
+  <Card title="User profiles" icon="user" href="/recall/user-profiles">
     How automatic profiling works
   </Card>
-  <Card title="Search" icon="search" href="/search">
+  <Card title="Search" icon="search" href="/recall/search">
     Filtering and search modes
   </Card>
   <Card title="Vercel AI SDK" icon="triangle" href="/integrations/ai-sdk">

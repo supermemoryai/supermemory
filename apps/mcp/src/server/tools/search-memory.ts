@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { getMemoryText } from "../client"
+import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -28,6 +29,7 @@ export function register(deps: ToolDeps) {
 			description:
 				"Search the user's memories with a natural-language query. Returns relevant memories plus their profile summary.",
 			inputSchema,
+			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async (rawArgs) => {
 			const args = rawArgs as {

@@ -1,10 +1,44 @@
 ---
-title: "Extend Provider"
-description: "Add a custom memory provider to MemoryBench"
-sidebarTitle: "Extend Provider"
+title: "Adding a Provider"
+description: "Register your own memory implementation so MemoryBench can score and compare it"
+sidebarTitle: "Adding a Provider"
+icon: "plug"
 ---
 
-## Provider Interface
+A "provider" in MemoryBench is any memory or RAG system that can ingest sessions and answer a search query — Supermemory, Mem0, and Zep ship as built-in providers, and **your own memory implementation is just another provider**. Once it's registered, it runs through the exact same pipeline and gets scored on the exact same footing as everything else.
+
+There are two ways to do this: let the skill generate the provider for you, or write it by hand.
+
+## The fast path: the MemoryBench skill
+
+MemoryBench ships a Claude Code skill (`benchmark-context`) that automates the whole flow — from reading your code to a finished comparison report — without you writing any MemoryBench-specific code yourself.
+
+```bash
+# Run from your project root, not from inside memorybench
+/memorybench
+```
+
+It walks through 7 phases:
+
+| Phase | What happens |
+|---|---|
+| **1. Setup** | Clones `memorybench` into `./memorybench` and installs dependencies |
+| **2. Discovery** | An agent reads your memory code to find its init, ingest, and search methods |
+| **3. Code generation** | Generates a provider adapter implementing the `Provider` interface, adapted to your code |
+| **4. Registration** | Registers the provider in the framework's types and config |
+| **5. Configuration** | Asks for your API keys (your provider, any comparison providers, and a judge model) and writes `.env.local` |
+| **6. Validation** | Runs one question end-to-end to confirm ingest/search actually work before committing to a full run |
+| **7. Benchmark execution** | Runs the full comparison and reports accuracy, latency, and context-token results side by side |
+
+Before it does anything, it asks 5 quick questions: your provider's name, where your memory code lives, which [benchmark](/memorybench/extend-benchmark) to run, which providers to compare against (Supermemory, Mem0, Zep, or the no-API-key `filesystem`/`rag` baselines), and how many questions to sample (5 for a quick check, 20 for a real signal, or the full set).
+
+<Note>
+Run it from **your project's root**, not from inside `memorybench` — the skill clones the framework as a subdirectory and analyzes your code via relative paths.
+</Note>
+
+## Doing it by hand
+
+If you'd rather write the adapter yourself, every provider implements the same interface (`src/types/provider.ts`):
 
 ```typescript
 interface Provider {
@@ -18,101 +52,41 @@ interface Provider {
 }
 ```
 
----
+| Method | Responsibility |
+|---|---|
+| `initialize()` | Set up your client with an API key / config |
+| `ingest()` | Push benchmark sessions into your system, return the resulting document IDs |
+| `awaitIndexing()` | Block until those documents are actually searchable — a no-op if your system indexes synchronously, a poll loop with backoff if it's async |
+| `search()` | Run a query, return results in whatever shape your system returns them |
+| `clear()` | Delete everything under a `containerTag`, so runs don't bleed into each other |
 
-## Adding a Custom Provider
+Steps:
 
-### 1. Create the Provider
+1. Create `src/providers/myprovider/index.ts` implementing `Provider`
+2. Register it in `src/providers/index.ts`
+3. Add the name to `ProviderName` in `src/types/provider.ts`
+4. Add its config (API key, base URL, etc.) in `src/utils/config.ts`
+5. Optionally override `prompts` (`ProviderPrompts`) if your search results need custom formatting before they're handed to the answering LLM or the judge
 
-```typescript
-// src/providers/myprovider/index.ts
-import type { Provider, ProviderConfig, UnifiedSession } from "../../types"
-
-export class MyProvider implements Provider {
-  name = "myprovider"
-  private client: MyClient | null = null
-
-  async initialize(config: ProviderConfig) {
-    this.client = new MyClient({ apiKey: config.apiKey })
-  }
-
-  async ingest(sessions: UnifiedSession[], options: IngestOptions) {
-    const documentIds: string[] = []
-    for (const session of sessions) {
-      const response = await this.client.add({
-        content: JSON.stringify(session.messages),
-        metadata: session.metadata
-      })
-      documentIds.push(response.id)
-    }
-    return { documentIds }
-  }
-
-  async awaitIndexing(result: IngestResult) {
-    // Poll until indexing complete
-  }
-
-  async search(query: string, options: SearchOptions) {
-    return await this.client.search({ q: query, limit: 10 })
-  }
-
-  async clear(containerTag: string) {
-    await this.client.delete(containerTag)
-  }
-}
+```bash
+bun run src/index.ts test -p myprovider -b locomo -q question_1   # one question, fast sanity check
+bun run src/index.ts run -p myprovider -b locomo                  # full run
+bun run src/index.ts compare -p myprovider,supermemory,mem0 -b locomo -l 20
 ```
 
-### 2. Register the Provider
-
-```typescript
-// src/providers/index.ts
-import { MyProvider } from "./myprovider"
-
-export const providers = {
-  supermemory: SupermemoryProvider,
-  mem0: Mem0Provider,
-  zep: ZepProvider,
-  myprovider: MyProvider,  // Add here
-}
-```
-
-### 3. Add Configuration
-
-```typescript
-// src/utils/config.ts
-case "myprovider":
-  return {
-    apiKey: process.env.MYPROVIDER_API_KEY!,
-  }
-```
+<Note>
+Full interface, including async-indexing and custom-prompt examples: [`src/providers/README.md`](https://github.com/supermemoryai/memorybench/blob/main/src/providers/README.md) in the repo.
+</Note>
 
 ---
 
-## Custom Prompts
+## Next
 
-Providers can define custom answer and judge prompts for better results.
-
-```typescript
-// src/providers/myprovider/prompts.ts
-export const MY_PROMPTS: ProviderPrompts = {
-  answerPrompt: (question, context, questionDate) => {
-    return `Based on context:\n${context}\n\nAnswer: ${question}`
-  },
-
-  judgePrompt: (question, groundTruth, hypothesis) => ({
-    default: "Compare answer to ground truth...",
-    temporal: "Allow off-by-one for dates...",
-    adversarial: "Check if model correctly abstained...",
-  })
-}
-```
-
-Then reference in your provider:
-
-```typescript
-export class MyProvider implements Provider {
-  name = "myprovider"
-  prompts = MY_PROMPTS  // Custom prompts
-  // ...
-}
-```
+<CardGroup cols={2}>
+  <Card title="Building a Benchmark" icon="flask-conical" href="/memorybench/extend-benchmark">
+    Run your provider against a dataset built for your own use case.
+  </Card>
+  <Card title="Measuring Results" icon="gauge" href="/memorybench/memscore">
+    What the report actually tells you.
+  </Card>
+</CardGroup>

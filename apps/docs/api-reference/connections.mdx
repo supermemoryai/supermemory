@@ -1,0 +1,17 @@
+---
+title: "Connections"
+sidebarTitle: "Overview"
+description: "External connectors — create, configure, sync, and manage resources."
+icon: "book-open"
+---
+
+Connections pull content from Notion, Google Drive, Gmail, OneDrive, S3, GitHub, and more.
+
+| Area | Endpoints |
+| --- | --- |
+| Create / delete | `POST/DELETE /v3/connections/{provider}` |
+| List / get | `POST /v3/connections/list`, `GET …/{connectionId}` |
+| Configure / resources | `POST …/configure`, `GET …/resources` |
+| Sync / documents | `POST …/import`, `POST …/documents` |
+
+**Guides:** [Connectors overview](/connectors/overview) · provider pages under Connectors

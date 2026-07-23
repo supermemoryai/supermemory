@@ -1,0 +1,21 @@
+---
+title: "Documents"
+sidebarTitle: "Overview"
+description: "List, get status, update, delete, and inspect ingested documents."
+icon: "book-open"
+---
+
+Documents are the unit of ingestion. Adds return immediately with `status: "queued"`; poll until `done` before relying on search or profiles.
+
+| Endpoint | Use when |
+| --- | --- |
+| `GET /v3/documents/{id}` | Status + metadata for one document |
+| `POST /v3/documents/list` | Filter and paginate documents |
+| `GET /v3/documents/processing` | Currently processing items |
+| `PATCH /v3/documents/{id}` | Update content or metadata |
+| `DELETE /v3/documents/{id}` | Delete by id or customId |
+| `DELETE /v3/documents/bulk` | Bulk delete |
+| `GET /v3/documents/{id}/chunks` | Inspect RAG chunks |
+| `GET /v3/documents/{id}/file-url` | Presigned URL for uploaded files |
+
+**Guide:** [Document operations](/ingestion/document-operations)

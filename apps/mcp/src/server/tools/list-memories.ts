@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { formatMemoriesList } from "../format"
+import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -40,6 +41,7 @@ export function register(deps: ToolDeps) {
 			description:
 				"Enumerate stored memories grouped by their source document, newest first. Returns only the extracted memory facts (no document content), so use it to audit what is on file. For finding memories relevant to a topic, use search_memory instead.",
 			inputSchema,
+			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async (rawArgs) => {
 			const args = rawArgs as {

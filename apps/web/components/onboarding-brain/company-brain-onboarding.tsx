@@ -35,6 +35,7 @@ interface CompanyBrainOnboardingProps {
 	submitting: boolean
 	onConfirm: (domain: string) => Promise<CompanyBrainConfirmResult>
 	onDone: () => void
+	onUsePersonal: () => void
 }
 
 const BACKEND =
@@ -67,6 +68,7 @@ export function CompanyBrainOnboarding({
 	submitting,
 	onConfirm,
 	onDone,
+	onUsePersonal,
 }: CompanyBrainOnboardingProps) {
 	const [phase, setPhase] = useState<Phase>("confirm")
 	const [domain, setDomain] = useState(initialDomain)
@@ -76,6 +78,11 @@ export function CompanyBrainOnboarding({
 	const queryClient = useQueryClient()
 	const { status: researchStatus } = useResearchStatus(phase === "research")
 	const researchDone = researchStatus === "done"
+	// One-shot retry: re-kick research once on a terminal error.
+	const retryStage = useRef<"idle" | "started" | "rerunning" | "exhausted">(
+		"idle",
+	)
+	const [retryUi, setRetryUi] = useState<null | "retrying" | "exhausted">(null)
 
 	const handleConfirm = async () => {
 		if (!clean || submitting) return
@@ -119,6 +126,48 @@ export function CompanyBrainOnboarding({
 		}, 40_000)
 		return () => window.clearTimeout(timer)
 	}, [phase, serverSchedulesResearch, clean, queryClient])
+
+	// "error" lingers a render after re-kicking, so only arm the second-error
+	// branch once the re-run is observed running.
+	useEffect(() => {
+		if (phase !== "research" || !clean) return
+		const stage = retryStage.current
+		if (researchStatus === "error" && stage === "idle") {
+			retryStage.current = "started"
+			setRetryUi("retrying")
+			void (async () => {
+				// A failed restart never reaches queued/running, and polling is off on
+				// error — without this the UI would say "retrying" forever.
+				const ok = await fetch(`${BACKEND}/brain/research/start`, {
+					method: "POST",
+					credentials: "include",
+					headers: {
+						"content-type": "application/json",
+						"X-App-Source": "nova",
+					},
+					body: JSON.stringify({ domain: clean }),
+				})
+					.then((res) => res.ok)
+					.catch(() => false)
+				if (!ok) {
+					retryStage.current = "exhausted"
+					setRetryUi("exhausted")
+					return
+				}
+				queryClient.invalidateQueries({ queryKey: ["brain-research-status"] })
+			})()
+		} else if (
+			(researchStatus === "queued" || researchStatus === "running") &&
+			stage === "started"
+		) {
+			retryStage.current = "rerunning"
+		} else if (researchStatus === "error" && stage === "rerunning") {
+			retryStage.current = "exhausted"
+			setRetryUi("exhausted")
+		} else if (researchStatus === "done") {
+			setRetryUi(null)
+		}
+	}, [phase, clean, researchStatus, queryClient])
 
 	return (
 		<div
@@ -182,6 +231,8 @@ export function CompanyBrainOnboarding({
 								<DockedHeader
 									domain={clean}
 									done={researchDone}
+									retrying={retryUi === "retrying"}
+									exhausted={retryUi === "exhausted"}
 									onContinue={onDone}
 								/>
 							</motion.div>
@@ -190,7 +241,15 @@ export function CompanyBrainOnboarding({
 				</motion.div>
 
 				{phase === "confirm" && (
-					<div className="w-full max-w-xl mx-auto mt-5 flex items-center justify-end px-1">
+					<div className="w-full max-w-xl mx-auto mt-5 flex items-center justify-between gap-4 px-1">
+						<button
+							type="button"
+							onClick={onUsePersonal}
+							disabled={submitting}
+							className="text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa] disabled:opacity-50"
+						>
+							Use a personal workspace instead
+						</button>
 						<Button
 							variant="insideOut"
 							onClick={handleConfirm}
@@ -307,13 +366,30 @@ function ConfirmBody({
 function DockedHeader({
 	domain,
 	done,
+	retrying,
+	exhausted,
 	onContinue,
 }: {
 	domain: string
 	done: boolean
+	retrying: boolean
+	exhausted: boolean
 	onContinue: () => void
 }) {
 	const brandName = workspaceNameFromDomain(domain) || domain
+	const showSpinner = !done && !exhausted
+	const statusLabel = done
+		? "Company Brain ready"
+		: exhausted
+			? "Couldn't finish — you can continue"
+			: retrying
+				? "Retrying research…"
+				: "Building your Company Brain…"
+	const statusColor = done
+		? "text-[#5CD68A]"
+		: exhausted
+			? "text-[#E5A45A]"
+			: "text-[#737373]"
 	return (
 		<div className="flex min-w-0 items-center gap-3">
 			<div
@@ -331,35 +407,35 @@ function DockedHeader({
 				</span>
 				<span
 					className={cn(
-						"shrink-0 whitespace-nowrap text-[12px] font-medium",
-						done ? "text-[#5CD68A]" : "text-[#737373]",
+						"flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[12px] font-medium",
+						statusColor,
 					)}
 				>
-					{done ? "Company Brain ready" : "Building your Company Brain…"}
+					{showSpinner && (
+						<Loader2 className="size-3 animate-spin text-[#4BA0FA]" />
+					)}
+					{statusLabel}
 				</span>
 			</div>
-			{done ? (
-				<Button
-					type="button"
-					onClick={onContinue}
-					className={cn(
-						"ml-auto shrink-0 rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#1D1C1D] shadow-[0_4px_24px_rgba(75,160,250,0.25)] hover:bg-white/95",
-						dmSans125ClassName(),
-					)}
-				>
-					Continue
-					<ArrowRight className="size-3.5" />
-				</Button>
-			) : (
-				<Loader2 className="ml-auto size-3.5 shrink-0 animate-spin text-[#4BA0FA]" />
-			)}
+			{/* Never gated on research; the admin can move on while it keeps working. */}
+			<Button
+				type="button"
+				onClick={onContinue}
+				className={cn(
+					"ml-auto shrink-0 rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#1D1C1D] shadow-[0_4px_24px_rgba(75,160,250,0.25)] hover:bg-white/95",
+					dmSans125ClassName(),
+				)}
+			>
+				Continue
+				<ArrowRight className="size-3.5" />
+			</Button>
 		</div>
 	)
 }
 
 function ResearchTranscript() {
 	const { status, events } = useResearchStatus()
-	const running = status !== "done"
+	const running = status !== "done" && status !== "error"
 	const scrollRef = useRef<HTMLDivElement>(null)
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: scroll on new events

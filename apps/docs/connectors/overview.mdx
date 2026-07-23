@@ -10,7 +10,7 @@ Connect external platforms to automatically sync documents into supermemory. Sup
 ## Supported Connectors
 
 <CardGroup cols={2}>
-  <Card title="Google Drive" icon="google-drive" href="/connectors/google-drive">
+  <Card title="Google Drive" icon="/docs/images/google-drive-icon.svg" href="/connectors/google-drive">
     **Google Docs, Slides, Sheets**
 
     Real-time sync via webhooks. Supports shared drives, nested folders, and collaborative documents.
@@ -22,26 +22,26 @@ Connect external platforms to automatically sync documents into supermemory. Sup
     Real-time sync via Pub/Sub webhooks. Syncs threads with full conversation history and metadata.
   </Card>
 
-  <Card title="Notion" icon="notion" href="/connectors/notion">
+  <Card title="Notion" icon="/docs/images/notion-icon.svg" href="/connectors/notion">
     **Pages, Databases, Blocks**
 
     Instant sync of workspace content. Handles rich formatting, embeds, and database properties.
   </Card>
 
-  <Card title="OneDrive" icon="microsoft" href="/connectors/onedrive">
+  <Card title="OneDrive" icon="/docs/images/microsoft-icon.svg" href="/connectors/onedrive">
     **Word, Excel, PowerPoint**
 
     Scheduled sync every 4 hours. Supports personal and business accounts with file versioning.
   </Card>
   
   
-  <Card title="GitHub" icon="github" href="/connectors/github">
+  <Card title="GitHub" icon="/docs/images/github-icon.svg" href="/connectors/github">
     **GitHub Repositories**
 
     Real-time incremental sync via webhooks. Supports documentation files in repositories.
   </Card>
 
-  <Card title="Granola" icon="/images/granola.svg" href="/connectors/granola">
+  <Card title="Granola" icon="/docs/images/granola.svg" href="/connectors/granola">
     **Meeting notes and transcripts**
 
     Syncs AI meeting notes, summaries, attendees, and transcripts from your Granola workspace.
@@ -69,7 +69,7 @@ const client = new Supermemory({
 
 const connection = await client.connections.create('notion', {
   redirectUrl: 'https://yourapp.com/callback',
-  containerTags: ['user-123', 'workspace-alpha'],
+  containerTag: 'user-123',
   documentLimit: 5000,
   metadata: { department: 'sales' }
 });
@@ -90,7 +90,7 @@ client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 connection = client.connections.create(
     'notion',
     redirect_url='https://yourapp.com/callback',
-    container_tags=['user-123', 'workspace-alpha'],
+    container_tag='user-123',
     document_limit=5000,
     metadata={'department': 'sales'}
 )
@@ -108,7 +108,7 @@ curl -X POST "https://api.supermemory.ai/v3/connections/notion" \
   -H "Content-Type: application/json" \
   -d '{
     "redirectUrl": "https://yourapp.com/callback",
-    "containerTags": ["user-123", "workspace-alpha"],
+    "containerTag": "user-123",
     "documentLimit": 5000,
     "metadata": {"department": "sales"}
   }'
@@ -140,7 +140,7 @@ const client = new Supermemory({
 
 // List all connections using SDK
 const connections = await client.connections.list({
-  containerTags: ['user-123', 'workspace-alpha']
+  containerTags: ['user-123']
 });
 
 connections.forEach(conn => {
@@ -152,7 +152,7 @@ connections.forEach(conn => {
 
 // List synced documents (memories) using SDK
 const memories = await client.documents.list({
-  containerTags: ['user-123', 'workspace-alpha']
+  containerTags: ['user-123']
 });
 
 console.log(`Synced ${memories.memories.length} documents`);
@@ -167,7 +167,7 @@ client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 
 # List all connections using SDK
 connections = client.connections.list(
-    container_tags=['user-123', 'workspace-alpha']
+    container_tags=['user-123']
 )
 
 for conn in connections:
@@ -177,7 +177,7 @@ for conn in connections:
     print(f'Created: {conn.created_at}')
 
 # List synced documents (memories) using SDK
-memories = client.documents.list(container_tags=['user-123', 'workspace-alpha'])
+memories = client.documents.list(container_tags=['user-123'])
 
 print(f'Synced {len(memories.memories)} documents')
 # Output: Synced 45 documents
@@ -188,7 +188,7 @@ print(f'Synced {len(memories.memories)} documents')
 curl -X POST "https://api.supermemory.ai/v3/connections/list" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"containerTags": ["user-123", "workspace-alpha"]}'
+  -d '{"containerTags": ["user-123"]}'
 
 # Response: [{"id": "conn_abc", "provider": "notion", "email": "user@example.com", ...}]
 
@@ -196,7 +196,7 @@ curl -X POST "https://api.supermemory.ai/v3/connections/list" \
 curl -X POST "https://api.supermemory.ai/v3/documents/list" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"containerTags": ["user-123", "workspace-alpha"]}'
+  -d '{"containerTags": ["user-123"]}'
 
 # Response: {"results": [...], "totalCount": 45}
 ```
@@ -368,3 +368,18 @@ curl -X DELETE "https://api.supermemory.ai/v3/connections/conn_abc123?deleteDocu
 ```
 
 </CodeGroup>
+
+## Custom OAuth Applications
+
+By default, Supermemory uses its own OAuth applications to connect to third-party providers. You can configure your own OAuth app credentials via `PATCH /v3/settings` for tighter control over data access — useful for enterprise customers.
+
+1. Create the OAuth application on the provider's developer console:
+   - Google: [console.developers.google.com/apis/credentials/oauthclient](https://console.developers.google.com/apis/credentials/oauthclient)
+   - Notion: [notion.so/my-integrations](https://www.notion.so/my-integrations)
+   - OneDrive: [Azure Portal → App registrations](https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsMenu)
+2. For Google Drive specifically: choose application type **Web application**, and enable the Google Drive API under "APIs and Services" in the Cloud Console. Google also requires verification/approval before custom keys work in production.
+3. Set the redirect URL to `https://api.supermemory.ai/v3/connections/auth/callback/{provider}` (for example, `.../auth/callback/google-drive`).
+
+<Warning>
+Enabling custom keys for a provider applies to all new connections for that provider — existing connections will need to be re-authorized.
+</Warning>

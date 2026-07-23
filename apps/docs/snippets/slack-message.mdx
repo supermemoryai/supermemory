@@ -1,0 +1,338 @@
+export const DHRAVYA = {
+  name: "Dhravya Shah",
+  avatar: "/docs/images/company-brain/dhravya-slack-icon.jpg",
+};
+
+export const BOT_AVATAR = "/docs/images/company-brain/supermemory-slack-icon.png";
+
+export const Mention = ({ children, self = false }) => (
+  <span
+    className="rounded px-1 py-px font-medium"
+    style={{
+      backgroundColor: self ? "rgba(18,100,163,0.16)" : "rgba(18,100,163,0.1)",
+      color: "#1264A3",
+    }}
+  >
+    @{children}
+  </span>
+);
+
+export const ChannelRef = ({ children }) => (
+  <span className="font-medium" style={{ color: "#1264A3" }}>
+    #{children}
+  </span>
+);
+
+export const SlackButton = ({ children, variant = "default" }) => (
+  <span
+    className="mr-2 mt-2 inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-semibold"
+    style={
+      variant === "primary"
+        ? { backgroundColor: "#2f855a", color: "#ffffff" }
+        : { border: "1px solid rgba(150,150,150,0.4)" }
+    }
+  >
+    {children}
+  </span>
+);
+
+export const SlackUnfurl = ({ color = "#8a94a6", footer, children }) => (
+  <div className="mt-1 mb-0.5 pl-3" style={{ borderLeft: `3px solid ${color}` }}>
+    <div className="text-[15px] leading-normal text-gray-700 dark:text-zinc-300 [&_p]:m-0">
+      {children}
+    </div>
+    {footer ? (
+      <div className="mt-1 text-xs text-gray-400 dark:text-zinc-500">{footer}</div>
+    ) : null}
+  </div>
+);
+
+export const SlackThread = ({
+  type = "channel",
+  channel = "general",
+  private: isPrivate = false,
+  members,
+  dmWith,
+  maxHeight = "70vh",
+  children,
+}) => {
+  const composerLabel =
+    type === "dm"
+      ? `Message ${dmWith?.name || "someone"}`
+      : type === "thread"
+        ? "Reply..."
+        : `Message ${isPrivate ? "" : "#"}${channel.replace(/^#/, "")}`;
+
+  return (
+    <div
+      className="not-prose my-6 overflow-hidden rounded-lg border border-black/10 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-[#1A1D21]"
+      style={{
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      }}
+    >
+      {type === "thread" ? (
+        <div className="flex items-center justify-between border-b border-black/10 px-4 py-3 dark:border-white/10">
+          <span className="text-[15px] font-bold text-gray-900 dark:text-zinc-50">Thread</span>
+          <div className="flex items-center gap-3 text-gray-400 dark:text-zinc-500">
+            <svg viewBox="0 0 18 18" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+              <path d="M9.5 2.75L11.412 7.587L16.25 9.5L11.412 11.413L9.5 16.25L7.587 11.413L2.75 9.5L7.587 7.587L9.5 2.75Z" />
+            </svg>
+            <svg viewBox="0 0 18 18" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+              <circle cx="4" cy="9" r="1.3" />
+              <circle cx="9" cy="9" r="1.3" />
+              <circle cx="14" cy="9" r="1.3" />
+            </svg>
+            <svg viewBox="0 0 18 18" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+              <path d="M4 4l10 10M14 4L4 14" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+      ) : type === "dm" ? (
+        <div className="flex items-center gap-2 border-b border-black/10 px-4 py-3 dark:border-white/10">
+          <div className="relative h-6 w-6 flex-none">
+            <img
+              src={dmWith?.avatar || "/docs/images/company-brain/supermemory-slack-icon.png"}
+              alt={dmWith?.name || "DM"}
+              className="h-6 w-6 rounded-md object-cover"
+            />
+            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#2BAC76] dark:border-[#1A1D21]" />
+          </div>
+          <span className="truncate text-[15px] font-bold text-gray-900 dark:text-zinc-50">
+            {dmWith?.name || "Direct message"}
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between border-b border-black/10 px-4 py-3 dark:border-white/10">
+          <div className="flex min-w-0 items-center gap-1.5">
+            {isPrivate ? (
+              <svg viewBox="0 0 18 18" className="h-3.5 w-3.5 flex-none text-gray-400 dark:text-zinc-500" fill="currentColor" aria-hidden="true">
+                <path d="M9 1.75a3.25 3.25 0 00-3.25 3.25v1.5h-.5A1.25 1.25 0 004 7.75v6A1.25 1.25 0 005.25 15h7.5A1.25 1.25 0 0014 13.75v-6a1.25 1.25 0 00-1.25-1.25h-.5V5A3.25 3.25 0 009 1.75zm-1.75 4.75V5a1.75 1.75 0 113.5 0v1.5h-3.5z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 18 18" className="h-4 w-4 flex-none text-gray-400 dark:text-zinc-500" fill="currentColor" aria-hidden="true">
+                <path d="M7.2 1.5a.6.6 0 10-1.2 0l-.4 3H2.7a.6.6 0 000 1.2h2.7l-.5 3.6H2.1a.6.6 0 000 1.2h2.6l-.4 3a.6.6 0 101.2 0l.4-3h3.6l-.4 3a.6.6 0 101.2 0l.4-3h2.9a.6.6 0 000-1.2h-2.7l.5-3.6h3a.6.6 0 000-1.2h-2.8l.4-3a.6.6 0 10-1.2 0l-.4 3H6.8l.4-3zM6.5 6.7l3.6.0-.5 3.6H6l.5-3.6z" />
+              </svg>
+            )}
+            <span className="truncate text-[15px] font-bold text-gray-900 dark:text-zinc-50">
+              {channel.replace(/^#/, "")}
+            </span>
+          </div>
+          {members ? (
+            <div className="flex flex-none items-center gap-1 text-xs font-medium text-gray-500 dark:text-zinc-400">
+              <svg viewBox="0 0 18 18" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+                <path d="M9 9.5a3.25 3.25 0 100-6.5 3.25 3.25 0 000 6.5zM3 15c0-2.5 2.5-4 6-4s6 1.5 6 4v.5H3V15z" />
+              </svg>
+              {members}
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      <div className="relative">
+        <div
+          ref={(el) => {
+            if (!el || !maxHeight) return;
+            const wrapper = el.parentElement;
+            const aboveHint = wrapper?.querySelector('[data-hint="above"]');
+            const belowHint = wrapper?.querySelector('[data-hint="below"]');
+            const update = () => {
+              const hasAbove = el.scrollTop > 4;
+              const hasBelow = el.scrollHeight - el.scrollTop - el.clientHeight > 4;
+              if (aboveHint) aboveHint.style.opacity = hasAbove ? "1" : "0";
+              if (belowHint) belowHint.style.opacity = hasBelow ? "1" : "0";
+            };
+            update();
+            el.addEventListener("scroll", update);
+            requestAnimationFrame(update);
+          }}
+          className="overflow-y-auto bg-white dark:bg-[#1A1D21]"
+          style={maxHeight ? { maxHeight } : undefined}
+        >
+          {children}
+        </div>
+        {maxHeight ? (
+          <div
+            data-hint="above"
+            className="pointer-events-none absolute inset-x-0 top-0 flex h-12 items-start justify-center pt-1.5 opacity-0 transition-opacity duration-150"
+          >
+            <div
+              className="absolute inset-0 dark:hidden"
+              style={{ background: "linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0))" }}
+            />
+            <div
+              className="absolute inset-0 hidden dark:block"
+              style={{ background: "linear-gradient(to bottom, rgba(26,29,33,1), rgba(26,29,33,0))" }}
+            />
+            <span className="relative rounded-full border border-black/10 bg-white px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm dark:border-white/10 dark:bg-[#222529] dark:text-zinc-400">
+              ↑ More messages above
+            </span>
+          </div>
+        ) : null}
+        {maxHeight ? (
+          <div
+            data-hint="below"
+            className="pointer-events-none absolute inset-x-0 bottom-0 flex h-12 items-end justify-center pb-1.5 opacity-0 transition-opacity duration-150"
+          >
+            <div
+              className="absolute inset-0 dark:hidden"
+              style={{ background: "linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0))" }}
+            />
+            <div
+              className="absolute inset-0 hidden dark:block"
+              style={{ background: "linear-gradient(to top, rgba(26,29,33,1), rgba(26,29,33,0))" }}
+            />
+            <span className="relative rounded-full border border-black/10 bg-white px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm dark:border-white/10 dark:bg-[#222529] dark:text-zinc-400">
+              More messages below ↓
+            </span>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="border-t border-black/10 p-3 dark:border-white/10">
+        <div className="rounded-lg border border-black/15 px-3 py-2 text-sm text-gray-400 dark:border-white/15 dark:text-zinc-500">
+          {composerLabel}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const SlackReplyDivider = ({ count = 1 }) => (
+  <div className="flex items-center gap-3 px-4 py-2">
+    <span className="flex-none text-xs font-semibold text-gray-500 dark:text-zinc-400">
+      {count} {count === 1 ? "reply" : "replies"}
+    </span>
+    <span className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+  </div>
+);
+
+export const SlackMessage = ({
+  name,
+  self = false,
+  bot = false,
+  time,
+  color = "#611f69",
+  avatar,
+  badges,
+  reactions,
+  highlighted = false,
+  subtitle,
+  children,
+}) => {
+  const SELF_NAME = "Dhravya Shah";
+  const SELF_AVATAR = "/docs/images/company-brain/dhravya-slack-icon.jpg";
+  const BOT_AVATAR = "/docs/images/company-brain/supermemory-slack-icon.png";
+
+  const resolvedName = bot ? "supermemory" : self ? SELF_NAME : name || SELF_NAME;
+  const resolvedAvatar = bot ? BOT_AVATAR : self ? SELF_AVATAR : avatar;
+  const resolvedBadges = badges || (bot ? ["AGENT"] : null);
+
+  return (
+    <div
+      className={
+        "group relative flex gap-2.5 px-4 py-2 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] " +
+        (highlighted
+          ? "mx-2 my-1 rounded-md border border-[#1D9BD1]/60 bg-[#1D9BD1]/[0.04] px-2 py-2"
+          : "")
+      }
+    >
+      <div className="absolute -top-4 right-3 hidden items-center gap-0.5 rounded-md border border-black/10 bg-white p-0.5 shadow-sm group-hover:flex dark:border-white/10 dark:bg-[#222529]">
+        {["✅", "👀", "🙌", "😊", "↩️", "⋯"].map((icon, i) => (
+          <span
+            key={i}
+            className="flex h-6 w-6 items-center justify-center rounded text-xs hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            {icon}
+          </span>
+        ))}
+      </div>
+      {resolvedAvatar ? (
+        <img
+          src={resolvedAvatar}
+          alt={resolvedName}
+          className="mt-0.5 h-9 w-9 flex-none rounded-md object-cover"
+        />
+      ) : (
+        <div
+          className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-md text-sm font-bold text-white"
+          style={{ backgroundColor: color }}
+        >
+          {(resolvedName || "?").slice(0, 1).toUpperCase()}
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+          <span className="text-[15px] font-bold text-gray-900 dark:text-zinc-50">
+            {resolvedName}
+          </span>
+          {subtitle ? (
+            <span className="text-xs font-normal text-gray-500 dark:text-zinc-400">
+              ({subtitle})
+            </span>
+          ) : null}
+          {resolvedBadges
+            ? resolvedBadges.map((b) => (
+                <span
+                  key={b}
+                  className="rounded-[3px] border border-black/10 px-1 py-px text-[10px] font-medium leading-tight text-gray-500 dark:border-white/15 dark:text-zinc-400"
+                >
+                  {b}
+                </span>
+              ))
+            : null}
+          {time ? (
+            <span className="text-xs font-normal text-gray-400 dark:text-zinc-500">{time}</span>
+          ) : null}
+        </div>
+        <div className="text-[15px] leading-normal text-gray-800 dark:text-zinc-200 [&_p]:m-0 [&_strong]:font-bold [&_strong]:text-gray-900 dark:[&_strong]:text-zinc-50 [&_code]:rounded [&_code]:bg-black/5 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.9em] dark:[&_code]:bg-white/10">
+          {children}
+        </div>
+        {reactions ? (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {reactions.map((r, i) => (
+              <span
+                key={i}
+                className="flex items-center gap-1 rounded-full border border-[#1D9BD1]/40 bg-[#1D9BD1]/10 px-2 py-0.5 text-xs text-[#1264A3] dark:border-[#1D9BD1]/40 dark:bg-[#1D9BD1]/15 dark:text-[#7DD3FC]"
+              >
+                <span>{r.emoji}</span>
+                <span className="font-semibold">{r.count}</span>
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
+export const FileAttachment = ({ name, size }) => (
+  <div className="inline-flex max-w-[260px] items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-2 dark:border-white/10 dark:bg-[#222529]">
+    <svg
+      viewBox="0 0 18 18"
+      className="h-6 w-6 flex-none text-gray-400 dark:text-zinc-500"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      aria-hidden="true"
+    >
+      <path
+        d="M4.5 2h6l3 3v9.5a1 1 0 01-1 1h-8a1 1 0 01-1-1V3a1 1 0 011-1z"
+        strokeLinejoin="round"
+      />
+      <path d="M10.5 2v3h3" strokeLinejoin="round" />
+    </svg>
+    <div className="min-w-0">
+      <div className="truncate text-sm font-medium text-gray-900 dark:text-zinc-50">{name}</div>
+      {size ? (
+        <div className="truncate text-xs text-gray-500 dark:text-zinc-400">{size}</div>
+      ) : null}
+    </div>
+  </div>
+);
+
+export const AgentLink = ({ href, children }) => (
+  <a href={href} className="font-medium no-underline hover:underline" style={{ color: "#1264A3" }}>
+    {children}
+  </a>
+);

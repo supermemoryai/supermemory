@@ -1,3 +1,4 @@
+import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -6,6 +7,7 @@ export function register(deps: ToolDeps) {
 		{
 			description: "Get current user info, role, and workspace context",
 			inputSchema: {},
+			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async () => {
 			try {
