@@ -10,7 +10,6 @@ import { useGraphData } from "../hooks/use-graph-data"
 import { useGraphTheme } from "../hooks/use-graph-theme"
 import type {
 	GraphApiDocument,
-	GraphThemeColors,
 	MemoryGraphProps,
 	ResolvedMemoryGraphLabels,
 } from "../types"
@@ -48,14 +47,12 @@ export function MemoryGraph({
 	)
 	const hoverPopoverZIndex =
 		layering?.hoverPopoverZIndex ?? DEFAULT_HOVER_POPOVER_Z_INDEX
-	const resolvedColors = useGraphTheme(colorOverrides)
-	const colors = useMemo<GraphThemeColors>(
-		() =>
-			colorOverrides
-				? { ...resolvedColors, ...colorOverrides }
-				: resolvedColors,
-		[resolvedColors, colorOverrides],
-	)
+	// useGraphTheme already merges the overrides and keeps the result
+	// referentially stable while the override values are unchanged.
+	// Re-merging here keyed on the raw prop identity made `colors` a new
+	// object on every render for inline `colors={{...}}` consumers, which
+	// rebuilt the entire node array (useGraphData dependency) each render.
+	const colors = useGraphTheme(colorOverrides)
 
 	const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
 	const [containerBounds, setContainerBounds] = useState<DOMRect | null>(null)

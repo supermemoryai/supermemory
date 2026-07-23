@@ -5,9 +5,19 @@ export class SpatialIndex {
 	private cellSize = 200
 	private lastHash = 0
 
-	rebuild(nodes: GraphNode[]): boolean {
+	/**
+	 * Rebuild the grid from the given nodes.
+	 *
+	 * The content hash only covers node ids and positions, so it cannot
+	 * detect a new generation of node objects at the same coordinates
+	 * (e.g. after useGraphData re-runs on resize or theme change). Callers
+	 * reacting to a node-array identity change must pass force=true, or
+	 * hit-testing keeps returning stale objects the renderer no longer
+	 * draws.
+	 */
+	rebuild(nodes: GraphNode[], force = false): boolean {
 		const hash = this.computeHash(nodes)
-		if (hash === this.lastHash) return false
+		if (!force && hash === this.lastHash) return false
 		this.lastHash = hash
 		this.grid.clear()
 
