@@ -2836,7 +2836,8 @@ export function IntegrationsView({
 	const handleRevokePluginKey = async (keyId: string) => {
 		try {
 			const result = await authClient.apiKey.delete({ keyId })
-			if (result.error) throw new Error(result.error.message)
+			if (result.error)
+				throw new Error(result.error.message, { cause: result.error })
 			const refreshed = await refetchKeys()
 			if (refreshed.error) throw refreshed.error
 			toast.success("Plugin disconnected")
