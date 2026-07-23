@@ -23,6 +23,7 @@ import { isWebSearchToolName } from "@/lib/chat-web-search-tools"
 import {
 	buildCitationIndex,
 	fetchDocumentsByIds,
+	getCitationDisplay,
 	getDocumentSourceUrl,
 	isMemoryToolOutputReady,
 	mapDocumentsByKnownIds,
@@ -31,7 +32,9 @@ import {
 	extractMemoryToolOutputs,
 } from "@/lib/chat-memory-tools"
 import {
+	hasRenderableSourceAnnotations,
 	parseSourceAnnotatedMarkdown,
+	sourceAnnotatedTextRun,
 	stripSourceMarkup,
 } from "@/lib/source-annotations"
 import { modelNames, type ModelId } from "@/lib/models"
@@ -190,37 +193,64 @@ function CitationLink({
 	)
 }
 
-function sourceTitle(
+function documentForCitationTarget(
 	target: CitationTarget,
-	document?: DocumentWithMemories,
-): string {
+	documentByKnownId: Map<string, DocumentWithMemories>,
+): DocumentWithMemories | undefined {
 	return (
-		document?.title?.trim() ||
-		target.title?.trim() ||
-		document?.customId ||
-		target.customId ||
-		target.documentId ||
-		target.sourceId
+		(target.documentId
+			? documentByKnownId.get(target.documentId)
+			: undefined) ??
+		(target.customId ? documentByKnownId.get(target.customId) : undefined)
 	)
 }
 
-function sourceSummary(
-	target: CitationTarget,
-	document?: DocumentWithMemories,
-): string | null {
-	const summary =
-		document?.summary ||
-		target.summary ||
-		(document as { content?: string } | undefined)?.content ||
-		null
-	return summary ? summary.trim() : null
-}
+function MemorySourcesFallback({
+	citationIndex,
+	documentByKnownId,
+}: {
+	citationIndex: Map<string, CitationTarget>
+	documentByKnownId: Map<string, DocumentWithMemories>
+}) {
+	const sources = Array.from(citationIndex.values()).slice(0, 6)
+	if (sources.length === 0) return null
 
-function sourceKind(
-	target: CitationTarget,
-	document?: DocumentWithMemories,
-): string {
-	return (document?.type || target.type || "memory").replaceAll("_", " ")
+	return (
+		<div className="mt-3 flex flex-wrap gap-1.5 text-xs text-white/45">
+			<span className="mr-0.5 self-center text-white/35">Sources</span>
+			{sources.map((target) => {
+				const document = documentForCitationTarget(target, documentByKnownId)
+				const display = getCitationDisplay(target, document)
+				const url = safeExternalUrl(
+					document ? getDocumentSourceUrl(document) : target.url,
+				)
+				const label = `${target.sourceId}: ${display.title}`
+				const className =
+					"max-w-56 truncate rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/75"
+
+				return url ? (
+					<a
+						key={target.sourceId}
+						href={url}
+						target="_blank"
+						rel="noopener noreferrer"
+						className={className}
+						title={display.summary ?? label}
+					>
+						{label}
+					</a>
+				) : (
+					<span
+						key={target.sourceId}
+						className={className}
+						title={display.summary ?? label}
+					>
+						{label}
+					</span>
+				)
+			})}
+		</div>
+	)
 }
 
 function SourceCitationLink({
@@ -237,16 +267,11 @@ function SourceCitationLink({
 	const target = citationIndex.get(sourceId)
 	if (!target) return <>{children}</>
 
-	const document =
-		(target.documentId
-			? documentByKnownId.get(target.documentId)
-			: undefined) ??
-		(target.customId ? documentByKnownId.get(target.customId) : undefined)
+	const document = documentForCitationTarget(target, documentByKnownId)
 	const url = safeExternalUrl(
 		document ? getDocumentSourceUrl(document) : target.url,
 	)
-	const title = sourceTitle(target, document)
-	const summary = sourceSummary(target, document)
+	const display = getCitationDisplay(target, document)
 
 	return (
 		<span className="group/source relative inline rounded-[3px] border-b border-dotted border-white/20 bg-white/[0.025] px-px text-white/90 transition-colors hover:border-white/35 hover:bg-white/[0.045] focus-within:border-white/35 focus-within:bg-white/[0.045]">
@@ -274,15 +299,15 @@ function SourceCitationLink({
 				<span className="pointer-events-auto block rounded-xl border border-white/10 bg-[#0B0F16]/95 p-3 text-left shadow-[0_16px_44px_rgba(0,0,0,0.48)] backdrop-blur-xl">
 					<span className="mb-1 flex items-center justify-between gap-2">
 						<span className="truncate text-xs font-medium text-white/85">
-							{title}
+							{display.title}
 						</span>
 						<span className="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-[10px] capitalize text-white/40">
-							{sourceKind(target, document)}
+							{display.kind}
 						</span>
 					</span>
-					{summary ? (
+					{display.summary ? (
 						<span className="line-clamp-3 text-xs leading-snug text-white/55">
-							{summary}
+							{display.summary}
 						</span>
 					) : null}
 					{url ? (
@@ -754,6 +779,12 @@ export function AgentMessage({
 		() => makeMarkdownComponents(webSources, citationIndex, documentByKnownId),
 		[webSources, citationIndex, documentByKnownId],
 	)
+	const hasInlineSourceAnnotations = useMemo(
+		() => hasRenderableSourceAnnotations(message.parts, allowedSourceIds),
+		[message.parts, allowedSourceIds],
+	)
+	const showMemorySourcesFallback =
+		citationIndex.size > 0 && !hasInlineSourceAnnotations
 	const responseModelLabel = responseModel
 		? `${modelNames[responseModel].name} ${modelNames[responseModel].version}`
 		: null
@@ -798,22 +829,10 @@ export function AgentMessage({
 							)
 						}
 						if (part.type === "text") {
-							// Skip fragments mid-run — source-url citations split one answer into
-							// many text parts; rendering each separately tears markdown (lists etc.).
-							let prev = partIndex - 1
-							while (prev >= 0 && message.parts[prev]?.type === "source-url") {
-								prev--
-							}
-							if (prev >= 0 && message.parts[prev]?.type === "text") {
-								return null
-							}
-							let runText = ""
-							for (let j = partIndex; j < message.parts.length; j++) {
-								const p = message.parts[j]
-								if (p?.type === "text") runText += p.text
-								else if (p?.type === "source-url") continue
-								else break
-							}
+							// source-url citations split one answer into many text parts;
+							// render each contiguous text/source-url run as one markdown block.
+							const runText = sourceAnnotatedTextRun(message.parts, partIndex)
+							if (runText === null) return null
 							return (
 								<div
 									key={`${message.id}-${partIndex}`}
@@ -865,6 +884,12 @@ export function AgentMessage({
 						}
 						return null
 					})}
+					{showMemorySourcesFallback && (
+						<MemorySourcesFallback
+							citationIndex={citationIndex}
+							documentByKnownId={documentByKnownId}
+						/>
+					)}
 				</div>
 			</div>
 			{hasAssistantText && (
