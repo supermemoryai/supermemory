@@ -69,6 +69,11 @@ import {
 } from "@/lib/search-params"
 import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
 import { getToolDocumentSpace } from "@/lib/plugin-space"
+import {
+	getSpaceHighlightsCacheKey,
+	LEGACY_SPACE_HIGHLIGHTS_CACHE_NAME,
+	SPACE_HIGHLIGHTS_CACHE_NAME,
+} from "@/lib/space-highlights-cache"
 import { getBackendUrl } from "@/lib/url-helpers"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
@@ -114,7 +119,7 @@ function ViewErrorFallback() {
 
 export function AppExperience() {
 	const isMobile = useIsMobile()
-	const { user, session, isSessionPending, org } = useAuth()
+	const { user, session, isSessionPending, isRestoring, org } = useAuth()
 
 	const { selectedProject, selectedProjects, setSelectedProject } = useProject()
 	const selectedProjectTag = selectedProjects[0]
@@ -325,27 +330,75 @@ export function AppExperience() {
 		generatedAt: string
 	}
 
-	const HIGHLIGHTS_CACHE_NAME = "space-highlights-v1"
 	const HIGHLIGHTS_MAX_AGE = 4 * 60 * 60 * 1000 // 4 hours
+	const highlightsAccountScope =
+		user?.id && org?.id ? JSON.stringify([user.id, org.id]) : null
+	const previousHighlightsAccountScope = useRef<string | null | undefined>(
+		undefined,
+	)
+
+	useEffect(() => {
+		if (isSessionPending || isRestoring) return
+
+		const previousScope = previousHighlightsAccountScope.current
+		previousHighlightsAccountScope.current = highlightsAccountScope
+		if (previousScope === undefined) {
+			try {
+				void caches.delete(LEGACY_SPACE_HIGHLIGHTS_CACHE_NAME)
+			} catch {}
+			return
+		}
+		if (previousScope === highlightsAccountScope) return
+
+		queryClient.removeQueries({
+			queryKey: ["space-highlights"],
+			predicate: (query) =>
+				query.queryKey[1] !== user?.id || query.queryKey[2] !== org?.id,
+		})
+		try {
+			void caches.delete(SPACE_HIGHLIGHTS_CACHE_NAME)
+		} catch {}
+	}, [
+		highlightsAccountScope,
+		isRestoring,
+		isSessionPending,
+		org?.id,
+		queryClient,
+		user?.id,
+	])
 
 	const handleResetHighlights = useCallback(async () => {
 		toast.success("Refreshing daily brief…")
 		try {
-			await caches.delete(HIGHLIGHTS_CACHE_NAME)
+			await caches.delete(SPACE_HIGHLIGHTS_CACHE_NAME)
 		} catch {}
 		setHighlightsForceAt(Date.now())
 	}, [])
 
 	const { data: highlightsData, isLoading: isLoadingHighlights } =
 		useQuery<SpaceHighlightsResponse>({
-			queryKey: ["space-highlights", selectedProject, highlightsForceAt],
+			queryKey: [
+				"space-highlights",
+				user?.id,
+				org?.id,
+				selectedProject,
+				highlightsForceAt,
+			],
 			queryFn: async (): Promise<SpaceHighlightsResponse> => {
+				if (!user?.id || !org?.id) {
+					throw new Error("User and organization are required")
+				}
 				const spaceId = selectedProject || "sm_project_default"
 				const forceRefresh = highlightsForceAt > 0
-				const cacheKey = `${backendUrl}/v3/space-highlights?spaceId=${spaceId}`
+				const cacheKey = getSpaceHighlightsCacheKey({
+					backendUrl,
+					spaceId,
+					userId: user.id,
+					organizationId: org.id,
+				})
 
 				if (!forceRefresh) {
-					const cache = await caches.open(HIGHLIGHTS_CACHE_NAME)
+					const cache = await caches.open(SPACE_HIGHLIGHTS_CACHE_NAME)
 					const cached = await cache.match(cacheKey)
 					if (cached) {
 						const age =
@@ -378,7 +431,7 @@ export function AppExperience() {
 
 				// Update browser cache with fresh data (works for both normal and forced refresh)
 				try {
-					const freshCache = await caches.open(HIGHLIGHTS_CACHE_NAME)
+					const freshCache = await caches.open(SPACE_HIGHLIGHTS_CACHE_NAME)
 					const cacheResponse = new Response(JSON.stringify(data), {
 						headers: {
 							"Content-Type": "application/json",
@@ -396,6 +449,7 @@ export function AppExperience() {
 			},
 			staleTime: HIGHLIGHTS_MAX_AGE,
 			refetchOnWindowFocus: false,
+			enabled: !!user?.id && !!org?.id,
 		})
 
 	const { data: memoryOfDay = null } = useQuery<MemoryOfDay | null>({
