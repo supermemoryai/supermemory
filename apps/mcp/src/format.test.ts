@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import type { DocumentsApiResponse } from "./client"
-import { formatMemoriesList } from "./format"
+import type { DocumentsApiResponse } from "./server/client"
+import { formatMemoriesList } from "./server/format"
 
 function makeResponse(
 	overrides: Partial<DocumentsApiResponse> = {},
@@ -116,7 +116,7 @@ describe("formatMemoriesList", () => {
 		)
 
 		expect(result).toContain(
-			'"Still processing" (text, 2026-06-12) — no extracted memories yet',
+			'"Still processing" (text, 2026-06-12) - no extracted memories yet',
 		)
 	})
 
@@ -162,7 +162,7 @@ describe("formatMemoriesList", () => {
 		)
 
 		expect(result).toContain("- line one line two tabbed")
-		expect(result).toContain("… [truncated]")
+		expect(result).toContain("... [truncated]")
 		const truncatedLine = result
 			.split("\n")
 			.find((line) => line.includes("[truncated]"))
@@ -188,6 +188,6 @@ describe("formatMemoriesList", () => {
 		)
 
 		expect(result).toContain("page 1 of 3, 3 documents total")
-		expect(result).toContain("More available — call listMemories with page: 2.")
+		expect(result).toContain("More available - call listMemories with page: 2.")
 	})
 })

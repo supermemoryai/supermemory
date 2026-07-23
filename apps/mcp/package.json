@@ -1,34 +1,48 @@
 {
-  "name": "supermemory-mcp",
-  "version": "4.0.0",
-  "type": "module",
-  "portless": { "name": "mcp.dev.supermemory", "script": "dev:app" },
-  "scripts": {
-    "build:ui": "vite build",
-    "dev": "portless",
-    "dev:app": "vite build && wrangler dev --port ${PORT:-8788}",
-    "deploy": "vite build && wrangler deploy --minify",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
-    "test:e2e": "vitest run"
-  },
-  "dependencies": {
-    "@cloudflare/workers-oauth-provider": "^0.2.2",
-    "@modelcontextprotocol/ext-apps": "^1.0.0",
-    "@modelcontextprotocol/sdk": "^1.25.2",
-    "agents": "^0.3.5",
-    "hono": "^4.11.1",
-    "posthog-node": "^5.18.0",
-    "supermemory": "^4.0.0",
-    "zod": "^3.25.76"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250620.0",
-    "d3-force-3d": "^3.0.5",
-    "force-graph": "^1.49.0",
-    "typescript": "^5.8.3",
-    "vite": "^6.0.0",
-    "vite-plugin-singlefile": "^2.3.0",
-    "vitest": "^3.2.4",
-    "wrangler": "^4.4.0"
-  }
+	"name": "supermemory-mcp",
+	"version": "1.0.0",
+	"type": "module",
+	"scripts": {
+		"build:widget": "vite build",
+		"build": "vite build",
+		"dev": "portless",
+		"dev:app": "vite build && wrangler dev --port ${PORT:-8788}",
+		"dev:widget": "vite --config vite.config.dev.ts",
+		"studio": "vite --config vite.config.dev.ts --open /studio.html",
+		"deploy": "vite build && wrangler deploy --minify",
+		"check-types": "tsc --noEmit -p tsconfig.widget.json",
+		"cf-typegen": "wrangler types --env-interface CloudflareBindings"
+	},
+	"dependencies": {
+		"@cloudflare/workers-oauth-provider": "^0.2.2",
+		"@modelcontextprotocol/ext-apps": "^1.0.0",
+		"@modelcontextprotocol/sdk": "^1.25.2",
+		"@phosphor-icons/react": "^2.1.10",
+		"@radix-ui/react-popover": "^1.1.15",
+		"@radix-ui/react-slot": "^1.2.3",
+		"@radix-ui/react-tooltip": "^1.2.7",
+		"@supermemory/memory-graph": "^0.2.0",
+		"agents": "^0.3.5",
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
+		"hono": "^4.11.1",
+		"jose": "^6.2.0",
+		"react": "^19.2.4",
+		"react-dom": "^19.2.4",
+		"supermemory": "^4.0.0",
+		"tailwind-merge": "^3.4.0",
+		"zod": "^3.25.76"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20250620.0",
+		"@tailwindcss/vite": "^4.1.13",
+		"@types/react": "^19.1.13",
+		"@types/react-dom": "^19.1.9",
+		"@vitejs/plugin-react": "^4.3.4",
+		"tailwindcss": "^4.1.13",
+		"typescript": "^5.8.3",
+		"vite": "^6.0.0",
+		"vite-plugin-singlefile": "^2.3.0",
+		"wrangler": "^4.4.0"
+	}
 }

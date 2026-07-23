@@ -1,19 +1,25 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import { API_KEY, callTool, connect, textOf, type Session } from "./helpers"
+import {
+	OAUTH_CREDENTIALS_AVAILABLE,
+	callTool,
+	connect,
+	textOf,
+	type Session,
+} from "./helpers"
 
 const EXPECTED_TOOLS = [
-	"memory",
-	"recall",
-	"listMemories",
-	"listProjects",
+	"add_memory",
+	"search_memory",
+	"listSpaces",
 	"whoAmI",
 	"memory-graph",
 ]
+const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
 const READ_ONLY_TOOL_NAMES = [
-	"recall",
+	"search_memory",
 	"listMemories",
-	"listProjects",
+	"listSpaces",
 	"whoAmI",
 	"memory-graph",
 ]
@@ -32,7 +38,7 @@ const MEMORY_TOOL_ANNOTATIONS = {
 	openWorldHint: false,
 }
 
-describe.skipIf(!API_KEY)("MCP — discovery & identity", () => {
+describeWithAuth("MCP — discovery & identity", () => {
 	let s: Session
 
 	beforeAll(async () => {
@@ -56,17 +62,17 @@ describe.skipIf(!API_KEY)("MCP — discovery & identity", () => {
 		}
 	})
 
-	it("marks memory as mutating", async () => {
+	it("marks add_memory as mutating", async () => {
 		const { tools } = await s.client.listTools()
-		const memory = tools.find((t) => t.name === "memory")
+		const memory = tools.find((t) => t.name === "add_memory")
 		expect(memory?.annotations).toMatchObject(MEMORY_TOOL_ANNOTATIONS)
 	})
 
-	it("lists profile & projects resources", async () => {
+	it("lists profile and container-tag resources", async () => {
 		const { resources } = await s.client.listResources()
 		const uris = resources.map((r) => r.uri)
 		expect(uris).toContain("supermemory://profile")
-		expect(uris).toContain("supermemory://projects")
+		expect(uris).toContain("supermemory://container-tags")
 	})
 
 	it("lists the context prompt", async () => {
@@ -81,8 +87,8 @@ describe.skipIf(!API_KEY)("MCP — discovery & identity", () => {
 		expect(parsed.userId).toBeTruthy()
 	})
 
-	it("listProjects returns content", async () => {
-		const res = await callTool(s.client, "listProjects", { refresh: true })
+	it("listSpaces returns content", async () => {
+		const res = await callTool(s.client, "listSpaces")
 		expect(res.isError).toBeFalsy()
 		expect(textOf(res).length).toBeGreaterThan(0)
 	})

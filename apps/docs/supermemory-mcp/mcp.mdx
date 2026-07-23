@@ -34,7 +34,7 @@ That’s enough for agents to build real continuity — without tool sprawl.
 
 ## How it fits together
 
-1. You connect your client to `https://mcp.supermemory.ai/mcp` (OAuth or API key).
+1. You connect your client to `https://mcp.supermemory.ai/mcp` (OAuth).
 2. During conversations, the model stores important facts with **`memory`**.
 3. When context is needed, **`recall`** (and the profile) pull the right history back in.
 4. Switch tools tomorrow — same account, same memory.
@@ -61,28 +61,9 @@ Add it to your MCP client config:
 }
 ```
 
-The server uses **OAuth** by default. Your client discovers the authorization server via `/.well-known/oauth-protected-resource` and prompts you to sign in.
+The server requires **OAuth**. Your client will discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
 
 For Claude (Settings → Connectors), see **[Claude Desktop](/supermemory-mcp/claude-desktop)**. For client-specific examples, see **[Setup and Usage](/supermemory-mcp/setup)**.
-
-### API Key Authentication (Alternative)
-
-If you prefer API keys over OAuth, get one from [app.supermemory.ai](https://app.supermemory.ai) and pass it in the `Authorization` header:
-
-```json
-{
-  "mcpServers": {
-    "supermemory": {
-      "url": "https://mcp.supermemory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer sm_your_api_key_here"
-      }
-    }
-  }
-}
-```
-
-API keys start with `sm_` and skip OAuth when provided.
 
 ### Project Scoping
 
@@ -162,7 +143,7 @@ In Cursor and Claude Code you can often invoke this with **`/context`**, which g
 
 <CardGroup cols={2}>
   <Card title="Setup and Usage" icon="settings" href="/supermemory-mcp/setup">
-    Client configs, API keys, and project scoping.
+    Client configs, OAuth, and project scoping.
   </Card>
   <Card title="MCP Server Source" icon="/docs/images/github-icon.svg" href="https://github.com/supermemoryai/supermemory/tree/main/apps/mcp">
     Open-source implementation.

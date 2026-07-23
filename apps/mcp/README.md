@@ -4,7 +4,7 @@ A standalone MCP (Model Context Protocol) server for Supermemory that gives AI a
 
 ## Features
 
-- **Authentication** - Supports both API keys and OAuth authentication
+- **Authentication** - OAuth 2.1 with dynamic client registration
 - **Persistent Memory** - Save and recall information across sessions
 - **User Profiles** - Auto-generated profiles from stored memories
 - **Project Scoping** - Organize memories by project with `x-sm-project` header
@@ -30,26 +30,7 @@ Add to your MCP client config (Claude, Cursor, Windsurf, VS Code, etc.):
 }
 ```
 
-The server uses OAuth authentication by default. Your MCP client will automatically discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
-
-### API Key Authentication (Alternative)
-
-If you prefer to use an API key instead of OAuth, you can pass it directly in the `Authorization` header. Get your API key from [app.supermemory.ai](https://app.supermemory.ai):
-
-```json
-{
-  "mcpServers": {
-    "supermemory": {
-      "url": "https://mcp.supermemory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer sm_your_api_key_here"
-      }
-    }
-  }
-}
-```
-
-API keys start with `sm_` and are automatically detected. When an API key is provided, OAuth authentication is skipped.
+The server requires OAuth authentication. Your MCP client will automatically discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
 
 ### Project Scoping (Optional)
 
@@ -192,9 +173,9 @@ core journey: handshake → tool/resource/prompt discovery → `whoAmI` → `lis
 the `context` prompt, container-tag isolation, and auth rejections.
 
 ```bash
-export SUPERMEMORY_API_KEY=sm_...                          # staging key (required; tests skip without it)
 export SUPERMEMORY_MCP_URL=https://mcp.supermemory.ai/mcp  # optional, this is the default
 export SUPERMEMORY_API_URL=https://api.supermemory.ai      # optional, OAuth authorization server
+bun e2e/capture-oauth-token.ts                             # one-time browser authorization
 bun run test:e2e
 ```
 
@@ -216,8 +197,8 @@ API (`api.supermemory.ai`, better-auth). `oauth.test.ts` covers the real flow in
 - **A–C (no secrets)** — discovery chain, dynamic client registration, and token/authorize
   negatives. These exercise the protocol wiring with no key and no browser, so they always run.
 - **D (real token)** — exchanges a seeded `refresh_token` for an `access_token` and connects to
-  `/mcp` with it, exercising the OAuth-token validation path (not the `sm_` API-key path). It
-  **skips** unless both env vars below are set.
+  `/mcp` with it, exercising the OAuth-token validation path. It **skips** unless both OAuth
+  credentials below are available.
 
 ```bash
 # One-time capture (opens a browser for login + consent, prints the env vars):
@@ -227,8 +208,8 @@ export SUPERMEMORY_MCP_REFRESH_TOKEN=...
 ```
 
 Notes:
-- Tests **skip** (not fail) without `SUPERMEMORY_API_KEY`; Tier D OAuth tests skip without the
-  refresh-token env vars — so CI is safe without secrets.
+- Authenticated tests **skip** (not fail) without stored OAuth credentials or the refresh-token
+  environment variables, so CI is safe without secrets.
 - `recall` is eventually-consistent (save → ingestion pipeline → memories), so the round-trip
   **polls up to ~90s**. `forget` removal is slower still and is asserted as best-effort.
 - The suite uses unique per-run markers and forgets them in teardown to avoid polluting the account.
@@ -242,7 +223,7 @@ bun run deploy
 ## Architecture
 
 ```
-┌─────────────────┐  OAuth/API Key ┌──────────────────┐
+┌─────────────────┐     OAuth      ┌──────────────────┐
 │   MCP Client    │◄──────────────►│  Supermemory API │
 │ (Claude, Cursor)│                │  (api.supermemory.ai)
 └────────┬────────┘                └──────────────────┘
@@ -269,4 +250,3 @@ bun run deploy
 - **MCP SDK:** @modelcontextprotocol/sdk + agents
 - **API Client:** supermemory SDK
 - **Analytics:** PostHog
-

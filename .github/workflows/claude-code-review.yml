@@ -48,18 +48,7 @@ jobs:
           # Enable inline comments for specific issues
           claude_args: |
             --model claude-opus-4-5-20251101
-            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(*),WebSearch,WebFetch,Task,mcp__supermemory__*,mcp__github__*"
-            --mcp-config '{
-              "mcpServers": {
-                "supermemory": {
-                  "type": "http",
-                  "url": "https://mcp.supermemory.ai/mcp",
-                  "headers": {
-                    "Authorization": "Bearer ${{ secrets.SUPERMEMORY_API_KEY }}"
-                  }
-                }
-              }
-            }'
+            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(*),WebSearch,WebFetch,Task,mcp__github__*"
 
           prompt: |
             You are a senior engineer reviewing a pull request. Your job is to catch real bugs, security issues, and logic errors that a human reviewer might miss. You are NOT a linter — do not comment on style, naming, formatting, or minor nitpicks.
