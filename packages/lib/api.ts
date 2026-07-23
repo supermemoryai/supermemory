@@ -11,6 +11,8 @@ import {
 	CreateProjectSchema,
 	DeleteProjectResponseSchema,
 	DeleteProjectSchema,
+	DocumentFacetsQuerySchema,
+	DocumentFacetsResponseSchema,
 	DocumentsWithMemoriesQuerySchema,
 	DocumentsWithMemoriesResponseSchema,
 	ListContainerTagsResponseSchema,
@@ -18,6 +20,7 @@ import {
 	ListProjectsResponseSchema,
 	MemoryAddSchema,
 	MemoryResponseSchema,
+	MemoryUpdateSchema,
 	MigrateMCPRequestSchema,
 	MigrateMCPResponseSchema,
 	ProcessingDocumentsResponseSchema,
@@ -265,6 +268,10 @@ export const apiSchema = createSchema({
 		input: DocumentsWithMemoriesQuerySchema,
 		output: DocumentsWithMemoriesResponseSchema,
 	},
+	"@post/documents/documents/facets": {
+		input: DocumentFacetsQuerySchema,
+		output: DocumentFacetsResponseSchema,
+	},
 	"@post/documents/documents/by-ids": {
 		input: z.object({
 			ids: z.array(z.string()),
@@ -289,6 +296,13 @@ export const apiSchema = createSchema({
 
 	"@get/documents/:id": {
 		output: z.any(),
+	},
+
+	// Update a memory
+	"@patch/documents/:id": {
+		input: MemoryUpdateSchema,
+		output: MemoryResponseSchema,
+		params: z.object({ id: z.string() }),
 	},
 
 	// Delete a memory

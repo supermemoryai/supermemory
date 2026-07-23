@@ -1100,6 +1100,13 @@ export const DocumentsWithMemoriesQuerySchema = z
 			description: "Number of items per page",
 			example: 10,
 		}),
+		categories: z
+			.array(z.string())
+			.optional()
+			.openapi({
+				description: "Optional document categories to filter by",
+				example: ["webpage", "tweet"],
+			}),
 		sort: z.enum(["createdAt", "updatedAt"]).default("createdAt").openapi({
 			description: "Field to sort by",
 			example: "createdAt",
@@ -1133,6 +1140,33 @@ export const DocumentFacetsQuerySchema = z
 	.openapi({
 		description: "Query parameters for getting document facets",
 	})
+
+export const DocumentFacetSchema = z
+	.object({
+		category: z.string().openapi({
+			description: "Document category identifier",
+			example: "webpage",
+		}),
+		count: z.number().openapi({
+			description: "Number of documents in this category",
+			example: 42,
+		}),
+		label: z.string().openapi({
+			description: "Human-readable category label",
+			example: "Web pages",
+		}),
+	})
+	.openapi({ description: "A single document-category facet" })
+
+export const DocumentFacetsResponseSchema = z
+	.object({
+		facets: z.array(DocumentFacetSchema),
+		total: z.number().optional().openapi({
+			description: "Total number of documents across all categories",
+			example: 120,
+		}),
+	})
+	.openapi({ description: "Document category facets" })
 
 export const MigrateMCPRequestSchema = z
 	.object({
