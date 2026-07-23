@@ -144,8 +144,8 @@ describe.skipIf(!API_KEY)("MCP — memory behaviors", () => {
 				created.ok,
 				`memory fixture creation failed: ${created.status}`,
 			).toBe(true)
-			documentId = ((await created.json()) as { documentId?: string })
-				.documentId
+			const body: { documentId?: string } = await created.json()
+			documentId = body.documentId
 			expect(
 				documentId,
 				"fixture should return a source document ID",

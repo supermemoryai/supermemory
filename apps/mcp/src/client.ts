@@ -252,9 +252,9 @@ export class SupermemoryClient {
 			)
 			if (!valid) return null
 
-			const confirmation = JSON.parse(
+			const confirmation: Record<string, unknown> = JSON.parse(
 				textDecoder.decode(this.fromBase64Url(payload)),
-			) as Record<string, unknown>
+			)
 			if (
 				confirmation.version !== 1 ||
 				typeof confirmation.memoryId !== "string" ||
