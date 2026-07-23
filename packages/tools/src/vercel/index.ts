@@ -191,7 +191,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 							const assistantResponseText = extractAssistantResponseText(
 								result.content as unknown[],
 							)
-							saveMemoryAfterResponse(
+							await saveMemoryAfterResponse(
 								ctx.client,
 								ctx.containerTag,
 								ctx.customId,
@@ -267,7 +267,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 									userMessage &&
 									userMessage.trim()
 								) {
-									saveMemoryAfterResponse(
+									await saveMemoryAfterResponse(
 										ctx.client,
 										ctx.containerTag,
 										ctx.customId,
