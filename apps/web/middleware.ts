@@ -1,5 +1,6 @@
 import { getSessionCookie } from "better-auth/cookies"
 import { NextResponse } from "next/server"
+import { middlewareAuthClient } from "@lib/auth.middleware"
 import { getPublicRequestUrl } from "@/lib/url-helpers"
 
 const LOCAL_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
@@ -9,6 +10,22 @@ function getAuthSessionCookie(request: Request): string | null {
 		getSessionCookie(request) ??
 		getSessionCookie(request, { cookiePrefix: "better-auth-dev" })
 	)
+}
+
+async function hasValidSession(request: Request): Promise<boolean> {
+	try {
+		const session = await middlewareAuthClient.getSession({
+			fetchOptions: {
+				headers: {
+					cookie: request.headers.get("cookie") ?? "",
+				},
+			},
+		})
+		return Boolean(session?.session && session.user)
+	} catch (error) {
+		console.error("[PROXY] Failed to validate session", error)
+		return false
+	}
 }
 
 export default async function proxy(request: Request) {
@@ -58,22 +75,26 @@ export default async function proxy(request: Request) {
 		return NextResponse.next()
 	}
 
+	const validSession = sessionCookie ? await hasValidSession(request) : false
+
 	if (url.pathname.startsWith("/api/")) {
-		if (!sessionCookie) {
-			console.debug("[MIDDLEWARE] API route without session, returning 401")
+		if (!validSession) {
+			console.debug(
+				"[MIDDLEWARE] API route without valid session, returning 401",
+			)
 			return new Response(JSON.stringify({ error: "Unauthorized" }), {
 				status: 401,
 				headers: { "Content-Type": "application/json" },
 			})
 		}
-		console.debug("[MIDDLEWARE] API route with session, allowing access")
+		console.debug("[MIDDLEWARE] API route with valid session, allowing access")
 		return NextResponse.next()
 	}
 
-	// If no session cookie and not on a public path, redirect to login
-	if (!sessionCookie) {
+	// If no valid session and not on a public path, redirect to login
+	if (!validSession) {
 		console.debug(
-			"[PROXY] No session cookie and not on public path, redirecting to /login",
+			"[PROXY] No valid session and not on public path, redirecting to /login",
 		)
 		const loginUrl = new URL("/login", url.origin)
 		loginUrl.searchParams.set("redirect", url.toString())
