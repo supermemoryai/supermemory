@@ -1,6 +1,11 @@
 import { describe, expect, it } from "bun:test"
 import { readFileSync } from "node:fs"
-import { SearchRequestSchema, Searchv4RequestSchema } from "./api"
+import {
+	DocumentsWithMemoriesQuerySchema,
+	ListMemoriesQuerySchema,
+	SearchRequestSchema,
+	Searchv4RequestSchema,
+} from "./api"
 
 describe("search threshold schemas", () => {
 	it("do not contain redundant number transforms or unreachable range guards", () => {
@@ -78,5 +83,72 @@ describe("search threshold schemas", () => {
 				threshold: "0.5",
 			}).success,
 		).toBe(false)
+	})
+})
+
+describe("pagination query schemas", () => {
+	it("preserve page/limit defaults", () => {
+		const listed = ListMemoriesQuerySchema.parse({})
+		expect(listed.page).toBe(1)
+		expect(listed.limit).toBe(10)
+
+		const docs = DocumentsWithMemoriesQuerySchema.parse({})
+		expect(docs.page).toBe(1)
+		expect(docs.limit).toBe(10)
+	})
+
+	it.each([
+		1, 50, 1100,
+	])("ListMemoriesQuerySchema accepts numeric limit %p", (limit) => {
+		expect(ListMemoriesQuerySchema.parse({ limit }).limit).toBe(limit)
+	})
+
+	it("ListMemoriesQuerySchema accepts numeric string page/limit", () => {
+		const parsed = ListMemoriesQuerySchema.parse({ page: "3", limit: "25" })
+		expect(parsed.page).toBe(3)
+		expect(parsed.limit).toBe(25)
+	})
+
+	it.each([
+		0, -5, 2.5,
+	])("ListMemoriesQuerySchema rejects non-positive or fractional numeric limit %p", (limit) => {
+		expect(ListMemoriesQuerySchema.safeParse({ limit }).success).toBe(false)
+	})
+
+	it.each([
+		0, -1, 1.5,
+	])("ListMemoriesQuerySchema rejects non-positive or fractional numeric page %p", (page) => {
+		expect(ListMemoriesQuerySchema.safeParse({ page }).success).toBe(false)
+	})
+
+	it("ListMemoriesQuerySchema still caps limit at 1100", () => {
+		expect(ListMemoriesQuerySchema.safeParse({ limit: 1101 }).success).toBe(
+			false,
+		)
+	})
+
+	it.each([
+		0, -1, 2.5,
+	])("DocumentsWithMemoriesQuerySchema rejects invalid page %p", (page) => {
+		expect(DocumentsWithMemoriesQuerySchema.safeParse({ page }).success).toBe(
+			false,
+		)
+	})
+
+	it.each([
+		0, -10, 2.5,
+	])("DocumentsWithMemoriesQuerySchema rejects invalid limit %p", (limit) => {
+		expect(DocumentsWithMemoriesQuerySchema.safeParse({ limit }).success).toBe(
+			false,
+		)
+	})
+
+	it("DocumentsWithMemoriesQuerySchema accepts a normal request", () => {
+		const parsed = DocumentsWithMemoriesQuerySchema.parse({
+			page: 2,
+			limit: 50,
+		})
+		expect(parsed.page).toBe(2)
+		expect(parsed.limit).toBe(50)
 	})
 })
