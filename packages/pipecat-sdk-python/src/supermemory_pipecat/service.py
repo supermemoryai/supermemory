@@ -179,7 +179,7 @@ class SupermemoryPipecatService(FrameProcessor):
             if self.session_id:
                 add_params["custom_id"] = self.session_id
 
-            await self._supermemory_client.memories.add(**add_params)
+            await self._supermemory_client.add(**add_params)
 
         except Exception as e:
             logger.error(f"Error storing messages: {e}")
