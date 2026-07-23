@@ -34,6 +34,12 @@ MEMORY_TAG_END = "</user_memories>"
 MEMORY_TAG_PATTERN = re.compile(r"<user_memories>.*?</user_memories>", re.DOTALL)
 
 
+def _is_memory_injection(msg: Dict[str, Any]) -> bool:
+    """True if the message is a memory block this service injected."""
+    content = msg.get("content")
+    return isinstance(content, str) and MEMORY_TAG_START in content
+
+
 class SupermemoryPipecatService(FrameProcessor):
     """Memory service that integrates Supermemory with Pipecat pipelines.
 
@@ -292,7 +298,10 @@ class SupermemoryPipecatService(FrameProcessor):
 
         if context:
             try:
-                context_messages = context.get_messages()
+                # Snapshot: get_messages() returns the context's live list
+                # (enhancement below mutates it in place), so copy before
+                # this turn's memory block is injected.
+                context_messages = list(context.get_messages())
                 latest_user_message = get_last_user_message(context_messages)
 
                 if latest_user_message:
@@ -304,9 +313,15 @@ class SupermemoryPipecatService(FrameProcessor):
                     except MemoryRetrievalError as e:
                         logger.warning(f"Memory retrieval failed: {e}")
 
-                # Store unsent messages (user and assistant only)
+                # Store unsent messages (user and assistant only). Injected
+                # <user_memories> blocks are excluded — storing them would
+                # write recalled memories back to Supermemory as new
+                # memories, compounding every turn.
                 storable_messages = [
-                    msg for msg in context_messages if msg["role"] in ("user", "assistant")
+                    msg
+                    for msg in context_messages
+                    if msg["role"] in ("user", "assistant")
+                    and not _is_memory_injection(msg)
                 ]
                 unsent_messages = storable_messages[self._messages_sent_count :]
 
