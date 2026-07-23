@@ -12,6 +12,7 @@
     "test:e2e": "vitest run"
   },
   "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
     "@cloudflare/workers-oauth-provider": "^0.2.2",
     "@modelcontextprotocol/ext-apps": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.25.2",
