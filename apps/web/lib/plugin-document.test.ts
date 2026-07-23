@@ -14,6 +14,38 @@ function makeCodexSessionDocument(content: string): PluginDocumentInput {
 }
 
 describe("parsePluginDocument — session transcripts", () => {
+	it("keeps the Codex source badge inside a shared Agents container", () => {
+		const parsed = parsePluginDocument({
+			...makeCodexSessionDocument(
+				["[Session abc-123]", "1. [user] Shared memory"].join("\n"),
+			),
+			source: "codex",
+			containerTags: ["user_project_0123456789abcdef"],
+		} as unknown as PluginDocumentInput)
+
+		expect(parsed?.pluginLabel).toBe("Codex")
+		expect(parsed?.pluginIconSrc).toBe("/images/plugins/codex.png")
+	})
+
+	it("keeps the Claude Code source badge inside a shared Agents container", () => {
+		const parsed = parsePluginDocument({
+			id: "doc_claude",
+			title: "Claude memory",
+			content: "Remember this project convention",
+			source: "claude-code",
+			metadata: {
+				sm_source: "claude-code",
+				type: "manual",
+				project: "supermemory",
+			},
+			containerTags: ["repo_supermemory"],
+			memoryEntries: [],
+		} as unknown as PluginDocumentInput)
+
+		expect(parsed?.pluginLabel).toBe("Claude Code")
+		expect(parsed?.pluginIconSrc).toBe("/images/plugins/claude-code.svg")
+	})
+
 	it("keeps multi-line message bodies intact", () => {
 		const parsed = parsePluginDocument(
 			makeCodexSessionDocument(
