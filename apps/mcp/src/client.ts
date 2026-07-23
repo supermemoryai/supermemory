@@ -3,6 +3,9 @@ import Supermemory from "supermemory"
 const MAX_CHARS = 200000 // ~50k tokens (character-based limit)
 const DEFAULT_PROJECT_ID = "sm_project_default"
 const FETCH_TIMEOUT_MS = 30_000
+const FORGET_CONFIRMATION_TTL_MS = 5 * 60 * 1000
+const textEncoder = new TextEncoder()
+const textDecoder = new TextDecoder()
 
 interface MemoryRichFields {
 	metadata?: Record<string, unknown> | null
@@ -170,11 +173,146 @@ export class SupermemoryClient {
 		}
 	}
 
-	// Delete/forget memory - try exact match first, then semantic search
+	private toBase64Url(bytes: Uint8Array): string {
+		let binary = ""
+		for (const byte of bytes) binary += String.fromCharCode(byte)
+		return btoa(binary)
+			.replaceAll("+", "-")
+			.replaceAll("/", "_")
+			.replace(/=+$/, "")
+	}
+
+	private fromBase64Url(value: string): Uint8Array {
+		const base64 = value.replaceAll("-", "+").replaceAll("_", "/")
+		const padding = (4 - (base64.length % 4)) % 4
+		const binary = atob(base64.padEnd(base64.length + padding, "="))
+		return Uint8Array.from(binary, (character) => character.charCodeAt(0))
+	}
+
+	private async contentHash(content: string): Promise<string> {
+		const digest = await crypto.subtle.digest(
+			"SHA-256",
+			textEncoder.encode(content),
+		)
+		return this.toBase64Url(new Uint8Array(digest))
+	}
+
+	private async confirmationKey(): Promise<CryptoKey> {
+		return crypto.subtle.importKey(
+			"raw",
+			textEncoder.encode(this.bearerToken),
+			{ name: "HMAC", hash: "SHA-256" },
+			false,
+			["sign", "verify"],
+		)
+	}
+
+	private async createForgetConfirmation(
+		content: string,
+		memoryId: string,
+	): Promise<string> {
+		const payload = this.toBase64Url(
+			textEncoder.encode(
+				JSON.stringify({
+					version: 1,
+					memoryId,
+					containerTag: this.containerTag,
+					contentHash: await this.contentHash(content),
+					expiresAt: Date.now() + FORGET_CONFIRMATION_TTL_MS,
+				}),
+			),
+		)
+		const signature = await crypto.subtle.sign(
+			"HMAC",
+			await this.confirmationKey(),
+			textEncoder.encode(`mcp-forget-v1.${payload}`),
+		)
+		return `${payload}.${this.toBase64Url(new Uint8Array(signature))}`
+	}
+
+	private async verifyForgetConfirmation(
+		content: string,
+		confirmationToken: string,
+	): Promise<string | null> {
+		try {
+			const parts = confirmationToken.split(".")
+			if (parts.length !== 2) return null
+			const [payload, signature] = parts
+			if (!(payload && signature)) return null
+
+			const valid = await crypto.subtle.verify(
+				"HMAC",
+				await this.confirmationKey(),
+				this.fromBase64Url(signature),
+				textEncoder.encode(`mcp-forget-v1.${payload}`),
+			)
+			if (!valid) return null
+
+			const confirmation = JSON.parse(
+				textDecoder.decode(this.fromBase64Url(payload)),
+			) as Record<string, unknown>
+			if (
+				confirmation.version !== 1 ||
+				typeof confirmation.memoryId !== "string" ||
+				confirmation.containerTag !== this.containerTag ||
+				typeof confirmation.contentHash !== "string" ||
+				typeof confirmation.expiresAt !== "number" ||
+				confirmation.expiresAt <= Date.now() ||
+				confirmation.contentHash !== (await this.contentHash(content))
+			) {
+				return null
+			}
+
+			return confirmation.memoryId
+		} catch {
+			return null
+		}
+	}
+
+	// Delete/forget memory by exact content or a signed preview confirmation
 	async forgetMemory(
 		content: string,
+		confirmationToken?: string,
 	): Promise<{ success: boolean; message: string; containerTag: string }> {
 		try {
+			if (confirmationToken) {
+				const memoryId = await this.verifyForgetConfirmation(
+					content,
+					confirmationToken,
+				)
+				if (!memoryId) {
+					return {
+						success: false,
+						message:
+							"Invalid or expired forget confirmation. No changes were made. Run the forget preview again.",
+						containerTag: this.containerTag,
+					}
+				}
+
+				try {
+					const result = await this.client.memories.forget({
+						id: memoryId,
+						containerTag: this.containerTag,
+					})
+					return {
+						success: true,
+						message: `Successfully forgot memory with ID: ${result.id}`,
+						containerTag: this.containerTag,
+					}
+				} catch (error: unknown) {
+					const status =
+						error && typeof error === "object" && "status" in error
+							? (error as Record<string, unknown>).status
+							: undefined
+					if (status !== 404) throw error
+					return {
+						success: false,
+						message: `No memory exists with ID ${memoryId}. No changes were made.`,
+						containerTag: this.containerTag,
+					}
+				}
+			}
+
 			// Try exact content matching first
 			try {
 				const result = await this.client.memories.forget({
@@ -196,43 +334,39 @@ export class SupermemoryClient {
 				if (status !== 404) {
 					throw error
 				}
-				// Otherwise continue to semantic search fallback
+				// Otherwise preview semantic candidates without deleting any of them
 			}
 
-			// Fallback to semantic search if exact match fails
-			const SIMILARITY_THRESHOLD = 0.85 // High threshold - only very similar memories
-			const searchResult = await this.search(content, 5, SIMILARITY_THRESHOLD)
+			const SIMILARITY_THRESHOLD = 0.85
+			const searchResult = await this.search(content, 5, SIMILARITY_THRESHOLD, {
+				searchMode: "memories",
+			})
+			const candidates = searchResult.results.filter(
+				(result) => "memory" in result,
+			)
 
-			if (searchResult.results.length === 0) {
-				return {
-					success: false,
-					message: `No matching memory found to forget. Tried exact match and semantic search with similarity threshold ${SIMILARITY_THRESHOLD}.`,
-					containerTag: this.containerTag,
-				}
-			}
-
-			// Only actual memories (not chunks) can be forgotten
-			const memoryToDelete = searchResult.results.find((r) => "memory" in r)
-			if (!memoryToDelete) {
+			if (candidates.length === 0) {
 				return {
 					success: false,
 					message:
-						"No matching memory found to forget (only document chunks matched in semantic search).",
+						"No exact memory matched. No changes were made, and no similar memory candidates were found.",
 					containerTag: this.containerTag,
 				}
 			}
 
-			// Delete using the ID from semantic search
-			await this.client.memories.forget({
-				id: memoryToDelete.id,
-				containerTag: this.containerTag,
-			})
+			const candidateLines = await Promise.all(
+				candidates.map(async (candidate) => {
+					const confirmation = await this.createForgetConfirmation(
+						content,
+						candidate.id,
+					)
+					return `- confirmationToken: ${confirmation}\n  similarity: ${candidate.similarity.toFixed(2)}\n  content: ${JSON.stringify(limitByChars(getMemoryText(candidate) || candidate.content || "", 200))}`
+				}),
+			)
 
-			const memoryText =
-				getMemoryText(memoryToDelete) || memoryToDelete.content || ""
 			return {
-				success: true,
-				message: `Forgot similar memory (semantic match, similarity: ${memoryToDelete.similarity.toFixed(2)}): "${limitByChars(memoryText, 100)}"`,
+				success: false,
+				message: `No exact memory matched. No changes were made.\n\nSimilar memory candidates (preview only):\n${candidateLines.join("\n")}\n\nAsk the user to confirm one candidate, then call memory again with action "forget", the same content, and that confirmationToken. Confirmations expire after 5 minutes.`,
 				containerTag: this.containerTag,
 			}
 		} catch (error) {

@@ -1,12 +1,14 @@
 import { randomUUID } from "node:crypto"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import {
+	API_URL,
 	API_KEY,
 	callTool,
 	connect,
 	forgetUntilForgotten,
 	recallUntil,
 	recallUntilAbsent,
+	sleep,
 	type Session,
 	textOf,
 } from "./helpers"
@@ -20,10 +22,10 @@ describe.skipIf(!API_KEY)("MCP — memory behaviors", () => {
 	})
 	afterAll(async () => {
 		for (const { content, containerTag } of created) {
-			await callTool(s.client, "memory", {
-				content,
-				action: "forget",
-				...(containerTag ? { containerTag } : {}),
+			await forgetUntilForgotten(s.client, content, {
+				tries: 3,
+				delayMs: 1000,
+				containerTag,
 			}).catch(() => {})
 		}
 		await s?.close()
@@ -90,6 +92,119 @@ describe.skipIf(!API_KEY)("MCP — memory behaviors", () => {
 			)
 		}
 	}, 240_000)
+
+	it("forget previews similar memories and requires signed confirmation", async () => {
+		const containerTag = "sm_e2e_safe_forget"
+		const marker = `safe-fg-${randomUUID()}`
+		const content = `e2e safe forget target. token=${marker}. Vault color is marigold.`
+		const scoped = await connect({ containerTag })
+		let documentId: string | undefined
+
+		try {
+			const saved = await callTool(scoped.client, "memory", {
+				content,
+				action: "save",
+			})
+			documentId = textOf(saved).match(/id: ([^)]+)/)?.[1]
+			expect(documentId, "save should return a source document ID").toBeTruthy()
+
+			let extractedMemory = ""
+			for (let i = 0; i < 18; i++) {
+				const listed = await callTool(scoped.client, "listMemories")
+				extractedMemory =
+					textOf(listed)
+						.split("\n")
+						.find((line) => line.startsWith("- ") && line.includes(marker))
+						?.slice(2) ?? ""
+				if (extractedMemory) break
+				await sleep(5000)
+			}
+			expect(
+				extractedMemory,
+				"saved content should produce an extracted memory",
+			).toBeTruthy()
+			const nearMatch = `${extractedMemory} please`
+
+			let previewText = ""
+			for (let i = 0; i < 18; i++) {
+				const preview = await callTool(scoped.client, "memory", {
+					content: nearMatch,
+					action: "forget",
+				})
+				expect(preview.isError).toBeFalsy()
+				previewText = textOf(preview)
+				if (previewText.includes("confirmationToken:")) break
+				await sleep(5000)
+			}
+			expect(previewText).toContain(
+				"No exact memory matched. No changes were made.",
+			)
+			const confirmationToken = previewText.match(
+				/confirmationToken: (\S+)/,
+			)?.[1]
+			expect(
+				confirmationToken,
+				"preview should return a signed confirmation token",
+			).toBeTruthy()
+			expect(
+				previewText,
+				"preview should identify the intended candidate",
+			).toContain(marker)
+
+			const rejected = await callTool(scoped.client, "memory", {
+				content: `${nearMatch} altered`,
+				action: "forget",
+				confirmationToken,
+			})
+			expect(textOf(rejected)).toContain(
+				"Invalid or expired forget confirmation. No changes were made.",
+			)
+
+			const wrongContainer = await callTool(s.client, "memory", {
+				content: nearMatch,
+				action: "forget",
+				confirmationToken,
+				containerTag: `${containerTag}_other`,
+			})
+			expect(textOf(wrongContainer)).toContain(
+				"Invalid or expired forget confirmation. No changes were made.",
+			)
+
+			const afterPreview = await callTool(scoped.client, "listMemories")
+			expect(
+				textOf(afterPreview),
+				"preview must not delete the candidate",
+			).toContain(marker)
+
+			const confirmed = await callTool(scoped.client, "memory", {
+				content: nearMatch,
+				action: "forget",
+				confirmationToken,
+			})
+			expect(confirmed.isError).toBeFalsy()
+			expect(textOf(confirmed)).toMatch(/Successfully forgot memory with ID/i)
+
+			let removed = false
+			for (let i = 0; i < 12; i++) {
+				const listed = await callTool(scoped.client, "listMemories")
+				if (!textOf(listed).includes(marker)) {
+					removed = true
+					break
+				}
+				await sleep(3000)
+			}
+			expect(removed, "confirmed candidate should be removed").toBe(true)
+		} finally {
+			if (documentId) {
+				const cleanup = await fetch(`${API_URL}/v3/documents/${documentId}`, {
+					method: "DELETE",
+					headers: { Authorization: `Bearer ${API_KEY}` },
+				})
+				expect(cleanup.ok || cleanup.status === 404).toBe(true)
+			}
+			await scoped.close()
+		}
+	}, 300_000)
 
 	it("containerTag scopes memories (isolation)", async () => {
 		// Fixed tags (not per-run UUIDs) so the test doesn't mint a new project each run.

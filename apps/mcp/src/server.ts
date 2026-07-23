@@ -94,6 +94,14 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				.max(200000, "Content exceeds maximum length of 200,000 characters")
 				.describe("The memory content to save or forget"),
 			action: z.enum(["save", "forget"]).optional().default("save"),
+			confirmationToken: z
+				.string()
+				.min(1)
+				.max(2048)
+				.describe(
+					"For action 'forget' only: a signed token returned by a previous forget preview. After the user confirms that candidate, resend the same content with this token within 5 minutes.",
+				)
+				.optional(),
 			...(hasRootContainerTag ? {} : containerTagField),
 		})
 
@@ -146,7 +154,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			"memory",
 			{
 				description:
-					"DO NOT USE ANY OTHER MEMORY TOOL ONLY USE THIS ONE. Save or forget information about the user. Use 'save' when user shares preferences, facts, or asks to remember something. Use 'forget' when information is outdated or user requests removal.",
+					"DO NOT USE ANY OTHER MEMORY TOOL ONLY USE THIS ONE. Save or forget information about the user. Use 'save' when user shares preferences, facts, or asks to remember something. Forget removes only exact content. If no exact match exists, it returns similar candidates without changing them; ask the user to confirm one, then retry with the same content and its confirmationToken within 5 minutes.",
 				inputSchema: memorySchema,
 				annotations: MEMORY_TOOL_ANNOTATIONS,
 			},
@@ -594,9 +602,10 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	private async handleMemory(args: {
 		content: string
 		action?: "save" | "forget"
+		confirmationToken?: string
 		containerTag?: string
 	}) {
-		const { content, action = "save", containerTag } = args
+		const { content, action = "save", confirmationToken, containerTag } = args
 		const effectiveContainerTag = containerTag || this.props?.containerTag
 
 		try {
@@ -604,20 +613,21 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			const clientInfo = await this.getClientInfo()
 
 			if (action === "forget") {
-				const result = await client.forgetMemory(content)
+				const result = await client.forgetMemory(content, confirmationToken)
 
-				// Track forget event
-				posthog
-					.memoryForgot({
-						userId: this.props?.userId || "unknown",
-						content_length: content.length,
-						source: "mcp",
-						mcp_client_name: clientInfo?.name,
-						mcp_client_version: clientInfo?.version,
-						sessionId: this.getMcpSessionId(),
-						containerTag: result.containerTag,
-					})
-					.catch((error) => console.error("PostHog tracking error:", error))
+				if (result.success) {
+					posthog
+						.memoryForgot({
+							userId: this.props?.userId || "unknown",
+							...(confirmationToken ? {} : { content_length: content.length }),
+							source: "mcp",
+							mcp_client_name: clientInfo?.name,
+							mcp_client_version: clientInfo?.version,
+							sessionId: this.getMcpSessionId(),
+							containerTag: result.containerTag,
+						})
+						.catch((error) => console.error("PostHog tracking error:", error))
+				}
 
 				return {
 					content: [

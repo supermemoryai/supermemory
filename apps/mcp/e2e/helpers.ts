@@ -161,7 +161,26 @@ export async function forgetUntilForgotten(
 			action: "forget",
 			...(containerTag ? { containerTag } : {}),
 		})
-		if (!res.isError && /forgot/i.test(textOf(res))) return textOf(res)
+		const previewText = textOf(res)
+		if (!res.isError && /Successfully forgot/i.test(previewText)) {
+			return previewText
+		}
+
+		const confirmationToken = previewText.match(/confirmationToken: (\S+)/)?.[1]
+		if (confirmationToken) {
+			const confirmed = await callTool(client, "memory", {
+				content,
+				action: "forget",
+				confirmationToken,
+				...(containerTag ? { containerTag } : {}),
+			})
+			if (
+				!confirmed.isError &&
+				/Successfully forgot/i.test(textOf(confirmed))
+			) {
+				return textOf(confirmed)
+			}
+		}
 		await sleep(delayMs)
 	}
 	return null
