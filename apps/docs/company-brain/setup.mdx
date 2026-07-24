@@ -63,6 +63,11 @@ Creating a workspace sets up your shared **Team Brain** and your private **My Br
   <Step title="Confirm company and domain">
     Click **Install to Slack**. Not an admin? This triggers Slack's own request-to-install flow instead.
   </Step>
+  <Step title="Confirm a reassignment, if prompted">
+    If the Slack workspace is already linked to another Supermemory organization, the admin who started the install sees a warning before Supermemory changes the connection. The warning names the Slack workspace and the active target organization, explains what future Company Brain activity will move, and requires the admin to type the workspace name or `OVERRIDE`.
+
+    Slack authorization has already happened at this point, so Slack may have refreshed or invalidated the prior credentials. Until confirmation, Supermemory does not reassign its workspace mapping. Cancelling the request or letting its 15-minute confirmation window expire also leaves that Supermemory mapping unchanged, but it does not guarantee the prior Slack connection still works. Restart the install from Slack to recover or try again.
+  </Step>
   <Step title="Hand off to Slack">
     The web app hands off immediately — "we've DM'd you in Slack."
   </Step>
