@@ -1,23 +1,16 @@
-import { McpAgent } from "agents/mcp"
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
-import {
-	registerAppTool,
-	registerAppResource,
-	RESOURCE_MIME_TYPE,
-} from "@modelcontextprotocol/ext-apps/server"
+import { McpServer, type ServerContext } from "@modelcontextprotocol/server"
 import { SupermemoryClient } from "./client"
 import { formatMemories, formatMemoriesList } from "./format"
 import { initPosthog, posthog } from "./posthog"
 import { z } from "zod"
 import mcpAppHtml from "../dist/mcp-app.html"
 
-type Env = {
-	MCP_SERVER: DurableObjectNamespace
+export type McpEnv = {
 	API_URL?: string
 	POSTHOG_API_KEY?: string
 }
 
-type Props = {
+export type AuthProps = {
 	userId: string
 	apiKey: string
 	containerTag?: string
@@ -25,9 +18,9 @@ type Props = {
 	name?: string
 }
 
-const CONTAINER_TAGS_TTL_MS = 5 * 60 * 1000
-
 const MAX_RECALL_CHARS = 200000
+const RESOURCE_MIME_TYPE = "text/html;profile=mcp-app"
+const RESOURCE_URI_META_KEY = "ui/resourceUri"
 
 const READ_ONLY_TOOL_ANNOTATIONS = {
 	readOnlyHint: true,
@@ -43,42 +36,21 @@ const MEMORY_TOOL_ANNOTATIONS = {
 	openWorldHint: false,
 } as const
 
-export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
-	private clientInfo: { name: string; version?: string } | null = null
-	private cachedContainerTags: string[] = []
-	private containerTagsLastFetchedAt: number | null = null
-
-	server = new McpServer({
+class SupermemoryServer {
+	readonly server = new McpServer({
 		name: "supermemory",
 		version: "4.0.0",
 	})
 
-	async init() {
-		const storedClientInfo = await this.ctx.storage.get<{
-			name: string
-			version?: string
-		}>("clientInfo")
-		if (storedClientInfo) {
-			this.clientInfo = storedClientInfo
-		}
+	constructor(
+		private readonly env: McpEnv,
+		private readonly props: AuthProps,
+	) {}
 
+	init(): McpServer {
 		initPosthog(this.env.POSTHOG_API_KEY)
 
-		// Hook MCP McpAgent to capture client info
-		this.server.server.oninitialized = async () => {
-			const clientVersion = this.server.server.getClientVersion()
-			if (clientVersion) {
-				this.clientInfo = {
-					name: clientVersion.name,
-					version: clientVersion.version,
-				}
-				await this.ctx.storage.put("clientInfo", this.clientInfo)
-			}
-		}
-
-		await this.refreshContainerTags()
-
-		const hasRootContainerTag = !!this.props?.containerTag
+		const hasRootContainerTag = !!this.props.containerTag
 
 		const containerTagField = {
 			containerTag: z
@@ -127,20 +99,6 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			...(hasRootContainerTag ? {} : containerTagField),
 		})
 
-		const contextPromptSchema = z.object({
-			includeRecent: z
-				.boolean()
-				.optional()
-				.default(true)
-				.describe("Include recent activity in the profile"),
-			...(hasRootContainerTag ? {} : containerTagField),
-		})
-
-		type ContextPromptArgs = z.infer<typeof contextPromptSchema>
-		type MemoryArgs = z.infer<typeof memorySchema>
-		type RecallArgs = z.infer<typeof recallSchema>
-		type ListMemoriesArgs = z.infer<typeof listMemoriesSchema>
-
 		// Register memory tool
 		this.server.registerTool(
 			"memory",
@@ -150,8 +108,18 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				inputSchema: memorySchema,
 				annotations: MEMORY_TOOL_ANNOTATIONS,
 			},
-			// @ts-expect-error - zod type inference issue with MCP SDK
-			(args: MemoryArgs) => this.handleMemory(args),
+			(args, ctx) =>
+				this.handleMemory(
+					{
+						content: args.content,
+						action: args.action,
+						containerTag:
+							typeof args.containerTag === "string"
+								? args.containerTag
+								: undefined,
+					},
+					ctx,
+				),
 		)
 
 		// Register recall tool
@@ -163,8 +131,18 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				inputSchema: recallSchema,
 				annotations: READ_ONLY_TOOL_ANNOTATIONS,
 			},
-			// @ts-expect-error - zod type inference issue with MCP SDK
-			(args: RecallArgs) => this.handleRecall(args),
+			(args, ctx) =>
+				this.handleRecall(
+					{
+						query: args.query,
+						includeProfile: args.includeProfile,
+						containerTag:
+							typeof args.containerTag === "string"
+								? args.containerTag
+								: undefined,
+					},
+					ctx,
+				),
 		)
 
 		// Register listMemories tool
@@ -176,8 +154,15 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				inputSchema: listMemoriesSchema,
 				annotations: READ_ONLY_TOOL_ANNOTATIONS,
 			},
-			// @ts-expect-error - zod type inference issue with MCP SDK
-			(args: ListMemoriesArgs) => this.handleListMemories(args),
+			(args) =>
+				this.handleListMemories({
+					page: args.page,
+					limit: args.limit,
+					containerTag:
+						typeof args.containerTag === "string"
+							? args.containerTag
+							: undefined,
+				}),
 		)
 
 		// Register profile resource
@@ -225,8 +210,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			"supermemory://projects",
 			{},
 			async () => {
-				await this.ensureContainerTagsFresh()
-				const projects = this.cachedContainerTags
+				const projects = await this.getClient().getProjects()
 
 				return {
 					contents: [
@@ -251,21 +235,13 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 						.boolean()
 						.optional()
 						.default(false)
-						.describe(
-							"Force refresh from the server (default: false; uses cache with TTL)",
-						),
+						.describe("Ignored; project lists are fetched fresh for each call"),
 				}),
 				annotations: READ_ONLY_TOOL_ANNOTATIONS,
 			},
-			// @ts-expect-error - zod type inference issue with MCP SDK
-			async (args: { refresh?: boolean }) => {
+			async () => {
 				try {
-					if (args.refresh === true) {
-						await this.refreshContainerTags()
-					} else {
-						await this.ensureContainerTagsFresh()
-					}
-					const projects = this.cachedContainerTags
+					const projects = await this.getClient().getProjects()
 
 					if (projects.length === 0) {
 						return {
@@ -312,20 +288,8 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				inputSchema: z.object({}),
 				annotations: READ_ONLY_TOOL_ANNOTATIONS,
 			},
-			// @ts-expect-error - zod type inference issue with MCP SDK
-			async () => {
-				if (!this.props) {
-					return {
-						content: [
-							{
-								type: "text" as const,
-								text: "User not authenticated",
-							},
-						],
-					}
-				}
-
-				const clientInfo = await this.getClientInfo()
+			async (_args, ctx) => {
+				const clientInfo = this.getClientInfo(ctx)
 
 				return {
 					content: [
@@ -336,7 +300,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 								email: this.props.email,
 								name: this.props.name,
 								client: clientInfo,
-								sessionId: this.getMcpSessionId(),
+								sessionId: ctx.sessionId ?? null,
 							}),
 						},
 					],
@@ -353,8 +317,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 
 		type MemoryGraphArgs = z.infer<typeof memoryGraphSchema>
 
-		registerAppTool(
-			this.server,
+		this.server.registerTool(
 			"memory-graph",
 			{
 				title: "Memory Graph",
@@ -362,14 +325,16 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 					"Visualize the user's memory graph as an interactive force-directed graph showing documents, memories, and their relationships.",
 				inputSchema: memoryGraphSchema,
 				annotations: READ_ONLY_TOOL_ANNOTATIONS,
-				_meta: { ui: { resourceUri: memoryGraphResourceUri } },
+				_meta: {
+					[RESOURCE_URI_META_KEY]: memoryGraphResourceUri,
+					ui: { resourceUri: memoryGraphResourceUri },
+				},
 			},
-			// @ts-expect-error - zod type inference issue with MCP SDK
 			async (args: MemoryGraphArgs) => {
 				try {
 					const effectiveContainerTag =
 						(args as { containerTag?: string }).containerTag ||
-						this.props?.containerTag
+						this.props.containerTag
 					const client = this.getClient(effectiveContainerTag)
 					const containerTags = effectiveContainerTag
 						? [effectiveContainerTag]
@@ -415,8 +380,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 		)
 
 		// App-only tool for the UI to fetch additional documents (pagination)
-		registerAppTool(
-			this.server,
+		this.server.registerTool(
 			"fetch-graph-data",
 			{
 				description: "Fetch documents with memories for graph display",
@@ -427,13 +391,13 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				}),
 				annotations: READ_ONLY_TOOL_ANNOTATIONS,
 				_meta: {
+					[RESOURCE_URI_META_KEY]: memoryGraphResourceUri,
 					ui: {
 						resourceUri: memoryGraphResourceUri,
 						visibility: ["app"],
 					},
 				},
 			},
-			// @ts-expect-error - zod type inference issue with MCP SDK
 			async (args: {
 				containerTag?: string
 				page?: number
@@ -441,7 +405,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			}) => {
 				try {
 					const effectiveContainerTag =
-						args.containerTag || this.props?.containerTag
+						args.containerTag || this.props.containerTag
 					const client = this.getClient(effectiveContainerTag)
 					const containerTags = effectiveContainerTag
 						? [effectiveContainerTag]
@@ -475,8 +439,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 		)
 
 		// Register HTML resource for the memory graph UI
-		registerAppResource(
-			this.server,
+		this.server.registerResource(
 			"Memory Graph UI",
 			memoryGraphResourceUri,
 			{ mimeType: RESOURCE_MIME_TYPE },
@@ -496,14 +459,11 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			{
 				description:
 					"User profile and preferences for system context injection. Returns a formatted system message with user's stable preferences and recent activity.",
-				//argsSchema: contextPromptSchema.shape, TODO: commenting out for now as it will add more friction to the user
 			},
-			// @ts-expect-error - zod type inference issue with MCP SDK
-			async (args: ContextPromptArgs) => {
+			async () => {
 				try {
-					const { includeRecent = true } = args
-					const containerTag = (args as { containerTag?: string }).containerTag
-					const client = this.getClient(containerTag)
+					const includeRecent = true
+					const client = this.getClient()
 					const profileResult = await client.getProfile()
 
 					const parts: string[] = []
@@ -570,15 +530,14 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				}
 			},
 		)
+
+		return this.server
 	}
 
 	/**
 	 * Get a SupermemoryClient instance configured with the API key
 	 */
 	private getClient(containerTag?: string): SupermemoryClient {
-		if (!this.props) {
-			throw new Error("Props not initialized")
-		}
 		const { apiKey, containerTag: mcpRootContainerTag } = this.props
 		if (!apiKey) {
 			throw new Error("Authentication required")
@@ -591,17 +550,20 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 		)
 	}
 
-	private async handleMemory(args: {
-		content: string
-		action?: "save" | "forget"
-		containerTag?: string
-	}) {
+	private async handleMemory(
+		args: {
+			content: string
+			action?: "save" | "forget"
+			containerTag?: string
+		},
+		ctx: ServerContext,
+	) {
 		const { content, action = "save", containerTag } = args
-		const effectiveContainerTag = containerTag || this.props?.containerTag
+		const effectiveContainerTag = containerTag || this.props.containerTag
 
 		try {
 			const client = this.getClient(effectiveContainerTag)
-			const clientInfo = await this.getClientInfo()
+			const clientInfo = this.getClientInfo(ctx)
 
 			if (action === "forget") {
 				const result = await client.forgetMemory(content)
@@ -609,12 +571,12 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				// Track forget event
 				posthog
 					.memoryForgot({
-						userId: this.props?.userId || "unknown",
+						userId: this.props.userId,
 						content_length: content.length,
 						source: "mcp",
 						mcp_client_name: clientInfo?.name,
 						mcp_client_version: clientInfo?.version,
-						sessionId: this.getMcpSessionId(),
+						sessionId: ctx.sessionId,
 						containerTag: result.containerTag,
 					})
 					.catch((error) => console.error("PostHog tracking error:", error))
@@ -631,10 +593,6 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 
 			const result = await client.createMemory(content)
 
-			if (!this.cachedContainerTags.includes(result.containerTag)) {
-				await this.refreshContainerTags()
-			}
-
 			// Track memory added event
 			posthog
 				.memoryAdded({
@@ -642,10 +600,10 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 					project_id: result.containerTag,
 					content_length: content.length,
 					source: "mcp",
-					userId: this.props?.userId || "unknown",
+					userId: this.props.userId,
 					mcp_client_name: clientInfo?.name,
 					mcp_client_version: clientInfo?.version,
-					sessionId: this.getMcpSessionId(),
+					sessionId: ctx.sessionId,
 					containerTag: result.containerTag,
 				})
 				.catch((error) => console.error("PostHog tracking error:", error))
@@ -674,16 +632,19 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 		}
 	}
 
-	private async handleRecall(args: {
-		query: string
-		includeProfile?: boolean
-		containerTag?: string
-	}) {
+	private async handleRecall(
+		args: {
+			query: string
+			includeProfile?: boolean
+			containerTag?: string
+		},
+		ctx: ServerContext,
+	) {
 		const { query, includeProfile = true, containerTag } = args
 
 		try {
 			const client = this.getClient(containerTag)
-			const clientInfo = await this.getClientInfo()
+			const clientInfo = this.getClientInfo(ctx)
 			const startTime = Date.now()
 
 			const searchResult = await client.search(query, 10, undefined, {
@@ -745,11 +706,11 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 					search_duration_ms: endTime - startTime,
 					container_tags_count: 1,
 					source: "mcp",
-					userId: this.props?.userId || "unknown",
+					userId: this.props.userId,
 					mcp_client_name: clientInfo?.name,
 					mcp_client_version: clientInfo?.version,
-					sessionId: this.getMcpSessionId(),
-					containerTag: containerTag || this.props?.containerTag,
+					sessionId: ctx.sessionId,
+					containerTag: containerTag || this.props.containerTag,
 				})
 				.catch((error) => console.error("PostHog tracking error:", error))
 
@@ -787,7 +748,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 		containerTag?: string
 	}) {
 		const { page = 1, limit = 10, containerTag } = args
-		const effectiveContainerTag = containerTag || this.props?.containerTag
+		const effectiveContainerTag = containerTag || this.props.containerTag
 
 		try {
 			const client = this.getClient(effectiveContainerTag)
@@ -821,53 +782,24 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 		}
 	}
 
-	private async getClientInfo(): Promise<
-		{ name: string; version?: string } | undefined
-	> {
-		if (this.clientInfo) {
-			return this.clientInfo
-		}
+	private getClientInfo(
+		ctx: ServerContext,
+	): { name: string; version?: string } | undefined {
+		// The v2 HTTP entry seeds this accessor from each modern request envelope;
+		// legacy initialize requests populate it through the normal handshake.
+		const initializedClient = this.server.server.getClientVersion()
+		if (initializedClient) return initializedClient
 
-		const storedClientInfo = await this.ctx.storage.get<{
-			name: string
-			version?: string
-		}>("clientInfo")
-		if (storedClientInfo) {
-			this.clientInfo = storedClientInfo
-			return this.clientInfo
-		}
-		return undefined
-	}
-
-	private getMcpSessionId(): string {
-		return this.ctx.id.name || "unknown"
-	}
-
-	private async ensureContainerTagsFresh(): Promise<void> {
-		const now = Date.now()
-		const needsRefresh =
-			this.containerTagsLastFetchedAt === null ||
-			now - this.containerTagsLastFetchedAt > CONTAINER_TAGS_TTL_MS
-		if (needsRefresh) {
-			await this.refreshContainerTags()
-		}
-	}
-
-	private async refreshContainerTags(): Promise<void> {
-		try {
-			const client = this.getClient()
-			this.cachedContainerTags = await client.getProjects()
-			this.containerTagsLastFetchedAt = Date.now()
-		} catch (error) {
-			console.error("Failed to fetch container tags:", error)
-		}
+		const userAgent = ctx.http?.req?.headers.get("user-agent")
+		return userAgent ? { name: userAgent } : undefined
 	}
 
 	private getContainerTagDescription(): string {
-		const baseDescription = "Optional project to scope memories"
-		if (this.cachedContainerTags.length === 0) {
-			return baseDescription
-		}
-		return `${baseDescription}. Available projects: ${this.cachedContainerTags.join(", ")}`
+		return "Optional project to scope memories"
 	}
+}
+
+/** Build a fresh request-local MCP server for the stateless SDK v2 handler. */
+export function createServer(env: McpEnv, props: AuthProps): McpServer {
+	return new SupermemoryServer(env, props).init()
 }

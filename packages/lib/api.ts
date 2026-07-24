@@ -106,7 +106,7 @@ export const apiSchema = createSchema({
 			containerTags: z.array(z.string()).optional(),
 			documentLimit: z.number().int().min(1).max(10000).optional(),
 			metadata: z
-				.record(z.union([z.string(), z.number(), z.boolean()]))
+				.record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
 				.optional()
 				.nullable(),
 			redirectUrl: z.string().optional(),
@@ -228,14 +228,14 @@ export const apiSchema = createSchema({
 						containerTags: z.array(z.string()).optional(),
 						containerTag: z.string().optional(),
 						entityContext: z.string().max(1500).optional(),
-						metadata: z.record(z.unknown()).optional(),
+						metadata: z.record(z.string(), z.unknown()).optional(),
 					}),
 				)
 				.min(1)
 				.max(600),
 			containerTag: z.string().optional(),
 			entityContext: z.string().max(1500).optional(),
-			metadata: z.record(z.unknown()).optional(),
+			metadata: z.record(z.string(), z.unknown()).optional(),
 		}),
 		output: z.object({
 			results: z.array(

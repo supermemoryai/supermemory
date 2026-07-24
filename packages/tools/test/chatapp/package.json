@@ -18,7 +18,7 @@
     "posthog-node": "^5.0.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "zod": "^4.1.8"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -31,6 +31,7 @@
     "typescript": "^5"
   },
   "overrides": {
-    "ai": "6.0.158"
+    "ai": "6.0.158",
+    "zod": "^4.4.3"
   }
 }

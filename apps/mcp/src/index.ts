@@ -1,23 +1,13 @@
+import { createMcpHandler } from "@modelcontextprotocol/server"
 import { cors } from "hono/cors"
 import { Hono, type Context } from "hono"
-import { SupermemoryMCP } from "./server"
 import { isApiKey, validateApiKey, validateOAuthToken } from "./auth"
+import { createServer, type AuthProps, type McpEnv } from "./server"
 import { initPosthog } from "./posthog"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 
-type Bindings = {
-	MCP_SERVER: DurableObjectNamespace
-	API_URL?: string
+type Bindings = McpEnv & {
 	MCP_URL?: string
-	POSTHOG_API_KEY?: string
-}
-
-type Props = {
-	userId: string
-	apiKey: string
-	containerTag?: string
-	email?: string
-	name?: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -38,15 +28,8 @@ app.use(
 	cors({
 		origin: "*",
 		allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
-		allowHeaders: [
-			"Content-Type",
-			"Authorization",
-			"x-sm-project",
-			"Accept",
-			"Mcp-Session-Id",
-			"MCP-Protocol-Version",
-			"Last-Event-ID",
-		],
+		// Echo Access-Control-Request-Headers so modern Mcp-Method, Mcp-Name,
+		// and dynamic Mcp-Param-* routing headers remain forward-compatible.
 		exposeHeaders: ["Mcp-Session-Id", "WWW-Authenticate"],
 	}),
 )
@@ -107,17 +90,11 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 	}
 })
 
-const mcpHandler = SupermemoryMCP.serve("/mcp", {
-	binding: "MCP_SERVER",
-	corsOptions: {
-		origin: "*",
-		methods: "GET, POST, DELETE, OPTIONS",
-		headers:
-			"Content-Type, Authorization, x-sm-project, Accept, Mcp-Session-Id, MCP-Protocol-Version, Last-Event-ID",
-	},
-})
+function authenticatedMcpHandler(env: Bindings, props: AuthProps) {
+	return createMcpHandler(() => createServer(env, props))
+}
 
-const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
+export const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 	const authHeader = c.req.header("Authorization")
 	const token = authHeader?.replace(/^Bearer\s+/i, "")
 	const containerTag = c.req.header("x-sm-project")
@@ -177,25 +154,17 @@ const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 		)
 	}
 
-	// Create execution context with authenticated user props
-	const ctx = {
-		...c.executionCtx,
-		props: {
-			userId: authUser.userId,
-			apiKey: authUser.apiKey,
-			containerTag,
-			email: authUser.email,
-			name: authUser.name,
-		} satisfies Props,
-	} as ExecutionContext & { props: Props }
+	const props = {
+		userId: authUser.userId,
+		apiKey: authUser.apiKey,
+		containerTag,
+		email: authUser.email,
+		name: authUser.name,
+	} satisfies AuthProps
 
-	return mcpHandler.fetch(c.req.raw, c.env, ctx)
+	return authenticatedMcpHandler(c.env, props).fetch(c.req.raw)
 }
 
 app.all("/mcp", handleMcpRequest)
-app.all("/mcp/*", handleMcpRequest)
-
-// Export the Durable Object class for Cloudflare Workers
-export { SupermemoryMCP }
 
 export default app

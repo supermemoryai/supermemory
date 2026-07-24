@@ -7,6 +7,7 @@
     "dev:local": "turbo run dev:app",
     "format-lint": "bunx biome check --write",
     "check-types": "turbo run check-types",
+    "check:zod": "bun scripts/check-zod-version.ts",
     "sentry:sourcemaps": "_SENTRY_RELEASE=$(sentry-cli releases propose-version) && sentry-cli releases new $_SENTRY_RELEASE --org=supermemory --project=consumer-app && sentry-cli sourcemaps upload --org=supermemory --project=consumer-app --release=$_SENTRY_RELEASE --strip-prefix 'dist/..' dist",
     "postbuild": "bun run sentry:sourcemaps"
   },
@@ -28,13 +29,13 @@
     "@anthropic-ai/sdk": "^0.55.1",
     "@google/genai": "^1.10.0",
     "@google/generative-ai": "^0.24.1",
-    "@hono/zod-validator": "^0.7.1",
+    "@hono/zod-validator": "^0.9.0",
     "@scalar/hono-api-reference": "^0.9.11",
     "@types/flubber": "^0.4.0",
     "@vanilla-extract/recipes": "^0.5.7",
     "ai": "^5.0.59",
     "alchemy": "^0.81.4",
-    "atmn": "^0.0.16",
+    "atmn": "^1.1.15",
     "better-auth": "^1.3.3",
     "boxen": "^8.0.1",
     "cloudflare": "^4.5.0",
@@ -42,9 +43,9 @@
     "dedent": "^1.6.0",
     "destr": "^2.0.5",
     "drizzle-orm": "^0.44.3",
-    "drizzle-zod": "~0.7.1",
+    "drizzle-zod": "^0.8.3",
     "file-type": "^21.0.0",
-    "hono-openapi": "^0.4.8",
+    "hono-openapi": "^1.3.1",
     "nanoid": "^5.1.5",
     "neverthrow": "^8.2.0",
     "pg": "^8.16.3",
@@ -52,8 +53,8 @@
     "postgres": "^3.4.7",
     "random-word-slugs": "^0.1.7",
     "resend": "^4.7.0",
-    "zod": "^3.25.76",
-    "zod-openapi": "^4.2.4"
+    "zod": "^4.4.3",
+    "zod-openapi": "^6.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
@@ -67,7 +68,8 @@
   },
   "overrides": {
     "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3"
+    "@types/react-dom": "^19.2.3",
+    "zod": "^4.4.3"
   },
   "workerd": {
     "import": "./esm/index.mjs",
