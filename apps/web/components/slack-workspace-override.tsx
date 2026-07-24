@@ -523,9 +523,10 @@ export function SlackWorkspaceOverride() {
 	const shouldInspect = screen.kind === "loading" || screen.kind === "checking"
 	const indeterminateAction =
 		screen.kind === "checking" ? screen.indeterminateAction : false
-	const loginHref = `/login?redirect=${encodeURIComponent(
-		`/slack/workspace-override${requestId ? `?request=${encodeURIComponent(requestId)}` : ""}`,
-	)}`
+	const loginHref =
+		typeof window === "undefined"
+			? "/login"
+			: `/login?redirect=${encodeURIComponent(window.location.href)}`
 
 	const checkStatus = useCallback(
 		(afterIndeterminateAction: boolean) => {
