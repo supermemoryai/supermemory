@@ -26,8 +26,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Check Zod v4 migration
+        run: |
+          bun run check:zod
+          bun test packages/validation/api.test.ts
+          bunx vitest run packages/tools/src/tools-shared.test.ts packages/tools/src/tool-operations.test.ts
+
       - name: Run TypeScript type checking
         run: bunx turbo run check-types --filter='@supermemory/ai-sdk' --filter='@supermemory/memory-graph'
+
+      - name: Check MCP server
+        run: cd apps/mcp && bun run check
 
       - name: Run Biome CI (format & lint on changed files)
         run: bunx biome ci --changed --since=origin/main --no-errors-on-unmatched

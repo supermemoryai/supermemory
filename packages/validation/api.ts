@@ -1,5 +1,5 @@
 import { z } from "zod"
-import "zod-openapi/extend"
+import "zod-openapi"
 import {
 	MetadataSchema as BaseMetadataSchema,
 	DocumentSchema,
@@ -15,7 +15,7 @@ export const SearchFiltersSchema = z
 		AND: z.array(z.unknown()).optional(),
 		OR: z.array(z.unknown()).optional(),
 	})
-	.or(z.record(z.unknown()))
+	.or(z.record(z.string(), z.unknown()))
 
 const exampleMetadata: Record<string, string | number | boolean> = {
 	category: "technology",
@@ -49,16 +49,16 @@ const exampleMemory = {
 
 export const MemorySchema = z
 	.object({
-		id: z.string().openapi({
+		id: z.string().meta({
 			description: "Unique identifier of the memory.",
 			example: "acxV5LHMEsG2hMSNb4umbn",
 		}),
-		customId: z.string().nullable().optional().openapi({
+		customId: z.string().nullable().optional().meta({
 			description:
 				"Optional custom ID of the memory. This could be an ID from your database that will uniquely identify this memory.",
 			example: "mem_abc123",
 		}),
-		connectionId: z.string().nullable().optional().openapi({
+		connectionId: z.string().nullable().optional().meta({
 			description:
 				"Optional ID of connection the memory was created from. This is useful for identifying the source of the memory.",
 			example: "conn_123",
@@ -67,7 +67,7 @@ export const MemorySchema = z
 			.string()
 			.nullable()
 			.optional()
-			.openapi({
+			.meta({
 				description:
 					"The content to extract and process into a memory. This can be a URL to a website, a PDF, an image, or a video. \n\nPlaintext: Any plaintext format\n\nURL: A URL to a website, PDF, image, or video\n\nWe automatically detect the content type from the url's response format.",
 				examples: [
@@ -79,42 +79,42 @@ export const MemorySchema = z
 					"https://example.com/image.jpg",
 				],
 			}),
-		metadata: MetadataSchema.nullable().optional().openapi({
+		metadata: MetadataSchema.nullable().optional().meta({
 			description:
 				"Optional metadata for the memory. This is used to store additional information about the memory. You can use this to store any additional information you need about the memory. Metadata can be filtered through. Keys must be strings and are case sensitive. Values can be strings, numbers, or booleans. You cannot nest objects.",
 			example: exampleMetadata,
 		}),
-		source: z.string().nullable().optional().openapi({
+		source: z.string().nullable().optional().meta({
 			description: "Source of the memory",
 			example: "web",
 		}),
-		status: DocumentSchema.shape.status.openapi({
+		status: DocumentSchema.shape.status.meta({
 			description: "Status of the memory",
 			example: "done",
 		}),
-		summary: z.string().nullable().optional().openapi({
+		summary: z.string().nullable().optional().meta({
 			description: "Summary of the memory content",
 			example:
 				"A comprehensive guide to understanding the basics of machine learning and its applications.",
 		}),
-		title: z.string().nullable().optional().openapi({
+		title: z.string().nullable().optional().meta({
 			description: "Title of the memory",
 			example: "Introduction to Machine Learning",
 		}),
-		type: DocumentSchema.shape.type.openapi({
+		type: DocumentSchema.shape.type.meta({
 			description: "Type of the memory",
 			example: "text",
 		}),
-		url: z.string().nullable().optional().openapi({
+		url: z.string().nullable().optional().meta({
 			description: "URL of the memory",
 			example: "https://example.com/article",
 		}),
-		createdAt: z.string().openapi({
+		createdAt: z.string().meta({
 			description: "Creation timestamp",
 			example: new Date().toISOString(),
 			format: "date-time",
 		}),
-		updatedAt: z.string().openapi({
+		updatedAt: z.string().meta({
 			description: "Last update timestamp",
 			example: new Date().toISOString(),
 			format: "date-time",
@@ -123,17 +123,17 @@ export const MemorySchema = z
 			.array(z.string())
 			.optional()
 			.readonly()
-			.openapi({
+			.meta({
 				description:
 					"Optional tags this memory should be containerized by. This can be an ID for your user, a project ID, or any other identifier you wish to use to group memories.",
 				example: ["user_123", "project_123"] as const,
 			}),
-		chunkCount: z.number().default(0).openapi({
+		chunkCount: z.number().default(0).meta({
 			description: "Number of chunks in the memory",
 			example: 10,
 		}),
 	})
-	.openapi({
+	.meta({
 		description: "Memory object",
 		example: exampleMemory,
 	})
@@ -142,28 +142,28 @@ export const MemoryUpdateSchema = z.object({
 	containerTags: z
 		.array(z.string())
 		.optional()
-		.openapi({
+		.meta({
 			description:
 				"Optional tags this memory should be containerized by. This can be an ID for your user, a project ID, or any other identifier you wish to use to group memories.",
 			example: ["user_123", "project_123"],
 		}),
-	content: z.string().optional().openapi({
+	content: z.string().optional().meta({
 		description:
 			"The content to extract and process into a memory. This can be a URL to a website, a PDF, an image, or a video. \n\nPlaintext: Any plaintext format\n\nURL: A URL to a website, PDF, image, or video\n\nWe automatically detect the content type from the url's response format.",
 		example: "This is a detailed article about machine learning concepts...",
 	}),
-	customId: z.string().optional().openapi({
+	customId: z.string().optional().meta({
 		description:
 			"Optional custom ID of the memory. This could be an ID from your database that will uniquely identify this memory.",
 		example: "mem_abc123",
 	}),
-	entityContext: z.string().max(1500).optional().openapi({
+	entityContext: z.string().max(1500).optional().meta({
 		description:
 			"Context for memory extraction on this container tag. Helps guide how memories are extracted and understood.",
 		example:
 			"This user is John, saving items in a personal knowledge management system.",
 	}),
-	metadata: MetadataSchema.optional().openapi({
+	metadata: MetadataSchema.optional().meta({
 		description:
 			"Optional metadata for the memory. This is used to store additional information about the memory. You can use this to store any additional information you need about the memory. Metadata can be filtered through. Keys must be strings and are case sensitive. Values can be strings, numbers, or booleans. You cannot nest objects.",
 		example: exampleMetadata,
@@ -179,7 +179,7 @@ export const PaginationSchema = z
 		totalItems: z.number(),
 		totalPages: z.number(),
 	})
-	.openapi({
+	.meta({
 		description: "Pagination metadata",
 		example: {
 			currentPage: 1,
@@ -210,7 +210,7 @@ export const ListMemoriesResponseSchema = z
 		),
 		pagination: PaginationSchema,
 	})
-	.openapi({
+	.meta({
 		description: "List of memories",
 		example: {
 			memories: [
@@ -242,7 +242,7 @@ export const ListMemoriesQuerySchema = z
 		containerTags: z
 			.array(z.string())
 			.optional()
-			.openapi({
+			.meta({
 				description:
 					"Optional tags this memory should be containerized by. This can be an ID for your user, a project ID, or any other identifier you wish to use to group memories.",
 				example: ["user_123", "project_123"],
@@ -251,7 +251,7 @@ export const ListMemoriesQuerySchema = z
 		filters: z
 			.string()
 			.optional()
-			.openapi({
+			.meta({
 				description: "Optional filters to apply to the search",
 				example: JSON.stringify({
 					AND: [
@@ -278,28 +278,28 @@ export const ListMemoriesQuerySchema = z
 			.refine((value) => value <= 1100, {
 				message: "Limit cannot be greater than 1100",
 			})
-			.default("10")
-			.openapi({
+			.default(10)
+			.meta({
 				description: "Number of items per page",
 				example: "10",
 			}),
 		order: z
 			.enum(["asc", "desc"])
 			.default("desc")
-			.openapi({ description: "Sort order", example: "desc" }),
+			.meta({ description: "Sort order", example: "desc" }),
 		page: z
 			.string()
 			.regex(/^\d+$/)
 			.or(z.number())
 			.transform(Number)
-			.default("1")
-			.openapi({ description: "Page number to fetch", example: "1" }),
+			.default(1)
+			.meta({ description: "Page number to fetch", example: "1" }),
 		sort: z
 			.enum(["createdAt", "updatedAt"])
 			.default("createdAt")
-			.openapi({ description: "Field to sort by", example: "createdAt" }),
+			.meta({ description: "Field to sort by", example: "createdAt" }),
 	})
-	.openapi({
+	.meta({
 		description: "Query parameters for listing memories",
 		example: {
 			filters: JSON.stringify({
@@ -334,7 +334,7 @@ export const SearchRequestSchema = z.object({
 	categoriesFilter: z
 		.array(z.string())
 		.optional()
-		.openapi({
+		.meta({
 			description: "Optional category filters",
 			example: ["technology", "science"],
 			items: {
@@ -353,7 +353,7 @@ export const SearchRequestSchema = z.object({
 				min: 0,
 			},
 		})
-		.openapi({
+		.meta({
 			description:
 				"Threshold / sensitivity for chunk selection. 0 is least sensitive (returns most chunks, more results), 1 is most sensitive (returns lesser chunks, accurate results)",
 			example: 0.5,
@@ -363,12 +363,12 @@ export const SearchRequestSchema = z.object({
 	containerTags: z
 		.array(z.string())
 		.optional()
-		.openapi({
+		.meta({
 			description:
 				"Optional tags this search should be containerized by. This can be an ID for your user, a project ID, or any other identifier you wish to use to filter memories.",
 			example: ["user_123", "project_123"],
 		}),
-	docId: z.string().max(255).optional().openapi({
+	docId: z.string().max(255).optional().meta({
 		description:
 			"Optional document ID to search within. You can use this to find chunks in a very large document.",
 		example: "doc_xyz789",
@@ -384,14 +384,14 @@ export const SearchRequestSchema = z.object({
 				min: 0,
 			},
 		})
-		.openapi({
+		.meta({
 			description:
 				"Threshold / sensitivity for document selection. 0 is least sensitive (returns most documents, more results), 1 is most sensitive (returns lesser documents, accurate results)",
 			example: 0.5,
 			maximum: 1,
 			minimum: 0,
 		}),
-	filters: SearchFiltersSchema.optional().openapi({
+	filters: SearchFiltersSchema.optional().meta({
 		description: "Optional filters to apply to the search",
 		example: {
 			AND: [
@@ -410,12 +410,12 @@ export const SearchRequestSchema = z.object({
 			],
 		},
 	}),
-	includeFullDocs: z.boolean().optional().default(false).openapi({
+	includeFullDocs: z.boolean().optional().default(false).meta({
 		description:
 			"If true, include full document in the response. This is helpful if you want a chatbot to know the full context of the document. ",
 		example: false,
 	}),
-	includeSummary: z.boolean().optional().default(false).openapi({
+	includeSummary: z.boolean().optional().default(false).meta({
 		description:
 			"If true, include document summary in the response. This is helpful if you want a chatbot to know the full context of the document. ",
 		example: false,
@@ -433,28 +433,28 @@ export const SearchRequestSchema = z.object({
 				min: 1,
 			},
 		})
-		.openapi({
+		.meta({
 			description: "Maximum number of results to return",
 			example: 10,
 			maximum: 100,
 			minimum: 1,
 		}),
-	onlyMatchingChunks: z.boolean().optional().default(true).openapi({
+	onlyMatchingChunks: z.boolean().optional().default(true).meta({
 		description:
 			"If true, only return matching chunks without context. Normally, we send the previous and next chunk to provide more context for LLMs. If you only want the matching chunk, set this to true.",
 		example: false,
 	}),
-	q: z.string().min(1).openapi({
+	q: z.string().min(1).meta({
 		description: "Search query string",
 		example: "machine learning concepts",
 		minLength: 1,
 	}),
-	rerank: z.boolean().optional().default(false).openapi({
+	rerank: z.boolean().optional().default(false).meta({
 		description:
 			"If true, rerank the results based on the query. This is helpful if you want to ensure the most relevant results are returned.",
 		example: false,
 	}),
-	rewriteQuery: z.boolean().optional().default(false).openapi({
+	rewriteQuery: z.boolean().optional().default(false).meta({
 		description:
 			"If true, rewrites the query to make it easier to find documents. This increases the latency by about 400ms",
 		example: false,
@@ -462,7 +462,7 @@ export const SearchRequestSchema = z.object({
 })
 
 export const Searchv4RequestSchema = z.object({
-	containerTag: z.string().optional().openapi({
+	containerTag: z.string().optional().meta({
 		description:
 			"Optional tag this search should be containerized by. This can be an ID for your user, a project ID, or any other identifier you wish to use to filter memories.",
 		example: "user_123",
@@ -478,14 +478,14 @@ export const Searchv4RequestSchema = z.object({
 				min: 0,
 			},
 		})
-		.openapi({
+		.meta({
 			description:
 				"Threshold / sensitivity for memories selection. 0 is least sensitive (returns most memories, more results), 1 is most sensitive (returns lesser memories, accurate results)",
 			example: 0.5,
 			maximum: 1,
 			minimum: 0,
 		}),
-	filters: SearchFiltersSchema.optional().openapi({
+	filters: SearchFiltersSchema.optional().meta({
 		description: "Optional filters to apply to the search",
 		example: {
 			AND: [
@@ -514,6 +514,7 @@ export const Searchv4RequestSchema = z.object({
 		.default({
 			documents: false,
 			summaries: false,
+			relatedMemories: false,
 		}),
 	limit: z
 		.number()
@@ -528,23 +529,23 @@ export const Searchv4RequestSchema = z.object({
 				min: 1,
 			},
 		})
-		.openapi({
+		.meta({
 			description: "Maximum number of results to return",
 			example: 10,
 			maximum: 100,
 			minimum: 1,
 		}),
-	q: z.string().min(1).openapi({
+	q: z.string().min(1).meta({
 		description: "Search query string",
 		example: "machine learning concepts",
 		minLength: 1,
 	}),
-	rerank: z.boolean().optional().default(false).openapi({
+	rerank: z.boolean().optional().default(false).meta({
 		description:
 			"If true, rerank the results based on the query. This is helpful if you want to ensure the most relevant results are returned.",
 		example: false,
 	}),
-	rewriteQuery: z.boolean().optional().default(false).openapi({
+	rewriteQuery: z.boolean().optional().default(false).meta({
 		description:
 			"If true, rewrites the query to make it easier to find documents. This increases the latency by about 400ms",
 		example: false,
@@ -556,23 +557,23 @@ export const SearchResultSchema = z.object({
 		.array(
 			z
 				.object({
-					content: z.string().openapi({
+					content: z.string().meta({
 						description: "Content of the matching chunk",
 						example:
 							"Machine learning is a subset of artificial intelligence...",
 					}),
-					isRelevant: z.boolean().openapi({
+					isRelevant: z.boolean().meta({
 						description: "Whether this chunk is relevant to the query",
 						example: true,
 					}),
-					score: z.number().openapi({
+					score: z.number().meta({
 						description: "Similarity score for this chunk",
 						example: 0.85,
 						maximum: 1,
 						minimum: 0,
 					}),
 				})
-				.openapi({
+				.meta({
 					description: "Matching content chunk",
 					example: {
 						content:
@@ -582,7 +583,7 @@ export const SearchResultSchema = z.object({
 					},
 				}),
 		)
-		.openapi({
+		.meta({
 			description: "Matching content chunks from the document",
 			example: [
 				{
@@ -592,46 +593,46 @@ export const SearchResultSchema = z.object({
 				},
 			],
 		}),
-	createdAt: z.coerce.date().openapi({
+	createdAt: z.coerce.date().meta({
 		description: "Document creation date",
 		example: new Date().toISOString(),
 		format: "date-time",
 	}),
-	documentId: z.string().openapi({
+	documentId: z.string().meta({
 		description: "ID of the matching document",
 		example: "doc_xyz789",
 	}),
-	metadata: z.record(z.unknown()).nullable().openapi({
+	metadata: z.record(z.string(), z.unknown()).nullable().meta({
 		description: "Document metadata",
 		example: exampleMetadata,
 	}),
-	score: z.number().openapi({
+	score: z.number().meta({
 		description: "Relevance score of the match",
 		example: 0.95,
 		maximum: 1,
 		minimum: 0,
 	}),
-	summary: z.string().nullable().optional().openapi({
+	summary: z.string().nullable().optional().meta({
 		description: "Document summary",
 		example:
 			"A comprehensive guide to understanding the basics of machine learning and its applications.",
 	}),
-	content: z.string().nullable().optional().openapi({
+	content: z.string().nullable().optional().meta({
 		description:
 			"Full document content (only included when includeFullDocs=true)",
 		example:
 			"This is the complete content of the document about machine learning concepts...",
 	}),
-	title: z.string().nullable().openapi({
+	title: z.string().nullable().meta({
 		description: "Document title",
 		example: "Introduction to Machine Learning",
 	}),
-	updatedAt: z.coerce.date().openapi({
+	updatedAt: z.coerce.date().meta({
 		description: "Document last update date",
 		example: new Date().toISOString(),
 		format: "date-time",
 	}),
-	type: z.string().nullable().openapi({
+	type: z.string().nullable().meta({
 		description: "Document type",
 		example: "web",
 	}),
@@ -645,59 +646,59 @@ export const SearchResponseSchema = z.object({
 
 // V4 Memory Search Schemas
 export const MemorySearchDocumentSchema = z.object({
-	id: z.string().openapi({
+	id: z.string().meta({
 		description: "Document ID",
 		example: "doc_xyz789",
 	}),
-	title: z.string().openapi({
+	title: z.string().meta({
 		description: "Document title",
 		example: "Introduction to Machine Learning",
 	}),
-	type: z.string().openapi({
+	type: z.string().meta({
 		description: "Document type",
 		example: "web",
 	}),
-	metadata: z.record(z.unknown()).nullable().openapi({
+	metadata: z.record(z.string(), z.unknown()).nullable().meta({
 		description: "Document metadata",
 		example: exampleMetadata,
 	}),
-	createdAt: z.coerce.date().openapi({
+	createdAt: z.coerce.date().meta({
 		description: "Document creation date",
 		format: "date-time",
 	}),
-	updatedAt: z.coerce.date().openapi({
+	updatedAt: z.coerce.date().meta({
 		description: "Document last update date",
 		format: "date-time",
 	}),
 })
 
 export const MemorySearchResult = z.object({
-	id: z.string().openapi({
+	id: z.string().meta({
 		description: "Memory entry ID",
 		example: "mem_abc123",
 	}),
-	memory: z.string().openapi({
+	memory: z.string().meta({
 		description: "The memory content",
 		example: "John prefers machine learning over traditional programming",
 	}),
 	metadata: z
-		.record(z.unknown())
+		.record(z.string(), z.unknown())
 		.nullable()
-		.openapi({
+		.meta({
 			description: "Memory metadata",
 			example: { source: "conversation", confidence: 0.9 },
 		}),
-	updatedAt: z.coerce.date().openapi({
+	updatedAt: z.coerce.date().meta({
 		description: "Memory last update date",
 		format: "date-time",
 	}),
-	similarity: z.number().openapi({
+	similarity: z.number().meta({
 		description: "Similarity score between the query and memory entry",
 		example: 0.89,
 		maximum: 1,
 		minimum: 0,
 	}),
-	version: z.number().nullable().optional().openapi({
+	version: z.number().nullable().optional().meta({
 		description: "Version number of this memory entry",
 		example: 3,
 	}),
@@ -706,25 +707,29 @@ export const MemorySearchResult = z.object({
 			parents: z
 				.array(
 					z.object({
-						relation: z.enum(["updates", "extends", "derives"]).openapi({
+						relation: z.enum(["updates", "extends", "derives"]).meta({
 							description:
 								"Relation type between this memory and its parent/child",
 							example: "updates",
 						}),
-						version: z.number().nullable().optional().openapi({
+						version: z.number().nullable().optional().meta({
 							description:
 								"Relative version distance from the primary memory (-1 for direct parent, -2 for grand-parent, etc.)",
 							example: -1,
 						}),
-						memory: z.string().openapi({
+						memory: z.string().meta({
 							description: "The contextual memory content",
 							example:
 								"Earlier version: Dhravya is working on a patent at Cloudflare.",
 						}),
-						metadata: z.record(z.unknown()).nullable().optional().openapi({
-							description: "Contextual memory metadata",
-						}),
-						updatedAt: z.coerce.date().openapi({
+						metadata: z
+							.record(z.string(), z.unknown())
+							.nullable()
+							.optional()
+							.meta({
+								description: "Contextual memory metadata",
+							}),
+						updatedAt: z.coerce.date().meta({
 							description: "Contextual memory last update date",
 							format: "date-time",
 						}),
@@ -734,25 +739,29 @@ export const MemorySearchResult = z.object({
 			children: z
 				.array(
 					z.object({
-						relation: z.enum(["updates", "extends", "derives"]).openapi({
+						relation: z.enum(["updates", "extends", "derives"]).meta({
 							description:
 								"Relation type between this memory and its parent/child",
 							example: "extends",
 						}),
-						version: z.number().nullable().optional().openapi({
+						version: z.number().nullable().optional().meta({
 							description:
 								"Relative version distance from the primary memory (+1 for direct child, +2 for grand-child, etc.)",
 							example: 1,
 						}),
-						memory: z.string().openapi({
+						memory: z.string().meta({
 							description: "The contextual memory content",
 							example:
 								"Later version: Dhravya has filed the patent successfully.",
 						}),
-						metadata: z.record(z.unknown()).nullable().optional().openapi({
-							description: "Contextual memory metadata",
-						}),
-						updatedAt: z.coerce.date().openapi({
+						metadata: z
+							.record(z.string(), z.unknown())
+							.nullable()
+							.optional()
+							.meta({
+								description: "Contextual memory metadata",
+							}),
+						updatedAt: z.coerce.date().meta({
 							description: "Contextual memory last update date",
 							format: "date-time",
 						}),
@@ -761,35 +770,35 @@ export const MemorySearchResult = z.object({
 				.optional(),
 		})
 		.optional()
-		.openapi({
+		.meta({
 			description:
 				"Object containing arrays of parent and child contextual memories",
 		}),
-	documents: z.array(MemorySearchDocumentSchema).optional().openapi({
+	documents: z.array(MemorySearchDocumentSchema).optional().meta({
 		description: "Associated documents for this memory entry",
 	}),
 })
 
 export const MemorySearchResponseSchema = z.object({
-	results: z.array(MemorySearchResult).openapi({
+	results: z.array(MemorySearchResult).meta({
 		description: "Array of matching memory entries with similarity scores",
 	}),
-	timing: z.number().openapi({
+	timing: z.number().meta({
 		description: "Search execution time in milliseconds",
 		example: 245,
 	}),
-	total: z.number().openapi({
+	total: z.number().meta({
 		description: "Total number of results returned",
 		example: 5,
 	}),
 })
 
 export const ErrorResponseSchema = z.object({
-	details: z.string().optional().openapi({
+	details: z.string().optional().meta({
 		description: "Additional error details",
 		example: "Query must be at least 1 character long",
 	}),
-	error: z.string().openapi({
+	error: z.string().meta({
 		description: "Error message",
 		example: "Invalid request parameters",
 	}),
@@ -809,7 +818,7 @@ export const ConnectionResponseSchema = z.object({
 	email: z.string().optional(),
 	expiresAt: z.string().datetime().optional(),
 	id: z.string(),
-	metadata: z.record(z.any()).optional(),
+	metadata: z.record(z.string(), z.any()).optional(),
 	provider: z.string(),
 	containerTags: z.array(z.string()).optional(),
 })
@@ -891,14 +900,14 @@ export const AnalyticsLogSchema = z.object({
 	ingestion: z
 		.object({
 			createdAt: z.date(),
-			metadata: z.record(z.unknown()),
+			metadata: z.record(z.string(), z.unknown()),
 			status: z.string(),
 			summary: z.string(),
 			title: z.string(),
 			url: z.string(),
 		})
 		.optional(),
-	input: z.record(z.unknown()),
+	input: z.record(z.string(), z.unknown()),
 	output: z.discriminatedUnion("type", [
 		z.object({
 			response: MemoryResponseSchema,
@@ -1042,9 +1051,9 @@ export const AnalyticsMemoryResponseSchema = z.object({
 export const MemoryEntryAPISchema = MemoryEntrySchema.extend({
 	sourceAddedAt: z.date().nullable(), // From join relationship
 	sourceRelevanceScore: z.number().nullable(), // From join relationship
-	sourceMetadata: z.record(z.unknown()).nullable(), // From join relationship
+	sourceMetadata: z.record(z.string(), z.unknown()).nullable(), // From join relationship
 	spaceContainerTag: z.string().nullable(), // From join relationship
-}).openapi({
+}).meta({
 	description: "Memory entry with source relationship data",
 })
 
@@ -1077,7 +1086,7 @@ export const DocumentWithMemoriesSchema = z
 		updatedAt: DocumentSchema.shape.updatedAt,
 		memoryEntries: z.array(MemoryEntryAPISchema),
 	})
-	.openapi({
+	.meta({
 		description: "Document with associated memory entries",
 	})
 
@@ -1086,44 +1095,44 @@ export const DocumentsWithMemoriesResponseSchema = z
 		documents: z.array(DocumentWithMemoriesSchema),
 		pagination: PaginationSchema,
 	})
-	.openapi({
+	.meta({
 		description: "List of documents with their memory entries",
 	})
 
 export const DocumentsWithMemoriesQuerySchema = z
 	.object({
-		page: z.number().default(1).openapi({
+		page: z.number().default(1).meta({
 			description: "Page number to fetch",
 			example: 1,
 		}),
-		limit: z.number().default(10).openapi({
+		limit: z.number().default(10).meta({
 			description: "Number of items per page",
 			example: 10,
 		}),
-		sort: z.enum(["createdAt", "updatedAt"]).default("createdAt").openapi({
+		sort: z.enum(["createdAt", "updatedAt"]).default("createdAt").meta({
 			description: "Field to sort by",
 			example: "createdAt",
 		}),
-		order: z.enum(["asc", "desc"]).default("desc").openapi({
+		order: z.enum(["asc", "desc"]).default("desc").meta({
 			description: "Sort order",
 			example: "desc",
 		}),
 		containerTags: z
 			.array(z.string())
 			.optional()
-			.openapi({
+			.meta({
 				description: "Optional container tags to filter documents by",
 				example: ["sm_project_default"],
 			}),
 		sources: z
 			.array(z.string().trim().min(1).max(255))
 			.optional()
-			.openapi({
+			.meta({
 				description: "Optional document sources to filter by (OR logic)",
 				example: ["claude-code", "codex"],
 			}),
 	})
-	.openapi({
+	.meta({
 		description: "Query parameters for listing documents with memory entries",
 	})
 
@@ -1132,53 +1141,53 @@ export const DocumentFacetsQuerySchema = z
 		containerTags: z
 			.array(z.string())
 			.optional()
-			.openapi({
+			.meta({
 				description: "Optional container tags to filter facets by",
 				example: ["sm_project_default"],
 			}),
 	})
-	.openapi({
+	.meta({
 		description: "Query parameters for getting document facets",
 	})
 
 export const MigrateMCPRequestSchema = z
 	.object({
-		userId: z.string().openapi({
+		userId: z.string().meta({
 			description: "User ID to migrate documents for",
 			example: "user_123",
 		}),
-		projectId: z.string().default("default").openapi({
+		projectId: z.string().default("default").meta({
 			description: "Project ID to migrate documents to",
 			example: "school",
 		}),
 	})
-	.openapi({
+	.meta({
 		description: "Request body for migrating MCP documents",
 	})
 
 export const MigrateMCPResponseSchema = z
 	.object({
-		success: z.boolean().openapi({
+		success: z.boolean().meta({
 			description: "Whether the migration was successful",
 			example: true,
 		}),
-		migratedCount: z.number().openapi({
+		migratedCount: z.number().meta({
 			description: "Number of documents migrated",
 			example: 5,
 		}),
-		message: z.string().openapi({
+		message: z.string().meta({
 			description: "Status message",
 			example: "Successfully migrated 5 documents",
 		}),
 		documentIds: z
 			.array(z.string())
 			.optional()
-			.openapi({
+			.meta({
 				description: "IDs of migrated documents",
 				example: ["doc_123", "doc_456", "doc_789"],
 			}),
 	})
-	.openapi({
+	.meta({
 		description: "Response for MCP document migration",
 	})
 
@@ -1198,12 +1207,12 @@ export const ProcessingDocumentsResponseSchema = z
 				containerTags: true,
 			}),
 		),
-		totalCount: z.number().openapi({
+		totalCount: z.number().meta({
 			description: "Total number of processing documents",
 			example: 5,
 		}),
 	})
-	.openapi({
+	.meta({
 		description: "List of documents currently being processed",
 		example: {
 			documents: [
@@ -1226,98 +1235,98 @@ export const ProcessingDocumentsResponseSchema = z
 // Project schemas
 export const ProjectSchema = z
 	.object({
-		id: z.string().openapi({
+		id: z.string().meta({
 			description: "Unique identifier of the project",
 			example: "proj_abc123",
 		}),
-		name: z.string().openapi({
+		name: z.string().meta({
 			description: "Display name of the project",
 			example: "My Awesome Project",
 		}),
-		containerTag: z.string().openapi({
+		containerTag: z.string().meta({
 			description:
 				"Container tag for organizing memories (format: sm_project_{name})",
 			example: "sm_project_my_awesome_project",
 		}),
-		createdAt: z.string().openapi({
+		createdAt: z.string().meta({
 			description: "Creation timestamp",
 			example: new Date().toISOString(),
 			format: "date-time",
 		}),
-		updatedAt: z.string().openapi({
+		updatedAt: z.string().meta({
 			description: "Last update timestamp",
 			example: new Date().toISOString(),
 			format: "date-time",
 		}),
-		isExperimental: z.boolean().openapi({
+		isExperimental: z.boolean().meta({
 			description: "Whether the project (space) is in experimental mode",
 			example: false,
 		}),
-		documentCount: z.number().optional().openapi({
+		documentCount: z.number().optional().meta({
 			description: "Number of documents in this project",
 			example: 42,
 		}),
-		emoji: z.string().optional().openapi({
+		emoji: z.string().optional().meta({
 			description: "Emoji icon for the project",
 			example: "📁",
 		}),
 	})
-	.openapi({
+	.meta({
 		description: "Project object for organizing memories",
 	})
 
 export const CreateProjectSchema = z
 	.object({
-		name: z.string().min(1).max(100).openapi({
+		name: z.string().min(1).max(100).meta({
 			description: "Name for the project",
 			example: "My Awesome Project",
 			minLength: 1,
 			maxLength: 100,
 		}),
-		emoji: z.string().max(10).optional().openapi({
+		emoji: z.string().max(10).optional().meta({
 			description: "Emoji icon for the project",
 			example: "📁",
 			maxLength: 10,
 		}),
 	})
-	.openapi({
+	.meta({
 		description: "Request body for creating a new project",
 	})
 
 export const ContainerTagSettingsUpdateSchema = z
 	.object({
-		containerTag: z.string().openapi({
+		containerTag: z.string().meta({
 			description: "The container tag identifier",
 			example: "sm_project_default",
 		}),
-		name: z.string().nullable().openapi({
+		name: z.string().nullable().meta({
 			description: "Display name for this container tag",
 			example: "Research Notes",
 		}),
-		entityContext: z.string().nullable().openapi({
+		entityContext: z.string().nullable().meta({
 			description: "Custom context prompt for this container tag",
 			example: "This project contains research papers about machine learning.",
 		}),
 		memoryFilesystemPaths: z.array(z.string()).nullable(),
-		updatedAt: z.string().datetime().openapi({
+		updatedAt: z.string().datetime().meta({
 			description: "Last update timestamp",
 			format: "datetime",
 		}),
 	})
-	.openapi({
+	.meta({
 		description: "Response after updating container tag settings",
 	})
 
 export const UpdateContainerTagSettingsRequestSchema = z
 	.object({
-		name: z.string().trim().min(1).max(100).optional().openapi({
+		name: z.string().trim().min(1).max(100).optional().meta({
 			description:
 				"Display name for this container tag. This does not change the container tag identifier.",
 			example: "Research Notes",
 			minLength: 1,
 			maxLength: 100,
 		}),
-		entityContext: z.string().max(1500).nullable().optional().openapi({
+		entityContext: z.string().max(1500).nullable().optional().meta({
 			description:
 				"Custom context prompt for this container tag. Used to provide additional context when processing documents in this container. Maximum 1500 characters.",
 			example: "This project contains research papers about machine learning.",
@@ -1325,27 +1334,27 @@ export const UpdateContainerTagSettingsRequestSchema = z
 		}),
 		memoryFilesystemPaths: z.array(z.string()).nullable().optional(),
 	})
-	.openapi({
+	.meta({
 		description: "Request body for updating container tag settings",
 	})
 
 export const ListProjectsResponseSchema = z
 	.object({
-		projects: z.array(ProjectSchema).openapi({
+		projects: z.array(ProjectSchema).meta({
 			description: "List of user-created projects with sm_project_* prefix",
 		}),
 	})
-	.openapi({
+	.meta({
 		description: "Response containing list of projects",
 	})
 
 export const DeleteProjectSchema = z
 	.object({
-		action: z.enum(["move", "delete"]).openapi({
+		action: z.enum(["move", "delete"]).meta({
 			description: "Action to perform on documents in the project",
 			example: "move",
 		}),
-		targetProjectId: z.string().optional().openapi({
+		targetProjectId: z.string().optional().meta({
 			description: "Target project ID when action is 'move'",
 			example: "proj_xyz789",
 		}),
@@ -1363,30 +1372,30 @@ export const DeleteProjectSchema = z
 			path: ["targetProjectId"],
 		},
 	)
-	.openapi({
+	.meta({
 		description: "Request body for deleting a project",
 	})
 
 export const DeleteProjectResponseSchema = z
 	.object({
-		success: z.boolean().openapi({
+		success: z.boolean().meta({
 			description: "Whether the deletion was successful",
 			example: true,
 		}),
-		message: z.string().openapi({
+		message: z.string().meta({
 			description: "Status message",
 			example: "Project deleted successfully",
 		}),
-		documentsAffected: z.number().openapi({
+		documentsAffected: z.number().meta({
 			description: "Number of documents affected by the operation",
 			example: 10,
 		}),
-		memoriesAffected: z.number().openapi({
+		memoriesAffected: z.number().meta({
 			description: "Number of memories affected by the operation",
 			example: 5,
 		}),
 	})
-	.openapi({
+	.meta({
 		description: "Response for project deletion",
 	})
 
@@ -1398,7 +1407,7 @@ export const BulkDeleteMemoriesSchema = z
 			.min(1)
 			.max(100)
 			.optional()
-			.openapi({
+			.meta({
 				description: "Array of memory IDs to delete (max 100 at once)",
 				example: ["acxV5LHMEsG2hMSNb4umbn", "bxcV5LHMEsG2hMSNb4umbn"],
 			}),
@@ -1406,7 +1415,7 @@ export const BulkDeleteMemoriesSchema = z
 			.array(z.string())
 			.min(1)
 			.optional()
-			.openapi({
+			.meta({
 				description:
 					"Array of container tags - all memories in these containers will be deleted",
 				example: ["user_123", "project_123"],
@@ -1421,7 +1430,7 @@ export const BulkDeleteMemoriesSchema = z
 			message: "Either 'ids' or 'containerTags' must be provided",
 		},
 	)
-	.openapi({
+	.meta({
 		description:
 			"Request body for bulk deleting memories by IDs or container tags",
 		example: {
@@ -1431,11 +1440,11 @@ export const BulkDeleteMemoriesSchema = z
 
 export const BulkDeleteMemoriesResponseSchema = z
 	.object({
-		success: z.boolean().openapi({
+		success: z.boolean().meta({
 			description: "Whether the bulk deletion was successful",
 			example: true,
 		}),
-		deletedCount: z.number().openapi({
+		deletedCount: z.number().meta({
 			description: "Number of memories successfully deleted",
 			example: 2,
 		}),
@@ -1447,71 +1456,71 @@ export const BulkDeleteMemoriesResponseSchema = z
 				}),
 			)
 			.optional()
-			.openapi({
+			.meta({
 				description:
 					"Array of errors for memories that couldn't be deleted (only applicable when deleting by IDs)",
 			}),
 		containerTags: z
 			.array(z.string())
 			.optional()
-			.openapi({
+			.meta({
 				description:
 					"Container tags that were processed (only applicable when deleting by container tags)",
 				example: ["user_123", "project_123"],
 			}),
 	})
-	.openapi({
+	.meta({
 		description: "Response for bulk memory deletion",
 	})
 
 export const ContainerTagListTypeSchema = z
 	.object({
-		id: z.string().openapi({
+		id: z.string().meta({
 			description: "Unique identifier of the container tag/space",
 			example: "space_abc123",
 		}),
-		name: z.string().openapi({
+		name: z.string().meta({
 			description: "Display name of the container tag",
 			example: "My Project",
 		}),
-		containerTag: z.string().openapi({
+		containerTag: z.string().meta({
 			description: "The container tag identifier",
 			example: "sm_project_my_project",
 		}),
-		createdAt: z.string().openapi({
+		createdAt: z.string().meta({
 			description: "Creation timestamp",
 			example: new Date().toISOString(),
 			format: "date-time",
 		}),
-		updatedAt: z.string().openapi({
+		updatedAt: z.string().meta({
 			description: "Last update timestamp",
 			example: new Date().toISOString(),
 			format: "date-time",
 		}),
-		isExperimental: z.boolean().openapi({
+		isExperimental: z.boolean().meta({
 			description: "Whether the space is experimental",
 			example: false,
 		}),
-		emoji: z.string().optional().openapi({
+		emoji: z.string().optional().meta({
 			description: "Emoji icon for the container tag",
 			example: "📁",
 		}),
-		isNova: z.boolean().openapi({
+		isNova: z.boolean().meta({
 			description: "True if containerTag starts with 'sm_project_'",
 			example: true,
 		}),
-		visibility: z.enum(["public", "private", "unlisted"]).optional().openapi({
+		visibility: z.enum(["public", "private", "unlisted"]).optional().meta({
 			description: "Space visibility (company brain spaces)",
 			example: "public",
 		}),
 	})
-	.openapi({
+	.meta({
 		description:
 			"Container tag with isNova flag indicating Nova vs developer project",
 	})
 
 export const ListContainerTagsResponseSchema = z
 	.array(ContainerTagListTypeSchema)
-	.openapi({
+	.meta({
 		description: "Flat array of all container tags with isNova flag",
 	})
