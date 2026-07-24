@@ -153,9 +153,7 @@ function legacyGroupIdentity(
 		containerTag.startsWith("codex_user_") ||
 		containerTag.startsWith("opencode_user_")
 	) {
-		const agent = containerTag.startsWith("codex_user_")
-			? "Codex"
-			: "OpenCode"
+		const agent = containerTag.startsWith("codex_user_") ? "Codex" : "OpenCode"
 		return {
 			key: `legacy-personal:${containerTag}`,
 			label: `Legacy ${agent} personal`,
@@ -272,9 +270,12 @@ export function groupAgentSpaces<T extends { containerTag: string }>(
 		const canonicalMatches = projectName
 			? (canonicalKeysByName.get(projectName.toLocaleLowerCase()) ?? [])
 			: []
+		const firstCanonical = canonicalMatches[0]
 		const key =
-			identity.kind === "project" && canonicalMatches.length === 1
-				? canonicalMatches[0]!
+			identity.kind === "project" &&
+			canonicalMatches.length === 1 &&
+			firstCanonical !== undefined
+				? firstCanonical
 				: identity.key
 		addProjectToGroup(
 			grouped,
