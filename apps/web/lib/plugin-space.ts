@@ -27,7 +27,7 @@ const PLUGINS: PluginDef[] = [
 		id: "agents",
 		label: "Agents",
 		iconSrc: null,
-		prefixes: ["user_project", "repo", "claudecode", "codex"],
+		prefixes: ["user_project", "repo", "claudecode", "codex", "opencode"],
 	},
 	{
 		id: "openclaw",

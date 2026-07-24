@@ -5,7 +5,7 @@ export type AgentContainerKind =
 	| "legacy-personal"
 	| "legacy-project"
 
-export type AgentSourceFilter = "claude-code" | "codex"
+export type AgentSourceFilter = "claude-code" | "codex" | "opencode"
 
 export const AGENT_SOURCE_FILTERS: ReadonlyArray<{
 	value: AgentSourceFilter
@@ -18,6 +18,7 @@ export const AGENT_SOURCE_FILTERS: ReadonlyArray<{
 		sources: ["claude-code", "claude-code-plugin"],
 	},
 	{ value: "codex", label: "Codex", sources: ["codex"] },
+	{ value: "opencode", label: "OpenCode", sources: ["opencode"] },
 ]
 
 export type AgentSpaceMetadata = {
@@ -53,6 +54,14 @@ const TAG_PATTERNS: Array<{
 	{
 		kind: "legacy-project",
 		pattern: /^codex_project_([0-9a-f]{6,64})$/i,
+	},
+	{
+		kind: "legacy-personal",
+		pattern: /^opencode_user_([0-9a-f]{6,64})$/i,
+	},
+	{
+		kind: "legacy-project",
+		pattern: /^opencode_project_([0-9a-f]{6,64})$/i,
 	},
 ]
 
@@ -137,13 +146,17 @@ function legacyGroupIdentity(
 		return { key: `tag:${containerTag}`, label: containerTag, kind: "project" }
 	}
 
-	// Old Codex personal memory was intentionally global. Even if its newest
-	// document contains a project name, assigning the whole container to that
-	// project would leak memories from its other historical projects.
-	if (containerTag.startsWith("codex_user_")) {
+	// Old Codex and OpenCode personal containers were intentionally global.
+	// Even if the newest document has a project name, assigning the whole
+	// container to that project would mix memories from historical projects.
+	if (
+		containerTag.startsWith("codex_user_") ||
+		containerTag.startsWith("opencode_user_")
+	) {
+		const agent = containerTag.startsWith("codex_user_") ? "Codex" : "OpenCode"
 		return {
 			key: `legacy-personal:${containerTag}`,
-			label: "Legacy Codex personal",
+			label: `Legacy ${agent} personal`,
 			kind: "legacy-personal",
 		}
 	}
@@ -159,7 +172,8 @@ function legacyGroupIdentity(
 	if (
 		containerTag.startsWith("user_project_") ||
 		containerTag.startsWith("claudecode_project_") ||
-		containerTag.startsWith("codex_project_")
+		containerTag.startsWith("codex_project_") ||
+		containerTag.startsWith("opencode_project_")
 	) {
 		return {
 			key: `path:${match.id.toLocaleLowerCase()}`,
@@ -211,9 +225,9 @@ function addProjectToGroup<T extends { containerTag: string }>(
 }
 
 /**
- * Collapse the physical Claude/Codex containers into one selectable Agents row
- * per project. Every returned container tag remains real; the UI never writes
- * to a synthetic "agents" tag.
+ * Collapse the physical Claude/Codex/OpenCode containers into one selectable
+ * Agents row per project. Every returned container tag remains real; the UI
+ * never writes to a synthetic "agents" tag.
  */
 export function groupAgentSpaces<T extends { containerTag: string }>(
 	projects: T[],
@@ -256,9 +270,12 @@ export function groupAgentSpaces<T extends { containerTag: string }>(
 		const canonicalMatches = projectName
 			? (canonicalKeysByName.get(projectName.toLocaleLowerCase()) ?? [])
 			: []
+		const firstCanonical = canonicalMatches[0]
 		const key =
-			identity.kind === "project" && canonicalMatches.length === 1
-				? canonicalMatches[0]!
+			identity.kind === "project" &&
+			canonicalMatches.length === 1 &&
+			firstCanonical !== undefined
+				? firstCanonical
 				: identity.key
 		addProjectToGroup(
 			grouped,

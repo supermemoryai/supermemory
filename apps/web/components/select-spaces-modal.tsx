@@ -95,7 +95,7 @@ type Category = {
 	count: number
 }
 
-const AGENT_CATALOG_IDS = ["claude_code", "codex"] as const
+const AGENT_CATALOG_IDS = ["claude_code", "codex", "opencode"] as const
 
 export function SelectSpacesModal({
 	isOpen,
@@ -1668,7 +1668,7 @@ function AgentsDiscoverPanel({
 	if (catalogIds.length === 0) {
 		return (
 			<p className="py-8 text-center text-sm text-[#737373]">
-				Claude Code and Codex are connected.
+				Claude Code, Codex, and OpenCode are connected.
 			</p>
 		)
 	}
@@ -1682,7 +1682,7 @@ function AgentsDiscoverPanel({
 				<div className="min-w-0 flex-1">
 					<p className="text-sm font-semibold text-[#FAFAFA]">Agents</p>
 					<p className="text-[11px] text-[#737373]">
-						Claude Code and Codex share project memory
+						Claude Code, Codex, and OpenCode share project memory
 					</p>
 				</div>
 				{catalogIds.map((catalogId) => {
