@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "supermemory-openai-sdk"
-version = "1.0.4"
+version = "1.0.5"
 description = "Memory tools for OpenAI function calling with supermemory"
 readme = "README.md"
 license = "MIT"
@@ -15,7 +15,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -23,10 +22,13 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-requires-python = ">=3.8.1"
+# supermemory>=3.50 requires Python 3.9+
+requires-python = ">=3.9"
 dependencies = [
     "openai>=1.102.0",
-    "supermemory>=3.1.0",
+    # 3.50 renamed MemoryAddResponse/MemoryGetResponse and moved add() to the
+    # top-level client. Older releases break package import and memory writes.
+    "supermemory>=3.50.0",
     "typing-extensions>=4.0.0",
     "requests>=2.25.0",
 ]
@@ -62,7 +64,7 @@ multi_line_output = 3
 line_length = 88
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
