@@ -650,16 +650,32 @@ export function ConnectAIModal({
 										if (manual.kind === "chatgpt") {
 											return (
 												<div className="space-y-3">
+													<p className="text-xs leading-relaxed text-amber-600 dark:text-amber-500/90">
+														Write-capable custom MCP apps are only supported on
+														Business & Enterprise plans.
+													</p>
 													<ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
 														<li>Open ChatGPT in your browser.</li>
 														<li>
-															Settings → Apps → Advanced settings → enable
-															Developer mode.
+															Go to Settings → Security and Login → scroll to
+															the bottom to enable Developer mode.
 														</li>
 														<li>
-															Create an app and paste the MCP URL when asked.
+															Go to{" "}
+															<a
+																className="text-primary underline"
+																href="https://chatgpt.com/plugins"
+																rel="noopener noreferrer"
+																target="_blank"
+															>
+																chatgpt.com/plugins
+															</a>
+															.
 														</li>
-														<li>Complete OAuth in ChatGPT.</li>
+														<li>
+															Paste the URL below and complete OAuth in
+															ChatGPT.
+														</li>
 													</ol>
 													<div className="relative max-w-full sm:max-w-xl">
 														<Input
@@ -677,14 +693,6 @@ export function ConnectAIModal({
 															<CopyIcon className="size-4" />
 														</Button>
 													</div>
-													<a
-														className="text-xs text-primary underline"
-														href="https://developers.openai.com/api/docs/guides/developer-mode/"
-														rel="noopener noreferrer"
-														target="_blank"
-													>
-														Developer mode docs (OpenAI)
-													</a>
 												</div>
 											)
 										}
