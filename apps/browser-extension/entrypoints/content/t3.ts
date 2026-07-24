@@ -10,6 +10,10 @@ import {
 	autoCapturePromptsEnabled,
 } from "../../utils/storage"
 import { createT3InputBarElement, DOMUtils } from "../../utils/ui-components"
+import {
+	parseMemoriesFromDataset,
+	serializeMemoriesForDataset,
+} from "./memory-suggestion"
 
 let t3DebounceTimeout: NodeJS.Timeout | null = null
 let t3RouteObserver: MutationObserver | null = null
@@ -233,7 +237,9 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			if (textareaElement) {
 				textareaElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${response.data}`
 
-				iconElement.dataset.memoriesData = response.data
+				iconElement.dataset.memoriesData = serializeMemoriesForDataset(
+					response.data,
+				)
 
 				updateT3IconFeedback("Included Memories", iconElement)
 			} else {
@@ -329,11 +335,9 @@ function updateT3IconFeedback(
 			overflow-y: auto;
 		`
 
-		const memoriesText = iconElement.dataset.memoriesData || ""
-		const individualMemories = memoriesText
-			.split(/[,\n]/)
-			.map((memory) => memory.trim())
-			.filter((memory) => memory.length > 0 && memory !== ",")
+		const individualMemories = parseMemoriesFromDataset(
+			iconElement.dataset.memoriesData,
+		)
 
 		individualMemories.forEach((memory, index) => {
 			const memoryItem = document.createElement("div")
@@ -421,15 +425,17 @@ function updateT3IconFeedback(
 					content.removeChild(memoryItem)
 				}
 
-				const currentMemories = (iconElement.dataset.memoriesData || "")
-					.split(/[,\n]/)
-					.map((memory) => memory.trim())
-					.filter((memory) => memory.length > 0 && memory !== ",")
+				const currentMemories = parseMemoriesFromDataset(
+					iconElement.dataset.memoriesData,
+				)
 				currentMemories.splice(index, 1)
 
+				// Injected prompt keeps its existing joined-text form; the popup's
+				// own data is stored as JSON so comma-bearing memories stay intact.
 				const updatedMemories = currentMemories.join(" ,")
 
-				iconElement.dataset.memoriesData = updatedMemories
+				iconElement.dataset.memoriesData =
+					serializeMemoriesForDataset(currentMemories)
 
 				const textareaElement =
 					(document.querySelector("textarea") as HTMLTextAreaElement) ||
