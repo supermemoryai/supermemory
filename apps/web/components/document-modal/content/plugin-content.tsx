@@ -130,12 +130,10 @@ export function PluginContent({ parsed }: { parsed: ParsedPluginDocument }) {
 	const [mode, setMode] = useState<"structured" | "raw">("structured")
 	const hasMessages = parsed.messages.length > 0
 
-	const hideHeader = parsed.kind === "claude-code-doc"
-
 	return (
 		<div className="flex h-full flex-col">
-			{!hideHeader && <PluginHeader parsed={parsed} />}
-			<div className={cn("px-4", hideHeader ? "pt-4" : "pt-3")}>
+			<PluginHeader parsed={parsed} />
+			<div className="px-4 pt-3">
 				<div
 					className={cn(
 						dmSansClassName(),
