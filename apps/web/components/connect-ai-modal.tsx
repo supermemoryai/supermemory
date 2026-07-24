@@ -672,10 +672,8 @@ export function ConnectAIModal({
 															</a>
 															.
 														</li>
-														<li>
-															Paste the URL below and complete OAuth in
-															ChatGPT.
-														</li>
+														<li>Paste the URL below.</li>
+														<li>Complete OAuth in ChatGPT.</li>
 													</ol>
 													<div className="relative max-w-full sm:max-w-xl">
 														<Input
@@ -693,6 +691,14 @@ export function ConnectAIModal({
 															<CopyIcon className="size-4" />
 														</Button>
 													</div>
+													<a
+														className="text-xs text-primary underline"
+														href="https://developers.openai.com/api/docs/guides/developer-mode/"
+														rel="noopener noreferrer"
+														target="_blank"
+													>
+														Developer mode docs (OpenAI)
+													</a>
 												</div>
 											)
 										}

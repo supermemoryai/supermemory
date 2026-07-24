@@ -524,9 +524,8 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 														</a>
 														.
 													</li>
-													<li>
-														Paste the URL below and complete OAuth in ChatGPT.
-													</li>
+													<li>Paste the URL below.</li>
+													<li>Complete OAuth in ChatGPT.</li>
 												</ol>
 												<McpCodeBlock
 													code={CHATGPT_REMOTE_MCP_URL}
@@ -535,6 +534,14 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 														setActiveStep(3)
 													}}
 												/>
+												<a
+													className="inline-block text-[13px] text-[#4BA0FA] underline hover:text-[#8BC6FF]"
+													href="https://developers.openai.com/api/docs/guides/developer-mode/"
+													rel="noopener noreferrer"
+													target="_blank"
+												>
+													Developer mode docs (OpenAI)
+												</a>
 											</div>
 										)
 									}
