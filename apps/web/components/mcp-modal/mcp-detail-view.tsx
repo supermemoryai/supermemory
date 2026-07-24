@@ -223,15 +223,32 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 		return "cursor://anysphere.cursor-deeplink/mcp/install?name=supermemory&config=eyJ1cmwiOiJodHRwczovL2FwaS5zdXBlcm1lbW9yeS5haS9tY3AifQ%3D%3D"
 	}
 
-	function generateInstallCommand() {
-		if (!selectedClient || selectedClient === "chatgpt") return ""
+	function getMcpServerUrl() {
+		return "https://mcp.supermemory.ai/mcp"
+	}
 
-		let command = `npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client ${selectedClient} --oauth=yes`
-
-		const projectIdForCommand = selectedProject.replace(/^sm_project_/, "")
-		command += ` --project ${projectIdForCommand}`
-
-		return command
+	function getMcpConfigSnippet() {
+		const projectId = selectedProject.replace(/^sm_project_/, "")
+		const config: {
+			mcpServers: {
+				supermemory: {
+					url: string
+					headers?: { "x-sm-project": string }
+				}
+			}
+		} = {
+			mcpServers: {
+				supermemory: {
+					url: getMcpServerUrl(),
+				},
+			},
+		}
+		if (projectId && projectId !== "default" && selectedProject !== "none") {
+			config.mcpServers.supermemory.headers = {
+				"x-sm-project": projectId,
+			}
+		}
+		return JSON.stringify(config, null, 2)
 	}
 
 	const copyManualSnippet = (text: string) => {
@@ -454,12 +471,23 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 										selectedClient !== "cursor" && (
 											<div className="space-y-2">
 												<p className="text-[13px] leading-relaxed text-[#A1A1AA]">
-													Run this command in your terminal. It installs the MCP
-													for {clients[selectedKey]} and starts OAuth when
-													needed.
+													Add this remote MCP server URL in{" "}
+													{clients[selectedKey]}. Your client will prompt for
+													OAuth when you connect.
 												</p>
 												<McpCodeBlock
-													code={generateInstallCommand()}
+													code={getMcpServerUrl()}
+													onCopy={() => {
+														analytics.mcpInstallCmdCopied()
+														setActiveStep(3)
+													}}
+												/>
+												<p className="text-[12px] text-[#737373]">
+													Or merge this into your client&apos;s MCP config:
+												</p>
+												<McpCodeBlock
+													code={getMcpConfigSnippet()}
+													multiline
 													onCopy={() => {
 														analytics.mcpInstallCmdCopied()
 														setActiveStep(3)

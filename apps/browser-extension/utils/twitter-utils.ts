@@ -434,9 +434,18 @@ export function buildRequestVariables(cursor?: string, count = 100) {
 /**
  * Build Twitter API request variables for bookmark collection
  */
-export function buildBookmarkCollectionVariables(bookmarkCollectionId: string) {
-	return {
+export function buildBookmarkCollectionVariables(
+	bookmarkCollectionId: string,
+	cursor?: string,
+) {
+	const variables: Record<string, unknown> = {
 		bookmark_collection_id: bookmarkCollectionId,
 		includePromotedContent: true,
 	}
+
+	if (cursor) {
+		variables.cursor = cursor
+	}
+
+	return variables
 }

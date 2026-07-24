@@ -19,7 +19,6 @@ import {
 } from "@/components/onboarding-brain/step-sources"
 import { StepIngest } from "@/components/onboarding-brain/step-ingest"
 import { CompanyBrainOnboarding } from "@/components/onboarding-brain/company-brain-onboarding"
-import { useFeatureFlagEnabled } from "posthog-js/react"
 import {
 	StepTeam,
 	type TeamValues,
@@ -86,7 +85,6 @@ export default function BrainOnboardingPage() {
 		() => workspaceDomainFromEmail(user?.email),
 		[user?.email],
 	)
-	const allowTeam = useFeatureFlagEnabled("company-brain-beta") ?? false
 	const [mode, setMode] = useState<BrainMode>(detectedMode)
 	const [about, setAbout] = useState<AboutValues>({
 		name: user?.name ?? "",
@@ -177,13 +175,13 @@ export default function BrainOnboardingPage() {
 	// provisioning creates (sm_org_shared) — not a workspace-name slug space.
 	const containerTag = useMemo(
 		() =>
-			allowTeam && mode === "team"
+			mode === "team"
 				? SHARED_TEAM_BRAIN_TAG
 				: containerTagFromWorkspace(
 						about.workspaceName || suggestedWorkspaceName,
 						mode,
 					),
-		[allowTeam, about.workspaceName, suggestedWorkspaceName, mode],
+		[about.workspaceName, suggestedWorkspaceName, mode],
 	)
 
 	const isScale = useMemo(() => {
@@ -250,14 +248,13 @@ export default function BrainOnboardingPage() {
 					: about.workspaceName || suggestedWorkspaceName
 			).trim()
 			const slug = generateOrgSlug(name)
-			const effectiveMode = allowTeam ? mode : "personal"
 			const metadata: BrainMetadata & { signupSource: string } = {
 				signupSource: "consumer",
 				brainOnboardingVersion: "v1",
-				brainMode: effectiveMode,
+				brainMode: mode,
 				brainWorkspaceName: name,
 				brainWorkspaceDomain:
-					effectiveMode === "team"
+					mode === "team"
 						? domainOverride || about.workspaceDomain || domain
 						: null,
 				brainContainerTag: containerTag,
@@ -303,7 +300,6 @@ export default function BrainOnboardingPage() {
 			about,
 			suggestedWorkspaceName,
 			mode,
-			allowTeam,
 			domain,
 			containerTag,
 			setActiveOrg,
@@ -337,7 +333,7 @@ export default function BrainOnboardingPage() {
 			setCreatingOrg(false)
 		}
 	}, [ensureOrg, goNext, forceCreate, organizations, router])
-	const isCompanyBrain = allowTeam && mode === "team"
+	const isCompanyBrain = mode === "team"
 
 	const handleBrainConfirm = useCallback(
 		async (confirmedDomain: string): Promise<CompanyBrainConfirmResult> => {
@@ -467,16 +463,18 @@ export default function BrainOnboardingPage() {
 				submitting={creatingOrg}
 				onConfirm={handleBrainConfirm}
 				onDone={finish}
+				onUsePersonal={() => {
+					analytics.onboardingModeSelected({ mode: "personal" })
+					setMode("personal")
+					setStepAndUrl("about")
+				}}
 			/>
 		)
 	}
 
+	// Team mode returns above, so everything below is the personal flow.
 	return (
-		<BrainShell
-			step={step}
-			steps={steps}
-			domain={mode === "team" ? about.workspaceDomain || domain : null}
-		>
+		<BrainShell step={step} steps={steps} domain={null}>
 			{step === "about" && (
 				<StepAbout
 					mode={mode}
@@ -484,7 +482,6 @@ export default function BrainOnboardingPage() {
 						analytics.onboardingModeSelected({ mode: m })
 						setMode(m)
 					}}
-					allowTeam={allowTeam}
 					domain={domain}
 					suggestedWorkspaceName={suggestedWorkspaceName}
 					defaultName={user?.name ?? ""}
@@ -505,11 +502,7 @@ export default function BrainOnboardingPage() {
 				/>
 			)}
 			{step === "ingest" && (
-				<StepIngest
-					mode={allowTeam ? mode : "personal"}
-					mcpUrl={mcpUrl}
-					onContinue={goNext}
-				/>
+				<StepIngest mode={mode} mcpUrl={mcpUrl} onContinue={goNext} />
 			)}
 			{step === "team" && (
 				<StepTeam

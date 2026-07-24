@@ -1,133 +1,624 @@
 ---
-title: Quickstart
-description: Make your first API call to Supermemory - add and retrieve memories.
+title: "Quickstart"
+description: "Ingest a conversation and a document, then use document search, memory graph traversal, and profiles — and wire it into a chat harness."
 icon: "play"
 ---
 
-<Tip>
-**Using Vercel AI SDK?** Check out the [AI SDK integration](/integrations/ai-sdk) for the cleanest implementation with `@supermemory/tools/ai-sdk`.
-</Tip>
+By the end of this page you will:
 
-<Tip>
-**Prefer to run it locally?** Supermemory is also a [self-hostable single binary](/self-hosting/overview) — `curl -fsSL https://supermemory.ai/install | bash` and you're running.
-</Tip>
+1. **Ingest a conversation** (how personal memory actually arrives)
+2. **Ingest a document** (how knowledge for RAG arrives)
+3. **Retrieve three ways** — document search (RAG), memory graph traversal, and user profile
+4. **Drop it into a chat harness** that remembers across restarts
 
-## Memory API
+Same `containerTag` for everything. One engine, three ways out.
 
-**Step 1.** Sign up for [Supermemory's Developer Platform](http://console.supermemory.ai) to get the API key. Click on **API Keys -> Create API Key** to generate one.
+## Get an API key
 
-![create api key](./images/create-api.png)
+Grab a key from the [developer console](https://console.supermemory.ai) — **API Keys → Create API Key**.
 
-**Step 2.** Install the SDK and set your API key:
+**console.supermemory.ai** is where keys and usage live. **app.supermemory.ai** is the consumer product on the same engine — not where you mint API keys.
 
-<Tabs>
-<Tab title="Python">
-```bash
-pip install supermemory
-export SUPERMEMORY_API_KEY="YOUR_API_KEY"
-```
-</Tab>
-<Tab title="TypeScript">
-```bash
+<CodeGroup>
+```bash TypeScript
 npm install supermemory
-export SUPERMEMORY_API_KEY="YOUR_API_KEY"
+export SUPERMEMORY_API_KEY="sm_..."
 ```
-</Tab>
-</Tabs>
 
-**Step 3.** Here's everything you need to add memory to your LLM:
+```bash Python
+pip install supermemory
+export SUPERMEMORY_API_KEY="sm_..."
+```
 
-<Tabs>
-<Tab title="Python">
-```python
+```bash curl
+export SUPERMEMORY_API_KEY="sm_..."
+```
+</CodeGroup>
+
+## 1. Ingest a conversation
+
+Real apps do not push four isolated one-liners as separate “memories.” They send **conversation turns** — often the full session — under a stable `customId` so the pipeline can extract facts and link entities.
+
+We’ll use one user (`user_4f8a`) and one chat session. The turns never say “Sarah *is* my VP of Product” — that connection is what the graph should resolve later.
+
+<CodeGroup>
+```typescript TypeScript
+import Supermemory from "supermemory";
+
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
+const user = "user_4f8a";
+
+const conversation = `
+user: Just got back from Tokyo — the team offsite went great.
+assistant: Glad it went well! Anything stand out?
+user: Sarah presented the Q3 roadmap at the offsite.
+assistant: Sounds like a big moment for her.
+user: She's being promoted to VP of Product.
+assistant: Congrats to Sarah — that's huge.
+user: I need a gift idea for my VP of Product.
+assistant: Happy to help brainstorm something personal.
+`.trim();
+
+const conv = await client.add({
+  content: conversation,
+  containerTag: user,
+  customId: "chat_offsite_2026", // one session → one document
+  metadata: { type: "conversation" },
+  dreaming: "instant", // process this document now — see note below
+});
+
+console.log(conv.id, conv.status); // e.g. "queued"
+```
+
+```python Python
 from supermemory import Supermemory
 
 client = Supermemory()
-USER_ID = "dhravya"
+user = "user_4f8a"
 
-conversation = [
-    {"role": "assistant", "content": "Hello, how are you doing?"},
-    {"role": "user", "content": "Hello! I am Dhravya. I am 20 years old. I love to code!"},
-    {"role": "user", "content": "Can I go to the club?"},
-]
+conversation = """
+user: Just got back from Tokyo — the team offsite went great.
+assistant: Glad it went well! Anything stand out?
+user: Sarah presented the Q3 roadmap at the offsite.
+assistant: Sounds like a big moment for her.
+user: She's being promoted to VP of Product.
+assistant: Congrats to Sarah — that's huge.
+user: I need a gift idea for my VP of Product.
+assistant: Happy to help brainstorm something personal.
+""".strip()
 
-# Get user profile + relevant memories for context
-profile = client.profile(container_tag=USER_ID, q=conversation[-1]["content"])
-
-static = "\n".join(profile.profile.static)
-dynamic = "\n".join(profile.profile.dynamic)
-memories = "\n".join(r.get("memory", "") for r in profile.search_results.results)
-
-context = f"""Static profile:
-{static}
-
-Dynamic profile:
-{dynamic}
-
-Relevant memories:
-{memories}"""
-
-# Build messages with memory-enriched context
-messages = [{"role": "system", "content": f"User context:\n{context}"}, *conversation]
-
-# response = llm.chat(messages=messages)
-
-# Store conversation for future context
-client.add(
-    content="\n".join(f"{m['role']}: {m['content']}" for m in conversation),
-    container_tag=USER_ID,
+conv = client.add(
+    content=conversation,
+    container_tag=user,
+    custom_id="chat_offsite_2026",
+    metadata={"type": "conversation"},
+    dreaming="instant",  # process this document now — see note below
 )
+print(conv.id, conv.status)
 ```
-</Tab>
-<Tab title="TypeScript">
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "user: Just got back from Tokyo — the team offsite went great.\nassistant: Glad it went well! Anything stand out?\nuser: Sarah presented the Q3 roadmap at the offsite.\nassistant: Sounds like a big moment for her.\nuser: She is being promoted to VP of Product.\nassistant: Congrats to Sarah — that is huge.\nuser: I need a gift idea for my VP of Product.\nassistant: Happy to help brainstorm something personal.",
+    "containerTag": "user_4f8a",
+    "customId": "chat_offsite_2026",
+    "metadata": { "type": "conversation" },
+    "dreaming": "instant"
+  }'
+```
+</CodeGroup>
+
+`add` returns immediately with `status: "queued"`. Processing is still **async** — wait until `done` before searching.
+
+<Note>
+**`dreaming: "instant"`** — By default, dreaming is `"dynamic"`: Supermemory may batch related documents so memories form from coherent units, which can lag after `status: "done"`. For this quickstart (and any path where you need memories/profiles right away), pass **`dreaming: "instant"`** so the document is processed on its own as soon as it finishes indexing. That bills one extra operation per document. See [Processing Modes](/ingestion/add-memories#processing-modes).
+</Note>
+
+## 2. Ingest a document
+
+Now add **knowledge** the agent should ground on — a short internal note the conversation never fully spelled out. This is the SuperRAG / document path.
+
+<CodeGroup>
+```typescript TypeScript
+const handbook = `
+# Team notes — gifts & recognition
+
+When someone is promoted to VP or above, the company recommends a thoughtful gift
+in the $75–$150 range. Experiences tied to recent team milestones land better
+than generic swag.
+
+For product leadership, books on platform strategy or a dinner near the last
+offsite city are common picks. Tokyo offsites often inspire travel-themed gifts.
+`.trim();
+
+const doc = await client.add({
+  content: handbook,
+  containerTag: user,
+  customId: "doc_gift_policy",
+  metadata: { type: "document", source: "handbook" },
+  taskType: "superrag"
+});
+
+console.log(doc.id, doc.status);
+```
+
+```python Python
+handbook = """
+# Team notes — gifts & recognition
+
+When someone is promoted to VP or above, the company recommends a thoughtful gift
+in the $75–$150 range. Experiences tied to recent team milestones land better
+than generic swag.
+
+For product leadership, books on platform strategy or a dinner near the last
+offsite city are common picks. Tokyo offsites often inspire travel-themed gifts.
+""".strip()
+
+doc = client.add(
+    content=handbook,
+    container_tag=user,
+    custom_id="doc_gift_policy",
+    metadata={"type": "document", "source": "handbook"},
+    task_type="superrag"
+)
+print(doc.id, doc.status)
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "# Team notes — gifts & recognition\n\nWhen someone is promoted to VP or above, the company recommends a thoughtful gift in the $75–$150 range. Experiences tied to recent team milestones land better than generic swag.\n\nFor product leadership, books on platform strategy or a dinner near the last offsite city are common picks. Tokyo offsites often inspire travel-themed gifts.",
+    "containerTag": "user_4f8a",
+    "customId": "doc_gift_policy",
+    "metadata": { "type": "document", "source": "handbook" },
+    "taskType": "superrag"
+  }'
+```
+</CodeGroup>
+
+## 3. Wait until both are `done`
+
+Poll document status. With **`dreaming: "instant"`**, once status is `done` the document is indexed **and** memories for that document should be available for search and profiles (`queued → extracting → … → done`).
+
+> Note that the preferred way is to have `dreaming: dynamic`. supermemory charges one extra operation for instant dreaming. Instant is good for one off tests, setup, debugging and benchmarking.
+
+<CodeGroup>
+```typescript TypeScript
+async function waitUntilDone(id: string) {
+  for (;;) {
+    const d = await client.documents.get(id);
+    if (d.status === "done" || d.status === "failed") return d;
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+}
+
+await waitUntilDone(conv.id);
+await waitUntilDone(doc.id);
+console.log("ready to search");
+```
+
+```python Python
+import time
+
+def wait_until_done(doc_id: str):
+    while True:
+        d = client.documents.get(doc_id)
+        if d.status in ("done", "failed"):
+            return d
+        time.sleep(1.5)
+
+wait_until_done(conv.id)
+wait_until_done(doc.id)
+print("ready to search")
+```
+
+```bash curl
+# replace DOC_ID with each document id from the add responses
+curl "https://api.supermemory.ai/v3/documents/DOC_ID" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+# repeat until "status": "done"
+```
+</CodeGroup>
+
+Short text with instant dreaming usually finishes in a few seconds. Larger PDFs take longer. If you omit `dreaming` (default `"dynamic"`), document RAG can work after `done` while memory extraction may still be batching — use `"instant"` when the next step is memory search or profiles.
+
+## 4. Three ways to get context back
+
+### A. Document search (RAG)
+
+Chunk-level retrieval over raw knowledge — use when you need **what the docs say**.
+
+<CodeGroup>
+```typescript TypeScript
+const rag = await client.search({
+  q: "gift ideas for a VP promotion after a Tokyo offsite",
+  containerTag: user,
+  searchMode: "documents",
+  limit: 3,
+});
+
+for (const hit of rag.results) {
+  console.log(hit.title ?? hit.id);
+  for (const chunk of hit.chunks ?? []) {
+    console.log(" ", chunk.content?.slice(0, 160));
+  }
+}
+```
+
+```python Python
+rag = client.search.memories(
+    q="gift ideas for a VP promotion after a Tokyo offsite",
+    container_tag=user,
+    search_mode="documents",
+    limit=3,
+)
+
+for hit in rag.results:
+    print(getattr(hit, "title", None) or hit.id)
+    for chunk in hit.chunks or []:
+        print(" ", (chunk.content or "")[:160])
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v3/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "gift ideas for a VP promotion after a Tokyo offsite",
+    "containerTag": "user_4f8a",
+    "searchMode": "documents",
+    "limit": 3
+  }'
+```
+</CodeGroup>
+
+You should see chunks from the handbook (budget range, Tokyo offsite angle) — **document grounding**, not personal facts.
+
+Switch `searchMode` to `"hybrid"` to get extracted memories and document chunks together:
+
 ```typescript
-import Supermemory from "supermemory";
-
-const client = new Supermemory();
-const USER_ID = "dhravya";
-
-const conversation = [
-  { role: "assistant", content: "Hello, how are you doing?" },
-  { role: "user", content: "Hello! I am Dhravya. I am 20 years old. I love to code!" },
-  { role: "user", content: "Can I go to the club?" },
-];
-
-// Get user profile + relevant memories for context
-const profile = await client.profile({
-  containerTag: USER_ID,
-  q: conversation.at(-1)!.content,
-});
-
-const context = `Static profile:
-${profile.profile.static.join("\n")}
-
-Dynamic profile:
-${profile.profile.dynamic.join("\n")}
-
-Relevant memories:
-${profile.searchResults.results.map((r) => r.memory).join("\n")}`;
-
-// Build messages with memory-enriched context
-const messages = [{ role: "system", content: `User context:\n${context}` }, ...conversation];
-
-// const response = await llm.chat({ messages });
-
-// Store conversation for future context
-await client.add({
-  content: conversation.map((m) => `${m.role}: ${m.content}`).join("\n"),
-  containerTag: USER_ID,
+await client.search({
+  q: "gift ideas for a VP promotion after a Tokyo offsite",
+  containerTag: user,
+  searchMode: "hybrid",
+  limit: 5,
 });
 ```
-</Tab>
-</Tabs>
 
-That's it! Supermemory automatically:
-- Extracts memories from conversations
-- Builds and maintains user profiles (static facts + dynamic context)
-- Returns relevant context for personalized LLM responses
+### B. Memory graph traversal
 
-<Tip>
-**Optional:** Use the `threshold` parameter to filter search results by relevance score. For example: `client.profile(container_tag=USER_ID, threshold=0.7, q=query)` will only include results with a score above 0.7.
-</Tip>
+Search **extracted memories** with related edges. This is the entity-chain moment: gift → VP of Product → Sarah → Tokyo offsite.
 
-Learn more about [User Profiles](/user-profiles) and [Search](/search).
+<CodeGroup>
+```typescript TypeScript
+const memories = await client.search({
+  q: "What gift should I get, and why?",
+  containerTag: user,
+  searchMode: "memories",
+  include: { relatedMemories: true },
+  limit: 5,
+});
+
+console.log(JSON.stringify(memories, null, 2));
+```
+
+```python Python
+memories = client.search.memories(
+    q="What gift should I get, and why?",
+    container_tag=user,
+    search_mode="memories",
+    include={"relatedMemories": True},
+    limit=5,
+)
+print(memories)
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "What gift should I get, and why?",
+    "containerTag": "user_4f8a",
+    "searchMode": "memories",
+    "include": { "relatedMemories": true },
+    "limit": 5
+  }'
+```
+</CodeGroup>
+
+Abbreviated shape:
+
+```json
+{
+  "results": [
+    {
+      "memory": "Sarah is being promoted to VP of Product",
+      "similarity": 0.81,
+      "context": {
+        "parents": [
+          {
+            "memory": "Sarah presented the Q3 roadmap at the Tokyo offsite",
+            "relation": "extends"
+          }
+        ],
+        "children": [
+          {
+            "memory": "User needs a gift idea for their VP of Product, Sarah",
+            "relation": "derives"
+          }
+        ]
+      }
+    }
+  ],
+  "timing": 287
+}
+```
+
+You never wrote “Sarah is my VP of Product” as one sentence. The graph connected sessions of speech. Deep dive: [graph memory](/concepts/graph-memory).
+
+### C. User profile
+
+Profiles are the **always-on** summary (static + recent dynamic) of an entity (or a `containerTag`) - what you inject every turn without re-searching the world.
+
+<CodeGroup>
+```typescript TypeScript
+const { profile, searchResults } = await client.profile({
+  containerTag: user,
+  q: "gift for the person being promoted", // optional: also run search
+});
+
+console.log("static:", profile.static);
+console.log("dynamic:", profile.dynamic);
+console.log("search hits:", searchResults?.results?.length ?? 0);
+```
+
+```python Python
+result = client.profile(
+    container_tag=user,
+    q="gift for the person being promoted",
+)
+
+print("static:", result.profile.static)
+print("dynamic:", result.profile.dynamic)
+print("search hits:", len(result.search_results.results) if result.search_results else 0)
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v4/profile" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "containerTag": "user_4f8a",
+    "q": "gift for the person being promoted"
+  }'
+```
+</CodeGroup>
+
+> There is a lot more to profiles - with [Buckets](/user-profiles/buckets), for example, you can make supermemory learn and categorize incoming information for learning specific things.
+
+
+| Path | Use when |
+|---|---|
+| **Document search** | Ground in policies, docs, handbooks |
+| **Memory + related** | Personal facts, entity links, “what’s true about this user” |
+| **Profile** | Cheap always-on context every LLM turn |
+
+Same `containerTag` → same context pool. See [Memory vs RAG](/concepts/memory-vs-rag).
+
+## 5. Put it in a harness
+
+There is no single required harness. The pattern is the same wherever you run the model: **read** context (profile / search / docs), generate, **write** the turn back under a stable `customId` so the session stays one document.
+
+Here are two example shapes — pick whatever matches your stack.
+
+### Example: explicit profile + search + add
+
+<CodeGroup>
+```typescript TypeScript
+// npm install supermemory openai
+import Supermemory from "supermemory";
+import OpenAI from "openai";
+import * as readline from "node:readline/promises";
+
+const memory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
+const llm = new OpenAI();
+const user = "user_4f8a";
+const sessionId = "chat_live_session";
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+while (true) {
+  const question = await rl.question("you: ");
+
+  const { profile, searchResults } = await memory.profile({
+    containerTag: user,
+    q: question,
+  });
+
+  // optional: also pull document chunks for grounding
+  const rag = await memory.search({
+    q: question,
+    containerTag: user,
+    searchMode: "documents",
+    limit: 3,
+  });
+  const docBits = rag.results
+    .flatMap((r) => r.chunks ?? [])
+    .map((c) => c.content)
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const context = [
+    "## Profile (static)",
+    ...profile.static,
+    "## Profile (dynamic)",
+    ...profile.dynamic,
+    "## Related memories",
+    ...(searchResults?.results?.map((m) => m.memory).filter(Boolean) ?? []),
+    "## Docs",
+    ...docBits,
+  ].join("\n");
+
+  const res = await llm.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: `You help this user. Context:\n${context}` },
+      { role: "user", content: question },
+    ],
+  });
+  const answer = res.choices[0].message.content ?? "";
+  console.log(`assistant: ${answer}`);
+
+  // append this turn into the same conversation document
+  await memory.add({
+    content: `user: ${question}\nassistant: ${answer}`,
+    containerTag: user,
+    customId: sessionId,
+  });
+}
+```
+
+```python Python
+# pip install supermemory openai
+from supermemory import Supermemory
+from openai import OpenAI
+
+memory = Supermemory()
+llm = OpenAI()
+user = "user_4f8a"
+session_id = "chat_live_session"
+
+while True:
+    question = input("you: ")
+
+    result = memory.profile(container_tag=user, q=question)
+    rag = memory.search.memories(
+        q=question, container_tag=user, search_mode="documents", limit=3
+    )
+    doc_bits = []
+    for hit in rag.results:
+        for chunk in hit.chunks or []:
+            if chunk.content:
+                doc_bits.append(chunk.content[:300])
+            if len(doc_bits) >= 3:
+                break
+
+    memories = result.search_results.results if result.search_results else []
+    context = "\n".join(
+        [
+            "## Profile (static)",
+            *result.profile.static,
+            "## Profile (dynamic)",
+            *result.profile.dynamic,
+            "## Related memories",
+            *[m.memory for m in memories if m.memory],
+            "## Docs",
+            *doc_bits,
+        ]
+    )
+
+    res = llm.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": f"You help this user. Context:\n{context}"},
+            {"role": "user", "content": question},
+        ],
+    )
+    answer = res.choices[0].message.content or ""
+    print(f"assistant: {answer}")
+
+    memory.add(
+        content=f"user: {question}\nassistant: {answer}",
+        container_tag=user,
+        custom_id=session_id,
+    )
+```
+</CodeGroup>
+
+### Example: Vercel AI SDK
+
+Same pattern, wrapped: `withSupermemory` injects context and can save the conversation for you. Details: [AI SDK integration](/integrations/ai-sdk).
+
+```typescript
+// npm install ai @ai-sdk/openai @supermemory/tools
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { withSupermemory } from "@supermemory/tools/ai-sdk";
+import * as readline from "node:readline/promises";
+
+const model = withSupermemory(openai("gpt-4o"), {
+  containerTag: "user_4f8a",
+  customId: "chat_live_session", // keep stable for the whole session
+  mode: "full", // profile + query search
+});
+
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+while (true) {
+  const prompt = await rl.question("you: ");
+  const { text } = await generateText({ model, prompt });
+  console.log(`assistant: ${text}`);
+}
+```
+
+Try:
+
+```
+you: What gift should I get for the person being promoted?
+assistant: You're looking for something for Sarah — she's being promoted to VP of
+Product after presenting the Q3 roadmap in Tokyo. Your handbook suggests $75–$150
+and something tied to the offsite; a Tokyo-inspired experience or platform-strategy
+book would fit…
+```
+
+### Kill it, restart it
+
+Ctrl+C the process, start again with the **same** `containerTag` (and optional same `customId` for the live session). Ask:
+
+```
+you: who's getting promoted?
+assistant: Sarah — she's being promoted to VP of Product.
+```
+
+Nothing was reloaded from your process. Memory and docs live in supermemory.
+
+## Mental model
+
+```
+  INGEST                         WAIT                    RETRIEVE
+  ──────                         ────                    ────────
+  Conversation (customId)   →    status === done    →    Memory graph (+ related)
+  Document (customId)       →    status === done    →    Document search (RAG)
+                                                     →    Profile (static + dynamic)
+                                                              │
+                                                              ▼
+                                                         Chat harness
+```
+
+## Where next
+
+<CardGroup cols={2}>
+  <Card title="Add context" icon="plus" href="/ingestion/add-memories">
+    Conversations, files, URLs, customId updates, and status.
+  </Card>
+  <Card title="Search" icon="search" href="/recall/search">
+    Hybrid vs memories, filters, thresholds, rerank.
+  </Card>
+  <Card title="Graph memory" icon="waypoints" href="/concepts/graph-memory">
+    How relations and entity chains are produced.
+  </Card>
+  <Card title="User profiles" icon="user" href="/concepts/user-profiles">
+    Static vs dynamic, and when to inject a profile every turn.
+  </Card>
+  <Card title="AI SDK" icon="triangle" href="/integrations/ai-sdk">
+    withSupermemory modes, customId, addMemory.
+  </Card>
+  <Card title="Container tags" icon="lock" href="/concepts/container-tags">
+    Isolation for multi-tenant products.
+  </Card>
+</CardGroup>

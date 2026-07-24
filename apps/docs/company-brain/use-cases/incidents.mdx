@@ -1,0 +1,46 @@
+---
+title: "Incidents & Downtime Chatter"
+sidebarTitle: "Incidents"
+description: "Answer 'is prod down?' from live Sentry, and post scheduled error digests"
+icon: "triangle-alert"
+---
+
+import { SlackThread, SlackMessage, AgentLink } from "/snippets/slack-message.mdx";
+
+## The scenario
+
+Someone drops a vague "is prod down?" in `#eng`. Company Brain correlates it with what's actually failing right now — and a separate automation keeps a daily error digest flowing without anyone asking.
+
+## What happens
+
+<SlackThread channel="#eng" members={48}>
+  <SlackMessage name="Alex" color="#E01E5A" time="11:03 AM">
+    is prod down? a couple of customers are pinging me
+  </SlackMessage>
+  <SlackMessage bot time="11:03 AM">
+    Not a full outage — **`api/search` is elevated** (42 errors in the last 15m, mostly `timeout on vectorize`). Sentry issue <AgentLink href="https://example.com">SM-2041</AgentLink>. Deploy from this morning is the likely culprit; rollback candidate is `af61880`.
+  </SlackMessage>
+</SlackThread>
+
+Or, without anyone asking, a scheduled automation posts every morning:
+
+<SlackThread channel="#eng">
+  <SlackMessage bot time="9:00 AM">
+    **Daily error digest** — 3 issues new since yesterday, 1 still spiking (`api/search` timeout). Full list in Sentry.
+  </SlackMessage>
+</SlackThread>
+
+## What's really going on
+
+The first exchange is a [chime-in](/company-brain/automations) (or an @mention — either works) that hits the **Sentry** [tool connector](/company-brain/connectors) for live error data. The second is an [automation](/company-brain/automations): a recurring prompt on a cron that posts to a channel using org-shared connections only, so it never runs as a specific person.
+
+If the channel is private, only an admin can target it with an automation, and the bot fails closed if it can't verify visibility.
+
+<CardGroup cols={2}>
+  <Card title="Connectors" icon="plug" href="/company-brain/connectors">
+    Connect Sentry (and friends) for live incident context.
+  </Card>
+  <Card title="Automations" icon="wand-magic-sparkles" href="/company-brain/automations">
+    Schedule digests and understand chime-in.
+  </Card>
+</CardGroup>

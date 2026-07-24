@@ -110,13 +110,23 @@ Supermemory 已经为 Claude Code、OpenCode、OpenClaw、Hermes 提供了开箱
 - OpenCode 插件：https://github.com/supermemoryai/opencode-supermemory
 - Hermes agent（Supermemory 作为记忆 provider）：https://github.com/NousResearch/hermes-agent
 
-### MCP——一键安装
+### MCP
 
-```bash
-npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client claude --oauth=yes
+服务地址：
+
+```text
+https://mcp.supermemory.ai/mcp
 ```
 
-把 `claude` 换成你用的客户端即可：`cursor`、`windsurf`、`vscode` 等等。
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp"
+    }
+  }
+}
+```
 
 更多 MCP 细节见：https://supermemory.ai/docs/supermemory-mcp/mcp
 
@@ -247,7 +257,7 @@ const agent = new Agent(withSupermemory(config, "user-123", { mode: "full" }));
 
 ```typescript
 // 混合检索（默认）——一次查询同时跑 RAG 和记忆
-const results = await client.search.memories({
+const results = await client.search({
   q: "how do I deploy?",
   containerTag: "user_123",
   searchMode: "hybrid",
@@ -255,7 +265,7 @@ const results = await client.search.memories({
 // 返回部署文档（RAG）+ 该用户的部署偏好（记忆）
 
 // 只查记忆
-const results = await client.search.memories({
+const results = await client.search({
   q: "user preferences",
   containerTag: "user_123",
   searchMode: "memories",
@@ -289,8 +299,8 @@ const { profile } = await client.profile({ containerTag: "user_123" });
 |---|---|
 | `client.add()` | 存储内容——文本、对话、URL、HTML |
 | `client.profile()` | 一次调用返回用户画像 + 可选检索 |
-| `client.search.memories()` | 跨记忆和文档的混合检索 |
-| `client.search.documents()` | 带元数据过滤的文档检索 |
+| `client.search()` | 跨记忆和文档的混合检索（`searchMode`） |
+| `client.search.documents()` | 带元数据过滤的文档检索（旧版 v3 响应格式） |
 | `client.documents.uploadFile()` | 上传 PDF、图片、视频、代码 |
 | `client.documents.list()` | 列出和筛选文档 |
 | `client.settings.update()` | 配置记忆抽取与切分策略 |

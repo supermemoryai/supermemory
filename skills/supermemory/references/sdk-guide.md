@@ -201,18 +201,18 @@ console.log(response.profile.dynamic);  // Recent dynamic memories
 // response.searchResults will be undefined
 ```
 
-### `search.memories()` - Semantic Search
+### `search()` - Semantic Search
 
-Search across memories using semantic understanding, not just keywords.
+Search across memories using semantic understanding, not just keywords. `client.search.memories()` and `client.search.documents()` still work (deprecated) but `client.search()` is the current, recommended call — Python keeps `client.search.memories()`.
 
 #### TypeScript
 ```typescript
-const response = await client.search.memories({
+const response = await client.search({
   q: string,                  // Required: search query
   containerTag?: string,      // Optional: filter by container tag
   limit?: number,             // Optional: max results (default 10)
-  threshold?: number,         // Optional: similarity threshold (0-1, default 0.3)
-  searchMode?: "semantic" | "hybrid",  // Optional: "semantic" (default) or "hybrid" (semantic + keyword for RAG)
+  threshold?: number,         // Optional: similarity threshold (0-1, default 0.5)
+  searchMode?: "memories" | "hybrid" | "documents",  // Optional: "memories" (default), "hybrid" (memories + document chunks), or "documents" (chunks only)
   filters?: FilterObject      // Optional: advanced filtering
 });
 
@@ -237,9 +237,9 @@ const response = await client.search.memories({
 response = client.search.memories(
     q=str,                      # Required: search query
     container_tag=str,          # Optional: filter by container tag
-    threshold=float,            # Optional: similarity threshold (0-1, default 0.3)
+    threshold=float,            # Optional: similarity threshold (0-1, default 0.5)
     limit=int,                  # Optional: max results (default 50)
-    search_mode=str,            # Optional: "semantic" (default) or "hybrid"
+    search_mode=str,            # Optional: "memories" (default), "hybrid", or "documents"
     filters=dict                # Optional: advanced filtering
 )
 
@@ -255,7 +255,7 @@ response = client.search.memories(
 
 **Basic semantic search:**
 ```typescript
-const response = await client.search.memories({
+const response = await client.search({
   q: "How do I authenticate users?",
   containerTag: "documentation",
   limit: 10
@@ -269,7 +269,7 @@ response.results.forEach(result => {
 
 **Hybrid search for RAG (semantic + keyword):**
 ```typescript
-const response = await client.search.memories({
+const response = await client.search({
   q: "authentication methods",
   containerTag: "docs",
   searchMode: "hybrid",  // Combines semantic and keyword search for better RAG accuracy
@@ -280,7 +280,7 @@ const response = await client.search.memories({
 
 **Search with metadata filters:**
 ```typescript
-const response = await client.search.memories({
+const response = await client.search({
   q: "authentication methods",
   containerTag: "docs",
   threshold: 0.3,
@@ -295,7 +295,7 @@ const response = await client.search.memories({
 
 **Search within specific document:**
 ```typescript
-const response = await client.search.memories({
+const response = await client.search({
   q: "rate limiting configuration",
   containerTag: "specific_project"
 });
@@ -410,7 +410,7 @@ await client.add({
 });
 
 // Search with metadata filters
-const results = await client.search.memories({
+const results = await client.search({
   q: "phone reviews",
   containerTag: "reviews",
   filters: {

@@ -1,4 +1,4 @@
-import { deduplicateMemories } from "../tools-shared"
+import { deduplicateMemoriesForMode } from "../tools-shared"
 import type {
 	Logger,
 	MemoryMode,
@@ -119,7 +119,7 @@ export const buildMemoriesText = async (
 		mode,
 	})
 
-	const deduplicated = deduplicateMemories({
+	const deduplicated = deduplicateMemoriesForMode(mode, {
 		static: memoriesResponse.profile.static,
 		dynamic: memoriesResponse.profile.dynamic,
 		searchResults: memoriesResponse.searchResults?.results,

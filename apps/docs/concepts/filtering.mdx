@@ -1,8 +1,8 @@
 ---
 title: "Organizing & Filtering Memories"
-sidebarTitle: "Multi-Tenancy / Filtering"
+sidebarTitle: "Metadata filtering"
 description: "Use container tags and metadata to organize and retrieve memories"
-icon: "users"
+icon: "filter"
 ---
 
 Supermemory provides two ways to organize your memories:
@@ -29,21 +29,22 @@ Container tags create isolated memory spaces. Use them to separate memories by u
 ```typescript
 await client.add({
   content: "Meeting notes from Q1 planning",
-  containerTags: ["user_123"]
+  containerTag: "user_123"
 });
 ```
 
 ### Searching with Tags
 
 ```typescript
-const results = await client.search.documents({
+const results = await client.search({
   q: "planning notes",
-  containerTags: ["user_123"]
+  containerTag: "user_123",
+  searchMode: "documents"
 });
 ```
 
 <Note>
-Container tags use **exact array matching**. A memory tagged `["user_123", "project_a"]` won't match a search for just `["user_123"]`.
+Each search is scoped to a single container tag. Passing `containerTag: "user_123"` restricts results to memories stored in that container.
 </Note>
 
 ### Recommended Patterns
@@ -60,34 +61,34 @@ Container tags use **exact array matching**. A memory tagged `["user_123", "proj
     // Multi-tenant SaaS - isolate by organization and user
     await client.add({
       content: "Company policy document",
-      containerTags: ["org_acme_user_john"]
+      containerTag: "org_acme_user_john"
     });
 
     // Search only within that user's org context
-    const results = await client.search.documents({
+    const results = await client.search({
       q: "vacation policy",
-      containerTags: ["org_acme_user_john"]
+      containerTag: "org_acme_user_john",
+      searchMode: "documents"
     });
 
     // Project-based isolation
     await client.add({
       content: "Sprint 5 retrospective notes",
-      containerTags: ["project_mobile_app"]
+      containerTag: "project_mobile_app"
     });
 
     // Time-based segmentation
     await client.add({
       content: "Q1 2024 financial report",
-      containerTags: ["user_cfo_2024_q1"]
+      containerTag: "user_cfo_2024_q1"
     });
     ```
 
     **API field differences:**
-    | Endpoint | Field | Type |
-    |----------|-------|------|
-    | `/v3/search` | `containerTags` | Array |
-    | `/v4/search` | `containerTag` | String |
-    | `/v3/documents/list` | `containerTags` | Array |
+    | Operation | Field | Type |
+    |-----------|-------|------|
+    | Search | `containerTag` | String |
+    | Documents list | `containerTags` | Array |
   </Accordion>
 </AccordionGroup>
 
@@ -102,7 +103,7 @@ Metadata lets you attach custom properties to memories and filter by them later.
 ```typescript
 await client.add({
   content: "Technical design document for auth system",
-  containerTags: ["user_123"],
+  containerTag: "user_123",
   metadata: {
     category: "engineering",
     priority: "high",
@@ -116,9 +117,10 @@ await client.add({
 Filters must be wrapped in `AND` or `OR` arrays:
 
 ```typescript
-const results = await client.search.documents({
+const results = await client.search({
   q: "design document",
-  containerTags: ["user_123"],
+  containerTag: "user_123",
+  searchMode: "documents",
   filters: {
     AND: [
       { key: "category", value: "engineering" },
@@ -142,8 +144,9 @@ const results = await client.search.documents({
 Use `AND` and `OR` for complex queries:
 
 ```typescript
-const results = await client.search.documents({
+const results = await client.search({
   q: "meeting notes",
+  searchMode: "documents",
   filters: {
     AND: [
       { key: "type", value: "meeting" },
@@ -163,8 +166,9 @@ const results = await client.search.documents({
 Use `negate: true` to exclude matches:
 
 ```typescript
-const results = await client.search.documents({
+const results = await client.search({
   q: "documentation",
+  searchMode: "documents",
   filters: {
     AND: [
       { key: "status", value: "draft", negate: true }
@@ -178,8 +182,9 @@ const results = await client.search.documents({
     **String contains (substring search):**
     ```typescript
     // Find documents with "machine learning" in the description
-    const results = await client.search.documents({
+    const results = await client.search({
       q: "AI research",
+      searchMode: "documents",
       filters: {
         AND: [
           {
@@ -196,8 +201,9 @@ const results = await client.search.documents({
     **Numeric comparisons:**
     ```typescript
     // Find high-priority items created after a specific date
-    const results = await client.search.documents({
+    const results = await client.search({
       q: "tasks",
+      searchMode: "documents",
       filters: {
         AND: [
           {
@@ -220,8 +226,9 @@ const results = await client.search.documents({
     **Array contains (check array membership):**
     ```typescript
     // Find documents where a specific user is a participant
-    const results = await client.search.documents({
+    const results = await client.search({
       q: "meeting notes",
+      searchMode: "documents",
       filters: {
         AND: [
           {
@@ -237,8 +244,9 @@ const results = await client.search.documents({
     **Complex nested filters:**
     ```typescript
     // (category = "tech" OR category = "science") AND status != "archived"
-    const results = await client.search.documents({
+    const results = await client.search({
       q: "research papers",
+      searchMode: "documents",
       filters: {
         AND: [
           {
@@ -265,9 +273,10 @@ const results = await client.search.documents({
   <Accordion title="Real-World Patterns">
     **User's work documents from 2024:**
     ```typescript
-    const results = await client.search.documents({
+    const results = await client.search({
       q: "quarterly report",
-      containerTags: ["user_123"],
+      containerTag: "user_123",
+      searchMode: "documents",
       filters: {
         AND: [
           { key: "category", value: "work" },
@@ -280,9 +289,10 @@ const results = await client.search.documents({
 
     **Team meeting notes with specific participants:**
     ```typescript
-    const results = await client.search.documents({
+    const results = await client.search({
       q: "sprint planning",
-      containerTags: ["project_alpha"],
+      containerTag: "project_alpha",
+      searchMode: "documents",
       filters: {
         AND: [
           { key: "type", value: "meeting" },
@@ -299,8 +309,9 @@ const results = await client.search.documents({
 
     **Exclude drafts and deprecated content:**
     ```typescript
-    const results = await client.search.documents({
+    const results = await client.search({
       q: "documentation",
+      searchMode: "documents",
       filters: {
         AND: [
           { key: "status", value: "draft", negate: true },
@@ -322,7 +333,7 @@ const results = await client.search.documents({
 ```typescript
 await client.add({
   content: "Your content here",
-  containerTags: ["user_123"],        // Isolation
+  containerTag: "user_123",           // Isolation
   metadata: { key: "value" }          // Custom properties
 });
 ```
@@ -330,9 +341,10 @@ await client.add({
 ### When Searching
 
 ```typescript
-const results = await client.search.documents({
+const results = await client.search({
   q: "search query",
-  containerTags: ["user_123"],        // Must match exactly
+  containerTag: "user_123",           // Scopes results to this container
+  searchMode: "documents",
   filters: {                          // Optional metadata filters
     AND: [{ key: "status", value: "published" }]
   }
@@ -345,15 +357,35 @@ const results = await client.search.documents({
 - Max length: 64 characters
 - No spaces or special characters
 
+### Query Complexity Limits
+
+- Maximum 200 conditions per query
+- Maximum 8 levels of nested `AND`/`OR` expressions
+
+<Note>
+If you need more conditions than these limits allow, break your query into multiple requests or use broader search terms with post-processing.
+</Note>
+
+### Searching Within a Document
+
+Use `docId` to scope a search to chunks within one large document — useful for books, podcasts, or other long-form content:
+
+```typescript
+const results = await client.search({
+  q: "machine learning",
+  docId: "doc_123"
+});
+```
+
 ---
 
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Search" icon="search" href="/search">
+  <Card title="Search" icon="search" href="/recall/search">
     Apply filters in search queries
   </Card>
-  <Card title="Add Memories" icon="plus" href="/add-memories">
+  <Card title="Add Memories" icon="plus" href="/ingestion/add-memories">
     Add content with container tags and metadata
   </Card>
 </CardGroup>

@@ -1,0 +1,49 @@
+---
+title: "Sandbox Debugging"
+sidebarTitle: "Sandbox"
+description: "Hand it a failing test — it runs the code in an isolated workspace and reports back"
+icon: "terminal"
+---
+
+import { SlackThread, SlackMessage, Mention } from "/snippets/slack-message.mdx";
+
+## The scenario
+
+A test is failing and the stack trace alone isn't enough. You want Company Brain to actually run the code, not just describe what it *would* do.
+
+## What happens
+
+<SlackThread channel="#eng">
+  <SlackMessage self time="5:41 PM">
+    <Mention>supermemory</Mention> the `permissions.lease` unit test is failing on main — can you reproduce and tell me why?
+  </SlackMessage>
+  <SlackMessage bot time="5:42 PM">
+    Reproduced in a sandbox against `main`.
+
+    **Failure:** `permissions.lease` expects temporary access to expire in 15 minutes, but the fixture still asserts 30.
+    **Cause:** the default was shortened in `#1188`; the unit test wasn't updated.
+    **Fix:** point the assertion at the shared default so it can't drift again.
+  </SlackMessage>
+</SlackThread>
+
+## What's really going on
+
+Company Brain spins up an **isolated workspace**, checks out what it needs, runs the command, and reads the output. It's not guessing from static code alone — it's executing.
+
+Guardrails are intentional, so it's safe to hand real tasks to:
+
+- No `git push`, no deploys
+- No elevated privileges (`sudo` and similar are blocked)
+- No reaching arbitrary internal network addresses
+- No long-running dev servers
+
+Think of it as a sealed workbench: useful for reproduce / inspect / explain loops, not for shipping changes on your behalf.
+
+<CardGroup cols={2}>
+  <Card title="Acting in tools" icon="wrench" href="/company-brain/use-cases/acting-in-tools">
+    When the next step is a Linear issue or a PR lookup.
+  </Card>
+  <Card title="What you can do" icon="sparkles" href="/company-brain/use-cases/overview">
+    All the scenario walkthroughs.
+  </Card>
+</CardGroup>

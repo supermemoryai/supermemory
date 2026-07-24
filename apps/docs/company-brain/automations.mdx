@@ -1,0 +1,97 @@
+---
+title: "Automations and Proactiveness"
+sidebarTitle: "Automations"
+description: "Scheduled work Company Brain runs on its own, and when it speaks without being asked"
+icon: "bot"
+---
+
+import { SlackThread, SlackMessage, Mention, ChannelRef } from "/snippets/slack-message.mdx";
+
+Company Brain doesn't only answer when you @mention it. It can run recurring work on a schedule, and it can speak in a thread on its own when it has something genuinely worth saying. Both are opt-in, both are rate-limited, and both read from exactly the same [permissions graph](/company-brain/permissions) as a normal question — neither is a backdoor around it.
+
+## Automations
+
+An automation is a prompt that runs on a schedule and posts the result somewhere. You write it once, in plain language:
+
+<SlackThread channel="#product">
+  <SlackMessage self time="9:03 AM">
+    <Mention>supermemory</Mention> every Monday at 9am, post a digest of what shipped last week and what's still open, to <ChannelRef>product</ChannelRef>.
+  </SlackMessage>
+  <SlackMessage bot time="9:03 AM">
+    Got it — scheduled. First digest posts Monday, 9:00 AM, to <ChannelRef>product</ChannelRef>.
+  </SlackMessage>
+</SlackThread>
+
+<Steps>
+  <Step title="Schedule fires">
+    The automation wakes up at its set time — no one has to trigger it.
+  </Step>
+  <Step title="Gathers context">
+    It reads using only **org-shared** connections and channel memory — never a person's personal credentials, even if the person who created the automation has better personal access. This is what keeps a scheduled post from silently acting as a specific teammate.
+  </Step>
+  <Step title="Checks visibility">
+    Before posting, it re-confirms it can still see the destination channel.
+  </Step>
+  <Step title="Posts, or fails closed">
+    If anything above is unclear — a connection broke, visibility can't be verified — it skips that run rather than posting a guess. Silence beats a wrong digest.
+  </Step>
+</Steps>
+
+**Who can target what:**
+
+| Destination | Who can create it | Reads from |
+|---|---|---|
+| Public channel | Any member | Org-shared connections, public channel memory |
+| Private channel | Admins only | Org-shared connections, that channel's memory |
+| DM to yourself | The owner of that DM | Your personal + org connections, your employee memory |
+
+Common shapes worth stealing:
+
+- A Monday-morning digest of open items and unanswered questions
+- A daily Sentry error recap in `#eng`
+- A weekly "what changed across our connected tools" summary
+
+Anyone can create and manage their own automations; admins can manage everyone's. Ask Company Brain in Slack to set one up, or manage the full list from the web app.
+
+## Proactiveness (chime-in)
+
+Chime-in is different from an automation: there's no schedule, and no one asked. Company Brain is simply present in a channel — because an admin invited it — and it speaks up when staying quiet would waste someone's time.
+
+**What actually earns a chime-in:**
+
+- It has to add something the room doesn't already have — a fact, a correction, a next step — not agreement or a restatement of what's already visible.
+- It has to come from somewhere it's genuinely allowed to look: [connected tools](/company-brain/connectors) or that room's own memory, same as any other answer.
+- If it isn't confident the answer is actually correct, it says nothing. A wrong guess is worse than silence, so uncertainty resolves to silence, not a hedge.
+
+<CodeGroup>
+```text Worth chiming in
+"is prod down? customers are pinging me"
+→ correlates against Sentry, replies with what's actually elevated right now
+```
+
+```text Not worth it
+"finally shipped this 🎉" (screenshot, no question)
+→ stays quiet — there's nothing to add
+```
+</CodeGroup>
+
+**Guardrails that keep it from becoming noise:**
+
+- **Rate-limited.** It won't speak repeatedly in the same thread or channel in a short window, even if it technically could add something each time.
+- **Invite-only rooms.** It never joins a channel on its own — only places an admin already invited it into.
+- **Same graph as a normal answer.** A private channel's chime-in only ever draws on that channel's memory and public channel memory — never another private channel, never someone else's employee memory.
+
+An explicit @mention always skips this judgment call entirely — naming it is you deciding it should speak, so it does.
+
+<Note>
+Automations and chime-in both write back to memory the same way a normal conversation does: a public channel's automation output lands in public channel memory, a private channel's chime-in stays scoped to that channel's memory.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="What you can do" icon="sparkles" href="/company-brain/use-cases/overview">
+    Real scenarios — support, incidents, digests, and more.
+  </Card>
+  <Card title="Connectors" icon="plug" href="/company-brain/connectors">
+    Wire up the tools automations and chime-in draw from.
+  </Card>
+</CardGroup>

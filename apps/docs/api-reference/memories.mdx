@@ -1,0 +1,20 @@
+---
+title: "Memories"
+sidebarTitle: "Overview"
+description: "Create, list, update, and forget extracted memory entries (v4)."
+icon: "book-open"
+---
+
+These endpoints operate on **extracted memories**, not raw documents.
+
+| Endpoint | Use when |
+| --- | --- |
+| `POST /v4/memories` | Write memories directly (skip document pipeline) |
+| `POST /v4/memories/list` | List with history / versions |
+| `PATCH /v4/memories` | Update (creates a new version) |
+| `DELETE /v4/memories` | Forget a specific memory |
+| `POST /v4/memories/forget-matching` | Forget by natural-language match |
+
+For document-level CRUD, use [Documents](/api-reference/documents). For pipeline ingest, use [Ingest](/api-reference/ingest).
+
+**Guide:** [Memory operations](/recall/memory-operations)

@@ -4,17 +4,13 @@ description: 'How to set up and use Supermemory MCP Server 4.0'
 icon: 'settings'
 ---
 
-## Quick Install (Recommended)
+## Server URL
 
-```bash
-npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client claude --oauth=yes
+```text
+https://mcp.supermemory.ai/mcp
 ```
 
-Replace `claude` with your MCP client: `cursor`, `windsurf`, `vscode`, etc.
-
-## Manual Configuration
-
-Add this to your MCP client config (Claude Desktop, Cursor, Windsurf, etc.):
+Add this to your MCP client config (Claude, Cursor, Windsurf, VS Code, etc.):
 
 ```json
 {
@@ -70,7 +66,7 @@ This keeps memories organized by project, useful when working on multiple codeba
 
 ### Claude Desktop
 
-For a screenshot-backed walkthrough (Developer → Edit Config, `claude_desktop_config.json`, Connectors), see **[Claude Desktop](/supermemory-mcp/claude-desktop)**. The recommended one-line install at the top of this page also supports Claude.
+For a screenshot-backed walkthrough (Settings → Connectors → Add custom connector with the URL above), see **[Claude Desktop](/supermemory-mcp/claude-desktop)**.
 
 ### Cursor
 

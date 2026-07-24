@@ -1,0 +1,43 @@
+---
+title: "Answering from Your Docs"
+sidebarTitle: "From Docs"
+description: "Ask about roadmaps, specs, and handbooks in plain language"
+icon: "book"
+---
+
+import { SlackThread, SlackMessage, Mention } from "/snippets/slack-message.mdx";
+
+## The scenario
+
+The Q2 roadmap lives in Notion. Nobody wants to dig for the link mid-conversation — they just ask.
+
+## What happens
+
+<SlackThread channel="#product">
+  <SlackMessage self time="10:18 AM">
+    <Mention>supermemory</Mention> what's in our Q2 roadmap?
+  </SlackMessage>
+  <SlackMessage bot time="10:18 AM">
+    Three themes for Q2:
+    1. **Company Brain GA** — Slack bot, connectors, automations
+    2. **Memory Router v2** — lower latency, better multi-tenant isolation
+    3. **Enterprise SSO + audit log**
+
+    Full doc: *Q2 Roadmap* in Notion (last updated Jun 3).
+  </SlackMessage>
+</SlackThread>
+
+## What's really going on
+
+This is a [data connector](/company-brain/connectors) (Notion, Google Drive, or OneDrive) feeding [public channel memory](/company-brain/permissions). Content is fetched, chunked, embedded, and re-synced on a schedule — so when the roadmap changes in Notion, answers stay current without anyone re-uploading.
+
+Same pattern works for handbooks, design docs, RFCs, and "where do we document X?" style questions. If it doesn't know, it says so rather than guessing.
+
+<CardGroup cols={2}>
+  <Card title="Connectors" icon="plug" href="/company-brain/connectors">
+    Bring Drive, Notion, and OneDrive into public channel memory.
+  </Card>
+  <Card title="Permissions" icon="shield-check" href="/company-brain/permissions">
+    Who can see what once it's indexed.
+  </Card>
+</CardGroup>

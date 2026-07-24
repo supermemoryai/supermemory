@@ -1,0 +1,305 @@
+---
+title: "Rules of supermemory"
+description: "Best practices and things to consider when using supermemory in your system"
+sidebarTitle: "Rules of supermemory"
+icon: "gavel"
+---
+
+Supermemory provides powerful primitives and the full context stack for building AI agents. This page collects rules of thumb from building and running supermemory in production. They aren't hard constraints, just shortcuts that save you time, cost, and confusing search results.
+
+## Thinking about ingestion
+
+### What to ingest, and what not to
+
+#### Send what you would send to a human for memory
+
+Treat supermemory as a database for human-like understanding of knowledge and search. You should be feeding it unstructured data like documents, chat conversations, or even images, videos, and websites. You should not be ingesting database records or CSVs, since those are more structured.
+
+Although supermemory _does_ support learning from long-horizon structured data, typically the right approach is to give an agent tools to traverse the structure directly.
+
+Agents benefit most from having a _general_ idea of the topic alongside tools to look through the data. For example, knowing "this company uses PostHog and has three products (API, Console, and Landing Page)" helps the agent navigate the PostHog data more effectively.
+
+#### A quick test for where information belongs
+
+| Context | Test result | Where it goes |
+| --- | --- | --- |
+| "Sarah prefers async updates and is being promoted to VP of Product" | A colleague would remember this | supermemory: [memory search](/recall/search) + profile |
+| The Q3 planning doc, support tickets, the API changelog | A colleague would look it up by meaning | supermemory: ingested as documents, recalled with document search |
+| Invoice #4821, total \$1,340.50, status `paid` | Queried by ID, summed in reports | your database |
+| "Answer in the user's language. Never quote internal pricing." | Every request needs it, verbatim | system prompt |
+
+Two things about this table that trip people up.
+
+**"Remember" and "look up" are both supermemory, but different reads.** You [ingest documents](/ingestion/add-memories); the pipeline derives memories from them and maintains a profile per [container tag](/concepts/how-it-works). `client.search({ searchMode: "memories" })` recalls the derived facts. `client.search({ searchMode: "documents" })` recalls the source material itself. A support agent usually needs both: memories for "this customer runs self-hosted and already tried reinstalling", documents for the actual troubleshooting guide.
+
+**Supermemory is not your system of record.** There's no SQL over memories, no joins, no aggregates, no querying by primary key. Keep transactional data in your database, and ingest the narrative *around* it ("the customer disputed invoice #4821 and churned over it") so your AI understands what the rows mean.
+
+#### Ingest with SuperRag when you just need search
+
+When you know you only want search, you can cut costs by 5x. Just set `taskType` when ingesting:
+
+<CodeGroup>
+
+```typescript TypeScript
+await client.add({
+  content: "testing",
+  containerTag: "test",
+  taskType: "superrag"
+});
+```
+
+```python Python
+client.add(
+    content="testing",
+    container_tag="test",
+    task_type="superrag"
+)
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "testing",
+    "containerTag": "test",
+    "taskType": "superrag"
+  }'
+```
+
+</CodeGroup>
+
+#### Use hybrid mode when searching over SuperRag content
+
+`hybrid` mode makes it much easier to get complete results from supermemory when you have both memories and documents.
+
+<CodeGroup>
+
+```typescript TypeScript
+const results = await client.search({
+  q: "test",
+  searchMode: "hybrid"
+});
+```
+
+```python Python
+results = client.search.memories(
+    q="test",
+    search_mode="hybrid"
+)
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "test",
+    "searchMode": "hybrid"
+  }'
+```
+
+</CodeGroup>
+
+The response comes back in this shape:
+
+```ts
+({ memory: string } | { chunk: string })[]
+```
+
+Use `item.memory || item.chunk` when reading results.
+
+#### Keep documents medium-sized
+
+While supermemory can handle documents with 400k+ tokens, sending smaller, self-contained documents produces better-quality learnings. The internal learning agent and "dreaming" jobs reflect on memories to build relations between them. If documents are too long, fewer memories get generated and fewer relations get made.
+
+We also recommend ingesting documents sequentially within a single `containerTag` where possible, since that's how supermemory determines what came first (used for `updates` relations and temporal reasoning).
+
+#### Handling single-threaded chatbots
+
+Many agent harnesses, like `openclaw`, `hermes`, and other single-threaded custom agents, run one long conversation with compaction. Some tips for managing single-threaded (and other long-running) conversations:
+
+1. **Send a `customId` when you can**: a sessionId, conversationId, document ID, or any representation of a "session" in your application.
+2. **Generate one if you don't have one**, e.g. the current 4-hour window: `${new Date().toISOString().slice(0,10)}-${new Date().getHours()>>2}`. Adjust the window size based on traffic per container.
+3. **Send the same prefix**: keep the start of the document identical across ingests under the same `customId` so supermemory can diff cleanly. You can either resend the full growing transcript each time, or send only the new turns since your last ingest. Just don't mix the two for the same `customId`.
+
+```
+Ingestion 1:
+Assistant: Hey, how are you?
+User: I'm fine.
+
+Ingestion 2 (full transcript):
+Assistant: Hey, how are you?
+User: I'm fine.
+Assistant: Anything I can help with today?
+
+Ingestion 2 (delta only):
+Assistant: Anything I can help with today?
+```
+
+You're only billed for the new (diff) content you send, so doing this well improves performance, cuts cost, and keeps usage simple.
+
+## Architecture and design
+
+#### Let supermemory handle the learning
+
+Don't pass content through an additional LLM before sending it to supermemory. Supermemory does that learning automatically. Because the engine already knows what it knows, it can contextually summarize, update, and forget information as needed.
+
+#### Configure what you want it to learn
+
+Ground it with `entityContext` to prevent drift over time. Picture a third person watching a conversation between two people: what do they remember, and about whom? Giving supermemory context about the entity itself helps ground its learnings and prevents drift and decay over time.
+
+<CodeGroup>
+
+```typescript TypeScript
+const user = auth.user.name;
+await client.add({
+  content: "Hey, I'm doing great!",
+  containerTag: user,
+  entityContext: `User is ${user}, talking to assistant Kira`
+}); // -> supermemory learns "Dhravya is doing great"
+```
+
+```python Python
+user = auth.user.name
+client.add(
+    content="Hey, I'm doing great!",
+    container_tag=user,
+    entity_context=f"User is {user}, talking to assistant Kira"
+)  # -> supermemory learns "Dhravya is doing great"
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Hey, I'\''m doing great!",
+    "containerTag": "dhravya",
+    "entityContext": "User is dhravya, talking to assistant Kira"
+  }'
+```
+
+</CodeGroup>
+
+#### Use containerTags, don't over-stuff a single one
+
+Use a containerTag wherever there's a hard permission boundary.
+
+- **Don't**: ingest everything into one container and filter through it with metadata.
+- **Do**: give each user their own container, and still filter by metadata inside it if needed.
+
+There's little correlation between the number of items in a container and its quality or latency. Supermemory is built for multi-tenant workloads and supports up to 1M documents and 10M memories per container.
+
+#### Use metadata filtering for detailed scoping inside containers
+
+You'll often want to ingest and search with filtering inside a single container. Say the engineering team ingests this:
+
+<CodeGroup>
+
+```typescript TypeScript
+await client.add({
+  content: "The team prefers TypeScript",
+  metadata: { team: "Engineering" },
+  containerTag: "org-supermemory",
+  filterByMetadata: { team: "Engineering" }
+});
+```
+
+```python Python
+client.add(
+    content="The team prefers TypeScript",
+    metadata={"team": "Engineering"},
+    container_tag="org-supermemory",
+    filter_by_metadata={"team": "Engineering"}
+)
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "The team prefers TypeScript",
+    "metadata": { "team": "Engineering" },
+    "containerTag": "org-supermemory",
+    "filterByMetadata": { "team": "Engineering" }
+  }'
+```
+
+</CodeGroup>
+
+> Tip: `filterByMetadata` ensures a fact like "the team prefers TypeScript" is only built on top of the engineering team's knowledge.
+
+Later, the research team ingests this, with the same `containerTag` but different `metadata`:
+
+```json
+{
+  "content": "The team prefers Python",
+  "metadata": { "team": "Research" },
+  "containerTag": "org-supermemory",
+  "filterByMetadata": { "team": "Research" }
+}
+```
+
+This keeps research's and engineering's memories from mixing, even though they share a `containerTag`. When searching:
+
+<CodeGroup>
+
+```typescript TypeScript
+const results = await client.search({
+  q: "preferred language",
+  containerTag: "org-supermemory",
+  searchMode: "documents",
+  filters: {
+    AND: [{ key: "team", value: "research" }]
+  }
+}); // -> "python"
+```
+
+```python Python
+results = client.search.documents(
+    q="preferred language",
+    container_tag="org-supermemory",
+    filters={
+        "AND": [{"key": "team", "value": "research"}]
+    }
+)  # -> "python"
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/v3/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "preferred language",
+    "containerTag": "org-supermemory",
+    "filters": {
+      "AND": [{ "key": "team", "value": "research" }]
+    }
+  }'
+```
+
+</CodeGroup>
+
+## Thinking about harness
+
+Think about how to bring memory back into the harness itself.
+
+#### Embrace a little noise
+
+You might want to hyper-optimize everything that goes into the model's prompt, but counterintuitively, you sometimes want to embrace noise, since true personalization comes from distinctive information.
+
+Example: a user says "hi" and the LLM responds "Hey Dhravya! How's it going? How's the new office coming along?" instead of something generic.
+
+Supermemory is designed for this: it returns an average of 10 tokens per fact, so even 50 facts is just 500 tokens of context, cheap enough to stay generous.
+
+#### Tools, hooks, and making the choice
+
+Think about how supermemory fits into your harness. Example, a personal agent:
+
+- **Session start hook** → load profile
+- **On-message hook** → enrich the prompt with search
+- **On-stop hook** → save the conversation
+
+Play around with these options in our [playground](https://console.supermemory.ai/playground), and read more in [this post on memory at the harness level](https://dhravya.dev/writing/memory-on-the-harness-level/).

@@ -1,0 +1,88 @@
+---
+title: "Security & compliance"
+description: "How Supermemory protects data — encryption, isolation, SOC 2, GDPR, HIPAA BAA, and deletion."
+sidebarTitle: "Security & compliance"
+icon: "shield"
+---
+
+Supermemory stores long-horizon context about people and organizations. Security and compliance are part of the product surface, not a footer claim.
+
+This page is the product-level trust overview. For multi-tenant design details, see [Container tags](/concepts/container-tags) and authentication docs in the Developer Platform.
+
+## Compliance posture
+
+| Framework | Status | Notes |
+|---|---|---|
+| **SOC 2 Type II** | Certified | Independent audit of security controls. Available on production plans that advertise it (see [pricing](https://supermemory.ai/pricing); typically Scale and above for formal enterprise packaging). |
+| **GDPR** | Compliant | EU personal data handled with care; support for access and erasure workflows. |
+| **HIPAA** | BAA available | Business Associate Agreement available for eligible cloud plans (Scale / Enterprise). Cloud-only unless you self-host under your own controls. |
+
+Need a report, DPA, or BAA? Contact [support@supermemory.com](mailto:support@supermemory.com) or your enterprise contact.
+
+## Security controls
+
+### Encryption
+
+- **In transit:** TLS for API and console traffic
+- **At rest:** Industry-standard encryption for stored data (AES-256 class controls in the managed cloud)
+
+### Isolation and access
+
+- **Container tags** enforce hard boundaries between users, tenants, or projects — the primary multi-tenancy primitive.
+- **API keys** authenticate every request. Prefer **scoped keys** when a client or session must only touch one container.
+- **Organizations** in the console manage members, keys, and billing separation.
+
+A malicious or buggy client with a correctly scoped key cannot read another container’s memories.
+
+### Data use
+
+Supermemory is infrastructure for *your* agents. Paid production usage is not treated as free training corpus for unrelated public models. For contractual wording (DPA, subprocessors, training policies), request the latest legal pack from support.
+
+### Data residency and deployment options
+
+- **Managed cloud** — default multi-tenant SaaS.
+- **Self-hosted binary** — full engine on your machine or VPC; embeddings and storage stay where you run it. See [Self-hosting](/self-hosting/overview).
+- **Enterprise / dedicated** — for stricter residency, air-gap, or custom deployment requirements. See [Local vs Enterprise](/self-hosting/local-vs-enterprise).
+
+## Privacy operations you should design for
+
+### Deleting a user (right to erasure)
+
+The practical GDPR-style path for app builders:
+
+1. Scope each end-user (or tenant) to a **container tag**.
+2. When the user requests deletion, delete that container’s content via the API / console workflows for documents and memories under that tag.
+3. Revoke any **scoped keys** issued for that user.
+
+Designing isolation up front makes erasure a single boundary operation instead of a forensic search.
+
+### Connectors and third-party sources
+
+OAuth connectors (Drive, Notion, Gmail, and others) pull content your users authorize. Disconnecting a connector stops future sync; you still control whether already-ingested documents remain in the memory store. Treat connector scope and retention as part of your product privacy policy.
+
+### Self-host when cloud is not enough
+
+If policy requires data never leave your network, run the [self-hosted engine](/self-hosting/overview). You bring the model endpoint (including fully offline OpenAI-compatible local models). Enterprise adds managed on-prem / dedicated options with organizational controls.
+
+## Reliability and support
+
+- Status and incidents are communicated through Supermemory’s status and support channels.
+- Support depth scales with plan (community → email → priority → dedicated enterprise).
+- Latency targets for retrieval are in the ~sub-300ms p50 range on the managed platform for typical search workloads; always validate on your traffic shape.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Billing & plans" icon="credit-card" href="/overview/billing">
+    Which tiers include BAAs, seats, and self-host options.
+  </Card>
+  <Card title="Container tags" icon="tags" href="/concepts/container-tags">
+    How isolation works in the data model.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    API keys and access for the Developer Platform.
+  </Card>
+  <Card title="Self-hosting" icon="server" href="/self-hosting/overview">
+    Keep memory on your infrastructure.
+  </Card>
+</CardGroup>

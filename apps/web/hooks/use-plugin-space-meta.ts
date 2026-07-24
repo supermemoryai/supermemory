@@ -7,6 +7,7 @@ import { useAuth } from "@lib/auth-context"
 
 export type PluginSpaceMeta = {
 	projectName?: string
+	projectId?: string
 	source?: string
 	lastUpdatedAt?: string
 }
@@ -27,8 +28,13 @@ function extractMeta(doc: RawDoc): PluginSpaceMeta {
 		typeof md.sm_source === "string" && md.sm_source.trim()
 			? md.sm_source.trim()
 			: undefined
+	const projectId =
+		typeof md.sm_project_id === "string" && md.sm_project_id.trim()
+			? md.sm_project_id.trim().toLowerCase()
+			: undefined
 	return {
 		projectName: project,
+		projectId,
 		source,
 		lastUpdatedAt: doc?.updatedAt ?? doc?.createdAt ?? undefined,
 	}
@@ -36,7 +42,7 @@ function extractMeta(doc: RawDoc): PluginSpaceMeta {
 
 /**
  * Fetches one recent doc per containerTag and pulls plugin metadata
- * (`metadata.project`, `metadata.sm_source`) so plugin-provisioned spaces
+ * (`metadata.project`, `metadata.sm_project_id`, `metadata.sm_source`) so plugin-provisioned spaces
  * can show the real project name instead of the hash.
  */
 export function usePluginSpaceMeta(

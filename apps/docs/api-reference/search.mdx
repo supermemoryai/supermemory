@@ -1,0 +1,19 @@
+---
+title: "Recall"
+sidebarTitle: "Overview"
+description: "Semantic search over memories, document chunks, or both — plus user profiles."
+icon: "book-open"
+---
+
+Get context back out of Supermemory: search extracted memories / documents, or fetch a user profile.
+
+| Endpoint | Role |
+| --- | --- |
+| `POST /v4/search` | Primary recall — `searchMode`: `memories`, `documents`, or `hybrid` |
+| `POST /v3/search` | Document / SuperRAG-oriented search |
+| `POST /v4/profile` | Static + dynamic profile for a container |
+| `POST /v4/profile/buckets` | Profile organized by custom buckets |
+
+Prefer **v4** with `searchMode: "hybrid"` unless you only need document chunks or only extracted memories.
+
+**Guides:** [Search](/recall/search) · [User profiles](/recall/user-profiles) · [SuperRAG](/concepts/super-rag) · [Memory vs RAG](/concepts/memory-vs-rag)

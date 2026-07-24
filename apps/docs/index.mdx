@@ -1,0 +1,90 @@
+---
+title: "Introduction"
+description: "Context infrastructure for AI agents"
+mode: "custom"
+---
+
+export const HeroCard = ({ imageUrl, title, description, href }) => {
+  return (
+    <a
+      className="group flex flex-col h-full rounded-2xl overflow-hidden bg-white dark:bg-zinc-950 border border-gray-200/80 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-300"
+      href={href}
+    >
+      <div className="overflow-hidden bg-gray-50 dark:bg-zinc-900 border-b border-gray-100 dark:border-zinc-800">
+        <img
+          src={imageUrl}
+          className="w-full h-56 sm:h-64 object-cover transform group-hover:scale-[1.03] transition-transform duration-500"
+          alt={title}
+        />
+      </div>
+      <div className="flex flex-col gap-2 p-6 sm:p-7">
+        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-zinc-50 tracking-tight">
+          {title}
+        </h3>
+        <p className="text-[15px] leading-relaxed text-gray-600 dark:text-zinc-400">
+          {description}
+        </p>
+      </div>
+    </a>
+  )
+}
+
+<div className="relative overflow-hidden">
+  <div className="relative px-4 sm:px-6 pt-16 sm:pt-20 lg:pt-24 pb-20 max-w-5xl mx-auto">
+    <div className="max-w-2xl">
+      <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-semibold text-gray-900 dark:text-zinc-50 tracking-tight leading-[1.1]">
+        supermemory
+      </h1>
+      <p className="mt-5 text-lg sm:text-xl text-gray-600 dark:text-zinc-400 leading-relaxed">
+        Context infrastructure for AI agents. Use it with the API, your tools, your team, or run it yourself.
+      </p>
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        <a
+          href="/concepts/how-it-works"
+          className="inline-flex items-center justify-center rounded-lg bg-gray-900 dark:bg-zinc-100 px-4 py-2.5 text-sm font-medium text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-white transition-colors"
+        >
+          Architecture
+        </a>
+        <a
+          href="/quickstart"
+          className="inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-4 py-2.5 text-sm font-medium text-gray-900 dark:text-zinc-100 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
+        >
+          Quickstart
+        </a>
+        <a
+          href="/company-brain/setup"
+          className="inline-flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+        >
+          Set up your company brain
+        </a>
+      </div>
+    </div>
+
+    <div className="mt-12 sm:mt-14 grid sm:grid-cols-2 gap-5 sm:gap-6">
+      <HeroCard
+        imageUrl="/docs/images/intro-company-brain.jpg"
+        title="Developer platform"
+        description="API reference, concepts, and SDKs"
+        href="/overview/what-is-supermemory"
+      />
+      <HeroCard
+        imageUrl="/docs/images/intro-company-brain-card.jpg"
+        title="Company brain"
+        description="Team knowledge on the same engine"
+        href="/company-brain/overview"
+      />
+      <HeroCard
+        imageUrl="/docs/images/intro-plugins.jpg"
+        title="Plugins and MCP"
+        description="Drop memory into Claude and coding agents"
+        href="/supermemory-mcp/mcp"
+      />
+      <HeroCard
+        imageUrl="/docs/images/intro-developer-platform.png"
+        title="Self-hosting"
+        description="Run it locally with zero config"
+        href="/self-hosting/overview"
+      />
+    </div>
+  </div>
+</div>

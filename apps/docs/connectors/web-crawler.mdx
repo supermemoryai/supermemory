@@ -25,7 +25,7 @@ The web crawler connector requires a **Scale Plan** or **Enterprise Plan**.
 
     const connection = await client.connections.create('web-crawler', {
       redirectUrl: 'https://yourapp.com/callback',
-      containerTags: ['user-123', 'website-sync'],
+      containerTag: 'user-123',
       documentLimit: 5000,
       metadata: {
         startUrl: 'https://docs.example.com'
@@ -48,7 +48,7 @@ The web crawler connector requires a **Scale Plan** or **Enterprise Plan**.
     connection = client.connections.create(
         'web-crawler',
         redirect_url='https://yourapp.com/callback',
-        container_tags=['user-123', 'website-sync'],
+        container_tag='user-123',
         document_limit=5000,
         metadata={
             'startUrl': 'https://docs.example.com'
@@ -68,7 +68,7 @@ The web crawler connector requires a **Scale Plan** or **Enterprise Plan**.
       -H "Content-Type: application/json" \
       -d '{
         "redirectUrl": "https://yourapp.com/callback",
-        "containerTags": ["user-123", "website-sync"],
+        "containerTag": "user-123",
         "documentLimit": 5000,
         "metadata": {
           "startUrl": "https://docs.example.com"
@@ -96,7 +96,7 @@ Unlike other connectors, the web crawler doesn't require OAuth authentication. T
     ```typescript
     // Check connection details
     const connection = await client.connections.getByTags('web-crawler', {
-      containerTags: ['user-123', 'website-sync']
+      containerTags: ['user-123']
     });
 
     console.log('Start URL:', connection.metadata?.startUrl);
@@ -104,7 +104,7 @@ Unlike other connectors, the web crawler doesn't require OAuth authentication. T
 
     // List synced web pages
     const documents = await client.connections.listDocuments('web-crawler', {
-      containerTags: ['user-123', 'website-sync']
+      containerTags: ['user-123']
     });
 
     console.log(`Synced ${documents.length} web pages`);
@@ -115,7 +115,7 @@ Unlike other connectors, the web crawler doesn't require OAuth authentication. T
     # Check connection details
     connection = client.connections.get_by_tags(
         'web-crawler',
-        container_tags=['user-123', 'website-sync']
+        container_tags=['user-123']
     )
 
     print(f'Start URL: {connection.metadata.get("startUrl")}')
@@ -124,7 +124,7 @@ Unlike other connectors, the web crawler doesn't require OAuth authentication. T
     # List synced web pages
     documents = client.connections.list_documents(
         'web-crawler',
-        container_tags=['user-123', 'website-sync']
+        container_tags=['user-123']
     )
 
     print(f'Synced {len(documents)} web pages')
@@ -136,7 +136,7 @@ Unlike other connectors, the web crawler doesn't require OAuth authentication. T
     curl -X POST "https://api.supermemory.ai/v3/connections/web-crawler/connection" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"containerTags": ["user-123", "website-sync"]}'
+      -d '{"containerTags": ["user-123"]}'
 
     # Response includes connection details:
     # {
@@ -151,7 +151,7 @@ Unlike other connectors, the web crawler doesn't require OAuth authentication. T
     curl -X POST "https://api.supermemory.ai/v3/connections/web-crawler/documents" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"containerTags": ["user-123", "website-sync"]}'
+      -d '{"containerTags": ["user-123"]}'
 
     # Response: Array of document objects
     # [

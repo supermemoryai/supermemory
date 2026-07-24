@@ -1,7 +1,7 @@
 ---
 title: "S3 Connector"
 description: "Connect Amazon S3 or S3-compatible storage to sync files into your Supermemory knowledge base"
-icon: "aws"
+icon: "database"
 ---
 
 Connect Amazon S3 buckets or S3-compatible storage services (MinIO, DigitalOcean Spaces, Cloudflare R2, Tigris) to sync files into your Supermemory knowledge base.
@@ -28,7 +28,7 @@ The S3 connector requires a **Scale Plan** or higher. You can also create S3 con
         bucket: 'my-documents-bucket',
         region: 'us-east-1'
       },
-      containerTags: ['org-123']
+      containerTag: 'org-123'
     });
     ```
   </Tab>
@@ -47,7 +47,7 @@ The S3 connector requires a **Scale Plan** or higher. You can also create S3 con
             'bucket': 'my-documents-bucket',
             'region': 'us-east-1'
         },
-        container_tags=['org-123', 's3-sync']
+        container_tag='org-123'
     )
     ```
   </Tab>
@@ -63,7 +63,7 @@ The S3 connector requires a **Scale Plan** or higher. You can also create S3 con
           "bucket": "my-documents-bucket",
           "region": "us-east-1"
         },
-        "containerTags": ["org-123"]
+        "containerTag": "org-123"
       }'
     ```
   </Tab>
@@ -82,7 +82,7 @@ For S3, provider-specific connection fields are passed inside the top-level `met
 | `endpoint` | `metadata.endpoint` | No | Custom endpoint for S3-compatible services |
 | `prefix` | `metadata.prefix` | No | Key prefix filter (e.g., `documents/`) |
 | `containerTagRegex` | `metadata.containerTagRegex` | No | Regex to extract container tags from file paths |
-| `containerTags` | top-level | No | Tags for organizing connections |
+| `containerTag` | top-level | No | Tag for organizing this connection |
 | `documentLimit` | top-level | No | Maximum documents to sync (default: 10,000) |
 
 <Note>
@@ -103,7 +103,7 @@ const connection = await client.connections.create('s3', {
     region: 'auto',
     endpoint: 'https://minio.example.com'
   },
-  containerTags: ['minio-sync']
+  containerTag: 'minio-sync'
 });
 ```
 
@@ -126,7 +126,7 @@ const connection = await client.connections.create('s3', {
     region: 'auto',
     endpoint: 'https://<account-id>.r2.cloudflarestorage.com'
   },
-  containerTags: ['r2-sync']
+  containerTag: 'r2-sync'
 });
 ```
 
@@ -147,7 +147,7 @@ const connection = await client.connections.create('s3', {
     region: 'us-east-1',
     prefix: 'documents/engineering/' // Only syncs files under this path
   },
-  containerTags: ['engineering-docs']
+  containerTag: 'engineering-docs'
 });
 ```
 
@@ -164,7 +164,7 @@ const connection = await client.connections.create('s3', {
     region: 'us-east-1',
     containerTagRegex: 'users/(?<userId>[^/]+)/'
   },
-  containerTags: ['user-files']
+  containerTag: 'user-files'
 });
 
 // File: users/user-123/documents/notes.md → container tag: user-123

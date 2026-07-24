@@ -112,6 +112,78 @@ export function getBrainMode(
 		: null
 }
 
+export type BrainTrialStatus =
+	| "active"
+	| "exhausted"
+	| "expired"
+	| "converted"
+	| "skipped"
+
+export type BrainTrialInfo = {
+	status: BrainTrialStatus | null
+	startedAtMs: number | null
+	endsAtMs: number | null
+	credits: number | null
+	daysRemaining: number | null
+}
+
+function parseOrgMetadata(
+	metadataRaw: Record<string, unknown> | string | null | undefined,
+): Record<string, unknown> | null {
+	if (!metadataRaw) return null
+	if (typeof metadataRaw === "string") {
+		try {
+			return JSON.parse(metadataRaw) as Record<string, unknown>
+		} catch {
+			return null
+		}
+	}
+	return metadataRaw
+}
+
+/** Company Brain Slack trial fields written by mono after OAuth attach. */
+export function getBrainTrialInfo(
+	metadataRaw: Record<string, unknown> | string | null | undefined,
+): BrainTrialInfo {
+	const metadata = parseOrgMetadata(metadataRaw)
+	const rawStatus = metadata?.brainTrialStatus
+	const status =
+		rawStatus === "active" ||
+		rawStatus === "exhausted" ||
+		rawStatus === "expired" ||
+		rawStatus === "converted" ||
+		rawStatus === "skipped"
+			? rawStatus
+			: null
+
+	const startedAtMs =
+		typeof metadata?.brainTrialStartedAt === "string"
+			? Date.parse(metadata.brainTrialStartedAt)
+			: Number.NaN
+	const endsAtMs =
+		typeof metadata?.brainTrialEndsAt === "string"
+			? Date.parse(metadata.brainTrialEndsAt)
+			: Number.NaN
+	const credits =
+		typeof metadata?.brainTrialCredits === "number"
+			? metadata.brainTrialCredits
+			: null
+
+	const safeEnds = Number.isFinite(endsAtMs) ? endsAtMs : null
+	const daysRemaining =
+		safeEnds != null
+			? Math.max(0, Math.ceil((safeEnds - Date.now()) / (1000 * 60 * 60 * 24)))
+			: null
+
+	return {
+		status,
+		startedAtMs: Number.isFinite(startedAtMs) ? startedAtMs : null,
+		endsAtMs: safeEnds,
+		credits,
+		daysRemaining,
+	}
+}
+
 /**
  * Format a number with K/M suffix for display
  * @example formatUsageNumber(1500000) => "1.5M"

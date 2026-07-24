@@ -39,7 +39,8 @@ const TOKEN_METER_IDS = [
 ] as const
 
 export function useTokenUsage(autumn: ReturnType<typeof useCustomer>) {
-	const status = getSubscriptionStatus(autumn.data?.subscriptions)
+	const subscriptions = autumn.data?.subscriptions
+	const status = getSubscriptionStatus(subscriptions)
 
 	let currentPlan: PlanType = "free"
 	if (isAllowedFrom(status, "api_enterprise")) {
@@ -53,6 +54,24 @@ export function useTokenUsage(autumn: ReturnType<typeof useCustomer>) {
 	}
 
 	const hasPaidPlan = currentPlan !== "free"
+
+	const planProductId =
+		currentPlan === "free" ? null : (`api_${currentPlan}` as const)
+	const currentSub = planProductId
+		? subscriptions?.find((s) => s.planId === planProductId)
+		: undefined
+	const isTrialing = currentSub?.status === "trialing"
+	const trialEndsAtMs = (() => {
+		if (!currentSub) return null
+		const sub = currentSub as {
+			trialEndsAt?: number | null
+			currentPeriodEnd?: number | null
+			expiresAt?: number | null
+		}
+		const raw = sub.trialEndsAt ?? sub.currentPeriodEnd ?? sub.expiresAt
+		if (raw == null) return null
+		return raw < 10_000_000_000 ? raw * 1000 : raw
+	})()
 
 	const balances = autumn.data?.balances ?? {}
 
@@ -88,6 +107,8 @@ export function useTokenUsage(autumn: ReturnType<typeof useCustomer>) {
 		planUsagePct,
 		currentPlan,
 		hasPaidPlan,
+		isTrialing,
+		trialEndsAtMs,
 		isLoading,
 		daysRemaining,
 	}

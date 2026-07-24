@@ -1,0 +1,47 @@
+---
+title: "Long-Horizon Research"
+sidebarTitle: "Long-Horizon Research"
+description: "Questions that need many sources synthesized into one answer"
+icon: "telescope"
+---
+
+import { SlackThread, SlackMessage, Mention } from "/snippets/slack-message.mdx";
+
+## The scenario
+
+Some questions aren't a quick lookup. They need pulling information from a lot of distinct places — docs, tickets, meetings, code, past Slack threads — and synthesizing it into one coherent answer. Closer to a research project than "what's the pricing?"
+
+## What it will look like
+
+<SlackThread channel="#product">
+  <SlackMessage self time="11:10 AM">
+    <Mention>supermemory</Mention> prepare a brief on how we've handled enterprise SSO requests over the last two quarters — who asked, what we promised, what's still open, and what engineering thinks the real effort is
+  </SlackMessage>
+  <SlackMessage bot time="11:14 AM">
+    **Enterprise SSO — two-quarter brief**
+
+    - **Demand:** 6 serious asks (Acme, Globex, Initech, …). Three converted to paid pilots.
+    - **Promises made:** Okta + Azure AD for pilots; custom SAML called "roadmap" in two decks.
+    - **Still open:** Globex blocked on SCIM; Initech waiting on audit-log export.
+    - **Eng view:** ~6 weeks for Okta/Azure path (from `#eng` thread Mar 18 + Linear ENG-610); SCIM is the long pole.
+
+    Sources: Q1/Q2 enterprise notes, Linear ENG-610, Granola "SSO planning", `#sales` threads. Want this as a Linear doc?
+  </SlackMessage>
+</SlackThread>
+
+## What's really going on
+
+Today, a single turn can already hit multiple [connectors](/company-brain/connectors) and channel memory in one answer. Long-horizon research is for the cases where that isn't enough — the work needs more time, more parallel digging, and a structured synthesis step before it replies.
+
+We're deliberately not documenting an internal "spawn N children" mechanism here. What matters for you: ask a research-shaped question, get a sourced brief back, without you having to run six separate searches.
+
+Until it ships, break big questions into smaller ones (docs, then tickets, then "summarize what we have") — Company Brain already handles each of those well.
+
+<CardGroup cols={2}>
+  <Card title="From docs" icon="book" href="/company-brain/use-cases/knowledge-recall">
+    What single-turn knowledge recall looks like today.
+  </Card>
+  <Card title="Meeting recall" icon="calendar-check" href="/company-brain/use-cases/meeting-recall">
+    Pulling decisions out of synced notes.
+  </Card>
+</CardGroup>

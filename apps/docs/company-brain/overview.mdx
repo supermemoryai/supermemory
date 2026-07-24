@@ -1,0 +1,94 @@
+---
+title: "What is Supermemory Company Brain?"
+sidebarTitle: "Overview"
+description: "A super agent, with all the knowledge and tools of your team"
+icon: "brain"
+---
+
+import { SlackThread, SlackMessage, Mention, ChannelRef, AgentLink } from "/snippets/slack-message.mdx";
+
+Supermemory Company Brain is a super agent with shared memory for your team that you can **ask questions** and that can **act in your tools**. It pulls from the work you already do - Slack threads, docs, GitHub, Linear - And can pretty much act as a real employee in your team.
+
+<CardGroup cols={2}>
+  <Card title="Remembers" icon="brain">
+    Meetings, decisions, projects, and who owns what — kept current as your connected sources sync.
+  </Card>
+  <Card title="Acts" icon="bolt">
+    Pulls your open PRs, finds a Linear issue, or answers in a Slack channel — not just recites text back.
+  </Card>
+</CardGroup>
+
+## A quick example of its capabilities
+
+It'll answer a question, actually go do the work, or just jump into a conversation on its own when it's got something worth saying — like a coworker would, not a search bar. You can configure how funny and unhinged it is, or how of it you want.
+
+### Ask it anything
+
+<SlackThread channel="#product">
+  <SlackMessage self time="10:42 AM">
+    <Mention>supermemory</Mention> what did we decide about pricing for the company brain
+  </SlackMessage>
+  <SlackMessage bot time="10:42 AM">
+    You and mahesh decided yesterday that it stays at **$400/mo**, usage based only. we landed on that in a <ChannelRef>product</ChannelRef> huddle
+  </SlackMessage>
+</SlackThread>
+
+### Put it to work
+
+<SlackThread channel="#eng">
+  <SlackMessage self time="3:24 PM">
+    <Mention>supermemory</Mention> is the Stripe webhook timeout from Sentry already tracked anywhere?
+  </SlackMessage>
+  <SlackMessage bot time="3:25 PM">
+    nope, nothing yet — just opened **ENG-847** for it, added the sentry issue to it, and put it on <Mention>Sam</Mention> since they were the last one in `webhooks/stripe.ts` and their beautiful code broke it ☠️. <AgentLink href="https://linear.app">here you go</AgentLink>, should probably fix it asap.
+  </SlackMessage>
+</SlackThread>
+
+### Let it speak up on its own
+
+<SlackThread channel="#eng" members={48}>
+  <SlackMessage name="Alex" color="#E01E5A" time="11:03 AM">
+    is prod down? a couple of customers are pinging me
+  </SlackMessage>
+  <SlackMessage bot time="11:03 AM">
+    not fully down — `api/search` is just elevated, 42 errors in the last 15 min (SM-2041), and <Mention>Kush</Mention> is on it. probably that deploy from this morning. Only one user has complained on support and i already replied to them saying it's being investigated.
+  </SlackMessage>
+</SlackThread>
+
+You don't need to mention it. It speaks up when it has something to add. It's smart and proactive!
+
+## Same knowledge, useful everywhere
+
+It's your team's knowledge — it doesn't have to stay in Slack. Take it wherever you're actually working:
+
+- **Your coding agent** — ask Claude Code or Cursor mid-session what the team decided, why a file looks the way it does, or who to ping about it, without tabbing over to Slack.
+- **Your own tools, via MCP** — Company Brain speaks MCP, so if whatever you're building can speak MCP too, it can ask. Plug it into an internal tool, a script, whatever you need.
+
+Same permissions graph everywhere, no exceptions — asking from Claude Code doesn't get you anything asking from Slack wouldn't.
+
+```text
+> is the stripe webhook thing from earlier actually fixed?
+yep — Sam shipped it in ENG-847 about an hour ago, Sentry's been quiet since
+```
+
+This knowledge can be used wherever you and your teammates go — see [Using outside Slack](/company-brain/outside-slack) for how to connect.
+
+## Use it your way
+
+Company Brain isn't locked to one model or one voice. Two things you control directly:
+
+- **Any model, no markup** — bring your own LLM and pay nothing extra for inference.
+- **Its tonality** — configure how it talks, from buttoned-up professional to fully unhinged. Make it sound like your team, not a generic chatbot.
+
+## Where to go next
+
+Company Brain has a handful of ideas worth understanding before you set it up: Our permissioning setup, how to configure it, proactiveness, automations, and more.
+
+<CardGroup cols={2}>
+  <Card title="The permissions graph" icon="shield-check" href="/company-brain/permissions">
+    What's remembered where, and who can read it.
+  </Card>
+  <Card title="Setup and onboarding" icon="rocket" href="/company-brain/setup">
+    Get your team's workspace running.
+  </Card>
+</CardGroup>

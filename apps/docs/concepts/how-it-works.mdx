@@ -1,152 +1,182 @@
 ---
 title: "How Supermemory Works"
-description: "Understanding the knowledge graph architecture that powers intelligent memory"
+sidebarTitle: "How it works"
+description: "From a file or chat turn to something you can search — the ingest pipeline, statuses, and outputs."
 icon: "cpu"
 ---
 
-
-Supermemory isn't just another document storage system. It's designed to mirror how human memory actually works - forming connections, evolving over time, and generating insights from accumulated knowledge.
-
-![](/images/graph-view.png)
-
-## The Mental Model
-
-Traditional systems store files. Supermemory creates a living knowledge graph.
+At it's core, supermemory is powered by a custom learning model and a graph database that we built internally.
 
 <CardGroup cols={2}>
-  <Card title="Traditional Systems" icon="folder">
-    - Static files in folders
-    - No connections between content
-    - Search matches keywords
-    - Information stays frozen
+  <Card title="Learning model">
+    Decides what and how to learn, what is important, when to forget, creating relations, etc.
   </Card>
-
-  <Card title="Supermemory" icon="network">
-    - Dynamic knowledge graph
-    - Rich relationships between memories
-    - Semantic understanding
-    - Information evolves and connects
+  <Card title="Temporal Vector-graph engine">
+    Where the learnings are actually stored, optimized for search. Fact-based temporal graph that has Vector, FTS, and graph built in.
   </Card>
 </CardGroup>
 
-## Documents vs Memories
+But, you don't have to think about the above. The interface for users is as simple as it gets.
 
-Understanding this distinction is crucial to using Supermemory effectively.
-
-### Documents: Your Raw Input
-
-Documents are what you provide - the raw materials:
-- PDF files you upload
-- Web pages you save
-- Text you paste
-- Images with text
-- Videos to transcribe
-
-Think of documents as books you hand to Supermemory. See [Content Types](/concepts/content-types) for the full list of supported formats.
-
-### Memories: Intelligent Knowledge Units
-
-Memories are what Supermemory creates - the understanding:
-- Semantic chunks with meaning
-- Embedded for similarity search
-- Connected through relationships
-- Dynamically updated over time
-
-Think of memories as the insights and connections your brain makes after reading those books.
-
-<Note>
-**Key Insight**: When you upload a 50-page PDF, Supermemory doesn't just store it. It breaks it into hundreds of interconnected memories, each understanding its context and relationships to your other knowledge.
-</Note>
-
-
-## Memory Relationships
-
-![](/images/memories-inferred.png)
-
-The graph connects memories through three types of relationships. For a deeper dive into how these relationships work, see [Graph Memory](/concepts/graph-memory).
-
-### Updates: Information Changes
-
-When new information contradicts or updates existing knowledge, Supermemory creates an "update" relationship.
-
-<CodeGroup>
-```text Original Memory
-"You work at Supermemory as a content engineer"
-```
-
-```text New Memory (Updates Original)
-"You now work at Supermemory as the CMO"
-```
-</CodeGroup>
-
-The system tracks which memory is latest with an `isLatest` field, ensuring searches return current information.
-
-### Extends: Information Enriches
-
-When new information adds to existing knowledge without replacing it, Supermemory creates an "extends" relationship.
-
-Continuing our "working at supermemory" analogy, a memory about what you work on would extend the memory about your role given above.
-
-<CodeGroup>
-```text Original Memory
-"You work at Supermemory as the CMO"
-```
-
-```text New Memory (Extension) - Separate From Previous
-"Your work consists of ensuring the docs are up to date, making marketing campaigns, SEO, etc."
-```
-</CodeGroup>
-
-Both memories remain valid and searchable, providing richer context.
-
-### Derives: Information Infers
-
-The most sophisticated relationship - when Supermemory infers new connections from patterns in your knowledge.
-
-<CodeGroup>
-```text Memory 1
-"Dhravya is the founder of Supermemory"
-```
-
-```text Memory 2
-"Dhravya frequently discusses AI and machine learning innovations"
-```
-
-```text Derived Memory
-"Supermemory is likely an AI-focused company"
-```
-</CodeGroup>
-
-These inferences help surface insights you might not have explicitly stated.
-
-## Processing Pipeline
-
-Understanding the pipeline helps you optimize your usage:
-
-| Stage | What Happens |
-|-------|-------------|
-| **Queued** | Document waiting to process
-| **Extracting** | Content being extracted |
-| **Chunking** | Creating memory chunks |
-| **Embedding** | Generating vectors |
-| **Indexing** | Building relationships |
-| **Done** | Fully searchable |
-
-<Note>
-**Tip**: Larger documents and videos take longer. A 100-page PDF might take 1-2 minutes, while a 1-hour video could take 5-10 minutes.
-</Note>
-
-
-## Next Steps
-
-Now that you understand how Supermemory works:
+## Get started in under a minute
 
 <CardGroup cols={2}>
-  <Card title="Add Memories" icon="plus" href="/add-memories">
-    Start adding content to your knowledge graph
+  <Card title="1. Get an API key" icon="key" href="https://console.supermemory.ai">
+    From the [developer console](https://console.supermemory.ai) — **API Keys → Create API Key**. `console.supermemory.ai` is where keys and usage live.
   </Card>
+  <Card title="2. Use it" icon="terminal" href="/using-supermemory">
+    Install the SDK, drop in your key, add a memory, and search it — right below, or the full [ingest → retrieve loop](/using-supermemory).
+  </Card>
+</CardGroup>
 
-  <Card title="Search Memories" icon="search" href="/search">
-    Learn to query your knowledge effectively
+<CodeGroup>
+```bash TypeScript
+npm install supermemory
+```
+
+```typescript TypeScript
+import Supermemory from "supermemory";
+
+const client = new Supermemory({ apiKey: "sm_..." }); // from console.supermemory.ai → API Keys
+
+await client.add({ content: "The user loves Paris.", containerTag: "user_123" });
+
+const { results } = await client.search({
+  q: "where does the user want to travel?",
+  containerTag: "user_123",
+});
+```
+
+```python Python
+from supermemory import Supermemory
+
+client = Supermemory(api_key="sm_...")  # from console.supermemory.ai → API Keys
+
+client.add(content="The user loves Paris.", container_tag="user_123")
+
+results = client.search(
+    q="where does the user want to travel?",
+    container_tag="user_123",
+)
+```
+
+```bash curl
+curl -X POST https://api.supermemory.ai/v3/documents \
+  -H "Authorization: Bearer sm_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "The user loves Paris.",
+    "containerTag": "user_123"
+  }'
+```
+</CodeGroup>
+
+## What you send: documents
+
+A **document** is raw input — whatever you hand Supermemory:
+
+- Conversation transcripts and messages
+- Text, markdown, HTML
+- PDFs, images, audio/video, code
+- URLs and connector items (Drive, Notion, Gmail, …)
+
+You do not pre-chunk or pick an embedding model. See [Multi-modal ingestion](/concepts/content-types) for formats, and [Add context](/ingestion/add-memories) for the API.
+
+Supermemory handles the ingestion and extraction for you. This also gives us a big advantage for quality - The engine extracts it in an optimized way with Contextual Chunking and other features for better quality search and memory generation.
+
+> Use a stable **`customId`** when the same conversation or file will be updated later (sessions, connector syncs). That identity also drives [diff billing](/overview/billing#full-discount-on-already-seen-tokens-diff-billing) on re-ingest.
+
+## What the pipeline does
+
+| Stage | What happens |
+| --- | --- |
+| **Queued** | Accepted; waiting to run |
+| **Extracting** | Text / OCR / transcription / page fetch |
+| **Chunking** | Splits content for retrieval (type-aware where needed) |
+| **Embedding** | Vectors for similarity search |
+| **Indexing** | Makes chunks and derived structure searchable |
+| **Done** | Document path is ready for search |
+
+```typescript
+const doc = await client.add({
+  content: conversationText,
+  containerTag: "user_123",
+  customId: "chat_session_1",
+});
+
+// Poll until ready
+const status = await client.documents.get(doc.id);
+// status.status → "queued" | "extracting" | ... | "done" | "failed"
+```
+
+Larger PDFs and long video take longer. Short chat turns usually finish in seconds.
+
+## Dreaming (how memories enter the graph)
+
+Document **status `done`** means chunks are indexed for search. **Memories** — the graph facts, updates, and derives — come from a second phase called **dreaming**.
+
+This is when the content is passed through the memory model and merged, arranged and organized for the future.
+
+Pass `dreaming` on [add](/ingestion/add-memories):
+
+| Mode | Default? | Behavior | When to use |
+| --- | --- | --- | --- |
+| **`dynamic`** | Yes | Related documents are grouped so memories form from **coherent units**, not one isolated write at a time. Graph quality is higher for real multi-turn / multi-doc flows. Memory extraction may continue **after** `status: "done"`. | Production agents, connectors, ongoing sessions |
+| **`instant`** | No | This document is dreamed **on its own, right away**. Memories are available as soon as processing finishes for that doc. Bills **one extra [operation](/overview/billing)** per document. | Demos, quickstarts, “I need the graph now” |
+
+```typescript
+// Production default — omit or set explicitly
+await client.add({
+  content: conversationText,
+  containerTag: "user_123",
+  customId: "chat_session_1",
+  dreaming: "dynamic",
+});
+
+// Need memories immediately (e.g. tutorial)
+await client.add({
+  content: conversationText,
+  containerTag: "user_123",
+  customId: "chat_session_1",
+  dreaming: "instant",
+});
+```
+
+**Rule of thumb:** prefer **`dynamic`** for quality and cost in real apps, use **`instant`** when the next step is a memory search or profile that must reflect this document immediately (as in the [quickstart](/quickstart)). Keeping it dynamic helps it pair better with other memories and better connections, inferences to be made.
+
+How those memories connect and stay true over time is [Graph memory](/concepts/graph-memory). API detail: [Processing modes](/ingestion/add-memories#processing-modes).
+
+## What you get out
+
+After the pipeline runs, the same document leads to three things -> Chunks, Memories and Profile. (in the same `containerTag`):
+
+| Output | Role | Go deeper |
+| --- | --- | --- |
+| **Document chunks** | Grounding in the raw source (RAG / SuperRAG) | [SuperRAG](/concepts/super-rag), [Search API](/recall/search) |
+| **Memories** | Extracted facts in a living graph — updates, links, time | [Graph memory](/concepts/graph-memory) |
+| **Profile** | A sample of memories, static + dynamic summary for always-on context | [Profiles](/concepts/user-profiles), [Profile API](/recall/user-profiles) |
+
+Supermemory does **not** only store the file. It derives **memories** (understanding) and keeps **chunks** (the source) so you can personalize *and* ground. That distinction is the core of [Memory vs RAG](/concepts/memory-vs-rag).
+
+## Isolation and identity
+
+- **`containerTag`** — hard isolation boundary (user, tenant, project). See [Container tags](/concepts/container-tags).
+- **Metadata** — soft dimensions *inside* a tag for filtering. See [Metadata filtering](/concepts/filtering).
+- **Scoped API keys** — credentials that cannot cross a container. See [API keys](/authentication#scoped-api-keys).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Graph memory" icon="vector-square" href="/concepts/graph-memory">
+    How facts connect, update, and stay true over time.
+  </Card>
+  <Card title="Multi-modal ingestion" icon="file-stack" href="/concepts/content-types">
+    Formats, extractors, and what you can send.
+  </Card>
+  <Card title="Add context" icon="plus" href="/ingestion/add-memories">
+    API: add, customId, files, dreaming, status.
+  </Card>
+  <Card title="Search API" icon="search" href="/recall/search">
+    Query documents and memories after the pipeline finishes.
   </Card>
 </CardGroup>

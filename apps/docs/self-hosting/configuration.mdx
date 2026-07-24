@@ -76,7 +76,7 @@ Full provider table, multilingual guidance, remote examples (OpenAI / Gemini / O
 
 ### Embedding performance
 
-Local embeddings are prewarmed at startup with conservative defaults — one worker, minimal CPU footprint. Turn these up if you're ingesting heavily and prefer throughput over headroom:
+Local embeddings are prewarmed at startup with conservative defaults — one worker, minimal CPU footprint. Turn these up if you're ingesting heavily and prefer throughput over headroom (remote embedding providers ignore these — there's no local worker pool to tune):
 
 | Variable | Purpose | Default |
 |---|---|---|

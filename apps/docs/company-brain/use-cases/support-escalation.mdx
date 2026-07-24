@@ -1,0 +1,81 @@
+---
+title: "From Support Ticket to Code Fix"
+sidebarTitle: "Escalation"
+description: "A Plain ticket gets triaged in Slack, and an @mention hands the fix to Cursor"
+icon: "bug"
+---
+
+import { SlackThread, SlackMessage, Mention, FileAttachment, AgentLink, SlackUnfurl, SlackButton } from "/snippets/slack-message.mdx";
+
+## The scenario
+
+A customer files a ticket through Plain. It lands in `#support`, gets triaged with context Company Brain already has lying around, and — instead of someone manually filing a bug and waiting — an @mention hands the whole thing straight to Cursor.
+
+## What happens
+
+<SlackThread channel="#support" members={24}>
+  <SlackMessage name="Plain" badges={["APP"]} avatar="/docs/images/company-brain/plain-icon.png" time="10:12 AM">
+    New conversation: <AgentLink href="#">rewriteQuery param not working</AgentLink>
+    <br />
+    **Jordan Alvarez** (acme-corp.io) sent a **new message**.
+    <SlackUnfurl footer="Added by Plain">
+      hi team, just tried the `rewriteQuery` param on the v3 search endpoint and it doesn't seem to actually do anything — tried a few different values, results look identical either way. can someone take a look
+    </SlackUnfurl>
+  </SlackMessage>
+  <SlackMessage bot time="10:13 AM">
+    Confirmed, this is a real one — a couple of people have also flagged it on GitHub over the last week.
+    <br />
+    <br />
+    Quick context: v3 search is deprecated, but we've committed to legacy support through end of year, so it's still worth fixing rather than telling people to migrate. Most likely cause is a change <Mention>Adam</Mention> shipped last week to cut down query-rewrite costs — looks like it short-circuits before `rewriteQuery` gets applied in some cases.
+    <br />
+    <br />
+    <Mention>cursor</Mention> can you take this one? Full context attached.
+    <br />
+    <br />
+    <FileAttachment name="Context.md" />
+  </SlackMessage>
+  <SlackMessage name="Cursor" badges={["AGENT"]} avatar="/docs/images/company-brain/cursor-icon.png" time="10:14 AM">
+    <AgentLink href="#">Agent thread started</AgentLink>
+    <br />
+    Reproducing against the v3 search test suite now.
+  </SlackMessage>
+  <SlackMessage name="Cursor" badges={["AGENT"]} avatar="/docs/images/company-brain/cursor-icon.png" time="10:19 AM">
+    Fixed — `rewriteQuery` was getting skipped by the new cost short-circuit whenever a query was already cached. Pushed on <AgentLink href="#">#2312</AgentLink>.
+    <br />
+    <br />
+    **Resolution:**
+    <br />
+    • Scoped the short-circuit to skip only the rewrite step, not the whole `rewriteQuery` path
+    <br />
+    • Added a regression test covering `rewriteQuery` against a cache hit
+    <br />
+    <br />
+    **Repository:** `supermemoryai/mono`
+    <br />
+    <br />
+    <SlackButton variant="primary">Open in Web</SlackButton>
+    <SlackButton>Open in Desktop</SlackButton>
+  </SlackMessage>
+  <SlackMessage bot time="10:20 AM">
+    <Mention self>Dhravya</Mention> I'll let you review that and let the customer know we have a fix ready.
+    <br />
+    Please do it ASAP — it's an enterprise customer!
+  </SlackMessage>
+</SlackThread>
+
+## What's really going on
+
+The first two turns are the same pattern as [Automatic Support](/company-brain/use-cases/support): the bot is already a member of `#support`, so it [chimes in](/company-brain/automations) unprompted, correlating the ticket against known GitHub issues and whatever it knows about the codebase and the v3 deprecation timeline.
+
+The handoff to Cursor is different. That's not a chime-in — it's an explicit `@mention`, and Cursor is wired in as a [tool connector](/company-brain/connectors) (a custom MCP server, same as GitHub or Linear under the hood) that can act, not just answer. Naming it by name is what triggers the write: Company Brain hands off the attached context and Cursor opens its own agent thread against the repo, the same way a mention of GitHub or Linear in [Acting in Tools](/company-brain/use-cases/acting-in-tools) triggers a write rather than a read. Nothing happens in the codebase without that explicit ask.
+
+Whether that handoff is even possible follows the same [permissions](/company-brain/permissions) rules as any other tool: it runs under whichever connection — personal or org-shared — is actually wired up for Cursor, and it's scoped to what that connection can see.
+
+<CardGroup cols={2}>
+  <Card title="Acting in Tools" icon="wrench" href="/company-brain/use-cases/acting-in-tools">
+    How @mentions trigger writes instead of reads.
+  </Card>
+  <Card title="Connectors" icon="plug" href="/company-brain/connectors">
+    Wire up Plain, GitHub, and custom MCP servers like Cursor.
+  </Card>
+</CardGroup>

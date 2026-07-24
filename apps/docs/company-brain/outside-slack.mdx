@@ -1,0 +1,52 @@
+---
+title: "Using Outside Slack"
+sidebarTitle: "Outside Slack"
+description: "Reach the same permissions graph from Claude Code, ChatGPT, Cursor, or any MCP client"
+icon: "globe"
+---
+
+Slack is the default surface, not the only one. Company Brain speaks MCP, so the same graph — your employee memory, the private channels you're in, public channel memory — is reachable from any MCP client: Claude Code, ChatGPT, Cursor, or anything else that speaks the protocol.
+
+## Connect
+
+Same endpoint as [Supermemory MCP](/supermemory-mcp/mcp) — there's no separate Company Brain server to point at:
+
+```text
+https://mcp.supermemory.ai/mcp
+```
+
+OAuth by default — your client discovers the authorization server and prompts you to sign in. Prefer an API key instead? Any key starting with `sm_` skips OAuth entirely.
+
+<Note>
+What changes isn't the URL, it's what shows up once you're connected. If your account belongs to an org with Company Brain, you get more than your own project spaces — your employee memory, the private channels you're in, and public channel memory all become available as workspaces, carrying your role and the exact same read/write access Slack already enforces.
+</Note>
+
+## Pick a workspace
+
+Once connected, ask it what's available — it returns every container tag you have access to: your employee memory, each private channel memory you belong to, and public channel memory. Select one to make it the active workspace for the session; everything after that scopes to it automatically.
+
+**Example:** from Claude Code, "what can I access in Acme's Company Brain?" surfaces your options as a picker — your employee memory, `#eng`'s private channel memory if you're in it, public channel memory. Pick one, and every search or save for the rest of the session happens inside it — the same as asking from that room in Slack.
+
+## Tools
+
+| Tool | What it does |
+|---|---|
+| `listContainerTags` | Everything you're allowed to read, with names and counts |
+| `select-workspace` / `set-active-tag` | Pick which one is active for this session |
+| `recall` | Search the active workspace, plus a profile summary when you're in your employee memory |
+| `save-memory` | Write back to the active workspace |
+| `memory-graph` | An interactive, visual map of a workspace's memories |
+| `whoAmI` | Your role, access type, and active workspace — useful for sanity-checking what a client can actually see |
+
+## Same graph, same guardrails
+
+Nothing here is a side door. What you can reach follows the exact same [permissions graph](/company-brain/permissions) as Slack — an admin can restrict a member's connection to specific container tags the same way they'd scope a Slack channel invite, and every read or write is checked against that before it runs.
+
+<CardGroup cols={2}>
+  <Card title="The permissions graph" icon="shield-check" href="/company-brain/permissions">
+    What each container tag actually is, and who can read it.
+  </Card>
+  <Card title="Supermemory MCP" icon="brain-circuit" href="/supermemory-mcp/mcp">
+    Base setup, auth, and personal project spaces on the same server.
+  </Card>
+</CardGroup>

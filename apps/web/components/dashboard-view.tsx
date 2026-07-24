@@ -458,7 +458,9 @@ function getPluginClientFromSpace(
 
 	for (const tag of [...containerTags, ...memorySpaceTags]) {
 		const plugin = detectPluginSpace(tag)
-		if (plugin) return normalizePluginClientId(plugin.pluginId)
+		if (plugin && plugin.pluginId !== "agents") {
+			return normalizePluginClientId(plugin.pluginId)
+		}
 	}
 
 	return null
@@ -467,6 +469,11 @@ function getPluginClientFromSpace(
 function getPluginClientFromDocument(
 	document: DocumentWithMemories,
 ): string | null {
+	if (typeof document.source === "string") {
+		const sourceClient = normalizePluginClientId(document.source)
+		if (PLUGIN_DISPLAY_CATALOG[sourceClient]) return sourceClient
+	}
+
 	for (const metadata of getDocumentMetadataRecords(document)) {
 		const metadataClient =
 			typeof metadata.sm_client === "string"
@@ -478,7 +485,10 @@ function getPluginClientFromDocument(
 						: null
 		if (metadataClient) return normalizePluginClientId(metadataClient)
 
-		if (metadata.sm_source === "claude-code-plugin") return "claude_code"
+		if (typeof metadata.sm_source === "string") {
+			const sourceClient = normalizePluginClientId(metadata.sm_source)
+			if (PLUGIN_DISPLAY_CATALOG[sourceClient]) return sourceClient
+		}
 	}
 
 	if (hasClaudeCodeContainer(document)) return "claude_code"

@@ -1,6 +1,6 @@
 ---
 title: "Container Tags"
-sidebarTitle: "Container Tags"
+sidebarTitle: "Container tags"
 description: "The isolation boundary that groups and partitions memories by user, project, or any logical scope"
 icon: "folder"
 ---
@@ -32,7 +32,7 @@ await client.add({
 });
 
 // Later, retrieve only Alex's memories
-const results = await client.search.memories({
+const results = await client.search({
   q: "what are the user's UI preferences?",
   containerTag: "user_alex",
 });
@@ -103,7 +103,7 @@ The same tag flows through the entire lifecycle of a memory. Pass it consistentl
 await client.add({ content: "Q1 planning notes", containerTag: "project_q1" });
 
 // Search within the same container
-await client.search.memories({ q: "planning", containerTag: "project_q1" });
+await client.search({ q: "planning", containerTag: "project_q1" });
 
 // List everything in the container
 await client.documents.list({ containerTags: ["project_q1"] });
@@ -170,7 +170,10 @@ Keep tags **deterministic** — derive them directly from IDs you already have (
   <Card title="Organizing & Filtering" icon="filter" href="/concepts/filtering">
     Combine container tags with metadata filters for precise retrieval.
   </Card>
-  <Card title="Adding Memories" icon="plus" href="/add-memories">
+  <Card title="Scoped API keys" icon="key" href="/authentication#scoped-api-keys">
+    Mint keys that can only touch one container — multi-tenant clients without the org master key.
+  </Card>
+  <Card title="Adding Memories" icon="plus" href="/ingestion/add-memories">
     See container tags in action across the add API.
   </Card>
 </CardGroup>

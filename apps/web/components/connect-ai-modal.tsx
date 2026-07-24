@@ -293,18 +293,34 @@ export function ConnectAIModal({
 		createMcpApiKeyMutation.mutate,
 	])
 
-	function generateInstallCommand() {
-		if (!selectedClient || selectedClient === "chatgpt") return ""
+	function getMcpServerUrl() {
+		return "https://mcp.supermemory.ai/mcp"
+	}
 
-		let command = `npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client ${selectedClient} --oauth=yes`
-
-		if (selectedProject && selectedProject !== "none") {
-			// Remove the "sm_project_" prefix from the containerTag
-			const projectIdForCommand = selectedProject.replace(/^sm_project_/, "")
-			command += ` --project ${projectIdForCommand}`
+	function getMcpConfigSnippet() {
+		const config: {
+			mcpServers: {
+				supermemory: {
+					url: string
+					headers?: { "x-sm-project": string }
+				}
+			}
+		} = {
+			mcpServers: {
+				supermemory: {
+					url: getMcpServerUrl(),
+				},
+			},
 		}
-
-		return command
+		if (selectedProject && selectedProject !== "none") {
+			const projectIdForCommand = selectedProject.replace(/^sm_project_/, "")
+			if (projectIdForCommand) {
+				config.mcpServers.supermemory.headers = {
+					"x-sm-project": projectIdForCommand,
+				}
+			}
+		}
+		return JSON.stringify(config, null, 2)
 	}
 
 	function getCursorDeeplink() {
@@ -312,8 +328,13 @@ export function ConnectAIModal({
 	}
 
 	const copyToClipboard = () => {
-		const command = generateInstallCommand()
-		navigator.clipboard.writeText(command)
+		navigator.clipboard.writeText(getMcpServerUrl())
+		analytics.mcpInstallCmdCopied()
+		toast.success("Copied to clipboard!")
+	}
+
+	const copyConfigSnippet = () => {
+		navigator.clipboard.writeText(getMcpConfigSnippet())
 		analytics.mcpInstallCmdCopied()
 		toast.success("Copied to clipboard!")
 	}
@@ -553,8 +574,8 @@ export function ConnectAIModal({
 											selectedClient !== "mcp-url" && (
 												<div className="space-y-4">
 													<p className="text-sm text-muted-foreground">
-														Optional: scope installs to a project. Then copy and
-														run the command in your terminal.
+														Add this remote MCP server URL in your client.
+														Optional: scope to a project for the config snippet.
 													</p>
 													<div className="max-w-full sm:max-w-md">
 														<Select
@@ -592,7 +613,7 @@ export function ConnectAIModal({
 														<Input
 															className="w-full min-w-0 pr-10 font-mono text-xs"
 															readOnly
-															value={generateInstallCommand()}
+															value={getMcpServerUrl()}
 														/>
 														<Button
 															className="absolute -top-px right-0 cursor-pointer"
@@ -602,9 +623,23 @@ export function ConnectAIModal({
 															<CopyIcon className="size-4" />
 														</Button>
 													</div>
+													<div className="relative max-w-full">
+														<textarea
+															className="min-h-[120px] w-full min-w-0 resize-y rounded-md border border-input bg-transparent px-3 py-2 pr-10 font-mono text-xs"
+															readOnly
+															value={getMcpConfigSnippet()}
+														/>
+														<Button
+															className="absolute top-1 right-0 cursor-pointer"
+															onClick={copyConfigSnippet}
+															variant="ghost"
+														>
+															<CopyIcon className="size-4" />
+														</Button>
+													</div>
 													<p className="text-xs text-muted-foreground">
-														Requires Node/npx. OAuth runs when the CLI prompts
-														you.
+														Paste the URL or config into your client. OAuth
+														starts when you connect.
 													</p>
 												</div>
 											)}

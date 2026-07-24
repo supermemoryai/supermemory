@@ -1,0 +1,38 @@
+---
+title: "Automatic Support"
+sidebarTitle: "Support"
+description: "Company Brain chimes in on customer questions with answers from docs and tickets"
+icon: "headset"
+---
+
+import { SlackThread, SlackMessage } from "/snippets/slack-message.mdx";
+
+## The scenario
+
+A customer question lands in `#support`. Nobody has to @mention the bot — it already has the answer from past tickets and the help docs.
+
+## What happens
+
+<SlackThread channel="#support" members={24}>
+  <SlackMessage name="Maya" color="#2BAC76" time="2:14 PM">
+    customer on the Pro plan is asking if they can export their full memory graph as CSV — do we support that?
+  </SlackMessage>
+  <SlackMessage bot time="2:14 PM">
+    Yes — **Settings → Export → Full graph (CSV)**. Available on Pro and above. Same answer went out on ticket PLN-1842 last week if you want the exact wording.
+  </SlackMessage>
+</SlackThread>
+
+## What's really going on
+
+This is [proactiveness (chime-in)](/company-brain/automations) plus a connected support tool (Plain) and public channel memory. The bot is already a member of `#support` (an admin invited it — it never joins on its own). It decided the answer was clear enough to speak without being asked, pulled the export path from docs in public channel memory, and cited a recent ticket from Plain.
+
+Same channel scope rules apply: a public support channel writes durable learnings back to public channel memory; a private support channel keeps them scoped to that room's own memory. See [Permissions](/company-brain/permissions).
+
+<CardGroup cols={2}>
+  <Card title="Automations & proactiveness" icon="wand-magic-sparkles" href="/company-brain/automations">
+    How chime-in decides when to speak.
+  </Card>
+  <Card title="Connectors" icon="plug" href="/company-brain/connectors">
+    Wire up Plain and your help docs.
+  </Card>
+</CardGroup>

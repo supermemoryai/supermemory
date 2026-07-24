@@ -18,15 +18,71 @@ When you add content, Supermemory:
 5. **Builds relationships** — Connects new knowledge to existing memories
 
 ```typescript
-// Just add content — Supermemory handles the rest
-await client.add({
-  content: pdfBase64,
-  contentType: "pdf",
-  title: "Technical Documentation"
+// Just upload — Supermemory handles the rest
+await client.documents.uploadFile({
+  file: fs.createReadStream('technical-documentation.pdf'),
+  metadata: JSON.stringify({ title: "Technical Documentation" })
 });
 ```
 
 No chunking strategies to configure. No embedding models to choose. It just works.
+
+---
+
+## Ingesting as pure SuperRAG (`taskType: "superrag"`)
+
+By default, every `client.add()` call runs on the **memory** path (`taskType: "memory"`): Supermemory chunks and embeds the content for retrieval, *and* runs it through the memory pipeline — extracting facts, updating the profile, and linking it into the knowledge graph.
+
+If you're ingesting content that's purely reference material — documentation, a large PDF, a knowledge base article — and you don't need Supermemory to derive personal facts or update a profile from it, set `taskType: "superrag"`. It skips the memory pipeline entirely and only does the chunk → embed → index work needed to make the content searchable.
+
+<CodeGroup>
+
+```typescript TypeScript
+await client.add({
+  content: "...", // e.g. a long internal wiki page
+  containerTag: "docs_kb",
+  taskType: "superrag",
+});
+```
+
+```python Python
+client.add(
+    content="...",
+    container_tag="docs_kb",
+    task_type="superrag",
+)
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "...",
+    "containerTag": "docs_kb",
+    "taskType": "superrag"
+  }'
+```
+
+</CodeGroup>
+
+| | `taskType: "memory"` (default) | `taskType: "superrag"` |
+|---|---|---|
+| Chunking, embedding, indexing | ✅ | ✅ — searchable immediately via `searchMode: "documents"` |
+| Fact extraction into memories | ✅ | ❌ skipped |
+| Profile (`static`/`dynamic`/buckets) updates | ✅ | ❌ skipped |
+| Graph linking (updates/extends/derives) | ✅ | ❌ skipped |
+| Price per ingested token | Full rate | **5x cheaper** |
+
+<Tip>
+`taskType: "superrag"` is a **5x discount on ingested tokens** — `sm_superrag_text`/`sm_superrag_rich` are priced at 20% of `sm_tokens_text`/`sm_tokens_rich`. See [Billing → Memory vs SuperRAG tokens](/overview/billing#memory-vs-superrag-tokens) for the exact rates.
+</Tip>
+
+<Warning>
+Content ingested as `superrag` is retrievable via document search (`searchMode: "documents"`), but it will **never** surface as a memory, contribute to a user's profile, or connect into the knowledge graph. Use it for reference material you want searchable, not for anything that should shape what Supermemory knows about a user — that still needs the default `taskType: "memory"`.
+</Warning>
+
+When you're searching over a mix of both, `searchMode: "hybrid"` (below) is what pulls memory-path facts and superrag-path document chunks into one result set. More ingestion guidance: [Rules of supermemory → Ingest with SuperRag when you just need search](/concepts/rules#ingest-with-superrag-when-you-just-need-search).
 
 ---
 
@@ -170,7 +226,13 @@ You focus on building your product. Supermemory handles the RAG complexity.
   <Card title="Memory vs RAG" icon="scale" href="/concepts/memory-vs-rag">
     When to use each approach
   </Card>
-  <Card title="Search" icon="search" href="/search">
+  <Card title="Search" icon="search" href="/recall/search">
     Search parameters and optimization
+  </Card>
+  <Card title="Billing" icon="receipt" href="/overview/billing#memory-vs-superrag-tokens">
+    Exact meter rates for memory vs SuperRAG tokens
+  </Card>
+  <Card title="Adding Memories" icon="plus" href="/ingestion/add-memories">
+    `taskType` and other ingestion parameters
   </Card>
 </CardGroup>

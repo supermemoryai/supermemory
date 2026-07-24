@@ -1,0 +1,114 @@
+---
+title: "Multi-tenancy Overview"
+sidebarTitle: "Overview"
+description: "How Supermemory isolates and organizes memories across users, tenants, and projects"
+icon: "users"
+---
+
+Most apps built on Supermemory serve more than one user, customer, or tenant out of a single Supermemory organization. Multi-tenancy is how you keep those memories apart — so User A's data is never visible to User B, and so you can still slice and query within a user's own data by things like category, status, or date.
+
+Supermemory gives you two complementary tools for this:
+
+<CardGroup cols={2}>
+  <Card title="Container Tags" icon="folder" href="/concepts/container-tags">
+    **Isolation.** A container tag is a hard boundary — its own namespace. Memories in one tag are never returned by a search scoped to another tag.
+  </Card>
+  <Card title="Metadata Filtering" icon="database" href="/concepts/filtering">
+    **Organization.** Metadata is a set of custom key/value properties on a memory that you filter by — category, priority, date, participants, anything you define.
+  </Card>
+</CardGroup>
+
+They solve different problems, and most production apps use both together.
+
+---
+
+## Why two mechanisms
+
+It's tempting to reach for one tool and make it do everything, but tags and metadata aren't interchangeable — they answer different questions.
+
+| Question | Answer |
+|----------|--------|
+| "Which tenant does this memory belong to?" | **Container tag** |
+| "Within this tenant's memories, which ones match `status: open`?" | **Metadata filter** |
+| "Can this API key even see tenant X's data?" | **Container tag** (enforced as an access boundary) |
+| "Find memories tagged `engineering` created after March" | **Metadata filter** |
+
+A container tag decides **whether a memory is reachable at all** for a given request. Metadata decides **which of the reachable memories match**. Filtering never crosses a container tag boundary — you can't use metadata to peek into another tenant's container.
+
+---
+
+## How they work together
+
+A typical multi-tenant write scopes the memory to a tenant with a container tag, then attaches metadata for finer-grained querying later:
+
+```typescript
+await client.add({
+  content: "Customer requested a refund for order #4821",
+  containerTag: "org_acme", // isolates to the "acme" tenant
+  metadata: {
+    category: "support",
+    status: "open",
+    priority: "high",
+  },
+});
+```
+
+And a search combines both: the container tag restricts *which tenant's data* is in scope, and filters narrow down *which memories within that tenant* come back:
+
+```typescript
+const results = await client.search({
+  q: "refund request",
+  containerTag: "org_acme",
+  searchMode: "documents",
+  filters: {
+    AND: [
+      { key: "category", value: "support" },
+      { key: "status", value: "open" },
+    ],
+  },
+});
+```
+
+<Note>
+Container tags are **required** for isolation and validated as an access boundary. Metadata filters are **optional** — a search with just `containerTag` and no `filters` still only returns that tenant's memories.
+</Note>
+
+---
+
+## Choosing your boundary
+
+Container tags are the layer that should map to your actual tenancy model — pick the level that matches what "one isolated space" means in your app:
+
+| Pattern | Example | Use case |
+|---------|---------|----------|
+| Per-user | `user_{userId}` | Consumer app, personal memory per user |
+| Per-tenant/org | `org_{orgId}` | B2B SaaS, one container per customer org |
+| Hierarchical | `org:{orgId}:user:{userId}` | Multi-level — isolate by org, and optionally drill into a user within it |
+| Per-project | `project_{projectId}` | Workspace- or project-scoped content |
+
+Everything *within* that boundary — categories, statuses, dates, custom fields — is metadata, not a new tag. Don't create a new container tag for every property you want to filter on; that's what metadata is for.
+
+---
+
+## Access control
+
+Container tags aren't just organizational — they're enforced as an authorization boundary. API keys and org members can be restricted to specific tags, so a request for a tag outside the caller's allowed set is rejected with `403 Forbidden` rather than silently filtered. See [Container Tags → Access control](/concepts/container-tags#access-control) for the details.
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Examples" icon="list-checks" href="/concepts/multi-tenancy-examples">
+    Personal agents, company agents, email assistants, and support platforms.
+  </Card>
+  <Card title="Container Tags" icon="folder" href="/concepts/container-tags">
+    How isolation works, naming rules, and access control.
+  </Card>
+  <Card title="Organizing & Filtering" icon="filter" href="/concepts/filtering">
+    Metadata filter types, combining `AND`/`OR`, and query limits.
+  </Card>
+  <Card title="Scoped API keys" icon="key" href="/authentication#scoped-api-keys">
+    Mint keys that can only touch one container tag.
+  </Card>
+</CardGroup>

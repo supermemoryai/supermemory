@@ -477,7 +477,9 @@ export function SettingsContent({
 							</p>
 						}
 					>
-						{activeTab === "account" && <Account />}
+						{activeTab === "account" && (
+							<Account dialogPortalContainer={dialogPortalContainer} />
+						)}
 						{activeTab === "billing" && <Billing />}
 						{activeTab === "integrations" && <Integrations />}
 						{activeTab === "connections" && <ConnectionsMCP />}
