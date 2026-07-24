@@ -39,6 +39,7 @@ export function MemoryGraph({
 	colors: colorOverrides,
 	totalCount,
 	onOpenDocument,
+	onNodeSelect,
 	labels: labelOverrides,
 	layering,
 }: MemoryGraphProps) {
@@ -72,6 +73,21 @@ export function MemoryGraph({
 	// Monotonic counter that increments on any viewport change (pan or zoom)
 	// Used as a dependency proxy to recalculate popover positions
 	const [viewportVersion, setViewportVersion] = useState(0)
+
+	// Surface selection changes to the host without making selection controlled.
+	// Keyed on selectedNode only; the callback is read through a ref so a changing
+	// callback identity does not re-fire it. The initial mount is skipped so a
+	// host does not receive a spurious null before any interaction.
+	const onNodeSelectRef = useRef(onNodeSelect)
+	onNodeSelectRef.current = onNodeSelect
+	const hasEmittedSelectionRef = useRef(false)
+	useEffect(() => {
+		if (!hasEmittedSelectionRef.current) {
+			hasEmittedSelectionRef.current = true
+			return
+		}
+		onNodeSelectRef.current?.(selectedNode)
+	}, [selectedNode])
 
 	// Limit documents so total node count (documents + their memories) stays under maxNodes
 	const limitedDocuments = useMemo(() => {
