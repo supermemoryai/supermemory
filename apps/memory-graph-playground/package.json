@@ -2,12 +2,16 @@
   "name": "memory-graph-playground",
   "version": "0.1.0",
   "private": true,
-  "portless": { "name": "graph.dev.supermemory", "script": "dev:app" },
+  "portless": {
+    "name": "graph.dev.supermemory",
+    "script": "dev:app"
+  },
   "scripts": {
     "dev": "portless",
     "dev:app": "next dev --port ${PORT:-3004}",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@supermemory/memory-graph": "workspace:*",

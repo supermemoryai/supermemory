@@ -17,7 +17,8 @@
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "sentry:sourcemaps": "_SENTRY_RELEASE=$(sentry-cli releases propose-version) && sentry-cli releases new $_SENTRY_RELEASE --org=supermemory --project=consumer-app && sentry-cli sourcemaps upload --org=supermemory --project=consumer-app --release=$_SENTRY_RELEASE --strip-prefix 'dist/..' dist",
-    "postdeploy": "bun run sentry:sourcemaps"
+    "postdeploy": "bun run sentry:sourcemaps",
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",

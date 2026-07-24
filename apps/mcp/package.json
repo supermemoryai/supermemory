@@ -2,14 +2,18 @@
   "name": "supermemory-mcp",
   "version": "4.0.0",
   "type": "module",
-  "portless": { "name": "mcp.dev.supermemory", "script": "dev:app" },
+  "portless": {
+    "name": "mcp.dev.supermemory",
+    "script": "dev:app"
+  },
   "scripts": {
     "build:ui": "vite build",
     "dev": "portless",
     "dev:app": "vite build && wrangler dev --port ${PORT:-8788}",
     "deploy": "vite build && wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
-    "test:e2e": "vitest run"
+    "test:e2e": "vitest run",
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^0.2.2",
