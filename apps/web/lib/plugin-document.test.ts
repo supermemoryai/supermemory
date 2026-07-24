@@ -14,6 +14,123 @@ function makeCodexSessionDocument(content: string): PluginDocumentInput {
 }
 
 describe("parsePluginDocument — session transcripts", () => {
+	it("renders plain OpenCode documents in structured and raw views", () => {
+		const content = "Vedant Mahajan works at Supermemory."
+		const parsed = parsePluginDocument({
+			id: "doc_opencode",
+			title: content,
+			content,
+			source: "opencode",
+			metadata: {
+				sm_source: "opencode",
+				sm_scope: "project",
+			},
+			containerTags: ["repo_supermemory"],
+			memoryEntries: [],
+		} as unknown as PluginDocumentInput)
+
+		expect(parsed?.pluginLabel).toBe("OpenCode")
+		expect(parsed?.sections).toEqual([
+			{ label: "Memory", value: content, tone: "default" },
+		])
+		expect(parsed?.rawContent).toBe(content)
+	})
+
+	it("renders OpenCode transcripts as structured conversations", () => {
+		const content = [
+			"[Conversation ses_abc:1-2]",
+			"1. [user] Test the renderer",
+			"2. [assistant] First line of the response",
+			"Second line of the response",
+		].join("\n")
+		const parsed = parsePluginDocument({
+			id: "doc_opencode_conversation",
+			title: "[Conversation ses_abc:1-2]",
+			content,
+			source: "opencode",
+			metadata: {
+				sm_source: "opencode",
+				type: "conversation",
+				conversationId: "ses_abc:1-2",
+			},
+			containerTags: ["repo_supermemory"],
+			memoryEntries: [],
+		} as unknown as PluginDocumentInput)
+
+		expect(parsed?.kind).toBe("plugin-session")
+		expect(parsed?.title).toBe("OpenCode conversation")
+		expect(parsed?.summary).toBe(
+			"1 user message and 1 assistant message captured from OpenCode.",
+		)
+		expect(parsed?.identifierLabel).toBe("Conversation")
+		expect(parsed?.identifierValue).toBe("ses_abc:1-2")
+		expect(parsed?.messages).toEqual([
+			{ id: "1-user", role: "user", text: "Test the renderer" },
+			{
+				id: "2-assistant",
+				role: "assistant",
+				text: "First line of the response\nSecond line of the response",
+			},
+		])
+		expect(parsed?.sections).toEqual([])
+		expect(parsed?.rawContent).toBe(content)
+	})
+
+	it("renders Claude Code transcripts as conversations before embedded saves", () => {
+		const content = [
+			"<|turn_start|>2026-07-13T15:12:54.912Z",
+			"<|start|>user<|message|>Remember that this project uses Vitest.<|end|>",
+			"<|start|>assistant<|message|>I'll save that preference.<|end|>",
+			"<|start|>assistant:tool_result<|message|>[SAVE:vedant:2026-07-13]",
+			"Decision: Use Vitest for JavaScript tests.",
+			"[/SAVE]<|end|>",
+			"<|turn_end|>",
+		].join("\n")
+		const parsed = parsePluginDocument({
+			id: "doc_claude_conversation",
+			title: "Project Preference",
+			content,
+			source: "claude-code",
+			metadata: {
+				sm_source: "claude-code",
+				type: "session_turn",
+				project: "supermemory",
+			},
+			containerTags: ["repo_supermemory"],
+			memoryEntries: [],
+		} as unknown as PluginDocumentInput)
+
+		expect(parsed?.kind).toBe("claude-code-doc")
+		expect(parsed?.formatLabel).toBe("Conversation")
+		expect(parsed?.title).toBe("Claude Code conversation")
+		expect(parsed?.summary).toBe(
+			"1 user message and 1 assistant message captured from Claude Code.",
+		)
+		expect(parsed?.messages).toEqual([
+			{
+				id: "user-0",
+				role: "user",
+				text: "Remember that this project uses Vitest.",
+			},
+			{
+				id: "assistant-1",
+				role: "assistant",
+				text: "I'll save that preference.",
+			},
+			{
+				id: "tool-2",
+				role: "tool",
+				text: [
+					"[SAVE:vedant:2026-07-13]",
+					"Decision: Use Vitest for JavaScript tests.",
+					"[/SAVE]",
+				].join("\n"),
+			},
+		])
+		expect(parsed?.sections).toEqual([])
+		expect(parsed?.rawContent).toBe(content)
+	})
+
 	it("keeps the Codex source badge inside a shared Agents container", () => {
 		const parsed = parsePluginDocument({
 			...makeCodexSessionDocument(

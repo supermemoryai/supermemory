@@ -380,7 +380,7 @@ function parseSessionTranscript(
 	content: string,
 	config: {
 		kind: "codex-session" | "amp-thread" | "plugin-session"
-		headerLabel: "Session" | "Amp thread"
+		headerLabel: "Session" | "Conversation" | "Amp thread"
 		pluginLabel: string
 		pluginIconSrc?: string | null
 		formatLabel: string
@@ -469,6 +469,7 @@ function parsePluginSpaceNote(
 	const summary = typeof document.summary === "string" ? document.summary : ""
 	const memoryText = firstMemoryEntryText(document)
 	const preview = takePreview(memoryText || summary || content, 220)
+	const sectionText = content || memoryText || summary
 
 	return {
 		kind: plugin.pluginId === "codex" ? "codex-save" : "plugin-save",
@@ -482,7 +483,9 @@ function parsePluginSpaceNote(
 		summary: takePreview(summary || memoryText || content, 220),
 		artifacts: [],
 		messages: [],
-		sections: [],
+		sections: sectionText
+			? [{ label: "Memory", value: sectionText, tone: "default" }]
+			: [],
 		rawContent: content,
 	}
 }
@@ -634,28 +637,47 @@ function parseClaudeCodeByMetadata(
 
 	if (!source) return null
 
-	const summary = typeof document.summary === "string" ? document.summary : ""
-	const title =
-		(typeof document.title === "string" && document.title.trim()) ||
-		(source.projectName
-			? `${source.formatLabel} · ${source.projectName}`
-			: source.formatLabel)
-
+	const documentSummary =
+		typeof document.summary === "string" ? document.summary : ""
 	const memoryText = firstMemoryEntryText(document)
 	const cleanedTranscript = stripClaudeCodeTranscript(rawContent)
-	const preview = takePreview(memoryText || cleanedTranscript || summary, 220)
+	const messages = parseClaudeCodeTurns(rawContent)
+	const isConversation = messages.length > 0
+	const userCount = messages.filter((message) => message.role === "user").length
+	const assistantCount = messages.filter(
+		(message) => message.role === "assistant",
+	).length
+	const fallbackPreview = memoryText || cleanedTranscript || documentSummary
+	const previewSource =
+		messages.find((message) => message.role === "user")?.text ??
+		messages[0]?.text ??
+		fallbackPreview
+	const preview = takePreview(previewSource, 220)
+	const title = isConversation
+		? `${source.label} conversation`
+		: (typeof document.title === "string" && document.title.trim()) ||
+			(source.projectName
+				? `${source.formatLabel} · ${source.projectName}`
+				: source.formatLabel)
+	const summary = isConversation
+		? `${userCount} user message${userCount === 1 ? "" : "s"} and ${assistantCount} assistant message${assistantCount === 1 ? "" : "s"} captured from ${source.label}.`
+		: documentSummary
+	const sectionText = rawContent || memoryText || documentSummary
 
 	const parsed: ParsedPluginDocument = {
 		kind: "claude-code-doc",
 		pluginLabel: source.label,
 		pluginIconSrc: source.iconSrc,
-		formatLabel: source.formatLabel,
+		formatLabel: isConversation ? "Conversation" : source.formatLabel,
 		title,
 		preview,
 		summary,
 		artifacts: [],
-		messages: parseClaudeCodeTurns(rawContent),
-		sections: [],
+		messages,
+		sections:
+			!isConversation && sectionText
+				? [{ label: "Memory", value: sectionText, tone: "default" }]
+				: [],
 		rawContent,
 	}
 	return parsed
@@ -680,6 +702,20 @@ export function parsePluginDocument(
 	)
 
 	if (content) {
+		if (
+			plugin?.pluginId === "claude-code" &&
+			CLAUDE_CODE_CONTENT_RE.test(content)
+		) {
+			const claudeCodeSession = parseClaudeCodeByMetadata(document, metadata)
+			if (claudeCodeSession) {
+				if (clientName) {
+					claudeCodeSession.clientLabel = "Client"
+					claudeCodeSession.clientValue = clientName
+				}
+				return withIcon(claudeCodeSession)
+			}
+		}
+
 		const saveDoc = parseSaveSections(content, plugin)
 		if (saveDoc) {
 			if (clientName) {
@@ -707,6 +743,23 @@ export function parsePluginDocument(
 					codexSession.clientValue = clientName
 				}
 				return withIcon(codexSession)
+			}
+		}
+
+		if (plugin?.pluginId === "opencode") {
+			const openCodeSession = parseSessionTranscript(content, {
+				kind: "plugin-session",
+				headerLabel: "Conversation",
+				pluginLabel: plugin.label,
+				pluginIconSrc: plugin.iconSrc,
+				formatLabel: "Conversation",
+			})
+			if (openCodeSession) {
+				if (clientName) {
+					openCodeSession.clientLabel = "Client"
+					openCodeSession.clientValue = clientName
+				}
+				return withIcon(openCodeSession)
 			}
 		}
 
