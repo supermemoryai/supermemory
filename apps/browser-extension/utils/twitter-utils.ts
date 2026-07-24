@@ -368,6 +368,27 @@ export function extractNextCursor(
 }
 
 /**
+ * Tweet `full_text` embeds links as opaque `t.co` shortlinks, while
+ * `entities.urls` carries the real destination. Replace each shortlink with a
+ * markdown link to its expanded URL (labelled with the human-readable
+ * display_url) so imported tweets keep working, searchable links instead of
+ * `https://t.co/xxxx`.
+ */
+export function expandTweetText(
+	text: string,
+	urls: Tweet["entities"]["urls"],
+): string {
+	if (!urls || urls.length === 0) return text
+	let expanded = text
+	for (const link of urls) {
+		if (!link?.url || !link.expanded_url) continue
+		const label = link.display_url || link.expanded_url
+		expanded = expanded.split(link.url).join(`[${label}](${link.expanded_url})`)
+	}
+	return expanded
+}
+
+/**
  * Convert Tweet object to markdown format for storage
  */
 export function tweetToMarkdown(tweet: Tweet): string {
@@ -380,8 +401,8 @@ export function tweetToMarkdown(tweet: Tweet): string {
 	markdown += `**Date:** ${date} ${time}\n`
 	markdown += `**Likes:** ${tweet.favorite_count} | **Retweets:** ${tweet.retweet_count || 0} | **Replies:** ${tweet.reply_count || 0}\n\n`
 
-	// Add tweet text
-	markdown += `${tweet.text}\n\n`
+	// Add tweet text with t.co shortlinks expanded to their real destinations
+	markdown += `${expandTweetText(tweet.text, tweet.entities.urls)}\n\n`
 
 	// Add media if present
 	if (tweet.photos && tweet.photos.length > 0) {
