@@ -3,18 +3,13 @@ import { toast } from "sonner"
 import { $fetch } from "@lib/api"
 import { useAuth } from "@lib/auth-context"
 
-const API_BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"}/v3`
-
 export type OrgSettings = {
 	shouldLLMFilter: boolean
 	filterPrompt: string | null
+	workspacePrompt: string | null
 	includeItems?: string[] | null
 	excludeItems?: string[] | null
 }
-
-type OrgSettingsResponse = {
-	settings?: Partial<OrgSettings>
-} & Partial<OrgSettings>
 
 export function useOrgSettings() {
 	const { org } = useAuth()
@@ -23,17 +18,15 @@ export function useOrgSettings() {
 	return useQuery({
 		queryKey: ["settings", "org", orgId],
 		queryFn: async (): Promise<OrgSettings> => {
-			const response = await $fetch("@get/settings", {
-				disableValidation: true,
-			})
+			const response = await $fetch("@get/settings")
 			if (response.error) {
 				throw new Error(response.error.message || "Failed to load settings")
 			}
-			const data = response.data as OrgSettingsResponse | null
-			const settings = data?.settings ?? data ?? {}
+			const settings = response.data ?? {}
 			return {
 				shouldLLMFilter: settings.shouldLLMFilter ?? false,
 				filterPrompt: settings.filterPrompt ?? null,
+				workspacePrompt: settings.workspacePrompt ?? null,
 				includeItems: settings.includeItems ?? null,
 				excludeItems: settings.excludeItems ?? null,
 			}
@@ -50,25 +43,26 @@ export function useUpdateOrgSettings() {
 
 	return useMutation({
 		mutationFn: async (settings: Partial<OrgSettings>) => {
-			const res = await fetch(`${API_BASE}/settings`, {
-				method: "PATCH",
-				credentials: "include",
-				headers: {
-					"Content-Type": "application/json",
-					"X-App-Source": "nova",
-				},
-				body: JSON.stringify(settings),
+			const response = await $fetch("@patch/settings", {
+				body: settings,
 			})
-			if (!res.ok) {
-				const body = (await res.json().catch(() => ({}))) as {
-					message?: string
-				}
-				throw new Error(body?.message || "Failed to save settings")
+			if (response.error) {
+				throw new Error(response.error.message || "Failed to save settings", {
+					cause: response.error,
+				})
 			}
-			return res.json()
+			return response.data
 		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["settings", "org", orgId] })
+		onMutate: () => ({ orgId }),
+		onSuccess: async (data, _settings, mutationContext) => {
+			const queryKey = ["settings", "org", mutationContext.orgId] as const
+			const canonicalSettings = data?.updated
+			if (canonicalSettings) {
+				queryClient.setQueryData<OrgSettings>(queryKey, (current) =>
+					current ? { ...current, ...canonicalSettings } : current,
+				)
+			}
+			await queryClient.invalidateQueries({ queryKey, exact: true })
 			toast.success("Settings saved")
 		},
 		onError: (error) => {

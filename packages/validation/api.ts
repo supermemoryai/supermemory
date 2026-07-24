@@ -801,7 +801,7 @@ export const SettingsRequestSchema = OrganizationSettingsSchema.omit({
 	id: true,
 	orgId: true,
 	updatedAt: true,
-})
+}).partial()
 
 export const ConnectionResponseSchema = z.object({
 	createdAt: z.string().datetime(),

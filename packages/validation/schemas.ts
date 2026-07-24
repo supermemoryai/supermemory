@@ -315,6 +315,7 @@ export const OrganizationSettingsSchema = z.object({
 	filterPrompt: z.string().nullable().optional(),
 	includeItems: z.array(z.string()).nullable().optional(),
 	excludeItems: z.array(z.string()).nullable().optional(),
+	workspacePrompt: z.string().max(1500).nullable().optional(),
 
 	// Google Drive custom keys
 	googleDriveCustomKeyEnabled: z.boolean().default(false),

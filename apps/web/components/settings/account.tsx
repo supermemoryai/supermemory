@@ -39,8 +39,10 @@ import { useQueryState } from "nuqs"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useContainerTags } from "@/hooks/use-container-tags"
+import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { PopoverAnchor } from "@ui/components/popover"
 import { OrgContext } from "@/components/settings/org-context"
+import { WorkspacePrompt } from "@/components/settings/workspace-prompt"
 import { OrgPlanBadge } from "@/components/org-plan-badge"
 import { useTokenUsage } from "@/hooks/use-token-usage"
 import { useOrgSummaries } from "@/hooks/use-org-summaries"
@@ -139,6 +141,7 @@ export default function Account({
 }) {
 	const { user, org, refetchActiveOrg, refetchOrganizations } = useAuth()
 	const autumn = useCustomer()
+	const isCompanyBrain = useHasCompanyBrain()
 	const { currentPlan, searchesUsed } = useTokenUsage(autumn)
 	const { data: orgSummaries } = useOrgSummaries()
 	const orgSummary = orgSummaries?.find((s) => s.orgId === org?.id)
@@ -619,7 +622,17 @@ export default function Account({
 				</div>
 			</section>
 
-			{canManageTeam && <OrgContext />}
+			{canManageTeam && (
+				<div className="flex flex-col gap-5">
+					<OrgContext />
+					{isCompanyBrain && (
+						<>
+							<div aria-hidden="true" className="mx-1 h-px bg-white/[0.055]" />
+							<WorkspacePrompt key={org?.id} />
+						</>
+					)}
+				</div>
+			)}
 
 			<DigestPreferences />
 
