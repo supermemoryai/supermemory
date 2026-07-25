@@ -7,7 +7,7 @@ import {
 } from "./agent-space"
 
 describe("Agents spaces", () => {
-	it("recognizes Claude, Codex, and OpenCode shared and legacy tags", () => {
+	it("recognizes shared and legacy tags from every unified agent", () => {
 		expect(isAgentContainerTag("repo_supermemory__0123456789abcdef")).toBe(true)
 		expect(isAgentContainerTag("user_project_0123456789abcdef")).toBe(true)
 		expect(isAgentContainerTag("repo_supermemory")).toBe(true)
@@ -18,6 +18,8 @@ describe("Agents spaces", () => {
 		expect(isAgentContainerTag("codex_user_0123456789abcdef")).toBe(true)
 		expect(isAgentContainerTag("opencode_project_0123456789abcdef")).toBe(true)
 		expect(isAgentContainerTag("opencode_user_0123456789abcdef")).toBe(true)
+		expect(isAgentContainerTag("cursor_project_0123456789abcdef")).toBe(true)
+		expect(isAgentContainerTag("cursor_user_0123456789abcdef")).toBe(true)
 	})
 
 	it("shows agent filters only for an Agents selection", () => {
@@ -40,6 +42,7 @@ describe("Agents spaces", () => {
 		])
 		expect(agentSourceValues("codex")).toEqual(["codex"])
 		expect(agentSourceValues("opencode")).toEqual(["opencode"])
+		expect(agentSourceValues("cursor")).toEqual(["cursor"])
 		expect(agentSourceValues(null)).toBeUndefined()
 	})
 
@@ -147,5 +150,26 @@ describe("Agents spaces", () => {
 		expect(groups[0]?.representative.containerTag).toBe(
 			"claudecode_project_0123456789abcdef",
 		)
+	})
+
+	it("shows an unambiguous Cursor project label before metadata loads", () => {
+		const groups = groupAgentSpaces(
+			[{ containerTag: "cursor_project_0123456789abcdef" }],
+			new Map(),
+		)
+
+		expect(groups).toHaveLength(1)
+		expect(groups[0]?.label).toBe("Cursor project · 012345")
+	})
+
+	it("shows old Cursor personal memory without a Legacy prefix", () => {
+		const groups = groupAgentSpaces(
+			[{ containerTag: "cursor_user_fedcba9876543210" }],
+			new Map(),
+		)
+
+		expect(groups).toHaveLength(1)
+		expect(groups[0]?.label).toBe("Cursor personal · fedcba")
+		expect(groups[0]?.kind).toBe("legacy-personal")
 	})
 })

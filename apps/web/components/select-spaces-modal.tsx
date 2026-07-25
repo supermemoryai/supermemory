@@ -95,7 +95,12 @@ type Category = {
 	count: number
 }
 
-const AGENT_CATALOG_IDS = ["claude_code", "codex", "opencode"] as const
+const AGENT_CATALOG_IDS = [
+	"claude_code",
+	"codex",
+	"opencode",
+	"cursor",
+] as const
 
 export function SelectSpacesModal({
 	isOpen,

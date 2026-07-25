@@ -5,7 +5,7 @@ export type AgentContainerKind =
 	| "legacy-personal"
 	| "legacy-project"
 
-export type AgentSourceFilter = "claude-code" | "codex" | "opencode"
+export type AgentSourceFilter = "claude-code" | "codex" | "opencode" | "cursor"
 
 export const AGENT_SOURCE_FILTERS: ReadonlyArray<{
 	value: AgentSourceFilter
@@ -19,6 +19,7 @@ export const AGENT_SOURCE_FILTERS: ReadonlyArray<{
 	},
 	{ value: "codex", label: "Codex", sources: ["codex"] },
 	{ value: "opencode", label: "OpenCode", sources: ["opencode"] },
+	{ value: "cursor", label: "Cursor", sources: ["cursor"] },
 ]
 
 export type AgentSpaceMetadata = {
@@ -62,6 +63,14 @@ const TAG_PATTERNS: Array<{
 	{
 		kind: "legacy-project",
 		pattern: /^opencode_project_([0-9a-f]{6,64})$/i,
+	},
+	{
+		kind: "legacy-personal",
+		pattern: /^cursor_user_([0-9a-f]{6,64})$/i,
+	},
+	{
+		kind: "legacy-project",
+		pattern: /^cursor_project_([0-9a-f]{6,64})$/i,
 	},
 ]
 
@@ -127,7 +136,7 @@ function tagPriority(containerTag: string): number {
 		case "personal":
 			return 1
 		case "legacy-personal":
-			return containerTag.startsWith("claudecode_project_") ? 2 : 5
+			return containerTag.startsWith("claudecode_project_") ? 2 : 6
 		case "project":
 			return 3
 		case "legacy-project":
@@ -146,17 +155,25 @@ function legacyGroupIdentity(
 		return { key: `tag:${containerTag}`, label: containerTag, kind: "project" }
 	}
 
-	// Old Codex and OpenCode personal containers were intentionally global.
+	// Old Codex, OpenCode, and Cursor personal containers were global.
 	// Even if the newest document has a project name, assigning the whole
 	// container to that project would mix memories from historical projects.
 	if (
 		containerTag.startsWith("codex_user_") ||
-		containerTag.startsWith("opencode_user_")
+		containerTag.startsWith("opencode_user_") ||
+		containerTag.startsWith("cursor_user_")
 	) {
-		const agent = containerTag.startsWith("codex_user_") ? "Codex" : "OpenCode"
+		const agent = containerTag.startsWith("codex_user_")
+			? "Codex"
+			: containerTag.startsWith("opencode_user_")
+				? "OpenCode"
+				: "Cursor"
 		return {
 			key: `legacy-personal:${containerTag}`,
-			label: `Legacy ${agent} personal`,
+			label:
+				agent === "Cursor"
+					? `Cursor personal · ${match.id.slice(0, 6)}`
+					: `Legacy ${agent} personal`,
 			kind: "legacy-personal",
 		}
 	}
@@ -165,6 +182,14 @@ function legacyGroupIdentity(
 		return {
 			key: `project:${projectName.toLocaleLowerCase()}`,
 			label: projectName,
+			kind: "project",
+		}
+	}
+
+	if (containerTag.startsWith("cursor_project_")) {
+		return {
+			key: `cursor-project:${match.id.toLocaleLowerCase()}`,
+			label: `Cursor project · ${match.id.slice(0, 6)}`,
 			kind: "project",
 		}
 	}
@@ -225,7 +250,7 @@ function addProjectToGroup<T extends { containerTag: string }>(
 }
 
 /**
- * Collapse the physical Claude/Codex/OpenCode containers into one selectable
+ * Collapse the physical Claude/Codex/OpenCode/Cursor containers into one selectable
  * Agents row per project. Every returned container tag remains real; the UI
  * never writes to a synthetic "agents" tag.
  */
@@ -280,7 +305,9 @@ export function groupAgentSpaces<T extends { containerTag: string }>(
 		addProjectToGroup(
 			grouped,
 			key,
-			projectName ?? identity.label,
+			identity.kind === "legacy-personal"
+				? identity.label
+				: (projectName ?? identity.label),
 			identity.kind,
 			project,
 			projectName,
