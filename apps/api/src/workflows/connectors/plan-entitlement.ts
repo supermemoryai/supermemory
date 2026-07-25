@@ -13,34 +13,34 @@
  */
 
 import {
-  isRetryableDurableObjectError,
-  DurableObjectResetError,
-} from "../../lib/do-retry.js";
+	isRetryableDurableObjectError,
+	DurableObjectResetError,
+} from "../../lib/do-retry.js"
 
 // ---------------------------------------------------------------------------
 // Error types
 // ---------------------------------------------------------------------------
 
 export type ConnectorSyncErrorKind =
-  | "do_lifecycle_reset"   // Transient DO reset — retries exhausted
-  | "do_overload"          // DO capacity / overload error
-  | "unhandled_defect"     // Any other unexpected exception
-  | "plan_limit_exceeded"  // User exceeded their plan's connector quota
-  | "auth_failure"         // Connector auth token expired / revoked
-  | "rate_limited";        // External service rate limit
+	| "do_lifecycle_reset" // Transient DO reset — retries exhausted
+	| "do_overload" // DO capacity / overload error
+	| "unhandled_defect" // Any other unexpected exception
+	| "plan_limit_exceeded" // User exceeded their plan's connector quota
+	| "auth_failure" // Connector auth token expired / revoked
+	| "rate_limited" // External service rate limit
 
 export interface ConnectorSyncError {
-  readonly kind: ConnectorSyncErrorKind;
-  readonly message: string;
-  readonly cause?: unknown;
+	readonly kind: ConnectorSyncErrorKind
+	readonly message: string
+	readonly cause?: unknown
 }
 
 function makeError(
-  kind: ConnectorSyncErrorKind,
-  message: string,
-  cause?: unknown
+	kind: ConnectorSyncErrorKind,
+	message: string,
+	cause?: unknown,
 ): ConnectorSyncError {
-  return { kind, message, cause };
+	return { kind, message, cause }
 }
 
 // ---------------------------------------------------------------------------
@@ -59,34 +59,33 @@ function makeError(
  *     retry_after hint.
  */
 export function coerceConnectorWorkflowDefect(
-  defect: unknown
+	defect: unknown,
 ): ConnectorSyncError {
-  // ── DO lifecycle reset (new, fixes SUPERMEMORY-BACKEND-JMN) ───────────
-  //
-  // This path is reached only after withDORetry has exhausted all retries,
-  // OR if the retry wrapper was not applied to the failing step.  Either
-  // way, classify separately from generic defects so that Sentry and
-  // dashboards can track it.
-  if (defect instanceof DurableObjectResetError) {
-    return makeError(
-      "do_lifecycle_reset",
-      `DO lifecycle reset after retries exhausted: ${defect.message}`,
-      defect
-    );
-  }
+	// ── DO lifecycle reset (new, fixes SUPERMEMORY-BACKEND-JMN) ───────────
+	//
+	// This path is reached only after withDORetry has exhausted all retries,
+	// OR if the retry wrapper was not applied to the failing step.  Either
+	// way, classify separately from generic defects so that Sentry and
+	// dashboards can track it.
+	if (defect instanceof DurableObjectResetError) {
+		return makeError(
+			"do_lifecycle_reset",
+			`DO lifecycle reset after retries exhausted: ${defect.message}`,
+			defect,
+		)
+	}
 
-  // Catch raw DO reset errors that were not wrapped by liftDurableObjectResetDefect.
-  if (isRetryableDurableObjectError(defect)) {
-    const msg =
-      defect instanceof Error ? defect.message : String(defect);
-    return makeError(
-      "do_lifecycle_reset",
-      `DO lifecycle reset (unretried): ${msg}`,
-      defect
-    );
-  }
+	// Catch raw DO reset errors that were not wrapped by liftDurableObjectResetDefect.
+	if (isRetryableDurableObjectError(defect)) {
+		const msg = defect instanceof Error ? defect.message : String(defect)
+		return makeError(
+			"do_lifecycle_reset",
+			`DO lifecycle reset (unretried): ${msg}`,
+			defect,
+		)
+	}
 
-  // ── All other defects ──────────────────────────────────────────────────
-  const msg = defect instanceof Error ? defect.message : String(defect);
-  return makeError("unhandled_defect", msg, defect);
+	// ── All other defects ──────────────────────────────────────────────────
+	const msg = defect instanceof Error ? defect.message : String(defect)
+	return makeError("unhandled_defect", msg, defect)
 }

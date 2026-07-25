@@ -13,12 +13,12 @@
  * the remote isolate was reset mid-call.
  */
 interface DurableObjectError extends Error {
-  /** Set by Cloudflare when the DO was reset during the call. */
-  durableObjectReset?: boolean;
-  /** Set by Cloudflare when the DO is overloaded / rate-limited. */
-  overloaded?: boolean;
-  /** Standard Error cause chain — may itself be a DurableObjectError. */
-  cause?: unknown;
+	/** Set by Cloudflare when the DO was reset during the call. */
+	durableObjectReset?: boolean
+	/** Set by Cloudflare when the DO is overloaded / rate-limited. */
+	overloaded?: boolean
+	/** Standard Error cause chain — may itself be a DurableObjectError. */
+	cause?: unknown
 }
 
 /**
@@ -35,55 +35,55 @@ interface DurableObjectError extends Error {
  *    the new conditions added to fix SUPERMEMORY-BACKEND-JMN.
  */
 export function isRetryableDurableObjectError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
+	if (!(error instanceof Error)) return false
 
-  const err = error as DurableObjectError;
-  const msg = err.message ?? "";
+	const err = error as DurableObjectError
+	const msg = err.message ?? ""
 
-  // ── Existing: overload / capacity signals ──────────────────────────────
-  if (msg.includes("memory limit")) return true;
-  if (msg.includes("overloaded")) return true;
-  if (msg.includes("internal error; reference =")) return true;
-  if (msg.includes("Durable Object")) return true;
-  if (err.overloaded === true) return true;
+	// ── Existing: overload / capacity signals ──────────────────────────────
+	if (msg.includes("memory limit")) return true
+	if (msg.includes("overloaded")) return true
+	if (msg.includes("internal error; reference =")) return true
+	if (msg.includes("Durable Object")) return true
+	if (err.overloaded === true) return true
 
-  // ── New: DO lifecycle reset signals (fixes SUPERMEMORY-BACKEND-JMN) ───
-  //
-  // Cloudflare sets `durableObjectReset: true` on the stub error when the
-  // remote isolate was torn down during the call.
-  if (err.durableObjectReset === true) return true;
+	// ── New: DO lifecycle reset signals (fixes SUPERMEMORY-BACKEND-JMN) ───
+	//
+	// Cloudflare sets `durableObjectReset: true` on the stub error when the
+	// remote isolate was torn down during the call.
+	if (err.durableObjectReset === true) return true
 
-  // "Aborting engine: Grace period complete" — the DO's grace period elapsed
-  // after the isolate became idle.  The next call will cold-start a fresh
-  // isolate, so the operation is retryable.
-  if (msg.includes("Grace period complete")) return true;
+	// "Aborting engine: Grace period complete" — the DO's grace period elapsed
+	// after the isolate became idle.  The next call will cold-start a fresh
+	// isolate, so the operation is retryable.
+	if (msg.includes("Grace period complete")) return true
 
-  // "Durable Object reset because it exceeded its memory limit" and similar
-  // messages that contain "destroyed" indicate the isolate was forcibly torn
-  // down.
-  if (msg.includes("destroyed")) return true;
+	// "Durable Object reset because it exceeded its memory limit" and similar
+	// messages that contain "destroyed" indicate the isolate was forcibly torn
+	// down.
+	if (msg.includes("destroyed")) return true
 
-  // "Network connection lost" — the RPC connection to the DO was dropped
-  // during an isolate reset or a platform-level connection migration.
-  if (msg.includes("Network connection lost")) return true;
+	// "Network connection lost" — the RPC connection to the DO was dropped
+	// during an isolate reset or a platform-level connection migration.
+	if (msg.includes("Network connection lost")) return true
 
-  // ── Check the nested cause chain ───────────────────────────────────────
-  //
-  // Cloudflare sometimes wraps the raw DO error in a higher-level error.
-  // Walk one level of the cause chain to catch that pattern.
-  const cause = err.cause;
-  if (cause != null && typeof cause === "object") {
-    const causeErr = cause as DurableObjectError;
+	// ── Check the nested cause chain ───────────────────────────────────────
+	//
+	// Cloudflare sometimes wraps the raw DO error in a higher-level error.
+	// Walk one level of the cause chain to catch that pattern.
+	const cause = err.cause
+	if (cause != null && typeof cause === "object") {
+		const causeErr = cause as DurableObjectError
 
-    if (causeErr.durableObjectReset === true) return true;
+		if (causeErr.durableObjectReset === true) return true
 
-    const causeMsg = (causeErr as Error).message ?? "";
-    if (causeMsg.includes("Grace period complete")) return true;
-    if (causeMsg.includes("destroyed")) return true;
-    if (causeMsg.includes("Network connection lost")) return true;
-  }
+		const causeMsg = (causeErr as Error).message ?? ""
+		if (causeMsg.includes("Grace period complete")) return true
+		if (causeMsg.includes("destroyed")) return true
+		if (causeMsg.includes("Network connection lost")) return true
+	}
 
-  return false;
+	return false
 }
 
 /**
@@ -91,15 +91,12 @@ export function isRetryableDurableObjectError(error: unknown): boolean {
  * reset errors.  Used by the ConnectorsWorkflow retry predicate.
  */
 export class DurableObjectResetError extends Error {
-  readonly _tag = "DurableObjectResetError" as const;
+	readonly _tag = "DurableObjectResetError" as const
 
-  constructor(
-    message: string,
-    options?: { cause?: unknown }
-  ) {
-    super(message, options);
-    this.name = "DurableObjectResetError";
-  }
+	constructor(message: string, options?: { cause?: unknown }) {
+		super(message, options)
+		this.name = "DurableObjectResetError"
+	}
 }
 
 /**
@@ -110,12 +107,11 @@ export class DurableObjectResetError extends Error {
  * errors into typed failures that the retry schedule can inspect.
  */
 export function liftDurableObjectResetDefect(
-  defect: unknown
+	defect: unknown,
 ): DurableObjectResetError | null {
-  if (isRetryableDurableObjectError(defect)) {
-    const msg =
-      defect instanceof Error ? defect.message : String(defect);
-    return new DurableObjectResetError(msg, { cause: defect });
-  }
-  return null;
+	if (isRetryableDurableObjectError(defect)) {
+		const msg = defect instanceof Error ? defect.message : String(defect)
+		return new DurableObjectResetError(msg, { cause: defect })
+	}
+	return null
 }

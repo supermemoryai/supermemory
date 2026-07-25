@@ -18,12 +18,12 @@
  *   - Only retries when `isRetryableDurableObjectError` returns true
  */
 
-import { Effect, Schedule } from "effect";
+import { Effect, Schedule } from "effect"
 import {
-  isRetryableDurableObjectError,
-  liftDurableObjectResetDefect,
-  DurableObjectResetError,
-} from "../../../lib/do-retry.js";
+	isRetryableDurableObjectError,
+	liftDurableObjectResetDefect,
+	DurableObjectResetError,
+} from "../../../lib/do-retry.js"
 
 // ---------------------------------------------------------------------------
 // Retry schedule
@@ -33,11 +33,10 @@ import {
  * Exponential backoff: 100 ms → 200 ms → 400 ms → 800 ms (capped at 5 s).
  * Composed with `recurs(4)` so we make at most 4 retry attempts (5 total).
  */
-const doRetrySchedule: Schedule.Schedule<unknown> =
-  Schedule.exponential("100 millis", 2).pipe(
-    Schedule.intersect(Schedule.recurs(4)),
-    Schedule.jittered
-  );
+const doRetrySchedule: Schedule.Schedule<unknown> = Schedule.exponential(
+	"100 millis",
+	2,
+).pipe(Schedule.intersect(Schedule.recurs(4)), Schedule.jittered)
 
 // ---------------------------------------------------------------------------
 // Public helpers
@@ -58,28 +57,28 @@ const doRetrySchedule: Schedule.Schedule<unknown> =
  * transparent retry is the right behavior.
  */
 export function withDORetry<A, E, R>(
-  effect: Effect.Effect<A, E, R>
+	effect: Effect.Effect<A, E, R>,
 ): Effect.Effect<A, E | DurableObjectResetError, R> {
-  return (
-    // Step 1: Convert any DO reset defect into a typed failure so the retry
-    // predicate below can match it.
-    effect.pipe(
-      Effect.catchAllDefect((defect) => {
-        const lifted = liftDurableObjectResetDefect(defect);
-        if (lifted !== null) {
-          return Effect.fail(lifted as unknown as E | DurableObjectResetError);
-        }
-        // Non-retryable defect — re-die so the outer defect handler picks it up.
-        return Effect.die(defect);
-      }),
-      // Step 2: Retry on any error that is a retryable DO error.
-      Effect.retry({
-        while: (error): boolean => {
-          if (error instanceof DurableObjectResetError) return true;
-          return isRetryableDurableObjectError(error);
-        },
-        schedule: doRetrySchedule,
-      })
-    )
-  );
+	return (
+		// Step 1: Convert any DO reset defect into a typed failure so the retry
+		// predicate below can match it.
+		effect.pipe(
+			Effect.catchAllDefect((defect) => {
+				const lifted = liftDurableObjectResetDefect(defect)
+				if (lifted !== null) {
+					return Effect.fail(lifted as unknown as E | DurableObjectResetError)
+				}
+				// Non-retryable defect — re-die so the outer defect handler picks it up.
+				return Effect.die(defect)
+			}),
+			// Step 2: Retry on any error that is a retryable DO error.
+			Effect.retry({
+				while: (error): boolean => {
+					if (error instanceof DurableObjectResetError) return true
+					return isRetryableDurableObjectError(error)
+				},
+				schedule: doRetrySchedule,
+			}),
+		)
+	)
 }

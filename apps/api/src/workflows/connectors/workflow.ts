@@ -24,12 +24,12 @@
  * than `"unhandled_defect"` so Sentry/dashboards can distinguish them.
  */
 
-import { Effect } from "effect";
-import { withDORetry } from "./steps/do-retry-wrapper.js";
+import { Effect } from "effect"
+import { withDORetry } from "./steps/do-retry-wrapper.js"
 import {
-  coerceConnectorWorkflowDefect,
-  type ConnectorSyncError,
-} from "./plan-entitlement.js";
+	coerceConnectorWorkflowDefect,
+	type ConnectorSyncError,
+} from "./plan-entitlement.js"
 
 // ---------------------------------------------------------------------------
 // Placeholder types — these would come from the shared schema package in the
@@ -37,13 +37,13 @@ import {
 // ---------------------------------------------------------------------------
 
 export interface ConnectorSyncContext {
-  syncId: string;
-  connectorId: string;
-  userId: string;
+	syncId: string
+	connectorId: string
+	userId: string
 }
 
 export interface SyncResult {
-  itemsProcessed: number;
+	itemsProcessed: number
 }
 
 // ---------------------------------------------------------------------------
@@ -57,27 +57,27 @@ export interface SyncResult {
  * Wrapped with `withDORetry` so DO lifecycle resets are transparently retried.
  */
 function fetchConnectorItemsStep(
-  ctx: ConnectorSyncContext
+	_ctx: ConnectorSyncContext,
 ): Effect.Effect<unknown[], ConnectorSyncError> {
-  return withDORetry(
-    Effect.tryPromise({
-      try: () =>
-        // Real implementation calls: connectorDO.fetchItems(ctx.connectorId)
-        Promise.resolve([] as unknown[]),
-      catch: (error): ConnectorSyncError => ({
-        kind: "unhandled_defect",
-        message: error instanceof Error ? error.message : String(error),
-        cause: error,
-      }),
-    })
-  ).pipe(
-    Effect.mapError((error): ConnectorSyncError => {
-      if (error instanceof Error) {
-        return coerceConnectorWorkflowDefect(error);
-      }
-      return error as ConnectorSyncError;
-    })
-  );
+	return withDORetry(
+		Effect.tryPromise({
+			try: () =>
+				// Real implementation calls: connectorDO.fetchItems(ctx.connectorId)
+				Promise.resolve([] as unknown[]),
+			catch: (error): ConnectorSyncError => ({
+				kind: "unhandled_defect",
+				message: error instanceof Error ? error.message : String(error),
+				cause: error,
+			}),
+		}),
+	).pipe(
+		Effect.mapError((error): ConnectorSyncError => {
+			if (error instanceof Error) {
+				return coerceConnectorWorkflowDefect(error)
+			}
+			return error as ConnectorSyncError
+		}),
+	)
 }
 
 /**
@@ -85,29 +85,29 @@ function fetchConnectorItemsStep(
  * Wrapped with `withDORetry` so DO lifecycle resets are transparently retried.
  */
 function indexItemsStep(
-  ctx: ConnectorSyncContext,
-  items: unknown[]
+	_ctx: ConnectorSyncContext,
+	items: unknown[],
 ): Effect.Effect<SyncResult, ConnectorSyncError> {
-  return withDORetry(
-    Effect.tryPromise({
-      try: async () => {
-        // Real implementation calls: indexerDO.indexBatch(ctx.userId, items)
-        return { itemsProcessed: items.length } satisfies SyncResult;
-      },
-      catch: (error): ConnectorSyncError => ({
-        kind: "unhandled_defect",
-        message: error instanceof Error ? error.message : String(error),
-        cause: error,
-      }),
-    })
-  ).pipe(
-    Effect.mapError((error): ConnectorSyncError => {
-      if (error instanceof Error) {
-        return coerceConnectorWorkflowDefect(error);
-      }
-      return error as ConnectorSyncError;
-    })
-  );
+	return withDORetry(
+		Effect.tryPromise({
+			try: async () => {
+				// Real implementation calls: indexerDO.indexBatch(ctx.userId, items)
+				return { itemsProcessed: items.length } satisfies SyncResult
+			},
+			catch: (error): ConnectorSyncError => ({
+				kind: "unhandled_defect",
+				message: error instanceof Error ? error.message : String(error),
+				cause: error,
+			}),
+		}),
+	).pipe(
+		Effect.mapError((error): ConnectorSyncError => {
+			if (error instanceof Error) {
+				return coerceConnectorWorkflowDefect(error)
+			}
+			return error as ConnectorSyncError
+		}),
+	)
 }
 
 /**
@@ -115,30 +115,30 @@ function indexItemsStep(
  * This step does NOT touch a DO, so it is not wrapped with `withDORetry`.
  */
 function markSyncFailedStep(
-  ctx: ConnectorSyncContext,
-  error: ConnectorSyncError
+	ctx: ConnectorSyncContext,
+	error: ConnectorSyncError,
 ): Effect.Effect<void, never> {
-  return Effect.sync(() => {
-    // Real implementation: db.update(syncRuns).set({ status: "failed", error })
-    console.error(
-      `[ConnectorsWorkflow] sync ${ctx.syncId} failed: ${error.kind} — ${error.message}`
-    );
-  });
+	return Effect.sync(() => {
+		// Real implementation: db.update(syncRuns).set({ status: "failed", error })
+		console.error(
+			`[ConnectorsWorkflow] sync ${ctx.syncId} failed: ${error.kind} — ${error.message}`,
+		)
+	})
 }
 
 /**
  * Marks a sync run as completed in the database.
  */
 function markSyncCompletedStep(
-  ctx: ConnectorSyncContext,
-  result: SyncResult
+	ctx: ConnectorSyncContext,
+	result: SyncResult,
 ): Effect.Effect<void, never> {
-  return Effect.sync(() => {
-    // Real implementation: db.update(syncRuns).set({ status: "completed", ... })
-    console.log(
-      `[ConnectorsWorkflow] sync ${ctx.syncId} completed: ${result.itemsProcessed} items`
-    );
-  });
+	return Effect.sync(() => {
+		// Real implementation: db.update(syncRuns).set({ status: "completed", ... })
+		console.log(
+			`[ConnectorsWorkflow] sync ${ctx.syncId} completed: ${result.itemsProcessed} items`,
+		)
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -163,29 +163,29 @@ function markSyncCompletedStep(
  *   permanent-failure path.
  */
 export function runConnectorsWorkflow(
-  ctx: ConnectorSyncContext
+	ctx: ConnectorSyncContext,
 ): Effect.Effect<void, never> {
-  const program = Effect.gen(function* () {
-    const items = yield* fetchConnectorItemsStep(ctx);
-    const result = yield* indexItemsStep(ctx, items);
-    yield* markSyncCompletedStep(ctx, result);
-  });
+	const program = Effect.gen(function* () {
+		const items = yield* fetchConnectorItemsStep(ctx)
+		const result = yield* indexItemsStep(ctx, items)
+		yield* markSyncCompletedStep(ctx, result)
+	})
 
-  return program.pipe(
-    // Handle typed failures from workflow steps (e.g., auth errors, rate
-    // limits, or exhausted DO retry attempts).
-    Effect.catchAll((error) => markSyncFailedStep(ctx, error)),
+	return program.pipe(
+		// Handle typed failures from workflow steps (e.g., auth errors, rate
+		// limits, or exhausted DO retry attempts).
+		Effect.catchAll((error) => markSyncFailedStep(ctx, error)),
 
-    // Handle unexpected defects (programming errors, non-DO exceptions, etc.)
-    // that were not caught by `withDORetry` or the typed failure channel.
-    //
-    // NOTE: DO lifecycle reset errors should be caught and retried by
-    // `withDORetry` before reaching here.  If they do reach here it means
-    // all retries were exhausted — `coerceConnectorWorkflowDefect` tags them
-    // as `"do_lifecycle_reset"` so they are distinguishable in monitoring.
-    Effect.catchAllDefect((defect) => {
-      const error = coerceConnectorWorkflowDefect(defect);
-      return markSyncFailedStep(ctx, error);
-    })
-  );
+		// Handle unexpected defects (programming errors, non-DO exceptions, etc.)
+		// that were not caught by `withDORetry` or the typed failure channel.
+		//
+		// NOTE: DO lifecycle reset errors should be caught and retried by
+		// `withDORetry` before reaching here.  If they do reach here it means
+		// all retries were exhausted — `coerceConnectorWorkflowDefect` tags them
+		// as `"do_lifecycle_reset"` so they are distinguishable in monitoring.
+		Effect.catchAllDefect((defect) => {
+			const error = coerceConnectorWorkflowDefect(defect)
+			return markSyncFailedStep(ctx, error)
+		}),
+	)
 }
