@@ -1,6 +1,7 @@
 import { deduplicateMemoriesForMode } from "../tools-shared"
 import type {
 	Logger,
+	MemoryGovernanceHook,
 	MemoryMode,
 	MemoryPromptData,
 	ProfileStructure,
@@ -76,6 +77,8 @@ export interface BuildMemoriesTextOptions {
 	logger: Logger
 	promptTemplate?: PromptTemplate
 	signal?: AbortSignal
+	/** Governance hook invoked on raw retrieval results before dedup/formatting */
+	governanceHook?: MemoryGovernanceHook
 }
 
 /**
@@ -97,15 +100,24 @@ export const buildMemoriesText = async (
 		logger,
 		promptTemplate = defaultPromptTemplate,
 		signal,
+		governanceHook,
 	} = options
 
-	const memoriesResponse = await supermemoryProfileSearch(
+	let memoriesResponse = await supermemoryProfileSearch(
 		containerTag,
 		queryText,
 		baseUrl,
 		apiKey,
 		signal,
 	)
+
+	if (governanceHook) {
+		memoriesResponse = await governanceHook(memoriesResponse, {
+			containerTag,
+			queryText,
+			mode,
+		})
+	}
 
 	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
 	const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0

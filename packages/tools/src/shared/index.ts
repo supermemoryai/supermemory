@@ -8,6 +8,8 @@ export type {
 	ProfileStructure,
 	ProfileMarkdownData,
 	SupermemoryBaseOptions,
+	MemoryGovernanceContext,
+	MemoryGovernanceHook,
 } from "./types"
 
 // Logger

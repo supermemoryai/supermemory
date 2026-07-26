@@ -4,6 +4,7 @@ import { addConversation } from "../conversations-client"
 import { deduplicateMemoriesForMode } from "../tools-shared"
 import { createLogger, type Logger } from "../vercel/logger"
 import { convertProfileToMarkdown } from "../vercel/util"
+import type { MemoryGovernanceHook } from "../shared"
 
 const normalizeBaseUrl = (url?: string): string => {
 	const defaultUrl = "https://api.supermemory.ai"
@@ -20,6 +21,8 @@ export interface OpenAIMiddlewareOptions {
 	mode?: "profile" | "query" | "full"
 	addMemory?: "always" | "never"
 	baseUrl?: string
+	/** Governance hook invoked on raw retrieval results before dedup/formatting */
+	governanceHook?: MemoryGovernanceHook
 }
 
 interface SupermemoryProfileSearch {
@@ -161,16 +164,25 @@ const addSystemPrompt = async (
 	logger: Logger,
 	mode: "profile" | "query" | "full",
 	baseUrl: string,
+	governanceHook?: MemoryGovernanceHook,
 ) => {
 	const systemPromptExists = messages.some((msg) => msg.role === "system")
 
 	const queryText = mode !== "profile" ? getLastUserMessage(messages) : ""
 
-	const memoriesResponse = await supermemoryProfileSearch(
+	let memoriesResponse = await supermemoryProfileSearch(
 		containerTag,
 		queryText,
 		baseUrl,
 	)
+
+	if (governanceHook) {
+		memoriesResponse = await governanceHook(memoriesResponse, {
+			containerTag,
+			queryText,
+			mode,
+		})
+	}
 
 	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
 	const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0
@@ -429,6 +441,7 @@ export function createOpenAIMiddleware(
 	const customId = options?.customId
 	const mode = options?.mode ?? "profile"
 	const addMemory = options?.addMemory ?? "always"
+	const governanceHook = options?.governanceHook
 
 	const originalCreate = openaiClient.chat.completions.create
 	const originalResponsesCreate = openaiClient.responses?.create
@@ -453,11 +466,19 @@ export function createOpenAIMiddleware(
 		mode: "profile" | "query" | "full",
 		context: "chat" | "responses",
 	) => {
-		const memoriesResponse = await supermemoryProfileSearch(
+		let memoriesResponse = await supermemoryProfileSearch(
 			containerTag,
 			queryText,
 			baseUrl,
 		)
+
+		if (governanceHook) {
+			memoriesResponse = await governanceHook(memoriesResponse, {
+				containerTag,
+				queryText,
+				mode,
+			})
+		}
 
 		const memoryCountStatic = memoriesResponse.profile.static?.length || 0
 		const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0
@@ -623,7 +644,14 @@ export function createOpenAIMiddleware(
 		}
 
 		operations.push(
-			addSystemPrompt(messages, containerTag, logger, mode, baseUrl),
+			addSystemPrompt(
+				messages,
+				containerTag,
+				logger,
+				mode,
+				baseUrl,
+				governanceHook,
+			),
 		)
 
 		const results = await Promise.all(operations)

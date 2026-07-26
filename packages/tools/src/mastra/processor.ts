@@ -22,6 +22,7 @@ import {
 	type Logger,
 	type MemoryMode,
 	type PromptTemplate,
+	type MemoryGovernanceHook,
 } from "../shared"
 import {
 	addConversation,
@@ -51,6 +52,7 @@ interface ProcessorContext {
 	logger: Logger
 	promptTemplate?: PromptTemplate
 	memoryCache: MemoryCache<string>
+	governanceHook?: MemoryGovernanceHook
 }
 
 /**
@@ -73,6 +75,7 @@ function createProcessorContext(
 		logger,
 		promptTemplate: options.promptTemplate,
 		memoryCache: new MemoryCache<string>(),
+		...(options.governanceHook ? { governanceHook: options.governanceHook } : {}),
 	}
 }
 
@@ -181,6 +184,9 @@ export class SupermemoryInputProcessor implements Processor {
 				apiKey: this.ctx.apiKey,
 				logger: this.ctx.logger,
 				promptTemplate: this.ctx.promptTemplate,
+				...(this.ctx.governanceHook
+					? { governanceHook: this.ctx.governanceHook }
+					: {}),
 			})
 
 			if (memories) {

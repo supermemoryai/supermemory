@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { buildMemoriesText } from "./memory-client"
 import { createLogger } from "./logger"
+import type { ProfileStructure } from "./types"
 
 const API_KEY = "sm_test_key"
 const BASE_URL = "https://api.supermemory.ai"
@@ -74,5 +75,47 @@ describe("buildMemoriesText", () => {
 		expect(memories).toContain("User prefers async/await")
 		// Present once, under the profile — not duplicated into the search results.
 		expect(memories.match(/User is allergic to peanuts/g)).toHaveLength(1)
+	})
+
+	it("applies a governanceHook to the raw profile before formatting", async () => {
+		mockProfileResponse({
+			profile: {
+				static: [{ memory: "User's SSN is 123-45-6789" }],
+				dynamic: [],
+			},
+			searchResults: { results: [] },
+		})
+
+		const governanceHook = vi.fn(async (profile: ProfileStructure) => ({
+			...profile,
+			profile: {
+				...profile.profile,
+				static: profile.profile.static?.map((entry) => ({
+					...entry,
+					memory: entry.memory.replace(/\d{3}-\d{2}-\d{4}/, "[REDACTED]"),
+				})),
+			},
+		}))
+
+		const memories = await buildMemoriesText({
+			containerTag: CONTAINER_TAG,
+			queryText: "",
+			mode: "profile",
+			baseUrl: BASE_URL,
+			apiKey: API_KEY,
+			logger,
+			governanceHook,
+		})
+
+		expect(governanceHook).toHaveBeenCalledWith(
+			expect.objectContaining({
+				profile: expect.objectContaining({
+					static: [{ memory: "User's SSN is 123-45-6789" }],
+				}),
+			}),
+			{ containerTag: CONTAINER_TAG, queryText: "", mode: "profile" },
+		)
+		expect(memories).toContain("[REDACTED]")
+		expect(memories).not.toContain("123-45-6789")
 	})
 })

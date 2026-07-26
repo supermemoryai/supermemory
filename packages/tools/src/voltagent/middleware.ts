@@ -17,6 +17,7 @@ import {
 	extractQueryText,
 	type Logger,
 	type MemoryMode,
+	type MemoryGovernanceHook,
 } from "../shared"
 import type { SupermemoryVoltAgent, VoltAgentMessage } from "./types"
 
@@ -59,6 +60,7 @@ export interface SupermemoryMiddlewareContext {
 	metadata?: Record<string, string | number | boolean>
 	searchMode?: "memories" | "documents" | "hybrid"
 	entityContext?: string
+	governanceHook?: MemoryGovernanceHook
 }
 
 /**
@@ -91,6 +93,7 @@ export const createSupermemoryContext = (
 		searchMode,
 		entityContext,
 		verbose = false,
+		governanceHook,
 	} = options
 
 	// Runtime validation: customId is required
@@ -130,6 +133,7 @@ export const createSupermemoryContext = (
 		metadata,
 		searchMode,
 		entityContext,
+		...(governanceHook ? { governanceHook } : {}),
 	}
 }
 
@@ -297,7 +301,25 @@ export const enhanceMessagesWithMemories = async (
 			chunk?: string
 			metadata?: Record<string, unknown>
 		}
-		const formattedMemories = response.results
+
+		let searchResults = response.results as SearchResult[]
+		if (ctx.governanceHook) {
+			const governed = await ctx.governanceHook(
+				{
+					profile: {},
+					searchResults: {
+						results: searchResults.map((r) => ({
+							memory: r.memory ?? r.chunk ?? "",
+							...(r.metadata ? { metadata: r.metadata } : {}),
+						})),
+					},
+				},
+				{ containerTag: ctx.containerTag, queryText, mode: ctx.mode },
+			)
+			searchResults = governed.searchResults.results
+		}
+
+		const formattedMemories = searchResults
 			.map((result: SearchResult) => {
 				const text = result.memory || result.chunk
 				return text ? `- ${text}` : null
@@ -309,10 +331,10 @@ export const enhanceMessagesWithMemories = async (
 			? ctx.promptTemplate({
 					userMemories: "",
 					generalSearchMemories: formattedMemories,
-					searchResults: response.results as Array<{
-						memory: string
-						metadata?: Record<string, unknown>
-					}>,
+					searchResults: searchResults.map((r) => ({
+						memory: r.memory || r.chunk || "",
+						...(r.metadata ? { metadata: r.metadata } : {}),
+					})),
 				})
 			: `The following are relevant memories and context about this user retrieved from previous interactions. Use these to personalize your response:\n\n${formattedMemories}`
 	} else {
@@ -324,6 +346,7 @@ export const enhanceMessagesWithMemories = async (
 			apiKey: ctx.apiKey,
 			logger: ctx.logger,
 			promptTemplate: ctx.promptTemplate,
+			...(ctx.governanceHook ? { governanceHook: ctx.governanceHook } : {}),
 		})
 	}
 

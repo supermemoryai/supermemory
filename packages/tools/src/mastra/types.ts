@@ -10,6 +10,7 @@ import type {
 	MemoryMode,
 	AddMemoryMode,
 	MemoryPromptData,
+	MemoryGovernanceHook,
 } from "../shared"
 
 // Re-export Mastra core types for consumers
@@ -51,6 +52,8 @@ export interface SupermemoryMastraOptions {
 	verbose?: boolean
 	/** Custom function to format memory data into the system prompt */
 	promptTemplate?: PromptTemplate
+	/** Governance hook invoked on raw retrieval results before dedup/formatting */
+	governanceHook?: MemoryGovernanceHook
 }
 
 export type { PromptTemplate, MemoryMode, AddMemoryMode, MemoryPromptData }
