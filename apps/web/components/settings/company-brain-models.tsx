@@ -51,10 +51,17 @@ const MODEL_TAGS: Record<string, string> = {
 }
 
 const EFFORT_LABELS: Record<BrainReasoningEffort, string> = {
+	auto: "Auto",
 	low: "Low",
 	medium: "Medium",
 	high: "High",
 	xhigh: "Extra high",
+}
+
+const AUTO_EFFORT_HELP: Record<BrainModelRole, string> = {
+	main: "Chooses Low, Medium, or High per request based on complexity. Manual choices skip the decider and use fixed effort, subject to provider limits.",
+	triage: "Uses the selected model provider's default thinking depth.",
+	research: "Uses the selected model provider's default thinking depth.",
 }
 
 const ROWS: {
@@ -443,7 +450,7 @@ export default function CompanyBrainModels({
 																}
 																className={cn(
 																	dmSans125ClassName(),
-																	"h-7 min-w-0 flex-1 cursor-pointer rounded-full px-1 text-[11.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+																	"h-7 min-w-0 flex-1 cursor-pointer whitespace-nowrap rounded-full px-1 text-[11.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
 																	isOn
 																		? "bg-white/[0.10] text-[#FAFAFA]"
 																		: "text-[#8B929E] hover:text-[#FAFAFA]",
@@ -454,9 +461,8 @@ export default function CompanyBrainModels({
 														)
 													})}
 												</div>
-												<div className="flex items-center justify-between px-1.5 text-[10px] font-medium text-[#4A5260]">
-													<span>Faster</span>
-													<span>Smarter</span>
+												<div className="px-1.5 text-center text-[10px] font-medium text-[#4A5260]">
+													Manual: faster → smarter
 												</div>
 												<p
 													className={cn(
@@ -464,7 +470,9 @@ export default function CompanyBrainModels({
 														"text-[11px] leading-[1.5] text-[#5F6673]",
 													)}
 												>
-													{effortHelp}
+													{currentEffort === "auto"
+														? AUTO_EFFORT_HELP[role]
+														: effortHelp}
 												</p>
 												{currentEffort === "xhigh" &&
 												extraHighIsBounded(current) ? (
