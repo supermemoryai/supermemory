@@ -58,11 +58,8 @@ const EFFORT_LABELS: Record<BrainReasoningEffort, string> = {
 	xhigh: "Extra high",
 }
 
-const AUTO_EFFORT_HELP: Record<BrainModelRole, string> = {
-	main: "Chooses Low, Medium, or High per request based on complexity. Manual choices skip the decider and use fixed effort, subject to provider limits.",
-	triage: "Uses the selected model provider's default thinking depth.",
-	research: "Uses the selected model provider's default thinking depth.",
-}
+const AUTO_EFFORT_HELP =
+	"Chooses Low, Medium, or High per request based on complexity. Manual choices skip the decider and use fixed effort, subject to provider limits."
 
 const ROWS: {
 	role: BrainModelRole
@@ -351,11 +348,13 @@ export default function CompanyBrainModels({
 					</button>
 
 					{advancedOpen || activePresetId === null ? (
-						<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+						<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
 							{ROWS.map(({ role, effortKey, title, help, effortHelp }) => {
 								const options = choices?.[role] ?? []
 								const current = valueFor(role)
-								const effortOptions = choices?.[effortKey] ?? []
+								const effortOptions = (choices?.[effortKey] ?? []).filter(
+									(effort) => role === "main" || effort !== "auto",
+								)
 								const currentEffort = effortFor(effortKey)
 								const isDefault =
 									defaults?.[role] === current &&
@@ -470,8 +469,8 @@ export default function CompanyBrainModels({
 														"text-[11px] leading-[1.5] text-[#5F6673]",
 													)}
 												>
-													{currentEffort === "auto"
-														? AUTO_EFFORT_HELP[role]
+													{role === "main" && currentEffort === "auto"
+														? AUTO_EFFORT_HELP
 														: effortHelp}
 												</p>
 												{currentEffort === "xhigh" &&
