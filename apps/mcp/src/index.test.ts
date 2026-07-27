@@ -41,9 +41,14 @@ describe("MCP Worker entry", () => {
 			const request = new Request(input, init)
 			const headers = new Headers(request.headers)
 			headers.set("Authorization", "Bearer sm_test")
-			return app.request(new Request(request, { headers }), undefined, {
-				API_URL,
-			})
+			headers.set("Origin", "https://chatgpt.com")
+			const response = await app.request(
+				new Request(request, { headers }),
+				undefined,
+				{ API_URL },
+			)
+			expect(response.headers.get("access-control-allow-origin")).toBe("*")
+			return response
 		}
 		const client = new Client(
 			{ name: "worker-entry-tests", version: "1.0.0" },
@@ -109,6 +114,32 @@ describe("MCP Worker entry", () => {
 			"oauth-protected-resource/mcp",
 		)
 		expect(longerPath.status).toBe(404)
+	})
+
+	it("rejects an unapproved browser Origin", async () => {
+		mockApiKeyValidation()
+		const response = await app.request(
+			MCP_URL,
+			{
+				method: "POST",
+				headers: {
+					Authorization: "Bearer sm_test",
+					"Content-Type": "application/json",
+					Origin: "https://attacker.example",
+				},
+				body: JSON.stringify({
+					jsonrpc: "2.0",
+					id: 1,
+					method: "tools/list",
+				}),
+			},
+			{ API_URL },
+		)
+
+		expect(response.status).toBe(403)
+		expect(await response.json()).toMatchObject({
+			error: { message: expect.stringContaining("Invalid Origin") },
+		})
 	})
 
 	it.each([

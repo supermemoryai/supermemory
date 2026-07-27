@@ -1,4 +1,4 @@
-import { createMcpHandler } from "@modelcontextprotocol/server"
+import { createMcpHandler } from "agents/mcp/server"
 import { cors } from "hono/cors"
 import { Hono, type Context } from "hono"
 import { isApiKey, validateApiKey, validateOAuthToken } from "./auth"
@@ -14,6 +14,21 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 const DEFAULT_API_URL = "https://api.supermemory.ai"
 const DEFAULT_MCP_URL = "https://mcp.supermemory.ai"
+const DEFAULT_ALLOWED_MCP_ORIGIN_HOSTNAMES = [
+	"app.supermemory.ai",
+	"mcp.supermemory.ai",
+	"mcp.dev.supermemory.ai",
+	"chatgpt.com",
+	"chat.openai.com",
+	"claude.ai",
+	"gemini.google.com",
+	"grok.com",
+	"x.ai",
+	"t3.chat",
+	"localhost",
+	"127.0.0.1",
+	"[::1]",
+]
 
 const mcpBaseUrl = (c: Context<{ Bindings: Bindings }>) => {
 	if (c.env.MCP_URL) return c.env.MCP_URL.replace(/\/$/, "")
@@ -91,7 +106,18 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 })
 
 function authenticatedMcpHandler(env: Bindings, props: AuthProps) {
-	return createMcpHandler(() => createServer(env, props))
+	const configuredHostname = env.MCP_URL
+		? new URL(env.MCP_URL).hostname
+		: undefined
+
+	return createMcpHandler(() => createServer(env, props), {
+		// Hono owns CORS so it can echo dynamic Mcp-Param-* request headers.
+		corsOptions: false,
+		allowedOriginHostnames: [
+			...DEFAULT_ALLOWED_MCP_ORIGIN_HOSTNAMES,
+			...(configuredHostname ? [configuredHostname] : []),
+		],
+	})
 }
 
 export const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {

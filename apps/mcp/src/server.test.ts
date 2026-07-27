@@ -2,7 +2,7 @@ import {
 	Client,
 	StreamableHTTPClientTransport,
 } from "@modelcontextprotocol/client"
-import { createMcpHandler } from "@modelcontextprotocol/server"
+import { createMcpHandler } from "agents/mcp/server"
 import { describe, expect, it } from "vitest"
 import { createServer, type AuthProps } from "./server"
 

@@ -1,6 +1,6 @@
 # Supermemory MCP Server 4.0
 
-A standalone MCP (Model Context Protocol) server for Supermemory that gives AI assistants persistent memory across conversations. Built on Cloudflare Workers with the stateless MCP TypeScript SDK v2 HTTP handler.
+A standalone MCP (Model Context Protocol) server for Supermemory that gives AI assistants persistent memory across conversations. Built on Cloudflare Workers with the Cloudflare Agents SDK stateless handler and MCP TypeScript SDK v2.
 
 ## Features
 
@@ -259,7 +259,7 @@ bun run deploy
 │            Supermemory MCP Server                   │
 │         (mcp.supermemory.ai/mcp)                    │
 │  ┌─────────────────────────────────────────────┐   │
-│  │       Stateless MCP SDK v2 HTTP handler      │   │
+│  │    Agents SDK stateless MCP v2 handler       │   │
 │  │  • Fresh request-local server instances      │   │
 │  │  • 2026-07-28 + stateless 2025 protocols     │   │
 │  │  • MCP protocol validation and dispatch      │   │
@@ -272,7 +272,8 @@ bun run deploy
 - **Runtime:** Cloudflare Workers
 - **State:** Stateless MCP transport; memories live in the Supermemory API
 - **Framework:** Hono
-- **MCP SDK:** @modelcontextprotocol/server v2 (currently `2.0.0-beta.5`)
+- **MCP HTTP handler:** `agents/mcp/server` from Cloudflare Agents SDK `0.20`
+- **MCP protocol SDK:** @modelcontextprotocol/server v2 (currently `2.0.0-beta.5`)
 - **MCP App UI:** @modelcontextprotocol/ext-apps `1.7.5`; its published browser package still peers on SDK v1, but that build-only dependency is not bundled into the Worker runtime
 - **API Client:** supermemory SDK
 - **Analytics:** PostHog
