@@ -57,6 +57,13 @@ const EFFORT_LABELS: Record<BrainReasoningEffort, string> = {
 	high: "High",
 	xhigh: "Extra high",
 }
+const EFFORT_ORDER: BrainReasoningEffort[] = [
+	"auto",
+	"low",
+	"medium",
+	"high",
+	"xhigh",
+]
 
 const AUTO_EFFORT_HELP =
 	"Chooses Low, Medium, or High per request based on complexity. Manual choices skip the decider and use fixed effort, subject to provider limits."
@@ -170,6 +177,13 @@ const CONFIG_KEYS = [
 
 const extraHighIsBounded = (model: string): boolean =>
 	model.startsWith("grok-") || model.startsWith("gpt-")
+
+const orderedEfforts = (
+	options: BrainReasoningEffort[],
+): BrainReasoningEffort[] =>
+	[...options].sort(
+		(a, b) => EFFORT_ORDER.indexOf(a) - EFFORT_ORDER.indexOf(b),
+	)
 
 const controlClass = cn(
 	dmSans125ClassName(),
@@ -352,8 +366,10 @@ export default function CompanyBrainModels({
 							{ROWS.map(({ role, effortKey, title, help, effortHelp }) => {
 								const options = choices?.[role] ?? []
 								const current = valueFor(role)
-								const effortOptions = (choices?.[effortKey] ?? []).filter(
-									(effort) => role === "main" || effort !== "auto",
+								const effortOptions = orderedEfforts(
+									(choices?.[effortKey] ?? []).filter(
+										(effort) => role === "main" || effort !== "auto",
+									),
 								)
 								const currentEffort = effortFor(effortKey)
 								const isDefault =
@@ -449,7 +465,8 @@ export default function CompanyBrainModels({
 																}
 																className={cn(
 																	dmSans125ClassName(),
-																	"h-7 min-w-0 flex-1 cursor-pointer whitespace-nowrap rounded-full px-1 text-[11.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+																	"h-7 min-w-0 cursor-pointer whitespace-nowrap rounded-full px-1.5 text-[11.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+																	effort === "xhigh" ? "flex-[1.35]" : "flex-1",
 																	isOn
 																		? "bg-white/[0.10] text-[#FAFAFA]"
 																		: "text-[#8B929E] hover:text-[#FAFAFA]",
