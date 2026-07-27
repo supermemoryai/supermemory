@@ -181,9 +181,7 @@ const extraHighIsBounded = (model: string): boolean =>
 const orderedEfforts = (
 	options: BrainReasoningEffort[],
 ): BrainReasoningEffort[] =>
-	[...options].sort(
-		(a, b) => EFFORT_ORDER.indexOf(a) - EFFORT_ORDER.indexOf(b),
-	)
+	[...options].sort((a, b) => EFFORT_ORDER.indexOf(a) - EFFORT_ORDER.indexOf(b))
 
 const controlClass = cn(
 	dmSans125ClassName(),
