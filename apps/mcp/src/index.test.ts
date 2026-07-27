@@ -116,6 +116,34 @@ describe("MCP Worker entry", () => {
 		expect(longerPath.status).toBe(404)
 	})
 
+	it("allows an operational Origin override with a malformed optional MCP_URL", async () => {
+		mockApiKeyValidation()
+		const response = await app.request(
+			MCP_URL,
+			{
+				method: "POST",
+				headers: {
+					Authorization: "Bearer sm_test",
+					"Content-Type": "application/json",
+					Accept: "application/json, text/event-stream",
+					Origin: "https://new-client.example",
+				},
+				body: JSON.stringify({
+					jsonrpc: "2.0",
+					id: 1,
+					method: "tools/list",
+				}),
+			},
+			{
+				API_URL,
+				MCP_URL: "mcp.dev.supermemory.ai",
+				ALLOWED_MCP_ORIGIN_HOSTNAMES: " new-client.example ",
+			},
+		)
+
+		expect(response.status).toBe(200)
+	})
+
 	it("rejects an unapproved browser Origin", async () => {
 		mockApiKeyValidation()
 		const response = await app.request(

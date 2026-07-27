@@ -166,13 +166,16 @@ Create a `.dev.vars` file:
 
 ```env
 API_URL=http://localhost:8787
-or 
-API_URL=https://api.supermemory.ai
+MCP_URL=http://localhost:8788
+ALLOWED_MCP_ORIGIN_HOSTNAMES=custom-client.example
 ```
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `API_URL` | Main Supermemory API URL for OAuth validation | `https://api.supermemory.ai` |
+| `MCP_URL` | Public MCP base URL used in OAuth metadata | Incoming request host |
+| `ALLOWED_MCP_ORIGIN_HOSTNAMES` | Optional comma-separated browser Origin hostnames added to the built-in Supermemory/ChatGPT/Claude/Gemini/Grok/T3/local allowlist | Empty |
+| `POSTHOG_API_KEY` | Optional PostHog project key | Empty |
 
 ### Run Locally
 

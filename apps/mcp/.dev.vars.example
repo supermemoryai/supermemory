@@ -4,5 +4,8 @@
 API_URL=
 MCP_URL=
 
-#(optional)
+# Optional comma-separated browser Origin hostnames beyond the built-in list.
+ALLOWED_MCP_ORIGIN_HOSTNAMES=
+
+# Optional
 POSTHOG_API_KEY=

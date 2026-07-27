@@ -8,6 +8,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status"
 
 type Bindings = McpEnv & {
 	MCP_URL?: string
+	ALLOWED_MCP_ORIGIN_HOSTNAMES?: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -105,10 +106,21 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 	}
 })
 
+// Factory registration and Origin policy close over validated request-local
+// auth/env, so this wrapper is intentionally created after authentication.
 function authenticatedMcpHandler(env: Bindings, props: AuthProps) {
-	const configuredHostname = env.MCP_URL
-		? new URL(env.MCP_URL).hostname
-		: undefined
+	let configuredHostname: string | undefined
+	if (env.MCP_URL) {
+		try {
+			configuredHostname = new URL(env.MCP_URL).hostname
+		} catch {
+			// MCP_URL is also used as a plain metadata base elsewhere. A malformed
+			// optional override must not take the authenticated MCP endpoint down.
+		}
+	}
+	const additionalOriginHostnames = env.ALLOWED_MCP_ORIGIN_HOSTNAMES?.split(",")
+		.map((hostname) => hostname.trim().toLowerCase())
+		.filter(Boolean)
 
 	return createMcpHandler(() => createServer(env, props), {
 		// Hono owns CORS so it can echo dynamic Mcp-Param-* request headers.
@@ -116,6 +128,7 @@ function authenticatedMcpHandler(env: Bindings, props: AuthProps) {
 		allowedOriginHostnames: [
 			...DEFAULT_ALLOWED_MCP_ORIGIN_HOSTNAMES,
 			...(configuredHostname ? [configuredHostname] : []),
+			...(additionalOriginHostnames ?? []),
 		],
 	})
 }
