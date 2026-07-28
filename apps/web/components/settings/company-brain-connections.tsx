@@ -20,7 +20,6 @@ import {
 import { toast } from "sonner"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
-import { useAuth } from "@lib/auth-context"
 import { brainConnectorIcon, SlackMark } from "../brain-connector-icons"
 import { PillButton } from "../integrations/install-steps"
 
@@ -310,7 +309,6 @@ function RowSkeleton() {
 
 export default function CompanyBrainConnections() {
 	const isCompanyBrain = useHasCompanyBrain()
-	const { user } = useAuth()
 	const [catalog, setCatalog] = useState<CatalogEntry[] | null>(null)
 	const [catalogLoaded, setCatalogLoaded] = useState(false)
 	const [rows, setRows] = useState<ConnRow[]>([])
@@ -367,9 +365,6 @@ export default function CompanyBrainConnections() {
 				r.status === "active" &&
 				(shared ? r.userId === null : r.userId !== null),
 		)
-
-	const isStaff =
-		user?.email?.toLowerCase().endsWith("@supermemory.com") ?? false
 
 	const connect = async (entry: CatalogEntry, shared: boolean) => {
 		const key = `${entry.slug}:${shared ? "org" : "user"}`
@@ -462,10 +457,6 @@ export default function CompanyBrainConnections() {
 					redirectUrl: window.location.href,
 				}),
 			})
-			if (res.status === 403) {
-				toast.error("Custom MCP URLs are staff-only.")
-				return
-			}
 			const data = (await res.json().catch(() => ({}))) as {
 				authUrl?: string
 				ok?: boolean
@@ -609,20 +600,18 @@ export default function CompanyBrainConnections() {
 								}
 							/>
 						))}
-						{isStaff ? (
-							<button
-								type="button"
-								onClick={() => setCustomOpen(true)}
-								className={cn(
-									dmSans125ClassName(),
-									"flex min-h-[104px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#2A313C] border-dashed",
-									"text-[13px] font-medium text-[#737B87] transition-colors hover:border-[#3A4150] hover:text-[#FAFAFA]",
-								)}
-							>
-								<Plus className="size-4" />
-								Add custom MCP
-							</button>
-						) : null}
+						<button
+							type="button"
+							onClick={() => setCustomOpen(true)}
+							className={cn(
+								dmSans125ClassName(),
+								"flex min-h-[104px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#2A313C] border-dashed",
+								"text-[13px] font-medium text-[#737B87] transition-colors hover:border-[#3A4150] hover:text-[#FAFAFA]",
+							)}
+						>
+							<Plus className="size-4" />
+							Add custom MCP
+						</button>
 					</>
 				)}
 			</div>
