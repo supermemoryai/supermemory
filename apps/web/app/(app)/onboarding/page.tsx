@@ -64,6 +64,9 @@ export default function BrainOnboardingPage() {
 
 	// `?new=1` forces creating an additional org even when the user already has one.
 	const forceCreate = params?.get("new") === "1"
+	// ensureOrg strips `new` once the org exists, so latch it for `finish`'s reload.
+	const forcedCreateRef = useRef(forceCreate)
+	if (forceCreate) forcedCreateRef.current = true
 	const nameParam = params?.get("name")?.trim() || ""
 
 	const stepFromUrl = (params?.get("step") as BrainStep | null) ?? "about"
@@ -73,9 +76,12 @@ export default function BrainOnboardingPage() {
 
 	const [step, setStep] = useState<BrainStep>(initialStep)
 
+	// `?mode=team` wins over email detection so a personal-domain user arriving
+	// from a "set up a Company Brain" CTA doesn't land in personal onboarding.
+	const modeParam = params?.get("mode") === "team" ? "team" : null
 	const detectedMode = useMemo(
-		() => detectModeFromEmail(user?.email),
-		[user?.email],
+		() => modeParam ?? detectModeFromEmail(user?.email),
+		[modeParam, user?.email],
 	)
 	const suggestedWorkspaceName = useMemo(
 		() => workspaceNameFromEmail(user?.email),
@@ -113,12 +119,12 @@ export default function BrainOnboardingPage() {
 				sources?: SourcesValues
 				team?: TeamValues
 			}
-			if (cached.mode) setMode(cached.mode)
+			if (cached.mode && !modeParam) setMode(cached.mode)
 			if (cached.about) setAbout((a) => ({ ...a, ...cached.about }))
 			if (cached.sources) setSources((s) => ({ ...s, ...cached.sources }))
 			if (cached.team) setTeam((t) => ({ ...t, ...cached.team }))
 		} catch {}
-	}, [forceCreate])
+	}, [forceCreate, modeParam])
 
 	useEffect(() => {
 		try {
@@ -209,12 +215,12 @@ export default function BrainOnboardingPage() {
 			localStorage.removeItem(STORAGE_KEY)
 		} catch {}
 		// Extra org from settings: hard-reload so org-scoped caches don't show the previous org's data.
-		if (forceCreate) {
+		if (forcedCreateRef.current) {
 			window.location.href = "/?onboarded=1"
 			return
 		}
 		router.push("/?onboarded=1")
-	}, [router, mode, sources, team, forceCreate])
+	}, [router, mode, sources, team])
 
 	const goNext = useCallback(() => {
 		const idx = steps.indexOf(step)
