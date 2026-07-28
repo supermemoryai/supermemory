@@ -8,6 +8,7 @@ import { useAuth } from "@lib/auth-context"
 import { authClient } from "@lib/auth"
 import { SHARED_TEAM_BRAIN_TAG } from "@lib/constants"
 import { analytics } from "@/lib/analytics"
+import { resolveCompanyBrainEntry } from "@/lib/company-brain-entry"
 import { BrainShell } from "@/components/onboarding-brain/shell"
 import {
 	StepAbout,
@@ -53,6 +54,20 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 		if (typeof message === "string" && message.trim()) return message
 	}
 	return fallback
+}
+
+const getWorkspaceCreationErrorCopy = (message: string) => {
+	const limit = message.match(/maximum number of workspaces \((\d+)\)/i)?.[1]
+	if (limit) {
+		return {
+			title: "Workspace limit reached",
+			description: `You can own up to ${limit} workspaces. Delete one in Settings or contact support@supermemory.com for a higher limit.`,
+		}
+	}
+	return {
+		title: "Couldn't create workspace",
+		description: message,
+	}
 }
 
 export default function BrainOnboardingPage() {
@@ -245,8 +260,16 @@ export default function BrainOnboardingPage() {
 	const creatingOrgRef = useRef(false)
 
 	const ensureOrg = useCallback(
-		async (domainOverride?: string): Promise<boolean> => {
-			if (!forceCreate && organizations && organizations.length > 0)
+		async (
+			domainOverride?: string,
+			createEvenIfExisting = false,
+		): Promise<boolean> => {
+			if (
+				!createEvenIfExisting &&
+				!forceCreate &&
+				organizations &&
+				organizations.length > 0
+			)
 				return false
 			const name = (
 				domainOverride
@@ -328,8 +351,14 @@ export default function BrainOnboardingPage() {
 			analytics.onboardingWorkspaceCreateFailed({
 				error: message,
 			})
-			toast.error("Organization was not created", {
-				description: "Please try again from Settings.",
+			const errorCopy = getWorkspaceCreationErrorCopy(message)
+			toast.error(errorCopy.title, {
+				description: errorCopy.description,
+				duration: 8000,
+				action: {
+					label: "Open Settings",
+					onClick: () => router.push("/settings"),
+				},
 			})
 			if (forceCreate && (organizations?.length ?? 0) > 0) {
 				router.replace("/")
@@ -342,7 +371,10 @@ export default function BrainOnboardingPage() {
 	const isCompanyBrain = mode === "team"
 
 	const handleBrainConfirm = useCallback(
-		async (confirmedDomain: string): Promise<CompanyBrainConfirmResult> => {
+		async (
+			confirmedDomain: string,
+			organizationId?: string,
+		): Promise<CompanyBrainConfirmResult> => {
 			if (creatingOrgRef.current) return { ok: false }
 			creatingOrgRef.current = true
 			setCreatingOrg(true)
@@ -353,7 +385,42 @@ export default function BrainOnboardingPage() {
 					workspaceDomain: confirmedDomain,
 					workspaceName: workspaceName || a.workspaceName,
 				}))
-				const orgCreated = await ensureOrg(confirmedDomain)
+				let orgCreated = false
+				if (forceCreate) {
+					orgCreated = await ensureOrg(confirmedDomain, true)
+				} else if (organizationId) {
+					const selected = organizations?.find(
+						(organization) => organization.id === organizationId,
+					)
+					if (!selected) return { ok: false }
+					if (selected.id !== org?.id) await setActiveOrg(selected.slug)
+				} else {
+					const organizationsWithActiveMetadata = (organizations ?? []).map(
+						(organization) =>
+							organization.id === org?.id
+								? { ...organization, metadata: org.metadata }
+								: organization,
+					)
+					const decision = resolveCompanyBrainEntry(
+						org?.id,
+						organizationsWithActiveMetadata,
+						confirmedDomain,
+					)
+					if (decision.action === "choose") {
+						return {
+							ok: false,
+							choices: decision.organizations.map((organization) => ({
+								id: organization.id,
+								name: organization.name,
+							})),
+						}
+					}
+					if (decision.action === "switch") {
+						await setActiveOrg(decision.organization.slug)
+					} else if (decision.action === "create") {
+						orgCreated = await ensureOrg(confirmedDomain, true)
+					}
+				}
 				// Re-entering onboarding on an existing org ("Try onboarding") must
 				// kick research from the client. New orgs rely on the signup hook after
 				// provisioning — a duplicate /start races and can strand the DO task.
@@ -393,8 +460,14 @@ export default function BrainOnboardingPage() {
 				const message = getErrorMessage(e, "Organization was not created.")
 				console.error("Failed to create organization:", e)
 				analytics.onboardingWorkspaceCreateFailed({ error: message })
-				toast.error("Organization was not created", {
-					description: "Please try again.",
+				const errorCopy = getWorkspaceCreationErrorCopy(message)
+				toast.error(errorCopy.title, {
+					description: errorCopy.description,
+					duration: 8000,
+					action: {
+						label: "Open Settings",
+						onClick: () => router.push("/settings"),
+					},
 				})
 				return { ok: false }
 			} finally {
@@ -402,7 +475,15 @@ export default function BrainOnboardingPage() {
 				setCreatingOrg(false)
 			}
 		},
-		[ensureOrg, queryClient],
+		[
+			ensureOrg,
+			forceCreate,
+			org,
+			organizations,
+			queryClient,
+			setActiveOrg,
+			router,
+		],
 	)
 
 	const [sendingInvites, setSendingInvites] = useState(false)

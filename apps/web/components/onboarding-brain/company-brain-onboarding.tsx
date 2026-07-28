@@ -4,7 +4,14 @@ import { LogoFull } from "@ui/assets/Logo"
 import { Button } from "@ui/components/button"
 import { Input } from "@ui/components/input"
 import { cn } from "@lib/utils"
-import { ArrowRight, Check, Globe, Loader2 } from "lucide-react"
+import {
+	ArrowRight,
+	Building2,
+	Check,
+	ChevronRight,
+	Globe,
+	Loader2,
+} from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { AnimatePresence, motion } from "motion/react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
@@ -25,6 +32,7 @@ import {
 import { ResearchActionRail } from "./research-action-rail"
 import {
 	type CompanyBrainConfirmResult,
+	type CompanyBrainOrganizationChoice,
 	workspaceNameFromDomain,
 } from "./types"
 
@@ -33,7 +41,10 @@ interface CompanyBrainOnboardingProps {
 	avatarUrl: string | null
 	domain: string
 	submitting: boolean
-	onConfirm: (domain: string) => Promise<CompanyBrainConfirmResult>
+	onConfirm: (
+		domain: string,
+		organizationId?: string,
+	) => Promise<CompanyBrainConfirmResult>
 	onDone: () => void
 	onUsePersonal: () => void
 }
@@ -72,6 +83,9 @@ export function CompanyBrainOnboarding({
 }: CompanyBrainOnboardingProps) {
 	const [phase, setPhase] = useState<Phase>("confirm")
 	const [domain, setDomain] = useState(initialDomain)
+	const [organizationChoices, setOrganizationChoices] = useState<
+		CompanyBrainOrganizationChoice[] | null
+	>(null)
 	const [serverSchedulesResearch, setServerSchedulesResearch] = useState(false)
 	const firstName = name.trim().split(/\s+/)[0] ?? ""
 	const clean = normalizeDomain(domain)
@@ -84,10 +98,14 @@ export function CompanyBrainOnboarding({
 	)
 	const [retryUi, setRetryUi] = useState<null | "retrying" | "exhausted">(null)
 
-	const handleConfirm = async () => {
+	const handleConfirm = async (organizationId?: string) => {
 		if (!clean || submitting) return
-		const result = await onConfirm(clean)
-		if (!result.ok) return
+		const result = await onConfirm(clean, organizationId)
+		if (!result.ok) {
+			if (result.choices?.length) setOrganizationChoices(result.choices)
+			return
+		}
+		setOrganizationChoices(null)
 		setServerSchedulesResearch(result.serverSchedulesResearch)
 		setPhase("research")
 	}
@@ -211,15 +229,24 @@ export function CompanyBrainOnboarding({
 								exit={{ opacity: 0 }}
 								transition={{ duration: 0.15 }}
 							>
-								<ConfirmBody
-									firstName={firstName}
-									name={name}
-									avatarUrl={avatarUrl}
-									domain={domain}
-									onDomainChange={setDomain}
-									onConfirm={handleConfirm}
-									submitting={submitting}
-								/>
+								{organizationChoices ? (
+									<OrganizationChoiceBody
+										organizations={organizationChoices}
+										submitting={submitting}
+										onSelect={(organizationId) => handleConfirm(organizationId)}
+										onBack={() => setOrganizationChoices(null)}
+									/>
+								) : (
+									<ConfirmBody
+										firstName={firstName}
+										name={name}
+										avatarUrl={avatarUrl}
+										domain={domain}
+										onDomainChange={setDomain}
+										onConfirm={() => handleConfirm()}
+										submitting={submitting}
+									/>
+								)}
 							</motion.div>
 						) : (
 							<motion.div
@@ -240,7 +267,7 @@ export function CompanyBrainOnboarding({
 					</AnimatePresence>
 				</motion.div>
 
-				{phase === "confirm" && (
+				{phase === "confirm" && !organizationChoices && (
 					<div className="w-full max-w-xl mx-auto mt-5 flex items-center justify-between gap-4 px-1">
 						<button
 							type="button"
@@ -252,7 +279,7 @@ export function CompanyBrainOnboarding({
 						</button>
 						<Button
 							variant="insideOut"
-							onClick={handleConfirm}
+							onClick={() => handleConfirm()}
 							disabled={!clean || submitting}
 							className="rounded-full px-5 py-[10px] text-[13px] font-medium text-[#fafafa]"
 						>
@@ -297,6 +324,67 @@ export function CompanyBrainOnboarding({
 				</AnimatePresence>
 			</main>
 		</div>
+	)
+}
+
+function OrganizationChoiceBody({
+	organizations,
+	submitting,
+	onSelect,
+	onBack,
+}: {
+	organizations: CompanyBrainOrganizationChoice[]
+	submitting: boolean
+	onSelect: (organizationId: string) => void
+	onBack: () => void
+}) {
+	return (
+		<>
+			<div className="flex items-start gap-4">
+				<div className="flex size-12 shrink-0 items-center justify-center rounded-full border border-[rgba(82,89,102,0.2)] bg-[#14161A] text-[#4BA0FA]">
+					<Building2 className="size-5" />
+				</div>
+				<div>
+					<p className="text-[20px] font-semibold leading-tight text-[#FAFAFA]">
+						Choose your Company Brain
+					</p>
+					<p className="mt-1 text-[14px] font-medium leading-[1.4] text-[#737373]">
+						You already belong to more than one Company Brain workspace.
+					</p>
+				</div>
+			</div>
+			<div className="mt-6 flex flex-col gap-2">
+				{organizations.map((organization) => (
+					<button
+						key={organization.id}
+						type="button"
+						disabled={submitting}
+						onClick={() => onSelect(organization.id)}
+						className="flex w-full items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3 text-left transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4BA0FA] disabled:opacity-50"
+					>
+						<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#4BA0FA]/10 text-[#4BA0FA]">
+							<Building2 className="size-4" />
+						</span>
+						<span className="min-w-0 flex-1 truncate text-[14px] font-medium text-[#FAFAFA]">
+							{organization.name}
+						</span>
+						{submitting ? (
+							<Loader2 className="size-4 shrink-0 animate-spin text-[#8A94A6]" />
+						) : (
+							<ChevronRight className="size-4 shrink-0 text-[#8A94A6]" />
+						)}
+					</button>
+				))}
+			</div>
+			<button
+				type="button"
+				disabled={submitting}
+				onClick={onBack}
+				className="mt-4 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#FAFAFA] disabled:opacity-50"
+			>
+				Use a different domain
+			</button>
+		</>
 	)
 }
 

@@ -1,6 +1,11 @@
+export type CompanyBrainOrganizationChoice = {
+	id: string
+	name: string
+}
+
 export type CompanyBrainConfirmResult =
 	| { ok: true; serverSchedulesResearch: boolean }
-	| { ok: false }
+	| { ok: false; choices?: CompanyBrainOrganizationChoice[] }
 
 export type BrainMode = "personal" | "team"
 
