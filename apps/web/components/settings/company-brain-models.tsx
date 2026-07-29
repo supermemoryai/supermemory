@@ -225,6 +225,13 @@ export default function CompanyBrainModels({
 	const [draft, setDraft] = useState<Partial<BrainModelConfig>>({})
 	const [advancedOpen, setAdvancedOpen] = useState(false)
 
+	const updateDraft = (patch: Partial<BrainModelConfig>) => {
+		// A saved custom config opens Advanced automatically. Keep it open if an
+		// edit happens to match a preset again, instead of collapsing mid-click.
+		setAdvancedOpen(true)
+		setDraft((currentDraft) => ({ ...currentDraft, ...patch }))
+	}
+
 	const resolved = modelsQuery.data?.resolved
 	const defaults = modelsQuery.data?.defaults
 	const choices = modelsQuery.data?.choices
@@ -364,10 +371,16 @@ export default function CompanyBrainModels({
 							{ROWS.map(({ role, effortKey, title, help, effortHelp }) => {
 								const options = choices?.[role] ?? []
 								const current = valueFor(role)
+								const availableEfforts = choices?.[effortKey] ?? []
 								const effortOptions = orderedEfforts(
-									(choices?.[effortKey] ?? []).filter(
-										(effort) => role === "main" || effort !== "auto",
-									),
+									role === "main"
+										? [
+												...new Set<BrainReasoningEffort>([
+													"auto",
+													...availableEfforts,
+												]),
+											]
+										: availableEfforts.filter((effort) => effort !== "auto"),
 								)
 								const currentEffort = effortFor(effortKey)
 								const isDefault =
@@ -415,9 +428,7 @@ export default function CompanyBrainModels({
 											<Select
 												value={current}
 												disabled={disabled}
-												onValueChange={(v) =>
-													setDraft((d) => ({ ...d, [role]: v }))
-												}
+												onValueChange={(v) => updateDraft({ [role]: v })}
 											>
 												<SelectTrigger className={controlClass}>
 													<SelectValue placeholder="Select a model…" />
@@ -456,10 +467,7 @@ export default function CompanyBrainModels({
 																aria-pressed={isOn}
 																disabled={disabled}
 																onClick={() =>
-																	setDraft((currentDraft) => ({
-																		...currentDraft,
-																		[effortKey]: effort,
-																	}))
+																	updateDraft({ [effortKey]: effort })
 																}
 																className={cn(
 																	dmSans125ClassName(),
