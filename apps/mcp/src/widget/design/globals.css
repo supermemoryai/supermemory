@@ -193,6 +193,7 @@
 	border: 1px solid var(--card-border);
 	border-radius: var(--radius-lg);
 	background: var(--card-bg);
+	box-shadow: var(--card-shadow);
 	/* Hide scrollbar chrome — the framed list keeps a stable height. */
 	scrollbar-width: none;
 }

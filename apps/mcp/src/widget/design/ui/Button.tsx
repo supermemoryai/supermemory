@@ -3,9 +3,9 @@ import { type ButtonHTMLAttributes, forwardRef, type ReactNode } from "react"
 import { Loader2 } from "../../lib/icons"
 import { cn } from "../lib/cn"
 
-// Token-driven, theme-aware pill controls. Primary is a high-contrast slab that
-// inverts per theme (dark-on-light / light-on-dark); secondary is a neutral,
-// input-like surface so it never reads as a heavy block on light backgrounds.
+// Token-driven, theme-aware pill controls. Primary stays high contrast while
+// matching each theme's surface family; secondary remains a neutral,
+// input-like surface.
 const buttonVariants = cva(
 	[
 		"inline-flex items-center justify-center gap-2",
@@ -19,13 +19,11 @@ const buttonVariants = cva(
 	{
 		variants: {
 			variant: {
-				// Nova's "insideOut" primary button: a near-black pill with the
-				// shadow-inside-out recessed inset. Same in both themes, exactly as
-				// the console renders it.
 				primary: [
-					"bg-[#0D121A] text-[#FAFAFA]",
-					"shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]",
-					"hover:bg-[#121820] active:bg-[#0A0E14]",
+					"bg-[var(--button-primary-bg)] text-[var(--button-primary-text)]",
+					"[background-image:var(--button-primary-texture)]",
+					"shadow-[var(--button-primary-shadow)]",
+					"hover:bg-[var(--button-primary-hover)] active:bg-[var(--button-primary-active)]",
 				].join(" "),
 				secondary: [
 					"bg-[var(--bg-control)] text-[var(--text-primary)]",
