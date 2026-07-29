@@ -47,22 +47,35 @@ describeWithAuth("MCP — graph, resources & prompts", () => {
 		const res = await s.client.readResource({ uri: "supermemory://profile" })
 		expect(res.contents.length).toBeGreaterThan(0)
 		expect(res.contents[0].mimeType).toBe("text/plain")
-		expect(typeof res.contents[0].text).toBe("string")
+		expect(res.contents[0].text).toMatch(/# Active Workspace Profile/)
+		expect(res.contents[0].text).toMatch(/Workspace:/)
+		expect(res.contents[0].text).toMatch(
+			/Use `listSpaces` to find the relevant workspace key/,
+		)
 	})
 
-	it("reads the container-tags resource as JSON", async () => {
+	it("reads all workspaces in a compact human-readable format", async () => {
 		const res = await s.client.readResource({
 			uri: "supermemory://container-tags",
 		})
 		const text = res.contents[0].text as string
-		const parsed = JSON.parse(text)
-		expect(Array.isArray(parsed.containerTags)).toBe(true)
+		expect(res.contents[0].mimeType).toBe("text/plain")
+		expect(text).toMatch(/# My Workspaces/)
+		expect(text).toMatch(/Active:/)
+		expect(text).not.toMatch(/"containerTags":/)
 	})
 
-	it("gets the context prompt as a system message", async () => {
+	it("gets compact active-workspace context without prompt arguments", async () => {
+		const prompts = await s.client.listPrompts()
+		const contextPrompt = prompts.prompts.find(
+			(prompt) => prompt.name === "context",
+		)
+		expect(contextPrompt?.arguments ?? []).toHaveLength(0)
+
 		const res = await s.client.getPrompt({ name: "context", arguments: {} })
 		expect(res.messages.length).toBeGreaterThan(0)
 		const text = res.messages[0].content.text as string
-		expect(text).toMatch(/memory|context/i)
+		expect(text).toMatch(/# Supermemory Context/)
+		expect(text).toMatch(/Active workspace:/)
 	})
 })

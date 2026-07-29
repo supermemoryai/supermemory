@@ -1,17 +1,15 @@
+import type { AuthInfo } from "@modelcontextprotocol/server"
+import { createMcpHandler } from "agents/mcp/server"
 import { Hono, type Context } from "hono"
 import { cors } from "hono/cors"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
-import type { Props } from "../shared/types"
-import { SupermemoryMCP } from "./agent"
-import { validateOAuthToken } from "./auth"
+import { validateOAuthToken, type AuthUser } from "./auth"
+import { SupermemoryMCP } from "./legacy-protocol-state"
+import { createSupermemoryServer } from "./server"
+import type { ActorContext, ServerEnv } from "./types"
+import { WorkspaceState } from "./workspace-state"
 
-type Bindings = {
-	MCP_SERVER: DurableObjectNamespace<SupermemoryMCP>
-	API_URL?: string
-	MCP_RESOURCE?: string
-}
-
-export type { Props }
+type Bindings = ServerEnv
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -19,22 +17,31 @@ const DEFAULT_API_URL = "https://api.supermemory.ai"
 const DEFAULT_MCP_RESOURCE = "https://mcp.supermemory.ai/mcp"
 const PROTECTED_RESOURCE_METADATA_PATH =
 	"/.well-known/oauth-protected-resource/mcp"
+const DEFAULT_ALLOWED_ORIGIN_HOSTNAMES = [
+	"app.supermemory.ai",
+	"mcp.supermemory.ai",
+	"mcp.dev.supermemory.ai",
+	"mcp.dev.supermemory",
+	"claude.ai",
+	"chatgpt.com",
+	"chat.openai.com",
+	"gemini.google.com",
+	"grok.com",
+	"x.ai",
+	"t3.chat",
+	"localhost",
+	"127.0.0.1",
+	"[::1]",
+]
 
 app.use(
 	"*",
 	cors({
 		origin: "*",
 		allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
-		allowHeaders: [
-			"Content-Type",
-			"Authorization",
-			"x-sm-project",
-			"Accept",
-			"Mcp-Session-Id",
-			"MCP-Protocol-Version",
-			"Last-Event-ID",
-		],
-		exposeHeaders: ["Mcp-Session-Id", "WWW-Authenticate"],
+		// When omitted, Hono echoes Access-Control-Request-Headers. This keeps
+		// modern Mcp-Method/Mcp-Name/Mcp-Param-* routing forward-compatible.
+		exposeHeaders: ["WWW-Authenticate"],
 	}),
 )
 
@@ -42,31 +49,27 @@ app.get("/", (c) => {
 	return c.json({
 		name: "supermemory-mcp",
 		version: "1.0.0",
-		description: "Supermemory MCP — AI memory for teams",
-		docs: "https://docs.supermemory.ai/mcp",
+		description: "Supermemory MCP - AI memory for teams",
+		docs: "https://supermemory.ai/docs/supermemory-mcp/mcp",
 	})
 })
 
-// OAuth discovery: resource metadata. The protected resource is the MCP
-// endpoint itself, so path-aware clients discover metadata at the well-known
-// URL with `/mcp` appended.
 function resourceMetadata(c: Context<{ Bindings: Bindings }>) {
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
 	const mcpResource = c.env.MCP_RESOURCE || DEFAULT_MCP_RESOURCE
 
 	return c.json({
 		resource: mcpResource,
-		authorization_servers: [apiUrl],
+		authorization_servers: [`${apiUrl.replace(/\/+$/, "")}/api/auth`],
 		scopes_supported: ["openid", "profile", "email", "offline_access"],
 		bearer_methods_supported: ["header"],
-		resource_documentation: "https://docs.supermemory.ai/mcp",
+		resource_documentation: "https://supermemory.ai/docs/supermemory-mcp/mcp",
 	})
 }
 
 app.get("/.well-known/oauth-protected-resource", resourceMetadata)
 app.get(PROTECTED_RESOURCE_METADATA_PATH, resourceMetadata)
 
-// OAuth discovery: proxy authorization server metadata
 app.get("/.well-known/oauth-authorization-server", async (c) => {
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
 
@@ -80,42 +83,46 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 				{ status: response.status as ContentfulStatusCode },
 			)
 		}
-		const metadata = await response.json()
-		return c.json(metadata)
+		return c.json(await response.json())
 	} catch (error) {
 		console.error("Error fetching OAuth metadata:", error)
 		return c.json({ error: "Internal server error" }, 500)
 	}
 })
 
-const mcpHandler = SupermemoryMCP.serve("/mcp", {
-	binding: "MCP_SERVER",
-	corsOptions: {
-		origin: "*",
-		methods: "GET, POST, DELETE, OPTIONS",
-		headers: "Content-Type, Authorization, x-sm-project",
-	},
-})
+function allowedOriginHostnames(env: Bindings): string[] {
+	const configured =
+		env.ALLOWED_MCP_ORIGIN_HOSTNAMES?.split(",")
+			.map((hostname) => hostname.trim().toLowerCase())
+			.filter(Boolean) ?? []
 
-async function handleMcpRequest(
-	c: Context<{ Bindings: Bindings }>,
-	rewritePath?: string,
-) {
-	const authHeader = c.req.header("Authorization")
-	const token = authHeader?.replace(/^Bearer\s+/i, "")
-	const containerTag = c.req.header("x-sm-project")
-	const apiUrl = c.env.API_URL || DEFAULT_API_URL
-	const mcpResource = c.env.MCP_RESOURCE || DEFAULT_MCP_RESOURCE
+	return [...new Set([...DEFAULT_ALLOWED_ORIGIN_HOSTNAMES, ...configured])]
+}
 
-	// Build absolute resource_metadata URL from incoming request (works
-	// behind tunnels where the scheme/host differ from localhost)
-	const reqHost = c.req.header("x-forwarded-host") || c.req.header("host") || ""
-	const reqProto = c.req.header("x-forwarded-proto") || "https"
-	const resourceMetadataUrl = reqHost
-		? `${reqProto}://${reqHost}${PROTECTED_RESOURCE_METADATA_PATH}`
-		: PROTECTED_RESOURCE_METADATA_PATH
+function authInfoFor(
+	authUser: AuthUser,
+	resource: string,
+): AuthInfo | undefined {
+	if (!authUser.oauthClientId) return undefined
 
-	if (!token) {
+	return {
+		token: authUser.bearerToken,
+		clientId: authUser.oauthClientId,
+		scopes: authUser.scopes,
+		expiresAt: authUser.expiresAt,
+		resource: new URL(resource),
+		extra: {
+			userId: authUser.userId,
+			organizationId: authUser.organizationId,
+		},
+	}
+}
+
+function unauthorizedResponse(
+	resourceMetadataUrl: string,
+	invalidToken = false,
+): Response {
+	if (!invalidToken) {
 		return new Response("Unauthorized", {
 			status: 401,
 			headers: {
@@ -126,55 +133,76 @@ async function handleMcpRequest(
 		})
 	}
 
-	const authUser = await validateOAuthToken(token, apiUrl, mcpResource)
-
-	if (!authUser) {
-		return new Response(
-			JSON.stringify({
-				jsonrpc: "2.0",
-				error: {
-					code: -32000,
-					message: "Invalid or expired token",
-				},
-				id: null,
-			}),
-			{
-				status: 401,
-				headers: {
-					"Content-Type": "application/json",
-					"WWW-Authenticate": `Bearer error="invalid_token", resource_metadata="${resourceMetadataUrl}"`,
-					"Access-Control-Expose-Headers": "WWW-Authenticate",
-					"Access-Control-Allow-Origin": "*",
-				},
+	return Response.json(
+		{
+			jsonrpc: "2.0",
+			error: {
+				code: -32000,
+				message: "Invalid or expired token",
 			},
-		)
+			id: null,
+		},
+		{
+			status: 401,
+			headers: {
+				"WWW-Authenticate": `Bearer error="invalid_token", resource_metadata="${resourceMetadataUrl}"`,
+				"Access-Control-Expose-Headers": "WWW-Authenticate",
+				"Access-Control-Allow-Origin": "*",
+			},
+		},
+	)
+}
+
+async function handleMcpRequest(
+	c: Context<{ Bindings: Bindings }>,
+	rewritePath?: string,
+) {
+	const authHeader = c.req.header("Authorization")
+	const token = authHeader?.replace(/^Bearer\s+/i, "").trim()
+	const apiUrl = c.env.API_URL || DEFAULT_API_URL
+	const mcpResource = c.env.MCP_RESOURCE || DEFAULT_MCP_RESOURCE
+
+	const reqHost = c.req.header("x-forwarded-host") || c.req.header("host") || ""
+	const reqProto = c.req.header("x-forwarded-proto") || "https"
+	const resourceMetadataUrl = reqHost
+		? `${reqProto}://${reqHost}${PROTECTED_RESOURCE_METADATA_PATH}`
+		: PROTECTED_RESOURCE_METADATA_PATH
+
+	if (!token) return unauthorizedResponse(resourceMetadataUrl)
+
+	const authUser = await validateOAuthToken(token, apiUrl, mcpResource)
+	if (!authUser) return unauthorizedResponse(resourceMetadataUrl, true)
+
+	const actor: ActorContext = {
+		userId: authUser.userId,
+		organizationId: authUser.organizationId,
+		bearerToken: authUser.bearerToken,
+		oauthClientId: authUser.oauthClientId,
 	}
-
-	const ctx = {
-		...c.executionCtx,
-		props: {
-			userId: authUser.userId,
-			organizationId: authUser.organizationId,
-			bearerToken: authUser.bearerToken,
-			containerTag,
-		} satisfies Props,
-	} as ExecutionContext & { props: Props }
-
 	const request = rewritePath
 		? new Request(new URL(rewritePath, c.req.url).toString(), c.req.raw)
 		: c.req.raw
+	const handler = createMcpHandler(
+		() => createSupermemoryServer(c.env, actor),
+		{
+			route: "/mcp",
+			legacy: "stateless",
+			corsOptions: false,
+			allowedOriginHostnames: allowedOriginHostnames(c.env),
+			onerror: (error) => console.error("MCP request error:", error),
+		},
+	)
 
-	return mcpHandler.fetch(request, c.env, ctx)
+	return handler.fetch(request, {
+		authInfo: authInfoFor(authUser, mcpResource),
+	})
 }
 
-app.all("/", async (c) => {
-	return handleMcpRequest(c, "/mcp")
-})
+app.all("/", (c) => handleMcpRequest(c, "/mcp"))
+app.all("/mcp", (c) => handleMcpRequest(c))
+app.all("/mcp/", (c) => handleMcpRequest(c, "/mcp"))
 
-app.all("/mcp/*", async (c) => {
-	return handleMcpRequest(c)
-})
-
-export { SupermemoryMCP }
+export { SupermemoryMCP, WorkspaceState }
+export type { ActorContext, ServerEnv }
 
 export default app

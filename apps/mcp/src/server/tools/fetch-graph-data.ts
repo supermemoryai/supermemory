@@ -1,34 +1,23 @@
-import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
-import { SUPERMEMORY_RESOURCE_URI } from "../../shared/types"
+import { appToolMeta } from "../app-metadata"
+import { optionalContainerTagSchema } from "../container-tag"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
-	registerAppTool(
-		deps.server,
+	deps.server.registerTool(
 		"fetch-graph-data",
 		{
 			description: "Fetch documents with memories for graph display",
-			inputSchema: {
-				containerTag: z.string().optional(),
+			inputSchema: z.object({
+				containerTag: optionalContainerTagSchema,
 				page: z.number().optional().default(1),
 				limit: z.number().optional().default(200),
-			},
+			}),
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
-			_meta: {
-				ui: {
-					resourceUri: SUPERMEMORY_RESOURCE_URI,
-					visibility: ["app"],
-				},
-			},
+			_meta: appToolMeta(["app"]),
 		},
-		async (rawArgs) => {
-			const args = rawArgs as {
-				containerTag?: string
-				page?: number
-				limit?: number
-			}
+		async (args) => {
 			try {
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
 				const client = deps.getClient(effectiveTag)

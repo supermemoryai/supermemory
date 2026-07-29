@@ -17,6 +17,7 @@ interface Props {
 	assignedTags?: ContainerTagAccess[] | null
 	onAdvance: (msg: ViewMessage) => void
 	onError: (message: string) => void
+	viewId?: string
 }
 
 // Show the search box once the list is long enough to need it.
@@ -28,8 +29,9 @@ export function Picker({
 	assignedTags,
 	onAdvance,
 	onError,
+	viewId,
 }: Props) {
-	const { callTool, updateModelContext } = useApp()
+	const { callTool, handoffToModel } = useApp()
 	const log = useLog()
 	const [pending, setPending] = useState<string | null>(null)
 	const [query, setQuery] = useState("")
@@ -49,6 +51,7 @@ export function Picker({
 		setPending(containerTag)
 		const result = await callTool<ViewMessage>("set-active-tag", {
 			containerTag,
+			viewId,
 		})
 		setPending(null)
 		if (!result.ok || !result.data) {
@@ -57,13 +60,26 @@ export function Picker({
 			return
 		}
 		onAdvance(result.data)
-		const contextUpdate = await updateModelContext(
-			`Supermemory workspace selection changed. Active workspace: "${containerTag}". Use it for future Supermemory actions until another workspace is selected.`,
-		)
-		if (!contextUpdate.ok) {
+		const handoff = await handoffToModel({
+			context: `Supermemory workspace selection changed. Active workspace: "${containerTag}". Use it for future Supermemory actions until another workspace is selected.`,
+			message: `I selected "${containerTag}" as my active Supermemory workspace. Use this workspace for future Supermemory actions until I select another one.`,
+			structuredContent: {
+				supermemory: {
+					action: "workspace-selected",
+					activeWorkspace: containerTag,
+				},
+			},
+		})
+		if (!handoff.contextUpdate.ok) {
 			log(
 				"warning",
-				`[picker] model context update failed: ${contextUpdate.error}`,
+				`[picker] model context update failed: ${handoff.contextUpdate.error}`,
+			)
+		}
+		if (!handoff.conversationMessage.ok) {
+			log(
+				"warning",
+				`[picker] agent handoff failed: ${handoff.conversationMessage.error}`,
 			)
 		}
 	}

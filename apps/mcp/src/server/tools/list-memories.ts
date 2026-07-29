@@ -1,20 +1,11 @@
 import { z } from "zod"
+import { optionalContainerTagSchema } from "../container-tag"
 import { formatMemoriesList } from "../format"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
-	const containerTagField: Record<string, z.ZodTypeAny> = deps.props
-		?.containerTag
-		? {}
-		: {
-				containerTag: z
-					.string()
-					.max(128, "Container tag exceeds maximum length")
-					.optional(),
-			}
-
-	const inputSchema = {
+	const inputSchema = z.object({
 		page: z
 			.number()
 			.int()
@@ -32,8 +23,8 @@ export function register(deps: ToolDeps) {
 			.describe(
 				"Documents per page; each document groups its extracted memories (default 10, max 50)",
 			),
-		...containerTagField,
-	}
+		containerTag: optionalContainerTagSchema,
+	})
 
 	deps.server.registerTool(
 		"listMemories",
@@ -43,12 +34,7 @@ export function register(deps: ToolDeps) {
 			inputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
-		async (rawArgs) => {
-			const args = rawArgs as {
-				page?: number
-				limit?: number
-				containerTag?: string
-			}
+		async (args) => {
 			try {
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
 				const client = deps.getClient(effectiveTag)

@@ -1,21 +1,22 @@
-import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
-import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import { z } from "zod"
+import type { ViewMessage } from "../../shared/types"
+import { appResultMeta, appToolMeta } from "../app-metadata"
 import { effectiveContainerTagAccess } from "../auth/rbac"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
-	registerAppTool(
-		deps.server,
+	deps.server.registerTool(
 		"select-workspace",
 		{
 			title: "Select Workspace",
 			description:
 				"Choose which container tag to work in. Shows available container tags as interactive cards.",
-			inputSchema: {},
-			_meta: { ui: { resourceUri: SUPERMEMORY_RESOURCE_URI } },
+			inputSchema: z.object({}),
+			_meta: appToolMeta(),
 		},
 		async () => {
 			try {
+				const viewId = crypto.randomUUID()
 				const client = deps.getClient()
 				const [tags, session, activeTag] = await Promise.all([
 					client.listContainerTags(),
@@ -29,6 +30,7 @@ export function register(deps: ToolDeps) {
 
 				const sc: ViewMessage = {
 					view: "picker",
+					viewId,
 					containerTags: tags,
 					activeTag,
 					assignedTags,
@@ -42,6 +44,7 @@ export function register(deps: ToolDeps) {
 						},
 					],
 					structuredContent: sc,
+					_meta: appResultMeta(viewId),
 				}
 			} catch (error) {
 				return deps.errorResult(error)

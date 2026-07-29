@@ -1,65 +1,90 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
-import { z } from "zod"
-import type { SupermemoryClient } from "../client"
+import type { McpServer } from "@modelcontextprotocol/server"
+import { DEFAULT_PROJECT_ID, type SupermemoryClient } from "../client"
+import {
+	compactDescription,
+	formatFactSection,
+	formatWorkspaceRow,
+	sortWorkspaces,
+	workspaceDisplayName,
+	workspaceMetadata,
+} from "../workspace-presentation"
+
+const CONTEXT_FACT_LIMIT = 8
+const RECENT_WORKSPACE_LIMIT = 3
 
 export function registerContextPrompt(
 	server: McpServer,
-	hasRootContainerTag: boolean,
 	getClient: (tag?: string) => SupermemoryClient,
-	resolveContainerTag: (explicit?: string) => Promise<string | undefined>,
+	resolveContainerTag: () => Promise<string | undefined>,
 ) {
-	const containerTagField: Record<string, z.ZodTypeAny> = hasRootContainerTag
-		? {}
-		: {
-				containerTag: z
-					.string()
-					.max(128, "Container tag exceeds maximum length")
-					.optional(),
-			}
-
-	const argsSchema = {
-		includeRecent: z.boolean().optional().default(true),
-		...containerTagField,
-	}
-
 	server.registerPrompt(
 		"context",
 		{
-			description: "Get user context including profile and workspace info",
-			argsSchema,
+			description: "Attach compact context for the active workspace",
 		},
-		async (rawArgs) => {
-			const args = rawArgs as {
-				includeRecent?: boolean
-				containerTag?: string
-			}
+		async () => {
 			try {
-				const effectiveTag = await resolveContainerTag(args.containerTag)
-				const client = getClient(effectiveTag)
-				const profileResult = await client.getProfile()
+				const selectedTag = await resolveContainerTag()
+				const activeKey = selectedTag ?? DEFAULT_PROJECT_ID
+				const [profileResult, workspaces] = await Promise.all([
+					getClient(activeKey).getProfile(),
+					getClient().listContainerTags(),
+				])
+				const activeWorkspace = workspaces.find(
+					(workspace) => workspace.containerTag === activeKey,
+				)
+				const activeLabel = workspaceDisplayName(activeWorkspace, activeKey)
+				const fallback = selectedTag ? "" : " (default)"
+				const parts: string[] = [
+					"# Supermemory Context",
+					`Active workspace: ${activeLabel} [${activeKey}]${fallback}`,
+				]
 
-				const parts: string[] = []
-
-				if (profileResult.profile.static.length > 0) {
-					parts.push("## About the user")
-					for (const fact of profileResult.profile.static) {
-						parts.push(`- ${fact}`)
-					}
+				if (activeWorkspace) {
+					const metadata = workspaceMetadata(activeWorkspace)
+					if (metadata) parts.push(metadata)
+					const description = compactDescription(activeWorkspace.description)
+					if (description) parts.push(description)
 				}
+
+				parts.push(
+					"",
+					...formatFactSection(
+						"Stable Context",
+						profileResult.profile.static,
+						CONTEXT_FACT_LIMIT,
+					),
+					...formatFactSection(
+						"Recent Context",
+						profileResult.profile.dynamic,
+						CONTEXT_FACT_LIMIT,
+					),
+				)
 
 				if (
-					args.includeRecent !== false &&
-					profileResult.profile.dynamic.length > 0
+					profileResult.profile.static.length === 0 &&
+					profileResult.profile.dynamic.length === 0
 				) {
-					parts.push("\n## Recent context")
-					for (const fact of profileResult.profile.dynamic) {
-						parts.push(`- ${fact}`)
-					}
+					parts.push("No profile facts are available for this workspace yet.")
 				}
 
-				if (effectiveTag) {
-					parts.push(`\n## Active workspace: ${effectiveTag}`)
+				const recentWorkspaces = sortWorkspaces(workspaces, activeKey)
+					.filter((workspace) => workspace.containerTag !== activeKey)
+					.slice(0, RECENT_WORKSPACE_LIMIT)
+				if (recentWorkspaces.length > 0) {
+					parts.push(
+						"",
+						"## Recently Active Workspaces",
+						...recentWorkspaces.map((workspace) =>
+							formatWorkspaceRow(workspace, activeKey, 100),
+						),
+					)
 				}
+
+				parts.push(
+					"",
+					"Use a workspace key with workspace-aware tools when the user asks about another workspace. Keep workspace contexts separate unless the user asks to combine them.",
+				)
 
 				return {
 					messages: [
@@ -67,10 +92,7 @@ export function registerContextPrompt(
 							role: "user" as const,
 							content: {
 								type: "text" as const,
-								text:
-									parts.length > 0
-										? parts.join("\n")
-										: "No user context available yet.",
+								text: parts.join("\n"),
 							},
 						},
 					],

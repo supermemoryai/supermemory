@@ -1,27 +1,24 @@
-import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
-import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import type { ViewMessage } from "../../shared/types"
+import { appResultMeta, appToolMeta } from "../app-metadata"
+import { containerTagSchema } from "../container-tag"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
-	registerAppTool(
-		deps.server,
+	deps.server.registerTool(
 		"set-active-tag",
 		{
-			description: "Set the active container tag for this session",
-			inputSchema: {
-				containerTag: z.string().min(1),
-			},
-			_meta: {
-				ui: {
-					resourceUri: SUPERMEMORY_RESOURCE_URI,
-					visibility: ["app"],
-				},
-			},
+			description: "Set the active container tag for this account",
+			inputSchema: z.object({
+				containerTag: containerTagSchema,
+				viewId: z.string().uuid().optional(),
+			}),
+			_meta: appToolMeta(["app"]),
 		},
 		async (args) => {
-			const containerTag = (args as { containerTag: string }).containerTag
+			const { containerTag } = args
 			try {
+				const viewId = args.viewId ?? crypto.randomUUID()
 				const tags = await deps.getClient().listContainerTags()
 				if (!tags.some((tag) => tag.containerTag === containerTag)) {
 					return deps.errorResult(
@@ -31,6 +28,7 @@ export function register(deps: ToolDeps) {
 				await deps.setActiveContainerTag(containerTag)
 				const sc: ViewMessage = {
 					view: "confirmation",
+					viewId,
 					containerTag,
 				}
 				return {
@@ -41,6 +39,7 @@ export function register(deps: ToolDeps) {
 						},
 					],
 					structuredContent: sc,
+					_meta: appResultMeta(viewId),
 				}
 			} catch (error) {
 				return deps.errorResult(error)

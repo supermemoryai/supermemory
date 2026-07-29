@@ -183,13 +183,13 @@ export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 export type Session = { client: Client; close: () => Promise<void> }
 
 export async function connect(
-	opts: { token?: string; containerTag?: string } = {},
+	opts: { token?: string; headers?: Record<string, string> } = {},
 ): Promise<Session> {
 	const bearerToken = opts.token ?? (await defaultBearerToken())
 	const headers: Record<string, string> = {
 		Authorization: `Bearer ${bearerToken}`,
+		...opts.headers,
 	}
-	if (opts.containerTag) headers["x-sm-project"] = opts.containerTag
 
 	const transport = new StreamableHTTPClientTransport(new URL(MCP_URL), {
 		requestInit: { headers },

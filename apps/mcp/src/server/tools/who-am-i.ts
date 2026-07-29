@@ -1,3 +1,4 @@
+import { z } from "zod"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
@@ -6,10 +7,10 @@ export function register(deps: ToolDeps) {
 		"whoAmI",
 		{
 			description: "Get current user info, role, and workspace context",
-			inputSchema: {},
+			inputSchema: z.object({}),
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
-		async () => {
+		async (_args, context) => {
 			try {
 				const [session, activeTag] = await Promise.all([
 					deps.getSession(),
@@ -31,8 +32,8 @@ export function register(deps: ToolDeps) {
 										? session.containerTags
 										: null,
 								scope: session.scope,
-								client: deps.getClientInfo(),
-								sessionId: deps.getMcpSessionId(),
+								client: deps.getClientInfo(context),
+								sessionId: context.sessionId ?? null,
 							}),
 						},
 					],

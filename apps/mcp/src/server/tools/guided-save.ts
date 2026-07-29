@@ -1,24 +1,24 @@
-import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
-import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import type { ViewMessage } from "../../shared/types"
+import { appResultMeta, appToolMeta } from "../app-metadata"
 import { effectiveContainerTagAccess } from "../auth/rbac"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
-	registerAppTool(
-		deps.server,
+	deps.server.registerTool(
 		"guided-save",
 		{
 			title: "Add Memory",
 			description: "Save information to memory with an interactive form.",
-			inputSchema: {
+			inputSchema: z.object({
 				prefill: z.string().optional().describe("Optional content to prefill"),
-			},
-			_meta: { ui: { resourceUri: SUPERMEMORY_RESOURCE_URI } },
+			}),
+			_meta: appToolMeta(),
 		},
 		async (args) => {
 			try {
-				const prefill = (args as { prefill?: string }).prefill
+				const { prefill } = args
+				const viewId = crypto.randomUUID()
 				const [activeTag, tags, session] = await Promise.all([
 					deps.getActiveContainerTag(),
 					deps.getClient().listContainerTags(),
@@ -33,6 +33,7 @@ export function register(deps: ToolDeps) {
 
 				const sc: ViewMessage = {
 					view: "save",
+					viewId,
 					activeTag,
 					writableTags,
 					prefill,
@@ -43,6 +44,7 @@ export function register(deps: ToolDeps) {
 						{ type: "text" as const, text: "Opening memory save form..." },
 					],
 					structuredContent: sc,
+					_meta: appResultMeta(viewId),
 				}
 			} catch (error) {
 				return deps.errorResult(error)

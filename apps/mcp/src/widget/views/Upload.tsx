@@ -20,6 +20,7 @@ interface Props {
 	writableTags: string[]
 	onAdvance: (msg: ViewMessage) => void
 	onError: (message: string) => void
+	viewId?: string
 }
 
 function formatFileSize(bytes: number): string {
@@ -30,8 +31,14 @@ function formatFileSize(bytes: number): string {
 
 const ACCEPT = ".txt,.pdf,.png,.jpg,.jpeg,.mp4"
 
-export function Upload({ activeTag, writableTags, onAdvance, onError }: Props) {
-	const { callTool, updateModelContext } = useApp()
+export function Upload({
+	activeTag,
+	writableTags,
+	onAdvance,
+	onError,
+	viewId,
+}: Props) {
+	const { callTool, handoffToModel } = useApp()
 	const log = useLog()
 	const [file, setFile] = useState<File | null>(null)
 	const [selectedTag, setSelectedTag] = useState<string | null>(
@@ -62,6 +69,7 @@ export function Upload({ activeTag, writableTags, onAdvance, onError }: Props) {
 				fileName: file.name,
 				mimeType: file.type,
 				containerTag: selectedTag,
+				viewId,
 			})
 			if (!result.ok || !result.data) {
 				log("error", `[upload] failed: ${result.error}`)
@@ -71,13 +79,28 @@ export function Upload({ activeTag, writableTags, onAdvance, onError }: Props) {
 			const documentId =
 				result.data.view === "upload-success" ? result.data.id : undefined
 			onAdvance(result.data)
-			const contextUpdate = await updateModelContext(
-				`Supermemory widget action completed. "${file.name}" was uploaded to workspace "${selectedTag}"${documentId ? ` with document ID "${documentId}"` : ""}. It is already uploaded; do not upload it again.`,
-			)
-			if (!contextUpdate.ok) {
+			const handoff = await handoffToModel({
+				context: `Supermemory widget action completed. "${file.name}" was uploaded to workspace "${selectedTag}"${documentId ? ` with document ID "${documentId}"` : ""}. It is already uploaded; do not upload it again.`,
+				message: `I used the Supermemory widget to upload "${file.name}" to workspace "${selectedTag}"${documentId ? ` (document ID: ${documentId})` : ""}. The file is already uploaded; do not upload it again.`,
+				structuredContent: {
+					supermemory: {
+						action: "file-uploaded",
+						activeWorkspace: selectedTag,
+						documentId,
+						fileName: file.name,
+					},
+				},
+			})
+			if (!handoff.contextUpdate.ok) {
 				log(
 					"warning",
-					`[upload] model context update failed: ${contextUpdate.error}`,
+					`[upload] model context update failed: ${handoff.contextUpdate.error}`,
+				)
+			}
+			if (!handoff.conversationMessage.ok) {
+				log(
+					"warning",
+					`[upload] agent handoff failed: ${handoff.conversationMessage.error}`,
 				)
 			}
 		} catch (err) {

@@ -1,34 +1,31 @@
-import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
-import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import type { ViewMessage } from "../../shared/types"
+import { appResultMeta, appToolMeta } from "../app-metadata"
+import { containerTagSchema } from "../container-tag"
 import { MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
-	registerAppTool(
-		deps.server,
+	deps.server.registerTool(
 		"save-memory",
 		{
 			description: "Save content to memory",
-			inputSchema: {
+			inputSchema: z.object({
 				content: z.string().min(1),
-				containerTag: z.string().min(1),
-			},
+				containerTag: containerTagSchema,
+				viewId: z.string().uuid().optional(),
+			}),
 			annotations: MEMORY_TOOL_ANNOTATIONS,
-			_meta: {
-				ui: {
-					resourceUri: SUPERMEMORY_RESOURCE_URI,
-					visibility: ["app"],
-				},
-			},
+			_meta: appToolMeta(["app"]),
 		},
-		async (rawArgs) => {
-			const args = rawArgs as { content: string; containerTag: string }
+		async (args) => {
 			try {
+				const viewId = args.viewId ?? crypto.randomUUID()
 				const client = deps.getClient(args.containerTag)
 				const result = await client.createMemory(args.content)
 				const sc: ViewMessage = {
 					view: "save-success",
+					viewId,
 					id: result.id,
 					containerTag: args.containerTag,
 				}
@@ -37,6 +34,7 @@ export function register(deps: ToolDeps) {
 						{ type: "text" as const, text: `Memory saved: ${result.id}` },
 					],
 					structuredContent: sc,
+					_meta: appResultMeta(viewId),
 				}
 			} catch (error) {
 				return deps.errorResult(error)

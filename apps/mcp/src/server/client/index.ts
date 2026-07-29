@@ -7,7 +7,7 @@ import type {
 } from "../../shared/types"
 
 const MAX_CHARS = 200000
-const DEFAULT_PROJECT_ID = "sm_project_default"
+export const DEFAULT_PROJECT_ID = "sm_project_default"
 const FETCH_TIMEOUT_MS = 30_000
 
 export type {

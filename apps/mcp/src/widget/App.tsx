@@ -105,6 +105,7 @@ function renderView(
 					containerTags={msg.containerTags}
 					onAdvance={setView}
 					onError={setError}
+					viewId={msg.viewId}
 				/>
 			)
 		case "save":
@@ -114,6 +115,7 @@ function renderView(
 					onAdvance={setView}
 					onError={setError}
 					prefill={msg.prefill}
+					viewId={msg.viewId}
 					writableTags={msg.writableTags}
 				/>
 			)
@@ -123,6 +125,7 @@ function renderView(
 					activeTag={msg.activeTag}
 					onAdvance={setView}
 					onError={setError}
+					viewId={msg.viewId}
 					writableTags={msg.writableTags}
 				/>
 			)

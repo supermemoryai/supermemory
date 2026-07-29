@@ -1,26 +1,17 @@
 import { z } from "zod"
+import { optionalContainerTagSchema } from "../container-tag"
 import { MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
-	const containerTagField: Record<string, z.ZodTypeAny> = deps.props
-		?.containerTag
-		? {}
-		: {
-				containerTag: z
-					.string()
-					.max(128, "Container tag exceeds maximum length")
-					.optional(),
-			}
-
-	const inputSchema = {
+	const inputSchema = z.object({
 		content: z
 			.string()
 			.max(200000, "Content exceeds maximum length")
 			.describe("The memory content to save or forget"),
 		action: z.enum(["save", "forget"]).optional().default("save"),
-		...containerTagField,
-	}
+		containerTag: optionalContainerTagSchema,
+	})
 
 	deps.server.registerTool(
 		"add_memory",
@@ -30,12 +21,7 @@ export function register(deps: ToolDeps) {
 			inputSchema,
 			annotations: MEMORY_TOOL_ANNOTATIONS,
 		},
-		async (rawArgs) => {
-			const args = rawArgs as {
-				content: string
-				action?: "save" | "forget"
-				containerTag?: string
-			}
+		async (args) => {
 			try {
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
 				const client = deps.getClient(effectiveTag)

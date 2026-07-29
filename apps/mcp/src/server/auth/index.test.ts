@@ -24,9 +24,20 @@ describe("MCP authentication", () => {
 	})
 
 	async function signToken(
-		overrides: { audience?: string; subject?: string; expiresIn?: string } = {},
+		overrides: {
+			audience?: string
+			subject?: string
+			expiresIn?: string
+			organizationId?: string
+		} = {},
 	) {
-		let token = new SignJWT({ organization_id: "org_test" })
+		let token = new SignJWT({
+			...(overrides.organizationId === ""
+				? {}
+				: { organization_id: overrides.organizationId ?? "org_test" }),
+			azp: "client_test",
+			scope: "openid profile",
+		})
 			.setProtectedHeader({ alg: "RS256", kid: "test-key" })
 			.setIssuer(ISSUER)
 			.setAudience(overrides.audience ?? MCP_RESOURCE)
@@ -51,8 +62,19 @@ describe("MCP authentication", () => {
 			userId: "user_test",
 			organizationId: "org_test",
 			bearerToken: token,
+			oauthClientId: "client_test",
+			scopes: ["openid", "profile"],
+			expiresAt: expect.any(Number),
 		})
 		expect(fetchSpy).not.toHaveBeenCalled()
+	})
+
+	it("rejects a token without an organization boundary", async () => {
+		const token = await signToken({ organizationId: "" })
+
+		await expect(
+			validateOAuthToken(token, API_URL, MCP_RESOURCE, keySet),
+		).resolves.toBeNull()
 	})
 
 	it("rejects a token issued for a different audience", async () => {

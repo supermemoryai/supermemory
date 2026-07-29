@@ -2,6 +2,10 @@
 	"name": "supermemory-mcp",
 	"version": "1.0.0",
 	"type": "module",
+	"portless": {
+		"name": "mcp.dev.supermemory",
+		"script": "dev:app"
+	},
 	"scripts": {
 		"build:widget": "vite build",
 		"build": "vite build",
@@ -10,19 +14,23 @@
 		"dev:widget": "vite --config vite.config.dev.ts",
 		"studio": "vite --config vite.config.dev.ts --open /studio.html",
 		"deploy": "vite build && wrangler deploy --minify",
-		"check-types": "tsc --noEmit -p tsconfig.widget.json",
+		"check-types": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.widget.json",
+		"test:unit": "vitest run src/server src/widget",
+		"test:e2e": "vitest run e2e",
 		"cf-typegen": "wrangler types --env-interface CloudflareBindings"
 	},
 	"dependencies": {
 		"@cloudflare/workers-oauth-provider": "^0.2.2",
-		"@modelcontextprotocol/ext-apps": "^1.0.0",
-		"@modelcontextprotocol/sdk": "^1.25.2",
+		"@modelcontextprotocol/client": "2.0.0",
+		"@modelcontextprotocol/ext-apps": "^1.7.5",
+		"@modelcontextprotocol/sdk": "1.30.0",
+		"@modelcontextprotocol/server": "2.0.0",
 		"@phosphor-icons/react": "^2.1.10",
 		"@radix-ui/react-popover": "^1.1.15",
 		"@radix-ui/react-slot": "^1.2.3",
 		"@radix-ui/react-tooltip": "^1.2.7",
 		"@supermemory/memory-graph": "^0.2.0",
-		"agents": "^0.3.5",
+		"agents": "^0.20.1",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"hono": "^4.11.1",
@@ -31,7 +39,7 @@
 		"react-dom": "^19.2.4",
 		"supermemory": "^4.0.0",
 		"tailwind-merge": "^3.4.0",
-		"zod": "^3.25.76"
+		"zod": "^4.4.3"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20250620.0",
@@ -43,6 +51,7 @@
 		"typescript": "^5.8.3",
 		"vite": "^6.0.0",
 		"vite-plugin-singlefile": "^2.3.0",
+		"vitest": "^3.2.4",
 		"wrangler": "^4.4.0"
 	}
 }

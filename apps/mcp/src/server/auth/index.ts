@@ -5,8 +5,11 @@ const FETCH_TIMEOUT_MS = 30_000
 
 export interface AuthUser {
 	userId: string
-	organizationId?: string
+	organizationId: string
 	bearerToken: string
+	oauthClientId?: string
+	scopes: string[]
+	expiresAt?: number
 }
 
 const remoteJwks = new Map<string, ReturnType<typeof createRemoteJWKSet>>()
@@ -65,13 +68,32 @@ export async function validateOAuthToken(
 		if (typeof payload.sub !== "string" || payload.sub.length === 0) {
 			return null
 		}
+		if (
+			typeof payload.organization_id !== "string" ||
+			payload.organization_id.length === 0
+		) {
+			return null
+		}
+
+		const rawScopes = payload.scope ?? payload.scopes
+		const scopes = Array.isArray(rawScopes)
+			? rawScopes.filter((scope): scope is string => typeof scope === "string")
+			: typeof rawScopes === "string"
+				? rawScopes.split(/\s+/).filter(Boolean)
+				: []
+
 		return {
 			userId: payload.sub,
-			organizationId:
-				typeof payload.organization_id === "string"
-					? payload.organization_id
-					: undefined,
+			organizationId: payload.organization_id,
 			bearerToken: token,
+			oauthClientId:
+				typeof payload.azp === "string"
+					? payload.azp
+					: typeof payload.client_id === "string"
+						? payload.client_id
+						: undefined,
+			scopes,
+			expiresAt: payload.exp,
 		}
 	} catch (error) {
 		console.error("OAuth token validation error:", error)

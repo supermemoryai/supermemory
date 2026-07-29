@@ -2,6 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js"
 import { useEffect, useState } from "react"
 import type { ViewMessage } from "../../shared/types"
 import { app } from "../lib/app"
+import { loadViewCheckpoint, saveViewCheckpoint } from "../lib/viewCheckpoint"
 
 function safeLog(
 	level: "debug" | "info" | "warning" | "error",
@@ -37,7 +38,12 @@ export function useViewState(): {
 	setView: (msg: ViewMessage) => void
 	setError: (message: string) => void
 } {
-	const [state, setState] = useState<ViewState>({ kind: "loading" })
+	const [state, setState] = useState<ViewState>(() => {
+		const checkpoint = loadViewCheckpoint()
+		return checkpoint
+			? { kind: "view", message: checkpoint }
+			: { kind: "loading" }
+	})
 
 	useEffect(() => {
 		app.ontoolinput = (input: unknown) => {
@@ -63,7 +69,8 @@ export function useViewState(): {
 			if ("view" in sc) {
 				const msg = sc as ViewMessage
 				safeLog("info", `[host] ontoolresult: view=${msg.view}`)
-				setState({ kind: "view", message: msg })
+				const checkpoint = loadViewCheckpoint(msg.viewId)
+				setState({ kind: "view", message: checkpoint ?? msg })
 				return
 			}
 			safeLog("warning", "[host] ontoolresult: structuredContent without view")
@@ -85,7 +92,10 @@ export function useViewState(): {
 
 	return {
 		state,
-		setView: (msg) => setState({ kind: "view", message: msg }),
+		setView: (msg) => {
+			saveViewCheckpoint(msg)
+			setState({ kind: "view", message: msg })
+		},
 		setError: (message) => setState({ kind: "error", message }),
 	}
 }

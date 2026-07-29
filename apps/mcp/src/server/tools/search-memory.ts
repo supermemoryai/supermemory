@@ -1,27 +1,18 @@
 import { z } from "zod"
 import { getMemoryText } from "../client"
+import { optionalContainerTagSchema } from "../container-tag"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
-	const containerTagField: Record<string, z.ZodTypeAny> = deps.props
-		?.containerTag
-		? {}
-		: {
-				containerTag: z
-					.string()
-					.max(128, "Container tag exceeds maximum length")
-					.optional(),
-			}
-
-	const inputSchema = {
+	const inputSchema = z.object({
 		query: z
 			.string()
 			.max(1000, "Query exceeds maximum length")
 			.describe("The search query to find relevant memories"),
 		includeProfile: z.boolean().optional().default(true),
-		...containerTagField,
-	}
+		containerTag: optionalContainerTagSchema,
+	})
 
 	deps.server.registerTool(
 		"search_memory",
@@ -31,12 +22,7 @@ export function register(deps: ToolDeps) {
 			inputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
-		async (rawArgs) => {
-			const args = rawArgs as {
-				query: string
-				includeProfile?: boolean
-				containerTag?: string
-			}
+		async (args) => {
 			try {
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
 				const client = deps.getClient(effectiveTag)

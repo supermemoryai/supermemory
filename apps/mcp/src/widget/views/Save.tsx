@@ -19,6 +19,7 @@ interface Props {
 	prefill?: string
 	onAdvance: (msg: ViewMessage) => void
 	onError: (message: string) => void
+	viewId?: string
 }
 
 export function Save({
@@ -27,8 +28,9 @@ export function Save({
 	prefill,
 	onAdvance,
 	onError,
+	viewId,
 }: Props) {
-	const { callTool, updateModelContext } = useApp()
+	const { callTool, handoffToModel } = useApp()
 	const log = useLog()
 	const [content, setContent] = useState(prefill ?? "")
 	const [selectedTag, setSelectedTag] = useState<string | null>(
@@ -62,6 +64,7 @@ export function Save({
 		const result = await callTool<ViewMessage>("save-memory", {
 			content: trimmed,
 			containerTag: selectedTag,
+			viewId,
 		})
 		setSaving(false)
 		if (!result.ok || !result.data) {
@@ -72,13 +75,28 @@ export function Save({
 		const memoryId =
 			result.data.view === "save-success" ? result.data.id : undefined
 		onAdvance(result.data)
-		const contextUpdate = await updateModelContext(
-			`Supermemory widget action completed. A memory was saved to workspace "${selectedTag}"${memoryId ? ` with memory ID "${memoryId}"` : ""}. It is already saved; do not save it again.`,
-		)
-		if (!contextUpdate.ok) {
+		const handoff = await handoffToModel({
+			context: `Supermemory widget action completed. A memory was saved to workspace "${selectedTag}"${memoryId ? ` with memory ID "${memoryId}"` : ""}. Saved content:\n\n${trimmed}\n\nIt is already saved; do not save it again.`,
+			message: `I used the Supermemory widget to save a memory to workspace "${selectedTag}"${memoryId ? ` (memory ID: ${memoryId})` : ""}. The memory is already saved; do not save it again.`,
+			structuredContent: {
+				supermemory: {
+					action: "memory-saved",
+					activeWorkspace: selectedTag,
+					memoryId,
+					content: trimmed,
+				},
+			},
+		})
+		if (!handoff.contextUpdate.ok) {
 			log(
 				"warning",
-				`[save] model context update failed: ${contextUpdate.error}`,
+				`[save] model context update failed: ${handoff.contextUpdate.error}`,
+			)
+		}
+		if (!handoff.conversationMessage.ok) {
+			log(
+				"warning",
+				`[save] agent handoff failed: ${handoff.conversationMessage.error}`,
 			)
 		}
 	}

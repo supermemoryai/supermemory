@@ -31,6 +31,8 @@ export interface ContainerTag {
 	id: string
 	name: string
 	containerTag: string
+	description?: string | null
+	visibility?: string | null
 	createdAt: string
 	updatedAt: string
 	isExperimental: boolean
@@ -81,7 +83,7 @@ export interface DocumentsApiResponse {
 // ViewMessage — discriminated union returned by app tools as `structuredContent`.
 // The widget uses an exhaustive switch on `view` to dispatch to the correct view component.
 // Adding a new view here is a compile error in App.tsx until the case is handled.
-export type ViewMessage =
+type ViewMessagePayload =
 	| {
 			view: "picker"
 			containerTags: ContainerTag[]
@@ -114,15 +116,18 @@ export type ViewMessage =
 			containerTag?: string
 	  }
 
-export type ViewName = ViewMessage["view"]
-
-// Auth context passed from the OAuth/API-key middleware into the McpAgent via ctx.props.
-export type Props = {
-	userId: string
-	organizationId?: string
-	bearerToken: string
-	containerTag?: string
+export type ViewMessage = ViewMessagePayload & {
+	/**
+	 * Stable identity for one rendered widget instance.
+	 *
+	 * The host may remount the iframe when a conversation is revisited. The
+	 * widget uses this id to restore a completed local view without treating UI
+	 * state as the source of truth for the underlying Supermemory write.
+	 */
+	viewId?: string
 }
 
+export type ViewName = ViewMessage["view"]
+
 // Hosts cache MCP UI resources by URI, so bump this when shipping a new widget bundle.
-export const SUPERMEMORY_RESOURCE_URI = "ui://supermemory/app-v2.html"
+export const SUPERMEMORY_RESOURCE_URI = "ui://supermemory/app-v3.html"

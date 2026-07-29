@@ -2,6 +2,10 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js"
 import { useMemo } from "react"
 import type { ViewMessage } from "../../shared/types"
 import { app } from "../lib/app"
+import {
+	handoffToModel as performModelHandoff,
+	type ModelHandoffRequest,
+} from "../lib/modelHandoff"
 
 export interface ToolCallResult<T = unknown> {
 	ok: boolean
@@ -57,6 +61,15 @@ export function useApp() {
 				} catch (err) {
 					return { ok: false, error: String(err) }
 				}
+			},
+
+			/**
+			 * Publish a silent state snapshot, then explicitly return control to
+			 * the conversation agent. The message is still attempted when a host
+			 * rejects or drops model-context updates.
+			 */
+			handoffToModel(request: ModelHandoffRequest) {
+				return performModelHandoff(app, request)
 			},
 
 			/** Send a structured log line to the host. */

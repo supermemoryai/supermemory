@@ -1,21 +1,16 @@
-import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
-import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import type { ViewMessage } from "../../shared/types"
+import { appToolMeta } from "../app-metadata"
+import { optionalContainerTagSchema } from "../container-tag"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
-	const inputSchema: Record<string, z.ZodTypeAny> = deps.props?.containerTag
-		? {}
-		: {
-				containerTag: z
-					.string()
-					.max(128, "Container tag exceeds maximum length")
-					.optional(),
-			}
+	const inputSchema = z.object({
+		containerTag: optionalContainerTagSchema,
+	})
 
-	registerAppTool(
-		deps.server,
+	deps.server.registerTool(
 		"memory-graph",
 		{
 			title: "Memory Graph",
@@ -23,12 +18,11 @@ export function register(deps: ToolDeps) {
 				"Visualize the user's memory graph as an interactive force-directed graph.",
 			inputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
-			_meta: { ui: { resourceUri: SUPERMEMORY_RESOURCE_URI } },
+			_meta: appToolMeta(),
 		},
-		async (rawArgs) => {
+		async (args) => {
 			try {
-				const explicit = (rawArgs as { containerTag?: string }).containerTag
-				const effectiveTag = await deps.resolveContainerTag(explicit)
+				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
 				const client = deps.getClient(effectiveTag)
 				const containerTags = effectiveTag ? [effectiveTag] : undefined
 

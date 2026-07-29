@@ -1,37 +1,28 @@
-import { registerAppTool } from "@modelcontextprotocol/ext-apps/server"
 import { z } from "zod"
-import { SUPERMEMORY_RESOURCE_URI, type ViewMessage } from "../../shared/types"
+import type { ViewMessage } from "../../shared/types"
+import { appResultMeta, appToolMeta } from "../app-metadata"
+import { containerTagSchema } from "../container-tag"
 import { MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
-	registerAppTool(
-		deps.server,
+	deps.server.registerTool(
 		"upload-file-submit",
 		{
 			description: "Submit a file upload",
-			inputSchema: {
+			inputSchema: z.object({
 				fileData: z.string().describe("Base64-encoded file content"),
 				fileName: z.string(),
 				mimeType: z.string(),
-				containerTag: z.string().min(1),
-			},
+				containerTag: containerTagSchema,
+				viewId: z.string().uuid().optional(),
+			}),
 			annotations: MEMORY_TOOL_ANNOTATIONS,
-			_meta: {
-				ui: {
-					resourceUri: SUPERMEMORY_RESOURCE_URI,
-					visibility: ["app"],
-				},
-			},
+			_meta: appToolMeta(["app"]),
 		},
-		async (rawArgs) => {
-			const args = rawArgs as {
-				fileData: string
-				fileName: string
-				mimeType: string
-				containerTag: string
-			}
+		async (args) => {
 			try {
+				const viewId = args.viewId ?? crypto.randomUUID()
 				const binaryString = atob(args.fileData)
 				const bytes = new Uint8Array(binaryString.length)
 				for (let i = 0; i < binaryString.length; i++) {
@@ -48,6 +39,7 @@ export function register(deps: ToolDeps) {
 
 				const sc: ViewMessage = {
 					view: "upload-success",
+					viewId,
 					id: result.id,
 					fileName: args.fileName,
 					containerTag: args.containerTag,
@@ -61,6 +53,7 @@ export function register(deps: ToolDeps) {
 						},
 					],
 					structuredContent: sc,
+					_meta: appResultMeta(viewId),
 				}
 			} catch (error) {
 				return deps.errorResult(error)

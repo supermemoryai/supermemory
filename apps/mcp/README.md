@@ -1,24 +1,33 @@
-# Supermemory MCP Server 4.0
+# Supermemory MCP Server
 
-A standalone MCP (Model Context Protocol) server for Supermemory that gives AI assistants persistent memory across conversations. Built on Cloudflare Workers with Durable Objects for scalable, persistent connections.
+The Supermemory MCP server gives authenticated AI clients access to a user's
+memories, profile, workspaces, and interactive MCP Apps.
 
-## Features
+## Runtime Model
 
-- **Authentication** - OAuth 2.1 with dynamic client registration
-- **Persistent Memory** - Save and recall information across sessions
-- **User Profiles** - Auto-generated profiles from stored memories
-- **Project Scoping** - Organize memories by project with `x-sm-project` header
-- **Analytics** - PostHog integration for usage tracking
+- MCP SDK v2 with a fresh `McpServer` for every HTTP request
+- Modern MCP `2026-07-28` plus stateless compatibility for 2025 clients
+- OAuth token validation on every request
+- No MCP protocol session or protocol Durable Object
+- Active workspace stored as application state in a dedicated Durable Object
+- Workspace state keyed by authenticated `organizationId + userId`
 
-## Setup
+The workspace used by an operation resolves in this order:
 
-### Server URL
+1. An explicit `containerTag` tool or prompt argument
+2. The account's durable active workspace
+3. The Supermemory client default, `sm_project_default`
+
+An explicit override applies only to that call. It does not mutate the active
+workspace.
+
+## Server URL
 
 ```text
 https://mcp.supermemory.ai/mcp
 ```
 
-Add to your MCP client config (Claude, Cursor, Windsurf, VS Code, etc.):
+Example client configuration:
 
 ```json
 {
@@ -30,223 +39,103 @@ Add to your MCP client config (Claude, Cursor, Windsurf, VS Code, etc.):
 }
 ```
 
-The server requires OAuth authentication. Your MCP client will automatically discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
-
-### Project Scoping (Optional)
-
-To scope all operations to a specific project, add the `x-sm-project` header:
-
-```json
-{
-  "mcpServers": {
-    "supermemory": {
-      "url": "https://mcp.supermemory.ai/mcp",
-      "headers": {
-        "x-sm-project": "your-project-id"
-      }
-    }
-  }
-}
-```
+The client discovers the OAuth authorization server through
+`/.well-known/oauth-protected-resource/mcp`.
 
 ## Tools
 
-### `memory`
+### Model-visible tools
 
-Save or forget information about the user.
+| Tool | Purpose |
+| --- | --- |
+| `search_memory` | Search memories and optionally include profile context |
+| `listMemories` | List extracted memories grouped by source document |
+| `listSpaces` | List workspaces visible to the authenticated account |
+| `whoAmI` | Return identity, access, client, and active-workspace context |
+| `add_memory` | Save or forget a memory |
 
-```json
-{
-  "content": "User prefers dark mode and uses TypeScript",
-  "action": "save",
-  "containerTag": "optional-project-tag"
-}
-```
+### MCP App launchers
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `content` | string | Yes | The memory content to save or forget |
-| `action` | `"save"` \| `"forget"` | No | Default: `"save"` |
-| `containerTag` | string | No | Project tag to scope the memory |
+| Tool | Purpose |
+| --- | --- |
+| `select-workspace` | Open the interactive workspace picker |
+| `memory-graph` | Open the interactive memory graph |
+| `guided-save` | Open the guided memory form |
+| `upload-file` | Open the file upload form |
 
-### `recall`
+### App-only tools
 
-Search memories and get user profile.
+These tools are available to the embedded MCP App and hidden from the model.
 
-```json
-{
-  "query": "What are the user's programming preferences?",
-  "includeProfile": true,
-  "containerTag": "optional-project-tag"
-}
-```
+| Tool | Purpose |
+| --- | --- |
+| `set-active-tag` | Persist the selected active workspace |
+| `save-memory` | Submit the guided save form |
+| `upload-file-submit` | Submit an encoded file upload |
+| `fetch-graph-data` | Fetch graph documents for the app |
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `query` | string | Yes | Search query to find relevant memories |
-| `includeProfile` | boolean | No | Include user profile summary. Default: `true` |
-| `containerTag` | string | No | Project tag to scope the search |
+## Resources And Prompt
 
-### `listMemories`
+| Kind | Name or URI | Purpose |
+| --- | --- | --- |
+| Resource | `supermemory://profile` | Profile facts in the effective workspace |
+| Resource | `supermemory://container-tags` | Visible workspaces |
+| Resource | `ui://supermemory/app-v3.html` | Embedded MCP App bundle |
+| Prompt | `context` | Profile and recent context for an optional workspace |
 
-Enumerate stored memories grouped by their source document, newest first. Returns only the extracted memory facts — never document content — so responses stay small enough for client output limits. Use it to audit what is on file (e.g. before forgetting stale memories); use `recall` for topic-based search.
-
-```json
-{
-  "page": 1,
-  "limit": 10,
-  "containerTag": "optional-project-tag"
-}
-```
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `page` | integer | No | Page number (1-based). Default: `1` |
-| `limit` | integer | No | Documents per page, each grouping its extracted memories. Default: `10`, max: `50` |
-| `containerTag` | string | No | Project tag to scope the listing |
-
-### `whoAmI`
-
-Get the current logged-in user's information.
-
-```json
-{}
-```
-
-Returns: `{ userId, email, name, client, sessionId }`
-
-## Resources
-
-| URI | Description |
-|-----|-------------|
-| `supermemory://profile` | User profile with stable preferences and recent activity |
-| `supermemory://projects` | List of available memory projects |
-
-## Prompts
-
-| Name | Description |
-|------|-------------|
-| `context` | User profile and preferences for system context injection |
+The App resource and tool metadata include both current nested `ui` metadata and
+the legacy flat resource URI key while MCP Apps completes its SDK v2 migration.
+The Worker runtime does not import the SDK v1 Apps server helpers.
 
 ## Development
 
-### Prerequisites
-
-- [Bun](https://bun.sh/) or Node.js
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/)
-
-### Install Dependencies
+Install from the repository root:
 
 ```bash
 bun install
 ```
 
-### Environment Variables
-
-Create a `.dev.vars` file:
-
-```env
-API_URL=http://localhost:8787
-or 
-API_URL=https://api.supermemory.ai
-```
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `API_URL` | Main Supermemory API URL for OAuth validation | `https://api.supermemory.ai` |
-
-### Run Locally
+Run the local Worker:
 
 ```bash
+cd apps/mcp
 bun run dev
 ```
 
-The server will start at `http://localhost:8788`.
+The portless URL is `http://mcp.dev.supermemory`.
 
-**Note:** For local development, you also need the main Supermemory API running at the `API_URL` for OAuth token validation.
-
-### End-to-End Tests
-
-The `e2e/` suite drives a real MCP server over streamable HTTP (no mocks) and asserts the
-core journey: handshake → tool/resource/prompt discovery → `whoAmI` → `listProjects` →
-`memory` save → `recall` round-trip, plus `memory-graph`/`fetch-graph-data`, resource reads,
-the `context` prompt, container-tag isolation, and auth rejections.
+Useful commands:
 
 ```bash
-export SUPERMEMORY_MCP_URL=https://mcp.supermemory.ai/mcp  # optional, this is the default
-export SUPERMEMORY_API_URL=https://api.supermemory.ai      # optional, OAuth authorization server
-bun e2e/capture-oauth-token.ts                             # one-time browser authorization
+bun run build
+bun run check-types
+bun run test:unit
 bun run test:e2e
 ```
 
-| File | Covers |
-|------|--------|
-| `e2e/auth.test.ts` | `GET /` info, OAuth discovery, 401 on missing/invalid token (runs without a key) |
-| `e2e/oauth.test.ts` | OAuth discovery chain, dynamic client registration, token-endpoint negatives, real refresh→access token round-trip |
-| `e2e/discovery.test.ts` | handshake, tools/resources/prompts listing, `whoAmI`, `listProjects` |
-| `e2e/memory.test.ts` | save→recall round-trip, profile variants, `forget`, container scoping, bad args |
-| `e2e/list-memories.test.ts` | `listMemories` discovery, save→list round-trip, pagination, arg validation |
-| `e2e/root-scope.test.ts` | `x-sm-project` header strips the `containerTag` param and scopes the whole connection |
-| `e2e/graph.test.ts` | `memory-graph`, `fetch-graph-data`, resource reads, `context` prompt |
-
-#### OAuth flow tests
-
-`mcp.supermemory.ai` is an OAuth **resource server**; the **authorization server** is the main
-API (`api.supermemory.ai`, better-auth). `oauth.test.ts` covers the real flow in tiers:
-
-- **A–C (no secrets)** — discovery chain, dynamic client registration, and token/authorize
-  negatives. These exercise the protocol wiring with no key and no browser, so they always run.
-- **D (real token)** — exchanges a seeded `refresh_token` for an `access_token` and connects to
-  `/mcp` with it, exercising the OAuth-token validation path. It **skips** unless both OAuth
-  credentials below are available.
+Authenticated end-to-end tests use credentials captured by:
 
 ```bash
-# One-time capture (opens a browser for login + consent, prints the env vars):
 bun e2e/capture-oauth-token.ts
-export SUPERMEMORY_MCP_CLIENT_ID=...
-export SUPERMEMORY_MCP_REFRESH_TOKEN=...
 ```
 
-Notes:
-- Authenticated tests **skip** (not fail) without stored OAuth credentials or the refresh-token
-  environment variables, so CI is safe without secrets.
-- `recall` is eventually-consistent (save → ingestion pipeline → memories), so the round-trip
-  **polls up to ~90s**. `forget` removal is slower still and is asserted as best-effort.
-- The suite uses unique per-run markers and forgets them in teardown to avoid polluting the account.
+Without stored OAuth credentials, authenticated test groups skip. Public OAuth
+discovery and rejection tests still run.
 
-### Deploy
+## Configuration
 
-```bash
-bun run deploy
-```
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `API_URL` | Supermemory API and OAuth issuer | `https://api.supermemory.ai` |
+| `MCP_RESOURCE` | Expected OAuth audience | `https://mcp.supermemory.ai/mcp` |
+| `ALLOWED_MCP_ORIGIN_HOSTNAMES` | Additional comma-separated browser origins | Built-in host allowlist |
 
-## Architecture
+## Storage And Rollout
 
-```
-┌─────────────────┐     OAuth      ┌──────────────────┐
-│   MCP Client    │◄──────────────►│  Supermemory API │
-│ (Claude, Cursor)│                │  (api.supermemory.ai)
-└────────┬────────┘                └──────────────────┘
-         │                                   ▲
-         │ MCP Protocol                      │ Auth Validation
-         ▼                                   │
-┌─────────────────────────────────────────────────────┐
-│            Supermemory MCP Server                   │
-│         (mcp.supermemory.ai/mcp)                   │
-│  ┌─────────────────────────────────────────────┐   │
-│  │           Cloudflare Durable Object          │   │
-│  │  • Session state                             │   │
-│  │  • Client info persistence                   │   │
-│  │  • MCP protocol handling                     │   │
-│  └─────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────┘
-```
+`WorkspaceState` stores only the active container tag. It never stores bearer
+tokens, MCP client identity, or protocol messages.
 
-## Tech Stack
-
-- **Runtime:** Cloudflare Workers
-- **State:** Durable Objects with SQLite
-- **Framework:** Hono
-- **MCP SDK:** @modelcontextprotocol/sdk + agents
-- **API Client:** supermemory SDK
-- **Analytics:** PostHog
+The old `SupermemoryMCP` class and binding remain inert for one rollout. This
+keeps the migration non-destructive and rollback-safe. A later deployment can
+delete the old protocol class after production traffic and rollback windows
+have been checked.

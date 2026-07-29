@@ -1,3 +1,4 @@
+import { z } from "zod"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
@@ -7,7 +8,7 @@ export function register(deps: ToolDeps) {
 		{
 			description:
 				"List the spaces available to you. Spaces are the workspaces you organize memories into — returns each space's name, identifier, emoji, document/memory counts, and last activity. The list is auto-filtered to spaces you have access to.",
-			inputSchema: {},
+			inputSchema: z.object({}),
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async () => {
