@@ -1,15 +1,21 @@
 "use client"
 
 import { cn } from "@lib/utils"
-import { Blocks, CalendarClock, Cpu } from "lucide-react"
+import { Blocks, CalendarClock, Cpu, ScrollText } from "lucide-react"
 import { useState } from "react"
 import CompanyBrainConnections from "@/components/settings/company-brain-connections"
 import CompanyBrainModels from "@/components/settings/company-brain-models"
 import Proactiveness from "@/components/settings/proactiveness"
+import { WorkspacePrompt } from "@/components/settings/workspace-prompt"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { useAuth } from "@lib/auth-context"
 import { dmSans125ClassName } from "@/lib/fonts"
 
-type ConfigureSection = "company-brain" | "models" | "automations"
+type ConfigureSection =
+	| "company-brain"
+	| "models"
+	| "workspace-prompt"
+	| "automations"
 
 const SECTIONS: {
 	id: ConfigureSection
@@ -32,6 +38,13 @@ const SECTIONS: {
 		icon: Cpu,
 	},
 	{
+		id: "workspace-prompt",
+		label: "Workspace Prompt",
+		description:
+			"Persistent guidance for how your brain works across the workspace. Fixed safety, access, and approval constraints still apply.",
+		icon: ScrollText,
+	},
+	{
 		id: "automations",
 		label: "Automations",
 		description:
@@ -41,6 +54,7 @@ const SECTIONS: {
 ]
 
 export function ConfigureView() {
+	const { org } = useAuth()
 	const [activeSection, setActiveSection] =
 		useState<ConfigureSection>("company-brain")
 	const active = SECTIONS.find((section) => section.id === activeSection)
@@ -118,6 +132,8 @@ export function ConfigureView() {
 								<CompanyBrainConnections />
 							) : activeSection === "models" ? (
 								<CompanyBrainModels showHeading={false} />
+							) : activeSection === "workspace-prompt" ? (
+								<WorkspacePrompt key={org?.id} showHeading={false} />
 							) : (
 								<Proactiveness />
 							)}
