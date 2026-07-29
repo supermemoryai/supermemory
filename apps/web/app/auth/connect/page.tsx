@@ -522,7 +522,13 @@ function AuthConnectContent() {
 		upgradeSyncStartedAt.current = Date.now()
 		setError(null)
 		setStatus("loading")
-		void autumn.refetch?.()
+		void (async () => {
+			try {
+				await autumn.refetch?.()
+			} finally {
+				void handleConnectRef.current?.()
+			}
+		})()
 	}, [autumn])
 
 	useEffect(() => {
