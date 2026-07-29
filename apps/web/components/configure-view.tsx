@@ -5,7 +5,9 @@ import { Blocks, CalendarClock, Cpu, ScrollText } from "lucide-react"
 import { useState } from "react"
 import CompanyBrainConnections from "@/components/settings/company-brain-connections"
 import CompanyBrainModels from "@/components/settings/company-brain-models"
+import CompanyBrainProactivity from "@/components/settings/company-brain-proactivity"
 import Proactiveness from "@/components/settings/proactiveness"
+import { ProactivenessIcon } from "@/components/settings/proactiveness-icon"
 import { WorkspacePrompt } from "@/components/settings/workspace-prompt"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useAuth } from "@lib/auth-context"
@@ -15,13 +17,14 @@ type ConfigureSection =
 	| "company-brain"
 	| "models"
 	| "workspace-prompt"
+	| "proactivity"
 	| "automations"
 
 const SECTIONS: {
 	id: ConfigureSection
 	label: string
 	description: string
-	icon: typeof Blocks
+	icon: React.ComponentType<{ className?: string }>
 }[] = [
 	{
 		id: "company-brain",
@@ -45,6 +48,13 @@ const SECTIONS: {
 		icon: ScrollText,
 	},
 	{
+		id: "proactivity",
+		label: "Proactivity",
+		description:
+			"When Company Brain speaks up in Slack without being asked. Quiet channels are still read and remembered.",
+		icon: ProactivenessIcon,
+	},
+	{
 		id: "automations",
 		label: "Automations",
 		description:
@@ -62,16 +72,13 @@ export function ConfigureView() {
 
 	return (
 		<div
-			className={cn(
-				dmSans125ClassName(),
-				"mx-auto flex min-h-full w-full max-w-[88rem] flex-col",
-			)}
+			className={cn(dmSans125ClassName(), "flex min-h-full w-full flex-col")}
 		>
 			<section
 				aria-label="Configure Company Brain"
 				className="flex flex-1 flex-col rounded-[14px] bg-[#191D24] p-4 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)] sm:p-6"
 			>
-				<div className="flex flex-1 flex-col gap-5 md:flex-row md:gap-8">
+				<div className="mx-auto flex w-full max-w-[88rem] flex-1 flex-col gap-5 md:flex-row md:gap-8">
 					<nav
 						aria-label="Configure sections"
 						className="scrollbar-none flex shrink-0 gap-1 overflow-x-auto md:w-52 md:flex-col md:overflow-x-visible"
@@ -134,6 +141,8 @@ export function ConfigureView() {
 								<CompanyBrainModels showHeading={false} />
 							) : activeSection === "workspace-prompt" ? (
 								<WorkspacePrompt key={org?.id} showHeading={false} />
+							) : activeSection === "proactivity" ? (
+								<CompanyBrainProactivity />
 							) : (
 								<Proactiveness />
 							)}
