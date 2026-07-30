@@ -66,7 +66,7 @@ const EFFORT_ORDER: BrainReasoningEffort[] = [
 ]
 
 const AUTO_EFFORT_HELP =
-	"Chooses Low, Medium, or High per request based on complexity. Manual choices skip the decider and use fixed effort, subject to provider limits."
+	"Automatically adjusts thinking depth for each request."
 
 const ROWS: {
 	role: BrainModelRole
