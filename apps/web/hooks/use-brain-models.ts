@@ -7,7 +7,7 @@ const BACKEND =
 const BASE = `${BACKEND}/brain/models`
 
 export type BrainModelRole = "main" | "triage" | "research"
-export type BrainReasoningEffort = "low" | "medium" | "high" | "xhigh"
+export type BrainReasoningEffort = "auto" | "low" | "medium" | "high" | "xhigh"
 export type BrainReasoningKey = "mainEffort" | "triageEffort" | "researchEffort"
 
 export type BrainModelConfig = Record<BrainModelRole, string> &

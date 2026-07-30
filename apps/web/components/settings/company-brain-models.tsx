@@ -51,11 +51,15 @@ const MODEL_TAGS: Record<string, string> = {
 }
 
 const EFFORT_LABELS: Record<BrainReasoningEffort, string> = {
+	auto: "Auto",
 	low: "Low",
 	medium: "Medium",
 	high: "High",
 	xhigh: "Extra high",
 }
+
+const AUTO_EFFORT_HELP =
+	"Chooses Low, Medium, or High per request based on complexity. Manual choices skip the decider and use fixed effort, subject to provider limits."
 
 const ROWS: {
 	role: BrainModelRole
@@ -344,11 +348,13 @@ export default function CompanyBrainModels({
 					</button>
 
 					{advancedOpen || activePresetId === null ? (
-						<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+						<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
 							{ROWS.map(({ role, effortKey, title, help, effortHelp }) => {
 								const options = choices?.[role] ?? []
 								const current = valueFor(role)
-								const effortOptions = choices?.[effortKey] ?? []
+								const effortOptions = (choices?.[effortKey] ?? []).filter(
+									(effort) => role === "main" || effort !== "auto",
+								)
 								const currentEffort = effortFor(effortKey)
 								const isDefault =
 									defaults?.[role] === current &&
@@ -443,7 +449,7 @@ export default function CompanyBrainModels({
 																}
 																className={cn(
 																	dmSans125ClassName(),
-																	"h-7 min-w-0 flex-1 cursor-pointer rounded-full px-1 text-[11.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+																	"h-7 min-w-0 flex-1 cursor-pointer whitespace-nowrap rounded-full px-1 text-[11.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
 																	isOn
 																		? "bg-white/[0.10] text-[#FAFAFA]"
 																		: "text-[#8B929E] hover:text-[#FAFAFA]",
@@ -454,9 +460,8 @@ export default function CompanyBrainModels({
 														)
 													})}
 												</div>
-												<div className="flex items-center justify-between px-1.5 text-[10px] font-medium text-[#4A5260]">
-													<span>Faster</span>
-													<span>Smarter</span>
+												<div className="px-1.5 text-center text-[10px] font-medium text-[#4A5260]">
+													Manual: faster → smarter
 												</div>
 												<p
 													className={cn(
@@ -464,7 +469,9 @@ export default function CompanyBrainModels({
 														"text-[11px] leading-[1.5] text-[#5F6673]",
 													)}
 												>
-													{effortHelp}
+													{role === "main" && currentEffort === "auto"
+														? AUTO_EFFORT_HELP
+														: effortHelp}
 												</p>
 												{currentEffort === "xhigh" &&
 												extraHighIsBounded(current) ? (
