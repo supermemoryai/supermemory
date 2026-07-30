@@ -3,14 +3,14 @@ import { DEFAULT_PROJECT_ID, type SupermemoryClient } from "../client"
 import {
 	compactDescription,
 	formatFactSection,
-	formatWorkspaceRow,
-	sortWorkspaces,
-	workspaceDisplayName,
-	workspaceMetadata,
-} from "../workspace-presentation"
+	formatSpaceRow,
+	sortSpaces,
+	spaceDisplayName,
+	spaceMetadata,
+} from "../space-presentation"
 
 const CONTEXT_FACT_LIMIT = 8
-const RECENT_WORKSPACE_LIMIT = 3
+const RECENT_SPACE_LIMIT = 3
 
 export function registerContextPrompt(
 	server: McpServer,
@@ -26,24 +26,24 @@ export function registerContextPrompt(
 			try {
 				const selectedTag = await resolveContainerTag()
 				const activeKey = selectedTag ?? DEFAULT_PROJECT_ID
-				const [profileResult, workspaces] = await Promise.all([
+				const [profileResult, spaces] = await Promise.all([
 					getClient(activeKey).getProfile(),
 					getClient().listContainerTags(),
 				])
-				const activeWorkspace = workspaces.find(
-					(workspace) => workspace.containerTag === activeKey,
+				const activeSpace = spaces.find(
+					(space) => space.containerTag === activeKey,
 				)
-				const activeLabel = workspaceDisplayName(activeWorkspace, activeKey)
+				const activeLabel = spaceDisplayName(activeSpace, activeKey)
 				const fallback = selectedTag ? "" : " (default)"
 				const parts: string[] = [
 					"# Supermemory Context",
 					`Active space: ${activeLabel} [${activeKey}]${fallback}`,
 				]
 
-				if (activeWorkspace) {
-					const metadata = workspaceMetadata(activeWorkspace)
+				if (activeSpace) {
+					const metadata = spaceMetadata(activeSpace)
 					if (metadata) parts.push(metadata)
-					const description = compactDescription(activeWorkspace.description)
+					const description = compactDescription(activeSpace.description)
 					if (description) parts.push(description)
 				}
 
@@ -68,15 +68,15 @@ export function registerContextPrompt(
 					parts.push("No profile facts are available for this space yet.")
 				}
 
-				const recentWorkspaces = sortWorkspaces(workspaces, activeKey)
-					.filter((workspace) => workspace.containerTag !== activeKey)
-					.slice(0, RECENT_WORKSPACE_LIMIT)
-				if (recentWorkspaces.length > 0) {
+				const recentSpaces = sortSpaces(spaces, activeKey)
+					.filter((space) => space.containerTag !== activeKey)
+					.slice(0, RECENT_SPACE_LIMIT)
+				if (recentSpaces.length > 0) {
 					parts.push(
 						"",
 						"## Recently Active Spaces",
-						...recentWorkspaces.map((workspace) =>
-							formatWorkspaceRow(workspace, activeKey, 100),
+						...recentSpaces.map((space) =>
+							formatSpaceRow(space, activeKey, 100),
 						),
 					)
 				}

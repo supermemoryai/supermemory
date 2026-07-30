@@ -7,7 +7,7 @@ import {
 	FileUpload,
 	PageHeader,
 	Stack,
-	WorkspaceSelect,
+	SpaceSelect,
 } from "../design/ui"
 import { useApp } from "../hooks/useApp"
 import { useLog } from "../hooks/useLog"
@@ -151,7 +151,7 @@ export function Upload({
 
 						{writableTags.length > 0 ? (
 							<Field label="Space">
-								<WorkspaceSelect
+								<SpaceSelect
 									onValueChange={setSelectedTag}
 									options={options}
 									value={selectedTag}

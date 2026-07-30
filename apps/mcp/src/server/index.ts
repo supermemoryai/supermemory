@@ -7,7 +7,7 @@ import { validateOAuthToken, type AuthUser } from "./auth"
 import { SupermemoryMCP } from "./legacy-protocol-state"
 import { createSupermemoryServer } from "./server"
 import type { ActorContext, ServerEnv } from "./types"
-import { WorkspaceState } from "./workspace-state"
+import { SpaceState } from "./space-state"
 
 type Bindings = ServerEnv
 
@@ -205,7 +205,7 @@ app.all("/", (c) => handleMcpRequest(c, "/mcp"))
 app.all("/mcp", (c) => handleMcpRequest(c))
 app.all("/mcp/", (c) => handleMcpRequest(c, "/mcp"))
 
-export { SupermemoryMCP, WorkspaceState }
+export { SpaceState, SupermemoryMCP }
 export type { ActorContext, ServerEnv }
 
 export default app

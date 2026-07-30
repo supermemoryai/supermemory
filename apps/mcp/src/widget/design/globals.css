@@ -183,8 +183,8 @@
 	line-height: 1;
 }
 
-/* ── Workspace picker — a framed, scrollable list of rows ─────────────────── */
-.workspace-picker-grid {
+/* ── Space picker — a framed, scrollable list of rows ─────────────────────── */
+.space-picker-grid {
 	display: flex;
 	flex-direction: column;
 	max-height: 320px;
@@ -198,11 +198,11 @@
 	scrollbar-width: none;
 }
 
-.workspace-picker-grid::-webkit-scrollbar {
+.space-picker-grid::-webkit-scrollbar {
 	display: none;
 }
 
-.workspace-card {
+.space-card {
 	position: relative;
 	display: block;
 	width: 100%;
@@ -214,34 +214,34 @@
 	transition: background-color 0.15s ease;
 }
 
-.workspace-card:not(:last-child) {
+.space-card:not(:last-child) {
 	border-bottom: 1px solid var(--border-muted);
 }
 
-.workspace-card:hover {
+.space-card:hover {
 	background: var(--card-bg-hover);
 }
 
-.workspace-card:focus-visible {
+.space-card:focus-visible {
 	outline: none;
 	background: var(--card-bg-hover);
 	box-shadow: inset 0 0 0 2px var(--accent-ring);
 }
 
-/* Active workspace is marked by an accent-tinted row + accent-colored name
- * (see WorkspaceCard) — no rail, no check, so the trailing badge stays aligned. */
-.workspace-card[data-active="true"] {
+/* Active space is marked by an accent-tinted row + accent-colored name
+ * (see SpaceCard) — no rail, no check, so the trailing badge stays aligned. */
+.space-card[data-active="true"] {
 	background: var(--card-active-bg);
 }
 
-.workspace-card-inner {
+.space-card-inner {
 	display: flex;
 	align-items: center;
 	gap: var(--space-3);
 	min-width: 0;
 }
 
-.workspace-card-main {
+.space-card-main {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
@@ -249,11 +249,11 @@
 	min-width: 0;
 }
 
-.workspace-card-title {
+.space-card-title {
 	min-width: 0;
 }
 
-.workspace-card-trailing {
+.space-card-trailing {
 	display: flex;
 	align-items: center;
 	gap: var(--space-3);

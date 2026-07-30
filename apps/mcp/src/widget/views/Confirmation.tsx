@@ -1,4 +1,4 @@
-import { WorkspaceChip } from "../components/WorkspaceChip"
+import { SpaceChip } from "../components/SpaceChip"
 import { Stack } from "../design/ui"
 import { Check } from "../lib/icons"
 
@@ -20,7 +20,7 @@ export function Confirmation({ containerTag }: Props) {
 				<div className="text-(length:--text-sm) font-semibold text-text-primary">
 					Active space set
 				</div>
-				<WorkspaceChip containerTag={containerTag} />
+				<SpaceChip containerTag={containerTag} />
 			</Stack>
 			<p className="max-w-xs text-(length:--text-xs) leading-relaxed text-text-muted">
 				Saves and recalls will use this space until you change it.

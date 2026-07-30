@@ -5,11 +5,11 @@ const DEFAULT_DESCRIPTION_LIMIT = 160
 const plural = (count: number, singular: string, pluralForm: string) =>
 	`${count} ${count === 1 ? singular : pluralForm}`
 
-export function workspaceDisplayName(
-	workspace: ContainerTag | undefined,
+export function spaceDisplayName(
+	space: ContainerTag | undefined,
 	key: string,
 ): string {
-	return workspace?.name || key
+	return space?.name || key
 }
 
 export function compactDescription(
@@ -39,43 +39,40 @@ export function formatActivityDate(value: string | null): string | undefined {
 	}).format(date)
 }
 
-export function workspaceMetadata(workspace: ContainerTag): string {
-	const lastActivity = formatActivityDate(workspace.lastActivityAt)
+export function spaceMetadata(space: ContainerTag): string {
+	const lastActivity = formatActivityDate(space.lastActivityAt)
 	const fields = [
-		workspace.visibility
-			? `${workspace.visibility.charAt(0).toUpperCase()}${workspace.visibility.slice(1)}`
+		space.visibility
+			? `${space.visibility.charAt(0).toUpperCase()}${space.visibility.slice(1)}`
 			: undefined,
-		plural(workspace.documentCount, "document", "documents"),
-		plural(workspace.memoryCount, "memory", "memories"),
+		plural(space.documentCount, "document", "documents"),
+		plural(space.memoryCount, "memory", "memories"),
 		lastActivity ? `Last active ${lastActivity}` : undefined,
 	]
 
 	return fields.filter(Boolean).join(" · ")
 }
 
-export function formatWorkspaceRow(
-	workspace: ContainerTag,
+export function formatSpaceRow(
+	space: ContainerTag,
 	activeKey: string,
 	descriptionLimit = DEFAULT_DESCRIPTION_LIMIT,
 ): string {
-	const active = workspace.containerTag === activeKey ? " · Active" : ""
-	const metadata = workspaceMetadata(workspace)
-	const description = compactDescription(
-		workspace.description,
-		descriptionLimit,
-	)
+	const active = space.containerTag === activeKey ? " · Active" : ""
+	const metadata = spaceMetadata(space)
+	const description = compactDescription(space.description, descriptionLimit)
 	const firstLine =
-		`- ${workspaceDisplayName(workspace, workspace.containerTag)} ` +
-		`[${workspace.containerTag}]${active}${metadata ? ` · ${metadata}` : ""}`
+		`- ${spaceDisplayName(space, space.containerTag)} ` +
+		`[${space.containerTag}]${active}${metadata ? ` · ${metadata}` : ""}`
 
 	return description ? `${firstLine}\n  ${description}` : firstLine
 }
 
-export function sortWorkspaces(
-	workspaces: ContainerTag[],
+export function sortSpaces(
+	spaces: ContainerTag[],
 	activeKey: string,
 ): ContainerTag[] {
-	return [...workspaces].sort((left, right) => {
+	return [...spaces].sort((left, right) => {
 		if (left.containerTag === activeKey) return -1
 		if (right.containerTag === activeKey) return 1
 

@@ -136,7 +136,7 @@ discovery and rejection tests still run.
 
 ## Storage And Rollout
 
-`WorkspaceState` stores only the active space's container tag. It never stores bearer
+`SpaceState` stores only the active space's container tag. It never stores bearer
 tokens, MCP client identity, or protocol messages.
 
 The old `SupermemoryMCP` class and binding remain inert for one rollout. This

@@ -1,4 +1,4 @@
-import type { WorkspaceState } from "./workspace-state"
+import type { SpaceState } from "./space-state"
 
 export interface ActorContext {
 	userId: string
@@ -8,7 +8,7 @@ export interface ActorContext {
 }
 
 export interface ServerEnv {
-	WORKSPACE_STATE: DurableObjectNamespace<WorkspaceState>
+	SPACE_STATE: DurableObjectNamespace<SpaceState>
 	API_URL?: string
 	MCP_RESOURCE?: string
 	ALLOWED_MCP_ORIGIN_HOSTNAMES?: string

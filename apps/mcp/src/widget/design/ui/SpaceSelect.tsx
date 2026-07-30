@@ -5,17 +5,17 @@ import { Button } from "./Button"
 import { Popover, PopoverContent, PopoverTrigger } from "./Popover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./Tooltip"
 
-export interface WorkspaceOption {
+export interface SpaceOption {
 	value: string
 	label: string
 	description?: string
 	icon?: ReactNode
 }
 
-interface WorkspaceSelectProps {
+interface SpaceSelectProps {
 	value: string | null
 	onValueChange: (value: string) => void
-	options: WorkspaceOption[]
+	options: SpaceOption[]
 	placeholder?: string
 	emptyText?: string
 	searchPlaceholder?: string
@@ -25,7 +25,7 @@ interface WorkspaceSelectProps {
 
 // Ports console-v2's ChipSelect/ContainerTagSelect: a Popover-anchored,
 // searchable list. Scales to hundreds of spaces where chips can't.
-export function WorkspaceSelect({
+export function SpaceSelect({
 	value,
 	onValueChange,
 	options,
@@ -34,7 +34,7 @@ export function WorkspaceSelect({
 	searchPlaceholder = "Search spaces…",
 	disabled = false,
 	className,
-}: WorkspaceSelectProps) {
+}: SpaceSelectProps) {
 	const [open, setOpen] = useState(false)
 	const [query, setQuery] = useState("")
 	const selected = value ? options.find((o) => o.value === value) : null
@@ -63,7 +63,7 @@ export function WorkspaceSelect({
 						<Button
 							brandFont={false}
 							className={cn(
-								"workspace-select-trigger w-full justify-between normal-case tracking-normal font-medium",
+								"space-select-trigger w-full justify-between normal-case tracking-normal font-medium",
 								"shadow-[var(--shadow-inset)]",
 								"data-[state=open]:border-[var(--border-accent)]",
 								className,

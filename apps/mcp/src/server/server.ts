@@ -18,9 +18,9 @@ import { registerAllTools } from "./tools"
 import { errorResult } from "./tools/types"
 import type { ActorContext, ServerEnv } from "./types"
 import {
-	resolveContainerTag as resolveWorkspaceContainerTag,
-	workspaceStateName,
-} from "./workspace"
+	resolveContainerTag as resolveSpaceContainerTag,
+	spaceStateName,
+} from "./space"
 
 const DEFAULT_API_URL = "https://api.supermemory.ai"
 
@@ -53,17 +53,15 @@ export function createSupermemoryServer(
 		version: "1.0.0",
 	})
 	const apiUrl = env.API_URL || DEFAULT_API_URL
-	const workspaceState = env.WORKSPACE_STATE.getByName(
-		workspaceStateName(actor),
-	)
+	const spaceState = env.SPACE_STATE.getByName(spaceStateName(actor))
 
 	const getClient = (containerTag?: string) =>
 		new SupermemoryClient(actor.bearerToken, containerTag, apiUrl)
-	const getActiveContainerTag = () => workspaceState.getActiveContainerTag()
+	const getActiveContainerTag = () => spaceState.getActiveContainerTag()
 	const setActiveContainerTag = (containerTag: string) =>
-		workspaceState.setActiveContainerTag(containerTag)
+		spaceState.setActiveContainerTag(containerTag)
 	const resolveContainerTag = (explicit?: string) =>
-		resolveWorkspaceContainerTag(explicit, getActiveContainerTag)
+		resolveSpaceContainerTag(explicit, getActiveContainerTag)
 	const analytics = createPosthogAnalytics(env, actor, waitUntil)
 	const toolServer = createTrackedToolServer(
 		server,

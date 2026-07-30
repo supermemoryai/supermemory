@@ -7,7 +7,7 @@ import {
 	PageHeader,
 	Stack,
 	TextArea,
-	WorkspaceSelect,
+	SpaceSelect,
 } from "../design/ui"
 import { useApp } from "../hooks/useApp"
 import { useLog } from "../hooks/useLog"
@@ -121,7 +121,7 @@ export function Save({
 
 						{writableTags.length > 0 ? (
 							<Field label="Space">
-								<WorkspaceSelect
+								<SpaceSelect
 									onValueChange={setSelectedTag}
 									options={options}
 									value={selectedTag}

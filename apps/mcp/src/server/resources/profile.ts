@@ -3,9 +3,9 @@ import { DEFAULT_PROJECT_ID, type SupermemoryClient } from "../client"
 import {
 	compactDescription,
 	formatFactSection,
-	workspaceDisplayName,
-	workspaceMetadata,
-} from "../workspace-presentation"
+	spaceDisplayName,
+	spaceMetadata,
+} from "../space-presentation"
 
 const PROFILE_FACT_LIMIT = 12
 
@@ -21,24 +21,24 @@ export function registerProfileResource(
 		async () => {
 			const selectedTag = await resolveContainerTag()
 			const activeKey = selectedTag ?? DEFAULT_PROJECT_ID
-			const [profileResult, workspaces] = await Promise.all([
+			const [profileResult, spaces] = await Promise.all([
 				getClient(activeKey).getProfile(),
 				getClient().listContainerTags(),
 			])
-			const activeWorkspace = workspaces.find(
-				(workspace) => workspace.containerTag === activeKey,
+			const activeSpace = spaces.find(
+				(space) => space.containerTag === activeKey,
 			)
-			const activeLabel = workspaceDisplayName(activeWorkspace, activeKey)
+			const activeLabel = spaceDisplayName(activeSpace, activeKey)
 			const fallback = selectedTag ? "" : " (default)"
 			const parts: string[] = [
 				"# Active Space Profile",
 				`Space: ${activeLabel} [${activeKey}]${fallback}`,
 			]
 
-			if (activeWorkspace) {
-				const metadata = workspaceMetadata(activeWorkspace)
+			if (activeSpace) {
+				const metadata = spaceMetadata(activeSpace)
 				if (metadata) parts.push(metadata)
-				const description = compactDescription(activeWorkspace.description)
+				const description = compactDescription(activeSpace.description)
 				if (description) parts.push(description)
 			}
 

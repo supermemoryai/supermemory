@@ -1,4 +1,4 @@
-import { WorkspaceChip } from "../components/WorkspaceChip"
+import { SpaceChip } from "../components/SpaceChip"
 import { Stack } from "../design/ui"
 import { Check } from "../lib/icons"
 
@@ -30,7 +30,7 @@ export function Success(props: Props) {
 				<div className="text-(length:--text-sm) font-semibold text-text-primary">
 					{isUpload ? `Uploaded ${props.fileName}` : "Memory saved"}
 				</div>
-				<WorkspaceChip containerTag={props.containerTag} />
+				<SpaceChip containerTag={props.containerTag} />
 			</Stack>
 		</Stack>
 	)

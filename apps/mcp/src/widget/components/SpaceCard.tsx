@@ -10,12 +10,7 @@ interface Props {
 	onClick: (containerTag: string) => void
 }
 
-export function WorkspaceCard({
-	containerTag,
-	active,
-	access,
-	onClick,
-}: Props) {
+export function SpaceCard({ containerTag, active, access, onClick }: Props) {
 	const name = containerTag.name || formatTagLabel(containerTag.containerTag)
 	const docs = containerTag.documentCount
 	const mems = containerTag.memoryCount
@@ -26,26 +21,26 @@ export function WorkspaceCard({
 
 	return (
 		<button
-			className="workspace-card"
+			className="space-card"
 			data-active={active}
 			onClick={() => onClick(containerTag.containerTag)}
 			type="button"
 		>
-			<span className="workspace-card-inner">
-				<span className="workspace-card-main">
+			<span className="space-card-inner">
+				<span className="space-card-main">
 					<span
 						className={cn(
-							"workspace-card-title truncate text-sm font-medium",
+							"space-card-title truncate text-sm font-medium",
 							active ? "text-accent" : "text-text-primary",
 						)}
 					>
 						{name}
 					</span>
-					<span className="workspace-card-meta text-[11px] leading-normal text-text-muted">
+					<span className="space-card-meta text-[11px] leading-normal text-text-muted">
 						{meta}
 					</span>
 				</span>
-				<span className="workspace-card-trailing">
+				<span className="space-card-trailing">
 					{access ? <PermissionBadge permission={access.permission} /> : null}
 				</span>
 			</span>

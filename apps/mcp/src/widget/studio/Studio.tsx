@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from "react"
 import { WidgetShell } from "../App"
-import { WorkspaceCard } from "../components/WorkspaceCard"
+import { SpaceCard } from "../components/SpaceCard"
 import {
 	ActionGroup,
 	Badge,
@@ -13,7 +13,7 @@ import {
 	PageHeader,
 	Stack,
 	TextArea,
-	WorkspaceSelect,
+	SpaceSelect,
 } from "../design/ui"
 import { Confirmation } from "../views/Confirmation"
 import { ErrorView } from "../views/Error"
@@ -288,7 +288,7 @@ export function Studio() {
 				<Section title="Composite components">
 					<div className="flex flex-wrap gap-(--space-4)">
 						<div className="w-64">
-							<WorkspaceCard
+							<SpaceCard
 								access={mockAssignedTags[0]}
 								active={false}
 								containerTag={mockContainerTags[0]}
@@ -296,7 +296,7 @@ export function Studio() {
 							/>
 						</div>
 						<div className="w-64">
-							<WorkspaceCard
+							<SpaceCard
 								access={mockAssignedTags[1]}
 								active
 								containerTag={mockContainerTags[1]}
@@ -304,7 +304,7 @@ export function Studio() {
 							/>
 						</div>
 						<div className="w-64">
-							<WorkspaceCard
+							<SpaceCard
 								active={false}
 								containerTag={mockContainerTags[3]}
 								onClick={() => {}}
@@ -334,7 +334,7 @@ export function Studio() {
 							hint="Searchable Popover — scales to hundreds of spaces."
 							label="Space select"
 						>
-							<WorkspaceSelect
+							<SpaceSelect
 								onValueChange={setSelectValue}
 								options={mockContainerTags.map((t) => ({
 									value: t.containerTag,

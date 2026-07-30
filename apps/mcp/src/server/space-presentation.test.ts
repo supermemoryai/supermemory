@@ -3,9 +3,9 @@ import type { ContainerTag } from "../shared/types"
 import {
 	compactDescription,
 	formatFactSection,
-	formatWorkspaceRow,
-	sortWorkspaces,
-} from "./workspace-presentation"
+	formatSpaceRow,
+	sortSpaces,
+} from "./space-presentation"
 
 const space = (
 	containerTag: string,
@@ -27,7 +27,7 @@ const space = (
 
 describe("space presentation", () => {
 	it("keeps the active space first, then sorts by activity", () => {
-		const sorted = sortWorkspaces(
+		const sorted = sortSpaces(
 			[
 				space("older", "2026-01-01T00:00:00.000Z"),
 				space("active", "2025-01-01T00:00:00.000Z"),
@@ -44,7 +44,7 @@ describe("space presentation", () => {
 	})
 
 	it("formats compact rows without internal database IDs", () => {
-		const row = formatWorkspaceRow(
+		const row = formatSpaceRow(
 			space("project-key", "2026-07-29T19:44:28.177Z"),
 			"project-key",
 		)

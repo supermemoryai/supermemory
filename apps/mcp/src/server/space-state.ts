@@ -3,7 +3,7 @@ import { containerTagSchema } from "./container-tag"
 
 const ACTIVE_CONTAINER_TAG_KEY = "activeContainerTag"
 
-export class WorkspaceState extends DurableObject {
+export class SpaceState extends DurableObject {
 	async getActiveContainerTag(): Promise<string | undefined> {
 		return this.ctx.storage.get<string>(ACTIVE_CONTAINER_TAG_KEY)
 	}

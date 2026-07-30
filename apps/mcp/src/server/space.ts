@@ -1,9 +1,9 @@
 import type { ActorContext } from "./types"
 
-export function workspaceStateName(
+export function spaceStateName(
 	actor: Pick<ActorContext, "organizationId" | "userId">,
 ): string {
-	return `workspace:${JSON.stringify([actor.organizationId, actor.userId])}`
+	return `space:${JSON.stringify([actor.organizationId, actor.userId])}`
 }
 
 export async function resolveContainerTag(

@@ -4,7 +4,7 @@ import type {
 	ContainerTagAccess,
 	ViewMessage,
 } from "../../shared/types"
-import { WorkspaceCard } from "../components/WorkspaceCard"
+import { SpaceCard } from "../components/SpaceCard"
 import { Input, PageHeader } from "../design/ui"
 import { useApp } from "../hooks/useApp"
 import { useLog } from "../hooks/useLog"
@@ -120,19 +120,19 @@ export function Picker({
 						) : null}
 
 						{filtered.length === 0 ? (
-							<div className="workspace-picker-grid items-center justify-center py-(--space-8)">
+							<div className="space-picker-grid items-center justify-center py-(--space-8)">
 								<p className="px-(--space-4) text-center text-(length:--text-sm) text-text-muted">
 									No spaces match “{query}”.
 								</p>
 							</div>
 						) : (
-							<div className="workspace-picker-grid">
+							<div className="space-picker-grid">
 								{filtered.map((tag) => {
 									const access = assignedTags?.find(
 										(t) => t.containerTag === tag.containerTag,
 									)
 									return (
-										<WorkspaceCard
+										<SpaceCard
 											access={access}
 											active={activeTag === tag.containerTag}
 											containerTag={tag}

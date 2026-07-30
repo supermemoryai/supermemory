@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from "vitest"
 import { optionalContainerTagSchema } from "./container-tag"
-import { resolveContainerTag, workspaceStateName } from "./workspace"
+import { resolveContainerTag, spaceStateName } from "./space"
 
-describe("workspace application state", () => {
+describe("space application state", () => {
 	it("keys active state by organization and user without collisions", () => {
 		expect(
-			workspaceStateName({
+			spaceStateName({
 				organizationId: "org:one",
 				userId: "user:two",
 			}),
 		).not.toBe(
-			workspaceStateName({
+			spaceStateName({
 				organizationId: "org",
 				userId: "one:user:two",
 			}),

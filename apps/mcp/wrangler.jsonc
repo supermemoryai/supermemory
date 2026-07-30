@@ -29,8 +29,8 @@
 				"class_name": "SupermemoryMCP"
 			},
 			{
-				"name": "WORKSPACE_STATE",
-				"class_name": "WorkspaceState"
+				"name": "SPACE_STATE",
+				"class_name": "SpaceState"
 			}
 		]
 	},
@@ -42,7 +42,7 @@
 		},
 		{
 			"tag": "v2",
-			"new_sqlite_classes": ["WorkspaceState"]
+			"new_sqlite_classes": ["SpaceState"]
 		}
 	],
 

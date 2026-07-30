@@ -21,4 +21,4 @@ export {
 	TooltipProvider,
 	TooltipTrigger,
 } from "./Tooltip"
-export { type WorkspaceOption, WorkspaceSelect } from "./WorkspaceSelect"
+export { type SpaceOption, SpaceSelect } from "./SpaceSelect"

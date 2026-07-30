@@ -1,10 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/server"
 import { DEFAULT_PROJECT_ID, type SupermemoryClient } from "../client"
 import {
-	formatWorkspaceRow,
-	sortWorkspaces,
-	workspaceDisplayName,
-} from "../workspace-presentation"
+	formatSpaceRow,
+	sortSpaces,
+	spaceDisplayName,
+} from "../space-presentation"
 
 export function registerContainerTagsResource(
 	server: McpServer,
@@ -18,13 +18,13 @@ export function registerContainerTagsResource(
 			resolveContainerTag(),
 		])
 		const activeKey = selectedTag ?? DEFAULT_PROJECT_ID
-		const activeWorkspace = containerTags.find(
-			(workspace) => workspace.containerTag === activeKey,
+		const activeSpace = containerTags.find(
+			(space) => space.containerTag === activeKey,
 		)
-		const rows = sortWorkspaces(containerTags, activeKey).map((workspace) =>
-			formatWorkspaceRow(workspace, activeKey),
+		const rows = sortSpaces(containerTags, activeKey).map((space) =>
+			formatSpaceRow(space, activeKey),
 		)
-		const activeLabel = workspaceDisplayName(activeWorkspace, activeKey)
+		const activeLabel = spaceDisplayName(activeSpace, activeKey)
 		const fallback = selectedTag ? "" : " (default)"
 		const text = [
 			"# My Spaces",
