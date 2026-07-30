@@ -132,7 +132,11 @@ function isPendingInvitation(invitation: {
 	return new Date(invitation.expiresAt).getTime() > Date.now()
 }
 
-export default function Account() {
+export default function Account({
+	dialogPortalContainer,
+}: {
+	dialogPortalContainer?: HTMLElement | null
+}) {
 	const { user, org, refetchActiveOrg, refetchOrganizations } = useAuth()
 	const autumn = useCustomer()
 	const { currentPlan, searchesUsed } = useTokenUsage(autumn)
@@ -152,6 +156,7 @@ export default function Account() {
 	const [isEditingOrgName, setIsEditingOrgName] = useState(false)
 	const [orgNameDraft, setOrgNameDraft] = useState("")
 	const tagInputRef = useRef<HTMLInputElement>(null)
+	const inviteEmailInputRef = useRef<HTMLInputElement>(null)
 	const tagAnchorRef = useRef<HTMLDivElement>(null)
 	const { allProjects: allContainerTags } = useContainerTags()
 
@@ -877,6 +882,11 @@ export default function Account() {
 			>
 				<DialogContent
 					showCloseButton={false}
+					portalContainer={dialogPortalContainer}
+					onOpenAutoFocus={(event) => {
+						event.preventDefault()
+						inviteEmailInputRef.current?.focus()
+					}}
 					className="sm:max-w-[480px] border-none bg-[#1B1F24] p-0 gap-0 rounded-[22px] overflow-hidden"
 				>
 					<div className="flex items-start justify-between gap-3 px-6 pt-6 pb-4">
@@ -925,6 +935,7 @@ export default function Account() {
 								<div className="relative min-w-0">
 									<Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#525D6E]" />
 									<input
+										ref={inviteEmailInputRef}
 										id="team-invite-email"
 										type="email"
 										value={inviteEmail}

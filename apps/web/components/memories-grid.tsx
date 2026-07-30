@@ -388,6 +388,13 @@ export function MemoriesGrid({
 		enabled: !!user && showAgentFilters,
 	})
 
+	useEffect(() => {
+		if (!selectedAgentSource || !agentSourceCounts) return
+		if ((agentSourceCounts[selectedAgentSource] ?? 0) === 0) {
+			void setSelectedAgentSource(null)
+		}
+	}, [agentSourceCounts, selectedAgentSource, setSelectedAgentSource])
+
 	const {
 		data,
 		error,
@@ -700,22 +707,25 @@ export function MemoriesGrid({
 								aria-label="Filter memories by agent"
 								className="gap-1.5"
 							>
-								{AGENT_SOURCE_FILTERS.map((filter) => (
-									<ToggleGroupItem
-										key={filter.value}
-										value={filter.value}
-										aria-label={`Show ${filter.label} memories`}
-										className={cn(
-											dmSansClassName(),
-											"h-auto min-w-0 flex-none shrink-0 rounded-full! border border-[#161F2C]! bg-[#0D121A] px-2.5 py-1 text-xs hover:border-[#2261CA33]! hover:bg-[#00173C] data-[state=on]:border-[#2261CA33]! data-[state=on]:bg-[#00173C]",
-										)}
-									>
-										{filter.label}
-										<span className="ml-1 text-[#737373]">
-											({agentSourceCounts?.[filter.value] ?? 0})
-										</span>
-									</ToggleGroupItem>
-								))}
+								{AGENT_SOURCE_FILTERS.map((filter) => {
+									const count = agentSourceCounts?.[filter.value]
+									if (!count) return null
+
+									return (
+										<ToggleGroupItem
+											key={filter.value}
+											value={filter.value}
+											aria-label={`Show ${filter.label} memories`}
+											className={cn(
+												dmSansClassName(),
+												"h-auto min-w-0 flex-none shrink-0 rounded-full! border border-[#161F2C]! bg-[#0D121A] px-2.5 py-1 text-xs hover:border-[#2261CA33]! hover:bg-[#00173C] data-[state=on]:border-[#2261CA33]! data-[state=on]:bg-[#00173C]",
+											)}
+										>
+											{filter.label}
+											<span className="ml-1 text-[#737373]">({count})</span>
+										</ToggleGroupItem>
+									)
+								})}
 							</ToggleGroup>
 						)}
 					</div>

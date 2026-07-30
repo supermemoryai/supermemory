@@ -119,6 +119,7 @@ interface SDKResult {
 export class SupermemoryClient {
 	private client: Supermemory
 	private containerTag: string
+	private hasExplicitContainerTag: boolean
 	private bearerToken: string
 	private apiUrl: string
 
@@ -134,6 +135,7 @@ export class SupermemoryClient {
 			baseURL: apiUrl,
 			timeout: FETCH_TIMEOUT_MS,
 		})
+		this.hasExplicitContainerTag = Boolean(containerTag)
 		this.containerTag = containerTag || DEFAULT_PROJECT_ID
 	}
 
@@ -152,7 +154,7 @@ export class SupermemoryClient {
 				containerTag: this.containerTag,
 			}
 		} catch (error) {
-			this.handleError(error)
+			this.handleOperationError("Create memory request", error)
 		}
 	}
 
@@ -179,7 +181,12 @@ export class SupermemoryClient {
 			}
 
 			const SIMILARITY_THRESHOLD = 0.85
-			const searchResult = await this.search(content, 5, SIMILARITY_THRESHOLD)
+			const searchResult = await this.search(
+				content,
+				5,
+				SIMILARITY_THRESHOLD,
+				this.containerTag,
+			)
 
 			if (searchResult.results.length === 0) {
 				return {
@@ -211,7 +218,7 @@ export class SupermemoryClient {
 				containerTag: this.containerTag,
 			}
 		} catch (error) {
-			this.handleError(error)
+			this.handleOperationError("Forget memory request", error)
 		}
 	}
 
@@ -219,12 +226,16 @@ export class SupermemoryClient {
 		query: string,
 		limit = 10,
 		threshold?: number,
+		containerTagOverride?: string,
 	): Promise<SearchResult> {
 		try {
+			const containerTag =
+				containerTagOverride ??
+				(this.hasExplicitContainerTag ? this.containerTag : undefined)
 			const result = await this.client.search.memories({
 				q: query,
 				limit,
-				containerTag: this.containerTag,
+				...(containerTag ? { containerTag } : {}),
 				searchMode: "hybrid",
 				threshold,
 			})
@@ -247,11 +258,20 @@ export class SupermemoryClient {
 
 			return { results, total: result.total, timing: result.timing }
 		} catch (error) {
-			this.handleError(error)
+			this.handleOperationError("Search request", error)
 		}
 	}
 
 	async getProfile(query?: string): Promise<ProfileResponse> {
+		if (!this.hasExplicitContainerTag) {
+			return {
+				profile: {
+					static: [],
+					dynamic: [],
+				},
+			}
+		}
+
 		try {
 			const result = await this.client.profile({
 				containerTag: this.containerTag,
@@ -287,7 +307,7 @@ export class SupermemoryClient {
 
 			return response
 		} catch (error) {
-			this.handleError(error)
+			this.handleOperationError("Profile request", error)
 		}
 	}
 
@@ -489,7 +509,10 @@ export class SupermemoryClient {
 				case 402:
 					throw new Error("Memory limit reached. Upgrade at supermemory.ai")
 				case 403:
-					throw new Error("Access forbidden.")
+					throw new Error(
+						message ||
+							"Access forbidden. Your account may be restricted or blocked.",
+					)
 				case 404:
 					throw new Error("Not found.")
 				case 429:
@@ -503,5 +526,17 @@ export class SupermemoryClient {
 
 		if (error instanceof Error) throw error
 		throw new Error(`Unexpected error: ${String(error)}`)
+	}
+
+	private handleOperationError(operation: string, error: unknown): never {
+		try {
+			this.handleError(error)
+		} catch (handledError) {
+			const message =
+				handledError instanceof Error
+					? handledError.message
+					: String(handledError)
+			throw new Error(`${operation} failed: ${message}`)
+		}
 	}
 }

@@ -7,7 +7,7 @@ import {
 } from "./agent-space"
 
 describe("Agents spaces", () => {
-	it("recognizes only Claude and Codex shared and legacy tags", () => {
+	it("recognizes shared and legacy tags from every unified agent", () => {
 		expect(isAgentContainerTag("repo_supermemory__0123456789abcdef")).toBe(true)
 		expect(isAgentContainerTag("user_project_0123456789abcdef")).toBe(true)
 		expect(isAgentContainerTag("repo_supermemory")).toBe(true)
@@ -16,7 +16,10 @@ describe("Agents spaces", () => {
 		)
 		expect(isAgentContainerTag("codex_project_0123456789abcdef")).toBe(true)
 		expect(isAgentContainerTag("codex_user_0123456789abcdef")).toBe(true)
-		expect(isAgentContainerTag("opencode_project_0123456789abcdef")).toBe(false)
+		expect(isAgentContainerTag("opencode_project_0123456789abcdef")).toBe(true)
+		expect(isAgentContainerTag("opencode_user_0123456789abcdef")).toBe(true)
+		expect(isAgentContainerTag("cursor_project_0123456789abcdef")).toBe(true)
+		expect(isAgentContainerTag("cursor_user_0123456789abcdef")).toBe(true)
 	})
 
 	it("shows agent filters only for an Agents selection", () => {
@@ -38,6 +41,8 @@ describe("Agents spaces", () => {
 			"claude-code-plugin",
 		])
 		expect(agentSourceValues("codex")).toEqual(["codex"])
+		expect(agentSourceValues("opencode")).toEqual(["opencode"])
+		expect(agentSourceValues("cursor")).toEqual(["cursor"])
 		expect(agentSourceValues(null)).toBeUndefined()
 	})
 
@@ -46,6 +51,7 @@ describe("Agents spaces", () => {
 			{ containerTag: "repo_supermemory__fedcba9876543210" },
 			{ containerTag: "repo_supermemory" },
 			{ containerTag: "codex_project_0123456789abcdef" },
+			{ containerTag: "opencode_project_0123456789abcdef" },
 			{ containerTag: "claudecode_project_0123456789abcdef" },
 			{ containerTag: "user_project_0123456789abcdef" },
 		]
@@ -69,6 +75,7 @@ describe("Agents spaces", () => {
 			"claudecode_project_0123456789abcdef",
 			"repo_supermemory",
 			"codex_project_0123456789abcdef",
+			"opencode_project_0123456789abcdef",
 		])
 	})
 
@@ -110,10 +117,31 @@ describe("Agents spaces", () => {
 		expect(groups[1]?.kind).toBe("legacy-personal")
 	})
 
+	it("keeps the old global OpenCode personal container separate", () => {
+		const projects = [
+			{ containerTag: "user_project_0123456789abcdef" },
+			{ containerTag: "opencode_user_fedcba9876543210" },
+		]
+		const metadata = new Map(
+			projects.map((project) => [
+				project.containerTag,
+				{ projectName: "supermemory" },
+			]),
+		)
+
+		const groups = groupAgentSpaces(projects, metadata)
+
+		expect(groups).toHaveLength(2)
+		expect(groups[0]?.label).toBe("supermemory")
+		expect(groups[1]?.label).toBe("Legacy OpenCode personal")
+		expect(groups[1]?.kind).toBe("legacy-personal")
+	})
+
 	it("groups path-scoped legacy tags even before metadata loads", () => {
 		const projects = [
 			{ containerTag: "claudecode_project_0123456789abcdef" },
 			{ containerTag: "codex_project_0123456789abcdef" },
+			{ containerTag: "opencode_project_0123456789abcdef" },
 		]
 
 		const groups = groupAgentSpaces(projects, new Map())
@@ -122,5 +150,26 @@ describe("Agents spaces", () => {
 		expect(groups[0]?.representative.containerTag).toBe(
 			"claudecode_project_0123456789abcdef",
 		)
+	})
+
+	it("shows an unambiguous Cursor project label before metadata loads", () => {
+		const groups = groupAgentSpaces(
+			[{ containerTag: "cursor_project_0123456789abcdef" }],
+			new Map(),
+		)
+
+		expect(groups).toHaveLength(1)
+		expect(groups[0]?.label).toBe("Cursor project · 012345")
+	})
+
+	it("shows old Cursor personal memory without a Legacy prefix", () => {
+		const groups = groupAgentSpaces(
+			[{ containerTag: "cursor_user_fedcba9876543210" }],
+			new Map(),
+		)
+
+		expect(groups).toHaveLength(1)
+		expect(groups[0]?.label).toBe("Cursor personal · fedcba")
+		expect(groups[0]?.kind).toBe("legacy-personal")
 	})
 })

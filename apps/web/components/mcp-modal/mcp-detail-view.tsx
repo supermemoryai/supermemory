@@ -502,19 +502,30 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 									if (manual.kind === "chatgpt") {
 										return (
 											<div className="space-y-3">
+												<p className="text-[12px] leading-relaxed text-amber-500/90">
+													Write-capable custom MCP apps are only supported on
+													Business & Enterprise plans.
+												</p>
 												<ol className="list-decimal space-y-2 pl-5 text-[13px] leading-relaxed text-[#A1A1AA]">
 													<li>Open ChatGPT in your browser.</li>
 													<li>
-														Go to Settings → Apps → Advanced settings → enable
-														Developer mode.
+														Go to Settings → Security and Login → scroll to the
+														bottom to enable Developer mode.
 													</li>
 													<li>
-														Create an app and choose your MCP server URL when
-														asked.
+														Go to{" "}
+														<a
+															className="text-[#4BA0FA] underline hover:text-[#8BC6FF]"
+															href="https://chatgpt.com/plugins"
+															rel="noopener noreferrer"
+															target="_blank"
+														>
+															chatgpt.com/plugins
+														</a>
+														.
 													</li>
-													<li>
-														Paste the URL below and complete OAuth in ChatGPT.
-													</li>
+													<li>Paste the URL below.</li>
+													<li>Complete OAuth in ChatGPT.</li>
 												</ol>
 												<McpCodeBlock
 													code={CHATGPT_REMOTE_MCP_URL}

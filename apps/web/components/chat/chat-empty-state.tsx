@@ -7,8 +7,8 @@ import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 
 export const DEFAULT_CHAT_PROMPTS = [
 	"What do you know about me?",
-	"What have I been working on lately?",
-	"What themes keep showing up in my memories?",
+	"Set up Cursor",
+	"Show my active plugins",
 ] as const
 
 const SUGGESTION_PILL_CLASS = cn(

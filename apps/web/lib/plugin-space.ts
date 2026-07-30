@@ -8,6 +8,7 @@ export type PluginSpaceInfo = {
 		| "openclaw"
 		| "opencode"
 		| "codex"
+		| "cursor"
 		| "amp"
 		| "hermes"
 	label: string
@@ -27,7 +28,14 @@ const PLUGINS: PluginDef[] = [
 		id: "agents",
 		label: "Agents",
 		iconSrc: null,
-		prefixes: ["user_project", "repo", "claudecode", "codex"],
+		prefixes: [
+			"user_project",
+			"repo",
+			"claudecode",
+			"codex",
+			"opencode",
+			"cursor",
+		],
 	},
 	{
 		id: "openclaw",
@@ -73,6 +81,7 @@ const PLUGIN_ICON_BY_LABEL: Record<string, string> = {
 	OpenClaw: "/images/plugins/openclaw.svg",
 	OpenCode: "/images/plugins/opencode.svg",
 	Codex: "/images/plugins/codex.png",
+	Cursor: "/images/plugins/cursor.png",
 	Hermes: "/images/plugins/hermes.svg",
 }
 

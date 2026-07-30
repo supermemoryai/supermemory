@@ -15,6 +15,7 @@ import { XIcon, Download, Copy, Check } from "lucide-react"
 import { GradientLogo } from "@ui/assets/Logo"
 import { useAuth } from "@lib/auth-context"
 import { useLocalStorageUsername } from "@hooks/use-local-storage-username"
+import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { toast } from "sonner"
 import * as htmlToImage from "html-to-image"
 
@@ -276,7 +277,8 @@ export function ShareModal({
 	onClose,
 	graphCanvasRef,
 }: ShareModalProps) {
-	const { user } = useAuth()
+	const { user, org } = useAuth()
+	const isCompanyBrain = useHasCompanyBrain()
 	const [selectedTheme, setSelectedTheme] =
 		useState<BackgroundTheme>("gradient")
 	const [isCopying, setIsCopying] = useState(false)
@@ -291,6 +293,15 @@ export function ShareModal({
 		user?.email?.split("@")[0] ||
 		""
 	const userName = displayName ? `${displayName.split(" ")[0]}'s` : "Your"
+	const orgLabel = org?.name.replace(/\s*organizations?\s*$/i, "").trim()
+	const ownerLabel = isCompanyBrain
+		? orgLabel
+			? /['’]s$/i.test(orgLabel)
+				? orgLabel
+				: `${orgLabel}'s`
+			: "Your company's"
+		: userName
+	const productName = isCompanyBrain ? "Company Brain" : "supermemory"
 
 	const capturePreview = useCallback(async (): Promise<Blob | null> => {
 		if (!previewRef.current) return null
@@ -439,10 +450,10 @@ export function ShareModal({
 							<GradientLogo className="w-7 h-6" />
 							<div className="flex flex-col">
 								<span className="text-[10px] text-white/70 leading-tight">
-									{userName}
+									{ownerLabel}
 								</span>
 								<span className="text-sm text-white font-semibold leading-tight">
-									supermemory
+									{productName}
 								</span>
 							</div>
 						</div>
