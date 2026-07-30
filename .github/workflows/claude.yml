@@ -67,15 +67,4 @@ jobs:
           claude_args: |
             --max-turns 15
             --model claude-opus-4-5-20251101
-            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(*),WebSearch,WebFetch,Task,mcp__supermemory,mcp__github"
-            --mcp-config '{
-              "mcpServers": {
-                "supermemory": {
-                  "type": "http",
-                  "url": "https://mcp.supermemory.ai/mcp",
-                  "headers": {
-                    "Authorization": "Bearer ${{ secrets.SUPERMEMORY_API_KEY }}"
-                  }
-                }
-              }
-            }'
+            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(*),WebSearch,WebFetch,Task,mcp__github"

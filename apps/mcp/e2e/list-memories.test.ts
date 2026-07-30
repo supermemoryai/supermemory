@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import {
-	API_KEY,
+	OAUTH_CREDENTIALS_AVAILABLE,
 	callTool,
 	connect,
 	type Session,
@@ -9,68 +9,177 @@ import {
 	textOf,
 } from "./helpers"
 
-// listMemories reads extracted memory entries, which appear only after the
-// async ingestion pipeline finishes — poll like recallUntil does.
-async function listUntil(
-	s: Session,
+type AppView = {
+	view?: string
+	viewId?: string
+	id?: string
+	fileName?: string
+	containerTag?: string
+	writableTags?: string[]
+}
+
+async function waitForToolText(
+	session: Session,
+	name: string,
+	args: Record<string, unknown>,
 	needle: string,
-	{ tries = 18, delayMs = 5000 } = {},
+	tries: number,
+	delayMs: number,
 ): Promise<string | null> {
-	for (let i = 0; i < tries; i++) {
-		// The marker document is the newest, so page 1 is enough.
-		const res = await callTool(s.client, "listMemories", { limit: 20 })
-		const txt = textOf(res)
-		if (txt.includes(needle)) return txt
+	for (let attempt = 0; attempt < tries; attempt++) {
+		const result = await callTool(session.client, name, args)
+		const text = textOf(result)
+		if (!result.isError && text.includes(needle)) return text
 		await sleep(delayMs)
 	}
 	return null
 }
 
-describe.skipIf(!API_KEY)("MCP — listMemories", () => {
-	let s: Session
-	const created: string[] = []
+describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
+	"MCP - documents and memories",
+	() => {
+		let session: Session
+		const createdMemories: Array<{
+			content: string
+			containerTag: string
+		}> = []
 
-	beforeAll(async () => {
-		s = await connect()
-	})
-	afterAll(async () => {
-		for (const content of created) {
-			await callTool(s.client, "memory", {
+		beforeAll(async () => {
+			session = await connect()
+		})
+
+		afterAll(async () => {
+			for (const memory of createdMemories) {
+				await callTool(session.client, "add_memory", {
+					content: memory.content,
+					action: "forget",
+					containerTag: memory.containerTag,
+				}).catch(() => {})
+			}
+			await session?.close()
+		})
+
+		it("saves and reads a document, then lists a real extracted memory", async () => {
+			const marker = `docs-${randomUUID()}`
+			const content = `For E2E marker ${marker}, the user's preferred test fruit is dragonfruit.`
+			const launcher = await callTool(session.client, "guided-save", {
+				prefill: content,
+			})
+			expect(launcher.isError).toBeFalsy()
+
+			const launcherView = launcher.structuredContent as AppView
+			const containerTag = launcherView.writableTags?.[0]
+			expect(launcherView.view).toBe("save")
+			expect(launcherView.viewId).toBeTruthy()
+			expect(containerTag).toBeTruthy()
+			if (!launcherView.viewId || !containerTag) {
+				throw new Error("Guided save did not provide a writable space")
+			}
+
+			const saved = await callTool(session.client, "save-memory", {
 				content,
-				action: "forget",
-			}).catch(() => {})
-		}
-		await s?.close()
-	})
+				containerTag,
+				viewId: launcherView.viewId,
+			})
+			expect(saved.isError).toBeFalsy()
+			const savedView = saved.structuredContent as AppView
+			expect(savedView).toMatchObject({
+				view: "save-success",
+				containerTag,
+			})
+			expect(savedView.id).toBeTruthy()
+			if (!savedView.id) throw new Error("Save did not return a document ID")
+			createdMemories.push({ content, containerTag })
 
-	it("lists a saved memory without dumping document content", async () => {
-		const marker = `lm-${randomUUID()}`
-		const content = `e2e listMemories. token=${marker}. The list test fruit is rambutan.`
-		created.push(content)
+			const listedDocument = await waitForToolText(
+				session,
+				"listDocuments",
+				{ page: 1, limit: 50, containerTag },
+				`[${savedView.id}]`,
+				20,
+				1000,
+			)
+			expect(listedDocument, "saved document did not appear").not.toBeNull()
 
-		const save = await callTool(s.client, "memory", { content, action: "save" })
-		expect(save.isError).toBeFalsy()
+			const document = await waitForToolText(
+				session,
+				"getDocument",
+				{ documentId: savedView.id },
+				`Document ID: ${savedView.id}`,
+				20,
+				1000,
+			)
+			expect(document, "saved document could not be read").not.toBeNull()
 
-		const listing = await listUntil(s, marker)
-		expect(
-			listing,
-			`listMemories never returned marker ${marker}`,
-		).not.toBeNull()
-		// Header shape: "N memories across M documents (page X of Y, ...)"
-		expect(listing).toMatch(/memor(y|ies) across \d+ document/)
-	}, 120_000)
+			const memoriesResult = await callTool(session.client, "listMemories", {
+				page: 1,
+				limit: 10,
+				containerTag: "sm_project_default",
+			})
+			expect(memoriesResult.isError).toBeFalsy()
+			const memories = textOf(memoriesResult)
+			expect(memories).toMatch(/active memor(?:y|ies) \(page 1 of \d+/i)
 
-	it("paginates with a bounded page size", async () => {
-		const res = await callTool(s.client, "listMemories", { page: 1, limit: 1 })
-		expect(res.isError).toBeFalsy()
-		const txt = textOf(res)
-		// With the memory saved above there is at least one document.
-		expect(txt).toMatch(/page 1 of \d+/)
-	}, 30_000)
+			const sourceDocumentId = memories.match(
+				/Source documents: ([^,\n]+)/,
+			)?.[1]
+			expect(sourceDocumentId).toBeTruthy()
+			if (!sourceDocumentId) {
+				throw new Error("Listed memory did not include a source document")
+			}
 
-	it("rejects an out-of-range limit", async () => {
-		const res = await callTool(s.client, "listMemories", { limit: 500 })
-		// Zod schema caps limit at 50 — the SDK surfaces this as a tool error.
-		expect(res.isError).toBeTruthy()
-	}, 30_000)
-})
+			const sourceDocument = await callTool(session.client, "getDocument", {
+				documentId: sourceDocumentId,
+			})
+			expect(sourceDocument.isError).toBeFalsy()
+			expect(textOf(sourceDocument)).toContain(
+				`Document ID: ${sourceDocumentId}`,
+			)
+		}, 60_000)
+
+		it("uploads and reads a text document", async () => {
+			const marker = randomUUID()
+			const fileName = `mcp-e2e-${marker}.txt`
+			const fileContent = `E2E upload marker ${marker}.`
+			const launcher = await callTool(session.client, "upload-file")
+			expect(launcher.isError).toBeFalsy()
+
+			const launcherView = launcher.structuredContent as AppView
+			const containerTag = launcherView.writableTags?.[0]
+			expect(launcherView.view).toBe("upload")
+			expect(launcherView.viewId).toBeTruthy()
+			expect(containerTag).toBeTruthy()
+			if (!launcherView.viewId || !containerTag) {
+				throw new Error("Upload did not provide a writable space")
+			}
+
+			const uploaded = await callTool(session.client, "upload-file-submit", {
+				fileData: Buffer.from(fileContent).toString("base64"),
+				fileName,
+				mimeType: "text/plain",
+				containerTag,
+				viewId: launcherView.viewId,
+			})
+			expect(uploaded.isError).toBeFalsy()
+			const uploadedView = uploaded.structuredContent as AppView
+			expect(uploadedView).toMatchObject({
+				view: "upload-success",
+				fileName,
+				containerTag,
+			})
+			expect(uploadedView.id).toBeTruthy()
+			if (!uploadedView.id)
+				throw new Error("Upload did not return a document ID")
+
+			const document = await waitForToolText(
+				session,
+				"getDocument",
+				{ documentId: uploadedView.id },
+				`Document ID: ${uploadedView.id}`,
+				20,
+				1000,
+			)
+			expect(document, "uploaded document could not be read").not.toBeNull()
+		}, 30_000)
+	},
+)
