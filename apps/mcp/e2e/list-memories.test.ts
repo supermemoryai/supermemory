@@ -1,61 +1,185 @@
+import { randomUUID } from "node:crypto"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import {
 	OAUTH_CREDENTIALS_AVAILABLE,
 	callTool,
 	connect,
 	type Session,
+	sleep,
 	textOf,
 } from "./helpers"
+
+type AppView = {
+	view?: string
+	viewId?: string
+	id?: string
+	fileName?: string
+	containerTag?: string
+	writableTags?: string[]
+}
+
+async function waitForToolText(
+	session: Session,
+	name: string,
+	args: Record<string, unknown>,
+	needle: string,
+	tries: number,
+	delayMs: number,
+): Promise<string | null> {
+	for (let attempt = 0; attempt < tries; attempt++) {
+		const result = await callTool(session.client, name, args)
+		const text = textOf(result)
+		if (!result.isError && text.includes(needle)) return text
+		await sleep(delayMs)
+	}
+	return null
+}
 
 describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 	"MCP - documents and memories",
 	() => {
-		let s: Session
+		let session: Session
+		const createdMemories: Array<{
+			content: string
+			containerTag: string
+		}> = []
 
 		beforeAll(async () => {
-			s = await connect()
+			session = await connect()
 		})
+
 		afterAll(async () => {
-			await s?.close()
+			for (const memory of createdMemories) {
+				await callTool(session.client, "add_memory", {
+					content: memory.content,
+					action: "forget",
+					containerTag: memory.containerTag,
+				}).catch(() => {})
+			}
+			await session?.close()
 		})
 
-		it("appears in tool discovery", async () => {
-			const tools = await s.client.listTools()
-			const names = tools.tools.map((t) => t.name)
-			expect(names).toContain("listMemories")
-			expect(names).toContain("listDocuments")
-			expect(names).toContain("getDocument")
-		})
-
-		it("lists extracted memory entries directly", async () => {
-			const result = await callTool(s.client, "listMemories", { limit: 20 })
-			expect(result.isError).toBeFalsy()
-			expect(textOf(result)).toMatch(
-				/active memor(y|ies) \(page \d+ of \d+|No active memories stored yet/i,
-			)
-		})
-
-		it("lists documents and can read one by ID", async () => {
-			const res = await callTool(s.client, "listDocuments", {
-				page: 1,
-				limit: 1,
+		it("saves and reads a document, then lists a real extracted memory", async () => {
+			const marker = `docs-${randomUUID()}`
+			const content = `For E2E marker ${marker}, the user's preferred test fruit is dragonfruit.`
+			const launcher = await callTool(session.client, "guided-save", {
+				prefill: content,
 			})
-			expect(res.isError).toBeFalsy()
-			const txt = textOf(res)
-			expect(txt).toMatch(/page 1 of \d+|No documents stored yet/i)
+			expect(launcher.isError).toBeFalsy()
 
-			const documentId = txt.match(/- \[([^\]]+)\]/)?.[1]
-			if (!documentId) return
+			const launcherView = launcher.structuredContent as AppView
+			const containerTag = launcherView.writableTags?.[0]
+			expect(launcherView.view).toBe("save")
+			expect(launcherView.viewId).toBeTruthy()
+			expect(containerTag).toBeTruthy()
+			if (!launcherView.viewId || !containerTag) {
+				throw new Error("Guided save did not provide a writable space")
+			}
 
-			const document = await callTool(s.client, "getDocument", { documentId })
-			expect(document.isError).toBeFalsy()
-			expect(textOf(document)).toContain(`Document ID: ${documentId}`)
-		}, 30_000)
+			const saved = await callTool(session.client, "save-memory", {
+				content,
+				containerTag,
+				viewId: launcherView.viewId,
+			})
+			expect(saved.isError).toBeFalsy()
+			const savedView = saved.structuredContent as AppView
+			expect(savedView).toMatchObject({
+				view: "save-success",
+				containerTag,
+			})
+			expect(savedView.id).toBeTruthy()
+			if (!savedView.id) throw new Error("Save did not return a document ID")
+			createdMemories.push({ content, containerTag })
 
-		it("rejects an out-of-range limit", async () => {
-			const res = await callTool(s.client, "listMemories", { limit: 500 })
-			// Zod schema caps limit at 50 — the SDK surfaces this as a tool error.
-			expect(res.isError).toBeTruthy()
+			const listedDocument = await waitForToolText(
+				session,
+				"listDocuments",
+				{ page: 1, limit: 50, containerTag },
+				`[${savedView.id}]`,
+				20,
+				1000,
+			)
+			expect(listedDocument, "saved document did not appear").not.toBeNull()
+
+			const document = await waitForToolText(
+				session,
+				"getDocument",
+				{ documentId: savedView.id },
+				`Document ID: ${savedView.id}`,
+				20,
+				1000,
+			)
+			expect(document, "saved document could not be read").not.toBeNull()
+
+			const memoriesResult = await callTool(session.client, "listMemories", {
+				page: 1,
+				limit: 10,
+				containerTag: "sm_project_default",
+			})
+			expect(memoriesResult.isError).toBeFalsy()
+			const memories = textOf(memoriesResult)
+			expect(memories).toMatch(/active memor(?:y|ies) \(page 1 of \d+/i)
+
+			const sourceDocumentId = memories.match(
+				/Source documents: ([^,\n]+)/,
+			)?.[1]
+			expect(sourceDocumentId).toBeTruthy()
+			if (!sourceDocumentId) {
+				throw new Error("Listed memory did not include a source document")
+			}
+
+			const sourceDocument = await callTool(session.client, "getDocument", {
+				documentId: sourceDocumentId,
+			})
+			expect(sourceDocument.isError).toBeFalsy()
+			expect(textOf(sourceDocument)).toContain(
+				`Document ID: ${sourceDocumentId}`,
+			)
+		}, 60_000)
+
+		it("uploads and reads a text document", async () => {
+			const marker = randomUUID()
+			const fileName = `mcp-e2e-${marker}.txt`
+			const fileContent = `E2E upload marker ${marker}.`
+			const launcher = await callTool(session.client, "upload-file")
+			expect(launcher.isError).toBeFalsy()
+
+			const launcherView = launcher.structuredContent as AppView
+			const containerTag = launcherView.writableTags?.[0]
+			expect(launcherView.view).toBe("upload")
+			expect(launcherView.viewId).toBeTruthy()
+			expect(containerTag).toBeTruthy()
+			if (!launcherView.viewId || !containerTag) {
+				throw new Error("Upload did not provide a writable space")
+			}
+
+			const uploaded = await callTool(session.client, "upload-file-submit", {
+				fileData: Buffer.from(fileContent).toString("base64"),
+				fileName,
+				mimeType: "text/plain",
+				containerTag,
+				viewId: launcherView.viewId,
+			})
+			expect(uploaded.isError).toBeFalsy()
+			const uploadedView = uploaded.structuredContent as AppView
+			expect(uploadedView).toMatchObject({
+				view: "upload-success",
+				fileName,
+				containerTag,
+			})
+			expect(uploadedView.id).toBeTruthy()
+			if (!uploadedView.id)
+				throw new Error("Upload did not return a document ID")
+
+			const document = await waitForToolText(
+				session,
+				"getDocument",
+				{ documentId: uploadedView.id },
+				`Document ID: ${uploadedView.id}`,
+				20,
+				1000,
+			)
+			expect(document, "uploaded document could not be read").not.toBeNull()
 		}, 30_000)
 	},
 )

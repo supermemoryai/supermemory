@@ -71,31 +71,5 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 				await separateSession.close()
 			}
 		})
-
-		it("loads guided-save writable choices on demand", async () => {
-			const result = await callTool(session.client, "guided-save", {
-				prefill: "Preview only",
-			})
-			expect(result.isError).toBeFalsy()
-			const content = result.structuredContent as {
-				view?: string
-				writableTags?: string[]
-				prefill?: string
-			}
-			expect(content.view).toBe("save")
-			expect(Array.isArray(content.writableTags)).toBe(true)
-			expect(content.prefill).toBe("Preview only")
-		})
-
-		it("loads upload writable choices on demand", async () => {
-			const result = await callTool(session.client, "upload-file")
-			expect(result.isError).toBeFalsy()
-			const content = result.structuredContent as {
-				view?: string
-				writableTags?: string[]
-			}
-			expect(content.view).toBe("upload")
-			expect(Array.isArray(content.writableTags)).toBe(true)
-		})
 	},
 )

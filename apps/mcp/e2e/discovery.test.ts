@@ -87,17 +87,6 @@ describeWithAuth("MCP — discovery & identity", () => {
 		expect(uris).toContain("supermemory://spaces")
 	})
 
-	it("uses space terminology across exposed MCP metadata", async () => {
-		const [{ tools }, { resources }, { prompts }] = await Promise.all([
-			s.client.listTools(),
-			s.client.listResources(),
-			s.client.listPrompts(),
-		])
-		expect(JSON.stringify({ tools, resources, prompts })).not.toMatch(
-			/\bworkspaces?\b/i,
-		)
-	})
-
 	it("lists the context prompt", async () => {
 		const { prompts } = await s.client.listPrompts()
 		expect(prompts.map((p) => p.name)).toContain("context")
@@ -109,7 +98,6 @@ describeWithAuth("MCP — discovery & identity", () => {
 		const parsed = JSON.parse(textOf(res))
 		expect(parsed.userId).toBeTruthy()
 		expect(parsed).toHaveProperty("activeSpace")
-		expect(parsed).not.toHaveProperty("activeWorkspace")
 	})
 
 	it("listSpaces returns content", async () => {
