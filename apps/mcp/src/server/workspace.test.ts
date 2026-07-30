@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+import { optionalContainerTagSchema } from "./container-tag"
 import { resolveContainerTag, workspaceStateName } from "./workspace"
 
 describe("workspace application state", () => {
@@ -32,5 +33,13 @@ describe("workspace application state", () => {
 		await expect(
 			resolveContainerTag(undefined, vi.fn().mockResolvedValue(undefined)),
 		).resolves.toBeUndefined()
+	})
+
+	it("tells the model how to route explicit workspace requests", () => {
+		expect(optionalContainerTagSchema.description).toContain(
+			"If the user names a workspace",
+		)
+		expect(optionalContainerTagSchema.description).toContain("listSpaces")
+		expect(optionalContainerTagSchema.description).toContain("active workspace")
 	})
 })

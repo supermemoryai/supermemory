@@ -1,5 +1,9 @@
 import Supermemory from "supermemory"
 import type {
+	DocumentGetResponse,
+	DocumentListResponse as SdkDocumentListResponse,
+} from "supermemory/resources/documents"
+import type {
 	ContainerTag,
 	DocumentMemoryEntry,
 	DocumentsApiResponse,
@@ -15,6 +19,51 @@ export type {
 	DocumentMemoryEntry,
 	DocumentWithMemories,
 	DocumentsApiResponse,
+}
+
+export type DocumentSummary = SdkDocumentListResponse["memories"][number]
+export type DocumentDetails = DocumentGetResponse
+
+export interface DocumentsListResponse {
+	documents: DocumentSummary[]
+	pagination: SdkDocumentListResponse["pagination"]
+}
+
+export interface MemoryEntryHistory {
+	id: string
+	memory: string
+	version: number
+	createdAt: string
+	updatedAt: string
+	parentMemoryId?: string | null
+	rootMemoryId?: string | null
+	isLatest?: boolean
+	isForgotten?: boolean
+}
+
+export interface MemoryEntry {
+	id: string
+	memory: string
+	version: number
+	isLatest: boolean
+	isForgotten: boolean
+	isStatic?: boolean
+	isInference?: boolean
+	createdAt: string
+	updatedAt: string
+	sourceCount?: number
+	documentIds?: string[]
+	history?: MemoryEntryHistory[]
+}
+
+export interface MemoryEntriesResponse {
+	memoryEntries: MemoryEntry[]
+	pagination: {
+		currentPage: number
+		limit: number
+		totalItems: number
+		totalPages: number
+	}
 }
 
 export type Memory =
@@ -299,6 +348,69 @@ export class SupermemoryClient {
 				})
 			}
 			return (await response.json()) as DocumentsApiResponse
+		} catch (error) {
+			this.handleError(error)
+		}
+	}
+
+	async listDocuments(page = 1, limit = 50): Promise<DocumentsListResponse> {
+		try {
+			const result = await this.client.documents.list({
+				containerTags: [this.containerTag],
+				page,
+				limit,
+				sort: "createdAt",
+				order: "desc",
+				includeContent: false,
+			})
+
+			return {
+				documents: result.memories ?? [],
+				pagination: result.pagination,
+			}
+		} catch (error) {
+			this.handleError(error)
+		}
+	}
+
+	async getDocument(id: string): Promise<DocumentDetails> {
+		try {
+			return await this.client.documents.get(id)
+		} catch (error) {
+			this.handleError(error)
+		}
+	}
+
+	async listMemoryEntries(
+		page = 1,
+		limit = 50,
+	): Promise<MemoryEntriesResponse> {
+		try {
+			const response = await fetch(`${this.apiUrl}/v4/memories/list`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${this.bearerToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					containerTags: [this.containerTag],
+					page,
+					limit,
+					sort: "createdAt",
+					order: "desc",
+				}),
+				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+			})
+
+			if (!response.ok) {
+				const message = await response.text()
+				throw Object.assign(
+					new Error(message || "Failed to fetch memory entries"),
+					{ status: response.status },
+				)
+			}
+
+			return (await response.json()) as MemoryEntriesResponse
 		} catch (error) {
 			this.handleError(error)
 		}

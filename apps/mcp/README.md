@@ -49,9 +49,11 @@ The client discovers the OAuth authorization server through
 | Tool | Purpose |
 | --- | --- |
 | `search_memory` | Search memories and optionally include profile context |
-| `listMemories` | List extracted memories grouped by source document |
+| `listDocuments` | List document metadata and summaries in a workspace |
+| `getDocument` | Read one document's available content by ID |
+| `listMemories` | List extracted memory entries and their source document IDs |
 | `listSpaces` | List workspaces visible to the authenticated account |
-| `whoAmI` | Return identity, access, client, and active-workspace context |
+| `whoAmI` | Return identity, access, and active-workspace context |
 | `add_memory` | Save or forget a memory |
 
 ### MCP App launchers

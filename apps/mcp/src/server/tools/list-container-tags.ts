@@ -7,7 +7,7 @@ export function register(deps: ToolDeps) {
 		"listSpaces",
 		{
 			description:
-				"List the spaces available to you. Spaces are the workspaces you organize memories into — returns each space's name, identifier, emoji, document/memory counts, and last activity. The list is auto-filtered to spaces you have access to.",
+				"List the workspaces available to the user. Returns each workspace's name, key, emoji, document/memory counts, and last activity. Use this first to resolve a named workspace before calling a workspace-aware tool, or when the user asks which workspace may contain something. The list is auto-filtered to workspaces the user can access.",
 			inputSchema: z.object({}),
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},

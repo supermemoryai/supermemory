@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { optionalContainerTagSchema } from "../container-tag"
-import { formatMemoryEntriesList } from "../format"
+import { formatDocumentsList } from "../format"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
@@ -20,16 +20,16 @@ export function register(deps: ToolDeps) {
 			.max(50)
 			.optional()
 			.default(10)
-			.describe("Memory entries per page (default 10, max 50)"),
+			.describe("Documents per page (default 10, max 50)"),
 		containerTag: optionalContainerTagSchema,
 	})
 
 	deps.server.registerTool(
-		"listMemories",
+		"listDocuments",
 		{
-			title: "List Memories",
+			title: "List Documents",
 			description:
-				"List the latest extracted memory entries in one workspace, including stable memory IDs, version information, and source document IDs. This lists memories directly, not documents. When the user names a workspace, resolve it with listSpaces and pass containerTag; otherwise use the active workspace. Use search_memory instead for semantic recall.",
+				"List documents in one workspace with their IDs, titles, types, processing status, dates, and summaries. This does not return full document content; use getDocument with an ID from this result to read one document. When the user names a workspace, resolve it with listSpaces and pass containerTag; otherwise use the active workspace.",
 			inputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
@@ -37,15 +37,13 @@ export function register(deps: ToolDeps) {
 			try {
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
 				const client = deps.getClient(effectiveTag)
-				const data = await client.listMemoryEntries(
+				const data = await client.listDocuments(
 					args.page ?? 1,
 					args.limit ?? 10,
 				)
 
 				return {
-					content: [
-						{ type: "text" as const, text: formatMemoryEntriesList(data) },
-					],
+					content: [{ type: "text" as const, text: formatDocumentsList(data) }],
 				}
 			} catch (error) {
 				return deps.errorResult(error)

@@ -16,6 +16,8 @@ export function register(deps: ToolDeps) {
 					deps.getSession(),
 					deps.getActiveContainerTag(),
 				])
+				const client = deps.getClientInfo(context)
+				const sessionId = context.sessionId
 				return {
 					content: [
 						{
@@ -32,8 +34,8 @@ export function register(deps: ToolDeps) {
 										? session.containerTags
 										: null,
 								scope: session.scope,
-								client: deps.getClientInfo(context),
-								sessionId: context.sessionId ?? null,
+								...(client ? { client } : {}),
+								...(sessionId ? { sessionId } : {}),
 							}),
 						},
 					],

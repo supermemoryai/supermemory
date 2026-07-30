@@ -21,7 +21,9 @@ describeWithAuth("MCP — graph, resources & prompts", () => {
 	it("memory-graph returns a summary + structured documents", async () => {
 		const res = await callTool(s.client, "memory-graph")
 		expect(res.isError).toBeFalsy()
-		expect(textOf(res)).toMatch(/Memory Graph: \d+ documents/)
+		expect(textOf(res)).toMatch(
+			/Rendered the interactive Memory Graph MCP App: \d+ documents/,
+		)
 		const sc = res.structuredContent as {
 			documents?: unknown[]
 			totalCount?: number

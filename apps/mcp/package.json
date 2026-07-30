@@ -15,7 +15,7 @@
 		"studio": "vite --config vite.config.dev.ts --open /studio.html",
 		"deploy": "vite build && wrangler deploy --minify",
 		"check-types": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.widget.json",
-		"test:unit": "vitest run src/server src/widget",
+		"test:unit": "vitest run src",
 		"test:e2e": "vitest run e2e",
 		"cf-typegen": "wrangler types --env-interface CloudflareBindings"
 	},

@@ -18,7 +18,7 @@ export function register(deps: ToolDeps) {
 		"search_memory",
 		{
 			description:
-				"Search the user's memories with a natural-language query. Returns relevant memories plus their profile summary.",
+				"Search memories in one workspace with a natural-language query. Returns relevant memories plus that workspace's profile summary. When the user names a workspace, resolve it with listSpaces and pass containerTag; otherwise use the active workspace.",
 			inputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},

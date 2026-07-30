@@ -9,16 +9,28 @@ import {
 
 const EXPECTED_TOOLS = [
 	"add_memory",
-	"search_memory",
+	"fetch-graph-data",
+	"getDocument",
+	"guided-save",
+	"listDocuments",
+	"listMemories",
 	"listSpaces",
-	"whoAmI",
 	"memory-graph",
+	"save-memory",
+	"search_memory",
+	"select-workspace",
+	"set-active-tag",
+	"upload-file",
+	"upload-file-submit",
+	"whoAmI",
 ]
 const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
 const READ_ONLY_TOOL_NAMES = [
 	"search_memory",
+	"listDocuments",
 	"listMemories",
+	"getDocument",
 	"listSpaces",
 	"whoAmI",
 	"memory-graph",
@@ -50,8 +62,8 @@ describeWithAuth("MCP — discovery & identity", () => {
 
 	it("handshakes and lists the expected tools", async () => {
 		const { tools } = await s.client.listTools()
-		const names = tools.map((t) => t.name)
-		for (const t of EXPECTED_TOOLS) expect(names).toContain(t)
+		const names = tools.map((t) => t.name).sort()
+		expect(names).toEqual([...EXPECTED_TOOLS].sort())
 	})
 
 	it("marks read-only tools as non-destructive", async () => {
