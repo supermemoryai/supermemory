@@ -12,4 +12,6 @@ export interface ServerEnv {
 	API_URL?: string
 	MCP_RESOURCE?: string
 	ALLOWED_MCP_ORIGIN_HOSTNAMES?: string
+	POSTHOG_API_KEY?: string
+	POSTHOG_HOST?: string
 }

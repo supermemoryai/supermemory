@@ -13,6 +13,7 @@ import type {
 const MAX_CHARS = 200000
 export const DEFAULT_PROJECT_ID = "sm_project_default"
 const FETCH_TIMEOUT_MS = 30_000
+const MCP_SOURCE = "supermemory-mcp"
 
 export type {
 	ContainerTag,
@@ -134,6 +135,7 @@ export class SupermemoryClient {
 			apiKey: bearerToken,
 			baseURL: apiUrl,
 			timeout: FETCH_TIMEOUT_MS,
+			defaultHeaders: { "x-sm-source": MCP_SOURCE },
 		})
 		this.hasExplicitContainerTag = Boolean(containerTag)
 		this.containerTag = containerTag || DEFAULT_PROJECT_ID
@@ -146,7 +148,7 @@ export class SupermemoryClient {
 			const result = await this.client.add({
 				content,
 				containerTag: this.containerTag,
-				metadata: { sm_source: "supermemory-mcp" },
+				metadata: { sm_source: MCP_SOURCE },
 			})
 			return {
 				id: result.id,
@@ -319,6 +321,7 @@ export class SupermemoryClient {
 				headers: {
 					Authorization: `Bearer ${this.bearerToken}`,
 					"Content-Type": "application/json",
+					"x-sm-source": MCP_SOURCE,
 				},
 				signal,
 			})
@@ -352,6 +355,7 @@ export class SupermemoryClient {
 				headers: {
 					Authorization: `Bearer ${this.bearerToken}`,
 					"Content-Type": "application/json",
+					"x-sm-source": MCP_SOURCE,
 				},
 				body: JSON.stringify({
 					page,
@@ -411,6 +415,7 @@ export class SupermemoryClient {
 				headers: {
 					Authorization: `Bearer ${this.bearerToken}`,
 					"Content-Type": "application/json",
+					"x-sm-source": MCP_SOURCE,
 				},
 				body: JSON.stringify({
 					containerTags: [this.containerTag],
@@ -449,15 +454,13 @@ export class SupermemoryClient {
 			if (containerTag) {
 				formData.append("containerTags", containerTag)
 			}
-			formData.append(
-				"metadata",
-				JSON.stringify({ sm_source: "supermemory-mcp" }),
-			)
+			formData.append("metadata", JSON.stringify({ sm_source: MCP_SOURCE }))
 
 			const response = await fetch(`${this.apiUrl}/v3/documents/file`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${this.bearerToken}`,
+					"x-sm-source": MCP_SOURCE,
 				},
 				body: formData,
 			})

@@ -183,7 +183,10 @@ async function handleMcpRequest(
 		? new Request(new URL(rewritePath, c.req.url).toString(), c.req.raw)
 		: c.req.raw
 	const handler = createMcpHandler(
-		() => createSupermemoryServer(c.env, actor),
+		() =>
+			createSupermemoryServer(c.env, actor, (promise) =>
+				c.executionCtx.waitUntil(promise),
+			),
 		{
 			route: "/mcp",
 			legacy: "stateless",

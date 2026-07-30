@@ -6,7 +6,7 @@ import type { ActorContext } from "../types"
 // Dependencies passed to every tool's register() function.
 // Keep this surface small — tools should read this rather than reach into the agent.
 export interface ToolDeps {
-	server: McpServer
+	server: Pick<McpServer, "registerTool">
 	actor: ActorContext
 	getClient: (containerTag?: string) => SupermemoryClient
 	getSession: () => Promise<SessionInfo>

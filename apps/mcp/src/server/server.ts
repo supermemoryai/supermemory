@@ -3,6 +3,11 @@ import {
 	McpServer,
 	type ServerContext,
 } from "@modelcontextprotocol/server"
+import {
+	createPosthogAnalytics,
+	createTrackedToolServer,
+	type WaitUntil,
+} from "./analytics"
 import { fetchSession } from "./auth"
 import { SupermemoryClient } from "./client"
 import { registerContextPrompt } from "./prompts/context"
@@ -41,6 +46,7 @@ function clientInfoFromContext(context: ServerContext): ClientInfo | null {
 export function createSupermemoryServer(
 	env: ServerEnv,
 	actor: ActorContext,
+	waitUntil: WaitUntil,
 ): McpServer {
 	const server = new McpServer({
 		name: "supermemory",
@@ -58,9 +64,15 @@ export function createSupermemoryServer(
 		workspaceState.setActiveContainerTag(containerTag)
 	const resolveContainerTag = (explicit?: string) =>
 		resolveWorkspaceContainerTag(explicit, getActiveContainerTag)
+	const analytics = createPosthogAnalytics(env, actor, waitUntil)
+	const toolServer = createTrackedToolServer(
+		server,
+		analytics,
+		clientInfoFromContext,
+	)
 
 	registerAllTools({
-		server,
+		server: toolServer,
 		actor,
 		getClient,
 		getSession: () => fetchSession(actor.bearerToken, apiUrl),

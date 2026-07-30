@@ -50,6 +50,7 @@ describe("SupermemoryClient memory listing", () => {
 		expect(init.headers).toMatchObject({
 			Authorization: "Bearer oauth-token",
 			"Content-Type": "application/json",
+			"x-sm-source": "supermemory-mcp",
 		})
 		expect(JSON.parse(init.body as string)).toEqual({
 			containerTags: ["snowcone_grande"],
