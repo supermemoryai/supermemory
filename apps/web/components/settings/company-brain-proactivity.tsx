@@ -2,15 +2,18 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { cn } from "@lib/utils"
-import { Check, Loader2, Lock, X } from "lucide-react"
+import { Check, Loader2, Lock, Plus, X } from "lucide-react"
+import { useState } from "react"
 import { useAuth } from "@lib/auth-context"
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@ui/components/select"
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@ui/components/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
 import {
 	type BrainChannelProactivity,
 	type BrainProactivityDefault,
@@ -27,7 +30,6 @@ const BACKEND =
 type Channel = { id: string; name: string; isPrivate: boolean }
 
 const HOME_CHANNEL_NAME = "company-brain"
-const ADD_PLACEHOLDER = "__add__"
 
 const MODES: {
 	id: BrainProactivityDefault
@@ -50,16 +52,12 @@ const fieldLabel = cn(
 	dmSans125ClassName(),
 	"text-[11px] font-medium uppercase tracking-[0.06em] text-[#5B6675]",
 )
-const controlClass = cn(
-	dmSans125ClassName(),
-	"h-9 w-full rounded-full border border-[#1E293B] bg-[#0D121A] px-3.5 text-[13px] text-[#FAFAFA] outline-none disabled:opacity-50",
-)
 const selectContentClass = cn(
 	dmSans125ClassName(),
 	"rounded-[10px] border-white/[0.08] bg-[#1B1F24] text-[#FAFAFA] shadow-[0px_8px_24px_rgba(0,0,0,0.5)]",
 )
-const selectItemClass =
-	"cursor-pointer rounded-[8px] text-[13px] text-[#FAFAFA] hover:bg-white/10 hover:text-white data-[highlighted]:bg-white/10 data-[highlighted]:text-white focus:bg-white/10 focus:text-white"
+const commandItemClass =
+	"cursor-pointer rounded-[8px] text-[13px] text-[#FAFAFA] data-[selected=true]:bg-white/10 data-[selected=true]:text-white"
 
 export default function CompanyBrainProactivity() {
 	const isCompanyBrain = useHasCompanyBrain()
@@ -68,6 +66,7 @@ export default function CompanyBrainProactivity() {
 
 	const settingsQuery = useBrainSettings(isCompanyBrain)
 	const update = useUpdateBrainSettings()
+	const [pickerOpen, setPickerOpen] = useState(false)
 
 	const slackStatusQuery = useQuery({
 		queryKey: ["brain", "slack-status", org?.id],
@@ -129,7 +128,7 @@ export default function CompanyBrainProactivity() {
 	}
 
 	return (
-		<section className="flex flex-col gap-4 px-1">
+		<section className="flex w-full max-w-3xl flex-col gap-4 px-1">
 			{settingsQuery.isLoading ? (
 				<div className="flex items-center gap-2 text-[13px] text-[#9A9A9A]">
 					<Loader2 className="size-4 animate-spin" />
@@ -183,100 +182,130 @@ export default function CompanyBrainProactivity() {
 
 					<div className="flex flex-col gap-2">
 						<span className={fieldLabel}>Channel exceptions</span>
-						{Object.entries(overrides).map(([channelId, value]) => (
-							<div
-								key={channelId}
-								className="flex items-center justify-between gap-3 rounded-xl bg-[#14161A] px-4 py-2.5 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]"
-							>
-								<span
+						<div className="overflow-hidden rounded-xl bg-[#14161A] shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
+							<div className="max-h-[420px] overflow-y-auto">
+								{Object.entries(overrides).map(([channelId, value]) => (
+									<div
+										key={channelId}
+										className="flex min-h-[52px] items-center justify-between gap-3 border-white/[0.06] border-b px-4 py-2"
+									>
+										<span
+											className={cn(
+												dmSans125ClassName(),
+												"min-w-0 truncate text-[13px] font-medium text-[#FAFAFA]",
+											)}
+										>
+											#{channelName(channelId)}
+										</span>
+										<div className="flex shrink-0 items-center gap-2">
+											<div className="flex items-center gap-0.5 rounded-full bg-[#0D121A] p-0.5 shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.5)]">
+												{(["proactive", "quiet"] as const).map((option) => (
+													<button
+														key={option}
+														type="button"
+														aria-pressed={value === option}
+														disabled={disabled}
+														onClick={() => {
+															if (value !== option)
+																setOverride(channelId, option)
+														}}
+														className={cn(
+															dmSans125ClassName(),
+															"h-7 cursor-pointer rounded-full px-3 text-[11.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+															value === option
+																? "bg-white/[0.10] text-[#FAFAFA]"
+																: "text-[#8B929E] hover:text-[#FAFAFA]",
+														)}
+													>
+														{option === "proactive" ? "Proactive" : "Quiet"}
+													</button>
+												))}
+											</div>
+											<button
+												type="button"
+												disabled={disabled}
+												onClick={() => setOverride(channelId, null)}
+												className="cursor-pointer text-[#6B6B6B] transition-colors hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-50"
+												aria-label={`Remove exception for #${channelName(channelId)}`}
+											>
+												<X className="size-4" />
+											</button>
+										</div>
+									</div>
+								))}
+							</div>
+							{addable.length > 0 ? (
+								<Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+									<PopoverTrigger asChild>
+										<button
+											type="button"
+											disabled={disabled}
+											aria-expanded={pickerOpen}
+											className={cn(
+												dmSans125ClassName(),
+												"flex min-h-[52px] w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-[13px] text-[#8B929E] outline-none transition-colors hover:bg-white/[0.03] hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-50",
+											)}
+										>
+											<Plus className="size-4 shrink-0" />
+											<span className="truncate">Add a channel exception</span>
+										</button>
+									</PopoverTrigger>
+									<PopoverContent
+										align="start"
+										className={cn(
+											selectContentClass,
+											"w-(--radix-popover-trigger-width) min-w-64 p-0",
+										)}
+									>
+										<Command className="bg-transparent text-[#FAFAFA]">
+											<CommandInput
+												placeholder="Search channels…"
+												className="text-[13px] text-[#FAFAFA] placeholder:text-[#737373]"
+											/>
+											<CommandList>
+												<CommandEmpty className="py-6 text-center text-[13px] text-[#737373]">
+													No channels found.
+												</CommandEmpty>
+												<CommandGroup>
+													{addable.map((ch) => (
+														<CommandItem
+															key={ch.id}
+															value={ch.id}
+															keywords={[ch.name]}
+															className={commandItemClass}
+															onSelect={() => {
+																setOverride(
+																	ch.id,
+																	activeMode === "all_channels"
+																		? "quiet"
+																		: "proactive",
+																)
+																setPickerOpen(false)
+															}}
+														>
+															{ch.isPrivate ? "🔒 " : "# "}
+															{ch.name}
+														</CommandItem>
+													))}
+												</CommandGroup>
+											</CommandList>
+										</Command>
+									</PopoverContent>
+								</Popover>
+							) : channelsQuery.isLoading ||
+								slackStatusQuery.isLoading ? null : (
+								<p
 									className={cn(
 										dmSans125ClassName(),
-										"truncate text-[13px] font-medium text-[#FAFAFA]",
+										"px-4 py-3 text-[12px] text-[#737373]",
 									)}
 								>
-									#{channelName(channelId)}
-								</span>
-								<div className="flex items-center gap-2">
-									<div className="flex items-center gap-0.5 rounded-full bg-[#0D121A] p-0.5 shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.5)]">
-										{(["proactive", "quiet"] as const).map((option) => (
-											<button
-												key={option}
-												type="button"
-												aria-pressed={value === option}
-												disabled={disabled}
-												onClick={() => {
-													if (value !== option) setOverride(channelId, option)
-												}}
-												className={cn(
-													dmSans125ClassName(),
-													"h-7 cursor-pointer rounded-full px-3 text-[11.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-													value === option
-														? "bg-white/[0.10] text-[#FAFAFA]"
-														: "text-[#8B929E] hover:text-[#FAFAFA]",
-												)}
-											>
-												{option === "proactive" ? "Proactive" : "Quiet"}
-											</button>
-										))}
-									</div>
-									<button
-										type="button"
-										disabled={disabled}
-										onClick={() => setOverride(channelId, null)}
-										className="cursor-pointer text-[#6B6B6B] transition-colors hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-50"
-										aria-label={`Remove exception for #${channelName(channelId)}`}
-									>
-										<X className="size-4" />
-									</button>
-								</div>
-							</div>
-						))}
-						{addable.length > 0 ? (
-							<Select
-								value={ADD_PLACEHOLDER}
-								disabled={disabled}
-								onValueChange={(channelId) => {
-									if (channelId === ADD_PLACEHOLDER) return
-									setOverride(
-										channelId,
-										activeMode === "all_channels" ? "quiet" : "proactive",
-									)
-								}}
-							>
-								<SelectTrigger className={cn(controlClass, "sm:w-72")}>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent className={selectContentClass}>
-									<SelectItem
-										value={ADD_PLACEHOLDER}
-										className={selectItemClass}
-									>
-										Add a channel exception…
-									</SelectItem>
-									{addable.map((ch) => (
-										<SelectItem
-											key={ch.id}
-											value={ch.id}
-											className={selectItemClass}
-										>
-											{ch.isPrivate ? "🔒 " : "# "}
-											{ch.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						) : channelsQuery.isLoading || slackStatusQuery.isLoading ? null : (
-							<p
-								className={cn(
-									dmSans125ClassName(),
-									"text-[12px] text-[#737373]",
-								)}
-							>
-								{slackStatusQuery.data?.connected === false
-									? "Connect Slack to set per-channel exceptions."
-									: "Invite Company Brain to a Slack channel to list it here."}
-							</p>
-						)}
+									{slackStatusQuery.data?.connected === false
+										? "Connect Slack to set per-channel exceptions."
+										: "Invite Company Brain to a Slack channel to list it here."}
+								</p>
+							)}
+						</div>
 					</div>
 
 					{!isAdmin ? (
