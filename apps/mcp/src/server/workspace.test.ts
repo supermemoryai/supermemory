@@ -35,11 +35,11 @@ describe("workspace application state", () => {
 		).resolves.toBeUndefined()
 	})
 
-	it("tells the model how to route explicit workspace requests", () => {
+	it("tells the model how to route explicit space requests", () => {
 		expect(optionalContainerTagSchema.description).toContain(
-			"If the user names a workspace",
+			"If the user names a space",
 		)
 		expect(optionalContainerTagSchema.description).toContain("listSpaces")
-		expect(optionalContainerTagSchema.description).toContain("active workspace")
+		expect(optionalContainerTagSchema.description).toContain("active space")
 	})
 })

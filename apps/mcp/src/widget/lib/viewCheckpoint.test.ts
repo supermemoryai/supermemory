@@ -76,7 +76,7 @@ describe("view checkpoints", () => {
 		saveViewCheckpoint(view)
 
 		expect(setWidgetState).toHaveBeenCalledWith({
-			modelContent: 'Supermemory active workspace is now "model_test".',
+			modelContent: 'Supermemory active space is now "model_test".',
 			privateContent: {
 				existing: true,
 				supermemoryView: view,

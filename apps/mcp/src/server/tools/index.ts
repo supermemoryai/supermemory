@@ -8,7 +8,7 @@ import * as listMemories from "./list-memories"
 import * as memoryGraph from "./memory-graph"
 import * as saveMemory from "./save-memory"
 import * as searchMemory from "./search-memory"
-import * as selectWorkspace from "./select-workspace"
+import * as selectSpace from "./select-space"
 import * as setActiveTag from "./set-active-tag"
 import type { ToolDeps } from "./types"
 import * as uploadFile from "./upload-file"
@@ -22,7 +22,7 @@ export function registerAllTools(deps: ToolDeps) {
 	listMemories.register(deps)
 	listContainerTags.register(deps)
 	whoAmI.register(deps)
-	selectWorkspace.register(deps)
+	selectSpace.register(deps)
 	setActiveTag.register(deps)
 	memoryGraph.register(deps)
 	fetchGraphData.register(deps)

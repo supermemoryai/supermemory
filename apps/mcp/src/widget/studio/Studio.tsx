@@ -331,8 +331,8 @@ export function Studio() {
 					</div>
 					<Card className="max-w-sm">
 						<Field
-							hint="Searchable Popover — scales to hundreds of workspaces."
-							label="Workspace select"
+							hint="Searchable Popover — scales to hundreds of spaces."
+							label="Space select"
 						>
 							<WorkspaceSelect
 								onValueChange={setSelectValue}

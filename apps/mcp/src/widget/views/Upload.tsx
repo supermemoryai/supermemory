@@ -80,12 +80,12 @@ export function Upload({
 				result.data.view === "upload-success" ? result.data.id : undefined
 			onAdvance(result.data)
 			const handoff = await handoffToModel({
-				context: `Supermemory widget action completed. "${file.name}" was uploaded to workspace "${selectedTag}"${documentId ? ` with document ID "${documentId}"` : ""}. It is already uploaded; do not upload it again.`,
-				message: `I used the Supermemory widget to upload "${file.name}" to workspace "${selectedTag}"${documentId ? ` (document ID: ${documentId})` : ""}. The file is already uploaded; do not upload it again.`,
+				context: `Supermemory widget action completed. "${file.name}" was uploaded to space "${selectedTag}"${documentId ? ` with document ID "${documentId}"` : ""}. It is already uploaded; do not upload it again.`,
+				message: `I used the Supermemory widget to upload "${file.name}" to space "${selectedTag}"${documentId ? ` (document ID: ${documentId})` : ""}. The file is already uploaded; do not upload it again.`,
 				structuredContent: {
 					supermemory: {
 						action: "file-uploaded",
-						activeWorkspace: selectedTag,
+						activeSpace: selectedTag,
 						documentId,
 						fileName: file.name,
 					},
@@ -114,7 +114,7 @@ export function Upload({
 	return (
 		<div className="flex flex-col">
 			<PageHeader
-				description="Send a file (text, PDF, image, video) into a workspace."
+				description="Send a file (text, PDF, image, video) into a space."
 				title="Upload File"
 			/>
 			<div className="px-(--page-header-px) pb-(--space-6)">
@@ -150,7 +150,7 @@ export function Upload({
 						)}
 
 						{writableTags.length > 0 ? (
-							<Field label="Workspace">
+							<Field label="Space">
 								<WorkspaceSelect
 									onValueChange={setSelectedTag}
 									options={options}

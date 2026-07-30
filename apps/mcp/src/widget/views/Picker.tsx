@@ -56,17 +56,17 @@ export function Picker({
 		setPending(null)
 		if (!result.ok || !result.data) {
 			log("error", `[picker] set-active-tag failed: ${result.error}`)
-			onError(result.error ?? "Failed to set active workspace")
+			onError(result.error ?? "Failed to set active space")
 			return
 		}
 		onAdvance(result.data)
 		const handoff = await handoffToModel({
-			context: `Supermemory workspace selection changed. Active workspace: "${containerTag}". Use it for future Supermemory actions until another workspace is selected.`,
-			message: `I selected "${containerTag}" as my active Supermemory workspace. Use this workspace for future Supermemory actions until I select another one.`,
+			context: `Supermemory space selection changed. Active space: "${containerTag}". Use it for future Supermemory actions until another space is selected.`,
+			message: `I selected "${containerTag}" as my active Supermemory space. Use this space for future Supermemory actions until I select another one.`,
 			structuredContent: {
 				supermemory: {
-					action: "workspace-selected",
-					activeWorkspace: containerTag,
+					action: "space-selected",
+					activeSpace: containerTag,
 				},
 			},
 		})
@@ -87,22 +87,22 @@ export function Picker({
 	const count = containerTags.length
 	const description =
 		count === 0
-			? "Create a workspace in Supermemory to get started."
-			: "Pick the workspace to save and recall from."
+			? "Create a space in Supermemory to get started."
+			: "Pick the space to save and recall from."
 
 	return (
 		<div className="flex flex-col">
-			<PageHeader description={description} title="Workspaces" />
+			<PageHeader description={description} title="Spaces" />
 			<div className="flex flex-col gap-(--space-3) px-(--page-header-px) pb-(--space-6)">
 				{count === 0 ? (
 					<div className="flex flex-col items-center gap-(--space-2) rounded-xl border border-border bg-[var(--card-bg)] px-(--space-6) py-(--space-10) text-center">
 						<Package className="size-7 text-text-muted" />
 						<p className="text-(length:--text-sm) font-medium text-text-primary">
-							No workspaces yet
+							No spaces yet
 						</p>
 						<p className="max-w-xs text-(length:--text-xs) leading-relaxed text-text-muted">
-							Workspaces you create in Supermemory show up here, ready to save
-							and recall from.
+							Spaces you create in Supermemory show up here, ready to save and
+							recall from.
 						</p>
 					</div>
 				) : (
@@ -113,7 +113,7 @@ export function Picker({
 								<Input
 									className="pl-(--space-8)"
 									onChange={(e) => setQuery(e.target.value)}
-									placeholder="Search workspaces…"
+									placeholder="Search spaces…"
 									value={query}
 								/>
 							</div>
@@ -122,7 +122,7 @@ export function Picker({
 						{filtered.length === 0 ? (
 							<div className="workspace-picker-grid items-center justify-center py-(--space-8)">
 								<p className="px-(--space-4) text-center text-(length:--text-sm) text-text-muted">
-									No workspaces match “{query}”.
+									No spaces match “{query}”.
 								</p>
 							</div>
 						) : (
@@ -148,7 +148,7 @@ export function Picker({
 
 				{pending ? (
 					<p className="text-(length:--text-xs) text-text-muted">
-						Setting workspace to {formatTagLabel(pending)}…
+						Setting space to {formatTagLabel(pending)}…
 					</p>
 				) : null}
 			</div>

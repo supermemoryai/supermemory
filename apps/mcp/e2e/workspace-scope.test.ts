@@ -11,7 +11,7 @@ const propsOf = (tools: ToolLike[], name: string): Record<string, unknown> =>
 
 const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
-describeWithAuth("MCP - workspace scoping", () => {
+describeWithAuth("MCP - space scoping", () => {
 	it("keeps per-call containerTag overrides when an obsolete header is sent", async () => {
 		const scoped = await connect({
 			headers: { "x-sm-project": "obsolete-root-scope" },

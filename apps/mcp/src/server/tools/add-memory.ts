@@ -17,7 +17,7 @@ export function register(deps: ToolDeps) {
 		"add_memory",
 		{
 			description:
-				"Add (save) or forget a memory in the user's ACTIVE workspace. Defaults to 'save'. The target workspace is the one the user selected via select-workspace; pass containerTag only to override it. Use 'forget' when information is outdated or the user asks to remove it.",
+				"Add (save) or forget a memory in the user's ACTIVE space. Defaults to 'save'. The target space is the one the user selected via select-space; pass containerTag only to override it. Use 'forget' when information is outdated or the user asks to remove it.",
 			inputSchema,
 			annotations: MEMORY_TOOL_ANNOTATIONS,
 		},
@@ -38,7 +38,7 @@ export function register(deps: ToolDeps) {
 					content: [
 						{
 							type: "text" as const,
-							text: `Memory saved (ID: ${result.id}, workspace: ${result.containerTag})`,
+							text: `Memory saved (ID: ${result.id}, space: ${result.containerTag})`,
 						},
 					],
 				}

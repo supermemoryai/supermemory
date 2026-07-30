@@ -3,7 +3,7 @@
  *
  * "sm_project_marketing"   → "Marketing"
  * "sm_project_eng_rfcs"    → "Eng Rfcs"
- * "my_custom_workspace"    → "My Custom Workspace"
+ * "my_custom_space"        → "My Custom Space"
  */
 export function formatTagLabel(raw: string): string {
 	const slug = raw.replace(/^sm_project_/i, "").replace(/^sm_/i, "")

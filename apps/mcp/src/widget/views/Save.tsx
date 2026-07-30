@@ -76,12 +76,12 @@ export function Save({
 			result.data.view === "save-success" ? result.data.id : undefined
 		onAdvance(result.data)
 		const handoff = await handoffToModel({
-			context: `Supermemory widget action completed. A memory was saved to workspace "${selectedTag}"${memoryId ? ` with memory ID "${memoryId}"` : ""}. Saved content:\n\n${trimmed}\n\nIt is already saved; do not save it again.`,
-			message: `I used the Supermemory widget to save a memory to workspace "${selectedTag}"${memoryId ? ` (memory ID: ${memoryId})` : ""}. The memory is already saved; do not save it again.`,
+			context: `Supermemory widget action completed. A memory was saved to space "${selectedTag}"${memoryId ? ` with memory ID "${memoryId}"` : ""}. Saved content:\n\n${trimmed}\n\nIt is already saved; do not save it again.`,
+			message: `I used the Supermemory widget to save a memory to space "${selectedTag}"${memoryId ? ` (memory ID: ${memoryId})` : ""}. The memory is already saved; do not save it again.`,
 			structuredContent: {
 				supermemory: {
 					action: "memory-saved",
-					activeWorkspace: selectedTag,
+					activeSpace: selectedTag,
 					memoryId,
 					content: trimmed,
 				},
@@ -104,7 +104,7 @@ export function Save({
 	return (
 		<div className="flex flex-col">
 			<PageHeader
-				description="Capture a thought to a workspace your team can search later."
+				description="Capture a thought to a space your team can search later."
 				title="Add Memory"
 			/>
 			<div className="px-(--page-header-px) pb-(--space-6)">
@@ -120,7 +120,7 @@ export function Save({
 						</Field>
 
 						{writableTags.length > 0 ? (
-							<Field label="Workspace">
+							<Field label="Space">
 								<WorkspaceSelect
 									onValueChange={setSelectedTag}
 									options={options}

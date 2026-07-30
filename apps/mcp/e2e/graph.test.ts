@@ -49,25 +49,25 @@ describeWithAuth("MCP — graph, resources & prompts", () => {
 		const res = await s.client.readResource({ uri: "supermemory://profile" })
 		expect(res.contents.length).toBeGreaterThan(0)
 		expect(res.contents[0].mimeType).toBe("text/plain")
-		expect(res.contents[0].text).toMatch(/# Active Workspace Profile/)
-		expect(res.contents[0].text).toMatch(/Workspace:/)
+		expect(res.contents[0].text).toMatch(/# Active Space Profile/)
+		expect(res.contents[0].text).toMatch(/Space:/)
 		expect(res.contents[0].text).toMatch(
-			/Use `listSpaces` to find the relevant workspace key/,
+			/Use `listSpaces` to find the relevant space key/,
 		)
 	})
 
-	it("reads all workspaces in a compact human-readable format", async () => {
+	it("reads all spaces in a compact human-readable format", async () => {
 		const res = await s.client.readResource({
-			uri: "supermemory://container-tags",
+			uri: "supermemory://spaces",
 		})
 		const text = res.contents[0].text as string
 		expect(res.contents[0].mimeType).toBe("text/plain")
-		expect(text).toMatch(/# My Workspaces/)
+		expect(text).toMatch(/# My Spaces/)
 		expect(text).toMatch(/Active:/)
 		expect(text).not.toMatch(/"containerTags":/)
 	})
 
-	it("gets compact active-workspace context without prompt arguments", async () => {
+	it("gets compact active-space context without prompt arguments", async () => {
 		const prompts = await s.client.listPrompts()
 		const contextPrompt = prompts.prompts.find(
 			(prompt) => prompt.name === "context",
@@ -78,6 +78,6 @@ describeWithAuth("MCP — graph, resources & prompts", () => {
 		expect(res.messages.length).toBeGreaterThan(0)
 		const text = res.messages[0].content.text as string
 		expect(text).toMatch(/# Supermemory Context/)
-		expect(text).toMatch(/Active workspace:/)
+		expect(text).toMatch(/Active space:/)
 	})
 })

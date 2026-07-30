@@ -17,7 +17,7 @@ export interface McpToolExecution {
 	surface: McpToolSurface
 	outcome: McpToolOutcome
 	durationMs: number
-	workspaceExplicit: boolean
+	spaceExplicit: boolean
 	client?: { name: string; version?: string }
 	errorType?: string
 }
@@ -40,7 +40,7 @@ const TOOL_SURFACES: Record<string, McpToolSurface> = {
 	listSpaces: "model_tool",
 	whoAmI: "model_tool",
 	add_memory: "model_tool",
-	"select-workspace": "app_launcher",
+	"select-space": "app_launcher",
 	"memory-graph": "app_launcher",
 	"guided-save": "app_launcher",
 	"upload-file": "app_launcher",
@@ -87,7 +87,7 @@ export function posthogEventForToolExecution(
 			duration_ms: execution.durationMs,
 			mcp_runtime: "stateless",
 			mcp_surface: execution.surface,
-			workspace_explicit: execution.workspaceExplicit,
+			space_explicit: execution.spaceExplicit,
 			...(execution.client
 				? {
 						mcp_client_name: execution.client.name,
@@ -126,7 +126,7 @@ export function createPosthogAnalytics(
 	}
 }
 
-function workspaceWasExplicit(value: unknown): boolean {
+function spaceWasExplicit(value: unknown): boolean {
 	if (!value || typeof value !== "object") return false
 	const containerTag = Reflect.get(value, "containerTag")
 	return typeof containerTag === "string" && containerTag.trim().length > 0
@@ -185,7 +185,7 @@ export function createTrackedToolServer(
 					surface: TOOL_SURFACES[name] ?? "model_tool",
 					outcome,
 					durationMs: Math.max(0, Math.round(performance.now() - startedAt)),
-					workspaceExplicit: workspaceWasExplicit(input),
+					spaceExplicit: spaceWasExplicit(input),
 					...(client ? { client } : {}),
 					...(errorType ? { errorType } : {}),
 				})

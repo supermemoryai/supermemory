@@ -29,7 +29,7 @@ export function register(deps: ToolDeps) {
 		{
 			title: "List Documents",
 			description:
-				"List documents in one workspace with their IDs, titles, types, processing status, dates, and summaries. This does not return full document content; use getDocument with an ID from this result to read one document. When the user names a workspace, resolve it with listSpaces and pass containerTag; otherwise use the active workspace.",
+				"List documents in one space with their IDs, titles, types, processing status, dates, and summaries. This does not return full document content; use getDocument with an ID from this result to read one document. When the user names a space, resolve it with listSpaces and pass containerTag; otherwise use the active space.",
 			inputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},

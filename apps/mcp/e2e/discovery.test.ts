@@ -18,7 +18,7 @@ const EXPECTED_TOOLS = [
 	"memory-graph",
 	"save-memory",
 	"search_memory",
-	"select-workspace",
+	"select-space",
 	"set-active-tag",
 	"upload-file",
 	"upload-file-submit",
@@ -80,11 +80,22 @@ describeWithAuth("MCP — discovery & identity", () => {
 		expect(memory?.annotations).toMatchObject(MEMORY_TOOL_ANNOTATIONS)
 	})
 
-	it("lists profile and container-tag resources", async () => {
+	it("lists profile and space resources", async () => {
 		const { resources } = await s.client.listResources()
 		const uris = resources.map((r) => r.uri)
 		expect(uris).toContain("supermemory://profile")
-		expect(uris).toContain("supermemory://container-tags")
+		expect(uris).toContain("supermemory://spaces")
+	})
+
+	it("uses space terminology across exposed MCP metadata", async () => {
+		const [{ tools }, { resources }, { prompts }] = await Promise.all([
+			s.client.listTools(),
+			s.client.listResources(),
+			s.client.listPrompts(),
+		])
+		expect(JSON.stringify({ tools, resources, prompts })).not.toMatch(
+			/\bworkspaces?\b/i,
+		)
 	})
 
 	it("lists the context prompt", async () => {
@@ -97,6 +108,8 @@ describeWithAuth("MCP — discovery & identity", () => {
 		expect(res.isError).toBeFalsy()
 		const parsed = JSON.parse(textOf(res))
 		expect(parsed.userId).toBeTruthy()
+		expect(parsed).toHaveProperty("activeSpace")
+		expect(parsed).not.toHaveProperty("activeWorkspace")
 	})
 
 	it("listSpaces returns content", async () => {

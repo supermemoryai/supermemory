@@ -54,7 +54,7 @@ describe("MCP tool analytics", () => {
 		)
 
 		await harness.invoke(
-			{ query: "private query", containerTag: "private-workspace" },
+			{ query: "private query", containerTag: "private-space" },
 			context,
 		)
 
@@ -64,14 +64,12 @@ describe("MCP tool analytics", () => {
 				toolName: "search_memory",
 				surface: "model_tool",
 				outcome: "success",
-				workspaceExplicit: true,
+				spaceExplicit: true,
 				client: { name: "claude", version: "1.2.3" },
 			}),
 		)
 		expect(JSON.stringify(record.mock.calls[0])).not.toContain("private query")
-		expect(JSON.stringify(record.mock.calls[0])).not.toContain(
-			"private-workspace",
-		)
+		expect(JSON.stringify(record.mock.calls[0])).not.toContain("private-space")
 		expect(JSON.stringify(record.mock.calls[0])).not.toContain("secret result")
 	})
 
@@ -148,7 +146,7 @@ describe("MCP tool analytics", () => {
 				surface: "app_launcher",
 				outcome: "success",
 				durationMs: 42,
-				workspaceExplicit: false,
+				spaceExplicit: false,
 			},
 		)
 
@@ -163,7 +161,7 @@ describe("MCP tool analytics", () => {
 				duration_ms: 42,
 				mcp_runtime: "stateless",
 				mcp_surface: "app_launcher",
-				workspace_explicit: false,
+				space_explicit: false,
 				oauth_client_id: "client_123",
 			},
 		})

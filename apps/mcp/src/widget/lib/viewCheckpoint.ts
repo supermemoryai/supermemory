@@ -48,11 +48,11 @@ function getStorage(): Storage | undefined {
 function modelContentForView(view: ViewMessage): string {
 	switch (view.view) {
 		case "confirmation":
-			return `Supermemory active workspace is now "${view.containerTag}".`
+			return `Supermemory active space is now "${view.containerTag}".`
 		case "save-success":
-			return `A memory was saved to Supermemory workspace "${view.containerTag}" with memory ID "${view.id}".`
+			return `A memory was saved to Supermemory space "${view.containerTag}" with memory ID "${view.id}".`
 		case "upload-success":
-			return `"${view.fileName}" was uploaded to Supermemory workspace "${view.containerTag}" with document ID "${view.id}".`
+			return `"${view.fileName}" was uploaded to Supermemory space "${view.containerTag}" with document ID "${view.id}".`
 		default:
 			return "Supermemory widget state updated."
 	}

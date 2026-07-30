@@ -15,7 +15,7 @@ export function registerProfileResource(
 	resolveContainerTag: () => Promise<string | undefined>,
 ) {
 	server.registerResource(
-		"Active Workspace Profile",
+		"Active Space Profile",
 		"supermemory://profile",
 		{},
 		async () => {
@@ -31,8 +31,8 @@ export function registerProfileResource(
 			const activeLabel = workspaceDisplayName(activeWorkspace, activeKey)
 			const fallback = selectedTag ? "" : " (default)"
 			const parts: string[] = [
-				"# Active Workspace Profile",
-				`Workspace: ${activeLabel} [${activeKey}]${fallback}`,
+				"# Active Space Profile",
+				`Space: ${activeLabel} [${activeKey}]${fallback}`,
 			]
 
 			if (activeWorkspace) {
@@ -60,12 +60,12 @@ export function registerProfileResource(
 				profileResult.profile.static.length === 0 &&
 				profileResult.profile.dynamic.length === 0
 			) {
-				parts.push("No profile facts are available for this workspace yet.")
+				parts.push("No profile facts are available for this space yet.")
 			}
 
 			parts.push(
 				"",
-				"Other workspaces are available. Use `listSpaces` to find the relevant workspace key, then use that key with workspace-aware tools when the user asks about another workspace. Keep workspace contexts separate unless the user asks to combine them.",
+				"Other spaces are available. Use `listSpaces` to find the relevant space key, then use that key with space-aware tools when the user asks about another space. Keep space contexts separate unless the user asks to combine them.",
 			)
 
 			return {

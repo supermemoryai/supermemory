@@ -24,14 +24,14 @@ interface WorkspaceSelectProps {
 }
 
 // Ports console-v2's ChipSelect/ContainerTagSelect: a Popover-anchored,
-// searchable list. Scales to hundreds of workspaces where chips can't.
+// searchable list. Scales to hundreds of spaces where chips can't.
 export function WorkspaceSelect({
 	value,
 	onValueChange,
 	options,
-	placeholder = "Select workspace",
-	emptyText = "No workspaces",
-	searchPlaceholder = "Search workspaces…",
+	placeholder = "Select space",
+	emptyText = "No spaces",
+	searchPlaceholder = "Search spaces…",
 	disabled = false,
 	className,
 }: WorkspaceSelectProps) {

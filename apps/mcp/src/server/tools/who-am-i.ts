@@ -6,7 +6,7 @@ export function register(deps: ToolDeps) {
 	deps.server.registerTool(
 		"whoAmI",
 		{
-			description: "Get current user info, role, and workspace context",
+			description: "Get current user info, role, and space context",
 			inputSchema: z.object({}),
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
@@ -28,8 +28,8 @@ export function register(deps: ToolDeps) {
 								name: session.user.name,
 								role: session.role ?? "unknown",
 								accessType: session.accessType ?? "full",
-								activeWorkspace: activeTag ?? null,
-								assignedTags:
+								activeSpace: activeTag ?? null,
+								assignedSpaces:
 									session.accessType === "restricted"
 										? session.containerTags
 										: null,

@@ -20,8 +20,8 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 			await session?.close()
 		})
 
-		it("loads visible workspaces and effective permissions on demand", async () => {
-			const result = await callTool(session.client, "select-workspace")
+		it("loads visible spaces and effective permissions on demand", async () => {
+			const result = await callTool(session.client, "select-space")
 			expect(result.isError).toBeFalsy()
 			const content = result.structuredContent as {
 				view?: string
@@ -43,8 +43,8 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 			).toBe(true)
 		})
 
-		it("shares the selected workspace across MCP transport sessions", async () => {
-			const picker = await callTool(session.client, "select-workspace")
+		it("shares the selected space across MCP transport sessions", async () => {
+			const picker = await callTool(session.client, "select-space")
 			const pickerContent = picker.structuredContent as {
 				containerTags?: Array<{ containerTag: string }>
 			}
@@ -65,7 +65,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 				const identity = await callTool(separateSession.client, "whoAmI")
 				expect(identity.isError).toBeFalsy()
 				expect(JSON.parse(textOf(identity))).toMatchObject({
-					activeWorkspace: firstTag,
+					activeSpace: firstTag,
 				})
 			} finally {
 				await separateSession.close()

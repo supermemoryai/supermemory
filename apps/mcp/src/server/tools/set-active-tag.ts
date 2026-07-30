@@ -8,7 +8,7 @@ export function register(deps: ToolDeps) {
 	deps.server.registerTool(
 		"set-active-tag",
 		{
-			description: "Set the active container tag for this account",
+			description: "Set the active Supermemory space for this account",
 			inputSchema: z.object({
 				containerTag: containerTagSchema,
 				viewId: z.string().uuid().optional(),
@@ -35,7 +35,7 @@ export function register(deps: ToolDeps) {
 					content: [
 						{
 							type: "text" as const,
-							text: `Active workspace set to ${containerTag}`,
+							text: `Active space set to ${containerTag}`,
 						},
 					],
 					structuredContent: sc,

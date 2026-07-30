@@ -20,7 +20,7 @@ export function registerContextPrompt(
 	server.registerPrompt(
 		"context",
 		{
-			description: "Attach compact context for the active workspace",
+			description: "Attach compact context for the active space",
 		},
 		async () => {
 			try {
@@ -37,7 +37,7 @@ export function registerContextPrompt(
 				const fallback = selectedTag ? "" : " (default)"
 				const parts: string[] = [
 					"# Supermemory Context",
-					`Active workspace: ${activeLabel} [${activeKey}]${fallback}`,
+					`Active space: ${activeLabel} [${activeKey}]${fallback}`,
 				]
 
 				if (activeWorkspace) {
@@ -65,7 +65,7 @@ export function registerContextPrompt(
 					profileResult.profile.static.length === 0 &&
 					profileResult.profile.dynamic.length === 0
 				) {
-					parts.push("No profile facts are available for this workspace yet.")
+					parts.push("No profile facts are available for this space yet.")
 				}
 
 				const recentWorkspaces = sortWorkspaces(workspaces, activeKey)
@@ -74,7 +74,7 @@ export function registerContextPrompt(
 				if (recentWorkspaces.length > 0) {
 					parts.push(
 						"",
-						"## Recently Active Workspaces",
+						"## Recently Active Spaces",
 						...recentWorkspaces.map((workspace) =>
 							formatWorkspaceRow(workspace, activeKey, 100),
 						),
@@ -83,7 +83,7 @@ export function registerContextPrompt(
 
 				parts.push(
 					"",
-					"Use a workspace key with workspace-aware tools when the user asks about another workspace. Keep workspace contexts separate unless the user asks to combine them.",
+					"Use a space key with space-aware tools when the user asks about another space. Keep space contexts separate unless the user asks to combine them.",
 				)
 
 				return {

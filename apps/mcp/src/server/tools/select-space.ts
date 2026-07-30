@@ -6,11 +6,11 @@ import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	deps.server.registerTool(
-		"select-workspace",
+		"select-space",
 		{
-			title: "Select Workspace",
+			title: "Select Space",
 			description:
-				"Choose which container tag to work in. Shows available container tags as interactive cards.",
+				"Choose the active Supermemory space. Shows available spaces as interactive cards.",
 			inputSchema: z.object({}),
 			_meta: appToolMeta(),
 		},
@@ -40,7 +40,7 @@ export function register(deps: ToolDeps) {
 					content: [
 						{
 							type: "text" as const,
-							text: `${tags.length} container tags available. Select one to set your active context.`,
+							text: `${tags.length} spaces available. Select one to set your active context.`,
 						},
 					],
 					structuredContent: sc,

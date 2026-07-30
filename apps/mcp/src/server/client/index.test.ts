@@ -6,7 +6,7 @@ describe("SupermemoryClient memory listing", () => {
 		vi.unstubAllGlobals()
 	})
 
-	it("calls the canonical memory-list endpoint with the selected workspace", async () => {
+	it("calls the canonical memory-list endpoint with the selected space", async () => {
 		const responseBody = {
 			memoryEntries: [
 				{

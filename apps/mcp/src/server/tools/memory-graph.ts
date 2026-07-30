@@ -15,7 +15,7 @@ export function register(deps: ToolDeps) {
 		{
 			title: "Memory Graph",
 			description:
-				"Render the workspace's memory graph directly as an interactive MCP App. This tool is the final visualization; do not create another graph, file, or artifact unless the user explicitly asks for one. When the user names a workspace, resolve it with listSpaces and pass containerTag.",
+				"Render the space's memory graph directly as an interactive MCP App. This tool is the final visualization; do not create another graph, file, or artifact unless the user explicitly asks for one. When the user names a space, resolve it with listSpaces and pass containerTag.",
 			inputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 			_meta: appToolMeta(),
@@ -44,7 +44,7 @@ export function register(deps: ToolDeps) {
 					content: [
 						{
 							type: "text" as const,
-							text: `Rendered the interactive Memory Graph MCP App: ${result.documents.length} documents, ${memoryCount} memories${effectiveTag ? `. Workspace: ${effectiveTag}` : ""}. Do not create a duplicate graph or artifact unless the user explicitly requests one.`,
+							text: `Rendered the interactive Memory Graph MCP App: ${result.documents.length} documents, ${memoryCount} memories${effectiveTag ? `. Space: ${effectiveTag}` : ""}. Do not create a duplicate graph or artifact unless the user explicitly requests one.`,
 						},
 					],
 					structuredContent: sc,

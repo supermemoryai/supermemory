@@ -18,12 +18,12 @@ export function Confirmation({ containerTag }: Props) {
 			</span>
 			<Stack align="center" gap="xs">
 				<div className="text-(length:--text-sm) font-semibold text-text-primary">
-					Active workspace set
+					Active space set
 				</div>
 				<WorkspaceChip containerTag={containerTag} />
 			</Stack>
 			<p className="max-w-xs text-(length:--text-xs) leading-relaxed text-text-muted">
-				Saves and recalls will use this workspace until you change it.
+				Saves and recalls will use this space until you change it.
 			</p>
 		</Stack>
 	)
