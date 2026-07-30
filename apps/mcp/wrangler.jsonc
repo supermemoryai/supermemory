@@ -20,19 +20,14 @@
 			"custom_domain": true
 		}
 	],
-	"durable_objects": {
-		"bindings": [
-			{
-				"name": "MCP_SERVER",
-				"class_name": "SupermemoryMCP"
-			}
-		]
-	},
-
 	"migrations": [
 		{
 			"tag": "v1",
 			"new_sqlite_classes": ["SupermemoryMCP"]
+		},
+		{
+			"tag": "v2",
+			"deleted_classes": ["SupermemoryMCP"]
 		}
 	],
 

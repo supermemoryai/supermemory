@@ -1,29 +1,35 @@
+import { createMcpHandler } from "agents/mcp/server"
 import { cors } from "hono/cors"
 import { Hono, type Context } from "hono"
-import { SupermemoryMCP } from "./server"
 import { isApiKey, validateApiKey, validateOAuthToken } from "./auth"
+import { createServer, type AuthProps, type McpEnv } from "./server"
 import { initPosthog } from "./posthog"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 
-type Bindings = {
-	MCP_SERVER: DurableObjectNamespace
-	API_URL?: string
+type Bindings = McpEnv & {
 	MCP_URL?: string
-	POSTHOG_API_KEY?: string
-}
-
-type Props = {
-	userId: string
-	apiKey: string
-	containerTag?: string
-	email?: string
-	name?: string
+	ALLOWED_MCP_ORIGIN_HOSTNAMES?: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
 
 const DEFAULT_API_URL = "https://api.supermemory.ai"
 const DEFAULT_MCP_URL = "https://mcp.supermemory.ai"
+const DEFAULT_ALLOWED_MCP_ORIGIN_HOSTNAMES = [
+	"app.supermemory.ai",
+	"mcp.supermemory.ai",
+	"mcp.dev.supermemory.ai",
+	"chatgpt.com",
+	"chat.openai.com",
+	"claude.ai",
+	"gemini.google.com",
+	"grok.com",
+	"x.ai",
+	"t3.chat",
+	"localhost",
+	"127.0.0.1",
+	"[::1]",
+]
 
 const mcpBaseUrl = (c: Context<{ Bindings: Bindings }>) => {
 	if (c.env.MCP_URL) return c.env.MCP_URL.replace(/\/$/, "")
@@ -38,15 +44,8 @@ app.use(
 	cors({
 		origin: "*",
 		allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
-		allowHeaders: [
-			"Content-Type",
-			"Authorization",
-			"x-sm-project",
-			"Accept",
-			"Mcp-Session-Id",
-			"MCP-Protocol-Version",
-			"Last-Event-ID",
-		],
+		// Echo Access-Control-Request-Headers so modern Mcp-Method, Mcp-Name,
+		// and dynamic Mcp-Param-* routing headers remain forward-compatible.
 		exposeHeaders: ["Mcp-Session-Id", "WWW-Authenticate"],
 	}),
 )
@@ -107,17 +106,34 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 	}
 })
 
-const mcpHandler = SupermemoryMCP.serve("/mcp", {
-	binding: "MCP_SERVER",
-	corsOptions: {
-		origin: "*",
-		methods: "GET, POST, DELETE, OPTIONS",
-		headers:
-			"Content-Type, Authorization, x-sm-project, Accept, Mcp-Session-Id, MCP-Protocol-Version, Last-Event-ID",
-	},
-})
+// Factory registration and Origin policy close over validated request-local
+// auth/env, so this wrapper is intentionally created after authentication.
+function authenticatedMcpHandler(env: Bindings, props: AuthProps) {
+	let configuredHostname: string | undefined
+	if (env.MCP_URL) {
+		try {
+			configuredHostname = new URL(env.MCP_URL).hostname
+		} catch {
+			// MCP_URL is also used as a plain metadata base elsewhere. A malformed
+			// optional override must not take the authenticated MCP endpoint down.
+		}
+	}
+	const additionalOriginHostnames = env.ALLOWED_MCP_ORIGIN_HOSTNAMES?.split(",")
+		.map((hostname) => hostname.trim().toLowerCase())
+		.filter(Boolean)
 
-const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
+	return createMcpHandler(() => createServer(env, props), {
+		// Hono owns CORS so it can echo dynamic Mcp-Param-* request headers.
+		corsOptions: false,
+		allowedOriginHostnames: [
+			...DEFAULT_ALLOWED_MCP_ORIGIN_HOSTNAMES,
+			...(configuredHostname ? [configuredHostname] : []),
+			...(additionalOriginHostnames ?? []),
+		],
+	})
+}
+
+export const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 	const authHeader = c.req.header("Authorization")
 	const token = authHeader?.replace(/^Bearer\s+/i, "")
 	const containerTag = c.req.header("x-sm-project")
@@ -177,25 +193,17 @@ const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 		)
 	}
 
-	// Create execution context with authenticated user props
-	const ctx = {
-		...c.executionCtx,
-		props: {
-			userId: authUser.userId,
-			apiKey: authUser.apiKey,
-			containerTag,
-			email: authUser.email,
-			name: authUser.name,
-		} satisfies Props,
-	} as ExecutionContext & { props: Props }
+	const props = {
+		userId: authUser.userId,
+		apiKey: authUser.apiKey,
+		containerTag,
+		email: authUser.email,
+		name: authUser.name,
+	} satisfies AuthProps
 
-	return mcpHandler.fetch(c.req.raw, c.env, ctx)
+	return authenticatedMcpHandler(c.env, props).fetch(c.req.raw)
 }
 
 app.all("/mcp", handleMcpRequest)
-app.all("/mcp/*", handleMcpRequest)
-
-// Export the Durable Object class for Cloudflare Workers
-export { SupermemoryMCP }
 
 export default app

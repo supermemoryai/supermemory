@@ -1,6 +1,7 @@
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
+	assetsInclude: ["dist/**/*.html"],
 	test: {
 		include: ["e2e/**/*.test.ts", "src/**/*.test.ts"],
 		testTimeout: 90_000,

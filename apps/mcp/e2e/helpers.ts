@@ -1,5 +1,7 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js"
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
+import {
+	Client,
+	StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client"
 
 export const MCP_URL =
 	process.env.SUPERMEMORY_MCP_URL ?? "https://mcp.supermemory.ai/mcp"

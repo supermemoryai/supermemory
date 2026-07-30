@@ -21,6 +21,6 @@
     "dotenv": "latest",
     "openai": "latest",
     "supermemory": "latest",
-    "zod": "latest"
+    "zod": "^4.4.3"
   }
 }

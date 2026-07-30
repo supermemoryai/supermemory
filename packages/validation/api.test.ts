@@ -1,6 +1,12 @@
 import { describe, expect, it } from "bun:test"
 import { readFileSync } from "node:fs"
-import { SearchRequestSchema, Searchv4RequestSchema } from "./api"
+import { createSchema } from "zod-openapi"
+import {
+	ListMemoriesQuerySchema,
+	MemorySchema,
+	SearchRequestSchema,
+	Searchv4RequestSchema,
+} from "./api"
 
 describe("search threshold schemas", () => {
 	it("do not contain redundant number transforms or unreachable range guards", () => {
@@ -78,5 +84,37 @@ describe("search threshold schemas", () => {
 				threshold: "0.5",
 			}).success,
 		).toBe(false)
+	})
+})
+
+describe("Zod v4 schema compatibility", () => {
+	it("preserves transformed pagination defaults", () => {
+		expect(ListMemoriesQuerySchema.parse({})).toMatchObject({
+			limit: 10,
+			page: 1,
+			order: "desc",
+			sort: "createdAt",
+		})
+	})
+
+	it("materializes every nested search include default", () => {
+		expect(Searchv4RequestSchema.parse({ q: "memory" }).include).toEqual({
+			documents: false,
+			summaries: false,
+			relatedMemories: false,
+		})
+	})
+
+	it("retains OpenAPI metadata through native Zod metadata", () => {
+		const { schema } = createSchema(MemorySchema)
+		expect(schema).toMatchObject({
+			description: "Memory object",
+			properties: {
+				id: {
+					description: "Unique identifier of the memory.",
+					example: "acxV5LHMEsG2hMSNb4umbn",
+				},
+			},
+		})
 	})
 })

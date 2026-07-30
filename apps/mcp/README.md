@@ -1,6 +1,6 @@
 # Supermemory MCP Server 4.0
 
-A standalone MCP (Model Context Protocol) server for Supermemory that gives AI assistants persistent memory across conversations. Built on Cloudflare Workers with Durable Objects for scalable, persistent connections.
+A standalone MCP (Model Context Protocol) server for Supermemory that gives AI assistants persistent memory across conversations. Built on Cloudflare Workers with the Cloudflare Agents SDK stateless handler and MCP TypeScript SDK v2.
 
 ## Features
 
@@ -132,7 +132,7 @@ Get the current logged-in user's information.
 {}
 ```
 
-Returns: `{ userId, email, name, client, sessionId }`
+Returns: `{ userId, email, name, client, sessionId }`. `sessionId` is `null` on the stateless HTTP transport.
 
 ## Resources
 
@@ -166,13 +166,16 @@ Create a `.dev.vars` file:
 
 ```env
 API_URL=http://localhost:8787
-or 
-API_URL=https://api.supermemory.ai
+MCP_URL=http://localhost:8788
+ALLOWED_MCP_ORIGIN_HOSTNAMES=custom-client.example
 ```
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `API_URL` | Main Supermemory API URL for OAuth validation | `https://api.supermemory.ai` |
+| `MCP_URL` | Public MCP base URL used in OAuth metadata | Incoming request host |
+| `ALLOWED_MCP_ORIGIN_HOSTNAMES` | Optional comma-separated browser Origin hostnames added to the built-in Supermemory/ChatGPT/Claude/Gemini/Grok/T3/local allowlist | Empty |
+| `POSTHOG_API_KEY` | Optional PostHog project key | Empty |
 
 ### Run Locally
 
@@ -184,7 +187,13 @@ The server will start at `http://localhost:8788`.
 
 **Note:** For local development, you also need the main Supermemory API running at the `API_URL` for OAuth token validation.
 
-### End-to-End Tests
+### Tests
+
+Run the local unit and protocol-wire suite:
+
+```bash
+bun run test
+```
 
 The `e2e/` suite drives a real MCP server over streamable HTTP (no mocks) and asserts the
 core journey: handshake → tool/resource/prompt discovery → `whoAmI` → `listProjects` →
@@ -205,7 +214,7 @@ bun run test:e2e
 | `e2e/discovery.test.ts` | handshake, tools/resources/prompts listing, `whoAmI`, `listProjects` |
 | `e2e/memory.test.ts` | save→recall round-trip, profile variants, `forget`, container scoping, bad args |
 | `e2e/list-memories.test.ts` | `listMemories` discovery, save→list round-trip, pagination, arg validation |
-| `e2e/root-scope.test.ts` | `x-sm-project` header strips the `containerTag` param and scopes the whole connection |
+| `e2e/root-scope.test.ts` | `x-sm-project` header strips the `containerTag` param and scopes the whole client transport |
 | `e2e/graph.test.ts` | `memory-graph`, `fetch-graph-data`, resource reads, `context` prompt |
 
 #### OAuth flow tests
@@ -251,12 +260,12 @@ bun run deploy
          ▼                                   │
 ┌─────────────────────────────────────────────────────┐
 │            Supermemory MCP Server                   │
-│         (mcp.supermemory.ai/mcp)                   │
+│         (mcp.supermemory.ai/mcp)                    │
 │  ┌─────────────────────────────────────────────┐   │
-│  │           Cloudflare Durable Object          │   │
-│  │  • Session state                             │   │
-│  │  • Client info persistence                   │   │
-│  │  • MCP protocol handling                     │   │
+│  │    Agents SDK stateless MCP v2 handler       │   │
+│  │  • Fresh request-local server instances      │   │
+│  │  • 2026-07-28 + stateless 2025 protocols     │   │
+│  │  • MCP protocol validation and dispatch      │   │
 │  └─────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────┘
 ```
@@ -264,9 +273,11 @@ bun run deploy
 ## Tech Stack
 
 - **Runtime:** Cloudflare Workers
-- **State:** Durable Objects with SQLite
+- **State:** Stateless MCP transport; memories live in the Supermemory API
 - **Framework:** Hono
-- **MCP SDK:** @modelcontextprotocol/sdk + agents
+- **MCP HTTP handler:** `agents/mcp/server` from Cloudflare Agents SDK `0.20`
+- **MCP protocol SDK:** @modelcontextprotocol/server v2 (currently `2.0.0-beta.5`)
+- **MCP App UI:** @modelcontextprotocol/ext-apps `1.7.5`; its published browser package still peers on SDK v1, but that build-only dependency is not bundled into the Worker runtime
 - **API Client:** supermemory SDK
 - **Analytics:** PostHog
 
