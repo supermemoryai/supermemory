@@ -197,5 +197,6 @@ app.all("/mcp/*", handleMcpRequest)
 
 // Export the Durable Object class for Cloudflare Workers
 export { SupermemoryMCP }
+export { SpaceState } from "./server/space-state"
 
 export default app
