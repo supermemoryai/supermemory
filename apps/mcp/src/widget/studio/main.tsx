@@ -1,5 +1,6 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
+import { McpAppPreviewProvider } from "../McpAppProvider"
 import { Studio } from "./Studio"
 import "../design/globals.css"
 
@@ -10,6 +11,8 @@ document.documentElement.setAttribute("data-theme", "light")
 const root = createRoot(document.getElementById("studio") as HTMLElement)
 root.render(
 	<StrictMode>
-		<Studio />
+		<McpAppPreviewProvider>
+			<Studio />
+		</McpAppPreviewProvider>
 	</StrictMode>,
 )

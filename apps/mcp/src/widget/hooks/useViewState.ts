@@ -1,28 +1,8 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js"
-import { useEffect, useState } from "react"
-import type { ViewMessage } from "../../shared/types"
-import { app } from "../lib/app"
-import { loadViewCheckpoint, saveViewCheckpoint } from "../lib/viewCheckpoint"
-
-function safeLog(
-	level: "debug" | "info" | "warning" | "error",
-	message: string,
-) {
-	try {
-		void app.sendLog({ level, data: message })
-	} catch {
-		// host may not support logging — ignore
-	}
-}
-
-type ViewState =
-	| { kind: "loading" }
-	| { kind: "view"; message: ViewMessage }
-	| { kind: "error"; message: string }
-	| { kind: "raw"; structuredContent: unknown }
+import { useContext } from "react"
+import { McpAppContext, type McpAppContextValue } from "../McpAppProvider"
 
 /**
- * Drives the widget's top-level view state from MCP host events.
+ * Exposes the top-level view state owned by McpAppProvider.
  *
  * - `ontoolinput` / `ontoolinputpartial`: shows loading
  * - `ontoolresult`: parses `structuredContent` as `ViewMessage` and renders
@@ -34,68 +14,17 @@ type ViewState =
  * not flow through this hook.
  */
 export function useViewState(): {
-	state: ViewState
-	setView: (msg: ViewMessage) => void
+	state: McpAppContextValue["state"]
+	setView: McpAppContextValue["setView"]
 	setError: (message: string) => void
 } {
-	const [state, setState] = useState<ViewState>(() => {
-		const checkpoint = loadViewCheckpoint()
-		return checkpoint
-			? { kind: "view", message: checkpoint }
-			: { kind: "loading" }
-	})
-
-	useEffect(() => {
-		app.ontoolinput = (input: unknown) => {
-			const name =
-				typeof input === "object" && input !== null && "name" in input
-					? String((input as { name: unknown }).name)
-					: "?"
-			safeLog("info", `[host] ontoolinput: ${name}`)
-			setState({ kind: "loading" })
-		}
-		app.ontoolinputpartial = () => setState({ kind: "loading" })
-		app.ontoolcancelled = () => {
-			safeLog("info", "[host] ontoolcancelled")
-			setState({ kind: "loading" })
-		}
-		app.ontoolresult = (result: CallToolResult) => {
-			const sc = (result as { structuredContent?: unknown }).structuredContent
-			if (!sc || typeof sc !== "object") {
-				safeLog("warning", "[host] ontoolresult: no structuredContent")
-				setState({ kind: "raw", structuredContent: sc })
-				return
-			}
-			if ("view" in sc) {
-				const msg = sc as ViewMessage
-				safeLog("info", `[host] ontoolresult: view=${msg.view}`)
-				const checkpoint = loadViewCheckpoint(msg.viewId)
-				setState({ kind: "view", message: checkpoint ?? msg })
-				return
-			}
-			safeLog("warning", "[host] ontoolresult: structuredContent without view")
-			setState({ kind: "raw", structuredContent: sc })
-		}
-		app.onerror = (error: unknown) => {
-			safeLog("error", `[host] onerror: ${String(error)}`)
-			setState({ kind: "error", message: String(error) })
-		}
-
-		return () => {
-			app.ontoolinput = () => {}
-			app.ontoolinputpartial = () => {}
-			app.ontoolcancelled = () => {}
-			app.ontoolresult = () => {}
-			app.onerror = undefined
-		}
-	}, [])
-
+	const context = useContext(McpAppContext)
+	if (!context) {
+		throw new Error("useViewState must be used within McpAppProvider")
+	}
 	return {
-		state,
-		setView: (msg) => {
-			saveViewCheckpoint(msg)
-			setState({ kind: "view", message: msg })
-		},
-		setError: (message) => setState({ kind: "error", message }),
+		state: context.state,
+		setView: context.setView,
+		setError: context.setError,
 	}
 }

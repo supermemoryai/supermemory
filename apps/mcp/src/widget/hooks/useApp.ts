@@ -1,11 +1,11 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js"
-import { useMemo } from "react"
+import { useContext, useMemo } from "react"
 import type { ViewMessage } from "../../shared/types"
-import { app } from "../lib/app"
 import {
 	handoffToModel as performModelHandoff,
 	type ModelHandoffRequest,
 } from "../lib/modelHandoff"
+import { McpAppContext } from "../McpAppProvider"
 
 export interface ToolCallResult<T = unknown> {
 	ok: boolean
@@ -23,6 +23,12 @@ export interface ToolCallResult<T = unknown> {
  *   that class of mistake impossible: there is no `callTool` exposed.
  */
 export function useApp() {
+	const context = useContext(McpAppContext)
+	if (!context) {
+		throw new Error("useApp must be used within McpAppProvider")
+	}
+	const { app } = context
+
 	return useMemo(() => {
 		return {
 			/** Call an MCP server tool and await the result. */
@@ -30,6 +36,9 @@ export function useApp() {
 				name: string,
 				args: Record<string, unknown>,
 			): Promise<ToolCallResult<T>> {
+				if (!app) {
+					return { ok: false, error: "MCP host is not connected" }
+				}
 				try {
 					const result = (await app.callServerTool({
 						name,
@@ -53,6 +62,9 @@ export function useApp() {
 
 			/** Make widget state available to the model on a future turn. */
 			async updateModelContext(content: string): Promise<ToolCallResult> {
+				if (!app) {
+					return { ok: false, error: "MCP host is not connected" }
+				}
 				try {
 					await app.updateModelContext({
 						content: [{ type: "text", text: content }],
@@ -69,24 +81,36 @@ export function useApp() {
 			 * rejects or drops model-context updates.
 			 */
 			handoffToModel(request: ModelHandoffRequest) {
+				if (!app) {
+					const error = "MCP host is not connected"
+					return Promise.resolve({
+						ok: false,
+						contextUpdate: { ok: false, error },
+						conversationMessage: { ok: false, error },
+					})
+				}
 				return performModelHandoff(app, request)
 			},
 
 			/** Send a structured log line to the host. */
 			log(level: "debug" | "info" | "warning" | "error", message: string) {
-				return app.sendLog({ level, data: message })
+				return app
+					? app.sendLog({ level, data: message })
+					: Promise.resolve(undefined)
 			},
 
 			/** Request the host to switch display mode. */
 			requestDisplayMode(mode: "inline" | "fullscreen" | "pip") {
-				return app.requestDisplayMode({ mode })
+				return app
+					? app.requestDisplayMode({ mode })
+					: Promise.resolve({ mode })
 			},
 
 			getHostContext() {
-				return app.getHostContext()
+				return app?.getHostContext()
 			},
 		}
-	}, [])
+	}, [app])
 }
 
 export type AppApi = ReturnType<typeof useApp>

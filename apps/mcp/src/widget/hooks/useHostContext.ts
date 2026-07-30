@@ -1,25 +1,15 @@
 import type { McpUiHostContext } from "@modelcontextprotocol/ext-apps"
-import { useEffect, useState } from "react"
-import { app } from "../lib/app"
+import { useContext } from "react"
+import { McpAppContext } from "../McpAppProvider"
 
 /**
- * Subscribes to host context changes (theme, dimensions, displayMode, fonts).
- * Returns the latest context, or null until the connection is established.
+ * Returns the provider-owned host context, including updates received after
+ * the connection handshake.
  */
 export function useHostContext(): McpUiHostContext | null {
-	const [ctx, setCtx] = useState<McpUiHostContext | null>(
-		() => app.getHostContext() ?? null,
-	)
-
-	useEffect(() => {
-		const handler = (next: McpUiHostContext) => setCtx(next)
-		app.onhostcontextchanged = handler
-		return () => {
-			if (app.onhostcontextchanged === handler) {
-				app.onhostcontextchanged = () => {}
-			}
-		}
-	}, [])
-
-	return ctx
+	const context = useContext(McpAppContext)
+	if (!context) {
+		throw new Error("useHostContext must be used within McpAppProvider")
+	}
+	return context.hostContext
 }
