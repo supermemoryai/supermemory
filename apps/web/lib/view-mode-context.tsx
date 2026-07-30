@@ -8,6 +8,7 @@ import {
 	isIntegrationView,
 	pathToIntegrationView,
 } from "@/lib/integration-routes"
+import { isConfigurePath } from "@/lib/configure-routes"
 import { analytics } from "@/lib/analytics"
 import { useCallback, useEffect } from "react"
 
@@ -33,8 +34,11 @@ export function useViewMode() {
 	const router = useRouter()
 	const [paramView, setParamView] = useQueryState("view", viewParam)
 
-	// On /integrations[/card] the path is the source of truth; elsewhere the ?view param is.
-	const pathView = pathToIntegrationView(pathname)
+	// On /integrations[/card] and /configure[/section] the path is the source of truth;
+	// elsewhere the ?view param is.
+	const pathView: ViewMode | null =
+		pathToIntegrationView(pathname) ??
+		(isConfigurePath(pathname) ? "configure" : null)
 	const viewMode: ViewMode = pathView ?? paramView
 
 	const setViewMode = useCallback(
@@ -44,8 +48,12 @@ export function useViewMode() {
 				router.push(integrationViewToPath(mode))
 				return
 			}
-			// Leaving (or already off) the integrations route for a non-integration view.
-			if (pathToIntegrationView(pathname)) {
+			if (mode === "configure") {
+				router.push("/configure")
+				return
+			}
+			// Leaving (or already off) a path-owned route for a param-owned view.
+			if (pathToIntegrationView(pathname) || isConfigurePath(pathname)) {
 				router.push(mode === "dashboard" ? "/" : `/?view=${mode}`)
 				return
 			}
@@ -57,8 +65,8 @@ export function useViewMode() {
 	return { viewMode, setViewMode, isInitialized: true }
 }
 
-// Forwards legacy /?view=integrations (and sub-views) to the canonical /integrations route,
-// preserving any other query params. Call once near the app root.
+// Forwards legacy /?view=integrations (and sub-views) and /?view=configure to their
+// canonical routes, preserving any other query params. Call once near the app root.
 export function useLegacyViewRedirect() {
 	const pathname = usePathname()
 	const router = useRouter()
@@ -67,10 +75,16 @@ export function useLegacyViewRedirect() {
 	useEffect(() => {
 		if (pathname !== "/") return
 		const view = searchParams.get("view")
-		if (!view || !isIntegrationView(view)) return
+		if (!view) return
+		const target = isIntegrationView(view)
+			? integrationViewToPath(view)
+			: view === "configure"
+				? "/configure"
+				: null
+		if (!target) return
 		const params = new URLSearchParams(searchParams.toString())
 		params.delete("view")
 		const qs = params.toString()
-		router.replace(integrationViewToPath(view) + (qs ? `?${qs}` : ""))
+		router.replace(target + (qs ? `?${qs}` : ""))
 	}, [pathname, searchParams, router])
 }

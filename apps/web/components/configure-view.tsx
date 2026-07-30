@@ -2,7 +2,8 @@
 
 import { cn } from "@lib/utils"
 import { Blocks, CalendarClock, Cpu, ScrollText } from "lucide-react"
-import { useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import CompanyBrainConnections from "@/components/settings/company-brain-connections"
 import CompanyBrainModels from "@/components/settings/company-brain-models"
 import CompanyBrainProactivity from "@/components/settings/company-brain-proactivity"
@@ -11,14 +12,13 @@ import { ProactivenessIcon } from "@/components/settings/proactiveness-icon"
 import { WorkspacePrompt } from "@/components/settings/workspace-prompt"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useAuth } from "@lib/auth-context"
+import {
+	type ConfigureSection,
+	configureSectionToPath,
+	DEFAULT_CONFIGURE_SECTION,
+	pathToConfigureSection,
+} from "@/lib/configure-routes"
 import { dmSans125ClassName } from "@/lib/fonts"
-
-type ConfigureSection =
-	| "company-brain"
-	| "models"
-	| "workspace-prompt"
-	| "proactivity"
-	| "automations"
 
 const SECTIONS: {
 	id: ConfigureSection
@@ -27,7 +27,7 @@ const SECTIONS: {
 	icon: React.ComponentType<{ className?: string }>
 }[] = [
 	{
-		id: "company-brain",
+		id: "tools",
 		label: "Integrations",
 		description:
 			"Connect the tools your brain works with. Your account covers your own actions and reads; workspace accounts are a shared fallback.",
@@ -65,8 +65,10 @@ const SECTIONS: {
 
 export function ConfigureView() {
 	const { org } = useAuth()
-	const [activeSection, setActiveSection] =
-		useState<ConfigureSection>("company-brain")
+	const pathname = usePathname()
+	// Reachable via ?view=configure too, where the path carries no section.
+	const activeSection =
+		pathToConfigureSection(pathname) ?? DEFAULT_CONFIGURE_SECTION
 	const active = SECTIONS.find((section) => section.id === activeSection)
 	if (!active) return null
 
@@ -90,11 +92,10 @@ export function ConfigureView() {
 							const isActive = section.id === activeSection
 							const Icon = section.icon
 							return (
-								<button
+								<Link
 									key={section.id}
-									type="button"
+									href={configureSectionToPath(section.id)}
 									aria-current={isActive ? "page" : undefined}
-									onClick={() => setActiveSection(section.id)}
 									className={cn(
 										"flex shrink-0 items-center gap-2.5 rounded-[8px] px-3 py-2 text-left text-[13px] font-medium transition-colors",
 										isActive
@@ -109,7 +110,7 @@ export function ConfigureView() {
 										)}
 									/>
 									{section.label}
-								</button>
+								</Link>
 							)
 						})}
 					</nav>
@@ -135,7 +136,7 @@ export function ConfigureView() {
 								</p>
 							}
 						>
-							{activeSection === "company-brain" ? (
+							{activeSection === "tools" ? (
 								<CompanyBrainConnections />
 							) : activeSection === "models" ? (
 								<CompanyBrainModels showHeading={false} />
