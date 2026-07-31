@@ -84,6 +84,29 @@ describe("source annotation parsing", () => {
 		).toBe("Alpha Beta")
 	})
 
+	it("recovers a duplicated malformed closing tag from model output", () => {
+		const input =
+			'Pinki got soup <response source="S1">for dinner at the church</response> <response source="S2">today</response">today</response>.'
+
+		expect(
+			parseSourceAnnotatedMarkdown(input, new Set(["S1", "S2"])).markdown,
+		).toBe(
+			"Pinki got soup [for dinner at the church](#sm-source:S1) [today](#sm-source:S2).",
+		)
+		expect(stripSourceMarkup(input)).toBe(
+			"Pinki got soup for dinner at the church today.",
+		)
+	})
+
+	it("accepts a quoted malformed closing tag without duplicated text", () => {
+		expect(
+			parseSourceAnnotatedMarkdown(
+				'Alpha <response source="S1">Beta</response"> Gamma',
+				new Set(["S1"]),
+			).markdown,
+		).toBe("Alpha [Beta](#sm-source:S1) Gamma")
+	})
+
 	it("allows only source ids that are safe in internal fragments", () => {
 		expect(isSafeSourceId("S1._:-")).toBe(true)
 		expect(isSafeSourceId("bad/id")).toBe(false)
