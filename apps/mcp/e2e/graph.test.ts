@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { graphViewSchema } from "../src/shared/types"
 import {
 	OAUTH_CREDENTIALS_AVAILABLE,
 	callTool,
@@ -18,17 +19,16 @@ describeWithAuth("MCP — graph, resources & prompts", () => {
 		await s?.close()
 	})
 
-	it("memory-graph returns a summary + structured documents", async () => {
+	it("memory-graph returns a rendered widget summary", async () => {
 		const res = await callTool(s.client, "memory-graph")
 		expect(res.isError).toBeFalsy()
 		expect(textOf(res)).toMatch(
-			/Rendered the interactive Memory Graph MCP App: \d+ documents/,
+			/The interactive Memory Graph MCP App is rendered and visible: \d+ documents/,
 		)
-		const sc = res.structuredContent as {
-			documents?: unknown[]
-			totalCount?: number
-		}
-		expect(Array.isArray(sc?.documents)).toBe(true)
+		const result = graphViewSchema.safeParse(res.structuredContent)
+		expect(result.success).toBe(true)
+		if (!result.success) throw result.error
+		expect(result.data.rendered).toBe(true)
 	})
 
 	it("fetch-graph-data returns paginated documents", async () => {

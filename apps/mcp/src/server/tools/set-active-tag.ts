@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { ViewMessage } from "../../shared/types"
+import { confirmationViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { containerTagSchema } from "../container-tag"
 import { SETTINGS_TOOL_ANNOTATIONS } from "./annotations"
@@ -14,6 +14,7 @@ export function register(deps: ToolDeps) {
 				containerTag: containerTagSchema,
 				viewId: z.string().uuid().optional(),
 			}),
+			outputSchema: confirmationViewSchema,
 			_meta: appToolMeta(["app"]),
 			annotations: SETTINGS_TOOL_ANNOTATIONS,
 		},

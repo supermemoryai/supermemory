@@ -4,7 +4,6 @@ import {
 	type GraphApiMemory,
 	type GraphThemeColors,
 	MemoryGraph,
-	type MemoryRelation,
 } from "@supermemory/memory-graph"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type {
@@ -87,8 +86,6 @@ interface Props {
 	containerTag?: string
 }
 
-type DisplayMode = "inline" | "fullscreen" | "pip"
-
 // Map the widget's API shape (DocumentWithMemories) into the package's
 // GraphApiDocument shape. Mirrors console-v2's use-graph-api transform so the
 // graph renders identically to the console.
@@ -110,9 +107,7 @@ function toGraphMemory(mem: DocumentMemoryEntry): GraphApiMemory {
 		relation: null,
 		updatesMemoryId: null,
 		nextVersionId: null,
-		memoryRelations:
-			(mem.memoryRelations as Record<string, MemoryRelation> | undefined) ??
-			null,
+		memoryRelations: mem.memoryRelations ?? null,
 		spaceContainerTag: null,
 	}
 }
@@ -143,8 +138,8 @@ export function Graph({ documents, totalCount }: Props) {
 	// back via context, so an optimistic local toggle is the source of truth;
 	// we only adopt the host's value when it actually CHANGES (host-initiated
 	// exit, e.g. ESC at the host level). Without this the button is one-way.
-	const ctxMode = ctx?.displayMode as DisplayMode | undefined
-	const [mode, setMode] = useState<DisplayMode>(ctxMode ?? "inline")
+	const ctxMode = ctx?.displayMode
+	const [mode, setMode] = useState(ctxMode ?? "inline")
 	const prevCtxMode = useRef(ctxMode)
 	useEffect(() => {
 		if (ctxMode !== prevCtxMode.current) {
@@ -155,7 +150,7 @@ export function Graph({ documents, totalCount }: Props) {
 
 	// Host theme (light/dark). Drives the graph palette reactively so a
 	// mid-session theme switch re-themes the canvas.
-	const theme = (ctx?.theme as string | undefined) ?? "light"
+	const theme = ctx?.theme ?? "light"
 	const colors = useGraphColors(theme)
 	const graphColors = useMemo<Partial<GraphThemeColors>>(
 		() => ({
@@ -167,9 +162,7 @@ export function Graph({ documents, totalCount }: Props) {
 	)
 
 	const fullscreenSupported = useMemo(() => {
-		const modes = (
-			ctx as { availableDisplayModes?: string[] } | null | undefined
-		)?.availableDisplayModes
+		const modes = ctx?.availableDisplayModes
 		return Array.isArray(modes) ? modes.includes("fullscreen") : true
 	}, [ctx])
 

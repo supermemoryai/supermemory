@@ -5,7 +5,9 @@ import { ErrorBoundary } from "./ErrorBoundary"
 import { McpAppProvider } from "./McpAppProvider"
 import "./design/globals.css"
 
-const root = createRoot(document.getElementById("app") as HTMLElement)
+const rootElement = document.getElementById("app")
+if (!rootElement) throw new Error("Missing app root")
+const root = createRoot(rootElement)
 root.render(
 	<StrictMode>
 		<McpAppProvider>

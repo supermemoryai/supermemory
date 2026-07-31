@@ -1,8 +1,8 @@
 import { z } from "zod"
-import type { ViewMessage } from "../../shared/types"
+import { uploadSuccessViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { containerTagSchema } from "../container-tag"
-import { MEMORY_TOOL_ANNOTATIONS } from "./annotations"
+import { ADDITIVE_MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -17,7 +17,8 @@ export function register(deps: ToolDeps) {
 				containerTag: containerTagSchema,
 				viewId: z.string().uuid().optional(),
 			}),
-			annotations: MEMORY_TOOL_ANNOTATIONS,
+			outputSchema: uploadSuccessViewSchema,
+			annotations: ADDITIVE_MEMORY_TOOL_ANNOTATIONS,
 			_meta: appToolMeta(["app"]),
 		},
 		async (args) => {
@@ -31,7 +32,7 @@ export function register(deps: ToolDeps) {
 
 				const client = deps.getClient(args.containerTag)
 				const result = await client.uploadFile(
-					bytes.buffer as ArrayBuffer,
+					bytes.buffer,
 					args.fileName,
 					args.mimeType,
 					args.containerTag,

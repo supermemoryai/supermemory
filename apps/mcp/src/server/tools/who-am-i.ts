@@ -6,7 +6,8 @@ export function register(deps: ToolDeps) {
 	deps.server.registerTool(
 		"whoAmI",
 		{
-			description: "Get current user info, role, and space context",
+			description:
+				"Get the current Supermemory account context, including user identity, role, access type, permissions, scope, and active space. Use this when the user asks who they are, what access they have, or which space is currently active. Use listSpaces instead when the user asks which spaces are available.",
 			inputSchema: z.object({}),
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},

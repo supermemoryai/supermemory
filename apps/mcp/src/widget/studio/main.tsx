@@ -8,7 +8,9 @@ import "../design/globals.css"
 // primitive and view with mock data. Run with `bun run studio`.
 document.documentElement.setAttribute("data-theme", "light")
 
-const root = createRoot(document.getElementById("studio") as HTMLElement)
+const rootElement = document.getElementById("studio")
+if (!rootElement) throw new Error("Missing studio root")
+const root = createRoot(rootElement)
 root.render(
 	<StrictMode>
 		<McpAppPreviewProvider>

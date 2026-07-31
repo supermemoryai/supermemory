@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect } from "react"
-import type { ViewMessage } from "../shared/types"
+import type { GraphResultMeta, ViewMessage } from "../shared/types"
 import { useApplyHostTheme } from "./hooks/useApplyHostTheme"
 import { useLog } from "./hooks/useLog"
 import { useViewState } from "./hooks/useViewState"
@@ -50,7 +50,7 @@ export function App() {
 	const isGraphView = state.message.view === "graph"
 	return (
 		<WidgetShell immersive={isGraphView}>
-			{renderView(state.message, setView, setError)}
+			{renderView(state.message, state.resultMeta, setView, setError)}
 		</WidgetShell>
 	)
 }
@@ -93,6 +93,7 @@ export function WidgetShell({
 
 function renderView(
 	msg: ViewMessage,
+	resultMeta: GraphResultMeta | undefined,
 	setView: (m: ViewMessage) => void,
 	setError: (m: string) => void,
 ) {
@@ -130,11 +131,14 @@ function renderView(
 				/>
 			)
 		case "graph":
+			if (!resultMeta) {
+				return <ErrorView message="Memory graph data is unavailable." />
+			}
 			return (
 				<Graph
 					containerTag={msg.containerTag}
-					documents={msg.documents}
-					totalCount={msg.totalCount}
+					documents={resultMeta.graphData.documents}
+					totalCount={msg.totalDocumentCount}
 				/>
 			)
 		case "confirmation":

@@ -1,5 +1,5 @@
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose"
-import type { SessionInfo } from "../../shared/types"
+import { sessionInfoSchema, type SessionInfo } from "../../shared/types"
 
 const FETCH_TIMEOUT_MS = 30_000
 
@@ -44,12 +44,12 @@ export async function fetchSession(
 		)
 	}
 
-	const session = (await response.json()) as SessionInfo | null
-	if (!session?.user?.id) {
-		throw new Error("Missing user.id in session response")
+	const result = sessionInfoSchema.safeParse(await response.json())
+	if (!result.success) {
+		throw new Error("Invalid session response")
 	}
 
-	return session
+	return result.data
 }
 
 export async function validateOAuthToken(

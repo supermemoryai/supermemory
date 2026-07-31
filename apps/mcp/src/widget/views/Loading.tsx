@@ -1,10 +1,16 @@
+import type { CSSProperties } from "react"
+
+const loaderStyle: CSSProperties & Record<"--super-loader-size", string> = {
+	"--super-loader-size": "42px",
+}
+
 export function Loading() {
 	return (
 		<div className="mcp-widget-loading flex items-center justify-center py-(--space-12)">
 			<output
 				aria-label="Loading..."
 				className="super-loader"
-				style={{ ["--super-loader-size" as string]: "42px" }}
+				style={loaderStyle}
 			>
 				<svg
 					aria-hidden="true"

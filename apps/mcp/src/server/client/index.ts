@@ -3,11 +3,15 @@ import type {
 	DocumentGetResponse,
 	DocumentListResponse as SdkDocumentListResponse,
 } from "supermemory/resources/documents"
-import type {
-	ContainerTag,
-	DocumentMemoryEntry,
-	DocumentsApiResponse,
-	DocumentWithMemories,
+import { z } from "zod"
+import {
+	containerTagSchema,
+	documentsApiResponseSchema,
+	paginationSchema,
+	type ContainerTag,
+	type DocumentMemoryEntry,
+	type DocumentsApiResponse,
+	type DocumentWithMemories,
 } from "../../shared/types"
 
 const MAX_CHARS = 200000
@@ -30,42 +34,43 @@ export interface DocumentsListResponse {
 	pagination: SdkDocumentListResponse["pagination"]
 }
 
-export interface MemoryEntryHistory {
-	id: string
-	memory: string
-	version: number
-	createdAt: string
-	updatedAt: string
-	parentMemoryId?: string | null
-	rootMemoryId?: string | null
-	isLatest?: boolean
-	isForgotten?: boolean
-}
+const memoryEntryHistorySchema = z.looseObject({
+	id: z.string(),
+	memory: z.string(),
+	version: z.number(),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+	parentMemoryId: z.string().nullish(),
+	rootMemoryId: z.string().nullish(),
+	isLatest: z.boolean().optional(),
+	isForgotten: z.boolean().optional(),
+})
 
-export interface MemoryEntry {
-	id: string
-	memory: string
-	version: number
-	isLatest: boolean
-	isForgotten: boolean
-	isStatic?: boolean
-	isInference?: boolean
-	createdAt: string
-	updatedAt: string
-	sourceCount?: number
-	documentIds?: string[]
-	history?: MemoryEntryHistory[]
-}
+export type MemoryEntryHistory = z.infer<typeof memoryEntryHistorySchema>
 
-export interface MemoryEntriesResponse {
-	memoryEntries: MemoryEntry[]
-	pagination: {
-		currentPage: number
-		limit: number
-		totalItems: number
-		totalPages: number
-	}
-}
+const memoryEntrySchema = z.looseObject({
+	id: z.string(),
+	memory: z.string(),
+	version: z.number(),
+	isLatest: z.boolean(),
+	isForgotten: z.boolean(),
+	isStatic: z.boolean().optional(),
+	isInference: z.boolean().optional(),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+	sourceCount: z.number().optional(),
+	documentIds: z.array(z.string()).optional(),
+	history: z.array(memoryEntryHistorySchema).optional(),
+})
+
+export type MemoryEntry = z.infer<typeof memoryEntrySchema>
+
+const memoryEntriesResponseSchema = z.object({
+	memoryEntries: z.array(memoryEntrySchema),
+	pagination: paginationSchema,
+})
+
+export type MemoryEntriesResponse = z.infer<typeof memoryEntriesResponseSchema>
 
 export type Memory =
 	| {
@@ -107,14 +112,46 @@ function limitByChars(text: string, maxChars = MAX_CHARS): string {
 	return text.length > maxChars ? `${text.slice(0, maxChars)}...` : text
 }
 
-interface SDKResult {
-	id: string
-	memory?: string
-	chunk?: string
-	content?: string
-	similarity: number
-	title?: string
-	context?: string
+const sdkResultSchema = z.looseObject({
+	id: z.string(),
+	memory: z.string().nullish(),
+	chunk: z.string().nullish(),
+	content: z.string().nullish(),
+	similarity: z.number(),
+	title: z.string().nullish(),
+	context: z.string().nullish(),
+})
+
+const uploadResultSchema = z.object({
+	id: z.string(),
+	status: z.string(),
+})
+
+function mapSdkResults(value: unknown): Memory[] {
+	return z
+		.array(sdkResultSchema)
+		.parse(value)
+		.map((result) => {
+			const text = limitByChars(
+				result.content || result.memory || result.chunk || result.context || "",
+			)
+			const base = {
+				id: result.id,
+				similarity: result.similarity,
+				...(result.title ? { title: result.title } : {}),
+				...(result.content ? { content: result.content } : {}),
+			}
+			if (result.chunk && !result.memory) {
+				return { ...base, chunk: text }
+			}
+			return { ...base, memory: text }
+		})
+}
+
+function objectProperty(value: unknown, key: string): unknown {
+	return value && typeof value === "object"
+		? Reflect.get(value, key)
+		: undefined
 }
 
 export class SupermemoryClient {
@@ -175,10 +212,7 @@ export class SupermemoryClient {
 					containerTag: this.containerTag,
 				}
 			} catch (error: unknown) {
-				const status =
-					error && typeof error === "object" && "status" in error
-						? (error as Record<string, unknown>).status
-						: undefined
+				const status = objectProperty(error, "status")
 				if (status !== 404) throw error
 			}
 
@@ -242,23 +276,11 @@ export class SupermemoryClient {
 				threshold,
 			})
 
-			const results: Memory[] = (result.results as SDKResult[]).map((r) => {
-				const text = limitByChars(
-					r.content || r.memory || r.chunk || r.context || "",
-				)
-				const base = {
-					id: r.id,
-					similarity: r.similarity,
-					title: r.title,
-					content: r.content,
-				}
-				if (r.chunk && !r.memory) {
-					return { ...base, chunk: text }
-				}
-				return { ...base, memory: text }
-			})
-
-			return { results, total: result.total, timing: result.timing }
+			return {
+				results: mapSdkResults(result.results),
+				total: result.total,
+				timing: result.timing,
+			}
 		} catch (error) {
 			this.handleOperationError("Search request", error)
 		}
@@ -289,19 +311,7 @@ export class SupermemoryClient {
 
 			if (result.searchResults) {
 				response.searchResults = {
-					results: (result.searchResults.results as SDKResult[]).map((r) => {
-						const text = limitByChars(
-							r.content || r.memory || r.chunk || r.context || "",
-						)
-						const base = {
-							id: r.id,
-							similarity: r.similarity,
-							title: r.title,
-							content: r.content,
-						}
-						if (r.chunk && !r.memory) return { ...base, chunk: text }
-						return { ...base, memory: text }
-					}),
+					results: mapSdkResults(result.searchResults.results),
 					total: result.searchResults.total,
 					timing: result.searchResults.timing,
 				}
@@ -335,8 +345,7 @@ export class SupermemoryClient {
 				)
 			}
 
-			const data = (await response.json()) as ContainerTag[]
-			return Array.isArray(data) ? data : []
+			return z.array(containerTagSchema).parse(await response.json())
 		} catch (error) {
 			this.handleError(error)
 		}
@@ -371,7 +380,7 @@ export class SupermemoryClient {
 					status: response.status,
 				})
 			}
-			return (await response.json()) as DocumentsApiResponse
+			return documentsApiResponseSchema.parse(await response.json())
 		} catch (error) {
 			this.handleError(error)
 		}
@@ -435,7 +444,7 @@ export class SupermemoryClient {
 				)
 			}
 
-			return (await response.json()) as MemoryEntriesResponse
+			return memoryEntriesResponseSchema.parse(await response.json())
 		} catch (error) {
 			this.handleError(error)
 		}
@@ -472,8 +481,7 @@ export class SupermemoryClient {
 				})
 			}
 
-			const result = (await response.json()) as { id: string; status: string }
-			return result
+			return uploadResultSchema.parse(await response.json())
 		} catch (error) {
 			this.handleError(error)
 		}
@@ -498,11 +506,10 @@ export class SupermemoryClient {
 			}
 		}
 
-		if (error && typeof error === "object" && "status" in error) {
-			const status = (error as { status: number }).status
-			const message =
-				"message" in error ? (error as { message: string }).message : undefined
-
+		const status = objectProperty(error, "status")
+		if (typeof status === "number") {
+			const rawMessage = objectProperty(error, "message")
+			const message = typeof rawMessage === "string" ? rawMessage : undefined
 			switch (status) {
 				case 400:
 				case 422:

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { ViewMessage } from "../../shared/types"
+import { pickerViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { effectiveContainerTagAccess } from "../auth/rbac"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
@@ -11,8 +11,9 @@ export function register(deps: ToolDeps) {
 		{
 			title: "Select Space",
 			description:
-				"Choose the active Supermemory space. Shows available spaces as interactive cards.",
+				"Open an interactive picker to choose or change the active Supermemory space used for future actions. Use this only when the user asks to switch, select, or change their active or default space. Do not use it merely because the user names a space for a search, list, graph, save, or upload; resolve that space with listSpaces and pass containerTag to the relevant tool instead.",
 			inputSchema: z.object({}),
+			outputSchema: pickerViewSchema,
 			_meta: appToolMeta(),
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},

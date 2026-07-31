@@ -49,7 +49,7 @@ export function Picker({
 	const handleSelect = async (containerTag: string) => {
 		log("info", `[picker] select: ${containerTag}`)
 		setPending(containerTag)
-		const result = await callTool<ViewMessage>("set-active-tag", {
+		const result = await callTool("set-active-tag", {
 			containerTag,
 			viewId,
 		})

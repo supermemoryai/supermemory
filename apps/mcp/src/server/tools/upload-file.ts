@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { ViewMessage } from "../../shared/types"
+import { uploadViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { effectiveContainerTagAccess } from "../auth/rbac"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
@@ -10,8 +10,10 @@ export function register(deps: ToolDeps) {
 		"upload-file",
 		{
 			title: "Upload File",
-			description: "Upload a file (PDF, text, image, video) to memory.",
+			description:
+				"Open Supermemory's interactive file picker whenever the user wants to upload, import, or add any local file to Supermemory. Call this tool immediately even when the user only says they want to upload a file. Do not ask for a file path, folder, filename, or filesystem access; the picker handles file selection. It supports documents, text, spreadsheets, images, audio, and video.",
 			inputSchema: z.object({}),
+			outputSchema: uploadViewSchema,
 			_meta: appToolMeta(),
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},

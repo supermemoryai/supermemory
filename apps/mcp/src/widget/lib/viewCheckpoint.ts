@@ -1,4 +1,8 @@
-import type { ViewMessage, ViewName } from "../../shared/types"
+import {
+	viewMessageSchema,
+	type ViewMessage,
+	type ViewName,
+} from "../../shared/types"
 import { getChatGptHostApi } from "./openaiHost"
 
 const CHECKPOINT_VERSION = 1
@@ -7,15 +11,6 @@ const CHECKPOINTABLE_VIEWS = new Set<ViewName>([
 	"confirmation",
 	"save-success",
 	"upload-success",
-])
-const VIEW_NAMES = new Set<ViewName>([
-	"picker",
-	"confirmation",
-	"save",
-	"save-success",
-	"upload",
-	"upload-success",
-	"graph",
 ])
 
 interface CheckpointEnvelope {
@@ -28,9 +23,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isViewMessage(value: unknown): value is ViewMessage {
-	if (!isRecord(value) || typeof value.view !== "string") return false
-	if (!VIEW_NAMES.has(value.view as ViewName)) return false
-	return value.viewId === undefined || typeof value.viewId === "string"
+	return viewMessageSchema.safeParse(value).success
 }
 
 function checkpointKey(viewId: string): string {

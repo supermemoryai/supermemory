@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { ViewMessage } from "../../shared/types"
+import { saveViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { effectiveContainerTagAccess } from "../auth/rbac"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
@@ -10,10 +10,12 @@ export function register(deps: ToolDeps) {
 		"guided-save",
 		{
 			title: "Add Memory",
-			description: "Save information to memory with an interactive form.",
+			description:
+				"Open an interactive form when the user wants to draft, review, edit, or choose the target space before saving information to Supermemory. Use this when the user wants to add a memory but has not supplied final content, or explicitly wants to review supplied content before saving. If the user provides the exact content and asks to save it immediately, use add_memory instead.",
 			inputSchema: z.object({
 				prefill: z.string().optional().describe("Optional content to prefill"),
 			}),
+			outputSchema: saveViewSchema,
 			_meta: appToolMeta(),
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},

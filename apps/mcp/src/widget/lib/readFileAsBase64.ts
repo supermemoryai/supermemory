@@ -5,7 +5,11 @@ export function readFileAsBase64(file: File): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const reader = new FileReader()
 		reader.onload = () => {
-			const result = reader.result as string
+			if (typeof reader.result !== "string") {
+				reject(new Error("Unable to read file as base64"))
+				return
+			}
+			const result = reader.result
 			const comma = result.indexOf(",")
 			resolve(comma >= 0 ? result.slice(comma + 1) : result)
 		}

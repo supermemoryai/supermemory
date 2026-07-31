@@ -23,14 +23,15 @@ import {
 } from "./space"
 
 const DEFAULT_API_URL = "https://api.supermemory.ai"
+const SERVER_INSTRUCTIONS =
+	"Supermemory is the authenticated user's persistent memory and knowledge layer across conversations and spaces. Use these tools whenever the user wants to recall something they may have saved, inspect stored sources or extracted memories, remember or upload new information, check their Supermemory account or access, change their active space, or explore their memory graph, even if they do not mention Supermemory by name. Use the active or account-default space when none is named. Resolve a named space with listSpaces and pass its key to the relevant tool; change the active space only when the user explicitly asks."
 
 type ClientInfo = { name: string; version?: string }
 
 function clientInfoFromContext(context: ServerContext): ClientInfo | null {
-	const envelope = context.mcpReq.envelope as
-		| Record<string, unknown>
-		| undefined
-	const value = envelope?.[CLIENT_INFO_META_KEY]
+	const envelope = context.mcpReq.envelope
+	if (!envelope) return null
+	const value = Reflect.get(envelope, CLIENT_INFO_META_KEY)
 	if (!value || typeof value !== "object") return null
 
 	const name = Reflect.get(value, "name")
@@ -48,10 +49,13 @@ export function createSupermemoryServer(
 	actor: ActorContext,
 	waitUntil: WaitUntil,
 ): McpServer {
-	const server = new McpServer({
-		name: "supermemory",
-		version: "1.0.0",
-	})
+	const server = new McpServer(
+		{
+			name: "supermemory",
+			version: "1.0.0",
+		},
+		{ instructions: SERVER_INSTRUCTIONS },
+	)
 	const apiUrl = env.API_URL || DEFAULT_API_URL
 	const spaceState = env.SPACE_STATE.getByName(spaceStateName(actor))
 

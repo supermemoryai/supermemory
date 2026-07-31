@@ -1,9 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority"
-import {
-	type ButtonHTMLAttributes,
-	forwardRef,
-	type HTMLAttributes,
-} from "react"
+import { forwardRef, type HTMLAttributes } from "react"
 import { cn } from "../lib/cn"
 
 const cardStyles = cva(
@@ -28,38 +24,15 @@ const cardStyles = cva(
 
 type CardVariantProps = VariantProps<typeof cardStyles>
 
-type DivProps = HTMLAttributes<HTMLDivElement> &
-	CardVariantProps & { as?: "div" }
+export type CardProps = HTMLAttributes<HTMLDivElement> & CardVariantProps
 
-type ButtonElementProps = ButtonHTMLAttributes<HTMLButtonElement> &
-	CardVariantProps & { as: "button" }
-
-export type CardProps = DivProps | ButtonElementProps
-
-export const Card = forwardRef<HTMLElement, CardProps>(
-	({ className, variant, as = "div", children, ...props }, ref) => {
-		const cls = cn(cardStyles({ variant }), className)
-		if (as === "button") {
-			return (
-				<button
-					className={cls}
-					ref={ref as React.Ref<HTMLButtonElement>}
-					type="button"
-					{...(props as ButtonHTMLAttributes<HTMLButtonElement>)}
-				>
-					{children}
-				</button>
-			)
-		}
-		return (
-			<div
-				className={cls}
-				ref={ref as React.Ref<HTMLDivElement>}
-				{...(props as HTMLAttributes<HTMLDivElement>)}
-			>
-				{children}
-			</div>
-		)
-	},
+export const Card = forwardRef<HTMLDivElement, CardProps>(
+	({ className, variant, ...props }, ref) => (
+		<div
+			className={cn(cardStyles({ variant }), className)}
+			ref={ref}
+			{...props}
+		/>
+	),
 )
 Card.displayName = "Card"

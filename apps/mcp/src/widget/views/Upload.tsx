@@ -29,7 +29,8 @@ function formatFileSize(bytes: number): string {
 	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-const ACCEPT = ".txt,.pdf,.png,.jpg,.jpeg,.mp4"
+const ACCEPT =
+	".txt,.md,.pdf,.doc,.docx,.csv,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.m4a,.mp4,.webm"
 
 export function Upload({
 	activeTag,
@@ -64,7 +65,7 @@ export function Upload({
 		setUploading(true)
 		try {
 			const fileData = await readFileAsBase64(file)
-			const result = await callTool<ViewMessage>("upload-file-submit", {
+			const result = await callTool("upload-file-submit", {
 				fileData,
 				fileName: file.name,
 				mimeType: file.type,
@@ -114,7 +115,7 @@ export function Upload({
 	return (
 		<div className="flex flex-col">
 			<PageHeader
-				description="Send a file (text, PDF, image, video) into a space."
+				description="Send a document, image, audio, or video file into a space."
 				title="Upload File"
 			/>
 			<div className="px-(--page-header-px) pb-(--space-6)">
@@ -144,7 +145,7 @@ export function Upload({
 						) : (
 							<FileUpload
 								accept={ACCEPT}
-								description="Supports TXT, PDF, PNG, JPG, MP4"
+								description="Supports documents, images, audio, and video"
 								onFile={setFile}
 							/>
 						)}

@@ -2,7 +2,6 @@ import type { AuthInfo } from "@modelcontextprotocol/server"
 import { createMcpHandler } from "agents/mcp/server"
 import { Hono, type Context } from "hono"
 import { cors } from "hono/cors"
-import type { ContentfulStatusCode } from "hono/utils/http-status"
 import { validateOAuthToken, type AuthUser } from "./auth"
 import { SupermemoryMCP } from "./legacy-protocol-state"
 import { createSupermemoryServer } from "./server"
@@ -82,9 +81,9 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 			`${apiUrl}/.well-known/oauth-authorization-server`,
 		)
 		if (!response.ok) {
-			return c.json(
+			return Response.json(
 				{ error: "Failed to fetch authorization server metadata" },
-				{ status: response.status as ContentfulStatusCode },
+				{ status: response.status },
 			)
 		}
 		return c.json(await response.json())

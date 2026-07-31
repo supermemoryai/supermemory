@@ -1,6 +1,5 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js"
 import { useContext, useMemo } from "react"
-import type { ViewMessage } from "../../shared/types"
+import { viewMessageSchema, type ViewMessage } from "../../shared/types"
 import {
 	handoffToModel as performModelHandoff,
 	type ModelHandoffRequest,
@@ -32,18 +31,18 @@ export function useApp() {
 	return useMemo(() => {
 		return {
 			/** Call an MCP server tool and await the result. */
-			async callTool<T = ViewMessage>(
+			async callTool(
 				name: string,
 				args: Record<string, unknown>,
-			): Promise<ToolCallResult<T>> {
+			): Promise<ToolCallResult<ViewMessage>> {
 				if (!app) {
 					return { ok: false, error: "MCP host is not connected" }
 				}
 				try {
-					const result = (await app.callServerTool({
+					const result = await app.callServerTool({
 						name,
 						arguments: args,
-					})) as CallToolResult & { structuredContent?: unknown }
+					})
 					if (result.isError) {
 						const text =
 							result.content?.[0]?.type === "text"
@@ -51,9 +50,16 @@ export function useApp() {
 								: "Tool returned an error"
 						return { ok: false, error: text }
 					}
+					const parsed = viewMessageSchema.safeParse(result.structuredContent)
+					if (!parsed.success) {
+						return {
+							ok: false,
+							error: "Tool returned invalid structured content",
+						}
+					}
 					return {
 						ok: true,
-						data: result.structuredContent as T,
+						data: parsed.data,
 					}
 				} catch (err) {
 					return { ok: false, error: String(err) }

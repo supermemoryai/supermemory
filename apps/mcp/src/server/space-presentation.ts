@@ -40,7 +40,7 @@ export function formatActivityDate(value: string | null): string | undefined {
 }
 
 export function spaceMetadata(space: ContainerTag): string {
-	const lastActivity = formatActivityDate(space.lastActivityAt)
+	const lastActivity = formatActivityDate(space.lastActivityAt ?? null)
 	const fields = [
 		space.visibility
 			? `${space.visibility.charAt(0).toUpperCase()}${space.visibility.slice(1)}`

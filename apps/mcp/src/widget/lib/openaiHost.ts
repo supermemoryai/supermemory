@@ -7,6 +7,12 @@ export interface ChatGptHostApi {
 	widgetState?: unknown
 }
 
+declare global {
+	interface Window {
+		openai?: ChatGptHostApi
+	}
+}
+
 /**
  * Optional ChatGPT host extensions. Shared MCP Apps methods remain the
  * cross-host fallback; this bridge is used where ChatGPT provides a stronger
@@ -14,5 +20,5 @@ export interface ChatGptHostApi {
  */
 export function getChatGptHostApi(): ChatGptHostApi | undefined {
 	if (typeof window === "undefined") return undefined
-	return (window as Window & { openai?: ChatGptHostApi }).openai
+	return window.openai
 }

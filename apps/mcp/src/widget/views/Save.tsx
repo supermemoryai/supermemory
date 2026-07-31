@@ -61,7 +61,7 @@ export function Save({
 		if (!canSave || !selectedTag) return
 		log("info", `[save] submit (${trimmed.length} chars → ${selectedTag})`)
 		setSaving(true)
-		const result = await callTool<ViewMessage>("save-memory", {
+		const result = await callTool("save-memory", {
 			content: trimmed,
 			containerTag: selectedTag,
 			viewId,

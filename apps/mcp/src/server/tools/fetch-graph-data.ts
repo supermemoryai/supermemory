@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { documentsApiResponseSchema } from "../../shared/types"
 import { appToolMeta } from "../app-metadata"
 import { optionalContainerTagSchema } from "../container-tag"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
@@ -14,6 +15,7 @@ export function register(deps: ToolDeps) {
 				page: z.number().optional().default(1),
 				limit: z.number().optional().default(200),
 			}),
+			outputSchema: documentsApiResponseSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 			_meta: appToolMeta(["app"]),
 		},

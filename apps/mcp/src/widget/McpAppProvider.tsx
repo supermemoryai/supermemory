@@ -3,7 +3,6 @@ import type {
 	McpUiHostContext,
 } from "@modelcontextprotocol/ext-apps"
 import { useApp as useMcpApp } from "@modelcontextprotocol/ext-apps/react"
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js"
 import {
 	createContext,
 	type ReactNode,
@@ -11,12 +10,17 @@ import {
 	useMemo,
 	useState,
 } from "react"
-import type { ViewMessage } from "../shared/types"
+import {
+	graphResultMetaSchema,
+	type GraphResultMeta,
+	viewMessageSchema,
+	type ViewMessage,
+} from "../shared/types"
 import { loadViewCheckpoint, saveViewCheckpoint } from "./lib/viewCheckpoint"
 
 export type ViewState =
 	| { kind: "loading" }
-	| { kind: "view"; message: ViewMessage }
+	| { kind: "view"; message: ViewMessage; resultMeta?: GraphResultMeta }
 	| { kind: "error"; message: string }
 	| { kind: "raw"; structuredContent: unknown }
 
@@ -61,12 +65,8 @@ export function McpAppProvider({ children }: { children: ReactNode }) {
 		capabilities: {},
 		strict: true,
 		onAppCreated: (createdApp) => {
-			createdApp.ontoolinput = (input: unknown) => {
-				const name =
-					typeof input === "object" && input !== null && "name" in input
-						? String((input as { name: unknown }).name)
-						: "?"
-				safeLog(createdApp, "info", `[host] ontoolinput: ${name}`)
+			createdApp.ontoolinput = () => {
+				safeLog(createdApp, "info", "[host] ontoolinput")
 				setState({ kind: "loading" })
 			}
 			createdApp.ontoolinputpartial = () => setState({ kind: "loading" })
@@ -74,35 +74,45 @@ export function McpAppProvider({ children }: { children: ReactNode }) {
 				safeLog(createdApp, "info", "[host] ontoolcancelled")
 				setState({ kind: "loading" })
 			}
-			createdApp.ontoolresult = (result: CallToolResult) => {
-				const structuredContent = (result as { structuredContent?: unknown })
-					.structuredContent
-				if (!structuredContent || typeof structuredContent !== "object") {
+			createdApp.ontoolresult = (result) => {
+				const structuredContent = result.structuredContent
+				const parsedMessage = viewMessageSchema.safeParse(structuredContent)
+				if (!parsedMessage.success) {
 					safeLog(
 						createdApp,
 						"warning",
-						"[host] ontoolresult: no structuredContent",
+						"[host] ontoolresult: invalid structuredContent",
 					)
 					setState({ kind: "raw", structuredContent })
 					return
 				}
-				if ("view" in structuredContent) {
-					const message = structuredContent as ViewMessage
-					safeLog(
-						createdApp,
-						"info",
-						`[host] ontoolresult: view=${message.view}`,
-					)
-					const checkpoint = loadViewCheckpoint(message.viewId)
-					setState({ kind: "view", message: checkpoint ?? message })
+
+				const message = parsedMessage.data
+				safeLog(createdApp, "info", `[host] ontoolresult: view=${message.view}`)
+				const checkpoint = loadViewCheckpoint(message.viewId)
+				if (checkpoint) {
+					setState({ kind: "view", message: checkpoint })
 					return
 				}
-				safeLog(
-					createdApp,
-					"warning",
-					"[host] ontoolresult: structuredContent without view",
-				)
-				setState({ kind: "raw", structuredContent })
+
+				if (message.view === "graph") {
+					const parsedMeta = graphResultMetaSchema.safeParse(result._meta)
+					if (!parsedMeta.success) {
+						setState({
+							kind: "error",
+							message: "Memory graph data is unavailable.",
+						})
+						return
+					}
+					setState({
+						kind: "view",
+						message,
+						resultMeta: parsedMeta.data,
+					})
+					return
+				}
+
+				setState({ kind: "view", message })
 			}
 			createdApp.onhostcontextchanged = (next) => {
 				setHostContext(createdApp.getHostContext() ?? next)
