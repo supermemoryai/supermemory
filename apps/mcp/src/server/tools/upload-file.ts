@@ -2,6 +2,7 @@ import { z } from "zod"
 import type { ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { effectiveContainerTagAccess } from "../auth/rbac"
+import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -12,6 +13,7 @@ export function register(deps: ToolDeps) {
 			description: "Upload a file (PDF, text, image, video) to memory.",
 			inputSchema: z.object({}),
 			_meta: appToolMeta(),
+			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async () => {
 			try {

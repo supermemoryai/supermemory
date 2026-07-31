@@ -2,6 +2,7 @@ import { z } from "zod"
 import type { ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { effectiveContainerTagAccess } from "../auth/rbac"
+import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -13,6 +14,7 @@ export function register(deps: ToolDeps) {
 				"Choose the active Supermemory space. Shows available spaces as interactive cards.",
 			inputSchema: z.object({}),
 			_meta: appToolMeta(),
+			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async () => {
 			try {

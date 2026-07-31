@@ -2,6 +2,7 @@ import { z } from "zod"
 import type { ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { effectiveContainerTagAccess } from "../auth/rbac"
+import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -14,6 +15,7 @@ export function register(deps: ToolDeps) {
 				prefill: z.string().optional().describe("Optional content to prefill"),
 			}),
 			_meta: appToolMeta(),
+			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
 			try {
