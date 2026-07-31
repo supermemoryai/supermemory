@@ -73,6 +73,10 @@ import {
 } from "./attachments"
 import { cacheFileBlob, removeCachedFile } from "@/lib/file-cache"
 import { ReasoningSelector } from "./reasoning-selector"
+import {
+	type ChatThreadSettings,
+	readChatThreadSettings,
+} from "@/lib/chat-thread-settings"
 
 type ChatMessageSendSource = "typed" | "suggested" | "highlight" | "home"
 
@@ -284,7 +288,8 @@ export function ChatSidebar({
 	const [chatSpaceProjects, setChatSpaceProjects] = useState<string[]>([
 		initialChatProject ?? AUTO_CHAT_SPACE_ID,
 	])
-	const chatProject = chatSpaceProjects[0] ?? selectedProject
+	const chatProject =
+		chatSpaceProjects[0] ?? selectedProject ?? AUTO_CHAT_SPACE_ID
 	const { allProjects } = useContainerTags()
 	const selectedProjectRef = useRef(chatProject)
 	selectedProjectRef.current = chatProject
@@ -348,6 +353,28 @@ export function ChatSidebar({
 	)
 	const chatApiBase =
 		process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+	const persistThreadSettings = useCallback(
+		async (settings: ChatThreadSettings) => {
+			if (!threadId) return
+			try {
+				const response = await fetch(
+					`${chatApiBase}/chat/threads/${threadId}`,
+					{
+						method: "PATCH",
+						credentials: "include",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ settings }),
+					},
+				)
+				if (!response.ok) {
+					console.error("Failed to persist chat settings", response.status)
+				}
+			} catch (error) {
+				console.error("Failed to persist chat settings", error)
+			}
+		},
+		[chatApiBase, threadId],
+	)
 
 	const chatTransport = useMemo(
 		() =>
@@ -471,11 +498,47 @@ export function ChatSidebar({
 
 	const handleModelChange = useCallback(
 		(modelId: ModelId) => {
+			const nextReasoningEffort = getDefaultReasoningEffort(modelId)
 			setSelectedModel(modelId)
-			setReasoningEffort(getDefaultReasoningEffort(modelId))
+			setReasoningEffort(nextReasoningEffort)
 			clearError()
+			void persistThreadSettings({
+				model: modelId,
+				projectId: selectedProjectRef.current,
+				reasoningEffort: nextReasoningEffort,
+				spaceMode:
+					selectedProjectRef.current === AUTO_CHAT_SPACE_ID ? "auto" : "manual",
+			})
 		},
-		[clearError],
+		[clearError, persistThreadSettings],
+	)
+
+	const handleReasoningEffortChange = useCallback(
+		(nextReasoningEffort: ReasoningEffort) => {
+			setReasoningEffort(nextReasoningEffort)
+			void persistThreadSettings({
+				model: selectedModelRef.current,
+				projectId: selectedProjectRef.current,
+				reasoningEffort: nextReasoningEffort,
+				spaceMode:
+					selectedProjectRef.current === AUTO_CHAT_SPACE_ID ? "auto" : "manual",
+			})
+		},
+		[persistThreadSettings],
+	)
+
+	const handleChatSpaceProjectsChange = useCallback(
+		(nextProjects: string[]) => {
+			const nextProject = nextProjects[0] ?? AUTO_CHAT_SPACE_ID
+			setChatSpaceProjects([nextProject])
+			void persistThreadSettings({
+				model: selectedModelRef.current,
+				projectId: nextProject,
+				reasoningEffort: reasoningEffortRef.current,
+				spaceMode: nextProject === AUTO_CHAT_SPACE_ID ? "auto" : "manual",
+			})
+		},
+		[persistThreadSettings],
 	)
 
 	const setAttachmentDraftState = useCallback(
@@ -1139,6 +1202,12 @@ export function ChatSidebar({
 				})
 				if (response.ok) {
 					const data = await response.json()
+					const restoredSettings = readChatThreadSettings(
+						data.thread?.settings,
+						data.thread?.space?.containerTag ??
+							selectedProject ??
+							AUTO_CHAT_SPACE_ID,
+					)
 					const uiMessages = data.messages.map(
 						(m: {
 							id: string
@@ -1165,6 +1234,9 @@ export function ChatSidebar({
 					pendingResponseModelsRef.current = []
 					seenAssistantMessageIdsRef.current = new Set()
 					setResponseModelByMessageId({})
+					setSelectedModel(restoredSettings.model)
+					setReasoningEffort(restoredSettings.reasoningEffort)
+					setChatSpaceProjects([restoredSettings.projectId])
 					setThreadId(id)
 					setPendingThreadLoad({ id, messages: uiMessages })
 					setMessageQueue([])
@@ -1178,7 +1250,7 @@ export function ChatSidebar({
 				console.error("Failed to load thread:", error)
 			}
 		},
-		[chatApiBase, setThreadId],
+		[chatApiBase, selectedProject, setThreadId],
 	)
 
 	// Auto-restore thread from URL on mount (e.g. reload or direct link)
@@ -1612,11 +1684,11 @@ export function ChatSidebar({
 		]
 		for (const t of filtered) {
 			const ts = new Date(t.updatedAt).getTime()
-			if (ts >= startOfToday) buckets[0].items.push(t)
-			else if (ts >= startOfToday - day) buckets[1].items.push(t)
-			else if (ts >= startOfToday - 7 * day) buckets[2].items.push(t)
-			else if (ts >= startOfToday - 30 * day) buckets[3].items.push(t)
-			else buckets[4].items.push(t)
+			if (ts >= startOfToday) buckets[0]?.items.push(t)
+			else if (ts >= startOfToday - day) buckets[1]?.items.push(t)
+			else if (ts >= startOfToday - 7 * day) buckets[2]?.items.push(t)
+			else if (ts >= startOfToday - 30 * day) buckets[3]?.items.push(t)
+			else buckets[4]?.items.push(t)
 		}
 		return buckets.filter((b) => b.items.length > 0)
 	}, [threads, historySearch])
@@ -1894,11 +1966,11 @@ export function ChatSidebar({
 								/>
 								<ReasoningSelector
 									value={reasoningEffort}
-									onChange={setReasoningEffort}
+									onChange={handleReasoningEffortChange}
 								/>
 								<SpaceSelector
 									selectedProjects={chatSpaceProjects}
-									onValueChange={setChatSpaceProjects}
+									onValueChange={handleChatSpaceProjectsChange}
 									variant="insideOut"
 									includeAuto
 									hideCount
@@ -2112,7 +2184,7 @@ export function ChatSidebar({
 						isStackedInput ? (
 							<ReasoningSelector
 								value={reasoningEffort}
-								onChange={setReasoningEffort}
+								onChange={handleReasoningEffortChange}
 							/>
 						) : undefined
 					}
@@ -2120,7 +2192,7 @@ export function ChatSidebar({
 						isStackedInput ? (
 							<SpaceSelector
 								selectedProjects={chatSpaceProjects}
-								onValueChange={setChatSpaceProjects}
+								onValueChange={handleChatSpaceProjectsChange}
 								variant="insideOut"
 								includeAuto
 								hideCount
