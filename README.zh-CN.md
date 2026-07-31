@@ -168,21 +168,6 @@ MCP 服务器开源——[查看源码](https://supermemory.ai/docs/supermemory-
 }
 ```
 
-如果想用 API key 代替 OAuth：
-
-```json
-{
-  "mcpServers": {
-    "supermemory": {
-      "url": "https://mcp.supermemory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer sm_your_api_key_here"
-      }
-    }
-  }
-}
-```
-
 ---
 
 ## 用 Supermemory API 构建

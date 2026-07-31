@@ -7,6 +7,7 @@ const LOCAL_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
 function getAuthSessionCookie(request: Request): string | null {
 	return (
 		getSessionCookie(request) ??
+		getSessionCookie(request, { cookiePrefix: "better-auth-dev-localhost" }) ??
 		getSessionCookie(request, { cookiePrefix: "better-auth-dev" })
 	)
 }

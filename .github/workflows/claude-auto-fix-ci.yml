@@ -77,8 +77,6 @@ jobs:
             Branch: ${{ github.event.workflow_run.head_branch }}
             Repository: ${{ github.repository }}
 
-            Check supermemory for similar past CI failures and fixes.
-
             Fix the CI failures. Common fixes:
             - Biome lint errors: Run `bun run format-lint` or `biome check --fix .`
             - Type errors: Run `bun run check-types` and fix reported issues
@@ -87,21 +85,8 @@ jobs:
             After fixing, commit the changes and push directly to the branch `${{ github.event.workflow_run.head_branch }}`.
             Do NOT create a new PR — the fixes should be pushed to the existing PR branch.
 
-            Save the fix pattern to supermemory for future reference.
-
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: |
             --max-turns 20
             --model claude-opus-4-5-20251101
-            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(*),WebSearch,WebFetch,Task,mcp__supermemory,mcp__github"
-            --mcp-config '{
-              "mcpServers": {
-                "supermemory": {
-                  "type": "http",
-                  "url": "https://mcp.supermemory.ai/mcp",
-                  "headers": {
-                    "Authorization": "Bearer ${{ secrets.SUPERMEMORY_API_KEY }}"
-                  }
-                }
-              }
-            }'
+            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(*),WebSearch,WebFetch,Task,mcp__github"

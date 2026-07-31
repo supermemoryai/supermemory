@@ -1,9 +1,6 @@
 "use client"
 
 import { $fetch } from "@lib/api"
-import { authClient } from "@lib/auth"
-import { useAuth } from "@lib/auth-context"
-import { generateId } from "@lib/generate-id"
 import { useForm } from "@tanstack/react-form"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Button } from "@ui/components/button"
@@ -130,7 +127,6 @@ export function ConnectAIModal({
 	openInitialClient,
 	openInitialTab,
 }: ConnectAIModalProps) {
-	const { org } = useAuth()
 	const [selectedClient, setSelectedClient] = useState<
 		keyof typeof clients | null
 	>(openInitialClient || null)
@@ -142,7 +138,6 @@ export function ConnectAIModal({
 	const [setupTab, setSetupTab] = useState<"oneClick" | "manual">(
 		openInitialTab ?? "manual",
 	)
-	const [manualApiKey, setManualApiKey] = useState<string | null>(null)
 	const [isCopied, setIsCopied] = useState(false)
 
 	const [projectId, setProjectId] = useState("default")
@@ -236,33 +231,6 @@ export function ConnectAIModal({
 		},
 	})
 
-	const createMcpApiKeyMutation = useMutation({
-		mutationFn: async () => {
-			if (!org?.id) {
-				throw new Error("Organization ID is required")
-			}
-
-			const res = await authClient.apiKey.create({
-				metadata: {
-					organizationId: org?.id,
-					type: "mcp-manual",
-				},
-				name: `mcp-manual-${generateId().slice(0, 8)}`,
-				prefix: `sm_${org?.id}_`,
-			})
-			return res.key
-		},
-		onSuccess: (apiKey) => {
-			setManualApiKey(apiKey)
-			toast.success("API key created successfully!")
-		},
-		onError: (error) => {
-			toast.error("Failed to create API key", {
-				description: error instanceof Error ? error.message : "Unknown error",
-			})
-		},
-	})
-
 	useEffect(() => {
 		if (openInitialClient) {
 			setSelectedClient(openInitialClient as keyof typeof clients)
@@ -278,20 +246,6 @@ export function ConnectAIModal({
 		if (!s.oneClick && setupTab === "oneClick") setSetupTab("manual")
 		if (!s.manual && setupTab === "manual") setSetupTab("oneClick")
 	}, [selectedClient, setupTab])
-
-	useEffect(() => {
-		if (selectedClient !== "mcp-url" || setupTab !== "manual" || !org?.id)
-			return
-		if (manualApiKey || createMcpApiKeyMutation.isPending) return
-		createMcpApiKeyMutation.mutate()
-	}, [
-		selectedClient,
-		setupTab,
-		org?.id,
-		manualApiKey,
-		createMcpApiKeyMutation.isPending,
-		createMcpApiKeyMutation.mutate,
-	])
 
 	function getMcpServerUrl() {
 		return "https://mcp.supermemory.ai/mcp"
@@ -496,12 +450,6 @@ export function ConnectAIModal({
 												onClick={() => {
 													setSelectedClient("mcp-url")
 													setSetupTab("manual")
-													if (
-														!manualApiKey &&
-														!createMcpApiKeyMutation.isPending
-													) {
-														createMcpApiKeyMutation.mutate()
-													}
 												}}
 											/>
 										</div>
@@ -714,48 +662,32 @@ export function ConnectAIModal({
 											)
 										}
 										if (manual.kind === "generic-remote") {
-											const remoteSnippet = buildMcpUrlRemoteJson(
-												manualApiKey || "your-api-key-here",
-											)
+											const remoteSnippet = buildMcpUrlRemoteJson()
 											return (
 												<div className="space-y-3">
 													<p className="text-sm text-muted-foreground">
-														Paste into your MCP config. We create an API key for
-														you when you open this tab; copy the block after it
-														appears.
+														Paste this into your MCP config. Your client will
+														open Supermemory OAuth when it first connects.
 													</p>
-													{createMcpApiKeyMutation.isPending ? (
-														<div className="flex items-center justify-center p-8">
-															<Loader2 className="size-6 animate-spin text-primary" />
-														</div>
-													) : (
-														<>
-															<div className="relative min-w-0 max-w-full">
-																<pre className="max-h-80 max-w-full overflow-x-auto overflow-y-auto rounded-lg border border-border bg-muted p-3 pr-12 text-xs sm:p-4">
-																	<code className="block font-mono whitespace-pre-wrap break-all">
-																		{remoteSnippet}
-																	</code>
-																</pre>
-																<Button
-																	className="absolute top-2 right-2 size-8 cursor-pointer p-0 bg-muted/80 hover:bg-muted"
-																	onClick={() =>
-																		copyManualSnippet(remoteSnippet)
-																	}
-																	size="icon"
-																	variant="ghost"
-																>
-																	{isCopied ? (
-																		<CheckIcon className="size-3.5 text-green-600" />
-																	) : (
-																		<CopyIcon className="size-3.5" />
-																	)}
-																</Button>
-															</div>
-															<p className="text-xs text-muted-foreground">
-																Bearer token uses your supermemory API key.
-															</p>
-														</>
-													)}
+													<div className="relative min-w-0 max-w-full">
+														<pre className="max-h-80 max-w-full overflow-x-auto overflow-y-auto rounded-lg border border-border bg-muted p-3 pr-12 text-xs sm:p-4">
+															<code className="block font-mono whitespace-pre-wrap break-all">
+																{remoteSnippet}
+															</code>
+														</pre>
+														<Button
+															className="absolute top-2 right-2 size-8 cursor-pointer p-0 bg-muted/80 hover:bg-muted"
+															onClick={() => copyManualSnippet(remoteSnippet)}
+															size="icon"
+															variant="ghost"
+														>
+															{isCopied ? (
+																<CheckIcon className="size-3.5 text-green-600" />
+															) : (
+																<CopyIcon className="size-3.5" />
+															)}
+														</Button>
+													</div>
 												</div>
 											)
 										}

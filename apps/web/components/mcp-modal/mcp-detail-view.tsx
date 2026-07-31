@@ -557,13 +557,12 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 										)
 									}
 									if (manual.kind === "generic-remote") {
-										const snippet = buildMcpUrlRemoteJson("your-api-key-here")
+										const snippet = buildMcpUrlRemoteJson()
 										return (
 											<div className="space-y-3">
 												<p className="text-[13px] leading-relaxed text-[#A1A1AA]">
-													Add this to your client&apos;s MCP config. Replace the
-													placeholder with an API key from supermemory settings
-													(Integrations).
+													Add this to your client&apos;s MCP config. Your client
+													will open Supermemory OAuth when it first connects.
 												</p>
 												<McpCodeBlock
 													code={snippet}
@@ -573,13 +572,6 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 														setActiveStep(3)
 													}}
 												/>
-												{detailSetup?.oneClick ? (
-													<p className="text-[12px] text-[#737373]">
-														Use Bearer auth in headers, or switch to One click
-														setup and paste the HTTPS URL if your client
-														supports OAuth only.
-													</p>
-												) : null}
 											</div>
 										)
 									}

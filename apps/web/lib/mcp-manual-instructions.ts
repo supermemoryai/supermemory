@@ -16,15 +16,11 @@ export const ANTIGRAVITY_MCP_SNIPPET = `{
     }
 }`
 
-export function buildMcpUrlRemoteJson(apiKeyPlaceholder: string) {
+export function buildMcpUrlRemoteJson() {
 	return `{
   "supermemory-mcp": {
     "command": "npx",
-    "args": ["-y", "mcp-remote", "https://mcp.supermemory.ai/mcp"],
-    "env": {},
-    "headers": {
-      "Authorization": "Bearer ${apiKeyPlaceholder}"
-    }
+    "args": ["-y", "mcp-remote@latest", "https://mcp.supermemory.ai/mcp"]
   }
 }`
 }
