@@ -242,8 +242,7 @@ export default function CompanyBrainToolApprovals({
 										"mt-0.5 text-[12px] leading-[1.5] text-[#737B87]",
 									)}
 								>
-									Applies to anything without its own setting below. Reads never
-									ask.
+									Individual tool settings below override this. Reads never ask.
 								</p>
 							</div>
 							<Segmented
