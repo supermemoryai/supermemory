@@ -27,37 +27,28 @@ export function register(deps: ToolDeps) {
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
 				const client = deps.getClient(effectiveTag)
 				const containerTags = effectiveTag ? [effectiveTag] : undefined
-
 				const result = await client.getDocuments(containerTags, 1, 200)
-
 				const memoryCount = result.documents.reduce(
-					(sum, d) => sum + d.memoryEntries.length,
+					(sum, document) => sum + document.memoryEntries.length,
 					0,
 				)
-
 				const sc: ViewMessage = {
 					view: "graph",
 					viewId,
 					...(effectiveTag ? { containerTag: effectiveTag } : {}),
-					documentCount: result.documents.length,
-					memoryCount,
-					totalDocumentCount: result.pagination.totalItems,
-					truncated: result.documents.length < result.pagination.totalItems,
-					rendered: true,
+					documents: result.documents,
+					totalCount: result.pagination.totalItems,
 				}
 
 				return {
 					content: [
 						{
 							type: "text" as const,
-							text: `The interactive Memory Graph MCP App is rendered and visible: ${result.documents.length} documents, ${memoryCount} memories${effectiveTag ? `. Space: ${effectiveTag}` : ""}. Do not create a duplicate graph or artifact unless the user explicitly requests one.`,
+							text: `Rendered the interactive Memory Graph MCP App: ${result.documents.length} documents, ${memoryCount} memories${effectiveTag ? `. Space: ${effectiveTag}` : ""}. Do not create a duplicate graph or artifact unless the user explicitly requests one.`,
 						},
 					],
 					structuredContent: sc,
-					_meta: {
-						...appResultMeta(viewId),
-						graphData: { documents: result.documents },
-					},
+					_meta: appResultMeta(viewId),
 				}
 			} catch (error) {
 				return deps.errorResult(error)

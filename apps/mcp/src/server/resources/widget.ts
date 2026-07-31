@@ -4,13 +4,12 @@ import { SUPERMEMORY_RESOURCE_URI } from "../../shared/types"
 import { APP_RESOURCE_MIME_TYPE } from "../app-metadata"
 
 const CSP_DOMAINS = [
-	"https://esm.sh",
 	"https://fonts.googleapis.com",
 	"https://fonts.gstatic.com",
 ]
 
 const WIDGET_DESCRIPTION =
-	"Interactive Supermemory view. The tool result identifies whether the mounted app is a memory graph, space picker, save form, upload form, or confirmation. When rendered is true, the interface is already visible to the user."
+	"Interactive Supermemory view for memory graphs, space selection, guided saves, file uploads, and confirmations."
 
 const RESOURCE_UI_META = {
 	prefersBorder: true,

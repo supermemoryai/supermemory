@@ -31,7 +31,12 @@ export function register(deps: ToolDeps) {
 				)
 
 				return {
-					content: [{ type: "text" as const, text: JSON.stringify(data) }],
+					content: [
+						{
+							type: "text" as const,
+							text: `Loaded ${data.documents.length} documents for the memory graph.`,
+						},
+					],
 					structuredContent: data,
 				}
 			} catch (error) {

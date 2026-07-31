@@ -92,7 +92,7 @@ export type DocumentMemoryEntry = z.infer<typeof documentMemoryEntrySchema>
 
 export const documentWithMemoriesSchema = z.looseObject({
 	id: z.string(),
-	title: z.string().nullable(),
+	title: z.string().nullish(),
 	summary: z.string().nullish(),
 	type: z.string(),
 	createdAt: z.string(),
@@ -169,11 +169,8 @@ export const graphViewSchema = z.object({
 	view: z.literal("graph"),
 	viewId: viewIdSchema,
 	containerTag: z.string().optional(),
-	documentCount: z.number().int().nonnegative(),
-	memoryCount: z.number().int().nonnegative(),
-	totalDocumentCount: z.number().int().nonnegative(),
-	truncated: z.boolean(),
-	rendered: z.literal(true),
+	documents: z.array(documentWithMemoriesSchema),
+	totalCount: z.number().int().nonnegative(),
 })
 
 export const viewMessageSchema = z.discriminatedUnion("view", [
@@ -188,15 +185,7 @@ export const viewMessageSchema = z.discriminatedUnion("view", [
 
 export type ViewMessage = z.infer<typeof viewMessageSchema>
 
-export const graphResultMetaSchema = z.looseObject({
-	graphData: z.object({
-		documents: z.array(documentWithMemoriesSchema),
-	}),
-})
-
-export type GraphResultMeta = z.infer<typeof graphResultMetaSchema>
-
 export type ViewName = ViewMessage["view"]
 
 // Hosts cache MCP UI resources by URI, so bump this when shipping a new widget bundle.
-export const SUPERMEMORY_RESOURCE_URI = "ui://supermemory/app-v3.html"
+export const SUPERMEMORY_RESOURCE_URI = "ui://supermemory/app-v4.html"

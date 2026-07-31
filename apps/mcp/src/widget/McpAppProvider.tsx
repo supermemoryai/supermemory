@@ -10,17 +10,12 @@ import {
 	useMemo,
 	useState,
 } from "react"
-import {
-	graphResultMetaSchema,
-	type GraphResultMeta,
-	viewMessageSchema,
-	type ViewMessage,
-} from "../shared/types"
+import { viewMessageSchema, type ViewMessage } from "../shared/types"
 import { loadViewCheckpoint, saveViewCheckpoint } from "./lib/viewCheckpoint"
 
 export type ViewState =
 	| { kind: "loading" }
-	| { kind: "view"; message: ViewMessage; resultMeta?: GraphResultMeta }
+	| { kind: "view"; message: ViewMessage }
 	| { kind: "error"; message: string }
 	| { kind: "raw"; structuredContent: unknown }
 
@@ -92,23 +87,6 @@ export function McpAppProvider({ children }: { children: ReactNode }) {
 				const checkpoint = loadViewCheckpoint(message.viewId)
 				if (checkpoint) {
 					setState({ kind: "view", message: checkpoint })
-					return
-				}
-
-				if (message.view === "graph") {
-					const parsedMeta = graphResultMetaSchema.safeParse(result._meta)
-					if (!parsedMeta.success) {
-						setState({
-							kind: "error",
-							message: "Memory graph data is unavailable.",
-						})
-						return
-					}
-					setState({
-						kind: "view",
-						message,
-						resultMeta: parsedMeta.data,
-					})
 					return
 				}
 

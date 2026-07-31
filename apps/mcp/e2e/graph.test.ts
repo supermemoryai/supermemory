@@ -19,16 +19,14 @@ describeWithAuth("MCP — graph, resources & prompts", () => {
 		await s?.close()
 	})
 
-	it("memory-graph returns a rendered widget summary", async () => {
+	it("memory-graph returns a rendered graph widget", async () => {
 		const res = await callTool(s.client, "memory-graph")
 		expect(res.isError).toBeFalsy()
-		expect(textOf(res)).toMatch(
-			/The interactive Memory Graph MCP App is rendered and visible: \d+ documents/,
-		)
+		expect(textOf(res)).toMatch(/Rendered the interactive Memory Graph MCP App/)
 		const result = graphViewSchema.safeParse(res.structuredContent)
 		expect(result.success).toBe(true)
 		if (!result.success) throw result.error
-		expect(result.data.rendered).toBe(true)
+		expect(result.data.view).toBe("graph")
 	})
 
 	it("fetch-graph-data returns paginated documents", async () => {

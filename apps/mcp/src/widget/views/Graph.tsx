@@ -83,7 +83,6 @@ function useGraphColors(theme: string): GraphThemeColors {
 interface Props {
 	documents: DocumentWithMemories[]
 	totalCount: number
-	containerTag?: string
 }
 
 // Map the widget's API shape (DocumentWithMemories) into the package's
@@ -115,7 +114,7 @@ function toGraphMemory(mem: DocumentMemoryEntry): GraphApiMemory {
 function toGraphDocument(doc: DocumentWithMemories): GraphApiDocument {
 	return {
 		id: doc.id,
-		title: doc.title,
+		title: doc.title ?? null,
 		summary: doc.summary ?? null,
 		documentType: doc.type,
 		createdAt: doc.createdAt,
