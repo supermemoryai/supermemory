@@ -2,6 +2,7 @@ import { z } from "zod"
 import type { ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { containerTagSchema } from "../container-tag"
+import { SETTINGS_TOOL_ANNOTATIONS } from "./annotations"
 import type { ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -14,6 +15,7 @@ export function register(deps: ToolDeps) {
 				viewId: z.string().uuid().optional(),
 			}),
 			_meta: appToolMeta(["app"]),
+			annotations: SETTINGS_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
 			const { containerTag } = args
