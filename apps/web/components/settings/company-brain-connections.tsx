@@ -4,6 +4,7 @@ import { useOrgMemberRole } from "@/hooks/use-org-member-role"
 import { cn } from "@lib/utils"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { ChevronDown, Loader2, Plus, XIcon } from "lucide-react"
+import Link from "next/link"
 import { useCallback, useEffect, useState } from "react"
 import {
 	Dialog,
@@ -18,6 +19,7 @@ import {
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
 import { toast } from "sonner"
+import { configureToolPath } from "@/lib/configure-routes"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { brainConnectorIcon, SlackMark } from "../brain-connector-icons"
@@ -103,6 +105,7 @@ function AppCard({
 	isAdmin,
 	personalOnly,
 	busy,
+	toolsHref,
 	onConnect,
 	onDisconnect,
 }: {
@@ -114,6 +117,7 @@ function AppCard({
 	isAdmin: boolean
 	personalOnly?: boolean
 	busy: boolean
+	toolsHref?: string
 	onConnect: (shared: boolean) => void
 	onDisconnect: (shared: boolean) => void
 }) {
@@ -161,6 +165,17 @@ function AppCard({
 							) : null}
 						</>
 					)}
+					{toolsHref && anyConnected ? (
+						<Link
+							href={toolsHref}
+							className={cn(
+								dmSans125ClassName(),
+								"shrink-0 text-[12px] font-medium text-[#8B929E] underline-offset-2 transition-colors hover:text-[#FAFAFA] hover:underline",
+							)}
+						>
+							Tools
+						</Link>
+					) : null}
 				</div>
 				{adminMenu ? (
 					<DropdownMenu>
@@ -634,6 +649,7 @@ export default function CompanyBrainConnections() {
 								userConnected={isConnected(entry.slug, false)}
 								orgConnected={isConnected(entry.slug, true)}
 								isAdmin={isAdmin}
+								toolsHref={configureToolPath(entry.slug)}
 								busy={busy?.startsWith(`${entry.slug}:`) ?? false}
 								onConnect={(shared) => connect(entry, shared)}
 								onDisconnect={(shared) => disconnect(entry, shared)}
@@ -649,6 +665,7 @@ export default function CompanyBrainConnections() {
 								orgConnected={false}
 								isAdmin={false}
 								personalOnly
+								toolsHref={configureToolPath(row.serverSlug)}
 								busy={busy === `${row.serverSlug}:user`}
 								onConnect={() => {}}
 								onDisconnect={() =>

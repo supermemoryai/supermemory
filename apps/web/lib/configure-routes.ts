@@ -29,7 +29,19 @@ export function pathToConfigureSection(
 	if (trimmed === "/configure") return DEFAULT_CONFIGURE_SECTION
 	const slug = trimmed.match(/^\/configure\/([^/]+)$/)?.[1]
 	if (slug && isConfigureSection(slug)) return slug
+	// Server detail pages live under the tools section.
+	if (pathToConfigureToolSlug(trimmed)) return "tools"
 	return null
+}
+
+// /configure/tools/<serverSlug> — the per-server tool approval page.
+export function configureToolPath(serverSlug: string): string {
+	return `/configure/tools/${serverSlug}`
+}
+
+export function pathToConfigureToolSlug(pathname: string): string | null {
+	const trimmed = pathname.replace(/\/$/, "")
+	return trimmed.match(/^\/configure\/tools\/([^/]+)$/)?.[1] ?? null
 }
 
 export function isConfigurePath(pathname: string): boolean {

@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation"
 import CompanyBrainConnections from "@/components/settings/company-brain-connections"
 import CompanyBrainModels from "@/components/settings/company-brain-models"
 import CompanyBrainProactivity from "@/components/settings/company-brain-proactivity"
+import CompanyBrainToolApprovals from "@/components/settings/company-brain-tool-approvals"
 import Proactiveness from "@/components/settings/proactiveness"
 import { ProactivenessIcon } from "@/components/settings/proactiveness-icon"
 import { WorkspacePrompt } from "@/components/settings/workspace-prompt"
@@ -17,6 +18,7 @@ import {
 	configureSectionToPath,
 	DEFAULT_CONFIGURE_SECTION,
 	pathToConfigureSection,
+	pathToConfigureToolSlug,
 } from "@/lib/configure-routes"
 import { dmSans125ClassName } from "@/lib/fonts"
 
@@ -69,6 +71,8 @@ export function ConfigureView() {
 	// Reachable via ?view=configure too, where the path carries no section.
 	const activeSection =
 		pathToConfigureSection(pathname) ?? DEFAULT_CONFIGURE_SECTION
+	// /configure/tools/<slug> nests under the tools section.
+	const toolSlug = pathToConfigureToolSlug(pathname)
 	const active = SECTIONS.find((section) => section.id === activeSection)
 	if (!active) return null
 
@@ -116,7 +120,7 @@ export function ConfigureView() {
 					</nav>
 
 					<div className="min-w-0 flex-1">
-						<header className="mb-5">
+						<header className={cn("mb-5", toolSlug && "sr-only")}>
 							<h2
 								id="configure-section-title"
 								className="text-[14px] font-semibold tracking-[-0.1px] text-[#FAFAFA]"
@@ -129,14 +133,16 @@ export function ConfigureView() {
 						</header>
 
 						<ErrorBoundary
-							key={activeSection}
+							key={toolSlug ?? activeSection}
 							fallback={
 								<p className="py-6 text-center text-[13px] text-[#8B929E]">
 									Something went wrong loading this section.
 								</p>
 							}
 						>
-							{activeSection === "tools" ? (
+							{toolSlug ? (
+								<CompanyBrainToolApprovals serverSlug={toolSlug} />
+							) : activeSection === "tools" ? (
 								<CompanyBrainConnections />
 							) : activeSection === "models" ? (
 								<CompanyBrainModels showHeading={false} />
