@@ -266,7 +266,7 @@ export default function CompanyBrainToolApprovals({
 							)}
 						>
 							Raw queries and code always ask. Scheduled runs and borrowed
-							access use only tools allowed individually.
+							access can only make changes with tools allowed individually.
 						</p>
 					</div>
 
