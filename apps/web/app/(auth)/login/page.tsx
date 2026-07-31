@@ -354,7 +354,7 @@ export default function LoginPage() {
 
 										<div className="flex flex-col gap-3">
 											{process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
-											!process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED ? (
+											process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true" ? (
 												<div className="w-full">
 													<LastUsedBadge show={lastUsedMethod === "google"} />
 													<ExternalAuthButton
@@ -411,7 +411,7 @@ export default function LoginPage() {
 												</div>
 											) : null}
 											{process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
-											!process.env.NEXT_PUBLIC_GITHUB_AUTH_ENABLED ? (
+											process.env.NEXT_PUBLIC_GITHUB_AUTH_ENABLED === "true" ? (
 												<div className="w-full">
 													<LastUsedBadge show={lastUsedMethod === "github"} />
 													<ExternalAuthButton
