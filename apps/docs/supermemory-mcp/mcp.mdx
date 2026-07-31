@@ -1,6 +1,6 @@
 ---
 title: "Overview"
-description: "Connect Supermemory to an MCP client, use memory tools and widgets, and understand how spaces are selected"
+description: "Connect Supermemory to an MCP client and use memory tools, spaces, and interactive widgets"
 icon: "brain-circuit"
 ---
 
@@ -30,38 +30,34 @@ MCP clients that use JSON configuration generally accept this shape:
 
 Supermemory MCP uses OAuth. After you add the server, your client opens Supermemory so you can sign in and choose the access you want to grant.
 
-<Note>
-  The MCP server does not use API keys or the old `x-sm-project` header. Use spaces to control where an operation reads or writes.
-</Note>
-
 For client-specific instructions, see [Setup and Usage](/supermemory-mcp/setup) or the [Claude Desktop guide](/supermemory-mcp/claude-desktop).
 
 ## How spaces work
 
-A **space** keeps a set of documents, memories, and profile context separate from other work. Space-aware tools choose their target in this order:
+A **space** keeps a set of documents, memories, and profile context separate from other work. Supermemory uses:
 
-1. A space explicitly supplied for that tool call
-2. The active space selected in Supermemory MCP
-3. Your Supermemory account default
+1. The space named in your request
+2. Your active space
+3. Your account default
 
-Naming a space for one request does not change your active space. The assistant first uses `listSpaces` to resolve the human-readable name to its internal `containerTag`, then passes that key to the requested tool.
+Naming a space for one request does not change your active space.
 
-| What you ask | What the assistant should do |
+| What you ask | What happens |
 | --- | --- |
-| "Search for the launch plan" | Search the active space or account default |
-| "Search the Marketing space for the launch plan" | Resolve Marketing with `listSpaces`, then search it once |
-| "Make Marketing my active space" | Open `select-space` and retain the selection for future requests |
+| "Search for the launch plan" | Searches your active space or account default |
+| "Search the Marketing space for the launch plan" | Searches Marketing without changing your active space |
+| "Make Marketing my active space" | Opens the space picker and uses Marketing for future requests |
 
 This keeps one-off lookups separate from persistent space changes.
 
-## Direct tools
+## Tools
 
-Direct tools return information to the assistant or perform an action without opening a widget.
+These tools search, save, and inspect your Supermemory account.
 
 | Tool | Use it for | Inputs | Result |
 | --- | --- | --- | --- |
 | `search_memory` | Semantic recall from one space, with optional profile context | `query` (required), `includeProfile`, `containerTag` | Profile context and matching memories |
-| `add_memory` | Save exact information immediately, or forget outdated information | `content` (required), `action`, `containerTag` | Save confirmation with memory ID and space, or a forget confirmation |
+| `add_memory` | Save information or forget outdated information | `content` (required), `action` (`save` or `forget`), `containerTag` | Save or forget confirmation |
 | `listDocuments` | Browse stored source documents and their summaries | `page`, `limit`, `containerTag` | Document IDs, titles, types, status, dates, and summaries |
 | `getDocument` | Read the available content of one document | `documentId` (required) | Document metadata, summary, and available content |
 | `listMemories` | Browse recent extracted memory entries and their source document IDs | `page`, `limit`, `containerTag` | Memory IDs, text, versions, and source document IDs |
@@ -80,9 +76,9 @@ Use the retrieval tools for different questions:
 
 `listDocuments` and `listMemories` default to 10 results per page and accept up to 50.
 
-### Save or forget immediately
+### Save or forget
 
-`add_memory` saves the supplied `content` by default. Set `action` to `forget` when a fact is outdated or you explicitly ask Supermemory to remove it.
+`add_memory` saves the supplied `content` by default. Set `action` to `forget` when a fact is outdated or should be removed. There is no separate forget tool.
 
 If the content is already final, the assistant should use `add_memory`. If you want to review, edit, or choose a space before saving, it should open the `guided-save` widget instead.
 
@@ -92,26 +88,18 @@ If the content is already final, the assistant should use `add_memory`. If you w
 
 ## Interactive widgets
 
-Clients that support [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) can render Supermemory controls directly inside the conversation. The assistant launches the view; you finish the action in the widget.
+Clients that support [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) can open these Supermemory controls directly inside the conversation.
 
-<Note>
-  Widget submission tools are internal to the embedded app and hidden from the assistant. They are not separate tools you need to invoke.
-</Note>
-
-Each launcher returns a small structured result that tells the host which view to mount:
-
-| Tool | Structured result |
+| Tool | What it opens |
 | --- | --- |
-| `select-space` | `view: "picker"`, available spaces, active space, and assigned permissions |
-| `guided-save` | `view: "save"`, active space, writable spaces, and optional prefilled content |
-| `upload-file` | `view: "upload"`, active space and writable spaces |
-| `memory-graph` | `view: "graph"`, document and memory counts, truncation state, and `rendered: true` |
-
-The memory graph's full document and memory dataset is delivered to the embedded app, not repeated in the model-visible result. This keeps the assistant's context compact while the widget still receives everything it needs to render.
+| `select-space` | A searchable space picker |
+| `guided-save` | An editable memory form with a space selector |
+| `upload-file` | A local file picker and upload form |
+| `memory-graph` | An interactive graph of documents and memories |
 
 ### Select a space
 
-`select-space` opens a searchable space picker and changes the active space for future Supermemory actions. It is used only when you explicitly ask to switch or change the active space, not for a one-off request about another space.
+`select-space` opens a searchable space picker and changes the active space for future Supermemory actions. A one-off request in another space does not change the active space.
 
 Example: **"Switch my active Supermemory space."**
 
@@ -125,7 +113,7 @@ Example: **"Help me review this before saving it to Supermemory."**
 
 ### File upload
 
-`upload-file` opens the local file picker immediately. You do not need to provide a filesystem path or grant the assistant access to a folder. The widget uploads one file at a time to a writable space.
+`upload-file` opens a local file picker and uploads one file at a time to a writable space.
 
 Supported types include text, Markdown, PDF, Word, CSV, common images, MP3, WAV, M4A, MP4, and WebM.
 
@@ -133,9 +121,7 @@ Example: **"I want to upload a file to Supermemory."**
 
 ### Memory graph
 
-`memory-graph` renders the selected space as an interactive graph of source documents and extracted memories. The graph itself is the final result, so the assistant should not create a second graph or artifact unless you ask for one.
-
-![Supermemory MCP interactive memory graph showing source documents and extracted memories](/images/supermemory-mcp/widgets/memory-graph.png)
+`memory-graph` renders the selected space as an interactive graph of source documents and extracted memories.
 
 Example: **"Show my memory graph."**
 
@@ -151,25 +137,17 @@ Some MCP clients also expose resources and prompts:
 | Resource | `supermemory://spaces` | A compact list of accessible spaces with the active space marked |
 | Prompt | `context` | A ready-to-attach context message for the active space, plus up to three recently active spaces |
 
-The `context` prompt takes no arguments. It keeps facts scoped to their source space and tells the assistant how to resolve another space when needed. Resource and prompt presentation depends on the MCP client.
+The `context` prompt takes no arguments. It returns profile context for the active space and up to three recently active spaces.
 
-## Tool selection
+## Authentication and permissions
 
-The server describes Supermemory as the user's persistent memory and knowledge layer, so a compatible assistant can select it when the request implies saved context even if Supermemory is not named. Each tool also describes when it should be used and how to route a named space.
-
-The MCP client still makes the final tool-selection decision. Direct requests such as "remember this," "search my saved context," "upload a file," or "show my memory graph" provide the clearest intent.
-
-## Security and state
-
-Every MCP request is authenticated with the granted OAuth access. The protocol transport is stateless: the server does not retain conversation messages or an MCP protocol session. Only the active-space preference is retained so future requests can use the space you selected.
-
-Read and write access is enforced by the server. Restricted accounts see only assigned spaces, and save or upload actions are available only for spaces with write permission.
+Supermemory MCP uses OAuth. The access selected during authorization controls which spaces can be read or written.
 
 <CardGroup cols={2}>
   <Card title="Setup and Usage" icon="settings" href="/supermemory-mcp/setup">
     Configure Supermemory in supported MCP clients.
   </Card>
-  <Card title="MCP Server Source" icon="/docs/images/github-icon.svg" href="https://github.com/supermemoryai/supermemory/tree/main/apps/mcp">
-    Inspect the open-source server and widget implementation.
+  <Card title="Supermemory MCP on GitHub" icon="/docs/images/github-icon.svg" href="https://github.com/supermemoryai/supermemory/tree/main/apps/mcp">
+    View the source code.
   </Card>
 </CardGroup>

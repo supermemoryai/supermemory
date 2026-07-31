@@ -22,18 +22,14 @@ Add the remote server to your MCP client:
 }
 ```
 
-Supermemory MCP uses OAuth. Your client discovers the authorization server, opens the authorization page, and asks you to sign in and approve access.
-
-<Note>
-  No API key or custom header is required. The removed `x-sm-project` header is not used by the current server.
-</Note>
+Supermemory MCP uses OAuth. Your client opens the authorization page so you can sign in and approve access. No API key or custom header is required.
 
 ## Choose a space
 
 After connecting, space-aware tools use your active Supermemory space or account default. You can work in another space in two ways:
 
-- Ask for a one-off action in a named space. The assistant resolves its key with `listSpaces` and passes it to that tool call without changing your active space.
-- Ask to switch your active space. The assistant opens the `select-space` widget and retains your selection for future actions.
+- Name a space for a one-off action without changing your active space.
+- Ask to switch your active space for future actions.
 
 See [How spaces work](/supermemory-mcp/mcp#how-spaces-work) for examples and routing rules.
 
@@ -63,9 +59,7 @@ You can also use the install option in [app.supermemory.ai](https://app.supermem
 
 Add `https://mcp.supermemory.ai/mcp` as a remote HTTP MCP server and complete the OAuth flow opened by your client. Exact menu names and configuration locations vary between clients.
 
-<Note>
-  Memory search, document access, account tools, and direct save actions use standard MCP tool calls. The space picker, guided save, file upload, and memory graph require a client that supports MCP Apps to render their interactive interface.
-</Note>
+Clients with MCP Apps support render the space picker, guided save, file upload, and memory graph directly in the conversation.
 
 ## Verify the connection
 
