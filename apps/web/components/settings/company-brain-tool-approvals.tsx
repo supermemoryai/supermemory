@@ -265,9 +265,8 @@ export default function CompanyBrainToolApprovals({
 								"px-1 text-[12px] leading-[1.5] text-[#737373]",
 							)}
 						>
-							Raw queries and code always ask, whatever this is set to.
-							Scheduled runs and borrowed access only use tools allowed
-							individually below.
+							Raw queries and code always ask. Scheduled runs and borrowed
+							access use only tools allowed individually.
 						</p>
 					</div>
 
