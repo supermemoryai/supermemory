@@ -111,7 +111,7 @@ function ToolRow({
 						disabled={disabled}
 						options={[
 							{ id: "ask", label: "Ask" },
-							{ id: "allow", label: "Allow" },
+							{ id: "allow", label: "Always allow" },
 						]}
 						onChange={(id) => onChange(id as ToolApprovalDecision)}
 					/>
@@ -225,25 +225,33 @@ export default function CompanyBrainToolApprovals({
 			) : (
 				<>
 					<div className="flex flex-col gap-2">
-						<span className={fieldLabel}>Actions that change things</span>
+						<span className={fieldLabel}>Default</span>
 						<div className="flex items-center justify-between gap-3 rounded-xl bg-[#14161A] px-4 py-3 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
-							<p
-								className={cn(
-									dmSans125ClassName(),
-									"text-[13px] text-[#FAFAFA]",
-								)}
-							>
-								Ask before running
-								<span className="ml-2 text-[12px] text-[#737B87]">
-									Applies to any tool without its own setting
-								</span>
-							</p>
+							<div className="min-w-0">
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"text-[13px] text-[#FAFAFA]",
+									)}
+								>
+									Actions that change things
+								</p>
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"mt-0.5 text-[12px] leading-[1.5] text-[#737B87]",
+									)}
+								>
+									Creating, editing, sending — for tools without their own
+									setting below.
+								</p>
+							</div>
 							<Segmented
 								value={data?.defaultWriteApproval ?? "ask"}
 								disabled={disabled}
 								options={[
 									{ id: "ask", label: "Ask" },
-									{ id: "allow", label: "Allow" },
+									{ id: "allow", label: "Always allow" },
 								]}
 								onChange={(id) =>
 									update.mutate({
@@ -252,6 +260,16 @@ export default function CompanyBrainToolApprovals({
 								}
 							/>
 						</div>
+						<p
+							className={cn(
+								dmSans125ClassName(),
+								"px-1 text-[12px] leading-[1.5] text-[#737373]",
+							)}
+						>
+							Raw queries and code always ask, whatever this is set to.
+							Scheduled runs and borrowed access only use tools allowed
+							individually below.
+						</p>
 					</div>
 
 					<div className="flex flex-col gap-2">
