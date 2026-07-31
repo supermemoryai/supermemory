@@ -146,9 +146,28 @@ export function AppExperience() {
 	} | null>(null)
 	useEffect(() => {
 		const sp = new URLSearchParams(window.location.search)
-		if (sp.get("slack") !== "connected") return
+		const slackParam = sp.get("slack")
+		if (slackParam !== "connected" && slackParam !== "error") return
 		const team = sp.get("team")
-		if (isCompanyBrain) {
+		if (slackParam === "error") {
+			const reason = sp.get("reason")
+			const org = sp.get("linked_org")
+			const isOrgMember = sp.get("linked_member") === "1"
+			const conflictMessage =
+				org && isOrgMember
+					? `That Slack workspace is already connected to your "${org}" organization. Switch to it to manage the connection.`
+					: org
+						? `That Slack workspace is already connected to another Supermemory organization (${org}). Ask the teammate who set it up.`
+						: "That Slack workspace is already connected to a different Supermemory organization. Disconnect it there first, or switch to that organization."
+			toast.error(
+				reason === "workspace_conflict"
+					? conflictMessage
+					: reason === "expired"
+						? "That Slack connect link expired. Try connecting again."
+						: "Slack connection failed. Try again.",
+				{ duration: 10000 },
+			)
+		} else if (isCompanyBrain) {
 			setSlackHandoff({ team })
 		} else {
 			toast.success(
@@ -159,6 +178,9 @@ export function AppExperience() {
 		}
 		sp.delete("slack")
 		sp.delete("team")
+		sp.delete("reason")
+		sp.delete("linked_org")
+		sp.delete("linked_member")
 		const qs = sp.toString()
 		window.history.replaceState(
 			null,

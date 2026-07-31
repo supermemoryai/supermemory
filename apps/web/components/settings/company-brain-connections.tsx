@@ -237,19 +237,28 @@ function SlackCard({
 	status,
 	isAdmin,
 	installHref,
+	onDisconnect,
 }: {
 	status: SlackStatus | null
 	isAdmin: boolean
 	installHref: string
+	onDisconnect: () => Promise<void>
 }) {
 	const connected = status?.connected ?? false
+	const [confirming, setConfirming] = useState(false)
+	const [disconnecting, setDisconnecting] = useState(false)
+	useEffect(() => {
+		if (!confirming) return
+		const timer = setTimeout(() => setConfirming(false), 4000)
+		return () => clearTimeout(timer)
+	}, [confirming])
 	return (
 		<div className="flex min-w-0 flex-col justify-between gap-3 rounded-xl bg-[#14161A] p-4 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
 			<div className="flex min-w-0 items-start gap-3">
 				<div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-[#080B0F] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]">
 					<SlackMark className="size-5" />
 				</div>
-				<div className="min-w-0 pt-0.5">
+				<div className="min-w-0 flex-1 pt-0.5">
 					<p
 						className={cn(
 							dmSans125ClassName(),
@@ -267,25 +276,59 @@ function SlackCard({
 						Messaging
 					</p>
 				</div>
+				{connected && status?.teamName ? (
+					<span
+						className={cn(
+							dmSans125ClassName(),
+							"max-w-[45%] shrink-0 truncate pt-0.5 text-[12px] font-medium text-[#737373]",
+						)}
+					>
+						{status.teamName}
+					</span>
+				) : null}
 			</div>
 			<div className="flex min-h-9 items-center justify-between gap-3 border-[#1E293B]/50 border-t pt-3">
 				<ScopeChip
-					label={
-						connected
-							? status?.teamName
-								? `Workspace · ${status.teamName}`
-								: "Workspace"
-							: "Not connected"
-					}
+					label={connected ? "Connected" : "Not connected"}
 					connected={connected}
 				/>
 				{isAdmin ? (
-					<a
-						href={installHref}
-						className={cn(dmSans125ClassName(), pillLinkClass)}
-					>
-						{connected ? "Reconnect" : "Connect"}
-					</a>
+					<div className="flex items-center gap-2">
+						{connected ? (
+							<button
+								type="button"
+								disabled={disconnecting}
+								onClick={() => {
+									if (!confirming) {
+										setConfirming(true)
+										return
+									}
+									setConfirming(false)
+									setDisconnecting(true)
+									void onDisconnect().finally(() => setDisconnecting(false))
+								}}
+								className={cn(
+									dmSans125ClassName(),
+									"cursor-pointer text-[12px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+									confirming
+										? "text-red-400 hover:text-red-300"
+										: "text-[#6B6B6B] hover:text-[#FAFAFA]",
+								)}
+							>
+								{disconnecting
+									? "Disconnecting…"
+									: confirming
+										? "Confirm?"
+										: "Disconnect"}
+							</button>
+						) : null}
+						<a
+							href={installHref}
+							className={cn(dmSans125ClassName(), pillLinkClass)}
+						>
+							{connected ? "Reconnect" : "Connect"}
+						</a>
+					</div>
 				) : null}
 			</div>
 		</div>
@@ -560,6 +603,27 @@ export default function CompanyBrainConnections() {
 							status={slackStatus}
 							isAdmin={isAdmin}
 							installHref={`${BACKEND}/brain/slack/oauth/install`}
+							onDisconnect={async () => {
+								try {
+									const res = await fetch(`${BACKEND}/brain/slack/workspace`, {
+										method: "DELETE",
+										credentials: "include",
+									})
+									if (res.status === 403) {
+										toast.error("Only admins can disconnect Slack.")
+										return
+									}
+									if (!res.ok) {
+										toast.error("Couldn't disconnect Slack.")
+										return
+									}
+								} catch {
+									toast.error("Couldn't disconnect Slack.")
+									return
+								}
+								toast.success("Slack disconnected.")
+								await load().catch(() => undefined)
+							}}
 						/>
 						{apps.map((entry) => (
 							<AppCard
