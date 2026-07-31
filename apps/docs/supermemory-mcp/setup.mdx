@@ -1,7 +1,7 @@
 ---
-title: 'Setup and Usage'
-description: 'How to set up and use Supermemory MCP Server 4.0'
-icon: 'settings'
+title: "Setup and Usage"
+description: "Connect Supermemory to an MCP client with OAuth and choose how requests use spaces"
+icon: "settings"
 ---
 
 ## Server URL
@@ -10,7 +10,7 @@ icon: 'settings'
 https://mcp.supermemory.ai/mcp
 ```
 
-Add this to your MCP client config (Claude, Cursor, Windsurf, VS Code, etc.):
+Add the remote server to your MCP client:
 
 ```json
 {
@@ -22,36 +22,30 @@ Add this to your MCP client config (Claude, Cursor, Windsurf, VS Code, etc.):
 }
 ```
 
-The server requires **OAuth authentication**. Your MCP client will automatically discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
+Supermemory MCP uses OAuth. Your client discovers the authorization server, opens the authorization page, and asks you to sign in and approve access.
 
-## Project Scoping (Optional)
+<Note>
+  No API key or custom header is required. The removed `x-sm-project` header is not used by the current server.
+</Note>
 
-To scope all operations to a specific project, add the `x-sm-project` header:
+## Choose a space
 
-```json
-{
-  "mcpServers": {
-    "supermemory": {
-      "url": "https://mcp.supermemory.ai/mcp",
-      "headers": {
-        "x-sm-project": "your-project-id"
-      }
-    }
-  }
-}
-```
+After connecting, space-aware tools use your active Supermemory space or account default. You can work in another space in two ways:
 
-This keeps memories organized by project, useful when working on multiple codebases or contexts.
+- Ask for a one-off action in a named space. The assistant resolves its key with `listSpaces` and passes it to that tool call without changing your active space.
+- Ask to switch your active space. The assistant opens the `select-space` widget and retains your selection for future actions.
 
-## Client-Specific Setup
+See [How spaces work](/supermemory-mcp/mcp#how-spaces-work) for examples and routing rules.
 
-### Claude Desktop
+## Client-specific setup
 
-For a screenshot-backed walkthrough (Settings → Connectors → Add custom connector with the URL above), see **[Claude Desktop](/supermemory-mcp/claude-desktop)**.
+### Claude Desktop and Claude web
+
+Open **Settings > Connectors**, add a custom connector, and enter the server URL. See the [Claude Desktop guide](/supermemory-mcp/claude-desktop) for the complete flow.
 
 ### Cursor
 
-Add to `~/.cursor/mcp.json`:
+Add the server to `~/.cursor/mcp.json`:
 
 ```json
 {
@@ -63,8 +57,24 @@ Add to `~/.cursor/mcp.json`:
 }
 ```
 
-Or use the one-click install button at [app.supermemory.ai](https://app.supermemory.ai).
+You can also use the install option in [app.supermemory.ai](https://app.supermemory.ai).
 
-### Windsurf / VS Code
+### Other MCP clients
 
-Configuration varies by extension. Generally, add the server URL (`https://mcp.supermemory.ai/mcp`) to your MCP settings.
+Add `https://mcp.supermemory.ai/mcp` as a remote HTTP MCP server and complete the OAuth flow opened by your client. Exact menu names and configuration locations vary between clients.
+
+<Note>
+  Memory search, document access, account tools, and direct save actions use standard MCP tool calls. The space picker, guided save, file upload, and memory graph require a client that supports MCP Apps to render their interactive interface.
+</Note>
+
+## Verify the connection
+
+Start with any of these requests:
+
+- "What Supermemory spaces can I access?"
+- "What is my active Supermemory space?"
+- "Search my saved context for the launch plan."
+- "I want to upload a file to Supermemory."
+- "Show my memory graph."
+
+The [MCP overview](/supermemory-mcp/mcp) documents every tool, widget, resource, and the `context` prompt.
