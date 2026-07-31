@@ -74,9 +74,15 @@ import {
 import { cacheFileBlob, removeCachedFile } from "@/lib/file-cache"
 import { ReasoningSelector } from "./reasoning-selector"
 import {
+	ResearchModeSelector,
+	type NovaChatMode,
+} from "./research-mode-selector"
+import { ResearchProgress } from "./research-progress"
+import {
 	type ChatThreadSettings,
 	readChatThreadSettings,
 } from "@/lib/chat-thread-settings"
+import { isActiveResearchRun, type NovaResearchRun } from "@/lib/nova-research"
 
 type ChatMessageSendSource = "typed" | "suggested" | "highlight" | "home"
 
@@ -216,6 +222,11 @@ export function ChatSidebar({
 		initialReasoningEffort ??
 			getDefaultReasoningEffort(initialSelectedModel ?? "grok-4.5"),
 	)
+	const [chatMode, setChatMode] = useState<NovaChatMode>("chat")
+	const chatModeRef = useRef(chatMode)
+	chatModeRef.current = chatMode
+	const [researchRun, setResearchRun] = useState<NovaResearchRun | null>(null)
+	const researchIsActive = isActiveResearchRun(researchRun)
 	const selectedModelRef = useRef(selectedModel)
 	selectedModelRef.current = selectedModel
 	const reasoningEffortRef = useRef(reasoningEffort)
@@ -503,6 +514,7 @@ export function ChatSidebar({
 			setReasoningEffort(nextReasoningEffort)
 			clearError()
 			void persistThreadSettings({
+				mode: chatModeRef.current,
 				model: modelId,
 				projectId: selectedProjectRef.current,
 				reasoningEffort: nextReasoningEffort,
@@ -517,6 +529,7 @@ export function ChatSidebar({
 		(nextReasoningEffort: ReasoningEffort) => {
 			setReasoningEffort(nextReasoningEffort)
 			void persistThreadSettings({
+				mode: chatModeRef.current,
 				model: selectedModelRef.current,
 				projectId: selectedProjectRef.current,
 				reasoningEffort: nextReasoningEffort,
@@ -532,6 +545,7 @@ export function ChatSidebar({
 			const nextProject = nextProjects[0] ?? AUTO_CHAT_SPACE_ID
 			setChatSpaceProjects([nextProject])
 			void persistThreadSettings({
+				mode: chatModeRef.current,
 				model: selectedModelRef.current,
 				projectId: nextProject,
 				reasoningEffort: reasoningEffortRef.current,
@@ -539,6 +553,22 @@ export function ChatSidebar({
 			})
 		},
 		[persistThreadSettings],
+	)
+
+	const handleChatModeChange = useCallback(
+		(nextMode: NovaChatMode) => {
+			if (researchIsActive) return
+			setChatMode(nextMode)
+			void persistThreadSettings({
+				mode: nextMode,
+				model: selectedModelRef.current,
+				projectId: selectedProjectRef.current,
+				reasoningEffort: reasoningEffortRef.current,
+				spaceMode:
+					selectedProjectRef.current === AUTO_CHAT_SPACE_ID ? "auto" : "manual",
+			})
+		},
+		[persistThreadSettings, researchIsActive],
 	)
 
 	const setAttachmentDraftState = useCallback(
@@ -912,6 +942,12 @@ export function ChatSidebar({
 			if (hasBusy) return false
 			const hasErrored = drafts.some((d) => d.status === "error")
 			if (hasErrored) return false
+			if (chatMode === "research" && drafts.length > 0) {
+				toast.error(
+					"Research mode currently works from saved memories and web sources. Save the attachment first, then research it from its space.",
+				)
+				return false
+			}
 
 			const chatIdForSend = threadId ?? fallbackChatId
 
@@ -922,6 +958,73 @@ export function ChatSidebar({
 						: []
 				const messageText = trimmed || "Analyze the attached file(s)."
 				const isRespondingNow = status === "submitted" || status === "streaming"
+
+				if (chatMode === "research") {
+					if (isRespondingNow || researchIsActive) return false
+					const userMessageId = generateId()
+					if (!threadId) setThreadId(fallbackChatId)
+					setMessages((current) => [
+						...current,
+						{
+							id: userMessageId,
+							role: "user",
+							parts: [{ type: "text", text: messageText }],
+							metadata:
+								uploadedAttachments.length > 0
+									? { attachments: uploadedAttachments }
+									: undefined,
+						},
+					])
+					setInput("")
+					setAttachmentDrafts([])
+					uploadPromisesRef.current.clear()
+					abortControllersRef.current.clear()
+					discardedDraftIdsRef.current.clear()
+					userJustSentRef.current = true
+					scrollToBottom()
+					analytics.chatMessageSent({
+						source,
+						attachment_count: uploadedAttachments.length,
+						saved_attachment_count: uploadedAttachments.filter(
+							(attachment) => attachment.saveToMemory,
+						).length,
+						temporary_attachment_count: uploadedAttachments.filter(
+							(attachment) => !attachment.saveToMemory,
+						).length,
+					})
+
+					const response = await fetch(`${chatApiBase}/chat/research`, {
+						method: "POST",
+						credentials: "include",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							query: messageText,
+							chatId: chatIdForSend,
+							userMessageId,
+							metadata: {
+								model: selectedModel,
+								reasoningEffort,
+								projectId: selectedProjectRef.current,
+								spaceMode:
+									selectedProjectRef.current === AUTO_CHAT_SPACE_ID
+										? "auto"
+										: "manual",
+							},
+						}),
+					})
+					const payload = (await response.json().catch(() => ({}))) as {
+						run?: NovaResearchRun | null
+						error?: string
+					}
+					if (!response.ok || !payload.run) {
+						setMessages((current) =>
+							current.filter((message) => message.id !== userMessageId),
+						)
+						throw new Error(payload.error || "Failed to start research")
+					}
+					setResearchRun(payload.run)
+					return true
+				}
 
 				if (isRespondingNow) {
 					if (messageQueue.length >= CHAT_QUEUE_LIMIT) return false
@@ -1003,13 +1106,17 @@ export function ChatSidebar({
 		},
 		[
 			attachmentDrafts,
+			chatApiBase,
+			chatMode,
 			fallbackChatId,
 			messageQueue.length,
 			reasoningEffort,
+			researchIsActive,
 			scrollToBottom,
 			selectedModel,
 			sendMessage,
 			setThreadId,
+			setMessages,
 			status,
 			threadId,
 			uploadAttachmentDrafts,
@@ -1095,8 +1202,26 @@ export function ChatSidebar({
 	// Keep the user message on stop so it isn't lost when generation is halted
 	// before any assistant response arrives (ENG-732).
 	const handleStop = useCallback(() => {
+		if (researchRun && isActiveResearchRun(researchRun)) {
+			void fetch(`${chatApiBase}/chat/research/${researchRun.id}/cancel`, {
+				method: "POST",
+				credentials: "include",
+			}).then((response) => {
+				if (!response.ok) return
+				setResearchRun((current) =>
+					current?.id === researchRun.id
+						? {
+								...current,
+								status: "cancelled",
+								completedAt: new Date().toISOString(),
+							}
+						: current,
+				)
+			})
+			return
+		}
 		stop()
-	}, [stop])
+	}, [chatApiBase, researchRun, stop])
 
 	const handleCopyMessage = useCallback((messageId: string, text: string) => {
 		analytics.chatMessageCopied({ message_id: messageId })
@@ -1164,6 +1289,8 @@ export function ChatSidebar({
 		pendingResponseModelsRef.current = []
 		seenAssistantMessageIdsRef.current = new Set()
 		setResponseModelByMessageId({})
+		setResearchRun(null)
+		setChatMode("chat")
 		queuedDispatchInFlightRef.current = false
 		queuedDispatchSawResponseRef.current = false
 	}, [setThreadId, setMessages])
@@ -1197,11 +1324,21 @@ export function ChatSidebar({
 	const loadThread = useCallback(
 		async (id: string) => {
 			try {
-				const response = await fetch(`${chatApiBase}/chat/threads/${id}`, {
-					credentials: "include",
-				})
+				const [response, researchResponse] = await Promise.all([
+					fetch(`${chatApiBase}/chat/threads/${id}`, {
+						credentials: "include",
+					}),
+					fetch(`${chatApiBase}/chat/research/threads/${id}/latest`, {
+						credentials: "include",
+					}),
+				])
 				if (response.ok) {
 					const data = await response.json()
+					const researchData = researchResponse.ok
+						? ((await researchResponse.json()) as {
+								run?: NovaResearchRun | null
+							})
+						: null
 					const restoredSettings = readChatThreadSettings(
 						data.thread?.settings,
 						data.thread?.space?.containerTag ??
@@ -1236,6 +1373,13 @@ export function ChatSidebar({
 					setResponseModelByMessageId({})
 					setSelectedModel(restoredSettings.model)
 					setReasoningEffort(restoredSettings.reasoningEffort)
+					setChatMode(restoredSettings.mode)
+					const latestResearchRun = researchData?.run ?? null
+					setResearchRun(
+						latestResearchRun?.status === "completed"
+							? null
+							: latestResearchRun,
+					)
 					setChatSpaceProjects([restoredSettings.projectId])
 					setThreadId(id)
 					setPendingThreadLoad({ id, messages: uiMessages })
@@ -1252,6 +1396,38 @@ export function ChatSidebar({
 		},
 		[chatApiBase, selectedProject, setThreadId],
 	)
+
+	useEffect(() => {
+		const runId = researchRun?.id
+		if (!runId || !researchIsActive) return
+		let disposed = false
+		let timeoutId: number | undefined
+
+		const poll = async () => {
+			try {
+				const response = await fetch(`${chatApiBase}/chat/research/${runId}`, {
+					credentials: "include",
+				})
+				if (!response.ok || disposed) return
+				const data = (await response.json()) as { run?: NovaResearchRun }
+				if (!data.run) return
+				setResearchRun(data.run)
+				if (!isActiveResearchRun(data.run)) {
+					await loadThread(data.run.threadId)
+					return
+				}
+			} catch (error) {
+				console.error("Failed to refresh research progress", error)
+			}
+			if (!disposed) timeoutId = window.setTimeout(poll, 1500)
+		}
+
+		timeoutId = window.setTimeout(poll, 700)
+		return () => {
+			disposed = true
+			if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+		}
+	}, [chatApiBase, loadThread, researchIsActive, researchRun?.id])
 
 	// Auto-restore thread from URL on mount (e.g. reload or direct link)
 	const didAutoLoadRef = useRef(false)
@@ -1629,7 +1805,8 @@ export function ChatSidebar({
 
 	const isStackedInput = layout === "page"
 	const showHeaderRow = !isPageDesktop || isMobile || !isStackedInput
-	const isResponding = status === "submitted" || status === "streaming"
+	const isResponding =
+		status === "submitted" || status === "streaming" || researchIsActive
 	const isWebSearching =
 		isResponding &&
 		(() => {
@@ -1968,6 +2145,11 @@ export function ChatSidebar({
 									value={reasoningEffort}
 									onChange={handleReasoningEffortChange}
 								/>
+								<ResearchModeSelector
+									value={chatMode}
+									onChange={handleChatModeChange}
+									disabled={researchIsActive}
+								/>
 								<SpaceSelector
 									selectedProjects={chatSpaceProjects}
 									onValueChange={handleChatSpaceProjectsChange}
@@ -2060,6 +2242,14 @@ export function ChatSidebar({
 								)}
 							</div>
 						))}
+						{researchRun ? (
+							<ResearchProgress
+								run={researchRun}
+								apiBase={chatApiBase}
+								onCancel={handleStop}
+								className="mt-2"
+							/>
+						) : null}
 					</div>
 				</div>
 
@@ -2140,6 +2330,11 @@ export function ChatSidebar({
 			>
 				<ChatInput
 					value={input}
+					placeholder={
+						chatMode === "research"
+							? "Describe what you want Nova to research..."
+							: "Ask your supermemory..."
+					}
 					onChange={(e) => setInput(e.target.value)}
 					onSend={handleSend}
 					onStop={handleStop}
@@ -2152,18 +2347,24 @@ export function ChatSidebar({
 					canSend={canSendMessage}
 					attachmentAccept={CHAT_ATTACHMENT_ACCEPT}
 					disableFileDropZone
-					sendDisabled={isResponding && isQueueFull}
-					sendDisabledTooltip={`Queue is full (${CHAT_QUEUE_LIMIT} max)`}
+					sendDisabled={researchIsActive || (isResponding && isQueueFull)}
+					sendDisabledTooltip={
+						researchIsActive
+							? "Wait for the current research run or stop it"
+							: `Queue is full (${CHAT_QUEUE_LIMIT} max)`
+					}
 					activeStatus={
-						isResponding && isQueueFull
-							? `Queue full (${CHAT_QUEUE_LIMIT} max)`
-							: isWebSearching
-								? "Searching the web…"
-								: status === "submitted"
-									? "Thinking…"
-									: status === "streaming"
+						researchIsActive
+							? researchRun?.events.at(-1)?.message || "Researching…"
+							: isResponding && isQueueFull
+								? `Queue full (${CHAT_QUEUE_LIMIT} max)`
+								: isWebSearching
+									? "Searching the web…"
+									: status === "submitted"
 										? "Thinking…"
-										: "Waiting for input…"
+										: status === "streaming"
+											? "Thinking…"
+											: "Waiting for input…"
 					}
 					queuedMessages={messageQueue}
 					showStatusStrip={showInputStatusStrip}
@@ -2182,10 +2383,18 @@ export function ChatSidebar({
 					}
 					toolbarTrailing={
 						isStackedInput ? (
-							<ReasoningSelector
-								value={reasoningEffort}
-								onChange={handleReasoningEffortChange}
-							/>
+							<>
+								<ReasoningSelector
+									value={reasoningEffort}
+									onChange={handleReasoningEffortChange}
+									disabled={researchIsActive}
+								/>
+								<ResearchModeSelector
+									value={chatMode}
+									onChange={handleChatModeChange}
+									disabled={researchIsActive}
+								/>
+							</>
 						) : undefined
 					}
 					toolbarEnd={
