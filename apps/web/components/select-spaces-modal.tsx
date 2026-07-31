@@ -47,7 +47,7 @@ import {
 	spacePluginIdToCatalogId,
 	type PluginInfo,
 } from "@/lib/plugin-catalog"
-import { InstallSteps, PillButton } from "./integrations/install-steps"
+import { INSET, InstallSteps, PillButton } from "./integrations/install-steps"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import NovaOrb from "@/components/nova/nova-orb"
@@ -1660,15 +1660,16 @@ function AgentsDiscoverPanel({
 		newKey?.pluginId ?? catalogIds[0] ?? "codex",
 	)
 
+	// snap to the just-connected plugin only when the key changes, so manual tab clicks aren't overridden
 	useEffect(() => {
-		if (newKey?.pluginId && catalogIds.includes(newKey.pluginId)) {
-			setActiveCatalogId(newKey.pluginId)
-			return
-		}
+		if (newKey?.pluginId) setActiveCatalogId(newKey.pluginId)
+	}, [newKey?.pluginId])
+
+	useEffect(() => {
 		if (!catalogIds.includes(activeCatalogId)) {
 			setActiveCatalogId(catalogIds[0] ?? "codex")
 		}
-	}, [activeCatalogId, catalogIds, newKey?.pluginId])
+	}, [activeCatalogId, catalogIds])
 
 	if (catalogIds.length === 0) {
 		return (
@@ -1680,39 +1681,32 @@ function AgentsDiscoverPanel({
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-			<div className="flex items-center gap-2">
-				<div className="mr-1 flex size-9 shrink-0 items-center justify-center rounded-[9px] border border-[#1E293B] bg-[#080B0F]">
-					<Logo className="h-[22px] w-[27px]" />
-				</div>
-				<div className="min-w-0 flex-1">
-					<p className="text-sm font-semibold text-[#FAFAFA]">Agents</p>
-					<p className="text-[11px] text-[#737373]">
-						Claude Code, Codex, and OpenCode share project memory
-					</p>
-				</div>
+			<div className="scrollbar-none flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-white/[0.06] pb-3">
 				{catalogIds.map((catalogId) => {
 					const info = PLUGIN_CATALOG[catalogId]
 					if (!info) return null
+					const isActive = activeCatalogId === catalogId
 					return (
 						<button
 							key={catalogId}
 							type="button"
 							onClick={() => setActiveCatalogId(catalogId)}
 							className={cn(
-								"flex size-9 items-center justify-center rounded-[9px] border transition-colors",
-								activeCatalogId === catalogId
-									? "border-[#4BA0FA]/60 bg-[#00173C]"
-									: "border-[#1E293B] bg-[#080B0F] opacity-60 hover:opacity-100",
+								"flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3 py-2 transition-colors",
+								isActive
+									? "border-[#2261CA33] bg-[#00173C] text-[#fafafa]"
+									: "border-[#161F2C] bg-[#0D121A] text-[#A1A1AA] hover:text-[#FAFAFA]",
 							)}
-							aria-label={`Set up ${info.name}`}
 						>
-							<Image src={info.icon} alt="" width={20} height={20} />
+							<Image src={info.icon} alt="" width={16} height={16} />
+							<span className="text-[12px] font-medium">{info.name}</span>
 						</button>
 					)
 				})}
 			</div>
 			<DiscoverPanel
 				catalogId={activeCatalogId}
+				hideHeader
 				isConnecting={connectingPluginId === activeCatalogId}
 				newKey={newKey?.pluginId === activeCatalogId ? newKey.key : null}
 				onConnect={() => onConnect(activeCatalogId)}
@@ -1728,12 +1722,14 @@ function DiscoverPanel({
 	newKey,
 	onConnect,
 	onDismissKey,
+	hideHeader,
 }: {
 	catalogId: string
 	isConnecting: boolean
 	newKey: string | null
 	onConnect: () => void
 	onDismissKey: () => void
+	hideHeader?: boolean
 }) {
 	const info = PLUGIN_CATALOG[catalogId]
 	if (!info) {
@@ -1763,30 +1759,36 @@ function DiscoverPanel({
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scrollbar-thin pr-1">
-			<div className="flex items-start gap-3">
-				<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-[#1E293B] bg-[#080B0F]">
-					<Image
-						alt={info.name}
-						className="size-7"
-						height={28}
-						src={info.icon}
-						width={28}
-					/>
+			{hideHeader ? (
+				<p className="text-[13px] leading-[1.4] text-[#737373]">
+					{info.tagline}
+				</p>
+			) : (
+				<div className="flex items-center gap-3">
+					<div className="flex size-10 shrink-0 items-center justify-center rounded-[10px] border border-[#1E293B] bg-[#080B0F]">
+						<Image
+							alt={info.name}
+							className="size-[22px]"
+							height={22}
+							src={info.icon}
+							width={22}
+						/>
+					</div>
+					<div className="flex-1 min-w-0">
+						<p
+							className={cn(
+								dmSans125ClassName(),
+								"font-semibold text-[15px] text-[#FAFAFA]",
+							)}
+						>
+							{info.name}
+						</p>
+						<p className="text-[12px] text-[#737373] leading-[1.4]">
+							{info.tagline}
+						</p>
+					</div>
 				</div>
-				<div className="flex-1 min-w-0">
-					<p
-						className={cn(
-							dmSans125ClassName(),
-							"font-semibold text-[16px] text-[#FAFAFA]",
-						)}
-					>
-						{info.name}
-					</p>
-					<p className="text-[13px] text-[#737373] leading-[1.4] mt-1">
-						{info.tagline}
-					</p>
-				</div>
-			</div>
+			)}
 
 			{isConnected && (
 				<div className="flex items-center justify-between gap-2">
@@ -1811,19 +1813,11 @@ function DiscoverPanel({
 				</p>
 			)}
 
-			<div className="relative">
-				<div
-					className={cn(
-						"transition-[filter] duration-200",
-						!isConnected && "blur-[6px] pointer-events-none select-none",
-					)}
-					aria-hidden={!isConnected}
-				>
-					<InstallSteps steps={setupSteps} apiKey={newKey ?? undefined} />
-				</div>
-
-				{!isConnected && (
-					<div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+			{isConnected ? (
+				<InstallSteps steps={setupSteps} apiKey={newKey ?? undefined} />
+			) : (
+				<>
+					<div className="flex items-center gap-2">
 						<PillButton onClick={onConnect} disabled={isConnecting}>
 							{isConnecting ? (
 								<>
@@ -1840,7 +1834,7 @@ function DiscoverPanel({
 								rel="noopener noreferrer"
 								className={cn(
 									dmSans125ClassName(),
-									"flex h-8 min-w-[94px] items-center justify-center gap-1.5 rounded-full px-3 sm:h-9 sm:min-w-[116px] sm:px-5",
+									"flex h-8 items-center justify-center gap-1.5 rounded-full px-3 sm:h-9 sm:px-4",
 									"text-[12px] font-medium text-[#A1A1AA] sm:text-[14px]",
 									"transition-colors hover:text-[#FAFAFA]",
 								)}
@@ -1849,8 +1843,30 @@ function DiscoverPanel({
 							</a>
 						)}
 					</div>
-				)}
-			</div>
+					<div className="space-y-2.5">
+						<p className="text-[11px] font-semibold uppercase tracking-wide text-[#737373]">
+							What you'll do next
+						</p>
+						<ol className="flex flex-col gap-2">
+							{setupSteps.map((step, i) => (
+								<li key={step.title} className="flex items-center gap-2.5">
+									<span
+										className={cn(
+											"flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[11px] font-semibold text-[#4BA0FA]",
+											INSET,
+										)}
+									>
+										{i + 1}
+									</span>
+									<span className="text-[13px] text-[#A1A1AA]">
+										{step.title}
+									</span>
+								</li>
+							))}
+						</ol>
+					</div>
+				</>
+			)}
 		</div>
 	)
 }
