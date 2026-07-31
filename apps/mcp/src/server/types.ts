@@ -14,4 +14,5 @@ export interface ServerEnv {
 	ALLOWED_MCP_ORIGIN_HOSTNAMES?: string
 	POSTHOG_API_KEY?: string
 	POSTHOG_HOST?: string
+	OPENAI_APPS_CHALLENGE?: string
 }

@@ -70,6 +70,10 @@ function resourceMetadata(c: Context<{ Bindings: Bindings }>) {
 app.get("/.well-known/oauth-protected-resource", resourceMetadata)
 app.get(PROTECTED_RESOURCE_METADATA_PATH, resourceMetadata)
 
+app.get("/.well-known/openai-apps-challenge", (c) => {
+	return c.text(c.env.OPENAI_APPS_CHALLENGE || "")
+})
+
 app.get("/.well-known/oauth-authorization-server", async (c) => {
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
 
