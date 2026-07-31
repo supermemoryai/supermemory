@@ -87,9 +87,13 @@ export function SpaceSelect({
 				</TooltipTrigger>
 				<PopoverContent
 					align="start"
-					className="w-(--radix-popover-trigger-width) min-w-[260px] p-(--space-1)"
+					className="flex w-(--radix-popover-trigger-width) min-w-[260px] max-w-[calc(100vw-16px)] flex-col overflow-hidden p-(--space-1)"
+					collisionPadding={8}
+					style={{
+						maxHeight: "var(--radix-popover-content-available-height)",
+					}}
 				>
-					<div className="flex items-center gap-(--space-2) border-b border-border-muted px-(--space-2) py-(--space-2) mb-(--space-1)">
+					<div className="mb-(--space-1) flex shrink-0 items-center gap-(--space-2) border-b border-border-muted px-(--space-2) py-(--space-2)">
 						<Search className="size-4 text-text-muted shrink-0" />
 						<input
 							className="w-full bg-transparent text-(length:--text-sm) text-text-primary placeholder:text-text-muted focus:outline-none"
@@ -99,7 +103,7 @@ export function SpaceSelect({
 						/>
 					</div>
 
-					<div className="flex max-h-[300px] flex-col overflow-y-auto">
+					<div className="flex min-h-0 max-h-[300px] flex-1 flex-col overflow-y-auto">
 						{filtered.length === 0 ? (
 							<div className="px-(--space-3) py-(--space-3) text-(length:--text-xs) text-text-muted italic">
 								{query ? "No matches" : emptyText}
