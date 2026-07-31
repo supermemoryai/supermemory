@@ -22,8 +22,17 @@ import {
 	XCircleIcon,
 	ZapIcon,
 } from "lucide-react"
+import { $fetch } from "@lib/api"
 import { cn } from "@lib/utils"
+import { GranolaConnectModal } from "@/components/granola-connect-modal"
 import { isWebSearchToolName } from "@/lib/chat-web-search-tools"
+import {
+	deriveKnowledgeConnectorState,
+	isNovaKnowledgeBaseProvider,
+	type KnowledgeConnection,
+	type NovaKnowledgeBaseProvider,
+	type NovaKnowledgeBaseStatus,
+} from "@/lib/chat-knowledge-connectors"
 import {
 	buildCitationIndex,
 	fetchDocumentsByIds,
@@ -90,6 +99,8 @@ function faviconUrl(host: string): string {
 
 type NovaConnectorStatus =
 	| "active"
+	| "syncing"
+	| "error"
 	| "setup_pending"
 	| "not_connected"
 	| "upgrade_required"
@@ -104,8 +115,9 @@ type NovaConnectorStep = {
 }
 
 type NovaConnectorCardData = {
-	kind?: "plugin" | "mcp"
+	kind?: "plugin" | "mcp" | "knowledge"
 	id?: string
+	provider?: NovaKnowledgeBaseProvider
 	name?: string
 	icon?: string
 	description?: string
@@ -117,6 +129,14 @@ type NovaConnectorCardData = {
 	requiresPro?: boolean
 	canGenerateKey?: boolean
 	keyPluginId?: string
+	connectMode?: "oauth" | "api_key"
+	canConnect?: boolean
+	disabledReason?: string
+	connectionCount?: number
+	documentCount?: number
+	lastSyncStatus?: "running" | "completed" | "failed"
+	lastSyncAt?: string
+	syncError?: string
 }
 
 type NovaConnectorToolOutput = {
@@ -126,13 +146,19 @@ type NovaConnectorToolOutput = {
 	connectors?: NovaConnectorCardData[]
 	connector?: NovaConnectorCardData
 	keyReveal?: { pluginId: string; label?: string } | null
-	available?: Array<{ kind: "plugin" | "mcp"; id: string; name: string }>
+	available?: Array<{
+		kind: "plugin" | "mcp" | "knowledge"
+		id: string
+		name: string
+	}>
 }
 
 const NOVA_CONNECTOR_TOOLS = new Set([
 	"listNovaConnectors",
 	"getNovaConnectorSetup",
 	"prepareNovaPluginSetup",
+	"listNovaKnowledgeBases",
+	"getNovaKnowledgeBase",
 ])
 
 const CONNECTOR_ICON_FALLBACKS: Record<string, string> = {
@@ -148,6 +174,14 @@ const STATUS_COPY: Record<
 	active: {
 		label: "Active",
 		className: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
+	},
+	syncing: {
+		label: "Syncing",
+		className: "border-blue-400/20 bg-blue-400/10 text-blue-300",
+	},
+	error: {
+		label: "Needs attention",
+		className: "border-red-400/20 bg-red-400/10 text-red-300",
 	},
 	setup_pending: {
 		label: "Finish setup",
@@ -275,7 +309,11 @@ function connectorOutputFromPart(
 
 function connectorToolPriority(toolName: string | null): number {
 	if (toolName === "prepareNovaPluginSetup") return 2
-	if (toolName === "getNovaConnectorSetup") return 1
+	if (
+		toolName === "getNovaConnectorSetup" ||
+		toolName === "getNovaKnowledgeBase"
+	)
+		return 1
 	return 0
 }
 
@@ -424,15 +462,119 @@ function RevealPluginKeyButton({
 	)
 }
 
-function NovaConnectorCard({
+function knowledgeFallbackStatus(
+	status: NovaConnectorStatus | undefined,
+): NovaKnowledgeBaseStatus {
+	if (
+		status === "active" ||
+		status === "syncing" ||
+		status === "error" ||
+		status === "upgrade_required"
+	) {
+		return status
+	}
+	return "not_connected"
+}
+
+function KnowledgeBaseConnectAction({
 	connector,
+	onConnected,
 }: {
 	connector: NovaConnectorCardData
+	onConnected: () => void
+}) {
+	const [granolaOpen, setGranolaOpen] = useState(false)
+	const [connecting, setConnecting] = useState(false)
+	const [error, setError] = useState<string | null>(null)
+	const provider = connector.provider
+	if (!provider || connector.kind !== "knowledge") return null
+
+	const disabled = connector.canConnect === false || connecting
+	const buttonLabel =
+		connector.status === "active" || connector.status === "syncing"
+			? "Add another"
+			: connector.status === "error"
+				? "Reconnect"
+				: "Connect"
+
+	const connect = async () => {
+		setError(null)
+		if (provider === "granola") {
+			setGranolaOpen(true)
+			return
+		}
+
+		setConnecting(true)
+		try {
+			const response = await $fetch("@post/connections/:provider", {
+				params: { provider },
+				body: {
+					redirectUrl: window.location.href,
+					containerTags: [],
+				},
+			})
+			if (response.error) {
+				throw new Error(response.error.message || "Failed to start connection")
+			}
+			const data = response.data as { authLink?: string } | undefined
+			const authLink = safeExternalUrl(data?.authLink)
+			if (!authLink) throw new Error("Connection link was not returned")
+			window.location.assign(authLink)
+		} catch (cause) {
+			setError(cause instanceof Error ? cause.message : "Failed to connect")
+			setConnecting(false)
+		}
+	}
+
+	return (
+		<>
+			<button
+				type="button"
+				disabled={disabled}
+				onClick={() => void connect()}
+				className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#4BA0FA] px-3 text-[12px] font-semibold text-[#00171A] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+			>
+				{connecting ? (
+					<Loader2 className="size-3.5 animate-spin" />
+				) : (
+					<PlusIcon className="size-3.5" />
+				)}
+				{connecting ? "Connecting" : buttonLabel}
+			</button>
+			{connector.canConnect === false && connector.disabledReason ? (
+				<p className="basis-full text-[11px] text-[#A1A1AA]">
+					{connector.disabledReason}
+				</p>
+			) : null}
+			{error ? (
+				<p className="basis-full text-[11px] text-red-300">{error}</p>
+			) : null}
+			{provider === "granola" ? (
+				<GranolaConnectModal
+					open={granolaOpen}
+					onOpenChange={setGranolaOpen}
+					containerTags={[]}
+					onSuccess={onConnected}
+				/>
+			) : null}
+		</>
+	)
+}
+
+function NovaConnectorCard({
+	connector,
+	onConnectionsChanged,
+}: {
+	connector: NovaConnectorCardData
+	onConnectionsChanged?: () => void
 }) {
 	const [revealedKey, setRevealedKey] = useState<string | undefined>()
-	const needsKey = Boolean(connector.canGenerateKey && connector.keyPluginId)
-	const isUpgrade = connector.status === "upgrade_required"
-	const iconSrc = connectorIconSrc(connector)
+	const displayedConnector = connector
+	const needsKey = Boolean(
+		displayedConnector.canGenerateKey && displayedConnector.keyPluginId,
+	)
+	const isUpgrade = displayedConnector.status === "upgrade_required"
+	const iconSrc = connectorIconSrc(displayedConnector)
 	return (
 		<div className="rounded-xl border border-white/[0.08] bg-[#0D121A] p-3 text-sm text-white/90 shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.55)]">
 			<div className="flex items-start gap-3">
@@ -444,8 +586,8 @@ function NovaConnectorCard({
 							className="size-6 rounded object-contain"
 							onError={(event) => {
 								const img = event.currentTarget
-								const fallback = connector.id
-									? CONNECTOR_ICON_FALLBACKS[connector.id]
+								const fallback = displayedConnector.id
+									? CONNECTOR_ICON_FALLBACKS[displayedConnector.id]
 									: undefined
 								if (fallback && img.dataset.fallbackApplied !== "true") {
 									img.dataset.fallbackApplied = "true"
@@ -462,21 +604,33 @@ function NovaConnectorCard({
 				<div className="min-w-0 flex-1">
 					<div className="flex min-w-0 items-center gap-2">
 						<p className="truncate text-[14px] font-semibold text-[#FAFAFA]">
-							{connector.name ?? connector.id ?? "Connector"}
+							{displayedConnector.name ?? displayedConnector.id ?? "Connector"}
 						</p>
-						<StatusPill status={connector.status} />
+						<StatusPill status={displayedConnector.status} />
 					</div>
-					{connector.description ? (
+					{displayedConnector.description ? (
 						<p className="mt-1 text-[12px] leading-snug text-[#A1A1AA]">
-							{connector.description}
+							{displayedConnector.description}
+						</p>
+					) : null}
+					{displayedConnector.kind === "knowledge" ? (
+						<p className="mt-1 text-[11px] text-[#737373]">
+							{displayedConnector.connectionCount ?? 0} connection
+							{displayedConnector.connectionCount === 1 ? "" : "s"} ·{" "}
+							{displayedConnector.documentCount ?? 0} indexed items
+						</p>
+					) : null}
+					{displayedConnector.syncError ? (
+						<p className="mt-1 text-[11px] text-red-300">
+							{displayedConnector.syncError}
 						</p>
 					) : null}
 				</div>
 			</div>
 
-			{connector.installSteps?.length ? (
+			{displayedConnector.installSteps?.length ? (
 				<ol className="mt-3 space-y-3">
-					{connector.installSteps.map((step, index) => (
+					{displayedConnector.installSteps.map((step, index) => (
 						<li key={`${step.title}-${index}`} className="flex gap-2.5">
 							<span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[#080B10] text-[10px] font-semibold text-[#4BA0FA]">
 								{index + 1}
@@ -511,9 +665,9 @@ function NovaConnectorCard({
 			) : null}
 
 			<div className="mt-3 flex flex-wrap items-center gap-2">
-				{needsKey && connector.keyPluginId && !isUpgrade ? (
+				{needsKey && displayedConnector.keyPluginId && !isUpgrade ? (
 					<RevealPluginKeyButton
-						pluginId={connector.keyPluginId}
+						pluginId={displayedConnector.keyPluginId}
 						onReveal={setRevealedKey}
 					/>
 				) : null}
@@ -523,9 +677,15 @@ function NovaConnectorCard({
 						Upgrade to connect
 					</span>
 				) : null}
-				{connector.docsUrl ? (
+				{displayedConnector.kind === "knowledge" && !isUpgrade ? (
+					<KnowledgeBaseConnectAction
+						connector={displayedConnector}
+						onConnected={() => onConnectionsChanged?.()}
+					/>
+				) : null}
+				{displayedConnector.docsUrl ? (
 					<a
-						href={connector.docsUrl}
+						href={displayedConnector.docsUrl}
 						target="_blank"
 						rel="noopener noreferrer"
 						className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] text-[#A1A1AA] transition-colors hover:text-white"
@@ -581,7 +741,11 @@ function NovaConnectorCompactCard({
 						{connector.name ?? connector.id ?? "Connector"}
 					</p>
 					<p className="mt-0.5 truncate text-[11px] text-[#737373]">
-						{connector.kind === "mcp" ? "MCP" : "Plugin"}
+						{connector.kind === "mcp"
+							? "MCP"
+							: connector.kind === "knowledge"
+								? "Knowledge base"
+								: "Plugin"}
 					</p>
 				</div>
 				<StatusPill status={connector.status} />
@@ -601,6 +765,53 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 	>(null)
 	const toolName = connectorToolName(part)
 	const output = unwrapToolOutput(part.output)
+	const connectors = output?.connector
+		? [output.connector]
+		: (output?.connectors ?? [])
+	const hasKnowledgeBases = connectors.some(
+		(connector) =>
+			connector.kind === "knowledge" &&
+			isNovaKnowledgeBaseProvider(connector.provider),
+	)
+	const { data: liveConnections, refetch: refetchConnections } = useQuery({
+		queryKey: ["connections"],
+		queryFn: async () => {
+			const response = await $fetch("@post/connections/list", {
+				body: { containerTags: [] },
+			})
+			if (response.error) {
+				throw new Error(response.error.message || "Failed to load connections")
+			}
+			return response.data as KnowledgeConnection[]
+		},
+		enabled: hasKnowledgeBases && output?.success !== false,
+		staleTime: 30 * 1000,
+		refetchInterval: (query) => {
+			const connections = query.state.data as KnowledgeConnection[] | undefined
+			return connections?.some(
+				(connection) => connection.lastSyncRun?.status === "running",
+			)
+				? 5000
+				: false
+		},
+	})
+	const displayedConnectors = connectors.map((connector) => {
+		if (
+			!liveConnections ||
+			connector.kind !== "knowledge" ||
+			!isNovaKnowledgeBaseProvider(connector.provider)
+		) {
+			return connector
+		}
+		return {
+			...connector,
+			...deriveKnowledgeConnectorState({
+				provider: connector.provider,
+				connections: liveConnections,
+				fallbackStatus: knowledgeFallbackStatus(connector.status),
+			}),
+		}
+	})
 	const isLoading =
 		part.state === "input-streaming" || part.state === "input-available"
 	const isError = part.state === "error" || part.state === "output-error"
@@ -608,7 +819,12 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 		return (
 			<div className="my-2 flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0D121A] px-3 py-2 text-xs text-white/55">
 				<Loader2 className="size-3.5 animate-spin text-[#4BA0FA]" />
-				<span>Checking Supermemory setup…</span>
+				<span>
+					{toolName === "listNovaKnowledgeBases" ||
+					toolName === "getNovaKnowledgeBase"
+						? "Checking knowledge bases…"
+						: "Checking Supermemory setup…"}
+				</span>
 			</div>
 		)
 	}
@@ -634,14 +850,13 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 			</div>
 		)
 	}
-	const connectors = output.connector
-		? [output.connector]
-		: (output.connectors ?? [])
 	const isConnectorList =
-		toolName === "listNovaConnectors" && connectors.length > 1
+		(toolName === "listNovaConnectors" ||
+			toolName === "listNovaKnowledgeBases") &&
+		displayedConnectors.length > 1
 	const expandedConnector =
 		isConnectorList && expandedConnectorKey
-			? connectors.find(
+			? displayedConnectors.find(
 					(connector) => connectorCardKey(connector) === expandedConnectorKey,
 				)
 			: null
@@ -649,7 +864,9 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 		<div className="my-2 space-y-2">
 			{isConnectorList ? (
 				<p className="px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[#737373]">
-					Supermemory setup options
+					{toolName === "listNovaKnowledgeBases"
+						? "Knowledge bases"
+						: "Supermemory setup options"}
 				</p>
 			) : null}
 			<div
@@ -658,7 +875,7 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 					!isConnectorList && "space-y-2",
 				)}
 			>
-				{connectors.map((connector) =>
+				{displayedConnectors.map((connector) =>
 					isConnectorList ? (
 						<NovaConnectorCompactCard
 							key={connectorCardKey(connector)}
@@ -675,13 +892,17 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 						<NovaConnectorCard
 							key={connectorCardKey(connector)}
 							connector={connector}
+							onConnectionsChanged={() => void refetchConnections()}
 						/>
 					),
 				)}
 			</div>
 			{expandedConnector ? (
 				<div className="pt-1">
-					<NovaConnectorCard connector={expandedConnector} />
+					<NovaConnectorCard
+						connector={expandedConnector}
+						onConnectionsChanged={() => void refetchConnections()}
+					/>
 				</div>
 			) : null}
 		</div>
