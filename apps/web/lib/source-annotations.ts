@@ -4,8 +4,15 @@ export type ParsedSourceAnnotations = {
 
 const RESPONSE_OPEN_PREFIX = "<response"
 const RESPONSE_CLOSE_TAG = "</response>"
+const RESPONSE_CLOSE_PREFIX = "</response"
 const SOURCE_ATTR_PREFIX = 'source="'
 const SAFE_SOURCE_ID_RE = /^[A-Za-z0-9_.:-]+$/
+
+type ResponseClosingTag = {
+	start: number
+	end: number
+	malformed: boolean
+}
 
 export function isSafeSourceId(id: string): boolean {
 	return id.length > 0 && SAFE_SOURCE_ID_RE.test(id)
@@ -54,6 +61,64 @@ function parseOpeningTag(
 	if (!isSafeSourceId(sourceId)) return null
 
 	return { end: tagEnd + 1, sourceId }
+}
+
+function parseClosingTagAt(
+	text: string,
+	index: number,
+): ResponseClosingTag | null {
+	if (!text.startsWith(RESPONSE_CLOSE_PREFIX, index)) return null
+
+	const tagEnd = text.indexOf(">", index + RESPONSE_CLOSE_PREFIX.length)
+	if (tagEnd === -1) return null
+
+	const suffix = text.slice(index + RESPONSE_CLOSE_PREFIX.length, tagEnd)
+	if (!/^[\s"']*$/.test(suffix)) return null
+
+	return {
+		start: index,
+		end: tagEnd + 1,
+		malformed: text.slice(index, tagEnd + 1) !== RESPONSE_CLOSE_TAG,
+	}
+}
+
+function findClosingTag(
+	text: string,
+	index: number,
+): ResponseClosingTag | null {
+	let cursor = index
+	while (cursor < text.length) {
+		const candidate = text.indexOf(RESPONSE_CLOSE_PREFIX, cursor)
+		if (candidate === -1) return null
+
+		const closing = parseClosingTagAt(text, candidate)
+		if (closing) return closing
+		cursor = candidate + RESPONSE_CLOSE_PREFIX.length
+	}
+
+	return null
+}
+
+function consumeDuplicatedMalformedClose(
+	text: string,
+	closing: ResponseClosingTag,
+	plainInner: string,
+): number {
+	if (!closing.malformed) return closing.end
+
+	const trailingClose = findClosingTag(text, closing.end)
+	if (!trailingClose || trailingClose.malformed) return closing.end
+
+	const duplicate = text.slice(closing.end, trailingClose.start)
+	if (
+		duplicate.includes("<") ||
+		duplicate.trim() !== plainInner.trim() ||
+		plainInner.trim().length === 0
+	) {
+		return closing.end
+	}
+
+	return trailingClose.end
 }
 
 function advanceCodeState(
@@ -111,27 +176,23 @@ export function parseSourceAnnotatedMarkdown(
 			}
 
 			if (opening) {
-				const closeIndex = text.indexOf(RESPONSE_CLOSE_TAG, opening.end)
-				if (closeIndex === -1) {
+				const closing = findClosingTag(text, opening.end)
+				if (!closing) {
 					output.push(stripSourceMarkup(text.slice(opening.end)))
 					break
 				}
 
-				const inner = text.slice(opening.end, closeIndex)
+				const inner = text.slice(opening.end, closing.start)
 				const hasNested =
 					inner.includes(RESPONSE_OPEN_PREFIX) ||
-					inner.includes(RESPONSE_CLOSE_TAG)
+					inner.includes(RESPONSE_CLOSE_PREFIX)
 				const isAllowed = allowedSourceIds.has(opening.sourceId)
 
 				if (hasNested) {
-					const outerCloseIndex = text.indexOf(
-						RESPONSE_CLOSE_TAG,
-						closeIndex + RESPONSE_CLOSE_TAG.length,
-					)
-					const fallbackEnd =
-						outerCloseIndex === -1 ? closeIndex : outerCloseIndex
+					const outerClosing = findClosingTag(text, closing.end)
+					const fallbackEnd = outerClosing?.start ?? closing.start
 					output.push(stripSourceMarkup(text.slice(opening.end, fallbackEnd)))
-					i = fallbackEnd + RESPONSE_CLOSE_TAG.length
+					i = outerClosing?.end ?? closing.end
 					continue
 				}
 
@@ -144,19 +205,21 @@ export function parseSourceAnnotatedMarkdown(
 					output.push(plainInner)
 				}
 
-				i = closeIndex + RESPONSE_CLOSE_TAG.length
+				i = consumeDuplicatedMalformedClose(text, closing, plainInner)
 				codeState.lineStart =
 					output.length === 0 ||
 					output[output.length - 1]?.endsWith("\n") === true
 				continue
 			}
 
-			const nextClose = text.indexOf(RESPONSE_CLOSE_TAG, i)
-			if (nextClose !== -1) {
+			const nextClose = findClosingTag(text, i)
+			if (nextClose) {
 				const tagEnd = text.indexOf(">", i)
-				if (tagEnd !== -1 && tagEnd < nextClose) {
-					output.push(stripSourceMarkup(text.slice(tagEnd + 1, nextClose)))
-					i = nextClose + RESPONSE_CLOSE_TAG.length
+				if (tagEnd !== -1 && tagEnd < nextClose.start) {
+					output.push(
+						stripSourceMarkup(text.slice(tagEnd + 1, nextClose.start)),
+					)
+					i = nextClose.end
 					continue
 				}
 			}
@@ -174,12 +237,26 @@ export function stripSourceMarkup(text: string): string {
 	let i = 0
 
 	while (i < text.length) {
-		if (text.startsWith(RESPONSE_CLOSE_TAG, i)) {
-			i += RESPONSE_CLOSE_TAG.length
+		const closing = parseClosingTagAt(text, i)
+		if (closing) {
+			i = closing.end
 			continue
 		}
 
 		if (text.startsWith(RESPONSE_OPEN_PREFIX, i)) {
+			const opening = parseOpeningTag(text, i)
+			if (opening && opening !== "incomplete") {
+				const matchingClose = findClosingTag(text, opening.end)
+				if (matchingClose) {
+					const plainInner = stripSourceMarkup(
+						text.slice(opening.end, matchingClose.start),
+					)
+					output += plainInner
+					i = consumeDuplicatedMalformedClose(text, matchingClose, plainInner)
+					continue
+				}
+			}
+
 			const tagEnd = text.indexOf(">", i + RESPONSE_OPEN_PREFIX.length)
 			if (tagEnd === -1) break
 			i = tagEnd + 1
