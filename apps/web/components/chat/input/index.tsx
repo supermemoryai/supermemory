@@ -34,6 +34,7 @@ export interface QueuedChatMessagePreview {
 
 interface ChatInputProps {
 	value: string
+	placeholder?: string
 	onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
 	onSend: () => void
 	onStop: () => void
@@ -64,6 +65,7 @@ interface ChatInputProps {
 
 export default function ChatInput({
 	value,
+	placeholder = "Ask your supermemory...",
 	onChange,
 	onSend,
 	onStop,
@@ -349,7 +351,7 @@ export default function ChatInput({
 						value={value}
 						onChange={handleChange}
 						onKeyDown={onKeyDown}
-						placeholder="Ask your supermemory..."
+						placeholder={placeholder}
 						className="w-full resize-none overflow-y-auto bg-transparent p-2 text-fg-primary transition-all duration-200 placeholder:text-fg-faint focus:outline-none"
 						style={{ minHeight: "36px" }}
 						rows={1}
@@ -389,7 +391,7 @@ export default function ChatInput({
 						value={value}
 						onChange={handleChange}
 						onKeyDown={onKeyDown}
-						placeholder="Ask your supermemory..."
+						placeholder={placeholder}
 						className="w-full resize-none overflow-y-auto bg-transparent p-2 text-fg-primary transition-all duration-200 placeholder:text-fg-faint focus:outline-none"
 						style={{ minHeight: "36px" }}
 						rows={1}

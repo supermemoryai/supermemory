@@ -7,6 +7,7 @@ describe("chat thread settings", () => {
 		expect(
 			readChatThreadSettings(
 				{
+					mode: "research",
 					model: "gemini-2.5-pro",
 					projectId: AUTO_CHAT_SPACE_ID,
 					reasoningEffort: "thinking",
@@ -15,6 +16,7 @@ describe("chat thread settings", () => {
 				"sm_project_default",
 			),
 		).toEqual({
+			mode: "research",
 			model: "gemini-2.5-pro",
 			projectId: AUTO_CHAT_SPACE_ID,
 			reasoningEffort: "thinking",
@@ -24,6 +26,7 @@ describe("chat thread settings", () => {
 
 	it("falls back safely for a legacy manual-space thread", () => {
 		expect(readChatThreadSettings(undefined, "project_legacy")).toEqual({
+			mode: "chat",
 			model: "grok-4.3",
 			projectId: "project_legacy",
 			reasoningEffort: "instant",

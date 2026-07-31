@@ -11,6 +11,7 @@ import {
 	ChevronRightIcon,
 	ClockIcon,
 	CopyIcon,
+	DownloadIcon,
 	ExternalLinkIcon,
 	GlobeIcon,
 	ListIcon,
@@ -18,6 +19,7 @@ import {
 	PlusIcon,
 	SearchIcon,
 	TerminalIcon,
+	TelescopeIcon,
 	WrenchIcon,
 	XCircleIcon,
 	ZapIcon,
@@ -1350,11 +1352,44 @@ export function AgentMessage({
 	const responseModelLabel = responseModel
 		? `${modelNames[responseModel].name} ${modelNames[responseModel].version}`
 		: null
+	const researchMetadata = (
+		message as UIMessage & {
+			metadata?: {
+				research?: { runId?: string; title?: string; artifact?: string }
+			}
+		}
+	).metadata?.research
+	const researchApiBase =
+		process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
 	return (
 		<div className="flex flex-col gap-1 w-full">
 			<div className="flex gap-2">
 				<div className="flex flex-col gap-2 w-full">
+					{researchMetadata?.runId ? (
+						<div className="flex items-center justify-between gap-3 rounded-xl border border-[#267BF1]/20 bg-[linear-gradient(135deg,rgba(38,123,241,0.12),rgba(9,18,32,0.72))] px-3.5 py-3">
+							<div className="flex min-w-0 items-center gap-2.5">
+								<div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#267BF1]/12">
+									<TelescopeIcon className="size-4 text-[#8DBDFF]" />
+								</div>
+								<div className="min-w-0">
+									<div className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#8DBDFF]/70">
+										Nova Research Report
+									</div>
+									<div className="mt-0.5 truncate text-sm font-medium text-white/90">
+										{researchMetadata.title || "Research complete"}
+									</div>
+								</div>
+							</div>
+							<a
+								href={`${researchApiBase}/chat/research/${researchMetadata.runId}/report.md`}
+								download
+								className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[#267BF1]/25 bg-[#267BF1]/10 px-2.5 py-1.5 text-[11px] text-[#A8CCFF] transition-colors hover:bg-[#267BF1]/20"
+							>
+								<DownloadIcon className="size-3" /> Markdown
+							</a>
+						</div>
+					) : null}
 					<RelatedMemories
 						message={message}
 						expandedMemories={expandedMemories}
@@ -1410,7 +1445,11 @@ export function AgentMessage({
 							return (
 								<div
 									key={`${message.id}-${partIndex}`}
-									className="text-sm text-white/90 chat-markdown-content"
+									className={cn(
+										"text-sm text-white/90 chat-markdown-content",
+										researchMetadata?.runId &&
+											"rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3.5",
+									)}
 								>
 									<Streamdown components={markdownComponents}>
 										{
