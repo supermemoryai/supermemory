@@ -234,7 +234,7 @@ export default function CompanyBrainToolApprovals({
 										"text-[13px] text-[#FAFAFA]",
 									)}
 								>
-									Actions that change things
+									All tools
 								</p>
 								<p
 									className={cn(
@@ -242,8 +242,8 @@ export default function CompanyBrainToolApprovals({
 										"mt-0.5 text-[12px] leading-[1.5] text-[#737B87]",
 									)}
 								>
-									Creating, editing, sending — for tools without their own
-									setting below.
+									Applies to anything without its own setting below. Reads never
+									ask.
 								</p>
 							</div>
 							<Segmented
