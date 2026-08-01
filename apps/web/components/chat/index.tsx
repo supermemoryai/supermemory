@@ -73,6 +73,10 @@ import {
 } from "./attachments"
 import { cacheFileBlob, removeCachedFile } from "@/lib/file-cache"
 import { ReasoningSelector } from "./reasoning-selector"
+import {
+	releaseNovaKnowledgeConnectionWindow,
+	reserveNovaKnowledgeConnectionWindowForMessage,
+} from "@/lib/chat-knowledge-connectors"
 
 type ChatMessageSendSource = "typed" | "suggested" | "highlight" | "home"
 
@@ -849,6 +853,10 @@ export function ChatSidebar({
 			if (hasBusy) return false
 			const hasErrored = drafts.some((d) => d.status === "error")
 			if (hasErrored) return false
+			const reservedKnowledgeProvider =
+				status !== "submitted" && status !== "streaming"
+					? reserveNovaKnowledgeConnectionWindowForMessage(trimmed)
+					: null
 
 			const chatIdForSend = threadId ?? fallbackChatId
 
@@ -930,6 +938,9 @@ export function ChatSidebar({
 
 				return true
 			} catch (error) {
+				if (reservedKnowledgeProvider) {
+					releaseNovaKnowledgeConnectionWindow(reservedKnowledgeProvider)
+				}
 				pendingRequestAttachmentsRef.current = []
 				toast.error("Failed to send message", {
 					description:

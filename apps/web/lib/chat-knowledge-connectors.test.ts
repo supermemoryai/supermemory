@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import {
+	detectNovaKnowledgeBaseConnectIntent,
 	deriveKnowledgeConnectorState,
 	isNovaKnowledgeBaseProvider,
 } from "./chat-knowledge-connectors"
@@ -43,5 +44,17 @@ describe("Nova knowledge connector state", () => {
 	it("recognizes only supported knowledge-base providers", () => {
 		expect(isNovaKnowledgeBaseProvider("granola")).toBe(true)
 		expect(isNovaKnowledgeBaseProvider("dropbox")).toBe(false)
+	})
+
+	it("detects explicit connection requests without treating status questions as actions", () => {
+		expect(
+			detectNovaKnowledgeBaseConnectIntent("Connect my Notion workspace"),
+		).toBe("notion")
+		expect(
+			detectNovaKnowledgeBaseConnectIntent("Please link Google Drive"),
+		).toBe("google-drive")
+		expect(
+			detectNovaKnowledgeBaseConnectIntent("Is Notion connected?"),
+		).toBeNull()
 	})
 })
