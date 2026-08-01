@@ -4,6 +4,7 @@ import { useOrgMemberRole } from "@/hooks/use-org-member-role"
 import { cn } from "@lib/utils"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { ChevronDown, Loader2, Plus, XIcon } from "lucide-react"
+import Link from "next/link"
 import { useCallback, useEffect, useState } from "react"
 import {
 	Dialog,
@@ -18,6 +19,7 @@ import {
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
 import { toast } from "sonner"
+import { configureToolPath } from "@/lib/configure-routes"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { brainConnectorIcon, SlackMark } from "../brain-connector-icons"
@@ -103,6 +105,7 @@ function AppCard({
 	isAdmin,
 	personalOnly,
 	busy,
+	toolsHref,
 	onConnect,
 	onDisconnect,
 }: {
@@ -114,12 +117,15 @@ function AppCard({
 	isAdmin: boolean
 	personalOnly?: boolean
 	busy: boolean
+	toolsHref?: string
 	onConnect: (shared: boolean) => void
 	onDisconnect: (shared: boolean) => void
 }) {
 	const anyConnected = userConnected || orgConnected
 	const showOrgChip = !personalOnly && (orgConnected || isAdmin)
 	const adminMenu = isAdmin && !personalOnly
+	// Tool permissions apply to your own connection, so the menu is not admin-only.
+	const showMenu = adminMenu || userConnected
 
 	return (
 		<div className="flex min-w-0 flex-col justify-between gap-3 rounded-xl bg-[#14161A] p-4 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
@@ -162,7 +168,7 @@ function AppCard({
 						</>
 					)}
 				</div>
-				{adminMenu ? (
+				{showMenu ? (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<button
@@ -197,6 +203,11 @@ function AppCard({
 								background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 							}}
 						>
+							{toolsHref && userConnected ? (
+								<DropdownMenuItem asChild className={menuItemClass}>
+									<Link href={toolsHref}>Tool permissions</Link>
+								</DropdownMenuItem>
+							) : null}
 							<DropdownMenuItem
 								className={menuItemClass}
 								onClick={() =>
@@ -205,23 +216,20 @@ function AppCard({
 							>
 								{userConnected ? "Disconnect my account" : "Connect my account"}
 							</DropdownMenuItem>
-							<DropdownMenuItem
-								className={menuItemClass}
-								onClick={() =>
-									orgConnected ? onDisconnect(true) : onConnect(true)
-								}
-							>
-								{orgConnected
-									? "Disconnect workspace"
-									: "Connect for workspace"}
-							</DropdownMenuItem>
+							{adminMenu ? (
+								<DropdownMenuItem
+									className={menuItemClass}
+									onClick={() =>
+										orgConnected ? onDisconnect(true) : onConnect(true)
+									}
+								>
+									{orgConnected
+										? "Disconnect workspace"
+										: "Connect for workspace"}
+								</DropdownMenuItem>
+							) : null}
 						</DropdownMenuContent>
 					</DropdownMenu>
-				) : userConnected ? (
-					<PillButton onClick={() => onDisconnect(false)} disabled={busy}>
-						{busy && <Loader2 className="size-3.5 animate-spin" />}
-						Disconnect
-					</PillButton>
 				) : personalOnly ? null : (
 					<PillButton onClick={() => onConnect(false)} disabled={busy}>
 						{busy && <Loader2 className="size-3.5 animate-spin" />}
@@ -634,6 +642,7 @@ export default function CompanyBrainConnections() {
 								userConnected={isConnected(entry.slug, false)}
 								orgConnected={isConnected(entry.slug, true)}
 								isAdmin={isAdmin}
+								toolsHref={configureToolPath(entry.slug)}
 								busy={busy?.startsWith(`${entry.slug}:`) ?? false}
 								onConnect={(shared) => connect(entry, shared)}
 								onDisconnect={(shared) => disconnect(entry, shared)}
@@ -649,6 +658,7 @@ export default function CompanyBrainConnections() {
 								orgConnected={false}
 								isAdmin={false}
 								personalOnly
+								toolsHref={configureToolPath(row.serverSlug)}
 								busy={busy === `${row.serverSlug}:user`}
 								onConnect={() => {}}
 								onDisconnect={() =>
