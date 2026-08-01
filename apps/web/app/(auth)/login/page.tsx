@@ -20,6 +20,10 @@ import { cn } from "@lib/utils"
 import { Logo } from "@ui/assets/Logo"
 import { getBackendUrl, resolveAuthRedirectUrl } from "@/lib/url-helpers"
 import { Loader2 } from "lucide-react"
+import {
+	normalizeReviewerPasswordEmail,
+	shouldUseReviewerPasswordLogin,
+} from "@/lib/reviewer-password-login"
 
 function isMcpOAuthAuthorizeContext(sp: Pick<URLSearchParams, "get">): boolean {
 	return sp.get("response_type") === "code" && Boolean(sp.get("client_id"))
@@ -113,9 +117,14 @@ function LoginCardBody({
 
 export default function LoginPage() {
 	const [email, setEmail] = useState("")
+	const [password, setPassword] = useState("")
+	const [passwordLoginEmail, setPasswordLoginEmail] = useState<string | null>(
+		null,
+	)
 	const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
 	const [isLoading, setIsLoading] = useState(false)
 	const [isLoadingEmail, setIsLoadingEmail] = useState(false)
+	const [isLoadingPassword, setIsLoadingPassword] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [lastUsedMethod, setLastUsedMethod] = useState<string | null>(null)
 	const router = useRouter()
@@ -135,7 +144,9 @@ export default function LoginPage() {
 		: isLoading
 			? isLoadingEmail
 				? "Sending login link…"
-				: "Redirecting…"
+				: isLoadingPassword
+					? "Signing in…"
+					: "Redirecting…"
 			: null
 
 	useEffect(() => {
@@ -226,9 +237,20 @@ export default function LoginPage() {
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
+		setError(null)
+
+		if (
+			shouldUseReviewerPasswordLogin({
+				submittedEmail: email,
+			})
+		) {
+			setPasswordLoginEmail(normalizeReviewerPasswordEmail(email))
+			setPassword("")
+			return
+		}
+
 		setIsLoading(true)
 		setIsLoadingEmail(true)
-		setError(null)
 
 		// Track login attempt
 		posthog.capture("login_attempt", {
@@ -268,6 +290,38 @@ export default function LoginPage() {
 		setIsLoadingEmail(false)
 	}
 
+	const handlePasswordSubmit = async (
+		event: React.FormEvent<HTMLFormElement>,
+	) => {
+		event.preventDefault()
+		if (!passwordLoginEmail) return
+
+		setIsLoading(true)
+		setIsLoadingPassword(true)
+		setError(null)
+		posthog.capture("login_attempt", {
+			method: "password",
+			email_domain: passwordLoginEmail.split("@")[1] || "unknown",
+		})
+
+		const { error } = await signIn.email({
+			callbackURL: getCallbackURL(),
+			email: passwordLoginEmail,
+			password,
+		})
+
+		if (error) {
+			posthog.capture("login_failed", {
+				method: "password",
+				email_domain: passwordLoginEmail.split("@")[1] || "unknown",
+				is_network_error: isNetworkError(error),
+			})
+			setError(getErrorMessage(error))
+			setIsLoading(false)
+			setIsLoadingPassword(false)
+		}
+	}
+
 	const handleSubmitToken = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 		setIsLoading(true)
@@ -299,7 +353,75 @@ export default function LoginPage() {
 						<LoginHeadline className="mb-3 sm:mb-4 lg:mb-8" />
 						<LoginCard>
 							<LoginCardBody loadingMessage={loadingMessage}>
-								{submittedEmail ? (
+								{passwordLoginEmail ? (
+									<div className="flex flex-col gap-4 lg:gap-6">
+										<div className="flex flex-col gap-2 text-center lg:text-left">
+											<Title1Bold className="text-foreground">
+												Enter password
+											</Title1Bold>
+											<HeadingH3Medium className="text-muted-foreground">
+												Sign in to your Supermemory account.
+											</HeadingH3Medium>
+										</div>
+
+										<form
+											className="flex flex-col gap-4"
+											onSubmit={handlePasswordSubmit}
+										>
+											<LabeledInput
+												inputPlaceholder="your@email.com"
+												inputProps={{
+													autoComplete: "username",
+													id: "email",
+													name: "email",
+													readOnly: true,
+													value: passwordLoginEmail,
+												}}
+												inputType="email"
+												label="Email"
+											/>
+											<LabeledInput
+												error={error}
+												inputPlaceholder="your password"
+												inputProps={{
+													"aria-invalid": error ? "true" : "false",
+													autoComplete: "current-password",
+													disabled: Boolean(loadingMessage),
+													id: "password",
+													name: "password",
+													onChange: (
+														e: React.ChangeEvent<HTMLInputElement>,
+													) => {
+														setPassword(e.target.value)
+														error && setError(null)
+													},
+													required: true,
+													value: password,
+												}}
+												inputType="password"
+												label="Password"
+											/>
+											<Button
+												className="flex h-[44px] w-full items-center justify-center rounded-xl"
+												disabled={Boolean(loadingMessage)}
+												type="submit"
+											>
+												Continue
+											</Button>
+											<button
+												className="text-center text-xs text-muted-foreground underline"
+												onClick={() => {
+													setPasswordLoginEmail(null)
+													setPassword("")
+													setError(null)
+												}}
+												type="button"
+											>
+												Use another email
+											</button>
+										</form>
+									</div>
+								) : submittedEmail ? (
 									<div className="flex flex-col gap-4 lg:gap-6">
 										<div className="flex flex-col gap-2 text-center lg:text-left">
 											<Title1Bold className="text-foreground">
