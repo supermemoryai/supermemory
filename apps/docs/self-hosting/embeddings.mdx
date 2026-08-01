@@ -59,7 +59,7 @@ Local worker tuning (throughput only — does not change model or dimensions):
 | `SUPERMEMORY_LOCAL_EMBEDDING_IDLE_TIMEOUT_MS` | Idle time before workers shut down | `120000` |
 | `SUPERMEMORY_SKIP_EMBEDDING_PREWARM` | Skip startup prewarm, load on first use | unset |
 
-Ingestion memory headroom is controlled by `SUPERMEMORY_EMBEDDING_RAM_LIMIT` — see [Memory limits & ingestion queue](/self-hosting/configuration#memory-limits--ingestion-queue).
+Ingestion memory headroom is controlled by `SUPERMEMORY_EMBEDDING_RAM_LIMIT` — see [Memory limits & ingestion queue](/self-hosting/configuration#memory-limits-&-ingestion-queue).
 
 <Tip>
 **Docker / production:** Set at least one LLM key and, if you don’t want local embeddings, set `SUPERMEMORY_EMBEDDING_PROVIDER` / `SUPERMEMORY_EMBEDDING_MODEL` / `SUPERMEMORY_EMBEDDING_DIMENSIONS` (and base URL or API key as needed). There is no interactive prompt without a TTY.
