@@ -82,7 +82,11 @@ import {
 	type ChatThreadSettings,
 	readChatThreadSettings,
 } from "@/lib/chat-thread-settings"
-import { isActiveResearchRun, type NovaResearchRun } from "@/lib/nova-research"
+import {
+	isActiveResearchRun,
+	type NovaResearchClarificationAnswer,
+	type NovaResearchRun,
+} from "@/lib/nova-research"
 
 type ChatMessageSendSource = "typed" | "suggested" | "highlight" | "home"
 
@@ -942,12 +946,6 @@ export function ChatSidebar({
 			if (hasBusy) return false
 			const hasErrored = drafts.some((d) => d.status === "error")
 			if (hasErrored) return false
-			if (chatMode === "research" && drafts.length > 0) {
-				toast.error(
-					"Research mode currently works from saved memories and web sources. Save the attachment first, then research it from its space.",
-				)
-				return false
-			}
 
 			const chatIdForSend = threadId ?? fallbackChatId
 
@@ -1001,6 +999,7 @@ export function ChatSidebar({
 							query: messageText,
 							chatId: chatIdForSend,
 							userMessageId,
+							attachments: uploadedAttachments,
 							metadata: {
 								model: selectedModel,
 								reasoningEffort,
@@ -1222,6 +1221,30 @@ export function ChatSidebar({
 		}
 		stop()
 	}, [chatApiBase, researchRun, stop])
+
+	const handleSubmitResearchClarification = useCallback(
+		async (requestId: string, answers: NovaResearchClarificationAnswer[]) => {
+			if (!researchRun) throw new Error("Research run is unavailable.")
+			const response = await fetch(
+				`${chatApiBase}/chat/research/${researchRun.id}/clarification`,
+				{
+					method: "POST",
+					credentials: "include",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ requestId, answers }),
+				},
+			)
+			const data = (await response.json().catch(() => null)) as {
+				error?: string
+				run?: NovaResearchRun | null
+			} | null
+			if (!response.ok) {
+				throw new Error(data?.error || "Could not submit your answers.")
+			}
+			if (data?.run) setResearchRun(data.run)
+		},
+		[chatApiBase, researchRun],
+	)
 
 	const handleCopyMessage = useCallback((messageId: string, text: string) => {
 		analytics.chatMessageCopied({ message_id: messageId })
@@ -2245,9 +2268,9 @@ export function ChatSidebar({
 						{researchRun ? (
 							<ResearchProgress
 								run={researchRun}
-								apiBase={chatApiBase}
 								onCancel={handleStop}
-								className="mt-2"
+								onSubmitClarification={handleSubmitResearchClarification}
+								className="mt-1"
 							/>
 						) : null}
 					</div>
@@ -2354,20 +2377,18 @@ export function ChatSidebar({
 							: `Queue is full (${CHAT_QUEUE_LIMIT} max)`
 					}
 					activeStatus={
-						researchIsActive
-							? researchRun?.events.at(-1)?.message || "Researching…"
-							: isResponding && isQueueFull
-								? `Queue full (${CHAT_QUEUE_LIMIT} max)`
-								: isWebSearching
-									? "Searching the web…"
-									: status === "submitted"
+						isResponding && isQueueFull
+							? `Queue full (${CHAT_QUEUE_LIMIT} max)`
+							: isWebSearching
+								? "Searching the web…"
+								: status === "submitted"
+									? "Thinking…"
+									: status === "streaming"
 										? "Thinking…"
-										: status === "streaming"
-											? "Thinking…"
-											: "Waiting for input…"
+										: "Waiting for input…"
 					}
 					queuedMessages={messageQueue}
-					showStatusStrip={showInputStatusStrip}
+					showStatusStrip={showInputStatusStrip && !researchIsActive}
 					onExpandedChange={setIsInputExpanded}
 					chainOfThoughtComponent={
 						messages.length > 0 ? <ChainOfThought messages={messages} /> : null
