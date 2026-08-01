@@ -689,7 +689,7 @@ function KnowledgeBaseConnectAction({
 		<div className="flex min-w-0 flex-col items-end gap-1.5">
 			{connectionState === "starting" || connectionState === "waiting" ? (
 				<div className="flex items-center gap-1.5">
-					<div className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[#20242A] px-3 text-[13px] font-medium text-[#A1A1AA]">
+					<div className="inline-flex h-9 min-w-[116px] items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-5 text-[14px] font-medium text-[#A1A1AA] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]">
 						<Loader2 className="size-3.5 animate-spin text-[#4BA0FA]" />
 						{connectionState === "starting" ? "Opening…" : "Waiting…"}
 					</div>
@@ -699,7 +699,7 @@ function KnowledgeBaseConnectAction({
 							onClick={() =>
 								stopWaiting("Connection cancelled. You can try again.")
 							}
-							className="h-8 rounded-md px-2 text-[12px] font-medium text-[#737373] transition-colors hover:bg-white/[0.05] hover:text-[#FAFAFA]"
+							className="h-9 rounded-full px-3 text-[12px] font-medium text-[#737373] transition-colors hover:bg-[#0D121A] hover:text-[#FAFAFA]"
 						>
 							Cancel
 						</button>
@@ -710,7 +710,7 @@ function KnowledgeBaseConnectAction({
 					type="button"
 					disabled={disabled}
 					onClick={() => void connect(true)}
-					className="inline-flex h-8 items-center rounded-md bg-[#4BA0FA] px-3 text-[14px] font-medium text-black transition-colors hover:bg-[#4BA0FA]/90 disabled:cursor-not-allowed disabled:opacity-50"
+					className="inline-flex h-9 min-w-[116px] items-center justify-center rounded-full bg-[#0D121A] px-5 text-[14px] font-medium text-[#FAFAFA] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					{connectionState === "error" ? "Try again" : buttonLabel}
 				</button>
@@ -783,33 +783,42 @@ function NovaConnectorCard({
 						: displayedConnector.description
 
 		return (
-			<div className="flex items-center justify-between gap-3 rounded-[12px] bg-[#14161A] px-4 py-3 text-white">
-				<div className="flex min-w-0 flex-1 items-center gap-3">
-					<KnowledgeBaseProviderIcon provider={displayedConnector.provider} />
-					<div className="min-w-0 flex-1 space-y-1.5">
-						<p className="truncate text-[16px] font-medium text-[#FAFAFA]">
-							{displayedConnector.name ?? "Knowledge base"}
-						</p>
-						{statusText ? (
-							<p className="line-clamp-2 text-[16px] text-[#737373]">
-								{statusText}
-							</p>
-						) : null}
+			<div className="flex min-h-[190px] w-full max-w-[520px] flex-col rounded-[12px] bg-[#14161A] p-4 text-white shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
+				<div className="flex items-start justify-between gap-3">
+					<div className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[#080B0F] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]">
+						<KnowledgeBaseProviderIcon provider={displayedConnector.provider} />
 					</div>
+					{isUpgrade ? (
+						<span className="shrink-0 pt-1 text-[10px] font-semibold uppercase tracking-wide text-[#4BA0FA]">
+							Pro
+						</span>
+					) : null}
 				</div>
-				{isUpgrade ? (
-					<span className="shrink-0 rounded-[3px] bg-[#0054AD] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#FAFAFA]">
-						Pro
-					</span>
-				) : (
-					<KnowledgeBaseConnectAction
-						connector={displayedConnector}
-						onConnected={() => onConnectionsChanged?.()}
-						onPendingChange={onConnectionPendingChange}
-						autoStart={autoStartConnection}
-						attemptKey={connectionAttemptKey}
-					/>
-				)}
+				<div className="mt-4 min-w-0 flex-1">
+					<p className="truncate text-[16px] font-medium text-[#FAFAFA]">
+						{displayedConnector.name ?? "Knowledge base"}
+					</p>
+					{statusText ? (
+						<p className="mt-1 line-clamp-2 text-[14px] leading-snug text-[#A1A1AA]">
+							{statusText}
+						</p>
+					) : null}
+				</div>
+				<div className="mt-4 flex justify-end">
+					{isUpgrade ? (
+						<div className="inline-flex h-9 min-w-[116px] items-center justify-center rounded-full bg-[#0D121A] px-5 text-[14px] font-medium text-[#4BA0FA] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]">
+							Upgrade
+						</div>
+					) : (
+						<KnowledgeBaseConnectAction
+							connector={displayedConnector}
+							onConnected={() => onConnectionsChanged?.()}
+							onPendingChange={onConnectionPendingChange}
+							autoStart={autoStartConnection}
+							attemptKey={connectionAttemptKey}
+						/>
+					)}
+				</div>
 			</div>
 		)
 	}
