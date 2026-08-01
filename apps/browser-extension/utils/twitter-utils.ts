@@ -56,11 +56,43 @@ interface MediaEntity {
 		}
 	}
 	video_info?: {
-		variants?: Array<{
-			url: string
-		}>
+		variants?: VideoVariant[]
 		duration_millis?: number
 	}
+}
+
+export interface VideoVariant {
+	url: string
+	bitrate?: number
+	content_type?: string
+}
+
+/**
+ * Twitter returns several video variants for a single video: an HLS `.m3u8`
+ * playlist (no bitrate) plus multiple `video/mp4` renditions at different
+ * bitrates, in no guaranteed order. Taking `variants[0]` therefore often stored
+ * the HLS playlist URL (not a directly usable file) or the lowest-quality clip.
+ * Pick the highest-bitrate MP4 instead, falling back to the first variant when
+ * no MP4 rendition is present.
+ */
+export function pickBestVideoVariantUrl(
+	variants: VideoVariant[] | undefined,
+): string {
+	if (!variants || variants.length === 0) return ""
+
+	const mp4s = variants.filter(
+		(v) => v.content_type === "video/mp4" || /\.mp4(?:\?|$)/i.test(v.url),
+	)
+	const pool = mp4s.length > 0 ? mp4s : variants
+
+	let best = pool[0]
+	for (const variant of pool) {
+		if ((variant.bitrate ?? 0) > (best?.bitrate ?? 0)) {
+			best = variant
+		}
+	}
+
+	return best?.url || ""
 }
 
 export interface Tweet {
@@ -257,7 +289,7 @@ export function transformTweetData(
 		const videos = media
 			.filter((m) => m.type === "video")
 			.map((m) => ({
-				url: m.video_info?.variants?.[0]?.url || "",
+				url: pickBestVideoVariantUrl(m.video_info?.variants),
 				thumbnail_url: m.media_url_https,
 				duration: m.video_info?.duration_millis || 0,
 			}))
