@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import type { ViewMessage } from "../../shared/types"
+import { viewMessageSchema, type ViewMessage } from "../../shared/types"
 import {
 	ActionGroup,
 	Button,
@@ -65,13 +65,17 @@ export function Upload({
 		setUploading(true)
 		try {
 			const fileData = await readFileAsBase64(file)
-			const result = await callTool("upload-file-submit", {
-				fileData,
-				fileName: file.name,
-				mimeType: file.type,
-				containerTag: selectedTag,
-				viewId,
-			})
+			const result = await callTool(
+				"upload-file-submit",
+				{
+					fileData,
+					fileName: file.name,
+					mimeType: file.type,
+					containerTag: selectedTag,
+					viewId,
+				},
+				viewMessageSchema,
+			)
 			if (!result.ok || !result.data) {
 				log("error", `[upload] failed: ${result.error}`)
 				onError(result.error ?? "Upload failed")

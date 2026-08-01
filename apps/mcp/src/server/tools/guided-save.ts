@@ -3,7 +3,7 @@ import { saveViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { effectiveContainerTagAccess } from "../auth/rbac"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
-import type { ToolDeps } from "./types"
+import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	deps.server.registerTool(
@@ -44,9 +44,7 @@ export function register(deps: ToolDeps) {
 				}
 
 				return {
-					content: [
-						{ type: "text" as const, text: "Opening memory save form..." },
-					],
+					content: [textContent("Opening memory save form...")],
 					structuredContent: sc,
 					_meta: appResultMeta(viewId),
 				}

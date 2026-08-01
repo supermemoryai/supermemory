@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest"
-import { SUPERMEMORY_RESOURCE_URI } from "../shared/types"
-import { appResultMeta, appToolMeta } from "./app-metadata"
+import {
+	appResultMeta,
+	appToolMeta,
+	SUPERMEMORY_RESOURCE_URI,
+} from "./app-metadata"
 
 describe("MCP Apps metadata compatibility", () => {
 	it("advertises both current and legacy resource URI metadata", () => {
+		expect(SUPERMEMORY_RESOURCE_URI).toMatch(
+			/^ui:\/\/supermemory\/app-[a-f0-9]{64}\.html$/,
+		)
 		expect(appToolMeta()).toEqual({
 			ui: { resourceUri: SUPERMEMORY_RESOURCE_URI },
 			"ui/resourceUri": SUPERMEMORY_RESOURCE_URI,

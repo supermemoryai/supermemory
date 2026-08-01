@@ -2,7 +2,11 @@ import { z } from "zod"
 import { optionalContainerTagSchema } from "../container-tag"
 import { formatDocumentsList } from "../format"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
-import type { ToolDeps } from "./types"
+import {
+	listDocumentsOutputSchema,
+	type ListDocumentsOutput,
+} from "./output-schemas"
+import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	const inputSchema = z.object({
@@ -31,6 +35,7 @@ export function register(deps: ToolDeps) {
 			description:
 				"List documents in one space with their IDs, titles, types, processing status, dates, and summaries. This does not return full document content; use getDocument with an ID from this result to read one document. When the user names a space, resolve it with listSpaces and pass containerTag; otherwise use the active space.",
 			inputSchema,
+			outputSchema: listDocumentsOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
@@ -41,9 +46,27 @@ export function register(deps: ToolDeps) {
 					args.page ?? 1,
 					args.limit ?? 10,
 				)
+				const structuredContent: ListDocumentsOutput = {
+					documents: data.documents.map((document) => ({
+						id: document.id,
+						title: document.title,
+						type: document.type,
+						status: document.status,
+						createdAt: document.createdAt,
+						updatedAt: document.updatedAt,
+						summary: document.summary,
+					})),
+					pagination: {
+						currentPage: data.pagination.currentPage,
+						limit: data.pagination.limit ?? args.limit ?? 10,
+						totalItems: data.pagination.totalItems,
+						totalPages: data.pagination.totalPages,
+					},
+				}
 
 				return {
-					content: [{ type: "text" as const, text: formatDocumentsList(data) }],
+					content: [textContent(formatDocumentsList(data))],
+					structuredContent,
 				}
 			} catch (error) {
 				return deps.errorResult(error)

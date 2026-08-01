@@ -82,7 +82,7 @@ These tools are available to the embedded MCP App and hidden from the model.
 | --- | --- | --- |
 | Resource | `supermemory://profile` | Profile facts in the effective space |
 | Resource | `supermemory://spaces` | Visible spaces |
-| Resource | `ui://supermemory/app-v4.html` | Embedded MCP App bundle |
+| Resource | `ui://supermemory/app-<sha256>.html` | Embedded MCP App bundle |
 | Prompt | `context` | Profile and recent context for an optional space |
 
 The App resource and tool metadata include both current nested `ui` metadata and

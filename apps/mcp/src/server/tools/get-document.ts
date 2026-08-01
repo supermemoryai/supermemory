@@ -1,7 +1,11 @@
 import { z } from "zod"
-import { formatDocument } from "../format"
+import { formatDocument, getDocumentContent } from "../format"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
-import type { ToolDeps } from "./types"
+import {
+	getDocumentOutputSchema,
+	type GetDocumentOutput,
+} from "./output-schemas"
+import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	const inputSchema = z.object({
@@ -19,15 +23,32 @@ export function register(deps: ToolDeps) {
 			description:
 				"Read one stored document by ID, including its summary and available content. Use listDocuments in the intended space to discover document IDs.",
 			inputSchema,
+			outputSchema: getDocumentOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
 			try {
 				const client = deps.getClient()
 				const document = await client.getDocument(args.documentId)
+				const { content, truncated } = getDocumentContent(document)
+				const structuredContent: GetDocumentOutput = {
+					document: {
+						id: document.id,
+						title: document.title,
+						type: document.type,
+						status: document.status,
+						createdAt: document.createdAt,
+						updatedAt: document.updatedAt,
+						url: document.url ?? null,
+						summary: document.summary,
+						content,
+						contentTruncated: truncated,
+					},
+				}
 
 				return {
-					content: [{ type: "text" as const, text: formatDocument(document) }],
+					content: [textContent(formatDocument(document))],
+					structuredContent,
 				}
 			} catch (error) {
 				return deps.errorResult(error)

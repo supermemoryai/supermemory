@@ -7,15 +7,15 @@
 		"script": "dev:app"
 	},
 	"scripts": {
-		"build:widget": "vite build",
-		"build": "vite build",
+		"build:widget": "bun run scripts/build-widget.ts",
+		"build": "bun run build:widget",
 		"dev": "portless",
-		"dev:app": "vite build && wrangler dev --port ${PORT:-8788}",
+		"dev:app": "wrangler dev --port ${PORT:-8788}",
 		"dev:widget": "vite --config vite.config.dev.ts",
 		"studio": "vite --config vite.config.dev.ts --open /studio.html",
-		"deploy": "vite build && wrangler deploy --minify",
-		"check-types": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.widget.json",
-		"test:unit": "vitest run src",
+		"deploy": "wrangler deploy --minify",
+		"check-types": "bun run build:widget && tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.widget.json",
+		"test:unit": "bun run build:widget && vitest run src",
 		"test:e2e": "vitest run e2e",
 		"cf-typegen": "wrangler types --env-interface CloudflareBindings"
 	},

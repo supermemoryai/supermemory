@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import { graphViewSchema } from "../src/shared/types"
+import { graphResultMetaSchema, graphViewSchema } from "../src/shared/types"
 import {
 	OAUTH_CREDENTIALS_AVAILABLE,
 	callTool,
@@ -27,6 +27,10 @@ describeWithAuth("MCP — graph, resources & prompts", () => {
 		expect(result.success).toBe(true)
 		if (!result.success) throw result.error
 		expect(result.data.view).toBe("graph")
+		expect(result.data.rendered).toBe(true)
+		expect(result.data.documentCount).toBe(result.data.documents.length)
+		const resultMeta = graphResultMetaSchema.safeParse(res._meta)
+		expect(resultMeta.success).toBe(true)
 	})
 
 	it("fetch-graph-data returns paginated documents", async () => {

@@ -130,7 +130,13 @@ function renderView(
 				/>
 			)
 		case "graph":
-			return <Graph documents={msg.documents} totalCount={msg.totalCount} />
+			return (
+				<Graph
+					containerTag={msg.containerTag}
+					initialDocuments={msg.documents}
+					initialTotalCount={msg.totalCount ?? msg.totalDocumentCount}
+				/>
+			)
 		case "confirmation":
 			return <Confirmation containerTag={msg.containerTag} />
 		case "save-success":

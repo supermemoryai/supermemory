@@ -3,7 +3,7 @@ import { confirmationViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { containerTagSchema } from "../container-tag"
 import { SETTINGS_TOOL_ANNOTATIONS } from "./annotations"
-import type { ToolDeps } from "./types"
+import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	deps.server.registerTool(
@@ -35,12 +35,7 @@ export function register(deps: ToolDeps) {
 					containerTag,
 				}
 				return {
-					content: [
-						{
-							type: "text" as const,
-							text: `Active space set to ${containerTag}`,
-						},
-					],
+					content: [textContent(`Active space set to ${containerTag}`)],
 					structuredContent: sc,
 					_meta: appResultMeta(viewId),
 				}

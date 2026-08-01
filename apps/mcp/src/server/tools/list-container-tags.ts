@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { listSpacesOutputSchema } from "../../shared/types"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
-import type { ToolDeps } from "./types"
+import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	deps.server.registerTool(
@@ -29,12 +29,7 @@ export function register(deps: ToolDeps) {
 
 				if (tags.length === 0) {
 					return {
-						content: [
-							{
-								type: "text" as const,
-								text: "No spaces found.",
-							},
-						],
+						content: [textContent("No spaces found.")],
 						structuredContent: { spaces, count: 0 },
 					}
 				}
@@ -46,12 +41,7 @@ export function register(deps: ToolDeps) {
 				})
 
 				return {
-					content: [
-						{
-							type: "text" as const,
-							text: `Available spaces:\n${lines.join("\n")}`,
-						},
-					],
+					content: [textContent(`Available spaces:\n${lines.join("\n")}`)],
 					structuredContent: { spaces, count: spaces.length },
 				}
 			} catch (error) {

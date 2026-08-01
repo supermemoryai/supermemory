@@ -1,7 +1,8 @@
 import { z } from "zod"
 import { optionalContainerTagSchema } from "../container-tag"
 import { MEMORY_TOOL_ANNOTATIONS } from "./annotations"
-import type { ToolDeps } from "./types"
+import { addMemoryOutputSchema, type AddMemoryOutput } from "./output-schemas"
+import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	const inputSchema = z.object({
@@ -19,6 +20,7 @@ export function register(deps: ToolDeps) {
 			description:
 				"Add (save) or forget a memory in the user's ACTIVE space. Defaults to 'save'. The target space is the one the user selected via select-space; pass containerTag only to override it. Use 'forget' when information is outdated or the user asks to remove it.",
 			inputSchema,
+			outputSchema: addMemoryOutputSchema,
 			annotations: MEMORY_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
@@ -28,19 +30,31 @@ export function register(deps: ToolDeps) {
 
 				if (args.action === "forget") {
 					const result = await client.forgetMemory(args.content)
+					const structuredContent: AddMemoryOutput = {
+						action: "forget",
+						success: result.success,
+						containerTag: result.containerTag,
+						message: result.message,
+					}
 					return {
-						content: [{ type: "text" as const, text: result.message }],
+						content: [textContent(result.message)],
+						structuredContent,
 					}
 				}
 
 				const result = await client.createMemory(args.content)
+				const message = `Memory saved (ID: ${result.id}, space: ${result.containerTag})`
+				const structuredContent: AddMemoryOutput = {
+					action: "save",
+					success: true,
+					containerTag: result.containerTag,
+					message,
+					id: result.id,
+					status: result.status,
+				}
 				return {
-					content: [
-						{
-							type: "text" as const,
-							text: `Memory saved (ID: ${result.id}, space: ${result.containerTag})`,
-						},
-					],
+					content: [textContent(message)],
+					structuredContent,
 				}
 			} catch (error) {
 				return deps.errorResult(error)

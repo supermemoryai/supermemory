@@ -2,7 +2,11 @@ import { z } from "zod"
 import { optionalContainerTagSchema } from "../container-tag"
 import { formatMemoryEntriesList } from "../format"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
-import type { ToolDeps } from "./types"
+import {
+	listMemoriesOutputSchema,
+	type ListMemoriesOutput,
+} from "./output-schemas"
+import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	const inputSchema = z.object({
@@ -31,6 +35,7 @@ export function register(deps: ToolDeps) {
 			description:
 				"List the latest extracted memory entries in one space, including stable memory IDs, version information, and source document IDs. This lists memories directly, not documents. When the user names a space, resolve it with listSpaces and pass containerTag; otherwise use the active space. Use search_memory instead for semantic recall.",
 			inputSchema,
+			outputSchema: listMemoriesOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
@@ -41,11 +46,16 @@ export function register(deps: ToolDeps) {
 					args.page ?? 1,
 					args.limit ?? 10,
 				)
+				const structuredContent: ListMemoriesOutput = {
+					memoryEntries: data.memoryEntries.filter(
+						(entry) => entry.isForgotten !== true && entry.isLatest !== false,
+					),
+					pagination: data.pagination,
+				}
 
 				return {
-					content: [
-						{ type: "text" as const, text: formatMemoryEntriesList(data) },
-					],
+					content: [textContent(formatMemoryEntriesList(data))],
+					structuredContent,
 				}
 			} catch (error) {
 				return deps.errorResult(error)

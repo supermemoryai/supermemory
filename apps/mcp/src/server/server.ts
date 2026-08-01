@@ -9,7 +9,7 @@ import {
 	type WaitUntil,
 } from "./analytics"
 import { fetchSession } from "./auth"
-import { SupermemoryClient } from "./client"
+import { DEFAULT_PROJECT_ID, SupermemoryClient } from "./client"
 import { registerContextPrompt } from "./prompts/context"
 import { registerContainerTagsResource } from "./resources/container-tags"
 import { registerProfileResource } from "./resources/profile"
@@ -64,8 +64,10 @@ export function createSupermemoryServer(
 	const getActiveContainerTag = () => spaceState.getActiveContainerTag()
 	const setActiveContainerTag = (containerTag: string) =>
 		spaceState.setActiveContainerTag(containerTag)
-	const resolveContainerTag = (explicit?: string) =>
+	const resolveSelectedContainerTag = (explicit?: string) =>
 		resolveSpaceContainerTag(explicit, getActiveContainerTag)
+	const resolveContainerTag = async (explicit?: string) =>
+		(await resolveSelectedContainerTag(explicit)) ?? DEFAULT_PROJECT_ID
 	const analytics = createPosthogAnalytics(env, actor, waitUntil)
 	const toolServer = createTrackedToolServer(
 		server,
@@ -85,10 +87,14 @@ export function createSupermemoryServer(
 		errorResult,
 	})
 
-	registerProfileResource(server, getClient, resolveContainerTag)
-	registerContainerTagsResource(server, () => getClient(), resolveContainerTag)
+	registerProfileResource(server, getClient, resolveSelectedContainerTag)
+	registerContainerTagsResource(
+		server,
+		() => getClient(),
+		resolveSelectedContainerTag,
+	)
 	registerWidgetResource(server)
-	registerContextPrompt(server, getClient, resolveContainerTag)
+	registerContextPrompt(server, getClient, resolveSelectedContainerTag)
 
 	return server
 }

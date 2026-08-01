@@ -168,6 +168,7 @@ export async function exchangeRefreshToken(
 export type CallResult = {
 	content?: Array<{ type: string; text?: string }>
 	structuredContent?: unknown
+	_meta?: unknown
 	isError?: boolean
 }
 

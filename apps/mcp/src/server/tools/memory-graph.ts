@@ -1,9 +1,13 @@
 import { z } from "zod"
-import { graphViewSchema, type ViewMessage } from "../../shared/types"
+import {
+	graphViewSchema,
+	type GraphResultMeta,
+	type ViewMessage,
+} from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { optionalContainerTagSchema } from "../container-tag"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
-import type { ToolDeps } from "./types"
+import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	const inputSchema = z.object({
@@ -26,8 +30,7 @@ export function register(deps: ToolDeps) {
 				const viewId = crypto.randomUUID()
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
 				const client = deps.getClient(effectiveTag)
-				const containerTags = effectiveTag ? [effectiveTag] : undefined
-				const result = await client.getDocuments(containerTags, 1, 200)
+				const result = await client.getDocuments([effectiveTag], 1, 200)
 				const memoryCount = result.documents.reduce(
 					(sum, document) => sum + document.memoryEntries.length,
 					0,
@@ -35,20 +38,27 @@ export function register(deps: ToolDeps) {
 				const sc: ViewMessage = {
 					view: "graph",
 					viewId,
-					...(effectiveTag ? { containerTag: effectiveTag } : {}),
+					containerTag: effectiveTag,
 					documents: result.documents,
 					totalCount: result.pagination.totalItems,
+					documentCount: result.documents.length,
+					memoryCount,
+					totalDocumentCount: result.pagination.totalItems,
+					truncated: result.documents.length < result.pagination.totalItems,
+					rendered: true,
+				}
+				const graphMeta: GraphResultMeta = {
+					graphData: { documents: result.documents },
 				}
 
 				return {
 					content: [
-						{
-							type: "text" as const,
-							text: `Rendered the interactive Memory Graph MCP App: ${result.documents.length} documents, ${memoryCount} memories${effectiveTag ? `. Space: ${effectiveTag}` : ""}. Do not create a duplicate graph or artifact unless the user explicitly requests one.`,
-						},
+						textContent(
+							`Rendered the interactive Memory Graph MCP App: ${result.documents.length} documents, ${memoryCount} memories. Space: ${effectiveTag}. Do not create a duplicate graph or artifact unless the user explicitly requests one.`,
+						),
 					],
 					structuredContent: sc,
-					_meta: appResultMeta(viewId),
+					_meta: { ...appResultMeta(viewId), ...graphMeta },
 				}
 			} catch (error) {
 				return deps.errorResult(error)

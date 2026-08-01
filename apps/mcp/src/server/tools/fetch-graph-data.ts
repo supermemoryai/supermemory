@@ -3,7 +3,7 @@ import { documentsApiResponseSchema } from "../../shared/types"
 import { appToolMeta } from "../app-metadata"
 import { optionalContainerTagSchema } from "../container-tag"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
-import type { ToolDeps } from "./types"
+import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	deps.server.registerTool(
@@ -23,19 +23,17 @@ export function register(deps: ToolDeps) {
 			try {
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
 				const client = deps.getClient(effectiveTag)
-				const containerTags = effectiveTag ? [effectiveTag] : undefined
 				const data = await client.getDocuments(
-					containerTags,
+					[effectiveTag],
 					args.page,
 					args.limit,
 				)
 
 				return {
 					content: [
-						{
-							type: "text" as const,
-							text: `Loaded ${data.documents.length} documents for the memory graph.`,
-						},
+						textContent(
+							`Loaded ${data.documents.length} documents for the memory graph.`,
+						),
 					],
 					structuredContent: data,
 				}

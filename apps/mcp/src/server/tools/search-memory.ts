@@ -2,7 +2,11 @@ import { z } from "zod"
 import { getMemoryText } from "../client"
 import { optionalContainerTagSchema } from "../container-tag"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
-import type { ToolDeps } from "./types"
+import {
+	searchMemoryOutputSchema,
+	type SearchMemoryOutput,
+} from "./output-schemas"
+import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	const inputSchema = z.object({
@@ -20,6 +24,7 @@ export function register(deps: ToolDeps) {
 			description:
 				"Search memories in one space with a natural-language query. Returns relevant memories plus that space's profile summary. When the user names a space, resolve it with listSpaces and pass containerTag; otherwise use the active space.",
 			inputSchema,
+			outputSchema: searchMemoryOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
@@ -28,9 +33,11 @@ export function register(deps: ToolDeps) {
 				const client = deps.getClient(effectiveTag)
 
 				const parts: string[] = []
+				let profile: SearchMemoryOutput["profile"]
 
 				if (args.includeProfile !== false) {
 					const profileResult = await client.getProfile(args.query)
+					profile = profileResult.profile
 
 					if (profileResult.profile.static.length > 0) {
 						parts.push("## Profile")
@@ -48,6 +55,12 @@ export function register(deps: ToolDeps) {
 				}
 
 				const searchResult = await client.search(args.query)
+				const results = searchResult.results.map((result) => ({
+					id: result.id,
+					text: getMemoryText(result),
+					similarity: result.similarity,
+					...(result.title ? { title: result.title } : {}),
+				}))
 
 				if (searchResult.results.length > 0) {
 					parts.push("\n## Matching memories")
@@ -60,8 +73,18 @@ export function register(deps: ToolDeps) {
 					parts.push("\nNo matching memories found.")
 				}
 
+				const structuredContent: SearchMemoryOutput = {
+					query: args.query,
+					containerTag: effectiveTag,
+					...(profile ? { profile } : {}),
+					results,
+					total: searchResult.total,
+					timing: searchResult.timing,
+				}
+
 				return {
-					content: [{ type: "text" as const, text: parts.join("\n") }],
+					content: [textContent(parts.join("\n"))],
+					structuredContent,
 				}
 			} catch (error) {
 				return deps.errorResult(error)

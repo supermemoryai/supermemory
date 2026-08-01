@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react"
-import type {
-	ContainerTag,
-	ContainerTagAccess,
-	ViewMessage,
+import {
+	type ContainerTag,
+	type ContainerTagAccess,
+	viewMessageSchema,
+	type ViewMessage,
 } from "../../shared/types"
 import { SpaceCard } from "../components/SpaceCard"
 import { Input, PageHeader } from "../design/ui"
@@ -49,10 +50,14 @@ export function Picker({
 	const handleSelect = async (containerTag: string) => {
 		log("info", `[picker] select: ${containerTag}`)
 		setPending(containerTag)
-		const result = await callTool("set-active-tag", {
-			containerTag,
-			viewId,
-		})
+		const result = await callTool(
+			"set-active-tag",
+			{
+				containerTag,
+				viewId,
+			},
+			viewMessageSchema,
+		)
 		setPending(null)
 		if (!result.ok || !result.data) {
 			log("error", `[picker] set-active-tag failed: ${result.error}`)

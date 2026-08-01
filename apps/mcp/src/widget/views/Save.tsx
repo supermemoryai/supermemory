@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import type { ViewMessage } from "../../shared/types"
+import { viewMessageSchema, type ViewMessage } from "../../shared/types"
 import {
 	ActionGroup,
 	Button,
@@ -61,11 +61,15 @@ export function Save({
 		if (!canSave || !selectedTag) return
 		log("info", `[save] submit (${trimmed.length} chars → ${selectedTag})`)
 		setSaving(true)
-		const result = await callTool("save-memory", {
-			content: trimmed,
-			containerTag: selectedTag,
-			viewId,
-		})
+		const result = await callTool(
+			"save-memory",
+			{
+				content: trimmed,
+				containerTag: selectedTag,
+				viewId,
+			},
+			viewMessageSchema,
+		)
 		setSaving(false)
 		if (!result.ok || !result.data) {
 			log("error", `[save] failed: ${result.error}`)

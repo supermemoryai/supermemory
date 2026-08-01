@@ -128,15 +128,25 @@ export function formatMemoryEntriesList(
 	return parts.join("\n")
 }
 
-function documentContent(document: DocumentDetails): string | null {
+export function getDocumentContent(document: DocumentDetails): {
+	content: string | null
+	truncated: boolean
+} {
+	let content: string | null = null
 	if (typeof document.raw === "string" && document.raw.trim()) {
-		return document.raw
+		content = document.raw
+	} else if (document.raw !== null && document.raw !== undefined) {
+		content = JSON.stringify(document.raw, null, 2)
+	} else if (document.content?.trim()) {
+		content = document.content
 	}
-	if (document.raw !== null && document.raw !== undefined) {
-		return JSON.stringify(document.raw, null, 2)
+
+	if (!content) return { content: null, truncated: false }
+	const truncated = content.length > MAX_DOCUMENT_CONTENT_CHARS
+	return {
+		content: truncated ? content.slice(0, MAX_DOCUMENT_CONTENT_CHARS) : content,
+		truncated,
 	}
-	if (document.content?.trim()) return document.content
-	return null
 }
 
 export function formatDocument(document: DocumentDetails): string {
@@ -155,13 +165,13 @@ export function formatDocument(document: DocumentDetails): string {
 		parts.push("", "## Summary", compactText(document.summary, 4_000))
 	}
 
-	const content = documentContent(document)
+	const { content, truncated } = getDocumentContent(document)
 	if (content) {
-		const truncated =
-			content.length > MAX_DOCUMENT_CONTENT_CHARS
-				? `${content.slice(0, MAX_DOCUMENT_CONTENT_CHARS)}\n\n[Document content truncated]`
-				: content
-		parts.push("", "## Content", truncated)
+		parts.push(
+			"",
+			"## Content",
+			truncated ? `${content}\n\n[Document content truncated]` : content,
+		)
 	} else {
 		parts.push("", "No document content is available.")
 	}

@@ -1,4 +1,9 @@
-import type { McpServer, ServerContext } from "@modelcontextprotocol/server"
+import type {
+	CallToolResult,
+	McpServer,
+	ServerContext,
+	TextContent,
+} from "@modelcontextprotocol/server"
 import type { SessionInfo } from "../../shared/types"
 import type { SupermemoryClient } from "../client"
 import type { ActorContext } from "../types"
@@ -10,23 +15,24 @@ export interface ToolDeps {
 	actor: ActorContext
 	getClient: (containerTag?: string) => SupermemoryClient
 	getSession: () => Promise<SessionInfo>
-	resolveContainerTag: (explicit?: string) => Promise<string | undefined>
+	resolveContainerTag: (explicit?: string) => Promise<string>
 	getActiveContainerTag: () => Promise<string | undefined>
 	setActiveContainerTag: (containerTag: string) => Promise<void>
 	getClientInfo: (
 		context: ServerContext,
 	) => { name: string; version?: string } | null
-	errorResult: (error: unknown) => {
-		content: { type: "text"; text: string }[]
-		isError: true
-	}
+	errorResult: (error: unknown) => CallToolResult
 }
 
-export function errorResult(error: unknown) {
+export function textContent(text: string): TextContent {
+	return { type: "text", text }
+}
+
+export function errorResult(error: unknown): CallToolResult {
 	const message =
 		error instanceof Error ? error.message : "An unexpected error occurred"
 	return {
-		content: [{ type: "text" as const, text: `Error: ${message}` }],
-		isError: true as const,
+		content: [textContent(`Error: ${message}`)],
+		isError: true,
 	}
 }

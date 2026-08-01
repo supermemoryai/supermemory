@@ -1,5 +1,5 @@
 import { useContext, useMemo } from "react"
-import { viewMessageSchema, type ViewMessage } from "../../shared/types"
+import type { ZodType } from "zod"
 import {
 	handoffToModel as performModelHandoff,
 	type ModelHandoffRequest,
@@ -26,15 +26,16 @@ export function useApp() {
 	if (!context) {
 		throw new Error("useApp must be used within McpAppProvider")
 	}
-	const { app } = context
+	const { app, isConnected } = context
 
 	return useMemo(() => {
 		return {
 			/** Call an MCP server tool and await the result. */
-			async callTool(
+			async callTool<T>(
 				name: string,
 				args: Record<string, unknown>,
-			): Promise<ToolCallResult<ViewMessage>> {
+				schema: ZodType<T>,
+			): Promise<ToolCallResult<T>> {
 				if (!app) {
 					return { ok: false, error: "MCP host is not connected" }
 				}
@@ -50,7 +51,7 @@ export function useApp() {
 								: "Tool returned an error"
 						return { ok: false, error: text }
 					}
-					const parsed = viewMessageSchema.safeParse(result.structuredContent)
+					const parsed = schema.safeParse(result.structuredContent)
 					if (!parsed.success) {
 						return {
 							ok: false,
@@ -65,6 +66,8 @@ export function useApp() {
 					return { ok: false, error: String(err) }
 				}
 			},
+
+			isConnected,
 
 			/** Make widget state available to the model on a future turn. */
 			async updateModelContext(content: string): Promise<ToolCallResult> {
@@ -116,7 +119,7 @@ export function useApp() {
 				return app?.getHostContext()
 			},
 		}
-	}, [app])
+	}, [app, isConnected])
 }
 
 export type AppApi = ReturnType<typeof useApp>
