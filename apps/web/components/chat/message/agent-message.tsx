@@ -19,7 +19,6 @@ import {
 	PlusIcon,
 	SearchIcon,
 	TerminalIcon,
-	TelescopeIcon,
 	WrenchIcon,
 	XCircleIcon,
 	ZapIcon,
@@ -37,10 +36,16 @@ import {
 	extractMemoryToolOutputs,
 } from "@/lib/chat-memory-tools"
 import {
+	isSafeSourceId,
 	parseSourceAnnotatedMarkdown,
 	stripSourceMarkup,
 } from "@/lib/source-annotations"
 import { modelNames, type ModelId } from "@/lib/models"
+import {
+	formatResearchDuration,
+	normalizeResearchMarkdownForDisplay,
+	type NovaResearchSource,
+} from "@/lib/nova-research"
 import { RelatedMemories } from "./related-memories"
 import { MessageActions } from "./message-actions"
 
@@ -76,6 +81,14 @@ type SourceUrlPart = {
 	sourceId: string
 	url: string
 	title?: string
+}
+
+type ActionSource = {
+	id: string
+	title: string
+	subtitle?: string
+	url?: string
+	type: "memory" | "web"
 }
 
 function sourceHost(url: string): string {
@@ -839,6 +852,20 @@ function SourceCitationLink({
 	)
 	const title = sourceTitle(target, document)
 	const summary = sourceSummary(target, document)
+	const citationContent =
+		typeof children === "string" &&
+		(children === sourceId || children === "memory") ? (
+			<span className="inline-flex h-4 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-1.5 text-[9px] font-medium leading-none text-white/50 transition-colors group-hover/source:text-white/70 group-focus-within/source:text-white/70">
+				{sourceId}
+			</span>
+		) : (
+			<>
+				{children}
+				<span className="ml-1 inline-flex h-3.5 min-w-3.5 translate-y-[-1px] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-1 text-[9px] font-medium leading-none text-white/45 transition-colors group-hover/source:text-white/65 group-focus-within/source:text-white/65">
+					{sourceId}
+				</span>
+			</>
+		)
 
 	return (
 		<span className="group/source relative inline rounded-[3px] border-b border-dotted border-white/20 bg-white/[0.025] px-px text-white/90 transition-colors hover:border-white/35 hover:bg-white/[0.045] focus-within:border-white/35 focus-within:bg-white/[0.045]">
@@ -849,19 +876,16 @@ function SourceCitationLink({
 					rel="noopener noreferrer"
 					className="text-inherit no-underline outline-none focus-visible:ring-1 focus-visible:ring-white/25"
 				>
-					{children}
+					{citationContent}
 				</a>
 			) : (
 				<button
 					type="button"
 					className="cursor-help border-0 bg-transparent p-0 text-inherit"
 				>
-					{children}
+					{citationContent}
 				</button>
 			)}
-			<span className="ml-1 inline-flex h-3.5 min-w-3.5 translate-y-[-1px] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-1 text-[9px] font-medium leading-none text-white/45 transition-colors group-hover/source:text-white/65 group-focus-within/source:text-white/65">
-				{sourceId}
-			</span>
 			<span className="pointer-events-none absolute bottom-full left-1/2 z-[1000] hidden w-72 -translate-x-1/2 pb-2 group-hover/source:block group-focus-within/source:block">
 				<span className="pointer-events-auto block rounded-xl border border-white/10 bg-[#0B0F16]/95 p-3 text-left shadow-[0_16px_44px_rgba(0,0,0,0.48)] backdrop-blur-xl">
 					<span className="mb-1 flex items-center justify-between gap-2">
@@ -942,7 +966,7 @@ function makeMarkdownComponents(
 	}
 }
 
-function WebSourcesPill({ sources }: { sources: SourceUrlPart[] }) {
+function SourcesPill({ sources }: { sources: ActionSource[] }) {
 	const [expanded, setExpanded] = useState(false)
 	const ref = useRef<HTMLDivElement>(null)
 
@@ -960,8 +984,9 @@ function WebSourcesPill({ sources }: { sources: SourceUrlPart[] }) {
 	if (sources.length === 0) return null
 
 	const faviconHosts: string[] = []
-	for (const s of sources) {
-		const host = sourceHost(s.url)
+	for (const source of sources) {
+		if (!source.url) continue
+		const host = sourceHost(source.url)
 		if (!faviconHosts.includes(host)) faviconHosts.push(host)
 		if (faviconHosts.length >= 3) break
 	}
@@ -974,7 +999,7 @@ function WebSourcesPill({ sources }: { sources: SourceUrlPart[] }) {
 				onClick={() => setExpanded((v) => !v)}
 				className="flex cursor-pointer items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] py-1 pr-2.5 pl-1.5 text-xs text-white/65 transition-colors hover:bg-white/[0.08] hover:text-white/80"
 				aria-expanded={expanded}
-				aria-label={`${count} web ${count === 1 ? "source" : "sources"}`}
+				aria-label={`${count} ${count === 1 ? "source" : "sources"}`}
 			>
 				<span className="flex -space-x-1.5">
 					{faviconHosts.length > 0 ? (
@@ -997,16 +1022,11 @@ function WebSourcesPill({ sources }: { sources: SourceUrlPart[] }) {
 			{expanded && (
 				<div className="absolute bottom-full left-0 z-[1000] mb-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-white/10 bg-[#0B0F16]/95 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl">
 					<ul className="max-h-72 list-none space-y-0.5 overflow-y-auto">
-						{sources.map((s) => {
-							const host = sourceHost(s.url)
-							return (
-								<li key={s.sourceId}>
-									<a
-										href={s.url}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="flex items-start gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.06]"
-									>
+						{sources.map((source) => {
+							const host = source.url ? sourceHost(source.url) : null
+							const content = (
+								<>
+									{host ? (
 										<img
 											src={faviconUrl(host)}
 											alt=""
@@ -1014,15 +1034,35 @@ function WebSourcesPill({ sources }: { sources: SourceUrlPart[] }) {
 											loading="lazy"
 											referrerPolicy="no-referrer"
 										/>
-										<span className="min-w-0">
-											<span className="block truncate text-white/80">
-												{s.title?.trim() || host}
-											</span>
-											<span className="block truncate text-[11px] text-white/40">
-												{host}
-											</span>
+									) : (
+										<BookOpenIcon className="mt-0.5 size-4 shrink-0 text-white/35" />
+									)}
+									<span className="min-w-0">
+										<span className="block truncate text-white/80">
+											{source.title}
 										</span>
-									</a>
+										<span className="block truncate text-[11px] text-white/40">
+											{source.subtitle || host || "Saved memory"}
+										</span>
+									</span>
+								</>
+							)
+							return (
+								<li key={source.id}>
+									{source.url ? (
+										<a
+											href={source.url}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="flex items-start gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.06]"
+										>
+											{content}
+										</a>
+									) : (
+										<div className="flex items-start gap-2 rounded-lg px-2 py-1.5">
+											{content}
+										</div>
+									)}
 								</li>
 							)
 						})}
@@ -1263,6 +1303,89 @@ function ToolCallDisplay({ part }: { part: ToolCallDisplayPart }) {
 	)
 }
 
+function SaveResearchToMemoryButton({
+	runId,
+	apiBase,
+	className,
+}: {
+	runId: string
+	apiBase: string
+	className?: string
+}) {
+	const [saveState, setSaveState] = useState<
+		"idle" | "saving" | "saved" | "error"
+	>("idle")
+	const { data } = useQuery({
+		queryKey: ["nova-research-memory-status", runId],
+		queryFn: async () => {
+			const response = await fetch(`${apiBase}/chat/research/${runId}`, {
+				credentials: "include",
+			})
+			if (!response.ok) throw new Error("Could not load research status")
+			return (await response.json()) as {
+				run?: { reportDocumentId?: string | null }
+			}
+		},
+		staleTime: 30 * 1000,
+	})
+	const saved = saveState === "saved" || Boolean(data?.run?.reportDocumentId)
+	const saving = saveState === "saving"
+
+	const save = async () => {
+		if (saved || saving) return
+		setSaveState("saving")
+		try {
+			const response = await fetch(
+				`${apiBase}/chat/research/${runId}/save-to-memory`,
+				{ method: "POST", credentials: "include" },
+			)
+			const result = (await response.json().catch(() => null)) as {
+				error?: string
+				saved?: boolean
+			} | null
+			if (!response.ok || !result?.saved) {
+				throw new Error(result?.error || "Could not save this report")
+			}
+			setSaveState("saved")
+		} catch {
+			setSaveState("error")
+		}
+	}
+
+	const label = saved
+		? "Saved to memory"
+		: saveState === "error"
+			? "Try saving again"
+			: "Save to memory"
+
+	return (
+		<button
+			type="button"
+			onClick={() => void save()}
+			disabled={saved || saving}
+			title={label}
+			className={cn(
+				"inline-flex items-center gap-1 rounded px-1.5 py-1 text-[11px] transition-colors",
+				saved
+					? "text-emerald-400/75"
+					: saveState === "error"
+						? "text-red-300/75 hover:bg-red-400/10"
+						: "text-white/50 hover:bg-white/10 hover:text-white/80",
+				className,
+			)}
+		>
+			{saving ? (
+				<Loader2 className="size-3.5 animate-spin" />
+			) : saved ? (
+				<CheckIcon className="size-3.5" />
+			) : (
+				<BookOpenIcon className="size-3.5" />
+			)}
+			<span>{saving ? "Saving…" : label}</span>
+		</button>
+	)
+}
+
 interface AgentMessageProps {
 	message: UIMessage
 	index: number
@@ -1299,15 +1422,47 @@ export function AgentMessage({
 		.filter((part) => part.type === "text")
 		.map((part) => part.text)
 		.join(" ")
-	const copyText = stripSourceMarkup(messageText)
+	const researchMetadata = (
+		message as UIMessage & {
+			metadata?: {
+				research?: {
+					runId?: string
+					title?: string
+					artifact?: string
+					durationMs?: number
+					sources?: NovaResearchSource[]
+				}
+			}
+		}
+	).metadata?.research
+	const copyText = researchMetadata
+		? normalizeResearchMarkdownForDisplay(stripSourceMarkup(messageText))
+		: stripSourceMarkup(messageText)
 	const memoryOutputs = useMemo(
 		() => extractMemoryToolOutputs(message),
 		[message],
 	)
-	const citationIndex = useMemo(
-		() => buildCitationIndex(memoryOutputs),
-		[memoryOutputs],
-	)
+	const citationIndex = useMemo(() => {
+		const index = buildCitationIndex(memoryOutputs)
+		for (const source of researchMetadata?.sources ?? []) {
+			if (
+				source.type !== "memory" ||
+				!source.sourceId ||
+				!isSafeSourceId(source.sourceId) ||
+				index.has(source.sourceId)
+			) {
+				continue
+			}
+			index.set(source.sourceId, {
+				sourceId: source.sourceId,
+				documentId: source.documentId,
+				title: source.title ?? source.space,
+				type: "memory",
+				url: source.url,
+			})
+		}
+		return index
+	}, [memoryOutputs, researchMetadata?.sources])
 	const allowedSourceIds = useMemo(
 		() => new Set(citationIndex.keys()),
 		[citationIndex],
@@ -1342,6 +1497,39 @@ export function AgentMessage({
 		}
 		return out
 	}, [message.parts])
+	const actionSources = useMemo(() => {
+		const seen = new Set<string>()
+		const sources: ActionSource[] = []
+		for (const source of webSources) {
+			const id = `web:${source.url}`
+			if (seen.has(id)) continue
+			seen.add(id)
+			sources.push({
+				id,
+				type: "web",
+				title: source.title?.trim() || sourceHost(source.url),
+				subtitle: sourceHost(source.url),
+				url: source.url,
+			})
+		}
+		for (const source of researchMetadata?.sources ?? []) {
+			const id = source.url ? `web:${source.url}` : source.id
+			if (seen.has(id)) continue
+			seen.add(id)
+			sources.push({
+				id,
+				type: source.type,
+				title:
+					source.title?.trim() ||
+					source.space ||
+					(source.type === "memory" ? "Saved memory" : "Web source"),
+				subtitle:
+					source.space || source.sourceId || source.documentId || undefined,
+				url: source.url,
+			})
+		}
+		return sources
+	}, [researchMetadata?.sources, webSources])
 	const hasAssistantText = message.parts.some(
 		(p) => p.type === "text" && (p as { text?: string }).text?.trim(),
 	)
@@ -1352,49 +1540,27 @@ export function AgentMessage({
 	const responseModelLabel = responseModel
 		? `${modelNames[responseModel].name} ${modelNames[responseModel].version}`
 		: null
-	const researchMetadata = (
-		message as UIMessage & {
-			metadata?: {
-				research?: { runId?: string; title?: string; artifact?: string }
-			}
-		}
-	).metadata?.research
 	const researchApiBase =
 		process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+	const researchDuration = formatResearchDuration(researchMetadata?.durationMs)
 
 	return (
 		<div className="flex flex-col gap-1 w-full">
 			<div className="flex gap-2">
 				<div className="flex flex-col gap-2 w-full">
-					{researchMetadata?.runId ? (
-						<div className="flex items-center justify-between gap-3 rounded-xl border border-[#267BF1]/20 bg-[linear-gradient(135deg,rgba(38,123,241,0.12),rgba(9,18,32,0.72))] px-3.5 py-3">
-							<div className="flex min-w-0 items-center gap-2.5">
-								<div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#267BF1]/12">
-									<TelescopeIcon className="size-4 text-[#8DBDFF]" />
-								</div>
-								<div className="min-w-0">
-									<div className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#8DBDFF]/70">
-										Nova Research Report
-									</div>
-									<div className="mt-0.5 truncate text-sm font-medium text-white/90">
-										{researchMetadata.title || "Research complete"}
-									</div>
-								</div>
-							</div>
-							<a
-								href={`${researchApiBase}/chat/research/${researchMetadata.runId}/report.md`}
-								download
-								className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[#267BF1]/25 bg-[#267BF1]/10 px-2.5 py-1.5 text-[11px] text-[#A8CCFF] transition-colors hover:bg-[#267BF1]/20"
-							>
-								<DownloadIcon className="size-3" /> Markdown
-							</a>
-						</div>
-					) : null}
 					<RelatedMemories
 						message={message}
 						expandedMemories={expandedMemories}
 						onToggle={onToggleMemories}
 					/>
+					{researchDuration ? (
+						<p className="mb-1 text-xs text-white/40">
+							Research completed in{" "}
+							<span className="tabular-nums text-white/60">
+								{researchDuration}
+							</span>
+						</p>
+					) : null}
 
 					{message.parts.map((part, partIndex) => {
 						if (part.type === "source-url") {
@@ -1445,17 +1611,18 @@ export function AgentMessage({
 							return (
 								<div
 									key={`${message.id}-${partIndex}`}
-									className={cn(
-										"text-sm text-white/90 chat-markdown-content",
-										researchMetadata?.runId &&
-											"rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3.5",
-									)}
+									className={cn("text-sm text-white/90 chat-markdown-content")}
 								>
 									<Streamdown components={markdownComponents}>
-										{
-											parseSourceAnnotatedMarkdown(runText, allowedSourceIds)
-												.markdown
-										}
+										{researchMetadata
+											? normalizeResearchMarkdownForDisplay(
+													parseSourceAnnotatedMarkdown(
+														runText,
+														allowedSourceIds,
+													).markdown,
+												)
+											: parseSourceAnnotatedMarkdown(runText, allowedSourceIds)
+													.markdown}
 									</Streamdown>
 								</div>
 							)
@@ -1518,16 +1685,38 @@ export function AgentMessage({
 						onLike={onLike}
 						onDislike={onDislike}
 					/>
-					{webSources.length > 0 && (
+					{actionSources.length > 0 && (
 						<div
 							className={cn(
 								"transition-opacity duration-200",
 								isHovered || isLastAgentMessage ? "opacity-100" : "opacity-0",
 							)}
 						>
-							<WebSourcesPill sources={webSources} />
+							<SourcesPill sources={actionSources} />
 						</div>
 					)}
+					{researchMetadata?.runId ? (
+						<>
+							<SaveResearchToMemoryButton
+								runId={researchMetadata.runId}
+								apiBase={researchApiBase}
+								className={
+									isHovered || isLastAgentMessage ? "opacity-100" : "opacity-0"
+								}
+							/>
+							<a
+								href={`${researchApiBase}/chat/research/${researchMetadata.runId}/report.md`}
+								download
+								title="Download research as Markdown"
+								className={cn(
+									"rounded p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white/80",
+									isHovered || isLastAgentMessage ? "opacity-100" : "opacity-0",
+								)}
+							>
+								<DownloadIcon className="size-3.5" />
+							</a>
+						</>
+					) : null}
 					{responseModelLabel && (
 						<span
 							className={cn(

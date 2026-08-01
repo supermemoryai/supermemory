@@ -192,6 +192,7 @@
 
 /* Loose lists wrap item content in <p> whose top margin detaches the bullet */
 .chat-markdown-content li > p:first-child {
+	display: inline;
 	margin-top: 0;
 }
 

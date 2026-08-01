@@ -225,6 +225,45 @@ export function parseSourceAnnotatedMarkdown(
 			}
 		}
 
+		if (
+			!codeState.inFence &&
+			!codeState.inInlineCode &&
+			text[i] === "[" &&
+			text[i - 1] !== "!" &&
+			text[i - 1] !== "\\"
+		) {
+			const closeIndex = text.indexOf("]", i + 1)
+			if (closeIndex !== -1 && !text.slice(i + 1, closeIndex).includes("\n")) {
+				const sourceIds = text
+					.slice(i + 1, closeIndex)
+					.split(",")
+					.map((sourceId) => sourceId.trim())
+				const next = text[closeIndex + 1]
+				if (
+					sourceIds.length > 0 &&
+					sourceIds.every(
+						(sourceId) =>
+							isSafeSourceId(sourceId) && allowedSourceIds.has(sourceId),
+					) &&
+					next !== "(" &&
+					next !== "[" &&
+					next !== ":"
+				) {
+					output.push(
+						sourceIds
+							.map(
+								(sourceId) =>
+									`[${escapeMarkdownLinkText(sourceId)}](#sm-source:${encodeURIComponent(sourceId)})`,
+							)
+							.join(" "),
+					)
+					i = closeIndex + 1
+					codeState.lineStart = false
+					continue
+				}
+			}
+		}
+
 		appendChar(text, i, output, codeState)
 		i++
 	}
