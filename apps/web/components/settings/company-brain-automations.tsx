@@ -19,7 +19,8 @@ import {
 	Radar,
 	Trash2,
 } from "lucide-react"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { toast } from "sonner"
 import {
 	Select,
@@ -301,6 +302,8 @@ function AutomationCard({
 	id,
 	channels,
 	ownerLabel,
+	personalOnlyApps = [],
+	appCatalog = {},
 	onDone,
 	onCancelNew,
 	onCollapse,
@@ -309,6 +312,8 @@ function AutomationCard({
 	id: string | null
 	channels: Channel[]
 	ownerLabel?: string
+	personalOnlyApps?: string[]
+	appCatalog?: Record<string, { name: string; iconDomain?: string }>
 	onDone: () => void
 	onCancelNew?: () => void
 	onCollapse?: () => void
@@ -349,9 +354,18 @@ function AutomationCard({
 				const b = (await res.json().catch(() => ({}))) as { error?: string }
 				throw new Error(b.error ?? "Couldn't save.")
 			}
+			const b = (await res.json().catch(() => ({}))) as {
+				warnings?: { app: string }[]
+			}
+			return b.warnings ?? []
 		},
-		onSuccess: () => {
+		onSuccess: (warnings) => {
 			toast.success("Automation saved.")
+			if (warnings.length)
+				toast.warning(
+					`Heads up: ${warnings.map((w) => w.app).join(", ")} ${warnings.length === 1 ? "is" : "are"} connected personally and won't be available to this channel automation. Share the connection with the workspace in Connections.`,
+					{ duration: 10000 },
+				)
 			onDone()
 		},
 		onError: (err) =>
@@ -619,6 +633,45 @@ function AutomationCard({
 							Cancel
 						</button>
 					) : null}
+
+					{draft.deliverTo === "channel" && personalOnlyApps.length > 0 && (
+						<span className="flex min-w-0 items-center gap-2 text-[12px] leading-snug text-amber-300/80">
+							<TooltipProvider>
+								<span className="flex shrink-0 -space-x-1">
+									{personalOnlyApps.map((app) => (
+										<Tooltip key={app}>
+											<TooltipTrigger asChild>
+												{appCatalog[app]?.iconDomain ? (
+													<img
+														alt={appCatalog[app]?.name ?? app}
+														className="size-4 cursor-default select-none rounded-full bg-white/10 ring-1 ring-black/50"
+														src={`https://www.google.com/s2/favicons?domain=${appCatalog[app]?.iconDomain}&sz=32`}
+													/>
+												) : (
+													<span className="flex size-4 cursor-default select-none items-center justify-center rounded-full bg-amber-500/20 text-[9px] uppercase ring-1 ring-black/50">
+														{app.slice(0, 1)}
+													</span>
+												)}
+											</TooltipTrigger>
+											<TooltipContent>
+												{appCatalog[app]?.name ?? app}
+											</TooltipContent>
+										</Tooltip>
+									))}
+								</span>
+							</TooltipProvider>
+							<span className="truncate">
+								only connected to you ·{" "}
+								<a
+									className="underline underline-offset-2 hover:text-amber-200"
+									href="/?settings=connections"
+								>
+									Share with the workspace
+								</a>{" "}
+								to use here
+							</span>
+						</span>
+					)}
 				</div>
 				<div className="flex items-center gap-2">
 					{id ? (
@@ -853,6 +906,11 @@ export default function CompanyBrainAutomations() {
 	const { user, org } = useAuth()
 	const queryClient = useQueryClient()
 	const [drafts, setDrafts] = useState<{ key: number; draft: Draft }[]>([])
+	const [showAllTemplates, setShowAllTemplates] = useState(false)
+	const [actionSlot, setActionSlot] = useState<HTMLElement | null>(null)
+	useEffect(() => {
+		setActionSlot(document.getElementById("configure-section-actions"))
+	}, [])
 	const [openId, setOpenId] = useState<string | null>(null)
 	const draftKey = useRef(0)
 	const addDraft = (draft: Draft) =>
@@ -886,11 +944,15 @@ export default function CompanyBrainAutomations() {
 			const res = await fetch(`${BACKEND}/brain/mcp-connections/`, {
 				credentials: "include",
 			})
-			if (!res.ok) return [] as string[]
+			if (!res.ok) return [] as { serverSlug: string; userId: string | null }[]
 			const body = (await res.json()) as {
-				connections?: { serverSlug: string }[]
+				connections?: {
+					serverSlug: string
+					userId: string | null
+					status: string
+				}[]
 			}
-			return (body.connections ?? []).map((c) => c.serverSlug)
+			return (body.connections ?? []).filter((c) => c.status === "active")
 		},
 		enabled: isCompanyBrain,
 	})
@@ -899,7 +961,39 @@ export default function CompanyBrainAutomations() {
 
 	const channels = channelsQuery.data ?? []
 	const automations = listQuery.data ?? []
-	const presets = sortPresets(new Set(appsQuery.data ?? []))
+	const catalogQuery = useQuery({
+		queryKey: ["company-brain-automations", "catalog", "v2"],
+		queryFn: async () => {
+			const res = await fetch(`${BACKEND}/brain/mcp-connections/catalog`, {
+				credentials: "include",
+			})
+			if (!res.ok)
+				return {} as Record<string, { name: string; iconDomain?: string }>
+			const body = (await res.json()) as {
+				catalog?: { slug: string; name?: string; iconDomain?: string }[]
+			}
+			return Object.fromEntries(
+				(body.catalog ?? []).map((e) => [
+					e.slug,
+					{ name: e.name ?? e.slug, iconDomain: e.iconDomain },
+				]),
+			)
+		},
+		enabled: isCompanyBrain,
+	})
+
+	const connections = appsQuery.data ?? []
+	const presets = sortPresets(new Set(connections.map((c) => c.serverSlug)))
+	const sharedApps = new Set(
+		connections.filter((c) => c.userId === null).map((c) => c.serverSlug),
+	)
+	const personalOnlyApps = [
+		...new Set(
+			connections
+				.filter((c) => c.userId !== null && !sharedApps.has(c.serverSlug))
+				.map((c) => c.serverSlug),
+		),
+	]
 	const nameFor = (userId: string | null): string | undefined => {
 		if (!userId) return undefined
 		if (userId === user?.id) return "You"
@@ -913,10 +1007,34 @@ export default function CompanyBrainAutomations() {
 	}
 	const usedTitles = new Set(automations.map((a) => a.title))
 	const availablePresets = presets.filter((p) => !usedTitles.has(p.label))
+	const shownPresets = showAllTemplates
+		? availablePresets
+		: availablePresets.slice(0, 3)
+	const hiddenTemplateCount = availablePresets.length - shownPresets.length
 	const hasList = automations.length > 0 || drafts.length > 0
 
 	return (
 		<section className="flex flex-col gap-3 px-1">
+			{(() => {
+				const newAutomationButton = (
+					<button
+						type="button"
+						onClick={() => addDraft(emptyDraft())}
+						className={cn(
+							dmSans125ClassName(),
+							"inline-flex h-9 items-center justify-center gap-2 rounded-full bg-[#14161A] px-4 text-[13px] font-semibold text-[#FAFAFA] shadow-inside-out transition-colors hover:bg-[#121820]",
+						)}
+					>
+						<Plus className="size-4" />
+						New automation
+					</button>
+				)
+				return actionSlot ? (
+					createPortal(newAutomationButton, actionSlot)
+				) : (
+					<div className="flex justify-end">{newAutomationButton}</div>
+				)
+			})()}
 			<div className="flex flex-col gap-3">
 				{automations.map((a) =>
 					openId === a.id ? (
@@ -925,6 +1043,8 @@ export default function CompanyBrainAutomations() {
 							id={a.id}
 							initial={toDraft(a)}
 							channels={channels}
+							personalOnlyApps={personalOnlyApps}
+							appCatalog={catalogQuery.data ?? {}}
 							onDone={() => {
 								setOpenId(null)
 								refresh()
@@ -953,6 +1073,8 @@ export default function CompanyBrainAutomations() {
 						id={null}
 						initial={draft}
 						channels={channels}
+						personalOnlyApps={personalOnlyApps}
+						appCatalog={catalogQuery.data ?? {}}
 						onDone={() => {
 							removeDraft(key)
 							refresh()
@@ -961,37 +1083,38 @@ export default function CompanyBrainAutomations() {
 					/>
 				))}
 
-				{hasList ? (
-					<p
-						className={cn(
-							dmSans125ClassName(),
-							"pt-2 text-[12px] font-medium text-[#6B6B6B]",
-						)}
-					>
-						Templates
-					</p>
-				) : null}
+				<p
+					className={cn(
+						dmSans125ClassName(),
+						hasList ? "pt-2" : "",
+						"text-[12px] font-medium text-[#6B6B6B]",
+					)}
+				>
+					{showAllTemplates ? "Templates" : "Ideas for your setup"}
+				</p>
 				<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-					{availablePresets.map((p) => (
+					{shownPresets.map((p) => (
 						<PresetCard
 							key={p.id}
 							preset={p}
 							onPick={() => addDraft(presetToDraft(p))}
 						/>
 					))}
+				</div>
+				{hiddenTemplateCount > 0 || showAllTemplates ? (
 					<button
 						type="button"
-						onClick={() => addDraft(emptyDraft())}
+						onClick={() => setShowAllTemplates((v) => !v)}
 						className={cn(
 							dmSans125ClassName(),
-							"flex min-h-[104px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#2A313C] border-dashed",
-							"text-[13px] font-medium text-[#737B87] transition-colors hover:border-[#3A4150] hover:text-[#FAFAFA]",
+							"self-start text-[12px] font-medium text-[#737B87] transition-colors hover:text-[#FAFAFA]",
 						)}
 					>
-						<Plus className="size-4" />
-						New automation
+						{showAllTemplates
+							? "Show fewer"
+							: `Show all ${availablePresets.length} templates`}
 					</button>
-				</div>
+				) : null}
 			</div>
 		</section>
 	)

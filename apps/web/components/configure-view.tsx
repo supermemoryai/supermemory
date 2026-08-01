@@ -116,16 +116,19 @@ export function ConfigureView() {
 					</nav>
 
 					<div className="min-w-0 flex-1">
-						<header className="mb-5">
-							<h2
-								id="configure-section-title"
-								className="text-[14px] font-semibold tracking-[-0.1px] text-[#FAFAFA]"
-							>
-								{active.label}
-							</h2>
-							<p className="mt-1 text-[12px] leading-5 text-[#737B87]">
-								{active.description}
-							</p>
+						<header className="mb-5 flex items-start justify-between gap-4">
+							<div>
+								<h2
+									id="configure-section-title"
+									className="text-[14px] font-semibold tracking-[-0.1px] text-[#FAFAFA]"
+								>
+									{active.label}
+								</h2>
+								<p className="mt-1 text-[12px] leading-5 text-[#737B87]">
+									{active.description}
+								</p>
+							</div>
+							<div id="configure-section-actions" className="shrink-0" />
 						</header>
 
 						<ErrorBoundary
