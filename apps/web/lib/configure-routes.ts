@@ -6,6 +6,7 @@ export const CONFIGURE_SECTIONS = [
 	"workspace-prompt",
 	"proactivity",
 	"automations",
+	"skills",
 ] as const
 
 export type ConfigureSection = (typeof CONFIGURE_SECTIONS)[number]
