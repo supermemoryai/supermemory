@@ -12,7 +12,7 @@ import {
 	Globe,
 	Loader2,
 } from "lucide-react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { AnimatePresence, motion } from "motion/react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
@@ -464,6 +464,19 @@ function DockedHeader({
 	exhausted: boolean
 	onContinue: () => void
 }) {
+	// Same key as the rail/header queries so a connect in another tab is picked up on refocus.
+	const { data: slack } = useQuery({
+		queryKey: ["brain-slack-status"],
+		queryFn: async (): Promise<{ connected: boolean }> => {
+			const res = await fetch(`${BACKEND}/brain/slack/status`, {
+				credentials: "include",
+			})
+			if (!res.ok) return { connected: false }
+			return (await res.json()) as { connected: boolean }
+		},
+		staleTime: 30_000,
+	})
+	const slackConnected = slack?.connected ?? false
 	const brandName = workspaceNameFromDomain(domain) || domain
 	const showSpinner = !done && !exhausted
 	const statusLabel = done
@@ -504,6 +517,12 @@ function DockedHeader({
 					)}
 					{statusLabel}
 				</span>
+				{slackConnected && (
+					<span className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap text-[12px] font-medium text-[#5CD68A] sm:flex">
+						<Check className="size-3" />
+						Slack connected · free trial started
+					</span>
+				)}
 			</div>
 			{/* Never gated on research; the admin can move on while it keeps working. */}
 			<Button

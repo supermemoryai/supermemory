@@ -55,7 +55,7 @@ function titleCase(s: string) {
 	return s.replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-export function ConnectionsBoard() {
+export function useConnectionsBoard() {
 	const [catalog, setCatalog] = useState<CatalogEntry[] | null>(null)
 	const [rows, setRows] = useState<ConnRow[]>([])
 	const [slack, setSlack] = useState<{
@@ -155,7 +155,6 @@ export function ConnectionsBoard() {
 		}
 	}
 
-	const { setViewMode } = useViewMode()
 	const apps = catalog ?? []
 	const loading = catalog === null
 	const unconnected = apps.filter((a) => !isConnected(a.slug))
@@ -172,92 +171,84 @@ export function ConnectionsBoard() {
 	const connectedCount = apps.filter((a) => isConnected(a.slug)).length
 	const showBoard = loading || unconnected.length > 0
 
+	return {
+		slack,
+		loading,
+		busy,
+		featured,
+		overflow,
+		previewApps,
+		connectedCount,
+		showBoard,
+		isConnected,
+		connect,
+	}
+}
+
+export type ConnectionsBoardState = ReturnType<typeof useConnectionsBoard>
+
+export const CONNECT_TOOLS_CARD_ID = "connect-tools"
+
+export function ConnectToolsCard({ board }: { board: ConnectionsBoardState }) {
+	const { setViewMode } = useViewMode()
+	const { loading, featured, overflow, busy, isConnected, connect } = board
+
 	return (
-		<div className="space-y-4">
-			{slack && !slack.connected && <SlackBanner />}
-
-			<div className="grid items-start gap-4 lg:grid-cols-5">
-				{showBoard ? (
-					<section
-						className="relative flex h-fit min-w-0 flex-col gap-2 overflow-hidden rounded-[18px] bg-[#1B1F24] p-5 lg:col-span-3"
-						style={cardStyle}
-					>
-						<div>
-							<p
-								className={cn(
-									"text-[15px] font-semibold text-[#fafafa]",
-									dmSans125ClassName(),
-								)}
-							>
-								Connect your tools
-							</p>
-							<p className="mt-0.5 text-[12px] font-medium text-[#737373]">
-								Give your Slack agent live access to the apps your team already
-								uses.
-							</p>
-						</div>
-
-						<div className="overflow-hidden rounded-[12px] bg-[#14161A]">
-							{loading ? (
-								Array.from({ length: 3 }).map((_, i) => (
-									<TileSkeleton key={i} showDivider={i < 2} />
-								))
-							) : (
-								<>
-									{featured.map((entry, i) => (
-										<AppTile
-											key={entry.slug}
-											icon={brainConnectorIcon(
-												entry.slug,
-												entry.name,
-												"size-5",
-											)}
-											name={entry.name}
-											subtitle={titleCase(entry.category)}
-											connected={isConnected(entry.slug)}
-											busy={busy === entry.slug}
-											onConnect={() => connect(entry)}
-											showDivider={
-												i < featured.length - 1 || overflow.length > 0
-											}
-										/>
-									))}
-									{overflow.length > 0 && (
-										<MoreTile
-											count={overflow.length}
-											names={overflow.slice(0, 3).map((a) => a.name)}
-											onClick={() => void setViewMode("configure")}
-										/>
-									)}
-								</>
-							)}
-						</div>
-					</section>
-				) : null}
-
-				<AgentPreview
-					apps={previewApps}
-					isConnected={isConnected}
-					connectedCount={connectedCount}
-					wide={!showBoard}
-				/>
+		<section
+			id={CONNECT_TOOLS_CARD_ID}
+			className="relative flex h-fit min-w-0 scroll-mt-4 flex-col gap-2 overflow-hidden rounded-[18px] bg-[#1B1F24] p-5"
+			style={cardStyle}
+		>
+			<div>
+				<p
+					className={cn(
+						"text-[15px] font-semibold text-[#fafafa]",
+						dmSans125ClassName(),
+					)}
+				>
+					Connect your tools
+				</p>
+				<p className="mt-0.5 text-[12px] font-medium text-[#737373]">
+					Give your Slack agent live access to the apps your team already uses.
+				</p>
 			</div>
-		</div>
+
+			<div className="overflow-hidden rounded-[12px] bg-[#14161A]">
+				{loading ? (
+					Array.from({ length: 3 }).map((_, i) => (
+						<TileSkeleton key={i} showDivider={i < 2} />
+					))
+				) : (
+					<>
+						{featured.map((entry, i) => (
+							<AppTile
+								key={entry.slug}
+								icon={brainConnectorIcon(entry.slug, entry.name, "size-5")}
+								name={entry.name}
+								subtitle={titleCase(entry.category)}
+								connected={isConnected(entry.slug)}
+								busy={busy === entry.slug}
+								onConnect={() => connect(entry)}
+								showDivider={i < featured.length - 1 || overflow.length > 0}
+							/>
+						))}
+						{overflow.length > 0 && (
+							<MoreTile
+								count={overflow.length}
+								names={overflow.slice(0, 3).map((a) => a.name)}
+								onClick={() => void setViewMode("configure")}
+							/>
+						)}
+					</>
+				)}
+			</div>
+		</section>
 	)
 }
 
-function AgentPreview({
-	apps,
-	isConnected,
-	connectedCount,
-	wide = false,
-}: {
-	apps: CatalogEntry[]
-	isConnected: (slug: string) => boolean
-	connectedCount: number
-	wide?: boolean
-}) {
-	const prompts = apps
+export function AskInSlackCard({ board }: { board: ConnectionsBoardState }) {
+	const { previewApps, isConnected, connectedCount } = board
+	const prompts = previewApps
 		.filter((a) => AGENT_PROMPTS[a.slug])
 		.slice(0, 6)
 		.map((a) => ({
@@ -269,10 +260,7 @@ function AgentPreview({
 
 	return (
 		<section
-			className={cn(
-				"relative flex h-fit min-w-0 flex-col gap-2 overflow-hidden rounded-[18px] bg-[#1B1F24] p-5",
-				wide ? "lg:col-span-5" : "lg:col-span-2",
-			)}
+			className="relative flex h-fit min-w-0 flex-col gap-2 overflow-hidden rounded-[18px] bg-[#1B1F24] p-5"
 			style={cardStyle}
 		>
 			<div className="flex items-center gap-2">
@@ -437,7 +425,7 @@ function TileSkeleton({ showDivider = false }: { showDivider?: boolean }) {
 	)
 }
 
-function SlackBanner() {
+export function SlackBanner() {
 	return (
 		<section
 			className="relative overflow-hidden rounded-[18px] bg-[#1B1F24] p-3.5 sm:p-5"

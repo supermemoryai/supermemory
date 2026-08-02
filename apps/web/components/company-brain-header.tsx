@@ -35,6 +35,7 @@ import { DomainLogo } from "@/components/onboarding-brain/step-about"
 import { FeedbackModal } from "@/components/feedback-modal"
 import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
 import { SlackMark } from "@/components/brain-connector-icons"
+import { BrainTrialPill } from "@/components/brain-trial-pill"
 import { GraphIcon } from "@/components/integration-icons"
 import { SpaceSelector } from "@/components/space-selector"
 import { UserProfileMenu } from "@/components/user-profile-menu"
@@ -496,6 +497,7 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 					</>
 				) : (
 					<>
+						<BrainTrialPill className="h-9 px-3" />
 						{canInvite && (
 							<Tooltip>
 								<TooltipTrigger asChild>

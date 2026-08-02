@@ -522,16 +522,21 @@ function SlackStepBody({
 		)
 	}
 	return (
-		<a
-			href={`${BACKEND}/brain/slack/oauth/install`}
-			className={cn(
-				"inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-[13px] font-semibold text-[#1D1C1D] transition-opacity hover:opacity-90",
-				dmSans125ClassName(),
-			)}
-		>
-			<SlackMark className="size-4" />
-			Add to Slack
-		</a>
+		<div>
+			<a
+				href={`${BACKEND}/brain/slack/oauth/install`}
+				className={cn(
+					"inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-[13px] font-semibold text-[#1D1C1D] transition-opacity hover:opacity-90",
+					dmSans125ClassName(),
+				)}
+			>
+				<SlackMark className="size-4" />
+				Add to Slack
+			</a>
+			<p className="mt-2 text-center text-[11px] font-medium leading-[1.5] text-[#525D6E]">
+				Starts your 14-day free trial. No credit card needed.
+			</p>
+		</div>
 	)
 }
 
