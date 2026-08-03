@@ -83,9 +83,17 @@ export interface ProfileStructure {
 	searchResults: {
 		/**
 		 * Memories retrieved based on semantic similarity to the current query.
-		 * Most relevant to the immediate conversation context.
+		 * Most relevant to the immediate conversation context. `chunk`, when
+		 * present, marks the entry as a document chunk (e.g. from a connector
+		 * sync) rather than an atomic user-authored memory — governance hooks
+		 * that need to treat connector-sourced content differently (e.g. for
+		 * injection scanning) rely on this distinction being preserved.
 		 */
-		results: Array<{ memory: string; metadata?: Record<string, unknown> }>
+		results: Array<{
+			memory: string
+			chunk?: string
+			metadata?: Record<string, unknown>
+		}>
 	}
 }
 

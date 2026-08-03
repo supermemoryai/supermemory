@@ -302,24 +302,31 @@ export const enhanceMessagesWithMemories = async (
 			metadata?: Record<string, unknown>
 		}
 
-		let searchResults = response.results as SearchResult[]
+		let governedResults: SearchResult[] | undefined
 		if (ctx.governanceHook) {
+			const rawResults = response.results as SearchResult[]
 			const governed = await ctx.governanceHook(
 				{
 					profile: {},
 					searchResults: {
-						results: searchResults.map((r) => ({
+						// Keep memory/chunk as distinct fields so a governance hook
+						// can tell a user-authored memory apart from a document
+						// chunk (e.g. one that arrived via connector auto-sync).
+						results: rawResults.map((r) => ({
 							memory: r.memory ?? r.chunk ?? "",
+							...(r.chunk && !r.memory ? { chunk: r.chunk } : {}),
 							...(r.metadata ? { metadata: r.metadata } : {}),
 						})),
 					},
 				},
 				{ containerTag: ctx.containerTag, queryText, mode: ctx.mode },
 			)
-			searchResults = governed.searchResults.results
+			governedResults = governed.searchResults.results
 		}
 
-		const formattedMemories = searchResults
+		const effectiveResults = governedResults ?? (response.results as SearchResult[])
+
+		const formattedMemories = effectiveResults
 			.map((result: SearchResult) => {
 				const text = result.memory || result.chunk
 				return text ? `- ${text}` : null
@@ -331,10 +338,19 @@ export const enhanceMessagesWithMemories = async (
 			? ctx.promptTemplate({
 					userMemories: "",
 					generalSearchMemories: formattedMemories,
-					searchResults: searchResults.map((r) => ({
-						memory: r.memory || r.chunk || "",
-						...(r.metadata ? { metadata: r.metadata } : {}),
-					})),
+					// Only rebuild into the governed shape when a hook actually ran.
+					// Otherwise pass the raw SDK results through untouched (as before
+					// this hook existed) so a custom promptTemplate reading fields
+					// like `id`/`similarity`/`title` doesn't silently lose them.
+					searchResults: governedResults
+						? governedResults.map((r) => ({
+								memory: r.memory || r.chunk || "",
+								...(r.metadata ? { metadata: r.metadata } : {}),
+							}))
+						: (response.results as Array<{
+								memory: string
+								metadata?: Record<string, unknown>
+							}>),
 				})
 			: `The following are relevant memories and context about this user retrieved from previous interactions. Use these to personalize your response:\n\n${formattedMemories}`
 	} else {
