@@ -6,6 +6,20 @@ export type NovaResearchStatus =
 	| "failed"
 	| "cancelled"
 
+export type NovaResearchFailure = {
+	code: string
+	stage: string
+	retryable: boolean
+	incidentId?: string | null
+	/** A user-safe explanation supplied by the API. Legacy `run.error` is never rendered. */
+	message?: string | null
+}
+
+export type NovaResearchConnectionState = {
+	status: "connected" | "reconnecting"
+	attempts: number
+}
+
 export type NovaResearchPlan = {
 	goal: string
 	steps: Array<{
@@ -144,6 +158,8 @@ export type NovaResearchRun = {
 	reportTitle: string | null
 	reportMarkdown: string | null
 	reportDocumentId: string | null
+	failure?: NovaResearchFailure | null
+	/** @deprecated Legacy internal error detail. Keep for response compatibility only. */
 	error: string | null
 	toolCallCount: number
 	startedAt: string | null
@@ -151,6 +167,130 @@ export type NovaResearchRun = {
 	createdAt: string
 	updatedAt: string
 	events: NovaResearchEvent[]
+}
+
+export type NovaResearchPlanStepDisplayStatus =
+	| NovaResearchPlan["steps"][number]["status"]
+	| "failed"
+	| "cancelled"
+
+const SAFE_RESEARCH_TOOL_FAILURE_MESSAGES = new Set([
+	"Web search could not be completed.",
+	"The webpage could not be read.",
+	"Memory retrieval could not be completed.",
+	"This research step could not be completed.",
+])
+
+function safeResearchIncidentId(
+	failure?: NovaResearchFailure | null,
+): string | null {
+	const incidentId = failure?.incidentId?.trim()
+	return incidentId && /^[A-Za-z0-9_-]{1,64}$/.test(incidentId)
+		? incidentId
+		: null
+}
+
+export function researchToolFailureDescription(
+	event: NovaResearchEvent,
+): string | null {
+	if (event.type !== "tool" || event.status !== "failed") return null
+	const output =
+		event.output && typeof event.output === "object"
+			? (event.output as { error?: unknown })
+			: null
+	const message = typeof output?.error === "string" ? output.error.trim() : ""
+	return SAFE_RESEARCH_TOOL_FAILURE_MESSAGES.has(message)
+		? message
+		: "This research tool could not be completed."
+}
+
+export function researchFailurePresentation(run: NovaResearchRun): {
+	title: string
+	description: string
+	incidentId: string | null
+	canRetryFinalization: boolean
+	retryLabel: string | null
+} {
+	const failure = run.failure
+	const incidentId = safeResearchIncidentId(failure)
+	const retryable = failure?.retryable === true
+
+	switch (failure?.code?.trim().toUpperCase()) {
+		case "START_FAILED":
+			return {
+				title: "Research could not start",
+				description: "Research could not be started. Please try again.",
+				incidentId,
+				canRetryFinalization: false,
+				retryLabel: null,
+			}
+		case "RESEARCH_FAILED":
+			return {
+				title: "A research step failed",
+				description:
+					"Research stopped before the evidence review finished. You can run it again.",
+				incidentId,
+				canRetryFinalization: false,
+				retryLabel: null,
+			}
+		case "FINALIZATION_FAILED":
+			return {
+				title: "Report finalization failed",
+				description:
+					"The evidence was collected, but Nova could not finish a properly cited report. Your collected sources are preserved.",
+				incidentId,
+				canRetryFinalization: retryable,
+				retryLabel: retryable ? "Retry finalizing" : null,
+			}
+		case "PERSISTENCE_FAILED":
+			return {
+				title: "Saving the report failed",
+				description:
+					"The report was prepared but could not be saved. Your collected sources are preserved.",
+				incidentId,
+				canRetryFinalization: retryable,
+				retryLabel: retryable ? "Retry saving" : null,
+			}
+		default:
+			return {
+				title: "Research could not complete",
+				description:
+					"Nova stopped safely before producing a report. You can run the research again.",
+				incidentId,
+				canRetryFinalization: false,
+				retryLabel: null,
+			}
+	}
+}
+
+export function researchPlanStepDisplayStatus(
+	runStatus: NovaResearchStatus,
+	stepStatus: NovaResearchPlan["steps"][number]["status"],
+): NovaResearchPlanStepDisplayStatus {
+	if (stepStatus === "complete" || stepStatus === "skipped") return stepStatus
+	if (runStatus === "failed") {
+		return stepStatus === "in_progress" ? "failed" : "skipped"
+	}
+	if (runStatus === "cancelled") return "cancelled"
+	if (runStatus === "completed") return "skipped"
+	return stepStatus
+}
+
+const RESEARCH_POLL_RETRY_DELAYS_MS = [1500, 2500, 4000, 7000, 12000, 15000]
+
+export function researchPollDelayMs(
+	consecutiveFailures: number,
+	runStatus?: NovaResearchStatus,
+): number {
+	if (!Number.isFinite(consecutiveFailures) || consecutiveFailures <= 0) {
+		if (runStatus === "awaiting_input") return 30_000
+		return RESEARCH_POLL_RETRY_DELAYS_MS[0] ?? 1500
+	}
+	const index = Math.min(
+		Math.floor(consecutiveFailures),
+		RESEARCH_POLL_RETRY_DELAYS_MS.length - 1,
+	)
+	return RESEARCH_POLL_RETRY_DELAYS_MS[index] ?? 15000
 }
 
 export type NovaResearchClarificationQuestion = {
@@ -197,6 +337,7 @@ function isClarificationRequest(
 export function pendingResearchClarification(
 	run: NovaResearchRun,
 ): NovaResearchClarificationRequest | null {
+	if (run.status !== "awaiting_input") return null
 	for (let index = run.events.length - 1; index >= 0; index--) {
 		const event = run.events[index]
 		if (

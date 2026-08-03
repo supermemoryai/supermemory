@@ -85,7 +85,9 @@ import {
 import {
 	isActiveResearchRun,
 	type NovaResearchClarificationAnswer,
+	type NovaResearchConnectionState,
 	type NovaResearchRun,
+	researchPollDelayMs,
 } from "@/lib/nova-research"
 
 type ChatMessageSendSource = "typed" | "suggested" | "highlight" | "home"
@@ -230,6 +232,12 @@ export function ChatSidebar({
 	const chatModeRef = useRef(chatMode)
 	chatModeRef.current = chatMode
 	const [researchRun, setResearchRun] = useState<NovaResearchRun | null>(null)
+	const [researchConnection, setResearchConnection] =
+		useState<NovaResearchConnectionState>({
+			status: "connected",
+			attempts: 0,
+		})
+	const [researchPollRevision, setResearchPollRevision] = useState(0)
 	const researchIsActive = isActiveResearchRun(researchRun)
 	const selectedModelRef = useRef(selectedModel)
 	selectedModelRef.current = selectedModel
@@ -936,6 +944,8 @@ export function ChatSidebar({
 			text: string,
 			source: ChatMessageSendSource,
 			drafts = attachmentDrafts,
+			modeOverride?: NovaChatMode,
+			preserveComposer = false,
 		): Promise<boolean> => {
 			const trimmed = text.trim()
 			if (!trimmed && drafts.length === 0) return false
@@ -957,7 +967,7 @@ export function ChatSidebar({
 				const messageText = trimmed || "Analyze the attached file(s)."
 				const isRespondingNow = status === "submitted" || status === "streaming"
 
-				if (chatMode === "research") {
+				if ((modeOverride ?? chatMode) === "research") {
 					if (isRespondingNow || researchIsActive) return false
 					const userMessageId = generateId()
 					if (!threadId) setThreadId(fallbackChatId)
@@ -973,11 +983,13 @@ export function ChatSidebar({
 									: undefined,
 						},
 					])
-					setInput("")
-					setAttachmentDrafts([])
-					uploadPromisesRef.current.clear()
-					abortControllersRef.current.clear()
-					discardedDraftIdsRef.current.clear()
+					if (!preserveComposer) {
+						setInput("")
+						setAttachmentDrafts([])
+						uploadPromisesRef.current.clear()
+						abortControllersRef.current.clear()
+						discardedDraftIdsRef.current.clear()
+					}
 					userJustSentRef.current = true
 					scrollToBottom()
 					analytics.chatMessageSent({
@@ -1200,27 +1212,96 @@ export function ChatSidebar({
 
 	// Keep the user message on stop so it isn't lost when generation is halted
 	// before any assistant response arrives (ENG-732).
-	const handleStop = useCallback(() => {
-		if (researchRun && isActiveResearchRun(researchRun)) {
-			void fetch(`${chatApiBase}/chat/research/${researchRun.id}/cancel`, {
+	const cancelResearch = useCallback(async () => {
+		if (!researchRun || !isActiveResearchRun(researchRun)) return
+		const runId = researchRun.id
+		const response = await fetch(
+			`${chatApiBase}/chat/research/${runId}/cancel`,
+			{
 				method: "POST",
 				credentials: "include",
-			}).then((response) => {
-				if (!response.ok) return
-				setResearchRun((current) =>
-					current?.id === researchRun.id
-						? {
-								...current,
-								status: "cancelled",
-								completedAt: new Date().toISOString(),
-							}
-						: current,
-				)
+			},
+		)
+		if (!response.ok) {
+			const latestResponse = await fetch(
+				`${chatApiBase}/chat/research/${runId}`,
+				{
+					credentials: "include",
+					cache: "no-store",
+				},
+			).catch(() => null)
+			const latestData = latestResponse?.ok
+				? ((await latestResponse.json().catch(() => null)) as {
+						run?: NovaResearchRun | null
+					} | null)
+				: null
+			if (latestData?.run && !isActiveResearchRun(latestData.run)) {
+				setResearchRun(latestData.run)
+				return
+			}
+			throw new Error("Research cancellation failed")
+		}
+		const data = (await response.json().catch(() => null)) as {
+			run?: NovaResearchRun | null
+		} | null
+		setResearchRun((current) => {
+			if (current?.id !== runId) return current
+			return (
+				data?.run ?? {
+					...current,
+					status: "cancelled",
+					completedAt: new Date().toISOString(),
+				}
+			)
+		})
+	}, [chatApiBase, researchRun])
+
+	const handleStop = useCallback(() => {
+		if (researchRun && isActiveResearchRun(researchRun)) {
+			void cancelResearch().catch(() => {
+				toast.error("Could not stop research", {
+					description: "Please try again. The run may still be active.",
+				})
 			})
 			return
 		}
 		stop()
-	}, [chatApiBase, researchRun, stop])
+	}, [cancelResearch, researchRun, stop])
+
+	const handleRetryResearchFinalization = useCallback(async () => {
+		if (!researchRun || researchRun.status !== "failed") {
+			throw new Error("Research run is unavailable")
+		}
+		const response = await fetch(
+			`${chatApiBase}/chat/research/${researchRun.id}/retry-finalization`,
+			{
+				method: "POST",
+				credentials: "include",
+			},
+		)
+		const data = (await response.json().catch(() => null)) as {
+			run?: NovaResearchRun | null
+		} | null
+		if (!response.ok || !data?.run) {
+			throw new Error("Report finalization retry failed")
+		}
+		setResearchRun(data.run)
+		setResearchConnection({ status: "connected", attempts: 0 })
+	}, [chatApiBase, researchRun])
+
+	const handleRunResearchAgain = useCallback(async () => {
+		const query = researchRun?.query.trim()
+		if (!query) throw new Error("Research query is unavailable")
+		const started = await submitChatMessage(
+			query,
+			"typed",
+			[],
+			"research",
+			true,
+		)
+		if (!started) throw new Error("Research could not restart")
+		setChatMode("research")
+	}, [researchRun?.query, submitChatMessage])
 
 	const handleSubmitResearchClarification = useCallback(
 		async (requestId: string, answers: NovaResearchClarificationAnswer[]) => {
@@ -1425,32 +1506,87 @@ export function ChatSidebar({
 		if (!runId || !researchIsActive) return
 		let disposed = false
 		let timeoutId: number | undefined
+		let requestTimeoutId: number | undefined
+		let requestController: AbortController | null = null
+		let consecutiveFailures = 0
+		let latestRunStatus = researchRun?.status
+
+		setResearchConnection({ status: "connected", attempts: 0 })
+
+		const schedulePoll = (delayMs: number) => {
+			if (disposed) return
+			timeoutId = window.setTimeout(poll, delayMs)
+		}
 
 		const poll = async () => {
+			requestController = new AbortController()
+			requestTimeoutId = window.setTimeout(
+				() => requestController?.abort(),
+				10_000,
+			)
 			try {
 				const response = await fetch(`${chatApiBase}/chat/research/${runId}`, {
 					credentials: "include",
+					cache: "no-store",
+					signal: requestController.signal,
 				})
-				if (!response.ok || disposed) return
+				if (disposed) return
+				if (!response.ok) {
+					throw new Error(`Research polling returned ${response.status}`)
+				}
 				const data = (await response.json()) as { run?: NovaResearchRun }
-				if (!data.run) return
+				if (!data.run) throw new Error("Research polling response had no run")
+				consecutiveFailures = 0
+				latestRunStatus = data.run.status
+				setResearchConnection({ status: "connected", attempts: 0 })
 				setResearchRun(data.run)
 				if (!isActiveResearchRun(data.run)) {
 					await loadThread(data.run.threadId)
 					return
 				}
 			} catch (error) {
+				if (disposed) return
+				consecutiveFailures += 1
+				setResearchConnection({
+					status: "reconnecting",
+					attempts: consecutiveFailures,
+				})
 				console.error("Failed to refresh research progress", error)
+			} finally {
+				if (requestTimeoutId !== undefined) {
+					window.clearTimeout(requestTimeoutId)
+					requestTimeoutId = undefined
+				}
+				requestController = null
 			}
-			if (!disposed) timeoutId = window.setTimeout(poll, 1500)
+			schedulePoll(researchPollDelayMs(consecutiveFailures, latestRunStatus))
 		}
 
-		timeoutId = window.setTimeout(poll, 700)
+		schedulePoll(
+			researchPollRevision > 0
+				? 0
+				: researchRun?.status === "awaiting_input"
+					? researchPollDelayMs(0, "awaiting_input")
+					: 700,
+		)
 		return () => {
 			disposed = true
 			if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+			if (requestTimeoutId !== undefined) window.clearTimeout(requestTimeoutId)
+			requestController?.abort()
 		}
-	}, [chatApiBase, loadThread, researchIsActive, researchRun?.id])
+	}, [
+		chatApiBase,
+		loadThread,
+		researchIsActive,
+		researchPollRevision,
+		researchRun?.id,
+		researchRun?.status,
+	])
+
+	const handleRetryResearchConnection = useCallback(() => {
+		setResearchPollRevision((revision) => revision + 1)
+	}, [])
 
 	// Auto-restore thread from URL on mount (e.g. reload or direct link)
 	const didAutoLoadRef = useRef(false)
@@ -2268,8 +2404,12 @@ export function ChatSidebar({
 						{researchRun ? (
 							<ResearchProgress
 								run={researchRun}
-								onCancel={handleStop}
+								onCancel={cancelResearch}
 								onSubmitClarification={handleSubmitResearchClarification}
+								connectionState={researchConnection}
+								onRetryConnection={handleRetryResearchConnection}
+								onRetryFinalization={handleRetryResearchFinalization}
+								onRunAgain={handleRunResearchAgain}
 								className="mt-1"
 							/>
 						) : null}
