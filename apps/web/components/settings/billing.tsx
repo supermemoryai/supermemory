@@ -137,6 +137,7 @@ const PLAN_CARDS: PlanCardDefinition[] = [
 		features: [
 			"Pay-as-you-go after $5 runs out",
 			"Full search and memory access",
+			"All plugins (Claude Code, Cursor, Hermes...)",
 			"Email support",
 		],
 	},
@@ -151,7 +152,6 @@ const PLAN_CARDS: PlanCardDefinition[] = [
 		features: [
 			"Auto top-up when balance runs low",
 			"Google Drive, Notion, OneDrive & Granola connectors",
-			"All plugins (Claude Code, Cursor, Hermes...)",
 			"Priority support",
 		],
 	},
