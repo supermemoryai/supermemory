@@ -25,7 +25,7 @@ export function readChatThreadSettings(
 		typeof value === "object" && value !== null
 			? (value as Record<string, unknown>)
 			: {}
-	const model = isModelId(settings.model) ? settings.model : "grok-4.3"
+	const model = isModelId(settings.model) ? settings.model : "grok-4.5"
 	const reasoningEffort =
 		settings.reasoningEffort === "instant" ||
 		settings.reasoningEffort === "thinking"
