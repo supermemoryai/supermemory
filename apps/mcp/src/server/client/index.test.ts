@@ -62,12 +62,14 @@ describe("SupermemoryClient memory listing", () => {
 	})
 
 	it("surfaces the API's error message on 403 instead of the generic fallback", async () => {
-		const fetchMock = vi.fn().mockResolvedValue(
-			new Response(
-				JSON.stringify({ error: "This API key has read-only access" }),
-				{ status: 403, headers: { "Content-Type": "application/json" } },
-			),
-		)
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(
+					JSON.stringify({ error: "This API key has read-only access" }),
+					{ status: 403, headers: { "Content-Type": "application/json" } },
+				),
+			)
 		vi.stubGlobal("fetch", fetchMock)
 
 		const client = new SupermemoryClient(
