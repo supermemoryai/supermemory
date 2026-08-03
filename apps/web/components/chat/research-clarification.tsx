@@ -57,8 +57,8 @@ export function ResearchClarification({
 	}
 
 	return (
-		<div className="mt-3 overflow-hidden rounded-2xl border border-blue-400/15 bg-blue-400/[0.035]">
-			<div className="border-white/[0.07] border-b px-4 py-3">
+		<div className="mt-3 overflow-hidden rounded-[14px] bg-[#191D24] shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
+			<div className="border-white/[0.06] border-b px-4 py-4 sm:px-5">
 				<div className="flex items-center justify-between gap-3">
 					<div>
 						<p className="text-sm font-medium text-white/85">
@@ -72,20 +72,24 @@ export function ResearchClarification({
 						{questionIndex + 1} / {request.questions.length}
 					</span>
 				</div>
-				<div className="mt-3 flex gap-1">
+				<div className="mt-3 flex gap-1.5">
 					{request.questions.map((item, index) => (
 						<span
 							key={item.id}
 							className={cn(
 								"h-1 flex-1 rounded-full transition-colors",
-								index <= questionIndex ? "bg-blue-400/75" : "bg-white/10",
+								index === questionIndex
+									? "bg-[#A1A1AA]"
+									: index < questionIndex
+										? "bg-[#525D6E]"
+										: "bg-[#0D121A]",
 							)}
 						/>
 					))}
 				</div>
 			</div>
 
-			<div className="px-4 py-4">
+			<div className="px-4 py-4 sm:px-5 sm:py-5">
 				<h3 className="text-sm leading-relaxed text-white/85">
 					{question.question}
 				</h3>
@@ -96,6 +100,7 @@ export function ResearchClarification({
 							<button
 								type="button"
 								key={option.label}
+								aria-pressed={selected}
 								onClick={() => {
 									setAnswers((current) => ({
 										...current,
@@ -107,28 +112,28 @@ export function ResearchClarification({
 									}))
 								}}
 								className={cn(
-									"flex min-h-12 items-start gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors",
+									"flex min-h-[72px] items-start gap-3 rounded-[12px] bg-[#14161A] px-4 py-3 text-left shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/25",
 									selected
-										? "border-blue-400/45 bg-blue-400/10"
-										: "border-white/[0.08] bg-white/[0.025] hover:border-white/15 hover:bg-white/[0.045]",
+										? "bg-[#1B1F24] ring-1 ring-inset ring-white/15"
+										: "hover:bg-[#16181D]",
 								)}
 							>
 								<span
 									className={cn(
 										"mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border",
 										selected
-											? "border-blue-400 bg-blue-400 text-[#07111F]"
-											: "border-white/20",
+											? "border-[#FAFAFA] bg-[#FAFAFA] text-[#0D121A]"
+											: "border-[#525D6E] bg-[#0D121A]",
 									)}
 								>
 									{selected ? <CheckIcon className="size-2.5" /> : null}
 								</span>
 								<span>
-									<span className="block text-xs font-medium text-white/78">
+									<span className="block text-xs font-medium text-[#FAFAFA]">
 										{option.label}
 									</span>
 									{option.description ? (
-										<span className="mt-0.5 block text-[11px] leading-snug text-white/38">
+										<span className="mt-0.5 block text-[11px] leading-snug text-[#A1A1AA]">
 											{option.description}
 										</span>
 									) : null}
@@ -137,40 +142,70 @@ export function ResearchClarification({
 						)
 					})}
 					{question.allowOther !== false ? (
-						<button
-							type="button"
-							onClick={() => {
-								setOtherByQuestion((current) => ({
-									...current,
-									[question.id]: true,
-								}))
-								setAnswers((current) => ({ ...current, [question.id]: "" }))
-							}}
+						<div
 							className={cn(
-								"min-h-12 rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition-colors",
+								"overflow-hidden rounded-[12px] bg-[#14161A] shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)] transition-colors",
 								usingOther
-									? "border-blue-400/45 bg-blue-400/10 text-white/80"
-									: "border-white/[0.08] bg-white/[0.025] text-white/55 hover:border-white/15 hover:bg-white/[0.045]",
+									? "bg-[#1B1F24] ring-1 ring-inset ring-white/15 sm:col-span-2 sm:flex sm:items-center"
+									: "hover:bg-[#16181D]",
 							)}
 						>
-							Something else
-						</button>
+							<button
+								type="button"
+								aria-expanded={usingOther}
+								aria-pressed={usingOther}
+								onClick={() => {
+									setOtherByQuestion((current) => ({
+										...current,
+										[question.id]: true,
+									}))
+									setAnswers((current) => ({ ...current, [question.id]: "" }))
+								}}
+								className={cn(
+									"flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/25",
+									usingOther && "sm:w-[220px] sm:shrink-0",
+								)}
+							>
+								<span
+									className={cn(
+										"flex size-4 shrink-0 items-center justify-center rounded-full border",
+										usingOther
+											? "border-[#FAFAFA] bg-[#FAFAFA] text-[#0D121A]"
+											: "border-[#525D6E] bg-[#0D121A]",
+									)}
+								>
+									{usingOther ? <CheckIcon className="size-2.5" /> : null}
+								</span>
+								<span>
+									<span className="block text-xs font-medium text-[#FAFAFA]">
+										Something else
+									</span>
+									<span className="mt-0.5 block text-[11px] leading-snug text-[#A1A1AA]">
+										Write a custom answer
+									</span>
+								</span>
+							</button>
+							{usingOther ? (
+								<div className="flex-1 px-3 pb-3 sm:py-2.5 sm:pl-0">
+									<input
+										type="text"
+										aria-label="Custom answer"
+										value={answer}
+										onChange={(event) =>
+											setAnswers((current) => ({
+												...current,
+												[question.id]: event.target.value,
+											}))
+										}
+										placeholder="Write your answer…"
+										maxLength={500}
+										className="h-10 w-full rounded-[10px] bg-[#0D121A] px-3.5 text-xs text-[#FAFAFA] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.55)] outline-none ring-1 ring-inset ring-white/[0.06] placeholder:text-[#737373] focus:ring-white/15"
+									/>
+								</div>
+							) : null}
+						</div>
 					) : null}
 				</div>
-				{usingOther ? (
-					<textarea
-						value={answer}
-						onChange={(event) =>
-							setAnswers((current) => ({
-								...current,
-								[question.id]: event.target.value,
-							}))
-						}
-						placeholder="Write your answer…"
-						maxLength={500}
-						className="mt-3 min-h-20 w-full resize-none rounded-xl border border-white/10 bg-black/15 px-3 py-2.5 text-xs text-white/80 outline-none placeholder:text-white/25 focus:border-blue-400/40"
-					/>
-				) : null}
 
 				{error ? <p className="mt-3 text-xs text-red-300">{error}</p> : null}
 				<div className="mt-4 flex items-center justify-between gap-3">
@@ -178,7 +213,7 @@ export function ResearchClarification({
 						type="button"
 						onClick={() => setQuestionIndex((index) => Math.max(0, index - 1))}
 						disabled={questionIndex === 0 || submitting}
-						className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs text-white/45 transition-colors hover:bg-white/5 hover:text-white/70 disabled:pointer-events-none disabled:opacity-25"
+						className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#0D121A] px-4 text-xs text-[#A1A1AA] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-opacity hover:opacity-80 disabled:pointer-events-none disabled:opacity-25"
 					>
 						<ArrowLeftIcon className="size-3.5" /> Back
 					</button>
@@ -189,7 +224,7 @@ export function ResearchClarification({
 							else setQuestionIndex((index) => index + 1)
 						}}
 						disabled={!canContinue || submitting}
-						className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/90 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-blue-400 disabled:pointer-events-none disabled:opacity-35"
+						className="inline-flex h-9 min-w-[116px] items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-5 text-xs font-medium text-[#FAFAFA] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-opacity hover:opacity-80 disabled:pointer-events-none disabled:opacity-35"
 					>
 						{submitting ? (
 							<Loader2Icon className="size-3.5 animate-spin" />
