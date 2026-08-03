@@ -1,22 +1,22 @@
 export const models = [
 	{
-		id: "grok-4.3",
-		name: "Grok 4.3",
+		id: "grok-4.5",
+		name: "Grok 4.5",
 		description: "xAI's latest model",
 	},
 	{
-		id: "gpt-5.1",
-		name: "GPT 5.1",
+		id: "gpt-5.6-terra",
+		name: "GPT 5.6 Terra",
 		description: "OpenAI's latest model",
 	},
 	{
-		id: "claude-sonnet-4.6",
-		name: "Claude Sonnet 4.6",
+		id: "claude-sonnet-5",
+		name: "Claude Sonnet 5",
 		description: "Anthropic's advanced model",
 	},
 	{
-		id: "gemini-2.5-pro",
-		name: "Gemini 3 Pro",
+		id: "gemini-3.1-pro-preview",
+		name: "Gemini 3.1 Pro",
 		description: "Google's most capable model",
 	},
 ] as const
@@ -25,10 +25,10 @@ export type ModelId = (typeof models)[number]["id"]
 export type ReasoningEffort = "instant" | "thinking"
 
 export const modelNames: Record<ModelId, { name: string; version: string }> = {
-	"grok-4.3": { name: "Grok", version: "4.3" },
-	"gpt-5.1": { name: "GPT", version: "5.1" },
-	"claude-sonnet-4.6": { name: "Claude", version: "4.6" },
-	"gemini-2.5-pro": { name: "Gemini", version: "3 Pro" },
+	"grok-4.5": { name: "Grok", version: "4.5" },
+	"gpt-5.6-terra": { name: "GPT", version: "5.6 Terra" },
+	"claude-sonnet-5": { name: "Claude", version: "Sonnet 5" },
+	"gemini-3.1-pro-preview": { name: "Gemini", version: "3.1 Pro" },
 }
 
 export const reasoningOptions: Array<{

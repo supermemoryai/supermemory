@@ -1,9 +1,9 @@
 import type { ModelId } from "@/lib/models"
 
 const OTHER_MODELS: ModelId[] = [
-	"gpt-5.1",
-	"claude-sonnet-4.6",
-	"gemini-2.5-pro",
+	"gpt-5.6-terra",
+	"claude-sonnet-5",
+	"gemini-3.1-pro-preview",
 ]
 
 function flattenError(e: unknown): string {
