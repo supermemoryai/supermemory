@@ -35,6 +35,10 @@ function url(serverSlug: string) {
 	return `${BACKEND}/brain/mcp-connections/${serverSlug}/tool-approvals`
 }
 
+/**
+ * Loads the backend-computed catalog view and polls only while a cold MCP tool
+ * list is warming inside the organization Durable Object.
+ */
 export function useToolApprovals(serverSlug: string, enabled: boolean) {
 	const { org } = useAuth()
 	return useQuery({
@@ -52,6 +56,10 @@ export function useToolApprovals(serverSlug: string, enabled: boolean) {
 	})
 }
 
+/**
+ * Applies a partial default/rule update and replaces the cached view with the
+ * server response so visible decisions always match runtime precedence.
+ */
 export function useUpdateToolApprovals(serverSlug: string) {
 	const { org } = useAuth()
 	const queryClient = useQueryClient()

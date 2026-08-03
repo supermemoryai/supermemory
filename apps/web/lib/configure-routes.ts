@@ -34,11 +34,12 @@ export function pathToConfigureSection(
 	return null
 }
 
-// /configure/tools/<serverSlug> — the per-server tool approval page.
+/** Builds the nested Configure route for one server's tool permissions. */
 export function configureToolPath(serverSlug: string): string {
 	return `/configure/tools/${serverSlug}`
 }
 
+/** Extracts exactly one server slug so deeper or malformed paths stay invalid. */
 export function pathToConfigureToolSlug(pathname: string): string | null {
 	const trimmed = pathname.replace(/\/$/, "")
 	return trimmed.match(/^\/configure\/tools\/([^/]+)$/)?.[1] ?? null

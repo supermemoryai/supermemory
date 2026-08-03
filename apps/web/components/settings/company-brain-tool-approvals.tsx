@@ -24,6 +24,7 @@ function titleCase(value: string) {
 	return value.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+/** Compact Ask/Always allow control shared by the connection default and rows. */
 function Segmented({
 	value,
 	options,
@@ -61,6 +62,10 @@ function Segmented({
 	)
 }
 
+/**
+ * Renders one backend-classified tool. Read tools are informational; only tools
+ * that can change state expose an individual approval override.
+ */
 function ToolRow({
 	tool,
 	disabled,
@@ -121,6 +126,11 @@ function ToolRow({
 	)
 }
 
+/**
+ * Presents one connection's catalog and persists only the user's chosen default
+ * or named override. Decisions come from the backend so this page cannot drift
+ * from lease, scheduled-run, or runtime safety rules.
+ */
 export default function CompanyBrainToolApprovals({
 	serverSlug,
 }: {
@@ -151,6 +161,7 @@ export default function CompanyBrainToolApprovals({
 		})
 	}, [data?.tools, search])
 
+	// MCP servers may expose hundreds of tools, so render only visible rows.
 	const virtualizer = useVirtualizer({
 		count: tools.length,
 		getScrollElement: () => scrollRef.current,
@@ -309,11 +320,7 @@ export default function CompanyBrainToolApprovals({
 									No tools match "{search}".
 								</p>
 							) : (
-								<div
-									ref={scrollRef}
-									className="max-h-[520px] overflow-y-auto"
-									// A connected server can expose hundreds of tools.
-								>
+								<div ref={scrollRef} className="max-h-[520px] overflow-y-auto">
 									<div
 										style={{
 											height: virtualizer.getTotalSize(),
