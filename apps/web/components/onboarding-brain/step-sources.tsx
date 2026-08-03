@@ -149,11 +149,7 @@ const PLAN_CARDS: PlanCardDefinition[] = [
 		credits: "$20",
 		productId: "api_pro",
 		description: "For people building with AI memory",
-		features: [
-			"Auto top-up when balance runs low",
-			"All plugins (Claude Code, Cursor, Hermes...)",
-			"Priority support",
-		],
+		features: ["Auto top-up when balance runs low", "Priority support"],
 	},
 	{
 		id: "max",

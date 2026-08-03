@@ -415,48 +415,10 @@ function PluginRow({
 	)
 }
 
-type TierFilter = "all" | "pro" | "free"
-
-const TIER_FILTERS: { value: TierFilter; label: string }[] = [
-	{ value: "all", label: "All" },
-	{ value: "pro", label: "Pro" },
-	{ value: "free", label: "Free" },
-]
-
-function TierFilterToggle({
-	value,
-	onChange,
-}: {
-	value: TierFilter
-	onChange: (value: TierFilter) => void
-}) {
-	return (
-		<div className="flex shrink-0 items-center gap-0.5 rounded-full bg-[#0D121A] p-0.5 shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.5)]">
-			{TIER_FILTERS.map((filter) => (
-				<button
-					key={filter.value}
-					type="button"
-					onClick={() => onChange(filter.value)}
-					className={cn(
-						dmSans125ClassName(),
-						"rounded-full px-3 h-7 text-[12px] font-medium transition-colors",
-						value === filter.value
-							? "bg-white/[0.10] text-[#FAFAFA]"
-							: "text-[#A1A1AA] hover:text-[#FAFAFA]",
-					)}
-				>
-					{filter.label}
-				</button>
-			))}
-		</div>
-	)
-}
-
 export function PluginsDetail() {
 	const { org } = useAuth()
 	const autumn = useCustomer()
 	const queryClient = useQueryClient()
-	const [tierFilter, setTierFilter] = useState<TierFilter>("all")
 	const [connectingPlugin, setConnectingPlugin] = useState<string | null>(null)
 	const [finishSetupPluginId, setFinishSetupPluginId] = useState<string | null>(
 		null,
@@ -572,11 +534,6 @@ export function PluginsDetail() {
 				credentials: "include",
 			})
 			if (!res.ok) {
-				if (res.status === 403) {
-					throw new Error(
-						"Plugin access was denied. Check your plan or try again.",
-					)
-				}
 				const errorData = (await res.json().catch(() => ({}))) as {
 					message?: string
 				}
@@ -635,17 +592,12 @@ export function PluginsDetail() {
 	)
 
 	const visibleRows = useMemo(() => {
-		const filtered = catalogRows.filter((id) => {
-			if (tierFilter === "free") return isFreeTierPlugin(id)
-			if (tierFilter === "pro") return !isFreeTierPlugin(id)
-			return true
-		})
 		// Connected plugins float to the top (stable within each group).
-		return [...filtered].sort(
+		return [...catalogRows].sort(
 			(a, b) =>
 				Number(connectedPluginIds.has(b)) - Number(connectedPluginIds.has(a)),
 		)
-	}, [catalogRows, tierFilter, connectedPluginIds])
+	}, [catalogRows, connectedPluginIds])
 
 	const dialogPlugin = newKey.pluginId
 		? PLUGIN_CATALOG[newKey.pluginId]
@@ -684,12 +636,7 @@ export function PluginsDetail() {
 				)}
 			>
 				<div className="flex flex-col gap-3">
-					<div className="flex items-center justify-between gap-3">
-						<SectionHeader>Plugins</SectionHeader>
-						{catalogRows.length > 0 && (
-							<TierFilterToggle value={tierFilter} onChange={setTierFilter} />
-						)}
-					</div>
+					<SectionHeader>Plugins</SectionHeader>
 					<div className="flex flex-col">
 						{visibleRows.map((pluginId) => {
 							const plugin = PLUGIN_CATALOG[pluginId]

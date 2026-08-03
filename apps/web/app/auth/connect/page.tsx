@@ -4,8 +4,7 @@ import { useAuth } from "@lib/auth-context"
 import { useSession } from "@lib/auth"
 import { cn } from "@lib/utils"
 import { dmSans125ClassName } from "@/lib/fonts"
-import { useCustomer } from "autumn-js/react"
-import { ArrowRight, Loader, XCircle } from "lucide-react"
+import { ArrowRight, XCircle } from "lucide-react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
@@ -107,7 +106,7 @@ function getPluginName(client: string): string {
 	return PLUGIN_INFO[client]?.name ?? "External Tool"
 }
 
-type Status = "loading" | "creating" | "success" | "error" | "upgrade"
+type Status = "loading" | "creating" | "success" | "error"
 
 const pageWrapperClass =
 	"flex items-center justify-center min-h-screen bg-background p-4"
@@ -121,10 +120,8 @@ function AuthConnectContent() {
 	const router = useRouter()
 	const { data: session, isPending } = useSession()
 	const { org, organizations, isRestoring } = useAuth()
-	const autumn = useCustomer()
 	const [status, setStatus] = useState<Status>("loading")
 	const [error, setError] = useState<string | null>(null)
-	const [isUpgrading, setIsUpgrading] = useState(false)
 
 	const callback = params.get("callback")
 	const client = params.get("client")
@@ -184,10 +181,6 @@ function AuthConnectContent() {
 			})
 
 			if (!res.ok) {
-				if (res.status === 403) {
-					setStatus("upgrade")
-					return
-				}
 				const errorData = (await res.json().catch(() => ({}))) as {
 					message?: string
 				}
@@ -205,20 +198,6 @@ function AuthConnectContent() {
 			console.error("Failed to get API key:", err)
 			setStatus("error")
 			setError(err instanceof Error ? err.message : "Failed to get API key")
-		}
-	}
-
-	async function handleUpgrade() {
-		try {
-			setIsUpgrading(true)
-			const safeSuccessUrl = `${window.location.origin}${window.location.pathname}?callback=${encodeURIComponent(callback ?? "")}&client=${encodeURIComponent(validClient ?? "")}`
-			await autumn.attach({
-				planId: "api_pro",
-				successUrl: safeSuccessUrl,
-			})
-		} catch (err) {
-			console.error("Upgrade failed:", err)
-			setIsUpgrading(false)
 		}
 	}
 
@@ -306,103 +285,6 @@ function AuthConnectContent() {
 							Approve Connection
 							<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1px_1px_2px_1px_#1A88FF]" />
 						</button>
-					</div>
-				</div>
-			</div>
-		)
-	}
-
-	if (status === "upgrade") {
-		return (
-			<div className={pageWrapperClass}>
-				<div className={cardClass}>
-					<div className="flex flex-col items-center gap-5">
-						<div className="flex size-10 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]">
-							{pluginInfo ? (
-								<Image
-									alt={pluginInfo.name}
-									className="size-6"
-									height={24}
-									src={pluginInfo.icon}
-									width={24}
-								/>
-							) : (
-								<ArrowRight className="size-5 text-[#4BA0FA]" />
-							)}
-						</div>
-						<div className="text-center">
-							<h2
-								className={dmSans125ClassName(
-									"font-semibold text-[18px] text-[#FAFAFA]",
-								)}
-							>
-								{pluginInfo?.name ?? displayName}
-							</h2>
-							<p
-								className={dmSans125ClassName(
-									"text-[13px] text-[#737373] mt-1",
-								)}
-							>
-								{pluginInfo?.description ??
-									`A paid plan is required to use ${displayName} with Supermemory.`}
-							</p>
-						</div>
-
-						{pluginInfo && (
-							<ul className="w-full space-y-2.5">
-								{pluginInfo.features.map((feature) => (
-									<li key={feature} className="flex items-start gap-2.5">
-										<ArrowRight className="mt-0.5 size-3.5 shrink-0 text-[#4BA0FA]" />
-										<span
-											className={dmSans125ClassName(
-												"text-[13px] text-[#8B8B8B]",
-											)}
-										>
-											{feature}
-										</span>
-									</li>
-								))}
-							</ul>
-						)}
-
-						<button
-							type="button"
-							onClick={handleUpgrade}
-							disabled={isUpgrading || autumn.isLoading}
-							className={cn(
-								"relative w-full h-11 rounded-[10px] flex items-center justify-center",
-								"text-[#FAFAFA] font-medium text-[14px] tracking-[-0.14px]",
-								"shadow-[0px_2px_10px_rgba(5,1,0,0.2)]",
-								"disabled:opacity-60 disabled:cursor-not-allowed",
-								"cursor-pointer transition-opacity hover:opacity-90",
-								dmSans125ClassName(),
-							)}
-							style={{
-								background:
-									"linear-gradient(182.37deg, #0ff0d2 -91.53%, #5bd3fb -67.8%, #1e0ff0 95.17%)",
-								boxShadow:
-									"1px 1px 2px 0px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)",
-							}}
-						>
-							{isUpgrading || autumn.isLoading ? (
-								<>
-									<Loader className="size-4 animate-spin mr-2" />
-									Upgrading…
-								</>
-							) : (
-								"Upgrade to Pro \u2014 $19/month"
-							)}
-							<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1px_1px_2px_1px_#1A88FF]" />
-						</button>
-
-						<a
-							href="https://app.supermemory.ai/settings#billing"
-							className={dmSans125ClassName(
-								"text-[12px] text-[#737373] hover:text-[#FAFAFA] transition-colors",
-							)}
-						>
-							View all plans
-						</a>
 					</div>
 				</div>
 			</div>
