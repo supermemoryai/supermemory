@@ -53,7 +53,7 @@ This page is intentionally **not** a vendor scorecard. We know things change and
 
 If you are migrating from a specific tool, use the [migration guides](/migration/from-mem0), that is where we name names and map APIs.
 
-## vs Rolling your own (vector DB + embeddings + glue)
+<h2 noAnchor>vs Rolling your own (vector DB + embeddings + glue)</h2>
 
 **What this path is:** Pinecone/Weaviate/pgvector + an embedding model + chunking scripts + a prompt that says “here is relevant context.” and running it through a text model, extracting facts.
 
@@ -74,7 +74,7 @@ If you are migrating from a specific tool, use the [migration guides](/migration
 
 **Supermemory instead:** one engine that derives **memories** using our custom model, a **temporal vector-graph engine**, and **profiles**, with hybrid retrieval and isolation primitives built in. You keep the option to [self-host](/self-hosting/overview) when you want the stack on your metal.
 
-## vs “Memory layers” that are thin wrappers
+<h2 noAnchor>vs “Memory layers” that are thin wrappers</h2>
 
 **What this path is:** an API that stores chat turns or summaries in a vector store, sometimes with a light extract-facts prompt. Marketed as memory; architected as RAG with better branding.
 
@@ -93,7 +93,7 @@ If you are migrating from a specific tool, use the [migration guides](/migration
 
 **Supermemory instead:** memory is a first-class data model (documents → derived memories → graph → profiles), not a convenience wrapper. Same store from API, MCP, plugins, and Company Brain, all primitives built in for you to compose for your use case. See [How it works](/concepts/how-it-works) and [Graph memory](/concepts/graph-memory).
 
-## vs Pure RAG / document search products
+<h2 noAnchor>vs Pure RAG / document search products</h2>
 
 **What this path is:** excellent document ingestion and semantic search over a corpus, wikis, PDFs, tickets. No (or weak) per-user long-horizon memory.
 
@@ -113,7 +113,7 @@ If you are migrating from a specific tool, use the [migration guides](/migration
 
 **Supermemory instead:** **both** layers in one engine, SuperRAG for corpus grounding, memory + profiles for people and entities. They share container tags so isolation stays coherent. Deep dive: [Memory vs RAG](/concepts/memory-vs-rag).
 
-## vs Building a full context engine in-house
+<h2 noAnchor>vs Building a full context engine in-house</h2>
 
 **What this path is:** custom extraction models, graph store, profile assembly, hybrid search, connector fleet, multi-tenant keys, compliance pack.
 
@@ -134,7 +134,7 @@ If you are migrating from a specific tool, use the [migration guides](/migration
 **Supermemory instead:** that platform as a product, managed cloud or
 self-hosted binary, so your team ships agents and apps, not a second infrastructure company. Benchmarks and research: [supermemory.ai/research](https://supermemory.ai/research).
 
-## Decision cheat sheet
+<h2 noAnchor>Decision cheat sheet</h2>
 
 | If your job is… | Prefer |
 |---|---|
@@ -144,7 +144,7 @@ self-hosted binary, so your team ships agents and apps, not a second infrastruct
 | Full control, data never leaves your network | Supermemory [self-host](/self-hosting/overview) / Enterprise |
 | Maximum control of every model weight and storage engine | Build in-house (or fork open pieces and accept the ops) |
 
-## Prove it yourself
+<h2 noAnchor>Prove it yourself</h2>
 
 We would rather you verify than trust a comparison page:
 
@@ -152,7 +152,7 @@ We would rather you verify than trust a comparison page:
 2. Reproduce long-horizon results with [MemoryBench](https://supermemory.ai/research) / the MemoryBench docs when you care about evals
 3. If you already store memories elsewhere, use a [migration guide](/migration/from-mem0)
 
-## Supermemory is never overkill
+<h2 noAnchor>Supermemory is never overkill</h2>
 
 In most cases, supermemory will be the _lighter_ choice (not heavier), and it is cheaper too! Because supermemory involves all the blocks while being fully composable, but we also build the infrastructure ourselves (a post-trained model, etc.), it's perfect for everything from internal tools, side projects, and hobby projects to production-grade infrastructure that millions of people rely on.
 
