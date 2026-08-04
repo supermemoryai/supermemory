@@ -14,10 +14,12 @@ A test is failing and the stack trace alone isn't enough. You want Company Brain
 ## What happens
 
 <SlackThread channel="#eng">
-  <SlackMessage self time="5:41 PM">
+  <SlackMessage self hasAvatar time="5:41 PM">
+    <img src="/images/company-brain/dhravya-slack-icon.jpg" alt="" />
     <Mention>supermemory</Mention> the `permissions.lease` unit test is failing on main — can you reproduce and tell me why?
   </SlackMessage>
-  <SlackMessage bot time="5:42 PM">
+  <SlackMessage bot hasAvatar time="5:42 PM">
+    <img src="/images/company-brain/supermemory-slack-icon.png" alt="" />
     Reproduced in a sandbox against `main`.
 
     **Failure:** `permissions.lease` expects temporary access to expire in 15 minutes, but the fixture still asserts 30.

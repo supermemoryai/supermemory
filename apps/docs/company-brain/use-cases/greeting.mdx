@@ -5,7 +5,7 @@ description: "Connect card, welcome DM, and first answer — activation on day o
 icon: "user-plus"
 ---
 
-import { SlackThread, SlackMessage, BOT_AVATAR } from "/snippets/slack-message.mdx";
+import { SlackThread, SlackMessage } from "/snippets/slack-message.mdx";
 
 ## The scenario
 
@@ -15,8 +15,10 @@ A new hire joins the Slack workspace. They shouldn't need a web signup form or a
 
 They get a connect card, tap **Connect me**, and receive a welcome DM:
 
-<SlackThread type="dm" dmWith={{ name: "supermemory", avatar: BOT_AVATAR }}>
-  <SlackMessage bot time="9:02 AM">
+<SlackThread type="dm" dmWith={{ name: "supermemory" }} hasAvatar>
+  <img src="/images/company-brain/supermemory-slack-icon.png" alt="" />
+  <SlackMessage bot hasAvatar time="9:02 AM">
+    <img src="/images/company-brain/supermemory-slack-icon.png" alt="" />
     Welcome to **Acme**. Here's what I know, what I can access, and what I keep private.
 
     Try one of these:
@@ -27,7 +29,8 @@ They get a connect card, tap **Connect me**, and receive a welcome DM:
   <SlackMessage name="Sam" color="#36C5F0" time="9:03 AM">
     What does Acme do?
   </SlackMessage>
-  <SlackMessage bot time="9:03 AM">
+  <SlackMessage bot hasAvatar time="9:03 AM">
+    <img src="/images/company-brain/supermemory-slack-icon.png" alt="" />
     Acme builds memory infrastructure for AI apps — shared context for teams and agents. *(from the company profile your admin seeded at setup)*
   </SlackMessage>
 </SlackThread>

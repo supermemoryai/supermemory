@@ -4,18 +4,14 @@ description: "Context infrastructure for AI agents"
 mode: "custom"
 ---
 
-export const HeroCard = ({ imageUrl, title, description, href }) => {
+export const HeroCard = ({ title, description, href, children }) => {
   return (
     <a
       className="group flex flex-col h-full rounded-2xl overflow-hidden bg-white dark:bg-zinc-950 border border-gray-200/80 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-300"
       href={href}
     >
       <div className="overflow-hidden bg-gray-50 dark:bg-zinc-900 border-b border-gray-100 dark:border-zinc-800">
-        <img
-          src={imageUrl}
-          className="w-full h-56 sm:h-64 object-cover transform group-hover:scale-[1.03] transition-transform duration-500"
-          alt={title}
-        />
+        {children}
       </div>
       <div className="flex flex-col gap-2 p-6 sm:p-7">
         <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-zinc-50 tracking-tight">
@@ -62,29 +58,49 @@ export const HeroCard = ({ imageUrl, title, description, href }) => {
 
     <div className="mt-12 sm:mt-14 grid sm:grid-cols-2 gap-5 sm:gap-6">
       <HeroCard
-        imageUrl="/images/intro-company-brain.jpg"
         title="Developer platform"
         description="API reference, concepts, and SDKs"
         href="/overview/what-is-supermemory"
-      />
+      >
+        <img
+          src="/images/intro-company-brain.jpg"
+          className="w-full h-56 sm:h-64 object-cover transform group-hover:scale-[1.03] transition-transform duration-500"
+          alt="Developer platform"
+        />
+      </HeroCard>
       <HeroCard
-        imageUrl="/images/intro-company-brain-card.jpg"
         title="Company brain"
         description="Team knowledge on the same engine"
         href="/company-brain/overview"
-      />
+      >
+        <img
+          src="/images/intro-company-brain-card.jpg"
+          className="w-full h-56 sm:h-64 object-cover transform group-hover:scale-[1.03] transition-transform duration-500"
+          alt="Company brain"
+        />
+      </HeroCard>
       <HeroCard
-        imageUrl="/images/intro-plugins.jpg"
         title="Plugins and MCP"
         description="Drop memory into Claude and coding agents"
         href="/supermemory-mcp/mcp"
-      />
+      >
+        <img
+          src="/images/intro-plugins.jpg"
+          className="w-full h-56 sm:h-64 object-cover transform group-hover:scale-[1.03] transition-transform duration-500"
+          alt="Plugins and MCP"
+        />
+      </HeroCard>
       <HeroCard
-        imageUrl="/images/intro-developer-platform.png"
         title="Self-hosting"
         description="Run it locally with zero config"
         href="/self-hosting/overview"
-      />
+      >
+        <img
+          src="/images/intro-developer-platform.png"
+          className="w-full h-56 sm:h-64 object-cover transform group-hover:scale-[1.03] transition-transform duration-500"
+          alt="Self-hosting"
+        />
+      </HeroCard>
     </div>
   </div>
 </div>

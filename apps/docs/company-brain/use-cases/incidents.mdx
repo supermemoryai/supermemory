@@ -17,7 +17,8 @@ Someone drops a vague "is prod down?" in `#eng`. Company Brain correlates it wit
   <SlackMessage name="Alex" color="#E01E5A" time="11:03 AM">
     is prod down? a couple of customers are pinging me
   </SlackMessage>
-  <SlackMessage bot time="11:03 AM">
+  <SlackMessage bot hasAvatar time="11:03 AM">
+    <img src="/images/company-brain/supermemory-slack-icon.png" alt="" />
     Not a full outage — **`api/search` is elevated** (42 errors in the last 15m, mostly `timeout on vectorize`). Sentry issue <AgentLink href="https://example.com">SM-2041</AgentLink>. Deploy from this morning is the likely culprit; rollback candidate is `af61880`.
   </SlackMessage>
 </SlackThread>
@@ -25,7 +26,8 @@ Someone drops a vague "is prod down?" in `#eng`. Company Brain correlates it wit
 Or, without anyone asking, a scheduled automation posts every morning:
 
 <SlackThread channel="#eng">
-  <SlackMessage bot time="9:00 AM">
+  <SlackMessage bot hasAvatar time="9:00 AM">
+    <img src="/images/company-brain/supermemory-slack-icon.png" alt="" />
     **Daily error digest** — 3 issues new since yesterday, 1 still spiking (`api/search` timeout). Full list in Sentry.
   </SlackMessage>
 </SlackThread>
