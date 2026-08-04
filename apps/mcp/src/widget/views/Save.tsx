@@ -10,7 +10,6 @@ import {
 	SpaceSelect,
 } from "../design/ui"
 import { useApp } from "../hooks/useApp"
-import { useLog } from "../hooks/useLog"
 import { formatTagLabel } from "../lib/formatTag"
 
 interface Props {
@@ -31,7 +30,6 @@ export function Save({
 	viewId,
 }: Props) {
 	const { callTool, handoffToModel } = useApp()
-	const log = useLog()
 	const [content, setContent] = useState(prefill ?? "")
 	const [selectedTag, setSelectedTag] = useState<string | null>(
 		activeTag ?? writableTags[0] ?? null,
@@ -59,7 +57,6 @@ export function Save({
 
 	const handleSave = async () => {
 		if (!canSave || !selectedTag) return
-		log("info", `[save] submit (${trimmed.length} chars → ${selectedTag})`)
 		setSaving(true)
 		const result = await callTool(
 			"save-memory",
@@ -72,14 +69,13 @@ export function Save({
 		)
 		setSaving(false)
 		if (!result.ok || !result.data) {
-			log("error", `[save] failed: ${result.error}`)
 			onError(result.error ?? "Failed to save memory")
 			return
 		}
 		const memoryId =
 			result.data.view === "save-success" ? result.data.id : undefined
 		onAdvance(result.data)
-		const handoff = await handoffToModel({
+		await handoffToModel({
 			context: `Supermemory widget action completed. A memory was saved to space "${selectedTag}"${memoryId ? ` with memory ID "${memoryId}"` : ""}. Saved content:\n\n${trimmed}\n\nIt is already saved; do not save it again.`,
 			message: `I used the Supermemory widget to save a memory to space "${selectedTag}"${memoryId ? ` (memory ID: ${memoryId})` : ""}. The memory is already saved; do not save it again.`,
 			structuredContent: {
@@ -91,18 +87,6 @@ export function Save({
 				},
 			},
 		})
-		if (!handoff.contextUpdate.ok) {
-			log(
-				"warning",
-				`[save] model context update failed: ${handoff.contextUpdate.error}`,
-			)
-		}
-		if (!handoff.conversationMessage.ok) {
-			log(
-				"warning",
-				`[save] agent handoff failed: ${handoff.conversationMessage.error}`,
-			)
-		}
 	}
 
 	return (

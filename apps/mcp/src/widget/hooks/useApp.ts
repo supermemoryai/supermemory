@@ -101,13 +101,6 @@ export function useApp() {
 				return performModelHandoff(app, request)
 			},
 
-			/** Send a structured log line to the host. */
-			log(level: "debug" | "info" | "warning" | "error", message: string) {
-				return app
-					? app.sendLog({ level, data: message })
-					: Promise.resolve(undefined)
-			},
-
 			/** Request the host to switch display mode. */
 			requestDisplayMode(mode: "inline" | "fullscreen" | "pip") {
 				return app

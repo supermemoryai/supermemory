@@ -6,18 +6,14 @@ import {
 	MemoryGraph,
 } from "@supermemory/memory-graph"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import {
-	documentsApiResponseSchema,
-	type DocumentMemoryEntry,
-	type DocumentWithMemories,
+import type {
+	DocumentMemoryEntry,
+	DocumentWithMemories,
 } from "../../shared/types"
 import { cn } from "../design/lib/cn"
 import { useApp } from "../hooks/useApp"
 import { useHostContext } from "../hooks/useHostContext"
-import { useLog } from "../hooks/useLog"
 import { ArrowsIn, ArrowsOut } from "../lib/icons"
-import { ErrorView } from "./Error"
-import { Loading } from "./Loading"
 
 // GraphThemeColors key → the --graph-* CSS variable it resolves from. Same
 // mapping as the package's internal useGraphTheme, but we drive it ourselves
@@ -84,9 +80,8 @@ function useGraphColors(theme: string): GraphThemeColors {
 }
 
 interface Props {
-	containerTag?: string
-	initialDocuments?: DocumentWithMemories[]
-	initialTotalCount: number
+	documents: DocumentWithMemories[]
+	totalCount: number
 }
 
 // Map the widget's API shape (DocumentWithMemories) into the package's
@@ -127,48 +122,12 @@ function toGraphDocument(doc: DocumentWithMemories): GraphApiDocument {
 	}
 }
 
-export function Graph({
-	containerTag,
-	initialDocuments,
-	initialTotalCount,
-}: Props) {
-	const { callTool, isConnected, requestDisplayMode } = useApp()
+export function Graph({ documents, totalCount }: Props) {
+	const { requestDisplayMode } = useApp()
 	const ctx = useHostContext()
-	const log = useLog()
-	const [documents, setDocuments] = useState(initialDocuments)
-	const [totalCount, setTotalCount] = useState(initialTotalCount)
-	const [loadError, setLoadError] = useState<string | null>(null)
-
-	useEffect(() => {
-		if (!isConnected) return
-		let active = true
-		void callTool(
-			"fetch-graph-data",
-			{
-				...(containerTag ? { containerTag } : {}),
-				page: 1,
-				limit: 200,
-			},
-			documentsApiResponseSchema,
-		).then((result) => {
-			if (!active) return
-			if (!result.ok || !result.data) {
-				if (!initialDocuments) {
-					setLoadError(result.error ?? "Failed to load graph data")
-				}
-				return
-			}
-			setDocuments(result.data.documents)
-			setTotalCount(result.data.pagination.totalItems)
-			setLoadError(null)
-		})
-		return () => {
-			active = false
-		}
-	}, [callTool, containerTag, initialDocuments, isConnected])
 
 	const graphDocuments = useMemo(
-		() => (documents ?? []).map(toGraphDocument),
+		() => documents.map(toGraphDocument),
 		[documents],
 	)
 
@@ -206,15 +165,11 @@ export function Graph({
 
 	const toggleFullscreen = useCallback(async () => {
 		const next = mode === "fullscreen" ? "inline" : "fullscreen"
-		log("info", `[graph] fullscreen toggle: ${mode} → ${next}`)
 		setMode(next) // optimistic — button + container update immediately
 		try {
-			const result = await requestDisplayMode(next)
-			log("info", `[graph] requestDisplayMode result: ${result?.mode ?? "?"}`)
-		} catch (err) {
-			log("error", `[graph] requestDisplayMode failed: ${err}`)
-		}
-	}, [mode, requestDisplayMode, log])
+			await requestDisplayMode(next)
+		} catch {}
+	}, [mode, requestDisplayMode])
 
 	// ESC exits fullscreen — matches Excalidraw and host-page UX.
 	useEffect(() => {
@@ -228,9 +183,6 @@ export function Graph({
 		document.addEventListener("keydown", handler)
 		return () => document.removeEventListener("keydown", handler)
 	}, [mode, toggleFullscreen])
-
-	if (loadError) return <ErrorView message={loadError} />
-	if (!documents) return <Loading />
 
 	return (
 		<div className="relative">

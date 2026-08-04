@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/server"
+import { ResourceTemplate, type McpServer } from "@modelcontextprotocol/server"
 import supermemoryAppHtml from "../../../dist/src/widget/index.html"
 import {
 	APP_RESOURCE_MIME_TYPE,
@@ -6,33 +6,42 @@ import {
 } from "../app-metadata"
 import {
 	WIDGET_DESCRIPTION,
-	WIDGET_RESOURCE_META,
+	widgetResourceMeta,
 } from "../widget-resource-metadata"
 
-export function registerWidgetResource(server: McpServer) {
+export function registerWidgetResource(
+	server: McpServer,
+	connectOrigin: string,
+) {
+	const resourceMeta = widgetResourceMeta(connectOrigin)
+	const resourceConfig = {
+		mimeType: APP_RESOURCE_MIME_TYPE,
+		description: WIDGET_DESCRIPTION,
+		_meta: resourceMeta,
+	}
+	const readWidgetResource = (uri: string) => ({
+		contents: [
+			{
+				uri,
+				mimeType: APP_RESOURCE_MIME_TYPE,
+				text: supermemoryAppHtml,
+				_meta: resourceMeta,
+			},
+		],
+	})
+
 	server.registerResource(
 		"Supermemory MCP UI",
 		SUPERMEMORY_RESOURCE_URI,
-		// Listing-level metadata: hosts use this when discovering resources
-		// before invoking the read callback. Mirrors the read response below
-		// so prefetch/connect-time decisions match what the host will get.
-		{
-			mimeType: APP_RESOURCE_MIME_TYPE,
-			description: WIDGET_DESCRIPTION,
-			_meta: WIDGET_RESOURCE_META,
-		},
-		// Read response: per spec, content-item `_meta.ui` takes precedence
-		// over the listing-level value. Set both to the same object so behavior
-		// is consistent regardless of which path the host inspects.
-		async () => ({
-			contents: [
-				{
-					uri: SUPERMEMORY_RESOURCE_URI,
-					mimeType: APP_RESOURCE_MIME_TYPE,
-					text: supermemoryAppHtml,
-					_meta: WIDGET_RESOURCE_META,
-				},
-			],
+		resourceConfig,
+		async () => readWidgetResource(SUPERMEMORY_RESOURCE_URI),
+	)
+	server.registerResource(
+		"Supermemory MCP UI compatibility",
+		new ResourceTemplate("ui://supermemory/app-{version}.html", {
+			list: undefined,
 		}),
+		resourceConfig,
+		async (uri) => readWidgetResource(uri.href),
 	)
 }

@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import {
+	uploadPreparationSchema,
+	uploadResponseSchema,
+} from "../src/shared/types"
+import {
 	OAUTH_CREDENTIALS_AVAILABLE,
 	callTool,
 	connect,
@@ -153,29 +157,34 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 				throw new Error("Upload did not provide a writable space")
 			}
 
-			const uploaded = await callTool(session.client, "upload-file-submit", {
-				fileData: Buffer.from(fileContent).toString("base64"),
-				fileName,
-				mimeType: "text/plain",
-				containerTag,
-				viewId: launcherView.viewId,
+			const prepared = await callTool(session.client, "prepare-file-upload")
+			expect(prepared.isError).toBeFalsy()
+			const preparation = uploadPreparationSchema.parse(
+				prepared.structuredContent,
+			)
+			const formData = new FormData()
+			formData.append("file", new Blob([fileContent]), fileName)
+			formData.append("containerTag", containerTag)
+			formData.append(
+				"metadata",
+				JSON.stringify({ sm_source: "supermemory-mcp" }),
+			)
+
+			const response = await fetch(preparation.uploadUrl, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${preparation.uploadToken}`,
+				},
+				body: formData,
 			})
-			expect(uploaded.isError).toBeFalsy()
-			const uploadedView = uploaded.structuredContent as AppView
-			expect(uploadedView).toMatchObject({
-				view: "upload-success",
-				fileName,
-				containerTag,
-			})
-			expect(uploadedView.id).toBeTruthy()
-			if (!uploadedView.id)
-				throw new Error("Upload did not return a document ID")
+			expect(response.ok).toBe(true)
+			const uploaded = uploadResponseSchema.parse(await response.json())
 
 			const document = await waitForToolText(
 				session,
 				"getDocument",
-				{ documentId: uploadedView.id },
-				`Document ID: ${uploadedView.id}`,
+				{ documentId: uploaded.id },
+				`Document ID: ${uploaded.id}`,
 				20,
 				1000,
 			)

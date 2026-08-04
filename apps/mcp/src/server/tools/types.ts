@@ -8,6 +8,12 @@ import type { SessionInfo } from "../../shared/types"
 import type { SupermemoryClient } from "../client"
 import type { ActorContext } from "../types"
 
+export interface PreparedUpload {
+	uploadUrl: string
+	uploadToken: string
+	expiresAt: number
+}
+
 // Dependencies passed to every tool's register() function.
 // Keep this surface small — tools should read this rather than reach into the agent.
 export interface ToolDeps {
@@ -18,6 +24,7 @@ export interface ToolDeps {
 	resolveContainerTag: (explicit?: string) => Promise<string>
 	getActiveContainerTag: () => Promise<string | undefined>
 	setActiveContainerTag: (containerTag: string) => Promise<void>
+	createUploadSession: () => Promise<PreparedUpload>
 	getClientInfo: (
 		context: ServerContext,
 	) => { name: string; version?: string } | null

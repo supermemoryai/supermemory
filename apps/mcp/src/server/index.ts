@@ -6,7 +6,7 @@ import { validateOAuthToken, type AuthUser } from "./auth"
 import { SupermemoryMCP } from "./legacy-protocol-state"
 import { createSupermemoryServer } from "./server"
 import type { ActorContext, ServerEnv } from "./types"
-import { SpaceState } from "./space-state"
+import { SpaceState, uploadStateName } from "./space-state"
 
 type Bindings = ServerEnv
 
@@ -16,6 +16,8 @@ const DEFAULT_API_URL = "https://api.supermemory.ai"
 const DEFAULT_MCP_RESOURCE = "https://mcp.supermemory.ai/mcp"
 const PROTECTED_RESOURCE_METADATA_PATH =
 	"/.well-known/oauth-protected-resource/mcp"
+const UPLOAD_ID_PATTERN =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const DEFAULT_ALLOWED_ORIGIN_HOSTNAMES = [
 	"app.supermemory.ai",
 	"mcp.supermemory.ai",
@@ -170,6 +172,7 @@ async function handleMcpRequest(
 	const resourceMetadataUrl = reqHost
 		? `${reqProto}://${reqHost}${PROTECTED_RESOURCE_METADATA_PATH}`
 		: PROTECTED_RESOURCE_METADATA_PATH
+	const mcpOrigin = c.env.MCP_PUBLIC_ORIGIN || new URL(mcpResource).origin
 
 	if (!token) return unauthorizedResponse(resourceMetadataUrl)
 
@@ -187,8 +190,11 @@ async function handleMcpRequest(
 		: c.req.raw
 	const handler = createMcpHandler(
 		() =>
-			createSupermemoryServer(c.env, actor, (promise) =>
-				c.executionCtx.waitUntil(promise),
+			createSupermemoryServer(
+				c.env,
+				actor,
+				(promise) => c.executionCtx.waitUntil(promise),
+				mcpOrigin,
 			),
 		{
 			route: "/mcp",
@@ -203,6 +209,56 @@ async function handleMcpRequest(
 		authInfo: authInfoFor(authUser, mcpResource),
 	})
 }
+
+app.post("/upload/:uploadId", async (c) => {
+	const uploadId = c.req.param("uploadId")
+	const contentType = c.req.header("Content-Type")
+	const authHeader = c.req.header("Authorization")
+	const uploadToken = authHeader?.replace(/^Bearer\s+/i, "").trim()
+
+	if (!UPLOAD_ID_PATTERN.test(uploadId) || !uploadToken) {
+		return c.json({ error: "Invalid or expired upload session" }, 401)
+	}
+	if (!contentType?.toLowerCase().startsWith("multipart/form-data;")) {
+		return c.json({ error: "Expected multipart form data" }, 415)
+	}
+	if (!c.req.raw.body) {
+		return c.json({ error: "File upload body is required" }, 400)
+	}
+
+	const uploadState = c.env.SPACE_STATE.getByName(uploadStateName(uploadId))
+	const session = await uploadState.consumeUploadSession(uploadToken)
+	if (!session) {
+		return c.json({ error: "Invalid or expired upload session" }, 401)
+	}
+
+	const apiUrl = (c.env.API_URL || DEFAULT_API_URL).replace(/\/+$/, "")
+	try {
+		const response = await fetch(`${apiUrl}/v3/documents/file`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${session.bearerToken}`,
+				"Content-Type": contentType,
+				"x-sm-source": "supermemory-mcp",
+			},
+			body: c.req.raw.body,
+			signal: c.req.raw.signal,
+		})
+		const headers = new Headers({ "Cache-Control": "no-store" })
+		const responseContentType = response.headers.get("Content-Type")
+		const retryAfter = response.headers.get("Retry-After")
+		if (responseContentType) headers.set("Content-Type", responseContentType)
+		if (retryAfter) headers.set("Retry-After", retryAfter)
+
+		return new Response(response.body, {
+			status: response.status,
+			statusText: response.statusText,
+			headers,
+		})
+	} catch {
+		return c.json({ error: "File upload failed" }, 502)
+	}
+})
 
 app.all("/", (c) => handleMcpRequest(c, "/mcp"))
 app.all("/mcp", (c) => handleMcpRequest(c))

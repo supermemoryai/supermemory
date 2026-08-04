@@ -30,20 +30,6 @@ export interface McpAppContextValue {
 
 export const McpAppContext = createContext<McpAppContextValue | null>(null)
 
-function safeLog(
-	app: McpApp,
-	level: "debug" | "info" | "warning" | "error",
-	message: string,
-) {
-	try {
-		void app.sendLog({ level, data: message }).catch(() => {
-			// Host logging is optional.
-		})
-	} catch {
-		// The transport may not be ready yet.
-	}
-}
-
 function initialViewState(): ViewState {
 	const checkpoint = loadViewCheckpoint()
 	return checkpoint
@@ -61,29 +47,21 @@ export function McpAppProvider({ children }: { children: ReactNode }) {
 		strict: true,
 		onAppCreated: (createdApp) => {
 			createdApp.ontoolinput = () => {
-				safeLog(createdApp, "info", "[host] ontoolinput")
 				setState({ kind: "loading" })
 			}
 			createdApp.ontoolinputpartial = () => setState({ kind: "loading" })
 			createdApp.ontoolcancelled = () => {
-				safeLog(createdApp, "info", "[host] ontoolcancelled")
 				setState({ kind: "loading" })
 			}
 			createdApp.ontoolresult = (result) => {
 				const structuredContent = result.structuredContent
 				const parsedMessage = viewMessageSchema.safeParse(structuredContent)
 				if (!parsedMessage.success) {
-					safeLog(
-						createdApp,
-						"warning",
-						"[host] ontoolresult: invalid structuredContent",
-					)
 					setState({ kind: "raw", structuredContent })
 					return
 				}
 
 				const message = parsedMessage.data
-				safeLog(createdApp, "info", `[host] ontoolresult: view=${message.view}`)
 				const checkpoint = loadViewCheckpoint(message.viewId)
 				if (checkpoint) {
 					setState({ kind: "view", message: checkpoint })
@@ -96,7 +74,6 @@ export function McpAppProvider({ children }: { children: ReactNode }) {
 				setHostContext(createdApp.getHostContext() ?? next)
 			}
 			createdApp.onerror = (nextError: unknown) => {
-				safeLog(createdApp, "error", `[host] onerror: ${String(nextError)}`)
 				setState({ kind: "error", message: String(nextError) })
 			}
 		},

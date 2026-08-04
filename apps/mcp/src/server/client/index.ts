@@ -122,11 +122,6 @@ const sdkResultSchema = z.looseObject({
 	context: z.string().nullish(),
 })
 
-const uploadResultSchema = z.object({
-	id: z.string(),
-	status: z.string(),
-})
-
 function mapSdkResults(value: unknown): Memory[] {
 	return z
 		.array(sdkResultSchema)
@@ -445,43 +440,6 @@ export class SupermemoryClient {
 			}
 
 			return memoryEntriesResponseSchema.parse(await response.json())
-		} catch (error) {
-			this.handleError(error)
-		}
-	}
-
-	async uploadFile(
-		fileData: ArrayBuffer,
-		fileName: string,
-		mimeType: string,
-		containerTag?: string,
-	): Promise<{ id: string; status: string }> {
-		try {
-			const formData = new FormData()
-			const blob = new Blob([fileData], { type: mimeType })
-			formData.append("file", blob, fileName)
-			if (containerTag) {
-				formData.append("containerTags", containerTag)
-			}
-			formData.append("metadata", JSON.stringify({ sm_source: MCP_SOURCE }))
-
-			const response = await fetch(`${this.apiUrl}/v3/documents/file`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${this.bearerToken}`,
-					"x-sm-source": MCP_SOURCE,
-				},
-				body: formData,
-			})
-
-			if (!response.ok) {
-				const text = await response.text()
-				throw Object.assign(new Error(text || "Upload failed"), {
-					status: response.status,
-				})
-			}
-
-			return uploadResultSchema.parse(await response.json())
 		} catch (error) {
 			this.handleError(error)
 		}

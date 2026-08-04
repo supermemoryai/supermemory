@@ -165,12 +165,23 @@ export const uploadSuccessViewSchema = z.object({
 	containerTag: z.string(),
 })
 
+export const uploadPreparationSchema = z.object({
+	uploadUrl: z.string().url(),
+	uploadToken: z.string().min(1),
+	expiresAt: z.number().int().positive(),
+})
+
+export const uploadResponseSchema = z.object({
+	id: z.string(),
+	status: z.string(),
+})
+
 export const graphViewSchema = z.object({
 	view: z.literal("graph"),
 	viewId: viewIdSchema,
 	containerTag: z.string().optional(),
-	documents: z.array(documentWithMemoriesSchema).optional(),
-	totalCount: z.number().int().nonnegative().optional(),
+	documents: z.array(documentWithMemoriesSchema),
+	totalCount: z.number().int().nonnegative(),
 	documentCount: z.number().int().nonnegative(),
 	memoryCount: z.number().int().nonnegative(),
 	totalDocumentCount: z.number().int().nonnegative(),
@@ -189,13 +200,5 @@ export const viewMessageSchema = z.discriminatedUnion("view", [
 ])
 
 export type ViewMessage = z.infer<typeof viewMessageSchema>
-
-export const graphResultMetaSchema = z.looseObject({
-	graphData: z.object({
-		documents: z.array(documentWithMemoriesSchema),
-	}),
-})
-
-export type GraphResultMeta = z.infer<typeof graphResultMetaSchema>
 
 export type ViewName = ViewMessage["view"]

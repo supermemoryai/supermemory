@@ -1,7 +1,6 @@
-import { type ReactNode, useEffect } from "react"
+import type { ReactNode } from "react"
 import type { ViewMessage } from "../shared/types"
 import { useApplyHostTheme } from "./hooks/useApplyHostTheme"
-import { useLog } from "./hooks/useLog"
 import { useViewState } from "./hooks/useViewState"
 import { Confirmation } from "./views/Confirmation"
 import { ErrorView } from "./views/Error"
@@ -14,16 +13,7 @@ import { Upload } from "./views/Upload"
 
 export function App() {
 	useApplyHostTheme()
-	const log = useLog()
 	const { state, setView, setError } = useViewState()
-
-	useEffect(() => {
-		if (state.kind === "view") {
-			log("info", `[app] view → ${state.message.view}`)
-		} else if (state.kind === "error") {
-			log("error", `[app] error: ${state.message}`)
-		}
-	}, [state, log])
 
 	if (state.kind === "loading") {
 		return (
@@ -130,13 +120,7 @@ function renderView(
 				/>
 			)
 		case "graph":
-			return (
-				<Graph
-					containerTag={msg.containerTag}
-					initialDocuments={msg.documents}
-					initialTotalCount={msg.totalCount ?? msg.totalDocumentCount}
-				/>
-			)
+			return <Graph documents={msg.documents} totalCount={msg.totalCount} />
 		case "confirmation":
 			return <Confirmation containerTag={msg.containerTag} />
 		case "save-success":

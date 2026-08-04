@@ -16,12 +16,12 @@ const EXPECTED_TOOLS = [
 	"listMemories",
 	"listSpaces",
 	"memory-graph",
+	"prepare-file-upload",
 	"save-memory",
 	"search_memory",
 	"select-space",
 	"set-active-tag",
 	"upload-file",
-	"upload-file-submit",
 	"whoAmI",
 ]
 const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)

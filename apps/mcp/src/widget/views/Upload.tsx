@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react"
-import { viewMessageSchema, type ViewMessage } from "../../shared/types"
+import {
+	uploadPreparationSchema,
+	uploadResponseSchema,
+	type ViewMessage,
+} from "../../shared/types"
 import {
 	ActionGroup,
 	Button,
@@ -10,10 +14,8 @@ import {
 	SpaceSelect,
 } from "../design/ui"
 import { useApp } from "../hooks/useApp"
-import { useLog } from "../hooks/useLog"
 import { formatTagLabel } from "../lib/formatTag"
 import { FileText, X } from "../lib/icons"
-import { readFileAsBase64 } from "../lib/readFileAsBase64"
 
 interface Props {
 	activeTag?: string | null
@@ -40,7 +42,6 @@ export function Upload({
 	viewId,
 }: Props) {
 	const { callTool, handoffToModel } = useApp()
-	const log = useLog()
 	const [file, setFile] = useState<File | null>(null)
 	const [selectedTag, setSelectedTag] = useState<string | null>(
 		activeTag ?? writableTags[0] ?? null,
@@ -61,55 +62,67 @@ export function Upload({
 
 	const handleUpload = async () => {
 		if (!file || !selectedTag) return
-		log("info", `[upload] submit ${file.name} (${file.size}B → ${selectedTag})`)
 		setUploading(true)
 		try {
-			const fileData = await readFileAsBase64(file)
-			const result = await callTool(
-				"upload-file-submit",
-				{
-					fileData,
-					fileName: file.name,
-					mimeType: file.type,
-					containerTag: selectedTag,
-					viewId,
-				},
-				viewMessageSchema,
+			const preparation = await callTool(
+				"prepare-file-upload",
+				{},
+				uploadPreparationSchema,
 			)
-			if (!result.ok || !result.data) {
-				log("error", `[upload] failed: ${result.error}`)
-				onError(result.error ?? "Upload failed")
+			if (!preparation.ok || !preparation.data) {
+				onError(preparation.error ?? "Unable to prepare upload")
 				return
 			}
-			const documentId =
-				result.data.view === "upload-success" ? result.data.id : undefined
-			onAdvance(result.data)
-			const handoff = await handoffToModel({
-				context: `Supermemory widget action completed. "${file.name}" was uploaded to space "${selectedTag}"${documentId ? ` with document ID "${documentId}"` : ""}. It is already uploaded; do not upload it again.`,
-				message: `I used the Supermemory widget to upload "${file.name}" to space "${selectedTag}"${documentId ? ` (document ID: ${documentId})` : ""}. The file is already uploaded; do not upload it again.`,
+
+			const formData = new FormData()
+			formData.append("file", file, file.name)
+			formData.append("containerTag", selectedTag)
+			formData.append(
+				"metadata",
+				JSON.stringify({ sm_source: "supermemory-mcp" }),
+			)
+
+			const response = await fetch(preparation.data.uploadUrl, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${preparation.data.uploadToken}`,
+				},
+				body: formData,
+			})
+			if (!response.ok) {
+				const message =
+					(await response.text()) || `Upload failed (${response.status})`
+				onError(message)
+				return
+			}
+
+			const uploaded = uploadResponseSchema.safeParse(await response.json())
+			if (!uploaded.success) {
+				onError("Upload returned an invalid response")
+				return
+			}
+
+			const result: ViewMessage = {
+				view: "upload-success",
+				viewId,
+				id: uploaded.data.id,
+				fileName: file.name,
+				containerTag: selectedTag,
+			}
+			onAdvance(result)
+			await handoffToModel({
+				context: `Supermemory widget action completed. "${file.name}" was uploaded to space "${selectedTag}" with document ID "${uploaded.data.id}". It is already uploaded; do not upload it again.`,
+				message: `I used the Supermemory widget to upload "${file.name}" to space "${selectedTag}" (document ID: ${uploaded.data.id}). The file is already uploaded; do not upload it again.`,
 				structuredContent: {
 					supermemory: {
 						action: "file-uploaded",
 						activeSpace: selectedTag,
-						documentId,
+						documentId: uploaded.data.id,
 						fileName: file.name,
 					},
 				},
 			})
-			if (!handoff.contextUpdate.ok) {
-				log(
-					"warning",
-					`[upload] model context update failed: ${handoff.contextUpdate.error}`,
-				)
-			}
-			if (!handoff.conversationMessage.ok) {
-				log(
-					"warning",
-					`[upload] agent handoff failed: ${handoff.conversationMessage.error}`,
-				)
-			}
 		} catch (err) {
-			log("error", `[upload] threw: ${err}`)
 			onError(String(err))
 		} finally {
 			setUploading(false)
