@@ -370,7 +370,10 @@
 									{
 										"group": "Setups",
 										"icon": "layers",
-										"pages": ["supermemory-mcp/claude-desktop"]
+										"pages": [
+											"supermemory-mcp/chatgpt-web",
+											"supermemory-mcp/claude-desktop"
+										]
 									}
 								]
 							},
