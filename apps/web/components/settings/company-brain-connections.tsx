@@ -94,6 +94,9 @@ function ScopeChip({
 const menuItemClass =
 	"gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 
+const customInputClass =
+	"h-9 w-full rounded-full border border-[#1E293B] bg-[#0D121A] px-3.5 text-[13px] font-medium text-[#FAFAFA] outline-none placeholder:text-[#5F6673] focus:border-[#334155]"
+
 function AppCard({
 	name,
 	subtitle,
@@ -360,6 +363,12 @@ export default function CompanyBrainConnections() {
 	const [customOpen, setCustomOpen] = useState(false)
 	const [customName, setCustomName] = useState("")
 	const [customServerUrl, setCustomServerUrl] = useState("")
+	const [customToken, setCustomToken] = useState("")
+	const [customHeaderName, setCustomHeaderName] = useState("")
+	const [customExtraHeaders, setCustomExtraHeaders] = useState<
+		{ name: string; value: string }[]
+	>([])
+	const [customAdvancedOpen, setCustomAdvancedOpen] = useState(false)
 
 	const { isAdmin } = useOrgMemberRole(isCompanyBrain)
 
@@ -470,6 +479,16 @@ export default function CompanyBrainConnections() {
 		}
 	}
 
+	const resetCustomForm = () => {
+		setCustomOpen(false)
+		setCustomName("")
+		setCustomServerUrl("")
+		setCustomToken("")
+		setCustomHeaderName("")
+		setCustomExtraHeaders([])
+		setCustomAdvancedOpen(false)
+	}
+
 	const connectCustom = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 		const slug = slugifyMcpName(customName)
@@ -479,7 +498,7 @@ export default function CompanyBrainConnections() {
 			return
 		}
 		if (!serverUrl) {
-			toast.error("Enter an OAuth MCP URL.")
+			toast.error("Enter an MCP URL.")
 			return
 		}
 		if (apps.some((entry) => entry.slug === slug)) {
@@ -490,6 +509,45 @@ export default function CompanyBrainConnections() {
 		const key = `custom:${slug}`
 		setBusy(key)
 		try {
+			const token = customToken.trim()
+			if (token) {
+				const rows = customExtraHeaders
+					.map((h) => [h.name.trim(), h.value.trim()] as const)
+					.filter(([name, value]) => name && value)
+				const duplicate = rows.find(
+					([name], i) =>
+						rows.findIndex(([n]) => n.toLowerCase() === name.toLowerCase()) !==
+						i,
+				)
+				if (duplicate) {
+					toast.error(`Duplicate header: ${duplicate[0]}`)
+					return
+				}
+				const res = await fetch(`${MCP_BASE}/${slug}/connect-static`, {
+					method: "POST",
+					credentials: "include",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({
+						serverUrl,
+						token,
+						headerName: customHeaderName.trim() || undefined,
+						extraHeaders: Object.fromEntries(rows),
+						shared: false,
+					}),
+				})
+				const data = (await res.json().catch(() => ({}))) as {
+					ok?: boolean
+					error?: string
+				}
+				if (!res.ok || !data.ok) {
+					toast.error(data.error ?? "Couldn't connect.")
+					return
+				}
+				toast.success(`${slug} connected.`)
+				resetCustomForm()
+				await load()
+				return
+			}
 			const res = await fetch(`${MCP_BASE}/${slug}/connect`, {
 				method: "POST",
 				credentials: "include",
@@ -511,14 +569,10 @@ export default function CompanyBrainConnections() {
 			}
 			if (data.authUrl) {
 				window.open(data.authUrl, "_blank", "noopener")
-				setCustomOpen(false)
-				setCustomName("")
-				setCustomServerUrl("")
+				resetCustomForm()
 			} else if (data.ok) {
 				toast.success(`${slug} connected.`)
-				setCustomOpen(false)
-				setCustomName("")
-				setCustomServerUrl("")
+				resetCustomForm()
 				await load()
 			} else {
 				toast.error(data.error ?? "Couldn't start the custom connection.")
@@ -680,7 +734,13 @@ export default function CompanyBrainConnections() {
 				)}
 			</div>
 
-			<Dialog open={customOpen} onOpenChange={setCustomOpen}>
+			{/* Reset on every close path so the API key never lingers in state. */}
+			<Dialog
+				open={customOpen}
+				onOpenChange={(open) =>
+					open ? setCustomOpen(true) : resetCustomForm()
+				}
+			>
 				<DialogContent
 					className={cn(
 						"w-[90%]! max-w-[440px]! flex flex-col gap-4 rounded-[22px] border-none bg-[#1B1F24] p-4",
@@ -695,10 +755,11 @@ export default function CompanyBrainConnections() {
 					<div className="flex items-start justify-between gap-4">
 						<DialogHeader className="flex-1 space-y-1 pl-1">
 							<DialogTitle className="font-semibold text-[#FAFAFA]">
-								Custom MCP server
+								Add custom connector
 							</DialogTitle>
 							<p className="text-[13px] font-medium leading-[1.35] text-[#737373]">
-								Add a personal OAuth MCP server by URL.
+								Connect your Brain to any remote MCP server. Signs in with OAuth
+								unless you add an API key below.
 							</p>
 						</DialogHeader>
 						<DialogPrimitive.Close
@@ -718,15 +779,124 @@ export default function CompanyBrainConnections() {
 							value={customName}
 							onChange={(event) => setCustomName(event.target.value)}
 							placeholder="Name"
-							className="h-9 w-full rounded-full border border-[#1E293B] bg-[#0D121A] px-3.5 text-[13px] font-medium text-[#FAFAFA] outline-none placeholder:text-[#5F6673] focus:border-[#334155]"
+							className={customInputClass}
 						/>
 						<input
 							value={customServerUrl}
 							onChange={(event) => setCustomServerUrl(event.target.value)}
-							placeholder="https://example.com/mcp"
-							className="h-9 w-full rounded-full border border-[#1E293B] bg-[#0D121A] px-3.5 text-[13px] font-medium text-[#FAFAFA] outline-none placeholder:text-[#5F6673] focus:border-[#334155]"
+							placeholder="Remote MCP server URL"
+							className={customInputClass}
 						/>
-						<div className="flex justify-end pt-2">
+
+						<button
+							type="button"
+							onClick={() => setCustomAdvancedOpen((open) => !open)}
+							className="mt-1 flex items-center gap-1.5 self-start text-[13px] font-medium text-[#FAFAFA]"
+						>
+							<ChevronDown
+								className={cn(
+									"size-4 text-[#737373] transition-transform",
+									customAdvancedOpen && "rotate-180",
+								)}
+							/>
+							Advanced settings
+						</button>
+
+						{customAdvancedOpen && (
+							<div className="flex flex-col gap-2">
+								<input
+									value={customToken}
+									onChange={(event) => setCustomToken(event.target.value)}
+									type="password"
+									placeholder="API key (optional)"
+									className={customInputClass}
+								/>
+								<input
+									value={customHeaderName}
+									onChange={(event) => setCustomHeaderName(event.target.value)}
+									placeholder="Send key as header (default: Authorization)"
+									className={customInputClass}
+								/>
+								{customExtraHeaders.length > 0 && (
+									<p className="pt-1 pl-1 text-[12px] font-medium text-[#737373]">
+										Extra headers
+									</p>
+								)}
+								{customExtraHeaders.map((header, index) => (
+									<div key={index} className="flex items-center gap-2">
+										<input
+											value={header.name}
+											onChange={(event) =>
+												setCustomExtraHeaders((prev) =>
+													prev.map((h, i) =>
+														i === index
+															? { ...h, name: event.target.value }
+															: h,
+													),
+												)
+											}
+											placeholder="Name"
+											className={customInputClass}
+										/>
+										<input
+											value={header.value}
+											onChange={(event) =>
+												setCustomExtraHeaders((prev) =>
+													prev.map((h, i) =>
+														i === index
+															? { ...h, value: event.target.value }
+															: h,
+													),
+												)
+											}
+											placeholder="Value"
+											className={customInputClass}
+										/>
+										<button
+											type="button"
+											onClick={() =>
+												setCustomExtraHeaders((prev) =>
+													prev.filter((_, i) => i !== index),
+												)
+											}
+											className="flex size-7 shrink-0 items-center justify-center rounded-full text-[#737373] hover:text-[#FAFAFA]"
+										>
+											<XIcon className="size-3.5" />
+											<span className="sr-only">Remove header</span>
+										</button>
+									</div>
+								))}
+								<button
+									type="button"
+									onClick={() =>
+										setCustomExtraHeaders((prev) => [
+											...prev,
+											{ name: "", value: "" },
+										])
+									}
+									className="self-start pl-1 text-[13px] font-medium text-[#737B87] hover:text-[#FAFAFA]"
+								>
+									+ Add header
+								</button>
+							</div>
+						)}
+
+						<p className="pt-1 pl-1 text-[12px] font-medium leading-[1.45] text-[#737373]">
+							Only connect servers you trust. Supermemory can't verify which
+							tools a server exposes or that they won't change.
+						</p>
+
+						<div className="flex justify-end gap-2 pt-1">
+							<button
+								type="button"
+								onClick={resetCustomForm}
+								className={cn(
+									"h-8 shrink-0 rounded-full px-4 text-[13px] font-medium text-[#737B87] sm:h-9",
+									"cursor-pointer transition-colors hover:text-[#FAFAFA]",
+								)}
+							>
+								Cancel
+							</button>
 							<PillButton
 								type="submit"
 								disabled={busy?.startsWith("custom:") ?? false}
@@ -734,7 +904,7 @@ export default function CompanyBrainConnections() {
 								{busy?.startsWith("custom:") && (
 									<Loader2 className="size-3.5 animate-spin" />
 								)}
-								Connect
+								Add
 							</PillButton>
 						</div>
 					</form>
