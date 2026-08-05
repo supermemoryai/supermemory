@@ -185,18 +185,29 @@ export function getBrainTrialInfo(
 }
 
 /**
- * Format a number with K/M suffix for display
+ * Format a number with K/M/B suffix for display
  * @example formatUsageNumber(1500000) => "1.5M"
  * @example formatUsageNumber(50000) => "50K"
+ * @example formatUsageNumber(999950) => "1.0M"
  */
 export function formatUsageNumber(value: number): string {
+	const withSuffix = (n: number, suffix: string) =>
+		n % 1 === 0 ? `${n}${suffix}` : `${n.toFixed(1)}${suffix}`
+
+	// One-decimal rounding can push a value just under a unit up to "1000.0"
+	// (e.g. 999,950 / 1_000 = 999.95 rounds to 1000.0K), so promote it to the
+	// next unit instead of rendering "1000.0K".
 	if (value >= 1_000_000) {
 		const millions = value / 1_000_000
-		return millions % 1 === 0 ? `${millions}M` : `${millions.toFixed(1)}M`
+		return millions >= 999.95
+			? withSuffix(value / 1_000_000_000, "B")
+			: withSuffix(millions, "M")
 	}
 	if (value >= 1_000) {
 		const thousands = value / 1_000
-		return thousands % 1 === 0 ? `${thousands}K` : `${thousands.toFixed(1)}K`
+		return thousands >= 999.95
+			? withSuffix(value / 1_000_000, "M")
+			: withSuffix(thousands, "K")
 	}
 	return value.toString()
 }
