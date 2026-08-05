@@ -367,11 +367,13 @@ const addMemoryTool = async (
 			return
 		}
 
-		// Fallback to old behavior for non-conversation memories
+		// Fallback to old behavior for non-conversation memories. The
+		// "conversation:" prefix is an internal routing marker — never let
+		// it reach the stored customId (colons fail customId validation).
 		const response = await client.add({
 			content,
 			containerTags: [containerTag],
-			customId,
+			customId: customId?.replace(/^conversation:/, ""),
 		})
 
 		logger.info("Memory saved successfully", {
@@ -548,9 +550,26 @@ export function createOpenAIMiddleware(
 		if (addMemory === "always" && input?.trim()) {
 			const content = customId ? `Input: ${input}` : input
 			const memoryCustomId = customId ? `conversation:${customId}` : undefined
+			// Mirror the chat path: hand the input over as messages together
+			// with the credentials so a configured customId routes through
+			// /v4/conversations. Without these, addMemoryTool fell through to
+			// client.add() with the internal "conversation:" prefix baked
+			// into the stored customId — which the API rejects, so Responses
+			// API memory saves silently failed whenever customId was set.
+			const inputAsMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
+				[{ role: "user", content: input }]
 
 			operations.push(
-				addMemoryTool(client, containerTag, content, memoryCustomId, logger),
+				addMemoryTool(
+					client,
+					containerTag,
+					content,
+					memoryCustomId,
+					logger,
+					customId ? inputAsMessages : undefined,
+					process.env.SUPERMEMORY_API_KEY,
+					baseUrl,
+				),
 			)
 		}
 
