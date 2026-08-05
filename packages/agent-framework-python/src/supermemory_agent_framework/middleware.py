@@ -368,7 +368,7 @@ class SupermemoryChatMiddleware(ChatMiddleware):
             )
 
             # Inject memories into messages
-            _inject_memories(context, memories)
+            _inject_memories(context, memories, self._logger)
 
         await call_next()
 
@@ -402,11 +402,14 @@ class SupermemoryChatMiddleware(ChatMiddleware):
             raise
 
 
-def _inject_memories(context: Any, memories: str) -> None:
+def _inject_memories(context: Any, memories: str, logger: Logger) -> None:
     """Inject memories into the chat context messages.
 
     Handles both object-based and dict-based message formats used by
     different Agent Framework providers.
+
+    Injection is best-effort: a failure here must not fail the chat request,
+    so problems are reported through the logger rather than raised.
     """
     messages = context.messages
     wrapped_memories = wrap_memory_injection(memories)
@@ -432,9 +435,17 @@ def _inject_memories(context: Any, memories: str) -> None:
             return
 
     # No system message found - prepend one carrying the same wrapped memories
+    if not isinstance(messages, list):
+        logger.warn(
+            "Skipped memory injection: context.messages is not a list",
+            {"messages_type": type(messages).__name__},
+        )
+        return
+
     try:
-        if isinstance(messages, list):
-            messages.insert(0, Message("system", [wrapped_memories]))
-    except Exception:
-        # If messages is immutable, log a warning
-        pass
+        messages.insert(0, Message("system", [wrapped_memories]))
+    except Exception as error:
+        logger.warn(
+            "Failed to prepend system message with memories",
+            {"error": str(error), "type": type(error).__name__},
+        )
