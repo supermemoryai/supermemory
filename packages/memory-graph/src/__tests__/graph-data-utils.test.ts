@@ -65,6 +65,13 @@ describe("getMemoryBorderColor", () => {
 		expect(getMemoryBorderColor(mem, colors)).toBe(colors.memBorderExpiring)
 	})
 
+	it("does not treat an already-elapsed forgetAfter as expiring", () => {
+		const past = new Date(Date.now() - 60 * 1000).toISOString()
+		const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+		const mem = makeMemory({ forgetAfter: past, createdAt: old })
+		expect(getMemoryBorderColor(mem, colors)).toBe(colors.memStrokeDefault)
+	})
+
 	it("returns recent color for memories created within 24 hours", () => {
 		const recent = new Date(Date.now() - 1000).toISOString()
 		const mem = makeMemory({ createdAt: recent })

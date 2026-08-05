@@ -47,7 +47,10 @@ export function getMemoryBorderColor(
 	if (mem.isForgotten) return colors.memBorderForgotten
 	if (mem.forgetAfter) {
 		const msLeft = new Date(mem.forgetAfter).getTime() - Date.now()
-		if (msLeft < SEVEN_DAYS_MS) return colors.memBorderExpiring
+		// Only "expiring" while there is time left. A forgetAfter already in the
+		// past leaves msLeft negative, which still satisfied `< SEVEN_DAYS_MS` and
+		// painted the expiring border forever; let those fall through instead.
+		if (msLeft > 0 && msLeft < SEVEN_DAYS_MS) return colors.memBorderExpiring
 	}
 	const age = Date.now() - new Date(mem.createdAt).getTime()
 	if (age < ONE_DAY_MS) return colors.memBorderRecent
