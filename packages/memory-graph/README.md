@@ -51,6 +51,7 @@ function App() {
 - **Interactive canvas visualization** - Pan, zoom, and drag nodes using Canvas 2D rendering
 - **Document and memory nodes** - Documents as rectangles, memories as hexagons
 - **Relationship visualization** - Edges show document similarity and memory version chains
+- **Node search** - Find documents and memories by text, highlight matches, and step through them (press `/` to focus, `Enter` / `Shift+Enter` to cycle)
 - **Space filtering** - Filter by workspace or view all memories
 - **Two variants** - Full-featured console mode or embedded consumer mode
 - **Pagination support** - Load more documents on demand
@@ -66,6 +67,8 @@ function App() {
 | `error` | `Error \| null` | Error to display |
 | `loadMoreDocuments` | `() => Promise<void>` | Function to load more data |
 | `highlightDocumentIds` | `string[]` | IDs of documents to highlight |
+| `showSearch` | `boolean` | Show the in-graph node search box (default: `true`) |
+| `searchPlaceholder` | `string` | Placeholder text for the search box |
 
 ## Documentation
 
