@@ -3,6 +3,7 @@
 import { cn } from "@lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { ChevronRight } from "lucide-react"
+import { skillOriginLabel } from "@/components/settings/company-brain-skills/domain"
 import type { BrainSkill } from "@/hooks/use-brain-skills"
 import { dmSans125ClassName } from "@/lib/fonts"
 
@@ -23,6 +24,16 @@ function ScopeBadge({ scope }: { scope: BrainSkill["scope"] }) {
 			)}
 		>
 			{scope === "org" ? "Org-wide" : "Personal"}
+		</span>
+	)
+}
+
+function OriginBadge({ origin }: { origin: BrainSkill["origin"] }) {
+	const label = skillOriginLabel(origin)
+	if (!label) return null
+	return (
+		<span className="inline-flex h-[18px] shrink-0 items-center rounded-full bg-[#1F2E3C] px-1.5 text-[10px] font-medium text-[#A8C7E8]">
+			{label}
 		</span>
 	)
 }
@@ -51,6 +62,7 @@ export function SkillRow({
 						{skill.name}
 					</h3>
 					<ScopeBadge scope={skill.scope} />
+					<OriginBadge origin={skill.origin} />
 					{skill.status === "disabled" ? (
 						<span className="inline-flex h-[18px] shrink-0 items-center rounded-full border border-red-400/20 bg-red-400/[0.07] px-1.5 text-[10px] font-medium text-red-300">
 							Disabled
