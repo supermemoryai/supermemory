@@ -328,7 +328,13 @@ export const enhanceMessagesWithMemories = async (
 
 		const formattedMemories = effectiveResults
 			.map((result: SearchResult) => {
-				const text = result.memory || result.chunk
+				// A hook that blanks `memory` is exercising the documented
+				// contract ("rewrite memory strings, drop entries, or throw").
+				// Only fall back to `chunk` when no hook ran — otherwise the
+				// redacted text comes straight back from the mirror field.
+				const text = governedResults
+					? result.memory
+					: result.memory || result.chunk
 				return text ? `- ${text}` : null
 			})
 			.filter(Boolean)
@@ -344,7 +350,7 @@ export const enhanceMessagesWithMemories = async (
 					// like `id`/`similarity`/`title` doesn't silently lose them.
 					searchResults: governedResults
 						? governedResults.map((r) => ({
-								memory: r.memory || r.chunk || "",
+								memory: r.memory ?? "",
 								...(r.metadata ? { metadata: r.metadata } : {}),
 							}))
 						: (response.results as Array<{
