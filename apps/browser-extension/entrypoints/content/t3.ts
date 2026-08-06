@@ -15,30 +15,24 @@ import {
 	parseMemoriesFromDataset,
 	renumberIncludedMemories,
 	serializeMemoriesForDataset,
-	shouldClearIncludedMemories,
 } from "./memory-suggestion"
 
 let t3DebounceTimeout: NodeJS.Timeout | null = null
 let t3RouteObserver: MutationObserver | null = null
 let t3UrlCheckInterval: NodeJS.Timeout | null = null
 let t3ObserverThrottle: NodeJS.Timeout | null = null
-let t3IncludedMemoriesPopup: HTMLElement | null = null
-let t3IncludedMemoriesClickHandler: ((event: MouseEvent) => void) | null = null
-let t3IncludedMemoriesTimeout: ReturnType<typeof setTimeout> | null = null
+let t3IncludedPopup: {
+	el: HTMLElement
+	onClick: (event: MouseEvent) => void
+	timer: ReturnType<typeof setTimeout>
+} | null = null
 
-function disposeT3IncludedMemoriesPopup() {
-	if (t3IncludedMemoriesClickHandler) {
-		document.removeEventListener("click", t3IncludedMemoriesClickHandler)
-		t3IncludedMemoriesClickHandler = null
-	}
-	if (t3IncludedMemoriesTimeout !== null) {
-		clearTimeout(t3IncludedMemoriesTimeout)
-		t3IncludedMemoriesTimeout = null
-	}
-	if (t3IncludedMemoriesPopup?.isConnected) {
-		t3IncludedMemoriesPopup.remove()
-	}
-	t3IncludedMemoriesPopup = null
+function disposeT3IncludedPopup() {
+	if (!t3IncludedPopup) return
+	document.removeEventListener("click", t3IncludedPopup.onClick)
+	clearTimeout(t3IncludedPopup.timer)
+	t3IncludedPopup.el.remove()
+	t3IncludedPopup = null
 }
 
 export function initializeT3() {
@@ -297,9 +291,7 @@ function updateT3IconFeedback(
 		iconElement.dataset.originalHtml = iconElement.innerHTML
 	}
 
-	// Tear down any prior Included Memories popup before rendering new feedback,
-	// including non-success states that would otherwise leave orphaned listeners.
-	disposeT3IncludedMemoriesPopup()
+	disposeT3IncludedPopup()
 
 	const feedbackDiv = document.createElement("div")
 	feedbackDiv.style.cssText = `
@@ -323,7 +315,6 @@ function updateT3IconFeedback(
 
 	if (message === "Included Memories" && iconElement.dataset.memoriesData) {
 		const popup = document.createElement("div")
-		t3IncludedMemoriesPopup = popup
 		popup.style.cssText = `
 			position: fixed;
 			bottom: 80px;
@@ -437,66 +428,65 @@ function updateT3IconFeedback(
 			popup.style.display = "block"
 		})
 
-		t3IncludedMemoriesClickHandler = (e: MouseEvent) => {
+		const onClick = (e: MouseEvent) => {
 			if (!popup.contains(e.target as Node)) {
 				popup.style.display = "none"
 			}
 		}
-		document.addEventListener("click", t3IncludedMemoriesClickHandler)
+		document.addEventListener("click", onClick)
+		t3IncludedPopup = {
+			el: popup,
+			onClick,
+			timer: setTimeout(disposeT3IncludedPopup, 300000),
+		}
 
 		content.querySelectorAll("button[data-memory-index]").forEach((button) => {
 			const htmlButton = button as HTMLButtonElement
 			htmlButton.addEventListener("click", () => {
 				const index = Number.parseInt(htmlButton.dataset.memoryIndex || "0", 10)
-				const memoryItem = htmlButton.parentElement
+				htmlButton.parentElement?.remove()
 
-				if (memoryItem) {
-					content.removeChild(memoryItem)
-				}
-
-				const currentMemories = parseMemoriesFromDataset(
+				const remainingMemories = parseMemoriesFromDataset(
 					iconElement.dataset.memoriesData,
 				)
-				currentMemories.splice(index, 1)
-				const renumberedMemories = renumberIncludedMemories(currentMemories)
-
-				iconElement.dataset.memoriesData =
-					serializeMemoriesForDataset(renumberedMemories)
+				remainingMemories.splice(index, 1)
+				const remaining = renumberIncludedMemories(remainingMemories)
 
 				const textareaElement =
 					(document.querySelector("textarea") as HTMLTextAreaElement) ||
 					(document.querySelector('div[contenteditable="true"]') as HTMLElement)
+
+				// Only wipe when nothing remains — `<= 1` used to discard the last kept memory.
+				if (remaining.length === 0) {
+					if (textareaElement?.dataset.supermemories) {
+						delete textareaElement.dataset.supermemories
+					}
+					delete iconElement.dataset.memoriesData
+					iconElement.innerHTML = iconElement.dataset.originalHtml || ""
+					delete iconElement.dataset.originalHtml
+					disposeT3IncludedPopup()
+					return
+				}
+
+				iconElement.dataset.memoriesData =
+					serializeMemoriesForDataset(remaining)
 				if (textareaElement) {
 					textareaElement.dataset.supermemories =
-						buildSupermemoryText(renumberedMemories)
+						buildSupermemoryText(remaining)
 				}
 
 				content
 					.querySelectorAll("button[data-memory-index]")
 					.forEach((btn, newIndex) => {
 						const htmlBtn = btn as HTMLButtonElement
-						htmlBtn.dataset.memoryIndex = newIndex.toString()
+						htmlBtn.dataset.memoryIndex = String(newIndex)
 						const label = htmlBtn.previousElementSibling
-						if (label && renumberedMemories[newIndex]) {
-							label.textContent = renumberedMemories[newIndex].trim()
+						if (label) {
+							label.textContent = remaining[newIndex].trim()
 						}
 					})
-
-				if (shouldClearIncludedMemories(renumberedMemories.length)) {
-					if (textareaElement?.dataset.supermemories) {
-						delete textareaElement.dataset.supermemories
-						delete iconElement.dataset.memoriesData
-						iconElement.innerHTML = iconElement.dataset.originalHtml || ""
-						delete iconElement.dataset.originalHtml
-					}
-					disposeT3IncludedMemoriesPopup()
-				}
 			})
 		})
-
-		t3IncludedMemoriesTimeout = setTimeout(() => {
-			disposeT3IncludedMemoriesPopup()
-		}, 300000)
 	}
 
 	iconElement.innerHTML = ""

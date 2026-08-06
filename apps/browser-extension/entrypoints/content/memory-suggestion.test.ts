@@ -4,7 +4,6 @@ import {
 	parseMemoriesFromDataset,
 	renumberIncludedMemories,
 	serializeMemoriesForDataset,
-	shouldClearIncludedMemories,
 } from "./memory-suggestion"
 
 describe("memory dataset serialization", () => {
@@ -49,9 +48,7 @@ describe("memory dataset serialization", () => {
 			parseMemoriesFromDataset(serializeMemoriesForDataset("solo")),
 		).toEqual(["solo"])
 	})
-})
 
-describe("included memories removal lifecycle", () => {
 	it("renumbers remaining memories after a removal", () => {
 		const remaining = renumberIncludedMemories([
 			"2. Prefers TypeScript, strict mode \n",
@@ -64,11 +61,5 @@ describe("included memories removal lifecycle", () => {
 		expect(buildSupermemoryText(remaining)).toBe(
 			"\n\nSupermemories of user (only for the reference): 1. Prefers TypeScript, strict mode \n2. Uses Biome",
 		)
-	})
-
-	it("clears included memories only when the list is empty", () => {
-		expect(shouldClearIncludedMemories(2)).toBe(false)
-		expect(shouldClearIncludedMemories(1)).toBe(false)
-		expect(shouldClearIncludedMemories(0)).toBe(true)
 	})
 })
