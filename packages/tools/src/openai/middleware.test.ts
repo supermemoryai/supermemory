@@ -54,8 +54,12 @@ describe("createOpenAIMiddleware governance hook", () => {
 			}),
 		})
 
-		// biome-ignore lint: test double, not a real ChatCompletionCreateParams
-		await (fakeClient.chat.completions.create as any)({
+		// Test double, not a real ChatCompletionCreateParams.
+		await (
+			fakeClient.chat.completions.create as (
+				...args: unknown[]
+			) => Promise<unknown>
+		)({
 			model: "gpt-4o",
 			messages: [{ role: "user", content: "what is my SSN?" }],
 		})
@@ -95,8 +99,10 @@ describe("createOpenAIMiddleware governance hook", () => {
 			}),
 		})
 
-		// biome-ignore lint: test double, not a real Responses create params type
-		await (fakeClient.responses.create as any)({
+		// Test double, not a real Responses create params type.
+		await (
+			fakeClient.responses.create as (...args: unknown[]) => Promise<unknown>
+		)({
 			model: "gpt-4o",
 			input: "what is my SSN?",
 			instructions: "Be concise.",
