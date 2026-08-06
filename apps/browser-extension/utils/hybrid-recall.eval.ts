@@ -92,12 +92,13 @@ export const HYBRID_RECALL_FIXTURES: HybridRecallFixture[] = [
 	},
 	{
 		id: "empty-and-whitespace-noise",
-		description: "Empty / whitespace hits must not invent prompt lines",
-		expectedTexts: ["Keep this fact"],
-		chunkOnlyTexts: [],
+		description:
+			"Whitespace-only memory must not block a valid chunk; blanks invent no lines",
+		expectedTexts: ["Keep this fact", "Important document text"],
+		chunkOnlyTexts: ["Important document text"],
 		results: [
 			{ memory: "Keep this fact" },
-			{ memory: "   " },
+			{ memory: "   ", chunk: "Important document text" },
 			{ chunk: "" },
 			{},
 		],

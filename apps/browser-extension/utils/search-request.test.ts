@@ -37,6 +37,15 @@ describe("formatSearchHitText", () => {
 		)
 	})
 
+	it("falls back to chunk when memory is only whitespace", () => {
+		expect(
+			formatSearchHitText({
+				memory: "   ",
+				chunk: "Important document text",
+			}),
+		).toBe("Important document text")
+	})
+
 	it("returns null for empty hits", () => {
 		expect(formatSearchHitText({})).toBeNull()
 		expect(formatSearchHitText({ memory: "   " })).toBeNull()

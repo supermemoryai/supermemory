@@ -23,10 +23,10 @@ export function buildSearchMemoriesBody(
 
 /** Prefer extracted memory text; fall back to document chunk. */
 export function formatSearchHitText(hit: SearchHit): string | null {
-	const text = hit.memory || hit.chunk
-	if (typeof text !== "string") return null
-	const trimmed = text.trim()
-	return trimmed.length > 0 ? trimmed : null
+	const memory = typeof hit.memory === "string" ? hit.memory.trim() : ""
+	const chunk = typeof hit.chunk === "string" ? hit.chunk.trim() : ""
+	const text = memory || chunk
+	return text.length > 0 ? text : null
 }
 
 /** Numbered prompt lines for Included Memories; skips empty hits. */
