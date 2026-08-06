@@ -11,14 +11,35 @@ import {
 } from "../../utils/storage"
 import { createT3InputBarElement, DOMUtils } from "../../utils/ui-components"
 import {
+	buildSupermemoryText,
 	parseMemoriesFromDataset,
+	renumberIncludedMemories,
 	serializeMemoriesForDataset,
+	shouldClearIncludedMemories,
 } from "./memory-suggestion"
 
 let t3DebounceTimeout: NodeJS.Timeout | null = null
 let t3RouteObserver: MutationObserver | null = null
 let t3UrlCheckInterval: NodeJS.Timeout | null = null
 let t3ObserverThrottle: NodeJS.Timeout | null = null
+let t3IncludedMemoriesPopup: HTMLElement | null = null
+let t3IncludedMemoriesClickHandler: ((event: MouseEvent) => void) | null = null
+let t3IncludedMemoriesTimeout: ReturnType<typeof setTimeout> | null = null
+
+function disposeT3IncludedMemoriesPopup() {
+	if (t3IncludedMemoriesClickHandler) {
+		document.removeEventListener("click", t3IncludedMemoriesClickHandler)
+		t3IncludedMemoriesClickHandler = null
+	}
+	if (t3IncludedMemoriesTimeout !== null) {
+		clearTimeout(t3IncludedMemoriesTimeout)
+		t3IncludedMemoriesTimeout = null
+	}
+	if (t3IncludedMemoriesPopup?.isConnected) {
+		t3IncludedMemoriesPopup.remove()
+	}
+	t3IncludedMemoriesPopup = null
+}
 
 export function initializeT3() {
 	if (!DOMUtils.isOnDomain(DOMAINS.T3)) {
@@ -235,7 +256,9 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			}
 
 			if (textareaElement) {
-				textareaElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${response.data}`
+				textareaElement.dataset.supermemories = buildSupermemoryText(
+					response.data,
+				)
 
 				iconElement.dataset.memoriesData = serializeMemoriesForDataset(
 					response.data,
@@ -274,6 +297,10 @@ function updateT3IconFeedback(
 		iconElement.dataset.originalHtml = iconElement.innerHTML
 	}
 
+	// Tear down any prior Included Memories popup before rendering new feedback,
+	// including non-success states that would otherwise leave orphaned listeners.
+	disposeT3IncludedMemoriesPopup()
+
 	const feedbackDiv = document.createElement("div")
 	feedbackDiv.style.cssText = `
 		display: flex; 
@@ -296,6 +323,7 @@ function updateT3IconFeedback(
 
 	if (message === "Included Memories" && iconElement.dataset.memoriesData) {
 		const popup = document.createElement("div")
+		t3IncludedMemoriesPopup = popup
 		popup.style.cssText = `
 			position: fixed;
 			bottom: 80px;
@@ -409,11 +437,12 @@ function updateT3IconFeedback(
 			popup.style.display = "block"
 		})
 
-		document.addEventListener("click", (e) => {
+		t3IncludedMemoriesClickHandler = (e: MouseEvent) => {
 			if (!popup.contains(e.target as Node)) {
 				popup.style.display = "none"
 			}
-		})
+		}
+		document.addEventListener("click", t3IncludedMemoriesClickHandler)
 
 		content.querySelectorAll("button[data-memory-index]").forEach((button) => {
 			const htmlButton = button as HTMLButtonElement
@@ -429,19 +458,17 @@ function updateT3IconFeedback(
 					iconElement.dataset.memoriesData,
 				)
 				currentMemories.splice(index, 1)
-
-				// Injected prompt keeps its existing joined-text form; the popup's
-				// own data is stored as JSON so comma-bearing memories stay intact.
-				const updatedMemories = currentMemories.join(" ,")
+				const renumberedMemories = renumberIncludedMemories(currentMemories)
 
 				iconElement.dataset.memoriesData =
-					serializeMemoriesForDataset(currentMemories)
+					serializeMemoriesForDataset(renumberedMemories)
 
 				const textareaElement =
 					(document.querySelector("textarea") as HTMLTextAreaElement) ||
 					(document.querySelector('div[contenteditable="true"]') as HTMLElement)
 				if (textareaElement) {
-					textareaElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${updatedMemories}`
+					textareaElement.dataset.supermemories =
+						buildSupermemoryText(renumberedMemories)
 				}
 
 				content
@@ -449,27 +476,26 @@ function updateT3IconFeedback(
 					.forEach((btn, newIndex) => {
 						const htmlBtn = btn as HTMLButtonElement
 						htmlBtn.dataset.memoryIndex = newIndex.toString()
+						const label = htmlBtn.previousElementSibling
+						if (label && renumberedMemories[newIndex]) {
+							label.textContent = renumberedMemories[newIndex].trim()
+						}
 					})
 
-				if (currentMemories.length <= 1) {
+				if (shouldClearIncludedMemories(renumberedMemories.length)) {
 					if (textareaElement?.dataset.supermemories) {
 						delete textareaElement.dataset.supermemories
 						delete iconElement.dataset.memoriesData
 						iconElement.innerHTML = iconElement.dataset.originalHtml || ""
 						delete iconElement.dataset.originalHtml
 					}
-					popup.style.display = "none"
-					if (document.body.contains(popup)) {
-						document.body.removeChild(popup)
-					}
+					disposeT3IncludedMemoriesPopup()
 				}
 			})
 		})
 
-		setTimeout(() => {
-			if (document.body.contains(popup)) {
-				document.body.removeChild(popup)
-			}
+		t3IncludedMemoriesTimeout = setTimeout(() => {
+			disposeT3IncludedMemoriesPopup()
 		}, 300000)
 	}
 

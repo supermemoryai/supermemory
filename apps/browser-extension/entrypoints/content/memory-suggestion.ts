@@ -58,6 +58,27 @@ export function parseMemoriesFromDataset(
 		.filter((memory) => memory.length > 0 && memory !== ",")
 }
 
+/**
+ * Background search labels each memory as `"N. <text> \n"`. After a popup
+ * removal the surviving entries keep stale numbers, so strip the prefix and
+ * renumber from 1 to match a fresh fetch.
+ */
+export function renumberIncludedMemories(memories: string[]): string[] {
+	return normalizeMemoryList(memories).map((memory, index) => {
+		const text = memory.replace(/^\d+\.\s*/, "").replace(/\s+$/, "")
+		return `${index + 1}. ${text} \n`
+	})
+}
+
+/**
+ * After splicing one memory out of the Included Memories list, clear the
+ * injected prompt only when nothing remains. A `<= 1` guard incorrectly wipes
+ * the last kept memory when the user removes one of two.
+ */
+export function shouldClearIncludedMemories(remainingCount: number): boolean {
+	return remainingCount === 0
+}
+
 export function showMemorySuggestion(
 	platform: string,
 	input: SuggestionInput,
