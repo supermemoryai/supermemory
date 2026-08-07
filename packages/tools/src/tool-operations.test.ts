@@ -211,7 +211,7 @@ describe("ClaudeMemoryTool", () => {
 		const result = await tool.handleCommand({
 			command: "insert",
 			path: FILE_PATH,
-			insert_line: 2,
+			insert_line: 1,
 			insert_text: "",
 		})
 

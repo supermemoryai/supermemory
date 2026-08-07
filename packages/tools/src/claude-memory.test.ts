@@ -149,6 +149,80 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 	})
 })
 
+describe("ClaudeMemoryTool insert line semantics", () => {
+	let tool: ClaudeMemoryTool
+
+	beforeEach(() => {
+		searchExecute.mockReset()
+		addMock.mockReset()
+		mockDocument(FILE_CONTENT)
+		tool = new ClaudeMemoryTool("test-api-key")
+	})
+
+	// The memory_20250818 spec: insert_text is inserted AFTER line insert_line,
+	// 0 inserts at the beginning of the file, and the valid range is [0, n_lines].
+
+	it("insert_line: 0 inserts at the beginning of the file", async () => {
+		const result = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: 0,
+			insert_text: "header",
+		})
+
+		expect(result.success).toBe(true)
+		const stored = addMock.mock.calls[0]?.[0]?.content as string
+		expect(stored).toBe("header\nline1\nline2\nline3\nline4\nline5")
+	})
+
+	it("inserts AFTER the given line, not before it", async () => {
+		const result = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: 2,
+			insert_text: "after2",
+		})
+
+		expect(result.success).toBe(true)
+		const stored = addMock.mock.calls[0]?.[0]?.content as string
+		// Regression guard: the old 1-based insert-BEFORE landed this one line early.
+		expect(stored).toBe("line1\nline2\nafter2\nline3\nline4\nline5")
+	})
+
+	it("insert_line: n_lines appends at the end of the file", async () => {
+		const result = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: 5,
+			insert_text: "tail",
+		})
+
+		expect(result.success).toBe(true)
+		const stored = addMock.mock.calls[0]?.[0]?.content as string
+		expect(stored).toBe("line1\nline2\nline3\nline4\nline5\ntail")
+	})
+
+	it("rejects insert_line outside [0, n_lines] without writing", async () => {
+		const below = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: -1,
+			insert_text: "x",
+		})
+		expect(below.success).toBe(false)
+		expect(below.error).toContain("[0, 5]")
+
+		const above = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: 6,
+			insert_text: "x",
+		})
+		expect(above.success).toBe(false)
+		expect(addMock).not.toHaveBeenCalled()
+	})
+})
+
 describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 	let tool: ClaudeMemoryTool
 

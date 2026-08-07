@@ -437,16 +437,18 @@ export class ClaudeMemoryTool {
 				readResult.document.raw || readResult.document.content || ""
 			const lines = originalContent.split("\n")
 
-			// Validate line number
-			if (insertLine < 1 || insertLine > lines.length + 1) {
+			// Validate line number. Per the memory_20250818 spec the valid range
+			// is [0, n_lines]: text is inserted AFTER `insert_line`, and 0 means
+			// the beginning of the file.
+			if (insertLine < 0 || insertLine > lines.length) {
 				return {
 					success: false,
-					error: `Invalid line number: ${insertLine}. File has ${lines.length} lines.`,
+					error: `Invalid insert_line parameter: ${insertLine}. It should be within the range of lines of the file: [0, ${lines.length}]`,
 				}
 			}
 
-			// Insert the text (insertLine is 1-based)
-			lines.splice(insertLine - 1, 0, insertText)
+			// Insert the text after line `insertLine` (0-based insert-after)
+			lines.splice(insertLine, 0, insertText)
 			const newContent = lines.join("\n")
 
 			// Update the document
@@ -464,7 +466,7 @@ export class ClaudeMemoryTool {
 
 			return {
 				success: true,
-				content: `Text inserted at line ${insertLine} in file: ${filePath}`,
+				content: `Text inserted after line ${insertLine} in file: ${filePath}`,
 			}
 		} catch (error) {
 			return {
