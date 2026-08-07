@@ -11,6 +11,7 @@ import Billing from "@/components/settings/billing"
 import Integrations from "@/components/settings/integrations"
 import ConnectionsMCP from "@/components/settings/connections-mcp"
 import Support from "@/components/settings/support"
+import ApiKeys from "@/components/settings/api-keys"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
@@ -26,6 +27,7 @@ import {
 	User as UserIcon,
 	Zap,
 	HelpCircle,
+	KeyRound,
 	CreditCard,
 	ShieldAlert,
 	ChevronRight,
@@ -49,6 +51,7 @@ import { SettingsOrgSwitcher } from "@/components/settings/settings-org-switcher
 export const TABS = [
 	"account",
 	"billing",
+	"api-keys",
 	"integrations",
 	"connections",
 	"support",
@@ -74,6 +77,12 @@ const NAV_ITEMS: NavItem[] = [
 		label: "Billing",
 		description: "Plan, usage and payments",
 		icon: <CreditCard className="size-[18px]" />,
+	},
+	{
+		id: "api-keys",
+		label: "API Keys",
+		description: "Create and manage API keys",
+		icon: <KeyRound className="size-[18px]" />,
 	},
 	{
 		id: "integrations",
@@ -481,6 +490,7 @@ export function SettingsContent({
 							<Account dialogPortalContainer={dialogPortalContainer} />
 						)}
 						{activeTab === "billing" && <Billing />}
+						{activeTab === "api-keys" && <ApiKeys />}
 						{activeTab === "integrations" && <Integrations />}
 						{activeTab === "connections" && <ConnectionsMCP />}
 						{activeTab === "support" && <Support />}
