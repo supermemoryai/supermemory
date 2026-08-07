@@ -10,8 +10,8 @@ from openai.types.chat import (
     ChatCompletionToolMessageParam,
 )
 from supermemory.types import (
-    MemoryAddResponse,
-    MemoryGetResponse,
+    AddResponse,
+    DocumentGetResponse,
     SearchExecuteResponse,
 )
 from supermemory.types.search_execute_response import Result
@@ -35,7 +35,7 @@ class SupermemoryToolsConfig(TypedDict, total=False):
 
 
 # Type aliases using inferred types from supermemory package
-MemoryObject = Union[MemoryGetResponse, MemoryAddResponse]
+MemoryObject = Union[DocumentGetResponse, AddResponse]
 
 
 class MemorySearchResult(TypedDict, total=False):
@@ -51,7 +51,7 @@ class MemoryAddResult(TypedDict, total=False):
     """Result type for memory add operations."""
 
     success: bool
-    memory: Optional[MemoryAddResponse]
+    memory: Optional[AddResponse]
     error: Optional[str]
 
 
@@ -226,7 +226,7 @@ class SupermemoryTools:
                 "container_tags": self.container_tags,
             }
 
-            response: MemoryAddResponse = await self.client.memories.add(**add_params)
+            response: AddResponse = await self.client.add(**add_params)
 
             return MemoryAddResult(
                 success=True,
