@@ -9,6 +9,7 @@ import {
 	MESSAGE_TYPES,
 	POSTHOG_EVENT_KEY,
 } from "../utils/constants"
+import { formatSearchHitsForPrompt } from "../utils/search-request"
 import { trackEvent } from "../utils/posthog"
 import { captureTwitterTokens } from "../utils/twitter-auth"
 import {
@@ -226,12 +227,9 @@ export default defineBackground(() => {
 
 			const responseData = await searchMemories(data, containerTag)
 			const response = responseData as {
-				results?: Array<{ memory?: string }>
+				results?: Array<{ memory?: string; chunk?: string }>
 			}
-			const memories: string[] = []
-			response.results?.forEach((result, index) => {
-				memories.push(`${index + 1}. ${result.memory} \n`)
-			})
+			const memories = formatSearchHitsForPrompt(response.results)
 			await trackEvent(eventSource)
 			return { success: true, data: memories }
 		} catch (error) {
