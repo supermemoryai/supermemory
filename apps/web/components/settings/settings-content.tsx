@@ -490,7 +490,9 @@ export function SettingsContent({
 							<Account dialogPortalContainer={dialogPortalContainer} />
 						)}
 						{activeTab === "billing" && <Billing />}
-						{activeTab === "api-keys" && <ApiKeys />}
+						{activeTab === "api-keys" && (
+							<ApiKeys dialogPortalContainer={dialogPortalContainer} />
+						)}
 						{activeTab === "integrations" && <Integrations />}
 						{activeTab === "connections" && <ConnectionsMCP />}
 						{activeTab === "support" && <Support />}

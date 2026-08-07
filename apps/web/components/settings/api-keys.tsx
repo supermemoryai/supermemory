@@ -18,12 +18,9 @@ import {
 import {
 	Dialog,
 	DialogContent,
-	DialogDescription,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@ui/components/dialog"
-import { Input } from "@ui/components/input"
 import {
 	Select,
 	SelectContent,
@@ -31,8 +28,18 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@ui/components/select"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+import { PillButton } from "../integrations/install-steps"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, Copy, KeyRound, Loader2, Plus, Trash2 } from "lucide-react"
+import {
+	Check,
+	Copy,
+	KeyRound,
+	Loader2,
+	Plus,
+	Trash2,
+	XIcon,
+} from "lucide-react"
 import { useCallback, useId, useState } from "react"
 import { toast } from "sonner"
 
@@ -62,6 +69,27 @@ const EXPIRY_OPTIONS = [
 const API_URL =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
+const MODAL_SHADOW =
+	"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset"
+
+const pillInputClass =
+	"h-9 w-full rounded-full border border-[#1E293B] bg-[#0D121A] px-3.5 text-[13px] font-medium text-[#FAFAFA] outline-none placeholder:text-[#5F6673] focus:border-[#334155]"
+
+function ModalClose() {
+	return (
+		<DialogPrimitive.Close
+			className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[rgba(115,115,115,0.2)] bg-[#0D121A] transition-opacity hover:opacity-100 focus:outline-hidden"
+			style={{
+				boxShadow:
+					"0 0.711px 2.842px 0 rgba(0, 0, 0, 0.25), 0.178px 0.178px 0.178px 0 rgba(255, 255, 255, 0.10) inset",
+			}}
+		>
+			<XIcon className="size-4 text-[#737373]" />
+			<span className="sr-only">Close</span>
+		</DialogPrimitive.Close>
+	)
+}
+
 function SettingsCard({ children }: { children: React.ReactNode }) {
 	return (
 		<div
@@ -76,11 +104,8 @@ function SettingsCard({ children }: { children: React.ReactNode }) {
 }
 
 function formatKeyPreview(start: string | null | undefined): string {
-	if (!start) return "sm_••••••••"
-	const TYPICAL_TOTAL_LEN = 48
-	const TAIL_STARS_MIN = 8
-	const tailStars = Math.max(TAIL_STARS_MIN, TYPICAL_TOTAL_LEN - start.length)
-	return `${start}${"•".repeat(Math.min(tailStars, 16))}`
+	if (!start) return "sm_••••••"
+	return `${start}••••••`
 }
 
 function isExpired(expiresAt: string | null): boolean {
@@ -111,7 +136,11 @@ function extractCreatedKey(result: unknown): string {
 	return key
 }
 
-export default function ApiKeys() {
+export default function ApiKeys({
+	dialogPortalContainer,
+}: {
+	dialogPortalContainer?: HTMLElement | null
+}) {
 	const { org } = useAuth()
 	const queryClient = useQueryClient()
 	const nameId = useId()
@@ -251,39 +280,33 @@ export default function ApiKeys() {
 							integrations. Keys are shown once at creation.
 						</p>
 					</div>
-					<button
-						type="button"
+					<PillButton
 						onClick={() => {
 							setCreatedKey(null)
 							setCreateOpen(true)
 						}}
-						className={cn(
-							"inline-flex shrink-0 items-center justify-center gap-1.5",
-							"h-9 rounded-full px-4 text-[13px] font-semibold text-[#FAFAFA]",
-							"bg-[#4BA0FA] hover:bg-[#3B90EA] transition-colors",
-							"disabled:cursor-not-allowed disabled:opacity-50",
-							dmSans125ClassName(),
-						)}
 					>
 						<Plus className="size-4" />
 						Create key
-					</button>
+					</PillButton>
 				</div>
 
-				<SettingsCard>
-					{isLoading ? (
-						<div className="flex items-center justify-center gap-2 py-10 text-[#8B8B8B]">
+				{isLoading ? (
+					<SettingsCard>
+						<div className="flex items-center justify-center gap-2 py-10 text-[#737373]">
 							<Loader2 className="size-4 animate-spin" />
 							<span className={cn(dmSans125ClassName(), "text-[13px]")}>
 								Loading keys…
 							</span>
 						</div>
-					) : isError ? (
+					</SettingsCard>
+				) : isError ? (
+					<SettingsCard>
 						<div className="flex flex-col items-center gap-3 py-10 text-center">
 							<p
 								className={cn(
 									dmSans125ClassName(),
-									"text-[14px] text-[#8B8B8B]",
+									"text-[14px] text-[#737373]",
 								)}
 							>
 								Couldn&apos;t load API keys.
@@ -299,7 +322,9 @@ export default function ApiKeys() {
 								Try again
 							</button>
 						</div>
-					) : keys.length === 0 ? (
+					</SettingsCard>
+				) : keys.length === 0 ? (
+					<SettingsCard>
 						<div className="flex flex-col items-center gap-3 py-10 text-center">
 							<div className="flex size-11 items-center justify-center rounded-full bg-[#0D121A] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]">
 								<KeyRound className="size-5 text-[#4BA0FA]" />
@@ -316,115 +341,116 @@ export default function ApiKeys() {
 								<p
 									className={cn(
 										dmSans125ClassName(),
-										"text-[13px] text-[#8B8B8B] max-w-sm",
+										"text-[13px] text-[#737373] max-w-sm",
 									)}
 								>
 									Create your first key to use the API programmatically or
 									connect custom tools.
 								</p>
 							</div>
-							<button
-								type="button"
-								onClick={() => {
-									setCreatedKey(null)
-									setCreateOpen(true)
-								}}
-								className={cn(
-									"inline-flex items-center justify-center gap-1.5 mt-1",
-									"h-9 rounded-full px-4 text-[13px] font-semibold text-[#FAFAFA]",
-									"bg-[#14161A] shadow-inside-out hover:bg-[#121820] transition-colors",
-									dmSans125ClassName(),
-								)}
-							>
-								<Plus className="size-4" />
-								Create key
-							</button>
+							<div className="mt-1">
+								<PillButton
+									onClick={() => {
+										setCreatedKey(null)
+										setCreateOpen(true)
+									}}
+								>
+									<Plus className="size-4" />
+									Create key
+								</PillButton>
+							</div>
 						</div>
-					) : (
-						<ul className="flex flex-col divide-y divide-white/[0.06]">
-							{keys.map((key) => {
-								const expired = isExpired(key.expiresAt)
-								const disabled = key.enabled === false || expired
-								return (
-									<li
-										key={key.id}
-										className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+					</SettingsCard>
+				) : (
+					<ul className="flex flex-col gap-2">
+						{keys.map((key) => {
+							const expired = isExpired(key.expiresAt)
+							const disabled = key.enabled === false || expired
+							return (
+								<li
+									key={key.id}
+									className="flex items-center gap-3 rounded-xl bg-[#14161A] p-4 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]"
+								>
+									<div
+										className={cn(
+											"flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[#080B0F] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]",
+											disabled && "opacity-60",
+										)}
 									>
-										<div className="min-w-0 flex flex-col gap-1.5">
-											<div className="flex items-center gap-2 min-w-0">
-												<p
+										<KeyRound className="size-4 text-[#737373]" />
+									</div>
+									<div
+										className={cn(
+											"min-w-0 flex-1 flex flex-col gap-1",
+											disabled && "opacity-60",
+										)}
+									>
+										<div className="flex items-center gap-2 min-w-0">
+											<p
+												className={cn(
+													dmSans125ClassName(),
+													"font-semibold text-[14px] tracking-[-0.15px] text-[#FAFAFA] truncate",
+												)}
+											>
+												{key.name?.trim() || "Unnamed key"}
+											</p>
+											{key.isScoped && (
+												<span
 													className={cn(
 														dmSans125ClassName(),
-														"font-semibold text-[14px] text-[#FAFAFA] truncate",
+														"shrink-0 rounded-full bg-[#4BA0FA]/15 px-2 py-0.5 text-[11px] font-medium text-[#4BA0FA]",
 													)}
 												>
-													{key.name?.trim() || "Unnamed key"}
-												</p>
-												{key.isScoped && (
-													<span
-														className={cn(
-															dmSans125ClassName(),
-															"shrink-0 rounded-full bg-[#4BA0FA]/15 px-2 py-0.5 text-[11px] font-medium text-[#4BA0FA]",
-														)}
-													>
-														Scoped
-													</span>
-												)}
-												{disabled && (
-													<span
-														className={cn(
-															dmSans125ClassName(),
-															"shrink-0 rounded-full bg-white/[0.06] px-2 py-0.5 text-[11px] font-medium text-[#8B8B8B]",
-														)}
-													>
-														{expired ? "Expired" : "Disabled"}
-													</span>
-												)}
-											</div>
-											<code
-												className={cn(
-													dmSans125ClassName(),
-													"block truncate font-mono text-[12px] text-[#8B8B8B]",
-												)}
-												title={formatKeyPreview(key.start ?? key.key)}
-											>
-												{formatKeyPreview(key.start ?? key.key)}
-											</code>
-											<div
-												className={cn(
-													dmSans125ClassName(),
-													"flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-[#6B6B6B]",
-												)}
-											>
-												<span>Created {formatRelativeTime(key.createdAt)}</span>
-												<span>
-													Last used{" "}
-													{key.lastRequest
-														? formatRelativeTime(key.lastRequest)
-														: "never"}
+													Scoped
 												</span>
-												<span>Expires {formatExpiresLabel(key.expiresAt)}</span>
-											</div>
+											)}
+											{disabled && (
+												<span
+													className={cn(
+														dmSans125ClassName(),
+														"shrink-0 rounded-full bg-white/[0.06] px-2 py-0.5 text-[11px] font-medium text-[#737373]",
+													)}
+												>
+													{expired ? "Expired" : "Disabled"}
+												</span>
+											)}
 										</div>
-										<button
-											type="button"
-											onClick={() => setRevokeTarget(key)}
+										<div
 											className={cn(
-												"inline-flex shrink-0 items-center justify-center gap-1.5 self-start sm:self-center",
-												"h-8 rounded-full px-3 text-[12px] font-medium",
-												"text-[#C73B1B] hover:bg-[#290F0A]/60 transition-colors",
 												dmSans125ClassName(),
+												"flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] font-medium text-[#737373]",
 											)}
 										>
-											<Trash2 className="size-3.5" />
-											Revoke
-										</button>
-									</li>
-								)
-							})}
-						</ul>
-					)}
-				</SettingsCard>
+											<code className="font-mono">
+												{formatKeyPreview(key.start ?? key.key)}
+											</code>
+											<span className="text-[#3D434D]">·</span>
+											<span>Created {formatRelativeTime(key.createdAt)}</span>
+											<span className="text-[#3D434D]">·</span>
+											<span>
+												Last used{" "}
+												{key.lastRequest
+													? formatRelativeTime(key.lastRequest)
+													: "never"}
+											</span>
+											<span className="text-[#3D434D]">·</span>
+											<span>Expires {formatExpiresLabel(key.expiresAt)}</span>
+										</div>
+									</div>
+									<button
+										type="button"
+										onClick={() => setRevokeTarget(key)}
+										title="Revoke key"
+										className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#737373] transition-colors hover:bg-white/5 hover:text-[#C73B1B]"
+									>
+										<Trash2 className="size-4" />
+										<span className="sr-only">Revoke key</span>
+									</button>
+								</li>
+							)
+						})}
+					</ul>
+				)}
 
 				<p
 					className={cn(
@@ -455,100 +481,83 @@ export default function ApiKeys() {
 
 			{/* Create / reveal dialog */}
 			<Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
-				<DialogContent className="border-white/[0.08] bg-[#191D24] text-[#FAFAFA] sm:max-w-md">
+				<DialogContent
+					className={cn(
+						"w-[90%]! max-w-[440px]! flex flex-col gap-4 rounded-[22px] border-none bg-[#1B1F24] p-4",
+						dmSans125ClassName(),
+					)}
+					style={{ boxShadow: MODAL_SHADOW }}
+					portalContainer={dialogPortalContainer}
+					showCloseButton={false}
+				>
 					{createdKey ? (
 						<>
-							<DialogHeader>
-								<DialogTitle
-									className={cn(dmSans125ClassName(), "text-[18px]")}
-								>
-									API key created
-								</DialogTitle>
-								<DialogDescription className="text-[#8B8B8B]">
-									Copy this key now. You won&apos;t be able to see it again.
-								</DialogDescription>
-							</DialogHeader>
-							<div className="flex flex-col gap-3 py-1">
-								<div className="flex min-w-0 items-center gap-2 rounded-[10px] border border-white/[0.08] bg-[#0D121A] px-3 py-2.5">
-									<code
-										className={cn(
-											dmSans125ClassName(),
-											"min-w-0 flex-1 truncate font-mono text-[12px] text-[#FAFAFA]",
-										)}
-									>
-										{createdKey}
-									</code>
-									<button
-										type="button"
-										onClick={() => handleCopy(createdKey)}
-										className={cn(
-											"inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5",
-											"bg-[#4BA0FA] text-[12px] font-semibold text-white hover:bg-[#3B90EA]",
-											dmSans125ClassName(),
-										)}
-									>
-										{copied ? (
-											<Check className="size-3.5" />
-										) : (
-											<Copy className="size-3.5" />
-										)}
-										{copied ? "Copied" : "Copy"}
-									</button>
-								</div>
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[12px] text-[#A37A2E]",
-									)}
-								>
+							<div className="flex items-start justify-between gap-4">
+								<DialogHeader className="flex-1 space-y-1 pl-1">
+									<DialogTitle className="font-semibold text-[#FAFAFA]">
+										API key created
+									</DialogTitle>
+									<p className="text-[13px] font-medium leading-[1.35] text-[#737373]">
+										Copy this key now. You won&apos;t be able to see it again.
+									</p>
+								</DialogHeader>
+								<ModalClose />
+							</div>
+							<div className="flex flex-col gap-2">
+								<code className="block break-all rounded-[12px] border border-[#1E293B] bg-[#0D121A] px-3.5 py-3 font-mono text-[12px] leading-relaxed text-[#FAFAFA]">
+									{createdKey}
+								</code>
+								<p className="pl-1 text-[12px] font-medium leading-[1.45] text-[#737373]">
 									Store it somewhere safe. For security, the full key is only
 									shown once.
 								</p>
 							</div>
-							<DialogFooter>
+							<div className="flex items-center justify-end gap-2 pt-1">
 								<button
 									type="button"
 									onClick={resetCreateState}
-									className={cn(
-										"inline-flex h-9 items-center justify-center rounded-full px-4",
-										"bg-[#4BA0FA] text-[13px] font-semibold text-white hover:bg-[#3B90EA]",
-										dmSans125ClassName(),
-									)}
+									className="h-9 shrink-0 cursor-pointer rounded-full px-4 text-[13px] font-medium text-[#737B87] transition-colors hover:text-[#FAFAFA]"
 								>
 									Done
 								</button>
-							</DialogFooter>
+								<PillButton onClick={() => handleCopy(createdKey)}>
+									{copied ? (
+										<Check className="size-3.5" />
+									) : (
+										<Copy className="size-3.5" />
+									)}
+									{copied ? "Copied" : "Copy key"}
+								</PillButton>
+							</div>
 						</>
 					) : (
 						<>
-							<DialogHeader>
-								<DialogTitle
-									className={cn(dmSans125ClassName(), "text-[18px]")}
-								>
-									Create API key
-								</DialogTitle>
-								<DialogDescription className="text-[#8B8B8B]">
-									This key has full access to your organization&apos;s
-									Supermemory data via the API.
-								</DialogDescription>
-							</DialogHeader>
-							<div className="flex flex-col gap-4 py-1">
+							<div className="flex items-start justify-between gap-4">
+								<DialogHeader className="flex-1 space-y-1 pl-1">
+									<DialogTitle className="font-semibold text-[#FAFAFA]">
+										Create API key
+									</DialogTitle>
+									<p className="text-[13px] font-medium leading-[1.35] text-[#737373]">
+										This key has full access to your organization&apos;s
+										Supermemory data via the API.
+									</p>
+								</DialogHeader>
+								<ModalClose />
+							</div>
+							<div className="flex flex-col gap-3">
 								<div className="flex flex-col gap-1.5">
 									<label
 										htmlFor={nameId}
-										className={cn(
-											dmSans125ClassName(),
-											"text-[12px] font-medium uppercase tracking-[0.04em] text-[#8B8B8B]",
-										)}
+										className="pl-1 text-[12px] font-medium text-[#A3A3A3]"
 									>
 										Name
 									</label>
-									<Input
+									<input
 										id={nameId}
 										value={keyName}
 										onChange={(e) => setKeyName(e.target.value)}
 										placeholder="e.g. production, local-dev"
-										className="h-10 border-white/[0.08] bg-[#0D121A] text-[#FAFAFA] placeholder:text-[#6B6B6B]"
+										className={pillInputClass}
 										autoComplete="off"
 										onKeyDown={(e) => {
 											if (e.key === "Enter" && !createKeyMutation.isPending) {
@@ -558,19 +567,16 @@ export default function ApiKeys() {
 									/>
 								</div>
 								<div className="flex flex-col gap-1.5">
-									<span
-										className={cn(
-											dmSans125ClassName(),
-											"text-[12px] font-medium uppercase tracking-[0.04em] text-[#8B8B8B]",
-										)}
-									>
+									<span className="pl-1 text-[12px] font-medium text-[#A3A3A3]">
 										Expires
 									</span>
 									<Select value={expiryDays} onValueChange={setExpiryDays}>
-										<SelectTrigger className="h-10 border-white/[0.08] bg-[#0D121A] text-[#FAFAFA]">
+										<SelectTrigger
+											className={cn(pillInputClass, "justify-between")}
+										>
 											<SelectValue />
 										</SelectTrigger>
-										<SelectContent className="border-white/[0.08] bg-[#191D24] text-[#FAFAFA]">
+										<SelectContent className="rounded-[12px] border-[#1E293B] bg-[#1B1F24] text-[#FAFAFA]">
 											{EXPIRY_OPTIONS.map((opt) => (
 												<SelectItem key={opt.value} value={opt.value}>
 													{opt.label}
@@ -580,41 +586,25 @@ export default function ApiKeys() {
 									</Select>
 								</div>
 							</div>
-							<DialogFooter className="gap-2 sm:gap-2">
+							<div className="flex items-center justify-end gap-2 pt-1">
 								<button
 									type="button"
 									onClick={resetCreateState}
 									disabled={createKeyMutation.isPending}
-									className={cn(
-										"inline-flex h-9 items-center justify-center rounded-full px-4",
-										"text-[13px] font-medium text-[#8B8B8B] hover:bg-white/[0.04] hover:text-white",
-										"disabled:opacity-50",
-										dmSans125ClassName(),
-									)}
+									className="h-9 shrink-0 cursor-pointer rounded-full px-4 text-[13px] font-medium text-[#737B87] transition-colors hover:text-[#FAFAFA] disabled:opacity-50"
 								>
 									Cancel
 								</button>
-								<button
-									type="button"
+								<PillButton
 									onClick={() => createKeyMutation.mutate()}
 									disabled={createKeyMutation.isPending || !org?.id}
-									className={cn(
-										"inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-4",
-										"bg-[#4BA0FA] text-[13px] font-semibold text-white hover:bg-[#3B90EA]",
-										"disabled:cursor-not-allowed disabled:opacity-50",
-										dmSans125ClassName(),
-									)}
 								>
-									{createKeyMutation.isPending ? (
-										<>
-											<Loader2 className="size-3.5 animate-spin" />
-											Creating…
-										</>
-									) : (
-										"Create"
+									{createKeyMutation.isPending && (
+										<Loader2 className="size-3.5 animate-spin" />
 									)}
-								</button>
-							</DialogFooter>
+									{createKeyMutation.isPending ? "Creating…" : "Create"}
+								</PillButton>
+							</div>
 						</>
 					)}
 				</DialogContent>
@@ -627,12 +617,19 @@ export default function ApiKeys() {
 					if (!open && !revokeKeyMutation.isPending) setRevokeTarget(null)
 				}}
 			>
-				<AlertDialogContent className="border-white/[0.08] bg-[#191D24] text-[#FAFAFA]">
-					<AlertDialogHeader>
-						<AlertDialogTitle className={cn(dmSans125ClassName())}>
+				<AlertDialogContent
+					portalContainer={dialogPortalContainer}
+					className={cn(
+						"w-[90%]! max-w-[440px]! flex flex-col gap-4 rounded-[22px] border-none bg-[#1B1F24] p-4",
+						dmSans125ClassName(),
+					)}
+					style={{ boxShadow: MODAL_SHADOW }}
+				>
+					<AlertDialogHeader className="space-y-1 pl-1">
+						<AlertDialogTitle className="font-semibold text-[#FAFAFA]">
 							Revoke API key?
 						</AlertDialogTitle>
-						<AlertDialogDescription className="text-[#8B8B8B]">
+						<AlertDialogDescription className="text-[13px] font-medium leading-[1.35] text-[#737373]">
 							{revokeTarget?.name?.trim()
 								? `"${revokeTarget.name}" will stop working immediately.`
 								: "This key will stop working immediately."}{" "}
@@ -640,10 +637,10 @@ export default function ApiKeys() {
 							undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
-					<AlertDialogFooter>
+					<AlertDialogFooter className="items-center gap-2 pt-1 sm:gap-2">
 						<AlertDialogCancel
 							disabled={revokeKeyMutation.isPending}
-							className="rounded-full border-white/[0.08] bg-transparent text-[#FAFAFA] hover:bg-white/[0.04]"
+							className="h-9 rounded-full border-none bg-transparent px-4 text-[13px] font-medium text-[#737B87] shadow-none hover:bg-transparent hover:text-[#FAFAFA]"
 						>
 							Cancel
 						</AlertDialogCancel>
@@ -653,7 +650,7 @@ export default function ApiKeys() {
 								e.preventDefault()
 								if (revokeTarget) revokeKeyMutation.mutate(revokeTarget.id)
 							}}
-							className="rounded-full bg-[#C73B1B] text-white hover:bg-[#A83217]"
+							className="h-9 rounded-full bg-[#C73B1B] px-4 text-[13px] font-semibold text-white hover:bg-[#A83217]"
 						>
 							{revokeKeyMutation.isPending ? (
 								<span className="inline-flex items-center gap-1.5">
