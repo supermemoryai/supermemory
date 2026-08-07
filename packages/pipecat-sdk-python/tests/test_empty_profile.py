@@ -121,3 +121,29 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
                 "search_results": [],
             },
         )
+
+
+class _MockAddClient:
+    """a client that only exposes the top-level add, not memories.add."""
+
+    def __init__(self):
+        self.add = AsyncMock(return_value=SimpleNamespace(id="doc_123"))
+
+
+class TestSupermemoryPipecatStoreMessages(unittest.IsolatedAsyncioTestCase):
+    async def test_store_messages_calls_top_level_add(self) -> None:
+        # regression guard: supermemory 3.x moved add off client.memories to the
+        # top level. _store_messages must call client.add, not client.memories.add.
+        # the mock has no memories attribute, so a reverted call would raise,
+        # get swallowed by the fire-and-forget block, and add would never fire.
+        service = SupermemoryPipecatService(api_key="mock_key", user_id="user_123")
+        client = _MockAddClient()
+        service._supermemory_client = client
+
+        await service._store_messages([{"role": "user", "content": "hello"}])
+
+        client.add.assert_awaited_once()
+        _, kwargs = client.add.await_args
+        self.assertIn("content", kwargs)
+        self.assertEqual(kwargs["container_tags"], ["user_123"])
+        self.assertFalse(hasattr(client, "memories"))
