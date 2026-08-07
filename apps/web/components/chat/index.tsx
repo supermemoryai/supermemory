@@ -1229,7 +1229,7 @@ export function ChatSidebar({
 				activeElement?.closest('[contenteditable="true"]')
 
 			if (
-				e.key.toLowerCase() === "t" &&
+				e.key?.toLowerCase() === "t" &&
 				!e.metaKey &&
 				!e.ctrlKey &&
 				!e.altKey &&
