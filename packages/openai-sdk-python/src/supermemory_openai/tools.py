@@ -8,10 +8,11 @@ from openai.types.chat import (
     ChatCompletionFunctionToolParam,
     ChatCompletionMessageToolCall,
     ChatCompletionToolMessageParam,
+    ChatCompletionToolParam,
 )
 from supermemory.types import (
-    MemoryAddResponse,
-    MemoryGetResponse,
+    AddResponse,
+    DocumentGetResponse,
     SearchExecuteResponse,
 )
 from supermemory.types.search_execute_response import Result
@@ -34,8 +35,10 @@ class SupermemoryToolsConfig(TypedDict, total=False):
     project_id: Optional[str]
 
 
-# Type aliases using inferred types from supermemory package
-MemoryObject = Union[MemoryGetResponse, MemoryAddResponse]
+# Type aliases using inferred types from supermemory package.
+# supermemory >= 3.50 renamed MemoryAddResponse/MemoryGetResponse to
+# AddResponse/DocumentGetResponse.
+MemoryObject = Union[DocumentGetResponse, AddResponse]
 
 
 class MemorySearchResult(TypedDict, total=False):
@@ -51,7 +54,7 @@ class MemoryAddResult(TypedDict, total=False):
     """Result type for memory add operations."""
 
     success: bool
-    memory: Optional[MemoryAddResponse]
+    memory: Optional[AddResponse]
     error: Optional[str]
 
 
@@ -221,12 +224,12 @@ class SupermemoryTools:
             MemoryAddResult
         """
         try:
-            add_params = {
-                "content": memory,
-                "container_tags": self.container_tags,
-            }
-
-            response: MemoryAddResponse = await self.client.memories.add(**add_params)
+            # supermemory 3.x moved document creation to the top-level client.add()
+            # API (client.memories only exposes forget/update_memory now).
+            response: AddResponse = await self.client.add(
+                content=memory,
+                container_tags=self.container_tags,
+            )
 
             return MemoryAddResult(
                 success=True,
