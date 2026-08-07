@@ -1,0 +1,56 @@
+name: CI - Python SDK Tests
+
+on:
+  pull_request:
+    paths:
+      - "packages/agent-framework-python/**"
+      - "packages/cartesia-sdk-python/**"
+      - "packages/pipecat-sdk-python/**"
+      - ".github/workflows/ci-python.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      # Report every package, rather than masking the rest behind the first failure.
+      fail-fast: false
+      matrix:
+        include:
+          # Has a pytest suite and needs its runtime dependencies installed.
+          - package: agent-framework-python
+            install: pip install -e . pytest pytest-asyncio
+            test: pytest
+          # These suites stub their heavy runtime dependencies (cartesia-line,
+          # pipecat-ai, loguru) at import time, so they run against the sources
+          # with nothing installed and need no install step.
+          - package: cartesia-sdk-python
+            test: PYTHONPATH=src python -m unittest discover -s tests -v
+          - package: pipecat-sdk-python
+            test: PYTHONPATH=src python -m unittest discover -s tests -v
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          # The lowest version these packages declare support for, so a change
+          # that only works on newer Python is caught here.
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: packages/${{ matrix.package }}/pyproject.toml
+
+      - name: Install dependencies
+        if: matrix.install
+        working-directory: packages/${{ matrix.package }}
+        run: ${{ matrix.install }}
+
+      - name: Run tests
+        working-directory: packages/${{ matrix.package }}
+        run: ${{ matrix.test }}
