@@ -80,6 +80,13 @@ export const addMemoryOutputSchema = z.object({
 
 export type AddMemoryOutput = z.infer<typeof addMemoryOutputSchema>
 
+export const deleteDocumentOutputSchema = z.object({
+	success: z.boolean(),
+	id: z.string(),
+})
+
+export type DeleteDocumentOutput = z.infer<typeof deleteDocumentOutputSchema>
+
 export const getDocumentOutputSchema = z.object({
 	document: z.object({
 		id: z.string(),
