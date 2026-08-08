@@ -6,17 +6,17 @@ export const models = [
 	},
 	{
 		id: "gpt-5.1",
-		name: "GPT 5.1",
+		name: "GPT 5.6",
 		description: "OpenAI's latest model",
 	},
 	{
 		id: "claude-sonnet-4.6",
-		name: "Claude Sonnet 4.6",
+		name: "Claude 5",
 		description: "Anthropic's advanced model",
 	},
 	{
 		id: "gemini-2.5-pro",
-		name: "Gemini 3 Pro",
+		name: "Gemini 3.1 Pro",
 		description: "Google's most capable model",
 	},
 ] as const
@@ -26,9 +26,9 @@ export type ReasoningEffort = "instant" | "thinking"
 
 export const modelNames: Record<ModelId, { name: string; version: string }> = {
 	"grok-4.3": { name: "Grok", version: "4.3" },
-	"gpt-5.1": { name: "GPT", version: "5.1" },
-	"claude-sonnet-4.6": { name: "Claude", version: "4.6" },
-	"gemini-2.5-pro": { name: "Gemini", version: "3 Pro" },
+	"gpt-5.1": { name: "GPT", version: "5.6" },
+	"claude-sonnet-4.6": { name: "Claude", version: "5" },
+	"gemini-2.5-pro": { name: "Gemini", version: "3.1 Pro" },
 }
 
 export const reasoningOptions: Array<{
