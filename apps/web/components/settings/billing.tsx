@@ -203,8 +203,24 @@ const ADVANCED_PLAN_CARDS: PlanCardDefinition[] = [
 	},
 ]
 
-// Company Brain workspaces only sell Scale / Enterprise (no Free, Pro, Max).
+// Company Brain workspaces sell Max / Scale / Enterprise (no Free, Pro).
 const COMPANY_BRAIN_PLAN_CARDS: PlanCardDefinition[] = [
+	{
+		id: "max",
+		name: "Max",
+		price: "$100",
+		period: "/mo",
+		credits: "$130",
+		productId: "api_max",
+		description: "Company Brain for teams with everyday usage",
+		mostPopular: true,
+		features: [
+			"Company Brain Slack agent & shared memory",
+			"$130 monthly usage credits",
+			"Unlimited seats",
+			"Auto top-up & spend caps",
+		],
+	},
 	{
 		id: "scale",
 		name: "Scale",
@@ -212,13 +228,13 @@ const COMPANY_BRAIN_PLAN_CARDS: PlanCardDefinition[] = [
 		period: "/mo",
 		credits: "$600",
 		productId: "api_scale",
-		description: "Company Brain for your team, with production usage",
-		mostPopular: true,
+		description: "Company Brain for production workloads",
+		includesFrom: "Max",
 		features: [
-			"Company Brain Slack agent & shared memory",
-			"$600 monthly usage credits when paid",
-			"Auto top-up & spend caps",
-			"Team connectors & dedicated support",
+			"$600 monthly usage credits",
+			"GitHub, S3 & Web Crawler connectors",
+			"Restricted access & container tags",
+			"Dedicated support",
 		],
 	},
 	{
@@ -1471,6 +1487,20 @@ export default function Billing() {
 								}
 							/>
 						))}
+						<div className="md:col-span-2 space-y-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 text-[13px] leading-relaxed text-[#A3A3A3]">
+							{isOnTrial ? (
+								<p>
+									Your trial runs on Scale. Moving to Max keeps the agent,
+									shared memory and unlimited seats, and drops the GitHub, S3
+									and Web Crawler connectors, restricted access and container
+									tags, and User Insights.
+								</p>
+							) : null}
+							<p>
+								Using more than about $400 of credits a month? Scale works out
+								cheaper than Max plus top-ups.
+							</p>
+						</div>
 					</div>
 				) : (
 					<>
