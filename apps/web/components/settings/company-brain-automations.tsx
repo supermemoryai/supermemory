@@ -36,6 +36,7 @@ import {
 	TooltipTrigger,
 } from "@ui/components/tooltip"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
+import { useOrgMemberRole } from "@/hooks/use-org-member-role"
 import { dmSans125ClassName } from "@/lib/fonts"
 
 const BACKEND =
@@ -303,6 +304,7 @@ function AutomationCard({
 	channels,
 	ownerLabel,
 	personalOnlyApps = [],
+	isAdmin = false,
 	appCatalog = {},
 	onDone,
 	onCancelNew,
@@ -313,6 +315,7 @@ function AutomationCard({
 	channels: Channel[]
 	ownerLabel?: string
 	personalOnlyApps?: string[]
+	isAdmin?: boolean
 	appCatalog?: Record<string, { name: string; iconDomain?: string }>
 	onDone: () => void
 	onCancelNew?: () => void
@@ -363,7 +366,7 @@ function AutomationCard({
 			toast.success("Automation saved.")
 			if (warnings.length)
 				toast.warning(
-					`Heads up: ${warnings.map((w) => w.app).join(", ")} ${warnings.length === 1 ? "is" : "are"} connected personally and won't be available to this channel automation. Share the connection with the workspace in Connections.`,
+					`Heads up: ${warnings.map((w) => w.app).join(", ")} ${warnings.length === 1 ? "is" : "are"} connected personally and won't be available to this channel automation. ${isAdmin ? "Reconnect it for the workspace in Connections." : "Ask an admin to connect it for the workspace."}`,
 					{ duration: 10000 },
 				)
 			onDone()
@@ -662,13 +665,19 @@ function AutomationCard({
 							</TooltipProvider>
 							<span className="truncate">
 								only connected to you ·{" "}
-								<a
-									className="underline underline-offset-2 hover:text-amber-200"
-									href="/?settings=connections"
-								>
-									Share with the workspace
-								</a>{" "}
-								to use here
+								{isAdmin ? (
+									<>
+										<a
+											className="underline underline-offset-2 hover:text-amber-200"
+											href="/?settings=connections"
+										>
+											Connect for workspace
+										</a>{" "}
+										to use here
+									</>
+								) : (
+									"ask an admin to connect it for the workspace"
+								)}
 							</span>
 						</span>
 					)}
@@ -904,6 +913,7 @@ function PresetCard({
 export default function CompanyBrainAutomations() {
 	const isCompanyBrain = useHasCompanyBrain()
 	const { user, org } = useAuth()
+	const { isAdmin } = useOrgMemberRole(isCompanyBrain)
 	const queryClient = useQueryClient()
 	const [drafts, setDrafts] = useState<{ key: number; draft: Draft }[]>([])
 	const [showAllTemplates, setShowAllTemplates] = useState(false)
@@ -1044,6 +1054,7 @@ export default function CompanyBrainAutomations() {
 							initial={toDraft(a)}
 							channels={channels}
 							personalOnlyApps={personalOnlyApps}
+							isAdmin={isAdmin}
 							appCatalog={catalogQuery.data ?? {}}
 							onDone={() => {
 								setOpenId(null)
@@ -1074,6 +1085,7 @@ export default function CompanyBrainAutomations() {
 						initial={draft}
 						channels={channels}
 						personalOnlyApps={personalOnlyApps}
+						isAdmin={isAdmin}
 						appCatalog={catalogQuery.data ?? {}}
 						onDone={() => {
 							removeDraft(key)
