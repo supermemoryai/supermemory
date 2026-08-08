@@ -1,5 +1,5 @@
 import { cn } from "@lib/utils"
-import { Granola, Notion } from "@ui/assets/icons"
+import { Gmail, Granola, Notion } from "@ui/assets/icons"
 import { dmSans125ClassName } from "@/lib/fonts"
 
 export function SlackMark({ className }: { className?: string }) {
@@ -99,6 +99,8 @@ export function brainConnectorIcon(
 	className = "size-[18px]",
 ): React.ReactNode {
 	switch (slug) {
+		case "gmail":
+			return <Gmail className={className} />
 		case "github":
 			return <GithubMark className={cn(className, "text-[#FAFAFA]")} />
 		case "linear":
