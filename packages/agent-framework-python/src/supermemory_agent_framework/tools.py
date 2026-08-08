@@ -72,19 +72,20 @@ class SupermemoryTools:
         ] = True,
         limit: Annotated[int, "Maximum number of results to return"] = 10,
     ) -> str:
-        """Search (recall) memories/details/information about the user or other facts or entities. Run when explicitly asked or when context about user's past choices would be helpful."""
+        """Search stored memories for facts, preferences, history, and context. Use proactively before answering whenever memory could help — not only when explicitly asked."""
         try:
-            response = await self._client.search.execute(
+            response = await self._client.search.memories(
                 q=information_to_get,
                 container_tags=[self._connection.container_tag],
                 limit=limit,
-                chunk_threshold=0.6,
-                include_full_docs=include_full_docs,
+                threshold=0.6,
+                search_mode="hybrid",
             )
+            results = response.results or []
             result: MemorySearchResult = {
                 "success": True,
-                "results": response.results,
-                "count": len(response.results) if response.results else 0,
+                "results": results,
+                "count": len(results),
             }
             return json.dumps(result, default=str)
         except Exception as error:
@@ -152,9 +153,9 @@ class SupermemoryTools:
             tool(
                 name="search_memories",
                 description=(
-                    "Search (recall) memories/details/information about the user or other "
-                    "facts or entities. Run when explicitly asked or when context about "
-                    "user's past choices would be helpful."
+                    "Search (recall) stored memories for facts, preferences, history, and context "
+                    "about the user or any topic. Use proactively before answering whenever memory "
+                    "could help — do not wait for the user to explicitly ask you to search or recall."
                 ),
             )(self.search_memories),
             tool(

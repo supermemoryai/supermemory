@@ -121,3 +121,7 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
                 "search_results": [],
             },
         )
+        service._supermemory_client.profile.assert_awaited_once()
+        kwargs = service._supermemory_client.profile.await_args.kwargs
+        self.assertEqual(kwargs["container_tag"], "new_user_123")
+        self.assertEqual(kwargs["q"], "Hello world")
