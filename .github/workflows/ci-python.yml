@@ -1,0 +1,105 @@
+name: CI - Python SDKs
+
+on:
+  pull_request:
+    paths:
+      - "packages/agent-framework-python/**"
+      - "packages/cartesia-sdk-python/**"
+      - "packages/openai-sdk-python/**"
+      - "packages/pipecat-sdk-python/**"
+      - ".github/workflows/ci-python.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  agent-framework-python:
+    name: agent-framework-python
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/agent-framework-python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package and test dependencies
+        run: |
+          pip install -e .
+          pip install pytest pytest-asyncio
+
+      - name: Run tests
+        run: pytest
+
+  openai-sdk-python:
+    name: openai-sdk-python
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/openai-sdk-python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package and test dependencies
+        run: |
+          pip install -e .
+          pip install pytest pytest-asyncio python-dotenv
+
+      - name: Run tests
+        run: pytest
+
+  cartesia-sdk-python:
+    name: cartesia-sdk-python
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: packages/cartesia-sdk-python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Suite stubs cartesia-line / loguru / pydantic at import time, so it
+      # runs against sources with nothing installed.
+      - name: Run tests
+        run: PYTHONPATH=src python -m unittest discover -s tests -v
+
+  pipecat-sdk-python:
+    name: pipecat-sdk-python
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: packages/pipecat-sdk-python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Suite stubs pipecat-ai / loguru / pydantic at import time, so it
+      # runs against sources with nothing installed.
+      - name: Run tests
+        run: PYTHONPATH=src python -m unittest discover -s tests -v
