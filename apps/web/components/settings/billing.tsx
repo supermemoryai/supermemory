@@ -233,7 +233,7 @@ const COMPANY_BRAIN_PLAN_CARDS: PlanCardDefinition[] = [
 		features: [
 			"$600 monthly usage credits",
 			"GitHub, S3 & Web Crawler connectors",
-			"Restricted access & container tags",
+			"Restricted access, container tags & User Insights",
 			"Dedicated support",
 		],
 	},
@@ -926,6 +926,27 @@ export default function Billing() {
 					)}
 				>
 					{hasPaidPlan ? "Included with current plan" : "Your current plan"}
+				</button>
+			)
+		}
+
+		// The trial runs on api_scale, so Max ranks below the current plan and would
+		// otherwise render as a dead "Included with Scale" button. Trial users are
+		// exactly who we want on Max, so it needs its own actionable path.
+		if (plan.id === "max" && (isOnTrial || isBrainTrialEnded)) {
+			return (
+				<button
+					type="button"
+					onClick={() => handleUpgrade("api_max")}
+					disabled={disabled}
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"bg-[#0054AD] text-[#FAFAFA] hover:bg-[#0B65C9]",
+					)}
+				>
+					{disabled ? <LoaderIcon className="size-4 animate-spin" /> : null}
+					Activate Max
 				</button>
 			)
 		}
