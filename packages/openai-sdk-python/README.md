@@ -4,6 +4,22 @@ Memory tools and middleware for OpenAI with Supermemory integration.
 
 This package provides both **automatic memory injection middleware** and **manual memory tools** for the official [OpenAI Python SDK](https://github.com/openai/openai-python) using [Supermemory](https://supermemory.ai) capabilities.
 
+## Breaking changes (v2.0)
+
+Aligned with Supermemory v4 APIs:
+
+- `SupermemoryToolsConfig.container_tags` (list) is **removed**. Use a single `container_tag` string instead.
+- Search/add tool calls send `container_tag` (singular) to the API.
+- `search_memories(..., include_full_docs=True)` maps to `include={"documents": True}` on `client.search.memories`.
+
+```python
+# Before (v1)
+config = {"container_tags": ["user-123"]}
+
+# After (v2)
+config = {"container_tag": "user-123"}
+```
+
 ## Installation
 
 Install using uv (recommended):
@@ -237,7 +253,7 @@ from supermemory_openai import SupermemoryTools
 tools = SupermemoryTools(
     api_key="your-supermemory-api-key",
     config={
-        "project_id": "my-project",  # or use container_tags
+        "project_id": "my-project",  # or use container_tag="user-123"
         "base_url": "https://custom-endpoint.com",  # optional
     }
 )
@@ -408,7 +424,7 @@ Optional for testing:
 
 ### Required
 - `openai>=1.102.0` - Official OpenAI Python SDK
-- `supermemory>=3.1.0` - Supermemory client
+- `supermemory>=3.50.0` - Supermemory client
 - `requests>=2.25.0` - HTTP requests (fallback)
 
 ### Optional

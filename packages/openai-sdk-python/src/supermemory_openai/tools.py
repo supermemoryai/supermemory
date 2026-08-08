@@ -22,11 +22,14 @@ from .exceptions import (
 class SupermemoryToolsConfig(TypedDict, total=False):
     """Configuration for Supermemory tools.
 
-    Only one of `project_id` or `container_tags` can be provided.
+    Only one of `project_id` or `container_tag` can be provided.
+
+    Breaking change: `container_tags` (list) was removed in favor of a single
+    `container_tag` string, matching the Supermemory v4 API.
     """
 
     base_url: Optional[str]
-    container_tags: Optional[List[str]]
+    container_tag: Optional[str]
     project_id: Optional[str]
 
 
@@ -123,13 +126,13 @@ class SupermemoryTools:
 
         self.client = supermemory.AsyncSupermemory(**client_kwargs)
 
-        # Set container tags
+        # Set container tag (singular — v4 API)
         if config.get("project_id"):
-            self.container_tags = [f"sm_project_{config['project_id']}"]
-        elif config.get("container_tags"):
-            self.container_tags = config["container_tags"]
+            self.container_tag = f"sm_project_{config['project_id']}"
+        elif config.get("container_tag"):
+            self.container_tag = config["container_tag"]
         else:
-            self.container_tags = ["sm_project_default"]
+            self.container_tag = "sm_project_default"
 
     def get_tool_definitions(self) -> List[ChatCompletionFunctionToolParam]:
         """Get OpenAI function definitions for all memory tools.
@@ -185,10 +188,11 @@ class SupermemoryTools:
         try:
             response: SearchMemoriesResponse = await self.client.search.memories(
                 q=information_to_get,
-                container_tags=self.container_tags,
+                container_tag=self.container_tag,
                 limit=limit,
                 threshold=0.6,
                 search_mode="hybrid",
+                include={"documents": include_full_docs},
             )
 
             results = response.results or []
@@ -220,7 +224,7 @@ class SupermemoryTools:
         try:
             response: AddResponse = await self.client.add(
                 content=memory,
-                container_tags=self.container_tags,
+                container_tag=self.container_tag,
             )
 
             return MemoryAddResult(
