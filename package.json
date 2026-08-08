@@ -52,6 +52,7 @@
     "postgres": "^3.4.7",
     "random-word-slugs": "^0.1.7",
     "resend": "^4.7.0",
+    "supermemory": "^4.25.4",
     "zod": "^3.25.76",
     "zod-openapi": "^4.2.4"
   },
