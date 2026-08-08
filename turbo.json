@@ -2,10 +2,13 @@
 	"$schema": "https://turborepo.com/schema.json",
 	"ui": "tui",
 	"tasks": {
+		"@supermemory/ai-sdk#check-types": {
+			"dependsOn": ["@supermemory/tools#build"]
+		},
 		"build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": [".next/**", "!.next/cache/**"]
+			"outputs": [".next/**", "!.next/cache/**", "dist/**"]
 		},
 		"lint": {
 			"dependsOn": ["^lint"]
