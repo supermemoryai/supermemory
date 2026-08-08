@@ -37,6 +37,7 @@ import {
 } from "@ui/components/tooltip"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { useOrgMemberRole } from "@/hooks/use-org-member-role"
+import { configureSectionToPath } from "@/lib/configure-routes"
 import { dmSans125ClassName } from "@/lib/fonts"
 
 const BACKEND =
@@ -669,7 +670,7 @@ function AutomationCard({
 									<>
 										<a
 											className="underline underline-offset-2 hover:text-amber-200"
-											href="/?settings=connections"
+											href={configureSectionToPath("tools")}
 										>
 											Connect for workspace
 										</a>{" "}
@@ -1023,28 +1024,28 @@ export default function CompanyBrainAutomations() {
 	const hiddenTemplateCount = availablePresets.length - shownPresets.length
 	const hasList = automations.length > 0 || drafts.length > 0
 
+	const newAutomationButton = (
+		<button
+			type="button"
+			onClick={() => addDraft(emptyDraft())}
+			className={cn(
+				dmSans125ClassName(),
+				"inline-flex h-9 items-center justify-center gap-2 rounded-full bg-[#14161A] px-4 text-[13px] font-semibold text-[#FAFAFA] shadow-inside-out transition-colors hover:bg-[#121820]",
+			)}
+		>
+			<Plus className="size-4" />
+			New automation
+		</button>
+	)
+	const newAutomationPortal = actionSlot ? (
+		createPortal(newAutomationButton, actionSlot)
+	) : (
+		<div className="flex justify-end">{newAutomationButton}</div>
+	)
+
 	return (
 		<section className="flex flex-col gap-3 px-1">
-			{(() => {
-				const newAutomationButton = (
-					<button
-						type="button"
-						onClick={() => addDraft(emptyDraft())}
-						className={cn(
-							dmSans125ClassName(),
-							"inline-flex h-9 items-center justify-center gap-2 rounded-full bg-[#14161A] px-4 text-[13px] font-semibold text-[#FAFAFA] shadow-inside-out transition-colors hover:bg-[#121820]",
-						)}
-					>
-						<Plus className="size-4" />
-						New automation
-					</button>
-				)
-				return actionSlot ? (
-					createPortal(newAutomationButton, actionSlot)
-				) : (
-					<div className="flex justify-end">{newAutomationButton}</div>
-				)
-			})()}
+			{newAutomationPortal}
 			<div className="flex flex-col gap-3">
 				{automations.map((a) =>
 					openId === a.id ? (
