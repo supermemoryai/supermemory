@@ -1,5 +1,7 @@
 """Tests for utility functions."""
 
+from types import SimpleNamespace
+
 import pytest
 
 from supermemory_agent_framework.utils import (
@@ -55,6 +57,30 @@ class TestDeduplicateMemories:
             static=[None, {"memory": "valid"}],
         )
         assert result.static == ["valid"]
+
+    def test_model_items(self) -> None:
+        # SDK search results are pydantic models with a `memory` attribute,
+        # not dicts — they must not be silently dropped (#1266).
+        result = deduplicate_memories(
+            search_results=[SimpleNamespace(memory="User prefers async")],
+        )
+        assert result.search_results == ["User prefers async"]
+
+    def test_model_items_deduplicate_against_static(self) -> None:
+        result = deduplicate_memories(
+            static=[{"memory": "User likes Python"}],
+            search_results=[
+                SimpleNamespace(memory="User likes Python"),
+                SimpleNamespace(memory="User prefers async"),
+            ],
+        )
+        assert result.search_results == ["User prefers async"]
+
+    def test_model_items_without_memory_text_filtered(self) -> None:
+        result = deduplicate_memories(
+            search_results=[SimpleNamespace(memory=None), SimpleNamespace(memory="  ")],
+        )
+        assert result.search_results == []
 
 
 class TestConvertProfileToMarkdown:

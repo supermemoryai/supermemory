@@ -92,14 +92,15 @@ def deduplicate_memories(
     def extract_memory_text(item: Any) -> Optional[str]:
         if item is None:
             return None
-        if isinstance(item, dict):
-            memory = item.get("memory")
-            if isinstance(memory, str):
-                trimmed = memory.strip()
-                return trimmed if trimmed else None
-            return None
         if isinstance(item, str):
-            trimmed = item.strip()
+            memory: Any = item
+        elif isinstance(item, dict):
+            memory = item.get("memory")
+        else:
+            # SDK search results are pydantic models with a `memory` attribute
+            memory = getattr(item, "memory", None)
+        if isinstance(memory, str):
+            trimmed = memory.strip()
             return trimmed if trimmed else None
         return None
 
