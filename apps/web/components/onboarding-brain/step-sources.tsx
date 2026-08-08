@@ -97,7 +97,7 @@ type SourceId =
 	| "raycast"
 type SourceState = "idle" | "connecting" | "connected" | "waitlist"
 type DriveScope = "selective" | "full"
-type RequiredPlan = "pro" | "max"
+type RequiredPlan = "pro" | "max" | "scale"
 
 const PROVIDER_TO_SOURCE: Record<string, SourceId> = {
 	"google-drive": "drive",
@@ -116,6 +116,7 @@ const SOURCE_LABEL: Partial<Record<SourceId, string>> = {
 const PLAN_LABELS: Record<RequiredPlan, string> = {
 	pro: "Pro",
 	max: "Max",
+	scale: "Scale",
 }
 
 const BOOK_CALL_HREF = "https://cal.com/maheshthedev/15min"
@@ -277,7 +278,12 @@ export function StepSources({
 	const [granolaOpen, setGranolaOpen] = useState(false)
 	const [requestedPlan, setRequestedPlan] = useState<RequiredPlan>("pro")
 	const [requestedConnector, setRequestedConnector] = useState("This connector")
-	const { hasMax, connectorAccess, loading: planLoading } = useConnectorAccess()
+	const {
+		hasMax,
+		hasScale,
+		connectorAccess,
+		loading: planLoading,
+	} = useConnectorAccess()
 	const { org, isRestoring } = useAuth()
 
 	useEffect(() => {
@@ -362,10 +368,12 @@ export function StepSources({
 		}
 	}, [connectedParam])
 
-	// company_brain unlocks pro connectors; max stays gated
+	// company_brain unlocks pro connectors; max and scale stay gated, and a
+	// higher tier satisfies a lower requirement.
 	const isLocked = (plan?: RequiredPlan) => {
 		if (!plan || planLoading) return false
-		if (plan === "max") return !hasMax
+		if (plan === "scale") return !hasScale
+		if (plan === "max") return !(hasMax || hasScale)
 		return !connectorAccess
 	}
 
@@ -1185,14 +1193,14 @@ function MoreSourcesGrid({
 				icon={<Github className="size-6 text-[#fafafa]" />}
 				state={values.connected.github ?? "idle"}
 				ctaLabel="Connect"
-				locked={isLocked("max")}
-				requiredPlan="max"
+				locked={isLocked("scale")}
+				requiredPlan="scale"
 				perks={[
 					"PRs and issues parsed",
 					"READMEs and docs indexed",
 					"Stays in sync with new activity",
 				]}
-				onConnect={guard("max", "GitHub", () => requestWaitlist("github"))}
+				onConnect={guard("scale", "GitHub", () => requestWaitlist("github"))}
 			/>
 			{mode === "personal" ? (
 				<GranolaSourceCard
