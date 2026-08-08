@@ -7,6 +7,7 @@
     "dev": "portless",
     "dev:app": "next dev --port ${PORT:-3004}",
     "build": "next build",
+    "check-types": "tsc --noEmit",
     "start": "next start"
   },
   "dependencies": {
