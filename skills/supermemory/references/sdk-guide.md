@@ -472,6 +472,36 @@ await client.add({
 
 ### Vercel AI SDK
 
+#### Agent tools (`@supermemory/tools` / `@supermemory/ai-sdk`)
+
+For models that call memory operations explicitly, use the 7-tool set instead of hand-rolling SDK calls:
+
+```typescript
+import { generateText } from "ai"
+import { openai } from "@ai-sdk/openai"
+import { supermemoryTools } from "@supermemory/tools/ai-sdk"
+
+const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
+  containerTags: ["user_123"],
+})
+
+const { text } = await generateText({
+  model: openai("gpt-4o"),
+  tools,
+  prompt: "What do you remember about my coffee preferences?",
+})
+```
+
+Tools: `searchMemories`, `addMemory`, `getProfile`, `documentList`, `documentAdd`, `documentDelete`, `memoryForget`.
+
+Use `searchMemories` for targeted hybrid recall; `getProfile` for broad static/dynamic user context; `documents.*` for raw content management.
+
+#### Middleware (`withSupermemory`)
+
+For automatic profile injection and conversation saving without tool calls, use `withSupermemory` from `@supermemory/tools` (see package docs).
+
+#### Manual SDK integration
+
 ```typescript
 import { Supermemory } from 'supermemory';
 import { openai } from '@ai-sdk/openai';
