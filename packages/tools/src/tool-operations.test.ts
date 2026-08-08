@@ -4,13 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 // executions can be verified deterministically without network access.
 const documentsDelete = vi.fn()
 const documentsList = vi.fn()
-const searchExecute = vi.fn()
+const searchMock = vi.fn()
 const clientAdd = vi.fn()
 
 vi.mock("supermemory", () => {
 	return {
 		default: class MockSupermemory {
-			search = { execute: searchExecute }
+			search = searchMock
 			add = clientAdd
 			documents = {
 				delete: documentsDelete,
@@ -40,7 +40,7 @@ beforeEach(() => {
 		memories: [{ id: "doc_1", title: "Doc one" }],
 		pagination: { currentPage: 1, totalItems: 1, totalPages: 1 },
 	})
-	searchExecute.mockReset()
+	searchMock.mockReset()
 	clientAdd.mockReset().mockResolvedValue({ id: "doc_new" })
 	vi.unstubAllGlobals()
 })
@@ -163,11 +163,11 @@ describe("ClaudeMemoryTool", () => {
 	const CUSTOM_ID = "memories_prefs_txt"
 
 	function mockFileDocument(content: string) {
-		searchExecute.mockResolvedValue({
+		searchMock.mockResolvedValue({
 			results: [
 				{
-					documentId: CUSTOM_ID,
-					content,
+					id: CUSTOM_ID,
+					chunk: content,
 					metadata: { file_path: FILE_PATH },
 				},
 			],

@@ -14,14 +14,14 @@ import type { SupermemoryToolsConfig } from "../types"
  */
 export interface MemorySearchResult {
 	success: boolean
-	results?: Awaited<ReturnType<Supermemory["search"]["execute"]>>["results"]
+	results?: Awaited<ReturnType<Supermemory["search"]>>["results"]
 	count?: number
 	error?: string
 }
 
 export interface MemoryAddResult {
 	success: boolean
-	memory?: Awaited<ReturnType<Supermemory["memories"]["add"]>>
+	memory?: Awaited<ReturnType<Supermemory["add"]>>
 	error?: string
 }
 
@@ -31,7 +31,7 @@ export interface ProfileResult {
 		static: string[]
 		dynamic: string[]
 	}
-	searchResults?: Awaited<ReturnType<Supermemory["search"]["execute"]>>
+	searchResults?: Awaited<ReturnType<Supermemory["search"]>>
 	error?: string
 }
 
@@ -248,12 +248,12 @@ export function createSearchMemoriesFunction(
 		limit?: number
 	}): Promise<MemorySearchResult> {
 		try {
-			const response = await client.search.execute({
+			const response = await client.search({
 				q: informationToGet,
-				containerTags,
+				...(containerTags[0] ? { containerTag: containerTags[0] } : {}),
 				limit,
-				chunkThreshold: DEFAULT_VALUES.chunkThreshold,
-				includeFullDocs,
+				threshold: DEFAULT_VALUES.chunkThreshold,
+				searchMode: "hybrid",
 			})
 
 			return {

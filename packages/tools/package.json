@@ -8,6 +8,7 @@
     "dev": "tsdown --watch --ignore-watch .turbo",
     "check-types": "tsc --noEmit",
     "test": "vitest --testTimeout 100000",
+    "test:unit": "vitest run --testTimeout 100000 src/tools-shared.test.ts src/tool-operations.test.ts test/with-supermemory/unit.test.ts test/with-supermemory/conversation-conversion.test.ts test/mastra/unit.test.ts",
     "test:watch": "vitest --watch --testTimeout 100000"
   },
   "dependencies": {
@@ -16,7 +17,7 @@
     "ai": "^5.0.29",
     "lru-cache": "^11.2.6",
     "openai": "^4.104.0",
-    "supermemory": "^3.0.0-alpha.26",
+    "supermemory": "^4.25.4",
     "zod": "^4.1.5"
   },
   "devDependencies": {

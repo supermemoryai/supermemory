@@ -7,24 +7,25 @@ import type { MemoryMode } from "./shared/types"
 // Tool descriptions
 export const TOOL_DESCRIPTIONS = {
 	searchMemories:
-		"Search (recall) memories/details/information about the user or other facts or entities. Run when explicitly asked or when context about user's past choices would be helpful.",
+		"Search (recall) stored memories for facts, preferences, history, and context about the user or any topic. Use proactively before answering whenever memory could help — do not wait for the user to explicitly ask you to search or recall. Search when the question touches personal context, past conversations, preferences, projects, people, plans, or anything you may have learned before. Results include memory/chunk IDs — use those IDs with memoryForget to remove a specific learned fact.",
 	addMemory:
 		"Add (remember) memories/details/information about the user or other facts or entities. Run when explicitly asked or when the user mentions any information generalizable beyond the context of the current conversation.",
 	getProfile:
-		"Get user profile containing static memories (permanent facts) and dynamic memories (recent context). Optionally include search results by providing a query.",
+		"Get user profile containing static memories (permanent facts) and dynamic memories (recent context). Optionally include search results by providing a query. Profile and search result entries may include memory IDs useful for memoryForget.",
 	documentList:
-		"List stored documents with optional filtering by container tag and page-based pagination. Useful for browsing or managing saved content.",
+		"List stored source documents (conversations, URLs, files, pasted text) with pagination. Returns document IDs for documentDelete — not memory IDs for memoryForget. Use to browse raw stored content before permanently removing a source.",
 	documentDelete:
-		"Delete a document and its associated memories by document ID or customId. Deletes are permanent. Use when user wants to remove saved content.",
+		"Permanently delete a stored document and ALL memories extracted from it (hard delete). Use document IDs from documentList. Use when the user wants to remove an entire conversation, file, URL, or other source — not when correcting a single learned fact (use memoryForget for that).",
 	documentAdd:
-		"Add a new document (URL, text, or content) to memory. The content is queued for processing, and memories will be extracted automatically.",
+		"Store a source document for asynchronous processing and automatic memory extraction. Use when the user gives you raw content to ingest — a pasted text blob, conversation transcript, chat history, notes, URL, article link, or other substantial text — rather than a single atomic fact (use addMemory for one short generalizable sentence). The document is queued immediately; Supermemory post-processes it in the background (chunking, embedding, indexing) and extracts profile memories automatically — you do not need to call addMemory for facts buried inside the document. Good for saving full conversations, long-form notes, knowledge-base articles, meeting transcripts, or any large body of text the user wants remembered beyond this chat turn. Processing may take a moment; extracted memories appear in profile/search after indexing completes.",
 	memoryForget:
-		"Forget (soft delete) a specific memory by ID or content match. The memory is marked as forgotten but not permanently deleted. Use when user wants to remove specific information from their profile.",
+		"Soft-delete a single extracted profile memory (a learned fact) so it no longer appears in profile or search. Does NOT delete source documents. Provide memoryId (preferred — from searchMemories or getProfile) OR memoryContent for an exact text match. Use when the user retracts or corrects a specific fact (e.g. 'forget I like tea', 'that's wrong'). To remove an entire conversation or file, use documentDelete instead.",
 } as const
 
 // Parameter descriptions
 export const PARAMETER_DESCRIPTIONS = {
-	informationToGet: "Terms to search for in the user's memories",
+	informationToGet:
+		"What to look up in memory — keywords from the user's message, topic, entity names, or question phrasing. Search even when the user did not explicitly ask you to recall.",
 	includeFullDocs:
 		"Whether to include the full document content in the response. Defaults to true for better AI context.",
 	limit: "Maximum number of results to return",
@@ -33,14 +34,17 @@ export const PARAMETER_DESCRIPTIONS = {
 	containerTag: "Tag to filter/scope the operation (e.g., user ID, project ID)",
 	query: "Optional search query to include relevant search results",
 	page: "Page number to fetch, 1-based (default: 1)",
-	documentId: "The unique identifier of the document to operate on",
-	content: "The content to add - can be text, URL, or other supported formats",
+	documentId:
+		"Document ID from documentList — permanently deletes the source document and all extracted memories. Not a profile memory ID.",
+	content:
+		"Document body to store — plain text, a conversation transcript, a long pasted blob, or a URL to a webpage/PDF/image/video. Content is queued and memories are extracted automatically after background processing; do not split into addMemory calls.",
 	title: "Optional title for the document",
 	description: "Optional description for the document",
-	memoryId: "The unique identifier of the memory entry",
+	memoryId:
+		"Profile memory ID from searchMemories or getProfile — soft-deletes one learned fact via memoryForget. Not a document ID.",
 	memoryContent:
-		"Exact content match of the memory entry to operate on (alternative to ID)",
-	reason: "Optional reason for forgetting this memory",
+		"Exact text of the profile memory to forget (alternative to memoryId). Must match precisely; if unsure, search first and use memoryId.",
+	reason: "Optional reason recorded when forgetting (e.g. outdated, user correction)",
 } as const
 
 // Default values
