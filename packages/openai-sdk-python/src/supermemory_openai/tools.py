@@ -9,12 +9,8 @@ from openai.types.chat import (
     ChatCompletionMessageToolCall,
     ChatCompletionToolMessageParam,
 )
-from supermemory.types import (
-    MemoryAddResponse,
-    MemoryGetResponse,
-    SearchExecuteResponse,
-)
-from supermemory.types.search_execute_response import Result
+from supermemory.types import AddResponse, SearchMemoriesResponse
+from supermemory.types.search_memories_response import Result
 
 from .exceptions import (
     SupermemoryConfigurationError,
@@ -35,7 +31,7 @@ class SupermemoryToolsConfig(TypedDict, total=False):
 
 
 # Type aliases using inferred types from supermemory package
-MemoryObject = Union[MemoryGetResponse, MemoryAddResponse]
+MemoryObject = AddResponse
 
 
 class MemorySearchResult(TypedDict, total=False):
@@ -51,7 +47,7 @@ class MemoryAddResult(TypedDict, total=False):
     """Result type for memory add operations."""
 
     success: bool
-    memory: Optional[MemoryAddResponse]
+    memory: Optional[Dict[str, object]]
     error: Optional[str]
 
 
@@ -187,18 +183,19 @@ class SupermemoryTools:
             MemorySearchResult
         """
         try:
-            response: SearchExecuteResponse = await self.client.search.execute(
+            response: SearchMemoriesResponse = await self.client.search.memories(
                 q=information_to_get,
                 container_tags=self.container_tags,
                 limit=limit,
-                chunk_threshold=0.6,
-                include_full_docs=include_full_docs,
+                threshold=0.6,
+                search_mode="hybrid",
             )
 
+            results = response.results or []
             return MemorySearchResult(
                 success=True,
-                results=[r.model_dump() for r in response.results],
-                count=len(response.results),
+                results=[r.model_dump() for r in results],
+                count=len(results),
             )
         except (OSError, ConnectionError) as network_error:
             return MemorySearchResult(
@@ -221,12 +218,10 @@ class SupermemoryTools:
             MemoryAddResult
         """
         try:
-            add_params = {
-                "content": memory,
-                "container_tags": self.container_tags,
-            }
-
-            response: MemoryAddResponse = await self.client.memories.add(**add_params)
+            response: AddResponse = await self.client.add(
+                content=memory,
+                container_tags=self.container_tags,
+            )
 
             return MemoryAddResult(
                 success=True,

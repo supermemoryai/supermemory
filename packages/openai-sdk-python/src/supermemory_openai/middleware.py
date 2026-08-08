@@ -224,13 +224,13 @@ async def add_memory_tool(
     try:
         add_params = {
             "content": content,
-            "container_tags": [container_tag],
+            "container_tag": container_tag,
         }
         if custom_id is not None:
             add_params["custom_id"] = custom_id
 
         # Handle both sync and async supermemory clients
-        result = client.memories.add(**add_params)
+        result = client.add(**add_params)
         if inspect.isawaitable(result):
             response = await result
         else:
@@ -242,7 +242,7 @@ async def add_memory_tool(
                 "container_tag": container_tag,
                 "custom_id": custom_id,
                 "content_length": len(content),
-                "memory_id": response.id,
+                "memory_id": getattr(response, "id", None),
             },
         )
     except (OSError, ConnectionError) as network_error:

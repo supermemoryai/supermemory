@@ -23,10 +23,10 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-requires-python = ">=3.8.1"
+requires-python = ">=3.9"
 dependencies = [
     "openai>=1.102.0",
-    "supermemory>=3.1.0",
+    "supermemory>=3.50.0",
     "typing-extensions>=4.0.0",
     "requests>=2.25.0",
 ]

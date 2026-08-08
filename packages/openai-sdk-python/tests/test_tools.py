@@ -177,6 +177,58 @@ class TestToolDefinitions:
         assert class_definitions == helper_definitions
 
 
+class TestMemoryOperationsUnit:
+    """Unit tests for memory operations (no live API)."""
+
+    @pytest.mark.asyncio
+    async def test_add_memory_uses_client_add(self):
+        """add_memory must call client.add (memories.add was removed in supermemory 3.50)."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+
+        tools = SupermemoryTools("test-key", {"container_tags": ["unit-tag"]})
+        tools.client.add = AsyncMock(
+            return_value=SimpleNamespace(
+                id="doc_123",
+                status="queued",
+                model_dump=lambda: {"id": "doc_123", "status": "queued"},
+            )
+        )
+
+        result = await tools.add_memory("User likes tea")
+
+        assert result["success"] is True
+        assert result["memory"]["id"] == "doc_123"
+        tools.client.add.assert_awaited_once_with(
+            content="User likes tea",
+            container_tags=["unit-tag"],
+        )
+
+    @pytest.mark.asyncio
+    async def test_search_memories_uses_search_memories_hybrid(self):
+        """search_memories must call client.search.memories with hybrid mode."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+
+        tools = SupermemoryTools("test-key", {"container_tags": ["unit-tag"]})
+        tools.client.search.memories = AsyncMock(
+            return_value=SimpleNamespace(
+                results=[SimpleNamespace(model_dump=lambda: {"memory": "likes tea"})]
+            )
+        )
+
+        result = await tools.search_memories("tea", limit=3)
+
+        assert result["success"] is True
+        assert result["count"] == 1
+        tools.client.search.memories.assert_awaited_once()
+        kwargs = tools.client.search.memories.await_args.kwargs
+        assert kwargs["q"] == "tea"
+        assert kwargs["container_tags"] == ["unit-tag"]
+        assert kwargs["limit"] == 3
+        assert kwargs["search_mode"] == "hybrid"
+
+
 class TestMemoryOperations:
     """Test memory operations."""
 
