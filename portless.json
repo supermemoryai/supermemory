@@ -10,6 +10,11 @@
 		"apps/memory-graph-playground": {
 			"name": "graph.dev.supermemory",
 			"script": "dev:app"
+		},
+		"apps/sdk-playground": {
+			"name": "sdk.dev.supermemory",
+			"script": "dev:app",
+			"appPort": 3005
 		}
 	}
 }

@@ -1,0 +1,35 @@
+{
+  "name": "sdk-playground",
+  "version": "0.1.0",
+  "private": true,
+  "portless": { "name": "sdk.dev.supermemory", "script": "dev:app" },
+  "scripts": {
+    "dev": "portless",
+    "dev:app": "concurrently -k -n next,py -c blue,green \"next dev --port ${PORT:-3005}\" \"bun run dev:python\"",
+    "dev:next": "next dev --port ${PORT:-3005}",
+    "dev:python": "cd python && uv run server.py",
+    "build": "next build",
+    "start": "next start",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.22",
+    "@supermemory/ai-sdk": "workspace:*",
+    "@supermemory/tools": "workspace:*",
+    "ai": "^5.0.113",
+    "next": "16.0.7",
+    "openai": "^4.104.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "supermemory": "^4.25.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^9.1.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
