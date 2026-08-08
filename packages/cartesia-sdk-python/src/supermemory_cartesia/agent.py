@@ -151,31 +151,35 @@ class SupermemoryCartesiaAgent:
             raise MemoryRetrievalError("Supermemory client not initialized")
 
         try:
-            # Use primary container tag for profile retrieval
-            kwargs: Dict[str, Any] = {"container_tag": self.container_tags[0]}
+            logger.info(f"[Supermemory] Retrieving memories for query: {query[:50]}...")
 
+            # One profile call: static + dynamic, and (when mode/query allow)
+            # search_results via `q` — keeps a single round trip for latency.
+            kwargs: Dict[str, Any] = {"container_tag": self.container_tags[0]}
             if self.config.mode != "profile" and query:
                 kwargs["q"] = query
                 kwargs["threshold"] = self.config.search_threshold
                 kwargs["extra_body"] = {"limit": self.config.search_limit}
 
-            logger.info(f"[Supermemory] Retrieving memories for query: {query[:50]}...")
-
             response = await asyncio.wait_for(
                 self._supermemory_client.profile(**kwargs),
-                timeout=10.0
+                timeout=10.0,
             )
 
             # A user with no stored memories yet gets a null profile back, which
             # is a normal case, not an error. Guard against it so we return an
             # empty profile instead of raising AttributeError on response.profile.
             profile = getattr(response, "profile", None)
-            profile_static = profile.static if profile is not None and profile.static else []
-            profile_dynamic = profile.dynamic if profile is not None and profile.dynamic else []
+            profile_static = (
+                profile.static if profile is not None and profile.static else []
+            )
+            profile_dynamic = (
+                profile.dynamic if profile is not None and profile.dynamic else []
+            )
 
-            search_results = []
+            search_results: List[Any] = []
             if response.search_results and response.search_results.results:
-                search_results = response.search_results.results
+                search_results = list(response.search_results.results)
 
             logger.info(
                 f"[Supermemory] Retrieved memories - static: {len(profile_static)}, "

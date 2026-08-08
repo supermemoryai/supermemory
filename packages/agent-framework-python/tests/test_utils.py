@@ -56,6 +56,20 @@ class TestDeduplicateMemories:
         )
         assert result.static == ["valid"]
 
+    def test_pydantic_like_search_results(self) -> None:
+        """SDK search results are pydantic models, not dicts (#1266)."""
+        from types import SimpleNamespace
+
+        result = deduplicate_memories(
+            static=["User likes Python"],
+            search_results=[
+                SimpleNamespace(memory="User prefers async", updated_at="2026-01-01T00:00:00Z"),
+                SimpleNamespace(memory="User likes Python", updated_at=None),
+            ],
+        )
+        assert result.static == ["User likes Python"]
+        assert result.search_results == ["User prefers async"]
+
 
 class TestConvertProfileToMarkdown:
     def test_empty_profile(self) -> None:
