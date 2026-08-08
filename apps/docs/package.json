@@ -6,7 +6,8 @@
   "portless": { "name": "docs.dev.supermemory", "script": "dev:app", "appPort": 3003 },
   "scripts": {
     "dev": "portless",
-    "dev:app": "bunx mintlify@latest dev --no-open --port 3003"
+    "dev:app": "bunx mintlify@latest dev --no-open --port 3003",
+    "check-links": "mintlify broken-links"
   },
   "devDependencies": {
     "@types/bun": "latest",

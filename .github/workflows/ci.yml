@@ -31,3 +31,10 @@ jobs:
 
       - name: Run Biome CI (format & lint on changed files)
         run: bunx biome ci --changed --since=origin/main --no-errors-on-unmatched
+
+      # mintlify@4.2.x may exit 0 even when it prints broken links
+      - name: Check docs for broken internal links
+        working-directory: apps/docs
+        run: |
+          set -o pipefail
+          bun run check-links 2>&1 | tee /dev/stderr | grep -q "no broken links found"
