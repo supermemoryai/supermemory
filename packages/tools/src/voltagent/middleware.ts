@@ -17,6 +17,7 @@ import {
 	extractQueryText,
 	type Logger,
 	type MemoryMode,
+	type MemoryGovernanceHook,
 } from "../shared"
 import type { SupermemoryVoltAgent, VoltAgentMessage } from "./types"
 
@@ -59,6 +60,7 @@ export interface SupermemoryMiddlewareContext {
 	metadata?: Record<string, string | number | boolean>
 	searchMode?: "memories" | "documents" | "hybrid"
 	entityContext?: string
+	governanceHook?: MemoryGovernanceHook
 }
 
 /**
@@ -91,6 +93,7 @@ export const createSupermemoryContext = (
 		searchMode,
 		entityContext,
 		verbose = false,
+		governanceHook,
 	} = options
 
 	// Runtime validation: customId is required
@@ -130,6 +133,7 @@ export const createSupermemoryContext = (
 		metadata,
 		searchMode,
 		entityContext,
+		...(governanceHook ? { governanceHook } : {}),
 	}
 }
 
@@ -297,9 +301,40 @@ export const enhanceMessagesWithMemories = async (
 			chunk?: string
 			metadata?: Record<string, unknown>
 		}
-		const formattedMemories = response.results
+
+		let governedResults: SearchResult[] | undefined
+		if (ctx.governanceHook) {
+			const rawResults = response.results as SearchResult[]
+			const governed = await ctx.governanceHook(
+				{
+					profile: {},
+					searchResults: {
+						// Keep memory/chunk as distinct fields so a governance hook
+						// can tell a user-authored memory apart from a document
+						// chunk (e.g. one that arrived via connector auto-sync).
+						results: rawResults.map((r) => ({
+							memory: r.memory ?? r.chunk ?? "",
+							...(r.chunk && !r.memory ? { chunk: r.chunk } : {}),
+							...(r.metadata ? { metadata: r.metadata } : {}),
+						})),
+					},
+				},
+				{ containerTag: ctx.containerTag, queryText, mode: ctx.mode },
+			)
+			governedResults = governed.searchResults.results
+		}
+
+		const effectiveResults = governedResults ?? (response.results as SearchResult[])
+
+		const formattedMemories = effectiveResults
 			.map((result: SearchResult) => {
-				const text = result.memory || result.chunk
+				// A hook that blanks `memory` is exercising the documented
+				// contract ("rewrite memory strings, drop entries, or throw").
+				// Only fall back to `chunk` when no hook ran — otherwise the
+				// redacted text comes straight back from the mirror field.
+				const text = governedResults
+					? result.memory
+					: result.memory || result.chunk
 				return text ? `- ${text}` : null
 			})
 			.filter(Boolean)
@@ -309,10 +344,19 @@ export const enhanceMessagesWithMemories = async (
 			? ctx.promptTemplate({
 					userMemories: "",
 					generalSearchMemories: formattedMemories,
-					searchResults: response.results as Array<{
-						memory: string
-						metadata?: Record<string, unknown>
-					}>,
+					// Only rebuild into the governed shape when a hook actually ran.
+					// Otherwise pass the raw SDK results through untouched (as before
+					// this hook existed) so a custom promptTemplate reading fields
+					// like `id`/`similarity`/`title` doesn't silently lose them.
+					searchResults: governedResults
+						? governedResults.map((r) => ({
+								memory: r.memory ?? "",
+								...(r.metadata ? { metadata: r.metadata } : {}),
+							}))
+						: (response.results as Array<{
+								memory: string
+								metadata?: Record<string, unknown>
+							}>),
 				})
 			: `The following are relevant memories and context about this user retrieved from previous interactions. Use these to personalize your response:\n\n${formattedMemories}`
 	} else {
@@ -324,6 +368,7 @@ export const enhanceMessagesWithMemories = async (
 			apiKey: ctx.apiKey,
 			logger: ctx.logger,
 			promptTemplate: ctx.promptTemplate,
+			...(ctx.governanceHook ? { governanceHook: ctx.governanceHook } : {}),
 		})
 	}
 

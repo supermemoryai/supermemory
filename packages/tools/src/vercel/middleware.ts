@@ -12,6 +12,7 @@ import {
 	type Logger,
 	type PromptTemplate,
 	type MemoryMode,
+	type MemoryGovernanceHook,
 } from "../shared"
 import { type LanguageModelCallOptions, getLastUserMessage } from "./util"
 import { extractQueryText, injectMemoriesIntoParams } from "./memory-prompt"
@@ -224,6 +225,8 @@ interface SupermemoryMiddlewareOptions {
 	promptTemplate?: PromptTemplate
 	/** Max wait (ms) for the pre-LLM `/v4/profile` retrieval. Omit for no limit (e.g. tests). `withSupermemory` sets this internally. */
 	memoryRetrievalTimeoutMs?: number
+	/** Governance hook invoked on raw retrieval results before dedup/formatting */
+	governanceHook?: MemoryGovernanceHook
 }
 
 interface SupermemoryMiddlewareContext {
@@ -238,6 +241,7 @@ interface SupermemoryMiddlewareContext {
 	apiKey: string
 	promptTemplate?: PromptTemplate
 	memoryRetrievalTimeoutMs?: number
+	governanceHook?: MemoryGovernanceHook
 	/**
 	 * Per-turn memory cache. Stores the injected memories string for each
 	 * user turn (keyed by turnKey) to avoid redundant API calls during tool-call
@@ -259,6 +263,7 @@ export const createSupermemoryContext = (
 		includeToolCalls = false,
 		promptTemplate,
 		memoryRetrievalTimeoutMs,
+		governanceHook,
 	} = options
 
 	const logger = createLogger(verbose)
@@ -285,6 +290,7 @@ export const createSupermemoryContext = (
 		...(memoryRetrievalTimeoutMs !== undefined
 			? { memoryRetrievalTimeoutMs }
 			: {}),
+		...(governanceHook ? { governanceHook } : {}),
 		memoryCache: new MemoryCache<string>(),
 	}
 }
@@ -368,6 +374,7 @@ export const transformParamsWithMemory = async (
 			logger: ctx.logger,
 			promptTemplate: ctx.promptTemplate,
 			...(fetchSignal ? { signal: fetchSignal } : {}),
+			...(ctx.governanceHook ? { governanceHook: ctx.governanceHook } : {}),
 		})
 	} finally {
 		if (timeoutId !== undefined) {

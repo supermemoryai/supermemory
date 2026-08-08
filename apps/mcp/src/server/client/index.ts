@@ -104,6 +104,36 @@ export interface ProfileResponse {
 	searchResults?: SearchResult
 }
 
+/**
+ * Context passed to a governance hook alongside the retrieved memories.
+ */
+export interface MemoryGovernanceContext {
+	containerTag?: string
+	query?: string
+}
+
+/**
+ * Governance hook invoked on raw search/profile results before they are
+ * returned to the MCP tool caller (i.e. before they enter the agent's
+ * context). Lets a governance provider (PII redaction, prompt-injection
+ * detection, audit logging, etc.) inspect and/or rewrite results, drop
+ * entries, or throw to abort. Not implemented by Supermemory itself.
+ */
+export type SearchGovernanceHook = (
+	result: SearchResult,
+	context: MemoryGovernanceContext,
+) => SearchResult | Promise<SearchResult>
+
+export type ProfileGovernanceHook = (
+	result: ProfileResponse,
+	context: MemoryGovernanceContext,
+) => ProfileResponse | Promise<ProfileResponse>
+
+export interface MemoryGovernanceHooks {
+	onSearch?: SearchGovernanceHook
+	onProfile?: ProfileGovernanceHook
+}
+
 export function getMemoryText(m: Memory): string {
 	return "memory" in m ? m.memory : m.chunk
 }
@@ -155,11 +185,13 @@ export class SupermemoryClient {
 	private hasExplicitContainerTag: boolean
 	private bearerToken: string
 	private apiUrl: string
+	private governance?: MemoryGovernanceHooks
 
 	constructor(
 		bearerToken: string,
 		containerTag?: string,
 		apiUrl = "https://api.supermemory.ai",
+		governance?: MemoryGovernanceHooks,
 	) {
 		this.bearerToken = bearerToken
 		this.apiUrl = apiUrl
@@ -171,6 +203,7 @@ export class SupermemoryClient {
 		})
 		this.hasExplicitContainerTag = Boolean(containerTag)
 		this.containerTag = containerTag || DEFAULT_PROJECT_ID
+		this.governance = governance
 	}
 
 	async createMemory(
@@ -259,10 +292,12 @@ export class SupermemoryClient {
 		threshold?: number,
 		containerTagOverride?: string,
 	): Promise<SearchResult> {
+		const containerTag =
+			containerTagOverride ??
+			(this.hasExplicitContainerTag ? this.containerTag : undefined)
+
+		let searchResult: SearchResult
 		try {
-			const containerTag =
-				containerTagOverride ??
-				(this.hasExplicitContainerTag ? this.containerTag : undefined)
 			const result = await this.client.search.memories({
 				q: query,
 				limit,
@@ -271,7 +306,7 @@ export class SupermemoryClient {
 				threshold,
 			})
 
-			return {
+			searchResult = {
 				results: mapSdkResults(result.results),
 				total: result.total,
 				timing: result.timing,
@@ -279,6 +314,19 @@ export class SupermemoryClient {
 		} catch (error) {
 			this.handleOperationError("Search request", error)
 		}
+
+		if (this.governance?.onSearch) {
+			try {
+				return await this.governance.onSearch(searchResult, {
+					containerTag,
+					query,
+				})
+			} catch (error) {
+				this.handleOperationError("Governance hook (search)", error)
+			}
+		}
+
+		return searchResult
 	}
 
 	async getProfile(query?: string): Promise<ProfileResponse> {
@@ -291,13 +339,14 @@ export class SupermemoryClient {
 			}
 		}
 
+		let response: ProfileResponse
 		try {
 			const result = await this.client.profile({
 				containerTag: this.containerTag,
 				q: query,
 			})
 
-			const response: ProfileResponse = {
+			response = {
 				profile: {
 					static: result.profile?.static || [],
 					dynamic: result.profile?.dynamic || [],
@@ -311,11 +360,22 @@ export class SupermemoryClient {
 					timing: result.searchResults.timing,
 				}
 			}
-
-			return response
 		} catch (error) {
 			this.handleOperationError("Profile request", error)
 		}
+
+		if (this.governance?.onProfile) {
+			try {
+				return await this.governance.onProfile(response, {
+					containerTag: this.containerTag,
+					query,
+				})
+			} catch (error) {
+				this.handleOperationError("Governance hook (profile)", error)
+			}
+		}
+
+		return response
 	}
 
 	async listContainerTags(): Promise<ContainerTag[]> {

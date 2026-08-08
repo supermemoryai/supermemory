@@ -83,9 +83,17 @@ export interface ProfileStructure {
 	searchResults: {
 		/**
 		 * Memories retrieved based on semantic similarity to the current query.
-		 * Most relevant to the immediate conversation context.
+		 * Most relevant to the immediate conversation context. `chunk`, when
+		 * present, marks the entry as a document chunk (e.g. from a connector
+		 * sync) rather than an atomic user-authored memory — governance hooks
+		 * that need to treat connector-sourced content differently (e.g. for
+		 * injection scanning) rely on this distinction being preserved.
 		 */
-		results: Array<{ memory: string; metadata?: Record<string, unknown> }>
+		results: Array<{
+			memory: string
+			chunk?: string
+			metadata?: Record<string, unknown>
+		}>
 	}
 }
 
@@ -123,4 +131,32 @@ export interface SupermemoryBaseOptions {
 	verbose?: boolean
 	/** Custom function to format memory data into the system prompt */
 	promptTemplate?: PromptTemplate
+	/** Governance hook invoked on raw retrieval results before formatting/injection */
+	governanceHook?: MemoryGovernanceHook
 }
+
+/**
+ * Context passed to a governance hook alongside the retrieved memories.
+ */
+export interface MemoryGovernanceContext {
+	/** Container tag/user ID the retrieval was scoped to */
+	containerTag: string
+	/** Query text used for the retrieval (empty string in "profile" mode) */
+	queryText: string
+	/** Memory retrieval mode active for this call */
+	mode: MemoryMode
+}
+
+/**
+ * A hook invoked with the raw retrieval results before they are deduplicated,
+ * formatted, and injected into the LLM context. Lets a governance provider
+ * (PII redaction, prompt-injection detection, audit logging, etc.) inspect
+ * and/or rewrite `memory` strings, drop entries, or throw to abort retrieval.
+ *
+ * Runs at the retrieval boundary only — it does not scan content at ingestion
+ * time, and it is not implemented by Supermemory itself; providers plug in here.
+ */
+export type MemoryGovernanceHook = (
+	profile: ProfileStructure,
+	context: MemoryGovernanceContext,
+) => ProfileStructure | Promise<ProfileStructure>
