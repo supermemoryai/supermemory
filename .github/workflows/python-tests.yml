@@ -1,0 +1,69 @@
+name: Python Package Tests
+
+on:
+  pull_request:
+    paths:
+      - "packages/pipecat-sdk-python/**"
+      - "packages/cartesia-sdk-python/**"
+      - "packages/agent-framework-python/**"
+      - ".github/workflows/python-tests.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/pipecat-sdk-python/**"
+      - "packages/cartesia-sdk-python/**"
+      - "packages/agent-framework-python/**"
+      - ".github/workflows/python-tests.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: pytest (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # pipecat and cartesia stub their heavy runtime dependencies inside
+          # the test suite, so their suites run without installing them.
+          - package: pipecat-sdk-python
+            install: |
+              pip install --no-deps -e .
+              pip install pytest pytest-asyncio
+          - package: cartesia-sdk-python
+            install: |
+              pip install --no-deps -e .
+              pip install pytest pytest-asyncio
+          - package: agent-framework-python
+            # agent-framework-core releases after 1.0.0rc3 no longer export
+            # BaseContextProvider, which breaks this package's imports — pin
+            # the rc until the package supports current releases.
+            install: |
+              pip install -e . pytest pytest-asyncio python-dotenv
+              pip install agent-framework-core==1.0.0rc3
+    defaults:
+      run:
+        working-directory: ./packages/${{ matrix.package }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package and test dependencies
+        run: ${{ matrix.install }}
+
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+# openai-sdk-python also ships a test suite, but it currently fails to import
+# against recent `supermemory` releases (#1235). Add it to the matrix once
+# that is fixed.
