@@ -212,14 +212,19 @@ def deduplicate_memories(
     def extract_memory_text(item: Any) -> Optional[str]:
         if item is None:
             return None
+        if isinstance(item, str):
+            trimmed = item.strip()
+            return trimmed if trimmed else None
         if isinstance(item, dict):
             memory = item.get("memory")
             if isinstance(memory, str):
                 trimmed = memory.strip()
                 return trimmed if trimmed else None
             return None
-        if isinstance(item, str):
-            trimmed = item.strip()
+        # Stainless SDK returns pydantic models (attribute access, snake_case).
+        memory = getattr(item, "memory", None)
+        if isinstance(memory, str):
+            trimmed = memory.strip()
             return trimmed if trimmed else None
         return None
 

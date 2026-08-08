@@ -129,14 +129,15 @@ class TestToolInitialization:
             len(tools.get_tool_definitions()) == 2
         )  # Currently has search_memories and add_memory
 
-    def test_create_tools_with_custom_container_tags(self, test_api_key: str):
-        """Test creating tools with custom container tags."""
+    def test_create_tools_with_custom_container_tag(self, test_api_key: str):
+        """Test creating tools with a custom container tag."""
         config: SupermemoryToolsConfig = {
-            "container_tags": ["custom-tag-1", "custom-tag-2"],
+            "container_tag": "custom-tag-1",
         }
         tools = SupermemoryTools(test_api_key, config)
 
         assert tools is not None
+        assert tools.container_tag == "custom-tag-1"
         assert (
             len(tools.get_tool_definitions()) == 2
         )  # Currently has search_memories and add_memory
@@ -177,6 +178,75 @@ class TestToolDefinitions:
         assert class_definitions == helper_definitions
 
 
+class TestMemoryOperationsUnit:
+    """Unit tests for memory operations (no live API)."""
+
+    @pytest.mark.asyncio
+    async def test_add_memory_uses_client_add(self):
+        """add_memory must call client.add (memories.add was removed in supermemory 3.50)."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+
+        tools = SupermemoryTools("test-key", {"container_tag": "unit-tag"})
+        tools.client.add = AsyncMock(
+            return_value=SimpleNamespace(
+                id="doc_123",
+                status="queued",
+                model_dump=lambda: {"id": "doc_123", "status": "queued"},
+            )
+        )
+
+        result = await tools.add_memory("User likes tea")
+
+        assert result["success"] is True
+        assert result["memory"]["id"] == "doc_123"
+        tools.client.add.assert_awaited_once_with(
+            content="User likes tea",
+            container_tag="unit-tag",
+        )
+
+    @pytest.mark.asyncio
+    async def test_search_memories_uses_search_memories_hybrid(self):
+        """search_memories must call client.search.memories with hybrid mode."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+
+        tools = SupermemoryTools("test-key", {"container_tag": "unit-tag"})
+        tools.client.search.memories = AsyncMock(
+            return_value=SimpleNamespace(
+                results=[SimpleNamespace(model_dump=lambda: {"memory": "likes tea"})]
+            )
+        )
+
+        result = await tools.search_memories("tea", limit=3)
+
+        assert result["success"] is True
+        assert result["count"] == 1
+        tools.client.search.memories.assert_awaited_once()
+        kwargs = tools.client.search.memories.await_args.kwargs
+        assert kwargs["q"] == "tea"
+        assert kwargs["container_tag"] == "unit-tag"
+        assert kwargs["limit"] == 3
+        assert kwargs["search_mode"] == "hybrid"
+        assert kwargs["include"] == {"documents": True}
+
+    @pytest.mark.asyncio
+    async def test_search_memories_forwards_include_full_docs_false(self):
+        """include_full_docs=False must set include.documents to False."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+
+        tools = SupermemoryTools("test-key", {"container_tag": "unit-tag"})
+        tools.client.search.memories = AsyncMock(
+            return_value=SimpleNamespace(results=[])
+        )
+
+        await tools.search_memories("tea", include_full_docs=False)
+
+        kwargs = tools.client.search.memories.await_args.kwargs
+        assert kwargs["include"] == {"documents": False}
+
+
 class TestMemoryOperations:
     """Test memory operations."""
 
@@ -211,7 +281,7 @@ class TestMemoryOperations:
     async def test_add_memory(self, test_api_key: str, test_base_url: str):
         """Test adding memory."""
         config: SupermemoryToolsConfig = {
-            "container_tags": ["test-add-memory"],
+            "container_tag": "test-add-memory",
         }
         if test_base_url:
             config["base_url"] = test_base_url
@@ -347,7 +417,7 @@ class TestOpenAIIntegration:
     ):
         """Test handling multiple tool calls."""
         tools_config: SupermemoryToolsConfig = {
-            "container_tags": ["test-multi-tools"],
+            "container_tag": "test-multi-tools",
         }
         if test_base_url:
             tools_config["base_url"] = test_base_url
