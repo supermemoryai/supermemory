@@ -194,11 +194,13 @@ export class ClaudeMemoryTool {
 	private async listDirectory(dirPath: string): Promise<MemoryResponse> {
 		try {
 			// Search for all memory files
-			const response = await this.client.search.execute({
+			const response = await this.client.search({
 				q: "*", // Search for all
-				containerTags: this.containerTags,
+				...(this.containerTags[0]
+					? { containerTag: this.containerTags[0] }
+					: {}),
 				limit: 100, // Get many files (max allowed)
-				includeFullDocs: false,
+				searchMode: "hybrid",
 			})
 
 			if (!response.results) {
@@ -577,30 +579,42 @@ export class ClaudeMemoryTool {
 		try {
 			const normalizedId = this.normalizePathToCustomId(filePath)
 
-			const response = await this.client.search.execute({
+			const response = await this.client.search({
 				q: normalizedId,
-				containerTags: this.containerTags,
+				...(this.containerTags[0]
+					? { containerTag: this.containerTags[0] }
+					: {}),
 				limit: 5,
-				includeFullDocs: true,
+				searchMode: "hybrid",
 			})
 
 			// Only accept the exact customId match. Falling back to the top
 			// semantic hit would let callers read — and worse, modify or
 			// delete — a different file than the one they asked for.
-			const document = response.results?.find(
-				(r) => r.documentId === normalizedId,
+			const match = response.results?.find(
+				(r) =>
+					r.id === normalizedId ||
+					r.documents?.some((d) => d.id === normalizedId),
 			)
 
-			if (!document) {
+			if (!match) {
 				return {
 					success: false,
 					error: `File not found: ${filePath}`,
 				}
 			}
 
+			const content = match.chunk || match.memory || ""
+			const documentId = match.documents?.[0]?.id ?? match.id
+
 			return {
 				success: true,
-				document,
+				document: {
+					documentId,
+					content,
+					raw: content,
+					metadata: match.metadata,
+				},
 			}
 		} catch (error) {
 			return {

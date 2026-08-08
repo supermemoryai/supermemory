@@ -56,12 +56,12 @@ export const searchMemoriesTool = (
 			limit = DEFAULT_VALUES.limit,
 		}) => {
 			try {
-				const response = await client.search.execute({
+				const response = await client.search({
 					q: informationToGet,
-					containerTags,
+					...(containerTags[0] ? { containerTag: containerTags[0] } : {}),
 					limit,
-					chunkThreshold: DEFAULT_VALUES.chunkThreshold,
-					includeFullDocs,
+					threshold: DEFAULT_VALUES.chunkThreshold,
+					searchMode: "hybrid",
 				})
 
 				return {
@@ -373,3 +373,4 @@ export function supermemoryTools(
 }
 
 export { withSupermemory } from "./vercel"
+export { getContainerTags } from "./tools-shared"
