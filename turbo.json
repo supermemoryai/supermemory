@@ -13,6 +13,13 @@
 		"check-types": {
 			"dependsOn": ["^check-types"]
 		},
+		"test": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$"]
+		},
+		"test:unit": {
+			"inputs": ["$TURBO_DEFAULT$"]
+		},
 		"dev": {
 			"cache": false,
 			"persistent": true
