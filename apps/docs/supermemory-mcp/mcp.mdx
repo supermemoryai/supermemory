@@ -50,6 +50,7 @@ Your assistant chooses these tools automatically. Use this table when you need t
 | `add_memory` | Save information or forget outdated information | `content` (required), `action` (`save` or `forget`), `containerTag` | Save or forget confirmation |
 | `listDocuments` | Browse stored source documents and their summaries | `page`, `limit`, `containerTag` | Document IDs, titles, types, status, dates, and summaries |
 | `getDocument` | Read the available content of one document | `documentId` (required) | Document metadata, summary, and available content |
+| `deleteDocument` | Permanently delete one document and the memories extracted from it | `documentId` (required) | Deletion confirmation |
 | `listMemories` | Browse recent extracted memory entries and their source document IDs | `page`, `limit`, `containerTag` | Memory IDs, text, versions, and source document IDs |
 | `listSpaces` | List accessible spaces and resolve a space name to its key | None | Formatted list plus structured `spaces` and `count` fields |
 | `whoAmI` | Inspect the authenticated account, permissions, scope, and active space | None | Account and access context |
@@ -69,6 +70,8 @@ Use the retrieval tools for different questions:
 ### Save or forget
 
 `add_memory` saves the supplied `content` by default. Set `action` to `forget` when a fact is outdated or should be removed. There is no separate forget tool.
+
+When the exact source is known, `deleteDocument` permanently removes that document and the memories extracted from it by `documentId` (from `listDocuments` or a memory result). Unlike `forget`, it does not rely on content matching, so it cannot remove the wrong memory. Deletion cannot be undone.
 
 If the content is already final, the assistant should use `add_memory`. If you want to review, edit, or choose a space before saving, it should open the `guided-save` widget instead.
 
