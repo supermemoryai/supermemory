@@ -1,19 +1,21 @@
 {
   "name": "@supermemory/ai-sdk",
   "type": "module",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch --ignore-watch .turbo",
     "check-types": "tsc --noEmit",
     "test": "vitest",
+    "test:unit": "vitest run src/tools.unit.test.ts",
     "test:watch": "vitest --watch"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.22",
     "@ai-sdk/provider": "^2.0.0",
+    "@supermemory/tools": "workspace:*",
     "ai": "^5.0.113",
-    "supermemory": "^3.0.0-alpha.26"
+    "supermemory": "^4.25.4"
   },
   "devDependencies": {
     "@total-typescript/tsconfig": "^1.0.4",
@@ -24,7 +26,7 @@
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "types": "./dist/index-Dk1U5LBS.d.ts",
+  "types": "./dist/index-B8qmWxBg.d.ts",
   "exports": {
     ".": "./dist/index.js",
     "./package.json": "./package.json"

@@ -5,19 +5,12 @@ import { type SupermemoryToolsConfig, supermemoryTools } from "./tools"
 
 import "dotenv/config"
 
-describe("supermemoryTools", () => {
-	// Required API keys - tests will fail if not provided
-	const testApiKey = process.env.SUPERMEMORY_API_KEY
-	const testOpenAIKey = process.env.OPENAI_API_KEY
-
-	if (!testApiKey) {
-		throw new Error(
-			"SUPERMEMORY_API_KEY environment variable is required for tests",
-		)
-	}
-	if (!testOpenAIKey) {
-		throw new Error("OPENAI_API_KEY environment variable is required for tests")
-	}
+describe.skipIf(
+	!process.env.SUPERMEMORY_API_KEY || !process.env.OPENAI_API_KEY,
+)("supermemoryTools", () => {
+	// Required API keys — suite is skipped in CI without them
+	const testApiKey = process.env.SUPERMEMORY_API_KEY as string
+	const testOpenAIKey = process.env.OPENAI_API_KEY as string
 
 	// Optional configuration with defaults
 	const testBaseUrl = process.env.SUPERMEMORY_BASE_URL ?? undefined
@@ -39,6 +32,11 @@ describe("supermemoryTools", () => {
 			expect(tools).toBeDefined()
 			expect(tools.searchMemories).toBeDefined()
 			expect(tools.addMemory).toBeDefined()
+			expect(tools.getProfile).toBeDefined()
+			expect(tools.documentList).toBeDefined()
+			expect(tools.documentDelete).toBeDefined()
+			expect(tools.documentAdd).toBeDefined()
+			expect(tools.memoryForget).toBeDefined()
 		})
 
 		it("should create tools with custom baseUrl", () => {
