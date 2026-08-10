@@ -200,6 +200,18 @@ When querying, you can choose:
 - Full version history
 - Specific version
 
+`PATCH /v4/memories` is what creates a version: it writes a new memory carrying `parentMemoryId` and `rootMemoryId`, and the old version stops being the latest. `POST /v4/memories/list` returns entries with their history, which is what an audit or review UI should read.
+
+### Forgetting
+
+Forgetting is a soft delete — the row survives, marked forgotten, so a correction is auditable and reversible rather than a hole in the graph:
+
+- **Single memory**: `DELETE /v4/memories` by `id` or exact `content`, with an optional `reason` stored as `forgetReason`
+- **Scheduled**: set `forgetAfter` (ISO datetime) at write or update time and the memory is auto-forgotten when it expires
+- **Mass forget**: `POST /v4/memories/forget-matching` takes a topic or instruction, semantically searches the container, and an LLM decides which candidates are genuinely about the target. Every memory forgotten in one call shares a `forgetBatchId` for traceability
+
+The mass path is bounded by design: `threshold` sets the similarity floor, `maxForget` caps the blast radius, `dryRun` previews without mutating, and the LLM only ever sees opaque handles for memories a search already returned — so it cannot reach outside those results or outside the `containerTag`.
+
 ## Retrieval Mechanism
 
 ### Semantic Search Process
@@ -309,24 +321,35 @@ Recent Activity:
 - Discussed performance optimization (last week)
 ```
 
-**Combined Profile:**
+**Buckets** (custom topical categories, assigned by a classifier at ingestion):
+```
+preferences: Dark mode, TypeScript, Vim keybindings
+work:        Senior Software Engineer, currently on the auth revamp
+goals:       Wants to ship SSO this quarter
+```
+
+Buckets are a second axis over the same memories: static/dynamic splits by how long-lived a fact is, buckets split by subject. They're defined per-org (and extended per container tag), so a surface can request just the slice it needs.
+
+**Combined Profile** (what `POST /v4/profile` actually returns):
 ```javascript
 {
-  "profile": "John Doe, Senior Software Engineer who prefers TypeScript and dark mode",
-  "memories": [
-    {
-      "content": "Currently working on React authentication",
-      "score": 0.95,
-      "timestamp": "2 hours ago"
-    },
-    {
-      "content": "Completed advanced TypeScript course",
-      "score": 0.87,
-      "timestamp": "yesterday"
-    }
-  ]
+  "profile": {
+    "static": ["John Doe, Senior Software Engineer in Seattle"],
+    "dynamic": ["[Recent] [2026-08-09] Working on React authentication"],
+    "buckets": { "preferences": ["[Summary] Prefers dark mode and TypeScript"] }
+  },
+  "searchResults": {          // only when a query `q` was provided
+    "results": [
+      { "id": "mem_abc", "memory": "Currently working on React authentication",
+        "similarity": 0.95, "updatedAt": "2026-08-10T10:00:00Z", "metadata": null }
+    ],
+    "total": 1,
+    "timing": 88
+  }
 }
 ```
+
+Entries prefixed `[Summary]` are aggregated older context; `[Recent]` entries arrived since the last aggregation. `buckets` appears only when requested.
 
 ## Graph Evolution
 
