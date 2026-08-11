@@ -38,45 +38,16 @@ type PendingKnowledgeConnectionWindow = {
 	cleanupTimer: number
 }
 
-const CONNECT_INTENT_RE = /\b(connect|link|authorize|add|set\s*up|setup)\b/i
 const pendingConnectionWindows = new Map<
 	NovaKnowledgeBaseProvider,
 	PendingKnowledgeConnectionWindow
 >()
-
-const KNOWLEDGE_BASE_ALIASES: Record<
-	NovaKnowledgeBaseProvider,
-	readonly string[]
-> = {
-	"google-drive": ["google drive", "gdrive"],
-	notion: ["notion"],
-	onedrive: ["onedrive", "one drive"],
-	granola: ["granola", "granola notes"],
-}
 
 const KNOWLEDGE_BASE_NAMES: Record<NovaKnowledgeBaseProvider, string> = {
 	"google-drive": "Google Drive",
 	notion: "Notion",
 	onedrive: "OneDrive",
 	granola: "Granola",
-}
-
-function normalizeConnectIntent(value: string): string {
-	return value.trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ")
-}
-
-export function detectNovaKnowledgeBaseConnectIntent(
-	message: string,
-): NovaKnowledgeBaseProvider | null {
-	if (!CONNECT_INTENT_RE.test(message)) return null
-	const normalized = normalizeConnectIntent(message)
-	return (
-		NOVA_KNOWLEDGE_BASE_PROVIDERS.find((provider) =>
-			KNOWLEDGE_BASE_ALIASES[provider].some((alias) =>
-				normalized.includes(alias),
-			),
-		) ?? null
-	)
 }
 
 function closePendingConnectionWindow(
@@ -121,15 +92,6 @@ export function reserveNovaKnowledgeConnectionWindow(
 	)
 	pendingConnectionWindows.set(provider, { popup, cleanupTimer })
 	return true
-}
-
-export function reserveNovaKnowledgeConnectionWindowForMessage(
-	message: string,
-): NovaKnowledgeBaseProvider | null {
-	const provider = detectNovaKnowledgeBaseConnectIntent(message)
-	if (!provider || provider === "granola") return null
-	reserveNovaKnowledgeConnectionWindow(provider)
-	return provider
 }
 
 export function navigateReservedNovaKnowledgeConnectionWindow(

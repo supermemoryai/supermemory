@@ -170,7 +170,6 @@ type NovaConnectorToolOutput = {
 	success?: boolean
 	error?: string
 	kind?: string
-	requestedAction?: "connect"
 	connectors?: NovaConnectorCardData[]
 	connector?: NovaConnectorCardData
 	keyReveal?: { pluginId: string; label?: string } | null
@@ -529,13 +528,11 @@ function KnowledgeBaseConnectAction({
 	connector,
 	onConnected,
 	onPendingChange,
-	autoStart = false,
 	attemptKey,
 }: {
 	connector: NovaConnectorCardData
 	onConnected: () => void
 	onPendingChange?: (pending: boolean) => void
-	autoStart?: boolean
 	attemptKey?: string
 }) {
 	const [granolaOpen, setGranolaOpen] = useState(false)
@@ -543,7 +540,6 @@ function KnowledgeBaseConnectAction({
 		"idle" | "starting" | "waiting" | "error"
 	>("idle")
 	const [error, setError] = useState<string | null>(null)
-	const startedRef = useRef(false)
 	const granolaSucceededRef = useRef(false)
 	const startingConnectionCountRef = useRef(connector.connectionCount ?? 0)
 	const provider = connector.provider
@@ -629,33 +625,6 @@ function KnowledgeBaseConnectAction({
 			stopWaiting,
 		],
 	)
-
-	useEffect(() => {
-		if (
-			!autoStart ||
-			!provider ||
-			connector.kind !== "knowledge" ||
-			connector.canConnect === false ||
-			startedRef.current
-		) {
-			return
-		}
-		startedRef.current = true
-		if (attemptKey && sessionStorage.getItem(attemptKey)) {
-			setConnectionState("waiting")
-			onPendingChange?.(true)
-			return
-		}
-		void connect(false)
-	}, [
-		attemptKey,
-		autoStart,
-		connect,
-		connector.canConnect,
-		connector.kind,
-		onPendingChange,
-		provider,
-	])
 
 	useEffect(() => {
 		if (connectionState !== "waiting" || !provider || provider === "granola") {
@@ -766,13 +735,11 @@ function NovaConnectorCard({
 	connector,
 	onConnectionsChanged,
 	onConnectionPendingChange,
-	autoStartConnection = false,
 	connectionAttemptKey,
 }: {
 	connector: NovaConnectorCardData
 	onConnectionsChanged?: () => void
 	onConnectionPendingChange?: (pending: boolean) => void
-	autoStartConnection?: boolean
 	connectionAttemptKey?: string
 }) {
 	const [revealedKey, setRevealedKey] = useState<string | undefined>()
@@ -829,7 +796,6 @@ function NovaConnectorCard({
 							connector={displayedConnector}
 							onConnected={() => onConnectionsChanged?.()}
 							onPendingChange={onConnectionPendingChange}
-							autoStart={autoStartConnection}
 							attemptKey={connectionAttemptKey}
 						/>
 					)}
@@ -944,7 +910,6 @@ function NovaConnectorCard({
 						connector={displayedConnector}
 						onConnected={() => onConnectionsChanged?.()}
 						onPendingChange={onConnectionPendingChange}
-						autoStart={autoStartConnection}
 						attemptKey={connectionAttemptKey}
 					/>
 				) : null}
@@ -1031,9 +996,6 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 	const [connectionPending, setConnectionPending] = useState(false)
 	const toolName = connectorToolName(part)
 	const output = unwrapToolOutput(part.output)
-	const autoStartConnection =
-		toolName === "startNovaKnowledgeBaseConnection" &&
-		output?.requestedAction === "connect"
 	const connectionAttemptKey = part.toolCallId
 		? `nova-knowledge-connect:${part.toolCallId}`
 		: undefined
@@ -1169,7 +1131,6 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 							connector={connector}
 							onConnectionsChanged={() => void refetchConnections()}
 							onConnectionPendingChange={setConnectionPending}
-							autoStartConnection={autoStartConnection}
 							connectionAttemptKey={connectionAttemptKey}
 						/>
 					),
@@ -1181,7 +1142,6 @@ function NovaConnectorToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 						connector={expandedConnector}
 						onConnectionsChanged={() => void refetchConnections()}
 						onConnectionPendingChange={setConnectionPending}
-						autoStartConnection={autoStartConnection}
 						connectionAttemptKey={connectionAttemptKey}
 					/>
 				</div>
