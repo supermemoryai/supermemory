@@ -956,7 +956,6 @@ export function ChatSidebar({
 			if (hasBusy) return false
 			const hasErrored = drafts.some((d) => d.status === "error")
 			if (hasErrored) return false
-
 			const chatIdForSend = threadId ?? fallbackChatId
 
 			try {
