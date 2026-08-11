@@ -78,6 +78,35 @@ describe("source annotation parsing", () => {
 		)
 	})
 
+	it("turns known bare memory ids into internal citation links", () => {
+		const parsed = parseSourceAnnotatedMarkdown(
+			"Fact [S1]. Combined [S1, S2]. Unknown [S3].",
+			new Set(["S1", "S2"]),
+		)
+
+		expect(parsed.markdown).toBe(
+			"Fact [S1](#sm-source:S1). Combined [S1](#sm-source:S1) [S2](#sm-source:S2). Unknown [S3].",
+		)
+	})
+
+	it("does not reinterpret normal markdown as bare memory citations", () => {
+		const input = [
+			"[S1](https://example.com)",
+			"[S1][ref]",
+			"[S1]: https://example.com",
+			"![S1](image.png)",
+			"\\[S1]",
+			"`[S1]`",
+			"```",
+			"[S1]",
+			"```",
+		].join("\n")
+
+		expect(parseSourceAnnotatedMarkdown(input, new Set(["S1"])).markdown).toBe(
+			input,
+		)
+	})
+
 	it("strips source markup for copy text", () => {
 		expect(
 			stripSourceMarkup('Alpha <response source="S1">Beta</response>'),

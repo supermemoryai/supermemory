@@ -7,6 +7,7 @@ import {
 } from "./models"
 
 export type ChatThreadSettings = {
+	mode: "chat" | "research"
 	model: ModelId
 	reasoningEffort: ReasoningEffort
 	spaceMode: "auto" | "manual"
@@ -25,6 +26,7 @@ export function readChatThreadSettings(
 		typeof value === "object" && value !== null
 			? (value as Record<string, unknown>)
 			: {}
+	const mode = settings.mode === "research" ? "research" : "chat"
 	const model = isModelId(settings.model) ? settings.model : "grok-4.5"
 	const reasoningEffort =
 		settings.reasoningEffort === "instant" ||
@@ -38,5 +40,5 @@ export function readChatThreadSettings(
 			: fallbackProjectId
 	const projectId = spaceMode === "auto" ? AUTO_CHAT_SPACE_ID : storedProjectId
 
-	return { model, reasoningEffort, spaceMode, projectId }
+	return { mode, model, reasoningEffort, spaceMode, projectId }
 }
