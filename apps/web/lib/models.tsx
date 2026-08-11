@@ -6,7 +6,7 @@ export const models = [
 	},
 	{
 		id: "gpt-5.6-terra",
-		name: "GPT 5.6 Terra",
+		name: "GPT 5.6",
 		description: "OpenAI's latest model",
 	},
 	{
@@ -26,7 +26,7 @@ export type ReasoningEffort = "instant" | "thinking"
 
 export const modelNames: Record<ModelId, { name: string; version: string }> = {
 	"grok-4.5": { name: "Grok", version: "4.5" },
-	"gpt-5.6-terra": { name: "GPT", version: "5.6 Terra" },
+	"gpt-5.6-terra": { name: "GPT", version: "5.6" },
 	"claude-sonnet-5": { name: "Claude", version: "Sonnet 5" },
 	"gemini-3.1-pro-preview": { name: "Gemini", version: "3.1 Pro" },
 }
