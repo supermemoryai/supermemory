@@ -93,10 +93,6 @@ export function HighlightsCard({
 	}, [isReplyOpen])
 
 	useEffect(() => {
-		// The Daily Brief refreshes on its own every few hours, so items can be
-		// replaced with a shorter list while the user is on a later page. Pull the
-		// active index back into range, otherwise currentItem is undefined and the
-		// card falls through to the empty state even though highlights exist.
 		setActiveIndex((i) => Math.min(i, Math.max(items.length - 1, 0)))
 		setIsReplyOpen(false)
 		setReplyText("")
