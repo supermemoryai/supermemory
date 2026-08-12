@@ -4,14 +4,23 @@ on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   claude-review:
+    # Fork PRs run with a read-only token and no secrets/OIDC id-token, so the
+    # Claude action can never authenticate there and the job always fails. Skip
+    # it for forks so those PRs report a clean skipped check instead of a red X.
     if: |
       github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
       github.actor != 'graphite-app[bot]' &&
       github.actor != 'dependabot[bot]'
 
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
       pull-requests: write
@@ -29,6 +38,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_bots: "vorflux[bot]"
 
           # Enable progress tracking
           track_progress: true
@@ -39,18 +49,7 @@ jobs:
           # Enable inline comments for specific issues
           claude_args: |
             --model claude-opus-4-5-20251101
-            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(*),WebSearch,WebFetch,Task,mcp__supermemory__*,mcp__github__*"
-            --mcp-config '{
-              "mcpServers": {
-                "supermemory": {
-                  "type": "http",
-                  "url": "https://mcp.supermemory.ai/mcp",
-                  "headers": {
-                    "Authorization": "Bearer ${{ secrets.SUPERMEMORY_API_KEY }}"
-                  }
-                }
-              }
-            }'
+            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(*),WebSearch,WebFetch,Task,mcp__github__*"
 
           prompt: |
             You are a senior engineer reviewing a pull request. Your job is to catch real bugs, security issues, and logic errors that a human reviewer might miss. You are NOT a linter — do not comment on style, naming, formatting, or minor nitpicks.

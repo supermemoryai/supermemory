@@ -574,7 +574,7 @@ export function PluginsDetail() {
 			if (!res.ok) {
 				if (res.status === 403) {
 					throw new Error(
-						"This plugin requires a Pro plan. Hermes is available on the Free plan.",
+						"Plugin access was denied. Check your plan or try again.",
 					)
 				}
 				const errorData = (await res.json().catch(() => ({}))) as {

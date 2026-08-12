@@ -1,39 +1,166 @@
 import { describe, expect, it } from "bun:test"
 import { parsePluginDocument } from "./plugin-document"
 
-describe("plugin document parsing", () => {
-	it("keeps multi-line transcript messages and extracts artifacts", () => {
-		const parsed = parsePluginDocument({
-			id: "doc-1",
-			title: "Session",
-			content: [
-				"[Session session_123]",
-				"1. [user] Hello there",
-				"Here is more context on line two",
-				"memory id: mem_123",
-				"2. [assistant] Sure!",
-				"Second line of the reply",
-			].join("\n"),
-			source: "codex",
-			metadata: {},
-			memoryEntries: [],
-		} as never)
+type PluginDocumentInput = Parameters<typeof parsePluginDocument>[0]
 
-		expect(parsed?.messages).toEqual([
-			{
-				id: "1-user",
-				role: "user",
-				text: "Hello there\nHere is more context on line two",
+function makeCodexSessionDocument(content: string): PluginDocumentInput {
+	return {
+		id: "doc_1",
+		title: "Codex session",
+		content,
+		metadata: { sm_source: "codex" },
+		memoryEntries: [],
+	} as unknown as PluginDocumentInput
+}
+
+describe("parsePluginDocument — session transcripts", () => {
+	it("keeps the Codex source badge inside a shared Agents container", () => {
+		const parsed = parsePluginDocument({
+			...makeCodexSessionDocument(
+				["[Session abc-123]", "1. [user] Shared memory"].join("\n"),
+			),
+			source: "codex",
+			containerTags: ["user_project_0123456789abcdef"],
+		} as unknown as PluginDocumentInput)
+
+		expect(parsed?.pluginLabel).toBe("Codex")
+		expect(parsed?.pluginIconSrc).toBe("/images/plugins/codex.png")
+	})
+
+	it("keeps the Claude Code source badge inside a shared Agents container", () => {
+		const parsed = parsePluginDocument({
+			id: "doc_claude",
+			title: "Claude memory",
+			content: "Remember this project convention",
+			source: "claude-code",
+			metadata: {
+				sm_source: "claude-code",
+				type: "manual",
+				project: "supermemory",
 			},
-			{
-				id: "2-assistant",
-				role: "assistant",
-				text: "Sure!\nSecond line of the reply",
-			},
-		])
+			containerTags: ["repo_supermemory"],
+			memoryEntries: [],
+		} as unknown as PluginDocumentInput)
+
+		expect(parsed?.pluginLabel).toBe("Claude Code")
+		expect(parsed?.pluginIconSrc).toBe("/images/plugins/claude-code.svg")
+	})
+
+	it("renders a new Cursor capture as structured conversation cards", () => {
+		const parsed = parsePluginDocument({
+			id: "doc_cursor",
+			title: "Cursor conversation",
+			content: [
+				"[Conversation cursor-session-1]",
+				"1. [user] Keep the API boundary stable",
+				"2. [assistant] I will preserve it.",
+			].join("\n"),
+			source: "cursor",
+			metadata: { sm_source: "cursor", type: "conversation" },
+			containerTags: ["repo_supermemory__0123456789abcdef"],
+			memoryEntries: [],
+		} as unknown as PluginDocumentInput)
+
+		expect(parsed?.pluginLabel).toBe("Cursor")
+		expect(parsed?.pluginIconSrc).toBe("/images/plugins/cursor.png")
+		expect(parsed?.formatLabel).toBe("Conversation")
+		expect(parsed?.messages).toHaveLength(2)
+		expect(parsed?.messages[0]?.role).toBe("user")
+		expect(parsed?.messages[1]?.role).toBe("assistant")
+	})
+
+	it("renders old Cursor tags and transcripts without source metadata", () => {
+		const parsed = parsePluginDocument({
+			id: "doc_cursor_legacy",
+			title: "Cursor session",
+			content: [
+				"Cursor IDE session transcript:",
+				"User: Fix the renderer",
+				"with the existing card design.",
+				"Assistant: Implemented the parser.",
+			].join("\n"),
+			source: "api",
+			metadata: {},
+			containerTags: ["cursor_project_0123456789abcdef"],
+			memoryEntries: [],
+		} as unknown as PluginDocumentInput)
+
+		expect(parsed?.pluginLabel).toBe("Cursor")
+		expect(parsed?.pluginIconSrc).toBe("/images/plugins/cursor.png")
+		expect(parsed?.messages).toHaveLength(2)
+		expect(parsed?.messages[0]?.text).toBe(
+			"Fix the renderer\nwith the existing card design.",
+		)
+		expect(parsed?.messages[1]?.text).toBe("Implemented the parser.")
+	})
+
+	it("keeps multi-line message bodies intact", () => {
+		const parsed = parsePluginDocument(
+			makeCodexSessionDocument(
+				[
+					"[Session abc-123]",
+					"1. [user] Hello there",
+					"Here is more context on line two",
+					"2. [assistant] Sure!",
+					"Second line of the reply",
+				].join("\n"),
+			),
+		)
+
+		expect(parsed).not.toBeNull()
+		expect(parsed?.kind).toBe("codex-session")
+		expect(parsed?.messages).toHaveLength(2)
+		expect(parsed?.messages[0]?.text).toBe(
+			"Hello there\nHere is more context on line two",
+		)
+		expect(parsed?.messages[1]?.text).toBe("Sure!\nSecond line of the reply")
+	})
+
+	it("surfaces memory id artifacts from continuation lines", () => {
+		const parsed = parsePluginDocument(
+			makeCodexSessionDocument(
+				[
+					"[Session abc-123]",
+					"1. [user] Remember my editor is Neovim",
+					"memory id: mem_456",
+					"2. [assistant] Saved it.",
+				].join("\n"),
+			),
+		)
+
+		expect(parsed?.messages[0]?.text).toBe("Remember my editor is Neovim")
 		expect(parsed?.artifacts).toContainEqual({
 			label: "Memory ID",
-			value: "mem_123",
+			value: "mem_456",
 		})
+	})
+
+	it("normalizes literal \\n escapes before splitting messages", () => {
+		const parsed = parsePluginDocument(
+			makeCodexSessionDocument(
+				"[Session abc-123]\\n1. [user] First line\\nSecond line\\n2. [assistant] Reply",
+			),
+		)
+
+		expect(parsed?.messages).toHaveLength(2)
+		expect(parsed?.messages[0]?.text).toBe("First line\nSecond line")
+		expect(parsed?.messages[1]?.text).toBe("Reply")
+	})
+
+	it("parses single-line messages as before", () => {
+		const parsed = parsePluginDocument(
+			makeCodexSessionDocument(
+				["[Session abc-123]", "1. [user] Hi", "2. [assistant] Hello!"].join(
+					"\n",
+				),
+			),
+		)
+
+		expect(parsed?.messages).toHaveLength(2)
+		expect(parsed?.messages[0]?.text).toBe("Hi")
+		expect(parsed?.messages[1]?.text).toBe("Hello!")
+		expect(parsed?.summary).toBe(
+			"1 user message and 1 assistant message captured from Codex.",
+		)
 	})
 })

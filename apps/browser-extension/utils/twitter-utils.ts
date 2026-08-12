@@ -56,11 +56,43 @@ interface MediaEntity {
 		}
 	}
 	video_info?: {
-		variants?: Array<{
-			url: string
-		}>
+		variants?: VideoVariant[]
 		duration_millis?: number
 	}
+}
+
+export interface VideoVariant {
+	url: string
+	bitrate?: number
+	content_type?: string
+}
+
+/**
+ * Twitter returns several video variants for a single video: an HLS `.m3u8`
+ * playlist (no bitrate) plus multiple `video/mp4` renditions at different
+ * bitrates, in no guaranteed order. Taking `variants[0]` therefore often stored
+ * the HLS playlist URL (not a directly usable file) or the lowest-quality clip.
+ * Pick the highest-bitrate MP4 instead, falling back to the first variant when
+ * no MP4 rendition is present.
+ */
+export function pickBestVideoVariantUrl(
+	variants: VideoVariant[] | undefined,
+): string {
+	if (!variants || variants.length === 0) return ""
+
+	const mp4s = variants.filter(
+		(v) => v.content_type === "video/mp4" || /\.mp4(?:\?|$)/i.test(v.url),
+	)
+	const pool = mp4s.length > 0 ? mp4s : variants
+
+	let best = pool[0]
+	for (const variant of pool) {
+		if ((variant.bitrate ?? 0) > (best?.bitrate ?? 0)) {
+			best = variant
+		}
+	}
+
+	return best?.url || ""
 }
 
 export interface Tweet {
@@ -257,7 +289,7 @@ export function transformTweetData(
 		const videos = media
 			.filter((m) => m.type === "video")
 			.map((m) => ({
-				url: m.video_info?.variants?.[0]?.url || "",
+				url: pickBestVideoVariantUrl(m.video_info?.variants),
 				thumbnail_url: m.media_url_https,
 				duration: m.video_info?.duration_millis || 0,
 			}))
@@ -368,6 +400,27 @@ export function extractNextCursor(
 }
 
 /**
+ * Tweet `full_text` embeds links as opaque `t.co` shortlinks, while
+ * `entities.urls` carries the real destination. Replace each shortlink with a
+ * markdown link to its expanded URL (labelled with the human-readable
+ * display_url) so imported tweets keep working, searchable links instead of
+ * `https://t.co/xxxx`.
+ */
+export function expandTweetText(
+	text: string,
+	urls: Tweet["entities"]["urls"],
+): string {
+	if (!urls || urls.length === 0) return text
+	let expanded = text
+	for (const link of urls) {
+		if (!link?.url || !link.expanded_url) continue
+		const label = link.display_url || link.expanded_url
+		expanded = expanded.split(link.url).join(`[${label}](${link.expanded_url})`)
+	}
+	return expanded
+}
+
+/**
  * Convert Tweet object to markdown format for storage
  */
 export function tweetToMarkdown(tweet: Tweet): string {
@@ -380,8 +433,8 @@ export function tweetToMarkdown(tweet: Tweet): string {
 	markdown += `**Date:** ${date} ${time}\n`
 	markdown += `**Likes:** ${tweet.favorite_count} | **Retweets:** ${tweet.retweet_count || 0} | **Replies:** ${tweet.reply_count || 0}\n\n`
 
-	// Add tweet text
-	markdown += `${tweet.text}\n\n`
+	// Add tweet text with t.co shortlinks expanded to their real destinations
+	markdown += `${expandTweetText(tweet.text, tweet.entities.urls)}\n\n`
 
 	// Add media if present
 	if (tweet.photos && tweet.photos.length > 0) {
@@ -434,9 +487,18 @@ export function buildRequestVariables(cursor?: string, count = 100) {
 /**
  * Build Twitter API request variables for bookmark collection
  */
-export function buildBookmarkCollectionVariables(bookmarkCollectionId: string) {
-	return {
+export function buildBookmarkCollectionVariables(
+	bookmarkCollectionId: string,
+	cursor?: string,
+) {
+	const variables: Record<string, unknown> = {
 		bookmark_collection_id: bookmarkCollectionId,
 		includePromotedContent: true,
 	}
+
+	if (cursor) {
+		variables.cursor = cursor
+	}
+
+	return variables
 }

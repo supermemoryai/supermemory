@@ -28,6 +28,7 @@ const viewLiterals = [
 	"graph",
 	"list",
 	"integrations",
+	"configure",
 	"chat",
 	"digests",
 	// Integration sub-views — each card is its own view
@@ -58,4 +59,10 @@ export type IntegrationParamValue =
 export const categoriesParam = parseAsArrayOf(parseAsString, ",").withDefault(
 	[],
 )
+export const agentSourceParam = parseAsStringLiteral([
+	"claude-code",
+	"codex",
+	"opencode",
+	"cursor",
+] as const)
 export const projectParam = parseAsArrayOf(parseAsString, ",").withDefault([])

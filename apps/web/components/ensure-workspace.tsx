@@ -28,7 +28,11 @@ export function EnsureWorkspace({ children }: { children: React.ReactNode }) {
 		(pathname === "/" &&
 			["integrations", "mcp"].includes(searchParams.get("view") ?? ""))
 	const isGuestPublicAppPage = isPublicAppPage && !session && !isSessionPending
-	const isOnboarding = pathname.startsWith("/onboarding")
+	// /brain is the Slack-first Company Brain entry: it creates the org itself.
+	const isOnboarding =
+		pathname.startsWith("/onboarding") ||
+		pathname === "/brain" ||
+		pathname.startsWith("/brain/")
 
 	useEffect(() => {
 		if (isGuestPublicAppPage) return

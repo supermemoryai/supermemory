@@ -1,4 +1,22 @@
-import type { GraphThemeColors } from "./types"
+import type { GraphThemeColors, ResolvedMemoryGraphLabels } from "./types"
+
+export const DEFAULT_LABELS: ResolvedMemoryGraphLabels = {
+	documentGroup: "Documents",
+	documentTypeFallback: "document",
+	documentSourceEdge: "Document source",
+	documentToMemoryEdge: "Document to memory",
+	memoryCount: (count: number) => `${count} memories`,
+	documentIdLabel: "Document",
+	viewDocument: "View document",
+	goToDocument: "Go to document",
+	nextDocument: "Next document",
+	previousDocument: "Prev document",
+	showMemory: "Go to memory",
+	loadingMoreDocuments: (count: number) =>
+		`Loading more documents... (${count})`,
+}
+
+export const DEFAULT_HOVER_POPOVER_Z_INDEX = 100
 
 export const MEMORY_BORDER_KEYS = {
 	forgotten: "memBorderForgotten",

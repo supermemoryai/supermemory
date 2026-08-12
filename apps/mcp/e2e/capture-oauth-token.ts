@@ -1,11 +1,19 @@
 // One-time helper to capture a Tier D refresh token — run: bun e2e/capture-oauth-token.ts
 
 import { createHash, randomBytes } from "node:crypto"
+import { chmod, mkdir, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
 import { exec } from "node:child_process"
+import { dirname } from "node:path"
+import { fileURLToPath } from "node:url"
 
 const API_URL = process.env.SUPERMEMORY_API_URL ?? "https://api.supermemory.ai"
-const PORT = 8765
+const MCP_RESOURCE =
+	process.env.SUPERMEMORY_MCP_RESOURCE ?? "https://mcp.supermemory.ai/mcp"
+const CREDENTIAL_FILE =
+	process.env.SUPERMEMORY_MCP_CREDENTIAL_FILE ??
+	fileURLToPath(new URL("../../../.context/mcp-oauth.env", import.meta.url))
+const PORT = Number(process.env.SUPERMEMORY_MCP_CALLBACK_PORT ?? "8765")
 const REDIRECT_URI = `http://localhost:${PORT}/callback`
 
 const b64url = (b: Buffer) =>
@@ -50,6 +58,7 @@ async function main() {
 		code_challenge: challenge,
 		code_challenge_method: "S256",
 		scope: "openid profile email offline_access",
+		resource: MCP_RESOURCE,
 		state,
 	}).toString()
 
@@ -81,6 +90,7 @@ async function main() {
 				client_id: reg.client_id,
 				code_verifier: verifier,
 				redirect_uri: REDIRECT_URI,
+				resource: MCP_RESOURCE,
 			}),
 		})
 	).json()) as { refresh_token?: string; error?: string }
@@ -90,11 +100,19 @@ async function main() {
 		process.exit(1)
 	}
 
-	console.log("\nExport these to enable Tier D OAuth tests:\n")
-	console.log(`export SUPERMEMORY_MCP_CLIENT_ID="${reg.client_id}"`)
-	console.log(
-		`export SUPERMEMORY_MCP_REFRESH_TOKEN="${tokenRes.refresh_token}"`,
+	await mkdir(dirname(CREDENTIAL_FILE), { recursive: true })
+	await writeFile(
+		CREDENTIAL_FILE,
+		[
+			`SUPERMEMORY_MCP_CLIENT_ID=${JSON.stringify(reg.client_id)}`,
+			`SUPERMEMORY_MCP_REFRESH_TOKEN=${JSON.stringify(tokenRes.refresh_token)}`,
+			"",
+		].join("\n"),
+		{ mode: 0o600 },
 	)
+	await chmod(CREDENTIAL_FILE, 0o600)
+
+	console.log(`\nOAuth test credentials saved to ${CREDENTIAL_FILE}`)
 }
 
 main().catch((e) => {

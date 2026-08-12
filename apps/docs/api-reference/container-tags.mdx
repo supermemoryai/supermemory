@@ -1,0 +1,18 @@
+---
+title: "Container tags"
+sidebarTitle: "Overview"
+description: "Multi-tenant containers — settings, merge, and delete."
+icon: "book-open"
+---
+
+`containerTag` is the primary multi-tenant key (user id, workspace id, etc.). These endpoints manage settings and lifecycle for a tag.
+
+| Endpoint | Use when |
+| --- | --- |
+| `GET /v3/container-tags/{containerTag}` | Read tag settings |
+| `PATCH /v3/container-tags/{containerTag}` | Update tag settings |
+| `DELETE /v3/container-tags/{containerTag}` | Delete a container and its data |
+| `POST /v3/container-tags/merge` | Merge one tag into another |
+| `GET /v3/container-tags/merge/{mergeId}` | Poll merge status |
+
+**Guide:** [Container tags](/concepts/container-tags) · [Filtering](/concepts/filtering)

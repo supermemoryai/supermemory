@@ -6,6 +6,7 @@ import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
+import { isYouTubeUrl } from "@/lib/url-helpers"
 import { SyncLogoIcon } from "@ui/assets/icons"
 import { DocumentIcon } from "@/components/document-icon"
 import { CheckIcon, ChevronDownIcon } from "lucide-react"
@@ -41,7 +42,7 @@ type CategoryInfo = { label: string; singularLabel: string; key: string }
 function getDocumentTypeInfo(doc: DocumentWithMemories): CategoryInfo {
 	if (doc.source === "mcp")
 		return { label: "MCP Items", singularLabel: "MCP Item", key: "mcp" }
-	if (doc.url?.includes("youtube.com") || doc.url?.includes("youtu.be"))
+	if (isYouTubeUrl(doc.url))
 		return {
 			label: "YouTube Videos",
 			singularLabel: "YouTube Video",

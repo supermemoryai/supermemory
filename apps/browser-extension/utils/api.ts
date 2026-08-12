@@ -3,6 +3,7 @@
  */
 import { API_ENDPOINTS } from "./constants"
 import { bearerToken, defaultProject, userData } from "./storage"
+import { buildSearchMemoriesBody } from "./search-request"
 import {
 	AuthenticationError,
 	type MemoryPayload,
@@ -145,14 +146,14 @@ export async function saveMemory(payload: MemoryPayload): Promise<unknown> {
 /**
  * Search memories using Supermemory API
  */
-export async function searchMemories(query: string): Promise<unknown> {
+export async function searchMemories(
+	query: string,
+	containerTag?: string,
+): Promise<unknown> {
 	try {
 		const response = await makeAuthenticatedRequest<unknown>("/v4/search", {
 			method: "POST",
-			body: JSON.stringify({
-				q: query,
-				include: { relatedMemories: true },
-			}),
+			body: JSON.stringify(buildSearchMemoriesBody(query, containerTag)),
 		})
 		return response
 	} catch (error) {

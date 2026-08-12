@@ -38,6 +38,9 @@ export interface MemoryData {
 	url?: string
 	ogImage?: string
 	title?: string
+	sourcePlatform?: string
+	sourcePlatformLabel?: string
+	sourceSurface?: string
 }
 
 /**

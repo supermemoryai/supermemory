@@ -1,6 +1,6 @@
 ---
 title: "Customizing for Your Use Case"
-sidebarTitle: "Customization"
+sidebarTitle: "Customizing"
 description: "Configure Supermemory's behavior for your specific application"
 icon: "settings-2"
 ---
@@ -69,6 +69,16 @@ await client.settings.update({
     ```
   </Accordion>
 </AccordionGroup>
+
+### Related settings
+
+`shouldLLMFilter` must be `true` for any of these to take effect — using them without it returns a 400 error.
+
+| Setting | Type | Limits |
+|---------|------|--------|
+| `categories` | `string[]` | 1-50 chars each. If omitted, 3-5 categories are auto-generated |
+| `includeItems` / `excludeItems` | `string[]` | 1-20 chars each item |
+| `filterPrompt` | `string` | 1-750 characters |
 
 ---
 
@@ -193,7 +203,7 @@ Settings are organization-wide. Changes apply to new content only—existing mem
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Add Memories" icon="plus" href="/add-memories">
+  <Card title="Add Memories" icon="plus" href="/ingestion/add-memories">
     See your custom settings in action
   </Card>
   <Card title="Connectors" icon="plug" href="/connectors/overview">

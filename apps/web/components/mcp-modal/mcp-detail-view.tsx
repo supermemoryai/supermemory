@@ -223,15 +223,32 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 		return "cursor://anysphere.cursor-deeplink/mcp/install?name=supermemory&config=eyJ1cmwiOiJodHRwczovL2FwaS5zdXBlcm1lbW9yeS5haS9tY3AifQ%3D%3D"
 	}
 
-	function generateInstallCommand() {
-		if (!selectedClient || selectedClient === "chatgpt") return ""
+	function getMcpServerUrl() {
+		return "https://mcp.supermemory.ai/mcp"
+	}
 
-		let command = `npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client ${selectedClient} --oauth=yes`
-
-		const projectIdForCommand = selectedProject.replace(/^sm_project_/, "")
-		command += ` --project ${projectIdForCommand}`
-
-		return command
+	function getMcpConfigSnippet() {
+		const projectId = selectedProject.replace(/^sm_project_/, "")
+		const config: {
+			mcpServers: {
+				supermemory: {
+					url: string
+					headers?: { "x-sm-project": string }
+				}
+			}
+		} = {
+			mcpServers: {
+				supermemory: {
+					url: getMcpServerUrl(),
+				},
+			},
+		}
+		if (projectId && projectId !== "default" && selectedProject !== "none") {
+			config.mcpServers.supermemory.headers = {
+				"x-sm-project": projectId,
+			}
+		}
+		return JSON.stringify(config, null, 2)
 	}
 
 	const copyManualSnippet = (text: string) => {
@@ -454,12 +471,23 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 										selectedClient !== "cursor" && (
 											<div className="space-y-2">
 												<p className="text-[13px] leading-relaxed text-[#A1A1AA]">
-													Run this command in your terminal. It installs the MCP
-													for {clients[selectedKey]} and starts OAuth when
-													needed.
+													Add this remote MCP server URL in{" "}
+													{clients[selectedKey]}. Your client will prompt for
+													OAuth when you connect.
 												</p>
 												<McpCodeBlock
-													code={generateInstallCommand()}
+													code={getMcpServerUrl()}
+													onCopy={() => {
+														analytics.mcpInstallCmdCopied()
+														setActiveStep(3)
+													}}
+												/>
+												<p className="text-[12px] text-[#737373]">
+													Or merge this into your client&apos;s MCP config:
+												</p>
+												<McpCodeBlock
+													code={getMcpConfigSnippet()}
+													multiline
 													onCopy={() => {
 														analytics.mcpInstallCmdCopied()
 														setActiveStep(3)
@@ -474,19 +502,30 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 									if (manual.kind === "chatgpt") {
 										return (
 											<div className="space-y-3">
+												<p className="text-[12px] leading-relaxed text-amber-500/90">
+													Write-capable custom MCP apps are only supported on
+													Business & Enterprise plans.
+												</p>
 												<ol className="list-decimal space-y-2 pl-5 text-[13px] leading-relaxed text-[#A1A1AA]">
 													<li>Open ChatGPT in your browser.</li>
 													<li>
-														Go to Settings → Apps → Advanced settings → enable
-														Developer mode.
+														Go to Settings → Security and Login → scroll to the
+														bottom to enable Developer mode.
 													</li>
 													<li>
-														Create an app and choose your MCP server URL when
-														asked.
+														Go to{" "}
+														<a
+															className="text-[#4BA0FA] underline hover:text-[#8BC6FF]"
+															href="https://chatgpt.com/plugins"
+															rel="noopener noreferrer"
+															target="_blank"
+														>
+															chatgpt.com/plugins
+														</a>
+														.
 													</li>
-													<li>
-														Paste the URL below and complete OAuth in ChatGPT.
-													</li>
+													<li>Paste the URL below.</li>
+													<li>Complete OAuth in ChatGPT.</li>
 												</ol>
 												<McpCodeBlock
 													code={CHATGPT_REMOTE_MCP_URL}
@@ -518,13 +557,12 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 										)
 									}
 									if (manual.kind === "generic-remote") {
-										const snippet = buildMcpUrlRemoteJson("your-api-key-here")
+										const snippet = buildMcpUrlRemoteJson()
 										return (
 											<div className="space-y-3">
 												<p className="text-[13px] leading-relaxed text-[#A1A1AA]">
-													Add this to your client&apos;s MCP config. Replace the
-													placeholder with an API key from supermemory settings
-													(Integrations).
+													Add this to your client&apos;s MCP config. Your client
+													will open Supermemory OAuth when it first connects.
 												</p>
 												<McpCodeBlock
 													code={snippet}
@@ -534,13 +572,6 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 														setActiveStep(3)
 													}}
 												/>
-												{detailSetup?.oneClick ? (
-													<p className="text-[12px] text-[#737373]">
-														Use Bearer auth in headers, or switch to One click
-														setup and paste the HTTPS URL if your client
-														supports OAuth only.
-													</p>
-												) : null}
 											</div>
 										)
 									}

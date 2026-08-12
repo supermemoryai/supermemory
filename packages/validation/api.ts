@@ -275,6 +275,9 @@ export const ListMemoriesQuerySchema = z
 			.regex(/^\d+$/)
 			.or(z.number())
 			.transform(Number)
+			.refine((value) => Number.isInteger(value) && value >= 1, {
+				message: "Limit must be a positive integer",
+			})
 			.refine((value) => value <= 1100, {
 				message: "Limit cannot be greater than 1100",
 			})
@@ -292,6 +295,9 @@ export const ListMemoriesQuerySchema = z
 			.regex(/^\d+$/)
 			.or(z.number())
 			.transform(Number)
+			.refine((value) => Number.isInteger(value) && value >= 1, {
+				message: "Page must be a positive integer",
+			})
 			.default("1")
 			.openapi({ description: "Page number to fetch", example: "1" }),
 		sort: z
@@ -801,7 +807,7 @@ export const SettingsRequestSchema = OrganizationSettingsSchema.omit({
 	id: true,
 	orgId: true,
 	updatedAt: true,
-})
+}).partial()
 
 export const ConnectionResponseSchema = z.object({
 	createdAt: z.string().datetime(),
@@ -1092,11 +1098,11 @@ export const DocumentsWithMemoriesResponseSchema = z
 
 export const DocumentsWithMemoriesQuerySchema = z
 	.object({
-		page: z.number().default(1).openapi({
+		page: z.number().int().min(1).default(1).openapi({
 			description: "Page number to fetch",
 			example: 1,
 		}),
-		limit: z.number().default(10).openapi({
+		limit: z.number().int().min(1).default(10).openapi({
 			description: "Number of items per page",
 			example: 10,
 		}),
@@ -1114,6 +1120,13 @@ export const DocumentsWithMemoriesQuerySchema = z
 			.openapi({
 				description: "Optional container tags to filter documents by",
 				example: ["sm_project_default"],
+			}),
+		sources: z
+			.array(z.string().trim().min(1).max(255))
+			.optional()
+			.openapi({
+				description: "Optional document sources to filter by (OR logic)",
+				example: ["claude-code", "codex"],
 			}),
 	})
 	.openapi({

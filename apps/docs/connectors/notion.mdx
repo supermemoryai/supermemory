@@ -1,7 +1,7 @@
 ---
 title: "Notion Connector"
 description: "Sync Notion pages, databases, and blocks with real-time webhooks and workspace integration"
-icon: "notion"
+icon: "/images/notion-icon.svg"
 ---
 Connect Notion workspaces to automatically sync pages, databases, and content blocks into your Supermemory knowledge base. Supports real-time updates, rich formatting, and database properties.
 
@@ -20,7 +20,7 @@ Connect Notion workspaces to automatically sync pages, databases, and content bl
 
     const connection = await client.connections.create('notion', {
       redirectUrl: 'https://yourapp.com/auth/notion/callback',
-      containerTags: ['user-123', 'notion-workspace'],
+      containerTag: 'user-123',
       documentLimit: 2000,
       metadata: {
         source: 'notion',
@@ -43,7 +43,7 @@ Connect Notion workspaces to automatically sync pages, databases, and content bl
     connection = client.connections.create(
         'notion',
         redirect_url='https://yourapp.com/auth/notion/callback',
-        container_tags=['user-123', 'notion-workspace'],
+        container_tag='user-123',
         document_limit=2000,
         metadata={
             'source': 'notion',
@@ -63,7 +63,7 @@ Connect Notion workspaces to automatically sync pages, databases, and content bl
       -H "Content-Type: application/json" \
       -d '{
         "redirectUrl": "https://yourapp.com/auth/notion/callback",
-        "containerTags": ["user-123", "notion-workspace"],
+        "containerTag": "user-123",
         "documentLimit": 2000,
         "metadata": {
           "source": "notion",
@@ -86,7 +86,7 @@ After user grants workspace access, Notion redirects to your callback URL. The c
     ```typescript
     // Check connection details
     const connection = await client.connections.getByTags('notion', {
-      containerTags: ['user-123', 'notion-workspace']
+      containerTags: ['user-123']
     });
 
     console.log('Connected workspace:', connection.email);
@@ -94,7 +94,7 @@ After user grants workspace access, Notion redirects to your callback URL. The c
 
     // List synced pages and databases
     const documents = await client.connections.listDocuments('notion', {
-      containerTags: ['user-123', 'notion-workspace']
+      containerTags: ['user-123']
     });
     ```
   </Tab>
@@ -103,7 +103,7 @@ After user grants workspace access, Notion redirects to your callback URL. The c
     # Check connection details
     connection = client.connections.get_by_tags(
         'notion',
-        container_tags=['user-123', 'notion-workspace']
+        container_tags=['user-123']
     )
 
     print(f'Connected workspace: {connection.email}')
@@ -112,7 +112,7 @@ After user grants workspace access, Notion redirects to your callback URL. The c
     # List synced pages and databases
     documents = client.connections.list_documents(
         'notion',
-        container_tags=['user-123', 'notion-workspace']
+        container_tags=['user-123']
     )
     ```
   </Tab>
@@ -122,7 +122,7 @@ After user grants workspace access, Notion redirects to your callback URL. The c
     curl -X POST "https://api.supermemory.ai/v3/connections/notion/connection" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"containerTags": ["user-123", "notion-workspace"]}'
+      -d '{"containerTags": ["user-123"]}'
 
     # Response includes connection details:
     # {
@@ -138,7 +138,7 @@ After user grants workspace access, Notion redirects to your callback URL. The c
     curl -X POST "https://api.supermemory.ai/v3/connections/notion/documents" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"containerTags": ["user-123", "notion-workspace"]}'
+      -d '{"containerTags": ["user-123"]}'
 
     # Response: Array of document objects with sync status
     # [
@@ -261,7 +261,7 @@ For production deployments, create your own Notion integration:
     // Then create connections using your custom integration
     const connection = await client.connections.create('notion', {
       redirectUrl: 'https://yourapp.com/callback',
-      containerTags: ['org-456', 'user-789'],
+      containerTag: 'user-789',
       metadata: { customIntegration: true }
     });
     ```
@@ -279,7 +279,7 @@ For production deployments, create your own Notion integration:
     connection = client.connections.create(
         'notion',
         redirect_url='https://yourapp.com/callback',
-        container_tags=['org-456', 'user-789'],
+        container_tag='user-789',
         metadata={'customIntegration': True}
     )
     ```
@@ -399,9 +399,10 @@ const projectEntries = documents.filter(doc =>
 );
 
 // Database properties become searchable metadata
-const projectWithStatus = await client.search.documents({
+const projectWithStatus = await client.search({
   q: "machine learning project",
-  containerTags: ['user-123'],
+  containerTag: 'user-123',
+  searchMode: "documents",
   filters: JSON.stringify({
     AND: [
       { key: "status", value: "In Progress", negate: false },

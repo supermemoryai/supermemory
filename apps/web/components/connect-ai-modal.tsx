@@ -1,9 +1,6 @@
 "use client"
 
 import { $fetch } from "@lib/api"
-import { authClient } from "@lib/auth"
-import { useAuth } from "@lib/auth-context"
-import { generateId } from "@lib/generate-id"
 import { useForm } from "@tanstack/react-form"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Button } from "@ui/components/button"
@@ -130,7 +127,6 @@ export function ConnectAIModal({
 	openInitialClient,
 	openInitialTab,
 }: ConnectAIModalProps) {
-	const { org } = useAuth()
 	const [selectedClient, setSelectedClient] = useState<
 		keyof typeof clients | null
 	>(openInitialClient || null)
@@ -142,7 +138,6 @@ export function ConnectAIModal({
 	const [setupTab, setSetupTab] = useState<"oneClick" | "manual">(
 		openInitialTab ?? "manual",
 	)
-	const [manualApiKey, setManualApiKey] = useState<string | null>(null)
 	const [isCopied, setIsCopied] = useState(false)
 
 	const [projectId, setProjectId] = useState("default")
@@ -236,33 +231,6 @@ export function ConnectAIModal({
 		},
 	})
 
-	const createMcpApiKeyMutation = useMutation({
-		mutationFn: async () => {
-			if (!org?.id) {
-				throw new Error("Organization ID is required")
-			}
-
-			const res = await authClient.apiKey.create({
-				metadata: {
-					organizationId: org?.id,
-					type: "mcp-manual",
-				},
-				name: `mcp-manual-${generateId().slice(0, 8)}`,
-				prefix: `sm_${org?.id}_`,
-			})
-			return res.key
-		},
-		onSuccess: (apiKey) => {
-			setManualApiKey(apiKey)
-			toast.success("API key created successfully!")
-		},
-		onError: (error) => {
-			toast.error("Failed to create API key", {
-				description: error instanceof Error ? error.message : "Unknown error",
-			})
-		},
-	})
-
 	useEffect(() => {
 		if (openInitialClient) {
 			setSelectedClient(openInitialClient as keyof typeof clients)
@@ -279,32 +247,34 @@ export function ConnectAIModal({
 		if (!s.manual && setupTab === "manual") setSetupTab("oneClick")
 	}, [selectedClient, setupTab])
 
-	useEffect(() => {
-		if (selectedClient !== "mcp-url" || setupTab !== "manual" || !org?.id)
-			return
-		if (manualApiKey || createMcpApiKeyMutation.isPending) return
-		createMcpApiKeyMutation.mutate()
-	}, [
-		selectedClient,
-		setupTab,
-		org?.id,
-		manualApiKey,
-		createMcpApiKeyMutation.isPending,
-		createMcpApiKeyMutation.mutate,
-	])
+	function getMcpServerUrl() {
+		return "https://mcp.supermemory.ai/mcp"
+	}
 
-	function generateInstallCommand() {
-		if (!selectedClient || selectedClient === "chatgpt") return ""
-
-		let command = `npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client ${selectedClient} --oauth=yes`
-
-		if (selectedProject && selectedProject !== "none") {
-			// Remove the "sm_project_" prefix from the containerTag
-			const projectIdForCommand = selectedProject.replace(/^sm_project_/, "")
-			command += ` --project ${projectIdForCommand}`
+	function getMcpConfigSnippet() {
+		const config: {
+			mcpServers: {
+				supermemory: {
+					url: string
+					headers?: { "x-sm-project": string }
+				}
+			}
+		} = {
+			mcpServers: {
+				supermemory: {
+					url: getMcpServerUrl(),
+				},
+			},
 		}
-
-		return command
+		if (selectedProject && selectedProject !== "none") {
+			const projectIdForCommand = selectedProject.replace(/^sm_project_/, "")
+			if (projectIdForCommand) {
+				config.mcpServers.supermemory.headers = {
+					"x-sm-project": projectIdForCommand,
+				}
+			}
+		}
+		return JSON.stringify(config, null, 2)
 	}
 
 	function getCursorDeeplink() {
@@ -312,8 +282,13 @@ export function ConnectAIModal({
 	}
 
 	const copyToClipboard = () => {
-		const command = generateInstallCommand()
-		navigator.clipboard.writeText(command)
+		navigator.clipboard.writeText(getMcpServerUrl())
+		analytics.mcpInstallCmdCopied()
+		toast.success("Copied to clipboard!")
+	}
+
+	const copyConfigSnippet = () => {
+		navigator.clipboard.writeText(getMcpConfigSnippet())
 		analytics.mcpInstallCmdCopied()
 		toast.success("Copied to clipboard!")
 	}
@@ -475,12 +450,6 @@ export function ConnectAIModal({
 												onClick={() => {
 													setSelectedClient("mcp-url")
 													setSetupTab("manual")
-													if (
-														!manualApiKey &&
-														!createMcpApiKeyMutation.isPending
-													) {
-														createMcpApiKeyMutation.mutate()
-													}
 												}}
 											/>
 										</div>
@@ -553,8 +522,8 @@ export function ConnectAIModal({
 											selectedClient !== "mcp-url" && (
 												<div className="space-y-4">
 													<p className="text-sm text-muted-foreground">
-														Optional: scope installs to a project. Then copy and
-														run the command in your terminal.
+														Add this remote MCP server URL in your client.
+														Optional: scope to a project for the config snippet.
 													</p>
 													<div className="max-w-full sm:max-w-md">
 														<Select
@@ -592,7 +561,7 @@ export function ConnectAIModal({
 														<Input
 															className="w-full min-w-0 pr-10 font-mono text-xs"
 															readOnly
-															value={generateInstallCommand()}
+															value={getMcpServerUrl()}
 														/>
 														<Button
 															className="absolute -top-px right-0 cursor-pointer"
@@ -602,9 +571,23 @@ export function ConnectAIModal({
 															<CopyIcon className="size-4" />
 														</Button>
 													</div>
+													<div className="relative max-w-full">
+														<textarea
+															className="min-h-[120px] w-full min-w-0 resize-y rounded-md border border-input bg-transparent px-3 py-2 pr-10 font-mono text-xs"
+															readOnly
+															value={getMcpConfigSnippet()}
+														/>
+														<Button
+															className="absolute top-1 right-0 cursor-pointer"
+															onClick={copyConfigSnippet}
+															variant="ghost"
+														>
+															<CopyIcon className="size-4" />
+														</Button>
+													</div>
 													<p className="text-xs text-muted-foreground">
-														Requires Node/npx. OAuth runs when the CLI prompts
-														you.
+														Paste the URL or config into your client. OAuth
+														starts when you connect.
 													</p>
 												</div>
 											)}
@@ -615,15 +598,29 @@ export function ConnectAIModal({
 										if (manual.kind === "chatgpt") {
 											return (
 												<div className="space-y-3">
+													<p className="text-xs leading-relaxed text-amber-600 dark:text-amber-500/90">
+														Write-capable custom MCP apps are only supported on
+														Business & Enterprise plans.
+													</p>
 													<ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
 														<li>Open ChatGPT in your browser.</li>
 														<li>
-															Settings → Apps → Advanced settings → enable
-															Developer mode.
+															Go to Settings → Security and Login → scroll to
+															the bottom to enable Developer mode.
 														</li>
 														<li>
-															Create an app and paste the MCP URL when asked.
+															Go to{" "}
+															<a
+																className="text-primary underline"
+																href="https://chatgpt.com/plugins"
+																rel="noopener noreferrer"
+																target="_blank"
+															>
+																chatgpt.com/plugins
+															</a>
+															.
 														</li>
+														<li>Paste the URL below.</li>
 														<li>Complete OAuth in ChatGPT.</li>
 													</ol>
 													<div className="relative max-w-full sm:max-w-xl">
@@ -665,48 +662,32 @@ export function ConnectAIModal({
 											)
 										}
 										if (manual.kind === "generic-remote") {
-											const remoteSnippet = buildMcpUrlRemoteJson(
-												manualApiKey || "your-api-key-here",
-											)
+											const remoteSnippet = buildMcpUrlRemoteJson()
 											return (
 												<div className="space-y-3">
 													<p className="text-sm text-muted-foreground">
-														Paste into your MCP config. We create an API key for
-														you when you open this tab; copy the block after it
-														appears.
+														Paste this into your MCP config. Your client will
+														open Supermemory OAuth when it first connects.
 													</p>
-													{createMcpApiKeyMutation.isPending ? (
-														<div className="flex items-center justify-center p-8">
-															<Loader2 className="size-6 animate-spin text-primary" />
-														</div>
-													) : (
-														<>
-															<div className="relative min-w-0 max-w-full">
-																<pre className="max-h-80 max-w-full overflow-x-auto overflow-y-auto rounded-lg border border-border bg-muted p-3 pr-12 text-xs sm:p-4">
-																	<code className="block font-mono whitespace-pre-wrap break-all">
-																		{remoteSnippet}
-																	</code>
-																</pre>
-																<Button
-																	className="absolute top-2 right-2 size-8 cursor-pointer p-0 bg-muted/80 hover:bg-muted"
-																	onClick={() =>
-																		copyManualSnippet(remoteSnippet)
-																	}
-																	size="icon"
-																	variant="ghost"
-																>
-																	{isCopied ? (
-																		<CheckIcon className="size-3.5 text-green-600" />
-																	) : (
-																		<CopyIcon className="size-3.5" />
-																	)}
-																</Button>
-															</div>
-															<p className="text-xs text-muted-foreground">
-																Bearer token uses your supermemory API key.
-															</p>
-														</>
-													)}
+													<div className="relative min-w-0 max-w-full">
+														<pre className="max-h-80 max-w-full overflow-x-auto overflow-y-auto rounded-lg border border-border bg-muted p-3 pr-12 text-xs sm:p-4">
+															<code className="block font-mono whitespace-pre-wrap break-all">
+																{remoteSnippet}
+															</code>
+														</pre>
+														<Button
+															className="absolute top-2 right-2 size-8 cursor-pointer p-0 bg-muted/80 hover:bg-muted"
+															onClick={() => copyManualSnippet(remoteSnippet)}
+															size="icon"
+															variant="ghost"
+														>
+															{isCopied ? (
+																<CheckIcon className="size-3.5 text-green-600" />
+															) : (
+																<CopyIcon className="size-3.5" />
+															)}
+														</Button>
+													</div>
 												</div>
 											)
 										}

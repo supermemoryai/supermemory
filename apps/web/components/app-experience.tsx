@@ -16,10 +16,12 @@ import { ChatSidebar, HomeChatComposer } from "@/components/chat"
 import type { ChatAttachmentDraft } from "@/components/chat/attachments"
 import { DashboardView } from "@/components/dashboard-view"
 import { BrainHomeView } from "@/components/brain-home/brain-home-view"
+import { CompanyBrainPromo } from "@/components/company-brain-promo"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { MemoriesGrid } from "@/components/memories-grid"
 import { GraphLayoutView } from "@/components/graph-layout-view"
 import { IntegrationsView, DetailWrapper } from "@/components/integrations-view"
+import { ConfigureView } from "@/components/configure-view"
 import { MCPDetailView } from "@/components/mcp-modal/mcp-detail-view"
 import { XBookmarksDetailView } from "@/components/onboarding/x-bookmarks-detail-view"
 import { ChromeDetail } from "@/components/integrations/chrome-detail"
@@ -28,6 +30,7 @@ import { RaycastDetail } from "@/components/integrations/raycast-detail"
 import { PluginsDetail } from "@/components/integrations/plugins-detail"
 import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
 import { OnboardingConfetti } from "@/components/onboarding-brain/onboarding-confetti"
+import { SlackHandoff } from "@/components/onboarding-brain/slack-handoff"
 import { AddDocumentModal } from "@/components/add-document"
 import { DocumentModal } from "@/components/document-modal"
 import { DocumentsCommandPalette } from "@/components/documents-command-palette"
@@ -67,6 +70,7 @@ import {
 } from "@/lib/search-params"
 import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
 import { getToolDocumentSpace } from "@/lib/plugin-space"
+import { getBackendUrl } from "@/lib/url-helpers"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -134,26 +138,56 @@ export function AppExperience() {
 	const { viewMode, setViewMode } = useViewMode()
 	useLegacyViewRedirect()
 	const isCompanyBrain = useHasCompanyBrain()
+	const backendUrl = getBackendUrl()
 
-	// Slack OAuth redirects back here with ?slack=connected — toast then clean up.
+	// ?slack=connected: CB orgs get the handoff takeover, everyone else a toast.
+	const [slackHandoff, setSlackHandoff] = useState<{
+		team: string | null
+	} | null>(null)
 	useEffect(() => {
 		const sp = new URLSearchParams(window.location.search)
-		if (sp.get("slack") !== "connected") return
+		const slackParam = sp.get("slack")
+		if (slackParam !== "connected" && slackParam !== "error") return
 		const team = sp.get("team")
-		toast.success(
-			team
-				? `Supermemory added to ${team} on Slack`
-				: "Supermemory added to your Slack",
-		)
+		if (slackParam === "error") {
+			const reason = sp.get("reason")
+			const org = sp.get("linked_org")
+			const isOrgMember = sp.get("linked_member") === "1"
+			const conflictMessage =
+				org && isOrgMember
+					? `That Slack workspace is already connected to your "${org}" organization. Switch to it to manage the connection.`
+					: org
+						? `That Slack workspace is already connected to another Supermemory organization (${org}). Ask the teammate who set it up.`
+						: "That Slack workspace is already connected to a different Supermemory organization. Disconnect it there first, or switch to that organization."
+			toast.error(
+				reason === "workspace_conflict"
+					? conflictMessage
+					: reason === "expired"
+						? "That Slack connect link expired. Try connecting again."
+						: "Slack connection failed. Try again.",
+				{ duration: 10000 },
+			)
+		} else if (isCompanyBrain) {
+			setSlackHandoff({ team })
+		} else {
+			toast.success(
+				team
+					? `Supermemory added to ${team} on Slack`
+					: "Supermemory added to your Slack",
+			)
+		}
 		sp.delete("slack")
 		sp.delete("team")
+		sp.delete("reason")
+		sp.delete("linked_org")
+		sp.delete("linked_member")
 		const qs = sp.toString()
 		window.history.replaceState(
 			null,
 			"",
 			window.location.pathname + (qs ? `?${qs}` : ""),
 		)
-	}, [])
+	}, [isCompanyBrain])
 	const queryClient = useQueryClient()
 	const [highlightsForceAt, setHighlightsForceAt] = useState(0)
 
@@ -331,7 +365,7 @@ export function AppExperience() {
 			queryFn: async (): Promise<SpaceHighlightsResponse> => {
 				const spaceId = selectedProject || "sm_project_default"
 				const forceRefresh = highlightsForceAt > 0
-				const cacheKey = `${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/space-highlights?spaceId=${spaceId}`
+				const cacheKey = `${backendUrl}/v3/space-highlights?spaceId=${spaceId}`
 
 				if (!forceRefresh) {
 					const cache = await caches.open(HIGHLIGHTS_CACHE_NAME)
@@ -345,22 +379,19 @@ export function AppExperience() {
 					}
 				}
 
-				const response = await fetch(
-					`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/space-highlights`,
-					{
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						credentials: "include",
-						body: JSON.stringify({
-							spaceId,
-							highlightsCount: 3,
-							questionsCount: 4,
-							includeHighlights: true,
-							includeQuestions: true,
-							forceRefresh,
-						}),
-					},
-				)
+				const response = await fetch(`${backendUrl}/v3/space-highlights`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					credentials: "include",
+					body: JSON.stringify({
+						spaceId,
+						highlightsCount: 3,
+						questionsCount: 4,
+						includeHighlights: true,
+						includeQuestions: true,
+						forceRefresh,
+					}),
+				})
 
 				if (!response.ok) {
 					throw new Error("Failed to fetch space highlights")
@@ -404,10 +435,9 @@ export function AppExperience() {
 				if (stored) return JSON.parse(stored) as MemoryOfDay
 			} catch {}
 
-			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/memory-of-day`,
-				{ credentials: "include" },
-			)
+			const response = await fetch(`${backendUrl}/v3/memory-of-day`, {
+				credentials: "include",
+			})
 			if (!response.ok) return null
 			const data = (await response.json()) as MemoryOfDay | null
 			if (data) {
@@ -617,6 +647,12 @@ export function AppExperience() {
 	return (
 		<HotkeysProvider>
 			<OnboardingConfetti />
+			{slackHandoff && (
+				<SlackHandoff
+					teamName={slackHandoff.team}
+					onDismiss={() => setSlackHandoff(null)}
+				/>
+			)}
 			<div
 				className={cn(
 					"relative flex min-h-dvh flex-col bg-[#05080D]",
@@ -699,6 +735,10 @@ export function AppExperience() {
 											publicMode={isPublicIntegrations}
 											onOpenDocument={handleOpenDocument}
 										/>
+									</div>
+								) : viewMode === "configure" ? (
+									<div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 pt-2! md:p-6">
+										<ConfigureView />
 									</div>
 								) : viewMode === "mcp" ? (
 									<MCPDetailView
@@ -785,7 +825,7 @@ export function AppExperience() {
 								) : (
 									<DashboardView
 										spaceLabel={dashboardSpaceLabel}
-										headerNotice={undefined}
+										headerNotice={<CompanyBrainPromo />}
 										highlights={highlightsData?.highlights ?? []}
 										isLoadingHighlights={isLoadingHighlights}
 										onAddMemory={handleAddMemory}

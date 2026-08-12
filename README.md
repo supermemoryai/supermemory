@@ -28,6 +28,12 @@
   <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
+<p align="center">
+  <strong>#1 on every major AI memory benchmark — <a href="https://github.com/xiaowu0162/LongMemEval">LongMemEval</a>, <a href="https://github.com/snap-research/locomo">LoCoMo</a>, and <a href="https://github.com/Salesforce/ConvoMem">ConvoMem</a>.</strong><br/>
+  <strong>95% Recall@15 with a 99.4% context reduction · ~50ms user profiles.</strong><br/>
+  <a href="https://supermemory.ai/research">Read the research →</a>
+</p>
+
 ---
 
 Supermemory is the memory and context layer for AI. **#1 on [LongMemEval](https://github.com/xiaowu0162/LongMemEval), [LoCoMo](https://github.com/snap-research/locomo), and [ConvoMem](https://github.com/Salesforce/ConvoMem)** — the three major benchmarks for AI memory. 
@@ -128,13 +134,23 @@ You can find them here:
 - OpenCode plugin: https://github.com/supermemoryai/opencode-supermemory
 - Hermes agent (Supermemory memory provider): https://github.com/NousResearch/hermes-agent
 
-### MCP - Quick install
+### MCP
 
-```bash
-npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client claude --oauth=yes
+Server URL:
+
+```text
+https://mcp.supermemory.ai/mcp
 ```
 
-Replace `claude` with your client: `cursor`, `windsurf`, `vscode`, etc.
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp"
+    }
+  }
+}
+```
 
 Read more about our MCP here - https://supermemory.ai/docs/supermemory-mcp/mcp
 
@@ -171,21 +187,6 @@ Add this to your MCP client config:
   "mcpServers": {
     "supermemory": {
       "url": "https://mcp.supermemory.ai/mcp"
-    }
-  }
-}
-```
-
-Or use an API key instead of OAuth:
-
-```json
-{
-  "mcpServers": {
-    "supermemory": {
-      "url": "https://mcp.supermemory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer sm_your_api_key_here"
-      }
     }
   }
 }
@@ -265,7 +266,7 @@ const agent = new Agent(withSupermemory(config, "user-123", { mode: "full" }));
 
 ```typescript
 // Hybrid (default) — RAG + Memory in one query
-const results = await client.search.memories({
+const results = await client.search({
   q: "how do I deploy?",
   containerTag: "user_123",
   searchMode: "hybrid",
@@ -273,7 +274,7 @@ const results = await client.search.memories({
 // Returns deployment docs (RAG) + user's deploy preferences (Memory)
 
 // Memories only
-const results = await client.search.memories({
+const results = await client.search({
   q: "user preferences",
   containerTag: "user_123",
   searchMode: "memories",
@@ -307,8 +308,8 @@ Real-time webhooks. Documents automatically processed, chunked, and searchable.
 |---|---|
 | `client.add()` | Store content — text, conversations, URLs, HTML |
 | `client.profile()` | User profile + optional search in one call |
-| `client.search.memories()` | Hybrid search across memories and documents |
-| `client.search.documents()` | Document search with metadata filters |
+| `client.search()` | Hybrid search across memories and documents (`searchMode`) |
+| `client.search.documents()` | Document search with metadata filters (legacy v3 response shape) |
 | `client.documents.uploadFile()` | Upload PDFs, images, videos, code |
 | `client.documents.list()` | List and filter documents |
 | `client.settings.update()` | Configure memory extraction and chunking |
@@ -341,11 +342,12 @@ const client = new Supermemory({
 ```
 
 - **Bring any model** — OpenAI, Anthropic, Gemini, Groq, or any OpenAI-compatible endpoint. An interactive wizard walks you through it on first boot.
+- **Embeddings** — local `Xenova/bge-base-en-v1.5` by default (no API key); optionally OpenAI, Gemini, or Ollama. Same provider stack as cloud.
 - **Fully offline if you want** — point it at Ollama (`gpt-oss:20b` works great) and nothing leaves your machine.
 - **Your data, one directory** — everything lives in `./.supermemory`, easy to back up or move.
 - **Same API as the platform** — prototype locally, ship on the hosted platform by changing `baseURL`.
 
-Read the [self-hosting docs](https://supermemory.ai/docs/self-hosting/overview) — quickstart, configuration, and [local vs. Enterprise](https://supermemory.ai/docs/self-hosting/local-vs-enterprise).
+Read the [self-hosting docs](https://supermemory.ai/docs/self-hosting/overview) — quickstart, [configuration](https://supermemory.ai/docs/self-hosting/configuration), [embeddings](https://supermemory.ai/docs/self-hosting/embeddings), and [local vs. Enterprise](https://supermemory.ai/docs/self-hosting/local-vs-enterprise).
 
 ---
 
@@ -355,9 +357,13 @@ Supermemory is state of the art across all major AI memory benchmarks:
 
 | Benchmark | What it measures | Result |
 |---|---|---|
-| **[LongMemEval](https://github.com/xiaowu0162/LongMemEval)** | Long-term memory across sessions with knowledge updates | **81.6% — #1** |
+| **[LongMemEval](https://github.com/xiaowu0162/LongMemEval)** | Long-term memory across sessions with knowledge updates | **#1** |
 | **[LoCoMo](https://github.com/snap-research/locomo)** | Fact recall across extended conversations (single-hop, multi-hop, temporal, adversarial) | **#1** |
 | **[ConvoMem](https://github.com/Salesforce/ConvoMem)** | Personalization and preference learning | **#1** |
+
+On LongMemEval, supermemory reaches **95% Recall@15 while adding only ~720 tokens of context — a 99.4% context reduction** (99.6% at @10, 99.8% at @5). Recall by category: Knowledge Updates 99%, Assistant recall 100%, User recall 97%, Multi-session 93%, Temporal Reasoning 91%, Preference 90%.
+
+We also built the **Supermemory Filesystem (SMFS)**, which uses **3.0× fewer tokens on Claude** (24M vs 72M) and **1.75× fewer on Codex** across the 110-question xAFS benchmark. See the full write-ups on our [research page](https://supermemory.ai/research).
 
 We also built **[MemoryBench](https://supermemory.ai/docs/memorybench/overview)** — an open-source framework for standardized, reproducible benchmarks of memory providers. Compare Supermemory, Mem0, Zep, and others head-to-head:
 

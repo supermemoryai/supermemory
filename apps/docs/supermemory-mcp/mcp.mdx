@@ -1,22 +1,27 @@
 ---
 title: "Overview"
-description: "Give your AI assistants persistent memory with the Model Context Protocol"
+description: "Give every MCP-compatible assistant shared memory, team spaces, and interactive workflows"
 icon: "brain-circuit"
 ---
 
-Supermemory MCP Server 4.0 gives AI assistants (Claude, Cursor, Windsurf, etc.) persistent memory across conversations. Built on Cloudflare Workers with Durable Objects for scalable, persistent connections.
+Supermemory MCP gives every MCP-compatible assistant a shared memory layer, so technical and non-technical teams can collaborate with AI using the same authorized context. Connect once to search decisions, save knowledge, upload source material, and explore relationships from the AI tools your team already uses.
 
-## Quick Install
+Engineering and research teams can carry project context across assistants, while finance, legal, medical, and operations teams can work from their own source material. Ask naturally. The assistant selects the right Supermemory tool without requiring code or tool names. See the [tools reference](#tools) for exact inputs and results.
 
-```bash
-npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client claude --oauth=yes
+## Connect
+
+Add this remote MCP server to any compatible client:
+
+```text
+https://mcp.supermemory.ai/mcp
 ```
 
-Replace `claude` with your MCP client: `cursor`, `windsurf`, `vscode`, etc.
+After you connect, your client opens Supermemory in a browser. Sign in or create an account, then choose which spaces the client can access. Supermemory uses OAuth, so no API key is required.
 
-## Manual Configuration
+For client-specific instructions, see [Setup and Usage](/supermemory-mcp/setup) or the [Claude Desktop guide](/supermemory-mcp/claude-desktop).
 
-Add to your MCP client config:
+<Accordion title="Manual JSON configuration" icon="code">
+MCP clients that use JSON configuration generally accept this shape:
 
 ```json
 {
@@ -27,103 +32,142 @@ Add to your MCP client config:
   }
 }
 ```
+</Accordion>
 
-The server uses **OAuth** by default. Your client will discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
+## How spaces work
 
-### API Key Authentication (Alternative)
+A **space** keeps a team's documents, memories, and profile context focused, so AI retrieves the right knowledge without mixing unrelated work. Use separate spaces for an engineering launch, research project, finance workflow, legal matter, medical knowledge base, or any other shared initiative. Teammates collaborate within the spaces they are allowed to read or write.
 
-If you prefer API keys over OAuth, get one from [app.supermemory.ai](https://app.supermemory.ai) and pass it in the `Authorization` header:
-
-```json
-{
-  "mcpServers": {
-    "supermemory": {
-      "url": "https://mcp.supermemory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer sm_your_api_key_here"
-      }
-    }
-  }
-}
-```
-
-API keys start with `sm_` and skip OAuth when provided.
-
-### Project Scoping
-
-Scope all operations to a specific project with `x-sm-project`:
-
-```json
-{
-  "mcpServers": {
-    "supermemory": {
-      "url": "https://mcp.supermemory.ai/mcp",
-      "headers": {
-        "x-sm-project": "your-project-id"
-      }
-    }
-  }
-}
-```
+Name a space to use it for one request without changing your active space. Otherwise, Supermemory uses your active space or account default. Ask to switch spaces when you want future requests to use a different active space.
 
 ## Tools
 
-### `memory`
+Your assistant chooses these tools automatically. Use this table when you need the exact inputs and results.
 
-Save or forget information about the user.
+| Tool | Use it for | Inputs | Result |
+| --- | --- | --- | --- |
+| `search_memory` | Semantic recall from one space, with optional profile context | `query` (required), `includeProfile`, `containerTag` | Profile context and matching memories |
+| `add_memory` | Save information or forget outdated information | `content` (required), `action` (`save` or `forget`), `containerTag` | Save or forget confirmation |
+| `listDocuments` | Browse stored source documents and their summaries | `page`, `limit`, `containerTag` | Document IDs, titles, types, status, dates, and summaries |
+| `getDocument` | Read the available content of one document | `documentId` (required) | Document metadata, summary, and available content |
+| `listMemories` | Browse recent extracted memory entries and their source document IDs | `page`, `limit`, `containerTag` | Memory IDs, text, versions, and source document IDs |
+| `listSpaces` | List accessible spaces and resolve a space name to its key | None | Formatted list plus structured `spaces` and `count` fields |
+| `whoAmI` | Inspect the authenticated account, permissions, scope, and active space | None | Account and access context |
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `content` | string | Yes | The memory content to save or forget |
-| `action` | `"save"` \| `"forget"` | No | Default: `"save"` |
-| `containerTag` | string | No | Project tag to scope the memory |
+### Search
 
-### `recall`
+`search_memory` accepts a natural-language query and returns semantically relevant memories. By default, it also includes stable and recent profile context from the same space. Set `includeProfile` to `false` when only matching memories are needed.
 
-Search memories and get user profile.
+Use the retrieval tools for different questions:
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `query` | string | Yes | Search query to find relevant memories |
-| `includeProfile` | boolean | No | Include user profile summary. Default: `true` |
-| `containerTag` | string | No | Project tag to scope the search |
+- Use `search_memory` to answer a question from remembered context.
+- Use `listDocuments` to discover stored sources, then `getDocument` to read one source in full.
+- Use `listMemories` to inspect the extracted memory entries themselves, including their IDs and source document IDs.
 
-### `whoAmI`
+`listDocuments` and `listMemories` default to 10 results per page and accept up to 50.
 
-Get the current logged-in user's information. Returns `{ userId, email, name, client, sessionId }`.
+### Save or forget
 
-## Resources
+`add_memory` saves the supplied `content` by default. Set `action` to `forget` when a fact is outdated or should be removed. There is no separate forget tool.
 
-| URI | Description |
-|-----|-------------|
-| `supermemory://profile` | User profile with stable preferences and recent activity |
-| `supermemory://projects` | List of available memory projects |
+If the content is already final, the assistant should use `add_memory`. If you want to review, edit, or choose a space before saving, it should open the `guided-save` widget instead.
 
-## Prompts
+### Access control
 
-### `context`
+`whoAmI` returns the current identity, role, access type, granted scope, and active space. `listSpaces` returns only spaces the authenticated account can access, with names, keys, document and memory counts, and recent activity.
 
-Inject user profile and preferences as system context for AI conversations. Returns a formatted message with the user's stable preferences and recent activity.
-You can access this in Cursor and Claude Code by just doing /context, which will give the LLMs just enough context to use and query supermemory more.
-**Purpose:** Unlike the `recall` tool (which searches for specific information) or the `profile` resource (which returns raw data), the `context` prompt provides a pre-formatted system message designed for context injection at the start of conversations.
+## Interactive widgets
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `containerTag` | string | No | Project tag to scope the profile (max 128 chars) |
-| `includeRecent` | boolean | No | Include recent activity in the profile. Default: `true` |
+Clients that support [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) can open these Supermemory widgets directly inside the conversation.
 
-**Output format:**
-- Includes instructions to save new memories using the `memory` tool
-- **Stable Preferences:** Long-term user facts and preferences
-- **Recent Activity:** Recent interactions and context (when `includeRecent` is `true`)
-- Fallback message when no profile exists yet
+| Tool | What it opens |
+| --- | --- |
+| `select-space` | A searchable space picker |
+| `guided-save` | An editable memory form with a space selector |
+| `upload-file` | A local file picker and upload form |
+| `memory-graph` | An interactive graph of documents and memories |
 
-**When to use:**
-- Use `context` prompt for automatic system context injection at conversation start
-- Use `recall` tool when you need to search for specific information
-- Use `profile` resource when you need raw profile data for custom processing
+### Select a space
 
-<Card title="MCP Server Source Code" icon="github" href="https://github.com/supermemoryai/supermemory/tree/main/apps/mcp">
-  View the open-source implementation
-</Card>
+`select-space` opens a searchable space picker and changes the active space for future Supermemory actions. A one-off request in another space does not change the active space.
 
+<img
+  className="hidden dark:block"
+  src="/images/supermemory-mcp/widgets/select-space.png"
+  alt="Supermemory MCP searchable space picker"
+/>
+<img
+  className="block dark:hidden"
+  src="/images/supermemory-mcp/widgets/select-space-dark.png"
+  alt="Supermemory MCP searchable space picker"
+/>
+
+### Guided save
+
+`guided-save` opens a draft with editable memory content and a writable-space selector. The assistant can prefill the draft, but nothing is saved until you submit it.
+
+<img
+  className="hidden dark:block"
+  src="/images/supermemory-mcp/widgets/guided-save-draft.png"
+  alt="Supermemory MCP guided save draft with editable memory content and a space selector"
+/>
+<img
+  className="block dark:hidden"
+  src="/images/supermemory-mcp/widgets/guided-save-dark.png"
+  alt="Supermemory MCP guided save draft with editable memory content and a space selector"
+/>
+
+### File upload
+
+`upload-file` opens a local file picker and uploads one file at a time to a writable space.
+
+Supported types include text, Markdown, PDF, Word, CSV, common images, MP3, WAV, M4A, MP4, and WebM.
+
+<img
+  className="hidden dark:block"
+  src="/images/supermemory-mcp/widgets/upload-file.png"
+  alt="Supermemory MCP file picker with a writable-space selector"
+/>
+<img
+  className="block dark:hidden"
+  src="/images/supermemory-mcp/widgets/upload-file-dark.png"
+  alt="Supermemory MCP file picker with a writable-space selector"
+/>
+
+### Memory graph
+
+`memory-graph` renders the selected space as an interactive graph of source documents and extracted memories.
+
+When no space is named, the server automatically uses the active space or account default. If you name a specific space, the assistant calls `listSpaces` to resolve its name to a space key, then opens that space's graph.
+
+<img
+  className="hidden dark:block"
+  src="/images/supermemory-mcp/widgets/memory-graph.png"
+  alt="Supermemory MCP interactive graph of documents and memories"
+/>
+<img
+  className="block dark:hidden"
+  src="/images/supermemory-mcp/widgets/memory-graph-dark.png"
+  alt="Supermemory MCP interactive graph of documents and memories"
+/>
+
+## Resources and context prompt
+
+Some MCP clients also expose resources and prompts:
+
+| Kind | Name or URI | What it returns |
+| --- | --- | --- |
+| Resource | `supermemory://profile` | Stable and recent profile context for the active space |
+| Resource | `supermemory://spaces` | A compact list of accessible spaces with the active space marked |
+| Prompt | `context` | A ready-to-attach context message for the active space, plus up to three recently active spaces |
+
+The `context` prompt takes no arguments. It returns profile context for the active space and up to three recently active spaces.
+
+<CardGroup cols={2}>
+  <Card title="Setup and Usage" icon="settings" href="/supermemory-mcp/setup">
+    Configure Supermemory in supported MCP clients.
+  </Card>
+  <Card title="Supermemory MCP on GitHub" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/supermemory/tree/main/apps/mcp">
+    View the source code.
+  </Card>
+</CardGroup>

@@ -8,6 +8,7 @@ import { useAuth } from "@lib/auth-context"
 import { authClient } from "@lib/auth"
 import { SHARED_TEAM_BRAIN_TAG } from "@lib/constants"
 import { analytics } from "@/lib/analytics"
+import { resolveCompanyBrainEntry } from "@/lib/company-brain-entry"
 import { BrainShell } from "@/components/onboarding-brain/shell"
 import {
 	StepAbout,
@@ -19,7 +20,6 @@ import {
 } from "@/components/onboarding-brain/step-sources"
 import { StepIngest } from "@/components/onboarding-brain/step-ingest"
 import { CompanyBrainOnboarding } from "@/components/onboarding-brain/company-brain-onboarding"
-import { useFeatureFlagEnabled } from "posthog-js/react"
 import {
 	StepTeam,
 	type TeamValues,
@@ -56,6 +56,20 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 	return fallback
 }
 
+const getWorkspaceCreationErrorCopy = (message: string) => {
+	const limit = message.match(/maximum number of workspaces \((\d+)\)/i)?.[1]
+	if (limit) {
+		return {
+			title: "Workspace limit reached",
+			description: `You can own up to ${limit} workspaces. Delete one in Settings or contact support@supermemory.com for a higher limit.`,
+		}
+	}
+	return {
+		title: "Couldn't create workspace",
+		description: message,
+	}
+}
+
 export default function BrainOnboardingPage() {
 	const router = useRouter()
 	const params = useSearchParams()
@@ -65,6 +79,9 @@ export default function BrainOnboardingPage() {
 
 	// `?new=1` forces creating an additional org even when the user already has one.
 	const forceCreate = params?.get("new") === "1"
+	// ensureOrg strips `new` once the org exists, so latch it for `finish`'s reload.
+	const forcedCreateRef = useRef(forceCreate)
+	if (forceCreate) forcedCreateRef.current = true
 	const nameParam = params?.get("name")?.trim() || ""
 
 	const stepFromUrl = (params?.get("step") as BrainStep | null) ?? "about"
@@ -74,9 +91,12 @@ export default function BrainOnboardingPage() {
 
 	const [step, setStep] = useState<BrainStep>(initialStep)
 
+	// `?mode=team` wins over email detection so a personal-domain user arriving
+	// from a "set up a Company Brain" CTA doesn't land in personal onboarding.
+	const modeParam = params?.get("mode") === "team" ? "team" : null
 	const detectedMode = useMemo(
-		() => detectModeFromEmail(user?.email),
-		[user?.email],
+		() => modeParam ?? detectModeFromEmail(user?.email),
+		[modeParam, user?.email],
 	)
 	const suggestedWorkspaceName = useMemo(
 		() => workspaceNameFromEmail(user?.email),
@@ -86,9 +106,6 @@ export default function BrainOnboardingPage() {
 		() => workspaceDomainFromEmail(user?.email),
 		[user?.email],
 	)
-
-	// Team (Company Brain) onboarding is gated behind a private-beta flag.
-	const allowTeam = useFeatureFlagEnabled("company-brain-beta") ?? false
 	const [mode, setMode] = useState<BrainMode>(detectedMode)
 	const [about, setAbout] = useState<AboutValues>({
 		name: user?.name ?? "",
@@ -117,12 +134,12 @@ export default function BrainOnboardingPage() {
 				sources?: SourcesValues
 				team?: TeamValues
 			}
-			if (cached.mode) setMode(cached.mode)
+			if (cached.mode && !modeParam) setMode(cached.mode)
 			if (cached.about) setAbout((a) => ({ ...a, ...cached.about }))
 			if (cached.sources) setSources((s) => ({ ...s, ...cached.sources }))
 			if (cached.team) setTeam((t) => ({ ...t, ...cached.team }))
 		} catch {}
-	}, [forceCreate])
+	}, [forceCreate, modeParam])
 
 	useEffect(() => {
 		try {
@@ -179,13 +196,13 @@ export default function BrainOnboardingPage() {
 	// provisioning creates (sm_org_shared) — not a workspace-name slug space.
 	const containerTag = useMemo(
 		() =>
-			allowTeam && mode === "team"
+			mode === "team"
 				? SHARED_TEAM_BRAIN_TAG
 				: containerTagFromWorkspace(
 						about.workspaceName || suggestedWorkspaceName,
 						mode,
 					),
-		[allowTeam, about.workspaceName, suggestedWorkspaceName, mode],
+		[about.workspaceName, suggestedWorkspaceName, mode],
 	)
 
 	const isScale = useMemo(() => {
@@ -213,12 +230,12 @@ export default function BrainOnboardingPage() {
 			localStorage.removeItem(STORAGE_KEY)
 		} catch {}
 		// Extra org from settings: hard-reload so org-scoped caches don't show the previous org's data.
-		if (forceCreate) {
+		if (forcedCreateRef.current) {
 			window.location.href = "/?onboarded=1"
 			return
 		}
 		router.push("/?onboarded=1")
-	}, [router, mode, sources, team, forceCreate])
+	}, [router, mode, sources, team])
 
 	const goNext = useCallback(() => {
 		const idx = steps.indexOf(step)
@@ -243,8 +260,16 @@ export default function BrainOnboardingPage() {
 	const creatingOrgRef = useRef(false)
 
 	const ensureOrg = useCallback(
-		async (domainOverride?: string): Promise<boolean> => {
-			if (!forceCreate && organizations && organizations.length > 0)
+		async (
+			domainOverride?: string,
+			createEvenIfExisting = false,
+		): Promise<boolean> => {
+			if (
+				!createEvenIfExisting &&
+				!forceCreate &&
+				organizations &&
+				organizations.length > 0
+			)
 				return false
 			const name = (
 				domainOverride
@@ -252,14 +277,13 @@ export default function BrainOnboardingPage() {
 					: about.workspaceName || suggestedWorkspaceName
 			).trim()
 			const slug = generateOrgSlug(name)
-			const effectiveMode = allowTeam ? mode : "personal"
 			const metadata: BrainMetadata & { signupSource: string } = {
 				signupSource: "consumer",
 				brainOnboardingVersion: "v1",
-				brainMode: effectiveMode,
+				brainMode: mode,
 				brainWorkspaceName: name,
 				brainWorkspaceDomain:
-					effectiveMode === "team"
+					mode === "team"
 						? domainOverride || about.workspaceDomain || domain
 						: null,
 				brainContainerTag: containerTag,
@@ -305,7 +329,6 @@ export default function BrainOnboardingPage() {
 			about,
 			suggestedWorkspaceName,
 			mode,
-			allowTeam,
 			domain,
 			containerTag,
 			setActiveOrg,
@@ -328,8 +351,14 @@ export default function BrainOnboardingPage() {
 			analytics.onboardingWorkspaceCreateFailed({
 				error: message,
 			})
-			toast.error("Organization was not created", {
-				description: "Please try again from Settings.",
+			const errorCopy = getWorkspaceCreationErrorCopy(message)
+			toast.error(errorCopy.title, {
+				description: errorCopy.description,
+				duration: 8000,
+				action: {
+					label: "Open Settings",
+					onClick: () => router.push("/settings"),
+				},
 			})
 			if (forceCreate && (organizations?.length ?? 0) > 0) {
 				router.replace("/")
@@ -339,12 +368,13 @@ export default function BrainOnboardingPage() {
 			setCreatingOrg(false)
 		}
 	}, [ensureOrg, goNext, forceCreate, organizations, router])
-
-	// Company Brain (team) onboarding is a single research surface, no stepper.
-	const isCompanyBrain = allowTeam && mode === "team"
+	const isCompanyBrain = mode === "team"
 
 	const handleBrainConfirm = useCallback(
-		async (confirmedDomain: string): Promise<CompanyBrainConfirmResult> => {
+		async (
+			confirmedDomain: string,
+			organizationId?: string,
+		): Promise<CompanyBrainConfirmResult> => {
 			if (creatingOrgRef.current) return { ok: false }
 			creatingOrgRef.current = true
 			setCreatingOrg(true)
@@ -355,7 +385,42 @@ export default function BrainOnboardingPage() {
 					workspaceDomain: confirmedDomain,
 					workspaceName: workspaceName || a.workspaceName,
 				}))
-				const orgCreated = await ensureOrg(confirmedDomain)
+				let orgCreated = false
+				if (forceCreate) {
+					orgCreated = await ensureOrg(confirmedDomain, true)
+				} else if (organizationId) {
+					const selected = organizations?.find(
+						(organization) => organization.id === organizationId,
+					)
+					if (!selected) return { ok: false }
+					if (selected.id !== org?.id) await setActiveOrg(selected.slug)
+				} else {
+					const organizationsWithActiveMetadata = (organizations ?? []).map(
+						(organization) =>
+							organization.id === org?.id
+								? { ...organization, metadata: org.metadata }
+								: organization,
+					)
+					const decision = resolveCompanyBrainEntry(
+						org?.id,
+						organizationsWithActiveMetadata,
+						confirmedDomain,
+					)
+					if (decision.action === "choose") {
+						return {
+							ok: false,
+							choices: decision.organizations.map((organization) => ({
+								id: organization.id,
+								name: organization.name,
+							})),
+						}
+					}
+					if (decision.action === "switch") {
+						await setActiveOrg(decision.organization.slug)
+					} else if (decision.action === "create") {
+						orgCreated = await ensureOrg(confirmedDomain, true)
+					}
+				}
 				// Re-entering onboarding on an existing org ("Try onboarding") must
 				// kick research from the client. New orgs rely on the signup hook after
 				// provisioning — a duplicate /start races and can strand the DO task.
@@ -395,8 +460,14 @@ export default function BrainOnboardingPage() {
 				const message = getErrorMessage(e, "Organization was not created.")
 				console.error("Failed to create organization:", e)
 				analytics.onboardingWorkspaceCreateFailed({ error: message })
-				toast.error("Organization was not created", {
-					description: "Please try again.",
+				const errorCopy = getWorkspaceCreationErrorCopy(message)
+				toast.error(errorCopy.title, {
+					description: errorCopy.description,
+					duration: 8000,
+					action: {
+						label: "Open Settings",
+						onClick: () => router.push("/settings"),
+					},
 				})
 				return { ok: false }
 			} finally {
@@ -404,7 +475,15 @@ export default function BrainOnboardingPage() {
 				setCreatingOrg(false)
 			}
 		},
-		[ensureOrg, queryClient],
+		[
+			ensureOrg,
+			forceCreate,
+			org,
+			organizations,
+			queryClient,
+			setActiveOrg,
+			router,
+		],
 	)
 
 	const [sendingInvites, setSendingInvites] = useState(false)
@@ -471,16 +550,18 @@ export default function BrainOnboardingPage() {
 				submitting={creatingOrg}
 				onConfirm={handleBrainConfirm}
 				onDone={finish}
+				onUsePersonal={() => {
+					analytics.onboardingModeSelected({ mode: "personal" })
+					setMode("personal")
+					setStepAndUrl("about")
+				}}
 			/>
 		)
 	}
 
+	// Team mode returns above, so everything below is the personal flow.
 	return (
-		<BrainShell
-			step={step}
-			steps={steps}
-			domain={mode === "team" ? about.workspaceDomain || domain : null}
-		>
+		<BrainShell step={step} steps={steps} domain={null}>
 			{step === "about" && (
 				<StepAbout
 					mode={mode}
@@ -488,7 +569,6 @@ export default function BrainOnboardingPage() {
 						analytics.onboardingModeSelected({ mode: m })
 						setMode(m)
 					}}
-					allowTeam={allowTeam}
 					domain={domain}
 					suggestedWorkspaceName={suggestedWorkspaceName}
 					defaultName={user?.name ?? ""}
@@ -509,11 +589,7 @@ export default function BrainOnboardingPage() {
 				/>
 			)}
 			{step === "ingest" && (
-				<StepIngest
-					mode={allowTeam ? mode : "personal"}
-					mcpUrl={mcpUrl}
-					onContinue={goNext}
-				/>
+				<StepIngest mode={mode} mcpUrl={mcpUrl} onContinue={goNext} />
 			)}
 			{step === "team" && (
 				<StepTeam

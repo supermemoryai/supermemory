@@ -6,6 +6,7 @@ import {
 	TOOL_DESCRIPTIONS,
 	getContainerTags,
 } from "../tools-shared"
+import { forgetMemoryRequest } from "../shared/forget-memory"
 import type { SupermemoryToolsConfig } from "../types"
 
 /**
@@ -36,7 +37,7 @@ export interface ProfileResult {
 
 export interface DocumentListResult {
 	success: boolean
-	documents?: Awaited<ReturnType<Supermemory["documents"]["list"]>>["documents"]
+	documents?: Awaited<ReturnType<Supermemory["documents"]["list"]>>["memories"]
 	pagination?: Awaited<
 		ReturnType<Supermemory["documents"]["list"]>
 	>["pagination"]
@@ -139,13 +140,9 @@ export const memoryToolSchemas = {
 					description: PARAMETER_DESCRIPTIONS.limit,
 					default: DEFAULT_VALUES.limit,
 				},
-				offset: {
+				page: {
 					type: "number",
-					description: PARAMETER_DESCRIPTIONS.offset,
-				},
-				status: {
-					type: "string",
-					description: PARAMETER_DESCRIPTIONS.status,
+					description: PARAMETER_DESCRIPTIONS.page,
 				},
 			},
 			required: [],
@@ -359,13 +356,11 @@ export function createDocumentListFunction(
 	return async function documentList({
 		containerTag,
 		limit,
-		offset,
-		status,
+		page,
 	}: {
 		containerTag?: string
 		limit?: number
-		offset?: number
-		status?: string
+		page?: number
 	}): Promise<DocumentListResult> {
 		try {
 			const tag = containerTag || containerTags[0]
@@ -373,13 +368,12 @@ export function createDocumentListFunction(
 			const response = await client.documents.list({
 				containerTags: [tag],
 				limit: limit || DEFAULT_VALUES.limit,
-				...(offset !== undefined && { offset }),
-				...(status && { status }),
+				...(page !== undefined && { page }),
 			})
 
 			return {
 				success: true,
-				documents: response.documents,
+				documents: response.memories,
 				pagination: response.pagination,
 			}
 		} catch (error) {
@@ -470,7 +464,7 @@ export function createMemoryForgetFunction(
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) {
-	const { client, containerTags } = createClient(apiKey, config)
+	const containerTags = getContainerTags(config)
 
 	return async function memoryForget({
 		containerTag,
@@ -493,12 +487,16 @@ export function createMemoryForgetFunction(
 
 			const tag = containerTag || containerTags[0]
 
-			await client.memories.forget({
-				containerTag: tag,
-				...(memoryId && { id: memoryId }),
-				...(memoryContent && { content: memoryContent }),
-				...(reason && { reason }),
-			})
+			await forgetMemoryRequest(
+				apiKey,
+				{
+					containerTag: tag as string,
+					...(memoryId && { id: memoryId }),
+					...(memoryContent && { content: memoryContent }),
+					...(reason && { reason }),
+				},
+				config?.baseUrl,
+			)
 
 			return {
 				success: true,

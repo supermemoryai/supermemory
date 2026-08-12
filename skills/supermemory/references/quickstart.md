@@ -249,7 +249,7 @@ await client.add({
 });
 
 // Search documents (use hybrid mode for RAG)
-const response = await client.search.memories({
+const response = await client.search({
   q: "How do I authenticate?",
   containerTag: "knowledge_base",
   searchMode: "hybrid",

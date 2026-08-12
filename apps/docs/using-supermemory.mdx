@@ -1,0 +1,64 @@
+---
+title: "Using Supermemory"
+sidebarTitle: "Overview"
+description: "The full loop: authenticate, put context in, get it back out, keep it correct."
+icon: "compass"
+---
+
+import { Journey, JourneyStep, JourneyItem } from "/snippets/journey.mdx";
+
+Everything in this section is one of four steps. Same loop whether you're building personal memory, RAG over docs, or both on the same `containerTag`.
+
+<Journey>
+  <JourneyStep number="1" title="Get started">
+    <JourneyItem icon="play" title="Quickstart" href="/quickstart" />
+    <JourneyItem icon="key" title="Get an API key" href="/authentication" />
+    <JourneyItem icon="book-open" title="API Reference" href="/api-reference/overview" />
+  </JourneyStep>
+
+  <JourneyStep number="2" title="Ingest — get content in">
+    <JourneyItem icon="plus" title="Add memories & documents" href="/ingestion/add-memories" />
+    <JourneyItem icon="files" title="Document operations" href="/ingestion/document-operations" />
+    <JourneyItem icon="plug" title="Connectors" href="/connectors/overview" />
+    <JourneyItem icon="file-stack" title="Content types" href="/concepts/content-types" />
+    <JourneyItem icon="terminal" title="Ingest API reference" href="/api-reference/ingest" />
+  </JourneyStep>
+
+  <JourneyStep number="3" title="Retrieve — get context back out">
+    <JourneyItem icon="search" title="Search" href="/recall/search" />
+    <JourneyItem icon="user" title="User profiles" href="/recall/user-profiles" />
+    <JourneyItem icon="database" title="SMFS" href="/smfs/overview" />
+    <JourneyItem icon="terminal" title="Recall API reference" href="/api-reference/search" />
+  </JourneyStep>
+
+  <JourneyStep number="4" title="Manage">
+    <JourneyItem icon="eraser" title="CRUD & forgetting" href="/recall/memory-operations" />
+    <JourneyItem icon="list-checks" title="Review inferred memories" href="/recall/memory-review" />
+    <JourneyItem icon="settings-2" title="Customizing behavior" href="/concepts/customization" />
+    <JourneyItem icon="gavel" title="Rules of thumb" href="/concepts/rules" />
+    <JourneyItem icon="terminal" title="Memories API reference" href="/api-reference/memories" />
+    <JourneyItem icon="flask-conical" title="Benchmark it yourself" href="/memorybench/overview" />
+  </JourneyStep>
+</Journey>
+
+Raw input becomes **memories** (the knowledge graph) and/or indexed **document chunks** (for RAG) automatically — see [how it works](/concepts/how-it-works). You don't choose one or the other; both build from the same write. Retrieval gives you three ways to read that same pool back — see [Memory vs RAG](/concepts/memory-vs-rag) if you're not sure which one fits.
+
+## Where next
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="play" href="/quickstart">
+    Walk the whole loop end to end with one working example.
+  </Card>
+  <Card title="How it works" icon="cpu" href="/concepts/how-it-works">
+    What happens between `add()` and a memory showing up in search.
+  </Card>
+  <Card title="Container tags" icon="folder" href="/concepts/container-tags">
+    The isolation boundary every ingest and retrieve call is scoped to.
+  </Card>
+  <Card title="Memory vs RAG" icon="scale" href="/concepts/memory-vs-rag">
+    When to reach for search, profiles, or both.
+  </Card>
+  <Card title="Benchmarking" icon="flask-conical" href="/memorybench/overview">
+    Run standardized, reproducible evals against Supermemory and other providers — including your own.
+  </Card>
+</CardGroup>

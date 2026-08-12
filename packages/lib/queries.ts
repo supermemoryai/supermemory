@@ -27,6 +27,10 @@ const DEFAULT_SUBSCRIPTION_STATUS: SubscriptionStatusMap = {
 	api_enterprise: { allowed: false, status: null },
 }
 
+function isLiveSubscriptionStatus(status: string | null | undefined): boolean {
+	return status === "active" || status === "trialing"
+}
+
 export function isAllowedFrom(
 	status: SubscriptionStatusMap,
 	minimumTier: PlanTier,
@@ -34,7 +38,7 @@ export function isAllowedFrom(
 	const minIndex = PLAN_TIERS.indexOf(minimumTier)
 	return PLAN_TIERS.slice(minIndex).some((tier) => {
 		const s = status[tier]
-		return s?.status === "active"
+		return isLiveSubscriptionStatus(s?.status)
 	})
 }
 
@@ -49,7 +53,7 @@ export function getSubscriptionStatus(
 	for (const tier of PLAN_TIERS) {
 		const sub = subMap.get(tier)
 		statusMap[tier] = {
-			allowed: sub?.status === "active",
+			allowed: isLiveSubscriptionStatus(sub?.status),
 			status: sub?.status ?? null,
 		}
 	}

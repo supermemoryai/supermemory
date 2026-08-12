@@ -1,6 +1,5 @@
 "use client"
 
-import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
 import { cn } from "@lib/utils"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -9,26 +8,20 @@ import {
 	CalendarClock,
 	ChevronDown,
 	ChevronUp,
-	FilePlus2,
 	FileText,
 	GitPullRequest,
 	Info,
 	LifeBuoy,
 	ListTodo,
 	Loader2,
-	Lock,
 	MessageCircleQuestion,
 	Plus,
+	Radar,
 	Trash2,
 } from "lucide-react"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { toast } from "sonner"
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@ui/components/dropdown-menu"
 import {
 	Select,
 	SelectContent,
@@ -43,6 +36,8 @@ import {
 	TooltipTrigger,
 } from "@ui/components/tooltip"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
+import { useOrgMemberRole } from "@/hooks/use-org-member-role"
+import { configureSectionToPath } from "@/lib/configure-routes"
 import { dmSans125ClassName } from "@/lib/fonts"
 
 const BACKEND =
@@ -167,7 +162,7 @@ const PRESETS: Preset[] = [
 	{
 		id: "standup",
 		category: "team",
-		label: "Daily standup",
+		label: "Morning checkup",
 		description:
 			"Shipped work, decisions, blockers & open questions from the last 24h.",
 		icon: CalendarClock,
@@ -179,7 +174,7 @@ const PRESETS: Preset[] = [
 	{
 		id: "weekly-recap",
 		category: "team",
-		label: "Weekly team recap",
+		label: "Company progress",
 		description:
 			"Decisions, shipped work & unresolved threads from the past week.",
 		icon: CalendarClock,
@@ -237,6 +232,18 @@ const PRESETS: Preset[] = [
 		time: "09:00",
 	},
 	{
+		id: "competitor-check",
+		category: "product",
+		label: "Competitor check",
+		description: "What competitors shipped, announced, or changed this week.",
+		icon: Radar,
+		prompt:
+			"Check what our competitors shipped, announced, or changed recently — launches, pricing changes, and anything the team should react to.",
+		frequency: "weekly",
+		weekday: 1,
+		time: "09:00",
+	},
+	{
 		id: "release-notes",
 		category: "product",
 		label: "Release notes draft",
@@ -273,36 +280,10 @@ function sortPresets(connected: Set<string>): Preset[] {
 	return [...PRESETS].sort((a, b) => rank(a) - rank(b))
 }
 
-// Up to 3 presets spanning distinct categories (connection-preferred order).
-function galleryPresets(sorted: Preset[]): Preset[] {
-	const seen = new Set<Category>()
-	const out: Preset[] = []
-	for (const p of sorted) {
-		if (seen.has(p.category)) continue
-		seen.add(p.category)
-		out.push(p)
-		if (out.length === 3) break
-	}
-	return out
-}
-
 function cadenceLabel(p: Preset): string {
 	if (p.frequency === "weekly")
 		return `Weekly · ${WEEKDAYS[p.weekday ?? 1] ?? "Mon"} ${p.time}`
 	return `Daily · ${p.time}`
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-	return (
-		<p
-			className={cn(
-				dmSans125ClassName(),
-				"font-semibold text-[14px] tracking-[-0.14px] text-[#FAFAFA]",
-			)}
-		>
-			{children}
-		</p>
-	)
 }
 
 const controlClass = cn(
@@ -318,14 +299,14 @@ const selectItemClass =
 	"cursor-pointer rounded-[8px] text-[13px] text-[#FAFAFA] hover:bg-white/10 hover:text-white data-[highlighted]:bg-white/10 data-[highlighted]:text-white focus:bg-white/10 focus:text-white"
 const DM_VALUE = "__dm__"
 
-const menuItemClass =
-	"cursor-pointer gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-white/85 hover:bg-white/[0.06] hover:text-white data-[highlighted]:bg-white/[0.06] data-[highlighted]:text-white focus:bg-white/[0.06] focus:text-white"
-
 function AutomationCard({
 	initial,
 	id,
 	channels,
 	ownerLabel,
+	personalOnlyApps = [],
+	isAdmin = false,
+	appCatalog = {},
 	onDone,
 	onCancelNew,
 	onCollapse,
@@ -334,6 +315,9 @@ function AutomationCard({
 	id: string | null
 	channels: Channel[]
 	ownerLabel?: string
+	personalOnlyApps?: string[]
+	isAdmin?: boolean
+	appCatalog?: Record<string, { name: string; iconDomain?: string }>
 	onDone: () => void
 	onCancelNew?: () => void
 	onCollapse?: () => void
@@ -374,9 +358,18 @@ function AutomationCard({
 				const b = (await res.json().catch(() => ({}))) as { error?: string }
 				throw new Error(b.error ?? "Couldn't save.")
 			}
+			const b = (await res.json().catch(() => ({}))) as {
+				warnings?: { app: string }[]
+			}
+			return b.warnings ?? []
 		},
-		onSuccess: () => {
+		onSuccess: (warnings) => {
 			toast.success("Automation saved.")
+			if (warnings.length)
+				toast.warning(
+					`Heads up: ${warnings.map((w) => w.app).join(", ")} ${warnings.length === 1 ? "is" : "are"} connected personally and won't be available to this channel automation. ${isAdmin ? "Reconnect it for the workspace in Connections." : "Ask an admin to connect it for the workspace."}`,
+					{ duration: 10000 },
+				)
 			onDone()
 		},
 		onError: (err) =>
@@ -644,6 +637,51 @@ function AutomationCard({
 							Cancel
 						</button>
 					) : null}
+
+					{draft.deliverTo === "channel" && personalOnlyApps.length > 0 && (
+						<span className="flex min-w-0 items-center gap-2 text-[12px] leading-snug text-amber-300/80">
+							<TooltipProvider>
+								<span className="flex shrink-0 -space-x-1">
+									{personalOnlyApps.map((app) => (
+										<Tooltip key={app}>
+											<TooltipTrigger asChild>
+												{appCatalog[app]?.iconDomain ? (
+													<img
+														alt={appCatalog[app]?.name ?? app}
+														className="size-4 cursor-default select-none rounded-full bg-white/10 ring-1 ring-black/50"
+														src={`https://www.google.com/s2/favicons?domain=${appCatalog[app]?.iconDomain}&sz=32`}
+													/>
+												) : (
+													<span className="flex size-4 cursor-default select-none items-center justify-center rounded-full bg-amber-500/20 text-[9px] uppercase ring-1 ring-black/50">
+														{app.slice(0, 1)}
+													</span>
+												)}
+											</TooltipTrigger>
+											<TooltipContent>
+												{appCatalog[app]?.name ?? app}
+											</TooltipContent>
+										</Tooltip>
+									))}
+								</span>
+							</TooltipProvider>
+							<span className="truncate">
+								only connected to you ·{" "}
+								{isAdmin ? (
+									<>
+										<a
+											className="underline underline-offset-2 hover:text-amber-200"
+											href={configureSectionToPath("tools")}
+										>
+											Connect for workspace
+										</a>{" "}
+										to use here
+									</>
+								) : (
+									"ask an admin to connect it for the workspace"
+								)}
+							</span>
+						</span>
+					)}
 				</div>
 				<div className="flex items-center gap-2">
 					{id ? (
@@ -830,7 +868,7 @@ function AutomationRow({
 	)
 }
 
-function PresetTile({
+function PresetCard({
 	preset,
 	onPick,
 }: {
@@ -844,19 +882,31 @@ function PresetTile({
 			onClick={onPick}
 			className={cn(
 				dmSans125ClassName(),
-				"flex items-center gap-3 rounded-[10px] border border-white/[0.06] bg-[#14161A] px-3 py-2.5 text-left transition-colors hover:border-white/[0.12] hover:bg-[#171A1F]",
+				"flex min-w-0 cursor-pointer flex-col justify-between gap-3 rounded-xl bg-[#14161A] p-4 text-left",
+				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)] transition-colors hover:bg-[#171A1F]",
 			)}
-			title={preset.description}
 		>
-			<Icon className="size-4 shrink-0 text-[#9A9A9A]" />
-			<span className="flex min-w-0 flex-1 flex-col">
-				<span className="truncate text-[13px] font-medium text-[#FAFAFA]">
-					{preset.label}
-				</span>
-				<span className="truncate text-[11px] text-[#6B6B6B]">
+			<div className="flex min-w-0 items-start gap-3">
+				<div className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[#080B0F] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]">
+					<Icon className="size-4 text-[#9A9A9A]" />
+				</div>
+				<div className="min-w-0 pt-0.5">
+					<p className="truncate font-semibold text-[14px] tracking-[-0.15px] text-[#FAFAFA]">
+						{preset.label}
+					</p>
+					<p className="mt-1 line-clamp-2 break-words text-[12px] font-medium leading-5 text-[#737373]">
+						{preset.description}
+					</p>
+				</div>
+			</div>
+			<div className="flex min-h-9 items-center justify-between gap-3 border-[#1E293B]/50 border-t pt-3">
+				<span className="text-[12px] font-medium text-[#737373]">
 					{cadenceLabel(preset)}
 				</span>
-			</span>
+				<span className="text-[12px] font-medium text-[#8B929E]">
+					Use template
+				</span>
+			</div>
 		</button>
 	)
 }
@@ -864,25 +914,20 @@ function PresetTile({
 export default function CompanyBrainAutomations() {
 	const isCompanyBrain = useHasCompanyBrain()
 	const { user, org } = useAuth()
+	const { isAdmin } = useOrgMemberRole(isCompanyBrain)
 	const queryClient = useQueryClient()
 	const [drafts, setDrafts] = useState<{ key: number; draft: Draft }[]>([])
+	const [showAllTemplates, setShowAllTemplates] = useState(false)
+	const [actionSlot, setActionSlot] = useState<HTMLElement | null>(null)
+	useEffect(() => {
+		setActionSlot(document.getElementById("configure-section-actions"))
+	}, [])
 	const [openId, setOpenId] = useState<string | null>(null)
 	const draftKey = useRef(0)
 	const addDraft = (draft: Draft) =>
 		setDrafts((d) => [...d, { key: draftKey.current++, draft }])
 	const removeDraft = (key: number) =>
 		setDrafts((d) => d.filter((x) => x.key !== key))
-
-	const roleQuery = useQuery({
-		queryKey: ["company-brain-automations", "role"],
-		queryFn: async () =>
-			(await authClient.organization.getActiveMember()).data?.role ?? null,
-		staleTime: 60_000,
-		enabled: isCompanyBrain,
-	})
-	const isAdmin = ["owner", "admin"].includes(
-		(roleQuery.data ?? "").toLowerCase(),
-	)
 
 	const listQuery = useQuery({
 		queryKey: ["company-brain-automations", "list", org?.id],
@@ -910,11 +955,15 @@ export default function CompanyBrainAutomations() {
 			const res = await fetch(`${BACKEND}/brain/mcp-connections/`, {
 				credentials: "include",
 			})
-			if (!res.ok) return [] as string[]
+			if (!res.ok) return [] as { serverSlug: string; userId: string | null }[]
 			const body = (await res.json()) as {
-				connections?: { serverSlug: string }[]
+				connections?: {
+					serverSlug: string
+					userId: string | null
+					status: string
+				}[]
 			}
-			return (body.connections ?? []).map((c) => c.serverSlug)
+			return (body.connections ?? []).filter((c) => c.status === "active")
 		},
 		enabled: isCompanyBrain,
 	})
@@ -923,7 +972,39 @@ export default function CompanyBrainAutomations() {
 
 	const channels = channelsQuery.data ?? []
 	const automations = listQuery.data ?? []
-	const presets = sortPresets(new Set(appsQuery.data ?? []))
+	const catalogQuery = useQuery({
+		queryKey: ["company-brain-automations", "catalog", "v2"],
+		queryFn: async () => {
+			const res = await fetch(`${BACKEND}/brain/mcp-connections/catalog`, {
+				credentials: "include",
+			})
+			if (!res.ok)
+				return {} as Record<string, { name: string; iconDomain?: string }>
+			const body = (await res.json()) as {
+				catalog?: { slug: string; name?: string; iconDomain?: string }[]
+			}
+			return Object.fromEntries(
+				(body.catalog ?? []).map((e) => [
+					e.slug,
+					{ name: e.name ?? e.slug, iconDomain: e.iconDomain },
+				]),
+			)
+		},
+		enabled: isCompanyBrain,
+	})
+
+	const connections = appsQuery.data ?? []
+	const presets = sortPresets(new Set(connections.map((c) => c.serverSlug)))
+	const sharedApps = new Set(
+		connections.filter((c) => c.userId === null).map((c) => c.serverSlug),
+	)
+	const personalOnlyApps = [
+		...new Set(
+			connections
+				.filter((c) => c.userId !== null && !sharedApps.has(c.serverSlug))
+				.map((c) => c.serverSlug),
+		),
+	]
 	const nameFor = (userId: string | null): string | undefined => {
 		if (!userId) return undefined
 		if (userId === user?.id) return "You"
@@ -935,71 +1016,36 @@ export default function CompanyBrainAutomations() {
 			queryKey: ["company-brain-automations", "list"],
 		})
 	}
-	const showGallery = automations.length === 0 && drafts.length === 0
+	const usedTitles = new Set(automations.map((a) => a.title))
+	const availablePresets = presets.filter((p) => !usedTitles.has(p.label))
+	const shownPresets = showAllTemplates
+		? availablePresets
+		: availablePresets.slice(0, 3)
+	const hiddenTemplateCount = availablePresets.length - shownPresets.length
+	const hasList = automations.length > 0 || drafts.length > 0
+
+	const newAutomationButton = (
+		<button
+			type="button"
+			onClick={() => addDraft(emptyDraft())}
+			className={cn(
+				dmSans125ClassName(),
+				"inline-flex h-9 items-center justify-center gap-2 rounded-full bg-[#14161A] px-4 text-[13px] font-semibold text-[#FAFAFA] shadow-inside-out transition-colors hover:bg-[#121820]",
+			)}
+		>
+			<Plus className="size-4" />
+			New automation
+		</button>
+	)
+	const newAutomationPortal = actionSlot ? (
+		createPortal(newAutomationButton, actionSlot)
+	) : (
+		<div className="flex justify-end">{newAutomationButton}</div>
+	)
 
 	return (
 		<section className="flex flex-col gap-3 px-1">
-			<div className="flex flex-col gap-0.5">
-				<div className="flex items-center justify-between gap-3">
-					<SectionTitle>Channel automations</SectionTitle>
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<button
-								type="button"
-								className={cn(
-									dmSans125ClassName(),
-									"inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 px-3 text-[12px] font-medium text-[#9A9A9A] transition-colors hover:bg-white/[0.04] hover:text-[#FAFAFA]",
-								)}
-							>
-								<Plus className="size-3.5" />
-								New automation
-							</button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent
-							align="end"
-							className={cn(
-								dmSans125ClassName(),
-								"min-w-[240px] rounded-xl border-white/[0.08] bg-[#1B1F24] p-1.5",
-							)}
-						>
-							<DropdownMenuItem
-								onClick={() => addDraft(emptyDraft())}
-								className={menuItemClass}
-							>
-								<FilePlus2 className="size-4 text-[#737373]" />
-								Blank automation
-							</DropdownMenuItem>
-							{presets.map((p) => {
-								const Icon = p.icon
-								return (
-									<DropdownMenuItem
-										key={p.id}
-										onClick={() => addDraft(presetToDraft(p))}
-										className={menuItemClass}
-									>
-										<Icon className="size-4 text-[#737373]" />
-										{p.label}
-									</DropdownMenuItem>
-								)
-							})}
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</div>
-
-				<span
-					className={cn(
-						dmSans125ClassName(),
-						"flex items-center gap-1.5 text-[12px] text-[#6B6B6B]",
-					)}
-				>
-					<Lock className="size-3 shrink-0" />
-					Read-only scheduled summaries posted to a channel.{" "}
-					{isAdmin
-						? "You manage all across the org."
-						: "You manage the ones you create."}
-				</span>
-			</div>
-
+			{newAutomationPortal}
 			<div className="flex flex-col gap-3">
 				{automations.map((a) =>
 					openId === a.id ? (
@@ -1008,6 +1054,9 @@ export default function CompanyBrainAutomations() {
 							id={a.id}
 							initial={toDraft(a)}
 							channels={channels}
+							personalOnlyApps={personalOnlyApps}
+							isAdmin={isAdmin}
+							appCatalog={catalogQuery.data ?? {}}
 							onDone={() => {
 								setOpenId(null)
 								refresh()
@@ -1036,6 +1085,9 @@ export default function CompanyBrainAutomations() {
 						id={null}
 						initial={draft}
 						channels={channels}
+						personalOnlyApps={personalOnlyApps}
+						isAdmin={isAdmin}
+						appCatalog={catalogQuery.data ?? {}}
 						onDone={() => {
 							removeDraft(key)
 							refresh()
@@ -1044,39 +1096,37 @@ export default function CompanyBrainAutomations() {
 					/>
 				))}
 
-				{showGallery ? (
-					<div className="flex flex-col gap-2">
-						<p
-							className={cn(dmSans125ClassName(), "text-[12px] text-[#6B6B6B]")}
-						>
-							Start from a template:
-						</p>
-						<div className="flex flex-col gap-2">
-							{galleryPresets(presets).map((p) => (
-								<PresetTile
-									key={p.id}
-									preset={p}
-									onPick={() => addDraft(presetToDraft(p))}
-								/>
-							))}
-							<button
-								type="button"
-								onClick={() => addDraft(emptyDraft())}
-								className={cn(
-									dmSans125ClassName(),
-									"flex items-center justify-center gap-2 rounded-[10px] border border-dashed border-white/[0.1] bg-transparent px-3 py-2.5 text-[13px] text-[#9A9A9A] transition-colors hover:border-white/20 hover:text-[#FAFAFA]",
-								)}
-							>
-								<Plus className="size-4" />
-								Start from scratch
-							</button>
-						</div>
-						<p
-							className={cn(dmSans125ClassName(), "text-[11px] text-[#5A5A5A]")}
-						>
-							More templates in the New automation menu.
-						</p>
-					</div>
+				<p
+					className={cn(
+						dmSans125ClassName(),
+						hasList ? "pt-2" : "",
+						"text-[12px] font-medium text-[#6B6B6B]",
+					)}
+				>
+					{showAllTemplates ? "Templates" : "Ideas for your setup"}
+				</p>
+				<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+					{shownPresets.map((p) => (
+						<PresetCard
+							key={p.id}
+							preset={p}
+							onPick={() => addDraft(presetToDraft(p))}
+						/>
+					))}
+				</div>
+				{hiddenTemplateCount > 0 || showAllTemplates ? (
+					<button
+						type="button"
+						onClick={() => setShowAllTemplates((v) => !v)}
+						className={cn(
+							dmSans125ClassName(),
+							"self-start text-[12px] font-medium text-[#737B87] transition-colors hover:text-[#FAFAFA]",
+						)}
+					>
+						{showAllTemplates
+							? "Show fewer"
+							: `Show all ${availablePresets.length} templates`}
+					</button>
 				) : null}
 			</div>
 		</section>

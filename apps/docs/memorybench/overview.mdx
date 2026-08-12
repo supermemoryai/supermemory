@@ -1,57 +1,86 @@
 ---
 title: "MemoryBench"
-description: "Open-source framework for standardized, reproducible benchmarks of memory layer providers"
+description: "Open-source framework for benchmarking memory providers — including your own"
 sidebarTitle: "Overview"
 icon: "flask-conical"
 ---
 
-Our goal is to make evaluation more rigorous, accessible, and in line with industry standards. Design and run evaluations tailored to your specific needs, and run industry-standard benchmarks easily on any memory provider. With MemoryBench, you can trust in provider through transparent, reproducible, and domain-relevant evaluations.
+Benchmarking memory systems is hard, and most comparisons you'll find aren't apples-to-apples — different datasets, different judges, different prompts, cherry-picked runs. **MemoryBench** ([`supermemoryai/memorybench`](https://github.com/supermemoryai/memorybench), MIT licensed) is the open-source framework we built to fix that: the same benchmark questions, the same pipeline, and the same judges run against every provider, so a comparison actually means something.
 
-<Columns cols={2}>
-  <Card title="Web Interface" icon="globe" href="/memorybench/installation#start-the-web-interface">
-    <br/>
-      ```bun run src/index.ts serve```
-  </Card>
+We open-sourced it so you don't have to take our word for anything — you can run it yourself, against your own memory implementation, on the datasets that match your use case.
 
-  <Card title="Installation" icon="download" href="/memorybench/installation">
-      Get MemoryBench up and running in your environment
-  </Card>
+<Card title="git.new/membench" icon="github" href="https://github.com/supermemoryai/memorybench">
+  Clone it, run it against your own data, or read the source for exactly how each provider is scored.
+</Card>
 
-  <Card title="CLI Reference" icon="terminal" href="/memorybench/cli">
-      Command-line interface for running evaluations
-  </Card>
+---
 
-  <Card title="Architecture" icon="blocks" href="/memorybench/architecture">
-      Understanding MemoryBench's design and implementation
-  </Card>
+## Benchmark your own memory system
 
-  <Card title="MemScore" icon="gauge" href="/memorybench/memscore">
-      Composite metric for comparing quality, latency, and token efficiency
-  </Card>
-</Columns>
+MemoryBench ships a **Claude Code skill** that automates the entire process of benchmarking a custom memory implementation — yours — against Supermemory, Mem0, and Zep. Point it at your code and it handles discovery, integration, and the run:
 
-## Works with any memory provider
+1. Asks a few questions about your setup (provider name, where your memory code lives, which benchmark, which competitors, how many questions)
+2. Analyzes your memory code to find its init, ingest, and search methods
+3. Generates a provider adapter and registers it with the framework
+4. Runs the full benchmark against your chosen competitors
+5. Reports accuracy, latency, and context-token results side by side
+
+```bash
+# From your project root
+/memorybench
+```
+
+No manual TypeScript required to get a first result — see [Adding a Provider](/memorybench/extend-provider) for what the skill generates and how to do it by hand.
+
+---
+
+## How it works
+
+Every run goes through the same checkpointed pipeline, regardless of provider or benchmark:
+
+```
+INGEST → SEARCH → ANSWER → EVALUATE → REPORT
+```
+
+Ingestion can take hours for large datasets, and API calls fail — so every phase checkpoints independently and a run resumes from the last completed step instead of starting over.
 
 <Columns cols={3}>
   <Card title="Supermemory" icon="brain" href="https://supermemory.ai">
-      Cloud-based memory layer
+    Chunk-based semantic search
   </Card>
-
   <Card title="Mem0" icon="database" href="https://mem0.ai">
-      Graph-based memory
+    LLM-powered memory extraction
   </Card>
-
   <Card title="Zep" icon="zap" href="https://getzep.com">
-      Long-term memory for AI
+    Knowledge graph construction
   </Card>
 </Columns>
 
-<Note>
-We're actively adding support for more providers. [Contribute your own](/memorybench/extend-provider) or [create a feature request](https://github.com/supermemoryai/memorybench/issues).
-</Note>
+| Benchmark | Tests | Source |
+|---|---|---|
+| **LoCoMo** | Fact recall across extended, multi-session conversations — single-hop, multi-hop, temporal, adversarial | [snap-research/locomo](https://github.com/snap-research/locomo) |
+| **LongMemEval** | Long-term memory across sessions, including knowledge that gets updated mid-conversation | [xiaowu0162/longmemeval](https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned) |
+| **ConvoMem** | Personalization, preference learning, and reference resolution within a conversation | [Salesforce/ConvoMem](https://huggingface.co/datasets/Salesforce/ConvoMem) |
 
-## Contribute
+None of these fit your use case? [Build your own benchmark](/memorybench/extend-benchmark) — providers, benchmarks, and judges are all pluggable.
 
-<Card title="Report issue" icon="bug" href="https://github.com/supermemoryai/memorybench/issues">
-    Found a bug or have a feature request? Let us know.
-</Card>
+Judging is judge-agnostic too — score a run with GPT-4o, Claude, Gemini, or any model you configure, so results aren't an artifact of one evaluator's bias.
+
+---
+
+## Read next
+
+<CardGroup cols={2}>
+  <Card title="Building a Benchmark" icon="flask-conical" href="/memorybench/extend-benchmark">
+    Test on scenarios that actually match your product, not just the built-in datasets.
+  </Card>
+  <Card title="Adding a Provider" icon="plug" href="/memorybench/extend-provider">
+    Register your own memory system so it can be scored and compared.
+  </Card>
+  <Card title="Measuring Results" icon="gauge" href="/memorybench/memscore">
+    MemScore, judge scoring, and how to read a report.
+  </Card>
+  <Card title="Report an issue" icon="bug" href="https://github.com/supermemoryai/memorybench/issues">
+    Found a bug, or want a provider/benchmark we don't support yet?
+  </Card>
+</CardGroup>

@@ -10,6 +10,10 @@ import {
 	autoCapturePromptsEnabled,
 } from "../../utils/storage"
 import { createT3InputBarElement, DOMUtils } from "../../utils/ui-components"
+import {
+	parseMemoriesFromDataset,
+	serializeMemoriesForDataset,
+} from "./memory-suggestion"
 
 let t3DebounceTimeout: NodeJS.Timeout | null = null
 let t3RouteObserver: MutationObserver | null = null
@@ -26,7 +30,6 @@ export function initializeT3() {
 	}
 
 	setTimeout(() => {
-		console.log("Adding supermemory icon to T3 input")
 		addSupermemoryIconToT3Input()
 		setupT3AutoFetch()
 	}, 2000)
@@ -55,7 +58,6 @@ function setupT3RouteChangeDetection() {
 	const checkForRouteChange = () => {
 		if (window.location.href !== currentUrl) {
 			currentUrl = window.location.href
-			console.log("T3 route changed, re-adding supermemory icon")
 			setTimeout(() => {
 				addSupermemoryIconToT3Input()
 				setupT3AutoFetch()
@@ -183,10 +185,7 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			}
 		}
 
-		console.log("T3 query extracted:", userQuery)
-
 		if (!userQuery.trim()) {
-			console.log("No query text found for T3")
 			return
 		}
 
@@ -217,8 +216,6 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			timeoutPromise,
 		])
 
-		console.log("T3 memories response:", response)
-
 		if (response?.success && response?.data) {
 			let textareaElement = null
 			const supermemoryContainer = document.querySelector(
@@ -240,7 +237,9 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			if (textareaElement) {
 				textareaElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${response.data}`
 
-				iconElement.dataset.memoriesData = response.data
+				iconElement.dataset.memoriesData = serializeMemoriesForDataset(
+					response.data,
+				)
 
 				updateT3IconFeedback("Included Memories", iconElement)
 			} else {
@@ -336,13 +335,9 @@ function updateT3IconFeedback(
 			overflow-y: auto;
 		`
 
-		const memoriesText = iconElement.dataset.memoriesData || ""
-		console.log("Memories text:", memoriesText)
-		const individualMemories = memoriesText
-			.split(/[,\n]/)
-			.map((memory) => memory.trim())
-			.filter((memory) => memory.length > 0 && memory !== ",")
-		console.log("Individual memories:", individualMemories)
+		const individualMemories = parseMemoriesFromDataset(
+			iconElement.dataset.memoriesData,
+		)
 
 		individualMemories.forEach((memory, index) => {
 			const memoryItem = document.createElement("div")
@@ -430,15 +425,17 @@ function updateT3IconFeedback(
 					content.removeChild(memoryItem)
 				}
 
-				const currentMemories = (iconElement.dataset.memoriesData || "")
-					.split(/[,\n]/)
-					.map((memory) => memory.trim())
-					.filter((memory) => memory.length > 0 && memory !== ",")
+				const currentMemories = parseMemoriesFromDataset(
+					iconElement.dataset.memoriesData,
+				)
 				currentMemories.splice(index, 1)
 
+				// Injected prompt keeps its existing joined-text form; the popup's
+				// own data is stored as JSON so comma-bearing memories stay intact.
 				const updatedMemories = currentMemories.join(" ,")
 
-				iconElement.dataset.memoriesData = updatedMemories
+				iconElement.dataset.memoriesData =
+					serializeMemoriesForDataset(currentMemories)
 
 				const textareaElement =
 					(document.querySelector("textarea") as HTMLTextAreaElement) ||
@@ -493,11 +490,10 @@ function setupT3PromptCapture() {
 	}
 	document.body.setAttribute("data-t3-prompt-capture-setup", "true")
 
-	const captureT3PromptContent = async (source: string) => {
+	const captureT3PromptContent = async (_source: string) => {
 		const autoCapture = (await autoCapturePromptsEnabled.getValue()) ?? false
 
 		if (!autoCapture) {
-			console.log("Auto capture prompts is disabled, skipping prompt capture")
 			return
 		}
 		let promptContent = ""
@@ -538,15 +534,13 @@ function setupT3PromptCapture() {
 		}
 
 		if (promptContent.trim()) {
-			console.log(`T3 prompt submitted via ${source}:`, promptContent)
-
 			try {
 				await browser.runtime.sendMessage({
 					action: MESSAGE_TYPES.CAPTURE_PROMPT,
 					data: {
 						prompt: promptContent,
 						platform: "t3",
-						source: source,
+						source: window.location.href,
 					},
 				})
 			} catch (error) {

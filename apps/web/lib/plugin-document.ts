@@ -89,6 +89,7 @@ function formatClientName(value: string | null | undefined): string | null {
 	if (lower === "claude desktop") return "Claude Desktop"
 	if (lower === "claude code") return "Claude Code"
 	if (lower === "opencode") return "OpenCode"
+	if (lower === "cursor") return "Cursor"
 	if (lower === "openclaw") return "OpenClaw"
 	if (lower === "hermes") return "Hermes"
 	if (lower === "amp") return "Amp"
@@ -136,6 +137,12 @@ function pluginIdentityFromSource(
 				label: "OpenCode",
 				iconSrc: "/images/plugins/opencode.svg",
 			}
+		case "cursor":
+			return {
+				pluginId: "cursor",
+				label: "Cursor",
+				iconSrc: "/images/plugins/cursor.png",
+			}
 		case "amp":
 			return {
 				pluginId: "amp",
@@ -164,7 +171,19 @@ function pluginIdentityFromSpace(
 				.filter((tag): tag is string => typeof tag === "string" && !!tag)
 		: []
 
-	for (const tag of [...containerTags, ...memorySpaceTags]) {
+	const allTags = [...containerTags, ...memorySpaceTags]
+	for (const tag of allTags) {
+		if (/^cursor_(?:user|project)_[0-9a-f]{6,64}$/i.test(tag)) {
+			return {
+				pluginId: "cursor",
+				label: "Cursor",
+				iconSrc: "/images/plugins/cursor.png",
+				projectId: tag.split("_").at(-1)?.slice(0, 6),
+			}
+		}
+	}
+
+	for (const tag of allTags) {
 		const plugin = detectPluginSpace(tag)
 		if (plugin) return plugin
 	}
@@ -227,6 +246,9 @@ function parseTranscriptMessages(content: string): {
 } {
 	const messages: PluginDocumentMessage[] = []
 	const artifacts: PluginArtifact[] = []
+	// The lookahead must end the last message at the true end of input:
+	// with the m flag, a bare $ matches every line end and would cut each
+	// message body off at its first newline.
 	const regex = new RegExp(
 		`^\\s*(\\d+)\\.\\s+\\[(${TRANSCRIPT_ROLE_PATTERN})\\]\\s*([\\s\\S]*?)(?=^\\s*\\d+\\.\\s+\\[(?:${TRANSCRIPT_ROLE_PATTERN})\\]\\s*|(?![\\s\\S]))`,
 		"gm",
@@ -377,7 +399,7 @@ function parseSessionTranscript(
 	content: string,
 	config: {
 		kind: "codex-session" | "amp-thread" | "plugin-session"
-		headerLabel: "Session" | "Amp thread"
+		headerLabel: "Session" | "Amp thread" | "Conversation"
 		pluginLabel: string
 		pluginIconSrc?: string | null
 		formatLabel: string
@@ -415,6 +437,61 @@ function parseSessionTranscript(
 		identifierLabel: config.headerLabel,
 		identifierValue,
 		artifacts,
+		messages,
+		sections: [],
+		rawContent: content,
+	}
+}
+
+function parseLegacyCursorTranscript(
+	content: string,
+	plugin: PluginIdentity | null,
+): ParsedPluginDocument | null {
+	if (
+		plugin?.pluginId !== "cursor" ||
+		!/^Cursor IDE session transcript:\s*/i.test(content)
+	) {
+		return null
+	}
+
+	const transcript = content.replace(/^Cursor IDE session transcript:\s*/i, "")
+	const messages: PluginDocumentMessage[] = []
+	const regex =
+		/^(User|Assistant):\s*([\s\S]*?)(?=^(?:User|Assistant):\s*|(?![\s\S]))/gim
+
+	for (const match of transcript.matchAll(regex)) {
+		const role =
+			match[1]?.toLowerCase() === "user"
+				? ("user" as const)
+				: ("assistant" as const)
+		const text = match[2]?.trim()
+		if (!text) continue
+		messages.push({
+			id: `${role}-${messages.length}`,
+			role,
+			text,
+		})
+	}
+	if (messages.length === 0) return null
+
+	const userCount = messages.filter((message) => message.role === "user").length
+	const assistantCount = messages.filter(
+		(message) => message.role === "assistant",
+	).length
+	const previewSource =
+		messages.find((message) => message.role === "user")?.text ??
+		messages[0]?.text ??
+		"Conversation"
+
+	return {
+		kind: "plugin-session",
+		pluginLabel: plugin.label,
+		pluginIconSrc: plugin.iconSrc ?? undefined,
+		formatLabel: "Conversation",
+		title: "Cursor conversation",
+		preview: takePreview(previewSource, 140),
+		summary: `${userCount} user message${userCount === 1 ? "" : "s"} and ${assistantCount} assistant message${assistantCount === 1 ? "" : "s"} captured from Cursor.`,
+		artifacts: [],
 		messages,
 		sections: [],
 		rawContent: content,
@@ -705,6 +782,26 @@ export function parsePluginDocument(
 				}
 				return withIcon(codexSession)
 			}
+		}
+
+		if (plugin?.pluginId === "cursor") {
+			const cursorSession = parseSessionTranscript(content, {
+				kind: "plugin-session",
+				headerLabel: "Conversation",
+				pluginLabel: plugin.label,
+				pluginIconSrc: plugin.iconSrc,
+				formatLabel: "Conversation",
+			})
+			if (cursorSession) {
+				if (clientName) {
+					cursorSession.clientLabel = "Client"
+					cursorSession.clientValue = clientName
+				}
+				return withIcon(cursorSession)
+			}
+
+			const legacyCursorSession = parseLegacyCursorTranscript(content, plugin)
+			if (legacyCursorSession) return withIcon(legacyCursorSession)
 		}
 
 		if (plugin?.pluginId === "amp") {

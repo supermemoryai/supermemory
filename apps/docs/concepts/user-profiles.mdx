@@ -1,11 +1,15 @@
 ---
 title: "User Profiles"
-sidebarTitle: "User Profiles"
+sidebarTitle: "Profiles"
 description: "Automatically maintained context about your users"
 icon: "circle-user"
 ---
 
 User profiles are **automatically maintained collections of facts about your users** that Supermemory builds from all their interactions. Think of it as a persistent "about me" document that's always up-to-date.
+
+Each `containerTag` gets it's own profile.
+
+> Note: It's called "user" profile, but in reality it can be anything - an agent, organization, etc.
 
 <CardGroup cols={2}>
   <Card title="Instant Context" icon="bolt">
@@ -29,6 +33,40 @@ Traditional memory systems rely entirely on search:
 **Search is too narrow**: When you search for "project updates", you miss that the user prefers bullet points, works in PST, and uses specific terminology.
 
 **Profiles provide the foundation**: Instead of searching for basic context, profiles give your LLM a complete picture of who the user is.
+
+![Search adds context to the prompt after a round trip; a profile rides along with every prompt for free](/images/user-profiles-vs-search.png)
+
+A pure search architecture means every turn pays a `search(prompt)` round trip before the agent can respond. A profile is attached once and sits alongside every user prompt and agent output — no extra call, no latency, and no risk of the query missing something important.
+
+---
+
+## Non-literal-matching use cases
+
+Semantic search retrieves content that's *similar to the query* — it's built for questions like "what did we discuss about the migration?" It's a poor fit for facts that should be known **regardless of what's being asked**, because there's rarely a query that's semantically close to them.
+
+The clearest example is the user's own name. If someone tells your agent "call me Dhravya, not my full name" once during onboarding, that fact has almost nothing in common — vector-wise — with "help me plan a trip to Japan" or "review this PR." A search for either of those queries will not surface the name preference, because search only returns what's relevant to the query, and a name preference isn't relevant to trip planning or code review — it should just always be there.
+
+```typescript
+// Weeks earlier, during onboarding
+await client.add({
+  content: "Call me Dhravya, not my full first name",
+  containerTag: "user_123",
+});
+
+// Later — an unrelated query
+const results = await client.search({
+  q: "help me plan a trip to Japan",
+  containerTag: "user_123",
+});
+// The name preference won't be in `results` — it's not semantically
+// related to trip planning, so search correctly leaves it out.
+
+// But it's always in the profile, independent of the query:
+const { profile } = await client.profile({ containerTag: "user_123" });
+console.log(profile.static); // ["User goes by Dhravya, not their full name", ...]
+```
+
+This is the general pattern: names, pronouns, timezone, tone/format preferences, role, and other facts that should color *every* response — not just responses to a matching query — belong in the profile, not left to be caught by search. If your agent needs to "just know" something at all times, that's a strong signal it belongs in the profile rather than relying on a lucky semantic match.
 
 ---
 
@@ -54,17 +92,42 @@ Recent context and temporary states:
 
 ---
 
+## Buckets
+
+Static and dynamic split facts by how long-lived they are. **Buckets** split them by *topic* — a third, independent axis you define, like `preferences`, `goals`, or `work`. As content is ingested, a classifier sorts each fact into the buckets it matches.
+
+Every org starts with a default `preferences` bucket. Add your own in console settings at the organization level, or per space — space buckets are add-only, so a container tag always keeps every org-level bucket.
+
+```typescript
+const { profile } = await client.profile({
+  containerTag: "user_123",
+  include: ["buckets"],
+  buckets: ["preferences", "goals"], // optional — omit for all configured buckets
+});
+
+console.log(profile.buckets.preferences);
+console.log(profile.buckets.goals);
+```
+
+Bucket descriptions steer the classifier, so a precise description ("explicit first-person preferences only, exclude inferred traits") produces cleaner buckets than a vague one. Buckets are separate from [`filterPrompt`](/concepts/customization), which controls what gets ingested at all — buckets only organize facts that already made it into the profile.
+
+<Card title="Profile Buckets reference" icon="tags" href="/user-profiles/buckets">
+  Request bucketed profiles, create buckets at the org or space level, get AI-generated suggestions, and see validation limits.
+</Card>
+
+---
+
 ## How It Works
 
 Profiles are built automatically through ingestion:
 
-1. **Ingest content** — Users [add documents](/add-memories), chat, or any content
+1. **Ingest content** — Users [add documents](/ingestion/add-memories), chat, or any content
 2. **Extract facts** — AI analyzes content for facts about the user
 3. **Update profile** — System adds, updates, or removes facts
 4. **Always current** — Profiles reflect the latest information
 
 <Note>
-You don't manually manage profiles — they build themselves as users interact. Start by [adding content](/add-memories) to see profiles in action.
+You don't manually manage profiles — they build themselves as users interact. Start by [adding content](/ingestion/add-memories) to see profiles in action.
 </Note>
 
 ---
@@ -87,6 +150,36 @@ User asks: **"Can you help me debug this?"**
 - Working on payment service (likely context)
 - Prefers CLI tools (tool suggestions)
 - Recent memory leak issues (possible connection)
+
+---
+
+## Filtering Profiles
+
+Not many people realize this, but profiles support the same [metadata filtering](/concepts/filtering) as memory and document search. A profile is synthesized from the underlying memories in a container tag, so any `AND`/`OR` metadata filter you'd pass to `search` also narrows which memories are eligible to contribute to `static`, `dynamic`, and `buckets`.
+
+```typescript
+// Only build the profile from memories tagged as onboarding data
+const { profile } = await client.profile({
+  containerTag: "user_123",
+  filters: {
+    AND: [{ key: "source", value: "onboarding" }],
+  },
+});
+```
+
+This is useful when a container tag mixes memories from several sources or contexts and you only want one of them reflected in the profile — for example, a support agent that should only see profile facts derived from support tickets, not from an internal wiki synced into the same container:
+
+```typescript
+const { profile } = await client.profile({
+  containerTag: "org_customer_442",
+  filters: {
+    AND: [{ key: "channel", value: "support_ticket" }],
+  },
+  include: ["static", "dynamic"],
+});
+```
+
+Filters apply on top of the search query too — combine `q` and `filters` to scope both the profile synthesis and the accompanying search results in one call. See [Filtering Profiles](/recall/user-profiles#filtering-profiles) for the full parameter reference.
 
 ---
 
@@ -126,8 +219,11 @@ Profiles provide: preferred languages, coding style, current project context.
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="User Profiles API" icon="code" href="/user-profiles">
+  <Card title="User Profiles API" icon="code" href="/recall/user-profiles">
     Fetch and use profiles via the API
+  </Card>
+  <Card title="Profile Buckets" icon="tags" href="/user-profiles/buckets">
+    Create and configure topical buckets
   </Card>
   <Card title="Graph Memory" icon="network" href="/concepts/graph-memory">
     How the underlying knowledge graph works
@@ -135,7 +231,7 @@ Profiles provide: preferred languages, coding style, current project context.
   <Card title="AI SDK Integration" icon="triangle" href="/integrations/ai-sdk">
     Automatic profile injection with AI SDK
   </Card>
-  <Card title="Add Memories" icon="plus" href="/add-memories">
+  <Card title="Add Memories" icon="plus" href="/ingestion/add-memories">
     Build profiles by adding content
   </Card>
 </CardGroup>

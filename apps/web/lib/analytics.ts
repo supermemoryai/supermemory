@@ -225,10 +225,9 @@ export const analytics = {
 		tab:
 			| "account"
 			| "billing"
+			| "api-keys"
 			| "integrations"
 			| "connections"
-			| "company-brain"
-			| "proactiveness"
 			| "support"
 	}) => safeCapture("settings_tab_changed", props),
 
@@ -264,4 +263,12 @@ export const analytics = {
 		rating: "up" | "down" | null
 		message: string
 	}) => safeCapture("digest_feedback_detail", props),
+
+	// company brain promo
+	companyBrainPromoSeen: () => safeCapture("company_brain_promo_seen"),
+	companyBrainPromoClicked: (props: {
+		source: "dashboard_card" | "profile_menu"
+	}) => safeCapture("company_brain_promo_clicked", props),
+	companyBrainPromoDismissed: () =>
+		safeCapture("company_brain_promo_dismissed"),
 }

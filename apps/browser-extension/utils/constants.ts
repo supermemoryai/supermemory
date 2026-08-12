@@ -10,6 +10,17 @@ export const API_ENDPOINTS = {
 		: "http://localhost:3000",
 } as const
 
+export function getSupermemoryLoginUrl(): string {
+	const baseUrl = API_ENDPOINTS.SUPERMEMORY_WEB
+	const loginUrl = new URL("/login", baseUrl)
+	const redirectUrl = new URL("/", baseUrl)
+
+	redirectUrl.searchParams.set("extension-auth-success", "true")
+	loginUrl.searchParams.set("redirect", redirectUrl.toString())
+
+	return loginUrl.toString()
+}
+
 /**
  * DOM Element IDs
  */
@@ -22,6 +33,7 @@ export const ELEMENT_IDS = {
 	SAVE_TWEET_ELEMENT: "sm-save-tweet-element",
 	CHATGPT_INPUT_BAR_ELEMENT: "sm-chatgpt-input-bar-element",
 	CLAUDE_INPUT_BAR_ELEMENT: "sm-claude-input-bar-element",
+	GEMINI_INPUT_BAR_ELEMENT: "sm-gemini-input-bar-element",
 	T3_INPUT_BAR_ELEMENT: "sm-t3-input-bar-element",
 	PROJECT_SELECTION_MODAL: "sm-project-selection-modal",
 } as const
@@ -59,6 +71,7 @@ export const DOMAINS = {
 	CHATGPT: ["chatgpt.com", "chat.openai.com"],
 	CLAUDE: ["claude.ai"],
 	GROK: ["grok.com", "x.ai"],
+	GEMINI: ["gemini.google.com"],
 	T3: ["t3.chat"],
 	SUPERMEMORY: ["localhost", "supermemory.ai", "app.supermemory.ai"],
 } as const
@@ -95,6 +108,8 @@ export const POSTHOG_EVENT_KEY = {
 	T3_CHAT_MEMORIES_AUTO_SEARCHED: "t3_chat_memories_auto_searched",
 	CLAUDE_CHAT_MEMORIES_SEARCHED: "claude_chat_memories_searched",
 	CLAUDE_CHAT_MEMORIES_AUTO_SEARCHED: "claude_chat_memories_auto_searched",
+	GEMINI_CHAT_MEMORIES_SEARCHED: "gemini_chat_memories_searched",
+	GEMINI_CHAT_MEMORIES_AUTO_SEARCHED: "gemini_chat_memories_auto_searched",
 	CHATGPT_CHAT_MEMORIES_SEARCHED: "chatgpt_chat_memories_searched",
 	CHATGPT_CHAT_MEMORIES_AUTO_SEARCHED: "chatgpt_chat_memories_auto_searched",
 } as const

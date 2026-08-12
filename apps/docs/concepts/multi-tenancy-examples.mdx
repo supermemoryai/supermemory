@@ -1,0 +1,134 @@
+---
+title: "Multi-tenancy Examples"
+sidebarTitle: "Examples"
+description: "Common container tag and metadata patterns for personal agents, company agents, email assistants, and support platforms"
+icon: "list-checks"
+---
+
+A few common shapes multi-tenancy takes in practice, combining [container tags](/concepts/container-tags) for isolation with [metadata filters](/concepts/filtering) for organization within a boundary.
+
+---
+
+## Personal agent
+
+A single container tag per user is enough — there's no shared data to leak, so metadata is optional.
+
+```typescript
+await client.add({
+  content: "User prefers morning workouts and vegetarian meals",
+  containerTag: "user_123",
+});
+
+const results = await client.search({
+  q: "workout preferences",
+  containerTag: "user_123",
+});
+```
+
+---
+
+## Company agent (shared + personal memory)
+
+A company-wide assistant usually needs two kinds of containers: one **shared** container the whole org reads from, and one **personal** container per employee that nobody else can see.
+
+```typescript
+// Shared org knowledge — visible to everyone at the company
+await client.add({
+  content: "Q3 roadmap: ship the mobile app redesign by end of August",
+  containerTag: "org_acme_shared",
+  metadata: { team: "product", type: "roadmap" },
+});
+
+// Personal memory — only this employee's agent should see this
+await client.add({
+  content: "Prefers async updates over meetings",
+  containerTag: "org_acme_user_alex",
+});
+```
+
+Inside the shared container, use metadata to scope queries to a team rather than creating a container tag per team:
+
+```typescript
+const results = await client.search({
+  q: "roadmap updates",
+  containerTag: "org_acme_shared",
+  searchMode: "documents",
+  filters: {
+    AND: [{ key: "team", value: "product" }],
+  },
+});
+```
+
+An employee's agent typically queries both containers — their personal one plus the shared one — and merges the results, since the container tag boundary is per-request rather than per-user.
+
+---
+
+## Email assistant
+
+One container tag per user, with metadata carrying email-specific properties like label, sender, or folder — so the assistant can answer things like *"find the Spotify email tagged Promotional"*.
+
+```typescript
+await client.add({
+  content: "Your Spotify Premium receipt for July — $11.99 charged",
+  containerTag: "user_123",
+  metadata: {
+    source: "gmail",
+    sender: "no-reply@spotify.com",
+    label: "Promotional",
+  },
+});
+
+const results = await client.search({
+  q: "spotify",
+  containerTag: "user_123",
+  searchMode: "documents",
+  filters: {
+    AND: [
+      { key: "source", value: "gmail" },
+      { key: "label", value: "Promotional" },
+    ],
+  },
+});
+```
+
+---
+
+## Multi-tenant support platform
+
+Each customer gets their own container tag, and metadata tracks ticket-level fields like status and priority — so "open, high-priority tickets" is a filter, not a new tag, and it can never accidentally include another customer's tickets.
+
+```typescript
+await client.add({
+  content: "Customer reports checkout button unresponsive on Safari",
+  containerTag: "org_customer_442",
+  metadata: { status: "open", priority: "high", channel: "chat" },
+});
+
+const results = await client.search({
+  q: "checkout issue",
+  containerTag: "org_customer_442",
+  searchMode: "documents",
+  filters: {
+    AND: [
+      { key: "status", value: "open" },
+      { key: "priority", value: "high" },
+    ],
+  },
+});
+```
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Multi-tenancy Overview" icon="users" href="/concepts/multi-tenancy">
+    Why container tags and metadata are separate mechanisms.
+  </Card>
+  <Card title="Container Tags" icon="folder" href="/concepts/container-tags">
+    How isolation works, naming rules, and access control.
+  </Card>
+  <Card title="Organizing & Filtering" icon="filter" href="/concepts/filtering">
+    Metadata filter types, combining `AND`/`OR`, and query limits.
+  </Card>
+</CardGroup>

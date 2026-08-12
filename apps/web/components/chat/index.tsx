@@ -1111,7 +1111,7 @@ export function ChatSidebar({
 			const params = new URLSearchParams({ projectId: chatProject })
 			if (historyScope === "all") params.set("scope", "all")
 			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads?${params.toString()}`,
+				`${chatApiBase}/chat/threads?${params.toString()}`,
 				{ credentials: "include" },
 			)
 			if (response.ok) {
@@ -1123,7 +1123,7 @@ export function ChatSidebar({
 		} finally {
 			setIsLoadingThreads(false)
 		}
-	}, [chatProject, historyScope])
+	}, [chatApiBase, chatProject, historyScope])
 
 	useEffect(() => {
 		if (!isHistoryOpen) return
@@ -1134,10 +1134,9 @@ export function ChatSidebar({
 	const loadThread = useCallback(
 		async (id: string) => {
 			try {
-				const response = await fetch(
-					`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads/${id}`,
-					{ credentials: "include" },
-				)
+				const response = await fetch(`${chatApiBase}/chat/threads/${id}`, {
+					credentials: "include",
+				})
 				if (response.ok) {
 					const data = await response.json()
 					const uiMessages = data.messages.map(
@@ -1179,7 +1178,7 @@ export function ChatSidebar({
 				console.error("Failed to load thread:", error)
 			}
 		},
-		[setThreadId],
+		[chatApiBase, setThreadId],
 	)
 
 	// Auto-restore thread from URL on mount (e.g. reload or direct link)
@@ -1197,7 +1196,7 @@ export function ChatSidebar({
 		async (threadId: string) => {
 			try {
 				const response = await fetch(
-					`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads/${threadId}`,
+					`${chatApiBase}/chat/threads/${threadId}`,
 					{ method: "DELETE", credentials: "include" },
 				)
 				if (response.ok) {
@@ -1213,7 +1212,7 @@ export function ChatSidebar({
 				setConfirmingDeleteId(null)
 			}
 		},
-		[currentChatId, handleNewChat],
+		[chatApiBase, currentChatId, handleNewChat],
 	)
 
 	const formatRelativeTime = (isoString: string): string => {

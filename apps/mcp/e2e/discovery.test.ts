@@ -1,15 +1,56 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import { API_KEY, callTool, connect, textOf, type Session } from "./helpers"
+import {
+	OAUTH_CREDENTIALS_AVAILABLE,
+	callTool,
+	connect,
+	textOf,
+	type Session,
+} from "./helpers"
 
 const EXPECTED_TOOLS = [
-	"memory",
-	"recall",
-	"listProjects",
+	"add_memory",
+	"fetch-graph-data",
+	"getDocument",
+	"guided-save",
+	"listDocuments",
+	"listMemories",
+	"listSpaces",
+	"memory-graph",
+	"prepare-file-upload",
+	"save-memory",
+	"search_memory",
+	"select-space",
+	"set-active-tag",
+	"upload-file",
+	"whoAmI",
+]
+const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
+
+const READ_ONLY_TOOL_NAMES = [
+	"search_memory",
+	"listDocuments",
+	"listMemories",
+	"getDocument",
+	"listSpaces",
 	"whoAmI",
 	"memory-graph",
 ]
 
-describe.skipIf(!API_KEY)("MCP — discovery & identity", () => {
+const READ_ONLY_ANNOTATIONS = {
+	readOnlyHint: true,
+	destructiveHint: false,
+	idempotentHint: true,
+	openWorldHint: false,
+}
+
+const MEMORY_TOOL_ANNOTATIONS = {
+	readOnlyHint: false,
+	destructiveHint: true,
+	idempotentHint: false,
+	openWorldHint: false,
+}
+
+describeWithAuth("MCP — discovery & identity", () => {
 	let s: Session
 
 	beforeAll(async () => {
@@ -21,15 +62,29 @@ describe.skipIf(!API_KEY)("MCP — discovery & identity", () => {
 
 	it("handshakes and lists the expected tools", async () => {
 		const { tools } = await s.client.listTools()
-		const names = tools.map((t) => t.name)
-		for (const t of EXPECTED_TOOLS) expect(names).toContain(t)
+		const names = tools.map((t) => t.name).sort()
+		expect(names).toEqual([...EXPECTED_TOOLS].sort())
 	})
 
-	it("lists profile & projects resources", async () => {
+	it("marks read-only tools as non-destructive", async () => {
+		const { tools } = await s.client.listTools()
+		for (const name of READ_ONLY_TOOL_NAMES) {
+			const tool = tools.find((t) => t.name === name)
+			expect(tool?.annotations).toMatchObject(READ_ONLY_ANNOTATIONS)
+		}
+	})
+
+	it("marks add_memory as mutating", async () => {
+		const { tools } = await s.client.listTools()
+		const memory = tools.find((t) => t.name === "add_memory")
+		expect(memory?.annotations).toMatchObject(MEMORY_TOOL_ANNOTATIONS)
+	})
+
+	it("lists profile and space resources", async () => {
 		const { resources } = await s.client.listResources()
 		const uris = resources.map((r) => r.uri)
 		expect(uris).toContain("supermemory://profile")
-		expect(uris).toContain("supermemory://projects")
+		expect(uris).toContain("supermemory://spaces")
 	})
 
 	it("lists the context prompt", async () => {
@@ -42,10 +97,11 @@ describe.skipIf(!API_KEY)("MCP — discovery & identity", () => {
 		expect(res.isError).toBeFalsy()
 		const parsed = JSON.parse(textOf(res))
 		expect(parsed.userId).toBeTruthy()
+		expect(parsed).toHaveProperty("activeSpace")
 	})
 
-	it("listProjects returns content", async () => {
-		const res = await callTool(s.client, "listProjects", { refresh: true })
+	it("listSpaces returns content", async () => {
+		const res = await callTool(s.client, "listSpaces")
 		expect(res.isError).toBeFalsy()
 		expect(textOf(res).length).toBeGreaterThan(0)
 	})

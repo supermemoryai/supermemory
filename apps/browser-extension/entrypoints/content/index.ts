@@ -3,6 +3,7 @@ import { DOMUtils } from "../../utils/ui-components"
 import { initializeChatGPT } from "./chatgpt"
 import { initializeClaude } from "./claude"
 import { initializeGrok } from "./grok"
+import { initializeGemini } from "./gemini"
 import {
 	saveMemory,
 	setupGlobalKeyboardShortcut,
@@ -20,13 +21,13 @@ export default defineContentScript({
 	matches: ["<all_urls>"],
 	main() {
 		// Setup global event listeners
-		browser.runtime.onMessage.addListener(async (message) => {
+		browser.runtime.onMessage.addListener((message) => {
 			if (message.action === MESSAGE_TYPES.SHOW_TOAST) {
 				DOMUtils.showToast(message.state)
 			} else if (message.action === MESSAGE_TYPES.SAVE_MEMORY) {
-				await saveMemory()
+				return saveMemory(message.actionSource || "content_script")
 			} else if (message.action === MESSAGE_TYPES.TWITTER_IMPORT_OPEN_MODAL) {
-				await openImportModal()
+				return openImportModal()
 			} else if (message.type === MESSAGE_TYPES.IMPORT_UPDATE) {
 				updateTwitterImportUI(message)
 			} else if (message.type === MESSAGE_TYPES.IMPORT_DONE) {
@@ -52,6 +53,9 @@ export default defineContentScript({
 				if (DOMUtils.isOnDomain(DOMAINS.GROK)) {
 					initializeGrok()
 				}
+				if (DOMUtils.isOnDomain(DOMAINS.GEMINI)) {
+					initializeGemini()
+				}
 				if (DOMUtils.isOnDomain(DOMAINS.T3)) {
 					initializeT3()
 				}
@@ -70,6 +74,7 @@ export default defineContentScript({
 		initializeChatGPT()
 		initializeClaude()
 		initializeGrok()
+		initializeGemini()
 		initializeT3()
 		initializeTwitter()
 

@@ -5,6 +5,7 @@ import {
 	callTool,
 	connect,
 	exchangeRefreshToken,
+	MCP_RESOURCE,
 	OAUTH_CLIENT_ID,
 	OAUTH_REFRESH_TOKEN,
 	registerClient,
@@ -37,7 +38,7 @@ describe("MCP — OAuth protocol (no secrets)", () => {
 	// Tier B — Dynamic Client Registration, the first authenticated-flow step.
 	it("issues a client_id via dynamic client registration", async () => {
 		const { status, body } = await registerClient(meta.registration_endpoint)
-		expect(status).toBe(201)
+		expect(status).toBe(200)
 		expect(body.client_id).toBeTruthy()
 		expect(body.grant_types).toContain("refresh_token")
 	})
@@ -49,7 +50,7 @@ describe("MCP — OAuth protocol (no secrets)", () => {
 			"bogus_rt_for_e2e",
 			"bogus_client",
 		)
-		expect(status).toBe(401)
+		expect(status).toBe(400)
 		expect(body.error).toBe("invalid_grant")
 	})
 
@@ -71,24 +72,33 @@ describe("MCP — OAuth protocol (no secrets)", () => {
 		)
 	})
 
-	it("redirects an unauthenticated authorize request to login", async () => {
+	it("presents login for an unauthenticated authorize request", async () => {
+		const { body: client } = await registerClient(meta.registration_endpoint)
+		expect(client.client_id).toBeTruthy()
 		const url = new URL(meta.authorization_endpoint)
 		url.search = new URLSearchParams({
 			response_type: "code",
-			client_id: "any",
+			client_id: client.client_id as string,
 			redirect_uri: "http://localhost:8765/callback",
 			code_challenge: "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
 			code_challenge_method: "S256",
 			scope: "openid profile email offline_access",
+			resource: MCP_RESOURCE,
 			state: "xyz",
 		}).toString()
 		const res = await fetch(url, { redirect: "manual" })
-		expect(res.status).toBe(302)
-		expect(res.headers.get("location")).toMatch(/\/login/)
+		if (res.status === 302) {
+			expect(res.headers.get("location")).toMatch(/\/login/)
+		} else {
+			expect(res.status).toBe(200)
+			const body = (await res.json()) as { redirect?: boolean; url?: string }
+			expect(body.redirect).toBe(true)
+			expect(body.url).toMatch(/\/login/)
+		}
 	})
 })
 
-// Tier D — real OAuth token through /mcp, exercising validateOAuthToken (not the sm_ branch); needs a seeded refresh token.
+// Tier D — real OAuth token through /mcp; needs a seeded refresh token.
 describe.skipIf(!OAUTH_REFRESH_TOKEN || !OAUTH_CLIENT_ID)(
 	"MCP — real OAuth token round-trip",
 	() => {
@@ -112,8 +122,8 @@ describe.skipIf(!OAUTH_REFRESH_TOKEN || !OAUTH_CLIENT_ID)(
 			await s?.close()
 		})
 
-		it("mints an OAuth access token that is not an sm_ API key", () => {
-			expect(accessToken.startsWith("sm_")).toBe(false)
+		it("mints a JWT access token for the MCP resource", () => {
+			expect(accessToken.split(".")).toHaveLength(3)
 		})
 
 		it("connects to /mcp with the OAuth token and resolves identity", async () => {

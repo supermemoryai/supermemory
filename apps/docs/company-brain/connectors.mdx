@@ -1,0 +1,64 @@
+---
+title: "Connectors"
+sidebarTitle: "Connectors"
+description: "Bring knowledge in with data connectors, and act in live tools with tool connectors"
+icon: "plug"
+---
+
+Company Brain has two kinds of connectors. They look similar on the connections page, but they do different jobs:
+
+| | Data connectors | Tool connectors |
+|---|---|---|
+| **What they do** | Bring knowledge *in* | Let the agent *act* in the tool |
+| **Examples** | Google Drive, Notion, OneDrive | GitHub, Linear, Sentry, Plain, PostHog, Granola |
+| **Result** | Docs land in public channel memory and stay searchable | Live reads and writes (list PRs, create issues, check errors) |
+| **When it runs** | Background sync on a schedule | In the moment you ask |
+
+## Data connectors
+
+Data connectors sync existing files and docs into **public channel memory** so answers are grounded in real material — roadmaps, specs, handbooks, design docs.
+
+How it works:
+
+1. An admin connects a source (Drive, Notion workspace, OneDrive, and similar).
+2. Company Brain fetches, chunks, embeds, and indexes the content in the background.
+3. It re-syncs on a schedule automatically — you don't re-upload when a doc changes.
+
+Connecting a data source is a **team-level action**. What comes in is visible org-wide, same as anything from a public channel — see the [permissions graph](/company-brain/permissions) for exactly who can read what.
+
+<Note>
+A data connector is only as useful as the docs you point it at. Start with the handful of sources people actually re-read — product specs, the handbook, the latest roadmap — rather than every folder in Drive.
+</Note>
+
+## Tool connectors
+
+Tool connectors are live integrations (MCP-based under the hood). They don't just index past content — they read and act in the tool *right now*:
+
+- **GitHub** — open PRs, recent commits, repo context
+- **Linear** — find or create issues, check status
+- **Sentry** — what's actually erroring in prod
+- **Plain** — customer support tickets and history
+- **PostHog** — product analytics
+- **Granola** — meeting notes and decisions
+- **Custom servers** — wire up your own MCP endpoint when the catalog doesn't cover a tool
+
+You can also connect tools at two scopes — **Organization (shared)** or **Personal (yours)**. The full rule of thumb lives on [The permissions graph](/company-brain/permissions): reads prefer your personal connection and fall back to the org one; writes always run under your own account so the action is attributed to you.
+
+If neither you nor the org has a tool connected, but a teammate does, Company Brain can ask them to **lease** temporary access for that one request — see [Leasing](/company-brain/permissions#leasing-borrowing-access-for-one-request).
+
+## Which one do I need?
+
+- **"What's in our Q2 roadmap?"** → data connector (Drive/Notion/OneDrive already synced)
+- **"What are my open PRs?"** or **"Create a Linear issue"** → tool connector (GitHub / Linear)
+- **"What did we decide in the Acme call?"** → tool connector that also brings knowledge in (Granola), or a data connector if notes live in Drive/Notion
+
+You almost always want both: data connectors for the long-lived knowledge base, tool connectors for the live work happening this week.
+
+<CardGroup cols={2}>
+  <Card title="Automations & proactiveness" icon="wand-magic-sparkles" href="/company-brain/automations">
+    Scheduled digests and unprompted replies that use these connections.
+  </Card>
+  <Card title="What you can do" icon="sparkles" href="/company-brain/use-cases/overview">
+    Walkthroughs of support, incidents, PRs, meetings, and more.
+  </Card>
+</CardGroup>

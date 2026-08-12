@@ -1,15 +1,9 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
+import { isYouTubeUrl } from "@/lib/url-helpers"
 
-export function isYouTubeUrl(url: string | undefined | null): boolean {
-	if (!url) return false
-	return (
-		url.includes("youtube.com") ||
-		url.includes("youtu.be") ||
-		url.includes("m.youtube.com")
-	)
-}
+export { isYouTubeUrl }
 
 export function extractYouTubeVideoId(
 	url: string | undefined | null,

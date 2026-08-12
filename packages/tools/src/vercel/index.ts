@@ -39,6 +39,12 @@ interface WrapVercelLanguageModelOptions {
 	/** Custom Supermemory API base URL */
 	baseUrl?: string
 	/**
+	 * Persist assistant tool calls and tool results as part of the saved
+	 * conversation. Off by default: tool payloads are often large and
+	 * low-signal, and would pollute memory extraction.
+	 */
+	includeToolCalls?: boolean
+	/**
 	 * Custom function to format memory data into the system prompt.
 	 * If not provided, uses the default "User Supermemories:" format.
 	 *
@@ -134,6 +140,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 		mode: options.mode ?? "profile",
 		addMemory: options.addMemory ?? "always",
 		baseUrl: options.baseUrl,
+		includeToolCalls: options.includeToolCalls ?? false,
 		promptTemplate: options.promptTemplate,
 		memoryRetrievalTimeoutMs: DEFAULT_MEMORY_RETRIEVAL_TIMEOUT_MS,
 	})
@@ -193,6 +200,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 								ctx.logger,
 								ctx.apiKey,
 								ctx.normalizedBaseUrl,
+								ctx.includeToolCalls,
 							)
 						}
 
@@ -268,6 +276,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 										ctx.logger,
 										ctx.apiKey,
 										ctx.normalizedBaseUrl,
+										ctx.includeToolCalls,
 									)
 								}
 							},

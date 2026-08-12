@@ -1,7 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import { API_KEY, callTool, connect, type Session, textOf } from "./helpers"
+import { graphViewSchema } from "../src/shared/types"
+import {
+	OAUTH_CREDENTIALS_AVAILABLE,
+	callTool,
+	connect,
+	type Session,
+	textOf,
+} from "./helpers"
+const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
-describe.skipIf(!API_KEY)("MCP — graph, resources & prompts", () => {
+describeWithAuth("MCP — graph, resources & prompts", () => {
 	let s: Session
 
 	beforeAll(async () => {
@@ -11,15 +19,16 @@ describe.skipIf(!API_KEY)("MCP — graph, resources & prompts", () => {
 		await s?.close()
 	})
 
-	it("memory-graph returns a summary + structured documents", async () => {
+	it("memory-graph returns a rendered graph widget", async () => {
 		const res = await callTool(s.client, "memory-graph")
 		expect(res.isError).toBeFalsy()
-		expect(textOf(res)).toMatch(/Memory Graph: \d+ documents/)
-		const sc = res.structuredContent as {
-			documents?: unknown[]
-			totalCount?: number
-		}
-		expect(Array.isArray(sc?.documents)).toBe(true)
+		expect(textOf(res)).toMatch(/Rendered the interactive Memory Graph MCP App/)
+		const result = graphViewSchema.safeParse(res.structuredContent)
+		expect(result.success).toBe(true)
+		if (!result.success) throw result.error
+		expect(result.data.view).toBe("graph")
+		expect(result.data.rendered).toBe(true)
+		expect(result.data.documentCount).toBe(result.data.documents.length)
 	})
 
 	it("fetch-graph-data returns paginated documents", async () => {
@@ -40,20 +49,35 @@ describe.skipIf(!API_KEY)("MCP — graph, resources & prompts", () => {
 		const res = await s.client.readResource({ uri: "supermemory://profile" })
 		expect(res.contents.length).toBeGreaterThan(0)
 		expect(res.contents[0].mimeType).toBe("text/plain")
-		expect(typeof res.contents[0].text).toBe("string")
+		expect(res.contents[0].text).toMatch(/# Active Space Profile/)
+		expect(res.contents[0].text).toMatch(/Space:/)
+		expect(res.contents[0].text).toMatch(
+			/Use `listSpaces` to find the relevant space key/,
+		)
 	})
 
-	it("reads the projects resource as JSON", async () => {
-		const res = await s.client.readResource({ uri: "supermemory://projects" })
+	it("reads all spaces in a compact human-readable format", async () => {
+		const res = await s.client.readResource({
+			uri: "supermemory://spaces",
+		})
 		const text = res.contents[0].text as string
-		const parsed = JSON.parse(text)
-		expect(Array.isArray(parsed.projects)).toBe(true)
+		expect(res.contents[0].mimeType).toBe("text/plain")
+		expect(text).toMatch(/# My Spaces/)
+		expect(text).toMatch(/Active:/)
+		expect(text).not.toMatch(/"containerTags":/)
 	})
 
-	it("gets the context prompt as a system message", async () => {
+	it("gets compact active-space context without prompt arguments", async () => {
+		const prompts = await s.client.listPrompts()
+		const contextPrompt = prompts.prompts.find(
+			(prompt) => prompt.name === "context",
+		)
+		expect(contextPrompt?.arguments ?? []).toHaveLength(0)
+
 		const res = await s.client.getPrompt({ name: "context", arguments: {} })
 		expect(res.messages.length).toBeGreaterThan(0)
 		const text = res.messages[0].content.text as string
-		expect(text).toMatch(/memory|context/i)
+		expect(text).toMatch(/# Supermemory Context/)
+		expect(text).toMatch(/Active space:/)
 	})
 })

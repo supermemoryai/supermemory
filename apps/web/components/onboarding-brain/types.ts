@@ -1,6 +1,11 @@
+export type CompanyBrainOrganizationChoice = {
+	id: string
+	name: string
+}
+
 export type CompanyBrainConfirmResult =
 	| { ok: true; serverSchedulesResearch: boolean }
-	| { ok: false }
+	| { ok: false; choices?: CompanyBrainOrganizationChoice[] }
 
 export type BrainMode = "personal" | "team"
 
@@ -43,6 +48,11 @@ const FREE_EMAIL_DOMAINS = new Set([
 	"duck.com",
 ])
 
+export function isFreeEmailDomain(domain: string | undefined | null): boolean {
+	if (!domain) return false
+	return FREE_EMAIL_DOMAINS.has(domain.toLowerCase().trim())
+}
+
 export function detectModeFromEmail(
 	email: string | undefined | null,
 ): BrainMode {
@@ -54,7 +64,7 @@ export function detectModeFromEmail(
 		.toLowerCase()
 		.trim()
 	if (!domain) return "personal"
-	if (FREE_EMAIL_DOMAINS.has(domain)) return "personal"
+	if (isFreeEmailDomain(domain)) return "personal"
 	return "team"
 }
 
@@ -86,6 +96,7 @@ export function workspaceNameFromDomain(
 	return host.charAt(0).toUpperCase() + host.slice(1)
 }
 
+/** Company domain from an email, or null for consumer providers (gmail.com etc). */
 export function workspaceDomainFromEmail(
 	email: string | undefined | null,
 ): string | null {
@@ -96,7 +107,8 @@ export function workspaceDomainFromEmail(
 		.slice(at + 1)
 		.toLowerCase()
 		.trim()
-	return domain || null
+	if (!domain || isFreeEmailDomain(domain)) return null
+	return domain
 }
 
 export type BrainMetadata = {

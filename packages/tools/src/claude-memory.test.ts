@@ -4,12 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 // can be exercised deterministically without any network access. We only need
 // `search.execute` to return a single document with known multi-line content.
 const searchExecute = vi.fn()
+const addMock = vi.fn()
 
 vi.mock("supermemory", () => {
 	return {
 		default: class MockSupermemory {
 			search = { execute: searchExecute }
-			add = vi.fn()
+			add = addMock
 			memories = { forget: vi.fn() }
 		},
 	}
@@ -81,5 +82,102 @@ describe("ClaudeMemoryTool view_range", () => {
 		expect(result.content).toContain("line4")
 		expect(result.content).not.toContain("line1")
 		expect(result.content).not.toContain("line5")
+	})
+})
+
+describe("ClaudeMemoryTool exact-file matching", () => {
+	let tool: ClaudeMemoryTool
+
+	beforeEach(() => {
+		searchExecute.mockReset()
+		addMock.mockReset()
+		tool = new ClaudeMemoryTool("test-api-key")
+	})
+
+	it("view finds the exact file even when a neighbour ranks first", async () => {
+		searchExecute.mockResolvedValue({
+			results: [
+				{ documentId: "memories_notes_backup_txt", content: "backup stuff" },
+				{ documentId: "memories_notes_txt", content: FILE_CONTENT },
+			],
+		})
+
+		const result = await tool.handleCommand({
+			command: "view",
+			path: FILE_PATH,
+		})
+
+		expect(result.success).toBe(true)
+		expect(result.content).toContain("line1")
+		expect(result.content).not.toContain("backup stuff")
+	})
+
+	it("view reports not-found instead of returning a different file", async () => {
+		// Semantic search can surface a similarly-named file; that must not
+		// be served as the requested one.
+		searchExecute.mockResolvedValue({
+			results: [
+				{ documentId: "memories_notes_backup_txt", content: "backup stuff" },
+			],
+		})
+
+		const result = await tool.handleCommand({
+			command: "view",
+			path: FILE_PATH,
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("File not found")
+	})
+
+	it("str_replace refuses to modify a different file than requested", async () => {
+		searchExecute.mockResolvedValue({
+			results: [
+				{ documentId: "memories_notes_backup_txt", content: "backup stuff" },
+			],
+		})
+
+		const result = await tool.handleCommand({
+			command: "str_replace",
+			path: FILE_PATH,
+			old_str: "backup",
+			new_str: "primary",
+		})
+
+		expect(result.success).toBe(false)
+		expect(addMock).not.toHaveBeenCalled()
+	})
+})
+
+describe("ClaudeMemoryTool str_replace replacement literalness", () => {
+	let tool: ClaudeMemoryTool
+
+	beforeEach(() => {
+		searchExecute.mockReset()
+		addMock.mockReset()
+		searchExecute.mockResolvedValue({
+			results: [{ documentId: "memories_notes_txt", content: FILE_CONTENT }],
+		})
+		tool = new ClaudeMemoryTool("test-api-key")
+	})
+
+	it.each([
+		"$&",
+		"$'",
+		"$`",
+		"$$",
+	])("stores %s literally instead of expanding it as a replacement pattern", async (dollarSequence) => {
+		const result = await tool.handleCommand({
+			command: "str_replace",
+			path: FILE_PATH,
+			old_str: "line3",
+			new_str: `price is ${dollarSequence} today`,
+		})
+
+		expect(result.success).toBe(true)
+		expect(addMock).toHaveBeenCalledTimes(1)
+		const stored = addMock.mock.calls[0]?.[0]?.content as string
+		expect(stored).toContain(`price is ${dollarSequence} today`)
+		expect(stored).not.toContain("line3")
 	})
 })

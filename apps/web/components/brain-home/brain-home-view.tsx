@@ -5,11 +5,18 @@ import { useAuth } from "@lib/auth-context"
 import { cn } from "@lib/utils"
 import { useQuery } from "@tanstack/react-query"
 import { ArrowRight, Check, FileText, Loader2, UserPlus } from "lucide-react"
-import Link from "next/link"
 import { useQueryState } from "nuqs"
 import { useSettingsModal } from "@/components/settings/settings-modal"
+import { useBrainTrial } from "@/hooks/use-brain-trial"
 import { dmSans125ClassName } from "@/lib/fonts"
-import { ConnectionsBoard } from "./connections-board"
+import { useViewMode } from "@/lib/view-mode-context"
+import {
+	AskInSlackCard,
+	CONNECT_TOOLS_CARD_ID,
+	ConnectToolsCard,
+	SlackBanner,
+	useConnectionsBoard,
+} from "./connections-board"
 
 const BACKEND =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
@@ -24,6 +31,26 @@ type RecentDoc = {
 	title?: string | null
 	createdAt?: string | Date | null
 	updatedAt?: string | Date | null
+}
+
+type RolloutOverview = {
+	status: "running" | "done" | "failed"
+	discovered: number
+	joined: number
+	ready: number
+	introduced: number
+	failed: number
+}
+
+type BrainOverview = {
+	research: { status: string | null }
+	slack: {
+		connected: boolean
+		teamName: string | null
+		rollout: RolloutOverview | null
+	}
+	connections: { apps: number }
+	members: { count: number }
 }
 
 function useBrainOverview() {
@@ -87,29 +114,6 @@ function useBrainOverview() {
 		enabled,
 	})
 
-	const brain = useQuery({
-		queryKey: ["brain-connections"],
-		queryFn: async () => {
-			const [c, s] = await Promise.all([
-				fetch(`${BACKEND}/brain/connections`, { credentials: "include" }),
-				fetch(`${BACKEND}/brain/slack/status`, { credentials: "include" }),
-			])
-			const toolkits = c.ok
-				? ((await c.json()) as { toolkits: { org: boolean; user: boolean }[] })
-						.toolkits
-				: []
-			const slack = s.ok
-				? ((await s.json()) as { connected: boolean }).connected
-				: false
-			return {
-				activeCount: toolkits.filter((t) => t.org || t.user).length,
-				slack,
-			}
-		},
-		staleTime: 30_000,
-		enabled,
-	})
-
 	const mcp = useQuery({
 		queryKey: ["mcp-status"],
 		queryFn: async () => {
@@ -121,11 +125,24 @@ function useBrainOverview() {
 		enabled,
 	})
 
+	const overview = useQuery({
+		queryKey: ["brain-overview", org?.id],
+		queryFn: async (): Promise<BrainOverview | null> => {
+			const res = await fetch(`${BACKEND}/brain/overview`, {
+				credentials: "include",
+			})
+			if (!res.ok) return null
+			return (await res.json()) as BrainOverview
+		},
+		staleTime: 30_000,
+		enabled,
+	})
+
 	const memoriesCount = docs.data?.pagination?.totalItems ?? 0
-	const connectedCount =
-		(brain.data?.activeCount ?? 0) +
-		(brain.data?.slack ? 1 : 0) +
-		(connectors.data?.length ?? 0)
+	const slackConnected = overview.data?.slack.connected ?? false
+	const appsCount =
+		(overview.data?.connections.apps ?? 0) + (connectors.data?.length ?? 0)
+	const connectedCount = appsCount + (slackConnected ? 1 : 0)
 
 	const currentRole = org?.members
 		?.find((m) => m.userId === user?.id)
@@ -137,20 +154,35 @@ function useBrainOverview() {
 		lastUpdatedAt: lastUpdated.data ?? null,
 		memoriesCount,
 		connectedCount,
-		membersCount: org?.members?.length ?? 0,
+		membersCount: overview.data?.members.count ?? org?.members?.length ?? 0,
 		canInvite: currentRole === "owner" || currentRole === "admin",
 		hasSource: connectedCount > 0,
 		hasAgent: mcp.data ?? false,
 		hasMemory: memoriesCount > 0,
+		hasApps: appsCount > 0,
+		slackConnected,
+		researchStatus: overview.data?.research.status ?? null,
+		rollout: overview.data?.slack.rollout ?? null,
 	}
 }
 
 export function BrainHomeView() {
 	const o = useBrainOverview()
-	const stepsDone = [o.hasSource, o.hasAgent, o.hasMemory].filter(
-		Boolean,
-	).length
-	const showGettingStarted = !o.loading && stepsDone < 3
+	const trial = useBrainTrial()
+	const board = useConnectionsBoard()
+	// Rows with no reported state (older orgs, pre-Slack) don't count or render.
+	const milestones = [
+		...(o.researchStatus != null ? [o.researchStatus === "done"] : []),
+		o.slackConnected,
+		...(o.rollout != null ? [o.rollout.status === "done"] : []),
+		o.hasApps,
+		o.membersCount > 1,
+		o.hasMemory,
+	]
+	const milestonesDone = milestones.filter(Boolean).length
+	const milestonesTotal = milestones.length
+	const showTimeline =
+		!o.loading && (trial.state !== "none" || milestonesDone < milestonesTotal)
 
 	return (
 		<div className="mx-auto max-w-[1080px] space-y-6">
@@ -159,24 +191,31 @@ export function BrainHomeView() {
 				connected={o.connectedCount}
 				members={o.membersCount}
 				canInvite={o.canInvite}
-				setupDone={stepsDone}
+				setupDone={milestonesDone}
+				setupTotal={milestonesTotal}
 				lastUpdatedAt={o.lastUpdatedAt}
 			/>
-			<ConnectionsBoard />
-			<div
-				className={cn(
-					"grid gap-6",
-					showGettingStarted && "lg:grid-cols-[minmax(0,1fr)_340px]",
-				)}
-			>
-				<RecentMemories docs={o.recentDocs} loading={o.loading} />
-				{showGettingStarted && (
-					<GettingStarted
-						hasSource={o.hasSource}
-						hasAgent={o.hasAgent}
-						hasMemory={o.hasMemory}
-					/>
-				)}
+			{board.slack && !board.slack.connected && <SlackBanner />}
+			<div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+				<div className="min-w-0 space-y-6">
+					{board.showBoard && <ConnectToolsCard board={board} />}
+					<RecentMemories docs={o.recentDocs} loading={o.loading} />
+				</div>
+				<div className="min-w-0 space-y-6">
+					{showTimeline && (
+						<BrainTimeline
+							researchStatus={o.researchStatus}
+							slackConnected={o.slackConnected}
+							rollout={o.rollout}
+							hasApps={o.hasApps}
+							invited={o.membersCount > 1}
+							hasMemory={o.hasMemory}
+							canInvite={o.canInvite}
+							toolsCardVisible={board.showBoard}
+						/>
+					)}
+					<AskInSlackCard board={board} />
+				</div>
 			</div>
 		</div>
 	)
@@ -188,6 +227,7 @@ function StatsRow({
 	members,
 	canInvite,
 	setupDone,
+	setupTotal,
 	lastUpdatedAt,
 }: {
 	memories: number
@@ -195,6 +235,7 @@ function StatsRow({
 	members: number
 	canInvite: boolean
 	setupDone: number
+	setupTotal: number
 	lastUpdatedAt: string | Date | null
 }) {
 	const { openSettings } = useSettingsModal()
@@ -219,15 +260,15 @@ function StatsRow({
 				<button
 					type="button"
 					onClick={onInvite}
-					className="inline-flex items-center gap-1 text-[11px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]"
+					className="hidden items-center gap-1 text-[11px] font-medium text-[#737373] transition-colors hover:text-[#fafafa] sm:inline-flex"
 				>
 					<UserPlus className="size-3" />
 					Invite
 				</button>
 			) : undefined,
 		},
-		setupDone < 3
-			? { label: "Setup", value: `${setupDone}/3` }
+		setupDone < setupTotal
+			? { label: "Setup", value: `${setupDone}/${setupTotal}` }
 			: {
 					label: "Last updated",
 					value: formatWhen(lastUpdatedAt) || "—",
@@ -235,28 +276,61 @@ function StatsRow({
 	]
 	return (
 		<section
-			className="grid grid-cols-2 divide-white/[0.04] rounded-[16px] bg-[#1B1F24] sm:grid-cols-4 sm:divide-x"
+			className="grid grid-cols-4 divide-x divide-white/[0.04] overflow-hidden rounded-[16px] bg-[#1B1F24]"
 			style={cardStyle}
 		>
-			{tiles.map((t) => (
-				<div key={t.label} className="px-5 py-4">
-					<div className="flex items-start justify-between gap-2">
-						<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#737373]">
-							{t.label}
+			{tiles.map((t, index) => (
+				<div
+					key={t.label}
+					className={cn(
+						"relative min-w-0 px-3 py-3 sm:px-5 sm:py-4",
+						index === 2 && canInvite && "pr-8 sm:pr-5",
+					)}
+				>
+					<div className="flex min-w-0 items-start justify-between gap-2">
+						<p className="min-w-0 truncate text-[8px] font-semibold uppercase leading-tight tracking-[0.08em] text-[#737373] sm:text-[10px] sm:tracking-[0.12em]">
+							<MobileStatLabel label={t.label} />
 						</p>
 						{t.action}
 					</div>
 					<p
 						className={cn(
-							"mt-1.5 text-[22px] font-semibold leading-none tabular-nums text-[#fafafa]",
+							"mt-1 text-[17px] font-semibold leading-none tabular-nums text-[#fafafa] sm:mt-1.5 sm:text-[22px]",
 							dmSans125ClassName(),
 						)}
 					>
 						{t.value}
 					</p>
+					{index === 2 && canInvite && (
+						<button
+							type="button"
+							onClick={onInvite}
+							aria-label="Invite teammates"
+							title="Invite teammates"
+							className="absolute right-1.5 bottom-1.5 inline-flex size-6 items-center justify-center rounded-md bg-white/[0.03] text-[#737373] transition-colors hover:bg-white/[0.07] hover:text-[#fafafa] sm:hidden"
+						>
+							<UserPlus className="size-3" />
+						</button>
+					)}
 				</div>
 			))}
 		</section>
+	)
+}
+
+function MobileStatLabel({ label }: { label: string }) {
+	const mobile =
+		label === "Connected sources"
+			? "Sources"
+			: label === "Active members"
+				? "Members"
+				: label
+
+	return (
+		<>
+			<span className="sm:hidden">{mobile}</span>
+			<span className="hidden sm:inline">{label}</span>
+		</>
 	)
 }
 
@@ -325,34 +399,182 @@ function RecentMemories({
 	)
 }
 
-function GettingStarted({
-	hasSource,
-	hasAgent,
+function TrialStrip() {
+	const trial = useBrainTrial()
+	const { openSettings } = useSettingsModal()
+
+	if (trial.state === "ended") {
+		return (
+			<div className="mb-4 flex items-center justify-between gap-3 rounded-[12px] bg-[#14161A] px-3.5 py-2.5">
+				<p className="text-[12px] font-medium text-[#E5735A]">
+					Trial ended · your brain is paused
+				</p>
+				<button
+					type="button"
+					onClick={() => openSettings("billing")}
+					className="shrink-0 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#1D1C1D] transition-opacity hover:opacity-90"
+				>
+					Activate
+				</button>
+			</div>
+		)
+	}
+
+	if (trial.state !== "trialing" || !trial.startedAtMs || !trial.endsAtMs) {
+		return null
+	}
+
+	const DAY_MS = 24 * 60 * 60 * 1000
+	const totalDays = Math.max(
+		1,
+		Math.round((trial.endsAtMs - trial.startedAtMs) / DAY_MS),
+	)
+	const days = trial.daysRemaining ?? 0
+	const dayNum = Math.min(totalDays, Math.max(1, totalDays - days + 1))
+	const pct = Math.min(100, Math.max(4, (dayNum / totalDays) * 100))
+
+	return (
+		<button
+			type="button"
+			onClick={() => openSettings("billing")}
+			className="mb-4 block w-full cursor-pointer rounded-[12px] bg-[#14161A] px-3.5 py-2.5 text-left transition-colors hover:bg-[#171A1F]"
+		>
+			<div className="flex items-center justify-between gap-3">
+				<p className="text-[12px] font-medium text-[#fafafa]">
+					Free trial ·{" "}
+					<span className={cn(days <= 3 ? "text-[#E5A45A]" : "text-[#737373]")}>
+						{days} day{days === 1 ? "" : "s"} left
+					</span>
+				</p>
+				<p className="shrink-0 text-[11px] font-medium text-[#525D6E]">
+					Ends{" "}
+					{new Date(trial.endsAtMs).toLocaleDateString("en-US", {
+						month: "short",
+						day: "numeric",
+					})}
+				</p>
+			</div>
+			<div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.06]">
+				<div
+					className={cn(
+						"h-full rounded-full",
+						days <= 3 ? "bg-[#E5A45A]" : "bg-[#4BA0FA]",
+					)}
+					style={{ width: `${pct}%` }}
+				/>
+			</div>
+		</button>
+	)
+}
+
+function BrainTimeline({
+	researchStatus,
+	slackConnected,
+	rollout,
+	hasApps,
+	invited,
 	hasMemory,
+	canInvite,
+	toolsCardVisible,
 }: {
-	hasSource: boolean
-	hasAgent: boolean
+	researchStatus: string | null
+	slackConnected: boolean
+	rollout: RolloutOverview | null
+	hasApps: boolean
+	invited: boolean
 	hasMemory: boolean
+	canInvite: boolean
+	toolsCardVisible: boolean
 }) {
-	const steps = [
+	const trial = useBrainTrial()
+	const { openSettings } = useSettingsModal()
+	const { setViewMode } = useViewMode()
+	const [, setInvite] = useQueryState("invite")
+
+	const onInvite = () => {
+		setInvite("1")
+		openSettings("account")
+	}
+
+	const onSetUpApps = () => {
+		const card = document.getElementById(CONNECT_TOOLS_CARD_ID)
+		if (toolsCardVisible && card) {
+			card.scrollIntoView({ behavior: "smooth", block: "center" })
+		} else {
+			void setViewMode("configure")
+		}
+	}
+
+	const researching =
+		researchStatus === "queued" || researchStatus === "running"
+	type Step = {
+		done: boolean
+		busy?: boolean
+		title: string
+		hint?: string
+		action?: { label: string; onClick?: () => void; href?: string }
+	}
+	// Rows with unreported state are omitted rather than shown as never-started.
+	const steps: Step[] = [
+		...(researchStatus != null
+			? [
+					{
+						done: researchStatus === "done",
+						busy: researching,
+						title: researching
+							? "Researching your company…"
+							: "Company research",
+					},
+				]
+			: []),
 		{
-			done: hasSource,
-			title: "Connect a source",
-			hint: "GitHub, Linear, Drive or Slack.",
-			href: "/settings/integrations",
+			done: slackConnected,
+			title: slackConnected ? "Slack connected" : "Connect Slack",
+			hint: slackConnected
+				? undefined
+				: trial.state === "trialing"
+					? "Ask your brain from any channel."
+					: "Starts your 14-day free trial. No credit card needed.",
+			action: slackConnected
+				? undefined
+				: { label: "Add", href: `${BACKEND}/brain/slack/oauth/install` },
+		},
+		...(rollout != null
+			? [
+					{
+						done: rollout.status === "done",
+						busy: rollout.status === "running",
+						title:
+							rollout.status === "running"
+								? `Learning from channels… ${rollout.ready}/${rollout.discovered} ready`
+								: rollout.status === "done"
+									? `Learning from channels · ${rollout.ready} ready`
+									: "Learning from channels",
+					},
+				]
+			: []),
+		{
+			done: hasApps,
+			title: "Connect apps",
+			hint: hasApps ? undefined : "Linear, Notion, GitHub and more.",
+			action: hasApps ? undefined : { label: "Set up", onClick: onSetUpApps },
 		},
 		{
-			done: hasAgent,
-			title: "Install a coding agent",
-			hint: "Claude Code, Codex or Cursor.",
-			href: "/settings/integrations",
+			done: invited,
+			title: "Invite teammates",
+			hint: invited ? undefined : "Multiply what the brain remembers.",
+			action:
+				invited || !canInvite
+					? undefined
+					: { label: "Invite", onClick: onInvite },
 		},
 		{
 			done: hasMemory,
-			title: "Add your first memory",
-			hint: "Save a doc, or ask your brain below.",
+			title: "First memories captured",
+			hint: hasMemory ? undefined : "Save a doc, or ask your brain below.",
 		},
 	]
+
 	return (
 		<section
 			className="relative h-fit overflow-hidden rounded-[18px] bg-[#1B1F24] p-5"
@@ -372,13 +594,15 @@ function GettingStarted({
 					dmSans125ClassName(),
 				)}
 			>
-				Getting started
+				Your Company Brain
 			</p>
-			<p className="mt-0.5 text-[12px] font-medium text-[#737373]">
-				A few steps to make your brain useful.
+			<p className="mb-4 mt-0.5 text-[12px] font-medium text-[#737373]">
+				How far you've come.
 			</p>
 
-			<ul className="mt-4 space-y-2.5">
+			<TrialStrip />
+
+			<ul className="space-y-2.5">
 				{steps.map((step) => (
 					<li key={step.title} className="flex items-start gap-3">
 						<span
@@ -390,31 +614,44 @@ function GettingStarted({
 									: "border-[rgba(82,89,102,0.4)]",
 							)}
 						>
-							{step.done && <Check className="size-3 text-white" />}
+							{step.done ? (
+								<Check className="size-3 text-white" />
+							) : step.busy ? (
+								<Loader2 className="size-3 animate-spin text-[#4BA0FA]" />
+							) : null}
 						</span>
 						<div className="min-w-0 flex-1">
 							<div className="flex items-center justify-between gap-2">
 								<p
 									className={cn(
 										"text-[13px] font-medium",
-										step.done
-											? "text-[#737373] line-through"
-											: "text-[#fafafa]",
+										step.done ? "text-[#737373]" : "text-[#fafafa]",
 									)}
 								>
 									{step.title}
 								</p>
-								{!step.done && step.href && (
-									<Link
-										href={step.href}
-										className="inline-flex shrink-0 items-center gap-0.5 text-[12px] font-medium text-[#4BA0FA] transition-opacity hover:opacity-80"
-									>
-										Set up
-										<ArrowRight className="size-3" />
-									</Link>
-								)}
+								{!step.done &&
+									step.action &&
+									(step.action.href ? (
+										<a
+											href={step.action.href}
+											className="inline-flex shrink-0 items-center gap-0.5 text-[12px] font-medium text-[#4BA0FA] transition-opacity hover:opacity-80"
+										>
+											{step.action.label}
+											<ArrowRight className="size-3" />
+										</a>
+									) : (
+										<button
+											type="button"
+											onClick={step.action.onClick}
+											className="inline-flex shrink-0 cursor-pointer items-center gap-0.5 text-[12px] font-medium text-[#4BA0FA] transition-opacity hover:opacity-80"
+										>
+											{step.action.label}
+											<ArrowRight className="size-3" />
+										</button>
+									))}
 							</div>
-							{!step.done && (
+							{!step.done && step.hint && (
 								<p className="mt-0.5 text-[12px] font-medium leading-[1.4] text-[#737373]">
 									{step.hint}
 								</p>

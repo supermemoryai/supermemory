@@ -140,6 +140,18 @@ const model = withSupermemory(openai("gpt-5"), {
 })
 ```
 
+### Persisting Tool Calls (default: off)
+
+By default, saved conversations include only user and assistant text — tool calls and tool results are dropped, since tool payloads are often large and low-signal and would pollute memory extraction. To persist the full tool round trip (tool calls with their arguments, plus tool results, in their original order), set `includeToolCalls: true`:
+
+```typescript
+const model = withSupermemory(openai("gpt-5"), {
+  containerTag: "user-123",
+  customId: "conv-1",
+  includeToolCalls: true,
+})
+```
+
 ---
 
 ## Memory Tools

@@ -21,8 +21,15 @@ export interface PluginInfo {
 	installSteps?: InstallStep[]
 }
 
-/** Match `FREE_TIER_PLUGIN_IDS` in mono `packages/lib/plugins.ts`. */
-export const FREE_TIER_PLUGIN_IDS = ["hermes", "codex"]
+/** All plugins are free-tier. Match mono `packages/lib/plugins.ts`. */
+export const FREE_TIER_PLUGIN_IDS = [
+	"claude_code",
+	"codex",
+	"cursor",
+	"opencode",
+	"openclaw",
+	"hermes",
+]
 
 export function isFreeTierPlugin(pluginId: string): boolean {
 	return FREE_TIER_PLUGIN_IDS.includes(pluginId)
@@ -54,7 +61,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 	codex: {
 		id: "codex",
 		name: "Codex",
-		tagline: "Persistent memory for the Codex CLI — free on every plan",
+		tagline: "Persistent memory for the Codex CLI",
 		icon: "/images/plugins/codex.png",
 		docsUrl: "https://supermemory.ai/docs/integrations/codex",
 		githubUrl: "https://github.com/supermemoryai/codex-supermemory",
@@ -162,7 +169,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 	hermes: {
 		id: "hermes",
 		name: "Hermes",
-		tagline: "Persistent memory for the Hermes agent — free on every plan",
+		tagline: "Persistent memory for the Hermes agent",
 		icon: "/images/plugins/hermes.svg",
 		docsUrl: "https://supermemory.ai/docs/integrations/hermes",
 		installSteps: [

@@ -19,7 +19,7 @@ export function BrainShell({ step, steps, children }: ShellProps) {
 	return (
 		<div
 			className={cn(
-				"relative min-h-dvh bg-[#05080D] text-[#FAFAFA] flex flex-col overflow-hidden",
+				"relative min-h-dvh overflow-hidden bg-[#05080D] text-[#FAFAFA]",
 				dmSansClassName(),
 			)}
 		>
@@ -46,20 +46,25 @@ export function BrainShell({ step, steps, children }: ShellProps) {
 				}}
 			/>
 
-			<header className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center px-6 md:px-10 py-4 gap-4">
-				<LogoFull className="h-5 md:h-6 text-[#fafafa] justify-self-start" />
-				<StepIndicator step={step} visibleSteps={visibleSteps} />
+			<header className="pointer-events-none absolute inset-x-0 top-0 z-20 grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 md:px-10">
+				<LogoFull className="h-5 text-[#fafafa] md:h-6" />
+				<div className="hidden justify-center md:flex">
+					<StepIndicator step={step} visibleSteps={visibleSteps} />
+				</div>
 				<span aria-hidden />
 			</header>
 
 			<main
 				className={cn(
-					"relative z-10 flex-1 flex justify-center px-4 md:px-10 py-6 md:py-10",
+					"relative z-10 flex min-h-dvh flex-col items-center px-4 md:px-10",
 					step === "sources"
-						? "items-start overflow-y-auto"
-						: "items-center overflow-hidden",
+						? "justify-start overflow-y-auto pt-20 pb-10"
+						: "justify-center overflow-y-auto py-20 md:overflow-hidden",
 				)}
 			>
+				<div className="mb-5 flex justify-center md:hidden">
+					<StepIndicator step={step} visibleSteps={visibleSteps} />
+				</div>
 				<div
 					className={cn(
 						"w-full",
@@ -89,7 +94,7 @@ function StepIndicator({
 				const isLast = i === visibleSteps.length - 1
 				return (
 					<div key={s} className="flex items-start">
-						<div className="flex flex-col items-center gap-1.5 min-w-[58px]">
+						<div className="flex min-w-[44px] flex-col items-center gap-1.5 md:min-w-[58px]">
 							<StepDot done={isDone} current={isCurrent} />
 							<span
 								className={cn(
@@ -105,7 +110,7 @@ function StepIndicator({
 							</span>
 						</div>
 						{!isLast && (
-							<div className="flex-1 h-px min-w-[28px] mt-[5px]">
+							<div className="mt-[5px] h-px min-w-[18px] flex-1 md:min-w-[28px]">
 								<motion.div
 									initial={false}
 									animate={{
