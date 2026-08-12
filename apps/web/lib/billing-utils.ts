@@ -194,9 +194,6 @@ export function formatUsageNumber(value: number): string {
 	const withSuffix = (n: number, suffix: string) =>
 		n % 1 === 0 ? `${n}${suffix}` : `${n.toFixed(1)}${suffix}`
 
-	// One-decimal rounding can push a value just under a unit up to "1000.0"
-	// (e.g. 999,950 / 1_000 = 999.95 rounds to 1000.0K), so promote it to the
-	// next unit instead of rendering "1000.0K".
 	if (value >= 1_000_000) {
 		const millions = value / 1_000_000
 		return millions >= 999.95
