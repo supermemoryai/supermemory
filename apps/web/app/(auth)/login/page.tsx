@@ -25,6 +25,25 @@ import {
 	shouldUseReviewerPasswordLogin,
 } from "@/lib/reviewer-password-login"
 
+/**
+ * `NEXT_PUBLIC_<PROVIDER>_AUTH_ENABLED` is an opt-out switch, not an opt-in one:
+ * self-hosted deployments show every social provider by default, and an operator
+ * turns one off by setting the flag to a falsy value. Treating any other value as
+ * "enabled" keeps `..._AUTH_ENABLED=true` from hiding the provider it names.
+ */
+function isSocialProviderEnabled(flag: string | undefined): boolean {
+	if (flag === undefined || flag === "") return true
+	return flag !== "false" && flag !== "0"
+}
+
+const isGoogleAuthEnabled =
+	process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
+	isSocialProviderEnabled(process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED)
+
+const isGithubAuthEnabled =
+	process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
+	isSocialProviderEnabled(process.env.NEXT_PUBLIC_GITHUB_AUTH_ENABLED)
+
 function isMcpOAuthAuthorizeContext(sp: Pick<URLSearchParams, "get">): boolean {
 	return sp.get("response_type") === "code" && Boolean(sp.get("client_id"))
 }
@@ -475,8 +494,7 @@ export default function LoginPage() {
 										)}
 
 										<div className="flex flex-col gap-3">
-											{process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
-											!process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED ? (
+											{isGoogleAuthEnabled ? (
 												<div className="w-full">
 													<LastUsedBadge show={lastUsedMethod === "google"} />
 													<ExternalAuthButton
@@ -532,8 +550,7 @@ export default function LoginPage() {
 													/>
 												</div>
 											) : null}
-											{process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
-											!process.env.NEXT_PUBLIC_GITHUB_AUTH_ENABLED ? (
+											{isGithubAuthEnabled ? (
 												<div className="w-full">
 													<LastUsedBadge show={lastUsedMethod === "github"} />
 													<ExternalAuthButton
