@@ -12,6 +12,39 @@ export function buildSupermemoryText(memories: unknown): string {
 	return `\n\n${SUPERMEMORY_PREFIX} ${memoryText}`
 }
 
+function normalizeMemoryList(memories: unknown): string[] {
+	const list = Array.isArray(memories)
+		? memories
+		: memories == null
+			? []
+			: [memories]
+	return list
+		.map((memory) => (typeof memory === "string" ? memory : String(memory)))
+		.map((memory) => memory.trim())
+		.filter((memory) => memory.length > 0)
+}
+
+export function serializeMemoriesForDataset(memories: unknown): string {
+	const list = normalizeMemoryList(memories)
+	return list.length > 0 ? JSON.stringify(list) : ""
+}
+
+export function parseMemoriesFromDataset(
+	raw: string | null | undefined,
+): string[] {
+	if (!raw) return []
+	try {
+		const parsed = JSON.parse(raw)
+		if (Array.isArray(parsed)) return normalizeMemoryList(parsed)
+	} catch {
+		// Not JSON — fall through to the legacy delimiter split.
+	}
+	return raw
+		.split(/[,\n]/)
+		.map((memory) => memory.trim())
+		.filter((memory) => memory.length > 0 && memory !== ",")
+}
+
 export function showMemorySuggestion(
 	platform: string,
 	input: SuggestionInput,
@@ -305,10 +338,7 @@ export function showMarkerPopover(
 			color: rgba(255, 255, 255, 0.76);
 		`
 
-		memories
-			.split(/[,\n]/)
-			.map((memory) => memory.trim())
-			.filter((memory) => memory.length > 0 && memory !== ",")
+		parseMemoriesFromDataset(memories)
 			.slice(0, 5)
 			.forEach((memory) => {
 				const item = document.createElement("div")
