@@ -525,6 +525,8 @@ function SlackStepBody({
 		<div>
 			<a
 				href={`${BACKEND}/brain/slack/oauth/install`}
+				target="_blank"
+				rel="noopener noreferrer"
 				className={cn(
 					"inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-[13px] font-semibold text-[#1D1C1D] transition-opacity hover:opacity-90",
 					dmSans125ClassName(),
