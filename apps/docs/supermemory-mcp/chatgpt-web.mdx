@@ -1,6 +1,6 @@
 ---
 title: "ChatGPT Web"
-description: "Connect Supermemory MCP to ChatGPT Web through Plugins and OAuth"
+description: "Connect Supermemory MCP to ChatGPT Web and make Supermemory the default for memory, recall, and saved context"
 icon: "/images/openai.svg"
 sidebarTitle: "ChatGPT Web"
 ---
@@ -196,4 +196,50 @@ After approval, ChatGPT returns to the Supermemory MCP plugin page. Select **Try
 
 Supermemory MCP is now ready to use in ChatGPT Web. You can manage or disconnect it later from the [Plugins page](https://chatgpt.com/plugins).
 
-**See also:** [MCP overview](/supermemory-mcp/mcp) | [Setup and Usage](/supermemory-mcp/setup) | [Claude Desktop](/supermemory-mcp/claude-desktop)
+## Frequently asked questions
+
+<AccordionGroup>
+  <Accordion title="How do I make Supermemory the default memory in ChatGPT?">
+    <Steps>
+      <Step title="Turn off ChatGPT memory">
+        Turn **Enable memory** off.
+
+        <img
+          className="hidden dark:block"
+          src="/images/supermemory-mcp/chatgpt-web/faq-memory-dark.png"
+          alt="ChatGPT Personalization settings in dark mode showing the Enable memory switch and Memory summary"
+        />
+        <img
+          className="block dark:hidden"
+          src="/images/supermemory-mcp/chatgpt-web/faq-memory-light.png"
+          alt="ChatGPT Personalization settings in light mode showing the Enable memory switch and Memory summary"
+        />
+
+        Turning memory off does not delete your past chats.
+      </Step>
+
+      <Step title="Optionally copy your existing memory">
+        If you want to keep a copy of ChatGPT's existing memory, select **Manage** and copy the memory summary. Open a chat with Supermemory enabled, paste the summary, and say `Add this to Supermemory`.
+      </Step>
+
+      <Step title="Make Supermemory the default">
+        Paste this into **Custom instructions**:
+
+        <img
+          className="hidden dark:block"
+          src="/images/supermemory-mcp/chatgpt-web/faq-custom-instructions-dark.png"
+          alt="ChatGPT Personalization settings in dark mode showing the Custom instructions field"
+        />
+        <img
+          className="block dark:hidden"
+          src="/images/supermemory-mcp/chatgpt-web/faq-custom-instructions-light.png"
+          alt="ChatGPT Personalization settings in light mode showing the Custom instructions field"
+        />
+
+        ```text
+        Use Supermemory MCP as my default memory and workspace memory whenever its tools are available. Use it first for both recall and saving new memories.
+        ```
+      </Step>
+    </Steps>
+  </Accordion>
+</AccordionGroup>
