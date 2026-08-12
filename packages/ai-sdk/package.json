@@ -1,7 +1,7 @@
 {
   "name": "@supermemory/ai-sdk",
   "type": "module",
-  "version": "1.0.8",
+  "version": "2.0.0",
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch --ignore-watch .turbo",
@@ -10,10 +10,8 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.22",
-    "@ai-sdk/provider": "^2.0.0",
-    "ai": "^5.0.113",
-    "supermemory": "^3.0.0-alpha.26"
+    "@ai-sdk/provider": "^1.0.0",
+    "@supermemory/tools": "workspace:*"
   },
   "devDependencies": {
     "@total-typescript/tsconfig": "^1.0.4",
@@ -24,7 +22,7 @@
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "types": "./dist/index-Dk1U5LBS.d.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
     "./package.json": "./package.json"
@@ -38,5 +36,7 @@
     "sdk",
     "supermemory",
     "memory"
-  ]
+  ],
+  "author": "Supermemory Team",
+  "license": "MIT"
 }
