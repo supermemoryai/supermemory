@@ -45,6 +45,13 @@ export function parseMemoriesFromDataset(
 		.filter((memory) => memory.length > 0 && memory !== ",")
 }
 
+export function renumberIncludedMemories(memories: string[]): string[] {
+	return memories.map((memory, index) => {
+		const text = memory.replace(/^\d+\.\s*/, "").replace(/\s+$/, "")
+		return `${index + 1}. ${text} \n`
+	})
+}
+
 export function showMemorySuggestion(
 	platform: string,
 	input: SuggestionInput,
