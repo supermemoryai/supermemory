@@ -24,24 +24,11 @@ function normalizeMemoryList(memories: unknown): string[] {
 		.filter((memory) => memory.length > 0)
 }
 
-/**
- * Serialize the memory list for storage on a `data-*` attribute. Memories are
- * free text that can contain commas and newlines, so they are stored as JSON
- * rather than joined into a single string, otherwise a memory with a comma in
- * it is split into fragments when the popup reads it back. Returns an empty
- * string for an empty list so existing truthiness checks on the attribute
- * (memories present vs not) keep working.
- */
 export function serializeMemoriesForDataset(memories: unknown): string {
 	const list = normalizeMemoryList(memories)
 	return list.length > 0 ? JSON.stringify(list) : ""
 }
 
-/**
- * Read back a memory list written by {@link serializeMemoriesForDataset}.
- * Falls back to the legacy comma/newline split so any value written by older
- * code (or a plain joined string) still renders.
- */
 export function parseMemoriesFromDataset(
 	raw: string | null | undefined,
 ): string[] {
@@ -58,7 +45,6 @@ export function parseMemoriesFromDataset(
 		.filter((memory) => memory.length > 0 && memory !== ",")
 }
 
-/** Strip stale `N. ` prefixes and renumber after a popup removal. */
 export function renumberIncludedMemories(memories: string[]): string[] {
 	return memories.map((memory, index) => {
 		const text = memory.replace(/^\d+\.\s*/, "").replace(/\s+$/, "")
