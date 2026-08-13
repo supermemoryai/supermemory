@@ -392,40 +392,66 @@
 					}
 				],
 				"tab": "Plugins and MCP"
-			},
-			{
-				"tab": "Company Brain",
-				"groups": [
-					{
-						"group": "Concepts",
-						"pages": [
-							"company-brain/overview",
-							"company-brain/setup",
-							"company-brain/permissions",
-							"company-brain/connectors",
-							"company-brain/automations",
-							"company-brain/outside-slack"
-						]
-					},
-					{
-						"group": "What you can do",
-						"pages": [
-							"company-brain/use-cases/overview",
-							"company-brain/use-cases/support",
-							"company-brain/use-cases/incidents",
-							"company-brain/use-cases/support-escalation",
-							"company-brain/use-cases/meeting-recall",
-							"company-brain/use-cases/knowledge-recall",
-							"company-brain/use-cases/acting-in-tools",
-							"company-brain/use-cases/greeting",
-							"company-brain/use-cases/sandbox-debugging",
-							"company-brain/use-cases/long-horizon-research",
-							"company-brain/use-cases/meeting-scheduling"
-						]
-					}
-				]
-			}
-		]
+      },
+      {
+        "tab": "Supermemory Brain",
+        "groups": [
+          {
+            "group": "Company Brain",
+            "pages": [
+              {
+                "group": "Concepts",
+                "pages": [
+                  "company-brain/overview",
+                  "company-brain/setup",
+                  "company-brain/permissions",
+                  "company-brain/connectors",
+                  "company-brain/automations",
+                  "company-brain/outside-slack"
+                ]
+              },
+              {
+                "group": "What you can do",
+                "pages": [
+                  "company-brain/use-cases/overview",
+                  "company-brain/use-cases/support",
+                  "company-brain/use-cases/incidents",
+                  "company-brain/use-cases/support-escalation",
+                  "company-brain/use-cases/meeting-recall",
+                  "company-brain/use-cases/knowledge-recall",
+                  "company-brain/use-cases/acting-in-tools",
+                  "company-brain/use-cases/greeting",
+                  "company-brain/use-cases/sandbox-debugging",
+                  "company-brain/use-cases/long-horizon-research",
+                  "company-brain/use-cases/meeting-scheduling"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Personal Brain",
+            "pages": [
+              "personal-brain/concepts/what-is-supermemory-personal-brain",
+              "personal-brain/concepts/app-and-console",
+              "personal-brain/concepts/setup",
+              "personal-brain/concepts/spaces",
+              {
+                "group": "Integrations",
+                "icon": "plug",
+                "pages": [
+                  "personal-brain/concepts/integrations",
+                  "personal-brain/use-cases/poke",
+                  "personal-brain/use-cases/browser-extension",
+                  "personal-brain/use-cases/apple-shortcuts",
+                  "personal-brain/use-cases/x-bookmarks",
+                  "personal-brain/use-cases/raycast"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
 	},
 	"redirects": [
 		{

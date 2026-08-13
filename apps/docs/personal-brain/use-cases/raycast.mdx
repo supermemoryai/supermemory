@@ -1,0 +1,77 @@
+---
+title: "Use Supermemory with Raycast: Save and Search Memories on Mac"
+sidebarTitle: "Raycast"
+description: "Learn how to use the Supermemory Raycast extension to add and search Personal Brain memories from the Raycast command bar on macOS."
+icon: "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xml%3Aspace%3D%22preserve%22%20viewBox%3D%220%200%20512%20512%22%3E%3Cpath%20d%3D%22M128.1%20330.5v53.4L0%20255.8l26.8-26.7zm53.4%2053.4h-53.4L256.2%20512l26.7-26.7zm303.8-101.3%2026.7-26.7L256.1%200l-26.7%2026.7L330.5%20128h-61.1l-70.6-70.5L172%2084.1l44%2044h-30.6v198.6H384v-30.6l44%2044%2026.7-26.7-70.7-70.8v-61.1zm-343.9-168-26.7%2026.7%2028.6%2028.6%2026.7-26.7zm227.3%20227.3-26.6%2026.7%2028.6%2028.6%2026.7-26.7zm-284.6-170-26.7%2026.7%2070.7%2070.7v-53.5zm212%20212h-53.4l70.7%2070.7%2026.7-26.7z%22%20style%3D%22fill-rule%3Aevenodd%3Bclip-rule%3Aevenodd%3Bfill%3A%23ff6363%22%2F%3E%3C%2Fsvg%3E"
+iconType: "regular"
+---
+
+Add and search your memory from the Raycast command bar on Mac.
+
+<Frame>
+  ![Raycast connect Supermemory command](/images/personal-brain/raycast.png)
+</Frame>
+
+## How the Supermemory Raycast extension works
+
+Adds memories from Raycast on Mac and searches Supermemory directly from the desktop command bar.
+
+## Before you start
+
+- A Supermemory account with Personal Brain access
+- Signed in at [app.supermemory.ai](https://app.supermemory.ai)
+- Raycast installed on macOS
+- The active organization and Space you want to use
+
+## How to install and connect the Raycast extension
+
+<Steps>
+  <Step title="Open Integrations in Personal Brain">
+    Go to Integrations and select Raycast.
+  </Step>
+  <Step title="Install the Raycast extension">
+    Install the Supermemory extension from the Raycast store.
+  </Step>
+  <Step title="Connect your account">
+    Sign in from the extension so Raycast can save and search in your Supermemory account.
+  </Step>
+  <Step title="Choose the correct Space">
+    Select the Space you want the commands to use.
+  </Step>
+  <Step title="Try Add memory and Search memory">
+    Run the add and search commands from Raycast to confirm the connection.
+  </Step>
+</Steps>
+
+## How Raycast talks to Supermemory
+
+Raycast talks to Supermemory through the extension. Add memory sends the input to your active Space. Search memory queries the same Space and shows matches inline.
+
+## What Raycast saves and searches
+
+- Save: text, links, or selections passed to the add command
+- Search: your memory in the Space Raycast is pointed at
+
+## Limitations of the Raycast extension
+
+- Raycast runs on macOS. Other launchers are not covered here.
+- Commands run against the active Space chosen in the extension. Confirm it before saving or searching.
+- Some commands rely on macOS accessibility and clipboard permissions granted to Raycast.
+
+## How to troubleshoot Raycast
+
+- **Commands don't run.** Confirm you're signed in from the extension and the connection status is active.
+- **A saved memory did not appear.** Check the active organization and Space, and that processing finished.
+- **Search returns nothing.** Confirm the Space matches the one you saved into.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Integrations" icon="plug" href="/personal-brain/concepts/integrations">
+    See every way to save and recall from Personal Brain.
+  </Card>
+
+  <Card title="Spaces" icon="layers" href="/personal-brain/concepts/spaces">
+    Keep different parts of your memory organized and separate.
+  </Card>
+</CardGroup>
