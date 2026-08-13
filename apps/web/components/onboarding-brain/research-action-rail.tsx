@@ -536,7 +536,7 @@ function SlackStepBody({
 				Add to Slack
 			</a>
 			<p className="mt-2 text-center text-[11px] font-medium leading-[1.5] text-[#525D6E]">
-				Starts your 14-day free trial. No credit card needed.
+				Included in your 14-day trial.
 			</p>
 		</div>
 	)
