@@ -72,6 +72,7 @@ function setupT3RouteChangeDetection() {
 
 	const checkForRouteChange = () => {
 		if (window.location.href !== currentUrl) {
+			disposeT3IncludedPopup()
 			currentUrl = window.location.href
 			setTimeout(() => {
 				addSupermemoryIconToT3Input()
@@ -578,6 +579,7 @@ function setupT3PromptCapture() {
 		if (textareaElement?.dataset.supermemories) {
 			delete textareaElement.dataset.supermemories
 		}
+		disposeT3IncludedPopup()
 	}
 
 	const handleT3SendButtonClick = async (event: Event) => {
@@ -733,6 +735,7 @@ async function setupT3AutoFetch() {
 				if (textareaElement.dataset.supermemories) {
 					delete textareaElement.dataset.supermemories
 				}
+				disposeT3IncludedPopup()
 			}
 		}, UI_CONFIG.AUTO_SEARCH_DEBOUNCE_DELAY)
 	}
