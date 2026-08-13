@@ -35,6 +35,10 @@ Pass an explicit version to install (or roll back to) a specific release instead
 curl -fsSL https://supermemory.ai/install | bash -s -- 0.0.3
 ```
 
+<Warning>
+Before rolling back, back up your [data directory](#where-things-live). The installer replaces the binary, but an older server may not understand data or schema changes made by a newer release.
+</Warning>
+
 Release tags are `server-v<version>` on [GitHub Releases](https://github.com/supermemoryai/supermemory/releases) (for example [`server-v0.0.3`](https://github.com/supermemoryai/supermemory/releases/tag/server-v0.0.3)).
 
 To move to the newest release later:
@@ -43,7 +47,7 @@ To move to the newest release later:
 supermemory-server upgrade
 ```
 
-The binary may also print an “update available” nag on startup. If you intentionally pinned an older version (for example while debugging a regression), you can ignore that message until you are ready to upgrade.
+The binary may also print an “update available” notification on startup. If you intentionally pinned an older version (for example while debugging a regression), you can ignore that message until you are ready to upgrade.
 
 ## Run
 
