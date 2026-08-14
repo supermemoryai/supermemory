@@ -66,6 +66,7 @@ function App() {
 | `error` | `Error \| null` | Error to display |
 | `loadMoreDocuments` | `() => Promise<void>` | Function to load more data |
 | `highlightDocumentIds` | `string[]` | IDs of documents to highlight |
+| `showMinimap` | `boolean` | Show an overview minimap with a draggable viewport indicator (default: `false`) |
 
 ## Documentation
 

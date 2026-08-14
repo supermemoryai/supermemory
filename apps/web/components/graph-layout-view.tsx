@@ -45,6 +45,7 @@ export const GraphLayoutView = memo(function GraphLayoutView({
 					highlightsVisible
 					canvasRef={canvasRef}
 					onOpenDocument={onOpenDocument}
+					showMinimap
 				/>
 			</div>
 

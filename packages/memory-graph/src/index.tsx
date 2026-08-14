@@ -1,6 +1,7 @@
 // Components
 export { MemoryGraph } from "./components/memory-graph"
 export { GraphCanvas } from "./components/graph-canvas"
+export { Minimap } from "./components/minimap"
 
 // Hooks
 export { useGraphData } from "./hooks/use-graph-data"
