@@ -149,6 +149,19 @@ function objectProperty(value: unknown, key: string): unknown {
 		: undefined
 }
 
+// API error bodies are JSON like {"error": "..."} — unwrap them so users see
+// the real reason instead of raw JSON or a generic fallback.
+function extractApiErrorMessage(raw: unknown): string | undefined {
+	if (typeof raw !== "string" || !raw) return undefined
+	try {
+		const parsed = JSON.parse(raw) as { error?: unknown; message?: unknown }
+		if (typeof parsed.error === "string" && parsed.error) return parsed.error
+		if (typeof parsed.message === "string" && parsed.message)
+			return parsed.message
+	} catch {}
+	return raw
+}
+
 export class SupermemoryClient {
 	private client: Supermemory
 	private containerTag: string
@@ -371,7 +384,8 @@ export class SupermemoryClient {
 				signal,
 			})
 			if (!response.ok) {
-				throw Object.assign(new Error("Failed to fetch documents"), {
+				const message = extractApiErrorMessage(await response.text())
+				throw Object.assign(new Error(message ?? ""), {
 					status: response.status,
 				})
 			}
@@ -432,11 +446,10 @@ export class SupermemoryClient {
 			})
 
 			if (!response.ok) {
-				const message = await response.text()
-				throw Object.assign(
-					new Error(message || "Failed to fetch memory entries"),
-					{ status: response.status },
-				)
+				const message = extractApiErrorMessage(await response.text())
+				throw Object.assign(new Error(message ?? ""), {
+					status: response.status,
+				})
 			}
 
 			return memoryEntriesResponseSchema.parse(await response.json())
@@ -466,8 +479,7 @@ export class SupermemoryClient {
 
 		const status = objectProperty(error, "status")
 		if (typeof status === "number") {
-			const rawMessage = objectProperty(error, "message")
-			const message = typeof rawMessage === "string" ? rawMessage : undefined
+			const message = extractApiErrorMessage(objectProperty(error, "message"))
 			switch (status) {
 				case 400:
 				case 422:
@@ -479,7 +491,7 @@ export class SupermemoryClient {
 				case 403:
 					throw new Error(
 						message ||
-							"Access forbidden. Your account may be restricted or blocked.",
+							"Access forbidden. This connection may be read-only or scoped to specific spaces — reconnect with broader access, or check your account status.",
 					)
 				case 404:
 					throw new Error("Not found.")
