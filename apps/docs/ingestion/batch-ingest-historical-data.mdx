@@ -1,0 +1,145 @@
+---
+title: "How to backfill historical data into Supermemory"
+sidebarTitle: "Backfill historical data"
+description: "Backfill historical documents into Supermemory with documentDate, stable custom IDs, and the batch ingestion API."
+icon: "history"
+---
+
+Use `POST /v3/documents/batch` to backfill exports, emails, messages, or other dated records.
+
+<Warning>
+  Sort the source data oldest to newest, add `documentDate` to every document.
+</Warning>
+
+## Backfill in batches
+
+Backfill dated content by setting `documentDate` on each document, sorting the source records oldest to newest, and sending them in batches. Each request can contain up to 600 documents.
+
+**Endpoint:** [`POST /v3/documents/batch`](/api-reference/ingest/batch-add-documents)
+
+<CodeGroup>
+
+```typescript TypeScript
+import Supermemory from "supermemory";
+
+type SourceDocument = {
+  id: string;
+  content: string;
+  createdAt: string;
+};
+
+const client = new Supermemory();
+const batchSize = 100;
+
+async function backfillHistoricalData(sourceDocuments: SourceDocument[]) {
+  const documents = sourceDocuments
+    .map((document) => ({
+      content: document.content,
+      customId: document.id,
+      documentDate: new Date(document.createdAt).toISOString()
+    }))
+    .sort((a, b) => a.documentDate.localeCompare(b.documentDate));
+
+  for (let offset = 0; offset < documents.length; offset += batchSize) {
+    const result = await client.documents.batchAdd({
+      containerTag: "historical_import",
+      documents: documents.slice(offset, offset + batchSize)
+    });
+
+    if (result.failed > 0) {
+      throw new Error(`${result.failed} documents failed to ingest`);
+    }
+  }
+}
+```
+
+```python Python
+from datetime import datetime, timezone
+from supermemory import Supermemory
+
+client = Supermemory()
+batch_size = 100
+
+def to_utc(value: str) -> str:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        raise ValueError("created_at must include a timezone")
+    return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+def backfill_historical_data(source_documents: list[dict[str, str]]) -> None:
+    documents = sorted(
+        [
+            {
+                "content": document["content"],
+                "custom_id": document["id"],
+                "document_date": to_utc(document["created_at"]),
+            }
+            for document in source_documents
+        ],
+        key=lambda document: document["document_date"],
+    )
+
+    for offset in range(0, len(documents), batch_size):
+        result = client.documents.batch_add(
+            container_tag="historical_import",
+            documents=documents[offset : offset + batch_size],
+        )
+
+        if result.failed > 0:
+            raise RuntimeError(f"{result.failed} documents failed to ingest")
+```
+
+</CodeGroup>
+
+## Optional: wait for processing to finish
+
+**Endpoint:** [`GET /v3/documents/{id}`](/api-reference/documents/get-document)
+
+The batch endpoint returns after accepting the documents. If a later step depends on completed memory generation, poll the returned document IDs until both `status` and `dreamingStatus` are `done`.
+
+<CodeGroup>
+
+```typescript TypeScript
+async function waitUntilDone(ids: string[]) {
+  while (true) {
+    const documents = await Promise.all(
+      ids.map((id) => client.documents.get(id))
+    );
+
+    if (documents.some((document) => document.status === "failed")) {
+      throw new Error("A document failed to process");
+    }
+
+    if (
+      documents.every(
+        (document) =>
+          document.status === "done" && document.dreamingStatus === "done"
+      )
+    ) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10_000));
+  }
+}
+```
+
+```python Python
+import time
+
+def wait_until_done(ids: list[str]) -> None:
+    while True:
+        documents = [client.documents.get(document_id) for document_id in ids]
+
+        if any(document.status == "failed" for document in documents):
+            raise RuntimeError("A document failed to process")
+
+        if all(
+            document.status == "done" and document.dreaming_status == "done"
+            for document in documents
+        ):
+            return
+
+        time.sleep(10)
+```
+
+</CodeGroup>
