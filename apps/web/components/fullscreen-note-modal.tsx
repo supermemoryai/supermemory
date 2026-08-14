@@ -61,7 +61,6 @@ export function FullscreenNoteModal({
 
 	const handleContentChange = useCallback(
 		(newContent: string) => {
-			console.log("handleContentChange", newContent)
 			setContent(newContent)
 			setDraft(newContent)
 		},
