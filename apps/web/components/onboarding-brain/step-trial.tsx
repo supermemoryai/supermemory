@@ -177,11 +177,11 @@ export function StepTrial({ onActive }: { onActive: () => void }) {
 							"text-[22px] leading-tight font-medium text-[#fafafa]",
 						)}
 					>
-						Start your {TRIAL_DAYS}-day trial
+						Start your {TRIAL_DAYS}-day free trial
 					</h2>
 					<p className="text-[13px] leading-relaxed text-[#8b8b8b]">
-						We take a card now so Company Brain keeps working when the trial
-						ends. Cancel any time before then and you won't be charged.
+						Add a payment method to start. You will not be charged today. We
+						will email you before your first payment.
 					</p>
 				</div>
 
@@ -221,7 +221,7 @@ export function StepTrial({ onActive }: { onActive: () => void }) {
 							</>
 						) : (
 							<>
-								Add card and start trial
+								Start free trial
 								<ArrowRight className="size-3.5" />
 							</>
 						)}
