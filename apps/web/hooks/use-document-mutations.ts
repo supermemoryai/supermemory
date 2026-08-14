@@ -11,6 +11,12 @@ import { useAuth } from "@lib/auth-context"
 import { analytics } from "@/lib/analytics"
 import { fetchSpaceSettings, spaceSettingsKey } from "@/hooks/use-space-context"
 import { getBackendUrl } from "@/lib/url-helpers"
+import {
+	addOptimisticMemoryToQueryData,
+	type OptimisticMemory,
+	removeDocumentFromQueryData,
+	removeDocumentsFromQueryData,
+} from "@/lib/document-cache-updates"
 
 /** Pull the human-readable message out of a $fetch error (handles `{error}`/`{message}`/string). */
 function fetchErrorMessage(err: unknown, fallback: string): string {
@@ -23,174 +29,8 @@ function fetchErrorMessage(err: unknown, fallback: string): string {
 	return fallback
 }
 
-interface DocumentWithId {
-	id?: string
-	customId?: string | null
-}
-
 interface UseDocumentMutationsOptions {
 	onClose?: () => void
-}
-
-interface OptimisticMemory {
-	id: string
-	content: string
-	url: string | null
-	title: string
-	description: string
-	containerTags: string[]
-	createdAt: string
-	updatedAt: string
-	status: string
-	type: string
-	metadata: Record<string, unknown>
-	memoryEntries: unknown[]
-	isOptimistic?: boolean
-}
-
-function addOptimisticMemoryToQueryData(
-	old: unknown,
-	memory: OptimisticMemory,
-): unknown {
-	if (!old || typeof old !== "object") return old
-
-	const data = old as Record<string, unknown>
-
-	if ("pages" in data && Array.isArray(data.pages)) {
-		return {
-			...data,
-			pages: data.pages.map((page: unknown, index: number) => {
-				if (index !== 0) return page
-				const p = page as Record<string, unknown>
-				if (!p?.documents || !Array.isArray(p.documents)) return page
-				return {
-					...p,
-					documents: [memory, ...p.documents],
-					pagination: p.pagination
-						? {
-								...(p.pagination as Record<string, unknown>),
-								totalItems:
-									((p.pagination as Record<string, number>).totalItems ?? 0) +
-									1,
-							}
-						: p.pagination,
-				}
-			}),
-		}
-	}
-
-	if ("documents" in data && Array.isArray(data.documents)) {
-		return {
-			...data,
-			documents: [memory, ...data.documents],
-			totalCount: ((data.totalCount as number) ?? 0) + 1,
-		}
-	}
-
-	return old
-}
-
-function removeDocumentFromQueryData(
-	old: unknown,
-	documentId: string,
-): unknown {
-	if (!old || typeof old !== "object") return old
-
-	const data = old as Record<string, unknown>
-
-	if ("pages" in data && Array.isArray(data.pages)) {
-		return {
-			...data,
-			pages: data.pages.map((page: unknown) => {
-				const p = page as Record<string, unknown>
-				if (!p?.documents || !Array.isArray(p.documents)) return page
-				return {
-					...p,
-					documents: (p.documents as DocumentWithId[]).filter(
-						(doc) => doc.id !== documentId && doc.customId !== documentId,
-					),
-					pagination: p.pagination
-						? {
-								...(p.pagination as Record<string, unknown>),
-								totalItems: Math.max(
-									0,
-									((p.pagination as Record<string, number>).totalItems ?? 0) -
-										1,
-								),
-							}
-						: p.pagination,
-				}
-			}),
-		}
-	}
-
-	if ("documents" in data && Array.isArray(data.documents)) {
-		return {
-			...data,
-			documents: (data.documents as DocumentWithId[]).filter(
-				(doc) => doc.id !== documentId && doc.customId !== documentId,
-			),
-			totalCount: Math.max(0, ((data.totalCount as number) ?? 0) - 1),
-		}
-	}
-
-	return old
-}
-
-function removeDocumentsFromQueryData(
-	old: unknown,
-	documentIds: Set<string>,
-): unknown {
-	if (!old || typeof old !== "object" || documentIds.size === 0) return old
-
-	const data = old as Record<string, unknown>
-
-	if ("pages" in data && Array.isArray(data.pages)) {
-		return {
-			...data,
-			pages: data.pages.map((page: unknown) => {
-				const p = page as Record<string, unknown>
-				if (!p?.documents || !Array.isArray(p.documents)) return page
-				const filtered = (p.documents as DocumentWithId[]).filter(
-					(doc) =>
-						!documentIds.has(doc.id ?? "") &&
-						!documentIds.has(doc.customId ?? ""),
-				)
-				const removed =
-					(p.documents as DocumentWithId[]).length - filtered.length
-				return {
-					...p,
-					documents: filtered,
-					pagination: p.pagination
-						? {
-								...(p.pagination as Record<string, unknown>),
-								totalItems: Math.max(
-									0,
-									((p.pagination as Record<string, number>).totalItems ?? 0) -
-										removed,
-								),
-							}
-						: p.pagination,
-				}
-			}),
-		}
-	}
-
-	if ("documents" in data && Array.isArray(data.documents)) {
-		const filtered = (data.documents as DocumentWithId[]).filter(
-			(doc) =>
-				!documentIds.has(doc.id ?? "") && !documentIds.has(doc.customId ?? ""),
-		)
-		const removed =
-			(data.documents as DocumentWithId[]).length - filtered.length
-		return {
-			...data,
-			documents: filtered,
-			totalCount: Math.max(0, ((data.totalCount as number) ?? 0) - removed),
-		}
-	}
-
-	return old
 }
 
 async function cancelAndSnapshotQueries(
