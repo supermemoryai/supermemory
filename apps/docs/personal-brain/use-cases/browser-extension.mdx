@@ -1,7 +1,7 @@
 ---
-title: "Sync ChatGPT and Claude Memories with the Supermemory Chrome Extension"
+title: "Save ChatGPT and Claude Conversations to Supermemory with the Chrome Extension"
 sidebarTitle: "Browser extension"
-description: "Learn how to sync ChatGPT and Claude memories with Supermemory, save webpages, and import Chrome bookmarks into your Personal Brain."
+description: "Learn how to save ChatGPT and Claude conversations to Supermemory, save webpages, and import Chrome bookmarks into your Personal Brain."
 icon: "globe"
 ---
 
@@ -9,7 +9,7 @@ Save what you read on the web without leaving the tab.
 
 ## How the Supermemory Chrome extension works
 
-The Supermemory Chrome Extension saves webpages, imports bookmarks, and syncs memories from ChatGPT and Claude into your Personal Brain.
+The Supermemory Chrome Extension saves webpages, imports bookmarks, and adds ChatGPT and Claude conversations to your Personal Brain.
 
 ## Before you start
 
@@ -40,33 +40,59 @@ The Supermemory Chrome Extension saves webpages, imports bookmarks, and syncs me
 
 ## How the extension talks to Supermemory
 
-The extension talks to Supermemory from Chrome. It saves the current page, imports bookmarks in bulk, or syncs memories from ChatGPT and Claude into your active Space.
+The extension talks to Supermemory from Chrome. It saves the current page, imports bookmarks in bulk, or adds the current ChatGPT or Claude conversation to your selected Space.
 
-## What the browser extension saves, imports, and syncs
+## What the browser extension saves and imports
 
 - Save: the current webpage and, optionally, a selection or note
 - Import: existing Chrome bookmarks
-- Sync: memories created in signed in ChatGPT and Claude sessions
+- Add to Supermemory: the current ChatGPT or Claude conversation
 
-## How to sync ChatGPT memories with Supermemory
+## How to save a ChatGPT conversation to Supermemory
 
-Once the browser extension is connected, ask ChatGPT to remember a preference, decision, or piece of project context. ChatGPT saves it through Supermemory so the memory can be recalled later from your Personal Brain and connected tools.
+Open the ChatGPT conversation you want to save, then select the Supermemory icon in the Chrome toolbar. The extension shows the current conversation and the Space it will be saved to.
 
-<Frame>
-  <img src="/images/personal-brain/chatgpt-memory-sync.jpg" alt="ChatGPT confirming that a project preference was added to Supermemory" />
-</Frame>
+<Steps>
+  <Step title="Open the ChatGPT conversation">
+    Go to the conversation you want to add to your Personal Brain.
+  </Step>
+  <Step title="Open the Supermemory extension">
+    Select the Supermemory icon in the Chrome toolbar.
+  </Step>
+  <Step title="Choose a Space">
+    Confirm where you want the conversation to be saved.
+  </Step>
+  <Step title="Add the conversation">
+    Select **Add to supermemory**.
+  </Step>
+</Steps>
 
-In this example, ChatGPT saves the project's update cadence and decision log as a memory. The **Memory updated** confirmation shows that the context is available for future conversations.
+{/* Add screenshot of the Supermemory extension open on the "Create SEO YouTube metadata" ChatGPT conversation. */}
 
-## How to sync Claude memories with Supermemory
+The conversation is added to the selected Space and becomes available alongside the rest of your saved memory.
 
-In Claude, ask it to remember context that should carry into future work. Claude uses the connected Supermemory tools to save that context to the same Personal Brain used by ChatGPT.
+## How to save a Claude conversation to Supermemory
 
-<Frame>
-  <img src="/images/personal-brain/claude-memory-sync.jpg" alt="Claude confirming that a research preference was saved with Supermemory tools" />
-</Frame>
+Open the Claude conversation you want to save, then use the same browser extension flow. You do not need to ask Claude to remember or save anything.
 
-Here, Claude saves a research preference for the same project. Memories added from ChatGPT and Claude share one memory layer, so either assistant can work with the context available through Supermemory.
+<Steps>
+  <Step title="Open the Claude conversation">
+    Go to the conversation you want to add to your Personal Brain.
+  </Step>
+  <Step title="Open the Supermemory extension">
+    Select the Supermemory icon in the Chrome toolbar.
+  </Step>
+  <Step title="Choose a Space">
+    Confirm where you want the conversation to be saved.
+  </Step>
+  <Step title="Add the conversation">
+    Select **Add to supermemory**.
+  </Step>
+</Steps>
+
+{/* Add screenshot of the Supermemory extension open on the "User analytics table" Claude conversation. */}
+
+The conversation is added to the selected Space. ChatGPT and Claude conversations can live in the same Personal Brain, so your saved context is not limited to one assistant.
 
 ## Limitations of the browser extension
 
@@ -78,7 +104,7 @@ Here, Claude saves a research preference for the same project. Memories added fr
 
 - **A saved page did not appear.** Check the active organization, active Space in the extension, and that the memory finished processing.
 - **Sign in loops.** Sign in to Supermemory at [app.supermemory.ai](https://app.supermemory.ai) first, then reopen the extension.
-- **ChatGPT or Claude sync didn't run.** Confirm you're signed in to the assistant in the same Chrome profile and that the Supermemory connection is active.
+- **Add to supermemory did not work.** Confirm you're signed in to Supermemory, the conversation is open in the same Chrome profile as the extension, and the correct Space is selected.
 
 ## Related
 
