@@ -1,7 +1,7 @@
 ---
 title: "Supermemory Chrome Extension: Save Webpages, Conversations, and Bookmarks"
 sidebarTitle: "Browser extension"
-description: "Learn how to use the Supermemory Chrome extension to save webpages and conversations, import ChatGPT memories and Chrome bookmarks, and organize them in your Personal Brain."
+description: "Learn how to use the Supermemory Chrome extension to save webpages and AI conversations, import ChatGPT memories and X bookmarks, and organize them in your Personal Brain."
 icon: "globe"
 ---
 
@@ -9,7 +9,7 @@ Save webpages and conversations from Chrome without leaving the tab.
 
 ## How the Supermemory Chrome extension works
 
-The Supermemory Chrome Extension saves webpages and conversations, imports ChatGPT memories and Chrome bookmarks, and adds them to your Personal Brain.
+The Supermemory Chrome Extension has two main actions. Use **Save** for the webpage or conversation open in your current tab. Use **Imports** to bring existing ChatGPT memories or X bookmarks into your Personal Brain.
 
 ## Before you start
 
@@ -38,18 +38,39 @@ The Supermemory Chrome Extension saves webpages and conversations, imports ChatG
   </Step>
 </Steps>
 
-## How the extension talks to Supermemory
+## Save webpages and conversations to Supermemory
 
-The extension talks to Supermemory from Chrome. Use **Save** to add the current webpage or supported conversation to a Space. Use **Imports** to bring existing ChatGPT memories or Chrome bookmarks into your Personal Brain.
+Use **Save** when you want to add something from the tab you are viewing. This works for webpages and supported AI conversations, including ChatGPT and Claude.
 
-## What the browser extension saves and imports
+<Steps>
+  <Step title="Open the page or conversation">
+    Go to the webpage, ChatGPT conversation, or Claude conversation you want to save.
+  </Step>
+  <Step title="Open the Supermemory extension">
+    Select the Supermemory icon in the Chrome toolbar and stay on **Save**.
+  </Step>
+  <Step title="Choose a Space">
+    Confirm where you want the page or conversation to be saved.
+  </Step>
+  <Step title="Add it to Supermemory">
+    Select **Add to supermemory**.
+  </Step>
+</Steps>
+
+{/* Add screenshot of the Supermemory extension open on the "User analytics table" Claude conversation. */}
+
+The saved page or conversation becomes available in the selected Space alongside the rest of your Personal Brain.
+
+### What Save captures
 
 - Save: the current webpage and, optionally, a selection or note
 - Save: a supported AI conversation using **Add to supermemory**
-- Import: existing ChatGPT memories
-- Import: existing Chrome bookmarks
 
-## How to import ChatGPT memories into Supermemory
+## Import existing content into Supermemory
+
+Use **Imports** for supported bulk imports. Imports do not depend on the page currently open in your tab.
+
+### How to import ChatGPT memories into Supermemory
 
 Use the extension's import option to bring your existing ChatGPT memories into your Personal Brain. This imports the memories ChatGPT has already saved about you. It is different from saving one ChatGPT conversation.
 
@@ -74,40 +95,39 @@ Use the extension's import option to bring your existing ChatGPT memories into y
 
 Your imported ChatGPT memories become available in your Personal Brain alongside content saved from webpages, conversations, and other integrations.
 
-## How to save a Claude conversation to Supermemory
+### How to import X bookmarks into Supermemory
 
-Open the Claude conversation you want to save, then use the same browser extension flow. You do not need to ask Claude to remember or save anything.
+Use the X bookmark importer to bring your existing saved posts into your Personal Brain.
 
 <Steps>
-  <Step title="Open the Claude conversation">
-    Go to the conversation you want to add to your Personal Brain.
-  </Step>
   <Step title="Open the Supermemory extension">
     Select the Supermemory icon in the Chrome toolbar.
   </Step>
-  <Step title="Choose a Space">
-    Confirm where you want the conversation to be saved.
+  <Step title="Open Imports">
+    Select **Imports** at the top of the extension.
   </Step>
-  <Step title="Add the conversation">
-    Select **Add to supermemory**.
+  <Step title="Choose Import X/Twitter Bookmarks">
+    Select the X bookmark import option. The extension opens the import flow automatically.
+  </Step>
+  <Step title="Complete the import">
+    Follow the instructions shown by the extension and wait for the import to finish.
   </Step>
 </Steps>
 
-{/* Add screenshot of the Supermemory extension open on the "User analytics table" Claude conversation. */}
-
-The conversation is added to the selected Space. ChatGPT and Claude conversations can live in the same Personal Brain, so your saved context is not limited to one assistant.
+For more detail, see [How to import X bookmarks into Supermemory](/personal-brain/use-cases/x-bookmarks).
 
 ## Limitations of the browser extension
 
 - Chrome is the supported browser. Other browsers are not covered here.
 - Saves land in the active Space chosen in the extension. Confirm the Space before saving.
-- Bookmark import brings existing bookmarks in once. It is not the same as a live sync.
+- ChatGPT memory and X bookmark imports are import actions. They are not live syncs.
 
 ## How to troubleshoot the Chrome extension
 
 - **A saved page did not appear.** Check the active organization, active Space in the extension, and that the memory finished processing.
 - **Sign in loops.** Sign in to Supermemory at [app.supermemory.ai](https://app.supermemory.ai) first, then reopen the extension.
 - **ChatGPT memories did not import.** Confirm ChatGPT and Supermemory are signed in through the same Chrome profile, then reopen **Imports** and try again.
+- **X bookmarks did not import.** Confirm you're signed in to X in the same Chrome profile, then reopen **Imports** and try again.
 - **Add to supermemory did not work.** Confirm you're signed in to Supermemory, the page or conversation is open in the same Chrome profile as the extension, and the correct Space is selected.
 
 ## Related
