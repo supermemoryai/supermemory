@@ -61,6 +61,11 @@ export const injectMemoriesIntoParams = (
 	memories: string,
 	logger: Logger,
 ): LanguageModelCallOptions => {
+	if (!memories.trim()) {
+		logger.debug("No memories to inject")
+		return params
+	}
+
 	const systemPromptExists = params.prompt.some(
 		(prompt) => prompt.role === "system",
 	)

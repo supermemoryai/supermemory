@@ -201,6 +201,44 @@ describe("SupermemoryInputProcessor", () => {
 			expect(systemCall?.args[1]).toBe("supermemory")
 		})
 
+		it("should cache an empty result without injecting a system message", async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve(createMockProfileResponse()),
+			})
+
+			const processor = new SupermemoryInputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				customId: TEST_CONFIG.customId,
+				apiKey: TEST_CONFIG.apiKey,
+				mode: "profile",
+			})
+			const messages: MastraDBMessage[] = [createMessage("user", "Hello")]
+			const firstMessageList = createMockMessageList()
+			const secondMessageList = createMockMessageList()
+
+			await processor.processInput({
+				messages,
+				systemMessages: [],
+				messageList: firstMessageList,
+				abort: vi.fn() as never,
+				retryCount: 0,
+				state: {},
+			})
+			await processor.processInput({
+				messages,
+				systemMessages: [],
+				messageList: secondMessageList,
+				abort: vi.fn() as never,
+				retryCount: 0,
+				state: {},
+			})
+
+			expect(firstMessageList.addSystem).not.toHaveBeenCalled()
+			expect(secondMessageList.addSystem).not.toHaveBeenCalled()
+			expect(fetchMock).toHaveBeenCalledTimes(1)
+		})
+
 		it("should use cached memories on second call with same message", async () => {
 			fetchMock.mockResolvedValue({
 				ok: true,
