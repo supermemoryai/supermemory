@@ -1,4 +1,5 @@
 import { MESSAGE_TYPES } from "../../utils/constants"
+import { isSaveMemoryShortcut } from "../../utils/keyboard-shortcut"
 import { bearerToken, userData } from "../../utils/storage"
 import type { APIResponse } from "../../utils/types"
 import { DOMUtils } from "../../utils/ui-components"
@@ -94,11 +95,7 @@ export async function saveMemory(
 
 export function setupGlobalKeyboardShortcut() {
 	document.addEventListener("keydown", async (event) => {
-		if (
-			(event.ctrlKey || event.metaKey) &&
-			event.shiftKey &&
-			event.key === "m"
-		) {
+		if (isSaveMemoryShortcut(event)) {
 			event.preventDefault()
 			await saveMemory("keyboard_shortcut")
 		}
