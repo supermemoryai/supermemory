@@ -11,6 +11,50 @@ import { Bold, Italic, Code } from "lucide-react"
 import { useDebouncedCallback } from "use-debounce"
 import { cn } from "@lib/utils"
 
+type EditorSnapshot = Pick<Editor, "getJSON" | "storage">
+type SubmitShortcutEvent = Pick<
+	KeyboardEvent,
+	"ctrlKey" | "key" | "metaKey" | "preventDefault"
+>
+
+function getEditorMarkdown(editor: EditorSnapshot): string {
+	const json = editor.getJSON()
+	return editor.storage.markdown?.manager?.serialize(json) ?? ""
+}
+
+export function resolveSubmittedContent(
+	submittedContent: string | undefined,
+	fallbackContent: string,
+): string {
+	return submittedContent ?? fallbackContent
+}
+
+export function submitEditorContent(
+	editor: EditorSnapshot | null,
+	flushPendingUpdate: () => void,
+	onSubmit: (content: string) => void,
+): void {
+	if (!editor) return
+
+	// Parent state updates flushed below are not visible to this event's submit closure.
+	const markdown = getEditorMarkdown(editor)
+	flushPendingUpdate()
+	onSubmit(markdown)
+}
+
+export function handleEditorSubmitShortcut(
+	event: SubmitShortcutEvent,
+	editor: EditorSnapshot | null,
+	flushPendingUpdate: () => void,
+	onSubmit: (content: string) => void,
+): boolean {
+	if (!(event.metaKey || event.ctrlKey) || event.key !== "Enter") return false
+
+	event.preventDefault()
+	submitEditorContent(editor, flushPendingUpdate, onSubmit)
+	return true
+}
+
 export function TextEditor({
 	content: initialContent,
 	onContentChange,
@@ -21,7 +65,7 @@ export function TextEditor({
 }: {
 	content: string | undefined
 	onContentChange: (content: string) => void
-	onSubmit: () => void
+	onSubmit: (content: string) => void
 	debounceMs?: number
 	autoFocus?: boolean
 	placeholder?: string
@@ -41,8 +85,7 @@ export function TextEditor({
 
 	const debouncedUpdates = useDebouncedCallback((editor: Editor) => {
 		if (!hasUserEditedRef.current) return
-		const json = editor.getJSON()
-		const markdown = editor.storage.markdown?.manager?.serialize(json) ?? ""
+		const markdown = getEditorMarkdown(editor)
 		onContentChange?.(markdown)
 	}, debounceMs)
 
@@ -58,8 +101,7 @@ export function TextEditor({
 			editorRef.current = editor
 			if (!hasUserEditedRef.current) return
 			if (debounceMs === 0) {
-				const json = editor.getJSON()
-				const markdown = editor.storage.markdown?.manager?.serialize(json) ?? ""
+				const markdown = getEditorMarkdown(editor)
 				onContentChange?.(markdown)
 				return
 			}
@@ -67,10 +109,14 @@ export function TextEditor({
 		},
 		editorProps: {
 			handleKeyDown: (_view, event) => {
-				if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-					event.preventDefault()
-					debouncedUpdates.flush()
-					onSubmitRef.current?.()
+				if (
+					handleEditorSubmitShortcut(
+						event,
+						editorRef.current,
+						() => debouncedUpdates.flush(),
+						onSubmitRef.current,
+					)
+				) {
 					return true
 				}
 				hasUserEditedRef.current = true

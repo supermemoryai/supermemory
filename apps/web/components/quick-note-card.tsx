@@ -8,7 +8,7 @@ import { dmSansClassName } from "@/lib/fonts"
 import { Maximize2, Plus, Loader2, X } from "lucide-react"
 import { useProject } from "@/stores"
 import { useQuickNoteDraft } from "@/stores/quick-note-draft"
-import { TextEditor } from "./text-editor"
+import { resolveSubmittedContent, TextEditor } from "./text-editor"
 
 interface QuickNoteCardProps {
 	onSave: (content: string) => void
@@ -85,11 +85,15 @@ export function QuickNoteCard({
 		setIsExpanded(false)
 	}, [])
 
-	const handleSaveClick = useCallback(() => {
-		if (draft.trim() && !isSaving) {
-			onSave(draft)
-		}
-	}, [draft, isSaving, onSave])
+	const handleSave = useCallback(
+		(submittedContent?: string) => {
+			const content = resolveSubmittedContent(submittedContent, draft)
+			if (content.trim() && !isSaving) {
+				onSave(content)
+			}
+		},
+		[draft, isSaving, onSave],
+	)
 
 	const handleMaximizeClick = useCallback(() => {
 		setIsExpanded(false)
@@ -199,7 +203,7 @@ export function QuickNoteCard({
 					>
 						<button
 							type="button"
-							onClick={handleSaveClick}
+							onClick={() => handleSave()}
 							disabled={!canSave}
 							className={cn(
 								"flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
@@ -322,7 +326,7 @@ export function QuickNoteCard({
 											<TextEditor
 												content={expandedInitialContent}
 												onContentChange={handleChange}
-												onSubmit={handleSaveClick}
+												onSubmit={handleSave}
 												debounceMs={0}
 												autoFocus
 												placeholder="Start writing..."
@@ -332,7 +336,7 @@ export function QuickNoteCard({
 										<footer className="flex shrink-0 justify-center border-t border-[#202A36]/70 px-4 py-4">
 											<button
 												type="button"
-												onClick={handleSaveClick}
+												onClick={() => handleSave()}
 												disabled={!canSave}
 												className={cn(
 													"bg-[#1B1F24] rounded-[8px] px-4 py-2.5 flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
