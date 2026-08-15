@@ -35,11 +35,13 @@ export function register(deps: ToolDeps) {
 				let effectiveTag = await deps.resolveSelectedContainerTag(
 					args.containerTag,
 				)
-				let unscopedClient: ReturnType<ToolDeps["getClient"]> | undefined
-				if (args.containerTag === undefined && effectiveTag) {
+				const unscopedClient =
+					args.containerTag === undefined && effectiveTag
+						? deps.getClient()
+						: undefined
+				if (unscopedClient) {
 					// Active state is account-wide and can outlive an OAuth grant.
 					// Revalidate inherited state before sending it as an explicit scope.
-					unscopedClient = deps.getClient()
 					const visibleTags = await unscopedClient.listContainerTags()
 					if (!visibleTags.some((tag) => tag.containerTag === effectiveTag)) {
 						effectiveTag = undefined
