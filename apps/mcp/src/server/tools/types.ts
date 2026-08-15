@@ -21,7 +21,12 @@ export interface ToolDeps {
 	actor: ActorContext
 	getClient: (containerTag?: string) => SupermemoryClient
 	getSession: () => Promise<SessionInfo>
+	// Use for operations that require a concrete write/list target.
 	resolveContainerTag: (explicit?: string) => Promise<string>
+	// Use for reads that can safely defer scope selection to authorization.
+	resolveSelectedContainerTag: (
+		explicit?: string,
+	) => Promise<string | undefined>
 	getActiveContainerTag: () => Promise<string | undefined>
 	setActiveContainerTag: (containerTag: string) => Promise<void>
 	createUploadSession: () => Promise<PreparedUpload>

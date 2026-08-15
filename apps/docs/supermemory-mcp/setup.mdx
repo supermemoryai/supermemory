@@ -26,7 +26,7 @@ Supermemory MCP uses OAuth. Your client opens the authorization page so you can 
 
 ## Choose a space
 
-After connecting, space-aware tools use your active Supermemory space or account default. You can work in another space in two ways:
+After connecting, space-aware tools use your active Supermemory space or account default. When `search_memory` has no named space, it uses the active space if the current OAuth grant can read it; otherwise it searches the caller's OAuth-authorized readable scope without forcing the account default. You can work in another space in two ways:
 
 - Name a space for a one-off action without changing your active space.
 - Ask to switch your active space for future actions.
