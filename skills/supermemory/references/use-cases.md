@@ -97,8 +97,8 @@ def chat(user_id: str, message: str) -> str:
     )
 
     # 2. Build system prompt
-    static_facts = "\n".join(f"- {fact}" for fact in response['profile']['static'])
-    dynamic_facts = "\n".join(f"- {fact}" for fact in response['profile']['dynamic'])
+    static_facts = "\n".join(f"- {fact}" for fact in response.profile.static or [])
+    dynamic_facts = "\n".join(f"- {fact}" for fact in response.profile.dynamic or [])
 
     system_prompt = f"""
 You are a helpful assistant with perfect memory.
@@ -277,21 +277,21 @@ async function indexDocumentation() {
 // 2. Search documentation
 async function searchDocs(query: string, category?: string) {
   const filters = category ? {
-    metadata: { category }
+    AND: [{ key: 'category', value: category }]
   } : undefined;
 
-  const results = await memory.search.memories({
+  const response = await memory.search.memories({
     q: query,
     containerTag: 'documentation',
-    searchMode: 'hybrid',  // Use hybrid search for better RAG accuracy
+    searchMode: 'hybrid',  // Memories + document chunks, best for RAG
     threshold: 0.3,
     limit: 10,
     filters
   });
 
-  return results.map(r => ({
-    content: r.content,
-    relevance: r.score,
+  return response.results.map(r => ({
+    content: r.memory ?? r.chunk,
+    relevance: r.similarity,
     metadata: r.metadata
   }));
 }
@@ -545,10 +545,10 @@ async function reviewCode(projectId: string, code: string, fileName: string) {
 You are a code review assistant familiar with this codebase.
 
 Similar Code Patterns:
-${similarCode.map(c => c.content).slice(0, 3).join('\n\n---\n\n')}
+${similarCode.results.slice(0, 3).map(c => c.memory ?? c.chunk).join('\n\n---\n\n')}
 
 Past Review Patterns:
-${pastReviews.map(p => p.content).slice(0, 3).join('\n\n---\n\n')}
+${pastReviews.results.slice(0, 3).map(p => p.memory ?? p.chunk).join('\n\n---\n\n')}
 
 Provide a thoughtful code review, considering existing patterns and past feedback.
     `,
@@ -769,14 +769,14 @@ async function search(orgId: string, userId: string, query: string, includeShare
     ? [tags.user, tags.shared]  // User + org shared
     : [tags.user];              // User only
 
-  const results = await memory.search.memories({
+  const response = await memory.search.memories({
     q: query,
-    containerTag: containerTags[0],  // Use first tag
+    containerTag: containerTags[0],  // One tag per search — run one call per tag to span several
     threshold: 0.3,
     limit: 10
   });
 
-  return results;
+  return response.results;
 }
 
 // Usage
@@ -865,7 +865,7 @@ async function addResearchNote(userId: string, note: string, relatedPapers: stri
 }
 
 async function findRelatedResearch(userId: string, topic: string) {
-  const results = await memory.search.memories({
+  const response = await memory.search.memories({
     q: topic,
     containerTag: `${userId}_research`,
     threshold: 0.3,
@@ -873,8 +873,8 @@ async function findRelatedResearch(userId: string, topic: string) {
   });
 
   // Group by type
-  const papers = results.filter(r => r.metadata?.type === 'paper');
-  const notes = results.filter(r => r.metadata?.type === 'note');
+  const papers = response.results.filter(r => r.metadata?.type === 'paper');
+  const notes = response.results.filter(r => r.metadata?.type === 'note');
 
   return { papers, notes };
 }
@@ -884,9 +884,9 @@ async function synthesizeInsights(userId: string, research_question: string) {
 
   const context = [
     '=== Related Papers ===',
-    ...related.papers.map(p => p.content),
+    ...related.papers.map(p => p.memory ?? p.chunk),
     '\n=== Your Notes ===',
-    ...related.notes.map(n => n.content)
+    ...related.notes.map(n => n.memory ?? n.chunk)
   ].join('\n\n');
 
   const { text } = await generateText({
@@ -997,7 +997,10 @@ const results = await memory.search.memories({
   q: 'billing issues',
   containerTag: 'user_123',
   filters: {
-    metadata: { priority: 'high', type: 'conversation' }
+    AND: [
+      { key: 'priority', value: 'high' },
+      { key: 'type', value: 'conversation' }
+    ]
   }
 });
 ```

@@ -669,7 +669,9 @@ interface WithSupermemoryOptions {
 
 ## Available Tools
 
-### Search Memories
+`supermemoryTools()` returns all of the following. Each is also exported individually — `searchMemoriesTool`, `memoryForgetMatchingTool`, and so on for the AI SDK, and `createSearchMemoriesFunction` / `createMemoryForgetMatchingTool` and friends for OpenAI function calling.
+
+### Search Memories (`searchMemories`)
 Searches through stored memories based on a query string.
 
 **Parameters:**
@@ -677,11 +679,50 @@ Searches through stored memories based on a query string.
 - `includeFullDocs` (boolean, optional): Whether to include full document content (default: true)
 - `limit` (number, optional): Maximum number of results (default: 10)
 
-### Add Memory
+### Add Memory (`addMemory`)
 Adds a new memory to the system.
 
 **Parameters:**
 - `memory` (string): The content to remember
+
+### Get Profile (`getProfile`)
+Returns the user's static (long-term) and dynamic (recent) memories, optionally with search results.
+
+**Parameters:**
+- `containerTag` (string, optional): Defaults to the configured container tag
+- `query` (string, optional): Also run a search and return the results
+
+### Get Profile Buckets (`getProfileBuckets`)
+Returns profile memories grouped into topical buckets (`preferences`, `goals`, `work`, …) instead of the whole profile — useful for keeping prompts small when only one slice matters.
+
+**Parameters:**
+- `containerTag` (string, optional): Defaults to the configured container tag
+- `buckets` (string[], optional): Bucket keys to return. Omit for every bucket configured for the user
+
+### Document List / Add / Delete (`documentList`, `documentAdd`, `documentDelete`)
+Browse, ingest, and delete source documents. `documentDelete` removes a document and its extracted memories.
+
+### Forget Memory (`memoryForget`)
+Soft-deletes one memory by ID or exact content match.
+
+**Parameters:**
+- `containerTag` (string, optional): Defaults to the configured container tag
+- `memoryId` (string): The memory to forget — or…
+- `memoryContent` (string): …its exact content
+- `reason` (string, optional): Recorded on the forgotten memory
+
+### Forget Matching (`memoryForgetMatching`)
+Forgets a whole topic in one call. Describe the target and matching memories are soft-deleted; pass explicit IDs to skip the search.
+
+**Parameters:**
+- `containerTag` (string, optional): Defaults to the configured container tag
+- `query` (string): What to forget, e.g. `"everything about Project Titan"` — or…
+- `memoryIds` (string[]): …the exact memories to forget
+- `dryRun` (boolean, optional): **Defaults to `true`** — the tool previews rather than deletes
+- `maxForget` (number, optional): Cap on how many memories one call may forget (default: 100)
+- `reason` (string, optional): Recorded on each forgotten memory
+
+The dry-run default is deliberate: a model gets a preview, not a deletion. The intended loop is preview → show the user the returned `memories` → call again with those `memoryIds` and `dryRun: false`. Applying with a `query` re-runs the semantic match, so it can select a different set than the preview showed.
 
 
 

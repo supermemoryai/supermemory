@@ -2,9 +2,9 @@
 
 Complete reference for the Supermemory SDK in TypeScript and Python.
 
-## Installation
+Method availability below was verified against `supermemory@4.25.4` (npm) and `supermemory==3.56.0` (PyPI). The SDKs are generated from the OpenAPI spec and trail the API slightly — anything marked "no SDK method" is still callable over HTTP, and may have gained a method in a newer release.
 
-Supermemory works with the following SDKs natively:
+## Installation
 
 ### TypeScript/JavaScript
 ```bash
@@ -34,11 +34,12 @@ Discover all available SDKs, community integrations, and framework-specific guid
 
 ### TypeScript
 ```typescript
-import { Supermemory } from 'supermemory';
+import Supermemory from 'supermemory';        // default export
+// import { Supermemory } from 'supermemory'; // named export also works
 
 const client = new Supermemory({
   apiKey: process.env.SUPERMEMORY_API_KEY, // Optional if env var is set
-  baseURL: 'https://api.supermemory.ai' // Optional, defaults to this
+  baseURL: 'https://api.supermemory.ai'    // Optional, defaults to this
 });
 ```
 
@@ -60,31 +61,55 @@ async_client = AsyncSupermemory(
 )
 ```
 
+## Method map
+
+| Task | TypeScript | Python |
+|---|---|---|
+| Ingest content | `client.add()` / `client.documents.add()` | `client.add()` / `client.documents.add()` |
+| Batch ingest | `client.documents.batchAdd()` | `client.documents.batch_add()` |
+| Upload a file | `client.documents.uploadFile()` | `client.documents.upload_file()` |
+| Search memories | `client.search()` | `client.search.memories()` |
+| Get a profile | `client.profile()` | `client.profile()` |
+| Forget a memory | `client.memories.forget()` | `client.memories.forget()` |
+| Update a memory | `client.memories.updateMemory()` | `client.memories.update_memory()` |
+| List documents | `client.documents.list()` | `client.documents.list()` |
+| Get / update / delete a document | `client.documents.get()` / `.update()` / `.delete()` | `client.documents.get()` / `.update()` / `.delete()` |
+| Bulk delete documents | `client.documents.deleteBulk()` | `client.documents.delete_bulk()` |
+| Ingestion status | `client.documents.listProcessing()` | `client.documents.list_processing()` |
+| Org settings | `client.settings.get()` / `.update()` | `client.settings.get()` / `.update()` |
+| Connections | `client.connections.*` | `client.connections.*` |
+
+No SDK method yet — [call these over HTTP](#endpoints-without-sdk-methods): direct memory writes, mass forget, memory listing, profile buckets, conversation ingestion, container tags, settings reset, bucket suggestions.
+
 ## Core Methods
 
-### `add()` - Store Memories
+### `add()` - Store Content
 
-Add content to Supermemory for processing and memory extraction.
+Queue content for processing and memory extraction. `client.add()` and `client.documents.add()` are the same endpoint (`POST /v3/documents`).
 
 #### TypeScript
 ```typescript
 await client.add({
-  content: string | URL,          // Required: text, URL, or file path
-  containerTag?: string,           // Optional: isolation identifier
-  entityContext?: string,          // Optional: context for memory extraction
-  customId?: string,               // Optional: your custom identifier
-  metadata?: Record<string, any>   // Optional: custom key-value pairs
+  content: string,                  // Required: text, URL, or file reference
+  containerTag?: string,            // Optional: isolation identifier
+  customId?: string,                // Optional: your idempotency key
+  metadata?: Record<string, string | number | boolean | string[]>,
+  entityContext?: string,           // Optional: context that steers extraction (max 1500 chars)
+  filepath?: string,                // Optional: virtual path
+  taskType?: "memory" | "superrag"  // Optional: defaults to "memory"
 });
+// Returns: { id: string, status: string }
 ```
 
 #### Python
 ```python
 client.add(
-    content=str | url,              # Required: text, URL, or file path
-    container_tag=str,              # Optional: isolation identifier
-    entity_context=str,             # Optional: context for memory extraction
-    custom_id=str,                  # Optional: your custom identifier
-    metadata=dict                   # Optional: custom key-value pairs
+    content=str,               # Required: text, URL, or file reference
+    container_tag=str,         # Optional: isolation identifier
+    custom_id=str,             # Optional: your idempotency key
+    metadata=dict,             # Optional: custom key-value pairs
+    entity_context=str,        # Optional: context that steers extraction
+    task_type=str,             # Optional: "memory" (default) or "superrag"
 )
 ```
 
@@ -112,41 +137,39 @@ await client.add({
 });
 ```
 
-**Add with custom ID:**
+**Add with custom ID (idempotent):**
 ```typescript
 await client.add({
   content: "Project requirements document...",
   containerTag: "project_abc",
-  customId: "requirements_v1",
+  customId: "requirements_v1",   // re-posting this ID updates the same document
   metadata: { version: "1.0", author: "john@example.com" }
 });
 ```
 
+Ingestion is asynchronous. `status` comes back as `"queued"`; poll `client.documents.listProcessing()` or `client.documents.get(id)` to see when memories are available.
+
 ### `profile()` - Retrieve User Context
 
-Get personalized context including static profile data and relevant dynamic memories.
+Pre-computed facts for a container tag. The cheapest way to personalize a prompt — no query required.
 
 #### TypeScript
 ```typescript
 const response = await client.profile({
   containerTag: string,      // Required: user/project identifier
-  q?: string,                // Optional: search query to include search results
-  threshold?: number         // Optional: relevance threshold (0-1, default 0.5)
+  q?: string,                // Optional: also run a search, returned as searchResults
+  threshold?: number,        // Optional: similarity floor for searchResults (0-1)
+  filters?: FilterObject     // Optional: metadata filters, see "Metadata Filtering"
 });
 
 // Returns:
 // {
 //   profile: {
-//     static: string[],      // Array of static memories (permanent facts)
-//     dynamic: string[]      // Array of dynamic memories (recent context)
+//     static?: string[],     // Long-term facts (name, profession, stable preferences)
+//     dynamic?: string[]     // Recent context, prefixed [Recent] [YYYY-MM-DD]
 //   },
-//   searchResults?: {        // Only included if q parameter was provided
-//     results: Array<{       // Search results
-//       id: string,
-//       memory?: string,
-//       similarity: number,
-//       metadata: object | null
-//     }>,
+//   searchResults?: {        // Only when q was provided
+//     results: Array<{ id, memory?, similarity, updatedAt, metadata }>,
 //     total: number,
 //     timing: number
 //   }
@@ -157,78 +180,99 @@ const response = await client.profile({
 ```python
 response = client.profile(
     container_tag=str,         # Required: user/project identifier
-    q=str,                     # Optional: search query to include search results
-    threshold=float            # Optional: relevance threshold (0-1, default 0.5)
+    q=str,                     # Optional: also run a search
+    threshold=float,           # Optional: similarity floor for search results (0-1)
+    filters=dict,              # Optional: metadata filters
 )
 
-# Returns dict:
-# {
-#   "profile": {
-#     "static": List[str],     # Array of static memories (permanent facts)
-#     "dynamic": List[str]     # Array of dynamic memories (recent context)
-#   },
-#   "searchResults": {         # Only included if q parameter was provided
-#     "results": List[dict],   # Search results
-#     "total": int,
-#     "timing": int
-#   }
-# }
+# Returns a model, accessed by attribute:
+#   response.profile.static     -> list[str]
+#   response.profile.dynamic    -> list[str]
+#   response.search_results     -> present only when q was provided
 ```
 
 #### Examples
 
-**Get user profile:**
+**Profile with a query:**
 ```typescript
 const response = await client.profile({
   containerTag: "user_123",
   q: "What are the user's preferences and settings?"
 });
 
-console.log(response.profile.static);    // ["User John Doe", "Prefers dark mode", ...]
-console.log(response.profile.dynamic);   // ["Recently mentioned...", "Last conversation..."]
-console.log(response.searchResults);     // Search results for the query (if provided)
+console.log(response.profile.static);    // ["John Doe, staff engineer in Seattle", ...]
+console.log(response.profile.dynamic);   // ["[Recent] [2026-08-09] Switched their editor to Zed"]
+console.log(response.searchResults);     // Query-relevant memories
 ```
 
-**Profile without search (just get stored memories):**
+**Profile without a query:**
 ```typescript
-const response = await client.profile({
-  containerTag: "user_456"
-  // No q parameter = only returns profile.static and profile.dynamic
-});
+const response = await client.profile({ containerTag: "user_456" });
 
-console.log(response.profile.static);   // All static facts
-console.log(response.profile.dynamic);  // Recent dynamic memories
-// response.searchResults will be undefined
+console.log(response.profile.static);    // All long-term facts
+console.log(response.profile.dynamic);   // Recent context
+// response.searchResults is undefined
 ```
+
+**Bucketed profile (HTTP — `include`/`buckets` are not in the SDK types yet):**
+```typescript
+const res = await fetch("https://api.supermemory.ai/v4/profile", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    containerTag: "user_123",
+    include: ["buckets"],               // omits static + dynamic entirely
+    buckets: ["preferences", "goals"],  // omit for all configured buckets
+  }),
+});
+const { profile } = await res.json();
+console.log(profile.buckets.preferences);
+```
+
+Entries prefixed `[Summary]` are aggregated older context; `[Recent]` entries arrived since the last aggregation. Strip the prefixes for raw text, or keep them to signal recency.
 
 ### `search()` - Semantic Search
 
-Search across memories using semantic understanding, not just keywords. `client.search.memories()` and `client.search.documents()` still work (deprecated) but `client.search()` is the current, recommended call — Python keeps `client.search.memories()`.
+Semantic search over memories, not keyword matching. In TypeScript the client's `search` is callable — `client.search({...})` hits `/v4/search`, the current endpoint. `client.search.memories()` is an alias for it; `client.search.documents()` and `client.search.execute()` are deprecated and hit the legacy `/v3/search`. In Python, `client.search` is not callable — use `client.search.memories()`.
 
 #### TypeScript
 ```typescript
 const response = await client.search({
   q: string,                  // Required: search query
   containerTag?: string,      // Optional: filter by container tag
-  limit?: number,             // Optional: max results (default 10)
-  threshold?: number,         // Optional: similarity threshold (0-1, default 0.5)
-  searchMode?: "memories" | "hybrid" | "documents",  // Optional: "memories" (default), "hybrid" (memories + document chunks), or "documents" (chunks only)
-  filters?: FilterObject      // Optional: advanced filtering
+  limit?: number,             // Optional: max results
+  threshold?: number,         // Optional: similarity floor (0-1)
+  searchMode?: "memories" | "hybrid" | "documents",  // "memories" (default), "hybrid" (memories + chunks), "documents" (chunks only)
+  filters?: FilterObject,     // Optional: metadata filters
+  include?: {                 // Optional: extra payload per result
+    chunks?: boolean,
+    documents?: boolean,
+    summaries?: boolean,
+    relatedMemories?: boolean,
+    forgottenMemories?: boolean
+  },
+  rerank?: boolean,           // Optional: cross-encoder re-ranking (higher precision, slower)
+  rewriteQuery?: boolean,     // Optional: let the service rewrite q before searching
+  aggregate?: boolean         // Optional: collapse near-duplicate memories
 });
 
 // Returns:
 // {
 //   results: Array<{
 //     id: string,
-//     memory?: string,         // Memory content (for memory results)
-//     chunk?: string,          // Chunk content (for chunk results in hybrid mode)
-//     metadata: object | null,
+//     memory?: string,       // set on memory results
+//     chunk?: string,        // set on chunk results (hybrid / documents mode)
+//     similarity: number,    // the score — not `score`
 //     updatedAt: string,
-//     similarity: number,
-//     version?: number | null
+//     metadata: object | null,
+//     version?: number | null,
+//     chunks?, documents?, context?   // only when requested via `include`
 //   }>,
 //   total: number,
-//   timing: number             // Search time in milliseconds
+//   timing: number           // milliseconds
 // }
 ```
 
@@ -237,18 +281,15 @@ const response = await client.search({
 response = client.search.memories(
     q=str,                      # Required: search query
     container_tag=str,          # Optional: filter by container tag
-    threshold=float,            # Optional: similarity threshold (0-1, default 0.5)
-    limit=int,                  # Optional: max results (default 50)
+    threshold=float,            # Optional: similarity floor (0-1)
+    limit=int,                  # Optional: max results
     search_mode=str,            # Optional: "memories" (default), "hybrid", or "documents"
-    filters=dict                # Optional: advanced filtering
+    filters=dict,               # Optional: metadata filters
+    rerank=bool,                # Optional: cross-encoder re-ranking
+    rewrite_query=bool,         # Optional: server-side query rewriting
 )
 
-# Returns dict:
-# {
-#   "results": List[dict],      # Array of search results
-#   "total": int,
-#   "timing": int               # Search time in milliseconds
-# }
+# response.results, response.total, response.timing
 ```
 
 #### Examples
@@ -261,141 +302,209 @@ const response = await client.search({
   limit: 10
 });
 
-response.results.forEach(result => {
-  console.log(`Score: ${result.score}`);
-  console.log(`Content: ${result.content}`);
-});
+for (const result of response.results) {
+  console.log(result.similarity, result.memory ?? result.chunk);
+}
 ```
 
-**Hybrid search for RAG (semantic + keyword):**
+**Hybrid search for RAG:**
 ```typescript
 const response = await client.search({
   q: "authentication methods",
   containerTag: "docs",
-  searchMode: "hybrid",  // Combines semantic and keyword search for better RAG accuracy
+  searchMode: "hybrid",   // memories + document chunks
   threshold: 0.3,
   limit: 10
 });
 ```
 
-**Search with metadata filters:**
+**High-precision search:**
 ```typescript
 const response = await client.search({
-  q: "authentication methods",
-  containerTag: "docs",
-  threshold: 0.3,
-  filters: {
-    metadata: {
-      type: "tutorial",
-      category: "security"
-    }
-  }
+  q: "what did we decide about rate limiting?",
+  containerTag: "eng_notes",
+  rerank: true,           // re-rank for precision
+  rewriteQuery: true      // helps with terse or pronoun-heavy queries
 });
 ```
 
-**Search within specific document:**
+### `memories.forget()` - Forget a Memory
+
+Soft-deletes one memory. Identify it by `id`, or by exact `content` when you don't have the ID.
+
 ```typescript
-const response = await client.search({
-  q: "rate limiting configuration",
-  containerTag: "specific_project"
+const res = await client.memories.forget({
+  containerTag: "user_123",   // Required
+  id: "mem_abc123",           // Either id...
+  // content: "John prefers dark mode",  // ...or exact content
+  reason: "outdated information"          // Optional, recorded as forgetReason
 });
+// { id: "mem_abc123", forgotten: true }
+```
+
+```python
+res = client.memories.forget(
+    container_tag="user_123",
+    id="mem_abc123",
+    reason="outdated information",
+)
+```
+
+### `memories.updateMemory()` - Correct a Memory
+
+Creates a new version that supersedes the old one, preserving history. Prefer this over forget-then-add when a fact merely changed.
+
+```typescript
+const res = await client.memories.updateMemory({
+  containerTag: "user_123",              // Required
+  newContent: "John now prefers light mode",  // Required
+  id: "mem_abc123",                      // Either id or exact content
+  metadata: { source: "chat" },          // Optional: inherits previous version if omitted
+  forgetAfter: "2026-12-01T00:00:00Z",   // Optional: ISO expiry, null clears it
+  forgetReason: "temporary preference"   // Optional
+});
+// { id: "mem_xyz789", memory: "...", version: 2, parentMemoryId: "mem_abc123", rootMemoryId: "mem_abc123", ... }
+```
+
+```python
+res = client.memories.update_memory(
+    container_tag="user_123",
+    new_content="John now prefers light mode",
+    id="mem_abc123",
+)
 ```
 
 ### `documents.list()` - List Documents
 
-Retrieve stored documents with optional filtering and pagination.
-
-#### TypeScript
 ```typescript
 const docs = await client.documents.list({
-  containerTag?: string,     // Optional: filter by container
-  limit?: number,            // Optional: number of results (default 20)
-  offset?: number,           // Optional: pagination offset
-  status?: string            // Optional: filter by processing status
+  containerTags?: string[],           // Note: array, not a single tag
+  limit?: number | string,            // Page size
+  page?: number | string,             // 1-based
+  sort?: "createdAt" | "updatedAt",
+  order?: "asc" | "desc",
+  filters?: FilterObject,
+  includeContent?: boolean,
+  filepath?: string
 });
 
 // Returns:
 // {
-//   documents: Array<{
-//     id: string,
-//     content: string,
-//     status: string,
-//     metadata: object,
-//     createdAt: string
-//   }>,
-//   total: number
+//   memories: Array<{ id, title?, status, metadata, createdAt, updatedAt, ... }>,
+//   pagination: { currentPage, limit, totalItems, totalPages }
 // }
 ```
 
-#### Python
 ```python
 docs = client.documents.list(
-    container_tag=str,         # Optional: filter by container
-    limit=int,                 # Optional: number of results (default 20)
-    offset=int,                # Optional: pagination offset
-    status=str                 # Optional: filter by processing status
+    container_tags=["user_123"],
+    limit=50,
+    page=1,
 )
+# docs.memories, docs.pagination
 ```
 
-#### Examples
-
-**List all documents for a user:**
-```typescript
-const docs = await client.documents.list({
-  containerTag: "user_123",
-  limit: 50
-});
-
-docs.documents.forEach(doc => {
-  console.log(`${doc.id}: ${doc.status}`);
-});
-```
+The response field is `memories` (documents with their extracted memories), not `documents`, and pagination is page-based — there is no `offset`.
 
 **Paginated listing:**
 ```typescript
-const page1 = await client.documents.list({ limit: 20, offset: 0 });
-const page2 = await client.documents.list({ limit: 20, offset: 20 });
+const page1 = await client.documents.list({ containerTags: ["user_123"], limit: 20, page: 1 });
+const page2 = await client.documents.list({ containerTags: ["user_123"], limit: 20, page: 2 });
 ```
 
-**Filter by status:**
+**Check what is still processing:**
 ```typescript
-const processing = await client.documents.list({
-  containerTag: "project_abc",
-  status: "processing"
-});
+const processing = await client.documents.listProcessing();
 ```
 
-### `documents.delete()` - Delete Document
+### `documents.get()` / `update()` / `delete()`
 
-Remove a document and its associated memories.
+IDs are positional arguments, not body fields.
 
-#### TypeScript
 ```typescript
-await client.documents.delete({
-  docId: string    // Required: document ID
-});
+const doc = await client.documents.get("doc_abc123");
+await client.documents.update("doc_abc123", { metadata: { reviewed: true } });
+await client.documents.delete("doc_abc123");          // also deletes its memories
+await client.documents.deleteBulk({ ids: ["doc_1", "doc_2"] });
 ```
 
-#### Python
 ```python
-client.documents.delete(
-    doc_id=str       # Required: document ID
-)
+doc = client.documents.get("doc_abc123")
+client.documents.delete("doc_abc123")
 ```
 
-#### Example
+## Endpoints without SDK methods
+
+These are documented, supported endpoints that the generated SDKs don't cover yet. Call them with `fetch` (or `requests`) against the same base URL with the same bearer token. Full request/response shapes are in `api-reference.md`.
+
+| Endpoint | What it does |
+|---|---|
+| `POST /v4/memories` | Write memories directly, skipping document ingestion and extraction |
+| `POST /v4/memories/forget-matching` | Agentic mass forget by query or ID list, with `dryRun` |
+| `POST /v4/memories/list` | List memory entries with version history |
+| `POST /v4/profile` with `include` / `buckets` | Bucketed profile reads (the SDK's `profile()` params omit these) |
+| `POST /v4/profile/buckets` | List effective bucket definitions for a container tag |
+| `POST /v4/conversations` | Ingest structured chat transcripts with append detection |
+| `/v3/container-tags/*` | List, configure, delete, and merge container tags |
+| `POST /v3/settings/suggest-buckets` | AI-suggested bucket definitions |
+| `POST /v3/settings/reset` | Reset org settings to defaults |
+| `GET /v3/documents/{id}/chunks`, `/file-url` | Raw chunks, signed file URL |
+
+A small helper keeps call sites clean:
 
 ```typescript
-await client.documents.delete({
-  docId: "doc_abc123"
+const sm = async (path: string, body: unknown) => {
+  const res = await fetch(`https://api.supermemory.ai${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`supermemory ${path} failed: ${res.status} ${await res.text()}`);
+  return res.json();
+};
+
+// Write memories directly
+await sm("/v4/memories", {
+  containerTag: "user_123",
+  memories: [
+    { content: "John prefers dark mode" },
+    { content: "John is from Seattle", isStatic: true },
+  ],
+});
+
+// Mass forget — preview, then apply exactly what you reviewed
+const preview = await sm("/v4/memories/forget-matching", {
+  containerTag: "user_123",
+  query: "forget everything about Project Titan",
+  dryRun: true,
+});
+const applied = await sm("/v4/memories/forget-matching", {
+  containerTag: "user_123",
+  ids: preview.candidates.map((c: { id: string }) => c.id),
+  reason: "project cancelled",
+});
+
+// Ingest a conversation
+await sm("/v4/conversations", {
+  conversationId: "conv_123",
+  containerTags: ["user_123"],
+  messages: [
+    { role: "user", content: "I switched my editor to Zed" },
+    { role: "assistant", content: "Noted — how are you finding it?" },
+  ],
 });
 ```
+
+Always `dryRun` a `forget-matching` call before applying it, and prefer applying with the `ids` from the preview: applying with a `query` re-runs the semantic match, which can drift if the container changed in between.
 
 ## Advanced Features
 
 ### Metadata Filtering
 
-Add rich metadata to enable advanced filtering:
+Add rich metadata at write time, then filter at read time. Filter conditions must be wrapped in `AND` or `OR` — a bare `{ metadata: {...} }` object is rejected.
 
 ```typescript
 await client.add({
@@ -409,23 +518,22 @@ await client.add({
   }
 });
 
-// Search with metadata filters
 const results = await client.search({
   q: "phone reviews",
   containerTag: "reviews",
   filters: {
-    metadata: {
-      rating: { $gte: 4.0 },     // Rating >= 4.0
-      verified: true,
-      tags: { $contains: "apple" }
-    }
+    AND: [
+      { filterType: "numeric", key: "rating", value: "4", numericOperator: ">=" },
+      { key: "verified", value: "true" },
+      { filterType: "array_contains", key: "tags", value: "apple" }
+    ]
   }
 });
 ```
 
-### Entity Context for Better Extraction
+Condition types: string equality (default), `string_contains`, `numeric` (with `numericOperator`), and `array_contains`. `AND`/`OR` nest freely, and any condition accepts `negate` and `ignoreCase`. Numeric values are passed as strings.
 
-Provide context to guide memory extraction:
+### Entity Context for Better Extraction
 
 ```typescript
 await client.add({
@@ -435,7 +543,7 @@ await client.add({
 });
 ```
 
-The `entityContext` helps Supermemory understand what type of information to extract and prioritize.
+`entityContext` (max 1,500 chars) guides what gets extracted and how it's classified. Set it per-call as above, or once per container tag via `PATCH /v3/container-tags/{tag}`. For guidance that should apply org-wide, use `filterPrompt` in `PATCH /v3/settings` instead.
 
 ### Container Tag Patterns
 
@@ -468,12 +576,16 @@ await client.add({
 });
 ```
 
+If one entity ends up split across two tags (an anonymous session that later signs in), merge them with `POST /v3/container-tags/merge` rather than re-ingesting.
+
 ## Integration with AI Frameworks
+
+For Vercel AI SDK, OpenAI, Mastra, and VoltAgent there is a purpose-built package — `@supermemory/tools` — with ready-made tools and middleware that inject memory automatically. Reach for it before hand-rolling the calls below.
 
 ### Vercel AI SDK
 
 ```typescript
-import { Supermemory } from 'supermemory';
+import Supermemory from 'supermemory';
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
@@ -481,19 +593,19 @@ const memory = new Supermemory();
 
 async function chat(userId: string, message: string) {
   // 1. Get context
-  const context = await memory.profile({
-    containerTag: userId,
-    q: message
-  });
+  const { profile } = await memory.profile({ containerTag: userId, q: message });
 
   // 2. Generate response with context
   const { text } = await generateText({
-    model: openai('gpt-4'),
-    system: `User Profile: ${context.profile}\n\nRelevant Context:\n${context.memories.map(m => m.content).join('\n')}`,
+    model: openai('gpt-5'),
+    system: [
+      `Long-term facts:\n${(profile.static ?? []).map(f => `- ${f}`).join('\n')}`,
+      `Recent context:\n${(profile.dynamic ?? []).map(f => `- ${f}`).join('\n')}`
+    ].join('\n\n'),
     prompt: message
   });
 
-  // 3. Store conversation
+  // 3. Store the exchange
   await memory.add({
     content: `User: ${message}\nAssistant: ${text}`,
     containerTag: userId
@@ -506,29 +618,27 @@ async function chat(userId: string, message: string) {
 ### LangChain
 
 ```typescript
-import { Supermemory } from 'supermemory';
+import Supermemory from 'supermemory';
 import { ChatOpenAI } from '@langchain/openai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 const memory = new Supermemory();
-const llm = new ChatOpenAI({ model: 'gpt-4' });
+const llm = new ChatOpenAI({ model: 'gpt-5' });
 
 async function chatWithMemory(userId: string, userMessage: string) {
-  // Retrieve context
-  const context = await memory.profile({
-    containerTag: userId,
-    q: userMessage
-  });
+  const { profile } = await memory.profile({ containerTag: userId, q: userMessage });
 
-  // Create messages with context
   const messages = [
-    new SystemMessage(`Context: ${JSON.stringify(context)}`),
+    new SystemMessage(
+      `What you know about this user:\n${[...(profile.static ?? []), ...(profile.dynamic ?? [])]
+        .map(f => `- ${f}`)
+        .join('\n')}`
+    ),
     new HumanMessage(userMessage)
   ];
 
   const response = await llm.invoke(messages);
 
-  // Store interaction
   await memory.add({
     content: `${userMessage}\n${response.content}`,
     containerTag: userId
@@ -542,25 +652,21 @@ async function chatWithMemory(userId: string, userMessage: string) {
 
 ```python
 from supermemory import Supermemory
-from crewai import Agent, Task, Crew
+from crewai import Agent
 
 memory = Supermemory()
 
 def create_memory_enhanced_agent(user_id: str):
-    # Get user context
-    context = memory.profile(
-        container_tag=user_id,
-        query="user preferences and history"
-    )
+    response = memory.profile(container_tag=user_id)
+    facts = "\n".join(f"- {fact}" for fact in response.profile.static or [])
+    recent = "\n".join(f"- {fact}" for fact in response.profile.dynamic or [])
 
-    agent = Agent(
+    return Agent(
         role="Personal Assistant",
         goal="Help the user with personalized assistance",
-        backstory=f"User Context: {context['profile']}\n\nRecent interactions:\n{context['memories']}",
-        verbose=True
+        backstory=f"What you know about this user:\n{facts}\n\nRecent context:\n{recent}",
+        verbose=True,
     )
-
-    return agent
 ```
 
 ## Best Practices
@@ -602,23 +708,40 @@ await client.add({
 ```
 
 ### 4. Appropriate Thresholds
-Start with default (0.5) and adjust based on results:
+Start with the default and adjust based on real queries:
 - **0.3-0.5**: Broader recall, good for discovery
 - **0.5-0.7**: Balanced precision and recall
 - **0.7-1.0**: High precision, fewer but more relevant results
 
-### 5. Error Handling
-Always handle errors gracefully:
+### 5. Correct Memories Instead of Rewriting Them
 ```typescript
+// Fact changed → new version, history preserved
+await client.memories.updateMemory({
+  containerTag: userId,
+  id: memoryId,
+  newContent: "Now prefers light mode"
+});
+
+// Should never have been stored → forget it
+await client.memories.forget({ containerTag: userId, id: memoryId, reason: "user asked" });
+```
+
+### 6. Error Handling
+The SDKs raise typed errors:
+```typescript
+import { APIError, RateLimitError, AuthenticationError } from 'supermemory';
+
 try {
   await client.add({ content: "...", containerTag: "user_123" });
 } catch (error) {
-  if (error.status === 401) {
+  if (error instanceof AuthenticationError) {
     console.error("Invalid API key");
-  } else if (error.status === 429) {
+  } else if (error instanceof RateLimitError) {
     console.error("Rate limit exceeded");
+  } else if (error instanceof APIError) {
+    console.error(error.status, error.message);
   } else {
-    console.error("Failed to add memory:", error.message);
+    throw error;
   }
 }
 ```
@@ -626,27 +749,33 @@ try {
 ## Naming Conventions
 
 ### TypeScript (camelCase)
-- `containerTag`
+- `containerTag` / `containerTags`
 - `entityContext`
 - `customId`
+- `newContent`
+- `searchMode`
 - `threshold`
-- `docId`
 - `q`
 
 ### Python (snake_case)
-- `container_tag`
+- `container_tag` / `container_tags`
 - `entity_context`
 - `custom_id`
+- `new_content`
+- `search_mode`
 - `threshold`
-- `doc_id`
+- `q`
+
+Python responses are models, so read them by attribute (`response.profile.static`), not by key.
 
 ## Performance Tips
 
-1. **Batch Operations**: Add multiple documents in quick succession if needed
-2. **Async/Await**: Always use async operations to avoid blocking
-3. **Pagination**: Use `limit` and `offset` for large result sets
-4. **Caching**: Cache profile() results for short periods if making multiple calls
-5. **Processing Time**: Allow 1-2 minutes for PDFs, 5-10 minutes for videos
+1. **Batch Operations**: Use `documents.batchAdd()` rather than a loop of `add()` calls
+2. **Async/Await**: Always use async operations to avoid blocking; Python has `AsyncSupermemory`
+3. **Pagination**: `documents.list()` and `/v4/memories/list` are page-based (`limit` + `page`)
+4. **Caching**: Cache `profile()` results for short periods if making multiple calls per turn
+5. **Cost of quality knobs**: `rerank` and `rewriteQuery` improve results but add latency — enable them per-query, not globally
+6. **Processing Time**: Allow 1-2 minutes for PDFs, 5-10 minutes for videos
 
 ## Support
 
