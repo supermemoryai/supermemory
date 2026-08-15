@@ -46,6 +46,11 @@ interface TwitterAPITweet {
 	}
 }
 
+interface TwitterAPIVisibilityResult {
+	__typename: "TweetWithVisibilityResults"
+	tweet?: TwitterAPITweet
+}
+
 interface MediaEntity {
 	type: string
 	media_url_https: string
@@ -270,9 +275,13 @@ export function transformTweetData(
 			return null
 		}
 
-		const tweet = tweetData as TwitterAPITweet
+		const visibilityResult = tweetData as TwitterAPIVisibilityResult
+		const tweet =
+			visibilityResult.__typename === "TweetWithVisibilityResults"
+				? visibilityResult.tweet
+				: (tweetData as TwitterAPITweet)
 
-		if (!tweet.legacy) {
+		if (!tweet?.legacy) {
 			return null
 		}
 
