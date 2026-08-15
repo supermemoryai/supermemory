@@ -1,7 +1,7 @@
 ---
 title: "Using supermemory local with different providers"
 sidebarTitle: "Providers"
-description: "Copy-paste .env setup for Ollama, OpenAI, Anthropic, Gemini, and OpenRouter"
+description: "Copy-paste .env setup for Ollama, OpenAI, Anthropic, Gemini, OpenRouter, and OrcaRouter"
 icon: "route"
 ---
 
@@ -58,5 +58,17 @@ OPENAI_MODEL=openai/gpt-4o-mini
 ```
 
 Set `OPENAI_MODEL` to any model slug from [OpenRouter's model list](https://openrouter.ai/models) — routing, fallback, and pricing all follow OpenRouter's own rules from there.
+</Tab>
+
+<Tab title="OrcaRouter">
+OrcaRouter isn't a native provider either — it's OpenAI-compatible, so it slots into the same `OPENAI_BASE_URL` path as Ollama and OpenRouter:
+
+```bash .env
+OPENAI_BASE_URL=https://api.orcarouter.ai/v1
+OPENAI_API_KEY=sk-orca-...
+OPENAI_MODEL=openai/gpt-5.5
+```
+
+Set `OPENAI_MODEL` to any model slug from [OrcaRouter's model list](https://www.orcarouter.ai/models) — routing, fallback, and pricing all follow OrcaRouter's own rules from there.
 </Tab>
 </Tabs>
