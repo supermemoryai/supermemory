@@ -80,6 +80,7 @@ import {
 import { MCPSteps } from "./mcp-modal/mcp-detail-view"
 import { GranolaConnectModal } from "./granola-connect-modal"
 import { detectPluginSpace, detectPluginSource } from "@/lib/plugin-space"
+import { usePromoCode } from "@/hooks/use-promo-code"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
@@ -2555,6 +2556,7 @@ export function IntegrationsView({
 	const { allProjects } = useContainerTags()
 	const shortcutsConnect = useShortcutsConnect()
 	const autumn = useCustomer({ queryOptions: { enabled: !publicMode } })
+	const promoCode = usePromoCode()
 	// connectorAccess covers pro-tier connectors (incl. company_brain orgs); plugins
 	// stay on hasProProduct. See useConnectorAccess.
 	const { hasPro: hasProProduct, connectorAccess } = useConnectorAccess({
@@ -2825,8 +2827,10 @@ export function IntegrationsView({
 			try {
 				const result = await autumn.attach({
 					planId: checkoutPlanId,
+					discounts: promoCode.getDiscounts(),
 					successUrl: `${window.location.origin}/integrations`,
 				})
+				promoCode.clear()
 				if (result?.paymentUrl) {
 					window.open(result.paymentUrl, "_self")
 					return
@@ -2837,7 +2841,7 @@ export function IntegrationsView({
 				toast.error("Failed to start checkout. Please try again.")
 			}
 		},
-		[autumn],
+		[autumn, promoCode],
 	)
 
 	const redirectToLogin = useCallback(() => {

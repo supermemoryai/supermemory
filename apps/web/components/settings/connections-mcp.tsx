@@ -38,6 +38,7 @@ import {
 	getConnectionSubtitle,
 } from "@/components/settings/sync-utils"
 import type { ImportProvider } from "@/components/settings/sync-utils"
+import { usePromoCode } from "@/hooks/use-promo-code"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
@@ -420,6 +421,7 @@ function FeatureItem({ text }: { text: string }) {
 export default function ConnectionsMCP() {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
+	const promoCode = usePromoCode()
 	const [addDoc, setAddDoc] = useQueryState("add", addDocumentParam)
 	const router = useRouter()
 	const [removeDialog, setRemoveDialog] = useState<{
@@ -552,8 +554,10 @@ export default function ConnectionsMCP() {
 		try {
 			const result = await autumn.attach({
 				planId: "api_pro",
+				discounts: promoCode.getDiscounts(),
 				successUrl: `${window.location.origin}/settings#connections`,
 			})
+			promoCode.clear()
 			if (result?.paymentUrl) {
 				window.open(result.paymentUrl, "_self")
 				return

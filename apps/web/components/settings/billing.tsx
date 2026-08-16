@@ -36,6 +36,7 @@ import {
 } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
+import { usePromoCode } from "@/hooks/use-promo-code"
 
 const API_BASE =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
@@ -531,6 +532,7 @@ export default function Billing() {
 	const queryClient = useQueryClient()
 	const { user, org } = useAuth()
 	const autumn = useCustomer()
+	const promoCode = usePromoCode()
 	const posthog = usePostHog()
 	const isCompanyBrain = useHasCompanyBrain()
 	const brainTrial = useMemo(
@@ -698,8 +700,10 @@ export default function Billing() {
 		try {
 			const result = await autumn.attach({
 				planId,
+				discounts: promoCode.getDiscounts(),
 				successUrl: `${window.location.origin}/settings#billing`,
 			})
+			promoCode.clear()
 			if ((result as { paymentUrl?: string })?.paymentUrl) {
 				window.location.href = (result as { paymentUrl: string }).paymentUrl
 				return
