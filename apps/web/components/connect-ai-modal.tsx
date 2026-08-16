@@ -36,6 +36,7 @@ import {
 } from "@/lib/mcp-client-setup"
 import { ClaudeDesktopManualTimeline } from "@/components/mcp-modal/claude-desktop-manual-timeline"
 import {
+	buildCursorMcpDeeplink,
 	buildMcpUrlRemoteJson,
 	CHATGPT_REMOTE_MCP_URL,
 	CLAUDE_DESKTOP_MCP_SNIPPET,
@@ -277,10 +278,6 @@ export function ConnectAIModal({
 		return JSON.stringify(config, null, 2)
 	}
 
-	function getCursorDeeplink() {
-		return "cursor://anysphere.cursor-deeplink/mcp/install?name=supermemory&config=eyJ1cmwiOiJodHRwczovL2FwaS5zdXBlcm1lbW9yeS5haS9tY3AifQ%3D%3D"
-	}
-
 	const copyToClipboard = () => {
 		navigator.clipboard.writeText(getMcpServerUrl())
 		analytics.mcpInstallCmdCopied()
@@ -469,7 +466,7 @@ export function ConnectAIModal({
 														<code className="text-xs">mcp.json</code> yourself.
 													</p>
 													<a
-														href={getCursorDeeplink()}
+														href={buildCursorMcpDeeplink()}
 														onClick={() => {
 															analytics.mcpInstallCmdCopied()
 															toast.success("Opening Cursor installer…")

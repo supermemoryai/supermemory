@@ -24,6 +24,7 @@ import {
 	setupInstructionsSubtitle,
 } from "@/lib/mcp-client-setup"
 import {
+	buildCursorMcpDeeplink,
 	buildMcpUrlRemoteJson,
 	CHATGPT_REMOTE_MCP_URL,
 	CLAUDE_DESKTOP_MCP_SNIPPET,
@@ -218,10 +219,6 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 		if (!s.oneClick && setupTab === "oneClick") setSetupTab("manual")
 		if (!s.manual && setupTab === "manual") setSetupTab("oneClick")
 	}, [selectedClient, setupTab, setSetupTab])
-
-	function getCursorDeeplink() {
-		return "cursor://anysphere.cursor-deeplink/mcp/install?name=supermemory&config=eyJ1cmwiOiJodHRwczovL2FwaS5zdXBlcm1lbW9yeS5haS9tY3AifQ%3D%3D"
-	}
 
 	function getMcpServerUrl() {
 		return "https://mcp.supermemory.ai/mcp"
@@ -446,7 +443,7 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 											</p>
 											<div className="flex flex-col items-center gap-4 rounded-[10px] border border-white/[0.07] bg-[#0B0E13] p-6">
 												<a
-													href={getCursorDeeplink()}
+													href={buildCursorMcpDeeplink()}
 													onClick={() => {
 														analytics.mcpInstallCmdCopied()
 														toast.success("Opening Cursor installer...")
