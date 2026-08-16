@@ -198,9 +198,9 @@ export function acceptMemorySuggestion(
 	event.stopPropagation()
 
 	const text = input.dataset.supermemories
-	appendTextToInput(input, text)
 	delete input.dataset.supermemories
 	input.dataset.supermemoriesInjected = "true"
+	appendTextToInput(input, text)
 	removeMemorySuggestion(platform)
 
 	return true
