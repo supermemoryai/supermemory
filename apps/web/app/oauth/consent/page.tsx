@@ -1,8 +1,17 @@
 "use client"
 
-import { authClient, useSession } from "@lib/auth"
+import { authClient } from "@lib/auth"
+import { useAuth } from "@lib/auth-context"
+import { createAuthSessionScope } from "@lib/scoped-auth-state"
 import { useSearchParams } from "next/navigation"
-import { Suspense, useCallback, useMemo, useState } from "react"
+import {
+	Suspense,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react"
 import {
 	CardShell,
 	ConsentCard,
@@ -16,20 +25,28 @@ const API_URL =
 
 function OAuthConsentContent() {
 	const params = useSearchParams()
-	const { data: session } = useSession()
-	const { data: organizations } = authClient.useListOrganizations()
+	const { organizations, user } = useAuth()
 
 	const [submitting, setSubmitting] = useState<"approve" | "deny" | null>(null)
 	const [done, setDone] = useState<"approved" | "denied" | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [availableTags, setAvailableTags] = useState<string[]>([])
 	const [tagsLoading, setTagsLoading] = useState(false)
+	const [tagsLoaded, setTagsLoaded] = useState(false)
+	const tagsRequestRef = useRef<AbortController | null>(null)
+	const submitRequestRef = useRef<AbortController | null>(null)
+
+	useEffect(() => {
+		return () => {
+			tagsRequestRef.current?.abort()
+			submitRequestRef.current?.abort()
+		}
+	}, [])
 
 	const orgs = useMemo(
 		() => (organizations ?? []).map((o) => ({ id: o.id, name: o.name })),
 		[organizations],
 	)
-	const activeOrgId = session?.session.activeOrganizationId ?? null
 	const clientId = params.get("client_id") ?? ""
 	const plugin = clientId ? (OAUTH_PLUGINS[clientId] ?? null) : null
 	const appLabel = plugin?.name ?? "An application"
@@ -43,25 +60,46 @@ function OAuthConsentContent() {
 	const onEnterOrg = useCallback(
 		async (orgId: string) => {
 			setError(null)
-			if (orgId !== activeOrgId) {
-				try {
-					await authClient.organization.setActive({ organizationId: orgId })
-				} catch (err) {
-					setError("Couldn't switch to that organization. Try again.")
-					throw err
-				}
-			}
+			tagsRequestRef.current?.abort()
+			tagsRequestRef.current = null
+			setTagsLoading(false)
+			setTagsLoaded(false)
 			setAvailableTags([])
+			try {
+				const result = await authClient.organization.setActive({
+					organizationId: orgId,
+				})
+				if (result.error || result.data?.id !== orgId) {
+					throw new Error(
+						result.error?.message ?? "Organization switch failed",
+					)
+				}
+			} catch (err) {
+				setError("Couldn't switch to that organization. Try again.")
+				throw err
+			}
 		},
-		[activeOrgId],
+		[],
 	)
 
 	const onScopedOpen = useCallback(() => {
-		if (tagsLoading || availableTags.length > 0) return
+		if (tagsLoading || tagsLoaded) return
+		const controller = new AbortController()
+		tagsRequestRef.current?.abort()
+		tagsRequestRef.current = controller
 		setTagsLoading(true)
-		fetch(`${API_URL}/v3/container-tags/list`, { credentials: "include" })
+		fetch(`${API_URL}/v3/container-tags/list`, {
+			credentials: "include",
+			signal: controller.signal,
+		})
 			.then((r) => (r.ok ? r.json() : null))
 			.then((d) => {
+				if (
+					tagsRequestRef.current !== controller ||
+					controller.signal.aborted
+				) {
+					return
+				}
 				const list = (d?.containerTags ?? d?.tags ?? d ?? []) as unknown[]
 				const names = (Array.isArray(list) ? list : [])
 					.map((t) =>
@@ -75,8 +113,15 @@ function OAuthConsentContent() {
 				setAvailableTags(Array.from(new Set(names)))
 			})
 			.catch(() => {})
-			.finally(() => setTagsLoading(false))
-	}, [tagsLoading, availableTags.length])
+			.finally(() => {
+				if (tagsRequestRef.current !== controller) return
+				tagsRequestRef.current = null
+				if (!controller.signal.aborted) {
+					setTagsLoading(false)
+					setTagsLoaded(true)
+				}
+			})
+	}, [tagsLoading, tagsLoaded])
 
 	const onSubmit = useCallback(
 		async (accept: boolean, scope: ConsentScope) => {
@@ -89,6 +134,9 @@ function OAuthConsentContent() {
 				)
 				return
 			}
+			const controller = new AbortController()
+			submitRequestRef.current?.abort()
+			submitRequestRef.current = controller
 			setSubmitting(accept ? "approve" : "deny")
 			setError(null)
 			try {
@@ -106,7 +154,9 @@ function OAuthConsentContent() {
 							containerTags: scope.scopeType === "scoped" ? scope.tags : [],
 							expiresDays: scope.expiresDays,
 						}),
+						signal: controller.signal,
 					})
+					if (controller.signal.aborted) return
 					if (!scopeRes.ok) {
 						const scopeData = (await scopeRes.json().catch(() => ({}))) as {
 							error?: string
@@ -127,7 +177,9 @@ function OAuthConsentContent() {
 						Accept: "application/json",
 					},
 					body: JSON.stringify({ accept, oauth_query: oauthQuery }),
+					signal: controller.signal,
 				})
+				if (controller.signal.aborted) return
 				const data = (await res.json().catch(() => ({}))) as {
 					url?: string
 					redirectURI?: string
@@ -152,6 +204,7 @@ function OAuthConsentContent() {
 							"Authorization failed.",
 					)
 				}
+				if (controller.signal.aborted) return
 				// Many clients use a loopback or custom-scheme redirect URI that hands
 				// off without replacing this tab, but the server still has to provide it.
 				const redirectUrl = data.url ?? data.redirectURI ?? data.redirect_uri
@@ -180,9 +233,14 @@ function OAuthConsentContent() {
 				setDone(accept ? "approved" : "denied")
 				if (redirectUrl) window.location.href = redirectUrl
 			} catch (err) {
+				if (controller.signal.aborted) return
 				console.error("OAuth consent failed:", err)
 				setError(err instanceof Error ? err.message : "Authorization failed.")
 				setSubmitting(null)
+			} finally {
+				if (submitRequestRef.current === controller) {
+					submitRequestRef.current = null
+				}
 			}
 		},
 		[clientId],
@@ -230,13 +288,20 @@ function OAuthConsentContent() {
 			orgs={orgs}
 			submitting={submitting}
 			tagsLoading={tagsLoading}
-			userEmail={session?.user?.email}
+			userEmail={user?.email}
 			verified={!!plugin}
 		/>
 	)
 }
 
 export default function OAuthConsentPage() {
+	const { isSessionPending, session, user } = useAuth()
+	const sessionScope = createAuthSessionScope({
+		isPending: isSessionPending,
+		sessionId: session?.id,
+		userId: user?.id,
+	})
+
 	return (
 		<Suspense
 			fallback={
@@ -247,7 +312,7 @@ export default function OAuthConsentPage() {
 				</CardShell>
 			}
 		>
-			<OAuthConsentContent />
+			<OAuthConsentContent key={sessionScope ?? "no-session"} />
 		</Suspense>
 	)
 }
