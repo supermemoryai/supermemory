@@ -27,7 +27,7 @@ export function useOrgOnboarding() {
 		}
 
 		// Optimistic update: update in-memory state immediately
-		updateOrgMetadata({ isOnboarded: true })
+		updateOrgMetadata(org.id, { isOnboarded: true })
 
 		authClient.organization
 			.update({
@@ -39,9 +39,16 @@ export function useOrgOnboarding() {
 					},
 				},
 			})
+			.then((result) => {
+				if (result.error) {
+					throw new Error(
+						result.error.message ?? "Failed to mark organization as onboarded",
+					)
+				}
+			})
 			.catch((error) => {
 				console.error("Failed to mark organization as onboarded:", error)
-				updateOrgMetadata({ isOnboarded: false })
+				updateOrgMetadata(org.id, { isOnboarded: false })
 			})
 	}, [org, updateOrgMetadata])
 
@@ -52,7 +59,7 @@ export function useOrgOnboarding() {
 		}
 
 		// Optimistic update: update in-memory state immediately
-		updateOrgMetadata({ isOnboarded: false })
+		updateOrgMetadata(org.id, { isOnboarded: false })
 
 		authClient.organization
 			.update({
@@ -64,9 +71,16 @@ export function useOrgOnboarding() {
 					},
 				},
 			})
+			.then((result) => {
+				if (result.error) {
+					throw new Error(
+						result.error.message ?? "Failed to reset organization onboarding",
+					)
+				}
+			})
 			.catch((error) => {
 				console.error("Failed to reset organization onboarding:", error)
-				updateOrgMetadata({ isOnboarded: true })
+				updateOrgMetadata(org.id, { isOnboarded: true })
 			})
 	}, [org, updateOrgMetadata])
 
