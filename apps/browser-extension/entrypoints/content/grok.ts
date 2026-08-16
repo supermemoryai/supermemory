@@ -265,33 +265,55 @@ function getGrokMemoryDialog(): HTMLElement | null {
 	return candidates[0] || null
 }
 
-const GROK_MEMORY_UI_TEXT = [
+const GROK_MEMORY_UI_TEXT = new Set([
 	"Memory from your chats",
 	"This summary is regenerated periodically from your conversations.",
 	"Save to supermemory",
 	"Close",
 	"Delete memory",
 	"Edit",
+])
+
+const GROK_MEMORY_UI_ELEMENT_RULES = [
+	{
+		selector:
+			"h1, h2, h3, h4, h5, h6, p, div, section, [role='heading'], [role='note']",
+		text: new Set([
+			"Memory from your chats",
+			"This summary is regenerated periodically from your conversations.",
+		]),
+	},
+	{
+		selector:
+			"button, [role='button'], [role='menuitem'], [role='tab'], [tabindex]",
+		text: new Set(["Save to supermemory", "Close", "Delete memory", "Edit"]),
+	},
 ] as const
 
-function escapeRegExp(text: string) {
-	return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+interface GrokMemoryTextElement {
+	textContent: string | null
+	remove(): void
 }
 
-function sanitizeGrokMemoryText(text: string) {
-	let sanitizedText = text
+interface GrokMemoryTextRoot {
+	querySelectorAll(selectors: string): Iterable<GrokMemoryTextElement>
+}
 
-	for (const uiText of GROK_MEMORY_UI_TEXT) {
-		sanitizedText = sanitizedText.replace(
-			new RegExp(escapeRegExp(uiText), "g"),
-			"\n",
-		)
+export function removeGrokMemoryUiElements(root: GrokMemoryTextRoot) {
+	for (const rule of GROK_MEMORY_UI_ELEMENT_RULES) {
+		for (const element of root.querySelectorAll(rule.selector)) {
+			if (rule.text.has(element.textContent?.trim() || "")) {
+				element.remove()
+			}
+		}
 	}
+}
 
-	return sanitizedText
+export function sanitizeGrokMemoryText(text: string) {
+	return text
 		.split("\n")
 		.map((line) => line.trim())
-		.filter((line) => line)
+		.filter((line) => line && !GROK_MEMORY_UI_TEXT.has(line))
 		.join("\n")
 		.trim()
 }
@@ -299,6 +321,7 @@ function sanitizeGrokMemoryText(text: string) {
 function getGrokMemoryText(dialog: HTMLElement): string {
 	const clonedDialog = dialog.cloneNode(true) as HTMLElement
 	clonedDialog.querySelector("#supermemory-save-button")?.remove()
+	removeGrokMemoryUiElements(clonedDialog)
 
 	const possibleMemoryContainers = Array.from(
 		clonedDialog.querySelectorAll<HTMLElement>(
