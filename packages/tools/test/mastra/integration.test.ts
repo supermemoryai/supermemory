@@ -212,7 +212,7 @@ describe.skipIf(!shouldRunIntegration)(
 				fetchSpy.mockRestore()
 			})
 
-			it("should cache memories for repeated calls with same message", async () => {
+			it("should cache memories for repeated calls within a request", async () => {
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
 				const processor = new SupermemoryInputProcessor({
@@ -226,11 +226,13 @@ describe.skipIf(!shouldRunIntegration)(
 				const messages: MastraDBMessage[] = [
 					createMessage("user", "Cache test message"),
 				]
+				const state: Record<string, unknown> = {}
 
 				const args1: ProcessInputArgs = {
 					messages,
 					systemMessages: [],
 					messageList: createIntegrationMessageList(),
+					state,
 					abort: vi.fn() as never,
 					retryCount: 0,
 				}
@@ -245,6 +247,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messages,
 					systemMessages: [],
 					messageList: createIntegrationMessageList(),
+					state,
 					abort: vi.fn() as never,
 					retryCount: 0,
 				}

@@ -216,6 +216,7 @@ describe("SupermemoryInputProcessor", () => {
 			const messages: MastraDBMessage[] = [createMessage("user", "Hello")]
 			const firstMessageList = createMockMessageList()
 			const secondMessageList = createMockMessageList()
+			const state: Record<string, unknown> = {}
 
 			await processor.processInput({
 				messages,
@@ -223,7 +224,7 @@ describe("SupermemoryInputProcessor", () => {
 				messageList: firstMessageList,
 				abort: vi.fn() as never,
 				retryCount: 0,
-				state: {},
+				state,
 			})
 			await processor.processInput({
 				messages,
@@ -231,7 +232,7 @@ describe("SupermemoryInputProcessor", () => {
 				messageList: secondMessageList,
 				abort: vi.fn() as never,
 				retryCount: 0,
-				state: {},
+				state,
 			})
 
 			expect(firstMessageList.addSystem).not.toHaveBeenCalled()
@@ -239,7 +240,7 @@ describe("SupermemoryInputProcessor", () => {
 			expect(fetchMock).toHaveBeenCalledTimes(1)
 		})
 
-		it("should use cached memories on second call with same message", async () => {
+		it("should use cached memories within the same request", async () => {
 			fetchMock.mockResolvedValue({
 				ok: true,
 				json: () =>
@@ -254,11 +255,13 @@ describe("SupermemoryInputProcessor", () => {
 			})
 
 			const messages: MastraDBMessage[] = [createMessage("user", "Hello")]
+			const state: Record<string, unknown> = {}
 
 			const args1: ProcessInputArgs = {
 				messages,
 				systemMessages: [],
 				messageList: createMockMessageList(),
+				state,
 				abort: vi.fn() as never,
 				retryCount: 0,
 			}
@@ -270,12 +273,111 @@ describe("SupermemoryInputProcessor", () => {
 				messages,
 				systemMessages: [],
 				messageList: createMockMessageList(),
+				state,
 				abort: vi.fn() as never,
 				retryCount: 0,
 			}
 
 			await processor.processInput(args2)
 			expect(fetchMock).toHaveBeenCalledTimes(1)
+		})
+
+		it("should not reuse an empty profile result across requests", async () => {
+			let callCount = 0
+			fetchMock.mockImplementation(() => {
+				const currentCall = ++callCount
+				return Promise.resolve({
+					ok: true,
+					json: () =>
+						Promise.resolve(
+							currentCall === 1
+								? createMockProfileResponse()
+								: createMockProfileResponse(["Profile from second request"]),
+						),
+				})
+			})
+
+			const processor = new SupermemoryInputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				customId: TEST_CONFIG.customId,
+				apiKey: TEST_CONFIG.apiKey,
+				mode: "profile",
+			})
+			const messages: MastraDBMessage[] = [createMessage("user", "Hello")]
+			const firstMessageList = createMockMessageList()
+			const secondMessageList = createMockMessageList()
+
+			await processor.processInput({
+				messages,
+				systemMessages: [],
+				messageList: firstMessageList,
+				state: {},
+				abort: vi.fn() as never,
+				retryCount: 0,
+			})
+			await processor.processInput({
+				messages,
+				systemMessages: [],
+				messageList: secondMessageList,
+				state: {},
+				abort: vi.fn() as never,
+				retryCount: 0,
+			})
+
+			expect(fetchMock).toHaveBeenCalledTimes(2)
+			expect(firstMessageList.addSystem).not.toHaveBeenCalled()
+			expect(secondMessageList.calls[0]?.args[0]).toContain(
+				"Profile from second request",
+			)
+		})
+
+		it("should not share a cache when request state is unavailable", async () => {
+			let callCount = 0
+			fetchMock.mockImplementation(() => {
+				const currentCall = ++callCount
+				return Promise.resolve({
+					ok: true,
+					json: () =>
+						Promise.resolve(
+							createMockProfileResponse([`Profile from call ${currentCall}`]),
+						),
+				})
+			})
+
+			const processor = new SupermemoryInputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				customId: TEST_CONFIG.customId,
+				apiKey: TEST_CONFIG.apiKey,
+				mode: "profile",
+			})
+			const messages: MastraDBMessage[] = [createMessage("user", "Hello")]
+			const firstMessageList = createMockMessageList()
+			const secondMessageList = createMockMessageList()
+
+			await processor.processInput({
+				messages,
+				systemMessages: [],
+				messageList: firstMessageList,
+				state: undefined as never,
+				abort: vi.fn() as never,
+				retryCount: 0,
+			})
+			await processor.processInput({
+				messages,
+				systemMessages: [],
+				messageList: secondMessageList,
+				state: undefined as never,
+				abort: vi.fn() as never,
+				retryCount: 0,
+			})
+
+			expect(fetchMock).toHaveBeenCalledTimes(2)
+			expect(firstMessageList.calls[0]?.args[0]).toContain(
+				"Profile from call 1",
+			)
+			expect(secondMessageList.calls[0]?.args[0]).toContain(
+				"Profile from call 2",
+			)
 		})
 
 		it("should refetch memories for different user message", async () => {
@@ -297,11 +399,13 @@ describe("SupermemoryInputProcessor", () => {
 				apiKey: TEST_CONFIG.apiKey,
 				mode: "query",
 			})
+			const state: Record<string, unknown> = {}
 
 			const args1: ProcessInputArgs = {
 				messages: [createMessage("user", "First message")],
 				systemMessages: [],
 				messageList: createMockMessageList(),
+				state,
 				abort: vi.fn() as never,
 				retryCount: 0,
 			}
@@ -313,6 +417,7 @@ describe("SupermemoryInputProcessor", () => {
 				messages: [createMessage("user", "Different message")],
 				systemMessages: [],
 				messageList: createMockMessageList(),
+				state,
 				abort: vi.fn() as never,
 				retryCount: 0,
 			}

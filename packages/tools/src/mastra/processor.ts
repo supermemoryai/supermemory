@@ -50,7 +50,29 @@ interface ProcessorContext {
 	addMemory: "always" | "never"
 	logger: Logger
 	promptTemplate?: PromptTemplate
-	memoryCache: MemoryCache<string>
+}
+
+const REQUEST_MEMORY_CACHE_KEY = "supermemory.memoryCache"
+
+/**
+ * Gets the cache scoped to the current Mastra request.
+ *
+ * Mastra processor instances can be reused across requests, while `state` is
+ * created for one request and shared across that request's processor calls.
+ */
+function getRequestMemoryCache(
+	state?: Record<string, unknown>,
+): MemoryCache<string> {
+	const existingCache = state?.[REQUEST_MEMORY_CACHE_KEY]
+	if (existingCache instanceof MemoryCache) {
+		return existingCache
+	}
+
+	const memoryCache = new MemoryCache<string>()
+	if (state) {
+		state[REQUEST_MEMORY_CACHE_KEY] = memoryCache
+	}
+	return memoryCache
 }
 
 /**
@@ -72,7 +94,6 @@ function createProcessorContext(
 		addMemory: options.addMemory ?? "always",
 		logger,
 		promptTemplate: options.promptTemplate,
-		memoryCache: new MemoryCache<string>(),
 	}
 }
 
@@ -136,7 +157,7 @@ export class SupermemoryInputProcessor implements Processor {
 	}
 
 	async processInput(args: ProcessInputArgs): Promise<ProcessInputResult> {
-		const { messages, messageList, requestContext } = args
+		const { messages, messageList, requestContext, state } = args
 
 		try {
 			const queryText = extractQueryText(
@@ -159,9 +180,10 @@ export class SupermemoryInputProcessor implements Processor {
 				this.ctx.mode,
 				queryText || "",
 			)
+			const memoryCache = getRequestMemoryCache(state)
 
-			if (this.ctx.memoryCache.has(turnKey)) {
-				const cachedMemories = this.ctx.memoryCache.get(turnKey) ?? ""
+			if (memoryCache.has(turnKey)) {
+				const cachedMemories = memoryCache.get(turnKey) ?? ""
 				this.ctx.logger.debug("Using cached memories", { turnKey })
 				if (cachedMemories) {
 					messageList.addSystem(cachedMemories, "supermemory")
@@ -185,7 +207,7 @@ export class SupermemoryInputProcessor implements Processor {
 				promptTemplate: this.ctx.promptTemplate,
 			})
 
-			this.ctx.memoryCache.set(turnKey, memories)
+			memoryCache.set(turnKey, memories)
 			if (memories) {
 				messageList.addSystem(memories, "supermemory")
 				this.ctx.logger.debug("Injected memories into system prompt", {
