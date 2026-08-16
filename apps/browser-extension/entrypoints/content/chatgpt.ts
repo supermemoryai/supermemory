@@ -16,8 +16,9 @@ import {
 import {
 	acceptMemorySuggestion,
 	clearMemorySuggestion,
+	clearPendingMemorySuggestion,
+	createMemorySuggestionPayload,
 	hasAcceptedSupermemoryContext,
-	serializeMemoriesForDataset,
 	setMemoryMarkerStatus,
 	showLoadingSuggestion,
 	showMarkerPopover,
@@ -164,21 +165,19 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 		const userQuery =
 			document.getElementById("prompt-textarea")?.textContent || ""
 
-		const icon = document.querySelectorAll(
+		const iconElement = document.querySelectorAll(
 			'[id*="sm-chatgpt-input-bar-element-before-composer"]',
-		)[0]
-
-		const iconElement = icon as HTMLElement
+		)[0] as HTMLElement | undefined
+		const currentPromptElement = document.getElementById("prompt-textarea")
+		clearPendingMemorySuggestion("chatgpt", currentPromptElement, iconElement)
 
 		if (!iconElement) {
 			console.warn("ChatGPT icon element not found, cannot update feedback")
 			return
 		}
-
 		if (isAutoSearch) {
-			const promptElement = document.getElementById("prompt-textarea")
-			if (promptElement) {
-				showLoadingSuggestion("chatgpt", promptElement)
+			if (currentPromptElement) {
+				showLoadingSuggestion("chatgpt", currentPromptElement)
 			}
 			setMemoryMarkerStatus(iconElement, "searching")
 		} else {
@@ -201,21 +200,23 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 			timeoutPromise,
 		])
 
-		if (response?.success && response?.data) {
+		const memorySuggestion = response?.success
+			? createMemorySuggestionPayload(response.data)
+			: null
+
+		if (memorySuggestion) {
 			const promptElement = document.getElementById("prompt-textarea")
 			if (promptElement) {
 				const memoryText = showMemorySuggestion(
 					"chatgpt",
 					promptElement,
-					response.data,
+					memorySuggestion,
 				)
 				debugChatGPT("memory suggestion rendered", {
 					memoryLength: memoryText.length,
 				})
 
-				iconElement.dataset.memoriesData = serializeMemoriesForDataset(
-					response.data,
-				)
+				iconElement.dataset.memoriesData = memorySuggestion.memoriesData
 
 				if (isAutoSearch) {
 					setMemoryMarkerStatus(iconElement, "found")
@@ -234,6 +235,11 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 			}
 		} else {
 			console.warn("No memories found or API response invalid")
+			clearPendingMemorySuggestion(
+				"chatgpt",
+				document.getElementById("prompt-textarea"),
+				iconElement,
+			)
 			if (isAutoSearch) {
 				setMemoryMarkerStatus(iconElement, "none")
 			} else {
@@ -245,7 +251,12 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 		try {
 			const icon = document.querySelectorAll(
 				'[id*="sm-chatgpt-input-bar-element-before-composer"]',
-			)[0] as HTMLElement
+			)[0] as HTMLElement | undefined
+			clearPendingMemorySuggestion(
+				"chatgpt",
+				document.getElementById("prompt-textarea"),
+				icon,
+			)
 			if (icon) {
 				if (
 					actionSource === POSTHOG_EVENT_KEY.CHATGPT_CHAT_MEMORIES_AUTO_SEARCHED

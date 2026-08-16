@@ -12,6 +12,8 @@ import {
 import { createT3InputBarElement, DOMUtils } from "../../utils/ui-components"
 import {
 	buildSupermemoryText,
+	clearPendingMemoryState,
+	createMemorySuggestionPayload,
 	parseMemoriesFromDataset,
 	renumberIncludedMemories,
 	serializeMemoriesForDataset,
@@ -33,6 +35,24 @@ function disposeT3IncludedPopup() {
 	clearTimeout(t3IncludedPopup.timer)
 	t3IncludedPopup.el.remove()
 	t3IncludedPopup = null
+}
+
+function getT3PromptInput(): HTMLTextAreaElement | HTMLElement | null {
+	const supermemoryContainer = document.querySelector(
+		'[data-supermemory-icon-added="true"]',
+	)
+	const composerTextarea =
+		supermemoryContainer?.parentElement?.previousElementSibling?.querySelector(
+			"textarea",
+		) as HTMLTextAreaElement | null
+
+	return (
+		composerTextarea ||
+		(document.querySelector('div[contenteditable="true"]') as
+			| HTMLTextAreaElement
+			| HTMLElement
+			| null)
+	)
 }
 
 export function initializeT3() {
@@ -201,13 +221,15 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			}
 		}
 
+		const iconElement = document.querySelector(
+			'[id*="sm-t3-input-bar-element"]',
+		) as HTMLElement | null
+		clearPendingMemoryState(getT3PromptInput(), iconElement)
+		disposeT3IncludedPopup()
+
 		if (!userQuery.trim()) {
 			return
 		}
-
-		const icon = document.querySelector('[id*="sm-t3-input-bar-element"]')
-
-		const iconElement = icon as HTMLElement
 
 		if (!iconElement) {
 			console.warn("T3 icon element not found, cannot update feedback")
@@ -232,32 +254,17 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			timeoutPromise,
 		])
 
-		if (response?.success && response?.data) {
-			let textareaElement = null
-			const supermemoryContainer = document.querySelector(
-				'[data-supermemory-icon-added="true"]',
-			)
-			if (supermemoryContainer?.parentElement?.previousElementSibling) {
-				textareaElement =
-					supermemoryContainer.parentElement.previousElementSibling.querySelector(
-						"textarea",
-					)
-			}
+		const memorySuggestion = response?.success
+			? createMemorySuggestionPayload(response.data)
+			: null
 
-			if (!textareaElement) {
-				textareaElement = document.querySelector(
-					'div[contenteditable="true"]',
-				) as HTMLElement
-			}
+		if (memorySuggestion) {
+			const textareaElement = getT3PromptInput()
 
 			if (textareaElement) {
-				textareaElement.dataset.supermemories = buildSupermemoryText(
-					response.data,
-				)
+				textareaElement.dataset.supermemories = memorySuggestion.suggestionText
 
-				iconElement.dataset.memoriesData = serializeMemoriesForDataset(
-					response.data,
-				)
+				iconElement.dataset.memoriesData = memorySuggestion.memoriesData
 
 				updateT3IconFeedback("Included Memories", iconElement)
 			} else {
@@ -266,6 +273,8 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			}
 		} else {
 			console.warn("No memories found or API response invalid for T3")
+			clearPendingMemoryState(getT3PromptInput(), iconElement)
+			disposeT3IncludedPopup()
 			updateT3IconFeedback("No memories found", iconElement)
 		}
 	} catch (error) {
@@ -273,7 +282,9 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 		try {
 			const icon = document.querySelector(
 				'[id*="sm-t3-input-bar-element"]',
-			) as HTMLElement
+			) as HTMLElement | null
+			clearPendingMemoryState(getT3PromptInput(), icon)
+			disposeT3IncludedPopup()
 			if (icon) {
 				updateT3IconFeedback("Error fetching memories", icon)
 			}

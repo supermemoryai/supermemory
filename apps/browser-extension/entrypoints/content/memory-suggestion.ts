@@ -4,12 +4,17 @@ const SUGGESTION_ATTR = "data-supermemory-memory-suggestion"
 const SUPERMEMORY_PREFIX = "Supermemories of user (only for the reference):"
 const SUPERMEMORY_BLUE = "#1A88FF"
 
-export function buildSupermemoryText(memories: unknown): string {
-	const memoryText = Array.isArray(memories)
-		? memories.join("").trim()
-		: String(memories || "").trim()
+interface DatasetTarget {
+	dataset: Record<string, string | undefined>
+}
 
-	return `\n\n${SUPERMEMORY_PREFIX} ${memoryText}`
+interface PendingMemoryIcon extends DatasetTarget {
+	querySelector(selectors: string): { remove(): void } | null
+}
+
+export interface MemorySuggestionPayload {
+	suggestionText: string
+	memoriesData: string
 }
 
 function normalizeMemoryList(memories: unknown): string[] {
@@ -27,6 +32,39 @@ function normalizeMemoryList(memories: unknown): string[] {
 export function serializeMemoriesForDataset(memories: unknown): string {
 	const list = normalizeMemoryList(memories)
 	return list.length > 0 ? JSON.stringify(list) : ""
+}
+
+export function createMemorySuggestionPayload(
+	memories: unknown,
+): MemorySuggestionPayload | null {
+	const memoriesData = serializeMemoriesForDataset(memories)
+	if (!memoriesData) return null
+
+	const memoryText = Array.isArray(memories)
+		? memories.join("").trim()
+		: String(memories ?? "").trim()
+	if (!memoryText) return null
+
+	return {
+		suggestionText: `\n\n${SUPERMEMORY_PREFIX} ${memoryText}`,
+		memoriesData,
+	}
+}
+
+export function buildSupermemoryText(memories: unknown): string {
+	return createMemorySuggestionPayload(memories)?.suggestionText ?? ""
+}
+
+export function clearPendingMemoryState(
+	input: DatasetTarget | null | undefined,
+	icon?: PendingMemoryIcon | null,
+) {
+	if (input) delete input.dataset.supermemories
+	if (icon) {
+		delete icon.dataset.memoriesData
+		delete icon.dataset.supermemories
+		icon.querySelector("[data-supermemory-marker-popover]")?.remove()
+	}
 }
 
 export function parseMemoriesFromDataset(
@@ -55,9 +93,9 @@ export function renumberIncludedMemories(memories: string[]): string[] {
 export function showMemorySuggestion(
 	platform: string,
 	input: SuggestionInput,
-	memories: unknown,
+	payload: MemorySuggestionPayload,
 ): string {
-	const suggestionText = buildSupermemoryText(memories)
+	const suggestionText = payload.suggestionText
 	input.dataset.supermemories = suggestionText
 	delete input.dataset.supermemoriesInjected
 
@@ -185,6 +223,15 @@ export function removeMemorySuggestion(platform: string) {
 	}
 }
 
+export function clearPendingMemorySuggestion(
+	platform: string,
+	input: SuggestionInput | null,
+	icon?: HTMLElement | null,
+) {
+	removeMemorySuggestion(platform)
+	clearPendingMemoryState(input, icon)
+}
+
 export function acceptMemorySuggestion(
 	event: KeyboardEvent,
 	platform: string,
@@ -230,10 +277,7 @@ export function clearMemorySuggestion(
 	platform: string,
 	input: SuggestionInput | null,
 ) {
-	removeMemorySuggestion(platform)
-	if (input?.dataset.supermemories) {
-		delete input.dataset.supermemories
-	}
+	clearPendingMemorySuggestion(platform, input)
 	if (input?.dataset.supermemoriesInjected) {
 		delete input.dataset.supermemoriesInjected
 	}

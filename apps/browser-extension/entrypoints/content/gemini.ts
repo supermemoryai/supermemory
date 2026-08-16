@@ -16,8 +16,9 @@ import {
 import {
 	acceptMemorySuggestion,
 	clearMemorySuggestion,
+	clearPendingMemorySuggestion,
+	createMemorySuggestionPayload,
 	hasAcceptedSupermemoryContext,
-	serializeMemoriesForDataset,
 	setMemoryMarkerStatus,
 	showLoadingSuggestion,
 	showMarkerPopover,
@@ -376,14 +377,15 @@ async function getRelatedMemoriesForGemini(actionSource: string) {
 			queryLength: userQuery.length,
 		})
 
+		const iconElement = document.querySelector(
+			`[id*="${ELEMENT_IDS.GEMINI_INPUT_BAR_ELEMENT}"]`,
+		) as HTMLElement | null
+		clearPendingMemorySuggestion("gemini", input, iconElement)
+
 		if (!userQuery) {
 			debugGemini("memory search skipped because query is empty")
 			return
 		}
-
-		const iconElement = document.querySelector(
-			`[id*="${ELEMENT_IDS.GEMINI_INPUT_BAR_ELEMENT}"]`,
-		) as HTMLElement | null
 
 		if (!iconElement) {
 			console.warn("Gemini icon element not found, cannot update feedback")
@@ -412,15 +414,17 @@ async function getRelatedMemoriesForGemini(actionSource: string) {
 				actionSource,
 			}),
 			timeoutPromise,
-		])) as { success?: boolean; data?: string }
+		])) as { success?: boolean; data?: unknown }
 
 		debugGemini("memory search response", response)
 
-		if (response?.success && response?.data && input) {
-			const memoryText = showMemorySuggestion("gemini", input, response.data)
-			iconElement.dataset.memoriesData = serializeMemoriesForDataset(
-				response.data,
-			)
+		const memorySuggestion = response?.success
+			? createMemorySuggestionPayload(response.data)
+			: null
+
+		if (memorySuggestion && input) {
+			const memoryText = showMemorySuggestion("gemini", input, memorySuggestion)
+			iconElement.dataset.memoriesData = memorySuggestion.memoriesData
 			iconElement.dataset.supermemories = memoryText
 			if (isAutoSearch) {
 				setMemoryMarkerStatus(iconElement, "found")
@@ -429,6 +433,8 @@ async function getRelatedMemoriesForGemini(actionSource: string) {
 			}
 			return
 		}
+
+		clearPendingMemorySuggestion("gemini", input, iconElement)
 
 		if (isAutoSearch) {
 			setMemoryMarkerStatus(iconElement, "none")
@@ -440,6 +446,7 @@ async function getRelatedMemoriesForGemini(actionSource: string) {
 		const iconElement = document.querySelector(
 			`[id*="${ELEMENT_IDS.GEMINI_INPUT_BAR_ELEMENT}"]`,
 		) as HTMLElement | null
+		clearPendingMemorySuggestion("gemini", getGeminiPromptInput(), iconElement)
 		if (iconElement) {
 			if (
 				actionSource === POSTHOG_EVENT_KEY.GEMINI_CHAT_MEMORIES_AUTO_SEARCHED
