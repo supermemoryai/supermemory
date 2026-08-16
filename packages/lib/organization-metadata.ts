@@ -3,6 +3,10 @@ interface OrganizationWithMetadata {
 	metadata?: unknown
 }
 
+function isMetadataRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
 export function mergeOrganizationMetadata<
 	Organization extends OrganizationWithMetadata,
 >(
@@ -12,11 +16,10 @@ export function mergeOrganizationMetadata<
 ): Organization | null {
 	if (!current || current.id !== organizationId) return current
 
-	return {
-		...current,
-		metadata: {
-			...(current.metadata as Record<string, unknown> | null),
-			...partial,
-		},
-	} as Organization
+	const metadata = {
+		...(isMetadataRecord(current.metadata) ? current.metadata : {}),
+		...partial,
+	}
+
+	return Object.assign({}, current, { metadata })
 }

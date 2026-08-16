@@ -38,4 +38,15 @@ describe("mergeOrganizationMetadata", () => {
 			mergeOrganizationMetadata(null, "org-a", { isOnboarded: true }),
 		).toBeNull()
 	})
+
+	it("replaces malformed metadata without spreading it", () => {
+		const current: { id: string; metadata?: unknown } = {
+			id: "org-a",
+			metadata: ["unexpected"],
+		}
+
+		expect(
+			mergeOrganizationMetadata(current, "org-a", { isOnboarded: true }),
+		).toEqual({ id: "org-a", metadata: { isOnboarded: true } })
+	})
 })
