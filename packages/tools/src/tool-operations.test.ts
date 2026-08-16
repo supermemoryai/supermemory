@@ -36,9 +36,15 @@ import * as openAi from "./openai/tools"
 
 const API_KEY = "sm_test_key"
 
-type ToolWithExecute = { execute: (args: Record<string, unknown>) => unknown }
+type ToolExecutionResult = { success: boolean; error?: string }
+type ToolWithExecute = {
+	execute: (args: Record<string, unknown>) => Promise<ToolExecutionResult>
+}
 
-function executeTool(tool: unknown, args: Record<string, unknown>) {
+function executeTool(
+	tool: unknown,
+	args: Record<string, unknown>,
+): Promise<ToolExecutionResult> {
 	return (tool as ToolWithExecute).execute(args)
 }
 
@@ -124,7 +130,7 @@ describe("configured container scope", () => {
 		const fetchMock = vi.fn()
 		vi.stubGlobal("fetch", fetchMock)
 
-		const results = (await Promise.all([
+		const results: ToolExecutionResult[] = await Promise.all([
 			executeTool(aiSdk.getProfileTool(API_KEY, config), {
 				containerTag: "tenant-b",
 			}),
@@ -154,7 +160,7 @@ describe("configured container scope", () => {
 				containerTag: "tenant-b",
 				memoryId: "mem_1",
 			}),
-		])) as Array<{ success: boolean; error?: string }>
+		])
 
 		expect(results).toHaveLength(6)
 		for (const result of results) {
