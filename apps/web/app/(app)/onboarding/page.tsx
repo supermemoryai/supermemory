@@ -9,6 +9,13 @@ import { authClient } from "@lib/auth"
 import { SHARED_TEAM_BRAIN_TAG } from "@lib/constants"
 import { analytics } from "@/lib/analytics"
 import { resolveCompanyBrainEntry } from "@/lib/company-brain-entry"
+import {
+	clearOnboardingDraft,
+	discardLegacyOnboardingDraft,
+	getOnboardingDraftStorage,
+	readOnboardingDraft,
+	writeOnboardingDraft,
+} from "@/lib/brain-onboarding-draft"
 import { BrainShell } from "@/components/onboarding-brain/shell"
 import {
 	StepAbout,
@@ -39,9 +46,15 @@ import {
 	type CompanyBrainConfirmResult,
 } from "@/components/onboarding-brain/types"
 
-const STORAGE_KEY = "supermemory-brain-onboarding-v1"
 const BACKEND =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+
+type BrainOnboardingDraft = {
+	mode?: BrainMode
+	about?: AboutValues
+	sources?: SourcesValues
+	team?: TeamValues
+}
 
 const countsAsConnectedSource = (state: unknown) =>
 	state === "connected" || state === "waitlist"
@@ -71,6 +84,12 @@ const getWorkspaceCreationErrorCopy = (message: string) => {
 }
 
 export default function BrainOnboardingPage() {
+	const { user } = useAuth()
+	if (!user?.id) return null
+	return <BrainOnboardingContent key={user.id} />
+}
+
+function BrainOnboardingContent() {
 	const router = useRouter()
 	const params = useSearchParams()
 	const queryClient = useQueryClient()
@@ -122,33 +141,67 @@ export default function BrainOnboardingPage() {
 		visibility: "team-private",
 		suggestChanges: false,
 	})
+	const [hydratedDraftUserId, setHydratedDraftUserId] = useState<string | null>(
+		null,
+	)
 
 	useEffect(() => {
-		if (forceCreate) return
-		try {
-			const raw = localStorage.getItem(STORAGE_KEY)
-			if (!raw) return
-			const cached = JSON.parse(raw) as {
-				mode?: BrainMode
-				about?: AboutValues
-				sources?: SourcesValues
-				team?: TeamValues
-			}
-			if (cached.mode && !modeParam) setMode(cached.mode)
-			if (cached.about) setAbout((a) => ({ ...a, ...cached.about }))
-			if (cached.sources) setSources((s) => ({ ...s, ...cached.sources }))
-			if (cached.team) setTeam((t) => ({ ...t, ...cached.team }))
-		} catch {}
-	}, [forceCreate, modeParam])
+		const userId = user?.id
+		if (!userId) {
+			setHydratedDraftUserId(null)
+			return
+		}
+
+		const storage = getOnboardingDraftStorage()
+		if (storage) discardLegacyOnboardingDraft(storage)
+		const cached =
+			forceCreate || !storage
+				? null
+				: readOnboardingDraft<BrainOnboardingDraft>(storage, userId)
+
+		setMode(cached?.mode && !modeParam ? cached.mode : detectedMode)
+		setAbout({
+			name: user.name ?? "",
+			about: "",
+			workspaceName: nameParam || suggestedWorkspaceName,
+			workspaceDomain: domain ?? "",
+			...cached?.about,
+		})
+		setSources({
+			connected: {},
+			driveScope: "selective",
+			...cached?.sources,
+		})
+		setTeam({
+			invites: [],
+			visibility: "team-private",
+			suggestChanges: false,
+			...cached?.team,
+		})
+		setHydratedDraftUserId(userId)
+	}, [
+		user?.id,
+		user?.name,
+		forceCreate,
+		modeParam,
+		detectedMode,
+		nameParam,
+		suggestedWorkspaceName,
+		domain,
+	])
 
 	useEffect(() => {
-		try {
-			localStorage.setItem(
-				STORAGE_KEY,
-				JSON.stringify({ mode, about, sources, team }),
-			)
-		} catch {}
-	}, [mode, about, sources, team])
+		const userId = user?.id
+		if (!userId || hydratedDraftUserId !== userId) return
+		const storage = getOnboardingDraftStorage()
+		if (!storage) return
+		writeOnboardingDraft(storage, userId, {
+			mode,
+			about,
+			sources,
+			team,
+		})
+	}, [user?.id, hydratedDraftUserId, mode, about, sources, team])
 
 	const navTrigger = useRef<"user" | "auto">("auto")
 	const startedRef = useRef(false)
@@ -226,16 +279,18 @@ export default function BrainOnboardingPage() {
 			).length,
 			invites_sent: team.invites.filter((i) => i.email.trim()).length,
 		})
-		try {
-			localStorage.removeItem(STORAGE_KEY)
-		} catch {}
+		const storage = getOnboardingDraftStorage()
+		if (storage) {
+			if (user?.id) clearOnboardingDraft(storage, user.id)
+			discardLegacyOnboardingDraft(storage)
+		}
 		// Extra org from settings: hard-reload so org-scoped caches don't show the previous org's data.
 		if (forcedCreateRef.current) {
 			window.location.href = "/?onboarded=1"
 			return
 		}
 		router.push("/?onboarded=1")
-	}, [router, mode, sources, team])
+	}, [router, mode, sources, team, user?.id])
 
 	const goNext = useCallback(() => {
 		const idx = steps.indexOf(step)
