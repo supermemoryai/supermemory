@@ -15,6 +15,7 @@ import {
 	type TwitterImportConfig,
 	TwitterImporter,
 } from "../utils/twitter-import"
+import { createTwitterImportNotifications } from "../utils/twitter-import-notifications"
 import type {
 	ExtensionMessage,
 	MemoryData,
@@ -89,36 +90,6 @@ export default defineBackground(() => {
 		{ urls: ["*://x.com/*", "*://twitter.com/*"] },
 		["requestHeaders", "extraHeaders"],
 	)
-
-	// Send message to current active tab.
-	const sendMessageToCurrentTab = async (message: string) => {
-		const tabs = await browser.tabs.query({
-			active: true,
-			currentWindow: true,
-		})
-		if (tabs.length > 0 && tabs[0].id) {
-			await browser.tabs.sendMessage(tabs[0].id, {
-				type: MESSAGE_TYPES.IMPORT_UPDATE,
-				importedMessage: message,
-			})
-		}
-	}
-
-	/**
-	 * Send import completion message
-	 */
-	const sendImportDoneMessage = async (totalImported: number) => {
-		const tabs = await browser.tabs.query({
-			active: true,
-			currentWindow: true,
-		})
-		if (tabs.length > 0 && tabs[0].id) {
-			await browser.tabs.sendMessage(tabs[0].id, {
-				type: MESSAGE_TYPES.IMPORT_DONE,
-				totalImported,
-			})
-		}
-	}
 
 	/**
 	 * Save memory to supermemory API
@@ -246,18 +217,21 @@ export default defineBackground(() => {
 	 * Handle extension messages
 	 */
 	browser.runtime.onMessage.addListener(
-		(message: ExtensionMessage, _sender, sendResponse) => {
+		(message: ExtensionMessage, sender, sendResponse) => {
 			// Handle Twitter import request
 			if (message.type === MESSAGE_TYPES.BATCH_IMPORT_ALL) {
+				const notifications = createTwitterImportNotifications(
+					sender.tab?.id,
+					(tabId, notification) =>
+						browser.tabs.sendMessage(tabId, notification),
+				)
 				const importConfig: TwitterImportConfig = {
 					isFolderImport: message.isFolderImport,
 					bookmarkCollectionId: message.bookmarkCollectionId,
 					selectedProject: message.selectedProject,
-					onProgress: sendMessageToCurrentTab,
-					onComplete: sendImportDoneMessage,
-					onError: async (error: Error) => {
-						await sendMessageToCurrentTab(`Error: ${error.message}`)
-					},
+					onProgress: notifications.onProgress,
+					onComplete: notifications.onComplete,
+					onError: notifications.onError,
 				}
 
 				twitterImporter = new TwitterImporter(importConfig)
@@ -351,3 +325,4 @@ export default defineBackground(() => {
 		},
 	)
 })
+
