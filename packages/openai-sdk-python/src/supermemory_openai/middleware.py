@@ -71,6 +71,45 @@ class _ResourceFacade:
         return getattr(self._resource, name)
 
 
+class _AsyncMemoryResponseContextManager:
+    """Apply async middleware before entering a streaming response context."""
+
+    def __init__(
+        self,
+        wrapper: "SupermemoryOpenAIWrapper",
+        original_create: Any,
+        kwargs: dict[str, Any],
+    ) -> None:
+        self._wrapper = wrapper
+        self._original_create = original_create
+        self._kwargs = kwargs
+        self._response_context: Any = None
+
+    async def __aenter__(self) -> Any:
+        async def enter_original(**kwargs: Any) -> Any:
+            self._response_context = self._original_create(**kwargs)
+            return await self._response_context.__aenter__()
+
+        return await self._wrapper._create_with_memory_async(
+            enter_original,
+            **self._kwargs,
+        )
+
+    async def __aexit__(
+        self,
+        exc_type: Any,
+        exc_value: Any,
+        traceback: Any,
+    ) -> Any:
+        if self._response_context is None:
+            return None
+        return await self._response_context.__aexit__(
+            exc_type,
+            exc_value,
+            traceback,
+        )
+
+
 async def supermemory_profile_search(
     container_tag: str,
     query_text: str,
@@ -222,9 +261,11 @@ async def add_system_prompt(
     if system_prompt_exists:
         logger.debug("Added memories to existing system prompt")
         return [
-            {**msg, "content": f"{msg.get('content', '')} \n {memories}"}
-            if msg.get("role") == "system"
-            else msg
+            (
+                {**msg, "content": f"{msg.get('content', '')} \n {memories}"}
+                if msg.get("role") == "system"
+                else msg
+            )
             for msg in messages
         ]
 
@@ -303,6 +344,10 @@ class SupermemoryOpenAIWrapper:
         self._container_tag: str = options.container_tag
         self._options: OpenAIMiddlewareOptions = options
         self._logger: Logger = create_logger(self._options.verbose)
+        base_create = self._client.chat.completions.create
+        self._is_async_client = isinstance(
+            self._client, AsyncOpenAI
+        ) or inspect.iscoroutinefunction(inspect.unwrap(base_create))
 
         # Track background tasks to ensure they complete
         self._background_tasks: set[asyncio.Task] = set()
@@ -370,7 +415,10 @@ class SupermemoryOpenAIWrapper:
         resource = getattr(self._client.chat.completions, name)
         return _ResourceFacade(
             resource,
-            create=self._create_completion_method(resource.create),
+            create=self._create_completion_method(
+                resource.create,
+                streaming_response=name == "with_streaming_response",
+            ),
         )
 
     def _create_chat_variant_facade(self, name: str) -> _ResourceFacade:
@@ -381,389 +429,174 @@ class SupermemoryOpenAIWrapper:
             chat_resource,
             completions=_ResourceFacade(
                 completions_resource,
-                create=self._create_completion_method(completions_resource.create),
+                create=self._create_completion_method(
+                    completions_resource.create,
+                    streaming_response=name == "with_streaming_response",
+                ),
             ),
         )
 
     def _create_client_variant_facade(self, name: str) -> _ResourceFacade:
         """Wrap completions reached through a client response variant."""
         client_resource = getattr(self._client, name)
-        chat_resource = client_resource.chat
-        completions_resource = chat_resource.completions
-        return _ResourceFacade(
-            client_resource,
-            chat=_ResourceFacade(
-                chat_resource,
-                completions=_ResourceFacade(
-                    completions_resource,
-                    create=self._create_completion_method(completions_resource.create),
-                ),
-            ),
-        )
+        chat_resource = client_resource.chaëN½¶‰ËkºwµçXÛÛ\][ÛœË\˜]È‹˜]×ØÜ™X]WÙ˜XİÜBˆ
+BˆÛY[˜Ú]Ú]Ü˜]×Ü™\ÜÛœÙHHÚ[\S˜[Y\ÜXÙJˆÛÛ\][ÛœÏXÛÛ\][Û—Ü™\Ûİ\˜ÙJ˜Ú]\˜]È‹˜]×ØÜ™X]WÙ˜XİÜJBˆ
+BˆÛY[Ú]Ü˜]×Ü™\ÜÛœÙHHÚ[\S˜[Y\ÜXÙJˆÚ]TÚ[\S˜[Y\ÜXÙJˆÛÛ\][ÛœÏXÛÛ\][Û—Ü™\Ûİ\˜ÙJ˜ÛY[\˜]È‹˜]×ØÜ™X]WÙ˜XİÜJBˆ
+Bˆ
+BˆÛY[˜Ú]˜ÛÛ\][ÛœËÚ]Üİ™X[Z[™×Ü™\ÜÛœÙHHÛÛ\][Û—Ü™\Ûİ\˜ÙJˆ˜ÛÛ\][ÛœË\İ™X[H‹İ™X[Z[™×ØÜ™X]WÙ˜XİÜBˆ
+BˆÛY[˜Ú]Ú]Üİ™X[Z[™×Ü™\ÜÛœÙHHÚ[\S˜[Y\ÜXÙJˆÛÛ\][ÛœÏXÛÛ\][Û—Ü™\Ûİ\˜ÙJ˜Ú]\İ™X[H‹İ™X[Z[™×ØÜ™X]WÙ˜XİÜJBˆ
+BˆÛY[Ú]Üİ™X[Z[™×Ü™\ÜÛœÙHHÚ[\S˜[Y\ÜXÙJˆÚ]TÚ[\S˜[Y\ÜXÙJˆÛÛ\][ÛœÏXÛÛ\][Û—Ü™\Ûİ\˜ÙJ˜ÛY[\İ™X[H‹İ™X[Z[™×ØÜ™X]WÙ˜XİÜJBˆ
+Bˆ
+Bˆ™]\›ˆØ[Â‚‚™Yˆ™\ÜÛœÙWİ˜\šX[ØÜ™X]\ÊÛY[ˆ[K˜[YNˆİŠHOˆ\İĞ[WN‚ˆ™]\›ˆÂˆÙ]]ŠÛY[˜Ú]˜ÛÛ\][ÛœË˜[YJK˜Ü™X]KˆÙ]]ŠÛY[˜Ú]˜[YJK˜ÛÛ\][ÛœË˜Ü™X]KˆÙ]]ŠÛY[˜[YJK˜Ú]˜ÛÛ\][ÛœË˜Ü™X]KˆB‚‚”‘PSĞTÖS×ĞÓÓTUSÓ—ÔUÈH
+ˆ››Ü›X[‹ˆ˜ÛÛ\][ÛœËœ˜]È‹ˆ˜Ú]œ˜]È‹ˆ˜ÛY[œ˜]È‹ˆ˜ÛÛ\][ÛœËœİ™X[Z[™È‹ˆ˜Ú]œİ™X[Z[™È‹ˆ˜ÛY[œİ™X[Z[™È‹ŠB‚‚™Yˆ™X[Ø\Ş[˜×ØÛÛ\][Û—ØÜ™X]JÛY[ˆ[K]ˆİŠHOˆ[N‚ˆYˆ]OH››Ü›X[‚ˆ™]\›ˆÛY[˜Ú]˜ÛÛ\][ÛœË˜Ü™X]BˆYˆ]OH˜ÛÛ\][ÛœËœ˜]È‚ˆ™]\›ˆÛY[˜Ú]˜ÛÛ\][ÛœËÚ]Ü˜]×Ü™\ÜÛœÙK˜Ü™X]BˆYˆ]OH˜Ú]œ˜]È‚ˆ™]\›ˆÛY[˜Ú]Ú]Ü˜]×Ü™\ÜÛœÙK˜ÛÛ\][ÛœË˜Ü™X]BˆYˆ]OH˜ÛY[œ˜]È‚ˆ™]\›ˆÛY[Ú]Ü˜]×Ü™\ÜÛœÙK˜Ú]˜ÛÛ\][ÛœË˜Ü™X]BˆYˆ]OH˜ÛÛ\][ÛœËœİ™X[Z[™È‚ˆ™]\›ˆÛY[˜Ú]˜ÛÛ\][ÛœËÚ]Üİ™X[Z[™×Ü™\ÜÛœÙK˜Ü™X]BˆYˆ]OH˜Ú]œİ™X[Z[™È‚ˆ™]\›ˆÛY[˜Ú]Ú]Üİ™X[Z[™×Ü™\ÜÛœÙK˜ÛÛ\][ÛœË˜Ü™X]BˆYˆ]OH˜ÛY[œİ™X[Z[™È‚ˆ™]\›ˆÛY[Ú]Üİ™X[Z[™×Ü™\ÜÛœÙK˜Ú]˜ÛÛ\][ÛœË˜Ü™X]Bˆ˜Z\ÙH\ÜÙ\[Û‘\œ›ÜŠˆ•[šÛ›İÛˆÛÛ\][Ûˆ]ˆÜ]HŠB‚‚]\İ™š^\™J]]İ\ÙOUYJHÈ\NˆYÛ›Ü™Vİ[\YYXÛÜ˜]Ü—B™Yˆİ\\›Y[[ÜWØ\WÚÙ^J
+HOˆÙ[™\˜]Ü–Ó›Û™K›Û™K›Û™WN‚ˆÚ]]Ú™Xİ
+ÜË™[š\›Û‹È”ÕTT“QSSÔ–WĞTWÒÑVHˆ\İZÙ^HŸJN‚ˆZY[‚‚™Yˆ\İÜÚ\™YÜŞ[˜×ØÛY[ÙÙ\×Û›İÜİXÚ×İ[˜[ÛZY]Ø\™J
+HOˆ›Û™N‚ˆ˜\ÙWØÛY[ÜšYÚ[˜[ØÜ™X]HHÜ™X]WÜŞ[˜×ØÛY[
 
-    def _create_completion_method(self, original_create: Any) -> Any:
-        """Wrap one completion create implementation with memory injection."""
-        if asyncio.iscoroutinefunction(original_create):
+BˆÛÚİ\Îˆ\İÜİ—HH×B‚ˆ\Ş[˜ÈYˆ˜ZÙWÜ›Û\
+ˆY\ÜØYÙ\Îˆ\İĞ[WKˆÛÛZ[™\—İYÎˆİ‹ˆÙÙÙ\ˆ[Kˆ[ÙNˆ[Kˆ\WÚÙ^Nˆİ‹ˆ
+HOˆ\İĞ[WN‚ˆÛÚİ\Ë˜\[™
+ÛÛZ[™\—İYÊBˆ™]\›ˆÂˆÈœ›ÛHˆœŞ\İ[H‹˜ÛÛ[ˆˆœÙXÜ™]^ØÛÛZ[™\—İYßHŸKˆ
+›Y\ÜØYÙ\ËˆB‚ˆÚ]]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™Kœİ\\›Y[[ÜK”İ\\›Y[[ÜH‹ˆ™]\›—İ˜[YOS[ØÚÊ
+Kˆ
+K]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™K˜YÜŞ\İ[WÜ›Û\‹ˆÚYWÙY™™XİY˜ZÙWÜ›Û\ˆ
+N‚ˆ[˜[ØNˆ[HHÚ]Üİ\\›Y[[ÜJˆ˜\ÙWØÛY[ˆZY]Ø\™WÛÜ[ÛœÊ[˜[XHŠKˆ
+Bˆ[˜[Øˆ[HHÚ]Üİ\\›Y[[ÜJˆ˜\ÙWØÛY[ˆZY]Ø\™WÛÜ[ÛœÊ[˜[XˆŠKˆ
+B‚ˆ\ÜÙ\˜\ÙWØÛY[˜Ú]˜ÛÛ\][ÛœË˜Ü™X]H\ÈÜšYÚ[˜[ØÜ™X]Bˆ\ÜÙ\[˜[ØK˜Ú]\È›İ˜\ÙWØÛY[˜Ú]ˆ\ÜÙ\[˜[Ø‹˜Ú]›X\šÙ\ˆOH˜Ú][X\šÙ\ˆ‚ˆ\ÜÙ\[˜[Ø‹˜Ú]˜ÛÛ\][ÛœË›X\šÙ\ˆOH˜ÛÛ\][ÛœË[X\šÙ\ˆ‚‚ˆ[˜[Ø‹˜Ú]˜ÛÛ\][ÛœË˜Ü™X]Jˆ[Ù[H™Ü]\İ‹ˆY\ÜØYÙ\ÏVŞÈœ›ÛHˆ\Ù\ˆ‹˜ÛÛ[ˆœš]˜]HŸWKˆ
+B‚ˆ\ÜÙ\ÛÚİ\ÈOHÈ[˜[Xˆ—BˆY\ÜØYÙ\ÈHÜšYÚ[˜[ØÜ™X]K˜Ø[Ø\™ÜËšİØ\™ÜÖÈ›Y\ÜØYÙ\È—Bˆ\ÜÙ\Y\ÜØYÙ\ÖÌVÈ˜ÛÛ[—HOHœÙXÜ™]][˜[Xˆ‚ˆ\ÜÙ\[
+[˜[XHˆ›İ[ˆİŠY\ÜØYÙJH›ÜˆY\ÜØYÙH[ˆY\ÜØYÙ\ÊB‚ˆ˜\ÙWØÛY[˜Ú]˜ÛÛ\][ÛœË˜Ü™X]Jˆ[Ù[H™Ü]\İ‹ˆY\ÜØYÙ\ÏVŞÈœ›ÛHˆ\Ù\ˆ‹˜ÛÛ[ˆ[Ü˜\YŸWKˆ
+Bˆ\ÜÙ\ÛÚİ\ÈOHÈ[˜[Xˆ—B‚‚™Yˆ\İÜ™]Ü˜\[™×ØWÙ˜XØYWÜ™XÛİ™\œ×İWÜš\İ[™WØÛY[
 
-            async def create_with_memory(
-                **kwargs: Any,
-            ) -> Any:
-                return await self._create_with_memory_async(original_create, **kwargs)
+HOˆ›Û™N‚ˆ˜\ÙWØÛY[ÜšYÚ[˜[ØÜ™X]HHÜ™X]WÜŞ[˜×ØÛY[
 
-        else:
+BˆÛÚİ\Îˆ\İÜİ—HH×B‚ˆ\Ş[˜ÈYˆ˜ZÙWÜ›Û\
+ˆY\ÜØYÙ\Îˆ\İĞ[WKˆÛÛZ[™\—İYÎˆİ‹ˆÙÙÙ\ˆ[Kˆ[ÙNˆ[Kˆ\WÚÙ^Nˆİ‹ˆ
+HOˆ\İĞ[WN‚ˆÛÚİ\Ë˜\[™
+ÛÛZ[™\—İYÊBˆ™]\›ˆÂˆÈœ›ÛHˆœŞ\İ[H‹˜ÛÛ[ˆˆœÙXÜ™]^ØÛÛZ[™\—İYßHŸKˆ
+›Y\ÜØYÙ\ËˆB‚ˆÚ]]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™Kœİ\\›Y[[ÜK”İ\\›Y[[ÜH‹ˆ™]\›—İ˜[YOS[ØÚÊ
+Kˆ
+K]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™K˜YÜŞ\İ[WÜ›Û\‹ˆÚYWÙY™™XİY˜ZÙWÜ›Û\ˆ
+N‚ˆ[˜[ØNˆ[HHÚ]Üİ\\›Y[[ÜJˆ˜\ÙWØÛY[ˆZY]Ø\™WÛÜ[ÛœÊ[˜[XHŠKˆ
+Bˆ[˜[Øˆ[HHÚ]Üİ\\›Y[[ÜJˆ[˜[ØKˆZY]Ø\™WÛÜ[ÛœÊ[˜[XˆŠKˆ
+B‚ˆ[˜[Ø‹˜Ú]˜ÛÛ\][ÛœË˜Ü™X]Jˆ[Ù[H™Ü]\İ‹ˆY\ÜØYÙ\ÏVŞÈœ›ÛHˆ\Ù\ˆ‹˜ÛÛ[ˆœš]˜]HŸWKˆ
+B‚ˆ\ÜÙ\ÛÚİ\ÈOHÈ[˜[Xˆ—Bˆ\ÜÙ\ÜšYÚ[˜[ØÜ™X]K˜Ø[ØÛİ[OHBˆ\ÜÙ\˜\ÙWØÛY[˜Ú]˜ÛÛ\][ÛœË˜Ü™X]H\ÈÜšYÚ[˜[ØÜ™X]B‚‚™Yˆ\İÜ˜]×Ø[™Üİ™X[Z[™×Ü™\ÜÛœÙWÙ˜XØY\×Ü™[XZ[—ÛY[[ÜWØ]Ø\™J
+HOˆ›Û™N‚ˆ˜\ÙWØÛY[ÈHÜ™X]WÜŞ[˜×ØÛY[
 
-            def create_with_memory(
-                **kwargs: Any,
-            ) -> Any:
-                return self._create_with_memory_sync(original_create, **kwargs)
+BˆØ[ÈH]XÚÜ™\ÜÛœÙWİ˜\šX[Êˆ˜\ÙWØÛY[ˆ[X™HX™[ˆ[ØÚÊ™]\›—İ˜[YOT˜]Ô™\ÜÛœÙJX™[
+JKˆ[X™HX™[ˆ[ØÚÊ™]\›—İ˜[YOTŞ[˜Ôİ™X[PÛÛ^
+X™[
+JKˆ
+BˆÛÚİ\Îˆ\İÜİ—HH×B‚ˆ\Ş[˜ÈYˆ˜ZÙWÜ›Û\
+ˆY\ÜØYÙ\Îˆ\İĞ[WKˆÛÛZ[™\—İYÎˆİ‹ˆÙÙÙ\ˆ[Kˆ[ÙNˆ[Kˆ\WÚÙ^Nˆİ‹ˆ
+HOˆ\İĞ[WN‚ˆÛÚİ\Ë˜\[™
+ÛÛZ[™\—İYÊBˆ™]\›ˆÂˆÈœ›ÛHˆœŞ\İ[H‹˜ÛÛ[ˆˆœÙXÜ™]^ØÛÛZ[™\—İYßHŸKˆ
+›Y\ÜØYÙ\ËˆB‚ˆÚ]]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™Kœİ\\›Y[[ÜK”İ\\›Y[[ÜH‹ˆ™]\›—İ˜[YOS[ØÚÊ
+Kˆ
+K]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™K˜YÜŞ\İ[WÜ›Û\‹ˆÚYWÙY™™XİY˜ZÙWÜ›Û\ˆ
+N‚ˆ[˜[Øˆ[HHÚ]Üİ\\›Y[[ÜJˆ˜\ÙWØÛY[ˆZY]Ø\™WÛÜ[ÛœÊ[˜[XˆŠKˆ
+B‚ˆ›ÜˆÜ™X]H[ˆ™\ÜÛœÙWİ˜\šX[ØÜ™X]\Ê[˜[Ø‹Ú]Ü˜]×Ü™\ÜÛœÙHŠN‚ˆ™\ÜÛœÙHHÜ™X]Jˆ[Ù[H™Ü]\İ‹ˆY\ÜØYÙ\ÏVŞÈœ›ÛHˆ\Ù\ˆ‹˜ÛÛ[ˆœ˜]ÈŸWKˆ
+Bˆ\ÜÙ\™\ÜÛœÙKœ\œÙJ
+Kœİ\İÚ]
+œ\œÙYHŠB‚ˆ›ÜˆÜ™X]H[ˆ™\ÜÛœÙWİ˜\šX[ØÜ™X]\Ê[˜[Ø‹Ú]Üİ™X[Z[™×Ü™\ÜÛœÙHŠN‚ˆÚ]Ü™X]Jˆ[Ù[H™Ü]\İ‹ˆY\ÜØYÙ\ÏVŞÈœ›ÛHˆ\Ù\ˆ‹˜ÛÛ[ˆœİ™X[Z[™ÈŸWKˆ
+H\Èİ™X[N‚ˆ\ÜÙ\İ™X[K›X™[™[™İÚ]
+œİ™X[HŠB‚ˆ\ÜÙ\ÛÚİ\ÈOHÈ[˜[Xˆ—H
+ˆ‚ˆ›ÜˆÜ™X]H[ˆØ[Ë˜[Y\Ê
+N‚ˆ\ÜÙ\œÙXÜ™]][˜[Xˆˆ[ˆİŠÜ™X]K˜Ø[Ø\™ÜËšİØ\™ÜÖÈ›Y\ÜØYÙ\È—JB‚‚™Yˆ\İØ\Ş[˜×Ü˜]×Ø[™Üİ™X[Z[™×Ü™\ÜÛœÙWÜ™Yš^\×Ü™[XZ[—ÛY[[ÜWØ]Ø\™J
+HOˆ›Û™N‚ˆ˜\ÙWØÛY[ÈHÜ™X]WØ\Ş[˜×ØÛY[
 
-        return create_with_memory
+BˆØ[ÈH]XÚÜ™\ÜÛœÙWİ˜\šX[Êˆ˜\ÙWØÛY[ˆ[X™HX™[ˆ\Ş[˜Ó[ØÚÊ™]\›—İ˜[YOT˜]Ô™\ÜÛœÙJX™[
+JKˆ[X™HX™[ˆ[ØÚÊ™]\›—İ˜[YOP\Ş[˜Ôİ™X[PÛÛ^
+X™[
+JKˆ
+BˆÛÚİ\Îˆ\İÜİ—HH×B‚ˆ\Ş[˜ÈYˆ˜ZÙWÜ›Û\
+ˆY\ÜØYÙ\Îˆ\İĞ[WKˆÛÛZ[™\—İYÎˆİ‹ˆÙÙÙ\ˆ[Kˆ[ÙNˆ[Kˆ\WÚÙ^Nˆİ‹ˆ
+HOˆ\İĞ[WN‚ˆÛÚİ\Ë˜\[™
+ÛÛZ[™\—İYÊBˆ™]\›ˆÂˆÈœ›ÛHˆœŞ\İ[H‹˜ÛÛ[ˆˆœÙXÜ™]^ØÛÛZ[™\—İYßHŸKˆ
+›Y\ÜØYÙ\ËˆB‚ˆ\Ş[˜ÈYˆØ[Ü˜]ÊÜ™X]Nˆ[JHOˆ›Û™N‚ˆ™\ÜÛœÙHH]ØZ]Ü™X]Jˆ[Ù[H™Ü]\İ‹ˆY\ÜØYÙ\ÏVŞÈœ›ÛHˆ\Ù\ˆ‹˜ÛÛ[ˆœ˜]ÈŸWKˆ
+Bˆ\ÜÙ\™\ÜÛœÙKœ\œÙJ
+Kœİ\İÚ]
+œ\œÙYHŠB‚ˆ\Ş[˜ÈYˆÛÛœİ[YWÜİ™X[Jİ™X[WØÛÛ^ˆ[JHOˆ›Û™N‚ˆ\Ş[˜ÈÚ]İ™X[WØÛÛ^\Èİ™X[N‚ˆ\ÜÙ\İ™X[K›X™[™[™İÚ]
+œİ™X[HŠB‚ˆÚ]]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™Kœİ\\›Y[[ÜK”İ\\›Y[[ÜH‹ˆ™]\›—İ˜[YOS[ØÚÊ
+Kˆ
+K]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™K˜YÜŞ\İ[WÜ›Û\‹ˆÚYWÙY™™XİY˜ZÙWÜ›Û\ˆ
+N‚ˆ[˜[Øˆ[HHÚ]Üİ\\›Y[[ÜJˆ˜\ÙWØÛY[ˆZY]Ø\™WÛÜ[ÛœÊ[˜[XˆŠKˆ
+B‚ˆ›ÜˆÜ™X]H[ˆ™\ÜÛœÙWİ˜\šX[ØÜ™X]\Ê[˜[Ø‹Ú]Ü˜]×Ü™\ÜÛœÙHŠN‚ˆ\Ş[˜Ú[Ëœ[ŠØ[Ü˜]ÊÜ™X]JJB‚ˆ›ÜˆÜ™X]H[ˆ™\ÜÛœÙWİ˜\šX[ØÜ™X]\Ê[˜[Ø‹Ú]Üİ™X[Z[™×Ü™\ÜÛœÙHŠN‚ˆİ™X[WØÛÛ^HÜ™X]Jˆ[Ù[H™Ü]\İ‹ˆY\ÜØYÙ\ÏVŞÈœ›ÛHˆ\Ù\ˆ‹˜ÛÛ[ˆœİ™X[Z[™ÈŸWKˆ
+Bˆ\Ş[˜Ú[Ëœ[ŠÛÛœİ[YWÜİ™X[Jİ™X[WØÛÛ^
+JB‚ˆ\ÜÙ\ÛÚİ\ÈOHÈ[˜[Xˆ—H
+ˆ‚ˆ›ÜˆÜ™X]H[ˆØ[Ë˜[Y\Ê
+N‚ˆ\ÜÙ\œÙXÜ™]][˜[Xˆˆ[ˆİŠÜ™X]K˜Ø[Ø\™ÜËšİØ\™ÜÖÈ›Y\ÜØYÙ\È—JB‚‚]\İ›X\šËœ\˜[Y]š^™Jœ]‹‘PSĞTÖS×ĞÓÓTUSÓ—ÔUÊB]\İ›X\šË˜\Ş[˜Ú[Â˜\Ş[˜ÈYˆ\İÜ™X[Ø\Ş[˜×ÛÜ[˜ZWÜ]×İ\ÙWØ\Ş[˜×ÛZY]Ø\™J]ˆİŠHOˆ›Û™N‚ˆÛÚİ\Îˆ\İÜİ—HH×BˆÜš]\Îˆ\İİ\VÜİ‹Ü[Û˜[Üİ—Kİ—WHH×BˆÙ[ÛY\ÜØYÙ\Îˆ\İÛ\İĞ[WWHH×B‚ˆ\Ş[˜ÈYˆ˜ZÙWÜ›Û\
+ˆY\ÜØYÙ\Îˆ\İĞ[WKˆÛÛZ[™\—İYÎˆİ‹ˆÙÙÙ\ˆ[Kˆ[ÙNˆ[Kˆ\WÚÙ^Nˆİ‹ˆ
+HOˆ\İĞ[WN‚ˆÛÚİ\Ë˜\[™
+ÛÛZ[™\—İYÊBˆ™]\›ˆÂˆÈœ›ÛHˆœŞ\İ[H‹˜ÛÛ[ˆˆœÙXÜ™]^ØÛÛZ[™\—İYßHŸKˆ
+›Y\ÜØYÙ\ËˆB‚ˆ\Ş[˜ÈYˆ˜ZÙWØYÛY[[ÜJˆÛY[ˆ[KˆÛÛZ[™\—İYÎˆİ‹ˆÛÛ[ˆİ‹ˆİ\İÛWÚYˆÜ[Û˜[Üİ—KˆÙÙÙ\ˆ[Kˆ
+HOˆ›Û™N‚ˆÜš]\Ë˜\[™
 
-    async def _create_with_memory_async(
-        self,
-        original_create: Any,
-        **kwargs: Any,
-    ) -> Any:
-        """Async version of create with memory injection."""
-        messages = kwargs.get("messages", [])
+ÛÛZ[™\—İYËİ\İÛWÚYÛÛ[
+JB‚ˆYˆ[™WÜ™\]Y\İ
+™\]Y\İˆ”™\]Y\İ
+HOˆ”™\ÜÛœÙN‚ˆ›ÙHHœÛÛ‹›ØYÊ™\]Y\İ˜ÛÛ[
+BˆÙ[ÛY\ÜØYÙ\Ë˜\[™
+›ÙVÈ›Y\ÜØYÙ\È—JBˆ™]\›ˆ”™\ÜÛœÙJˆŒˆ™\]Y\İ\™\]Y\İˆXY\œÏ^È˜ÛÛ[]\Hˆ˜\XØ][Û‹ÚœÛÛˆŸKˆœÛÛ^ÂˆšYˆ˜Ú]Û\]\İ‹ˆ›Øš™Xİˆ˜Ú]˜ÛÛ\][Ûˆ‹ˆ˜Ü™X]Yˆˆ›[Ù[ˆ™Ü]\İ‹ˆ˜ÚÚXÙ\ÈˆÂˆÂˆš[™^ˆˆ›Y\ÜØYÙHˆÈœ›ÛHˆ˜\ÜÚ\İ[‹˜ÛÛ[ˆ›ÚÈŸKˆ™š[š\ÚÜ™X\ÛÛˆˆœİÜ‹ˆBˆKˆKˆ
+B‚ˆØÛY[H\Ş[˜ĞÛY[
+˜[œÜÜZ“[ØÚÕ˜[œÜÜ
+[™WÜ™\]Y\İ
+JBˆ˜\ÙWØÛY[H\Ş[˜ÓÜ[RJ\WÚÙ^OH›Ü[˜ZK]\İ‹ØÛY[ZØÛY[
+B‚ˆN‚ˆÚ]]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™Kœİ\\›Y[[ÜK”İ\\›Y[[ÜH‹ˆ™]\›—İ˜[YOS[ØÚÊ
+Kˆ
+K]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™K˜YÜŞ\İ[WÜ›Û\‹ˆ™]ÏY˜ZÙWÜ›Û\ˆ
+K]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™K˜YÛY[[ÜWİÛÛ‹ˆ™]ÏY˜ZÙWØYÛY[[ÜKˆ
+KØ\›š[™ÜË˜Ø]ÚİØ\›š[™ÜÊˆ™XÛÜ™UYBˆ
+H\ÈØ]YÚ‚ˆØ\›š[™ÜËœÚ[\Yš[\Š˜[Ø^\È‹[[YUØ\›š[™ÊBˆÜ˜\Yˆ[HHÚ]Üİ\\›Y[[ÜJˆ˜\ÙWØÛY[ˆZY]Ø\™WÛÜ[ÛœÊ[˜[\™X[‹YÛY[[ÜOH˜[Ø^\ÈŠKˆ
+BˆÜ™X]HH™X[Ø\Ş[˜×ØÛÛ\][Û—ØÜ™X]JÜ˜\Y]
+BˆİØ\™ÜÈHÂˆ›[Ù[ˆ™Ü]\İ‹ˆ›Y\ÜØYÙ\ÈˆŞÈœ›ÛHˆ\Ù\ˆ‹˜ÛÛ[ˆœš]˜]HY\ÜØYÙHŸWKˆB‚ˆYˆ]OH››Ü›X[‚ˆ™\ÜÛœÙHH]ØZ]Ü™X]J
+ŠšİØ\™ÜÊBˆ\ÜÙ\™\ÜÛœÙKšYOH˜Ú]Û\]\İ‚ˆ[Yˆ]™[™İÚ]
+‹œ˜]ÈŠN‚ˆ˜]×Ü™\ÜÛœÙHH]ØZ]Ü™X]J
+ŠšİØ\™ÜÊBˆ\ÜÙ\˜]×Ü™\ÜÛœÙKœ\œÙJ
+KšYOH˜Ú]Û\]\İ‚ˆ[ÙN‚ˆ™\ÜÛœÙWØÛÛ^HÜ™X]J
+ŠšİØ\™ÜÊBˆ\ÜÙ\›İ[œÜXİš\Ø]ØZ]X›J™\ÜÛœÙWØÛÛ^
+Bˆ\Ş[˜ÈÚ]™\ÜÛœÙWØÛÛ^\Èİ™X[Z[™×Ü™\ÜÛœÙN‚ˆ\ÜÙ\İ™X[Z[™×Ü™\ÜÛœÙKœİ]\×ØÛÙHOHŒ‚ˆ]ØZ]Ü˜\YØZ]Ù›Ü—Ø˜XÚÙÜ›İ[™İ\ÚÜÊ
+Bˆ]ØZ]\Ş[˜Ú[ËœÛY\
+
+BˆØË˜ÛÛXİ
 
-        if self._options.add_memory == "always":
-            user_message = get_last_user_message(messages)
-            if user_message and user_message.strip():
-                content = (
-                    get_conversation_content(messages)
-                    if self._options.custom_id
-                    else user_message
-                )
-                custom_id = (
-                    f"conversation:{self._options.custom_id}"
-                    if self._options.custom_id
-                    else None
-                )
+B‚ˆ[[YWİØ\›š[™ÜÈHÂˆØ\›š[™Âˆ›ÜˆØ\›š[™È[ˆØ]YÚˆYˆ\ÜİX˜Û\ÜÊØ\›š[™Ë˜Ø]YÛÜK[[YUØ\›š[™ÊBˆB‚ˆ\ÜÙ\ÛÚİ\ÈOHÈ[˜[\™X[—Bˆ\ÜÙ\Üš]\ÈOHÂˆ
+ˆ[˜[\™X[‹ˆ˜ÛÛ™\œØ][Û™XY][˜[\™X[‹ˆ•\Ù\ˆš]˜]HY\ÜØYÙH‹ˆ
+BˆBˆ\ÜÙ\[ŠÙ[ÛY\ÜØYÙ\ÊHOHBˆ\ÜÙ\Ù[ÛY\ÜØYÙ\ÖÌVÌVÈ˜ÛÛ[—HOHœÙXÜ™]][˜[\™X[‚ˆ\ÜÙ\[[YWİØ\›š[™ÜÈOH×Bˆš[˜[N‚ˆ]ØZ]˜\ÙWØÛY[˜ÛÜÙJ
+B‚‚]\İ›X\šË˜\Ş[˜Ú[ÈÈ\NˆYÛ›Ü™Vİ[\YYXÛÜ˜]Ü—B˜\Ş[˜ÈYˆ\İÜÚ\™YØ\Ş[˜×ØÛY[ÜØ]™\×ÛÛ›WÙ›Ü—ÜÙ[XİYİ[˜[
 
-                # Create background task for memory storage
-                task = asyncio.create_task(
-                    add_memory_tool(
-                        self._supermemory_client,
-                        self._container_tag,
-                        content,
-                        custom_id,
-                        self._logger,
-                    )
-                )
+HOˆ›Û™N‚ˆ˜\ÙWØÛY[ÜšYÚ[˜[ØÜ™X]HHÜ™X]WØ\Ş[˜×ØÛY[
 
-                # Track the task and set up cleanup
-                self._background_tasks.add(task)
-                task.add_done_callback(self._background_tasks.discard)
+BˆÛÚİ\Îˆ\İÜİ—HH×BˆÜš]\Îˆ\İİ\VÜİ‹Ü[Û˜[Üİ—Kİ—WHH×B‚ˆ\Ş[˜ÈYˆ˜ZÙWÜ›Û\
+ˆY\ÜØYÙ\Îˆ\İĞ[WKˆÛÛZ[™\—İYÎˆİ‹ˆÙÙÙ\ˆ[Kˆ[ÙNˆ[Kˆ\WÚÙ^Nˆİ‹ˆ
+HOˆ\İĞ[WN‚ˆÛÚİ\Ë˜\[™
+ÛÛZ[™\—İYÊBˆ™]\›ˆÂˆÈœ›ÛHˆœŞ\İ[H‹˜ÛÛ[ˆˆœÙXÜ™]^ØÛÛZ[™\—İYßHŸKˆ
+›Y\ÜØYÙ\ËˆB‚ˆ\Ş[˜ÈYˆ˜ZÙWØYÛY[[ÜJˆÛY[ˆ[KˆÛÛZ[™\—İYÎˆİ‹ˆÛÛ[ˆİ‹ˆİ\İÛWÚYˆÜ[Û˜[Üİ—KˆÙÙÙ\ˆ[Kˆ
+HOˆ›Û™N‚ˆÜš]\Ë˜\[™
 
-                # Log any exceptions but don't fail the main request
-                def handle_task_exception(task_obj):
-                    try:
-                        if task_obj.exception() is not None:
-                            exception = task_obj.exception()
-                            if isinstance(
-                                exception,
-                                (SupermemoryNetworkError, SupermemoryAPIError),
-                            ):
-                                self._logger.warn(
-                                    "Background memory storage failed",
-                                    {
-                                        "error": str(exception),
-                                        "type": type(exception).__name__,
-                                    },
-                                )
-                            else:
-                                self._logger.error(
-                                    "Unexpected error in background memory storage",
-                                    {
-                                        "error": str(exception),
-                                        "type": type(exception).__name__,
-                                    },
-                                )
-                    except asyncio.CancelledError:
-                        self._logger.debug("Memory storage task was cancelled")
-
-                task.add_done_callback(handle_task_exception)
-
-        if self._options.mode != "profile":
-            user_message = get_last_user_message(messages)
-            if not user_message:
-                self._logger.debug("No user message found, skipping memory search")
-                return await original_create(**kwargs)
-
-        self._logger.info(
-            "Starting memory search",
-            {
-                "container_tag": self._container_tag,
-                "conversation_id": self._options.custom_id,
-                "mode": self._options.mode,
-            },
-        )
-
-        enhanced_messages = await add_system_prompt(
-            messages,
-            self._container_tag,
-            self._logger,
-            self._options.mode,
-            self._get_api_key(),
-        )
-
-        kwargs["messages"] = enhanced_messages
-        return await original_create(**kwargs)
-
-    def _create_with_memory_sync(
-        self,
-        original_create: Any,
-        **kwargs: Any,
-    ) -> Any:
-        """Sync version of create with memory injection."""
-        # For sync clients, we implement a simplified version without background tasks
-        messages = kwargs.get("messages", [])
-
-        # Handle memory addition synchronously if needed
-        if self._options.add_memory == "always":
-            user_message = get_last_user_message(messages)
-            if user_message and user_message.strip():
-                content = (
-                    get_conversation_content(messages)
-                    if self._options.custom_id
-                    else user_message
-                )
-                custom_id = (
-                    f"conversation:{self._options.custom_id}"
-                    if self._options.custom_id
-                    else None
-                )
-
-                # Use asyncio.run() for the memory addition
-                try:
-                    asyncio.run(
-                        add_memory_tool(
-                            self._supermemory_client,
-                            self._container_tag,
-                            content,
-                            custom_id,
-                            self._logger,
-                        )
-                    )
-                except RuntimeError as e:
-                    if "cannot be called from a running event loop" in str(e):
-                        # We're in an async context, log warning and skip memory saving
-                        self._logger.warn(
-                            "Cannot save memory in sync client from async context",
-                            {"error": str(e)},
-                        )
-                    else:
-                        raise
-                except SupermemoryNetworkError as e:
-                    # Network errors are expected, log as warning
-                    self._logger.warn("Network error saving memory", {"error": str(e)})
-                except (SupermemoryAPIError, SupermemoryMemoryOperationError) as e:
-                    # API/memory errors are concerning, log as error
-                    self._logger.error("Failed to save memory", {"error": str(e)})
-                except Exception as e:
-                    # Unexpected errors should be investigated
-                    self._logger.error(
-                        "Unexpected error saving memory",
-                        {"error": str(e), "type": type(e).__name__},
-                    )
-
-        # Handle memory search and injection
-        if self._options.mode != "profile":
-            user_message = get_last_user_message(messages)
-            if not user_message:
-                self._logger.debug("No user message found, skipping memory search")
-                return original_create(**kwargs)
-
-        self._logger.info(
-            "Starting memory search",
-            {
-                "container_tag": self._container_tag,
-                "conversation_id": self._options.custom_id,
-                "mode": self._options.mode,
-            },
-        )
-
-        # Use asyncio.run() for memory search and injection
-        try:
-            enhanced_messages = asyncio.run(
-                add_system_prompt(
-                    messages,
-                    self._container_tag,
-                    self._logger,
-                    self._options.mode,
-                    self._get_api_key(),
-                )
-            )
-        except RuntimeError as e:
-            if "cannot be called from a running event loop" in str(e):
-                # We're in an async context, run in a separate thread
-                import concurrent.futures
-
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(
-                        asyncio.run,
-                        add_system_prompt(
-                            messages,
-                            self._container_tag,
-                            self._logger,
-                            self._options.mode,
-                            self._get_api_key(),
-                        ),
-                    )
-                    enhanced_messages = future.result()
-            else:
-                raise
-
-        kwargs["messages"] = enhanced_messages
-        return original_create(**kwargs)
-
-    async def wait_for_background_tasks(self, timeout: Optional[float] = 10.0) -> None:
-        """
-        Wait for all background memory storage tasks to complete.
-
-        Args:
-            timeout: Maximum time to wait in seconds. None for no timeout.
-
-        Raises:
-            asyncio.TimeoutError: If tasks don't complete within timeout
-        """
-        if not self._background_tasks:
-            return
-
-        self._logger.debug(
-            f"Waiting for {len(self._background_tasks)} background tasks to complete"
-        )
-
-        try:
-            if timeout is not None:
-                await asyncio.wait_for(
-                    asyncio.gather(*self._background_tasks, return_exceptions=True),
-                    timeout=timeout,
-                )
-            else:
-                await asyncio.gather(*self._background_tasks, return_exceptions=True)
-
-            self._logger.debug("All background tasks completed")
-        except asyncio.TimeoutError:
-            self._logger.warn(
-                f"Background tasks did not complete within {timeout}s timeout"
-            )
-            # Cancel remaining tasks
-            tasks_to_cancel = [task for task in self._background_tasks if not task.done()]
-            for task in tasks_to_cancel:
-                task.cancel()
-
-            if tasks_to_cancel:
-                await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
-            raise
-
-    def cancel_background_tasks(self) -> None:
-        """Cancel all pending background tasks."""
-        cancelled_count = 0
-        for task in self._background_tasks:
-            if not task.done():
-                task.cancel()
-                cancelled_count += 1
-
-        if cancelled_count > 0:
-            self._logger.debug(f"Cancelled {cancelled_count} pending background tasks")
-
-    async def __aenter__(self):
-        """Async context manager entry."""
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit - wait for background tasks."""
-        try:
-            await self.wait_for_background_tasks(timeout=5.0)
-        except asyncio.TimeoutError:
-            self._logger.warn("Some background memory tasks did not complete on exit")
-
-    def __enter__(self):
-        """Sync context manager entry."""
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Sync context manager exit - attempt to wait for background tasks."""
-        if self._background_tasks:
-            try:
-                # Try to wait for background tasks in sync context
-                asyncio.run(self.wait_for_background_tasks(timeout=5.0))
-            except RuntimeError as e:
-                if "cannot be called from a running event loop" in str(e):
-                    # In async context, just cancel the tasks
-                    self._logger.warn(
-                        "Cannot wait for background tasks in sync context from async environment. "
-                        "Use async context manager or call wait_for_background_tasks() manually."
-                    )
-                    self.cancel_background_tasks()
-                else:
-                    raise
-            except asyncio.TimeoutError:
-                self._logger.warn(
-                    "Some background memory tasks did not complete on exit"
-                )
-                self.cancel_background_tasks()
-
-    def __getattr__(self, name: str) -> Any:
-        """Delegate all other attributes to the wrapped client."""
-        if name in {"with_raw_response", "with_streaming_response"}:
-            value = self._create_client_variant_facade(name)
-            setattr(self, name, value)
-            return value
-        return getattr(self._client, name)
-
-
-def with_supermemory(
-    openai_client: Union[OpenAI, AsyncOpenAI],
-    options: OpenAIMiddlewareOptions,
-) -> Union[OpenAI, AsyncOpenAI]:
-    """
-    Wraps an OpenAI client with SuperMemory middleware to automatically inject relevant memories
-    into the system prompt based on the user's message content.
-
-    This middleware searches the supermemory API for relevant memories using the container tag
-    and user message, then either appends memories to an existing system prompt or creates
-    a new system prompt with the memories.
-
-    Args:
-        openai_client: The OpenAI client to wrap with SuperMemory middleware
-        options: Configuration options for the middleware (container_tag and custom_id are required)
-
-    Returns:
-        An OpenAI client with SuperMemory middleware injected
-
-    Example:
-        ```python
-        from supermemory_openai import with_supermemory, OpenAIMiddlewareOptions
-        from openai import OpenAI
-
-        # Create OpenAI client with supermemory middleware
-        openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        openai_with_supermemory = with_supermemory(
-            openai,
-            OpenAIMiddlewareOptions(
-                container_tag="user-123",
-                custom_id="conversation-456",
-                mode="full",
-                add_memory="always"
-            )
-        )
-
-        # Use normally - memories will be automatically injected
-        response = await openai_with_supermemory.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "user", "content": "What's my favorite programming language?"}
-            ]
-        )
-        ```
-
-    Raises:
-        ValueError: When SUPERMEMORY_API_KEY environment variable is not set
-        Exception: When supermemory API request fails
-    """
-    wrapper = SupermemoryOpenAIWrapper(openai_client, options)
-    # Return the wrapper, which delegates all attributes to the original client
-    return cast(Union[OpenAI, AsyncOpenAI], wrapper)
+ÛÛZ[™\—İYËİ\İÛWÚYÛÛ[
+JB‚ˆÚ]]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™Kœİ\\›Y[[ÜK”İ\\›Y[[ÜH‹ˆ™]\›—İ˜[YOS[ØÚÊ
+Kˆ
+K]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™K˜YÜŞ\İ[WÜ›Û\‹ˆÚYWÙY™™XİY˜ZÙWÜ›Û\ˆ
+K]Ú
+ˆœİ\\›Y[[ÜWÛÜ[˜ZK›ZY]Ø\™K˜YÛY[[ÜWİÛÛ‹ˆÚYWÙY™™XİY˜ZÙWØYÛY[[ÜKˆ
+N‚ˆ[˜[ØNˆ[HHÚ]Üİ\\›Y[[ÜJˆ˜\ÙWØÛY[ˆZY]Ø\™WÛÜ[ÛœÊ[˜[XH‹YÛY[[ÜOH˜[Ø^\ÈŠKˆ
+Bˆ[˜[Øˆ[HHÚ]Üİ\\›Y[[ÜJˆ˜\ÙWØÛY[ˆZY]Ø\™WÛÜ[ÛœÊ[˜[Xˆ‹YÛY[[ÜOH˜[Ø^\ÈŠKˆ
+B‚ˆ]ØZ][˜[Ø‹˜Ú]˜ÛÛ\][ÛœË˜Ü™X]Jˆ[Ù[H™Ü]\İ‹ˆY\ÜØYÙ\ÏVŞÈœ›ÛHˆ\Ù\ˆ‹˜ÛÛ[ˆœš]˜]H[˜[ˆY\ÜØYÙHŸWKˆ
+Bˆ]ØZ][˜[ØKØZ]Ù›Ü—Ø˜XÚÙÜ›İ[™İ\ÚÜÊ
+Bˆ]ØZ][˜[Ø‹ØZ]Ù›Ü—Ø˜XÚÙÜ›İ[™İ\ÚÜÊ
+B‚ˆ\ÜÙ\˜\ÙWØÛY[˜Ú]˜ÛÛ\][ÛœË˜Ü™X]H\ÈÜšYÚ[˜[ØÜ™X]Bˆ\ÜÙ\ÛÚİ\ÈOHÈ[˜[Xˆ—Bˆ\ÜÙ\Üš]\ÈOHÂˆ
+ˆ[˜[Xˆ‹ˆ˜ÛÛ™\œØ][Û™XY][˜[Xˆ‹ˆ•\Ù\ˆš]˜]H[˜[ˆY\ÜØYÙH‹ˆ
+BˆBˆ\ÜÙ\ÜšYÚ[˜[ØÜ™X]K˜Ø[ØÛİ[OHB
