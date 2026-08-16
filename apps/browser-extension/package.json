@@ -13,6 +13,8 @@
 		"zip": "wxt zip",
 		"zip:firefox": "wxt zip -b firefox",
 		"compile": "tsc --noEmit",
+		"test": "bun test",
+		"eval:hybrid-recall": "bun utils/hybrid-recall.eval.ts",
 		"postinstall": "wxt prepare"
 	},
 	"dependencies": {
