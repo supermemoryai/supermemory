@@ -448,7 +448,7 @@ const convertToConversationMessages = (
 }
 
 /**
- * Saves conversation to Supermemory (fire-and-forget).
+ * Saves conversation to Supermemory.
  */
 export const saveConversation = async (
 	messages: VoltAgentMessage[],
