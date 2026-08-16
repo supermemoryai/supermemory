@@ -18,6 +18,12 @@ import { useLocalStorageUsername } from "@hooks/use-local-storage-username"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { toast } from "sonner"
 import * as htmlToImage from "html-to-image"
+import {
+	getShareAspectPreset,
+	SHARE_ASPECT_PRESETS,
+	type ShareAspect,
+	shareAspectMaxHeightDvh,
+} from "@/lib/share-aspect"
 
 type BackgroundTheme = "gradient" | "dark-gradient" | "black"
 
@@ -281,9 +287,11 @@ export function ShareModal({
 	const isCompanyBrain = useHasCompanyBrain()
 	const [selectedTheme, setSelectedTheme] =
 		useState<BackgroundTheme>("gradient")
+	const [selectedAspect, setSelectedAspect] = useState<ShareAspect>("post")
 	const [isCopying, setIsCopying] = useState(false)
 	const [copied, setCopied] = useState(false)
 	const previewRef = useRef<HTMLDivElement>(null)
+	const aspectPreset = getShareAspectPreset(selectedAspect)
 
 	const localStorageUsername = useLocalStorageUsername()
 	const displayName =
@@ -438,8 +446,10 @@ export function ShareModal({
 					{/* Preview area */}
 					<div
 						ref={previewRef}
-						className="relative w-full aspect-[674/505] max-h-[48dvh] rounded-[14px] overflow-hidden"
+						className="relative mx-auto w-full rounded-[14px] overflow-hidden"
 						style={{
+							aspectRatio: aspectPreset.ratio,
+							maxHeight: `${shareAspectMaxHeightDvh(selectedAspect)}dvh`,
 							boxShadow: "inset 2.42px 2.42px 4.26316px rgba(11, 15, 21, 0.7)",
 						}}
 					>
@@ -493,6 +503,26 @@ export function ShareModal({
 								isSelected={selectedTheme === "black"}
 								onClick={() => setSelectedTheme("black")}
 							/>
+							<div className="mx-1 h-5 w-px bg-white/10" aria-hidden />
+							<div className="flex items-center gap-1 rounded-full bg-[#0D121A] p-0.5">
+								{SHARE_ASPECT_PRESETS.map((preset) => (
+									<button
+										key={preset.id}
+										type="button"
+										aria-pressed={selectedAspect === preset.id}
+										onClick={() => setSelectedAspect(preset.id)}
+										className={cn(
+											dmSansClassName(),
+											"h-6 rounded-full px-2.5 text-[11px] font-medium transition-colors",
+											selectedAspect === preset.id
+												? "bg-white/[0.12] text-white"
+												: "text-[#8B929E] hover:text-white",
+										)}
+									>
+										{preset.label}
+									</button>
+								))}
+							</div>
 						</div>
 
 						{/* Action buttons */}
