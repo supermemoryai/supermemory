@@ -15,6 +15,7 @@ import {
 	type TwitterImportConfig,
 	TwitterImporter,
 } from "../utils/twitter-import"
+import { createTwitterImportController } from "../utils/twitter-import-controller"
 import { createTwitterImportNotifications } from "../utils/twitter-import-notifications"
 import type {
 	ExtensionMessage,
@@ -67,7 +68,9 @@ function inferPlatformFromUrl(url?: string): string | undefined {
 }
 
 export default defineBackground(() => {
-	let twitterImporter: TwitterImporter | null = null
+	const twitterImports = createTwitterImportController(
+		(config: TwitterImportConfig) => new TwitterImporter(config),
+	)
 
 	browser.runtime.onInstalled.addListener(async (details) => {
 		if (details.reason === "install" || details.reason === "update") {
@@ -234,8 +237,18 @@ export default defineBackground(() => {
 					onError: notifications.onError,
 				}
 
-				twitterImporter = new TwitterImporter(importConfig)
-				twitterImporter.startImport().catch(console.error)
+				const importTask = twitterImports.start(importConfig)
+				if (!importTask) {
+					const error = "An X bookmark import is already in progress"
+					void notifications.onError(new Error(error))
+					sendResponse({
+						success: false,
+						error,
+					})
+					return true
+				}
+
+				importTask.catch(console.error)
 				sendResponse({ success: true })
 				return true
 			}

@@ -1,8 +1,24 @@
 import { describe, expect, mock, test } from "bun:test"
 import { MESSAGE_TYPES } from "./constants"
-import { createTwitterImportNotifications } from "./twitter-import-notifications"
+import {
+	createTwitterImportNotifications,
+	isTwitterImportNotification,
+} from "./twitter-import-notifications"
 
 describe("Twitter import notifications", () => {
+	test("recognizes every notification routed to the content script", () => {
+		for (const type of [
+			MESSAGE_TYPES.IMPORT_UPDATE,
+			MESSAGE_TYPES.IMPORT_DONE,
+			MESSAGE_TYPES.IMPORT_ERROR,
+		]) {
+			expect(isTwitterImportNotification({ type })).toBe(true)
+		}
+		expect(
+			isTwitterImportNotification({ type: MESSAGE_TYPES.BATCH_IMPORT_ALL }),
+		).toBe(false)
+	})
+
 	test("keeps progress, errors, and completion on the initiating tab", async () => {
 		let activeTabId = 7
 		const sendMessage = mock(async () => {})
@@ -28,7 +44,7 @@ describe("Twitter import notifications", () => {
 			[
 				7,
 				{
-					type: MESSAGE_TYPES.IMPORT_UPDATE,
+					type: MESSAGE_TYPES.IMPORT_ERROR,
 					importedMessage: "Error: rate limited",
 				},
 			],

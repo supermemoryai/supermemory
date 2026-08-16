@@ -9,11 +9,25 @@ type TwitterImportNotification =
 			type: typeof MESSAGE_TYPES.IMPORT_DONE
 			totalImported: number
 	  }
+	| {
+			type: typeof MESSAGE_TYPES.IMPORT_ERROR
+			importedMessage: string
+	  }
 
 type SendTabMessage = (
 	tabId: number,
 	message: TwitterImportNotification,
 ) => Promise<unknown>
+
+const TWITTER_IMPORT_NOTIFICATION_TYPES = new Set<string>([
+	MESSAGE_TYPES.IMPORT_UPDATE,
+	MESSAGE_TYPES.IMPORT_DONE,
+	MESSAGE_TYPES.IMPORT_ERROR,
+])
+
+export function isTwitterImportNotification(message: { type?: string }) {
+	return !!message.type && TWITTER_IMPORT_NOTIFICATION_TYPES.has(message.type)
+}
 
 export function createTwitterImportNotifications(
 	tabId: number | undefined,
@@ -42,7 +56,7 @@ export function createTwitterImportNotifications(
 			}),
 		onError: (error: Error) =>
 			deliver({
-				type: MESSAGE_TYPES.IMPORT_UPDATE,
+				type: MESSAGE_TYPES.IMPORT_ERROR,
 				importedMessage: `Error: ${error.message}`,
 			}),
 	}

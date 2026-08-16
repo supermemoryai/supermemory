@@ -1,4 +1,5 @@
 import { DOMAINS, MESSAGE_TYPES } from "../../utils/constants"
+import { isTwitterImportNotification } from "../../utils/twitter-import-notifications"
 import { DOMUtils } from "../../utils/ui-components"
 import { initializeChatGPT } from "./chatgpt"
 import { initializeClaude } from "./claude"
@@ -28,9 +29,7 @@ export default defineContentScript({
 				return saveMemory(message.actionSource || "content_script")
 			} else if (message.action === MESSAGE_TYPES.TWITTER_IMPORT_OPEN_MODAL) {
 				return openImportModal()
-			} else if (message.type === MESSAGE_TYPES.IMPORT_UPDATE) {
-				updateTwitterImportUI(message)
-			} else if (message.type === MESSAGE_TYPES.IMPORT_DONE) {
+			} else if (isTwitterImportNotification(message)) {
 				updateTwitterImportUI(message)
 			}
 		})
