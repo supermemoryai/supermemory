@@ -74,4 +74,3 @@ describe("Twitter import notifications", () => {
 		expect(sendMessage).not.toHaveBeenCalled()
 	})
 })
-
