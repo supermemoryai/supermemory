@@ -4,12 +4,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 // executions can be verified deterministically without network access.
 const documentsDelete = vi.fn()
 const documentsList = vi.fn()
+const profileRequest = vi.fn()
 const searchExecute = vi.fn()
 const clientAdd = vi.fn()
 
 vi.mock("supermemory", () => {
 	return {
 		default: class MockSupermemory {
+			profile = profileRequest
 			search = { execute: searchExecute }
 			add = clientAdd
 			documents = {
@@ -40,9 +42,104 @@ beforeEach(() => {
 		memories: [{ id: "doc_1", title: "Doc one" }],
 		pagination: { currentPage: 1, totalItems: 1, totalPages: 1 },
 	})
+	profileRequest.mockReset().mockResolvedValue({
+		profile: { static: [], dynamic: [] },
+		searchResults: { results: [] },
+	})
 	searchExecute.mockReset()
 	clientAdd.mockReset().mockResolvedValue({ id: "doc_new" })
 	vi.unstubAllGlobals()
+})
+
+describe("configured container scope", () => {
+	it("rejects out-of-scope tags across both tool surfaces before I/O", async () => {
+		const config = { containerTags: ["tenant-a"] }
+		const fetchMock = vi.fn()
+		vi.stubGlobal("fetch", fetchMock)
+
+		const results = (await Promise.all([
+			executeTool(aiSdk.getProfileTool(API_KEY, config), {
+				containerTag: "tenant-b",
+			}),
+			openAi.createGetProfileFunction(
+				API_KEY,
+				config,
+			)({
+				containerTag: "tenant-b",
+			}),
+			executeTool(aiSdk.documentListTool(API_KEY, config), {
+				containerTag: "tenant-b",
+			}),
+			openAi.createDocumentListFunction(
+				API_KEY,
+				config,
+			)({
+				containerTag: "tenant-b",
+			}),
+			executeTool(aiSdk.memoryForgetTool(API_KEY, config), {
+				containerTag: "tenant-b",
+				memoryId: "mem_1",
+			}),
+			openAi.createMemoryForgetFunction(
+				API_KEY,
+				config,
+			)({
+				containerTag: "tenant-b",
+				memoryId: "mem_1",
+			}),
+		])) as Array<{ success: boolean; error?: string }>
+
+		expect(results).toHaveLength(6)
+		for (const result of results) {
+			expect(result.success).toBe(false)
+			expect(result.error).toContain("outside the configured scope")
+		}
+		expect(profileRequest).not.toHaveBeenCalled()
+		expect(documentsList).not.toHaveBeenCalled()
+		expect(fetchMock).not.toHaveBeenCalled()
+	})
+
+	it("allows selecting another explicitly configured tag", async () => {
+		const getProfile = openAi.createGetProfileFunction(API_KEY, {
+			containerTags: ["tenant-a", "tenant-b"],
+		})
+
+		const result = await getProfile({ containerTag: "tenant-b" })
+
+		expect(result.success).toBe(true)
+		expect(profileRequest).toHaveBeenCalledWith({
+			containerTag: "tenant-b",
+		})
+	})
+
+	it("does not let model input override implicit or project scopes", async () => {
+		const implicitResult = await openAi.createDocumentListFunction(API_KEY)({
+			containerTag: "tenant-b",
+		})
+		const projectResult = (await executeTool(
+			aiSdk.getProfileTool(API_KEY, { projectId: "alpha" }),
+			{ containerTag: "tenant-b" },
+		)) as { success: boolean; error?: string }
+
+		expect(implicitResult.success).toBe(false)
+		expect(implicitResult.error).toContain("outside the configured scope")
+		expect(projectResult.success).toBe(false)
+		expect(projectResult.error).toContain("outside the configured scope")
+		expect(documentsList).not.toHaveBeenCalled()
+		expect(profileRequest).not.toHaveBeenCalled()
+	})
+
+	it("fails closed when the configured scope is empty", async () => {
+		const result = await openAi.createGetProfileFunction(API_KEY, {
+			containerTags: [],
+		})({})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain(
+			"require at least one configured container tag",
+		)
+		expect(profileRequest).not.toHaveBeenCalled()
+	})
 })
 
 describe("documentDelete", () => {

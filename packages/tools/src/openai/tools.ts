@@ -5,6 +5,7 @@ import {
 	PARAMETER_DESCRIPTIONS,
 	TOOL_DESCRIPTIONS,
 	getContainerTags,
+	resolveConfiguredContainerTag,
 } from "../tools-shared"
 import { forgetMemoryRequest } from "../shared/forget-memory"
 import type { SupermemoryToolsConfig } from "../types"
@@ -323,7 +324,7 @@ export function createGetProfileFunction(
 		query?: string
 	}): Promise<ProfileResult> {
 		try {
-			const tag = containerTag || containerTags[0]
+			const tag = resolveConfiguredContainerTag(containerTags, containerTag)
 
 			const response = await client.profile({
 				containerTag: tag,
@@ -363,7 +364,7 @@ export function createDocumentListFunction(
 		page?: number
 	}): Promise<DocumentListResult> {
 		try {
-			const tag = containerTag || containerTags[0]
+			const tag = resolveConfiguredContainerTag(containerTags, containerTag)
 
 			const response = await client.documents.list({
 				containerTags: [tag],
@@ -485,12 +486,12 @@ export function createMemoryForgetFunction(
 				}
 			}
 
-			const tag = containerTag || containerTags[0]
+			const tag = resolveConfiguredContainerTag(containerTags, containerTag)
 
 			await forgetMemoryRequest(
 				apiKey,
 				{
-					containerTag: tag as string,
+					containerTag: tag,
 					...(memoryId && { id: memoryId }),
 					...(memoryContent && { content: memoryContent }),
 					...(reason && { reason }),
