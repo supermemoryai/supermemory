@@ -11,12 +11,13 @@ export function createTwitterImportController<Config>(
 		start(config: Config): Promise<void> | null {
 			if (running) return null
 
-			let task: Promise<void>
-			try {
-				task = Promise.resolve(createImporter(config).startImport())
-			} catch (error) {
-				task = Promise.reject(error)
-			}
+			const task = (() => {
+				try {
+					return Promise.resolve(createImporter(config).startImport())
+				} catch (error) {
+					return Promise.reject(error)
+				}
+			})()
 
 			running = task
 			void task

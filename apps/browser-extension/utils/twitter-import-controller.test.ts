@@ -2,13 +2,7 @@ import { describe, expect, mock, test } from "bun:test"
 import { createTwitterImportController } from "./twitter-import-controller"
 
 function deferred() {
-	let resolve!: () => void
-	let reject!: (error: Error) => void
-	const promise = new Promise<void>((onResolve, onReject) => {
-		resolve = onResolve
-		reject = onReject
-	})
-	return { promise, reject, resolve }
+	return Promise.withResolvers<void>()
 }
 
 describe("Twitter import controller", () => {
