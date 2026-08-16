@@ -189,10 +189,10 @@ describe("configured container scope", () => {
 		const implicitResult = await openAi.createDocumentListFunction(API_KEY)({
 			containerTag: "tenant-b",
 		})
-		const projectResult = (await executeTool(
+		const projectResult = await executeTool(
 			aiSdk.getProfileTool(API_KEY, { projectId: "alpha" }),
 			{ containerTag: "tenant-b" },
-		)) as { success: boolean; error?: string }
+		)
 
 		expect(implicitResult.success).toBe(false)
 		expect(implicitResult.error).toContain("outside the configured scope")
@@ -213,9 +213,7 @@ describe("configured container scope", () => {
 describe("documentDelete", () => {
 	it("ai-sdk variant passes the document id string to the SDK", async () => {
 		const tool = aiSdk.documentDeleteTool(API_KEY)
-		const result = (await executeTool(tool, { documentId: "doc_123" })) as {
-			success: boolean
-		}
+		const result = await executeTool(tool, { documentId: "doc_123" })
 
 		expect(result.success).toBe(true)
 		expect(documentsGet).toHaveBeenCalledWith("doc_123")
@@ -339,9 +337,9 @@ describe("memoryForget", () => {
 			containerTags: ["user_2"],
 		})
 
-		const result = (await executeTool(tool, {
+		const result = await executeTool(tool, {
 			memoryContent: "stale fact",
-		})) as { success: boolean }
+		})
 
 		expect(result.success).toBe(true)
 		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
