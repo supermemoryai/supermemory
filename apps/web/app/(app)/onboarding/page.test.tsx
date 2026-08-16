@@ -320,4 +320,3 @@ describe("onboarding draft ownership", () => {
 		)
 	})
 })
-
