@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import asyncio
+import gc
+import inspect
+import json
 import os
+import warnings
 from types import SimpleNamespace
 from typing import Any, Generator, Literal, Optional
 from unittest.mock import AsyncMock, Mock, patch
 
+import httpx
 import pytest
+from openai import AsyncOpenAI
 
 from supermemory_openai import OpenAIMiddlewareOptions, with_supermemory
 
@@ -111,6 +117,35 @@ def response_variant_creates(client: Any, name: str) -> list[Any]:
         getattr(client.chat, name).completions.create,
         getattr(client, name).chat.completions.create,
     ]
+
+
+REAL_ASYNC_COMPLETION_PATHS = (
+    "normal",
+    "completions.raw",
+    "chat.raw",
+    "client.raw",
+    "completions.streaming",
+    "chat.streaming",
+    "client.streaming",
+)
+
+
+def real_async_completion_create(client: Any, path: str) -> Any:
+    if path == "normal":
+        return client.chat.completions.create
+    if path == "completions.raw":
+        return client.chat.completions.with_raw_response.create
+    if path == "chat.raw":
+        return client.chat.with_raw_response.completions.create
+    if path == "client.raw":
+        return client.with_raw_response.chat.completions.create
+    if path == "completions.streaming":
+        return client.chat.completions.with_streaming_response.create
+    if path == "chat.streaming":
+        return client.chat.with_streaming_response.completions.create
+    if path == "client.streaming":
+        return client.with_streaming_response.chat.completions.create
+    raise AssertionError(f"Unknown completion path: {path}")
 
 
 @pytest.fixture(autouse=True)  # type: ignore[untyped-decorator]
@@ -328,6 +363,121 @@ def test_async_raw_and_streaming_response_prefixes_remain_memory_aware() -> None
         assert lookups == ["tenant-b"] * 6
         for create in calls.values():
             assert "secret-tenant-b" in str(create.call_args.kwargs["messages"])
+
+
+@pytest.mark.parametrize("path", REAL_ASYNC_COMPLETION_PATHS)
+@pytest.mark.asyncio
+async def test_real_async_openai_paths_use_async_middleware(path: str) -> None:
+    lookups: list[str] = []
+    writes: list[tuple[str, Optional[str], str]] = []
+    sent_messages: list[list[Any]] = []
+
+    async def fake_prompt(
+        messages: list[Any],
+        container_tag: str,
+        logger: Any,
+        mode: Any,
+        api_key: str,
+    ) -> list[Any]:
+        lookups.append(container_tag)
+        return [
+            {"role": "system", "content": f"secret-{container_tag}"},
+            *messages,
+        ]
+
+    async def fake_add_memory(
+        client: Any,
+        container_tag: str,
+        content: str,
+        custom_id: Optional[str],
+        logger: Any,
+    ) -> None:
+        writes.append((container_tag, custom_id, content))
+
+    def handle_request(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        sent_messages.append(body["messages"])
+        return httpx.Response(
+            200,
+            request=request,
+            headers={"content-type": "application/json"},
+            json={
+                "id": "chatcmpl-test",
+                "object": "chat.completion",
+                "created": 0,
+                "model": "gpt-test",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": "ok"},
+                        "finish_reason": "stop",
+                    }
+                ],
+            },
+        )
+
+    http_client = httpx.AsyncClient(transport=httpx.MockTransport(handle_request))
+    base_client = AsyncOpenAI(api_key="openai-test", http_client=http_client)
+
+    try:
+        with patch(
+            "supermemory_openai.middleware.supermemory.Supermemory",
+            return_value=Mock(),
+        ), patch(
+            "supermemory_openai.middleware.add_system_prompt",
+            new=fake_prompt,
+        ), patch(
+            "supermemory_openai.middleware.add_memory_tool",
+            new=fake_add_memory,
+        ), warnings.catch_warnings(
+            record=True
+        ) as caught:
+            warnings.simplefilter("always", RuntimeWarning)
+            wrapped: Any = with_supermemory(
+                base_client,
+                middleware_options("tenant-real", add_memory="always"),
+            )
+            create = real_async_completion_create(wrapped, path)
+            kwargs = {
+                "model": "gpt-test",
+                "messages": [{"role": "user", "content": "private message"}],
+            }
+
+            if path == "normal":
+                response = await create(**kwargs)
+                assert response.id == "chatcmpl-test"
+            elif path.endswith(".raw"):
+                raw_response = await create(**kwargs)
+                assert raw_response.parse().id == "chatcmpl-test"
+            else:
+                response_context = create(**kwargs)
+                assert not inspect.isawaitable(response_context)
+                async with response_context as streaming_response:
+                    assert streaming_response.status_code == 200
+
+            await wrapped.wait_for_background_tasks()
+            await asyncio.sleep(0)
+            gc.collect()
+
+            runtime_warnings = [
+                warning
+                for warning in caught
+                if issubclass(warning.category, RuntimeWarning)
+            ]
+
+        assert lookups == ["tenant-real"]
+        assert writes == [
+            (
+                "tenant-real",
+                "conversation:thread-tenant-real",
+                "User: private message",
+            )
+        ]
+        assert len(sent_messages) == 1
+        assert sent_messages[0][0]["content"] == "secret-tenant-real"
+        assert runtime_warnings == []
+    finally:
+        await base_client.close()
 
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
