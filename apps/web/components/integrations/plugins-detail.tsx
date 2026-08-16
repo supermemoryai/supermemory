@@ -30,6 +30,7 @@ import {
 	type PluginInfo,
 } from "@/lib/plugin-catalog"
 import { INSET, InstallSteps, PillButton } from "./install-steps"
+import { usePromoCode } from "@/hooks/use-promo-code"
 
 interface ConnectedPlugin {
 	id: string
@@ -418,6 +419,7 @@ function PluginRow({
 export function PluginsDetail() {
 	const { org } = useAuth()
 	const autumn = useCustomer()
+	const promoCode = usePromoCode()
 	const queryClient = useQueryClient()
 	const [connectingPlugin, setConnectingPlugin] = useState<string | null>(null)
 	const [finishSetupPluginId, setFinishSetupPluginId] = useState<string | null>(
@@ -570,8 +572,10 @@ export function PluginsDetail() {
 		try {
 			const result = await autumn.attach({
 				planId: "api_pro",
+				discounts: promoCode.getDiscounts(),
 				successUrl: `${window.location.origin}/integrations`,
 			})
+			promoCode.clear()
 			if (result?.paymentUrl) {
 				window.open(result.paymentUrl, "_self")
 				return

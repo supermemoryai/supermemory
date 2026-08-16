@@ -82,6 +82,7 @@ import { useCustomer } from "autumn-js/react"
 import { toast } from "sonner"
 import { analytics } from "@/lib/analytics"
 import type { BrainMode } from "./types"
+import { usePromoCode } from "@/hooks/use-promo-code"
 
 type SourceId =
 	| "drive"
@@ -614,6 +615,7 @@ function OnboardingPlansModal({
 	requestedPlan: RequiredPlan
 }) {
 	const autumn = useCustomer()
+	const promoCode = usePromoCode()
 	const { currentPlan, isLoading } = useTokenUsage(autumn)
 	const [upgradingPlan, setUpgradingPlan] = useState<CheckoutPlanId | null>(
 		null,
@@ -632,8 +634,10 @@ function OnboardingPlansModal({
 		try {
 			const result = await autumn.attach({
 				planId,
+				discounts: promoCode.getDiscounts(),
 				successUrl: window.location.href,
 			})
+			promoCode.clear()
 			if ((result as { paymentUrl?: string })?.paymentUrl) {
 				window.location.href = (result as { paymentUrl: string }).paymentUrl
 				return
