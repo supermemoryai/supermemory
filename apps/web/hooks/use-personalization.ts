@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { $fetch } from "@lib/api"
+import { useAuth } from "@lib/auth-context"
 import type { SearchResult } from "@repo/validation/api"
 
-const CACHE_KEY = "sm_profession_v1"
+const CACHE_KEY_PREFIX = "sm_profession_v2"
+const LEGACY_CACHE_KEY = "sm_profession_v1"
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 export type Profession =
@@ -244,6 +246,60 @@ function defaultCopy(p: Profession): PersonalizedCopy {
 	}
 }
 
+const DEFAULT_COPY = defaultCopy("default")
+
+type PersonalizationState = {
+	scopeKey: string | null
+	copy: PersonalizedCopy
+	profession: Profession
+}
+
+function defaultState(scopeKey: string | null): PersonalizationState {
+	return { scopeKey, copy: DEFAULT_COPY, profession: "default" }
+}
+
+function getScopeKey(userId: string, orgId: string): string {
+	return `u:${encodeURIComponent(userId)}:o:${encodeURIComponent(orgId)}`
+}
+
+function getCacheKey(scopeKey: string): string {
+	return `${CACHE_KEY_PREFIX}:${scopeKey}`
+}
+
+function readCachedProfession(scopeKey: string): Profession | null {
+	try {
+		const raw = localStorage.getItem(getCacheKey(scopeKey))
+		if (!raw) return null
+		const cached = JSON.parse(raw) as {
+			profession?: unknown
+			ts?: unknown
+		}
+		const age = Date.now() - Number(cached.ts)
+		if (
+			typeof cached.profession !== "string" ||
+			!Object.hasOwn(COPY_POOLS, cached.profession) ||
+			typeof cached.ts !== "number" ||
+			!Number.isFinite(cached.ts) ||
+			age < 0 ||
+			age >= CACHE_TTL_MS
+		) {
+			return null
+		}
+		return cached.profession as Profession
+	} catch {
+		return null
+	}
+}
+
+function writeCachedProfession(scopeKey: string, profession: Profession) {
+	try {
+		localStorage.setItem(
+			getCacheKey(scopeKey),
+			JSON.stringify({ profession, ts: Date.now() }),
+		)
+	} catch {}
+}
+
 const sessionCopyCache: Partial<Record<Profession, PersonalizedCopy>> = {}
 
 function getSessionCopy(p: Profession): PersonalizedCopy {
@@ -399,96 +455,132 @@ function classifyProfession(results: SearchResult[]): Profession {
 	return best && best[1] > 0 ? best[0] : "default"
 }
 
-let inflightPromise: Promise<void> | null = null
+const inflightPromises = new Map<string, Promise<Profession | null>>()
+const manualSelectionVersions = new Map<string, number>()
+
+function detectProfession(scopeKey: string): Promise<Profession | null> {
+	const inflight = inflightPromises.get(scopeKey)
+	if (inflight) return inflight
+
+	const request = $fetch("@post/search", {
+		body: {
+			q: "career profession field industry background work role",
+			limit: 8,
+		},
+	})
+		.then((res) => {
+			const results = res.data?.results
+			if (!results?.length) return null
+			return classifyProfession(results)
+		})
+		.catch(() => null)
+
+	inflightPromises.set(scopeKey, request)
+	void request.finally(() => {
+		if (inflightPromises.get(scopeKey) === request) {
+			inflightPromises.delete(scopeKey)
+		}
+	})
+	return request
+}
 
 export function usePersonalization(): {
 	copy: PersonalizedCopy
 	profession: Profession
 	setProfession: (p: Profession) => void
 } {
-	const [copy, setCopy] = useState<PersonalizedCopy>(() =>
-		defaultCopy("default"),
+	const { isSessionPending, isRestoring, session, user, org } = useAuth()
+	const scopeKey =
+		!isSessionPending &&
+		!isRestoring &&
+		session &&
+		user &&
+		org &&
+		session.userId === user.id &&
+		session.activeOrganizationId === org.id
+			? getScopeKey(user.id, org.id)
+			: null
+	const [state, setState] = useState<PersonalizationState>(() =>
+		defaultState(null),
 	)
-	const [profession, setProfessionState] = useState<Profession>("default")
+	const visibleState =
+		state.scopeKey === scopeKey ? state : defaultState(scopeKey)
 
-	const setProfession = useCallback((p: Profession) => {
-		try {
-			localStorage.setItem(
-				CACHE_KEY,
-				JSON.stringify({ profession: p, ts: Date.now() }),
+	const setProfession = useCallback(
+		(p: Profession) => {
+			if (!scopeKey) return
+			manualSelectionVersions.set(
+				scopeKey,
+				(manualSelectionVersions.get(scopeKey) ?? 0) + 1,
 			)
-		} catch {}
-		// Re-pick on explicit change so the user sees fresh copy for the new identity
-		const freshCopy = pickCopy(p)
-		sessionCopyCache[p] = freshCopy
-		setCopy(freshCopy)
-		setProfessionState(p)
-	}, [])
+			writeCachedProfession(scopeKey, p)
+			// Re-pick on explicit change so the user sees fresh copy for the new identity
+			const freshCopy = pickCopy(p)
+			sessionCopyCache[p] = freshCopy
+			setState({ scopeKey, copy: freshCopy, profession: p })
+		},
+		[scopeKey],
+	)
 
 	useEffect(() => {
 		try {
-			const raw = localStorage.getItem(CACHE_KEY)
-			if (raw) {
-				const { profession: cached, ts } = JSON.parse(raw) as {
-					profession: Profession
-					ts: number
-				}
-				if (Date.now() - ts < CACHE_TTL_MS && COPY_POOLS[cached]) {
-					setCopy(getSessionCopy(cached))
-					setProfessionState(cached)
-					return
-				}
-			}
+			localStorage.removeItem(LEGACY_CACHE_KEY)
 		} catch {}
+		setState(defaultState(scopeKey))
+		if (!scopeKey) return
 
-		if (inflightPromise) {
-			inflightPromise.then(() => {
-				try {
-					const raw = localStorage.getItem(CACHE_KEY)
-					if (raw) {
-						const { profession: cached } = JSON.parse(raw) as {
-							profession: Profession
-						}
-						if (COPY_POOLS[cached]) {
-							setCopy(getSessionCopy(cached))
-							setProfessionState(cached)
-						}
-					}
-				} catch {}
+		const cached = readCachedProfession(scopeKey)
+		if (cached) {
+			setState({
+				scopeKey,
+				copy: getSessionCopy(cached),
+				profession: cached,
 			})
 			return
 		}
 
-		inflightPromise = $fetch("@post/search", {
-			body: {
-				q: "career profession field industry background work role",
-				limit: 8,
-			},
+		let cancelled = false
+		const manualSelectionVersion = manualSelectionVersions.get(scopeKey) ?? 0
+		void detectProfession(scopeKey).then((detected) => {
+			if (
+				cancelled ||
+				!detected ||
+				(manualSelectionVersions.get(scopeKey) ?? 0) !== manualSelectionVersion
+			) {
+				return
+			}
+			const cachedAfterRequest = readCachedProfession(scopeKey)
+			const resolvedProfession = cachedAfterRequest ?? detected
+			if (!cachedAfterRequest) {
+				writeCachedProfession(scopeKey, detected)
+			}
+			setState({
+				scopeKey,
+				copy: getSessionCopy(resolvedProfession),
+				profession: resolvedProfession,
+			})
 		})
-			.then((res) => {
-				const results = res.data?.results
-				if (!results?.length) return
-				const detected = classifyProfession(results)
-				try {
-					localStorage.setItem(
-						CACHE_KEY,
-						JSON.stringify({ profession: detected, ts: Date.now() }),
-					)
-				} catch {}
-				setCopy(getSessionCopy(detected))
-				setProfessionState(detected)
-			})
-			.catch(() => {})
-			.finally(() => {
-				inflightPromise = null
-			})
-	}, [])
+		return () => {
+			cancelled = true
+		}
+	}, [scopeKey])
 
-	return { copy, profession, setProfession }
+	return {
+		copy: visibleState.copy,
+		profession: visibleState.profession,
+		setProfession,
+	}
 }
 
 export function clearPersonalizationCache() {
 	try {
-		localStorage.removeItem(CACHE_KEY)
+		manualSelectionVersions.clear()
+		localStorage.removeItem(LEGACY_CACHE_KEY)
+		for (let index = localStorage.length - 1; index >= 0; index--) {
+			const key = localStorage.key(index)
+			if (key?.startsWith(`${CACHE_KEY_PREFIX}:`)) {
+				localStorage.removeItem(key)
+			}
+		}
 	} catch {}
 }
