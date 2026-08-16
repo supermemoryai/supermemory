@@ -22,7 +22,7 @@ import {
  * @param options.mode - Optional mode for memory search: "profile" (default), "query", or "full"
  * @param options.addMemory - Optional mode for memory addition: "always" (default), "never"
  *
- * @returns An OpenAI client with SuperMemory middleware injected for both Chat Completions and Responses APIs
+ * @returns A distinct OpenAI middleware facade for Chat Completions and Responses APIs. The supplied client is not mutated.
  *
  * @example
  * ```typescript
