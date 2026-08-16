@@ -93,6 +93,7 @@ export const MESSAGE_TYPES = {
 	BATCH_IMPORT_ALL: "sm-batch-import-all",
 	IMPORT_UPDATE: "sm-import-update",
 	IMPORT_DONE: "sm-import-done",
+	IMPORT_ERROR: "sm-import-error",
 	GET_RELATED_MEMORIES: "sm-get-related-memories",
 	CAPTURE_PROMPT: "sm-capture-prompt",
 	FETCH_PROJECTS: "sm-fetch-projects",

@@ -135,12 +135,14 @@ export async function openImportModal() {
 		const projects = response.success && response.data ? response.data : []
 
 		if (projects.length === 0) {
-			await browser.runtime.sendMessage({
+			const importResponse = await browser.runtime.sendMessage({
 				type: MESSAGE_TYPES.BATCH_IMPORT_ALL,
 			})
-			await trackEvent(POSTHOG_EVENT_KEY.TWITTER_IMPORT_STARTED, {
-				source: `${POSTHOG_EVENT_KEY.SOURCE}_content_script`,
-			})
+			if (importResponse?.success) {
+				await trackEvent(POSTHOG_EVENT_KEY.TWITTER_IMPORT_STARTED, {
+					source: `${POSTHOG_EVENT_KEY.SOURCE}_content_script`,
+				})
+			}
 		} else {
 			await showAllBookmarksProjectModal(projects)
 		}
@@ -163,14 +165,16 @@ async function showAllBookmarksProjectModal(
 			modal.remove()
 
 			try {
-				await browser.runtime.sendMessage({
+				const importResponse = await browser.runtime.sendMessage({
 					type: MESSAGE_TYPES.BATCH_IMPORT_ALL,
 					selectedProject: selectedProject,
 				})
-				await trackEvent(POSTHOG_EVENT_KEY.TWITTER_IMPORT_STARTED, {
-					source: `${POSTHOG_EVENT_KEY.SOURCE}_content_script`,
-					project_selected: true,
-				})
+				if (importResponse?.success) {
+					await trackEvent(POSTHOG_EVENT_KEY.TWITTER_IMPORT_STARTED, {
+						source: `${POSTHOG_EVENT_KEY.SOURCE}_content_script`,
+						project_selected: true,
+					})
+				}
 			} catch (error) {
 				console.error("Error importing all bookmarks:", error)
 			}
@@ -464,7 +468,17 @@ function removeAllTwitterUI() {
 /**
  * Shows or updates the import progress toast in the bottom-right
  */
-function showOrUpdateImportProgressToast(message: string, isComplete = false) {
+let importToastDismissTimer: ReturnType<typeof setTimeout> | null = null
+
+function showOrUpdateImportProgressToast(
+	message: string,
+	status: "progress" | "success" | "error" = "progress",
+) {
+	if (importToastDismissTimer) {
+		clearTimeout(importToastDismissTimer)
+		importToastDismissTimer = null
+	}
+
 	let toast = document.getElementById(ELEMENT_IDS.TWITTER_IMPORT_PROGRESS_TOAST)
 
 	if (!toast) {
@@ -538,31 +552,36 @@ function showOrUpdateImportProgressToast(message: string, isComplete = false) {
 		}
 	}
 
-	// Style for completion
-	if (isComplete) {
-		const icon = toast.querySelector(
-			"#sm-import-progress-icon",
-		) as HTMLImageElement
+	const icon = toast.querySelector(
+		"#sm-import-progress-icon",
+	) as HTMLImageElement
+	const textSpan = toast.querySelector(
+		"#sm-import-progress-text",
+	) as HTMLSpanElement
+
+	if (status === "progress") {
+		if (icon) {
+			icon.style.animation = "smPulse 1.5s ease-in-out infinite"
+			icon.style.opacity = "1"
+		}
+		if (textSpan) textSpan.style.color = "#374151"
+	} else {
 		if (icon) {
 			icon.style.animation = "none"
 			icon.style.opacity = "1"
 		}
-
-		const textSpan = toast.querySelector(
-			"#sm-import-progress-text",
-		) as HTMLSpanElement
 		if (textSpan) {
-			textSpan.style.color = "#059669"
+			textSpan.style.color = status === "success" ? "#059669" : "#dc2626"
 		}
 
-		// Auto-dismiss after 4 seconds on completion
-		setTimeout(() => {
+		importToastDismissTimer = setTimeout(() => {
 			const existingToast = document.getElementById(
 				ELEMENT_IDS.TWITTER_IMPORT_PROGRESS_TOAST,
 			)
 			if (existingToast) {
 				dismissToast(existingToast)
 			}
+			importToastDismissTimer = null
 		}, 4000)
 	}
 }
@@ -573,14 +592,18 @@ export function updateTwitterImportUI(message: {
 	totalImported?: number
 }) {
 	if (message.type === MESSAGE_TYPES.IMPORT_UPDATE && message.importedMessage) {
-		showOrUpdateImportProgressToast(message.importedMessage, false)
+		showOrUpdateImportProgressToast(message.importedMessage)
 	}
 
 	if (message.type === MESSAGE_TYPES.IMPORT_DONE) {
 		showOrUpdateImportProgressToast(
 			`✓ Imported ${message.totalImported} tweets!`,
-			true,
+			"success",
 		)
+	}
+
+	if (message.type === MESSAGE_TYPES.IMPORT_ERROR && message.importedMessage) {
+		showOrUpdateImportProgressToast(message.importedMessage, "error")
 	}
 }
 
