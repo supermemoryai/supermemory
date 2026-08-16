@@ -1,35 +1,9 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { isYouTubeUrl } from "@/lib/url-helpers"
+import { extractYouTubeVideoId, isYouTubeUrl } from "@/lib/url-helpers"
 
-export { isYouTubeUrl }
-
-export function extractYouTubeVideoId(
-	url: string | undefined | null,
-): string | null {
-	if (!url) return null
-
-	// Handle youtu.be format
-	const youtuBeMatch = url.match(/(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/)
-	if (youtuBeMatch?.[1]) return youtuBeMatch[1]
-
-	// Handle youtube.com/watch?v= format
-	const watchMatch = url.match(/(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/)
-	if (watchMatch?.[1]) return watchMatch[1]
-
-	// Handle youtube.com/embed/ format
-	const embedMatch = url.match(/(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
-	if (embedMatch?.[1]) return embedMatch[1]
-
-	// Handle m.youtube.com format
-	const mobileMatch = url.match(
-		/(?:m\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-	)
-	if (mobileMatch?.[1]) return mobileMatch[1]
-
-	return null
-}
+export { extractYouTubeVideoId, isYouTubeUrl }
 
 export function useYouTubeChannelName(url: string | undefined | null) {
 	const videoId = extractYouTubeVideoId(url)

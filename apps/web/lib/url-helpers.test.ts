@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test"
-import { isYouTubeUrl } from "./url-helpers"
+import { extractYouTubeVideoId, isYouTubeUrl } from "./url-helpers"
+
+const VIDEO_ID = "dQw4w9WgXcQ"
 
 describe("isYouTubeUrl", () => {
 	it("matches canonical youtube.com watch URLs", () => {
@@ -69,5 +71,70 @@ describe("isYouTubeUrl", () => {
 		expect(isYouTubeUrl("")).toBe(false)
 		expect(isYouTubeUrl(null)).toBe(false)
 		expect(isYouTubeUrl(undefined)).toBe(false)
+	})
+})
+
+describe("extractYouTubeVideoId", () => {
+	it("extracts exact IDs from supported YouTube video URL formats", () => {
+		expect(
+			extractYouTubeVideoId(
+				`https://www.youtube.com/watch?feature=share&v=${VIDEO_ID}`,
+			),
+		).toBe(VIDEO_ID)
+		expect(extractYouTubeVideoId(`https://youtu.be/${VIDEO_ID}?si=abc`)).toBe(
+			VIDEO_ID,
+		)
+		expect(
+			extractYouTubeVideoId(
+				`https://www.youtube.com/embed/${VIDEO_ID}?start=10`,
+			),
+		).toBe(VIDEO_ID)
+		expect(
+			extractYouTubeVideoId(
+				`https://www.youtube.com/shorts/${VIDEO_ID}?feature=share`,
+			),
+		).toBe(VIDEO_ID)
+		expect(
+			extractYouTubeVideoId(`https://www.youtube.com/live/${VIDEO_ID}`),
+		).toBe(VIDEO_ID)
+	})
+
+	it("supports mobile, case-insensitive hosts, and scheme-less URLs", () => {
+		expect(
+			extractYouTubeVideoId(`https://m.youtube.com/watch?v=${VIDEO_ID}`),
+		).toBe(VIDEO_ID)
+		expect(
+			extractYouTubeVideoId(`HTTPS://WWW.YOUTUBE.COM/shorts/${VIDEO_ID}`),
+		).toBe(VIDEO_ID)
+		expect(extractYouTubeVideoId(`youtu.be/${VIDEO_ID}`)).toBe(VIDEO_ID)
+	})
+
+	it("rejects lookalike hosts and URLs that only mention YouTube in a path", () => {
+		expect(
+			extractYouTubeVideoId(
+				`https://youtube.com.evil.example/watch?v=${VIDEO_ID}`,
+			),
+		).toBeNull()
+		expect(
+			extractYouTubeVideoId(
+				`https://evil.example/youtube.com/shorts/${VIDEO_ID}`,
+			),
+		).toBeNull()
+		expect(
+			extractYouTubeVideoId(`https://youtube.com@evil.example/${VIDEO_ID}`),
+		).toBeNull()
+	})
+
+	it("rejects malformed IDs and unsupported YouTube routes", () => {
+		expect(
+			extractYouTubeVideoId("https://www.youtube.com/shorts/too-short"),
+		).toBeNull()
+		expect(
+			extractYouTubeVideoId(`https://www.youtube.com/embed/${VIDEO_ID}x`),
+		).toBeNull()
+		expect(
+			extractYouTubeVideoId(`https://www.youtube.com/channel/${VIDEO_ID}`),
+		).toBeNull()
+		expect(extractYouTubeVideoId(null)).toBeNull()
 	})
 })

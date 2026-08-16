@@ -1,54 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { extractYouTubeVideoId } from "@/lib/url-helpers"
 
 interface YoutubeVideoProps {
 	url: string | null | undefined
 }
 
-// Extract YouTube video ID from various URL formats
-function extractVideoId(url: string): string | null {
-	if (!url) return null
-
-	const patterns = [
-		/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-		/youtube\.com\/watch\?.*v=([^&\n?#]+)/,
-	]
-
-	for (const pattern of patterns) {
-		const match = url.match(pattern)
-		if (match?.[1]) {
-			return match[1]
-		}
-	}
-
-	return null
-}
-
 export function YoutubeVideo({ url }: YoutubeVideoProps) {
-	const [videoId, setVideoId] = useState<string | null>(null)
-	const [loading, setLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
-
-	useEffect(() => {
-		if (!url) {
-			setError("No YouTube URL provided")
-			setLoading(false)
-			return
-		}
-
-		const id = extractVideoId(url)
-		if (!id) {
-			setError("Invalid YouTube URL format")
-			setLoading(false)
-			return
-		}
-
-		setVideoId(id)
-		setLoading(false)
-		setError(null)
-	}, [url])
-
 	if (!url) {
 		return (
 			<div className="flex items-center justify-center h-full text-gray-400">
@@ -57,18 +15,11 @@ export function YoutubeVideo({ url }: YoutubeVideoProps) {
 		)
 	}
 
-	if (loading) {
-		return (
-			<div className="flex items-center justify-center h-full text-gray-400">
-				Loading video…
-			</div>
-		)
-	}
-
-	if (error || !videoId) {
+	const videoId = extractYouTubeVideoId(url)
+	if (!videoId) {
 		return (
 			<div className="flex items-center justify-center h-full text-red-400">
-				Error: {error || "Failed to extract video ID"}
+				Error: Invalid YouTube URL format
 			</div>
 		)
 	}
