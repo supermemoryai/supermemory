@@ -16,6 +16,34 @@ import { deduplicateMemoriesForMode } from "../tools-shared"
 import { createLogger, type Logger } from "../vercel/logger"
 import { convertProfileToMarkdown } from "../vercel/util"
 
+// Keep canonicalization stable across duplicate package copies and hot reloads.
+const BASE_CLIENT_SYMBOL = Symbol.for("@supermemory/tools/openai/base-client")
+const baseClientByWrapper = new WeakMap<OpenAI, OpenAI>()
+
+const getBaseClient = (client: OpenAI) =>
+	(Reflect.get(client, BASE_CLIENT_SYMBOL) as OpenAI | undefined) ??
+	baseClientByWrapper.get(client) ??
+	client
+
+const cloneWithOverrides = <T extends object>(
+	source: T,
+	overrides: Partial<T>,
+): T => {
+	const descriptors = Object.getOwnPropertyDescriptors(source)
+
+	for (const key of Reflect.ownKeys(overrides) as Array<keyof T>) {
+		const current = Object.getOwnPropertyDescriptor(source, key)
+		Reflect.set(descriptors, key, {
+			configurable: current?.configurable ?? true,
+			enumerable: current?.enumerable ?? false,
+			value: overrides[key],
+			writable: current && "writable" in current ? current.writable : true,
+		})
+	}
+
+	return Object.create(Object.getPrototypeOf(source), descriptors) as T
+}
+
 const normalizeBaseUrl = (url?: string): string => {
 	const defaultUrl = "https://api.supermemory.ai"
 	return url?.trim().replace(/\/+$/, "") || defaultUrl
@@ -761,6 +789,11 @@ export function createOpenAIMiddleware(
 	containerTag: string,
 	options?: OpenAIMiddlewareOptions,
 ) {
+	const baseClient = getBaseClient(openaiClient)
+	const baseChat = baseClient.chat
+	const baseCompletions = baseChat.completions
+	const baseResponses = baseClient.responses
+
 	const logger = createLogger(options?.verbose ?? false)
 	const apiKey =
 		options?.apiKey?.trim() || process.env.SUPERMEMORY_API_KEY?.trim() || ""
@@ -779,8 +812,8 @@ export function createOpenAIMiddleware(
 	const mode = options?.mode ?? "profile"
 	const addMemory = options?.addMemory ?? "always"
 
-	const originalCreate = openaiClient.chat.completions.create
-	const originalResponsesCreate = openaiClient.responses?.create
+	const originalCreate = baseCompletions.create
+	const originalResponsesCreate = baseResponses?.create
 
 	/**
 	 * Searches for memories and formats them for injection into API calls.
@@ -920,7 +953,7 @@ export function createOpenAIMiddleware(
 			}
 			return {
 				request: originalResponsesCreate.call(
-					openaiClient.responses,
+					baseResponses,
 					cleanedParams,
 					requestOptions,
 				),
@@ -972,7 +1005,7 @@ export function createOpenAIMiddleware(
 
 		return {
 			request: originalResponsesCreate.call(
-				openaiClient.responses,
+				baseResponses,
 				{
 					...params,
 					input: cleanedInput,
@@ -1023,7 +1056,7 @@ export function createOpenAIMiddleware(
 			logger.debug("No textual user message found, skipping memory search")
 			return {
 				request: originalCreate.call(
-					openaiClient.chat.completions,
+					baseCompletions,
 					{
 						...params,
 						messages: updateChatMemoryContexts(messages),
@@ -1078,7 +1111,7 @@ export function createOpenAIMiddleware(
 
 		return {
 			request: originalCreate.call(
-				openaiClient.chat.completions,
+				baseCompletions,
 				{
 					...params,
 					messages: enhancedMessages,
@@ -1093,14 +1126,26 @@ export function createOpenAIMiddleware(
 		requestOptions?: OpenAI.RequestOptions,
 	) => deferAPIPromise(() => prepareCreateWithMemory(params, requestOptions))
 
-	openaiClient.chat.completions.create =
-		createWithMemory as typeof originalCreate
+	const wrappedCompletions = cloneWithOverrides(baseCompletions, {
+		create: createWithMemory as typeof originalCreate,
+	})
+	const wrappedChat = cloneWithOverrides(baseChat, {
+		completions: wrappedCompletions,
+	})
+	const wrappedResponses =
+		baseResponses && originalResponsesCreate
+			? cloneWithOverrides(baseResponses, {
+					create: createResponsesWithMemory as typeof originalResponsesCreate,
+				})
+			: undefined
+	const wrappedClient = cloneWithOverrides(baseClient, {
+		chat: wrappedChat,
+		...(wrappedResponses ? { responses: wrappedResponses } : {}),
+	})
 
-	// Wrap Responses API if available
-	if (originalResponsesCreate) {
-		openaiClient.responses.create =
-			createResponsesWithMemory as typeof originalResponsesCreate
-	}
-
-	return openaiClient
+	Object.defineProperty(wrappedClient, BASE_CLIENT_SYMBOL, {
+		value: baseClient,
+	})
+	baseClientByWrapper.set(wrappedClient, baseClient)
+	return wrappedClient
 }
