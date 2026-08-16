@@ -1,0 +1,6 @@
+[Unit]
+Description=Supermemory project-rules sync (daily)
+
+[Service]
+Type=oneshot
+ExecStart=/home/themorida/.local/bin/supermemory-sync sync-rules
