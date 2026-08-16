@@ -6,16 +6,10 @@ import {
 	MemoryEntrySchema,
 	OrganizationSettingsSchema,
 	RequestTypeEnum,
+	SearchFiltersSchema,
 } from "./schemas"
 
 export const MetadataSchema = BaseMetadataSchema
-
-export const SearchFiltersSchema = z
-	.object({
-		AND: z.array(z.unknown()).optional(),
-		OR: z.array(z.unknown()).optional(),
-	})
-	.or(z.record(z.unknown()))
 
 const exampleMetadata: Record<string, string | number | boolean> = {
 	category: "technology",
@@ -247,10 +241,18 @@ export const ListMemoriesQuerySchema = z
 					"Optional tags this memory should be containerized by. This can be an ID for your user, a project ID, or any other identifier you wish to use to group memories.",
 				example: ["user_123", "project_123"],
 			}),
-		// TODO: Improve filter schema
 		filters: z
 			.string()
 			.optional()
+			.transform((raw,ctx) => {
+			if (!raw) return undefined
+				try {
+					return SearchFiltersSchema.parse(JSON.parse(raw))
+				} catch {
+					ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid filters JSON" })
+					return z.NEVER
+				}
+			})
 			.openapi({
 				description: "Optional filters to apply to the search",
 				example: JSON.stringify({
