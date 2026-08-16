@@ -230,7 +230,7 @@ export function useDocumentMutations({
 
 	const defaultEntityContext = `This is ${user?.name ?? "a user"}, saving items in a personal knowledge management system. This may be websites, links, notes, journals, PDFs, etc. Understand the user from it into a graph.`
 
-	// Skip when the space has its own context — sending one would overwrite the stored value.
+	// Only send the default after settings confirm the context is empty; otherwise it could overwrite the stored value.
 	const resolveEntityContext = async (
 		project: string,
 	): Promise<string | undefined> => {
@@ -242,7 +242,7 @@ export function useDocumentMutations({
 			})
 			return settings?.entityContext ? undefined : defaultEntityContext
 		} catch {
-			return defaultEntityContext
+			return undefined
 		}
 	}
 
