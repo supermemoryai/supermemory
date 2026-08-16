@@ -132,11 +132,14 @@ mock.module("@lib/constants", () => ({
 	SHARED_TEAM_BRAIN_TAG: "sm_org_shared",
 }))
 
-mock.module("@/lib/analytics", () => ({
-	analytics: new Proxy({} as Record<string, () => void>, {
-		get: () => () => {},
-	}),
-}))
+mock.module("@/lib/analytics", () => {
+	const target: Record<string, () => void> = {}
+	return {
+		analytics: new Proxy(target, {
+			get: () => () => {},
+		}),
+	}
+})
 
 mock.module("@/lib/company-brain-entry", () => ({
 	resolveCompanyBrainEntry: () => ({ action: "create" }),
@@ -317,3 +320,4 @@ describe("onboarding draft ownership", () => {
 		)
 	})
 })
+
