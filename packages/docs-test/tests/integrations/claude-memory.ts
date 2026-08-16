@@ -102,4 +102,7 @@ async function main() {
 	console.log("✅ All Claude Memory tests passed!")
 }
 
-main().catch(console.error)
+main().catch((error) => {
+	console.error(error)
+	process.exitCode = 1
+})
