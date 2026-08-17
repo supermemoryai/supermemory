@@ -24,13 +24,16 @@ import {
 	showMemorySuggestion,
 	syncAcceptedSupermemoryState,
 } from "./memory-suggestion"
+import { createRecallRequestFreshnessGuard } from "./recall-request-freshness"
 
 let geminiDebounceTimeout: NodeJS.Timeout | null = null
 let geminiRouteObserver: MutationObserver | null = null
 let geminiUrlCheckInterval: NodeJS.Timeout | null = null
 let geminiObserverThrottle: NodeJS.Timeout | null = null
+let geminiRecallInput: GeminiInput | null = null
 const GEMINI_DEBUG = false
 const GEMINI_LOG_PREFIX = "[supermemory:gemini]"
+const geminiRecallRequests = createRecallRequestFreshnessGuard<GeminiInput>()
 
 type GeminiInput = HTMLElement | HTMLTextAreaElement
 
@@ -94,6 +97,9 @@ function setupGeminiRouteChangeDetection() {
 
 	const checkForRouteChange = () => {
 		if (window.location.href !== currentUrl) {
+			invalidateGeminiRecallRequests()
+			const input = getGeminiPromptInput()
+			if (input) clearPendingGeminiRecall(input, false)
 			currentUrl = window.location.href
 			debugGemini("route changed, rechecking UI", currentUrl)
 			setTimeout(recheckGeminiUI, 1000)
@@ -103,6 +109,7 @@ function setupGeminiRouteChangeDetection() {
 	geminiUrlCheckInterval = setInterval(checkForRouteChange, 2000)
 
 	geminiRouteObserver = new MutationObserver((mutations) => {
+		trackGeminiRecallInput()
 		if (geminiObserverThrottle) {
 			return
 		}
@@ -123,7 +130,6 @@ function setupGeminiRouteChangeDetection() {
 				)
 			}),
 		)
-
 		if (shouldRecheck) {
 			geminiObserverThrottle = setTimeout(() => {
 				geminiObserverThrottle = null
@@ -364,12 +370,83 @@ function getInputText(input: GeminiInput | null): string {
 	return input.innerText || input.textContent || ""
 }
 
+function invalidateGeminiRecallRequests() {
+	geminiRecallRequests.invalidate()
+	if (geminiDebounceTimeout) {
+		clearTimeout(geminiDebounceTimeout)
+		geminiDebounceTimeout = null
+	}
+}
+
+function trackGeminiRecallInput() {
+	setGeminiRecallInput(getGeminiPromptInput())
+}
+
+function setGeminiRecallInput(input: GeminiInput | null) {
+	if (input === geminiRecallInput) return
+	const previousInput = geminiRecallInput
+	geminiRecallInput = input
+	invalidateGeminiRecallRequests()
+	if (previousInput) clearPendingGeminiRecall(previousInput, false)
+}
+
+function clearPendingGeminiRecall(
+	input: GeminiInput,
+	preserveAcceptedIcon = true,
+) {
+	const hadAcceptedMarker = input.dataset.supermemoriesInjected === "true"
+	syncAcceptedSupermemoryState(input)
+	const hasAcceptedContext = hasAcceptedSupermemoryContext(input)
+
+	clearMemorySuggestion("gemini", input)
+	if (hasAcceptedContext) input.dataset.supermemoriesInjected = "true"
+	document
+		.querySelectorAll(`[id*="${ELEMENT_IDS.GEMINI_INPUT_BAR_ELEMENT}"]`)
+		.forEach((icon) => {
+			const iconElement = icon as HTMLElement
+			iconElement.querySelector("[data-supermemory-marker-popover]")?.remove()
+			if (
+				preserveAcceptedIcon &&
+				hadAcceptedMarker &&
+				hasAcceptedContext &&
+				iconElement.dataset.memoriesData
+			) {
+				setMemoryMarkerStatus(iconElement, "found")
+				return
+			}
+			delete iconElement.dataset.memoriesData
+			delete iconElement.dataset.supermemories
+			setMemoryMarkerStatus(iconElement, "neutral")
+		})
+}
+
+function attachGeminiRecallFreshness(input: GeminiInput) {
+	if (input.hasAttribute("data-supermemory-recall-freshness")) return
+	input.setAttribute("data-supermemory-recall-freshness", "true")
+	setGeminiRecallInput(input)
+
+	input.addEventListener("input", () => {
+		invalidateGeminiRecallRequests()
+		clearPendingGeminiRecall(input)
+	})
+}
+
+function getGeminiRecallState() {
+	const input = getGeminiPromptInput()
+	return {
+		input,
+		query: getInputText(input).trim(),
+		url: window.location.href,
+	}
+}
+
 async function getRelatedMemoriesForGemini(actionSource: string) {
+	let request: ReturnType<typeof geminiRecallRequests.begin> | null = null
 	try {
 		const isAutoSearch =
 			actionSource === POSTHOG_EVENT_KEY.GEMINI_CHAT_MEMORIES_AUTO_SEARCHED
-		const input = getGeminiPromptInput()
-		const userQuery = getInputText(input).trim()
+		const state = getGeminiRecallState()
+		const { input, query: userQuery } = state
 		debugGemini("manual/auto memory search requested", {
 			actionSource,
 			hasInput: !!input,
@@ -389,6 +466,8 @@ async function getRelatedMemoriesForGemini(actionSource: string) {
 			console.warn("Gemini icon element not found, cannot update feedback")
 			return
 		}
+
+		request = geminiRecallRequests.begin(state)
 
 		if (input && isAutoSearch) {
 			showLoadingSuggestion("gemini", input)
@@ -414,6 +493,10 @@ async function getRelatedMemoriesForGemini(actionSource: string) {
 			timeoutPromise,
 		])) as { success?: boolean; data?: string }
 
+		if (!geminiRecallRequests.isCurrent(request, getGeminiRecallState())) {
+			return
+		}
+
 		debugGemini("memory search response", response)
 
 		if (response?.success && response?.data && input) {
@@ -436,6 +519,12 @@ async function getRelatedMemoriesForGemini(actionSource: string) {
 			updateGeminiIconFeedback("No memories found", iconElement, 1800)
 		}
 	} catch (error) {
+		if (
+			request &&
+			!geminiRecallRequests.isCurrent(request, getGeminiRecallState())
+		) {
+			return
+		}
 		console.error("Error getting related memories for Gemini:", error)
 		const iconElement = document.querySelector(
 			`[id*="${ELEMENT_IDS.GEMINI_INPUT_BAR_ELEMENT}"]`,
@@ -592,18 +681,18 @@ function setupGeminiPromptCapture() {
 }
 
 async function setupGeminiAutoFetch() {
-	const autoSearch = (await autoSearchEnabled.getValue()) ?? false
-	debugGemini("setup auto fetch", { autoSearch })
-	if (!autoSearch) {
+	const input = getGeminiPromptInput()
+	if (!input) {
+		debugGemini("auto fetch skipped", {
+			hasInput: false,
+		})
 		return
 	}
+	attachGeminiRecallFreshness(input)
 
-	const input = getGeminiPromptInput()
-	if (!input || input.hasAttribute("data-supermemory-auto-fetch")) {
-		debugGemini("auto fetch skipped", {
-			hasInput: !!input,
-			alreadyAttached: input?.hasAttribute("data-supermemory-auto-fetch"),
-		})
+	const autoSearch = (await autoSearchEnabled.getValue()) ?? false
+	debugGemini("setup auto fetch", { autoSearch })
+	if (!autoSearch || input.hasAttribute("data-supermemory-auto-fetch")) {
 		return
 	}
 
@@ -612,24 +701,23 @@ async function setupGeminiAutoFetch() {
 
 	const handleInput = () => {
 		const content = getInputText(input).trim()
-		syncAcceptedSupermemoryState(input)
-
-		if (content.length === 0) {
-			clearMemorySuggestion("gemini", input)
-			document
-				.querySelectorAll(`[id*="${ELEMENT_IDS.GEMINI_INPUT_BAR_ELEMENT}"]`)
-				.forEach((icon) => {
-					setMemoryMarkerStatus(icon as HTMLElement, "neutral")
-				})
-		}
 
 		if (geminiDebounceTimeout) {
 			clearTimeout(geminiDebounceTimeout)
 		}
+		const scheduledRequest = geminiRecallRequests.begin(getGeminiRecallState())
 
 		geminiDebounceTimeout = setTimeout(async () => {
+			geminiDebounceTimeout = null
+			if (
+				!geminiRecallRequests.isCurrent(
+					scheduledRequest,
+					getGeminiRecallState(),
+				)
+			) {
+				return
+			}
 			if (hasAcceptedSupermemoryContext(input)) {
-				clearMemorySuggestion("gemini", input)
 				return
 			}
 
@@ -637,25 +725,6 @@ async function setupGeminiAutoFetch() {
 				await getRelatedMemoriesForGemini(
 					POSTHOG_EVENT_KEY.GEMINI_CHAT_MEMORIES_AUTO_SEARCHED,
 				)
-			} else if (content.length === 0) {
-				const icons = document.querySelectorAll(
-					`[id*="${ELEMENT_IDS.GEMINI_INPUT_BAR_ELEMENT}"]`,
-				)
-
-				icons.forEach((icon) => {
-					const iconElement = icon as HTMLElement
-					iconElement.querySelector("[data-supermemory-status-badge]")?.remove()
-					delete iconElement.dataset.supermemoryStatus
-					delete iconElement.dataset.memoriesData
-					if (iconElement.dataset.originalHtml) {
-						iconElement.innerHTML = iconElement.dataset.originalHtml
-						delete iconElement.dataset.originalHtml
-					}
-				})
-
-				if (input.dataset.supermemories) {
-					clearMemorySuggestion("gemini", input)
-				}
 			}
 		}, UI_CONFIG.AUTO_SEARCH_DEBOUNCE_DELAY)
 	}

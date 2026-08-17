@@ -24,13 +24,16 @@ import {
 	showMemorySuggestion,
 	syncAcceptedSupermemoryState,
 } from "./memory-suggestion"
+import { createRecallRequestFreshnessGuard } from "./recall-request-freshness"
 
 let claudeDebounceTimeout: NodeJS.Timeout | null = null
 let claudeRouteObserver: MutationObserver | null = null
 let claudeUrlCheckInterval: NodeJS.Timeout | null = null
 let claudeObserverThrottle: NodeJS.Timeout | null = null
+let claudeRecallInput: HTMLElement | null = null
 const CLAUDE_DEBUG = false
 const CLAUDE_LOG_PREFIX = "[supermemory:claude]"
+const claudeRecallRequests = createRecallRequestFreshnessGuard<HTMLElement>()
 
 export function initializeClaude() {
 	debugClaude("initializeClaude called", {
@@ -89,6 +92,9 @@ function setupClaudeRouteChangeDetection() {
 
 	const checkForRouteChange = () => {
 		if (window.location.href !== currentUrl) {
+			invalidateClaudeRecallRequests()
+			const input = getClaudePromptInput()
+			if (input) clearPendingClaudeRecall(input, false)
 			currentUrl = window.location.href
 			debugClaude("route changed, re-adding supermemory icon", currentUrl)
 			setTimeout(() => {
@@ -102,6 +108,7 @@ function setupClaudeRouteChangeDetection() {
 	claudeUrlCheckInterval = setInterval(checkForRouteChange, 2000)
 
 	claudeRouteObserver = new MutationObserver((mutations) => {
+		trackClaudeRecallInput()
 		if (claudeObserverThrottle) {
 			return
 		}
@@ -243,6 +250,113 @@ function getClaudePromptInput(): HTMLElement | null {
 	) as HTMLElement | null
 }
 
+function invalidateClaudeRecallRequests() {
+	claudeRecallRequests.invalidate()
+	if (claudeDebounceTimeout) {
+		clearTimeout(claudeDebounceTimeout)
+		claudeDebounceTimeout = null
+	}
+}
+
+function trackClaudeRecallInput() {
+	setClaudeRecallInput(getClaudePromptInput())
+}
+
+function setClaudeRecallInput(input: HTMLElement | null) {
+	if (input === claudeRecallInput) return
+	const previousInput = claudeRecallInput
+	claudeRecallInput = input
+	invalidateClaudeRecallRequests()
+	if (previousInput) clearPendingClaudeRecall(previousInput, false)
+}
+
+function getClaudeInputText(input: HTMLElement | null): string {
+	if (!input) return ""
+	if (
+		input instanceof HTMLTextAreaElement ||
+		input instanceof HTMLInputElement
+	) {
+		return input.value || ""
+	}
+	return input.innerText || input.textContent || ""
+}
+
+function clearPendingClaudeRecall(
+	input: HTMLElement,
+	preserveAcceptedIcon = true,
+) {
+	const hadAcceptedMarker = input.dataset.supermemoriesInjected === "true"
+	syncAcceptedSupermemoryState(input)
+	const hasAcceptedContext = hasAcceptedSupermemoryContext(input)
+
+	clearMemorySuggestion("claude", input)
+	if (hasAcceptedContext) input.dataset.supermemoriesInjected = "true"
+	document
+		.querySelectorAll('[id*="sm-claude-input-bar-element"]')
+		.forEach((icon) => {
+			const iconElement = icon as HTMLElement
+			iconElement.querySelector("[data-supermemory-marker-popover]")?.remove()
+			if (
+				preserveAcceptedIcon &&
+				hadAcceptedMarker &&
+				hasAcceptedContext &&
+				iconElement.dataset.memoriesData
+			) {
+				setMemoryMarkerStatus(iconElement, "found")
+				return
+			}
+			delete iconElement.dataset.memoriesData
+			setMemoryMarkerStatus(iconElement, "neutral")
+		})
+}
+
+function attachClaudeRecallFreshness(input: HTMLElement) {
+	if (input.hasAttribute("data-supermemory-recall-freshness")) return
+	input.setAttribute("data-supermemory-recall-freshness", "true")
+	setClaudeRecallInput(input)
+
+	input.addEventListener("input", () => {
+		invalidateClaudeRecallRequests()
+		clearPendingClaudeRecall(input)
+	})
+}
+
+function getClaudeRecallState() {
+	let input = getClaudePromptInput()
+	let query = ""
+	const supermemoryContainer = document.querySelector(
+		'[data-supermemory-icon-added="true"]',
+	)
+
+	if (supermemoryContainer?.parentElement?.previousElementSibling) {
+		const paragraph =
+			supermemoryContainer.parentElement.previousElementSibling.querySelector(
+				"p",
+			)
+		query = paragraph?.innerText || paragraph?.textContent || ""
+	}
+
+	if (!query.trim()) {
+		query = getClaudeInputText(input)
+	}
+
+	if (!query.trim()) {
+		const inputElements = document.querySelectorAll<HTMLElement>(
+			'div[contenteditable="true"], textarea, input[type="text"]',
+		)
+		for (const candidate of inputElements) {
+			const text = getClaudeInputText(candidate)
+			if (text.trim()) {
+				input = candidate
+				query = text.trim()
+				break
+			}
+		}
+	}
+
+	return { input, query, url: window.location.href }
+}
+
 function findComposerRoot(input: HTMLElement): HTMLElement {
 	return (
 		(input.closest("form") as HTMLElement | null) ||
@@ -358,44 +472,12 @@ function getClaudeDomSnapshot() {
 }
 
 async function getRelatedMemoriesForClaude(actionSource: string) {
+	let request: ReturnType<typeof claudeRecallRequests.begin> | null = null
 	try {
 		const isAutoSearch =
 			actionSource === POSTHOG_EVENT_KEY.CLAUDE_CHAT_MEMORIES_AUTO_SEARCHED
-		let userQuery = ""
-
-		const supermemoryContainer = document.querySelector(
-			'[data-supermemory-icon-added="true"]',
-		)
-		if (supermemoryContainer?.parentElement?.previousElementSibling) {
-			const pTag =
-				supermemoryContainer.parentElement.previousElementSibling.querySelector(
-					"p",
-				)
-			userQuery = pTag?.innerText || pTag?.textContent || ""
-		}
-
-		if (!userQuery.trim()) {
-			const textareaElement = document.querySelector(
-				'div[contenteditable="true"]',
-			) as HTMLElement
-			userQuery =
-				textareaElement?.innerText || textareaElement?.textContent || ""
-		}
-
-		if (!userQuery.trim()) {
-			const inputElements = document.querySelectorAll(
-				'div[contenteditable="true"], textarea, input[type="text"]',
-			)
-			for (const element of inputElements) {
-				const text =
-					(element as HTMLElement).innerText ||
-					(element as HTMLInputElement).value
-				if (text?.trim()) {
-					userQuery = text.trim()
-					break
-				}
-			}
-		}
+		const state = getClaudeRecallState()
+		const userQuery = state.query
 
 		debugClaude("query extracted", {
 			queryLength: userQuery.length,
@@ -414,6 +496,8 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 			console.warn("Claude icon element not found, cannot update feedback")
 			return
 		}
+
+		request = claudeRecallRequests.begin(state)
 
 		if (isAutoSearch) {
 			const input = getClaudePromptInput()
@@ -441,14 +525,16 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 			timeoutPromise,
 		])
 
+		if (!claudeRecallRequests.isCurrent(request, getClaudeRecallState())) {
+			return
+		}
+
 		debugClaude("memory search response", {
 			success: response?.success,
 		})
 
 		if (response?.success && response?.data) {
-			const textareaElement = document.querySelector(
-				'div[contenteditable="true"]',
-			) as HTMLElement
+			const textareaElement = state.input
 
 			if (textareaElement) {
 				const memoryText = showMemorySuggestion(
@@ -488,6 +574,12 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 			}
 		}
 	} catch (error) {
+		if (
+			request &&
+			!claudeRecallRequests.isCurrent(request, getClaudeRecallState())
+		) {
+			return
+		}
 		console.error("Error getting related memories for Claude:", error)
 		try {
 			const icon = document.querySelector(
@@ -838,17 +930,13 @@ function setupClaudePromptCapture() {
 }
 
 async function setupClaudeAutoFetch() {
+	const textareaElement = getClaudePromptInput()
+	if (!textareaElement) return
+	attachClaudeRecallFreshness(textareaElement)
+
 	const autoSearch = (await autoSearchEnabled.getValue()) ?? false
-	if (!autoSearch) {
-		return
-	}
-
-	const textareaElement = document.querySelector(
-		'div[contenteditable="true"]',
-	) as HTMLElement
-
 	if (
-		!textareaElement ||
+		!autoSearch ||
 		textareaElement.hasAttribute("data-supermemory-auto-fetch")
 	) {
 		return
@@ -857,25 +945,24 @@ async function setupClaudeAutoFetch() {
 	textareaElement.setAttribute("data-supermemory-auto-fetch", "true")
 
 	const handleInput = () => {
-		const content = textareaElement.textContent?.trim() || ""
-		syncAcceptedSupermemoryState(textareaElement)
-
-		if (content.length === 0) {
-			clearMemorySuggestion("claude", textareaElement)
-			document
-				.querySelectorAll('[id*="sm-claude-input-bar-element"]')
-				.forEach((icon) => {
-					setMemoryMarkerStatus(icon as HTMLElement, "neutral")
-				})
-		}
+		const content = getClaudeInputText(textareaElement).trim()
 
 		if (claudeDebounceTimeout) {
 			clearTimeout(claudeDebounceTimeout)
 		}
+		const scheduledRequest = claudeRecallRequests.begin(getClaudeRecallState())
 
 		claudeDebounceTimeout = setTimeout(async () => {
+			claudeDebounceTimeout = null
+			if (
+				!claudeRecallRequests.isCurrent(
+					scheduledRequest,
+					getClaudeRecallState(),
+				)
+			) {
+				return
+			}
 			if (hasAcceptedSupermemoryContext(textareaElement)) {
-				clearMemorySuggestion("claude", textareaElement)
 				return
 			}
 
@@ -883,24 +970,6 @@ async function setupClaudeAutoFetch() {
 				await getRelatedMemoriesForClaude(
 					POSTHOG_EVENT_KEY.CLAUDE_CHAT_MEMORIES_AUTO_SEARCHED,
 				)
-			} else if (content.length === 0) {
-				const icons = document.querySelectorAll(
-					'[id*="sm-claude-input-bar-element"]',
-				)
-
-				icons.forEach((icon) => {
-					const iconElement = icon as HTMLElement
-					setMemoryMarkerStatus(iconElement, "neutral")
-					if (iconElement.dataset.originalHtml) {
-						iconElement.innerHTML = iconElement.dataset.originalHtml
-						delete iconElement.dataset.originalHtml
-						delete iconElement.dataset.memoriesData
-					}
-				})
-
-				if (textareaElement.dataset.supermemories) {
-					clearMemorySuggestion("claude", textareaElement)
-				}
 			}
 		}, UI_CONFIG.AUTO_SEARCH_DEBOUNCE_DELAY)
 	}

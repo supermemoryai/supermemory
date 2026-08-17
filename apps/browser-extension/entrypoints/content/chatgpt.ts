@@ -24,13 +24,16 @@ import {
 	showMemorySuggestion,
 	syncAcceptedSupermemoryState,
 } from "./memory-suggestion"
+import { createRecallRequestFreshnessGuard } from "./recall-request-freshness"
 
 let chatGPTDebounceTimeout: NodeJS.Timeout | null = null
 let chatGPTRouteObserver: MutationObserver | null = null
 let chatGPTUrlCheckInterval: NodeJS.Timeout | null = null
 let chatGPTObserverThrottle: NodeJS.Timeout | null = null
+let chatGPTRecallInput: HTMLElement | null = null
 const CHATGPT_DEBUG = false
 const CHATGPT_LOG_PREFIX = "[supermemory:chatgpt]"
+const chatGPTRecallRequests = createRecallRequestFreshnessGuard<HTMLElement>()
 
 export function initializeChatGPT() {
 	debugChatGPT("initializeChatGPT called", {
@@ -89,6 +92,9 @@ function setupChatGPTRouteChangeDetection() {
 
 	const checkForRouteChange = () => {
 		if (window.location.href !== currentUrl) {
+			invalidateChatGPTRecallRequests()
+			const input = getChatGPTRecallInput()
+			if (input) clearPendingChatGPTRecall(input, false)
 			currentUrl = window.location.href
 			debugChatGPT("route changed, re-adding supermemory elements", currentUrl)
 			setTimeout(() => {
@@ -102,6 +108,7 @@ function setupChatGPTRouteChangeDetection() {
 	chatGPTUrlCheckInterval = setInterval(checkForRouteChange, 2000)
 
 	chatGPTRouteObserver = new MutationObserver((mutations) => {
+		trackChatGPTRecallInput()
 		if (chatGPTObserverThrottle) {
 			return
 		}
@@ -158,11 +165,12 @@ function setupChatGPTRouteChangeDetection() {
 }
 
 async function getRelatedMemoriesForChatGPT(actionSource: string) {
+	let request: ReturnType<typeof chatGPTRecallRequests.begin> | null = null
 	try {
 		const isAutoSearch =
 			actionSource === POSTHOG_EVENT_KEY.CHATGPT_CHAT_MEMORIES_AUTO_SEARCHED
-		const userQuery =
-			document.getElementById("prompt-textarea")?.textContent || ""
+		const state = getChatGPTRecallState()
+		const userQuery = state.query
 
 		const icon = document.querySelectorAll(
 			'[id*="sm-chatgpt-input-bar-element-before-composer"]',
@@ -174,6 +182,8 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 			console.warn("ChatGPT icon element not found, cannot update feedback")
 			return
 		}
+
+		request = chatGPTRecallRequests.begin(state)
 
 		if (isAutoSearch) {
 			const promptElement = document.getElementById("prompt-textarea")
@@ -200,6 +210,10 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 			}),
 			timeoutPromise,
 		])
+
+		if (!chatGPTRecallRequests.isCurrent(request, getChatGPTRecallState())) {
+			return
+		}
 
 		if (response?.success && response?.data) {
 			const promptElement = document.getElementById("prompt-textarea")
@@ -241,6 +255,12 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 			}
 		}
 	} catch (error) {
+		if (
+			request &&
+			!chatGPTRecallRequests.isCurrent(request, getChatGPTRecallState())
+		) {
+			return
+		}
 		console.error("Error getting related memories:", error)
 		try {
 			const icon = document.querySelectorAll(
@@ -487,6 +507,79 @@ function getChatGPTPromptInput(): HTMLElement | null {
 	) as HTMLElement | null
 }
 
+function getChatGPTRecallInput(): HTMLElement | null {
+	return document.getElementById("prompt-textarea") || getChatGPTPromptInput()
+}
+
+function invalidateChatGPTRecallRequests() {
+	chatGPTRecallRequests.invalidate()
+	if (chatGPTDebounceTimeout) {
+		clearTimeout(chatGPTDebounceTimeout)
+		chatGPTDebounceTimeout = null
+	}
+}
+
+function trackChatGPTRecallInput() {
+	setChatGPTRecallInput(getChatGPTRecallInput())
+}
+
+function setChatGPTRecallInput(input: HTMLElement | null) {
+	if (input === chatGPTRecallInput) return
+	const previousInput = chatGPTRecallInput
+	chatGPTRecallInput = input
+	invalidateChatGPTRecallRequests()
+	if (previousInput) clearPendingChatGPTRecall(previousInput, false)
+}
+
+function clearPendingChatGPTRecall(
+	input: HTMLElement,
+	preserveAcceptedIcon = true,
+) {
+	const hadAcceptedMarker = input.dataset.supermemoriesInjected === "true"
+	syncAcceptedSupermemoryState(input)
+	const hasAcceptedContext = hasAcceptedSupermemoryContext(input)
+
+	clearMemorySuggestion("chatgpt", input)
+	if (hasAcceptedContext) input.dataset.supermemoriesInjected = "true"
+	document
+		.querySelectorAll('[id*="sm-chatgpt-input-bar-element-before-composer"]')
+		.forEach((icon) => {
+			const iconElement = icon as HTMLElement
+			iconElement.querySelector("[data-supermemory-marker-popover]")?.remove()
+			if (
+				preserveAcceptedIcon &&
+				hadAcceptedMarker &&
+				hasAcceptedContext &&
+				iconElement.dataset.memoriesData
+			) {
+				setMemoryMarkerStatus(iconElement, "found")
+				return
+			}
+			delete iconElement.dataset.memoriesData
+			setMemoryMarkerStatus(iconElement, "neutral")
+		})
+}
+
+function attachChatGPTRecallFreshness(input: HTMLElement) {
+	if (input.hasAttribute("data-supermemory-recall-freshness")) return
+	input.setAttribute("data-supermemory-recall-freshness", "true")
+	setChatGPTRecallInput(input)
+
+	input.addEventListener("input", () => {
+		invalidateChatGPTRecallRequests()
+		clearPendingChatGPTRecall(input)
+	})
+}
+
+function getChatGPTRecallState() {
+	const input = getChatGPTRecallInput()
+	return {
+		input,
+		query: input?.textContent || "",
+		url: window.location.href,
+	}
+}
+
 function findChatGPTComposerRoot(input: HTMLElement): HTMLElement {
 	const form = input.closest("form") as HTMLElement | null
 	if (form) return form
@@ -611,16 +704,14 @@ function getChatGPTDomSnapshot() {
 	}
 }
 
-async function setupChatGPTAutoFetch() {
+export async function setupChatGPTAutoFetch() {
+	const promptTextarea = getChatGPTRecallInput()
+	if (!promptTextarea) return
+	attachChatGPTRecallFreshness(promptTextarea)
+
 	const autoSearch = (await autoSearchEnabled.getValue()) ?? false
-
-	if (!autoSearch) {
-		return
-	}
-
-	const promptTextarea = document.getElementById("prompt-textarea")
 	if (
-		!promptTextarea ||
+		!autoSearch ||
 		promptTextarea.hasAttribute("data-supermemory-auto-fetch")
 	) {
 		return
@@ -630,26 +721,25 @@ async function setupChatGPTAutoFetch() {
 
 	const handleInput = () => {
 		const content = promptTextarea.textContent?.trim() || ""
-		syncAcceptedSupermemoryState(promptTextarea)
-
-		if (content.length === 0) {
-			clearMemorySuggestion("chatgpt", promptTextarea)
-			document
-				.querySelectorAll(
-					'[id*="sm-chatgpt-input-bar-element-before-composer"]',
-				)
-				.forEach((icon) => {
-					setMemoryMarkerStatus(icon as HTMLElement, "neutral")
-				})
-		}
 
 		if (chatGPTDebounceTimeout) {
 			clearTimeout(chatGPTDebounceTimeout)
 		}
+		const scheduledRequest = chatGPTRecallRequests.begin(
+			getChatGPTRecallState(),
+		)
 
 		chatGPTDebounceTimeout = setTimeout(async () => {
+			chatGPTDebounceTimeout = null
+			if (
+				!chatGPTRecallRequests.isCurrent(
+					scheduledRequest,
+					getChatGPTRecallState(),
+				)
+			) {
+				return
+			}
 			if (hasAcceptedSupermemoryContext(promptTextarea)) {
-				clearMemorySuggestion("chatgpt", promptTextarea)
 				return
 			}
 
@@ -657,24 +747,6 @@ async function setupChatGPTAutoFetch() {
 				await getRelatedMemoriesForChatGPT(
 					POSTHOG_EVENT_KEY.CHATGPT_CHAT_MEMORIES_AUTO_SEARCHED,
 				)
-			} else if (content.length === 0) {
-				const icons = document.querySelectorAll(
-					'[id*="sm-chatgpt-input-bar-element-before-composer"]',
-				)
-
-				icons.forEach((icon) => {
-					const iconElement = icon as HTMLElement
-					setMemoryMarkerStatus(iconElement, "neutral")
-					if (iconElement.dataset.originalHtml) {
-						iconElement.innerHTML = iconElement.dataset.originalHtml
-						delete iconElement.dataset.originalHtml
-						delete iconElement.dataset.memoriesData
-					}
-				})
-
-				if (promptTextarea.dataset.supermemories) {
-					clearMemorySuggestion("chatgpt", promptTextarea)
-				}
 			}
 		}, UI_CONFIG.AUTO_SEARCH_DEBOUNCE_DELAY)
 	}

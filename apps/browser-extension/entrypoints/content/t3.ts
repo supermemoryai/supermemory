@@ -16,11 +16,14 @@ import {
 	renumberIncludedMemories,
 	serializeMemoriesForDataset,
 } from "./memory-suggestion"
+import { createRecallRequestFreshnessGuard } from "./recall-request-freshness"
 
 let t3DebounceTimeout: NodeJS.Timeout | null = null
 let t3RouteObserver: MutationObserver | null = null
 let t3UrlCheckInterval: NodeJS.Timeout | null = null
 let t3ObserverThrottle: NodeJS.Timeout | null = null
+let t3RecallInput: HTMLElement | null = null
+const t3RecallRequests = createRecallRequestFreshnessGuard<HTMLElement>()
 let t3IncludedPopup: {
 	el: HTMLElement
 	onClick: (event: MouseEvent) => void
@@ -72,7 +75,9 @@ function setupT3RouteChangeDetection() {
 
 	const checkForRouteChange = () => {
 		if (window.location.href !== currentUrl) {
-			disposeT3IncludedPopup()
+			invalidateT3RecallRequests()
+			const input = getT3PromptInput()
+			if (input) clearT3Recall(input)
 			currentUrl = window.location.href
 			setTimeout(() => {
 				addSupermemoryIconToT3Input()
@@ -84,6 +89,7 @@ function setupT3RouteChangeDetection() {
 	t3UrlCheckInterval = setInterval(checkForRouteChange, 2000)
 
 	t3RouteObserver = new MutationObserver((mutations) => {
+		trackT3RecallInput()
 		if (t3ObserverThrottle) {
 			return
 		}
@@ -167,39 +173,112 @@ function addSupermemoryIconToT3Input() {
 	container.insertBefore(supermemoryIcon, container.firstChild)
 }
 
-async function getRelatedMemoriesForT3(actionSource: string) {
-	try {
-		let userQuery = ""
+function getT3InputText(input: HTMLElement | null): string {
+	if (!input) return ""
+	if (input instanceof HTMLTextAreaElement) return input.value || ""
+	return input.innerText || input.textContent || ""
+}
 
-		const supermemoryContainer = document.querySelector(
-			'[data-supermemory-icon-added="true"]',
-		)
-		if (supermemoryContainer?.parentElement?.previousElementSibling) {
-			const textareaElement =
-				supermemoryContainer.parentElement.previousElementSibling.querySelector(
-					"textarea",
-				)
-			userQuery = textareaElement?.value || ""
+function getT3PromptInput(): HTMLElement | null {
+	return (
+		(document.querySelector("textarea") as HTMLTextAreaElement | null) ||
+		(document.querySelector(
+			'div[contenteditable="true"]',
+		) as HTMLElement | null)
+	)
+}
+
+function invalidateT3RecallRequests() {
+	t3RecallRequests.invalidate()
+	if (t3DebounceTimeout) {
+		clearTimeout(t3DebounceTimeout)
+		t3DebounceTimeout = null
+	}
+}
+
+function trackT3RecallInput() {
+	setT3RecallInput(getT3PromptInput())
+}
+
+function setT3RecallInput(input: HTMLElement | null) {
+	if (input === t3RecallInput) return
+	const previousInput = t3RecallInput
+	t3RecallInput = input
+	invalidateT3RecallRequests()
+	if (previousInput) clearT3Recall(previousInput)
+}
+
+function clearT3Recall(input: HTMLElement) {
+	delete input.dataset.supermemories
+	disposeT3IncludedPopup()
+	document
+		.querySelectorAll('[id*="sm-t3-input-bar-element"]')
+		.forEach((icon) => {
+			const iconElement = icon as HTMLElement
+			if (iconElement.dataset.originalHtml) {
+				iconElement.innerHTML = iconElement.dataset.originalHtml
+				delete iconElement.dataset.originalHtml
+			}
+			delete iconElement.dataset.memoriesData
+		})
+}
+
+export function attachT3RecallFreshnessHandler(input: HTMLElement) {
+	if (input.hasAttribute("data-supermemory-recall-freshness")) return
+	input.setAttribute("data-supermemory-recall-freshness", "true")
+	setT3RecallInput(input)
+
+	input.addEventListener("input", () => {
+		invalidateT3RecallRequests()
+		clearT3Recall(input)
+	})
+}
+
+function getT3RecallState() {
+	let input: HTMLElement | null = null
+	let query = ""
+	const supermemoryContainer = document.querySelector(
+		'[data-supermemory-icon-added="true"]',
+	)
+
+	if (supermemoryContainer?.parentElement?.previousElementSibling) {
+		input =
+			supermemoryContainer.parentElement.previousElementSibling.querySelector(
+				"textarea",
+			)
+		query = getT3InputText(input)
+	}
+
+	if (!query.trim()) {
+		const contentEditable = document.querySelector(
+			'div[contenteditable="true"]',
+		) as HTMLElement | null
+		const contentEditableText = getT3InputText(contentEditable)
+		if (contentEditableText.trim()) {
+			input = contentEditable
+			query = contentEditableText
 		}
+	}
 
-		if (!userQuery.trim()) {
-			const textareaElement = document.querySelector(
-				'div[contenteditable="true"]',
-			) as HTMLElement
-			userQuery =
-				textareaElement?.innerText || textareaElement?.textContent || ""
-		}
-
-		if (!userQuery.trim()) {
-			const textareas = document.querySelectorAll("textarea")
-			for (const textarea of textareas) {
-				const text = (textarea as HTMLTextAreaElement).value
-				if (text?.trim()) {
-					userQuery = text.trim()
-					break
-				}
+	if (!query.trim()) {
+		for (const textarea of document.querySelectorAll("textarea")) {
+			const text = textarea.value || ""
+			if (text.trim()) {
+				input = textarea
+				query = text.trim()
+				break
 			}
 		}
+	}
+
+	return { input, query, url: window.location.href }
+}
+
+export async function getRelatedMemoriesForT3(actionSource: string) {
+	let request: ReturnType<typeof t3RecallRequests.begin> | null = null
+	try {
+		const state = getT3RecallState()
+		const userQuery = state.query
 
 		if (!userQuery.trim()) {
 			return
@@ -213,6 +292,8 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			console.warn("T3 icon element not found, cannot update feedback")
 			return
 		}
+
+		request = t3RecallRequests.begin(state)
 
 		updateT3IconFeedback("Searching memories...", iconElement)
 
@@ -232,23 +313,12 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			timeoutPromise,
 		])
 
-		if (response?.success && response?.data) {
-			let textareaElement = null
-			const supermemoryContainer = document.querySelector(
-				'[data-supermemory-icon-added="true"]',
-			)
-			if (supermemoryContainer?.parentElement?.previousElementSibling) {
-				textareaElement =
-					supermemoryContainer.parentElement.previousElementSibling.querySelector(
-						"textarea",
-					)
-			}
+		if (!t3RecallRequests.isCurrent(request, getT3RecallState())) {
+			return
+		}
 
-			if (!textareaElement) {
-				textareaElement = document.querySelector(
-					'div[contenteditable="true"]',
-				) as HTMLElement
-			}
+		if (response?.success && response?.data) {
+			const textareaElement = state.input
 
 			if (textareaElement) {
 				textareaElement.dataset.supermemories = buildSupermemoryText(
@@ -269,6 +339,9 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			updateT3IconFeedback("No memories found", iconElement)
 		}
 	} catch (error) {
+		if (request && !t3RecallRequests.isCurrent(request, getT3RecallState())) {
+			return
+		}
 		console.error("Error getting related memories for T3:", error)
 		try {
 			const icon = document.querySelector(
@@ -681,19 +754,16 @@ function setupT3PromptCapture() {
 	document.addEventListener("keydown", handleT3EnterKey, true)
 }
 
-async function setupT3AutoFetch() {
-	const autoSearch = (await autoSearchEnabled.getValue()) ?? false
-
-	if (!autoSearch) {
+export async function setupT3AutoFetch() {
+	const textareaElement = getT3PromptInput()
+	if (!textareaElement) {
 		return
 	}
+	attachT3RecallFreshnessHandler(textareaElement)
 
-	const textareaElement =
-		(document.querySelector("textarea") as HTMLTextAreaElement) ||
-		(document.querySelector('div[contenteditable="true"]') as HTMLElement)
-
+	const autoSearch = (await autoSearchEnabled.getValue()) ?? false
 	if (
-		!textareaElement ||
+		!autoSearch ||
 		textareaElement.hasAttribute("data-supermemory-auto-fetch")
 	) {
 		return
@@ -705,37 +775,19 @@ async function setupT3AutoFetch() {
 		if (t3DebounceTimeout) {
 			clearTimeout(t3DebounceTimeout)
 		}
+		const content = getT3InputText(textareaElement).trim()
+		const scheduledRequest = t3RecallRequests.begin(getT3RecallState())
 
 		t3DebounceTimeout = setTimeout(async () => {
-			let content = ""
-			if (textareaElement.tagName === "TEXTAREA") {
-				content = (textareaElement as HTMLTextAreaElement).value?.trim() || ""
-			} else {
-				content = textareaElement.textContent?.trim() || ""
+			t3DebounceTimeout = null
+			if (!t3RecallRequests.isCurrent(scheduledRequest, getT3RecallState())) {
+				return
 			}
 
 			if (content.length > 2) {
 				await getRelatedMemoriesForT3(
 					POSTHOG_EVENT_KEY.T3_CHAT_MEMORIES_AUTO_SEARCHED,
 				)
-			} else if (content.length === 0) {
-				const icons = document.querySelectorAll(
-					'[id*="sm-t3-input-bar-element"]',
-				)
-
-				icons.forEach((icon) => {
-					const iconElement = icon as HTMLElement
-					if (iconElement.dataset.originalHtml) {
-						iconElement.innerHTML = iconElement.dataset.originalHtml
-						delete iconElement.dataset.originalHtml
-						delete iconElement.dataset.memoriesData
-					}
-				})
-
-				if (textareaElement.dataset.supermemories) {
-					delete textareaElement.dataset.supermemories
-				}
-				disposeT3IncludedPopup()
 			}
 		}, UI_CONFIG.AUTO_SEARCH_DEBOUNCE_DELAY)
 	}
