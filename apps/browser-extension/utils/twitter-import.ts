@@ -6,6 +6,7 @@ import { saveAllTweets } from "./api"
 import type { MemoryPayload } from "./types"
 import { createTwitterAPIHeaders } from "./twitter-auth"
 import { getTwitterTokens } from "./storage"
+import { getNextUnseenCursor } from "./twitter-pagination"
 import {
 	BOOKMARKS_URL,
 	BOOKMARK_COLLECTION_URL,
@@ -19,6 +20,11 @@ import {
 export type ImportProgressCallback = (message: string) => Promise<void>
 
 export type ImportCompleteCallback = (totalImported: number) => Promise<void>
+
+export type TwitterImportWait = (milliseconds: number) => Promise<void>
+
+const waitFor: TwitterImportWait = (milliseconds) =>
+	new Promise((resolve) => setTimeout(resolve, milliseconds))
 
 export interface TwitterImportConfig {
 	isFolderImport?: boolean
@@ -39,6 +45,8 @@ export interface TwitterImportConfig {
 class RateLimiter {
 	private waitTime = 60000 // Start with 1 minute
 
+	constructor(private readonly wait: TwitterImportWait = waitFor) {}
+
 	async handleRateLimit(onProgress: ImportProgressCallback): Promise<void> {
 		const waitTimeInSeconds = this.waitTime / 1000
 
@@ -46,7 +54,7 @@ class RateLimiter {
 			`Rate limit reached. Waiting for ${waitTimeInSeconds} seconds before retrying...`,
 		)
 
-		await new Promise((resolve) => setTimeout(resolve, this.waitTime))
+		await this.wait(this.waitTime)
 		this.waitTime *= 2 // Exponential backoff
 	}
 
@@ -60,9 +68,14 @@ class RateLimiter {
  */
 export class TwitterImporter {
 	private importInProgress = false
-	private rateLimiter = new RateLimiter()
+	private rateLimiter: RateLimiter
 
-	constructor(private config: TwitterImportConfig) {}
+	constructor(
+		private config: TwitterImportConfig,
+		private readonly wait: TwitterImportWait = waitFor,
+	) {
+		this.rateLimiter = new RateLimiter(wait)
+	}
 
 	/**
 	 * Starts the import process for all Twitter bookmarks
@@ -95,6 +108,7 @@ export class TwitterImporter {
 		cursor = "",
 		totalImported = 0,
 		uniqueGroupId = "twitter_bookmarks",
+		seenCursors = new Set<string>(),
 	): Promise<void> {
 		try {
 			// Use a local variable to track imported count
@@ -134,7 +148,12 @@ export class TwitterImporter {
 
 				if (response.status === 429) {
 					await this.rateLimiter.handleRateLimit(this.config.onProgress)
-					return this.batchImportAll(cursor, totalImported, uniqueGroupId)
+					return this.batchImportAll(
+						cursor,
+						totalImported,
+						uniqueGroupId,
+						seenCursors,
+					)
 				}
 				throw new Error(
 					`Failed to fetch data: ${response.status} - ${errorText}`,
@@ -193,10 +212,26 @@ export class TwitterImporter {
 				data.data?.bookmark_collection_timeline?.timeline?.instructions ||
 				[]
 			const nextCursor = extractNextCursor(instructions)
+			const cursorToFetch = getNextUnseenCursor(nextCursor, seenCursors)
 
-			if (nextCursor && tweets.length > 0) {
-				await new Promise((resolve) => setTimeout(resolve, 1000)) // Rate limiting
-				await this.batchImportAll(nextCursor, importedCount, uniqueGroupId)
+			if (nextCursor && !cursorToFetch) {
+				await this.config.onError(
+					new Error(
+						`X returned a repeated pagination cursor. Import stopped after ${importedCount} tweets to avoid a loop.`,
+					),
+				)
+				return
+			}
+
+			if (cursorToFetch) {
+				seenCursors.add(cursorToFetch)
+				await this.wait(1000) // Rate limiting
+				await this.batchImportAll(
+					cursorToFetch,
+					importedCount,
+					uniqueGroupId,
+					seenCursors,
+				)
 			} else {
 				await this.config.onComplete(importedCount)
 			}
