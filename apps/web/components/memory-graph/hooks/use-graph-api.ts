@@ -18,7 +18,7 @@ interface UseGraphApiOptions {
 	maxNodes?: number
 }
 
-interface ApiMemoryEntry {
+export interface ApiMemoryEntry {
 	id: string
 	memory: string
 	content?: string | null
@@ -40,7 +40,7 @@ interface ApiMemoryEntry {
 	spaceContainerTag?: string | null
 }
 
-interface ApiDocument {
+export interface ApiDocument {
 	id: string
 	title: string | null
 	summary?: string | null
@@ -50,7 +50,7 @@ interface ApiDocument {
 	memoryEntries: ApiMemoryEntry[]
 }
 
-interface ApiDocumentsResponse {
+export interface ApiDocumentsResponse {
 	documents: ApiDocument[]
 	pagination: {
 		currentPage: number
@@ -58,13 +58,6 @@ interface ApiDocumentsResponse {
 		totalItems: number
 		totalPages: number
 	}
-}
-
-function getGraphNodeCount(documents: ApiDocument[]): number {
-	return documents.reduce(
-		(total, doc) => total + 1 + (doc.memoryEntries?.length ?? 0),
-		0,
-	)
 }
 
 function toGraphMemory(mem: ApiMemoryEntry): GraphApiMemory {
@@ -113,6 +106,83 @@ function toGraphDocument(
 		updatedAt: doc.updatedAt,
 		memories: memoryEntries.map(toGraphMemory),
 	}
+}
+
+function normalizeGraphPages(
+	pages: readonly ApiDocumentsResponse[],
+	containerTags?: string[],
+): GraphApiDocument[] {
+	// Keep the first document and per-document memory occurrence canonical, but
+	// merge later unique memories. The same memory may still belong to many docs.
+	const documentsById = new Map<
+		string,
+		{ document: GraphApiDocument; memoryIds: Set<string> }
+	>()
+
+	for (const page of pages) {
+		for (const apiDocument of page.documents ?? []) {
+			const graphDocument = toGraphDocument(apiDocument, containerTags)
+			const existing = documentsById.get(graphDocument.id)
+
+			if (!existing) {
+				const memoryIds = new Set<string>()
+				const memories = graphDocument.memories.filter((memory) => {
+					if (memoryIds.has(memory.id)) return false
+					memoryIds.add(memory.id)
+					return true
+				})
+				documentsById.set(graphDocument.id, {
+					document: { ...graphDocument, memories },
+					memoryIds,
+				})
+				continue
+			}
+
+			for (const memory of graphDocument.memories) {
+				if (existing.memoryIds.has(memory.id)) continue
+				existing.memoryIds.add(memory.id)
+				existing.document.memories.push(memory)
+			}
+		}
+	}
+
+	return Array.from(documentsById.values(), ({ document }) => document)
+}
+
+function getGraphNodeCount(documents: readonly GraphApiDocument[]): number {
+	const memoryIds = new Set<string>()
+	for (const document of documents) {
+		for (const memory of document.memories) memoryIds.add(memory.id)
+	}
+	return documents.length + memoryIds.size
+}
+
+export function getLoadedGraphNodeCount(
+	pages: readonly ApiDocumentsResponse[],
+	containerTags?: string[],
+): number {
+	return getGraphNodeCount(normalizeGraphPages(pages, containerTags))
+}
+
+export function getNextGraphPageParam(
+	lastPage: ApiDocumentsResponse,
+	allPages: readonly ApiDocumentsResponse[],
+	options: {
+		hasDocumentIds: boolean
+		maxNodes?: number
+		containerTags?: string[]
+	},
+): number | undefined {
+	if (options.hasDocumentIds) return undefined
+	if (
+		options.maxNodes != null &&
+		getLoadedGraphNodeCount(allPages, options.containerTags) >= options.maxNodes
+	) {
+		return undefined
+	}
+
+	const { currentPage, totalPages } = lastPage.pagination
+	return currentPage < totalPages ? currentPage + 1 : undefined
 }
 
 export function useGraphApi(options: UseGraphApiOptions = {}) {
@@ -164,30 +234,25 @@ export function useGraphApi(options: UseGraphApiOptions = {}) {
 
 			return response.data as unknown as ApiDocumentsResponse
 		},
-		getNextPageParam: (lastPage, allPages) => {
-			if (hasDocumentIds) return undefined
-			if (maxNodes != null) {
-				const loadedNodes = allPages.reduce(
-					(total, page) => total + getGraphNodeCount(page.documents ?? []),
-					0,
-				)
-				if (loadedNodes >= maxNodes) return undefined
-			}
-
-			const { currentPage, totalPages } = lastPage.pagination
-			return currentPage < totalPages ? currentPage + 1 : undefined
-		},
+		getNextPageParam: (lastPage, allPages) =>
+			getNextGraphPageParam(lastPage, allPages, {
+				hasDocumentIds,
+				maxNodes,
+				containerTags,
+			}),
 		staleTime: 5 * 60 * 1000,
 		enabled,
 	})
 
-	const loadedNodeCount = useMemo(() => {
-		if (!data?.pages) return 0
-		return data.pages.reduce(
-			(total, page) => total + getGraphNodeCount(page.documents ?? []),
-			0,
-		)
-	}, [data])
+	const documents = useMemo(() => {
+		if (!data?.pages) return []
+		return normalizeGraphPages(data.pages, containerTags)
+	}, [data, containerTags])
+
+	const loadedNodeCount = useMemo(
+		() => getGraphNodeCount(documents),
+		[documents],
+	)
 
 	useEffect(() => {
 		if (!enabled || hasDocumentIds) return
@@ -203,13 +268,6 @@ export function useGraphApi(options: UseGraphApiOptions = {}) {
 		maxNodes,
 		fetchNextPage,
 	])
-
-	const documents = useMemo(() => {
-		if (!data?.pages) return []
-		return data.pages.flatMap((page) =>
-			page.documents.map((doc) => toGraphDocument(doc, containerTags)),
-		)
-	}, [data, containerTags])
 
 	const totalCount = data?.pages[0]?.pagination.totalItems ?? 0
 
