@@ -5,7 +5,7 @@ import { LinkIcon } from "lucide-react"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
 import { dmSansClassName } from "@/lib/fonts"
-import { TextEditor } from "../text-editor"
+import { resolveSubmittedContent, TextEditor } from "../text-editor"
 import { extractUrls } from "@/lib/url-helpers"
 
 interface NoteContentProps {
@@ -31,11 +31,10 @@ export function NoteContent({
 	const { urls: detectedUrls } = useMemo(() => extractUrls(content), [content])
 	const showBulkOffer = detectedUrls.length >= 2 && !dismissed
 
-	const canSubmit = content.trim().length > 0 && !isSubmitting
-
-	const handleSubmit = () => {
-		if (canSubmit && onSubmit) {
-			onSubmit(content)
+	const handleSubmit = (submittedContent?: string) => {
+		const contentToSubmit = resolveSubmittedContent(submittedContent, content)
+		if (contentToSubmit.trim() && !isSubmitting && onSubmit) {
+			onSubmit(contentToSubmit)
 		}
 	}
 

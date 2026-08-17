@@ -28,6 +28,7 @@ import { toast } from "sonner"
 import { useIsMobile } from "@hooks/use-mobile"
 import { parsePluginDocument } from "@/lib/plugin-document"
 import { useFullDocumentContent } from "@/hooks/use-full-document"
+import { resolveSubmittedContent } from "../text-editor"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -247,15 +248,23 @@ export function DocumentModal({
 		draftContentString !== initialEditorString &&
 		draftContentString !== lastSavedContent
 
-	const handleSave = useCallback(() => {
-		if (!_document?.id) return
-		updateMutation.mutate(
-			{ documentId: _document.id, content: draftContentString },
-			{
-				onSuccess: (_data, variables) => setLastSavedContent(variables.content),
-			},
-		)
-	}, [_document?.id, draftContentString, updateMutation])
+	const handleSave = useCallback(
+		(submittedContent?: string) => {
+			if (!_document?.id) return
+			const content = resolveSubmittedContent(
+				submittedContent,
+				draftContentString,
+			)
+			updateMutation.mutate(
+				{ documentId: _document.id, content },
+				{
+					onSuccess: (_data, variables) =>
+						setLastSavedContent(variables.content),
+				},
+			)
+		},
+		[_document?.id, draftContentString, updateMutation],
+	)
 
 	const textEditorProps = useMemo(
 		() => ({
