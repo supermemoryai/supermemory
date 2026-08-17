@@ -129,11 +129,7 @@ export function createSupermemoryHooks(
 					return
 				}
 
-				saveConversation(messages, ctx).catch((error) => {
-					ctx.logger.error("Background conversation save failed", {
-						error: error instanceof Error ? error.message : "Unknown error",
-					})
-				})
+				await saveConversation(messages, ctx)
 			} catch (error) {
 				ctx.logger.error("Error in onEnd", {
 					error: error instanceof Error ? error.message : "Unknown error",
