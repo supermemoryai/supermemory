@@ -5,6 +5,34 @@ import { deduplicateMemoriesForMode } from "../tools-shared"
 import { createLogger, type Logger } from "../vercel/logger"
 import { convertProfileToMarkdown } from "../vercel/util"
 
+// Keep canonicalization stable across duplicate package copies and hot reloads.
+const BASE_CLIENT_SYMBOL = Symbol.for("@supermemory/tools/openai/base-client")
+const baseClientByWrapper = new WeakMap<OpenAI, OpenAI>()
+
+const getBaseClient = (client: OpenAI) =>
+	(Reflect.get(client, BASE_CLIENT_SYMBOL) as OpenAI | undefined) ??
+	baseClientByWrapper.get(client) ??
+	client
+
+const cloneWithOverrides = <T extends object>(
+	source: T,
+	overrides: Partial<T>,
+): T => {
+	const descriptors = Object.getOwnPropertyDescriptors(source)
+
+	for (const key of Reflect.ownKeys(overrides) as Array<keyof T>) {
+		const current = Object.getOwnPropertyDescriptor(source, key)
+		Reflect.set(descriptors, key, {
+			configurable: current?.configurable ?? true,
+			enumerable: current?.enumerable ?? false,
+			value: overrides[key],
+			writable: current && "writable" in current ? current.writable : true,
+		})
+	}
+
+	return Object.create(Object.getPrototypeOf(source), descriptors) as T
+}
+
 const normalizeBaseUrl = (url?: string): string => {
 	const defaultUrl = "https://api.supermemory.ai"
 	if (!url) return defaultUrl
@@ -419,6 +447,11 @@ export function createOpenAIMiddleware(
 	containerTag: string,
 	options?: OpenAIMiddlewareOptions,
 ) {
+	const baseClient = getBaseClient(openaiClient)
+	const baseChat = baseClient.chat
+	const baseCompletions = baseChat.completions
+	const baseResponses = baseClient.responses
+
 	const logger = createLogger(options?.verbose ?? false)
 	const baseUrl = normalizeBaseUrl(options?.baseUrl)
 	const client = new Supermemory({
@@ -430,8 +463,8 @@ export function createOpenAIMiddleware(
 	const mode = options?.mode ?? "profile"
 	const addMemory = options?.addMemory ?? "always"
 
-	const originalCreate = openaiClient.chat.completions.create
-	const originalResponsesCreate = openaiClient.responses?.create
+	const originalCreate = baseCompletions.create
+	const originalResponsesCreate = baseResponses?.create
 
 	/**
 	 * Searches for memories and formats them for injection into API calls.
@@ -523,6 +556,7 @@ export function createOpenAIMiddleware(
 
 	const createResponsesWithMemory = async (
 		params: Parameters<typeof originalResponsesCreate>[0],
+		requestOptions?: OpenAI.RequestOptions,
 	) => {
 		if (!originalResponsesCreate) {
 			throw new Error(
@@ -534,7 +568,7 @@ export function createOpenAIMiddleware(
 
 		if (mode !== "profile" && !input) {
 			logger.debug("No input found for Responses API, skipping memory search")
-			return originalResponsesCreate.call(openaiClient.responses, params)
+			return originalResponsesCreate.call(baseResponses, params, requestOptions)
 		}
 
 		logger.info("Starting memory search for Responses API", {
@@ -572,14 +606,19 @@ export function createOpenAIMiddleware(
 			? `${params.instructions || ""}\n\n${memories}`.trim()
 			: params.instructions
 
-		return originalResponsesCreate.call(openaiClient.responses, {
-			...params,
-			instructions: enhancedInstructions,
-		})
+		return originalResponsesCreate.call(
+			baseResponses,
+			{
+				...params,
+				instructions: enhancedInstructions,
+			},
+			requestOptions,
+		)
 	}
 
 	const createWithMemory = async (
 		params: OpenAI.Chat.Completions.ChatCompletionCreateParams,
+		requestOptions?: OpenAI.RequestOptions,
 	) => {
 		const messages = Array.isArray(params.messages) ? params.messages : []
 
@@ -587,7 +626,7 @@ export function createOpenAIMiddleware(
 			const userMessage = getLastUserMessage(messages)
 			if (!userMessage) {
 				logger.debug("No user message found, skipping memory search")
-				return originalCreate.call(openaiClient.chat.completions, params)
+				return originalCreate.call(baseCompletions, params, requestOptions)
 			}
 		}
 
@@ -627,22 +666,40 @@ export function createOpenAIMiddleware(
 		)
 
 		const results = await Promise.all(operations)
-		const enhancedMessages = results[results.length - 1] // Enhanced messages result is always last
+		const enhancedMessages = results[
+			results.length - 1
+		] as OpenAI.Chat.Completions.ChatCompletionMessageParam[] // Enhanced messages result is always last
 
-		return originalCreate.call(openaiClient.chat.completions, {
-			...params,
-			messages: enhancedMessages,
-		})
+		return originalCreate.call(
+			baseCompletions,
+			{
+				...params,
+				messages: enhancedMessages,
+			},
+			requestOptions,
+		)
 	}
 
-	openaiClient.chat.completions.create =
-		createWithMemory as typeof originalCreate
+	const wrappedCompletions = cloneWithOverrides(baseCompletions, {
+		create: createWithMemory as typeof originalCreate,
+	})
+	const wrappedChat = cloneWithOverrides(baseChat, {
+		completions: wrappedCompletions,
+	})
+	const wrappedResponses =
+		baseResponses && originalResponsesCreate
+			? cloneWithOverrides(baseResponses, {
+					create: createResponsesWithMemory as typeof originalResponsesCreate,
+				})
+			: undefined
+	const wrappedClient = cloneWithOverrides(baseClient, {
+		chat: wrappedChat,
+		...(wrappedResponses ? { responses: wrappedResponses } : {}),
+	})
 
-	// Wrap Responses API if available
-	if (originalResponsesCreate) {
-		openaiClient.responses.create =
-			createResponsesWithMemory as typeof originalResponsesCreate
-	}
-
-	return openaiClient
+	Object.defineProperty(wrappedClient, BASE_CLIENT_SYMBOL, {
+		value: baseClient,
+	})
+	baseClientByWrapper.set(wrappedClient, baseClient)
+	return wrappedClient
 }

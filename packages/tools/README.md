@@ -262,7 +262,7 @@ The `MemoryPromptData` object provides:
 
 #### OpenAI Middleware with Supermemory
 
-The `withSupermemory` function creates an OpenAI client with SuperMemory middleware automatically injected:
+The `withSupermemory` function creates an isolated middleware facade around an OpenAI client. It does not mutate the supplied client, so a shared base client can safely be wrapped with different user or conversation options:
 
 ```typescript
 import { withSupermemory } from "@supermemory/tools/openai"
