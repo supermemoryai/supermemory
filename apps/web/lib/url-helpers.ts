@@ -93,17 +93,184 @@ export const normalizeUrl = (url: string): string => {
 
 const URL_TOKEN_REGEX =
 	/(?:https?:\/\/)?(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:[/?#][^\s<>[\]"'`]*)?/g
-const MARKDOWN_LINK_REGEX = /\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/g
+const MARKDOWN_LINK_PREFIX_REGEX = /\[[^\]]*\]\((?=https?:\/\/)/gi
 const ANGLE_LINK_REGEX = /<(https?:\/\/[^\s>]+)>/g
+const COMMONMARK_ESCAPABLE_PUNCTUATION_REGEX =
+	/[\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/
+
+type MarkdownDestination = {
+	destinationEnd: number
+	linkEnd: number
+}
+
+type MarkdownTitleCloser = '"' | "'" | ")"
+
+type MarkdownScanIndex = {
+	titleClosers: Record<MarkdownTitleCloser, number[]>
+	blankLines: number[]
+}
+
+const isLineEnding = (character: string | undefined): boolean =>
+	character === "\n" || character === "\r"
+
+const isEscapedPunctuation = (text: string, index: number): boolean =>
+	text[index] === "\\" &&
+	COMMONMARK_ESCAPABLE_PUNCTUATION_REGEX.test(text[index + 1] ?? "")
+
+/** Index unescaped title closers and blank lines to prevent suffix rescans. */
+const buildMarkdownScanIndex = (text: string): MarkdownScanIndex => {
+	const scanIndex: MarkdownScanIndex = {
+		titleClosers: { '"': [], "'": [], ")": [] },
+		blankLines: [],
+	}
+
+	for (let index = 0; index < text.length; index++) {
+		const character = text[index]
+		if (
+			isLineEnding(character) &&
+			!(character === "\n" && text[index - 1] === "\r")
+		) {
+			let nextLine = index + 1
+			if (character === "\r" && text[nextLine] === "\n") nextLine++
+			while (text[nextLine] === " " || text[nextLine] === "\t") nextLine++
+			if (isLineEnding(text[nextLine])) scanIndex.blankLines.push(index)
+		}
+		if (isEscapedPunctuation(text, index)) {
+			index++
+			continue
+		}
+		if (character === '"' || character === "'" || character === ")") {
+			scanIndex.titleClosers[character].push(index)
+		}
+	}
+
+	return scanIndex
+}
+
+const firstPositionAtOrAfter = (
+	positions: readonly number[],
+	start: number,
+): number | null => {
+	let low = 0
+	let high = positions.length
+	while (low < high) {
+		const middle = low + Math.floor((high - low) / 2)
+		if ((positions[middle] ?? 0) < start) low = middle + 1
+		else high = middle
+	}
+	return positions[low] ?? null
+}
+
+/** Consume inline-link whitespace, which permits at most one line ending. */
+const consumeLinkWhitespace = (text: string, start: number): number | null => {
+	let lineEndings = 0
+	let index = start
+	while (index < text.length) {
+		const character = text[index]
+		if (character === " " || character === "\t") {
+			index++
+			continue
+		}
+		if (!isLineEnding(character)) break
+		if (++lineEndings > 1) return null
+		if (character === "\r" && text[index + 1] === "\n") index++
+		index++
+	}
+	return index
+}
+
+/** Find a balanced URL destination and the delimiter after its optional title. */
+const findMarkdownDestination = (
+	text: string,
+	urlStart: number,
+	scanIndex: MarkdownScanIndex,
+): MarkdownDestination | null => {
+	let depth = 0
+	for (let index = urlStart; index < text.length; index++) {
+		const character = text[index]
+		if (!character) return null
+		if (isEscapedPunctuation(text, index)) {
+			index++
+			continue
+		}
+		if (character === "[" || character === "]") return null
+		if (/\s/.test(character)) {
+			if (depth > 0) return null
+
+			const destinationEnd = index
+			const afterWhitespace = consumeLinkWhitespace(text, index)
+			if (afterWhitespace === null) return null
+			index = afterWhitespace
+			if (text[index] === ")") {
+				return { destinationEnd, linkEnd: index }
+			}
+
+			const titleOpen = text[index]
+			let titleClose: MarkdownTitleCloser | null = null
+			if (titleOpen === "(") titleClose = ")"
+			else if (titleOpen === '"' || titleOpen === "'") titleClose = titleOpen
+			if (!titleClose) return null
+
+			const titleStart = index + 1
+			const titleEnd = firstPositionAtOrAfter(
+				scanIndex.titleClosers[titleClose],
+				titleStart,
+			)
+			if (titleEnd === null) return null
+			const blankLine = firstPositionAtOrAfter(scanIndex.blankLines, titleStart)
+			if (blankLine !== null && blankLine < titleEnd) return null
+
+			const afterTitle = consumeLinkWhitespace(text, titleEnd + 1)
+			return afterTitle !== null && text[afterTitle] === ")"
+				? { destinationEnd, linkEnd: afterTitle }
+				: null
+		}
+		if (character === "(") {
+			depth++
+			continue
+		}
+		if (character !== ")") continue
+		if (depth === 0) return { destinationEnd: index, linkEnd: index }
+		depth--
+	}
+	return null
+}
+
+/** Unwrap web Markdown links while balancing nested destination parentheses. */
+const unwrapMarkdownLinks = (text: string): string => {
+	const parts: string[] = []
+	let consumedThrough = 0
+	const matches = [...text.matchAll(MARKDOWN_LINK_PREFIX_REGEX)]
+	if (matches.length === 0) return text
+	const scanIndex = buildMarkdownScanIndex(text)
+
+	for (const match of matches) {
+		const matchStart = match.index ?? 0
+		if (matchStart < consumedThrough) continue
+
+		const urlStart = matchStart + match[0].length
+		const destination = findMarkdownDestination(text, urlStart, scanIndex)
+		if (!destination) continue
+
+		parts.push(
+			text.slice(consumedThrough, matchStart),
+			" ",
+			text.slice(urlStart, destination.destinationEnd),
+			" ",
+		)
+		consumedThrough = destination.linkEnd + 1
+	}
+
+	parts.push(text.slice(consumedThrough))
+	return parts.join("")
+}
 
 /** Pull every distinct URL out of a free-text blob; handles markdown `[t](url)`, `<url>`, and bare links. */
 export const extractUrls = (
 	text: string,
 ): { urls: string[]; duplicates: number } => {
 	if (!text.trim()) return { urls: [], duplicates: 0 }
-	const unwrapped = text
-		.replace(MARKDOWN_LINK_REGEX, " $1 ")
-		.replace(ANGLE_LINK_REGEX, " $1 ")
+	const unwrapped = unwrapMarkdownLinks(text).replace(ANGLE_LINK_REGEX, " $1 ")
 	const seen = new Set<string>()
 	const urls: string[] = []
 	let duplicates = 0
@@ -120,9 +287,12 @@ export const extractUrls = (
 		let trimmed = match[0].trim().replace(/[.,;!]+$/, "")
 		const opens = (trimmed.match(/\(/g) ?? []).length
 		const closes = (trimmed.match(/\)/g) ?? []).length
-		if (closes > opens && trimmed.endsWith(")")) {
-			trimmed = trimmed.replace(/\)+$/, "").replace(/[.,;!]+$/, "")
+		let unmatchedClosers = closes - opens
+		while (unmatchedClosers > 0 && trimmed.endsWith(")")) {
+			trimmed = trimmed.slice(0, -1)
+			unmatchedClosers--
 		}
+		trimmed = trimmed.replace(/[.,;!]+$/, "")
 		const normalized = normalizeUrl(trimmed)
 		if (!isValidUrl(normalized)) continue
 		// Dedupe on the parsed URL so the scheme and host compare
