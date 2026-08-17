@@ -3,6 +3,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { $fetch } from "@lib/api"
+import {
+	LEGACY_SPACE_HIGHLIGHTS_CACHE_NAME,
+	SPACE_HIGHLIGHTS_CACHE_NAME,
+} from "@/lib/space-highlights-cache"
 
 export function useResetOrganization() {
 	const queryClient = useQueryClient()
@@ -30,7 +34,10 @@ export function useResetOrganization() {
 			queryClient.invalidateQueries()
 			// Clear the daily brief Cache API entry so stale highlights don't survive the reset
 			try {
-				await caches.delete("space-highlights-v1")
+				await Promise.all([
+					caches.delete(SPACE_HIGHLIGHTS_CACHE_NAME),
+					caches.delete(LEGACY_SPACE_HIGHLIGHTS_CACHE_NAME),
+				])
 			} catch {
 				// Cache API not available in all environments
 			}
