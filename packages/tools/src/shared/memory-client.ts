@@ -140,6 +140,17 @@ export const buildMemoriesText = async (
 		},
 	})
 
+	const hasProfileMemories =
+		mode !== "query" &&
+		(deduplicated.static.length > 0 || deduplicated.dynamic.length > 0)
+	const hasSearchMemories =
+		mode !== "profile" && deduplicated.searchResults.length > 0
+
+	if (!hasProfileMemories && !hasSearchMemories) {
+		logger.debug("No memories found for prompt injection")
+		return ""
+	}
+
 	const userMemories =
 		mode !== "query"
 			? convertProfileToMarkdown({

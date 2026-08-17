@@ -358,6 +358,51 @@ describe("Unit: withSupermemory", () => {
 			expect(fetchMock).not.toHaveBeenCalled()
 		})
 
+		it("should leave the prompt unchanged when no memories are found", async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve(createMockProfileResponse()),
+			})
+
+			const ctx = createSupermemoryContext({
+				containerTag: TEST_CONFIG.containerTag,
+				apiKey: TEST_CONFIG.apiKey,
+				customId: "test-id",
+				mode: "profile",
+			})
+
+			const params: LanguageModelV2CallOptions = {
+				prompt: [
+					{
+						role: "user",
+						content: [{ type: "text", text: "Hello" }],
+					},
+				],
+			}
+
+			const result = await transformParamsWithMemory(params, ctx)
+
+			expect(result).toEqual(params)
+			expect(ctx.memoryCache.size).toBe(1)
+
+			const continuationParams: LanguageModelV2CallOptions = {
+				prompt: [
+					...params.prompt,
+					{
+						role: "assistant",
+						content: [{ type: "text", text: "Hi there!" }],
+					},
+				],
+			}
+			const continuationResult = await transformParamsWithMemory(
+				continuationParams,
+				ctx,
+			)
+
+			expect(continuationResult).toEqual(continuationParams)
+			expect(fetchMock).toHaveBeenCalledTimes(1)
+		})
+
 		it("should handle user message with empty content array in query mode", async () => {
 			const ctx = createSupermemoryContext({
 				containerTag: TEST_CONFIG.containerTag,
