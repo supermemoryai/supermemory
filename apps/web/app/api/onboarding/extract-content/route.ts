@@ -16,6 +16,10 @@ if (!exaApiKey) {
 	)
 }
 
+// Each URL becomes a (potentially billed live-crawled) Exa request, so cap the
+// batch size to bound cost/abuse from a single call.
+const MAX_URLS = 20
+
 export async function POST(request: Request) {
 	try {
 		if (!exaApiKey) {
@@ -34,11 +38,44 @@ export async function POST(request: Request) {
 			)
 		}
 
-		if (!urls.every((url) => typeof url === "string" && url.trim())) {
+		if (urls.length > MAX_URLS) {
 			return Response.json(
-				{ error: "Invalid input: all urls must be non-empty strings" },
+				{ error: `Invalid input: at most ${MAX_URLS} urls are allowed` },
 				{ status: 400 },
 			)
+		}
+
+		// Validate, normalize, and de-duplicate before hitting the paid Exa API.
+		const normalizedUrls: string[] = []
+		const seen = new Set<string>()
+		for (const url of urls) {
+			if (typeof url !== "string" || !url.trim()) {
+				return Response.json(
+					{ error: "Invalid input: all urls must be non-empty strings" },
+					{ status: 400 },
+				)
+			}
+
+			let parsed: URL
+			try {
+				parsed = new URL(url.trim())
+			} catch {
+				return Response.json(
+					{ error: "Invalid input: all urls must be valid URLs" },
+					{ status: 400 },
+				)
+			}
+
+			if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+				return Response.json(
+					{ error: "Invalid input: urls must use http or https" },
+					{ status: 400 },
+				)
+			}
+
+			if (seen.has(parsed.href)) continue
+			seen.add(parsed.href)
+			normalizedUrls.push(parsed.href)
 		}
 
 		const response = await fetch("https://api.exa.ai/contents", {
@@ -48,7 +85,7 @@ export async function POST(request: Request) {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({
-				urls,
+				urls: normalizedUrls,
 				text: true,
 				livecrawl: "fallback",
 			}),
