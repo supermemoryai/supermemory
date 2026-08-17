@@ -54,6 +54,7 @@ import { useViewMode } from "@/lib/view-mode-context"
 import type { ViewParamValue } from "@/lib/search-params"
 import { parseAsString, parseAsStringEnum, useQueryState } from "nuqs"
 import { addDocumentParam, docParam } from "@/lib/search-params"
+import { revokePluginKey } from "@/components/integrations/plugin-key-revocation"
 import {
 	useCallback,
 	useEffect,
@@ -2813,9 +2814,11 @@ export function IntegrationsView({
 
 	const handleRevokePluginKey = async (keyId: string) => {
 		try {
-			await authClient.apiKey.delete({ keyId })
-			toast.success("Plugin disconnected")
-			refetchKeys()
+			await revokePluginKey({
+				deleteKey: () => authClient.apiKey.delete({ keyId }),
+				onSuccess: () => toast.success("Plugin disconnected"),
+				refetch: () => void refetchKeys(),
+			})
 		} catch {
 			toast.error("Failed to disconnect plugin")
 		}
