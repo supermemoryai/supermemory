@@ -38,7 +38,7 @@ MCP clients that use JSON configuration generally accept this shape:
 
 A **space** keeps a team's documents, memories, and profile context focused, so AI retrieves the right knowledge without mixing unrelated work. Use separate spaces for an engineering launch, research project, finance workflow, legal matter, medical knowledge base, or any other shared initiative. Teammates collaborate within the spaces they are allowed to read or write.
 
-Name a space to use it for one request without changing your active space. Otherwise, Supermemory uses your active space or account default. Ask to switch spaces when you want future requests to use a different active space.
+Name a space to use it for one request without changing your active space. Otherwise, Supermemory uses your active space or account default. `search_memory` uses a named space as given. Without one, it uses the active space when the current OAuth grant can read it; otherwise authorization chooses the caller's readable scope instead of forcing an inaccessible default. Ask to switch spaces when you want future requests to use a different active space.
 
 ## Tools
 
@@ -46,7 +46,7 @@ Your assistant chooses these tools automatically. Use this table when you need t
 
 | Tool | Use it for | Inputs | Result |
 | --- | --- | --- | --- |
-| `search_memory` | Semantic recall from one space, with optional profile context | `query` (required), `includeProfile`, `containerTag` | Profile context and matching memories |
+| `search_memory` | Semantic recall from a selected space or authorized readable scope | `query` (required), `includeProfile`, `containerTag` | Matching memories, optional profile context, and the selected `containerTag` or `null` |
 | `add_memory` | Save information or forget outdated information | `content` (required), `action` (`save` or `forget`), `containerTag` | Save or forget confirmation |
 | `listDocuments` | Browse stored source documents and their summaries | `page`, `limit`, `containerTag` | Document IDs, titles, types, status, dates, and summaries |
 | `getDocument` | Read the available content of one document | `documentId` (required) | Document metadata, summary, and available content |
@@ -56,7 +56,7 @@ Your assistant chooses these tools automatically. Use this table when you need t
 
 ### Search
 
-`search_memory` accepts a natural-language query and returns semantically relevant memories. By default, it also includes stable and recent profile context from the same space. Set `includeProfile` to `false` when only matching memories are needed.
+`search_memory` accepts a natural-language query and returns semantically relevant memories. With an explicit space or an active space readable by the current OAuth grant, it also includes stable and recent profile context from that space by default. When no space is named and no readable active space is available, it searches the caller's authorized readable scope without forcing `sm_project_default`; the structured result uses `containerTag: null` and does not add space-specific profile facts. Set `includeProfile` to `false` when only matching memories are needed.
 
 Use the retrieval tools for different questions:
 

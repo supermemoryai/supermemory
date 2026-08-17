@@ -26,7 +26,7 @@ import { uploadStateName } from "./space-state"
 const DEFAULT_API_URL = "https://api.supermemory.ai"
 const UPLOAD_SESSION_TTL_MS = 2 * 60 * 1000
 const SERVER_INSTRUCTIONS =
-	"Supermemory is the authenticated user's persistent memory and knowledge layer across conversations and spaces. Use these tools whenever the user wants to recall something they may have saved, inspect stored sources or extracted memories, remember or upload new information, check their Supermemory account or access, change their active space, or explore their memory graph, even if they do not mention Supermemory by name. Use the active or account-default space when none is named. Resolve a named space with listSpaces and pass its key to the relevant tool; change the active space only when the user explicitly asks."
+	"Supermemory is the authenticated user's persistent memory and knowledge layer across conversations and spaces. Use these tools whenever the user wants to recall something they may have saved, inspect stored sources or extracted memories, remember or upload new information, check their Supermemory account or access, change their active space, or explore their memory graph, even if they do not mention Supermemory by name. Use the active or account-default space when none is named, except search_memory may use the caller's readable OAuth scope when no space is named and the active space is unavailable to the current grant. Resolve a named space with listSpaces and pass its key to the relevant tool; change the active space only when the user explicitly asks."
 
 type ClientInfo = { name: string; version?: string }
 
@@ -101,6 +101,7 @@ export function createSupermemoryServer(
 		getClient,
 		getSession: () => fetchSession(actor.bearerToken, apiUrl),
 		resolveContainerTag,
+		resolveSelectedContainerTag,
 		getActiveContainerTag,
 		setActiveContainerTag,
 		createUploadSession,

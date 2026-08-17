@@ -113,7 +113,7 @@ export type ListMemoriesOutput = z.infer<typeof listMemoriesOutputSchema>
 
 export const searchMemoryOutputSchema = z.object({
 	query: z.string(),
-	containerTag: z.string(),
+	containerTag: z.string().nullable(),
 	profile: z
 		.object({
 			static: z.array(z.string()),
