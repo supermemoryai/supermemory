@@ -16,8 +16,9 @@ import {
 import {
 	acceptMemorySuggestion,
 	clearMemorySuggestion,
+	clearPendingMemorySuggestion,
+	createMemorySuggestionPayload,
 	hasAcceptedSupermemoryContext,
-	serializeMemoriesForDataset,
 	setMemoryMarkerStatus,
 	showLoadingSuggestion,
 	showMarkerPopover,
@@ -401,14 +402,16 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 			queryLength: userQuery.length,
 		})
 
+		const iconElement = document.querySelector(
+			'[id*="sm-claude-input-bar-element"]',
+		) as HTMLElement | null
+		const currentPromptInput = getClaudePromptInput()
+		clearPendingMemorySuggestion("claude", currentPromptInput, iconElement)
+
 		if (!userQuery.trim()) {
 			debugClaude("memory search skipped because query is empty")
 			return
 		}
-
-		const icon = document.querySelector('[id*="sm-claude-input-bar-element"]')
-
-		const iconElement = icon as HTMLElement
 
 		if (!iconElement) {
 			console.warn("Claude icon element not found, cannot update feedback")
@@ -416,9 +419,8 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 		}
 
 		if (isAutoSearch) {
-			const input = getClaudePromptInput()
-			if (input) {
-				showLoadingSuggestion("claude", input)
+			if (currentPromptInput) {
+				showLoadingSuggestion("claude", currentPromptInput)
 			}
 			setMemoryMarkerStatus(iconElement, "searching")
 		} else {
@@ -445,24 +447,24 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 			success: response?.success,
 		})
 
-		if (response?.success && response?.data) {
-			const textareaElement = document.querySelector(
-				'div[contenteditable="true"]',
-			) as HTMLElement
+		const memorySuggestion = response?.success
+			? createMemorySuggestionPayload(response.data)
+			: null
+
+		if (memorySuggestion) {
+			const textareaElement = getClaudePromptInput()
 
 			if (textareaElement) {
 				const memoryText = showMemorySuggestion(
 					"claude",
 					textareaElement,
-					response.data,
+					memorySuggestion,
 				)
 				debugClaude("memory suggestion rendered", {
 					memoryLength: memoryText.length,
 				})
 
-				iconElement.dataset.memoriesData = serializeMemoriesForDataset(
-					response.data,
-				)
+				iconElement.dataset.memoriesData = memorySuggestion.memoriesData
 
 				if (isAutoSearch) {
 					setMemoryMarkerStatus(iconElement, "found")
@@ -481,6 +483,11 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 			}
 		} else {
 			console.warn("No memories found or API response invalid for Claude")
+			clearPendingMemorySuggestion(
+				"claude",
+				getClaudePromptInput(),
+				iconElement,
+			)
 			if (isAutoSearch) {
 				setMemoryMarkerStatus(iconElement, "none")
 			} else {
@@ -492,7 +499,8 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 		try {
 			const icon = document.querySelector(
 				'[id*="sm-claude-input-bar-element"]',
-			) as HTMLElement
+			) as HTMLElement | null
+			clearPendingMemorySuggestion("claude", getClaudePromptInput(), icon)
 			if (icon) {
 				if (
 					actionSource === POSTHOG_EVENT_KEY.CLAUDE_CHAT_MEMORIES_AUTO_SEARCHED
