@@ -18,6 +18,18 @@ const ALLOWED_X_HOSTS: ReadonlySet<string> = new Set([
 const X_URL_FALLBACK_REGEX =
 	/^(?:https?:\/\/)?(?:x\.com|www\.x\.com|twitter\.com|www\.twitter\.com|mobile\.twitter\.com)\/([^/\s?#]+)/i
 
+// Cap free-text context fields fed into the LLM prompt to bound token cost.
+const MAX_CONTEXT_FIELD_LENGTH = 200
+
+// These land on a single "Name: ..." / "Email: ..." line of the prompt, so
+// collapse whitespace before truncating: a raw newline would let the value
+// forge an extra line of prompt rather than stay in its own field.
+function sanitizeContextField(value: unknown): string {
+	return typeof value === "string"
+		? value.replace(/\s+/g, " ").trim().slice(0, MAX_CONTEXT_FIELD_LENGTH)
+		: ""
+}
+
 function isXHost(hostname: string): boolean {
 	return ALLOWED_X_HOSTS.has(hostname.toLowerCase())
 }
@@ -82,9 +94,11 @@ export async function POST(req: Request) {
 			)
 		}
 
+		const safeName = sanitizeContextField(name)
+		const safeEmail = sanitizeContextField(email)
 		const contextParts: string[] = []
-		if (name) contextParts.push(`Name: ${name}`)
-		if (email) contextParts.push(`Email: ${email}`)
+		if (safeName) contextParts.push(`Name: ${safeName}`)
+		if (safeEmail) contextParts.push(`Email: ${safeEmail}`)
 		const userContext =
 			contextParts.length > 0
 				? `\n\nAdditional context about the user:\n${contextParts.join("\n")}`
