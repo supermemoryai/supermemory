@@ -8,7 +8,13 @@ export {
 	type BuildMemoriesTextOptions,
 } from "../shared"
 
-import type { Logger, MemoryPromptData } from "../shared"
+import {
+	type Logger,
+	type MemoryPromptData,
+	replaceMemoryContext,
+	stripMemoryContext,
+	wrapMemoryContext,
+} from "../shared"
 import type { LanguageModelCallOptions } from "./util"
 
 /**
@@ -66,21 +72,28 @@ export const injectMemoriesIntoParams = (
 	)
 
 	if (systemPromptExists) {
-		logger.debug("Added memories to existing system prompt")
+		logger.debug("Replaced Supermemory context in existing system prompt")
+		let injected = false
 		// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3 prompt types
-		const newPrompt = params.prompt.map((prompt: any) =>
-			prompt.role === "system"
-				? { ...prompt, content: `${prompt.content} \n ${memories}` }
-				: prompt,
-		)
+		const newPrompt = params.prompt.map((prompt: any) => {
+			if (prompt.role !== "system") return prompt
+			const content = String(prompt.content ?? "")
+			if (!injected) {
+				injected = true
+				return { ...prompt, content: replaceMemoryContext(content, memories) }
+			}
+			return { ...prompt, content: stripMemoryContext(content) }
+		})
 		return { ...params, prompt: newPrompt } as LanguageModelCallOptions
 	}
 
 	logger.debug(
 		"System prompt does not exist, created system prompt with memories",
 	)
+	const memoryContext = wrapMemoryContext(memories)
+	if (!memoryContext) return params
 	const newPrompt = [
-		{ role: "system" as const, content: memories },
+		{ role: "system" as const, content: memoryContext },
 		...params.prompt,
 		// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3 prompt types
 	] as any

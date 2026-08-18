@@ -15,6 +15,9 @@ import {
 	MemoryCache,
 	buildMemoriesText,
 	extractQueryText,
+	replaceMemoryContext,
+	stripMemoryContext,
+	wrapMemoryContext,
 	type Logger,
 	type MemoryMode,
 } from "../shared"
@@ -346,47 +349,42 @@ const injectMemoriesIntoMessages = (
 	memories: string,
 	logger: Logger,
 ): VoltAgentMessage[] => {
-	const systemMessageIndex = messages.findIndex((msg) => msg.role === "system")
-
-	if (systemMessageIndex !== -1) {
-		logger.debug("Added memories to existing system message")
-		const newMessages = [...messages]
-		const systemMessage = newMessages[systemMessageIndex]
-		if (!systemMessage) {
-			return messages
-		}
-
-		// Extract existing text from parts (UIMessage format) or content fallback
-		const parts = (
-			systemMessage as { parts?: Array<{ type: string; text?: string }> }
-		).parts
-		const existingContent = parts
-			? parts
-					.filter((p) => p.type === "text")
-					.map((p) => p.text || "")
-					.join("\n")
-			: typeof systemMessage.content === "string"
-				? systemMessage.content
-				: ""
-
-		const newContent = `${existingContent}\n\n${memories}`
-
-		newMessages[systemMessageIndex] = {
-			...systemMessage,
-			content: newContent,
-			// Update parts array to match - this is what the LLM actually reads
-			parts: [{ type: "text", text: newContent }],
-		} as VoltAgentMessage
-		return newMessages
+	if (messages.some((msg) => msg.role === "system")) {
+		logger.debug("Replaced Supermemory context in existing system message")
+		let injected = false
+		return messages.map((message) => {
+			if (message.role !== "system") return message
+			const parts = (
+				message as { parts?: Array<{ type: string; text?: string }> }
+			).parts
+			const partContent = parts
+				?.filter((part) => part.type === "text")
+				.map((part) => part.text || "")
+				.join("\n")
+			const existingContent =
+				partContent ||
+				(typeof message.content === "string" ? message.content : "")
+			const newContent = !injected
+				? replaceMemoryContext(existingContent, memories)
+				: stripMemoryContext(existingContent)
+			injected = true
+			return {
+				...message,
+				content: newContent,
+				parts: [{ type: "text", text: newContent }],
+			} as VoltAgentMessage
+		})
 	}
 
 	logger.debug("Created system message with memories")
+	const memoryContext = wrapMemoryContext(memories)
+	if (!memoryContext) return messages
 	return [
 		{
 			id: crypto.randomUUID(),
 			role: "system" as const,
-			content: memories,
-			parts: [{ type: "text", text: memories }],
+			content: memoryContext,
+			parts: [{ type: "text", text: memoryContext }],
 		} as VoltAgentMessage,
 		...messages,
 	]

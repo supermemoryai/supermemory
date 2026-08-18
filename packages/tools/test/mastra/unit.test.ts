@@ -198,6 +198,9 @@ describe("SupermemoryInputProcessor", () => {
 			const systemCall = messageList.calls.find((c) => c.method === "addSystem")
 			expect(systemCall).toBeDefined()
 			expect(systemCall?.args[0]).toContain("TypeScript")
+			expect(systemCall?.args[0]).toContain(
+				'<supermemory context="user-memories" readonly>',
+			)
 			expect(systemCall?.args[1]).toBe("supermemory")
 		})
 

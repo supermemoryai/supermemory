@@ -8,7 +8,7 @@
     "dev": "tsdown --watch --ignore-watch .turbo",
     "check-types": "tsc --noEmit",
     "test": "vitest --testTimeout 100000",
-    "test:unit": "vitest run --testTimeout 100000 src/tools-shared.test.ts src/tool-operations.test.ts test/with-supermemory/unit.test.ts test/with-supermemory/conversation-conversion.test.ts test/mastra/unit.test.ts",
+    "test:unit": "vitest run --testTimeout 100000 src/tools-shared.test.ts src/tool-operations.test.ts test/with-supermemory/unit.test.ts test/with-supermemory/conversation-conversion.test.ts test/openai-middleware.unit.test.ts test/mastra/unit.test.ts test/voltagent.unit.test.ts",
     "test:watch": "vitest --watch --testTimeout 100000"
   },
   "dependencies": {

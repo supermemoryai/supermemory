@@ -44,7 +44,8 @@ export const PARAMETER_DESCRIPTIONS = {
 		"Profile memory ID from searchMemories or getProfile — soft-deletes one learned fact via memoryForget. Not a document ID.",
 	memoryContent:
 		"Exact text of the profile memory to forget (alternative to memoryId). Must match precisely; if unsure, search first and use memoryId.",
-	reason: "Optional reason recorded when forgetting (e.g. outdated, user correction)",
+	reason:
+		"Optional reason recorded when forgetting (e.g. outdated, user correction)",
 } as const
 
 // Default values
@@ -105,6 +106,15 @@ export interface DeduplicatedMemories {
 	searchResults: string[]
 }
 
+/** Normalize exact fact variants without attempting semantic/fuzzy matching. */
+export function normalizeMemoryFact(memory: string): string {
+	return memory
+		.replace(/^\[\d{4}-\d{2}-\d{2}\]\s*/, "")
+		.trim()
+		.replace(/\s+/g, " ")
+		.toLowerCase()
+}
+
 /**
  * Deduplicates memory items across static, dynamic, and search result sources.
  * Priority: Static > Dynamic > Search Results
@@ -151,9 +161,10 @@ export function deduplicateMemories(
 
 	for (const item of staticItems as Array<MemoryItem | string>) {
 		const memory = getMemoryString(item)
-		if (memory !== null) {
+		const key = memory === null ? null : normalizeMemoryFact(memory)
+		if (memory !== null && key !== null && !seenMemories.has(key)) {
 			staticMemories.push(memory)
-			seenMemories.add(memory)
+			seenMemories.add(key)
 		}
 	}
 
@@ -161,9 +172,10 @@ export function deduplicateMemories(
 
 	for (const item of dynamicItems as Array<MemoryItem | string>) {
 		const memory = getMemoryString(item)
-		if (memory !== null && !seenMemories.has(memory)) {
+		const key = memory === null ? null : normalizeMemoryFact(memory)
+		if (memory !== null && key !== null && !seenMemories.has(key)) {
 			dynamicMemories.push(memory)
-			seenMemories.add(memory)
+			seenMemories.add(key)
 		}
 	}
 
@@ -171,9 +183,10 @@ export function deduplicateMemories(
 
 	for (const item of searchItems as Array<MemoryItem | string>) {
 		const memory = getMemoryString(item)
-		if (memory !== null && !seenMemories.has(memory)) {
+		const key = memory === null ? null : normalizeMemoryFact(memory)
+		if (memory !== null && key !== null && !seenMemories.has(key)) {
 			searchMemories.push(memory)
-			seenMemories.add(memory)
+			seenMemories.add(key)
 		}
 	}
 
