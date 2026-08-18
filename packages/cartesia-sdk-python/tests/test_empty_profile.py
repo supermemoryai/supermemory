@@ -71,6 +71,10 @@ class TestSupermemoryCartesiaNullProfile(unittest.IsolatedAsyncioTestCase):
                 "search_results": [],
             },
         )
+        agent._supermemory_client.profile.assert_awaited_once()
+        kwargs = agent._supermemory_client.profile.await_args.kwargs
+        self.assertEqual(kwargs["container_tag"], "user-123")
+        self.assertEqual(kwargs["q"], "Hello world")
 
 
 if __name__ == "__main__":

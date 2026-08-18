@@ -137,8 +137,9 @@ class SupermemoryPipecatService(FrameProcessor):
             )
 
         try:
+            # One profile call: static + dynamic, and (when mode/query allow)
+            # search_results via `q`. This is the intended profile API shape.
             kwargs: Dict[str, Any] = {"container_tag": self.container_tag}
-
             if self.params.mode != "profile" and query:
                 kwargs["q"] = query
                 kwargs["threshold"] = self.params.search_threshold
@@ -149,9 +150,9 @@ class SupermemoryPipecatService(FrameProcessor):
             profile = getattr(response, "profile", None)
             search_results_response = getattr(response, "search_results", None)
 
-            search_results = []
+            search_results: List[Any] = []
             if search_results_response and search_results_response.results:
-                search_results = search_results_response.results
+                search_results = list(search_results_response.results)
 
             return {
                 "profile": {
@@ -179,7 +180,7 @@ class SupermemoryPipecatService(FrameProcessor):
             if self.session_id:
                 add_params["custom_id"] = self.session_id
 
-            await self._supermemory_client.memories.add(**add_params)
+            await self._supermemory_client.add(**add_params)
 
         except Exception as e:
             logger.error(f"Error storing messages: {e}")
