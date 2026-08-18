@@ -80,6 +80,7 @@ import {
 import { MCPSteps } from "./mcp-modal/mcp-detail-view"
 import { GranolaConnectModal } from "./granola-connect-modal"
 import { detectPluginSpace, detectPluginSource } from "@/lib/plugin-space"
+import { usePromoCode } from "@/hooks/use-promo-code"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
@@ -536,13 +537,13 @@ const SECTIONS: Array<{
 				action: { type: "external", href: POKE_RECIPE_URL },
 			},
 			{
-				kind: "client",
-				id: "shortcuts",
-				name: "Apple Shortcuts",
-				tagline: "Add memories from iPhone, iPad or Mac",
-				simpleTitle: "Save anything from your phone or Mac",
-				icon: <AppleShortcutsIcon />,
-				action: { type: "view", viewMode: "shortcuts" as ViewParamValue },
+				kind: "import",
+				id: "x-bookmarks",
+				name: "Import X bookmarks",
+				tagline: "Turn your X/Twitter bookmarks into memories",
+				simpleTitle: "Turn your X bookmarks into memory",
+				icon: <Image src="/onboarding/x.png" alt="X" width={24} height={24} />,
+				viewMode: "import" as ViewParamValue,
 			},
 			{
 				kind: "client",
@@ -555,13 +556,13 @@ const SECTIONS: Array<{
 				dev: true,
 			},
 			{
-				kind: "import",
-				id: "x-bookmarks",
-				name: "Import X bookmarks",
-				tagline: "Turn your X/Twitter bookmarks into memories",
-				simpleTitle: "Turn your X bookmarks into memory",
-				icon: <Image src="/onboarding/x.png" alt="X" width={24} height={24} />,
-				viewMode: "import" as ViewParamValue,
+				kind: "client",
+				id: "shortcuts",
+				name: "Apple Shortcuts",
+				tagline: "Add memories from iPhone, iPad or Mac",
+				simpleTitle: "Save anything from your phone or Mac",
+				icon: <AppleShortcutsIcon />,
+				action: { type: "view", viewMode: "shortcuts" as ViewParamValue },
 			},
 		],
 	},
@@ -2067,6 +2068,7 @@ function ItemCard({
 	docsUrl,
 	leftIndicator,
 	statusSlot,
+	layoutClassName,
 }: {
 	actionSlot: ReactNode
 	infoActionSlot?: ReactNode
@@ -2081,6 +2083,7 @@ function ItemCard({
 	docsUrl?: string
 	leftIndicator?: ReactNode
 	statusSlot?: ReactNode
+	layoutClassName?: string
 }) {
 	const [infoOpen, setInfoOpen] = useState(false)
 	return (
@@ -2098,6 +2101,9 @@ function ItemCard({
 			className={cn(
 				"group relative flex h-full cursor-pointer flex-row items-center gap-2.5 rounded-[10px] bg-[#14161A] px-2.5 py-2 transition-colors hover:bg-[#16181D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4BA0FA]/45 sm:flex-col sm:items-stretch sm:gap-4 sm:rounded-[12px] sm:p-4",
 				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+				id === "shortcuts" &&
+					"max-sm:grid max-sm:grid-cols-[auto_minmax(0,1fr)] max-sm:items-center",
+				layoutClassName,
 			)}
 		>
 			<ItemInfoButton name={name} onClick={() => setInfoOpen(true)} />
@@ -2115,7 +2121,12 @@ function ItemCard({
 			<div className="flex shrink-0 items-start justify-between gap-2">
 				<IconBox>{icon}</IconBox>
 			</div>
-			<div className="flex min-w-0 flex-1 flex-row items-center justify-between gap-2 sm:flex-col sm:items-stretch sm:justify-end sm:gap-3">
+			<div
+				className={cn(
+					"flex min-w-0 flex-1 flex-row items-center justify-between gap-2 sm:flex-col sm:items-stretch sm:justify-end sm:gap-3",
+					id === "shortcuts" && "max-sm:contents",
+				)}
+			>
 				<div className="min-w-0 flex-1">
 					<div className="flex min-w-0 items-center gap-1">
 						{leftIndicator}
@@ -2139,7 +2150,13 @@ function ItemCard({
 						{tagline}
 					</p>
 				</div>
-				<div className="flex w-auto shrink-0 items-center justify-end gap-2 sm:w-full sm:justify-between">
+				<div
+					className={cn(
+						"flex w-auto shrink-0 items-center justify-end gap-2 sm:w-full sm:justify-between",
+						id === "shortcuts" &&
+							"max-sm:col-span-2 max-sm:row-start-2 max-sm:w-full",
+					)}
+				>
 					{/* biome-ignore lint/a11y/noStaticElementInteractions: stop card click from swallowing the status action. */}
 					<div
 						className="hidden min-w-0 flex-1 sm:flex"
@@ -2150,7 +2167,11 @@ function ItemCard({
 					</div>
 					{/* biome-ignore lint/a11y/noStaticElementInteractions: stop card click from swallowing the primary action. */}
 					<div
-						className="flex shrink-0 justify-end [&>button]:!h-7 [&>button]:!min-w-[82px] [&>button]:!px-3 [&>button]:!text-[11px] sm:[&>button]:!h-9 sm:[&>button]:!min-w-[116px] sm:[&>button]:!px-5 sm:[&>button]:!text-[14px]"
+						className={cn(
+							"flex shrink-0 justify-end [&>button]:!h-7 [&>button]:!min-w-[82px] [&>button]:!px-3 [&>button]:!text-[11px] sm:[&>button]:!h-9 sm:[&>button]:!min-w-[116px] sm:[&>button]:!px-5 sm:[&>button]:!text-[14px]",
+							id === "shortcuts" &&
+								"max-sm:w-full max-sm:shrink max-sm:[&>div]:w-full",
+						)}
 						onClick={(e) => e.stopPropagation()}
 						onKeyDown={(e) => e.stopPropagation()}
 					>
@@ -2555,6 +2576,7 @@ export function IntegrationsView({
 	const { allProjects } = useContainerTags()
 	const shortcutsConnect = useShortcutsConnect()
 	const autumn = useCustomer({ queryOptions: { enabled: !publicMode } })
+	const promoCode = usePromoCode()
 	// connectorAccess covers pro-tier connectors (incl. company_brain orgs); plugins
 	// stay on hasProProduct. See useConnectorAccess.
 	const { hasPro: hasProProduct, connectorAccess } = useConnectorAccess({
@@ -2747,11 +2769,6 @@ export function IntegrationsView({
 				credentials: "include",
 			})
 			if (!res.ok) {
-				if (res.status === 403) {
-					throw new Error(
-						"Plugin access was denied. Check your plan or try again.",
-					)
-				}
 				const errorData = (await res.json().catch(() => ({}))) as {
 					message?: string
 				}
@@ -2830,8 +2847,10 @@ export function IntegrationsView({
 			try {
 				const result = await autumn.attach({
 					planId: checkoutPlanId,
+					discounts: promoCode.getDiscounts(),
 					successUrl: `${window.location.origin}/integrations`,
 				})
+				promoCode.clear()
 				if (result?.paymentUrl) {
 					window.open(result.paymentUrl, "_self")
 					return
@@ -2842,7 +2861,7 @@ export function IntegrationsView({
 				toast.error("Failed to start checkout. Please try again.")
 			}
 		},
-		[autumn],
+		[autumn, promoCode],
 	)
 
 	const redirectToLogin = useCallback(() => {
@@ -3629,7 +3648,7 @@ export function IntegrationsView({
 		}
 	}
 
-	const renderItemCard = (item: Item) => (
+	const renderItemCard = (item: Item, layoutClassName?: string) => (
 		<ItemCard
 			key={item.id}
 			actionSlot={renderRight(item)}
@@ -3645,6 +3664,7 @@ export function IntegrationsView({
 			docsUrl={item.docsUrl}
 			leftIndicator={renderLeftIndicator(item)}
 			statusSlot={renderStatus(item)}
+			layoutClassName={layoutClassName}
 		/>
 	)
 
@@ -3754,7 +3774,14 @@ export function IntegrationsView({
 									</p>
 								) : q || category !== "all" ? (
 									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-										{visibleItems.map((item) => renderItemCard(item))}
+										{visibleItems.map((item) =>
+											renderItemCard(
+												item,
+												item.id === "shortcuts"
+													? "sm:w-max sm:min-w-full"
+													: undefined,
+											),
+										)}
 									</div>
 								) : (
 									<div className="flex flex-col gap-6">

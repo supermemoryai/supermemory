@@ -591,6 +591,79 @@ export default function LoginPage() {
 													/>
 												</div>
 											) : null}
+											{process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
+											process.env.NEXT_PUBLIC_AGENTID_AUTH_ENABLED ? (
+												<div className="w-full">
+													<LastUsedBadge show={lastUsedMethod === "agentid"} />
+													<ExternalAuthButton
+														authIcon={
+															<svg
+																className="size-4 sm:size-5 text-foreground"
+																fill="none"
+																height="25"
+																viewBox="0 0 24 25"
+																width="24"
+																xmlns="http://www.w3.org/2000/svg"
+															>
+																<title>AgentID</title>
+																<rect
+																	height="11"
+																	rx="2.5"
+																	stroke="currentColor"
+																	strokeWidth="1.8"
+																	width="14"
+																	x="5"
+																	y="8.21"
+																/>
+																<path
+																	d="M12 8.21V4.71M12 4.71a1.5 1.5 0 1 0-.01-3 1.5 1.5 0 0 0 .01 3Z"
+																	stroke="currentColor"
+																	strokeWidth="1.8"
+																/>
+																<circle
+																	cx="9.25"
+																	cy="13.21"
+																	fill="currentColor"
+																	r="1.25"
+																/>
+																<circle
+																	cx="14.75"
+																	cy="13.21"
+																	fill="currentColor"
+																	r="1.25"
+																/>
+																<path
+																	d="M9 16.21h6"
+																	stroke="currentColor"
+																	strokeLinecap="round"
+																	strokeWidth="1.8"
+																/>
+															</svg>
+														}
+														authProvider="AgentID"
+														className="w-full"
+														disabled={Boolean(loadingMessage)}
+														onClick={() => {
+															if (loadingMessage) return
+															setIsLoading(true)
+															posthog.capture("login_attempt", {
+																method: "social",
+																provider: "agentid",
+															})
+															setPendingLoginMethod("agentid")
+															signIn
+																.oauth2({
+																	callbackURL: getCallbackURL(),
+																	providerId: "agentid",
+																})
+																.catch((err: unknown) => {
+																	setError(getErrorMessage(err))
+																	setIsLoading(false)
+																})
+														}}
+													/>
+												</div>
+											) : null}
 										</div>
 
 										<TextSeparator

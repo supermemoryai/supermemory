@@ -11,6 +11,7 @@ import { Suspense } from "react"
 import { Toaster } from "@ui/components/sonner"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
 import { ThemeProvider } from "@/lib/theme-provider"
+import { PromoCodeCapture } from "@/hooks/use-promo-code"
 
 const font = Space_Grotesk({
 	subsets: ["latin"],
@@ -95,6 +96,7 @@ export default function RootLayout({
 						includeCredentials={true}
 						headers={{ "X-App-Source": "nova" }}
 					>
+						<PromoCodeCapture />
 						<QueryProvider>
 							<AuthProvider>
 								<PostHogProvider>

@@ -151,7 +151,7 @@ export function ShortcutsConnectButtons({
 }) {
 	const { connect, isPending, pendingType } = controller
 	return (
-		<div className="flex flex-col gap-2 sm:flex-row">
+		<div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
 			<PillButton
 				className="h-9 flex-none"
 				onClick={(e) => {

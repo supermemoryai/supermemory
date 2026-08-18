@@ -408,7 +408,7 @@ Optional for testing:
 
 ### Required
 - `openai>=1.102.0` - Official OpenAI Python SDK
-- `supermemory>=3.1.0` - Supermemory client
+- `supermemory>=3.50.0` - Supermemory client
 - `requests>=2.25.0` - HTTP requests (fallback)
 
 ### Optional
