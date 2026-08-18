@@ -4,6 +4,10 @@ import { getPublicRequestUrl } from "@/lib/url-helpers"
 
 const LOCAL_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
 
+// Views that are public in guest mode. These are page views on the root route,
+// selected by ?view= — see isPublicAppPage in components/ensure-workspace.tsx.
+const PUBLIC_ROOT_VIEWS = new Set(["integrations", "mcp"])
+
 function getAuthSessionCookie(request: Request): string | null {
 	return (
 		getSessionCookie(request) ??
@@ -41,13 +45,15 @@ export default async function proxy(request: Request) {
 		return NextResponse.next()
 	}
 
-	// MCP setup page is public — no auth required
-	if (url.searchParams.get("view") === "mcp") {
-		return NextResponse.next()
-	}
-
-	// Integrations index is public in guest mode; actions still require login.
-	if (url.pathname === "/" && url.searchParams.get("view") === "integrations") {
+	// MCP setup and the integrations index are public in guest mode; actions
+	// still require login. The pathname check is load-bearing: this runs before
+	// the /api/ gate below, so matching ?view= on any path would also let
+	// "/api/<anything>?view=mcp" skip the 401 and reach the web app's own API
+	// handlers unauthenticated.
+	if (
+		url.pathname === "/" &&
+		PUBLIC_ROOT_VIEWS.has(url.searchParams.get("view") ?? "")
+	) {
 		return NextResponse.next()
 	}
 
