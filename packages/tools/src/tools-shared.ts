@@ -75,6 +75,34 @@ export function getContainerTags(config?: {
 }
 
 /**
+ * Resolves a model-supplied container tag without allowing it to escape the
+ * developer-configured scope.
+ */
+export function resolveConfiguredContainerTag(
+	configuredTags: readonly string[],
+	requestedTag?: string,
+): string {
+	const defaultTag = configuredTags[0]
+	if (defaultTag === undefined) {
+		throw new Error(
+			"Supermemory tools require at least one configured container tag.",
+		)
+	}
+
+	if (requestedTag === undefined) {
+		return defaultTag
+	}
+
+	if (!configuredTags.includes(requestedTag)) {
+		throw new Error(
+			`Container tag "${requestedTag}" is outside the configured scope.`,
+		)
+	}
+
+	return requestedTag
+}
+
+/**
  * Memory item interface representing a single memory with optional metadata
  */
 export interface MemoryItem {
