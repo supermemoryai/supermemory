@@ -19,6 +19,7 @@ import {
 	MemoryCache,
 	buildMemoriesText,
 	extractQueryText,
+	wrapMemoryContext,
 	type Logger,
 	type MemoryMode,
 	type PromptTemplate,
@@ -163,7 +164,7 @@ export class SupermemoryInputProcessor implements Processor {
 			const cachedMemories = this.ctx.memoryCache.get(turnKey)
 			if (cachedMemories) {
 				this.ctx.logger.debug("Using cached memories", { turnKey })
-				messageList.addSystem(cachedMemories, "supermemory")
+				messageList.addSystem(wrapMemoryContext(cachedMemories), "supermemory")
 				return messageList
 			}
 
@@ -185,7 +186,7 @@ export class SupermemoryInputProcessor implements Processor {
 
 			if (memories) {
 				this.ctx.memoryCache.set(turnKey, memories)
-				messageList.addSystem(memories, "supermemory")
+				messageList.addSystem(wrapMemoryContext(memories), "supermemory")
 				this.ctx.logger.debug("Injected memories into system prompt", {
 					length: memories.length,
 				})

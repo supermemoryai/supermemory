@@ -1,6 +1,11 @@
 import type OpenAI from "openai"
 import Supermemory from "supermemory"
 import { addConversation } from "../conversations-client"
+import {
+	replaceMemoryContext,
+	stripMemoryContext,
+	wrapMemoryContext,
+} from "../shared"
 import { deduplicateMemoriesForMode } from "../tools-shared"
 import { createLogger, type Logger } from "../vercel/logger"
 import { convertProfileToMarkdown } from "../vercel/util"
@@ -232,18 +237,26 @@ const addSystemPrompt = async (
 	}
 
 	if (systemPromptExists) {
-		logger.debug("Added memories to existing system prompt")
-		return messages.map((msg) =>
-			msg.role === "system"
-				? { ...msg, content: `${msg.content} \n ${memories}` }
-				: msg,
-		)
+		logger.debug("Replaced Supermemory context in existing system prompt")
+		let injected = false
+		return messages.map((msg) => {
+			if (msg.role !== "system") return msg
+			const content = typeof msg.content === "string" ? msg.content : ""
+			if (!injected) {
+				injected = true
+				return { ...msg, content: replaceMemoryContext(content, memories) }
+			}
+			return { ...msg, content: stripMemoryContext(content) }
+		})
 	}
 
 	logger.debug(
 		"System prompt does not exist, created system prompt with memories",
 	)
-	return [{ role: "system" as const, content: memories }, ...messages]
+	const memoryContext = wrapMemoryContext(memories)
+	return memoryContext
+		? [{ role: "system" as const, content: memoryContext }, ...messages]
+		: messages
 }
 
 /**
@@ -568,9 +581,10 @@ export function createOpenAIMiddleware(
 		const results = await Promise.all(operations)
 		const memories = results[results.length - 1] // Memory search result is always last
 
-		const enhancedInstructions = memories
-			? `${params.instructions || ""}\n\n${memories}`.trim()
-			: params.instructions
+		const enhancedInstructions = replaceMemoryContext(
+			params.instructions || "",
+			typeof memories === "string" ? memories : "",
+		)
 
 		return originalResponsesCreate.call(openaiClient.responses, {
 			...params,
@@ -627,7 +641,9 @@ export function createOpenAIMiddleware(
 		)
 
 		const results = await Promise.all(operations)
-		const enhancedMessages = results[results.length - 1] // Enhanced messages result is always last
+		const enhancedMessages = results[
+			results.length - 1
+		] as OpenAI.Chat.Completions.ChatCompletionMessageParam[] // Enhanced messages result is always last
 
 		return originalCreate.call(openaiClient.chat.completions, {
 			...params,
