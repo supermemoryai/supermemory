@@ -21,6 +21,8 @@ from .utils import (
     convert_profile_to_markdown,
     create_logger,
     deduplicate_memories,
+    replace_memory_injection,
+    strip_memory_injection,
     wrap_memory_injection,
 )
 
@@ -152,8 +154,8 @@ async def _build_memories_text(
     )
 
     deduplicated = deduplicate_memories(
-        static=static,
-        dynamic=dynamic,
+        static=static if mode != "query" else [],
+        dynamic=dynamic if mode != "query" else [],
         search_results=search_results_raw,
     )
 
@@ -393,10 +395,11 @@ def _inject_memories(context: Any, memories: str) -> None:
     different Agent Framework providers.
     """
     messages = context.messages
-    memory_text = f"\n\n{wrap_memory_injection(memories)}"
+    memory_text = wrap_memory_injection(memories)
 
-    # Try to find and augment existing system message
-    for i, msg in enumerate(messages):
+    # Replace prior SDK blocks in every system message and inject once.
+    injected = False
+    for msg in messages:
         role = None
         if hasattr(msg, "role"):
             role = msg.role
@@ -405,17 +408,35 @@ def _inject_memories(context: Any, memories: str) -> None:
 
         if role == "system":
             if hasattr(msg, "text"):
-                msg.text = (msg.text or "") + memory_text
+                existing = msg.text or ""
+                msg.text = (
+                    replace_memory_injection(existing, memories)
+                    if not injected
+                    else strip_memory_injection(existing)
+                )
             elif hasattr(msg, "content"):
-                msg.content = (msg.content or "") + memory_text
+                existing = msg.content or ""
+                msg.content = (
+                    replace_memory_injection(existing, memories)
+                    if not injected
+                    else strip_memory_injection(existing)
+                )
             elif isinstance(msg, dict):
-                msg["content"] = (msg.get("content", "") or "") + memory_text
-            return
+                existing = msg.get("content", "") or ""
+                msg["content"] = (
+                    replace_memory_injection(existing, memories)
+                    if not injected
+                    else strip_memory_injection(existing)
+                )
+            injected = True
+
+    if injected:
+        return
 
     # No system message found - prepend one
     try:
         if isinstance(messages, list):
-            messages.insert(0, Message("system", [memories]))
+            messages.insert(0, Message("system", [memory_text]))
     except Exception:
         # If messages is immutable, log a warning
         pass

@@ -142,6 +142,15 @@ class TestDeduplicateMemories(unittest.TestCase):
         )
         self.assertEqual(result["search_results"], [])
 
+    def test_dedupes_normalized_fact_variants(self) -> None:
+        result = deduplicate_memories(
+            static=["User likes Python", " user likes python "],
+            dynamic=["[2026-08-10] USER LIKES PYTHON"],
+            search_results=[],
+        )
+        self.assertEqual(result["static"], ["User likes Python"])
+        self.assertEqual(result["dynamic"], [])
+
 
 class TestFormatMemoriesToText(unittest.TestCase):
     def test_formats_pydantic_like_search_results(self) -> None:

@@ -1,6 +1,7 @@
 """Utility functions for Supermemory Cartesia integration."""
 
 from datetime import datetime, timezone
+import re
 from typing import Any, Dict, List, Union
 
 
@@ -83,12 +84,18 @@ def deduplicate_memories(
     """
     seen = set()
 
+    def fact_key(memory: str) -> str:
+        without_date = re.sub(r"^\[\d{4}-\d{2}-\d{2}\]\s*", "", memory)
+        return " ".join(without_date.strip().split()).casefold()
+
     def unique_strings(memories: List[str]) -> List[str]:
         out = []
         for m in memories:
-            if m not in seen:
-                seen.add(m)
-                out.append(m)
+            memory = m.strip()
+            key = fact_key(memory)
+            if memory and key not in seen:
+                seen.add(key)
+                out.append(memory)
         return out
 
     def unique_search(results: List[Any]) -> List[Any]:
@@ -99,8 +106,9 @@ def deduplicate_memories(
             if not isinstance(memory, str):
                 memory = ""
             memory = memory.strip()
-            if memory and memory not in seen:
-                seen.add(memory)
+            key = fact_key(memory)
+            if memory and key not in seen:
+                seen.add(key)
                 out.append(r)
         return out
 

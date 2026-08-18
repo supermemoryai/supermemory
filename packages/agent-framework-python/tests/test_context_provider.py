@@ -1,5 +1,8 @@
 """Tests for Supermemory context provider."""
 
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
 import pytest
 
 from supermemory_agent_framework import AgentSupermemory, SupermemoryContextProvider
@@ -123,3 +126,23 @@ class TestExtractConversation:
         result = provider._extract_conversation_from_context(MockContext())
         assert "User: Hello!" in result
         assert "Assistant: Hi there!" in result
+
+
+class TestMemoryRetrieval:
+    @pytest.mark.asyncio
+    async def test_query_mode_keeps_search_fact_also_present_in_profile(self) -> None:
+        fact = "User likes machine learning projects"
+        conn = _make_conn()
+        conn.client.profile = AsyncMock(
+            return_value=SimpleNamespace(
+                profile=SimpleNamespace(static=[fact], dynamic=[]),
+                search_results=SimpleNamespace(
+                    results=[SimpleNamespace(memory=fact)]
+                ),
+            )
+        )
+        provider = SupermemoryContextProvider(conn, mode="query")
+
+        memories = await provider._fetch_memories("machine learning")
+
+        assert fact in memories

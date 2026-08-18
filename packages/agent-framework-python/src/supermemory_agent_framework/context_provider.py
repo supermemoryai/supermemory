@@ -217,8 +217,8 @@ class SupermemoryContextProvider(BaseContextProvider):
         )
 
         deduplicated = deduplicate_memories(
-            static=static,
-            dynamic=dynamic,
+            static=static if self._mode != "query" else [],
+            dynamic=dynamic if self._mode != "query" else [],
             search_results=search_results_raw,
         )
 

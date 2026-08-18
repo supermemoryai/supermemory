@@ -240,9 +240,11 @@ class SupermemoryCartesiaAgent:
     def _build_memory_message(self, memories_data: Dict[str, Any]) -> Optional[str]:
         """Build memory context from retrieved data."""
         profile = memories_data["profile"]
+        include_profile = self.config.mode in ("profile", "full")
+        include_search = self.config.mode in ("query", "full")
         deduplicated = deduplicate_memories(
-            static=profile["static"],
-            dynamic=profile["dynamic"],
+            static=profile["static"] if include_profile else [],
+            dynamic=profile["dynamic"] if include_profile else [],
             search_results=memories_data["search_results"],
         )
 
@@ -254,9 +256,6 @@ class SupermemoryCartesiaAgent:
 
         if total == 0:
             return None
-
-        include_profile = self.config.mode in ("profile", "full")
-        include_search = self.config.mode in ("query", "full")
 
         memory_text = format_memories_to_text(
             deduplicated,

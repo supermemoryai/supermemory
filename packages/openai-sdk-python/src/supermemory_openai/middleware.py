@@ -26,6 +26,9 @@ from .utils import (
     deduplicate_memories,
     get_conversation_content,
     get_last_user_message,
+    replace_memory_context,
+    strip_memory_context,
+    wrap_memory_context,
 )
 
 
@@ -140,8 +143,8 @@ async def add_system_prompt(
     )
 
     deduplicated = deduplicate_memories(
-        static=profile.get("static", []),
-        dynamic=profile.get("dynamic", []),
+        static=profile.get("static", []) if mode != "query" else [],
+        dynamic=profile.get("dynamic", []) if mode != "query" else [],
         search_results=search_results_data.get("results", []),
     )
 
@@ -193,22 +196,40 @@ async def add_system_prompt(
             },
         )
 
+    if system_prompt_exists:
+        logger.debug("Replaced Supermemory context in existing system prompt")
+        enhanced: list[ChatCompletionMessageParam] = []
+        injected = False
+        for msg in messages:
+            if msg.get("role") != "system":
+                enhanced.append(msg)
+                continue
+            content = msg.get("content", "")
+            existing = content if isinstance(content, str) else ""
+            if not injected:
+                enhanced.append(
+                    cast(
+                        ChatCompletionMessageParam,
+                        {**msg, "content": replace_memory_context(existing, memories)},
+                    )
+                )
+                injected = True
+            else:
+                enhanced.append(
+                    cast(
+                        ChatCompletionMessageParam,
+                        {**msg, "content": strip_memory_context(existing)},
+                    )
+                )
+        return enhanced
+
     if not memories:
         return messages
-
-    if system_prompt_exists:
-        logger.debug("Added memories to existing system prompt")
-        return [
-            {**msg, "content": f"{msg.get('content', '')} \n {memories}"}
-            if msg.get("role") == "system"
-            else msg
-            for msg in messages
-        ]
 
     logger.debug("System prompt does not exist, created system prompt with memories")
     system_message: ChatCompletionSystemMessageParam = {
         "role": "system",
-        "content": memories,
+        "content": wrap_memory_context(memories),
     }
     return [system_message] + messages
 
