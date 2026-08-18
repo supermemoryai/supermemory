@@ -112,6 +112,15 @@ export function getBrainMode(
 		: null
 }
 
+export function isCompanyBrainOrg(
+	metadataRaw: Record<string, unknown> | string | null | undefined,
+): boolean {
+	const override = getCompanyBrainOverride(metadataRaw)
+	if (override !== undefined) return override
+	if (hasCompanyBrain(metadataRaw)) return true
+	return getBrainMode(metadataRaw) === "team"
+}
+
 export type BrainTrialStatus =
 	| "active"
 	| "exhausted"
