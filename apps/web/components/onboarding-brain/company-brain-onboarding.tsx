@@ -3,6 +3,7 @@
 import { LogoFull } from "@ui/assets/Logo"
 import { Button } from "@ui/components/button"
 import { Input } from "@ui/components/input"
+import { useAuth } from "@lib/auth-context"
 import { cn } from "@lib/utils"
 import {
 	ArrowRight,
@@ -15,6 +16,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { AnimatePresence, motion } from "motion/react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
+import { getBrainWorkspaceDomain } from "@/lib/billing-utils"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import {
 	type ResearchEvent,
@@ -102,13 +104,19 @@ export function CompanyBrainOnboarding({
 		setPhase("trial")
 		analytics.brainTrialCardViewed()
 	}, [needsSetup, phase])
+	const { org } = useAuth()
 	const [domain, setDomain] = useState(initialDomain)
 	const [organizationChoices, setOrganizationChoices] = useState<
 		CompanyBrainOrganizationChoice[] | null
 	>(null)
 	const [serverSchedulesResearch, setServerSchedulesResearch] = useState(false)
 	const firstName = name.trim().split(/\s+/)[0] ?? ""
-	const clean = normalizeDomain(domain)
+	// Returning from checkout remounts and reseeds local state from the email domain,
+	// so past the confirm step the org's stored domain is the one to trust.
+	const confirmedDomain = getBrainWorkspaceDomain(org?.metadata)
+	const clean = normalizeDomain(
+		phase === "confirm" ? domain : confirmedDomain || domain,
+	)
 	const queryClient = useQueryClient()
 	const { status: researchStatus } = useResearchStatus(phase === "research")
 	const researchDone = researchStatus === "done"
