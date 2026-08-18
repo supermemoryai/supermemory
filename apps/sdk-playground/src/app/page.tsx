@@ -48,6 +48,8 @@ export default function AgentPlaygroundPage() {
 	)
 	const keysReady =
 		supermemoryApiKey.trim().length > 0 && openaiApiKey.trim().length > 0
+	const chatReady =
+		keysReady || (hasSupermemoryKey && hasOpenAiKey)
 
 	const [sdkId, setSdkId] = useState("ts-ai-sdk-middleware")
 	const [containerTag, setContainerTag] = useState("sdk-playground")
@@ -99,7 +101,7 @@ export default function AgentPlaygroundPage() {
 	}, [refreshMeta])
 
 	const send = async () => {
-		if (!input.trim() || loading || !selectedSdk?.available || !keysReady) return
+		if (!input.trim() || loading || !selectedSdk?.available || !chatReady) return
 
 		const userMessage: UserOrAssistantMessage = {
 			kind: "user",
@@ -484,9 +486,9 @@ export default function AgentPlaygroundPage() {
 									send()
 								}
 							}}
-							disabled={loading || !input.trim() || !selectedSdk?.available || !keysReady}
+							disabled={loading || !selectedSdk?.available || !chatReady}
 							placeholder={
-								keysReady
+								chatReady
 									? "Message the agent…"
 									: "Enter API keys above to chat…"
 							}
@@ -495,7 +497,12 @@ export default function AgentPlaygroundPage() {
 						<button
 							type="button"
 							onClick={send}
-							disabled={loading || !input.trim() || !selectedSdk?.available || !keysReady}
+							disabled={
+								loading ||
+								!input.trim() ||
+								!selectedSdk?.available ||
+								!chatReady
+							}
 							className="rounded-lg bg-emerald-600 px-5 py-3 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
 						>
 							Send
