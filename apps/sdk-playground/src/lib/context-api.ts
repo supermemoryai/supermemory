@@ -3,6 +3,7 @@ import {
 	type MiddlewareRuntimeConfig,
 	normalizeMiddlewareConfig,
 } from "./middleware-config"
+import { dedupeProfileForMode } from "./memory-dedupe"
 
 export interface MemoryDebugEntry {
 	type: "profile_fetch" | "context_preview" | "conversation_saved" | "manual_profile"
@@ -143,11 +144,14 @@ export async function fetchContainerContext(
 		| { static?: unknown[]; dynamic?: unknown[] }
 		| undefined
 
-	const profile = {
-		static: profileRaw?.static ?? [],
-		dynamic: profileRaw?.dynamic ?? [],
-		searchResults: normalizeSearchResults(profileResponse.searchResults),
-	}
+	const profile = dedupeProfileForMode(
+		query ? "full" : "profile",
+		{
+			static: profileRaw?.static ?? [],
+			dynamic: profileRaw?.dynamic ?? [],
+			searchResults: normalizeSearchResults(profileResponse.searchResults),
+		},
+	)
 
 	const docsResponse = await client.post<{
 		documents?: unknown[]
@@ -204,7 +208,8 @@ export async function buildMiddlewareMemoryDebug(
 		query,
 		supermemoryApiKey,
 	)
-	const summary = summarizeProfile(context.profile)
+	const dedupedProfile = dedupeProfileForMode(memoryMode, context.profile)
+	const summary = summarizeProfile(dedupedProfile)
 
 	const trace: MemoryDebugEntry[] = [
 		{
@@ -229,8 +234,14 @@ export async function buildMiddlewareMemoryDebug(
 		},
 		{
 			type: "context_preview",
-			label: "Context injected into prompt",
-			preview: buildContextPreview(context.profile, memoryMode, query),
+			label: "Current SDK memory block (replaces the prior block)",
+			preview: buildContextPreview(dedupedProfile, memoryMode, query),
+			detail: {
+				totalFacts:
+					summary.staticCount +
+					summary.dynamicCount +
+					summary.searchResultCount,
+			},
 		},
 		{
 			type: "conversation_saved",

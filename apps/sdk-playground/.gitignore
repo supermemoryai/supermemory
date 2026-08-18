@@ -3,3 +3,4 @@
 .env.local
 node_modules
 python/.venv
+*.tsbuildinfo
