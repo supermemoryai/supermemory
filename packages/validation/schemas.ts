@@ -30,7 +30,7 @@ const StringContainsFilterSchema = z.object({
   ignoreCase: z.boolean().optional(),
 })
 
-const NumericOperatorSchema = z.enum(["=", "!=", "<", "<=", ">", ">="])
+const NumericOperatorSchema = z.union([z.literal("="), z.literal("!="), z.literal("<"), z.literal("<="), z.literal(">"), z.literal(">=")])
 
 const NumericFilterSchema = z.object({
   filterType: z.literal("numeric"),
@@ -67,6 +67,7 @@ export const FilterExpressionSchema: z.ZodType<FilterExpression> = z.lazy(() =>
 )
 
 export const SearchFiltersSchema = z.union([
+  FilterExpressionSchema,
   z.object({ AND: z.array(FilterExpressionSchema).min(1) }),
   z.object({ OR: z.array(FilterExpressionSchema).min(1) }),
 ])
