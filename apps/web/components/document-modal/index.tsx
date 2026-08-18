@@ -284,6 +284,11 @@ export function DocumentModal({
 			pluginDocument?.summary ||
 			(_document?.memoryEntries && _document.memoryEntries.length > 0),
 	)
+	const deleteTargetKey = _document?.id
+		? `id:${_document.id}`
+		: _document?.customId
+			? `custom:${_document.customId}`
+			: "missing"
 
 	const documentPreview = (
 		<div
@@ -352,6 +357,7 @@ export function DocumentModal({
 							<CopySessionIdButton sessionId={_document.customId} />
 						)}
 					<DeleteButton
+						key={deleteTargetKey}
 						documentId={_document?.id}
 						customId={_document?.customId}
 						deleteMutation={deleteMutation}
