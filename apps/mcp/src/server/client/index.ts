@@ -423,6 +423,15 @@ export class SupermemoryClient {
 		}
 	}
 
+	async deleteDocument(id: string): Promise<{ id: string }> {
+		try {
+			await this.client.documents.delete(id)
+			return { id }
+		} catch (error) {
+			this.handleOperationError("Delete document request", error)
+		}
+	}
+
 	async listMemoryEntries(
 		page = 1,
 		limit = 50,
