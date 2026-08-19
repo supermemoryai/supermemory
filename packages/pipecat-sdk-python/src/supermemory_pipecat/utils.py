@@ -1,7 +1,27 @@
 """Utility functions for Supermemory Pipecat integration."""
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List
+
+
+def _get_result_field(result: Any, *keys: str) -> Any:
+    """Read a field from a search result that may be a dict or an SDK model.
+
+    The profile endpoint returns search results as plain dicts with camelCase
+    keys, while the typed SDK models expose the same data as snake_case
+    attributes. Accept both shapes so callers don't depend on the SDK version.
+    """
+    if isinstance(result, dict):
+        for key in keys:
+            value = result.get(key)
+            if value is not None:
+                return value
+        return None
+    for key in keys:
+        value = getattr(result, key, None)
+        if value is not None:
+            return value
+    return None
 
 
 def get_last_user_message(messages: List[Dict[str, str]]) -> str | None:
@@ -52,14 +72,15 @@ def format_relative_time(iso_timestamp: str) -> str:
 def deduplicate_memories(
     static: List[str],
     dynamic: List[str],
-    search_results: List[Dict[str, Any]],
-) -> Dict[str, Union[List[str], List[Dict[str, Any]]]]:
+    search_results: List[Any],
+) -> Dict[str, List[Any]]:
     """Deduplicate memories. Priority: static > dynamic > search.
 
     Args:
         static: List of static memory strings.
         dynamic: List of dynamic memory strings.
-        search_results: List of search result dicts with 'memory' and 'updatedAt'.
+        search_results: List of search results with 'memory' and 'updatedAt',
+            either as dicts or as SDK result models.
     """
     seen = set()
 
@@ -71,10 +92,10 @@ def deduplicate_memories(
                 out.append(m)
         return out
 
-    def unique_search(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def unique_search(results: List[Any]) -> List[Any]:
         out = []
         for r in results:
-            memory = r.get("memory", "")
+            memory = _get_result_field(r, "memory")
             if memory and memory not in seen:
                 seen.add(memory)
                 out.append(r)
@@ -88,7 +109,7 @@ def deduplicate_memories(
 
 
 def format_memories_to_text(
-    memories: Dict[str, Union[List[str], List[Dict[str, Any]]]],
+    memories: Dict[str, List[Any]],
     system_prompt: str = "Based on previous conversations, I recall:\n\n",
     include_static: bool = True,
     include_dynamic: bool = True,
@@ -116,16 +137,16 @@ def format_memories_to_text(
         sections.append("## Relevant Memories")
         lines = []
         for item in search_results:
-            if isinstance(item, dict):
-                memory = item.get("memory", "")
-                updated_at = item.get("updatedAt", "")
-                time_str = format_relative_time(updated_at) if updated_at else ""
-                if time_str:
-                    lines.append(f"- [{time_str}] {memory}")
-                else:
-                    lines.append(f"- {memory}")
-            else:
+            if isinstance(item, str):
                 lines.append(f"- {item}")
+                continue
+            memory = _get_result_field(item, "memory") or ""
+            updated_at = _get_result_field(item, "updatedAt", "updated_at") or ""
+            time_str = format_relative_time(updated_at) if updated_at else ""
+            if time_str:
+                lines.append(f"- [{time_str}] {memory}")
+            else:
+                lines.append(f"- {memory}")
         sections.append("\n".join(lines))
 
     if not sections:

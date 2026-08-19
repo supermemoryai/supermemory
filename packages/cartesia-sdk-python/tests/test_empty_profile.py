@@ -1,44 +1,10 @@
 from __future__ import annotations
 
-import sys
-import types
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-
-def _install_test_stubs() -> None:
-    if "loguru" not in sys.modules:
-        loguru_module = types.ModuleType("loguru")
-
-        class _Logger:
-            def info(self, *_args, **_kwargs):
-                return None
-
-            def warning(self, *_args, **_kwargs):
-                return None
-
-            def error(self, *_args, **_kwargs):
-                return None
-
-        loguru_module.logger = _Logger()
-        sys.modules["loguru"] = loguru_module
-
-    if "pydantic" not in sys.modules:
-        pydantic_module = types.ModuleType("pydantic")
-
-        class BaseModel:
-            def __init__(self, **kwargs):
-                for key, value in kwargs.items():
-                    setattr(self, key, value)
-
-        def Field(*, default=None, **_kwargs):
-            return default
-
-        pydantic_module.BaseModel = BaseModel
-        pydantic_module.Field = Field
-        sys.modules["pydantic"] = pydantic_module
-
+from .conftest import _install_test_stubs
 
 _install_test_stubs()
 
