@@ -47,14 +47,32 @@ export class ClaudeMemoryTool {
 	private memoryContainerPrefix: string
 
 	/**
-	 * Normalize file path to be used as customId
-	 * Converts /memories/file.txt -> memories_file_txt
+	 * Normalize file path to be used as customId.
+	 * Converts /memories/file.txt -> memories_sfile_dtxt
+	 *
+	 * The encoding is reversible: `_` is the escape character, so every `_` in
+	 * the output opens a two-character sequence (`__` = literal `_`, `_s` = `/`,
+	 * `_d` = `.`). Distinct paths therefore always get distinct customIds. The
+	 * previous scheme collapsed `/`, `.` and `_` all to `_`, so
+	 * /memories/notes.txt, /memories/notes_txt and /memories/notes/txt shared
+	 * one customId and silently overwrote each other.
 	 */
 	private normalizePathToCustomId(path: string): string {
 		return path
 			.replace(/^\//, "") // Remove leading slash
-			.replace(/\//g, "_") // Replace / with _
-			.replace(/\./g, "_") // Replace . with _
+			.replace(/_/g, "__") // Escape literal _ first
+			.replace(/\//g, "_s") // / -> _s
+			.replace(/\./g, "_d") // . -> _d
+	}
+
+	/**
+	 * The pre-collision-fix customId for a path. Documents written before that
+	 * fix still carry these ids, so reads fall back to them — guarded by an
+	 * exact `file_path` match, since legacy ids are the ambiguous ones. The
+	 * next write to the path promotes the document to the new customId.
+	 */
+	private legacyPathToCustomId(path: string): string {
+		return path.replace(/^\//, "").replace(/\//g, "_").replace(/\./g, "_")
 	}
 
 	constructor(apiKey: string, config?: ClaudeMemoryConfig) {
@@ -576,9 +594,12 @@ export class ClaudeMemoryTool {
 	}> {
 		try {
 			const normalizedId = this.normalizePathToCustomId(filePath)
+			const legacyId = this.legacyPathToCustomId(filePath)
 
+			// Query with the legacy id: it keeps the path words intact, so search
+			// relevance is unchanged, and it is what pre-fix documents are keyed on.
 			const response = await this.client.search.execute({
-				q: normalizedId,
+				q: legacyId,
 				containerTags: this.containerTags,
 				limit: 5,
 				includeFullDocs: true,
@@ -587,9 +608,15 @@ export class ClaudeMemoryTool {
 			// Only accept the exact customId match. Falling back to the top
 			// semantic hit would let callers read — and worse, modify or
 			// delete — a different file than the one they asked for.
-			const document = response.results?.find(
-				(r) => r.documentId === normalizedId,
-			)
+			const document =
+				response.results?.find((r) => r.documentId === normalizedId) ??
+				// Documents written before the customId encoding was made
+				// reversible. Their ids are ambiguous, so require the stored
+				// path to match exactly.
+				response.results?.find(
+					(r) =>
+						r.documentId === legacyId && r.metadata?.file_path === filePath,
+				)
 
 			if (!document) {
 				return {

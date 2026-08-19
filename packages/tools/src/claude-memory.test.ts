@@ -24,9 +24,9 @@ const FILE_CONTENT = "line1\nline2\nline3\nline4\nline5"
 
 function mockDocument(content: string) {
 	// `readFile` matches by `documentId === normalizePathToCustomId(path)`.
-	// normalizePathToCustomId("/memories/notes.txt") -> "memories_notes_txt"
+	// normalizePathToCustomId("/memories/notes.txt") -> "memories_snotes_dtxt"
 	searchExecute.mockResolvedValue({
-		results: [{ documentId: "memories_notes_txt", content }],
+		results: [{ documentId: "memories_snotes_dtxt", content }],
 	})
 }
 
@@ -97,8 +97,8 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 	it("view finds the exact file even when a neighbour ranks first", async () => {
 		searchExecute.mockResolvedValue({
 			results: [
-				{ documentId: "memories_notes_backup_txt", content: "backup stuff" },
-				{ documentId: "memories_notes_txt", content: FILE_CONTENT },
+				{ documentId: "memories_snotes__backup_dtxt", content: "backup stuff" },
+				{ documentId: "memories_snotes_dtxt", content: FILE_CONTENT },
 			],
 		})
 
@@ -117,7 +117,7 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 		// be served as the requested one.
 		searchExecute.mockResolvedValue({
 			results: [
-				{ documentId: "memories_notes_backup_txt", content: "backup stuff" },
+				{ documentId: "memories_snotes__backup_dtxt", content: "backup stuff" },
 			],
 		})
 
@@ -133,7 +133,7 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 	it("str_replace refuses to modify a different file than requested", async () => {
 		searchExecute.mockResolvedValue({
 			results: [
-				{ documentId: "memories_notes_backup_txt", content: "backup stuff" },
+				{ documentId: "memories_snotes__backup_dtxt", content: "backup stuff" },
 			],
 		})
 
@@ -156,7 +156,7 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 		searchExecute.mockReset()
 		addMock.mockReset()
 		searchExecute.mockResolvedValue({
-			results: [{ documentId: "memories_notes_txt", content: FILE_CONTENT }],
+			results: [{ documentId: "memories_snotes_dtxt", content: FILE_CONTENT }],
 		})
 		tool = new ClaudeMemoryTool("test-api-key")
 	})
@@ -179,5 +179,82 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 		const stored = addMock.mock.calls[0]?.[0]?.content as string
 		expect(stored).toContain(`price is ${dollarSequence} today`)
 		expect(stored).not.toContain("line3")
+	})
+})
+
+describe("ClaudeMemoryTool customId encoding", () => {
+	let tool: ClaudeMemoryTool
+
+	beforeEach(() => {
+		searchExecute.mockReset()
+		addMock.mockReset()
+		tool = new ClaudeMemoryTool("test-api-key")
+	})
+
+	async function customIdFor(path: string) {
+		addMock.mockReset()
+		const result = await tool.handleCommand({
+			command: "create",
+			path,
+			file_text: "contents",
+		})
+		expect(result.success).toBe(true)
+		return addMock.mock.calls[0]?.[0]?.customId as string
+	}
+
+	it("gives paths that differ only in their separators distinct customIds", async () => {
+		// All three collapsed to `memories_notes_txt` under the old encoding,
+		// so creating one silently overwrote the others.
+		const ids = [
+			await customIdFor("/memories/notes.txt"),
+			await customIdFor("/memories/notes_txt"),
+			await customIdFor("/memories/notes/txt"),
+			await customIdFor("/memories/project/a.md"),
+			await customIdFor("/memories/project_a.md"),
+		]
+
+		expect(new Set(ids).size).toBe(ids.length)
+	})
+
+	it("still finds documents written under the legacy customId", async () => {
+		searchExecute.mockResolvedValue({
+			results: [
+				{
+					documentId: "memories_notes_txt",
+					content: FILE_CONTENT,
+					metadata: { file_path: FILE_PATH },
+				},
+			],
+		})
+
+		const result = await tool.handleCommand({
+			command: "view",
+			path: FILE_PATH,
+		})
+
+		expect(result.success).toBe(true)
+		expect(result.content).toContain("line1")
+	})
+
+	it("does not serve a legacy document whose stored path differs", async () => {
+		// `memories_notes_txt` is ambiguous: it could be /memories/notes.txt,
+		// /memories/notes_txt or /memories/notes/txt. Only the stored path decides.
+		searchExecute.mockResolvedValue({
+			results: [
+				{
+					documentId: "memories_notes_txt",
+					content: "someone else's file",
+					metadata: { file_path: "/memories/notes/txt" },
+				},
+			],
+		})
+
+		const result = await tool.handleCommand({
+			command: "view",
+			path: FILE_PATH,
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("File not found")
 	})
 })

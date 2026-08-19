@@ -176,7 +176,7 @@ describe("memoryForget", () => {
 
 describe("ClaudeMemoryTool", () => {
 	const FILE_PATH = "/memories/prefs.txt"
-	const CUSTOM_ID = "memories_prefs_txt"
+	const CUSTOM_ID = "memories_sprefs_dtxt"
 
 	function mockFileDocument(content: string) {
 		searchExecute.mockResolvedValue({
@@ -262,7 +262,7 @@ describe("ClaudeMemoryTool", () => {
 
 		expect(result.success).toBe(true)
 		expect(clientAdd).toHaveBeenCalledWith(
-			expect.objectContaining({ customId: "memories_renamed_txt" }),
+			expect.objectContaining({ customId: "memories_srenamed_dtxt" }),
 		)
 		expect(documentsDelete).toHaveBeenCalledWith(CUSTOM_ID)
 	})
