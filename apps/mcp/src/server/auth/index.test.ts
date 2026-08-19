@@ -172,6 +172,30 @@ describe("MCP authentication", () => {
 		).resolves.toBeNull()
 	})
 
+	it("rejects an API key when the session endpoint returns 403", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => {})
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(new Response(null, { status: 403 })),
+		)
+
+		await expect(
+			validateApiKey("sm_forbidden_key_0123456789abcdef", API_URL),
+		).resolves.toBeNull()
+	})
+
+	it("propagates transient session endpoint failures (500/network errors)", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => {})
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(new Response(null, { status: 500 })),
+		)
+
+		await expect(
+			validateApiKey("sm_transient_key_0123456789abcdef", API_URL),
+		).rejects.toMatchObject({ status: 500 })
+	})
+
 	it("rejects malformed API keys without an API request", async () => {
 		const fetchSpy = vi.fn()
 		vi.stubGlobal("fetch", fetchSpy)

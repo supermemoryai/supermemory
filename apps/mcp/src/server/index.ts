@@ -128,6 +128,26 @@ function authInfoFor(
 	}
 }
 
+function authUnavailableResponse(): Response {
+	return Response.json(
+		{
+			jsonrpc: "2.0",
+			error: {
+				code: -32000,
+				message: "Authentication service unavailable",
+			},
+			id: null,
+		},
+		{
+			status: 503,
+			headers: {
+				"Access-Control-Expose-Headers": "WWW-Authenticate",
+				"Access-Control-Allow-Origin": "*",
+			},
+		},
+	)
+}
+
 function unauthorizedResponse(
 	resourceMetadataUrl: string,
 	invalidToken = false,
@@ -181,9 +201,15 @@ async function handleMcpRequest(
 
 	if (!token) return unauthorizedResponse(resourceMetadataUrl)
 
-	const authUser = isApiKey(token)
-		? await validateApiKey(token, apiUrl)
-		: await validateOAuthToken(token, apiUrl, mcpResource)
+	const authUser = await (isApiKey(token)
+		? validateApiKey(token, apiUrl)
+		: validateOAuthToken(token, apiUrl, mcpResource)
+	).catch((error) => {
+		console.error("Authentication service unavailable:", error)
+		return undefined
+	})
+
+	if (authUser === undefined) return authUnavailableResponse()
 	if (!authUser) return unauthorizedResponse(resourceMetadataUrl, true)
 
 	const actor: ActorContext = {
