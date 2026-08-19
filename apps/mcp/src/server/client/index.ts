@@ -34,7 +34,8 @@ export interface DocumentsListResponse {
 	pagination: SdkDocumentListResponse["pagination"]
 }
 
-const memoryEntryHistorySchema = z.looseObject({
+// z.object strips API extras that the strict MCP output schema would reject.
+const memoryEntryHistorySchema = z.object({
 	id: z.string(),
 	memory: z.string(),
 	version: z.number(),
@@ -48,7 +49,7 @@ const memoryEntryHistorySchema = z.looseObject({
 
 export type MemoryEntryHistory = z.infer<typeof memoryEntryHistorySchema>
 
-const memoryEntrySchema = z.looseObject({
+const memoryEntrySchema = z.object({
 	id: z.string(),
 	memory: z.string(),
 	version: z.number(),
