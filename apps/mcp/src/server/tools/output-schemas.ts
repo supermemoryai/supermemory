@@ -1,6 +1,7 @@
 import { z } from "zod"
 import {
 	containerTagAccessSchema,
+	memoriesListSchema,
 	paginationSchema,
 	sessionScopeSchema,
 } from "../../shared/types"
@@ -42,33 +43,6 @@ const documentSummarySchema = z.object({
 	summary: z.string().nullable(),
 })
 
-const memoryHistorySchema = z.object({
-	id: z.string(),
-	memory: z.string(),
-	version: z.number(),
-	createdAt: z.string(),
-	updatedAt: z.string(),
-	parentMemoryId: z.string().nullish(),
-	rootMemoryId: z.string().nullish(),
-	isLatest: z.boolean().optional(),
-	isForgotten: z.boolean().optional(),
-})
-
-const memoryEntryOutputSchema = z.object({
-	id: z.string(),
-	memory: z.string(),
-	version: z.number(),
-	isLatest: z.boolean(),
-	isForgotten: z.boolean(),
-	isStatic: z.boolean().optional(),
-	isInference: z.boolean().optional(),
-	createdAt: z.string(),
-	updatedAt: z.string(),
-	sourceCount: z.number().optional(),
-	documentIds: z.array(z.string()).optional(),
-	history: z.array(memoryHistorySchema).optional(),
-})
-
 export const addMemoryOutputSchema = z.object({
 	action: z.enum(["save", "forget"]),
 	success: z.boolean(),
@@ -104,10 +78,9 @@ export const listDocumentsOutputSchema = z.object({
 
 export type ListDocumentsOutput = z.infer<typeof listDocumentsOutputSchema>
 
-export const listMemoriesOutputSchema = z.object({
-	memoryEntries: z.array(memoryEntryOutputSchema),
-	pagination: paginationSchema,
-})
+// Reuse the shared schema so the tool's output contract stays identical to what
+// the client parses — the two can't drift.
+export const listMemoriesOutputSchema = memoriesListSchema
 
 export type ListMemoriesOutput = z.infer<typeof listMemoriesOutputSchema>
 
