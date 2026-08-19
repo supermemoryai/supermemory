@@ -53,6 +53,13 @@ function buildMcpAuthorizeResumeUrl(
 	return `${backend}/api/auth/oauth2/authorize?${p.toString()}`
 }
 
+function clearPendingLoginMethod() {
+	try {
+		localStorage.removeItem("supermemory-pending-login-method")
+		localStorage.removeItem("supermemory-pending-login-timestamp")
+	} catch {}
+}
+
 function LoginHeadline({ className }: { className?: string }) {
 	return (
 		<div className={cn("max-w-sm text-center", className)}>
@@ -204,9 +211,32 @@ export default function LoginPage() {
 		} catch {}
 	}
 
+	function getErrorText(error: unknown): string | null {
+		if (error instanceof Error) return error.message
+		if (
+			typeof error === "object" &&
+			error !== null &&
+			"message" in error &&
+			typeof error.message === "string"
+		) {
+			return error.message
+		}
+		return null
+	}
+
+	function getPlainObjectStatus(error: unknown): number | null {
+		if (typeof error !== "object" || error === null) return null
+		const prototype = Object.getPrototypeOf(error)
+		if (prototype !== Object.prototype && prototype !== null) return null
+		if (!("status" in error) || typeof error.status !== "number") return null
+		return error.status
+	}
+
 	function isNetworkError(error: unknown): boolean {
-		if (!(error instanceof Error)) return false
-		const message = error.message.toLowerCase()
+		const status = getPlainObjectStatus(error)
+		if (status !== null) return status === 0
+		const message = getErrorText(error)?.toLowerCase()
+		if (!message) return false
 		return (
 			message.includes("load failed") ||
 			message.includes("networkerror") ||
@@ -219,19 +249,40 @@ export default function LoginPage() {
 		if (isNetworkError(error)) {
 			return "Network error. Please check your connection and try again."
 		}
-		if (error instanceof Error) {
-			return error.message
+		return (
+			getErrorText(error) || "An unexpected error occurred. Please try again."
+		)
+	}
+
+	async function handleExternalSignIn(
+		provider: "agentid" | "github" | "google",
+		startSignIn: () => Promise<{ error?: unknown }>,
+	) {
+		if (loadingMessage) return
+		setError(null)
+		setIsLoading(true)
+		posthog.capture("login_attempt", {
+			method: "social",
+			provider,
+		})
+		setPendingLoginMethod(provider)
+
+		try {
+			const result = await startSignIn()
+			if (!result.error) return
+			setError(getErrorMessage(result.error))
+		} catch (error) {
+			setError(getErrorMessage(error))
 		}
-		return "An unexpected error occurred. Please try again."
+
+		setIsLoading(false)
+		clearPendingLoginMethod()
 	}
 
 	// If we land back on this page with an error, clear any pending marker
 	useEffect(() => {
 		if (params.get("error")) {
-			try {
-				localStorage.removeItem("supermemory-pending-login-method")
-				localStorage.removeItem("supermemory-pending-login-timestamp")
-			} catch {}
+			clearPendingLoginMethod()
 		}
 	}, [params])
 
@@ -512,22 +563,12 @@ export default function LoginPage() {
 														className="w-full"
 														disabled={Boolean(loadingMessage)}
 														onClick={() => {
-															if (loadingMessage) return
-															setIsLoading(true)
-															posthog.capture("login_attempt", {
-																method: "social",
-																provider: "google",
-															})
-															setPendingLoginMethod("google")
-															signIn
-																.social({
+															void handleExternalSignIn("google", () =>
+																signIn.social({
 																	callbackURL: getCallbackURL(),
 																	provider: "google",
-																})
-																.catch((err: unknown) => {
-																	setError(getErrorMessage(err))
-																	setIsLoading(false)
-																})
+																}),
+															)
 														}}
 													/>
 												</div>
@@ -571,22 +612,12 @@ export default function LoginPage() {
 														className="w-full"
 														disabled={Boolean(loadingMessage)}
 														onClick={() => {
-															if (loadingMessage) return
-															setIsLoading(true)
-															posthog.capture("login_attempt", {
-																method: "social",
-																provider: "github",
-															})
-															setPendingLoginMethod("github")
-															signIn
-																.social({
+															void handleExternalSignIn("github", () =>
+																signIn.social({
 																	callbackURL: getCallbackURL(),
 																	provider: "github",
-																})
-																.catch((err: unknown) => {
-																	setError(getErrorMessage(err))
-																	setIsLoading(false)
-																})
+																}),
+															)
 														}}
 													/>
 												</div>
@@ -644,22 +675,12 @@ export default function LoginPage() {
 														className="w-full"
 														disabled={Boolean(loadingMessage)}
 														onClick={() => {
-															if (loadingMessage) return
-															setIsLoading(true)
-															posthog.capture("login_attempt", {
-																method: "social",
-																provider: "agentid",
-															})
-															setPendingLoginMethod("agentid")
-															signIn
-																.oauth2({
+															void handleExternalSignIn("agentid", () =>
+																signIn.oauth2({
 																	callbackURL: getCallbackURL(),
 																	providerId: "agentid",
-																})
-																.catch((err: unknown) => {
-																	setError(getErrorMessage(err))
-																	setIsLoading(false)
-																})
+																}),
+															)
 														}}
 													/>
 												</div>
