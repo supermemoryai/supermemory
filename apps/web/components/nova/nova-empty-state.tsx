@@ -1,6 +1,6 @@
 "use client"
 
-import { CHROME_EXTENSION_URL } from "@repo/lib/constants"
+import { CHROME_EXTENSION_URL } from "@lib/constants"
 import type { IntegrationParamValue } from "@/lib/search-params"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"

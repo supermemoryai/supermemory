@@ -4,7 +4,7 @@ import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import Image from "next/image"
-import { CHROME_EXTENSION_URL } from "@repo/lib/constants"
+import { CHROME_EXTENSION_URL } from "@lib/constants"
 
 interface XBookmarksDetailViewProps {
 	onBack: () => void
