@@ -121,6 +121,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList,
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await processor.processInput(args)
@@ -153,6 +154,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList,
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await processor.processInput(args)
@@ -192,6 +194,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList,
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await processor.processInput(args)
@@ -234,6 +237,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList: createIntegrationMessageList(),
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await processor.processInput(args1)
@@ -248,6 +252,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList: createIntegrationMessageList(),
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await processor.processInput(args2)
@@ -283,6 +288,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList,
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await processor.processInput(args)
@@ -314,6 +320,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList: createIntegrationMessageList(),
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await processor.processOutputResult(args)
@@ -347,6 +354,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList: createIntegrationMessageList(),
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await processor.processOutputResult(args)
@@ -384,6 +392,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList: createIntegrationMessageList(),
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 					requestContext,
 				}
 
@@ -418,6 +427,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList,
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await input.processInput(inputArgs)
@@ -431,6 +441,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList: createIntegrationMessageList(),
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await output.processOutputResult(outputArgs)
@@ -471,6 +482,7 @@ describe.skipIf(!shouldRunIntegration)(
 						messageList,
 						abort: vi.fn() as never,
 						retryCount: 0,
+						state: {},
 					}
 
 					await inputProcessor.processInput(args)
@@ -535,6 +547,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList,
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await processor.processInput(args)
@@ -559,6 +572,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList: createIntegrationMessageList(),
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await processor.processInput(args)
@@ -593,6 +607,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList,
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				const result = await processor.processInput(args)
@@ -617,6 +632,7 @@ describe.skipIf(!shouldRunIntegration)(
 					messageList: createIntegrationMessageList(),
 					abort: vi.fn() as never,
 					retryCount: 0,
+					state: {},
 				}
 
 				await expect(processor.processOutputResult(args)).resolves.toBeDefined()
