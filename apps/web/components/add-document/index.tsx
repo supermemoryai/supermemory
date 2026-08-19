@@ -347,7 +347,6 @@ export function AddDocument({
 									discounts: promoCode.getDiscounts(),
 									successUrl: `${window.location.origin}/settings#account`,
 								})
-								promoCode.clear()
 								if (result?.paymentUrl) {
 									window.open(result.paymentUrl, "_self")
 									return
@@ -449,7 +448,6 @@ export function AddDocument({
 											discounts: promoCode.getDiscounts(),
 											successUrl: `${window.location.origin}/settings#account`,
 										})
-										promoCode.clear()
 										if (result?.paymentUrl) {
 											window.open(result.paymentUrl, "_self")
 											return

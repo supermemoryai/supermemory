@@ -637,7 +637,6 @@ function OnboardingPlansModal({
 				discounts: promoCode.getDiscounts(),
 				successUrl: window.location.href,
 			})
-			promoCode.clear()
 			if ((result as { paymentUrl?: string })?.paymentUrl) {
 				window.location.href = (result as { paymentUrl: string }).paymentUrl
 				return
