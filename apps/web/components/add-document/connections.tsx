@@ -335,7 +335,6 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 				discounts: promoCode.getDiscounts(),
 				successUrl: window.location.href,
 			})
-			promoCode.clear()
 			if (result?.paymentUrl) {
 				window.open(result.paymentUrl, "_self")
 				return

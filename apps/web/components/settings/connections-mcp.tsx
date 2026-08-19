@@ -557,7 +557,6 @@ export default function ConnectionsMCP() {
 				discounts: promoCode.getDiscounts(),
 				successUrl: `${window.location.origin}/settings#connections`,
 			})
-			promoCode.clear()
 			if (result?.paymentUrl) {
 				window.open(result.paymentUrl, "_self")
 				return

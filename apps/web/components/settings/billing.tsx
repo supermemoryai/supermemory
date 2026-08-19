@@ -703,7 +703,6 @@ export default function Billing() {
 				discounts: promoCode.getDiscounts(),
 				successUrl: `${window.location.origin}/settings#billing`,
 			})
-			promoCode.clear()
 			if ((result as { paymentUrl?: string })?.paymentUrl) {
 				window.location.href = (result as { paymentUrl: string }).paymentUrl
 				return
