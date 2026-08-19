@@ -8,8 +8,9 @@ import {
 	Icon,
 	getSelectedText,
 } from "@raycast/api"
-import { useState, useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import { addMemory, fetchProjects } from "./api"
+import { createDeferredPrefillOwner } from "./deferred-prefill"
 import { usePromise } from "@raycast/utils"
 import { withSupermemory } from "./withSupermemory"
 
@@ -23,24 +24,18 @@ function Command() {
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [initialContent, setInitialContent] = useState("")
 	const { pop } = useNavigation()
+	const prefillOwnerRef = useRef<
+		ReturnType<typeof createDeferredPrefillOwner> | undefined
+	>(undefined)
+	prefillOwnerRef.current ??= createDeferredPrefillOwner(setInitialContent)
+	const prefillOwner = prefillOwnerRef.current
 
 	const { isLoading, data: projects = [] } = usePromise(fetchProjects)
 
 	useEffect(() => {
-		async function loadSelectedText() {
-			try {
-				const selectedText = await getSelectedText()
-				if (selectedText) {
-					setInitialContent(selectedText)
-				}
-			} catch {
-				// No text selected or error getting selected text - silently fail
-				// User can still manually enter content
-			}
-		}
-
-		loadSelectedText()
-	}, [])
+		const request = prefillOwner.start(getSelectedText)
+		return request.cancel
+	}, [prefillOwner])
 
 	async function handleSubmit(values: FormValues) {
 		if (!values.content.trim()) {
@@ -91,7 +86,7 @@ function Command() {
 				value={initialContent}
 				placeholder="Enter the memory content..."
 				info="The main content of your memory. This is required."
-				onChange={(value) => setInitialContent(value)}
+				onChange={prefillOwner.updateFromUser}
 			/>
 			<Form.Separator />
 			<Form.Dropdown
