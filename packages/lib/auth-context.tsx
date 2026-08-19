@@ -9,6 +9,7 @@ import {
 	useState,
 } from "react"
 import { authClient, useSession } from "./auth"
+import { mergeOrganizationMetadata } from "./organization-metadata"
 
 type Organization = typeof authClient.$Infer.ActiveOrganization
 type SessionData = NonNullable<ReturnType<typeof useSession>["data"]>
@@ -44,7 +45,10 @@ interface AuthContextType {
 	isSessionPending: boolean
 	setActiveOrg: (orgSlug: string) => Promise<void>
 	clearActiveOrg: () => Promise<void>
-	updateOrgMetadata: (partial: Record<string, unknown>) => void
+	updateOrgMetadata: (
+		organizationId: string,
+		partial: Record<string, unknown>,
+	) => void
 	refetchActiveOrg: () => Promise<Organization | null>
 	refetchOrganizations: () => Promise<unknown>
 }
@@ -89,18 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		} catch {}
 	}, [])
 
-	const updateOrgMetadata = useCallback((partial: Record<string, unknown>) => {
-		setOrg((prev) => {
-			if (!prev) return prev
-			return {
-				...prev,
-				metadata: {
-					...prev.metadata,
-					...partial,
-				},
-			}
-		})
-	}, [])
+	const updateOrgMetadata = useCallback(
+		(organizationId: string, partial: Record<string, unknown>) => {
+			setOrg((prev) => mergeOrganizationMetadata(prev, organizationId, partial))
+		},
+		[],
+	)
 
 	const refetchActiveOrg = useCallback(async () => {
 		const full = await authClient.organization.getFullOrganization()

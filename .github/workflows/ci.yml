@@ -29,5 +29,8 @@ jobs:
       - name: Run TypeScript type checking
         run: bunx turbo run check-types --filter='@supermemory/ai-sdk' --filter='@supermemory/memory-graph'
 
+      - name: Run shared library unit tests
+        run: bun test packages/hooks packages/lib
+
       - name: Run Biome CI (format & lint on changed files)
         run: bunx biome ci --changed --since=origin/main --no-errors-on-unmatched
