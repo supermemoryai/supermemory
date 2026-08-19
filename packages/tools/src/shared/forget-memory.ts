@@ -34,10 +34,7 @@ export async function forgetMemoryRequest(
 		},
 		body: JSON.stringify(params),
 		signal: options?.signal
-			? AbortSignal.any([
-					options.signal,
-					AbortSignal.timeout(FETCH_TIMEOUT_MS),
-				])
+			? AbortSignal.any([options.signal, AbortSignal.timeout(FETCH_TIMEOUT_MS)])
 			: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 	})
 
