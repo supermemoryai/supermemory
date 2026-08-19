@@ -169,6 +169,11 @@ const hostnameMatches = (hostname: string, domain: string): boolean => {
 	)
 }
 
+const YOUTUBE_VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/
+
+const validYouTubeVideoId = (candidate: string | null | undefined) =>
+	candidate && YOUTUBE_VIDEO_ID_PATTERN.test(candidate) ? candidate : null
+
 /**
  * Checks if a URL is a Twitter/X URL.
  */
@@ -195,6 +200,36 @@ export const isYouTubeUrl = (url: string | undefined | null): boolean => {
 		hostnameMatches(parsed.hostname, "youtube.com") ||
 		hostnameMatches(parsed.hostname, "youtu.be")
 	)
+}
+
+/**
+ * Extracts an exact 11-character video ID from supported YouTube video URLs.
+ */
+export const extractYouTubeVideoId = (
+	url: string | undefined | null,
+): string | null => {
+	if (!url) return null
+	const parsed = parseWebUrl(url)
+	if (!parsed) return null
+
+	const segments = parsed.pathname.split("/").filter(Boolean)
+	if (hostnameMatches(parsed.hostname, "youtu.be")) {
+		return segments.length === 1 ? validYouTubeVideoId(segments[0]) : null
+	}
+	if (!hostnameMatches(parsed.hostname, "youtube.com")) return null
+
+	const route = segments[0]
+	if (route === "watch" && segments.length === 1) {
+		return validYouTubeVideoId(parsed.searchParams.get("v"))
+	}
+	if (
+		(route === "embed" || route === "shorts" || route === "live") &&
+		segments.length === 2
+	) {
+		return validYouTubeVideoId(segments[1])
+	}
+
+	return null
 }
 
 /**
