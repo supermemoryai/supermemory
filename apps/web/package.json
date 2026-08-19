@@ -23,7 +23,6 @@
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",
     "@ai-sdk/react": "^3.0.170",
-    "@ai-sdk/xai": "^3.0.83",
     "@better-fetch/fetch": "^1.1.18",
     "@cloudflare/ai-chat": "^0.0.7",
     "@dnd-kit/core": "^6.3.1",
