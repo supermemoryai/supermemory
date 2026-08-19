@@ -26,6 +26,7 @@ export async function forgetMemoryRequest(
 	baseUrl: string = DEFAULT_BASE_URL,
 	options?: ForgetMemoryRequestOptions,
 ): Promise<void> {
+	const timeoutSignal = AbortSignal.timeout(FETCH_TIMEOUT_MS)
 	const response = await fetch(`${baseUrl}/v4/memories`, {
 		method: "DELETE",
 		headers: {
@@ -33,7 +34,9 @@ export async function forgetMemoryRequest(
 			Authorization: `Bearer ${apiKey}`,
 		},
 		body: JSON.stringify(params),
-		signal: options?.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS),
+		signal: options?.signal
+			? AbortSignal.any([options.signal, timeoutSignal])
+			: timeoutSignal,
 	})
 
 	if (!response.ok) {

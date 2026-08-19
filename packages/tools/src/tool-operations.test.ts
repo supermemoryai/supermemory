@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest"
 
 // Mock the Supermemory SDK (same pattern as claude-memory.test.ts) so tool
 // executions can be verified deterministically without network access.
@@ -88,6 +88,20 @@ describe("memoryForget", () => {
 		return fetchMock
 	}
 
+	function forget(options?: { signal?: AbortSignal }) {
+		return forgetMemoryRequest(
+			API_KEY,
+			{ containerTag: "user_1", id: "mem_1" },
+			undefined,
+			options,
+		)
+	}
+
+	function signalOf(fetchMock: ReturnType<typeof stubFetch>) {
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+		return init.signal as AbortSignal
+	}
+
 	it("issues DELETE /v4/memories with the forget payload", async () => {
 		const fetchMock = stubFetch()
 
@@ -112,27 +126,78 @@ describe("memoryForget", () => {
 		expect(init.signal).toBeInstanceOf(AbortSignal)
 	})
 
-	it("uses a caller-provided signal instead of creating a timeout", async () => {
+	it("composes a caller-provided signal with the timeout", async () => {
 		const fetchMock = stubFetch()
 		const controller = new AbortController()
 
-		await forgetMemoryRequest(
-			API_KEY,
-			{ containerTag: "user_1", id: "mem_1" },
-			undefined,
-			{ signal: controller.signal },
+		await forget({ signal: controller.signal })
+
+		const signal = signalOf(fetchMock)
+		expect(signal).not.toBe(controller.signal)
+		expect(signal.aborted).toBe(false)
+
+		const reason = new Error("caller cancelled")
+		controller.abort(reason)
+		expect(signal.aborted).toBe(true)
+		expect(signal.reason).toBe(reason)
+	})
+
+	it("still times out while a caller-provided signal stays open", async () => {
+		const realTimeout = AbortSignal.timeout.bind(AbortSignal)
+		const timeout = vi
+			.spyOn(AbortSignal, "timeout")
+			.mockImplementation(() => realTimeout(5))
+		onTestFinished(() => timeout.mockRestore())
+		const fetchMock = stubFetch()
+		const controller = new AbortController()
+
+		await forget({ signal: controller.signal })
+
+		expect(timeout).toHaveBeenCalledWith(30_000)
+		const signal = signalOf(fetchMock)
+		await vi.waitFor(() => expect(signal.aborted).toBe(true))
+		expect((signal.reason as Error).name).toBe("TimeoutError")
+		expect(controller.signal.aborted).toBe(false)
+	})
+
+	it("forwards an already-aborted caller signal", async () => {
+		const fetchMock = stubFetch()
+		const reason = new Error("cancelled before dispatch")
+
+		await forget({ signal: AbortSignal.abort(reason) })
+
+		expect(signalOf(fetchMock).aborted).toBe(true)
+		expect(signalOf(fetchMock).reason).toBe(reason)
+	})
+
+	it("uses the bare timeout when options carry no signal", async () => {
+		const timeout = vi.spyOn(AbortSignal, "timeout")
+		onTestFinished(() => timeout.mockRestore())
+		const fetchMock = stubFetch()
+
+		await forget({})
+
+		expect(timeout).toHaveBeenCalledWith(30_000)
+		expect(signalOf(fetchMock)).toBe(timeout.mock.results[0]?.value)
+	})
+
+	it("surfaces an aborted request to the caller", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi
+				.fn()
+				.mockRejectedValue(
+					new DOMException("The operation timed out", "TimeoutError"),
+				),
 		)
 
-		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-		expect(init.signal).toBe(controller.signal)
+		await expect(forget()).rejects.toThrow("The operation timed out")
 	})
 
 	it("throws a descriptive error on non-2xx responses", async () => {
 		stubFetch(new Response("nope", { status: 401, statusText: "Unauthorized" }))
 
-		await expect(
-			forgetMemoryRequest(API_KEY, { containerTag: "user_1", id: "mem_1" }),
-		).rejects.toThrow(/401/)
+		await expect(forget()).rejects.toThrow(/401/)
 	})
 
 	it("ai-sdk tool forgets by content through the endpoint", async () => {
