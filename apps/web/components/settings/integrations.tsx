@@ -153,7 +153,7 @@ export default function Integrations() {
 				prefix: `sm_${org?.id}_`,
 			})
 			if (res.error)
-				throw new Error(res.error.message ?? "Failed to create API key")
+				throw new Error("Failed to create API key", { cause: res.error })
 			if (!res.data?.key) throw new Error("API key missing from response")
 			return res.data.key
 		},
@@ -185,7 +185,7 @@ export default function Integrations() {
 				prefix: `sm_${org.id}_`,
 			})
 			if (res.error)
-				throw new Error(res.error.message ?? "Failed to create API key")
+				throw new Error("Failed to create API key", { cause: res.error })
 			if (!res.data?.key) throw new Error("API key missing from response")
 			return res.data.key
 		},
