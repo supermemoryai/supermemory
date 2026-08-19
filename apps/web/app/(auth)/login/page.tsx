@@ -533,7 +533,8 @@ export default function LoginPage() {
 												</div>
 											) : null}
 											{process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
-											process.env.NEXT_PUBLIC_GITHUB_AUTH_DISABLED !== "true" ? (
+											process.env.NEXT_PUBLIC_GITHUB_AUTH_DISABLED !==
+												"true" ? (
 												<div className="w-full">
 													<LastUsedBadge show={lastUsedMethod === "github"} />
 													<ExternalAuthButton
