@@ -11,6 +11,27 @@ import {
 } from "../src/claude-memory"
 import "dotenv/config"
 
+const MEMORY_COMMANDS: readonly string[] = [
+	"view",
+	"create",
+	"str_replace",
+	"insert",
+	"delete",
+	"rename",
+]
+
+function isMemoryCommand(input: unknown): input is MemoryCommand {
+	return (
+		typeof input === "object" &&
+		input !== null &&
+		"command" in input &&
+		"path" in input &&
+		typeof input.command === "string" &&
+		MEMORY_COMMANDS.includes(input.command) &&
+		typeof input.path === "string"
+	)
+}
+
 /**
  * Handle Claude's memory tool calls using the Anthropic SDK
  */
@@ -75,7 +96,11 @@ async function chatWithMemoryTool() {
 			if (block.type === "text") {
 				console.log("💭", block.text)
 			} else if (block.type === "tool_use" && block.name === "memory") {
-				const command = block.input as MemoryCommand
+				const command = block.input
+				if (!isMemoryCommand(command)) {
+					console.log("Skipping unrecognized memory tool input:", command)
+					continue
+				}
 				console.log("🔧 Claude is using memory tool:")
 				console.log("   Command:", command.command)
 				console.log("   Path:", command.path)
@@ -142,7 +167,11 @@ async function chatWithMemoryTool() {
 				if (block.type === "text") {
 					console.log("💭", block.text)
 				} else if (block.type === "tool_use" && block.name === "memory") {
-					const command = block.input as MemoryCommand
+					const command = block.input
+					if (!isMemoryCommand(command)) {
+						console.log("Skipping unrecognized memory tool input:", command)
+						continue
+					}
 					console.log("🔧 Claude is using memory tool again:")
 					console.log("   Command:", command.command)
 					console.log("   Path:", command.path)
