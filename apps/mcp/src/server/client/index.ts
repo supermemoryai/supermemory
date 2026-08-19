@@ -158,6 +158,7 @@ function extractApiErrorMessage(raw: unknown): string | undefined {
 		if (typeof parsed.error === "string" && parsed.error) return parsed.error
 		if (typeof parsed.message === "string" && parsed.message)
 			return parsed.message
+		if (parsed && typeof parsed === "object") return undefined
 	} catch {}
 	return raw
 }
@@ -501,6 +502,7 @@ export class SupermemoryClient {
 					if (status >= 500) {
 						throw new Error("Server error. Please try again later.")
 					}
+					if (!message) throw new Error(`Request failed with status ${status}.`)
 			}
 		}
 
