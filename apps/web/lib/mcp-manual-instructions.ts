@@ -1,5 +1,10 @@
 export const CHATGPT_REMOTE_MCP_URL = "https://mcp.supermemory.ai/mcp"
 
+export function buildCursorMcpDeeplink() {
+	const config = btoa(JSON.stringify({ url: CHATGPT_REMOTE_MCP_URL }))
+	return `cursor://anysphere.cursor-deeplink/mcp/install?name=supermemory&config=${encodeURIComponent(config)}`
+}
+
 export const SUPERMEMORY_MCP_OAUTH_JSON = `{
   "mcpServers": {
     "supermemory": {
