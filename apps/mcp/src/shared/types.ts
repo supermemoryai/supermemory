@@ -27,6 +27,7 @@ export const sessionInfoSchema = z.looseObject({
 		email: z.string().optional(),
 		name: z.string().optional(),
 	}),
+	org: z.looseObject({ id: z.string().min(1) }).optional(),
 	role: z.string().optional(),
 	accessType: z.enum(["full", "restricted"]).optional(),
 	containerTags: z.array(containerTagAccessSchema).nullable().optional(),
