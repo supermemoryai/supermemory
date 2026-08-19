@@ -21,7 +21,7 @@ export function useProject() {
 	const normalizedProjects =
 		selectedProjects.length === 0 ? [defaultTag] : selectedProjects
 
-	const selectedProject = normalizedProjects[0]
+	const selectedProject = normalizedProjects[0] ?? defaultTag
 
 	const effectiveContainerTags = normalizedProjects
 

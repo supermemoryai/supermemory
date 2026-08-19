@@ -152,7 +152,10 @@ export default function Integrations() {
 				name: `ios-${generateId().slice(0, 8)}`,
 				prefix: `sm_${org?.id}_`,
 			})
-			return res.key
+			if (res.error)
+				throw new Error(res.error.message ?? "Failed to create API key")
+			if (!res.data?.key) throw new Error("API key missing from response")
+			return res.data.key
 		},
 		onSuccess: (key) => {
 			setApiKey(key)

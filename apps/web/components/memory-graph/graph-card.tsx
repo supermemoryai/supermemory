@@ -67,15 +67,13 @@ export function StaticGraphPreview({
 		const result: { x1: number; y1: number; x2: number; y2: number }[] = []
 		const edgeCount = Math.min(nodes.length - 1, 20)
 		for (let i = 0; i < edgeCount; i++) {
-			const a = Math.floor(rand() * nodes.length)
-			let b = Math.floor(rand() * nodes.length)
-			if (b === a) b = (a + 1) % nodes.length
-			result.push({
-				x1: nodes[a]?.x,
-				y1: nodes[a]?.y,
-				x2: nodes[b]?.x,
-				y2: nodes[b]?.y,
-			})
+			const aIdx = Math.floor(rand() * nodes.length)
+			let bIdx = Math.floor(rand() * nodes.length)
+			if (bIdx === aIdx) bIdx = (aIdx + 1) % nodes.length
+			const a = nodes[aIdx]
+			const b = nodes[bIdx]
+			if (!a || !b) continue
+			result.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y })
 		}
 		return result
 	}, [nodes])

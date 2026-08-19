@@ -11,7 +11,7 @@ export function useResetOrganization() {
 		mutationFn: async (body: { confirmation: string }) => {
 			const res = await $fetch("@post/settings/reset", {
 				body,
-				retry: { attempts: 0 },
+				retry: 0,
 			})
 			if (res.error) {
 				const e = res.error as Record<string, unknown>

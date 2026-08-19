@@ -79,9 +79,11 @@ export function UserProfileMenu({
 	const initials = (() => {
 		if (user.name) {
 			const parts = user.name.trim().split(/\s+/)
+			const first = parts[0] ?? ""
+			const last = parts[parts.length - 1] ?? ""
 			return parts.length >= 2
-				? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
-				: parts[0].slice(0, 2).toUpperCase()
+				? `${first.slice(0, 1)}${last.slice(0, 1)}`.toUpperCase()
+				: first.slice(0, 2).toUpperCase()
 		}
 		if (user.email) return user.email.slice(0, 2).toUpperCase()
 		return "SM"
