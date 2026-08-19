@@ -7,11 +7,14 @@ import { z } from "zod"
 import {
 	containerTagSchema,
 	documentsApiResponseSchema,
-	paginationSchema,
+	memoriesListSchema,
 	type ContainerTag,
 	type DocumentMemoryEntry,
 	type DocumentsApiResponse,
 	type DocumentWithMemories,
+	type MemoriesList,
+	type MemoryEntry,
+	type MemoryEntryHistory,
 } from "../../shared/types"
 
 const MAX_CHARS = 200000
@@ -34,43 +37,10 @@ export interface DocumentsListResponse {
 	pagination: SdkDocumentListResponse["pagination"]
 }
 
-const memoryEntryHistorySchema = z.looseObject({
-	id: z.string(),
-	memory: z.string(),
-	version: z.number(),
-	createdAt: z.string(),
-	updatedAt: z.string(),
-	parentMemoryId: z.string().nullish(),
-	rootMemoryId: z.string().nullish(),
-	isLatest: z.boolean().optional(),
-	isForgotten: z.boolean().optional(),
-})
-
-export type MemoryEntryHistory = z.infer<typeof memoryEntryHistorySchema>
-
-const memoryEntrySchema = z.looseObject({
-	id: z.string(),
-	memory: z.string(),
-	version: z.number(),
-	isLatest: z.boolean(),
-	isForgotten: z.boolean(),
-	isStatic: z.boolean().optional(),
-	isInference: z.boolean().optional(),
-	createdAt: z.string(),
-	updatedAt: z.string(),
-	sourceCount: z.number().optional(),
-	documentIds: z.array(z.string()).optional(),
-	history: z.array(memoryEntryHistorySchema).optional(),
-})
-
-export type MemoryEntry = z.infer<typeof memoryEntrySchema>
-
-const memoryEntriesResponseSchema = z.object({
-	memoryEntries: z.array(memoryEntrySchema),
-	pagination: paginationSchema,
-})
-
-export type MemoryEntriesResponse = z.infer<typeof memoryEntriesResponseSchema>
+// Memory-entry shapes live in shared/types so the client parser and the
+// listMemories output schema share one definition and can't drift.
+export type { MemoryEntry, MemoryEntryHistory }
+export type MemoryEntriesResponse = MemoriesList
 
 export type Memory =
 	| {
@@ -452,7 +422,7 @@ export class SupermemoryClient {
 				})
 			}
 
-			return memoryEntriesResponseSchema.parse(await response.json())
+			return memoriesListSchema.parse(await response.json())
 		} catch (error) {
 			this.handleError(error)
 		}
