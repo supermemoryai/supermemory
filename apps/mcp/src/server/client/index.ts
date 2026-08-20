@@ -189,12 +189,17 @@ export class SupermemoryClient {
 
 	async createMemory(
 		content: string,
+		options?: { title?: string },
 	): Promise<{ id: string; status: string; containerTag: string }> {
 		try {
+			const title = options?.title?.trim()
 			const result = await this.client.add({
 				content,
 				containerTag: this.containerTag,
-				metadata: { sm_source: MCP_SOURCE },
+				metadata: {
+					sm_source: MCP_SOURCE,
+					...(title ? { title } : {}),
+				},
 			})
 			return {
 				id: result.id,

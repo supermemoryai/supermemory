@@ -11,6 +11,15 @@ export function register(deps: ToolDeps) {
 			.max(200000, "Content exceeds maximum length")
 			.describe("The memory content to save or forget"),
 		action: z.enum(["save", "forget"]).optional().default("save"),
+		title: z
+			.string()
+			.trim()
+			.min(1)
+			.max(200)
+			.optional()
+			.describe(
+				"Optional title for the saved memory. Overrides the title generated during processing. Ignored when action is 'forget'.",
+			),
 		containerTag: optionalContainerTagSchema,
 	})
 
@@ -42,7 +51,9 @@ export function register(deps: ToolDeps) {
 					}
 				}
 
-				const result = await client.createMemory(args.content)
+				const result = await client.createMemory(args.content, {
+					title: args.title,
+				})
 				const message = `Memory saved (ID: ${result.id}, space: ${result.containerTag})`
 				const structuredContent: AddMemoryOutput = {
 					action: "save",

@@ -16,6 +16,7 @@ import { SearchIcon, Settings, Home, Plus, Code2, Loader2 } from "lucide-react"
 import { DocumentIcon } from "@/components/document-icon"
 import { useSettingsModal } from "@/components/settings/settings-modal"
 import { $fetch } from "@lib/api"
+import { resolveDocumentTitle } from "@/lib/document-title"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -282,7 +283,10 @@ export function DocumentsCommandPalette({
 			)
 		}
 
-		const title = item.kind === "document" ? item.doc.title : item.result.title
+		const title =
+			item.kind === "document"
+				? resolveDocumentTitle(item.doc)
+				: item.result.title
 		const type = item.kind === "document" ? item.doc.type : item.result.type
 		const url =
 			item.kind === "document"

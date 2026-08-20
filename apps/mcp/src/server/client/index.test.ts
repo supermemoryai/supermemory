@@ -95,6 +95,34 @@ describe("SupermemoryClient", () => {
 			})
 		})
 
+		it("pins an explicit title through metadata", async () => {
+			sdk.add.mockResolvedValue({ id: "doc_2" })
+
+			await client("work").createMemory("remember this", {
+				title: "  Quarterly planning notes  ",
+			})
+
+			expect(sdk.add).toHaveBeenCalledWith({
+				content: "remember this",
+				containerTag: "work",
+				metadata: {
+					sm_source: "supermemory-mcp",
+					title: "Quarterly planning notes",
+				},
+			})
+		})
+
+		it("leaves the title out when it is blank or absent", async () => {
+			sdk.add.mockResolvedValue({ id: "doc_3" })
+
+			await client("work").createMemory("a", { title: "   " })
+			await client("work").createMemory("b", {})
+
+			for (const call of sdk.add.mock.calls) {
+				expect(call[0].metadata).toEqual({ sm_source: "supermemory-mcp" })
+			}
+		})
+
 		it("treats an empty space string as an unscoped connection", async () => {
 			sdk.search.memories.mockResolvedValue({
 				results: [],
