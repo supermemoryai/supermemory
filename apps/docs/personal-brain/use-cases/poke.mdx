@@ -1,0 +1,75 @@
+---
+title: "Connect Poke to Supermemory: Save and Recall Memories by Text"
+sidebarTitle: "Poke"
+description: "Learn how to connect Poke to Supermemory and save or recall Personal Brain memories from a text message."
+icon: "/images/personal-brain/integration-logos/poke.png"
+---
+
+Save and recall from your Personal Brain by texting Poke.
+
+## How Poke works with Supermemory
+
+Poke lets you save something to memory and recall it later by messaging Poke over text. No app switch, no dashboard.
+
+## Before you start
+
+- A Supermemory account with Personal Brain access
+- Signed in at [app.supermemory.ai](https://app.supermemory.ai)
+- The active organization and Space you want Poke to use
+
+## How to connect Poke to Supermemory
+
+<Steps>
+  <Step title="Open Integrations in Personal Brain">
+    Go to Integrations and select Poke.
+  </Step>
+  <Step title="Open the Poke recipe">
+    The connect flow opens the Poke recipe for Supermemory.
+  </Step>
+  <Step title="Review the recipe warning">
+    The recipe currently shows an unverified recipe warning. Read what the recipe does before you continue.
+
+    <Frame>
+      ![Poke unverified recipe warning](/images/personal-brain/poke-unverified-recipe-warning.png)
+    </Frame>
+  </Step>
+  <Step title="Enable the recipe">
+    Confirm in Poke to enable the recipe against your Supermemory account.
+  </Step>
+  <Step title="Message Poke to test">
+    Text Poke to save a note, then ask Poke to recall it.
+  </Step>
+</Steps>
+
+## How the Poke recipe calls Supermemory
+
+Poke calls Supermemory through the recipe. Messages that save something add a memory to your active Space. Messages that ask for something search your memory and reply with the answer.
+
+## What Poke saves and searches
+
+- Save: the message content you send Poke to save
+- Search: your memory, scoped to the Space Poke is connected to
+
+## Limitations of the Poke integration
+
+- The Poke recipe currently displays an unverified recipe warning. Review the recipe before enabling it.
+- Saves and recalls run against the Space selected during setup. Switching Spaces requires reconfiguring the recipe.
+- Rich content like files is best added from the Supermemory app or a Space aware integration.
+
+## How to troubleshoot Poke
+
+- **Nothing was saved.** Check the active organization and Space, and confirm the Poke recipe is enabled.
+- **A recall came back empty.** Confirm the memory finished processing in Personal Brain and that it lives in the Space Poke is pointed at.
+- **Poke says it is not connected.** Reopen the recipe from Personal Brain Integrations and confirm the connection status.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Integrations" icon="plug" href="/personal-brain/concepts/integrations">
+    See every way to save and recall from Personal Brain.
+  </Card>
+
+  <Card title="Spaces" icon="layers" href="/personal-brain/concepts/spaces">
+    Keep different parts of your memory organized and separate.
+  </Card>
+</CardGroup>

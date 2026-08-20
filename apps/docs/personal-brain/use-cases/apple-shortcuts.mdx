@@ -1,0 +1,69 @@
+---
+title: "Use Supermemory with Apple Shortcuts on iPhone, iPad, and Mac"
+sidebarTitle: "Apple Shortcuts"
+description: "Learn how to add and search Supermemory Personal Brain memories from iPhone, iPad, and Mac using the Apple Shortcuts app."
+icon: "apple"
+---
+
+Add and search memories from Apple devices using Shortcuts.
+
+## How Apple Shortcuts works with Supermemory
+
+Apple Shortcuts adds memories from iPhone, iPad, or Mac. Two shortcuts are provided: Add memory and Search memory.
+
+## Before you start
+
+- A Supermemory account with Personal Brain access
+- Signed in at [app.supermemory.ai](https://app.supermemory.ai)
+- An iPhone, iPad, or Mac with the Shortcuts app
+- The active organization and Space you want to save into
+
+## How to install the Add memory and Search memory shortcuts
+
+<Steps>
+  <Step title="Open Integrations in Personal Brain">
+    Go to Integrations and select Apple Shortcuts.
+  </Step>
+  <Step title="Install the shortcut from Personal Brain Integrations">
+    Install Add memory and Search memory from the links in Personal Brain. Do not paste an API key or credential into the shortcut manually.
+  </Step>
+  <Step title="Choose the correct Space">
+    Select the Space you want the shortcut to use before saving.
+  </Step>
+  <Step title="Run Add memory to test">
+    Run the Add memory shortcut with a short note, then run Search memory to find it.
+  </Step>
+</Steps>
+
+## How the shortcuts call Supermemory
+
+The shortcuts call Supermemory from your Apple device. Add memory sends the input to your active Space. Search memory queries the same Space and returns matches.
+
+## What Apple Shortcuts saves and searches
+
+- Save: text, links, or content passed to Add memory, including from the Share Sheet or Siri
+- Search: your memory in the Space the shortcut is pointed at
+
+## Limitations of the Apple Shortcuts integration
+
+- Install the shortcut from Personal Brain Integrations so it comes preconfigured. Never expose or share an API key or credential.
+- Saves and searches run against the Space selected in setup. Switching Spaces requires reconfiguring the shortcut.
+- Share Sheet behavior varies by app. Some apps only pass a URL, others pass selected text.
+
+## How to troubleshoot Apple Shortcuts
+
+- **The shortcut fails to run.** Confirm the active organization and Space, and that you installed the shortcut from Personal Brain Integrations.
+- **A saved memory did not appear.** Check that it finished processing and lives in the Space the shortcut targets.
+- **Search returns nothing.** Confirm the Space matches where you saved earlier, and that connection status is active.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Integrations" icon="plug" href="/personal-brain/concepts/integrations">
+    See every way to save and recall from Personal Brain.
+  </Card>
+
+  <Card title="Spaces" icon="layers" href="/personal-brain/concepts/spaces">
+    Keep different parts of your memory organized and separate.
+  </Card>
+</CardGroup>
