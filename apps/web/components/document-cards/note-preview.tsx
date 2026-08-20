@@ -6,6 +6,7 @@ import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { DocumentIcon } from "@/components/document-icon"
 import type { ParsedPluginDocument } from "@/lib/plugin-document"
+import { resolveDocumentTitle } from "@/lib/document-title"
 import { PluginPreview } from "./plugin-preview"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
@@ -22,6 +23,8 @@ export function NotePreview({
 		return <PluginPreview parsed={parsed} />
 	}
 
+	const title = resolveDocumentTitle(document)
+
 	return (
 		<div className="bg-[#0B1017] p-3 rounded-[18px] space-y-2">
 			<div className="flex items-center gap-1">
@@ -31,14 +34,14 @@ export function NotePreview({
 				</p>
 			</div>
 			<div>
-				{document.title && (
+				{title && (
 					<p
 						className={cn(
 							dmSansClassName(),
 							"text-[13px] font-semibold line-clamp-2 leading-[125%]",
 						)}
 					>
-						{document.title}
+						{title}
 					</p>
 				)}
 				{document.summary && (

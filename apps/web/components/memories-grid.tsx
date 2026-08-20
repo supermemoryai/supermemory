@@ -29,6 +29,7 @@ import { YoutubePreview } from "./document-cards/youtube-preview"
 import { getAbsoluteUrl, isYouTubeUrl, useYouTubeChannelName } from "./utils"
 import { SyncLogoIcon } from "@ui/assets/icons"
 import { McpPreview } from "./document-cards/mcp-preview"
+import { resolveDocumentTitle } from "@/lib/document-title"
 import { NotionPreview } from "./document-cards/notion-preview"
 import { getFaviconUrl, isSupermemoryFileUrl } from "@/lib/url-helpers"
 import { QuickNoteCard } from "./quick-note-card"
@@ -1143,6 +1144,10 @@ const DocumentCard = memo(
 			() => parsePluginDocument(document),
 			[document],
 		)
+		const resolvedTitle = useMemo(
+			() => resolveDocumentTitle(document),
+			[document],
+		)
 		const [rotation, setRotation] = useState({ rotateX: 0, rotateY: 0 })
 		const cardRef = useRef<HTMLButtonElement>(null)
 		const [ogData, setOgData] = useState<OgData | null>(null)
@@ -1298,7 +1303,7 @@ const DocumentCard = memo(
 													"text-[13px] text-[#E5E5E5] line-clamp-1 font-semibold",
 												)}
 											>
-												{document.title || ogData?.title || "Untitled Document"}
+												{resolvedTitle || ogData?.title || "Untitled Document"}
 											</p>
 											{getFaviconUrl(document.url) && needsOgData && (
 												<img
