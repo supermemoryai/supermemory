@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useCustomer } from "autumn-js/react"
 import { cn } from "@lib/utils"
 import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
+import { SectionRail } from "@/components/directory/section-rail"
 import { $fetch } from "@lib/api"
 import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
@@ -2677,100 +2678,6 @@ function CategoryFilterToggle({
 				)
 			})}
 		</div>
-	)
-}
-
-function SectionRail({
-	label,
-	children,
-	headerSlot,
-	labelSlot,
-}: {
-	label: string
-	children: ReactNode
-	headerSlot?: ReactNode
-	labelSlot?: ReactNode
-}) {
-	const scrollRef = useRef<HTMLDivElement>(null)
-	const [canScrollLeft, setCanScrollLeft] = useState(false)
-	const [canScrollRight, setCanScrollRight] = useState(false)
-
-	const update = useCallback(() => {
-		const el = scrollRef.current
-		if (!el) return
-		setCanScrollLeft(el.scrollLeft > 4)
-		setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
-	}, [])
-
-	useEffect(() => {
-		update()
-		const el = scrollRef.current
-		if (!el) return
-		el.addEventListener("scroll", update, { passive: true })
-		el.addEventListener("scrollend", update)
-		const ro = new ResizeObserver(update)
-		ro.observe(el)
-		return () => {
-			el.removeEventListener("scroll", update)
-			el.removeEventListener("scrollend", update)
-			ro.disconnect()
-		}
-	}, [update])
-
-	const scrollBy = (dir: 1 | -1) => {
-		scrollRef.current?.scrollBy({ left: 292 * dir, behavior: "smooth" })
-		setTimeout(update, 450)
-	}
-
-	const arrowClass = cn(
-		"flex size-7 items-center justify-center rounded-full bg-[#0D121A] text-[#FAFAFA] transition-opacity",
-		"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]",
-		"hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30",
-	)
-
-	return (
-		<section className="flex flex-col gap-3">
-			<div className="flex items-center justify-between gap-3">
-				<div className="flex min-w-0 flex-wrap items-center gap-2">
-					<h3
-						className={cn(
-							dmSans125ClassName(),
-							"text-[13px] font-semibold tracking-[-0.01em] text-[#A1A1AA]",
-						)}
-					>
-						{label}
-					</h3>
-					{labelSlot}
-				</div>
-				<div className="hidden items-center gap-1.5 sm:flex">
-					{headerSlot}
-					<button
-						type="button"
-						aria-label="Show previous"
-						disabled={!canScrollLeft}
-						onClick={() => scrollBy(-1)}
-						className={arrowClass}
-					>
-						<ArrowLeft className="size-3.5" />
-					</button>
-					<button
-						type="button"
-						aria-label="Show more"
-						disabled={!canScrollRight}
-						onClick={() => scrollBy(1)}
-						className={arrowClass}
-					>
-						<ArrowRight className="size-3.5" />
-					</button>
-				</div>
-			</div>
-			<div
-				ref={scrollRef}
-				className="scrollbar-none flex flex-col gap-1.5 sm:-mx-1 sm:flex-row sm:gap-3 sm:overflow-x-auto sm:px-1"
-			>
-				{children}
-			</div>
-		</section>
 	)
 }
 
