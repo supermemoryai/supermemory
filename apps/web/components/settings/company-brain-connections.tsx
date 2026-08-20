@@ -984,9 +984,16 @@ export default function CompanyBrainConnections() {
 												>
 													Disconnect
 												</DropdownMenuItem>
+											) : orgConnected ? (
+												<DropdownMenuItem
+													className={menuItemClass}
+													onClick={() => connect(entry, false)}
+												>
+													Connect my account
+												</DropdownMenuItem>
 											) : (
 												<DropdownMenuItem disabled className={menuItemClass}>
-													Managed by workspace admins
+													Not connected
 												</DropdownMenuItem>
 											)}
 										</InstalledTile>
