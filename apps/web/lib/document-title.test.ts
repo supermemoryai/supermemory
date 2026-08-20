@@ -176,3 +176,54 @@ describe("deriving a title from content", () => {
 		expect(fromContent("Just one line")).toBe("Just one line")
 	})
 })
+
+describe("issue #1425 saves", () => {
+	const cases = [
+		[
+			"markdown H1",
+			"# Kubernetes upgrade plan\n\nWe are moving the cluster to 1.31.",
+			"Kubernetes upgrade plan",
+		],
+		[
+			"YAML frontmatter",
+			"---\ntitle: Postgres pooling decision\ndate: 2026-08-07\n---\n\nWe moved to pgbouncer.",
+			"Postgres pooling decision",
+		],
+		[
+			"title line then blank line then prose",
+			"Vendor security review\n\nThey passed SOC2 but the DPA needs redlines.",
+			"Vendor security review",
+		],
+	] as const
+
+	for (const [label, content, expected] of cases) {
+		it(`${label} no longer reads as untitled`, () => {
+			const doc = {
+				title: null,
+				content,
+				metadata: { sm_source: "supermemory-mcp" },
+			}
+			expect(resolveDocumentTitle(doc)).toBe(expected)
+		})
+	}
+
+	it("a pinned title repairs a card without re-saving", () => {
+		expect(
+			resolveDocumentTitle({
+				title: null,
+				content: cases[0][1],
+				metadata: { sm_source: "supermemory-mcp", title: "My chosen title" },
+			}),
+		).toBe("My chosen title")
+	})
+
+	it("a pinned title beats an LLM paraphrase", () => {
+		expect(
+			resolveDocumentTitle({
+				title: "Notes About Upgrading Some Infrastructure",
+				content: cases[0][1],
+				metadata: { title: "Kubernetes upgrade plan" },
+			}),
+		).toBe("Kubernetes upgrade plan")
+	})
+})
