@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "packages/agent-framework-python/**"
+      - "packages/openai-sdk-python/**"
       - "packages/cartesia-sdk-python/**"
       - "packages/pipecat-sdk-python/**"
       - ".github/workflows/ci-python.yml"
@@ -25,6 +26,11 @@ jobs:
           # Has a pytest suite and needs its runtime dependencies installed.
           - package: agent-framework-python
             install: pip install -e . pytest pytest-asyncio
+            test: pytest
+          # python-dotenv is a dev-group dependency the test modules import at
+          # module scope, so it has to be installed alongside pytest.
+          - package: openai-sdk-python
+            install: pip install -e . pytest pytest-asyncio python-dotenv
             test: pytest
           # These suites stub their heavy runtime dependencies (cartesia-line,
           # pipecat-ai, loguru) at import time, so they run against the sources
