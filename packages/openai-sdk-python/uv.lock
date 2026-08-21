@@ -1355,7 +1355,7 @@ wheels = [
 
 [[package]]
 name = "supermemory"
-version = "3.56.0"
+version = "3.59.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -1365,14 +1365,14 @@ dependencies = [
     { name = "sniffio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/10/43/3a7619a697554555d37254bd1e63ff2bf1262bae8ab569eba57f823af3e4/supermemory-3.56.0.tar.gz", hash = "sha256:3cceb35465e79762c2213a56d2d17b38c554924ba19fd29e24ce09701f4b377d", size = 175386, upload-time = "2026-07-24T16:29:16.695Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/30/83/7db28873de639f4c4ac469266a2142d1f9def545a0cac2a023011df23601/supermemory-3.59.0.tar.gz", hash = "sha256:5efd5a5a087d552b0e00e739e4eeac21379d087bdfaa1c9f5995d11272b35bb3", size = 154326, upload-time = "2026-08-14T21:28:39.913Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/09/2a/0d8ac89c73f540caa38ced4df3b824abae11481243c60f6ef750103c973d/supermemory-3.56.0-py3-none-any.whl", hash = "sha256:334e5cd1a8743ed9b90aa25ad0e63266f6376b4d44d5bdfc5cc4f15fc19d72f9", size = 156297, upload-time = "2026-07-24T16:29:15.491Z" },
+    { url = "https://files.pythonhosted.org/packages/af/73/0cf59b31317baf66b0bb9d1fa6506a54013e49fb35ffc9c12c3f3a189c5c/supermemory-3.59.0-py3-none-any.whl", hash = "sha256:3c66ae0fcb082241d8a600b4f8aaebe68159aee7cd24c2ce1aae533ea404bb2d", size = 142020, upload-time = "2026-08-14T21:28:38.842Z" },
 ]
 
 [[package]]
 name = "supermemory-openai-sdk"
-version = "1.0.6"
+version = "1.0.7"
 source = { editable = "." }
 dependencies = [
     { name = "openai" },
