@@ -245,8 +245,7 @@ tools = SupermemoryTools(
 # Search memories
 result = await tools.search_memories(
     information_to_get="user preferences",
-    limit=10,
-    include_full_docs=True
+    limit=10
 )
 
 # Add memory
@@ -259,6 +258,10 @@ result = await tools.fetch_memory(
     memory_id="memory-id-here"
 )
 ```
+
+`include_full_docs` is retained as a deprecated Python argument for compatibility,
+but v4 search returns relevant memories and chunks instead of full source documents.
+It is no longer exposed in the OpenAI tool schema.
 
 ### Individual Tools
 
