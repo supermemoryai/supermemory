@@ -28,6 +28,7 @@ import {
 	SettingsRequestSchema,
 	UpdateContainerTagSettingsRequestSchema,
 } from "../validation/api"
+import { SearchFiltersSchema } from "../validation/schemas"
 
 const UpdateSettingsResponseSchema = z.object({
 	orgId: z.string(),
@@ -252,6 +253,7 @@ export const apiSchema = createSchema({
 				page: z.number().optional(),
 				status: z.string().optional(),
 				containerTags: z.array(z.string()).optional(),
+				filters: SearchFiltersSchema.optional(),
 			})
 			.optional(),
 		output: ListMemoriesResponseSchema,

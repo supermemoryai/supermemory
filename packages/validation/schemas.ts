@@ -8,6 +8,71 @@ export type Metadata = z.infer<typeof MetadataSchema>
 export const VisibilityEnum = z.enum(["public", "private", "unlisted"])
 export type Visibility = z.infer<typeof VisibilityEnum>
 
+const MetadataKeySchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-zA-Z0-9_.-]+$/, "Invalid metadata key")
+
+const MetadataValueSchema = z.union([z.string(), z.number(), z.boolean()])
+
+const StringEqualityFilterSchema = z.object({
+  key: MetadataKeySchema,
+  value: MetadataValueSchema,
+  negate: z.boolean().optional(),
+})
+
+const StringContainsFilterSchema = z.object({
+  filterType: z.literal("string_contains"),
+  key: MetadataKeySchema,
+  value: z.string(),
+  negate: z.boolean().optional(),
+  ignoreCase: z.boolean().optional(),
+})
+
+const NumericOperatorSchema = z.union([z.literal("="), z.literal("!="), z.literal("<"), z.literal("<="), z.literal(">"), z.literal(">=")])
+
+const NumericFilterSchema = z.object({
+  filterType: z.literal("numeric"),
+  key: MetadataKeySchema,
+  value: z.string(),
+  numericOperator: NumericOperatorSchema,
+  negate: z.boolean().optional(),
+})
+
+const ArrayContainsFilterSchema = z.object({
+  filterType: z.literal("array_contains"),
+  key: MetadataKeySchema,
+  value: z.string(),
+  negate: z.boolean().optional(),
+})
+
+const FilterConditionSchema = z.discriminatedUnion("filterType", [
+  StringContainsFilterSchema,
+  NumericFilterSchema,
+  ArrayContainsFilterSchema,
+]).or(StringEqualityFilterSchema) 
+
+type FilterExpression =
+  | z.infer<typeof FilterConditionSchema>
+  | { AND: FilterExpression[] }
+  | { OR: FilterExpression[] }
+
+export const FilterExpressionSchema: z.ZodType<FilterExpression> = z.lazy(() =>
+  z.union([
+    FilterConditionSchema,
+    z.object({ AND: z.array(FilterExpressionSchema).min(1) }),
+    z.object({ OR: z.array(FilterExpressionSchema).min(1) }),
+  ])
+)
+
+export const SearchFiltersSchema = z.union([
+  FilterExpressionSchema,
+  z.object({ AND: z.array(FilterExpressionSchema).min(1) }),
+  z.object({ OR: z.array(FilterExpressionSchema).min(1) }),
+])
+
+
 export const DocumentTypeEnum = z.enum([
 	"text",
 	"pdf",
