@@ -23,8 +23,7 @@ export default function ChatModelSelector({
 	minimal = false,
 	dropdownDirection = "up",
 }: ChatModelSelectorProps = {}) {
-	const [internalModel, setInternalModel] =
-		useState<ModelId>("claude-sonnet-4.6")
+	const [internalModel, setInternalModel] = useState<ModelId>("claude-sonnet-5")
 	const [isOpen, setIsOpen] = useState(false)
 	const containerRef = useRef<HTMLDivElement>(null)
 

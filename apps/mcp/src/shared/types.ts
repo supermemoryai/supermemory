@@ -27,6 +27,7 @@ export const sessionInfoSchema = z.looseObject({
 		email: z.string().optional(),
 		name: z.string().optional(),
 	}),
+	org: z.looseObject({ id: z.string().min(1) }).optional(),
 	role: z.string().optional(),
 	accessType: z.enum(["full", "restricted"]).optional(),
 	containerTags: z.array(containerTagAccessSchema).nullable().optional(),
@@ -115,6 +116,49 @@ export const documentsApiResponseSchema = z.object({
 })
 
 export type DocumentsApiResponse = z.infer<typeof documentsApiResponseSchema>
+
+// Extracted memory entries from /v4/memories/list. Single source of truth for
+// both the client parser and the listMemories tool output schema, so the two
+// can't drift (a mismatch previously produced Ajv "must NOT have additional
+// properties"). z.object strips unknown API fields on parse, keeping parsed data
+// matched to the strict MCP output contract while tolerating new API fields.
+export const memoryEntryHistorySchema = z.object({
+	id: z.string(),
+	memory: z.string(),
+	version: z.number(),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+	parentMemoryId: z.string().nullish(),
+	rootMemoryId: z.string().nullish(),
+	isLatest: z.boolean().optional(),
+	isForgotten: z.boolean().optional(),
+})
+
+export type MemoryEntryHistory = z.infer<typeof memoryEntryHistorySchema>
+
+export const memoryEntrySchema = z.object({
+	id: z.string(),
+	memory: z.string(),
+	version: z.number(),
+	isLatest: z.boolean(),
+	isForgotten: z.boolean(),
+	isStatic: z.boolean().optional(),
+	isInference: z.boolean().optional(),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+	sourceCount: z.number().optional(),
+	documentIds: z.array(z.string()).optional(),
+	history: z.array(memoryEntryHistorySchema).optional(),
+})
+
+export type MemoryEntry = z.infer<typeof memoryEntrySchema>
+
+export const memoriesListSchema = z.object({
+	memoryEntries: z.array(memoryEntrySchema),
+	pagination: paginationSchema,
+})
+
+export type MemoriesList = z.infer<typeof memoriesListSchema>
 
 // ViewMessage — discriminated union returned by app tools as `structuredContent`.
 // The widget uses an exhaustive switch on `view` to dispatch to the correct view component.

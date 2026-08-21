@@ -21,6 +21,7 @@ import {
 	LifeBuoy,
 	LayoutGrid,
 	MenuIcon,
+	Plus,
 	SearchIcon,
 	Settings,
 	Settings2,
@@ -55,6 +56,7 @@ const BACKEND =
 type SlackStatus = { connected: boolean; teamName: string | null }
 
 interface CompanyBrainHeaderProps {
+	onAddMemory?: () => void
 	onOpenSearch?: () => void
 }
 
@@ -108,7 +110,10 @@ function useSlackStatus() {
 	})
 }
 
-export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
+export function CompanyBrainHeader({
+	onAddMemory,
+	onOpenSearch,
+}: CompanyBrainHeaderProps) {
 	const { user, org, organizations, setActiveOrg } = useAuth()
 	const autumn = useCustomer()
 	const { currentPlan } = useTokenUsage(autumn)
@@ -412,6 +417,18 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 										"linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 								}}
 							>
+								{onAddMemory && (
+									<>
+										<DropdownMenuItem
+											onClick={onAddMemory}
+											className={menuItemClass}
+										>
+											<Plus className="size-4 text-[#737373]" />
+											Add memory
+										</DropdownMenuItem>
+										<DropdownMenuSeparator className="bg-[#2E3033]" />
+									</>
+								)}
 								<DropdownMenuItem
 									onClick={goOverview}
 									className={menuItemClass}
@@ -498,6 +515,29 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 				) : (
 					<>
 						<BrainTrialPill className="h-9 px-3" />
+						{onAddMemory && (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="headers"
+										className={cn(
+											"rounded-full! h-9! min-h-9 shrink-0",
+											"max-lg:w-9 max-lg:min-w-9 max-lg:justify-center max-lg:gap-0 max-lg:px-0",
+											"lg:min-w-0 lg:gap-1.5 lg:px-3 lg:font-medium",
+											dmSansClassName(),
+										)}
+										onClick={onAddMemory}
+										aria-label="Add memory"
+									>
+										<Plus className="size-3.5 shrink-0 lg:size-4" />
+										<span className="max-lg:sr-only">Add</span>
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent side="bottom" className={dmSansClassName()}>
+									Add memory (C)
+								</TooltipContent>
+							</Tooltip>
+						)}
 						{canInvite && (
 							<Tooltip>
 								<TooltipTrigger asChild>
