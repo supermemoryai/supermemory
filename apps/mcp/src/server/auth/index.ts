@@ -92,8 +92,17 @@ export async function validateApiKey(
 		})
 		return user
 	} catch (error) {
-		console.error("API key validation error:", error)
-		return null
+		if (
+			typeof error === "object" &&
+			error !== null &&
+			"status" in error &&
+			(error.status === 401 || error.status === 403)
+		) {
+			console.error("API key validation error:", error)
+			return null
+		}
+		console.error("API key validation transient error:", error)
+		throw error
 	}
 }
 
