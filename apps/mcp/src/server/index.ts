@@ -2,7 +2,12 @@ import type { AuthInfo } from "@modelcontextprotocol/server"
 import { createMcpHandler } from "agents/mcp/server"
 import { Hono, type Context } from "hono"
 import { cors } from "hono/cors"
-import { validateOAuthToken, type AuthUser } from "./auth"
+import {
+	isApiKey,
+	validateApiKey,
+	validateOAuthToken,
+	type AuthUser,
+} from "./auth"
 import { SupermemoryMCP } from "./legacy-protocol-state"
 import { createSupermemoryServer } from "./server"
 import type { ActorContext, ServerEnv } from "./types"
@@ -176,7 +181,9 @@ async function handleMcpRequest(
 
 	if (!token) return unauthorizedResponse(resourceMetadataUrl)
 
-	const authUser = await validateOAuthToken(token, apiUrl, mcpResource)
+	const authUser = isApiKey(token)
+		? await validateApiKey(token, apiUrl)
+		: await validateOAuthToken(token, apiUrl, mcpResource)
 	if (!authUser) return unauthorizedResponse(resourceMetadataUrl, true)
 
 	const actor: ActorContext = {
