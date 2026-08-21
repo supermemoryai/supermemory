@@ -1,6 +1,7 @@
 import * as d3 from "d3-force"
 import type { DocumentNodeData, GraphEdge, GraphNode } from "../types"
 import { FORCE_CONFIG } from "../constants"
+import { prefersReducedMotion } from "./reduced-motion"
 
 export const DENSE_GRAPH_STATIC_THRESHOLD = 6000
 
@@ -69,7 +70,13 @@ export class ForceSimulation {
 					: FORCE_CONFIG.preSettleTicks
 			for (let i = 0; i < preSettleTicks; i++) this.sim.tick()
 
-			if (nodes.length > DENSE_GRAPH_STATIC_THRESHOLD) {
+			// A dense graph is pre-settled and left static for performance; under
+			// reduced-motion we do the same for comfort, so the layout appears
+			// already-settled instead of visibly animating into place.
+			if (
+				nodes.length > DENSE_GRAPH_STATIC_THRESHOLD ||
+				prefersReducedMotion()
+			) {
 				this.stop()
 			} else {
 				this.sim.alphaTarget(0).restart()
@@ -89,6 +96,9 @@ export class ForceSimulation {
 	}
 
 	reheat(): void {
+		// Dragging still repositions the dragged node directly; skip the
+		// perpetual re-settle so neighbours don't jiggle under reduced-motion.
+		if (prefersReducedMotion()) return
 		this.sim?.alphaTarget(FORCE_CONFIG.alphaTarget).restart()
 	}
 
