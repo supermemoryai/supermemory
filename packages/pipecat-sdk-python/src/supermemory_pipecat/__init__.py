@@ -40,11 +40,17 @@ from .utils import (
     get_last_user_message,
 )
 
+# Exported as a top-level name for convenience, mirroring
+# supermemory_cartesia.MemoryConfig. The canonical definition stays nested on
+# the service, matching Pipecat's own `Service.InputParams` convention.
+InputParams = SupermemoryPipecatService.InputParams
+
 __version__ = "0.1.1"
 
 __all__ = [
     # Main service
     "SupermemoryPipecatService",
+    "InputParams",
     # Exceptions
     "SupermemoryPipecatError",
     "ConfigurationError",

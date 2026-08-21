@@ -28,8 +28,7 @@ You can obtain an API key from [console.supermemory.ai](https://console.supermem
 Supermemory integration is provided through the `SupermemoryPipecatService` class in Pipecat:
 
 ```python
-from supermemory_pipecat import SupermemoryPipecatService
-from supermemory_pipecat.service import InputParams
+from supermemory_pipecat import InputParams, SupermemoryPipecatService
 
 memory = SupermemoryPipecatService(
     api_key=os.getenv("SUPERMEMORY_API_KEY"),
@@ -157,8 +156,7 @@ from pipecat.transports.websocket.fastapi import (
     FastAPIWebsocketTransport,
 )
 
-from supermemory_pipecat import SupermemoryPipecatService
-from supermemory_pipecat.service import InputParams
+from supermemory_pipecat import InputParams, SupermemoryPipecatService
 
 app = FastAPI()
 
