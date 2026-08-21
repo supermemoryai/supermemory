@@ -1,5 +1,18 @@
 # supermemory AI SDK Utilities
 
+> **Deprecated.** Use [`@supermemory/tools`](../tools) instead:
+>
+> ```ts
+> import { supermemoryTools } from "@supermemory/tools/ai-sdk"
+> ```
+>
+> As of 2.0.0 this package is a thin re-export of `@supermemory/tools/ai-sdk`, so it
+> inherits that package's container-scoping semantics. **This is a behavior change:**
+>
+> - Passing both `projectId` and `containerTags` now throws instead of silently ignoring `containerTags`.
+> - With no config, calls are scoped to `["sm_project_default"]`. Previously they were **unscoped**, i.e. searching and writing across every project. If you relied on that, pass `containerTags` explicitly.
+> - `limit` is coerced, so a model emitting `"5"` is accepted rather than rejected.
+
 Vercel AI SDK utilities for supermemory
 
 ## Installation
