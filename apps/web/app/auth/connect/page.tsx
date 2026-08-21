@@ -4,11 +4,10 @@ import { useAuth } from "@lib/auth-context"
 import { useSession } from "@lib/auth"
 import { cn } from "@lib/utils"
 import { dmSans125ClassName } from "@/lib/fonts"
-import { useCustomer } from "autumn-js/react"
-import { ArrowRight, Loader, XCircle } from "lucide-react"
+import { ArrowRight, XCircle } from "lucide-react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 
 import { PENDING_CONNECT_URL_KEY } from "@/lib/constants"
 
@@ -88,7 +87,7 @@ const PLUGIN_INFO: Record<string, PluginInfo> = {
 			"Auto-capture of project decisions",
 			"Context-aware suggestions",
 		],
-		icon: "/images/plugins/cursor.svg",
+		icon: "/images/plugins/cursor.png",
 	},
 	codex: {
 		name: "OpenAI Codex",
@@ -103,11 +102,77 @@ const PLUGIN_INFO: Record<string, PluginInfo> = {
 	},
 }
 
+const MULTI_PLUGIN_FEATURES = [
+	"Share one persistent memory layer across selected coding agents.",
+	"Recall project context, coding decisions, and prior sessions.",
+	"Connect every selected plugin with one approval.",
+]
+
+function isKnownPlugin(value: string): boolean {
+	return Object.hasOwn(PLUGIN_INFO, value)
+}
+
 function getPluginName(client: string): string {
 	return PLUGIN_INFO[client]?.name ?? "External Tool"
 }
 
-type Status = "loading" | "creating" | "success" | "error" | "upgrade"
+function formatPluginNames(clients: string[]): string {
+	const names = clients.map((id) => getPluginName(id))
+	if (names.length === 0) return "External Tool"
+	if (names.length === 1) return names[0] ?? "External Tool"
+	if (names.length === 2) {
+		return `${names[0] ?? "External Tool"} and ${names[1] ?? "External Tool"}`
+	}
+
+	return `${names.slice(0, -1).join(", ")}, and ${names.at(-1) ?? "External Tool"}`
+}
+
+function encodeBase64UrlJson(value: Record<string, string>): string {
+	return btoa(JSON.stringify(value))
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_")
+		.replace(/=+$/g, "")
+}
+
+function PluginLogoStack({ clients }: { clients: string[] }) {
+	if (clients.length === 0) {
+		return (
+			<div className="flex size-10 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]">
+				<ArrowRight className="size-5 text-[#4BA0FA]" />
+			</div>
+		)
+	}
+
+	return (
+		<div className="flex items-center justify-center">
+			{clients.map((id, index) => {
+				const plugin = PLUGIN_INFO[id]
+				return (
+					<div
+						className="-ml-2 flex size-10 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F] p-2 first:ml-0"
+						key={`${id}-${index}`}
+						style={{ zIndex: clients.length - index }}
+						title={plugin?.name ?? id}
+					>
+						{plugin ? (
+							<Image
+								alt={plugin.name}
+								className="size-6 object-contain"
+								height={24}
+								src={plugin.icon}
+								width={24}
+							/>
+						) : (
+							<ArrowRight className="size-5 text-[#4BA0FA]" />
+						)}
+					</div>
+				)
+			})}
+		</div>
+	)
+}
+
+type Status = "loading" | "creating" | "success" | "error"
 
 const pageWrapperClass =
 	"flex items-center justify-center min-h-screen bg-background p-4"
@@ -121,16 +186,34 @@ function AuthConnectContent() {
 	const router = useRouter()
 	const { data: session, isPending } = useSession()
 	const { org, organizations, isRestoring } = useAuth()
-	const autumn = useCustomer()
 	const [status, setStatus] = useState<Status>("loading")
 	const [error, setError] = useState<string | null>(null)
-	const [isUpgrading, setIsUpgrading] = useState(false)
 
 	const callback = params.get("callback")
 	const client = params.get("client")
-	const validClient = client && client in PLUGIN_INFO ? client : null
-	const displayName = validClient ? getPluginName(validClient) : "External Tool"
-	const pluginInfo = validClient ? PLUGIN_INFO[validClient] : null
+	const clientsParam = params.get("clients")
+	const hasClientList = params.has("clients")
+	const rawRequestedClients = useMemo(
+		() =>
+			(clientsParam !== null ? clientsParam.split(",") : client ? [client] : [])
+				.map((value) => value.trim())
+				.filter(Boolean),
+		[client, clientsParam],
+	)
+	const requestedClients = useMemo(
+		() => Array.from(new Set(rawRequestedClients.filter(isKnownPlugin))),
+		[rawRequestedClients],
+	)
+	const invalidClients = useMemo(
+		() => rawRequestedClients.filter((value) => !isKnownPlugin(value)),
+		[rawRequestedClients],
+	)
+	const validClient = requestedClients[0] ?? null
+	const displayName = formatPluginNames(requestedClients)
+	const pluginInfo =
+		requestedClients.length === 1 && validClient
+			? PLUGIN_INFO[validClient]
+			: null
 
 	// Redirect new users (logged in but no organization) to onboarding.
 	// Store the current connect URL so onboarding can redirect back here.
@@ -166,6 +249,16 @@ function AuthConnectContent() {
 			setError("Invalid callback URL.")
 			return
 		}
+		if (invalidClients.length > 0) {
+			setStatus("error")
+			setError(`Unsupported plugin requested: ${invalidClients.join(", ")}.`)
+			return
+		}
+		if (requestedClients.length === 0) {
+			setStatus("error")
+			setError("Invalid or missing client.")
+			return
+		}
 		if (!session || !org) {
 			setStatus("error")
 			setError(
@@ -177,17 +270,13 @@ function AuthConnectContent() {
 		try {
 			setStatus("creating")
 			const fetchParams = new URLSearchParams({ callback })
-			if (validClient) fetchParams.set("client", validClient)
+			fetchParams.set("client", requestedClients[0] ?? "")
 
 			const res = await fetch(`${API_URL}/v3/auth/key?${fetchParams}`, {
 				credentials: "include",
 			})
 
 			if (!res.ok) {
-				if (res.status === 403) {
-					setStatus("upgrade")
-					return
-				}
 				const errorData = (await res.json().catch(() => ({}))) as {
 					message?: string
 				}
@@ -198,7 +287,21 @@ function AuthConnectContent() {
 			setStatus("success")
 
 			const redirectUrl = new URL(callback)
-			redirectUrl.searchParams.set("apikey", data.key)
+			if (hasClientList) {
+				redirectUrl.searchParams.set(
+					"keys",
+					encodeBase64UrlJson(
+						Object.fromEntries(
+							requestedClients.map((requestedClient) => [
+								requestedClient,
+								data.key,
+							]),
+						),
+					),
+				)
+			} else {
+				redirectUrl.searchParams.set("apikey", data.key)
+			}
 			redirectUrl.searchParams.set("api_url", API_URL)
 			window.location.href = redirectUrl.toString()
 		} catch (err) {
@@ -208,23 +311,23 @@ function AuthConnectContent() {
 		}
 	}
 
-	async function handleUpgrade() {
-		try {
-			setIsUpgrading(true)
-			const safeSuccessUrl = `${window.location.origin}${window.location.pathname}?callback=${encodeURIComponent(callback ?? "")}&client=${encodeURIComponent(validClient ?? "")}`
-			await autumn.attach({
-				planId: "api_pro",
-				successUrl: safeSuccessUrl,
-			})
-		} catch (err) {
-			console.error("Upgrade failed:", err)
-			setIsUpgrading(false)
-		}
-	}
-
 	// Show a spinner while session/org data is loading or while we're about
 	// to redirect to onboarding (prevents a brief flash of the connect card).
 	const isAuthLoading = isPending || isRestoring || organizations === null
+
+	useEffect(() => {
+		if (status !== "loading") return
+		if (rawRequestedClients.length === 0) {
+			setStatus("error")
+			setError("Invalid or missing client.")
+			return
+		}
+		if (invalidClients.length > 0) {
+			setStatus("error")
+			setError(`Unsupported plugin requested: ${invalidClients.join(", ")}.`)
+		}
+	}, [invalidClients, rawRequestedClients.length, status])
+
 	if (isAuthLoading || shouldRedirectToOnboarding) {
 		return (
 			<div className="flex items-center justify-center min-h-screen bg-background">
@@ -238,19 +341,7 @@ function AuthConnectContent() {
 			<div className={pageWrapperClass}>
 				<div className={cardClass}>
 					<div className="flex flex-col items-center gap-5">
-						<div className="flex size-10 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]">
-							{pluginInfo ? (
-								<Image
-									alt={pluginInfo.name}
-									className="size-6"
-									height={24}
-									src={pluginInfo.icon}
-									width={24}
-								/>
-							) : (
-								<ArrowRight className="size-5 text-[#4BA0FA]" />
-							)}
-						</div>
+						<PluginLogoStack clients={requestedClients} />
 						<div className="text-center">
 							<h2
 								className={dmSans125ClassName(
@@ -265,13 +356,15 @@ function AuthConnectContent() {
 								)}
 							>
 								{pluginInfo?.description ??
-									`Allow ${displayName} to access your Supermemory account.`}
+									(requestedClients.length > 1
+										? "Use one Supermemory account across these plugins."
+										: `Use your Supermemory account with ${displayName}.`)}
 							</p>
 						</div>
 
-						{pluginInfo && (
-							<ul className="w-full space-y-2.5">
-								{pluginInfo.features.map((feature) => (
+						<ul className="w-full space-y-2.5">
+							{(pluginInfo?.features ?? MULTI_PLUGIN_FEATURES).map(
+								(feature) => (
 									<li key={feature} className="flex items-start gap-2.5">
 										<ArrowRight className="mt-0.5 size-3.5 shrink-0 text-[#4BA0FA]" />
 										<span
@@ -282,16 +375,16 @@ function AuthConnectContent() {
 											{feature}
 										</span>
 									</li>
-								))}
-							</ul>
-						)}
+								),
+							)}
+						</ul>
 
 						<button
 							type="button"
 							onClick={handleConnect}
 							className={cn(
 								"relative w-full h-11 rounded-[10px] flex items-center justify-center",
-								"text-[#FAFAFA] font-medium text-[14px] tracking-[-0.14px]",
+								"text-[#FAFAFA] font-medium text-[14px]",
 								"shadow-[0px_2px_10px_rgba(5,1,0,0.2)]",
 								"cursor-pointer transition-opacity hover:opacity-90",
 								dmSans125ClassName(),
@@ -311,104 +404,6 @@ function AuthConnectContent() {
 			</div>
 		)
 	}
-
-	if (status === "upgrade") {
-		return (
-			<div className={pageWrapperClass}>
-				<div className={cardClass}>
-					<div className="flex flex-col items-center gap-5">
-						<div className="flex size-10 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]">
-							{pluginInfo ? (
-								<Image
-									alt={pluginInfo.name}
-									className="size-6"
-									height={24}
-									src={pluginInfo.icon}
-									width={24}
-								/>
-							) : (
-								<ArrowRight className="size-5 text-[#4BA0FA]" />
-							)}
-						</div>
-						<div className="text-center">
-							<h2
-								className={dmSans125ClassName(
-									"font-semibold text-[18px] text-[#FAFAFA]",
-								)}
-							>
-								{pluginInfo?.name ?? displayName}
-							</h2>
-							<p
-								className={dmSans125ClassName(
-									"text-[13px] text-[#737373] mt-1",
-								)}
-							>
-								{pluginInfo?.description ??
-									`A paid plan is required to use ${displayName} with Supermemory.`}
-							</p>
-						</div>
-
-						{pluginInfo && (
-							<ul className="w-full space-y-2.5">
-								{pluginInfo.features.map((feature) => (
-									<li key={feature} className="flex items-start gap-2.5">
-										<ArrowRight className="mt-0.5 size-3.5 shrink-0 text-[#4BA0FA]" />
-										<span
-											className={dmSans125ClassName(
-												"text-[13px] text-[#8B8B8B]",
-											)}
-										>
-											{feature}
-										</span>
-									</li>
-								))}
-							</ul>
-						)}
-
-						<button
-							type="button"
-							onClick={handleUpgrade}
-							disabled={isUpgrading || autumn.isLoading}
-							className={cn(
-								"relative w-full h-11 rounded-[10px] flex items-center justify-center",
-								"text-[#FAFAFA] font-medium text-[14px] tracking-[-0.14px]",
-								"shadow-[0px_2px_10px_rgba(5,1,0,0.2)]",
-								"disabled:opacity-60 disabled:cursor-not-allowed",
-								"cursor-pointer transition-opacity hover:opacity-90",
-								dmSans125ClassName(),
-							)}
-							style={{
-								background:
-									"linear-gradient(182.37deg, #0ff0d2 -91.53%, #5bd3fb -67.8%, #1e0ff0 95.17%)",
-								boxShadow:
-									"1px 1px 2px 0px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)",
-							}}
-						>
-							{isUpgrading || autumn.isLoading ? (
-								<>
-									<Loader className="size-4 animate-spin mr-2" />
-									Upgrading…
-								</>
-							) : (
-								"Upgrade to Pro \u2014 $19/month"
-							)}
-							<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1px_1px_2px_1px_#1A88FF]" />
-						</button>
-
-						<a
-							href="https://app.supermemory.ai/settings#billing"
-							className={dmSans125ClassName(
-								"text-[12px] text-[#737373] hover:text-[#FAFAFA] transition-colors",
-							)}
-						>
-							View all plans
-						</a>
-					</div>
-				</div>
-			</div>
-		)
-	}
-
 	if (status === "error") {
 		return (
 			<div className={pageWrapperClass}>
@@ -435,7 +430,7 @@ function AuthConnectContent() {
 						<div className="flex flex-col gap-2 w-full">
 							<button
 								type="button"
-								onClick={() => window.location.reload()}
+								onClick={() => void handleConnect()}
 								className={cn(
 									"w-full flex items-center justify-center gap-2 rounded-full h-10 px-4",
 									"bg-[#0D121A] border border-[#1E293B] text-[#FAFAFA]",

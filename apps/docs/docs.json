@@ -195,6 +195,11 @@
 								"group": "Other resources",
 								"pages": [
 									{
+										"group": "General",
+										"icon": "book-open",
+										"pages": ["ingestion/batch-ingest-historical-data"]
+									},
+									{
 										"group": "Benchmarking",
 										"icon": "flask-conical",
 										"pages": [

@@ -4,6 +4,7 @@ import { cn } from "@lib/utils"
 import { ArrowRight, Loader2 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
+import { useTrialStatus } from "@/hooks/use-trial-status"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { useViewMode } from "@/lib/view-mode-context"
 import { brainConnectorIcon, SlackMark } from "../brain-connector-icons"
@@ -192,6 +193,7 @@ export const CONNECT_TOOLS_CARD_ID = "connect-tools"
 export function ConnectToolsCard({ board }: { board: ConnectionsBoardState }) {
 	const { setViewMode } = useViewMode()
 	const { loading, featured, overflow, busy, isConnected, connect } = board
+	const { needsSetup } = useTrialStatus()
 
 	return (
 		<section
@@ -209,11 +211,19 @@ export function ConnectToolsCard({ board }: { board: ConnectionsBoardState }) {
 					Connect your tools
 				</p>
 				<p className="mt-0.5 text-[12px] font-medium text-[#737373]">
-					Give your Slack agent live access to the apps your team already uses.
+					{needsSetup
+						? "Starts with your trial."
+						: "Give your Slack agent live access to the apps your team already uses."}
 				</p>
 			</div>
 
-			<div className="overflow-hidden rounded-[12px] bg-[#14161A]">
+			<div
+				className={cn(
+					"overflow-hidden rounded-[12px] bg-[#14161A]",
+					needsSetup && "pointer-events-none opacity-40 select-none",
+				)}
+				aria-disabled={needsSetup || undefined}
+			>
 				{loading ? (
 					Array.from({ length: 3 }).map((_, i) => (
 						<TileSkeleton key={i} showDivider={i < 2} />
@@ -248,6 +258,7 @@ export function ConnectToolsCard({ board }: { board: ConnectionsBoardState }) {
 
 export function AskInSlackCard({ board }: { board: ConnectionsBoardState }) {
 	const { previewApps, isConnected, connectedCount } = board
+	const { needsSetup } = useTrialStatus()
 	const prompts = previewApps
 		.filter((a) => AGENT_PROMPTS[a.slug])
 		.slice(0, 6)
@@ -275,12 +286,19 @@ export function AskInSlackCard({ board }: { board: ConnectionsBoardState }) {
 				</p>
 			</div>
 			<p className="text-[12px] font-medium leading-[1.5] text-[#737373]">
-				{connectedCount > 0
-					? "Things your agent can answer now:"
-					: "Connect a tool and your agent can answer:"}
+				{needsSetup
+					? "Starts with your trial."
+					: connectedCount > 0
+						? "Things your agent can answer now:"
+						: "Connect a tool and your agent can answer:"}
 			</p>
 
-			<div className="overflow-hidden rounded-[12px] bg-[#14161A]">
+			<div
+				className={cn(
+					"overflow-hidden rounded-[12px] bg-[#14161A]",
+					needsSetup && "opacity-40 select-none",
+				)}
+			>
 				{prompts.map((p, i) => (
 					<div
 						key={p.slug}
@@ -426,6 +444,7 @@ function TileSkeleton({ showDivider = false }: { showDivider?: boolean }) {
 }
 
 export function SlackBanner() {
+	const { needsSetup } = useTrialStatus()
 	return (
 		<section
 			className="relative overflow-hidden rounded-[18px] bg-[#1B1F24] p-3.5 sm:p-5"
@@ -472,12 +491,20 @@ export function SlackBanner() {
 				</div>
 
 				<a
-					href={`${BACKEND}/brain/slack/oauth/install`}
+					href={
+						needsSetup ? "/onboarding" : `${BACKEND}/brain/slack/oauth/install`
+					}
 					className="inline-flex shrink-0 items-center justify-center rounded-lg bg-white px-3 py-1.5 text-[13px] font-semibold text-[#1D1C1D] transition-transform hover:scale-[1.02] sm:gap-2 sm:px-4 sm:py-2.5 sm:text-[14px]"
 				>
-					<SlackMark className="hidden sm:block sm:size-[18px]" />
-					<span className="sm:hidden">Add</span>
-					<span className="hidden sm:inline">Add to Slack</span>
+					{needsSetup ? (
+						<span>Start trial</span>
+					) : (
+						<>
+							<SlackMark className="hidden sm:block sm:size-[18px]" />
+							<span className="sm:hidden">Add</span>
+							<span className="hidden sm:inline">Add to Slack</span>
+						</>
+					)}
 				</a>
 			</div>
 		</section>

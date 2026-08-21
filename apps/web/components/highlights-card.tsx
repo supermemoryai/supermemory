@@ -92,8 +92,8 @@ export function HighlightsCard({
 		if (isReplyOpen) replyInputRef.current?.focus()
 	}, [isReplyOpen])
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally re-run when items changes
 	useEffect(() => {
+		setActiveIndex((i) => Math.min(i, Math.max(items.length - 1, 0)))
 		setIsReplyOpen(false)
 		setReplyText("")
 		setIsExpanded(false)

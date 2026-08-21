@@ -42,6 +42,7 @@ import {
 	getConnectionSubtitle,
 } from "@/components/settings/sync-utils"
 import type { ImportProvider } from "@/components/settings/sync-utils"
+import { usePromoCode } from "@/hooks/use-promo-code"
 
 type GDriveSyncScope = "scoped" | "full"
 
@@ -309,6 +310,7 @@ interface ConnectContentProps {
 export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
+	const promoCode = usePromoCode()
 	const { connectorAccess } = useConnectorAccess()
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
@@ -330,8 +332,10 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 		try {
 			const result = await autumn.attach({
 				planId,
+				discounts: promoCode.getDiscounts(),
 				successUrl: window.location.href,
 			})
+			promoCode.clear()
 			if (result?.paymentUrl) {
 				window.open(result.paymentUrl, "_self")
 				return

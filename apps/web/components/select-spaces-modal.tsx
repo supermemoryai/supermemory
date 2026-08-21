@@ -394,11 +394,6 @@ export function SelectSpacesModal({
 				credentials: "include",
 			})
 			if (!res.ok) {
-				if (res.status === 403) {
-					throw new Error(
-						"Plugin access was denied. Check your plan or try again.",
-					)
-				}
 				const errorData = (await res.json().catch(() => ({}))) as {
 					message?: string
 				}
