@@ -6,14 +6,22 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useRef,
 	useState,
 } from "react"
 import { authClient, useSession } from "./auth"
+import {
+	createAuthSessionScope,
+	isOAuthConsentPath,
+	readScopedAuthValue,
+	scopedAuthValueForResponse,
+	type ScopedAuthValue,
+} from "./scoped-auth-state"
 
 type Organization = typeof authClient.$Infer.ActiveOrganization
 type SessionData = NonNullable<ReturnType<typeof useSession>["data"]>
 type OrganizationListItem = NonNullable<
-	ReturnType<typeof authClient.useListOrganizations>["data"]
+	Awaited<ReturnType<typeof authClient.organization.list>>["data"]
 >[number]
 
 const STORAGE_KEY = "supermemory-consumer-last-org-slug"
@@ -53,88 +61,169 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const { data: session, isPending: isSessionPending } = useSession()
-	const [org, setOrg] = useState<Organization | null>(null)
-	const [isRestoring, setIsRestoring] = useState(true)
-	const {
-		data: orgsData,
-		refetch: refetchOrgsQuery,
-		isPending: orgsPending,
-	} = authClient.useListOrganizations()
+	const sessionScope = createAuthSessionScope({
+		isPending: isSessionPending,
+		sessionId: session?.session.id,
+		userId: session?.user.id,
+	})
+	const currentSessionScopeRef = useRef(sessionScope)
+	currentSessionScopeRef.current = sessionScope
+	const organizationsRequestRef = useRef(0)
+	const [organizationsState, setOrganizationsState] = useState<ScopedAuthValue<
+		OrganizationListItem[]
+	> | null>(null)
+	const [organizationState, setOrganizationState] =
+		useState<ScopedAuthValue<Organization | null> | null>(null)
 
-	const organizations =
-		session?.session == null ? null : orgsPending ? null : (orgsData ?? [])
-
-	const refetchOrganizations = useCallback(
-		() => Promise.resolve(refetchOrgsQuery()),
-		[refetchOrgsQuery],
+	const organizationsRead = readScopedAuthValue(
+		sessionScope,
+		organizationsState,
 	)
+	const organizationRead = readScopedAuthValue(sessionScope, organizationState)
+	const organizations = organizationsRead.ready ? organizationsRead.data : null
+	const org = organizationRead.ready ? organizationRead.data : null
+	const isRestoring =
+		isSessionPending ||
+		Boolean(
+			session?.session &&
+				(!sessionScope || !organizationsRead.ready || !organizationRead.ready),
+		)
+
+	const refetchOrganizations = useCallback(async () => {
+		const requestedScope = currentSessionScopeRef.current
+		if (!requestedScope) return null
+		const requestId = ++organizationsRequestRef.current
+		const commitOrganizations = (data: OrganizationListItem[]) => {
+			if (requestId !== organizationsRequestRef.current) return
+			const nextState = scopedAuthValueForResponse(
+				currentSessionScopeRef.current,
+				requestedScope,
+				data,
+			)
+			if (nextState) setOrganizationsState(nextState)
+		}
+
+		try {
+			const result = await authClient.organization.list()
+			commitOrganizations(result.data ?? [])
+			return result
+		} catch {
+			commitOrganizations([])
+			return null
+		}
+	}, [])
 
 	const setActiveOrg = useCallback(async (slug: string) => {
 		if (!slug) return
+		const requestedScope = currentSessionScopeRef.current
+		if (!requestedScope) return
 
 		const res = await authClient.organization.setActive({
 			organizationSlug: slug,
 		})
-		setOrg(res?.data ?? null)
-		localStorage.setItem(STORAGE_KEY, slug)
+		if (res.error || !res.data) {
+			throw new Error(res.error?.message ?? "Organization switch failed")
+		}
+		const nextState = scopedAuthValueForResponse(
+			currentSessionScopeRef.current,
+			requestedScope,
+			res.data,
+		)
+		if (nextState) {
+			setOrganizationState(nextState)
+			localStorage.setItem(STORAGE_KEY, slug)
+		}
 	}, [])
 
 	const clearActiveOrg = useCallback(async () => {
+		const requestedScope = currentSessionScopeRef.current
+		if (!requestedScope) return
 		try {
 			await authClient.organization.setActive({ organizationId: null })
 		} catch {}
-		setOrg(null)
-		try {
-			localStorage.removeItem(STORAGE_KEY)
-		} catch {}
+		const nextState = scopedAuthValueForResponse(
+			currentSessionScopeRef.current,
+			requestedScope,
+			null,
+		)
+		if (nextState) {
+			setOrganizationState(nextState)
+			try {
+				localStorage.removeItem(STORAGE_KEY)
+			} catch {}
+		}
 	}, [])
 
 	const updateOrgMetadata = useCallback((partial: Record<string, unknown>) => {
-		setOrg((prev) => {
-			if (!prev) return prev
+		const currentScope = currentSessionScopeRef.current
+		if (!currentScope) return
+		setOrganizationState((prev) => {
+			if (prev?.scope !== currentScope || !prev.data) return prev
 			return {
-				...prev,
-				metadata: {
-					...prev.metadata,
-					...partial,
+				scope: currentScope,
+				data: {
+					...prev.data,
+					metadata: {
+						...prev.data.metadata,
+						...partial,
+					},
 				},
 			}
 		})
 	}, [])
 
 	const refetchActiveOrg = useCallback(async () => {
+		const requestedScope = currentSessionScopeRef.current
+		if (!requestedScope) return null
 		const full = await authClient.organization.getFullOrganization()
 		const nextOrg = full?.data ?? null
-		setOrg(nextOrg)
-		return nextOrg
+		const nextState = scopedAuthValueForResponse(
+			currentSessionScopeRef.current,
+			requestedScope,
+			nextOrg,
+		)
+		if (!nextState) return null
+		setOrganizationState(nextState)
+		return nextState.data
 	}, [])
 
 	useEffect(() => {
 		if (isSessionPending) return
-
-		if (!session?.session) {
-			setIsRestoring(false)
-			setOrg(null)
+		if (!sessionScope) {
+			setOrganizationsState(null)
+			setOrganizationState(null)
 			return
 		}
 
-		if (orgsPending || orgsData === undefined) {
-			setIsRestoring(true)
-			return
-		}
+		void refetchOrganizations()
+	}, [isSessionPending, refetchOrganizations, sessionScope])
 
-		const orgs = orgsData ?? []
+	useEffect(() => {
+		if (isSessionPending) return
+		if (!session?.session || !sessionScope || organizations === null) return
+
+		const requestedScope = sessionScope
+		const orgs = organizations
 		let cancelled = false
+		const commitOrganization = (nextOrg: Organization | null) => {
+			if (cancelled) return
+			const nextState = scopedAuthValueForResponse(
+				currentSessionScopeRef.current,
+				requestedScope,
+				nextOrg,
+			)
+			if (nextState) setOrganizationState(nextState)
+		}
 
 		const run = async () => {
 			try {
 				// OAuth consent owns org selection for the authorization transaction.
 				const shouldRestoreSavedOrg =
 					typeof window === "undefined" ||
-					window.location.pathname !== "/oauth/consent"
+					!isOAuthConsentPath(window.location.pathname)
 
 				if (orgs.length === 0) {
-					if (!cancelled) setOrg(null)
+					commitOrganization(null)
 					return
 				}
 
@@ -148,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					if (match) {
 						if (activeOrgId === match.id) {
 							const full = await authClient.organization.getFullOrganization()
-							if (!cancelled) setOrg(full?.data ?? null)
+							commitOrganization(full?.data ?? null)
 						} else {
 							await setActiveOrg(requestedSlug)
 						}
@@ -161,7 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					if (!one) return
 					if (activeOrgId === one.id) {
 						const full = await authClient.organization.getFullOrganization()
-						if (!cancelled) setOrg(full?.data ?? null)
+						commitOrganization(full?.data ?? null)
 					} else {
 						await setActiveOrg(one.slug)
 					}
@@ -175,7 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 						if (match) {
 							if (activeOrgId === match.id) {
 								const full = await authClient.organization.getFullOrganization()
-								if (!cancelled) setOrg(full?.data ?? null)
+								commitOrganization(full?.data ?? null)
 							} else {
 								await setActiveOrg(savedSlug)
 							}
@@ -189,17 +278,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					const fromList = orgs.find((o) => o.id === activeOrgId)
 					if (fromList) {
 						const full = await authClient.organization.getFullOrganization()
-						if (!cancelled) setOrg(full?.data ?? null)
+						commitOrganization(full?.data ?? null)
 						return
 					}
 				}
 
 				const full = await authClient.organization.getFullOrganization()
-				if (!cancelled) setOrg(full?.data ?? null)
+				commitOrganization(full?.data ?? null)
 			} catch (error) {
 				console.error("Failed to restore organization:", error)
-			} finally {
-				if (!cancelled) setIsRestoring(false)
+				commitOrganization(null)
 			}
 		}
 
@@ -207,7 +295,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		return () => {
 			cancelled = true
 		}
-	}, [isSessionPending, session, orgsData, orgsPending, setActiveOrg])
+	}, [
+		isSessionPending,
+		organizations,
+		session?.session,
+		sessionScope,
+		setActiveOrg,
+	])
 
 	useEffect(() => {
 		if (typeof window === "undefined") return
