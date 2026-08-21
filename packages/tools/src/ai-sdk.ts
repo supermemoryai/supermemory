@@ -372,4 +372,12 @@ export function supermemoryTools(
 	}
 }
 
-export { withSupermemory } from "./vercel"
+// `./vercel` is not a published subpath, so this entry point is the only way
+// consumers can reach the middleware types — including the `promptTemplate`
+// data shape used by the documented custom-template example.
+export {
+	withSupermemory,
+	type WithSupermemoryOptions,
+	type PromptTemplate,
+	type MemoryPromptData,
+} from "./vercel"
