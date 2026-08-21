@@ -90,6 +90,7 @@ export function DocumentContent({
 		case "image":
 			return (
 				<ImagePreview
+					key={document.id}
 					url={document.url ?? ""}
 					title={document.title}
 					documentId={document.id}
@@ -109,7 +110,13 @@ export function DocumentContent({
 			return <TextEditorContent {...textEditorProps} />
 
 		case "pdf":
-			return <PdfViewer url={document.url} documentId={document.id} />
+			return (
+				<PdfViewer
+					key={document.id}
+					url={document.url}
+					documentId={document.id}
+				/>
+			)
 
 		case "notion":
 			return <NotionDoc content={document.content ?? ""} />
