@@ -294,6 +294,17 @@ export function AppExperience() {
 	)
 	const [isSelectionMode, setIsSelectionMode] = useState(false)
 
+	// Selection is scoped to the documents currently on screen. When the active
+	// space changes the previous selection points at documents from another
+	// space that are no longer visible, so clear it — otherwise "Delete selected"
+	// would delete documents the user can't see anymore.
+	const activeSpaceKey = selectedProjects.join("|")
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the space changes, not on selection edits
+	useEffect(() => {
+		setSelectedDocumentIds((prev) => (prev.size === 0 ? prev : new Set()))
+		setIsSelectionMode((prev) => (prev ? false : prev))
+	}, [activeSpaceKey])
+
 	const handleToggleSelection = useCallback((documentId: string) => {
 		setSelectedDocumentIds((prev) => {
 			const next = new Set(prev)
