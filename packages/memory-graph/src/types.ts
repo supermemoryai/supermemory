@@ -216,6 +216,13 @@ export interface MemoryGraphProps {
 	totalCount?: number
 	/** Callback when user wants to view full document content */
 	onOpenDocument?: (documentId: string) => void
+	/**
+	 * Called whenever the selected node changes, by click, keyboard navigation,
+	 * slideshow, or clearing the selection (nodeId is null when nothing is
+	 * selected). Lets a host observe selection without owning the state, e.g. to
+	 * drive a side panel or sync the URL.
+	 */
+	onNodeSelect?: (nodeId: string | null) => void
 	/** Custom user-facing labels (partial) - merged with defaults */
 	labels?: MemoryGraphLabels
 	/** Overlay layering controls */
