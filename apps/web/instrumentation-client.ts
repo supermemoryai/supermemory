@@ -6,7 +6,13 @@ import * as Sentry from "@sentry/nextjs"
 
 function sentryShouldDropExpectedNonActionableError(event: {
 	message?: string
-	exception?: { values?: Array<{ type?: string; value?: string }> }
+	exception?: {
+		values?: Array<{
+			type?: string
+			value?: string
+			stacktrace?: { frames?: Array<{ filename?: string }> }
+		}>
+	}
 }): boolean {
 	const patterns = [
 		/user location is not supported/i,
@@ -18,6 +24,20 @@ function sentryShouldDropExpectedNonActionableError(event: {
 	if (matches(event.message)) return true
 	for (const ex of event.exception?.values ?? []) {
 		if (matches(ex.value)) return true
+
+		// Drop TypeError: Failed to fetch errors originating from browser extension
+		// content scripts (identified by app:/// URLs or frame_ant in stack frames).
+		if (
+			ex.type === "TypeError" &&
+			/Failed to fetch/i.test(ex.value ?? "") &&
+			ex.stacktrace?.frames?.some(
+				(f) =>
+					f.filename?.startsWith("app:///") ||
+					f.filename?.includes("frame_ant"),
+			)
+		) {
+			return true
+		}
 	}
 	return false
 }
