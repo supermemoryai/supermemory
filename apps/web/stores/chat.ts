@@ -27,8 +27,6 @@ export function areUIMessageArraysEqual(
 			return false
 		}
 
-		if (msgA.content !== msgB.content) return false
-
 		if (JSON.stringify(msgA.parts) !== JSON.stringify(msgB.parts)) {
 			return false
 		}
@@ -202,7 +200,8 @@ export function usePersistentChat() {
 	)
 
 	const conversations: ConversationSummary[] = (() => {
-		const convs = projectState?.conversations ?? {}
+		const convs: Record<string, ConversationRecord> =
+			projectState?.conversations ?? {}
 		return Object.entries(convs).map(([id, rec]) => ({
 			id,
 			title: rec.title,

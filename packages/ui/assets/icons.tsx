@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react"
+
 export const OneDrive = ({ className }: { className?: string }) => (
 	<svg
 		className={className}
@@ -237,7 +239,13 @@ export const PDF = ({ className }: { className?: string }) => (
 	</svg>
 )
 
-export const SyncLogoIcon = ({ className }: { className?: string }) => {
+export const SyncLogoIcon = ({
+	className,
+	style,
+}: {
+	className?: string
+	style?: CSSProperties
+}) => {
 	return (
 		<svg
 			width="11"
@@ -246,6 +254,7 @@ export const SyncLogoIcon = ({ className }: { className?: string }) => {
 			fill="none"
 			xmlns="http://www.w3.org/2000/svg"
 			className={className}
+			style={style}
 		>
 			<title>Sync Logo</title>
 			<g clipPath="url(#clip0_344_4856)">
