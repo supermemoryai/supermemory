@@ -33,13 +33,36 @@ interface SupermemoryProfileSearch {
 }
 
 /**
+ * Reads plain text from an OpenAI chat message `content` field.
+ *
+ * OpenAI accepts `string | array | null`. Array parts are used for multimodal
+ * messages; only `type: "text"` parts are searchable/saveable as memory text.
+ */
+const extractTextFromContent = (
+	content: OpenAI.Chat.Completions.ChatCompletionMessageParam["content"],
+): string => {
+	if (typeof content === "string") {
+		return content
+	}
+
+	if (!Array.isArray(content)) {
+		return ""
+	}
+
+	return content
+		.filter((part) => part.type === "text")
+		.map((part) => ("text" in part ? part.text : ""))
+		.join(" ")
+}
+
+/**
  * Extracts the last user message from an array of chat completion messages.
  *
  * Searches through the messages array in reverse order to find the most recent
- * message with role "user" and returns its content as a string.
+ * message with role "user" and returns its text content as a string.
  *
  * @param messages - Array of chat completion message parameters
- * @returns The content of the last user message, or empty string if none found
+ * @returns The text of the last user message, or empty string if none found
  *
  * @example
  * ```typescript
@@ -62,9 +85,7 @@ const getLastUserMessage = (
 		.reverse()
 		.find((msg) => msg.role === "user")
 
-	return typeof lastUserMessage?.content === "string"
-		? lastUserMessage.content
-		: ""
+	return extractTextFromContent(lastUserMessage?.content)
 }
 
 /**
@@ -274,7 +295,7 @@ const getConversationContent = (
 	return messages
 		.map((msg) => {
 			const role = msg.role === "user" ? "User" : "Assistant"
-			const content = typeof msg.content === "string" ? msg.content : ""
+			const content = extractTextFromContent(msg.content)
 			return `${role}: ${content}`
 		})
 		.join("\n\n")
