@@ -2,6 +2,7 @@
  * API service for supermemory browser extension
  */
 import { API_ENDPOINTS } from "./constants"
+import { normalizeProjects } from "./projects"
 import { bearerToken, defaultProject, userData } from "./storage"
 import { buildSearchMemoriesBody } from "./search-request"
 import {
@@ -62,9 +63,10 @@ async function makeAuthenticatedRequest<T>(
  */
 export async function fetchProjects(): Promise<Project[]> {
 	try {
-		const response =
-			await makeAuthenticatedRequest<ProjectsResponse>("/v3/projects")
-		return response.projects
+		const response = await makeAuthenticatedRequest<ProjectsResponse | null>(
+			"/v3/projects",
+		)
+		return normalizeProjects(response?.projects)
 	} catch (error) {
 		console.error("Failed to fetch projects:", error)
 		throw error
