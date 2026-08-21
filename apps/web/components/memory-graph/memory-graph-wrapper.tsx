@@ -21,6 +21,7 @@ export interface MemoryGraphWrapperProps {
 	onSlideshowStop?: () => void
 	canvasRef?: React.RefObject<HTMLCanvasElement | null>
 	onOpenDocument?: (documentId: string) => void
+	showMinimap?: boolean
 }
 
 export function MemoryGraph({
