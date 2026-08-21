@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
 import {
 	Dialog,
@@ -285,6 +285,22 @@ export function ShareModal({
 	const [copied, setCopied] = useState(false)
 	const previewRef = useRef<HTMLDivElement>(null)
 
+	// Snapshot the live graph canvas once when the modal opens. Reading
+	// `canvas.toDataURL()` inline in render re-serialized the whole (animated)
+	// canvas to a PNG on every re-render — including on each theme-button click.
+	const [graphImage, setGraphImage] = useState<string | null>(null)
+	useEffect(() => {
+		if (!isOpen) {
+			setGraphImage(null)
+			return
+		}
+		const id = requestAnimationFrame(() => {
+			const canvas = graphCanvasRef?.current
+			if (canvas) setGraphImage(canvas.toDataURL("image/png"))
+		})
+		return () => cancelAnimationFrame(id)
+	}, [isOpen, graphCanvasRef])
+
 	const localStorageUsername = useLocalStorageUsername()
 	const displayName =
 		user?.displayUsername ||
@@ -460,9 +476,9 @@ export function ShareModal({
 
 						{/* Graph canvas placeholder - will show the actual graph */}
 						<div className="absolute inset-0 flex items-center justify-center">
-							{graphCanvasRef?.current ? (
+							{graphImage ? (
 								<img
-									src={graphCanvasRef.current.toDataURL("image/png")}
+									src={graphImage}
 									alt="Memory graph"
 									className="max-w-full max-h-full object-contain"
 								/>
