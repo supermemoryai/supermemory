@@ -281,6 +281,85 @@ const getConversationContent = (
 }
 
 /**
+ * Flattens the Responses API `input` into a text query and chat-style messages.
+ *
+ * `input` may be a plain string or an array of structured items where each
+ * message carries multi-part content (`input_text`, `output_text`, images).
+ * The previous `typeof input === "string" ? input : ""` collapsed every
+ * structured or multi-modal request to an empty string, so those turns skipped
+ * both memory search and saving. Here we pull out the text for search and
+ * rebuild role-tagged messages so the save still routes through
+ * /v4/conversations.
+ *
+ * @param input - The Responses API `input` value (string or structured array)
+ * @returns The joined text query and the reconstructed messages
+ */
+export const extractResponsesInput = (
+	input: unknown,
+): {
+	text: string
+	messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]
+} => {
+	if (typeof input === "string") {
+		return input.trim()
+			? { text: input, messages: [{ role: "user", content: input }] }
+			: { text: "", messages: [] }
+	}
+
+	if (!Array.isArray(input)) {
+		return { text: "", messages: [] }
+	}
+
+	const textParts: string[] = []
+	const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = []
+
+	const pushMessage = (role: string, text: string) => {
+		const normalizedRole =
+			role === "assistant" || role === "system" ? role : "user"
+		messages.push({
+			role: normalizedRole,
+			content: text,
+		} as OpenAI.Chat.Completions.ChatCompletionMessageParam)
+	}
+
+	const textFromContentPart = (part: unknown): string => {
+		if (typeof part === "string") return part
+		if (!part || typeof part !== "object") return ""
+		const record = part as Record<string, unknown>
+		return typeof record.text === "string" ? record.text : ""
+	}
+
+	for (const item of input) {
+		if (typeof item === "string") {
+			if (item.trim()) {
+				textParts.push(item)
+				pushMessage("user", item)
+			}
+			continue
+		}
+		if (!item || typeof item !== "object") continue
+
+		const record = item as Record<string, unknown>
+		const role = typeof record.role === "string" ? record.role : "user"
+		const content = record.content
+
+		const text =
+			typeof content === "string"
+				? content
+				: Array.isArray(content)
+					? content.map(textFromContentPart).filter(Boolean).join("\n")
+					: ""
+
+		if (text.trim()) {
+			textParts.push(text)
+			pushMessage(role, text)
+		}
+	}
+
+	return { text: textParts.join("\n").trim(), messages }
+}
+
+/**
  * Adds a new memory to the SuperMemory system.
  *
  * Saves the provided content as a memory with the specified container tag and
@@ -367,7 +446,10 @@ const addMemoryTool = async (
 			return
 		}
 
-		// Fallback to old behavior for non-conversation memories
+		// Fallback for when we cannot reach /v4/conversations (no messages or
+		// API key). Keep the customId exactly as passed: the backend already
+		// stores conversation memories under the "conversation:" id, so
+		// rewriting it here would orphan a conversation's earlier turns.
 		const response = await client.add({
 			content,
 			containerTags: [containerTag],
@@ -530,7 +612,9 @@ export function createOpenAIMiddleware(
 			)
 		}
 
-		const input = typeof params.input === "string" ? params.input : ""
+		const { text: input, messages: inputMessages } = extractResponsesInput(
+			params.input,
+		)
 
 		if (mode !== "profile" && !input) {
 			logger.debug("No input found for Responses API, skipping memory search")
@@ -548,9 +632,22 @@ export function createOpenAIMiddleware(
 		if (addMemory === "always" && input?.trim()) {
 			const content = customId ? `Input: ${input}` : input
 			const memoryCustomId = customId ? `conversation:${customId}` : undefined
-
+			// Mirror the chat path: hand the reconstructed messages over with
+			// the credentials so a configured customId routes through
+			// /v4/conversations. Without messages, addMemoryTool falls back to
+			// client.add() with the "conversation:" customId; passing them lets
+			// structured and multi-turn Responses input be saved intact.
 			operations.push(
-				addMemoryTool(client, containerTag, content, memoryCustomId, logger),
+				addMemoryTool(
+					client,
+					containerTag,
+					content,
+					memoryCustomId,
+					logger,
+					customId ? inputMessages : undefined,
+					process.env.SUPERMEMORY_API_KEY,
+					baseUrl,
+				),
 			)
 		}
 
