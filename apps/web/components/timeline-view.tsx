@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
@@ -505,7 +505,21 @@ export function TimelineView({
 	selectedDocumentIds = new Set(),
 	onToggleSelection,
 }: TimelineViewProps) {
-	const [now] = useState(() => new Date())
+	// `now` drives the "Today"/"Yesterday"/weekday labels. Refresh it when the
+	// calendar day rolls over so a tab left open across midnight doesn't keep
+	// labelling yesterday's documents as "Today". Same-day ticks return the
+	// previous value, so React skips the re-render and the grouping below only
+	// recomputes on an actual day change.
+	const [now, setNow] = useState(() => new Date())
+	useEffect(() => {
+		const id = setInterval(() => {
+			setNow((prev) => {
+				const current = new Date()
+				return current.toDateString() === prev.toDateString() ? prev : current
+			})
+		}, 60_000)
+		return () => clearInterval(id)
+	}, [])
 	const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
 	const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -532,7 +546,10 @@ export function TimelineView({
 		})
 	}, [])
 
-	const periodGroups = groupDocuments(documents, now)
+	const periodGroups = useMemo(
+		() => groupDocuments(documents, now),
+		[documents, now],
+	)
 	const handleTimelineCardSelection = useCallback(
 		(doc: DocumentWithMemories) => {
 			if (doc.id) onToggleSelection?.(doc.id)
