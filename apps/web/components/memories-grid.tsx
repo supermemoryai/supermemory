@@ -395,6 +395,23 @@ export function MemoriesGrid({
 		}
 	}, [agentSourceCounts, selectedAgentSource, setSelectedAgentSource])
 
+	// Category filters are URL state that survives a space switch. Drop any that
+	// the current space's facets no longer contain, otherwise the grid stays
+	// filtered down to zero results with no visible pill to clear (the chip only
+	// renders for facets that exist here). Mirrors the agent-source reset above.
+	useEffect(() => {
+		if (!facetsData || selectedCategories.length === 0) return
+		const available = new Set<string>(
+			facetsData.facets.map((facet) => facet.category),
+		)
+		const stillValid = selectedCategories.filter((category) =>
+			available.has(category),
+		)
+		if (stillValid.length !== selectedCategories.length) {
+			void setSelectedCategories(stillValid.length > 0 ? stillValid : null)
+		}
+	}, [facetsData, selectedCategories, setSelectedCategories])
+
 	const {
 		data,
 		error,
