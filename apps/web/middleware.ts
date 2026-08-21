@@ -41,13 +41,14 @@ export default async function proxy(request: Request) {
 		return NextResponse.next()
 	}
 
-	// MCP setup page is public — no auth required
-	if (url.searchParams.get("view") === "mcp") {
-		return NextResponse.next()
-	}
-
-	// Integrations index is public in guest mode; actions still require login.
-	if (url.pathname === "/" && url.searchParams.get("view") === "integrations") {
+	// Integrations index and MCP setup are public in guest mode; actions still
+	// require login. The ?view param is only meaningful at "/" (see
+	// lib/view-mode-context, which ignores it elsewhere), so scope it there —
+	// unscoped, ?view=mcp would let any path skip the /api/ gate below.
+	if (
+		url.pathname === "/" &&
+		["integrations", "mcp"].includes(url.searchParams.get("view") ?? "")
+	) {
 		return NextResponse.next()
 	}
 

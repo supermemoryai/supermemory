@@ -10,6 +10,7 @@
     "dev": "portless",
     "dev:app": "next dev --port ${PORT:-3000}",
     "build": "next build",
+    "check-types": "tsc --noEmit",
     "start": "next start",
     "lint": "biome check --write",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",

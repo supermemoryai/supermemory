@@ -1,6 +1,6 @@
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose"
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import { fetchSession, validateOAuthToken } from "./index"
+import { fetchSession, validateApiKey, validateOAuthToken } from "./index"
 
 const API_URL = "https://api.example.com"
 const ISSUER = `${API_URL}/api/auth`
@@ -119,5 +119,65 @@ describe("MCP authentication", () => {
 		await expect(fetchSession("token", API_URL)).rejects.toMatchObject({
 			status: 403,
 		})
+	})
+
+	function sessionResponse() {
+		return Response.json({
+			user: { id: "user_test", email: "test@example.com" },
+			org: { id: "org_test" },
+			role: "owner",
+			accessType: "full",
+			scope: { type: "full", permission: "write" },
+		})
+	}
+
+	it("validates an sm_ API key via the session endpoint", async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(sessionResponse())
+		vi.stubGlobal("fetch", fetchSpy)
+		const key = "sm_valid_key_0123456789abcdef"
+
+		await expect(validateApiKey(key, API_URL)).resolves.toEqual({
+			userId: "user_test",
+			organizationId: "org_test",
+			bearerToken: key,
+			scopes: [],
+		})
+		expect(fetchSpy).toHaveBeenCalledWith(
+			`${API_URL}/v3/session`,
+			expect.objectContaining({
+				headers: { Authorization: `Bearer ${key}` },
+			}),
+		)
+	})
+
+	it("caches a validated API key within the TTL", async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(sessionResponse())
+		vi.stubGlobal("fetch", fetchSpy)
+		const key = "sm_cached_key_0123456789abcdef"
+
+		await validateApiKey(key, API_URL)
+		await validateApiKey(key, API_URL)
+		expect(fetchSpy).toHaveBeenCalledTimes(1)
+	})
+
+	it("rejects an API key the session endpoint refuses", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => {})
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
+		)
+
+		await expect(
+			validateApiKey("sm_revoked_key_0123456789abcdef", API_URL),
+		).resolves.toBeNull()
+	})
+
+	it("rejects malformed API keys without an API request", async () => {
+		const fetchSpy = vi.fn()
+		vi.stubGlobal("fetch", fetchSpy)
+
+		await expect(validateApiKey("sm_short", API_URL)).resolves.toBeNull()
+		await expect(validateApiKey("not_a_key", API_URL)).resolves.toBeNull()
+		expect(fetchSpy).not.toHaveBeenCalled()
 	})
 })

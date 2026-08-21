@@ -70,7 +70,12 @@ const brainTileClass = (active: boolean) =>
 export function Header(props: HeaderProps) {
 	const hasCompanyBrain = useHasCompanyBrain()
 	if (hasCompanyBrain) {
-		return <CompanyBrainHeader onOpenSearch={props.onOpenSearch} />
+		return (
+			<CompanyBrainHeader
+				onAddMemory={props.onAddMemory}
+				onOpenSearch={props.onOpenSearch}
+			/>
+		)
 	}
 	return <PersonalBrainHeader {...props} />
 }

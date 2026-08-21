@@ -271,4 +271,9 @@ export const analytics = {
 	}) => safeCapture("company_brain_promo_clicked", props),
 	companyBrainPromoDismissed: () =>
 		safeCapture("company_brain_promo_dismissed"),
+
+	brainTrialCardViewed: () => safeCapture("brain_trial_card_viewed"),
+	brainTrialCheckoutStarted: () => safeCapture("brain_trial_checkout_started"),
+	brainTrialCheckoutAbandoned: () =>
+		safeCapture("brain_trial_checkout_abandoned"),
 }

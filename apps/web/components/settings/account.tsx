@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogTitle } from "@ui/components/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import {
+	Copy,
 	LoaderIcon,
 	ChevronDown,
 	Users,
@@ -458,10 +459,26 @@ export default function Account({
 								<span
 									className={cn(
 										dmSans125ClassName(),
-										"text-[12px] tracking-[-0.12px] text-[#737373]",
+										"flex items-center gap-1 text-[12px] tracking-[-0.12px] text-[#737373]",
 									)}
 								>
 									Organization
+									{org?.id ? (
+										<button
+											type="button"
+											aria-label="Copy organization ID"
+											title={org.id}
+											onClick={() => {
+												navigator.clipboard
+													.writeText(org.id)
+													.then(() => toast.success("Organization ID copied"))
+													.catch(() => toast.error("Couldn't copy"))
+											}}
+											className="inline-flex size-4 shrink-0 items-center justify-center rounded transition-colors hover:text-[#FAFAFA]"
+										>
+											<Copy className="size-2.5" />
+										</button>
+									) : null}
 								</span>
 								{isEditingOrgName ? (
 									<form
