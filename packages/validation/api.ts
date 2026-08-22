@@ -1102,8 +1102,11 @@ export const DocumentsWithMemoriesQuerySchema = z
 			description: "Page number to fetch",
 			example: 1,
 		}),
-		limit: z.number().int().min(1).default(10).openapi({
-			description: "Number of items per page",
+		// Capped like every sibling list schema (SearchRequest <= 100,
+		// ListMemories <= 1100): each row expands joined memoryEntries, so an
+		// unbounded limit here is a memory/CPU/cost amplifier.
+		limit: z.number().int().min(1).max(100).default(10).openapi({
+			description: "Number of items per page (max 100)",
 			example: 10,
 		}),
 		sort: z.enum(["createdAt", "updatedAt"]).default("createdAt").openapi({
@@ -1408,13 +1411,17 @@ export const BulkDeleteMemoriesSchema = z
 				description: "Array of memory IDs to delete (max 100 at once)",
 				example: ["acxV5LHMEsG2hMSNb4umbn", "bxcV5LHMEsG2hMSNb4umbn"],
 			}),
+		// Bounded like the ids array above: this is the most destructive
+		// operation in the schema ("delete ALL memories in these containers"),
+		// so the tag list must not be an unbounded fan-out vector.
 		containerTags: z
-			.array(z.string())
+			.array(z.string().max(256))
 			.min(1)
+			.max(100)
 			.optional()
 			.openapi({
 				description:
-					"Array of container tags - all memories in these containers will be deleted",
+					"Array of container tags - all memories in these containers will be deleted (max 100 at once)",
 				example: ["user_123", "project_123"],
 			}),
 	})
