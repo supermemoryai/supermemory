@@ -1,18 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-// Mock the Supermemory SDK so the Claude memory tool's `view`/`readFile` path
-// can be exercised deterministically without any network access. We only need
-// `client.search()` to return a single document with known multi-line content.
-const searchMock = vi.fn()
+// Mock the Supermemory SDK so the Claude memory tool's document-backed file
+// operations can be exercised deterministically without any network access.
+const documentsListMock = vi.fn()
+const documentsGetMock = vi.fn()
+const documentsDeleteBulkMock = vi.fn()
 const addMock = vi.fn()
 
 vi.mock("supermemory", () => {
 	return {
 		default: class MockSupermemory {
-			search = searchMock
 			add = addMock
 			memories = { forget: vi.fn() }
-			documents = { delete: vi.fn() }
+			documents = {
+				list: documentsListMock,
+				get: documentsGetMock,
+				deleteBulk: documentsDeleteBulkMock,
+			}
 		},
 	}
 })
@@ -22,20 +26,58 @@ import { ClaudeMemoryTool } from "./claude-memory"
 const FILE_PATH = "/memories/notes.txt"
 // 5 distinct lines so an off-by-one at either end is observable.
 const FILE_CONTENT = "line1\nline2\nline3\nline4\nline5"
+const FILE_DOCUMENT = {
+	id: "document-notes",
+	customId: "memories_notes_txt",
+	filePath: FILE_PATH,
+	content: FILE_CONTENT,
+}
+const NEIGHBOUR_DOCUMENT = {
+	id: "document-notes-backup",
+	customId: "memories_notes_backup_txt",
+	filePath: "/memories/notes.backup.txt",
+	content: "backup stuff",
+}
+
+function mockDocuments(documents: (typeof FILE_DOCUMENT)[]) {
+	documentsListMock.mockResolvedValue({
+		memories: documents.map((document) => ({
+			id: document.id,
+			customId: document.customId,
+			containerTags: ["claude_memory"],
+			metadata: {
+				claude_memory_type: "file",
+				file_path: document.filePath,
+			},
+		})),
+		pagination: { totalPages: 1 },
+	})
+	documentsGetMock.mockImplementation(async (id: string) => {
+		const document = documents.find((candidate) => candidate.id === id)
+		if (!document) throw new Error(`Document not found: ${id}`)
+		return {
+			id: document.id,
+			customId: document.customId,
+			containerTags: ["sm_project_default", "claude_memory"],
+			metadata: {
+				claude_memory_type: "file",
+				file_path: document.filePath,
+			},
+			content: document.content,
+		}
+	})
+}
 
 function mockDocument(content: string) {
-	// `readFile` matches by `id === normalizePathToCustomId(path)`.
-	// normalizePathToCustomId("/memories/notes.txt") -> "memories_notes_txt"
-	searchMock.mockResolvedValue({
-		results: [{ id: "memories_notes_txt", chunk: content }],
-	})
+	mockDocuments([{ ...FILE_DOCUMENT, content }])
 }
 
 describe("ClaudeMemoryTool view_range", () => {
 	let tool: ClaudeMemoryTool
 
 	beforeEach(() => {
-		searchMock.mockReset()
+		documentsListMock.mockReset()
+		documentsGetMock.mockReset()
 		mockDocument(FILE_CONTENT)
 		tool = new ClaudeMemoryTool("test-api-key")
 	})
@@ -90,18 +132,14 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 	let tool: ClaudeMemoryTool
 
 	beforeEach(() => {
-		searchMock.mockReset()
+		documentsListMock.mockReset()
+		documentsGetMock.mockReset()
 		addMock.mockReset()
 		tool = new ClaudeMemoryTool("test-api-key")
 	})
 
-	it("view finds the exact file even when a neighbour ranks first", async () => {
-		searchMock.mockResolvedValue({
-			results: [
-				{ id: "memories_notes_backup_txt", chunk: "backup stuff" },
-				{ id: "memories_notes_txt", chunk: FILE_CONTENT },
-			],
-		})
+	it("view finds the exact file even when a neighbour is listed first", async () => {
+		mockDocuments([NEIGHBOUR_DOCUMENT, FILE_DOCUMENT])
 
 		const result = await tool.handleCommand({
 			command: "view",
@@ -114,13 +152,9 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 	})
 
 	it("view reports not-found instead of returning a different file", async () => {
-		// Semantic search can surface a similarly-named file; that must not
+		// The document list can contain a similarly-named file; that must not
 		// be served as the requested one.
-		searchMock.mockResolvedValue({
-			results: [
-				{ id: "memories_notes_backup_txt", chunk: "backup stuff" },
-			],
-		})
+		mockDocuments([NEIGHBOUR_DOCUMENT])
 
 		const result = await tool.handleCommand({
 			command: "view",
@@ -132,11 +166,7 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 	})
 
 	it("str_replace refuses to modify a different file than requested", async () => {
-		searchMock.mockResolvedValue({
-			results: [
-				{ id: "memories_notes_backup_txt", chunk: "backup stuff" },
-			],
-		})
+		mockDocuments([NEIGHBOUR_DOCUMENT])
 
 		const result = await tool.handleCommand({
 			command: "str_replace",
@@ -154,28 +184,29 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 	let tool: ClaudeMemoryTool
 
 	beforeEach(() => {
-		searchMock.mockReset()
+		documentsListMock.mockReset()
+		documentsGetMock.mockReset()
 		addMock.mockReset()
-		searchMock.mockResolvedValue({
-			results: [{ id: "memories_notes_txt", chunk: FILE_CONTENT }],
-		})
+		mockDocument(FILE_CONTENT)
 		tool = new ClaudeMemoryTool("test-api-key")
 	})
 
-	it.each(["$&", "$'", "$`", "$$"])(
-		"stores %s literally instead of expanding it as a replacement pattern",
-		async (dollarSequence) => {
-			const result = await tool.handleCommand({
-				command: "str_replace",
-				path: FILE_PATH,
-				old_str: "line3",
-				new_str: `price is ${dollarSequence} today`,
-			})
+	it.each([
+		"$&",
+		"$'",
+		"$`",
+		"$$",
+	])("stores %s literally instead of expanding it as a replacement pattern", async (dollarSequence) => {
+		const result = await tool.handleCommand({
+			command: "str_replace",
+			path: FILE_PATH,
+			old_str: "line3",
+			new_str: `price is ${dollarSequence} today`,
+		})
 
-			expect(result.success).toBe(true)
-			expect(addMock).toHaveBeenCalledTimes(1)
-			const stored = addMock.mock.calls[0]?.[0]?.content as string
-			expect(stored).toContain(`price is ${dollarSequence} today`)
-		},
-	)
+		expect(result.success).toBe(true)
+		expect(addMock).toHaveBeenCalledTimes(1)
+		const stored = addMock.mock.calls[0]?.[0]?.content as string
+		expect(stored).toContain(`price is ${dollarSequence} today`)
+	})
 })

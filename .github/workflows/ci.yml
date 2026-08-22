@@ -29,5 +29,22 @@ jobs:
       - name: Run TypeScript type checking
         run: bunx turbo run check-types --filter='@supermemory/ai-sdk' --filter='@supermemory/memory-graph'
 
+      - name: Detect Tools package changes
+        id: tools-changes
+        run: |
+          if git diff --quiet "${{ github.event.pull_request.base.sha }}" HEAD -- packages/tools; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Tools unit tests
+        if: steps.tools-changes.outputs.changed == 'true'
+        run: bun run --cwd packages/tools test:unit
+
+      - name: Build Tools package
+        if: steps.tools-changes.outputs.changed == 'true'
+        run: bun run --cwd packages/tools build
+
       - name: Run Biome CI (format & lint on changed files)
         run: bunx biome ci --changed --since=origin/main --no-errors-on-unmatched

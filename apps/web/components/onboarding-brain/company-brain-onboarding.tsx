@@ -3,6 +3,7 @@
 import { LogoFull } from "@ui/assets/Logo"
 import { Button } from "@ui/components/button"
 import { Input } from "@ui/components/input"
+import { useAuth } from "@lib/auth-context"
 import { cn } from "@lib/utils"
 import {
 	ArrowRight,
@@ -15,6 +16,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { AnimatePresence, motion } from "motion/react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
+import { getBrainWorkspaceDomain } from "@/lib/billing-utils"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import {
 	type ResearchEvent,
@@ -30,6 +32,9 @@ import {
 	UserAvatar,
 } from "./step-about"
 import { ResearchActionRail } from "./research-action-rail"
+import { CHECKOUT_RETURN_PARAM, StepTrial } from "./step-trial"
+import { useTrialStatus } from "@/hooks/use-trial-status"
+import { analytics } from "@/lib/analytics"
 import {
 	type CompanyBrainConfirmResult,
 	type CompanyBrainOrganizationChoice,
@@ -52,7 +57,7 @@ interface CompanyBrainOnboardingProps {
 const BACKEND =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
-type Phase = "confirm" | "research"
+type Phase = "confirm" | "trial" | "research"
 
 function normalizeDomain(input: string): string {
 	const host = input
@@ -82,13 +87,36 @@ export function CompanyBrainOnboarding({
 	onUsePersonal,
 }: CompanyBrainOnboardingProps) {
 	const [phase, setPhase] = useState<Phase>("confirm")
+	const { needsSetup } = useTrialStatus()
+	const resumedRef = useRef(false)
+	useEffect(() => {
+		if (resumedRef.current) return
+		const url = new URL(window.location.href)
+		if (url.searchParams.get(CHECKOUT_RETURN_PARAM) !== "complete") return
+		resumedRef.current = true
+		url.searchParams.delete(CHECKOUT_RETURN_PARAM)
+		window.history.replaceState({}, "", `${url.pathname}${url.search}`)
+		setPhase("research")
+	}, [])
+	useEffect(() => {
+		if (resumedRef.current || !needsSetup || phase !== "confirm") return
+		resumedRef.current = true
+		setPhase("trial")
+		analytics.brainTrialCardViewed()
+	}, [needsSetup, phase])
+	const { org } = useAuth()
 	const [domain, setDomain] = useState(initialDomain)
 	const [organizationChoices, setOrganizationChoices] = useState<
 		CompanyBrainOrganizationChoice[] | null
 	>(null)
 	const [serverSchedulesResearch, setServerSchedulesResearch] = useState(false)
 	const firstName = name.trim().split(/\s+/)[0] ?? ""
-	const clean = normalizeDomain(domain)
+	// Returning from checkout remounts and reseeds local state from the email domain,
+	// so past the confirm step the org's stored domain is the one to trust.
+	const confirmedDomain = getBrainWorkspaceDomain(org?.metadata)
+	const clean = normalizeDomain(
+		phase === "confirm" ? domain : confirmedDomain || domain,
+	)
 	const queryClient = useQueryClient()
 	const { status: researchStatus } = useResearchStatus(phase === "research")
 	const researchDone = researchStatus === "done"
@@ -107,7 +135,8 @@ export function CompanyBrainOnboarding({
 		}
 		setOrganizationChoices(null)
 		setServerSchedulesResearch(result.serverSchedulesResearch)
-		setPhase("research")
+		setPhase("trial")
+		analytics.brainTrialCardViewed()
 	}
 
 	// New-org signup schedules research after provisioning; if that hook is slow
@@ -203,9 +232,9 @@ export function CompanyBrainOnboarding({
 			<main
 				className={cn(
 					"relative z-10 flex-1 flex flex-col min-h-0",
-					phase === "confirm"
-						? "justify-center items-center px-4 md:px-10"
-						: "justify-start items-stretch pt-2 px-4 md:px-8 xl:px-14",
+					phase === "research"
+						? "justify-start items-stretch pt-2 px-4 md:px-8 xl:px-14"
+						: "justify-center items-center px-4 md:px-10",
 				)}
 			>
 				{/* Persistent card: full confirm card, then morphs into a slim docked header. */}
@@ -215,13 +244,25 @@ export function CompanyBrainOnboarding({
 					style={cardSurfaceStyle}
 					className={cn(
 						"w-full mx-auto rounded-[22px] bg-[#1B1F24]",
-						phase === "confirm"
-							? "max-w-xl p-6 md:p-8"
-							: "max-w-7xl px-5 py-3 xl:max-w-[1360px]",
+						phase === "research"
+							? "max-w-7xl px-5 py-3 xl:max-w-[1360px]"
+							: phase === "trial"
+								? "max-w-4xl p-6 md:p-7"
+								: "max-w-xl p-6 md:p-8",
 					)}
 				>
 					<AnimatePresence mode="wait" initial={false}>
-						{phase === "confirm" ? (
+						{phase === "trial" ? (
+							<motion.div
+								key="trial"
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								exit={{ opacity: 0 }}
+								transition={{ duration: 0.15 }}
+							>
+								<StepTrial onActive={() => setPhase("research")} />
+							</motion.div>
+						) : phase === "confirm" ? (
 							<motion.div
 								key="confirm"
 								initial={{ opacity: 0 }}

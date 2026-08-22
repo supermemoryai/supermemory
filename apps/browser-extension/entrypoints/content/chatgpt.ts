@@ -17,6 +17,7 @@ import {
 	acceptMemorySuggestion,
 	clearMemorySuggestion,
 	hasAcceptedSupermemoryContext,
+	serializeMemoriesForDataset,
 	setMemoryMarkerStatus,
 	showLoadingSuggestion,
 	showMarkerPopover,
@@ -212,7 +213,9 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 					memoryLength: memoryText.length,
 				})
 
-				iconElement.dataset.memoriesData = String(response.data)
+				iconElement.dataset.memoriesData = serializeMemoriesForDataset(
+					response.data,
+				)
 
 				if (isAutoSearch) {
 					setMemoryMarkerStatus(iconElement, "found")
