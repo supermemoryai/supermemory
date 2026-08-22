@@ -5,8 +5,14 @@ import { getPublicRequestUrl } from "@/lib/url-helpers"
 const LOCAL_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
 
 function getAuthSessionCookie(request: Request): string | null {
+	const sessionCookie = getSessionCookie(request)
+	// Dev-only cookie prefixes must never widen acceptance in production
+	// builds: the /api gate below checks presence, not validity.
+	if (process.env.NODE_ENV !== "development") {
+		return sessionCookie
+	}
 	return (
-		getSessionCookie(request) ??
+		sessionCookie ??
 		getSessionCookie(request, { cookiePrefix: "better-auth-dev-localhost" }) ??
 		getSessionCookie(request, { cookiePrefix: "better-auth-dev" })
 	)

@@ -1,5 +1,6 @@
 import { xai } from "@ai-sdk/xai"
 import { generateText } from "ai"
+import { hasVerifiedSession } from "@/lib/server-session"
 
 interface ResearchRequest {
 	xUrl: string
@@ -64,6 +65,10 @@ Format the response as clear, readable paragraphs. Focus on factual information 
 
 export async function POST(req: Request) {
 	try {
+		if (!(await hasVerifiedSession(req))) {
+			return Response.json({ error: "Unauthorized" }, { status: 401 })
+		}
+
 		const { xUrl, name, email }: ResearchRequest = await req.json()
 
 		if (!xUrl?.trim()) {

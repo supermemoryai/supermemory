@@ -1,3 +1,5 @@
+import { hasVerifiedSession } from "@/lib/server-session"
+
 export interface ExaContentResult {
 	url: string
 	text: string
@@ -18,6 +20,10 @@ if (!exaApiKey) {
 
 export async function POST(request: Request) {
 	try {
+		if (!(await hasVerifiedSession(request))) {
+			return Response.json({ error: "Unauthorized" }, { status: 401 })
+		}
+
 		if (!exaApiKey) {
 			return Response.json(
 				{ error: "Content extraction is unavailable" },

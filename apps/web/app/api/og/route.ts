@@ -1,3 +1,5 @@
+import { hasVerifiedSession } from "@/lib/server-session"
+
 interface OGResponse {
 	title: string
 	description: string
@@ -247,6 +249,10 @@ function resolveImageUrl(
 
 export async function GET(request: Request) {
 	try {
+		if (!(await hasVerifiedSession(request))) {
+			return Response.json({ error: "Unauthorized" }, { status: 401 })
+		}
+
 		const { searchParams } = new URL(request.url)
 		const url = searchParams.get("url")
 
