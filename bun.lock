@@ -258,12 +258,13 @@
     },
     "packages/ai-sdk": {
       "name": "@supermemory/ai-sdk",
-      "version": "1.0.8",
+      "version": "2.0.0",
       "dependencies": {
         "@ai-sdk/openai": "^2.0.22",
         "@ai-sdk/provider": "^2.0.0",
+        "@supermemory/tools": "workspace:*",
         "ai": "^5.0.113",
-        "supermemory": "^3.0.0-alpha.26",
+        "supermemory": "^4.25.4",
       },
       "devDependencies": {
         "@total-typescript/tsconfig": "^1.0.4",
@@ -5525,6 +5526,8 @@
     "@stoplight/spectral-parsers/@stoplight/types": ["@stoplight/types@14.1.1", "", { "dependencies": { "@types/json-schema": "^7.0.4", "utility-types": "^3.10.0" } }, "sha512-/kjtr+0t0tjKr+heVfviO9FrU/uGLc+QNX3fHJc19xsCNYqU7lVhaXxDmEID9BZTjG+/r9pK9xP/xU02XGg65g=="],
 
     "@stoplight/yaml/@stoplight/types": ["@stoplight/types@14.1.1", "", { "dependencies": { "@types/json-schema": "^7.0.4", "utility-types": "^3.10.0" } }, "sha512-/kjtr+0t0tjKr+heVfviO9FrU/uGLc+QNX3fHJc19xsCNYqU7lVhaXxDmEID9BZTjG+/r9pK9xP/xU02XGg65g=="],
+
+    "@supermemory/ai-sdk/supermemory": ["supermemory@4.25.4", "", { "bin": { "supermemory": "bin/cli" } }, "sha512-97ME3rlmu7OmsXJTb9OgXOD+3VUv4Wej0ZX9xezG+LKkMwrzi4xeeAZaOJFcr0oI/QQjcHG2WOzm+und1e7MFA=="],
 
     "@supermemory/ai-sdk/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
