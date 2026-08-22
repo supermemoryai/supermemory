@@ -39,7 +39,7 @@ const NEIGHBOUR_DOCUMENT = {
 	content: "backup stuff",
 }
 
-function mockDocuments(documents: typeof FILE_DOCUMENT[]) {
+function mockDocuments(documents: (typeof FILE_DOCUMENT)[]) {
 	documentsListMock.mockResolvedValue({
 		memories: documents.map((document) => ({
 			id: document.id,
@@ -191,20 +191,22 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 		tool = new ClaudeMemoryTool("test-api-key")
 	})
 
-	it.each(["$&", "$'", "$`", "$$"])(
-		"stores %s literally instead of expanding it as a replacement pattern",
-		async (dollarSequence) => {
-			const result = await tool.handleCommand({
-				command: "str_replace",
-				path: FILE_PATH,
-				old_str: "line3",
-				new_str: `price is ${dollarSequence} today`,
-			})
+	it.each([
+		"$&",
+		"$'",
+		"$`",
+		"$$",
+	])("stores %s literally instead of expanding it as a replacement pattern", async (dollarSequence) => {
+		const result = await tool.handleCommand({
+			command: "str_replace",
+			path: FILE_PATH,
+			old_str: "line3",
+			new_str: `price is ${dollarSequence} today`,
+		})
 
-			expect(result.success).toBe(true)
-			expect(addMock).toHaveBeenCalledTimes(1)
-			const stored = addMock.mock.calls[0]?.[0]?.content as string
-			expect(stored).toContain(`price is ${dollarSequence} today`)
-		},
-	)
+		expect(result.success).toBe(true)
+		expect(addMock).toHaveBeenCalledTimes(1)
+		const stored = addMock.mock.calls[0]?.[0]?.content as string
+		expect(stored).toContain(`price is ${dollarSequence} today`)
+	})
 })

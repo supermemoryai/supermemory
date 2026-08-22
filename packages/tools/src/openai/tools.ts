@@ -15,9 +15,7 @@ import type { SupermemoryToolsConfig } from "../types"
  */
 export interface MemorySearchResult {
 	success: boolean
-	results?: Awaited<
-		ReturnType<Supermemory["search"]["documents"]>
-	>["results"]
+	results?: Awaited<ReturnType<Supermemory["search"]["documents"]>>["results"]
 	count?: number
 	error?: string
 }

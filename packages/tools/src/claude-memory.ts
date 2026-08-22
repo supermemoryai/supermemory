@@ -150,7 +150,7 @@ export class ClaudeMemoryTool {
 				default:
 					return {
 						success: false,
-						error: `Unknown command: ${(command as any).command}`,
+						error: `Unknown command: ${(command as { command: string }).command}`,
 					}
 			}
 		} catch (error) {

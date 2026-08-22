@@ -47,7 +47,8 @@ export const PARAMETER_DESCRIPTIONS = {
 		"Profile-memory ID from query-backed getProfile searchResults. Soft-forgets one learned fact; document and chunk IDs from searchMemories are not valid.",
 	memoryContent:
 		"Exact text of the profile memory to forget (alternative to memoryId). Must match precisely; if unsure, query getProfile and use a search-result memory ID.",
-	reason: "Optional reason recorded when forgetting (e.g. outdated, user correction)",
+	reason:
+		"Optional reason recorded when forgetting (e.g. outdated, user correction)",
 } as const
 
 // Default values
@@ -77,7 +78,9 @@ export function getContainerTags(config?: {
 	}
 	if (config?.projectId !== undefined) {
 		if (config.projectId.trim() === "") {
-			throw new Error("Supermemory tools config requires a non-empty projectId.")
+			throw new Error(
+				"Supermemory tools config requires a non-empty projectId.",
+			)
 		}
 		return [`${CONTAINER_TAG_CONSTANTS.projectPrefix}${config.projectId}`]
 	}
@@ -104,7 +107,9 @@ export async function deleteDocumentById(
 	const response = await client.documents.deleteBulk({ ids: [documentId] })
 	if (response.success && response.deletedCount === 1) return
 
-	const detail = response.errors?.find((error) => error.id === documentId)?.error
+	const detail = response.errors?.find(
+		(error) => error.id === documentId,
+	)?.error
 	throw new Error(
 		detail
 			? `Failed to delete document ${documentId}: ${detail}`
