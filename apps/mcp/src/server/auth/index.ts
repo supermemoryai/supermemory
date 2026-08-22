@@ -65,6 +65,23 @@ export function isApiKey(token: string): boolean {
 	return API_KEY_PATTERN.test(token)
 }
 
+/**
+ * API-key validation failed for a reason that is NOT an invalid key:
+ * network errors, timeouts, or a 5xx from the session endpoint. Callers must
+ * surface this as a temporary upstream failure instead of reporting
+ * "invalid token" (which makes MCP clients discard perfectly valid keys and
+ * push users through re-authentication during outages).
+ */
+export class TransientAuthError extends Error {
+	readonly status?: number
+
+	constructor(message: string, status?: number) {
+		super(message)
+		this.name = "TransientAuthError"
+		this.status = status
+	}
+}
+
 export async function validateApiKey(
 	token: string,
 	apiUrl: string,
@@ -93,6 +110,23 @@ export async function validateApiKey(
 		return user
 	} catch (error) {
 		console.error("API key validation error:", error)
+		// Distinguish "bad key" from "session endpoint unavailable": only the
+		// former should collapse to null (-> 401 invalid_token). fetchSession
+		// attaches the upstream status to its errors; timeouts surface as
+		// AbortError/TimeoutError.
+		const status = (error as { status?: unknown } | null)?.status
+		if (typeof status === "number" && status !== 401 && status !== 403) {
+			throw new TransientAuthError(
+				`Session endpoint returned ${status}`,
+				status,
+			)
+		}
+		if (
+			error instanceof Error &&
+			(error.name === "AbortError" || error.name === "TimeoutError")
+		) {
+			throw new TransientAuthError("Session request timed out")
+		}
 		return null
 	}
 }

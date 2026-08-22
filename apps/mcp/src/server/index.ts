@@ -4,6 +4,7 @@ import { Hono, type Context } from "hono"
 import { cors } from "hono/cors"
 import {
 	isApiKey,
+	TransientAuthError,
 	validateApiKey,
 	validateOAuthToken,
 	type AuthUser,
@@ -181,9 +182,31 @@ async function handleMcpRequest(
 
 	if (!token) return unauthorizedResponse(resourceMetadataUrl)
 
-	const authUser = isApiKey(token)
-		? await validateApiKey(token, apiUrl)
-		: await validateOAuthToken(token, apiUrl, mcpResource)
+	let authUser: AuthUser | null
+	try {
+		authUser = isApiKey(token)
+			? await validateApiKey(token, apiUrl)
+			: await validateOAuthToken(token, apiUrl, mcpResource)
+	} catch (error) {
+		// A transient session-endpoint outage must not be reported as an
+		// invalid token — that makes clients discard valid sm_ keys and
+		// re-authenticate. Tell them to retry instead.
+		if (error instanceof TransientAuthError) {
+			return Response.json(
+				{
+					jsonrpc: "2.0",
+					error: {
+						code: -32001,
+						message:
+							"Authentication backend temporarily unavailable, please retry",
+					},
+					id: null,
+				},
+				{ status: 503, headers: { "Retry-After": "5" } },
+			)
+		}
+		throw error
+	}
 	if (!authUser) return unauthorizedResponse(resourceMetadataUrl, true)
 
 	const actor: ActorContext = {
