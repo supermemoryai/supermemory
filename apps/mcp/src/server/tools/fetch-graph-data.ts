@@ -12,8 +12,11 @@ export function register(deps: ToolDeps) {
 			description: "Fetch documents with memories for graph display",
 			inputSchema: z.object({
 				containerTag: optionalContainerTagSchema,
-				page: z.number().optional().default(1),
-				limit: z.number().optional().default(200),
+				// Bounded like the sibling list tools: values flow straight
+				// into a metered backend query, so negatives, fractions, and
+				// huge limits must be rejected at the schema.
+				page: z.number().int().min(1).max(10_000).optional().default(1),
+				limit: z.number().int().min(1).max(1_000).optional().default(200),
 			}),
 			outputSchema: documentsApiResponseSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,

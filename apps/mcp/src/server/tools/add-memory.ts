@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { optionalContainerTagSchema } from "../container-tag"
+import { effectiveContainerTagAccess } from "../auth/rbac"
 import { MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import { addMemoryOutputSchema, type AddMemoryOutput } from "./output-schemas"
 import { textContent, type ToolDeps } from "./types"
@@ -26,6 +27,27 @@ export function register(deps: ToolDeps) {
 		async (args) => {
 			try {
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
+
+				// Mirror the write gate applied by guided-save/upload-file:
+				// an explicitly passed containerTag must not bypass session
+				// RBAC (restricted/scoped-read sessions must not write into
+				// spaces their session cannot write to).
+				const [tags, session] = await Promise.all([
+					deps.getClient().listContainerTags(),
+					deps.getSession(),
+				])
+				const canWrite = effectiveContainerTagAccess(
+					tags.map((tag) => tag.containerTag),
+					session,
+				).some(
+					(access) =>
+						access.permission === "write" &&
+						access.containerTag === effectiveTag,
+				)
+				if (!canWrite) {
+					throw new Error(`No write access to space "${effectiveTag}"`)
+				}
+
 				const client = deps.getClient(effectiveTag)
 
 				if (args.action === "forget") {

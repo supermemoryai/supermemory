@@ -122,7 +122,6 @@ export const whoAmIOutputSchema = z.object({
 			version: z.string().optional(),
 		})
 		.optional(),
-	sessionId: z.string().optional(),
 })
 
 export type WhoAmIOutput = z.infer<typeof whoAmIOutputSchema>

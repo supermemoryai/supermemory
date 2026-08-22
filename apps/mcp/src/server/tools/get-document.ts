@@ -28,8 +28,23 @@ export function register(deps: ToolDeps) {
 		},
 		async (args) => {
 			try {
+				const effectiveTag = await deps.resolveContainerTag()
 				const client = deps.getClient()
 				const document = await client.getDocument(args.documentId)
+				// Space-scoping check: every sibling read tool filters by the
+				// resolved space, but get-by-ID fetched any document whose ID
+				// the caller learned elsewhere. When the backend returns tag
+				// metadata, enforce that the document belongs to the active
+				// space; report a generic miss otherwise (no existence
+				// oracle). Documents without tag metadata cannot be checked.
+				const docTags = document.containerTags
+				if (
+					Array.isArray(docTags) &&
+					docTags.length > 0 &&
+					!docTags.includes(effectiveTag)
+				) {
+					throw new Error("Document not found")
+				}
 				const { content, truncated } = getDocumentContent(document)
 				const structuredContent: GetDocumentOutput = {
 					document: {

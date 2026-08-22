@@ -20,7 +20,10 @@ export function register(deps: ToolDeps) {
 					deps.getActiveContainerTag(),
 				])
 				const client = deps.getClientInfo(context)
-				const sessionId = context.sessionId
+				// Note: the MCP transport session id (context.sessionId) is
+				// deliberately NOT included — it is a bearer-style transport
+				// credential and would otherwise be persisted into chat
+				// transcripts and downstream LLM pipelines.
 				const structuredContent: WhoAmIOutput = {
 					userId: session.user.id,
 					...(session.user.email ? { email: session.user.email } : {}),
@@ -34,7 +37,6 @@ export function register(deps: ToolDeps) {
 							: null,
 					...(session.scope ? { scope: session.scope } : {}),
 					...(client ? { client } : {}),
-					...(sessionId ? { sessionId } : {}),
 				}
 				return {
 					content: [textContent(JSON.stringify(structuredContent))],
