@@ -34,9 +34,30 @@ export async function POST(request: Request) {
 			)
 		}
 
-		if (!urls.every((url) => typeof url === "string" && url.trim())) {
+		// Bound the batch: this endpoint spends paid Exa quota per URL, so an
+		// unbounded array turns it into a cost-amplification relay.
+		const MAX_URLS = 10
+		if (urls.length > MAX_URLS) {
 			return Response.json(
-				{ error: "Invalid input: all urls must be non-empty strings" },
+				{ error: `Invalid input: at most ${MAX_URLS} urls per request` },
+				{ status: 400 },
+			)
+		}
+
+		if (
+			!urls.every(
+				(url) =>
+					typeof url === "string" &&
+					url.trim().length > 0 &&
+					url.length <= 2048 &&
+					/^https?:\/\//i.test(url.trim()),
+			)
+		) {
+			return Response.json(
+				{
+					error:
+						"Invalid input: all urls must be http(s) strings of at most 2048 characters",
+				},
 				{ status: 400 },
 			)
 		}

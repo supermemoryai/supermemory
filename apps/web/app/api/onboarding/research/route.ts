@@ -73,6 +73,18 @@ export async function POST(req: Request) {
 			)
 		}
 
+		// Bound free-form context: these strings are interpolated into the
+		// prompt, so megabyte values directly inflate paid token cost.
+		if (
+			(name !== undefined && (typeof name !== "string" || name.length > 200)) ||
+			(email !== undefined && (typeof email !== "string" || email.length > 320))
+		) {
+			return Response.json(
+				{ error: "Invalid input: name/email too long" },
+				{ status: 400 },
+			)
+		}
+
 		const handle = extractHandle(xUrl)
 
 		if (!/^[A-Za-z0-9_]{1,15}$/.test(handle)) {
@@ -93,6 +105,7 @@ export async function POST(req: Request) {
 		const { text } = await generateText({
 			model: xai.responses("grok-4-fast"),
 			prompt: finalPrompt(handle, userContext),
+			abortSignal: AbortSignal.timeout(60_000),
 			tools: {
 				web_search: xai.tools.webSearch(),
 				x_search: xai.tools.xSearch({
