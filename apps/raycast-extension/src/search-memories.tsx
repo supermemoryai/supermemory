@@ -42,7 +42,18 @@ const extractContent = (memory: SearchResult) => {
 
 const extractUrl = (memory: SearchResult) => {
 	if (memory.metadata?.url && typeof memory.metadata.url === "string") {
-		return memory.metadata.url
+		const url = memory.metadata.url
+		// Server-controlled value: only offer http(s). Without a scheme
+		// allowlist, a crafted memory could hand javascript:, file:, or
+		// arbitrary app-handler URLs to the OS opener.
+		try {
+			const parsed = new URL(url)
+			if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+				return url
+			}
+		} catch {
+			return null
+		}
 	}
 	return null
 }
