@@ -5,25 +5,15 @@ import { type SupermemoryToolsConfig, supermemoryTools } from "./tools"
 
 import "dotenv/config"
 
-describe.skipIf(
-	!process.env.SUPERMEMORY_API_KEY || !process.env.OPENAI_API_KEY,
-)("supermemoryTools", () => {
-	// Required API keys — suite is skipped in CI without them
-	const testApiKey = process.env.SUPERMEMORY_API_KEY as string
-	const testOpenAIKey = process.env.OPENAI_API_KEY as string
+const hasIntegrationKeys = Boolean(
+	process.env.SUPERMEMORY_API_KEY && process.env.OPENAI_API_KEY,
+)
+const testApiKey = process.env.SUPERMEMORY_API_KEY ?? "test-api-key"
+const testOpenAIKey = process.env.OPENAI_API_KEY ?? "test-openai-key"
+const testBaseUrl = process.env.SUPERMEMORY_BASE_URL ?? undefined
+const testModelName = process.env.MODEL_NAME || "gpt-5-nano"
 
-	// Optional configuration with defaults
-	const testBaseUrl = process.env.SUPERMEMORY_BASE_URL ?? undefined
-	const testModelName = process.env.MODEL_NAME || "gpt-5-nano"
-
-	const testPrompts = [
-		"What do you remember about my preferences?",
-		"Help me plan my day based on what you know about me",
-		"What are my current projects?",
-		"Remind me of my interests and hobbies",
-		"What should I focus on today?",
-	]
-
+describe("supermemoryTools", () => {
 	describe("client initialization", () => {
 		it("should create tools with default configuration", () => {
 			const config: SupermemoryToolsConfig = {}
@@ -73,7 +63,7 @@ describe.skipIf(
 		})
 	})
 
-	describe("AI SDK integration", () => {
+	describe.skipIf(!hasIntegrationKeys)("AI SDK integration", () => {
 		it("should work with AI SDK generateText", async () => {
 			const openai = createOpenAI({
 				apiKey: testOpenAIKey,
@@ -89,7 +79,7 @@ describe.skipIf(
 					},
 					{
 						role: "user",
-						content: testPrompts[0]!,
+						content: "What do you remember about my preferences?",
 					},
 				],
 				tools: {

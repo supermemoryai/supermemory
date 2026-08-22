@@ -258,7 +258,7 @@
     },
     "packages/ai-sdk": {
       "name": "@supermemory/ai-sdk",
-      "version": "1.0.9",
+      "version": "2.0.0",
       "dependencies": {
         "@ai-sdk/openai": "^2.0.22",
         "@ai-sdk/provider": "^2.0.0",
