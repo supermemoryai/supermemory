@@ -1,5 +1,5 @@
 import Supermemory from "supermemory"
-import { getContainerTags } from "./tools-shared"
+import { deleteDocumentById, getContainerTags } from "./tools-shared"
 import type { SupermemoryToolsConfig } from "./types"
 
 // Claude Memory Tool Types
@@ -37,6 +37,14 @@ export interface MemoryToolResult {
 	is_error: boolean
 }
 
+type ClaudeFileMetadata = Record<string, string | number | boolean | string[]>
+
+interface ClaudeFileDocument {
+	documentId: string
+	content: string
+	metadata: ClaudeFileMetadata
+}
+
 /**
  * Claude Memory Tool - Client-side implementation
  * Maps Claude's memory tool commands to supermemory document operations
@@ -44,6 +52,7 @@ export interface MemoryToolResult {
 export class ClaudeMemoryTool {
 	private client: Supermemory
 	private containerTags: string[]
+	private scopeContainerTags: [string, ...string[]]
 	private memoryContainerPrefix: string
 
 	/**
@@ -68,6 +77,7 @@ export class ClaudeMemoryTool {
 
 		// Get base container tags and add memory-specific tag
 		const baseContainerTags = getContainerTags(config)
+		this.scopeContainerTags = baseContainerTags
 		this.containerTags = [...baseContainerTags, this.memoryContainerPrefix]
 	}
 
@@ -193,44 +203,89 @@ export class ClaudeMemoryTool {
 	 */
 	private async listDirectory(dirPath: string): Promise<MemoryResponse> {
 		try {
-			// Search for all memory files
-			const response = await this.client.search({
-				q: "*", // Search for all
-				...(this.containerTags[0]
-					? { containerTag: this.containerTags[0] }
-					: {}),
-				limit: 100, // Get many files (max allowed)
-				searchMode: "hybrid",
-			})
+			// Document search returns ranked chunks, not a complete inventory. Walk
+			// every page of the document-list endpoint so files cannot disappear
+			// from a directory merely because they did not rank in a search page.
+			const documents: Supermemory.DocumentListResponse.Memory[] = []
+			let page = 1
 
-			if (!response.results) {
-				return {
-					success: true,
-					content: `Directory: ${dirPath}\n(empty)`,
-				}
+			while (true) {
+				const response = await this.client.documents.list({
+					containerTags: this.scopeContainerTags,
+					filters: {
+						AND: [
+							{ key: "claude_memory_type", value: "file" },
+							{
+								key: "file_path",
+								value: dirPath,
+								filterType: "string_contains",
+							},
+						],
+					},
+					includeContent: false,
+					limit: 100,
+					page,
+				})
+
+				documents.push(...response.memories)
+
+				if (page >= response.pagination.totalPages) break
+				page += 1
 			}
 
 			// Filter files that match the directory path and extract relative paths
 			const files: string[] = []
 			const dirs = new Set<string>()
+			const candidates: Array<{
+				document: Supermemory.DocumentListResponse.Memory
+				filePath: string
+			}> = []
 
-			for (const result of response.results) {
-				// Get the file path from metadata (since customId is normalized)
-				const filePath = result.metadata?.file_path as string
-				if (!filePath || !filePath.startsWith(dirPath)) continue
+			for (const document of documents) {
+				if (!this.isDocumentInConfiguredScope(document)) continue
 
-				// Get relative path from directory
-				const relativePath = filePath.substring(dirPath.length)
-				if (!relativePath) continue
+				const filePath = this.getDocumentFilePath(document)
+				if (!filePath || !filePath.startsWith(dirPath)) {
+					continue
+				}
+				candidates.push({ document, filePath })
+			}
 
-				// If path contains /, it's in a subdirectory
-				const slashIndex = relativePath.indexOf("/")
-				if (slashIndex > 0) {
-					// It's a subdirectory
-					dirs.add(`${relativePath.substring(0, slashIndex)}/`)
-				} else if (relativePath !== "") {
-					// It's a file in this directory
-					files.push(relativePath)
+			// Full GETs are required to verify hidden project tags. Keep them bounded
+			// so large directories do not become a long serial chain or a burst of
+			// unbounded requests.
+			const verificationBatchSize = 8
+			for (
+				let index = 0;
+				index < candidates.length;
+				index += verificationBatchSize
+			) {
+				const batch = candidates.slice(index, index + verificationBatchSize)
+				const verified = await Promise.all(
+					batch.map(async (candidate) =>
+						(await this.isDirectoryDocumentInExactScope(candidate.document))
+							? candidate
+							: undefined,
+					),
+				)
+
+				for (const candidate of verified) {
+					if (!candidate) continue
+					const { filePath } = candidate
+
+					// Get relative path from directory
+					const relativePath = filePath.substring(dirPath.length)
+					if (!relativePath) continue
+
+					// If path contains /, it's in a subdirectory
+					const slashIndex = relativePath.indexOf("/")
+					if (slashIndex > 0) {
+						// It's a subdirectory
+						dirs.add(`${relativePath.substring(0, slashIndex)}/`)
+					} else if (relativePath !== "") {
+						// It's a file in this directory
+						files.push(relativePath)
+					}
 				}
 			}
 
@@ -264,10 +319,8 @@ export class ClaudeMemoryTool {
 		viewRange?: [number, number],
 	): Promise<MemoryResponse> {
 		try {
-			// Same lookup as every mutating command: limit 5 so the exact
-			// customId match is findable among semantic near-neighbours.
-			// With the old limit of 1, a similarly-named file ranking first
-			// made this return the wrong file's contents as a success.
+			// Resolve the exact document inside the configured scope so reads and
+			// mutations use the complete stored file, not one ranked search chunk.
 			const readResult = await this.getFileDocument(filePath)
 			if (!readResult.success || !readResult.document) {
 				return {
@@ -278,7 +331,7 @@ export class ClaudeMemoryTool {
 
 			const document = readResult.document
 
-			let content: string = document.raw || document.content || ""
+			let content = document.content
 
 			// Apply line range if specified
 			if (viewRange) {
@@ -376,8 +429,7 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			const originalContent =
-				readResult.document.raw || readResult.document.content || ""
+			const originalContent = readResult.document.content
 
 			// Check if old_str exists in the content
 			if (!originalContent.includes(oldStr)) {
@@ -435,8 +487,7 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			const originalContent =
-				readResult.document.raw || readResult.document.content || ""
+			const originalContent = readResult.document.content
 			const lines = originalContent.split("\n")
 
 			// Validate line number
@@ -490,9 +541,7 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			const documentId =
-				readResult.document.documentId ?? this.normalizePathToCustomId(filePath)
-			await this.client.documents.delete(documentId)
+			await deleteDocumentById(this.client, readResult.document.documentId)
 
 			return {
 				success: true,
@@ -531,8 +580,7 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			const originalContent =
-				readResult.document.raw || readResult.document.content || ""
+			const originalContent = readResult.document.content
 			const newNormalizedId = this.normalizePathToCustomId(newPath)
 
 			// Create new document with new path
@@ -552,8 +600,7 @@ export class ClaudeMemoryTool {
 			// customId — the add above already replaced the content.
 			const oldNormalizedId = this.normalizePathToCustomId(oldPath)
 			if (oldNormalizedId !== newNormalizedId) {
-				const oldDocumentId = readResult.document.documentId ?? oldNormalizedId
-				await this.client.documents.delete(oldDocumentId)
+				await deleteDocumentById(this.client, readResult.document.documentId)
 			}
 
 			return {
@@ -573,48 +620,124 @@ export class ClaudeMemoryTool {
 	 */
 	private async getFileDocument(filePath: string): Promise<{
 		success: boolean
-		document?: any
+		document?: ClaudeFileDocument
 		error?: string
 	}> {
 		try {
 			const normalizedId = this.normalizePathToCustomId(filePath)
+			let page = 1
+			const candidates = new Map<
+				string,
+				Supermemory.DocumentListResponse.Memory
+			>()
 
-			const response = await this.client.search({
-				q: normalizedId,
-				...(this.containerTags[0]
-					? { containerTag: this.containerTags[0] }
-					: {}),
-				limit: 5,
-				searchMode: "hybrid",
-			})
+			// customId values are only unique within an exact container-tag set in
+			// Mono. Resolve the matching document inside this tool's configured
+			// scope before fetching by internal ID; a direct get(customId) can pick
+			// another project/user's same-named file.
+			while (true) {
+				const response = await this.client.documents.list({
+					containerTags: this.scopeContainerTags,
+					filters: {
+						AND: [
+							{ key: "claude_memory_type", value: "file" },
+							{ key: "file_path", value: filePath },
+						],
+					},
+					includeContent: false,
+					limit: 100,
+					page,
+				})
 
-			// Only accept the exact customId match. Falling back to the top
-			// semantic hit would let callers read — and worse, modify or
-			// delete — a different file than the one they asked for.
-			const match = response.results?.find(
-				(r) =>
-					r.id === normalizedId ||
-					r.documents?.some((d) => d.id === normalizedId),
-			)
+				for (const document of response.memories) {
+					if (
+						document.customId === normalizedId &&
+						this.getDocumentFilePath(document) === filePath &&
+						this.isDocumentInConfiguredScope(document)
+					) {
+						candidates.set(document.id, document)
+					}
+				}
 
-			if (!match) {
+				if (page >= response.pagination.totalPages) break
+				page += 1
+			}
+
+			const exactMatches: Array<{
+				candidate: Supermemory.DocumentListResponse.Memory
+				document: Supermemory.DocumentGetResponse
+			}> = []
+			let hasUnverifiedCandidate = false
+			for (const candidate of candidates.values()) {
+				let document: Supermemory.DocumentGetResponse
+				try {
+					document = await this.client.documents.get(candidate.id)
+				} catch (error) {
+					if (error instanceof Supermemory.NotFoundError) continue
+					throw error
+				}
+
+				if (document.id !== candidate.id) {
+					hasUnverifiedCandidate = true
+					continue
+				}
+				if (
+					document.customId !== normalizedId ||
+					this.getDocumentFilePath(document) !== filePath ||
+					!this.hasExactContainerTags(document.containerTags)
+				) {
+					continue
+				}
+
+				exactMatches.push({ candidate, document })
+			}
+
+			if (exactMatches.length === 0) {
 				return {
 					success: false,
 					error: `File not found: ${filePath}`,
 				}
 			}
+			if (exactMatches.length > 1) {
+				return {
+					success: false,
+					error: `File path is ambiguous in the configured container scope: ${filePath}`,
+				}
+			}
+			if (hasUnverifiedCandidate) {
+				return {
+					success: false,
+					error: `File path could not be resolved unambiguously in the configured container scope: ${filePath}`,
+				}
+			}
 
-			const content = match.chunk || match.memory || ""
-			const documentId = match.documents?.[0]?.id ?? match.id
+			const match = exactMatches[0]
+			if (!match) {
+				return { success: false, error: `File not found: ${filePath}` }
+			}
+			const { candidate, document } = match
+			const content =
+				typeof document.content === "string"
+					? document.content
+					: typeof document.raw === "string"
+						? document.raw
+						: undefined
+			if (content === undefined) {
+				return {
+					success: false,
+					error: `File content unavailable: ${filePath}`,
+				}
+			}
+			const metadata =
+				document.metadata &&
+				typeof document.metadata === "object" &&
+				!Array.isArray(document.metadata)
+					? (document.metadata as ClaudeFileMetadata)
+					: {}
 
 			return {
 				success: true,
-				document: {
-					documentId,
-					content,
-					raw: content,
-					metadata: match.metadata,
-				},
+				document: { documentId: candidate.id, content, metadata },
 			}
 		} catch (error) {
 			return {
@@ -622,6 +745,60 @@ export class ClaudeMemoryTool {
 				error: error instanceof Error ? error.message : "Unknown error",
 			}
 		}
+	}
+
+	private getDocumentFilePath(document: {
+		metadata: unknown
+	}): string | undefined {
+		const metadata = document.metadata
+		if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+			return undefined
+		}
+		const metadataRecord = metadata as Record<string, unknown>
+
+		return typeof metadataRecord.file_path === "string"
+			? metadataRecord.file_path
+			: undefined
+	}
+
+	private isDocumentInConfiguredScope(
+		document: Supermemory.DocumentListResponse.Memory,
+	): boolean {
+		const documentTags = document.containerTags ?? []
+		const expectedTags = this.containerTags.filter(
+			(tag) => !tag.startsWith("sm_project_"),
+		)
+
+		return (
+			documentTags.length === expectedTags.length &&
+			documentTags.every((tag, index) => tag === expectedTags[index])
+		)
+	}
+
+	private async isDirectoryDocumentInExactScope(
+		document: Supermemory.DocumentListResponse.Memory,
+	): Promise<boolean> {
+		try {
+			// Mono strips internal project tags from every list response, so only a
+			// full get can prove that no hidden tags change this document's scope.
+			const fullDocument = await this.client.documents.get(document.id)
+			return (
+				fullDocument.id === document.id &&
+				this.hasExactContainerTags(fullDocument.containerTags)
+			)
+		} catch (error) {
+			if (!(error instanceof Supermemory.NotFoundError)) throw error
+			// A document can disappear between list and get. Skip stale entries
+			// instead of failing the entire directory view.
+			return false
+		}
+	}
+
+	private hasExactContainerTags(containerTags?: string[]): boolean {
+		return (
+			containerTags?.length === this.containerTags.length &&
+			containerTags.every((tag, index) => tag === this.containerTags[index])
+		)
 	}
 
 	/**

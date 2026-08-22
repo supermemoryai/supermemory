@@ -5,6 +5,7 @@ import {
 	DEFAULT_VALUES,
 	PARAMETER_DESCRIPTIONS,
 	TOOL_DESCRIPTIONS,
+	deleteDocumentByIdentifier,
 	getContainerTags,
 } from "./tools-shared"
 import { forgetMemoryRequest } from "./shared/forget-memory"
@@ -56,12 +57,12 @@ export const searchMemoriesTool = (
 			limit = DEFAULT_VALUES.limit,
 		}) => {
 			try {
-				const response = await client.search({
+				const response = await client.search.documents({
 					q: informationToGet,
-					...(containerTags[0] ? { containerTag: containerTags[0] } : {}),
+					containerTags,
 					limit,
-					threshold: DEFAULT_VALUES.chunkThreshold,
-					searchMode: "hybrid",
+					chunkThreshold: DEFAULT_VALUES.chunkThreshold,
+					includeFullDocs,
 				})
 
 				return {
@@ -196,10 +197,12 @@ export const documentListTool = (
 		}),
 		execute: async ({ containerTag, limit, page }) => {
 			try {
-				const tag = containerTag || containerTags[0]
+				const scopeTags: [string, ...string[]] = containerTag
+					? [containerTag]
+					: containerTags
 
 				const response = await client.documents.list({
-					containerTags: [tag],
+					containerTags: scopeTags,
 					limit: limit || DEFAULT_VALUES.limit,
 					...(page !== undefined && { page }),
 				})
@@ -227,15 +230,29 @@ export const documentDeleteTool = (
 		apiKey,
 		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
 	})
+	const containerTags = getContainerTags(config)
+	const strict = config?.strict ?? false
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.documentDelete,
 		inputSchema: z.object({
 			documentId: z.string().describe(PARAMETER_DESCRIPTIONS.documentId),
+			containerTag: strict
+				? z
+						.string()
+						.nullable()
+						.describe(PARAMETER_DESCRIPTIONS.documentContainerTag)
+				: z
+						.string()
+						.optional()
+						.describe(PARAMETER_DESCRIPTIONS.documentContainerTag),
 		}),
-		execute: async ({ documentId }) => {
+		execute: async ({ documentId, containerTag }) => {
 			try {
-				await client.documents.delete(documentId)
+				const scopeTags: [string, ...string[]] = containerTag
+					? [containerTag]
+					: containerTags
+				await deleteDocumentByIdentifier(client, documentId, scopeTags)
 
 				return {
 					success: true,
