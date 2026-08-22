@@ -14,6 +14,13 @@ export function effectiveContainerTagAccess(
 		session.scope?.tags ?? (session.scope?.tag ? [session.scope.tag] : []),
 	)
 
+	// A scoped session whose tag set resolves empty must grant NOTHING:
+	// treating the empty set as "no restriction" upgraded it to org-wide
+	// write, defeating the key's purpose. Fail closed instead.
+	if (session.scope?.type === "scoped" && scopedTags.size === 0) {
+		return []
+	}
+
 	return containerTags.map((containerTag) => {
 		let permission: ContainerTagAccess["permission"] = "write"
 

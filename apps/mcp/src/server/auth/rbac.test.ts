@@ -46,4 +46,38 @@ describe("effectiveContainerTagAccess", () => {
 			{ containerTag: "one", permission: "read" },
 		])
 	})
+
+	it("grants a scoped write key write on its listed tags only", () => {
+		const session: SessionInfo = {
+			...baseSession,
+			scope: {
+				type: "scoped",
+				permission: "write",
+				tags: ["one"],
+			},
+		}
+
+		expect(effectiveContainerTagAccess(["one", "two"], session)).toEqual([
+			{ containerTag: "one", permission: "write" },
+			{ containerTag: "two", permission: "read" },
+		])
+	})
+
+	it("denies everything for a scoped session with an empty tag set", () => {
+		const emptyTagsSession: SessionInfo = {
+			...baseSession,
+			scope: { type: "scoped", permission: "write", tags: [] },
+		}
+		const missingTagSession: SessionInfo = {
+			...baseSession,
+			scope: { type: "scoped", permission: "write" },
+		}
+
+		expect(effectiveContainerTagAccess(["one", "two"], emptyTagsSession)).toEqual(
+			[],
+		)
+		expect(effectiveContainerTagAccess(["one", "two"], missingTagSession)).toEqual(
+			[],
+		)
+	})
 })

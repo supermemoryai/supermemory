@@ -29,7 +29,11 @@ export const sessionInfoSchema = z.looseObject({
 	}),
 	org: z.looseObject({ id: z.string().min(1) }).optional(),
 	role: z.string().optional(),
-	accessType: z.enum(["full", "restricted"]).optional(),
+	// Required on purpose: an absent accessType previously fell through to the
+	// "write" default in server/auth/rbac.ts, silently upgrading sessions to
+	// org-wide write. A missing field now fails session parsing (-> 401)
+	// instead of failing open.
+	accessType: z.enum(["full", "restricted"]),
 	containerTags: z.array(containerTagAccessSchema).nullable().optional(),
 	scope: sessionScopeSchema.optional(),
 })
