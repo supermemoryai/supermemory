@@ -18,7 +18,11 @@ import {
 	type Logger,
 	type MemoryMode,
 } from "../shared"
-import type { SupermemoryVoltAgent, VoltAgentMessage } from "./types"
+import type {
+	SearchFilters,
+	SupermemoryVoltAgent,
+	VoltAgentMessage,
+} from "./types"
 
 /**
  * Context for Supermemory middleware operations.
@@ -47,7 +51,7 @@ export interface SupermemoryMiddlewareContext {
 	limit?: number
 	rerank?: boolean
 	rewriteQuery?: boolean
-	filters?: { OR: Array<unknown> } | { AND: Array<unknown> }
+	filters?: SearchFilters
 	include?: {
 		chunks?: boolean
 		documents?: boolean
@@ -258,23 +262,7 @@ export const enhanceMessagesWithMemories = async (
 	if (useAdvancedSearch && ctx.mode !== "profile") {
 		ctx.logger.info("Using advanced search with custom parameters")
 
-		const searchParams: {
-			q: string
-			containerTag: string
-			threshold?: number
-			limit?: number
-			rerank?: boolean
-			rewriteQuery?: boolean
-			filters?: { OR: Array<unknown> } | { AND: Array<unknown> }
-			include?: {
-				chunks?: boolean
-				documents?: boolean
-				forgottenMemories?: boolean
-				relatedMemories?: boolean
-				summaries?: boolean
-			}
-			searchMode?: "memories" | "documents" | "hybrid"
-		} = {
+		const searchParams: Supermemory.SearchParams = {
 			q: queryText,
 			containerTag: ctx.containerTag,
 		}
@@ -288,31 +276,32 @@ export const enhanceMessagesWithMemories = async (
 		if (ctx.include !== undefined) searchParams.include = ctx.include
 		if (ctx.searchMode !== undefined) searchParams.searchMode = ctx.searchMode
 
-		const response = await ctx.client.search.memories(searchParams)
+		const response = await ctx.client.search(searchParams)
 
 		// Hybrid search returns both memory entries (`memory` field) and
-		// document chunks (`chunk` field). Handle both.
-		type SearchResult = {
-			memory?: string
-			chunk?: string
-			metadata?: Record<string, unknown>
-		}
-		const formattedMemories = response.results
-			.map((result: SearchResult) => {
-				const text = result.memory || result.chunk
-				return text ? `- ${text}` : null
-			})
-			.filter(Boolean)
+		// document chunks (`chunk` field). Normalize both for prompt templates.
+		const searchResults = response.results.flatMap((result) => {
+			const memory = result.memory ?? result.chunk
+			if (!memory) {
+				return []
+			}
+
+			return [
+				{
+					memory,
+					...(result.metadata ? { metadata: result.metadata } : {}),
+				},
+			]
+		})
+		const formattedMemories = searchResults
+			.map((result) => `- ${result.memory}`)
 			.join("\n")
 
 		memories = ctx.promptTemplate
 			? ctx.promptTemplate({
 					userMemories: "",
 					generalSearchMemories: formattedMemories,
-					searchResults: response.results as Array<{
-						memory: string
-						metadata?: Record<string, unknown>
-					}>,
+					searchResults,
 				})
 			: `The following are relevant memories and context about this user retrieved from previous interactions. Use these to personalize your response:\n\n${formattedMemories}`
 	} else {

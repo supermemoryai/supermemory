@@ -5,6 +5,7 @@
  * Supermemory by providing hooks that inject memories before LLM calls.
  */
 
+import type Supermemory from "supermemory"
 import type {
 	PromptTemplate,
 	MemoryMode,
@@ -58,7 +59,7 @@ export interface SupermemoryVoltAgent extends SupermemoryBaseOptions {
 
 	/**
 	 * Advanced filters to apply to the search using AND/OR logic.
-	 * Example: { OR: [{ metadata: { type: "note" } }, { metadata: { type: "conversation" } }] }
+	 * Example: { OR: [{ key: "type", value: "note" }, { key: "type", value: "conversation" }] }
 	 *
 	 * Note: Only effective when mode is "query" or "full". Ignored in "profile" mode.
 	 */
@@ -99,7 +100,7 @@ export interface SupermemoryVoltAgent extends SupermemoryBaseOptions {
 /**
  * Advanced search filters using AND/OR logic
  */
-export type SearchFilters = { OR: Array<unknown> } | { AND: Array<unknown> }
+export type SearchFilters = NonNullable<Supermemory.SearchParams["filters"]>
 
 /**
  * Options for including additional data in search results

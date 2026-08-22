@@ -4,6 +4,7 @@ import {
 	DEFAULT_VALUES,
 	PARAMETER_DESCRIPTIONS,
 	TOOL_DESCRIPTIONS,
+	deleteDocumentByIdentifier,
 	getContainerTags,
 } from "../tools-shared"
 import { forgetMemoryRequest } from "../shared/forget-memory"
@@ -14,14 +15,14 @@ import type { SupermemoryToolsConfig } from "../types"
  */
 export interface MemorySearchResult {
 	success: boolean
-	results?: Awaited<ReturnType<Supermemory["search"]["execute"]>>["results"]
+	results?: Awaited<ReturnType<Supermemory["search"]["documents"]>>["results"]
 	count?: number
 	error?: string
 }
 
 export interface MemoryAddResult {
 	success: boolean
-	memory?: Awaited<ReturnType<Supermemory["memories"]["add"]>>
+	memory?: Awaited<ReturnType<Supermemory["add"]>>
 	error?: string
 }
 
@@ -31,7 +32,7 @@ export interface ProfileResult {
 		static: string[]
 		dynamic: string[]
 	}
-	searchResults?: Awaited<ReturnType<Supermemory["search"]["execute"]>>
+	searchResults?: Awaited<ReturnType<Supermemory["profile"]>>["searchResults"]
 	error?: string
 }
 
@@ -159,6 +160,10 @@ export const memoryToolSchemas = {
 					type: "string",
 					description: PARAMETER_DESCRIPTIONS.documentId,
 				},
+				containerTag: {
+					type: "string",
+					description: PARAMETER_DESCRIPTIONS.documentContainerTag,
+				},
 			},
 			required: ["documentId"],
 		},
@@ -248,7 +253,7 @@ export function createSearchMemoriesFunction(
 		limit?: number
 	}): Promise<MemorySearchResult> {
 		try {
-			const response = await client.search.execute({
+			const response = await client.search.documents({
 				q: informationToGet,
 				containerTags,
 				limit,
@@ -363,10 +368,12 @@ export function createDocumentListFunction(
 		page?: number
 	}): Promise<DocumentListResult> {
 		try {
-			const tag = containerTag || containerTags[0]
+			const scopeTags: [string, ...string[]] = containerTag
+				? [containerTag]
+				: containerTags
 
 			const response = await client.documents.list({
-				containerTags: [tag],
+				containerTags: scopeTags,
 				limit: limit || DEFAULT_VALUES.limit,
 				...(page !== undefined && { page }),
 			})
@@ -392,15 +399,20 @@ export function createDocumentDeleteFunction(
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) {
-	const { client } = createClient(apiKey, config)
+	const { client, containerTags } = createClient(apiKey, config)
 
 	return async function documentDelete({
 		documentId,
+		containerTag,
 	}: {
 		documentId: string
+		containerTag?: string
 	}): Promise<DocumentDeleteResult> {
 		try {
-			await client.documents.delete(documentId)
+			const scopeTags: [string, ...string[]] = containerTag
+				? [containerTag]
+				: containerTags
+			await deleteDocumentByIdentifier(client, documentId, scopeTags)
 
 			return {
 				success: true,

@@ -2,18 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 // Mock the Supermemory SDK (same pattern as claude-memory.test.ts) so tool
 // executions can be verified deterministically without network access.
-const documentsDelete = vi.fn()
+const documentsDeleteBulk = vi.fn()
+const documentsGet = vi.fn()
 const documentsList = vi.fn()
-const searchExecute = vi.fn()
 const clientAdd = vi.fn()
 
 vi.mock("supermemory", () => {
 	return {
 		default: class MockSupermemory {
-			search = { execute: searchExecute }
 			add = clientAdd
 			documents = {
-				delete: documentsDelete,
+				deleteBulk: documentsDeleteBulk,
+				get: documentsGet,
 				list: documentsList,
 				add: vi.fn(),
 			}
@@ -35,12 +35,20 @@ function executeTool(tool: unknown, args: Record<string, unknown>) {
 }
 
 beforeEach(() => {
-	documentsDelete.mockReset().mockResolvedValue(undefined)
+	documentsDeleteBulk.mockReset().mockResolvedValue({
+		success: true,
+		deletedCount: 1,
+		errors: [],
+	})
+	documentsGet.mockReset().mockResolvedValue({
+		id: "doc_123",
+		customId: "doc_123",
+		containerTags: ["sm_project_default"],
+	})
 	documentsList.mockReset().mockResolvedValue({
 		memories: [{ id: "doc_1", title: "Doc one" }],
 		pagination: { currentPage: 1, totalItems: 1, totalPages: 1 },
 	})
-	searchExecute.mockReset()
 	clientAdd.mockReset().mockResolvedValue({ id: "doc_new" })
 	vi.unstubAllGlobals()
 })
@@ -53,7 +61,8 @@ describe("documentDelete", () => {
 		}
 
 		expect(result.success).toBe(true)
-		expect(documentsDelete).toHaveBeenCalledWith("doc_123")
+		expect(documentsGet).toHaveBeenCalledWith("doc_123")
+		expect(documentsDeleteBulk).toHaveBeenCalledWith({ ids: ["doc_123"] })
 	})
 })
 
@@ -177,16 +186,30 @@ describe("memoryForget", () => {
 describe("ClaudeMemoryTool", () => {
 	const FILE_PATH = "/memories/prefs.txt"
 	const CUSTOM_ID = "memories_prefs_txt"
+	const DOCUMENT_ID = "doc_file_1"
 
 	function mockFileDocument(content: string) {
-		searchExecute.mockResolvedValue({
-			results: [
+		const metadata = {
+			claude_memory_type: "file",
+			file_path: FILE_PATH,
+		}
+		documentsList.mockResolvedValue({
+			memories: [
 				{
-					documentId: CUSTOM_ID,
-					content,
-					metadata: { file_path: FILE_PATH },
+					id: DOCUMENT_ID,
+					customId: CUSTOM_ID,
+					containerTags: ["claude_memory"],
+					metadata,
 				},
 			],
+			pagination: { currentPage: 1, totalItems: 1, totalPages: 1 },
+		})
+		documentsGet.mockResolvedValue({
+			id: DOCUMENT_ID,
+			customId: CUSTOM_ID,
+			containerTags: ["sm_project_default", "claude_memory"],
+			content,
+			metadata,
 		})
 	}
 
@@ -247,7 +270,7 @@ describe("ClaudeMemoryTool", () => {
 		})
 
 		expect(result.success).toBe(true)
-		expect(documentsDelete).toHaveBeenCalledWith(CUSTOM_ID)
+		expect(documentsDeleteBulk).toHaveBeenCalledWith({ ids: [DOCUMENT_ID] })
 	})
 
 	it("rename removes the old document after creating the new one", async () => {
@@ -264,6 +287,6 @@ describe("ClaudeMemoryTool", () => {
 		expect(clientAdd).toHaveBeenCalledWith(
 			expect.objectContaining({ customId: "memories_renamed_txt" }),
 		)
-		expect(documentsDelete).toHaveBeenCalledWith(CUSTOM_ID)
+		expect(documentsDeleteBulk).toHaveBeenCalledWith({ ids: [DOCUMENT_ID] })
 	})
 })
