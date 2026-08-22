@@ -1,10 +1,15 @@
 const DEFAULT_BASE_URL = "https://api.supermemory.ai"
+const FETCH_TIMEOUT_MS = 30_000
 
 export interface ForgetMemoryParams {
 	containerTag: string
 	id?: string
 	content?: string
 	reason?: string
+}
+
+export interface ForgetMemoryRequestOptions {
+	signal?: AbortSignal
 }
 
 /**
@@ -19,6 +24,7 @@ export async function forgetMemoryRequest(
 	apiKey: string,
 	params: ForgetMemoryParams,
 	baseUrl: string = DEFAULT_BASE_URL,
+	options?: ForgetMemoryRequestOptions,
 ): Promise<void> {
 	const response = await fetch(`${baseUrl}/v4/memories`, {
 		method: "DELETE",
@@ -27,6 +33,7 @@ export async function forgetMemoryRequest(
 			Authorization: `Bearer ${apiKey}`,
 		},
 		body: JSON.stringify(params),
+		signal: options?.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS),
 	})
 
 	if (!response.ok) {

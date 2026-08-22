@@ -222,15 +222,15 @@ async def add_memory_tool(
 ) -> None:
     """Add a new memory to the SuperMemory system."""
     try:
-        add_params = {
-            "content": content,
-            "container_tag": container_tag,
-        }
-        if custom_id is not None:
-            add_params["custom_id"] = custom_id
-
         # Handle both sync and async supermemory clients
-        result = client.add(**add_params)
+        if custom_id is None:
+            result = client.add(content=content, container_tag=container_tag)
+        else:
+            result = client.add(
+                content=content,
+                container_tag=container_tag,
+                custom_id=custom_id,
+            )
         if inspect.isawaitable(result):
             response = await result
         else:

@@ -52,6 +52,51 @@ export async function fetchSession(
 	return result.data
 }
 
+// Opaque Supermemory API keys (sm_...) authenticate via the session endpoint
+// instead of JWT verification. Successful lookups are cached per isolate so a
+// busy MCP session doesn't re-validate on every JSON-RPC message.
+const API_KEY_PATTERN = /^sm_\S{17,}$/
+const API_KEY_CACHE_TTL_MS = 60_000
+const API_KEY_CACHE_MAX_ENTRIES = 1000
+
+const apiKeyCache = new Map<string, { user: AuthUser; expiresAt: number }>()
+
+export function isApiKey(token: string): boolean {
+	return API_KEY_PATTERN.test(token)
+}
+
+export async function validateApiKey(
+	token: string,
+	apiUrl: string,
+): Promise<AuthUser | null> {
+	if (!isApiKey(token)) return null
+
+	const cached = apiKeyCache.get(token)
+	if (cached && cached.expiresAt > Date.now()) return cached.user
+
+	try {
+		const session = await fetchSession(token, apiUrl)
+		const organizationId = session.org?.id
+		if (!organizationId) return null
+
+		const user: AuthUser = {
+			userId: session.user.id,
+			organizationId,
+			bearerToken: token,
+			scopes: [],
+		}
+		if (apiKeyCache.size >= API_KEY_CACHE_MAX_ENTRIES) apiKeyCache.clear()
+		apiKeyCache.set(token, {
+			user,
+			expiresAt: Date.now() + API_KEY_CACHE_TTL_MS,
+		})
+		return user
+	} catch (error) {
+		console.error("API key validation error:", error)
+		return null
+	}
+}
+
 export async function validateOAuthToken(
 	token: string,
 	apiUrl: string,

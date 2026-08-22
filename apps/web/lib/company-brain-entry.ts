@@ -1,9 +1,4 @@
-import {
-	getBrainMode,
-	getBrainWorkspaceDomain,
-	getCompanyBrainOverride,
-	hasCompanyBrain,
-} from "./billing-utils"
+import { getBrainWorkspaceDomain, isCompanyBrainOrg } from "./billing-utils"
 
 export type BrainEntryOrganization = {
 	id: string
@@ -18,21 +13,12 @@ export type CompanyBrainEntryDecision =
 	| { action: "choose"; organizations: BrainEntryOrganization[] }
 	| { action: "create" }
 
-export function isCompanyBrainOrganization(
-	organization: BrainEntryOrganization,
-): boolean {
-	const override = getCompanyBrainOverride(organization.metadata)
-	if (override !== undefined) return override
-	return (
-		hasCompanyBrain(organization.metadata) ||
-		getBrainMode(organization.metadata) === "team"
-	)
-}
-
 export function getCompanyBrainOrganizations(
 	organizations: BrainEntryOrganization[],
 ): BrainEntryOrganization[] {
-	return organizations.filter(isCompanyBrainOrganization)
+	return organizations.filter((organization) =>
+		isCompanyBrainOrg(organization.metadata),
+	)
 }
 
 function normalizeDomain(domain: string): string {

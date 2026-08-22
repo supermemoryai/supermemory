@@ -206,11 +206,11 @@ export function ChatSidebar({
 	>([])
 	const [isChatDraggingFiles, setIsChatDraggingFiles] = useState(false)
 	const [selectedModel, setSelectedModel] = useState<ModelId>(
-		initialSelectedModel ?? "grok-4.3",
+		initialSelectedModel ?? "grok-4.5",
 	)
 	const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(
 		initialReasoningEffort ??
-			getDefaultReasoningEffort(initialSelectedModel ?? "grok-4.3"),
+			getDefaultReasoningEffort(initialSelectedModel ?? "grok-4.5"),
 	)
 	const selectedModelRef = useRef(selectedModel)
 	selectedModelRef.current = selectedModel

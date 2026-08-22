@@ -109,6 +109,22 @@ describe("memoryForget", () => {
 			id: "mem_1",
 			reason: "outdated",
 		})
+		expect(init.signal).toBeInstanceOf(AbortSignal)
+	})
+
+	it("uses a caller-provided signal instead of creating a timeout", async () => {
+		const fetchMock = stubFetch()
+		const controller = new AbortController()
+
+		await forgetMemoryRequest(
+			API_KEY,
+			{ containerTag: "user_1", id: "mem_1" },
+			undefined,
+			{ signal: controller.signal },
+		)
+
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+		expect(init.signal).toBe(controller.signal)
 	})
 
 	it("throws a descriptive error on non-2xx responses", async () => {

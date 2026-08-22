@@ -51,6 +51,7 @@ function SlackMark({ className }: { className?: string }) {
 export function SlackConnectCard() {
 	const isCompanyBrain = useHasCompanyBrain()
 	const [status, setStatus] = useState<SlackStatus | null>(null)
+	const [trialActive, setTrialActive] = useState(true)
 	const [loading, setLoading] = useState(true)
 
 	useEffect(() => {
@@ -58,10 +59,16 @@ export function SlackConnectCard() {
 		let active = true
 		;(async () => {
 			try {
-				const res = await fetch(`${BACKEND}/brain/slack/status`, {
-					credentials: "include",
-				})
-				if (active && res.ok) setStatus((await res.json()) as SlackStatus)
+				const [slackRes, trialRes] = await Promise.all([
+					fetch(`${BACKEND}/brain/slack/status`, { credentials: "include" }),
+					fetch(`${BACKEND}/brain/trial/status`, { credentials: "include" }),
+				])
+				if (!active) return
+				if (slackRes.ok) setStatus((await slackRes.json()) as SlackStatus)
+				if (trialRes.ok) {
+					const trial = (await trialRes.json()) as { active?: boolean }
+					setTrialActive(Boolean(trial.active))
+				}
 			} finally {
 				if (active) setLoading(false)
 			}
@@ -92,13 +99,20 @@ export function SlackConnectCard() {
 					<span className="size-1.5 rounded-full bg-[#2EB67D]" />
 					Connected
 				</span>
-			) : (
+			) : trialActive ? (
 				<a
 					href={`${BACKEND}/brain/slack/oauth/install`}
 					className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-white px-3.5 py-2 text-[13px] font-semibold text-[#1D1C1D] transition-transform hover:scale-[1.02]"
 				>
 					<SlackMark className="size-4" />
 					Add to Slack
+				</a>
+			) : (
+				<a
+					href="/onboarding"
+					className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-white/10 px-3.5 py-2 text-[13px] font-semibold text-fg-primary ring-1 ring-surface-border transition-colors hover:bg-white/15"
+				>
+					Finish setting up
 				</a>
 			)}
 		</div>

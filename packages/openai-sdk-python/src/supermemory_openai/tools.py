@@ -1,7 +1,8 @@
 """Supermemory tools for OpenAI function calling."""
 
 import json
-from typing import Any, Dict, List, Optional, TypedDict, Union
+import warnings
+from typing import Any, Dict, List, Optional, TypedDict
 
 import supermemory
 from openai.types.chat import (
@@ -10,28 +11,17 @@ from openai.types.chat import (
     ChatCompletionToolMessageParam,
     ChatCompletionToolParam,
 )
-from supermemory.types import (
-    AddResponse,
-    DocumentGetResponse,
-    SearchMemoriesResponse,
-)
-from supermemory.types.search_memories_response import Result
+from openai.types.shared_params import FunctionDefinition
+from supermemory.types import AddResponse, SearchMemoriesResponse
 
-from .exceptions import (
-    SupermemoryConfigurationError,
-    SupermemoryMemoryOperationError,
-    SupermemoryNetworkError,
-)
-from .forget_memory import DEFAULT_BASE_URL, forget_memory_request
+from .exceptions import SupermemoryConfigurationError
 
 TOOL_DESCRIPTIONS = {
     "search_memories": (
-        "Search (recall) stored memories for facts, preferences, history, and context about the user "
-        "or any topic. Use proactively before answering whenever memory could help — do not wait for "
-        "the user to explicitly ask you to search or recall. Search when the question touches personal "
-        "context, past conversations, preferences, projects, people, plans, or anything you may have "
-        "learned before. Results include memory/chunk IDs — use those IDs with memory_forget to remove "
-        "a specific learned fact."
+        "Search stored memories and source chunks for relevant facts, preferences, "
+        "history, and context. Use proactively whenever prior context could help. "
+        "Hybrid results may contain either a memory or a source chunk; only an ID "
+        "from a result containing a memory can be passed to memory_forget."
     ),
     "add_memory": (
         "Add (remember) memories/details/information about the user or other facts or entities. "
@@ -40,19 +30,19 @@ TOOL_DESCRIPTIONS = {
     ),
     "get_profile": (
         "Get user profile containing static memories (permanent facts) and dynamic memories "
-        "(recent context). Optionally include search results by providing a query. "
-        "Profile and search result entries may include memory IDs useful for memory_forget."
+        "(recent context). Optionally include query-relevant search results. Static and dynamic "
+        "profile entries are text; only memory entries in search results have forgettable IDs."
     ),
     "document_list": (
         "List stored source documents (conversations, URLs, files, pasted text) with pagination. "
-        "Returns document IDs for document_delete — not memory IDs for memory_forget. "
-        "Use to browse raw stored content before permanently removing a source."
+        "Returns document metadata and summaries, including IDs for document_delete. "
+        "It does not return full source content or memory IDs."
     ),
     "document_delete": (
-        "Permanently delete a stored document and ALL memories extracted from it (hard delete). "
-        "Use document IDs from document_list. Use when the user wants to remove an entire "
-        "conversation, file, URL, or other source — not when correcting a single learned fact "
-        "(use memory_forget for that)."
+        "Permanently delete a stored source document and soft-forget memories extracted from it. "
+        "Use a document ID from document_list when the user wants to remove an entire source. "
+        "Deletion is refused for documents outside the configured scope, shared with another "
+        "scope, or still processing. Use memory_forget to remove one learned fact."
     ),
     "document_add": (
         "Store a source document for asynchronous processing and automatic memory extraction. "
@@ -67,10 +57,9 @@ TOOL_DESCRIPTIONS = {
     ),
     "memory_forget": (
         "Soft-delete a single extracted profile memory (a learned fact) so it no longer appears in "
-        "profile or search. Does NOT delete source documents. Provide memory_id (preferred — from "
-        "search_memories or get_profile) OR memory_content for an exact text match. Use when the "
-        "user retracts or corrects a specific fact (e.g. 'forget I like tea', 'that's wrong'). "
-        "To remove an entire conversation or file, use document_delete instead."
+        "profile or search. This does not delete source documents. Provide a memory_id from a "
+        "search result containing a memory, or memory_content for an exact text match. Use "
+        "document_delete to remove an entire source."
     ),
 }
 
@@ -79,19 +68,14 @@ PARAMETER_DESCRIPTIONS = {
         "What to look up in memory — keywords from the user's message, topic, entity names, or "
         "question phrasing. Search even when the user did not explicitly ask you to recall."
     ),
-    "include_full_docs": (
-        "Whether to include the full document content in the response. "
-        "Defaults to true for better AI context."
-    ),
     "limit": "Maximum number of results to return",
     "memory": (
         "The text content of the memory to add. This should be a single sentence or a short paragraph."
     ),
-    "container_tag": "Tag to filter/scope the operation (e.g., user ID, project ID)",
     "query": "Optional search query to include relevant search results",
     "page": "Page number to fetch, 1-based (default: 1)",
     "document_id": (
-        "Document ID from document_list — permanently deletes the source document and all "
+        "Document ID from document_list. Permanently deletes the source and soft-forgets its "
         "extracted memories. Not a profile memory ID."
     ),
     "content": (
@@ -102,8 +86,8 @@ PARAMETER_DESCRIPTIONS = {
     "title": "Optional title for the document",
     "description": "Optional description for the document",
     "memory_id": (
-        "Profile memory ID from search_memories or get_profile — soft-deletes one learned fact. "
-        "Not a document ID."
+        "Memory entry ID from a search_memories result containing a memory. Chunk and document "
+        "IDs are invalid."
     ),
     "memory_content": (
         "Exact text of the profile memory to forget (alternative to memory_id). Must match "
@@ -114,7 +98,6 @@ PARAMETER_DESCRIPTIONS = {
 
 DEFAULT_LIMIT = 10
 DEFAULT_CHUNK_THRESHOLD = 0.6
-DEFAULT_INCLUDE_FULL_DOCS = True
 
 ALL_TOOL_NAMES = (
     "search_memories",
@@ -131,6 +114,8 @@ class SupermemoryToolsConfig(TypedDict, total=False):
     """Configuration for Supermemory tools.
 
     Only one of `project_id` or `container_tags` can be provided.
+    The first container tag is used for single-space operations. All configured
+    tags are applied to additions and define the allowed document-delete scope.
     """
 
     base_url: Optional[str]
@@ -138,15 +123,15 @@ class SupermemoryToolsConfig(TypedDict, total=False):
     project_id: Optional[str]
 
 
-# Type aliases using inferred types from supermemory package
-MemoryObject = Union[DocumentGetResponse, AddResponse]
+# Type alias retained for compatibility with earlier releases.
+MemoryObject = AddResponse
 
 
 class MemorySearchResult(TypedDict, total=False):
     """Result type for memory search operations."""
 
     success: bool
-    results: Optional[List[Result]]
+    results: Optional[List[Dict[str, object]]]
     count: Optional[int]
     error: Optional[str]
 
@@ -163,8 +148,8 @@ class ProfileResult(TypedDict, total=False):
     """Result type for profile operations."""
 
     success: bool
-    profile: Optional[Dict[str, Any]]
-    search_results: Optional[Any]
+    profile: Optional[Dict[str, object]]
+    search_results: Optional[Dict[str, object]]
     error: Optional[str]
 
 
@@ -172,8 +157,8 @@ class DocumentListResult(TypedDict, total=False):
     """Result type for document list operations."""
 
     success: bool
-    documents: Optional[List[Any]]
-    pagination: Optional[Any]
+    documents: Optional[List[Dict[str, object]]]
+    pagination: Optional[Dict[str, object]]
     error: Optional[str]
 
 
@@ -202,7 +187,7 @@ class MemoryForgetResult(TypedDict, total=False):
 
 
 # Function schemas for OpenAI function calling
-MEMORY_TOOL_SCHEMAS: Dict[str, ChatCompletionFunctionToolParam] = {
+MEMORY_TOOL_SCHEMAS: Dict[str, FunctionDefinition] = {
     "search_memories": {
         "name": "search_memories",
         "description": TOOL_DESCRIPTIONS["search_memories"],
@@ -213,18 +198,16 @@ MEMORY_TOOL_SCHEMAS: Dict[str, ChatCompletionFunctionToolParam] = {
                     "type": "string",
                     "description": PARAMETER_DESCRIPTIONS["information_to_get"],
                 },
-                "include_full_docs": {
-                    "type": "boolean",
-                    "description": PARAMETER_DESCRIPTIONS["include_full_docs"],
-                    "default": DEFAULT_INCLUDE_FULL_DOCS,
-                },
                 "limit": {
-                    "type": "number",
+                    "type": "integer",
                     "description": PARAMETER_DESCRIPTIONS["limit"],
                     "default": DEFAULT_LIMIT,
+                    "minimum": 1,
+                    "maximum": 100,
                 },
             },
             "required": ["information_to_get"],
+            "additionalProperties": False,
         },
     },
     "add_memory": {
@@ -239,6 +222,7 @@ MEMORY_TOOL_SCHEMAS: Dict[str, ChatCompletionFunctionToolParam] = {
                 },
             },
             "required": ["memory"],
+            "additionalProperties": False,
         },
     },
     "get_profile": {
@@ -247,16 +231,13 @@ MEMORY_TOOL_SCHEMAS: Dict[str, ChatCompletionFunctionToolParam] = {
         "parameters": {
             "type": "object",
             "properties": {
-                "container_tag": {
-                    "type": "string",
-                    "description": PARAMETER_DESCRIPTIONS["container_tag"],
-                },
                 "query": {
                     "type": "string",
                     "description": PARAMETER_DESCRIPTIONS["query"],
                 },
             },
             "required": [],
+            "additionalProperties": False,
         },
     },
     "document_list": {
@@ -265,21 +246,22 @@ MEMORY_TOOL_SCHEMAS: Dict[str, ChatCompletionFunctionToolParam] = {
         "parameters": {
             "type": "object",
             "properties": {
-                "container_tag": {
-                    "type": "string",
-                    "description": PARAMETER_DESCRIPTIONS["container_tag"],
-                },
                 "limit": {
-                    "type": "number",
+                    "type": "integer",
                     "description": PARAMETER_DESCRIPTIONS["limit"],
                     "default": DEFAULT_LIMIT,
+                    "minimum": 1,
+                    "maximum": 1100,
                 },
                 "page": {
-                    "type": "number",
+                    "type": "integer",
                     "description": PARAMETER_DESCRIPTIONS["page"],
+                    "default": 1,
+                    "minimum": 1,
                 },
             },
             "required": [],
+            "additionalProperties": False,
         },
     },
     "document_delete": {
@@ -294,6 +276,7 @@ MEMORY_TOOL_SCHEMAS: Dict[str, ChatCompletionFunctionToolParam] = {
                 },
             },
             "required": ["document_id"],
+            "additionalProperties": False,
         },
     },
     "document_add": {
@@ -316,6 +299,7 @@ MEMORY_TOOL_SCHEMAS: Dict[str, ChatCompletionFunctionToolParam] = {
                 },
             },
             "required": ["content"],
+            "additionalProperties": False,
         },
     },
     "memory_forget": {
@@ -324,10 +308,6 @@ MEMORY_TOOL_SCHEMAS: Dict[str, ChatCompletionFunctionToolParam] = {
         "parameters": {
             "type": "object",
             "properties": {
-                "container_tag": {
-                    "type": "string",
-                    "description": PARAMETER_DESCRIPTIONS["container_tag"],
-                },
                 "memory_id": {
                     "type": "string",
                     "description": PARAMETER_DESCRIPTIONS["memory_id"],
@@ -342,20 +322,28 @@ MEMORY_TOOL_SCHEMAS: Dict[str, ChatCompletionFunctionToolParam] = {
                 },
             },
             "required": [],
+            "additionalProperties": False,
         },
     },
 }
 
 
 def _resolve_container_tags(config: SupermemoryToolsConfig) -> List[str]:
-    if config.get("project_id") is not None and config.get("container_tags") is not None:
+    project_id = config.get("project_id")
+    configured_tags = config.get("container_tags")
+
+    if project_id is not None and configured_tags is not None:
         raise SupermemoryConfigurationError(
             "Supermemory tools config accepts either project_id or container_tags, not both."
         )
-    if config.get("project_id"):
-        return [f"sm_project_{config['project_id']}"]
-    if config.get("container_tags"):
-        return config["container_tags"]
+    if project_id:
+        return [f"sm_project_{project_id}"]
+    if configured_tags is not None:
+        if not configured_tags or any(not tag for tag in configured_tags):
+            raise SupermemoryConfigurationError(
+                "container_tags must contain at least one non-empty tag."
+            )
+        return list(configured_tags)
     return ["sm_project_default"]
 
 
@@ -363,8 +351,25 @@ def _tool_definition(name: str) -> ChatCompletionToolParam:
     return {"type": "function", "function": MEMORY_TOOL_SCHEMAS[name]}
 
 
+def _model_to_dict(value: Any) -> Dict[str, object]:
+    """Normalize generated SDK models and already-plain response values."""
+    if isinstance(value, dict):
+        return dict(value)
+
+    model_dump = getattr(value, "model_dump", None)
+    if callable(model_dump):
+        dumped = model_dump()
+        if isinstance(dumped, dict):
+            return dumped
+
+    raise TypeError(f"Unsupported SDK response type: {type(value).__name__}")
+
+
 def _all_tool_definitions() -> List[ChatCompletionFunctionToolParam]:
-    return [{"type": "function", "function": MEMORY_TOOL_SCHEMAS[name]} for name in ALL_TOOL_NAMES]
+    return [
+        {"type": "function", "function": MEMORY_TOOL_SCHEMAS[name]}
+        for name in ALL_TOOL_NAMES
+    ]
 
 
 class SupermemoryTools:
@@ -378,18 +383,18 @@ class SupermemoryTools:
             config: Optional configuration
         """
         config = config or {}
-        self.api_key = api_key
-        self.base_url = config.get("base_url") or DEFAULT_BASE_URL
-
-        client_kwargs = {"api_key": api_key}
-        if config.get("base_url"):
-            client_kwargs["base_url"] = config["base_url"]
-
-        self.client = supermemory.AsyncSupermemory(**client_kwargs)
+        base_url = config.get("base_url")
+        if base_url:
+            self.client = supermemory.AsyncSupermemory(
+                api_key=api_key,
+                base_url=base_url,
+            )
+        else:
+            self.client = supermemory.AsyncSupermemory(api_key=api_key)
         self.container_tags = _resolve_container_tags(config)
 
-    def _primary_container_tag(self, container_tag: Optional[str] = None) -> str:
-        return container_tag or self.container_tags[0]
+    def _primary_container_tag(self) -> str:
+        return self.container_tags[0]
 
     def get_tool_definitions(self) -> List[ChatCompletionFunctionToolParam]:
         """Get OpenAI function definitions for all memory tools."""
@@ -398,9 +403,7 @@ class SupermemoryTools:
     async def execute_tool_call(self, tool_call: ChatCompletionMessageToolCall) -> str:
         """Execute a tool call based on the function name and arguments."""
         function_name = tool_call.function.name
-        args = json.loads(tool_call.function.arguments)
-
-        handlers = {
+        handlers: Dict[str, Any] = {
             "search_memories": self.search_memories,
             "add_memory": self.add_memory,
             "get_profile": self.get_profile,
@@ -417,6 +420,24 @@ class SupermemoryTools:
                 "error": f"Unknown function: {function_name}",
             }
         else:
+            try:
+                args = json.loads(tool_call.function.arguments)
+            except (json.JSONDecodeError, TypeError):
+                return json.dumps({"success": False, "error": "Invalid tool arguments"})
+
+            if not isinstance(args, dict):
+                return json.dumps({"success": False, "error": "Invalid tool arguments"})
+
+            parameters = MEMORY_TOOL_SCHEMAS[function_name]["parameters"] or {}
+            properties = parameters.get("properties", {})
+            required = parameters.get("required", [])
+            if not isinstance(properties, dict) or not isinstance(required, list):
+                return json.dumps({"success": False, "error": "Invalid tool arguments"})
+
+            required_names = {name for name in required if isinstance(name, str)}
+            if set(args) - set(properties) or required_names - set(args):
+                return json.dumps({"success": False, "error": "Invalid tool arguments"})
+
             result = await handler(**args)
 
         return json.dumps(result)
@@ -424,14 +445,26 @@ class SupermemoryTools:
     async def search_memories(
         self,
         information_to_get: str,
-        include_full_docs: bool = DEFAULT_INCLUDE_FULL_DOCS,
+        include_full_docs: Optional[bool] = None,
         limit: int = DEFAULT_LIMIT,
     ) -> MemorySearchResult:
-        """Search memories."""
+        """Search memories.
+
+        ``include_full_docs`` remains a deprecated Python-only argument for
+        source compatibility. V4 search cannot return full source documents.
+        """
+        if include_full_docs is not None:
+            warnings.warn(
+                "include_full_docs is deprecated and ignored because v4 search "
+                "does not return full source documents",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         try:
             response: SearchMemoriesResponse = await self.client.search.memories(
                 q=information_to_get,
-                container_tags=self.container_tags,
+                container_tag=self._primary_container_tag(),
                 limit=limit,
                 threshold=DEFAULT_CHUNK_THRESHOLD,
                 search_mode="hybrid",
@@ -479,27 +512,28 @@ class SupermemoryTools:
 
     async def get_profile(
         self,
-        container_tag: Optional[str] = None,
         query: Optional[str] = None,
     ) -> ProfileResult:
         """Get user profile with optional query-scoped search results."""
         try:
-            kwargs: Dict[str, Any] = {
-                "container_tag": self._primary_container_tag(container_tag),
-            }
             if query:
-                kwargs["q"] = query
-
-            response = await self.client.profile(**kwargs)
-            profile = response.profile if hasattr(response, "profile") else None
-            search_results = (
-                response.search_results if hasattr(response, "search_results") else None
-            )
+                response = await self.client.profile(
+                    container_tag=self._primary_container_tag(),
+                    q=query,
+                )
+            else:
+                response = await self.client.profile(
+                    container_tag=self._primary_container_tag(),
+                )
 
             return ProfileResult(
                 success=True,
-                profile=profile if isinstance(profile, dict) else None,
-                search_results=search_results,
+                profile=_model_to_dict(response.profile),
+                search_results=(
+                    _model_to_dict(response.search_results)
+                    if response.search_results is not None
+                    else None
+                ),
             )
         except (OSError, ConnectionError) as network_error:
             return ProfileResult(
@@ -514,27 +548,24 @@ class SupermemoryTools:
 
     async def document_list(
         self,
-        container_tag: Optional[str] = None,
         limit: Optional[int] = None,
         page: Optional[int] = None,
     ) -> DocumentListResult:
         """List stored documents."""
         try:
             kwargs: Dict[str, Any] = {
-                "container_tags": [self._primary_container_tag(container_tag)],
-                "limit": limit or DEFAULT_LIMIT,
+                "container_tags": [self._primary_container_tag()],
+                "limit": DEFAULT_LIMIT if limit is None else limit,
             }
             if page is not None:
                 kwargs["page"] = page
 
             response = await self.client.documents.list(**kwargs)
-            documents = response.memories if hasattr(response, "memories") else []
-            pagination = response.pagination if hasattr(response, "pagination") else None
 
             return DocumentListResult(
                 success=True,
-                documents=documents,
-                pagination=pagination,
+                documents=[_model_to_dict(document) for document in response.memories],
+                pagination=_model_to_dict(response.pagination),
             )
         except (OSError, ConnectionError) as network_error:
             return DocumentListResult(
@@ -550,7 +581,19 @@ class SupermemoryTools:
     async def document_delete(self, document_id: str) -> DocumentDeleteResult:
         """Delete a document by ID."""
         try:
-            await self.client.documents.delete(document_id)
+            # The delete endpoint has no container-tag argument. Resolve custom IDs
+            # first and refuse documents whose complete tag set is not configured.
+            document = await self.client.documents.get(document_id)
+            document_tags = set(document.container_tags or [])
+            configured_tags = set(self.container_tags)
+
+            if not document_tags or not document_tags.issubset(configured_tags):
+                return DocumentDeleteResult(
+                    success=False,
+                    error="Document is outside configured scope",
+                )
+
+            await self.client.documents.delete(document.id)
             return DocumentDeleteResult(
                 success=True,
                 message=f"Document {document_id} deleted successfully",
@@ -605,7 +648,6 @@ class SupermemoryTools:
 
     async def memory_forget(
         self,
-        container_tag: Optional[str] = None,
         memory_id: Optional[str] = None,
         memory_content: Optional[str] = None,
         reason: Optional[str] = None,
@@ -618,14 +660,17 @@ class SupermemoryTools:
             )
 
         try:
-            await forget_memory_request(
-                api_key=self.api_key,
-                container_tag=self._primary_container_tag(container_tag),
-                memory_id=memory_id,
-                memory_content=memory_content,
-                reason=reason,
-                base_url=self.base_url,
-            )
+            kwargs: Dict[str, Any] = {
+                "container_tag": self._primary_container_tag(),
+            }
+            if memory_id:
+                kwargs["id"] = memory_id
+            if memory_content:
+                kwargs["content"] = memory_content
+            if reason:
+                kwargs["reason"] = reason
+
+            await self.client.memories.forget(**kwargs)
             return MemoryForgetResult(
                 success=True,
                 message="Memory forgotten successfully",
@@ -691,7 +736,7 @@ class SearchMemoriesTool:
     async def execute(
         self,
         information_to_get: str,
-        include_full_docs: bool = DEFAULT_INCLUDE_FULL_DOCS,
+        include_full_docs: Optional[bool] = None,
         limit: int = DEFAULT_LIMIT,
     ) -> MemorySearchResult:
         """Execute search memories."""
@@ -723,11 +768,10 @@ class GetProfileTool:
 
     async def execute(
         self,
-        container_tag: Optional[str] = None,
         query: Optional[str] = None,
     ) -> ProfileResult:
         """Execute get profile."""
-        return await self.tools.get_profile(container_tag=container_tag, query=query)
+        return await self.tools.get_profile(query=query)
 
 
 class DocumentListTool:
@@ -739,13 +783,11 @@ class DocumentListTool:
 
     async def execute(
         self,
-        container_tag: Optional[str] = None,
         limit: Optional[int] = None,
         page: Optional[int] = None,
     ) -> DocumentListResult:
         """Execute document list."""
         return await self.tools.document_list(
-            container_tag=container_tag,
             limit=limit,
             page=page,
         )
@@ -793,14 +835,12 @@ class MemoryForgetTool:
 
     async def execute(
         self,
-        container_tag: Optional[str] = None,
         memory_id: Optional[str] = None,
         memory_content: Optional[str] = None,
         reason: Optional[str] = None,
     ) -> MemoryForgetResult:
         """Execute memory forget."""
         return await self.tools.memory_forget(
-            container_tag=container_tag,
             memory_id=memory_id,
             memory_content=memory_content,
             reason=reason,
