@@ -33,7 +33,7 @@ export async function hasVerifiedSession(request: Request): Promise<boolean> {
 			session &&
 				typeof session === "object" &&
 				"user" in session &&
-				(session as { user?: unknown }).user,
+				session.user,
 		)
 	} catch {
 		return false
