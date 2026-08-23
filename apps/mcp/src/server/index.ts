@@ -129,6 +129,33 @@ function authInfoFor(
 	}
 }
 
+type AuthResolution =
+	| { ok: true; user: AuthUser }
+	| { ok: false; reason: "invalid" }
+	| { ok: false; reason: "transient" }
+
+/**
+ * Resolve the request's bearer token to an AuthUser, keeping a transient
+ * upstream failure distinct from an invalid token (#1551).
+ */
+async function resolveAuthUser(
+	token: string,
+	apiUrl: string,
+	mcpResource: string,
+): Promise<AuthResolution> {
+	try {
+		const user = isApiKey(token)
+			? await validateApiKey(token, apiUrl)
+			: await validateOAuthToken(token, apiUrl, mcpResource)
+		return user ? { ok: true, user } : { ok: false, reason: "invalid" }
+	} catch (error) {
+		if (error instanceof TransientAuthError) {
+			return { ok: false, reason: "transient" }
+		}
+		throw error
+	}
+}
+
 function unauthorizedResponse(
 	resourceMetadataUrl: string,
 	invalidToken = false,
@@ -182,32 +209,26 @@ async function handleMcpRequest(
 
 	if (!token) return unauthorizedResponse(resourceMetadataUrl)
 
-	let authUser: AuthUser | null
-	try {
-		authUser = isApiKey(token)
-			? await validateApiKey(token, apiUrl)
-			: await validateOAuthToken(token, apiUrl, mcpResource)
-	} catch (error) {
+	const resolved = await resolveAuthUser(token, apiUrl, mcpResource)
+	if (!resolved.ok && resolved.reason === "transient") {
 		// A transient session-endpoint outage must not be reported as an
 		// invalid token — that makes clients discard valid sm_ keys and
 		// re-authenticate. Tell them to retry instead.
-		if (error instanceof TransientAuthError) {
-			return Response.json(
-				{
-					jsonrpc: "2.0",
-					error: {
-						code: -32001,
-						message:
-							"Authentication backend temporarily unavailable, please retry",
-					},
-					id: null,
+		return Response.json(
+			{
+				jsonrpc: "2.0",
+				error: {
+					code: -32001,
+					message:
+						"Authentication backend temporarily unavailable, please retry",
 				},
-				{ status: 503, headers: { "Retry-After": "5" } },
-			)
-		}
-		throw error
+				id: null,
+			},
+			{ status: 503, headers: { "Retry-After": "5" } },
+		)
 	}
-	if (!authUser) return unauthorizedResponse(resourceMetadataUrl, true)
+	if (!resolved.ok) return unauthorizedResponse(resourceMetadataUrl, true)
+	const authUser = resolved.user
 
 	const actor: ActorContext = {
 		userId: authUser.userId,
