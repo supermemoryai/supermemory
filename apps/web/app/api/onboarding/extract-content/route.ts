@@ -1,3 +1,5 @@
+import { hasVerifiedSession } from "@/lib/verify-session"
+
 export interface ExaContentResult {
 	url: string
 	text: string
@@ -16,8 +18,21 @@ if (!exaApiKey) {
 	)
 }
 
+function parseHttpUrl(value: string): URL | null {
+	try {
+		const url = new URL(value)
+		return url.protocol === "http:" || url.protocol === "https:" ? url : null
+	} catch {
+		return null
+	}
+}
+
 export async function POST(request: Request) {
 	try {
+		if (!(await hasVerifiedSession(request))) {
+			return Response.json({ error: "Unauthorized" }, { status: 401 })
+		}
+
 		if (!exaApiKey) {
 			return Response.json(
 				{ error: "Content extraction is unavailable" },
@@ -34,11 +49,35 @@ export async function POST(request: Request) {
 			)
 		}
 
-		if (!urls.every((url) => typeof url === "string" && url.trim())) {
+		const MAX_URLS = 10
+		if (urls.length > MAX_URLS) {
 			return Response.json(
-				{ error: "Invalid input: all urls must be non-empty strings" },
+				{ error: `Invalid input: at most ${MAX_URLS} urls per request` },
 				{ status: 400 },
 			)
+		}
+
+		const invalid = Response.json(
+			{
+				error:
+					"Invalid input: all urls must be http(s) strings of at most 2048 characters",
+			},
+			{ status: 400 },
+		)
+
+		const normalizedUrls: string[] = []
+		const seen = new Set<string>()
+		for (const url of urls) {
+			if (typeof url !== "string" || !url.trim() || url.length > 2048) {
+				return invalid
+			}
+			const parsed = parseHttpUrl(url.trim())
+			if (!parsed) {
+				return invalid
+			}
+			if (seen.has(parsed.href)) continue
+			seen.add(parsed.href)
+			normalizedUrls.push(parsed.href)
 		}
 
 		const response = await fetch("https://api.exa.ai/contents", {
@@ -48,7 +87,7 @@ export async function POST(request: Request) {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({
-				urls,
+				urls: normalizedUrls,
 				text: true,
 				livecrawl: "fallback",
 			}),

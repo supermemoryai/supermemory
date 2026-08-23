@@ -1,3 +1,5 @@
+import { hasVerifiedSession } from "@/lib/verify-session"
+
 interface OGResponse {
 	title: string
 	description: string
@@ -11,6 +13,42 @@ function isValidUrl(urlString: string): boolean {
 	} catch {
 		return false
 	}
+}
+
+const MAX_HTML_BYTES = 2_000_000
+
+// OG parsing only needs <head>, so cap the read rather than buffering the whole body.
+async function readBoundedText(
+	response: Response,
+	maxBytes = MAX_HTML_BYTES,
+): Promise<string | null> {
+	const contentLength = response.headers.get("content-length")
+	if (contentLength && Number(contentLength) > maxBytes) {
+		return null
+	}
+	if (!response.body) {
+		return null
+	}
+	const reader = response.body.getReader()
+	const chunks: Uint8Array[] = []
+	let total = 0
+	for (;;) {
+		const { done, value } = await reader.read()
+		if (done) break
+		total += value.byteLength
+		if (total > maxBytes) {
+			await reader.cancel().catch(() => {})
+			return null
+		}
+		chunks.push(value)
+	}
+	const merged = new Uint8Array(total)
+	let offset = 0
+	for (const chunk of chunks) {
+		merged.set(chunk, offset)
+		offset += chunk.byteLength
+	}
+	return new TextDecoder().decode(merged)
 }
 
 function isPrivateIPv4Octets(a: number, b: number): boolean {
@@ -247,6 +285,10 @@ function resolveImageUrl(
 
 export async function GET(request: Request) {
 	try {
+		if (!(await hasVerifiedSession(request))) {
+			return Response.json({ error: "Unauthorized" }, { status: 401 })
+		}
+
 		const { searchParams } = new URL(request.url)
 		const url = searchParams.get("url")
 
@@ -332,7 +374,13 @@ export async function GET(request: Request) {
 					if (contentType && !contentType.includes("text/html")) {
 						return Response.json({ title: "", description: "" })
 					}
-					const html = await secondResponse.text()
+					const html = await readBoundedText(secondResponse)
+					if (html === null) {
+						return Response.json(
+							{ error: "Response too large" },
+							{ status: 413 },
+						)
+					}
 					return processHtml(html, redirectUrl)
 				}
 			}
@@ -349,7 +397,10 @@ export async function GET(request: Request) {
 				return Response.json({ title: "", description: "" })
 			}
 
-			const html = await response.text()
+			const html = await readBoundedText(response)
+			if (html === null) {
+				return Response.json({ error: "Response too large" }, { status: 413 })
+			}
 			return processHtml(html, trimmedUrl)
 		} finally {
 			clearTimeout(timeoutId)

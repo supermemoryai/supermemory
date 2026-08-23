@@ -1,5 +1,6 @@
 import { xai } from "@ai-sdk/xai"
 import { generateText } from "ai"
+import { hasVerifiedSession } from "@/lib/verify-session"
 
 interface ResearchRequest {
 	xUrl: string
@@ -17,6 +18,11 @@ const ALLOWED_X_HOSTS: ReadonlySet<string> = new Set([
 
 const X_URL_FALLBACK_REGEX =
 	/^(?:https?:\/\/)?(?:x\.com|www\.x\.com|twitter\.com|www\.twitter\.com|mobile\.twitter\.com)\/([^/\s?#]+)/i
+
+// Each value occupies one prompt line, so collapse whitespace or it can forge extra lines.
+function sanitizeContextField(value: unknown): string {
+	return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : ""
+}
 
 function isXHost(hostname: string): boolean {
 	return ALLOWED_X_HOSTS.has(hostname.toLowerCase())
@@ -64,11 +70,25 @@ Format the response as clear, readable paragraphs. Focus on factual information 
 
 export async function POST(req: Request) {
 	try {
+		if (!(await hasVerifiedSession(req))) {
+			return Response.json({ error: "Unauthorized" }, { status: 401 })
+		}
+
 		const { xUrl, name, email }: ResearchRequest = await req.json()
 
 		if (!xUrl?.trim()) {
 			return Response.json(
 				{ error: "X/Twitter URL or handle is required" },
+				{ status: 400 },
+			)
+		}
+
+		if (
+			(name !== undefined && (typeof name !== "string" || name.length > 200)) ||
+			(email !== undefined && (typeof email !== "string" || email.length > 320))
+		) {
+			return Response.json(
+				{ error: "Invalid input: name/email too long" },
 				{ status: 400 },
 			)
 		}
@@ -82,9 +102,11 @@ export async function POST(req: Request) {
 			)
 		}
 
+		const safeName = sanitizeContextField(name)
+		const safeEmail = sanitizeContextField(email)
 		const contextParts: string[] = []
-		if (name) contextParts.push(`Name: ${name}`)
-		if (email) contextParts.push(`Email: ${email}`)
+		if (safeName) contextParts.push(`Name: ${safeName}`)
+		if (safeEmail) contextParts.push(`Email: ${safeEmail}`)
 		const userContext =
 			contextParts.length > 0
 				? `\n\nAdditional context about the user:\n${contextParts.join("\n")}`
@@ -93,6 +115,7 @@ export async function POST(req: Request) {
 		const { text } = await generateText({
 			model: xai.responses("grok-4-fast"),
 			prompt: finalPrompt(handle, userContext),
+			abortSignal: AbortSignal.timeout(60_000),
 			tools: {
 				web_search: xai.tools.webSearch(),
 				x_search: xai.tools.xSearch({
