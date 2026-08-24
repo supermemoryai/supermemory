@@ -5,7 +5,7 @@ import { useSession } from "@lib/auth"
 import { cn } from "@lib/utils"
 import { Logo } from "@ui/assets/Logo"
 import { dmSans125ClassName } from "@/lib/fonts"
-import { ArrowLeft, ArrowRight, LoaderIcon, XCircle } from "lucide-react"
+import { ArrowRight, LoaderIcon, XCircle } from "lucide-react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
@@ -193,7 +193,7 @@ function AuthConnectContent() {
 	const params = useSearchParams()
 	const router = useRouter()
 	const { data: session, isPending } = useSession()
-	const { organizations, isRestoring } = useAuth()
+	const { org, organizations, isRestoring } = useAuth()
 	const [status, setStatus] = useState<Status>("loading")
 	const [error, setError] = useState<string | null>(null)
 	const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null)
@@ -205,6 +205,7 @@ function AuthConnectContent() {
 	const client = params.get("client")
 	const clientsParam = params.get("clients")
 	const hasClientList = params.has("clients")
+	const isSwitchMode = params.get("mode") === "switch_organization"
 	const rawRequestedClients = useMemo(
 		() =>
 			(clientsParam !== null ? clientsParam.split(",") : client ? [client] : [])
@@ -270,33 +271,31 @@ function AuthConnectContent() {
 		router.replace("/onboarding")
 	}, [isPending, isRestoring, session, organizations, router, requestError])
 
-	const selectOrganization = useCallback(
-		(organization: NonNullable<typeof organizations>[number]) => {
-			setError(null)
-			setSelectedOrgId(organization.id)
-			setStatus("approval")
-		},
-		[],
-	)
-
 	useEffect(() => {
 		if (requestError || isPending || isRestoring || organizations === null)
 			return
 		if (!session || organizations.length === 0 || status !== "loading") return
-		if (organizations.length > 1) {
+		if (isSwitchMode) {
 			setStatus("selection")
 			return
 		}
-		const onlyOrganization = organizations[0]
-		if (onlyOrganization) selectOrganization(onlyOrganization)
+
+		const defaultOrganization =
+			organizations.find((organization) => organization.id === org?.id) ??
+			organizations[0]
+		if (defaultOrganization) {
+			setSelectedOrgId(defaultOrganization.id)
+			setStatus("approval")
+		}
 	}, [
+		isSwitchMode,
 		requestError,
 		isPending,
 		isRestoring,
+		org?.id,
 		organizations,
 		session,
 		status,
-		selectOrganization,
 	])
 
 	useEffect(() => {
@@ -325,9 +324,9 @@ function AuthConnectContent() {
 		measureFades(listRef.current)
 	}, [measureFades, status])
 
-	async function handleConnect() {
+	async function handleConnect(organization = selectedOrg): Promise<void> {
 		if (requestError || !callback) return
-		if (!session || !selectedOrg) {
+		if (!session || !organization) {
 			setError(
 				selectedOrgId
 					? "That organization is no longer available. Choose another one."
@@ -345,7 +344,7 @@ function AuthConnectContent() {
 					const fetchParams = new URLSearchParams({
 						callback,
 						client: requestedClient,
-						orgId: selectedOrg.id,
+						orgId: organization.id,
 					})
 					const res = await fetch(`${API_URL}/v3/auth/key?${fetchParams}`, {
 						credentials: "include",
@@ -362,9 +361,9 @@ function AuthConnectContent() {
 						key: string
 						organization?: { id: string }
 					}
-					const expectedKeyPrefix = `sm_${selectedOrg.id}_`
+					const expectedKeyPrefix = `sm_${organization.id}_`
 					if (
-						(data.organization && data.organization.id !== selectedOrg.id) ||
+						(data.organization && data.organization.id !== organization.id) ||
 						!data.key.startsWith(expectedKeyPrefix)
 					) {
 						throw new Error(
@@ -417,8 +416,20 @@ function AuthConnectContent() {
 		} catch (err) {
 			console.error("Failed to get API key:", err)
 			setError(err instanceof Error ? err.message : "Failed to get API key")
-			setStatus("approval")
+			setStatus(isSwitchMode ? "selection" : "approval")
 		}
+	}
+
+	function selectOrganization(
+		organization: NonNullable<typeof organizations>[number],
+	): void {
+		setError(null)
+		setSelectedOrgId(organization.id)
+		if (isSwitchMode) {
+			void handleConnect(organization)
+			return
+		}
+		setStatus("approval")
 	}
 
 	const isAuthLoading = isPending || isRestoring || organizations === null
@@ -545,6 +556,19 @@ function AuthConnectContent() {
 		)
 	}
 
+	if (isSwitchMode && status === "creating") {
+		return (
+			<div className="flex min-h-screen items-center justify-center bg-[#08090C]">
+				<div className="flex flex-col items-center gap-3">
+					<div className="size-6 animate-spin rounded-full border-2 border-[#4BA0FA] border-t-transparent" />
+					<p className={dmSans125ClassName("text-sm text-[#737373]")}>
+						Switching organization…
+					</p>
+				</div>
+			</div>
+		)
+	}
+
 	if (status === "approval" || status === "creating") {
 		const creating = status === "creating"
 		return (
@@ -584,7 +608,7 @@ function AuthConnectContent() {
 						))}
 					</ul>
 					<div className="mx-6 h-px bg-white/[0.06]" />
-					<div className="flex items-center justify-between gap-3 px-6 py-3.5">
+					<div className="px-6 py-3.5">
 						<div className="min-w-0">
 							<span className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#737373]">
 								Connecting to
@@ -593,20 +617,6 @@ function AuthConnectContent() {
 								{selectedOrg?.name ?? "Organization unavailable"}
 							</p>
 						</div>
-						{multiOrg && (
-							<button
-								className="flex shrink-0 items-center gap-1 rounded-[7px] px-2 py-1.5 text-[12px] text-[#9AA0A6] transition-colors hover:bg-white/[0.04] hover:text-[#FAFAFA] disabled:opacity-50"
-								disabled={creating}
-								onClick={() => {
-									setError(null)
-									setStatus("selection")
-								}}
-								type="button"
-							>
-								<ArrowLeft className="size-3.5" />
-								Change
-							</button>
-						)}
 					</div>
 					<div className="mx-6 h-px bg-white/[0.06]" />
 					{error && (
@@ -645,6 +655,19 @@ function AuthConnectContent() {
 							)}
 							<div className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_1px_1px_2px_1px_#1A88FF]" />
 						</button>
+						{multiOrg && (
+							<button
+								className="mt-3 flex h-9 w-full items-center justify-center rounded-[8px] text-[13px] font-medium text-[#9AA0A6] transition-colors hover:bg-white/[0.04] hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-50"
+								disabled={creating}
+								onClick={() => {
+									setError(null)
+									setStatus("selection")
+								}}
+								type="button"
+							>
+								Switch organization
+							</button>
+						)}
 					</div>
 				</div>
 			</div>
