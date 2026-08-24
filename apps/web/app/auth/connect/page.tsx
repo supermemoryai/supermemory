@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuth } from "@lib/auth-context"
-import { useSession } from "@lib/auth"
+import { authClient, useSession } from "@lib/auth"
 import { cn } from "@lib/utils"
 import { Logo } from "@ui/assets/Logo"
 import { dmSans125ClassName } from "@/lib/fonts"
@@ -324,6 +324,13 @@ function AuthConnectContent() {
 		measureFades(listRef.current)
 	}, [measureFades, status])
 
+	const handleSignOut = useCallback(async () => {
+		await authClient.signOut().catch(() => undefined)
+		router.replace(
+			`/login?redirect=${encodeURIComponent(window.location.href)}`,
+		)
+	}, [router])
+
 	async function handleConnect(organization = selectedOrg): Promise<void> {
 		if (requestError || !callback) return
 		if (!session || !organization) {
@@ -551,6 +558,20 @@ function AuthConnectContent() {
 							{error}
 						</p>
 					)}
+					<div className="flex flex-col items-center gap-1 pt-6">
+						{session?.user.email && (
+							<p className="text-[12px] text-[#737373]">
+								Signed in as {session.user.email}
+							</p>
+						)}
+						<button
+							className="text-[12px] text-[#9AA0A6] transition-colors hover:text-[#FAFAFA]"
+							onClick={() => void handleSignOut()}
+							type="button"
+						>
+							Sign out
+						</button>
+					</div>
 				</div>
 			</div>
 		)
