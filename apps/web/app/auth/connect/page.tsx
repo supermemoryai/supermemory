@@ -193,7 +193,7 @@ function AuthConnectContent() {
 	const params = useSearchParams()
 	const router = useRouter()
 	const { data: session, isPending } = useSession()
-	const { org, organizations, isRestoring } = useAuth()
+	const { organizations, isRestoring } = useAuth()
 	const [status, setStatus] = useState<Status>("loading")
 	const [error, setError] = useState<string | null>(null)
 	const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null)
@@ -275,28 +275,8 @@ function AuthConnectContent() {
 		if (requestError || isPending || isRestoring || organizations === null)
 			return
 		if (!session || organizations.length === 0 || status !== "loading") return
-		if (isSwitchMode) {
-			setStatus("selection")
-			return
-		}
-
-		const defaultOrganization =
-			organizations.find((organization) => organization.id === org?.id) ??
-			organizations[0]
-		if (defaultOrganization) {
-			setSelectedOrgId(defaultOrganization.id)
-			setStatus("approval")
-		}
-	}, [
-		isSwitchMode,
-		requestError,
-		isPending,
-		isRestoring,
-		org?.id,
-		organizations,
-		session,
-		status,
-	])
+		setStatus("selection")
+	}, [requestError, isPending, isRestoring, organizations, session, status])
 
 	useEffect(() => {
 		if (status !== "approval" || !selectedOrgId || organizations === null)
