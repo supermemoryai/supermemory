@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { readFileSync } from "node:fs"
 import {
+	DocumentFacetsResponseSchema,
 	DocumentsWithMemoriesQuerySchema,
 	ListMemoriesQuerySchema,
 	SearchRequestSchema,
@@ -150,5 +151,33 @@ describe("pagination query schemas", () => {
 		})
 		expect(parsed.page).toBe(2)
 		expect(parsed.limit).toBe(50)
+	})
+})
+
+describe("documents contract schemas", () => {
+	it("DocumentsWithMemoriesQuerySchema accepts the categories filter", () => {
+		const parsed = DocumentsWithMemoriesQuerySchema.parse({
+			categories: ["webpage", "tweet"],
+		})
+		expect(parsed.categories).toEqual(["webpage", "tweet"])
+	})
+
+	it("DocumentsWithMemoriesQuerySchema leaves categories undefined when omitted", () => {
+		expect(
+			DocumentsWithMemoriesQuerySchema.parse({}).categories,
+		).toBeUndefined()
+	})
+
+	it("DocumentFacetsResponseSchema parses a facets payload", () => {
+		const parsed = DocumentFacetsResponseSchema.parse({
+			facets: [{ category: "webpage", count: 42, label: "Web pages" }],
+			total: 42,
+		})
+		expect(parsed.facets[0]?.category).toBe("webpage")
+	})
+
+	it("DocumentFacetsResponseSchema tolerates a missing total", () => {
+		const parsed = DocumentFacetsResponseSchema.parse({ facets: [] })
+		expect(parsed.total).toBeUndefined()
 	})
 })
