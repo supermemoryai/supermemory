@@ -5,7 +5,7 @@ import { useSession } from "@lib/auth"
 import { cn } from "@lib/utils"
 import { Logo } from "@ui/assets/Logo"
 import { dmSans125ClassName } from "@/lib/fonts"
-import { ArrowRight, LoaderIcon, XCircle } from "lucide-react"
+import { ArrowLeft, ArrowRight, LoaderIcon, XCircle } from "lucide-react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
@@ -608,7 +608,7 @@ function AuthConnectContent() {
 						))}
 					</ul>
 					<div className="mx-6 h-px bg-white/[0.06]" />
-					<div className="px-6 py-3.5">
+					<div className="flex items-center justify-between gap-3 px-6 py-3.5">
 						<div className="min-w-0">
 							<span className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#737373]">
 								Connecting to
@@ -617,6 +617,20 @@ function AuthConnectContent() {
 								{selectedOrg?.name ?? "Organization unavailable"}
 							</p>
 						</div>
+						{multiOrg && (
+							<button
+								className="flex shrink-0 items-center gap-1 rounded-[7px] px-2 py-1.5 text-[12px] text-[#9AA0A6] transition-colors hover:bg-white/[0.04] hover:text-[#FAFAFA] disabled:opacity-50"
+								disabled={creating}
+								onClick={() => {
+									setError(null)
+									setStatus("selection")
+								}}
+								type="button"
+							>
+								<ArrowLeft className="size-3.5" />
+								Change
+							</button>
+						)}
 					</div>
 					<div className="mx-6 h-px bg-white/[0.06]" />
 					{error && (
@@ -655,19 +669,6 @@ function AuthConnectContent() {
 							)}
 							<div className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_1px_1px_2px_1px_#1A88FF]" />
 						</button>
-						{multiOrg && (
-							<button
-								className="mt-3 flex h-9 w-full items-center justify-center rounded-[8px] text-[13px] font-medium text-[#9AA0A6] transition-colors hover:bg-white/[0.04] hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-50"
-								disabled={creating}
-								onClick={() => {
-									setError(null)
-									setStatus("selection")
-								}}
-								type="button"
-							>
-								Switch organization
-							</button>
-						)}
 					</div>
 				</div>
 			</div>
