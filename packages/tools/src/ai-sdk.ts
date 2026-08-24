@@ -372,4 +372,10 @@ export function supermemoryTools(
 	}
 }
 
-export { withSupermemory } from "./vercel"
+// `./vercel` is not a published subpath, so this is the only way consumers reach the middleware types.
+export {
+	withSupermemory,
+	type WithSupermemoryOptions,
+	type PromptTemplate,
+	type MemoryPromptData,
+} from "./vercel"

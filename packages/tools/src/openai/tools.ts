@@ -552,6 +552,14 @@ export function getToolDefinitions(): OpenAI.Chat.Completions.ChatCompletionTool
 	]
 }
 
+function parseToolArguments(argumentsJson: string) {
+	try {
+		return { success: true as const, value: JSON.parse(argumentsJson) }
+	} catch {
+		return { success: false as const }
+	}
+}
+
 /**
  * Execute a tool call based on the function name and arguments
  */
@@ -565,7 +573,14 @@ export function createToolCallExecutor(
 		toolCall: OpenAI.Chat.Completions.ChatCompletionMessageToolCall,
 	): Promise<string> {
 		const functionName = toolCall.function.name
-		const args = JSON.parse(toolCall.function.arguments)
+		const parsed = parseToolArguments(toolCall.function.arguments)
+		if (!parsed.success) {
+			return JSON.stringify({
+				success: false,
+				error: `Invalid JSON arguments for ${functionName}`,
+			})
+		}
+		const args = parsed.value
 
 		switch (functionName) {
 			case "searchMemories":
