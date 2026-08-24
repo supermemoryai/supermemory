@@ -7,6 +7,7 @@ import {
 } from "./output-schemas"
 import { textContent, type ToolDeps } from "./types"
 
+// An out-of-space document reports "not found" on purpose, so the id is not an existence oracle.
 export function register(deps: ToolDeps) {
 	const inputSchema = z.object({
 		documentId: z
@@ -28,8 +29,17 @@ export function register(deps: ToolDeps) {
 		},
 		async (args) => {
 			try {
+				const effectiveTag = await deps.resolveContainerTag()
 				const client = deps.getClient()
 				const document = await client.getDocument(args.documentId)
+				const docTags = document.containerTags
+				if (
+					Array.isArray(docTags) &&
+					docTags.length > 0 &&
+					!docTags.includes(effectiveTag)
+				) {
+					throw new Error("Document not found")
+				}
 				const { content, truncated } = getDocumentContent(document)
 				const structuredContent: GetDocumentOutput = {
 					document: {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { readFileSync } from "node:fs"
 import {
+	BulkDeleteMemoriesSchema,
 	DocumentsWithMemoriesQuerySchema,
 	ListMemoriesQuerySchema,
 	SearchRequestSchema,
@@ -150,5 +151,27 @@ describe("pagination query schemas", () => {
 		})
 		expect(parsed.page).toBe(2)
 		expect(parsed.limit).toBe(50)
+	})
+
+	it("DocumentsWithMemoriesQuerySchema caps limit at 1000", () => {
+		expect(
+			DocumentsWithMemoriesQuerySchema.safeParse({ limit: 1001 }).success,
+		).toBe(false)
+		expect(
+			DocumentsWithMemoriesQuerySchema.safeParse({ limit: 200 }).success,
+		).toBe(true)
+	})
+
+	it("BulkDeleteMemoriesSchema caps containerTags at 100 entries of bounded length", () => {
+		const tooMany = {
+			containerTags: Array.from({ length: 101 }, (_, i) => `tag_${i}`),
+		}
+		expect(BulkDeleteMemoriesSchema.safeParse(tooMany).success).toBe(false)
+
+		const tagTooLong = { containerTags: ["x".repeat(257)] }
+		expect(BulkDeleteMemoriesSchema.safeParse(tagTooLong).success).toBe(false)
+
+		const ok = { containerTags: ["tag_a", "tag_b"] }
+		expect(BulkDeleteMemoriesSchema.safeParse(ok).success).toBe(true)
 	})
 })

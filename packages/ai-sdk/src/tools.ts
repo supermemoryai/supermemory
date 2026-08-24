@@ -21,6 +21,13 @@ type AddMemoryInput = {
 	memory: string
 }
 
+// The schema constrains well-behaved models; a prompt-injected one can still send anything.
+function clampSearchLimit(value: unknown): number {
+	const parsed = Number(value)
+	if (!Number.isFinite(parsed)) return 10
+	return Math.min(50, Math.max(1, Math.floor(parsed)))
+}
+
 /**
  * Create Supermemory tools for AI SDK
  */
@@ -30,6 +37,8 @@ export function supermemoryTools(
 ) {
 	const client = new Supermemory({
 		apiKey,
+		timeout: 30_000,
+		maxRetries: 2,
 		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
 	})
 
@@ -54,8 +63,10 @@ export function supermemoryTools(
 					default: true,
 				},
 				limit: {
-					type: "number",
-					description: "Maximum number of results to return",
+					type: "integer",
+					minimum: 1,
+					maximum: 50,
+					description: "Maximum number of results to return (1-50)",
 					default: 10,
 				},
 			},
@@ -67,10 +78,11 @@ export function supermemoryTools(
 			limit = 10,
 		}) => {
 			try {
+				const safeLimit = clampSearchLimit(limit)
 				const response = await client.search.execute({
 					q: informationToGet,
 					containerTags,
-					limit,
+					limit: safeLimit,
 					chunkThreshold: 0.6,
 					includeFullDocs,
 				})

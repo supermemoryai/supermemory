@@ -40,9 +40,18 @@ const extractContent = (memory: SearchResult) => {
 	return "No content available"
 }
 
+// metadata.url comes from ingested content, so only http(s) reaches the OS opener.
 const extractUrl = (memory: SearchResult) => {
 	if (memory.metadata?.url && typeof memory.metadata.url === "string") {
-		return memory.metadata.url
+		const url = memory.metadata.url
+		try {
+			const parsed = new URL(url)
+			if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+				return url
+			}
+		} catch {
+			return null
+		}
 	}
 	return null
 }

@@ -12,8 +12,8 @@ export function register(deps: ToolDeps) {
 			description: "Fetch documents with memories for graph display",
 			inputSchema: z.object({
 				containerTag: optionalContainerTagSchema,
-				page: z.number().optional().default(1),
-				limit: z.number().optional().default(200),
+				page: z.number().int().min(1).max(10_000).optional().default(1),
+				limit: z.number().int().min(1).max(1_000).optional().default(200),
 			}),
 			outputSchema: documentsApiResponseSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
