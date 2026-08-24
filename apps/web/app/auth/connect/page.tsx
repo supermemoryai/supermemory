@@ -249,6 +249,13 @@ function AuthConnectContent() {
 		organizations.length === 0
 
 	useEffect(() => {
+		if (requestError || isPending || isRestoring || session) return
+		router.replace(
+			`/login?redirect=${encodeURIComponent(window.location.href)}`,
+		)
+	}, [isPending, isRestoring, requestError, router, session])
+
+	useEffect(() => {
 		if (requestError) return
 		if (isPending || isRestoring) return
 		if (!session) return
