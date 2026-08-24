@@ -193,13 +193,10 @@ function AuthConnectContent() {
 	const params = useSearchParams()
 	const router = useRouter()
 	const { data: session, isPending } = useSession()
-	const { organizations, isRestoring, setActiveOrg } = useAuth()
+	const { organizations, isRestoring } = useAuth()
 	const [status, setStatus] = useState<Status>("loading")
 	const [error, setError] = useState<string | null>(null)
 	const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null)
-	const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null)
-	const switchingOrgIdRef = useRef<string | null>(null)
-	const autoAttemptedOrgId = useRef<string | null>(null)
 	const listRef = useRef<HTMLDivElement>(null)
 	const [canScrollUp, setCanScrollUp] = useState(false)
 	const [canScrollDown, setCanScrollDown] = useState(false)
@@ -267,26 +264,12 @@ function AuthConnectContent() {
 	}, [isPending, isRestoring, session, organizations, router, requestError])
 
 	const selectOrganization = useCallback(
-		async (organization: NonNullable<typeof organizations>[number]) => {
-			if (switchingOrgIdRef.current) return
-
+		(organization: NonNullable<typeof organizations>[number]) => {
 			setError(null)
-			switchingOrgIdRef.current = organization.id
-			setSwitchingOrgId(organization.id)
-			try {
-				await setActiveOrg(organization.slug)
-				setSelectedOrgId(organization.id)
-				setStatus("approval")
-			} catch (err) {
-				console.error("Failed to switch organization:", err)
-				setError("Couldn't switch to that organization. Try again.")
-				setStatus("selection")
-			} finally {
-				switchingOrgIdRef.current = null
-				setSwitchingOrgId(null)
-			}
+			setSelectedOrgId(organization.id)
+			setStatus("approval")
 		},
-		[setActiveOrg],
+		[],
 	)
 
 	useEffect(() => {
@@ -298,15 +281,7 @@ function AuthConnectContent() {
 			return
 		}
 		const onlyOrganization = organizations[0]
-		if (
-			!onlyOrganization ||
-			autoAttemptedOrgId.current === onlyOrganization.id
-		) {
-			return
-		}
-		autoAttemptedOrgId.current = onlyOrganization.id
-		setStatus("selection")
-		void selectOrganization(onlyOrganization)
+		if (onlyOrganization) selectOrganization(onlyOrganization)
 	}, [
 		requestError,
 		isPending,
@@ -358,39 +333,77 @@ function AuthConnectContent() {
 		try {
 			setError(null)
 			setStatus("creating")
-			const fetchParams = new URLSearchParams({ callback })
-			fetchParams.set("client", requestedClients[0] ?? "")
-			fetchParams.set("orgId", selectedOrg.id)
+			const keyResults = await Promise.allSettled(
+				requestedClients.map(async (requestedClient) => {
+					const fetchParams = new URLSearchParams({
+						callback,
+						client: requestedClient,
+						orgId: selectedOrg.id,
+					})
+					const res = await fetch(`${API_URL}/v3/auth/key?${fetchParams}`, {
+						credentials: "include",
+					})
 
-			const res = await fetch(`${API_URL}/v3/auth/key?${fetchParams}`, {
-				credentials: "include",
-			})
+					if (!res.ok) {
+						const errorData = (await res.json().catch(() => ({}))) as {
+							message?: string
+						}
+						throw new Error(errorData.message || "Failed to get API key")
+					}
 
-			if (!res.ok) {
-				const errorData = (await res.json().catch(() => ({}))) as {
-					message?: string
+					const data = (await res.json()) as {
+						key: string
+						organization?: { id: string }
+					}
+					const expectedKeyPrefix = `sm_${selectedOrg.id}_`
+					if (
+						(data.organization && data.organization.id !== selectedOrg.id) ||
+						!data.key.startsWith(expectedKeyPrefix)
+					) {
+						throw new Error(
+							"The server did not create a key for the selected organization. Try again shortly.",
+						)
+					}
+
+					return [requestedClient, data.key] as const
+				}),
+			)
+			const keys: Record<string, string> = {}
+			const errors: Record<string, string> = {}
+			for (const [index, result] of keyResults.entries()) {
+				const requestedClient = requestedClients[index]
+				if (!requestedClient) continue
+				if (result.status === "fulfilled") {
+					keys[result.value[0]] = result.value[1]
+				} else {
+					errors[requestedClient] =
+						result.reason instanceof Error
+							? result.reason.message
+							: "Failed to get API key"
 				}
-				throw new Error(errorData.message || "Failed to get API key")
 			}
 
-			const data = (await res.json()) as { key: string }
+			if (!hasClientList && Object.keys(errors).length > 0) {
+				throw new Error(errors[requestedClients[0] ?? ""])
+			}
+			if (Object.keys(keys).length === 0) {
+				throw new Error(
+					Object.values(errors)[0] ?? "Failed to get plugin API keys",
+				)
+			}
 			setStatus("success")
 
 			const redirectUrl = new URL(callback)
 			if (hasClientList) {
-				redirectUrl.searchParams.set(
-					"keys",
-					encodeBase64UrlJson(
-						Object.fromEntries(
-							requestedClients.map((requestedClient) => [
-								requestedClient,
-								data.key,
-							]),
-						),
-					),
-				)
+				redirectUrl.searchParams.set("keys", encodeBase64UrlJson(keys))
+				if (Object.keys(errors).length > 0) {
+					redirectUrl.searchParams.set("errors", encodeBase64UrlJson(errors))
+				}
 			} else {
-				redirectUrl.searchParams.set("apikey", data.key)
+				redirectUrl.searchParams.set(
+					"apikey",
+					keys[requestedClients[0] ?? ""] ?? "",
+				)
 			}
 			redirectUrl.searchParams.set("api_url", API_URL)
 			window.location.href = redirectUrl.toString()
@@ -482,10 +495,9 @@ function AuthConnectContent() {
 							{organizations?.map((organization) => (
 								<button
 									aria-label={`Connect ${displayName} to ${organization.name}`}
-									className="flex w-full items-center gap-3 rounded-[12px] bg-[#14161A] px-4 py-3.5 text-left transition-colors hover:bg-[#1B1E25] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BA0FA] disabled:cursor-not-allowed disabled:opacity-60"
-									disabled={switchingOrgId !== null}
+									className="flex w-full items-center gap-3 rounded-[12px] bg-[#14161A] px-4 py-3.5 text-left transition-colors hover:bg-[#1B1E25] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BA0FA]"
 									key={organization.id}
-									onClick={() => void selectOrganization(organization)}
+									onClick={() => selectOrganization(organization)}
 									type="button"
 								>
 									<div className="flex size-9 shrink-0 items-center justify-center rounded-[9px] bg-white/[0.06] text-[14px] font-semibold text-[#FAFAFA]">
@@ -494,9 +506,6 @@ function AuthConnectContent() {
 									<span className="min-w-0 flex-1 truncate text-[15px] font-medium text-[#FAFAFA]">
 										{organization.name}
 									</span>
-									{switchingOrgId === organization.id && (
-										<LoaderIcon className="size-4 shrink-0 animate-spin text-[#9AA0A6]" />
-									)}
 								</button>
 							))}
 						</div>

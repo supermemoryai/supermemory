@@ -75,13 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		const res = await authClient.organization.setActive({
 			organizationSlug: slug,
 		})
-		if (res.error || !res.data) {
-			throw new Error(res.error?.message ?? "Failed to switch organization")
-		}
-		try {
-			localStorage.setItem(STORAGE_KEY, slug)
-		} catch {}
-		setOrg(res.data)
+		setOrg(res?.data ?? null)
+		localStorage.setItem(STORAGE_KEY, slug)
 	}, [])
 
 	const clearActiveOrg = useCallback(async () => {
