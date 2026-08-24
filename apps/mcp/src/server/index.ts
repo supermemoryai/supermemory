@@ -4,6 +4,7 @@ import { Hono, type Context } from "hono"
 import { cors } from "hono/cors"
 import {
 	isApiKey,
+	TransientAuthError,
 	validateApiKey,
 	validateOAuthToken,
 	type AuthUser,
@@ -47,7 +48,7 @@ app.use(
 		allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
 		// When omitted, Hono echoes Access-Control-Request-Headers. This keeps
 		// modern Mcp-Method/Mcp-Name/Mcp-Param-* routing forward-compatible.
-		exposeHeaders: ["WWW-Authenticate"],
+		exposeHeaders: ["WWW-Authenticate", "Retry-After"],
 	}),
 )
 
@@ -128,6 +129,30 @@ function authInfoFor(
 	}
 }
 
+type AuthResolution =
+	| { ok: true; user: AuthUser }
+	| { ok: false; reason: "invalid" }
+	| { ok: false; reason: "transient" }
+
+// Keeps a transient upstream failure distinct from an invalid token.
+async function resolveAuthUser(
+	token: string,
+	apiUrl: string,
+	mcpResource: string,
+): Promise<AuthResolution> {
+	try {
+		const user = isApiKey(token)
+			? await validateApiKey(token, apiUrl)
+			: await validateOAuthToken(token, apiUrl, mcpResource)
+		return user ? { ok: true, user } : { ok: false, reason: "invalid" }
+	} catch (error) {
+		if (error instanceof TransientAuthError) {
+			return { ok: false, reason: "transient" }
+		}
+		throw error
+	}
+}
+
 function unauthorizedResponse(
 	resourceMetadataUrl: string,
 	invalidToken = false,
@@ -181,10 +206,23 @@ async function handleMcpRequest(
 
 	if (!token) return unauthorizedResponse(resourceMetadataUrl)
 
-	const authUser = isApiKey(token)
-		? await validateApiKey(token, apiUrl)
-		: await validateOAuthToken(token, apiUrl, mcpResource)
-	if (!authUser) return unauthorizedResponse(resourceMetadataUrl, true)
+	const resolved = await resolveAuthUser(token, apiUrl, mcpResource)
+	if (!resolved.ok && resolved.reason === "transient") {
+		return Response.json(
+			{
+				jsonrpc: "2.0",
+				error: {
+					code: -32001,
+					message:
+						"Authentication backend temporarily unavailable, please retry",
+				},
+				id: null,
+			},
+			{ status: 503, headers: { "Retry-After": "5" } },
+		)
+	}
+	if (!resolved.ok) return unauthorizedResponse(resourceMetadataUrl, true)
+	const authUser = resolved.user
 
 	const actor: ActorContext = {
 		userId: authUser.userId,

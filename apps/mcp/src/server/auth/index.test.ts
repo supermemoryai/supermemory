@@ -1,6 +1,11 @@
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose"
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import { fetchSession, validateApiKey, validateOAuthToken } from "./index"
+import {
+	fetchSession,
+	TransientAuthError,
+	validateApiKey,
+	validateOAuthToken,
+} from "./index"
 
 const API_URL = "https://api.example.com"
 const ISSUER = `${API_URL}/api/auth`
@@ -179,5 +184,33 @@ describe("MCP authentication", () => {
 		await expect(validateApiKey("sm_short", API_URL)).resolves.toBeNull()
 		await expect(validateApiKey("not_a_key", API_URL)).resolves.toBeNull()
 		expect(fetchSpy).not.toHaveBeenCalled()
+	})
+
+	it("surfaces a 500 from the session endpoint as TransientAuthError, not invalid token", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => {})
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(new Response(null, { status: 500 })),
+		)
+
+		await expect(
+			validateApiKey("sm_outage_key_0123456789abcdef", API_URL),
+		).rejects.toThrow(TransientAuthError)
+	})
+
+	it("surfaces a session-endpoint timeout as TransientAuthError", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => {})
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockRejectedValue(
+				Object.assign(new Error("The operation was aborted"), {
+					name: "TimeoutError",
+				}),
+			),
+		)
+
+		await expect(
+			validateApiKey("sm_timeout_key_0123456789abcd", API_URL),
+		).rejects.toThrow(TransientAuthError)
 	})
 })

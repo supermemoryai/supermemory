@@ -65,6 +65,46 @@ export function isApiKey(token: string): boolean {
 	return API_KEY_PATTERN.test(token)
 }
 
+// Upstream was unreachable, not the token being bad: reporting these as invalid_token makes clients discard working credentials.
+export class TransientAuthError extends Error {
+	readonly status?: number
+
+	constructor(message: string, status?: number) {
+		super(message)
+		this.name = "TransientAuthError"
+		this.status = status
+	}
+}
+
+const TRANSIENT_ERROR_NAMES = new Set([
+	"AbortError",
+	"TimeoutError",
+	"JWKSTimeout",
+])
+
+// ERR_JOSE_GENERIC is what jose throws when the JWKS endpoint answers non-200 or unparseable JSON.
+const TRANSIENT_JOSE_CODES = new Set(["ERR_JWKS_TIMEOUT", "ERR_JOSE_GENERIC"])
+
+function transientAuthErrorFor(error: unknown): TransientAuthError | null {
+	const status = (error as { status?: unknown } | null)?.status
+	if (typeof status === "number" && status !== 401 && status !== 403) {
+		return new TransientAuthError(`Session endpoint returned ${status}`, status)
+	}
+	if (error instanceof TypeError) {
+		return new TransientAuthError(`Auth backend unreachable: ${error.message}`)
+	}
+	if (error instanceof Error && TRANSIENT_ERROR_NAMES.has(error.name)) {
+		return new TransientAuthError(error.message)
+	}
+	const code = (error as { code?: unknown } | null)?.code
+	if (typeof code === "string" && TRANSIENT_JOSE_CODES.has(code)) {
+		return new TransientAuthError(
+			`JWKS fetch failed: ${(error as Error).message}`,
+		)
+	}
+	return null
+}
+
 export async function validateApiKey(
 	token: string,
 	apiUrl: string,
@@ -93,6 +133,8 @@ export async function validateApiKey(
 		return user
 	} catch (error) {
 		console.error("API key validation error:", error)
+		const transient = transientAuthErrorFor(error)
+		if (transient) throw transient
 		return null
 	}
 }
@@ -142,6 +184,8 @@ export async function validateOAuthToken(
 		}
 	} catch (error) {
 		console.error("OAuth token validation error:", error)
+		const transient = transientAuthErrorFor(error)
+		if (transient) throw transient
 		return null
 	}
 }
