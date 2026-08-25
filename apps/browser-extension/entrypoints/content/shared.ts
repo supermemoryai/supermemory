@@ -97,7 +97,8 @@ export function setupGlobalKeyboardShortcut() {
 		if (
 			(event.ctrlKey || event.metaKey) &&
 			event.shiftKey &&
-			event.key === "m"
+			// with Shift held, event.key is "M", never "m"
+			event.key.toLowerCase() === "m"
 		) {
 			event.preventDefault()
 			await saveMemory("keyboard_shortcut")
