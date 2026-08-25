@@ -9,7 +9,8 @@ export interface ClaudeMemoryConfig extends SupermemoryToolsConfig {
 
 export interface MemoryCommand {
 	command: "view" | "create" | "str_replace" | "insert" | "delete" | "rename"
-	path: string
+	// every command except rename addresses the file via path
+	path?: string
 	// view specific
 	view_range?: [number, number]
 	// create specific
@@ -20,7 +21,9 @@ export interface MemoryCommand {
 	// insert specific
 	insert_line?: number
 	insert_text?: string
-	// rename specific
+	// rename specific: Claude sends old_path/new_path (path is accepted too
+	// for backwards compatibility with earlier callers)
+	old_path?: string
 	new_path?: string
 }
 
@@ -76,17 +79,24 @@ export class ClaudeMemoryTool {
 	 */
 	async handleCommand(command: MemoryCommand): Promise<MemoryResponse> {
 		try {
+			// rename is the one command that doesn't use `path`: Claude sends
+			// old_path/new_path. Fall back to `path` so older callers keep working.
+			const path =
+				command.command === "rename"
+					? (command.old_path ?? command.path)
+					: command.path
+
 			// Validate path security
-			if (!this.isValidPath(command.path)) {
+			if (path === undefined || !this.isValidPath(path)) {
 				return {
 					success: false,
-					error: `Invalid path: ${command.path}. All paths must start with /memories/`,
+					error: `Invalid path: ${path}. All paths must start with /memories/`,
 				}
 			}
 
 			switch (command.command) {
 				case "view":
-					return await this.view(command.path, command.view_range)
+					return await this.view(path, command.view_range)
 				case "create":
 					if (!command.file_text) {
 						return {
@@ -94,21 +104,21 @@ export class ClaudeMemoryTool {
 							error: "file_text is required for create command",
 						}
 					}
-					return await this.create(command.path, command.file_text)
+					return await this.create(path, command.file_text)
 				case "str_replace":
-					// new_str may legitimately be "" (deleting text), so only reject
-					// when it is missing entirely. old_str must be non-empty — replacing
-					// the empty string would prepend instead of replacing.
-					if (!command.old_str || command.new_str === undefined) {
+					// new_str may be omitted or "" — both mean "delete old_str".
+					// old_str must be non-empty — replacing the empty string would
+					// prepend instead of replacing.
+					if (!command.old_str) {
 						return {
 							success: false,
-							error: "old_str and new_str are required for str_replace command",
+							error: "old_str is required for str_replace command",
 						}
 					}
 					return await this.strReplace(
-						command.path,
+						path,
 						command.old_str,
-						command.new_str,
+						command.new_str ?? "",
 					)
 				case "insert":
 					// insert_text may be "" (inserting a blank line).
@@ -123,12 +133,12 @@ export class ClaudeMemoryTool {
 						}
 					}
 					return await this.insert(
-						command.path,
+						path,
 						command.insert_line,
 						command.insert_text,
 					)
 				case "delete":
-					return await this.delete(command.path)
+					return await this.delete(path)
 				case "rename":
 					if (!command.new_path) {
 						return {
@@ -136,7 +146,7 @@ export class ClaudeMemoryTool {
 							error: "new_path is required for rename command",
 						}
 					}
-					return await this.rename(command.path, command.new_path)
+					return await this.rename(path, command.new_path)
 				default:
 					return {
 						success: false,
@@ -437,16 +447,16 @@ export class ClaudeMemoryTool {
 				readResult.document.raw || readResult.document.content || ""
 			const lines = originalContent.split("\n")
 
-			// Validate line number
-			if (insertLine < 1 || insertLine > lines.length + 1) {
+			// insert_line is the line the text goes after: 0 means the beginning
+			// of the file and lines.length appends at the end.
+			if (insertLine < 0 || insertLine > lines.length) {
 				return {
 					success: false,
 					error: `Invalid line number: ${insertLine}. File has ${lines.length} lines.`,
 				}
 			}
 
-			// Insert the text (insertLine is 1-based)
-			lines.splice(insertLine - 1, 0, insertText)
+			lines.splice(insertLine, 0, insertText)
 			const newContent = lines.join("\n")
 
 			// Update the document
