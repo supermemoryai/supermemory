@@ -1,5 +1,6 @@
 import posthog from "posthog-js"
 import type { BrainStep } from "@/components/onboarding-brain/types"
+import type { SetupCallSurface } from "@/lib/cal"
 
 const pendingEvents: Array<{
 	eventName: string
@@ -276,4 +277,9 @@ export const analytics = {
 	brainTrialCheckoutStarted: () => safeCapture("brain_trial_checkout_started"),
 	brainTrialCheckoutAbandoned: () =>
 		safeCapture("brain_trial_checkout_abandoned"),
+	brainSetupCallClicked: (props: { surface: SetupCallSurface }) =>
+		safeCapture("brain_setup_call_clicked", props),
+	brainSetupModalSeen: () => safeCapture("brain_setup_modal_seen"),
+	brainSetupModalPicked: (props: { choice: "slack" | "call" }) =>
+		safeCapture("brain_setup_modal_picked", props),
 }

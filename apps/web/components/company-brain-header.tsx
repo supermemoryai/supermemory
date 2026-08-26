@@ -37,6 +37,7 @@ import { FeedbackModal } from "@/components/feedback-modal"
 import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
 import { SlackMark } from "@/components/brain-connector-icons"
 import { BrainTrialPill } from "@/components/brain-trial-pill"
+import { SetupCallLink } from "@/components/setup-call-link"
 import { GraphIcon } from "@/components/integration-icons"
 import { SpaceSelector } from "@/components/space-selector"
 import { UserProfileMenu } from "@/components/user-profile-menu"
@@ -538,29 +539,7 @@ export function CompanyBrainHeader({
 								</TooltipContent>
 							</Tooltip>
 						)}
-						{canInvite && (
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										variant="headers"
-										className={cn(
-											"rounded-full! h-9! min-h-9 shrink-0",
-											"max-lg:w-9 max-lg:min-w-9 max-lg:justify-center max-lg:gap-0 max-lg:px-0",
-											"lg:min-w-0 lg:gap-1.5 lg:px-3 lg:font-medium",
-											dmSansClassName(),
-										)}
-										onClick={handleInvite}
-										aria-label="Invite teammates"
-									>
-										<UserPlus className="size-3.5 shrink-0 lg:size-4" />
-										<span className="max-lg:sr-only">Invite</span>
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent side="bottom" className={dmSansClassName()}>
-									Invite teammates
-								</TooltipContent>
-							</Tooltip>
-						)}
+						<SetupCallLink />
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button

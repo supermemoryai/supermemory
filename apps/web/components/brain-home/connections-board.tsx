@@ -18,11 +18,11 @@ const BACKEND =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 const MCP_BASE = `${BACKEND}/brain/mcp-connections`
 
-const cardStyle = {
+export const cardStyle = {
 	boxShadow:
 		"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
 }
-const tileStyle = {
+export const tileStyle = {
 	boxShadow:
 		"0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08), inset 0px 1px 1px 0px rgba(0,0,0,0.08), inset 0px 2px 4px 0px rgba(0,0,0,0.02)",
 }

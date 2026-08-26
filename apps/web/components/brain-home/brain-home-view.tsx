@@ -9,6 +9,7 @@ import { useQueryState } from "nuqs"
 import { useSettingsModal } from "@/components/settings/settings-modal"
 import { useBrainTrial } from "@/hooks/use-brain-trial"
 import { TrialSetupBanner } from "@/components/trial-setup-banner"
+import { BrainSetupModal } from "@/components/brain-setup-modal"
 import { useTrialStatus } from "@/hooks/use-trial-status"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { useViewMode } from "@/lib/view-mode-context"
@@ -172,7 +173,8 @@ export function BrainHomeView() {
 	const o = useBrainOverview()
 	const trial = useBrainTrial()
 	const board = useConnectionsBoard()
-	const { needsSetup } = useTrialStatus()
+	const { data: trialStatus } = useTrialStatus()
+	const { org: activeOrg } = useAuth()
 	// Rows with no reported state (older orgs, pre-Slack) don't count or render.
 	const milestones = [
 		...(o.researchStatus != null ? [o.researchStatus === "done"] : []),
@@ -184,6 +186,10 @@ export function BrainHomeView() {
 	]
 	const milestonesDone = milestones.filter(Boolean).length
 	const milestonesTotal = milestones.length
+	// Positive gate: a slow trial request would otherwise prompt an expired org.
+	const showSetupPrompt = Boolean(
+		board.slack && !board.slack.connected && trialStatus?.active,
+	)
 	const showTimeline =
 		!o.loading && (trial.state !== "none" || milestonesDone < milestonesTotal)
 
@@ -199,7 +205,7 @@ export function BrainHomeView() {
 				setupTotal={milestonesTotal}
 				lastUpdatedAt={o.lastUpdatedAt}
 			/>
-			{board.slack && !board.slack.connected && !needsSetup && <SlackBanner />}
+			<BrainSetupModal enabled={showSetupPrompt} orgId={activeOrg?.id} />
 			<div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
 				<div className="min-w-0 space-y-6">
 					{board.showBoard && <ConnectToolsCard board={board} />}
@@ -221,6 +227,7 @@ export function BrainHomeView() {
 					<AskInSlackCard board={board} />
 				</div>
 			</div>
+			{showSetupPrompt && <SlackBanner />}
 		</div>
 	)
 }

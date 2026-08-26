@@ -16,6 +16,7 @@ import {
 import { useRouter } from "next/navigation"
 import { useResearchStatus } from "@/hooks/use-research-status"
 import { dmSans125ClassName } from "@/lib/fonts"
+import { SetupCallButton } from "./setup-call-button"
 import { cardSurfaceStyle, inputBevelStyle, inputClass } from "./step-about"
 
 const BACKEND =
@@ -480,6 +481,14 @@ export function ResearchActionRail({
 						})}
 					</ol>
 				)}
+
+				<div className="mt-6 border-t border-white/[0.06] pt-5">
+					<p className="mb-3 text-[12px] font-medium leading-[1.5] text-[#525D6E]">
+						Want us to wire it up live? Slack, connectors, plugins, and a
+						working walkthrough.
+					</p>
+					<SetupCallButton className="w-full" surface="research_rail" />
+				</div>
 			</div>
 		</div>
 	)
