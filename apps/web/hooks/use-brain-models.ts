@@ -6,9 +6,9 @@ const BACKEND =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 const BASE = `${BACKEND}/brain/models`
 
-export type BrainModelRole = "main" | "triage" | "research"
+export type BrainModelRole = "main" | "triage"
 export type BrainReasoningEffort = "auto" | "low" | "medium" | "high" | "xhigh"
-export type BrainReasoningKey = "mainEffort" | "triageEffort" | "researchEffort"
+export type BrainReasoningKey = "mainEffort" | "triageEffort"
 
 export type BrainModelConfig = Record<BrainModelRole, string> &
 	Partial<Record<BrainReasoningKey, BrainReasoningEffort>>
