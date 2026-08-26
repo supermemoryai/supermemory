@@ -74,6 +74,7 @@ These tools are available to the embedded MCP App and hidden from the model.
 | `set-active-tag` | Persist the selected active space |
 | `save-memory` | Submit the guided save form |
 | `prepare-file-upload` | Prepare a secure direct file upload |
+| `upload-file-submit` | Compatibility upload action for older published app catalogs |
 | `fetch-graph-data` | Fetch graph documents for the app |
 
 ## Resources And Prompt
@@ -88,6 +89,10 @@ These tools are available to the embedded MCP App and hidden from the model.
 The App resource and tool metadata include both current nested `ui` metadata and
 the legacy flat resource URI key while MCP Apps completes its SDK v2 migration.
 The Worker runtime does not import the SDK v1 Apps server helpers.
+
+The widget SHA is a release cache-buster. Historical widget URIs resolve to the
+latest compatible bundle, so app-only tool names and schemas referenced by
+published catalogs must remain available until those catalogs are retired.
 
 ## Development
 
@@ -136,10 +141,9 @@ discovery and rejection tests still run.
 
 ## Storage And Rollout
 
-`SpaceState` stores only the active space's container tag. It never stores bearer
-tokens, MCP client identity, or protocol messages.
+`SpaceState` stores the active space's container tag and short-lived, one-time
+upload sessions. It does not store MCP protocol sessions, connections, messages,
+or client identity.
 
-The old `SupermemoryMCP` class and binding remain inert for one rollout. This
-keeps the migration non-destructive and rollback-safe. A later deployment can
-delete the old protocol class after production traffic and rollback windows
-have been checked.
+The old protocol `SupermemoryMCP` Durable Object class and binding were removed
+with migration `v3`. MCP request handling remains stateless and per-request.

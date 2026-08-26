@@ -2,6 +2,7 @@ import { useMemo, useState } from "react"
 import {
 	uploadPreparationSchema,
 	uploadResponseSchema,
+	uploadSuccessViewSchema,
 	type ViewMessage,
 } from "../../shared/types"
 import {
@@ -16,6 +17,7 @@ import {
 import { useApp } from "../hooks/useApp"
 import { formatTagLabel } from "../lib/formatTag"
 import { FileText, X } from "../lib/icons"
+import { readFileAsBase64 } from "../lib/readFileAsBase64"
 
 interface Props {
 	activeTag?: string | null
@@ -69,55 +71,75 @@ export function Upload({
 				{},
 				uploadPreparationSchema,
 			)
-			if (!preparation.ok || !preparation.data) {
-				onError(preparation.error ?? "Unable to prepare upload")
-				return
+			let result: Extract<ViewMessage, { view: "upload-success" }>
+			if (preparation.ok && preparation.data) {
+				const formData = new FormData()
+				formData.append("file", file, file.name)
+				formData.append("containerTag", selectedTag)
+				formData.append(
+					"metadata",
+					JSON.stringify({ sm_source: "supermemory-mcp" }),
+				)
+
+				const response = await fetch(preparation.data.uploadUrl, {
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${preparation.data.uploadToken}`,
+					},
+					body: formData,
+				})
+				if (!response.ok) {
+					const message =
+						(await response.text()) || `Upload failed (${response.status})`
+					onError(message)
+					return
+				}
+
+				const uploaded = uploadResponseSchema.safeParse(await response.json())
+				if (!uploaded.success) {
+					onError("Upload returned an invalid response")
+					return
+				}
+
+				result = {
+					view: "upload-success",
+					viewId,
+					id: uploaded.data.id,
+					fileName: file.name,
+					containerTag: selectedTag,
+				}
+			} else {
+				// A published host catalog can expose the old action while loading the
+				// latest cache-busted widget from its historical resource URI.
+				const compatibilityUpload = await callTool(
+					"upload-file-submit",
+					{
+						fileData: await readFileAsBase64(file),
+						fileName: file.name,
+						mimeType: file.type,
+						containerTag: selectedTag,
+						viewId,
+					},
+					uploadSuccessViewSchema,
+				)
+				if (!compatibilityUpload.ok || !compatibilityUpload.data) {
+					onError(
+						compatibilityUpload.error ?? preparation.error ?? "Upload failed",
+					)
+					return
+				}
+				result = compatibilityUpload.data
 			}
 
-			const formData = new FormData()
-			formData.append("file", file, file.name)
-			formData.append("containerTag", selectedTag)
-			formData.append(
-				"metadata",
-				JSON.stringify({ sm_source: "supermemory-mcp" }),
-			)
-
-			const response = await fetch(preparation.data.uploadUrl, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${preparation.data.uploadToken}`,
-				},
-				body: formData,
-			})
-			if (!response.ok) {
-				const message =
-					(await response.text()) || `Upload failed (${response.status})`
-				onError(message)
-				return
-			}
-
-			const uploaded = uploadResponseSchema.safeParse(await response.json())
-			if (!uploaded.success) {
-				onError("Upload returned an invalid response")
-				return
-			}
-
-			const result: ViewMessage = {
-				view: "upload-success",
-				viewId,
-				id: uploaded.data.id,
-				fileName: file.name,
-				containerTag: selectedTag,
-			}
 			onAdvance(result)
 			await handoffToModel({
-				context: `Supermemory widget action completed. "${file.name}" was uploaded to space "${selectedTag}" with document ID "${uploaded.data.id}". It is already uploaded; do not upload it again.`,
-				message: `I used the Supermemory widget to upload "${file.name}" to space "${selectedTag}" (document ID: ${uploaded.data.id}). The file is already uploaded; do not upload it again.`,
+				context: `Supermemory widget action completed. "${file.name}" was uploaded to space "${selectedTag}" with document ID "${result.id}". It is already uploaded; do not upload it again.`,
+				message: `I used the Supermemory widget to upload "${file.name}" to space "${selectedTag}" (document ID: ${result.id}). The file is already uploaded; do not upload it again.`,
 				structuredContent: {
 					supermemory: {
 						action: "file-uploaded",
 						activeSpace: selectedTag,
-						documentId: uploaded.data.id,
+						documentId: result.id,
 						fileName: file.name,
 					},
 				},

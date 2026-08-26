@@ -47,6 +47,7 @@ const TOOL_SURFACES: Record<string, McpToolSurface> = {
 	"set-active-tag": "app_action",
 	"save-memory": "app_action",
 	"prepare-file-upload": "app_action",
+	"upload-file-submit": "app_action",
 	"fetch-graph-data": "app_internal",
 }
 

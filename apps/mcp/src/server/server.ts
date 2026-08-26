@@ -57,7 +57,16 @@ export function createSupermemoryServer(
 			name: "supermemory",
 			version: "1.0.0",
 		},
-		{ instructions: SERVER_INSTRUCTIONS },
+		{
+			instructions: SERVER_INSTRUCTIONS,
+			// This per-request runtime has no cross-request notification bus.
+			// Modern list responses retain the SDK's zero-TTL cache hint.
+			capabilities: {
+				prompts: { listChanged: false },
+				resources: { listChanged: false },
+				tools: { listChanged: false },
+			},
+		},
 	)
 	const apiUrl = env.API_URL || DEFAULT_API_URL
 	const spaceState = env.SPACE_STATE.getByName(spaceStateName(actor))

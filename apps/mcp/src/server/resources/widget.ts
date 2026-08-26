@@ -36,6 +36,12 @@ export function registerWidgetResource(
 		resourceConfig,
 		async () => readWidgetResource(SUPERMEMORY_RESOURCE_URI),
 	)
+	// Hosts cache the widget under the resource URI they saw at review time and
+	// may re-fetch it long after a release changed the hash. Serving the current
+	// bundle for any historical URI is only sound while the bundle stays
+	// compatible with every published catalog (see "Storage And Rollout" in the
+	// README): app-only tools it calls, like upload-file-submit, must remain
+	// registered until those catalogs are retired.
 	server.registerResource(
 		"Supermemory MCP UI compatibility",
 		new ResourceTemplate("ui://supermemory/app-{version}.html", {

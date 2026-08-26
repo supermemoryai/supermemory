@@ -13,6 +13,7 @@ import * as selectSpace from "./select-space"
 import * as setActiveTag from "./set-active-tag"
 import type { ToolDeps } from "./types"
 import * as uploadFile from "./upload-file"
+import * as uploadFileSubmit from "./upload-file-submit"
 import * as whoAmI from "./who-am-i"
 
 export function registerAllTools(deps: ToolDeps) {
@@ -30,5 +31,6 @@ export function registerAllTools(deps: ToolDeps) {
 	guidedSave.register(deps)
 	saveMemory.register(deps)
 	uploadFile.register(deps)
+	uploadFileSubmit.register(deps)
 	prepareFileUpload.register(deps)
 }

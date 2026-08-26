@@ -25,10 +25,6 @@
 	"durable_objects": {
 		"bindings": [
 			{
-				"name": "MCP_SERVER",
-				"class_name": "SupermemoryMCP"
-			},
-			{
 				"name": "SPACE_STATE",
 				"class_name": "SpaceState"
 			}
@@ -43,6 +39,10 @@
 		{
 			"tag": "v2",
 			"new_sqlite_classes": ["SpaceState"]
+		},
+		{
+			"tag": "v3",
+			"deleted_classes": ["SupermemoryMCP"]
 		}
 	],
 

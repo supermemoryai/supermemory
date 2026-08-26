@@ -22,6 +22,7 @@ const EXPECTED_TOOLS = [
 	"select-space",
 	"set-active-tag",
 	"upload-file",
+	"upload-file-submit",
 	"whoAmI",
 ]
 const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
