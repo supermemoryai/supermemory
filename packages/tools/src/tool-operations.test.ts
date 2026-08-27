@@ -112,7 +112,7 @@ describe("memoryForget", () => {
 		expect(init.signal).toBeInstanceOf(AbortSignal)
 	})
 
-	it("uses a caller-provided signal instead of creating a timeout", async () => {
+	it("composes the caller signal with the timeout so both still bound the request", async () => {
 		const fetchMock = stubFetch()
 		const controller = new AbortController()
 
@@ -124,7 +124,15 @@ describe("memoryForget", () => {
 		)
 
 		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-		expect(init.signal).toBe(controller.signal)
+		const signal = init.signal as AbortSignal
+		// #1549: a composed signal, not the raw caller signal. the 30s timeout
+		// must not be dropped just because a caller passes their own signal.
+		expect(signal).toBeInstanceOf(AbortSignal)
+		expect(signal).not.toBe(controller.signal)
+		expect(signal.aborted).toBe(false)
+		// the caller's signal still aborts the request through the composite
+		controller.abort()
+		expect(signal.aborted).toBe(true)
 	})
 
 	it("throws a descriptive error on non-2xx responses", async () => {
