@@ -43,6 +43,7 @@ import { useIsMobile } from "@hooks/use-mobile"
 import { useAuth } from "@lib/auth-context"
 import { useProject } from "@/stores"
 import { useContainerTags } from "@/hooks/use-container-tags"
+import { isConnectorPaused } from "@/lib/connector-availability"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import {
 	useQuickNoteDraftReset,
@@ -603,6 +604,10 @@ export function AppExperience() {
 
 	const handleOpenIntegrations = useCallback(
 		(integration?: IntegrationParamValue) => {
+			if (integration && isConnectorPaused(integration)) {
+				void setViewMode("integrations")
+				return
+			}
 			if (integration === "notion" || integration === "google-drive") {
 				void setAddDoc("connect")
 				return

@@ -19,6 +19,8 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { connectorPause } from "@/lib/connector-availability"
+import { useConnectorNotify } from "@/lib/connector-notify"
 import type { z } from "zod"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
@@ -505,7 +507,14 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 		},
 	})
 
+	const notify = useConnectorNotify()
+
+	// Every connect path funnels here; a `disabled` button would swallow the click.
 	const handleConnect = (provider: ConnectorProvider) => {
+		if (connectorPause(provider)) {
+			notify.request(provider)
+			return
+		}
 		setConnectingProvider(provider)
 		addConnectionMutation.mutate({
 			provider,
@@ -548,14 +557,32 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 								<div className="flex items-center gap-3 flex-1">
 									<Icon className="size-6 text-[#737373]" />
 									<div className="space-y-[6px] flex-1">
-										<p className="text-[16px] font-medium">{config.title}</p>
+										<div className="flex items-center gap-2">
+											<p className="text-[16px] font-medium">{config.title}</p>
+											{connectorPause(provider) && (
+												<span className="shrink-0 rounded-full bg-[#F5A524]/12 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#F5A524]">
+													Paused
+												</span>
+											)}
+										</div>
 										<p className="text-[16px] text-[#737373]">
 											{config.description}
 										</p>
 									</div>
 								</div>
 								<div className="flex items-center gap-2">
-									{provider === "google-drive" ? (
+									{connectorPause(provider) ? (
+										<button
+											type="button"
+											onClick={() => notify.request(provider)}
+											title={connectorPause(provider)?.message}
+											className="bg-[#14161A] text-[#FAFAFA] text-[14px] font-medium px-3 h-8 rounded-md border border-[rgba(82,89,102,0.3)] hover:bg-[#1B1F24] transition-colors"
+										>
+											{notify.isRequested(provider)
+												? "We'll email you"
+												: "Notify me"}
+										</button>
+									) : provider === "google-drive" ? (
 										<div className="flex items-center rounded-md overflow-hidden">
 											<button
 												type="button"
@@ -721,6 +748,10 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 									<div className="flex flex-col">
 										<DropdownMenuItem
 											onClick={() => {
+												if (connectorPause("google-drive")) {
+													notify.request("google-drive")
+													return
+												}
 												setConnectingProvider("google-drive")
 												addConnectionMutation.mutate({
 													provider: "google-drive",
@@ -741,6 +772,10 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 										</DropdownMenuItem>
 										<DropdownMenuItem
 											onClick={() => {
+												if (connectorPause("google-drive")) {
+													notify.request("google-drive")
+													return
+												}
 												setConnectingProvider("google-drive")
 												addConnectionMutation.mutate({
 													provider: "google-drive",

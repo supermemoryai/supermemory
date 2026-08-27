@@ -84,6 +84,8 @@ export const analytics = {
 	connectionDeleted: () => safeCapture("connection_deleted"),
 	connectionAuthStarted: (props: { provider: string }) =>
 		safeCapture("connection_auth_started", props),
+	connectorPausedClicked: (props: { provider: string; reason: string }) =>
+		safeCapture("connector_paused_clicked", props),
 
 	// integrations surface (main Nova page)
 	integrationCardClicked: (props: { kind: string; id: string; name: string }) =>

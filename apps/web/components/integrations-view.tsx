@@ -37,13 +37,17 @@ import {
 	FileText,
 	Globe,
 	Info,
+	Bell,
 	Loader,
+	Pause,
 	Plus,
 	Search,
 	X,
 	Zap,
 } from "lucide-react"
 import { formatRelativeTime } from "@/components/settings/sync-utils"
+import { connectorPause } from "@/lib/connector-availability"
+import { useConnectorNotify } from "@/lib/connector-notify"
 import { useConnectorAccess } from "@/hooks/use-connector-access"
 import { useConnectionHealth } from "@/hooks/use-connection-health"
 import { useContainerTags } from "@/hooks/use-container-tags"
@@ -596,6 +600,52 @@ export function DetailWrapper({
 				{children}
 			</div>
 		</div>
+	)
+}
+
+function NotifyMeButton({
+	provider,
+	title,
+	onClick,
+}: {
+	provider: string
+	title?: string
+	onClick?: () => void
+}) {
+	const { isRequested, request } = useConnectorNotify()
+	const requested = isRequested(provider)
+	return (
+		<PillButton
+			className={requested ? "cursor-default opacity-60" : undefined}
+			onClick={() => {
+				onClick?.()
+				if (!requested) request(provider)
+			}}
+			title={title}
+		>
+			{requested ? (
+				<>
+					<Check className="size-3.5" /> We&apos;ll email you
+				</>
+			) : (
+				<>
+					<Bell className="size-3.5" /> Notify me
+				</>
+			)}
+		</PillButton>
+	)
+}
+
+function PausedChip() {
+	return (
+		<span
+			className={cn(
+				dmSans125ClassName(),
+				"shrink-0 rounded-full bg-[#F5A524]/12 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#F5A524]",
+			)}
+		>
+			Paused
+		</span>
 	)
 }
 
@@ -2276,6 +2326,7 @@ function ItemCard({
 	leftIndicator,
 	statusSlot,
 	layoutClassName,
+	paused,
 }: {
 	actionSlot: ReactNode
 	infoActionSlot?: ReactNode
@@ -2291,6 +2342,7 @@ function ItemCard({
 	leftIndicator?: ReactNode
 	statusSlot?: ReactNode
 	layoutClassName?: string
+	paused?: boolean
 }) {
 	const [infoOpen, setInfoOpen] = useState(false)
 	return (
@@ -2345,7 +2397,8 @@ function ItemCard({
 						>
 							{name}
 						</span>
-						{isNew && <NewChip />}
+						{paused && <PausedChip />}
+						{isNew && !paused && <NewChip />}
 						{max ? <ProChip>Max</ProChip> : pro && <ProChip />}
 					</div>
 					<p
@@ -2979,6 +3032,12 @@ export function IntegrationsView({
 		}
 	}
 
+	const handlePausedConnector = useCallback((provider: string) => {
+		const pause = connectorPause(provider)
+		if (!pause) return
+		toast.info(pause.message)
+	}, [])
+
 	const handleUpgrade = useCallback(
 		async (planId?: unknown) => {
 			const checkoutPlanId = planId === "api_max" ? "api_max" : "api_pro"
@@ -3084,6 +3143,10 @@ export function IntegrationsView({
 			if (["notion", "google-drive", "onedrive"].includes(target)) {
 				// The add-document modal is driven by its own ?add param, so clearing ?connect is safe.
 				void setConnectTarget(null)
+				if (connectorPause(target)) {
+					handlePausedConnector(target)
+					return
+				}
 				void setAddDoc("connect")
 			}
 		}, 0)
@@ -3103,6 +3166,7 @@ export function IntegrationsView({
 		setAddDoc,
 		handleUpgrade,
 		openPluginSetup,
+		handlePausedConnector,
 	])
 
 	const closeMcpModal = () => {
@@ -3551,15 +3615,20 @@ export function IntegrationsView({
 				const count = connectionsByProvider[item.provider].length
 				const isGranola = item.provider === "granola"
 				const needsPlanUpgrade = !isAutumnLoading && !connectorAccess
+				const pause = connectorPause(item.provider)
 				if (count > 0) {
 					return (
 						<div className="flex w-full items-center justify-between gap-2">
 							<button
 								type="button"
-								aria-label="Add another knowledge source"
-								title="Add another knowledge source"
+								aria-label={pause ? "Paused" : "Add another knowledge source"}
+								title={pause ? pause.message : "Add another knowledge source"}
 								onClick={() => {
 									trackCard(item)
+									if (pause) {
+										handlePausedConnector(item.provider)
+										return
+									}
 									if (isGranola) {
 										if (!connectorAccess) {
 											handleUpgrade("api_pro")
@@ -3573,11 +3642,25 @@ export function IntegrationsView({
 								className={cn(
 									"flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[#A1A1AA] transition-colors hover:text-[#FAFAFA] sm:size-9",
 									"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
+									pause && "cursor-not-allowed opacity-50",
 								)}
 							>
-								<Plus className="size-4" />
+								{pause ? (
+									<Pause className="size-4" />
+								) : (
+									<Plus className="size-4" />
+								)}
 							</button>
 						</div>
+					)
+				}
+				if (pause) {
+					return (
+						<NotifyMeButton
+							onClick={() => trackCard(item)}
+							provider={item.provider}
+							title={pause.message}
+						/>
 					)
 				}
 				if (needsPlanUpgrade) {
@@ -3795,6 +3878,7 @@ export function IntegrationsView({
 			leftIndicator={renderLeftIndicator(item)}
 			statusSlot={renderStatus(item)}
 			layoutClassName={layoutClassName}
+			paused={item.kind === "connector" && !!connectorPause(item.provider)}
 		/>
 	)
 
