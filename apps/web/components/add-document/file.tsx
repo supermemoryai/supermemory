@@ -8,7 +8,9 @@ import { useHotkeys } from "react-hotkeys-hook"
 import { toast } from "sonner"
 
 export const FILE_ACCEPT =
-	"image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.mdx,.json,.html,.htm,text/markdown,application/json,text/html"
+	"image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.mdx,.json,.html,.htm,application/pdf,text/markdown,application/json,text/html"
+
+export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
 
 export type FileQueueItemStatus = "pending" | "uploading" | "success" | "error"
 
@@ -33,29 +35,50 @@ interface FileContentProps {
 	isOpen?: boolean
 }
 
-function isAcceptedFile(file: File): boolean {
+const ALLOWED_EXTENSIONS = new Set([
+	".pdf",
+	".doc",
+	".docx",
+	".xls",
+	".xlsx",
+	".csv",
+	".txt",
+	".md",
+	".mdx",
+	".json",
+	".html",
+	".htm",
+])
+
+const ALLOWED_MIME_TYPES = new Set([
+	"application/pdf",
+	"application/msword",
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	"application/vnd.ms-excel",
+	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	"text/csv",
+	"text/plain",
+	"text/markdown",
+	"application/json",
+	"text/html",
+])
+
+export function isAcceptedFile(file: File): boolean {
+	if (file.size > MAX_FILE_SIZE_BYTES) return false
+	if (file.type) {
+		// Drop parameters like ";charset=utf-8" before the exact lookup
+		const semicolonIndex = file.type.indexOf(";")
+		const mimeType = (
+			semicolonIndex === -1 ? file.type : file.type.slice(0, semicolonIndex)
+		)
+			.trim()
+			.toLowerCase()
+		if (ALLOWED_MIME_TYPES.has(mimeType)) return true
+		if (mimeType.startsWith("image/")) return true
+	}
 	const name = file.name.toLowerCase()
 	const ext = name.includes(".") ? name.slice(name.lastIndexOf(".")) : ""
-	const allowedExt = new Set([
-		".pdf",
-		".doc",
-		".docx",
-		".xls",
-		".xlsx",
-		".csv",
-		".txt",
-		".md",
-		".mdx",
-		".json",
-		".html",
-		".htm",
-	])
-	if (allowedExt.has(ext)) return true
-	if (file.type.startsWith("image/")) return true
-	if (file.type === "text/markdown") return true
-	if (file.type === "application/json") return true
-	if (file.type === "text/html") return true
-	return false
+	return ALLOWED_EXTENSIONS.has(ext)
 }
 
 function fileQueueKey(file: File): string {
@@ -100,13 +123,30 @@ export function FileContent({
 	const addFiles = useCallback(
 		(fileList: FileList | File[]) => {
 			const incoming = Array.from(fileList)
-			const accepted = incoming.filter(isAcceptedFile)
-			const rejected = incoming.length - accepted.length
-			if (rejected > 0) {
+			const accepted: File[] = []
+			let oversizedCount = 0
+			let unsupportedCount = 0
+			for (const file of incoming) {
+				if (file.size > MAX_FILE_SIZE_BYTES) {
+					oversizedCount++
+				} else if (isAcceptedFile(file)) {
+					accepted.push(file)
+				} else {
+					unsupportedCount++
+				}
+			}
+			if (oversizedCount > 0) {
 				toast.error(
-					rejected === 1
+					oversizedCount === 1
+						? `One file exceeds the ${formatFileSize(MAX_FILE_SIZE_BYTES)} limit`
+						: `${oversizedCount} files exceed the ${formatFileSize(MAX_FILE_SIZE_BYTES)} limit`,
+				)
+			}
+			if (unsupportedCount > 0) {
+				toast.error(
+					unsupportedCount === 1
 						? "One file type is not supported"
-						: `${rejected} files are not supported`,
+						: `${unsupportedCount} files are not supported`,
 				)
 			}
 			if (accepted.length === 0) return
