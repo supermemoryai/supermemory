@@ -15,40 +15,41 @@ function isValidUrl(urlString: string): boolean {
 	}
 }
 
-const MAX_HTML_BYTES = 2_000_000
+const MAX_HEAD_BYTES = 64 * 1024
 
-// OG parsing only needs <head>, so cap the read rather than buffering the whole body.
-async function readBoundedText(
+// Read the response stream until </head> is seen, then stop. The full body
+// is discarded because OG meta tags only live in <head>, and the vast
+// majority of real-world <head> blocks fit in tens of KB. Holding the
+// response body in memory up to 2 MB just to regex-scan it for tags in the
+// first 30 KB is wasteful at link-preview scale.
+async function readHeadText(
 	response: Response,
-	maxBytes = MAX_HTML_BYTES,
+	maxBytes = MAX_HEAD_BYTES,
 ): Promise<string | null> {
-	const contentLength = response.headers.get("content-length")
-	if (contentLength && Number(contentLength) > maxBytes) {
-		return null
-	}
 	if (!response.body) {
 		return null
 	}
 	const reader = response.body.getReader()
-	const chunks: Uint8Array[] = []
-	let total = 0
+	const decoder = new TextDecoder("utf-8", { fatal: false })
+	let acc = ""
+	let byteCount = 0
+	const closeTag = "</head>"
 	for (;;) {
 		const { done, value } = await reader.read()
 		if (done) break
-		total += value.byteLength
-		if (total > maxBytes) {
+		byteCount += value.byteLength
+		if (byteCount > maxBytes) {
 			await reader.cancel().catch(() => {})
 			return null
 		}
-		chunks.push(value)
+		acc += decoder.decode(value, { stream: true })
+		const idx = acc.toLowerCase().indexOf(closeTag)
+		if (idx !== -1) {
+			await reader.cancel().catch(() => {})
+			return acc.slice(0, idx + closeTag.length)
+		}
 	}
-	const merged = new Uint8Array(total)
-	let offset = 0
-	for (const chunk of chunks) {
-		merged.set(chunk, offset)
-		offset += chunk.byteLength
-	}
-	return new TextDecoder().decode(merged)
+	return null
 }
 
 function isPrivateIPv4Octets(a: number, b: number): boolean {
@@ -374,7 +375,7 @@ export async function GET(request: Request) {
 					if (contentType && !contentType.includes("text/html")) {
 						return Response.json({ title: "", description: "" })
 					}
-					const html = await readBoundedText(secondResponse)
+					const html = await readHeadText(secondResponse)
 					if (html === null) {
 						return Response.json(
 							{ error: "Response too large" },
@@ -397,7 +398,7 @@ export async function GET(request: Request) {
 				return Response.json({ title: "", description: "" })
 			}
 
-			const html = await readBoundedText(response)
+			const html = await readHeadText(response)
 			if (html === null) {
 				return Response.json({ error: "Response too large" }, { status: 413 })
 			}
