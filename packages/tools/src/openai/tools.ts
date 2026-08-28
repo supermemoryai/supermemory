@@ -458,8 +458,18 @@ export function getToolDefinitions(): OpenAI.Chat.Completions.ChatCompletionTool
 }
 
 function parseToolArguments(argumentsJson: string) {
+	// OpenAI sends "" for tools called with no arguments.
+	const source = argumentsJson?.trim() || "{}"
+
 	try {
-		return { success: true as const, value: JSON.parse(argumentsJson) }
+		const value = JSON.parse(source)
+
+		// "null", "5" and "[]" parse but would throw when destructured.
+		if (typeof value !== "object" || value === null || Array.isArray(value)) {
+			return { success: false as const }
+		}
+
+		return { success: true as const, value }
 	} catch {
 		return { success: false as const }
 	}
