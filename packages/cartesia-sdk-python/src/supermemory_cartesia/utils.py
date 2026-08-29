@@ -49,17 +49,34 @@ def format_relative_time(iso_timestamp: str) -> str:
         return ""
 
 
+def _result_to_dict(result: Any) -> Dict[str, Any]:
+    """Normalize a single search result into a plain dict.
+
+    The Supermemory SDK returns search results as Pydantic model objects, not
+    dicts, so calling ``.get(...)`` on them raises AttributeError. Convert
+    models via ``model_dump`` (keeping API field names like ``updatedAt``) and
+    pass existing dicts through unchanged.
+    """
+    if isinstance(result, dict):
+        return result
+    model_dump = getattr(result, "model_dump", None)
+    if callable(model_dump):
+        return model_dump(by_alias=True)
+    return {}
+
+
 def deduplicate_memories(
     static: List[str],
     dynamic: List[str],
-    search_results: List[Dict[str, Any]],
+    search_results: List[Any],
 ) -> Dict[str, Union[List[str], List[Dict[str, Any]]]]:
     """Deduplicate memories. Priority: static > dynamic > search.
 
     Args:
         static: List of static memory strings.
         dynamic: List of dynamic memory strings.
-        search_results: List of search result dicts with 'memory' and 'updatedAt'.
+        search_results: List of search results (SDK model objects or dicts)
+            carrying 'memory' and 'updatedAt'.
     """
     seen = set()
 
@@ -71,9 +88,10 @@ def deduplicate_memories(
                 out.append(m)
         return out
 
-    def unique_search(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def unique_search(results: List[Any]) -> List[Dict[str, Any]]:
         out = []
         for r in results:
+            r = _result_to_dict(r)
             memory = r.get("memory", "")
             if memory and memory not in seen:
                 seen.add(memory)
