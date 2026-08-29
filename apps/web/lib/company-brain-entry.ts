@@ -1,4 +1,4 @@
-import { getBrainWorkspaceDomain, isCompanyBrainOrg } from "./billing-utils"
+import { getBrainWorkspaceDomain, hasCompanyBrain } from "./billing-utils"
 
 export type BrainEntryOrganization = {
 	id: string
@@ -13,11 +13,12 @@ export type CompanyBrainEntryDecision =
 	| { action: "choose"; organizations: BrainEntryOrganization[] }
 	| { action: "create" }
 
+// Paid add-on or concierge override only; never-activated shell orgs fall to "create".
 export function getCompanyBrainOrganizations(
 	organizations: BrainEntryOrganization[],
 ): BrainEntryOrganization[] {
 	return organizations.filter((organization) =>
-		isCompanyBrainOrg(organization.metadata),
+		hasCompanyBrain(organization.metadata),
 	)
 }
 

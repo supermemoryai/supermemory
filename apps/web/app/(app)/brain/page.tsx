@@ -5,24 +5,14 @@ import { useRouter } from "next/navigation"
 import { LogoFull } from "@ui/assets/Logo"
 import { Button } from "@ui/components/button"
 import { AlertTriangle, ChevronRight, Loader2, RotateCw } from "lucide-react"
-import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
-import { SHARED_TEAM_BRAIN_TAG } from "@lib/constants"
 import { cn } from "@lib/utils"
-import { analytics } from "@/lib/analytics"
 import {
 	type BrainEntryOrganization,
 	resolveCompanyBrainEntry,
 } from "@/lib/company-brain-entry"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
-import {
-	detectModeFromEmail,
-	generateOrgSlug,
-	workspaceDomainFromEmail,
-	workspaceNameFromDomain,
-	workspaceNameFromEmail,
-	type BrainMetadata,
-} from "@/components/onboarding-brain/types"
+import { generateOrgSlug } from "@/components/onboarding-brain/types"
 
 const BACKEND =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
@@ -37,21 +27,13 @@ const inputBevelStyle = {
 		"0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08), inset 0px 1px 1px 0px rgba(0,0,0,0.08), inset 0px 2px 4px 0px rgba(0,0,0,0.02)",
 }
 
-// No forms: sign up → org auto-created → Slack install.
-// After OAuth, mono attaches api_scale (14d trial) + company_brain (200 credits).
 export default function BrainEntryPage() {
 	const router = useRouter()
-	const {
-		user,
-		org,
-		organizations,
-		isRestoring,
-		setActiveOrg,
-		refetchOrganizations,
-	} = useAuth()
+	const { user, org, organizations, isRestoring, setActiveOrg } = useAuth()
 	const { email = null } = user ?? {}
 	const [error, setError] = useState<string | null>(null)
 	const [choices, setChoices] = useState<BrainEntryOrganization[] | null>(null)
+	const [closed, setClosed] = useState(false)
 	const [attempt, setAttempt] = useState(0)
 	const startedRef = useRef(false)
 
@@ -75,43 +57,6 @@ export default function BrainEntryPage() {
 		[org?.id, router, setActiveOrg],
 	)
 
-	const createCompanyBrain = useCallback(async () => {
-		// Personal email → shell org; the Slack workspace resolves identity later.
-		const domain =
-			detectModeFromEmail(email) === "team"
-				? workspaceDomainFromEmail(email)
-				: null
-		const name =
-			(domain
-				? workspaceNameFromDomain(domain)
-				: workspaceNameFromEmail(email)) || "Company Brain"
-		const metadata: BrainMetadata & { signupSource: string } = {
-			signupSource: "consumer",
-			brainOnboardingVersion: "v1",
-			brainMode: "team",
-			brainWorkspaceName: name,
-			brainWorkspaceDomain: domain,
-			// Always the shared Team Brain; the CB UI never selects a slug space.
-			brainContainerTag: SHARED_TEAM_BRAIN_TAG,
-		}
-		const result = await authClient.organization.create({
-			name,
-			slug: generateOrgSlug(name),
-			metadata,
-		})
-		if (result.error || !result.data?.slug) {
-			throw new Error(result.error?.message || "Could not create workspace.")
-		}
-		await setActiveOrg(result.data.slug)
-		await refetchOrganizations()
-		analytics.onboardingWorkspaceCreated({
-			mode: "team",
-			has_about: false,
-			has_domain: Boolean(domain),
-		})
-		window.location.href = `${BACKEND}/brain/slack/oauth/install`
-	}, [email, refetchOrganizations, setActiveOrg])
-
 	const run = useCallback(async () => {
 		const organizationsWithActiveMetadata = (organizations ?? []).map(
 			(organization) =>
@@ -132,8 +77,8 @@ export default function BrainEntryPage() {
 			setChoices(decision.organizations)
 			return
 		}
-		await createCompanyBrain()
-	}, [continueWithOrganization, createCompanyBrain, org, organizations])
+		setClosed(true)
+	}, [continueWithOrganization, org, organizations])
 
 	const handleChoice = useCallback(
 		(organization: BrainEntryOrganization) => {
@@ -164,7 +109,32 @@ export default function BrainEntryPage() {
 
 	return (
 		<EntryShell>
-			{choices ? (
+			{closed ? (
+				<section
+					className="w-full max-w-md rounded-[22px] bg-[#1B1F24] p-8 text-center"
+					style={modalCardStyle}
+				>
+					<p
+						className={cn(
+							"text-[20px] font-semibold text-[#fafafa]",
+							dmSans125ClassName(),
+						)}
+					>
+						New signups are paused
+					</p>
+					<p className="mt-2 text-[14px] font-medium leading-[1.5] text-[#737373]">
+						Company Brain isn't accepting new workspaces right now. If you have
+						questions, reach us at support@supermemory.com.
+					</p>
+					<Button
+						variant="insideOut"
+						onClick={() => router.replace("/")}
+						className="mt-6 rounded-full px-5 py-[10px] text-[13px] font-medium text-[#fafafa]"
+					>
+						Go to Supermemory
+					</Button>
+				</section>
+			) : choices ? (
 				<section
 					className="w-full max-w-md rounded-[22px] bg-[#1B1F24] p-6 text-left md:p-8"
 					style={modalCardStyle}

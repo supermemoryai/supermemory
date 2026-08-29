@@ -33,7 +33,6 @@ export interface AboutValues {
 
 interface Props {
 	mode: BrainMode
-	onModeChange: (m: BrainMode) => void
 	domain: string | null
 	suggestedWorkspaceName: string
 	defaultName: string
@@ -60,7 +59,6 @@ export const inputClass =
 
 export function StepAbout({
 	mode,
-	onModeChange,
 	domain,
 	suggestedWorkspaceName,
 	defaultName,
@@ -165,9 +163,7 @@ export function StepAbout({
 				className="rounded-[22px] bg-[#1B1F24] p-6 md:p-8"
 				style={cardSurfaceStyle}
 			>
-				<ModeToggle mode={mode} onChange={onModeChange} />
-
-				<div className="mt-7 flex items-center gap-4">
+				<div className="flex items-center gap-4">
 					<UserAvatar
 						url={avatarUrl}
 						name={values.name || defaultName}
@@ -404,53 +400,6 @@ export function DomainLogo({ domain }: { domain: string }) {
 			className="size-6 object-contain"
 			onError={() => setIdx((i) => i + 1)}
 		/>
-	)
-}
-
-function ModeToggle({
-	mode,
-	onChange,
-}: {
-	mode: BrainMode
-	onChange: (m: BrainMode) => void
-}) {
-	const items: { id: BrainMode; label: string }[] = [
-		{ id: "personal", label: "Personal" },
-		{ id: "team", label: "Team" },
-	]
-	return (
-		<div
-			className="relative grid grid-cols-2 items-center rounded-full bg-[#0D121A] border border-[rgba(115,115,115,0.2)] p-1 text-[13px] font-medium w-full"
-			style={{
-				boxShadow: "inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
-			}}
-		>
-			<motion.span
-				aria-hidden
-				className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full"
-				style={{ background: "#00173C", border: "1px solid #2261CA66" }}
-				animate={{ x: mode === "team" ? "100%" : "0%" }}
-				transition={{ type: "spring", stiffness: 420, damping: 38, mass: 0.8 }}
-			/>
-			{items.map((item) => {
-				const isActive = mode === item.id
-				return (
-					<button
-						key={item.id}
-						type="button"
-						onClick={() => onChange(item.id)}
-						className={cn(
-							"relative z-10 h-8 rounded-full text-center transition-colors duration-200",
-							isActive
-								? "text-[#fafafa]"
-								: "text-[#737373] hover:text-[#fafafa]",
-						)}
-					>
-						{item.label}
-					</button>
-				)
-			})}
-		</div>
 	)
 }
 

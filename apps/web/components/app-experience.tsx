@@ -16,7 +16,6 @@ import { ChatSidebar, HomeChatComposer } from "@/components/chat"
 import type { ChatAttachmentDraft } from "@/components/chat/attachments"
 import { DashboardView } from "@/components/dashboard-view"
 import { BrainHomeView } from "@/components/brain-home/brain-home-view"
-import { CompanyBrainPromo } from "@/components/company-brain-promo"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
 import { MemoriesGrid } from "@/components/memories-grid"
 import { GraphLayoutView } from "@/components/graph-layout-view"
@@ -830,7 +829,6 @@ export function AppExperience() {
 								) : (
 									<DashboardView
 										spaceLabel={dashboardSpaceLabel}
-										headerNotice={<CompanyBrainPromo />}
 										highlights={highlightsData?.highlights ?? []}
 										isLoadingHighlights={isLoadingHighlights}
 										onAddMemory={handleAddMemory}

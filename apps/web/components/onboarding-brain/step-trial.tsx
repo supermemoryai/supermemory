@@ -2,35 +2,11 @@
 
 import { Gmail, GoogleDrive, Granola, MCPIcon, Notion } from "@ui/assets/icons"
 import { GradientLogo } from "@ui/assets/Logo"
-import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
-import { ArrowRight, Loader2, ShieldCheck } from "lucide-react"
-import { useState } from "react"
-import { toast } from "sonner"
 import { SlackMark } from "@/components/brain-connector-icons"
-import { analytics } from "@/lib/analytics"
 import { dmSans125ClassName } from "@/lib/fonts"
 
-const BACKEND =
-	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
-
 export const CHECKOUT_RETURN_PARAM = "brainTrial"
-
-const TRIAL_DAYS = 14
-/** The only reminder that lands before the charge; 15 and 17 are post-trial. */
-const REMINDER_DAY = 12
-const MONTHLY_PRICE = "$100"
-
-function checkoutReturnUrl(): string {
-	const url = new URL(window.location.href)
-	url.searchParams.set(CHECKOUT_RETURN_PARAM, "complete")
-	return url.toString()
-}
-
-function dayOffset(days: number): string {
-	const at = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
-	return at.toLocaleDateString(undefined, { month: "short", day: "numeric" })
-}
 
 const ORBIT = [
 	{ key: "slack", r: 74, deg: 0, node: <SlackMark className="size-4" /> },
@@ -85,91 +61,11 @@ function BrainPanel() {
 	)
 }
 
-function TimelineRow({
-	date,
-	title,
-	value,
-	current,
-}: {
-	date: string
-	title: string
-	value?: string
-	current?: boolean
-}) {
-	return (
-		<li className="relative flex items-start gap-3 pl-[18px]">
-			<span
-				aria-hidden="true"
-				className={cn(
-					"absolute left-0 top-[5px] size-[7px] rounded-full",
-					current
-						? "bg-[#fafafa] ring-4 ring-[#fafafa]/10"
-						: "bg-[#2b3138] ring-1 ring-white/15",
-				)}
-			/>
-			<div className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
-				<div className="flex min-w-0 flex-col gap-0.5">
-					<span className="text-[13px] font-medium text-[#fafafa]">{date}</span>
-					<span className="text-[12px] leading-snug text-[#8b8b8b]">
-						{title}
-					</span>
-				</div>
-				{value ? (
-					<span className="shrink-0 text-[14px] font-medium text-[#fafafa] tabular-nums">
-						{value}
-					</span>
-				) : null}
-			</div>
-		</li>
-	)
-}
-
-export function StepTrial({ onActive }: { onActive: () => void }) {
-	const [starting, setStarting] = useState(false)
-
-	const start = async () => {
-		if (starting) return
-		setStarting(true)
-		analytics.brainTrialCheckoutStarted()
-		try {
-			const res = await fetch(`${BACKEND}/brain/trial/start`, {
-				method: "POST",
-				credentials: "include",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ successUrl: checkoutReturnUrl() }),
-			})
-			const data = (await res.json()) as {
-				checkoutUrl?: string | null
-				status?: string
-				error?: string
-			}
-			if (res.status === 409 || data.error === "trial_unavailable") {
-				throw new Error(
-					"This workspace has already used its free trial. Upgrade from billing to continue.",
-				)
-			}
-			if (!res.ok) throw new Error(data.error ?? "Couldn't start the trial.")
-			if (data.checkoutUrl) {
-				window.location.href = data.checkoutUrl
-				return
-			}
-			if (data.status === "already_active" || data.status === "attached") {
-				onActive()
-				return
-			}
-			throw new Error("Couldn't start the trial.")
-		} catch (error) {
-			console.error("Failed to start trial:", error)
-			toast.error(
-				error instanceof Error ? error.message : "Couldn't start the trial.",
-			)
-			setStarting(false)
-		}
-	}
-
+// Trial checkout is disabled while new Company Brain signups are paused.
+export function StepTrial(_props: { onActive: () => void }) {
 	return (
 		<div className="flex gap-6">
-			<div className="flex min-w-0 flex-1 flex-col gap-5">
+			<div className="flex min-w-0 flex-1 flex-col justify-center gap-5">
 				<div className="flex flex-col gap-1.5">
 					<h2
 						className={cn(
@@ -177,58 +73,11 @@ export function StepTrial({ onActive }: { onActive: () => void }) {
 							"text-[22px] leading-tight font-medium text-[#fafafa]",
 						)}
 					>
-						Start your {TRIAL_DAYS}-day free trial
+						New signups are paused
 					</h2>
 					<p className="text-[13px] leading-relaxed text-[#8b8b8b]">
-						Add a payment method to start. You will not be charged today. We
-						will email you before your first payment.
-					</p>
-				</div>
-
-				<ol className="relative flex flex-col gap-5 py-1">
-					<span
-						aria-hidden="true"
-						className="absolute left-[3px] top-2.5 bottom-[22px] w-px bg-white/10"
-					/>
-					<TimelineRow
-						date="Today"
-						title="Full access to Company Brain"
-						value="$0"
-						current
-					/>
-					<TimelineRow
-						date={dayOffset(REMINDER_DAY)}
-						title="We email you before the charge"
-					/>
-					<TimelineRow
-						date={dayOffset(TRIAL_DAYS)}
-						title="Trial ends"
-						value={`${MONTHLY_PRICE}/mo`}
-					/>
-				</ol>
-
-				<div className="flex flex-col items-center gap-3">
-					<Button
-						variant="insideOut"
-						onClick={start}
-						disabled={starting}
-						className="w-full justify-center rounded-full px-5 py-[11px] text-[13px] font-medium text-[#fafafa]"
-					>
-						{starting ? (
-							<>
-								Opening checkout…
-								<Loader2 className="size-3.5 animate-spin" />
-							</>
-						) : (
-							<>
-								Start free trial
-								<ArrowRight className="size-3.5" />
-							</>
-						)}
-					</Button>
-					<p className="flex items-center gap-1.5 text-[12px] text-[#737373]">
-						<ShieldCheck className="size-3.5" />
-						Secured by Stripe · Cancel in one click
+						Company Brain isn't accepting new workspaces right now. If you have
+						questions, reach us at support@supermemory.com.
 					</p>
 				</div>
 			</div>

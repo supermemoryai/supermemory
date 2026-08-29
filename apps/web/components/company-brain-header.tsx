@@ -462,20 +462,13 @@ export function CompanyBrainHeader({
 									<Sun className="size-4 text-[#737373]" />
 									Integrations
 								</DropdownMenuItem>
-								{slackConnected ? (
+								{slackConnected && (
 									<DropdownMenuItem
 										onClick={goConfigure}
 										className={menuItemClass}
 									>
 										<SlackMark className="size-4" />
 										Slack connected
-									</DropdownMenuItem>
-								) : (
-									<DropdownMenuItem asChild className={menuItemClass}>
-										<a href={`${BACKEND}/brain/slack/oauth/install`}>
-											<SlackMark className="size-4" />
-											Add to Slack
-										</a>
 									</DropdownMenuItem>
 								)}
 								<DropdownMenuSeparator className="bg-[#2E3033]" />
@@ -582,28 +575,9 @@ function SlackNavButton({
 	active: boolean
 	onManage: () => void
 }) {
-	const label = connected
-		? `Slack${teamName ? ` · ${teamName}` : ""}`
-		: "Add to Slack"
+	const label = `Slack${teamName ? ` · ${teamName}` : ""}`
 
-	if (!connected) {
-		return (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<a
-						href={`${BACKEND}/brain/slack/oauth/install`}
-						aria-label="Add to Slack"
-						className={circleNavClass(false)}
-					>
-						<SlackMark className="size-4" />
-					</a>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" className={dmSansClassName()}>
-					Add to Slack
-				</TooltipContent>
-			</Tooltip>
-		)
-	}
+	if (!connected) return null
 
 	return (
 		<Tooltip>

@@ -31,8 +31,6 @@ import {
 import { StaticGraphPreview } from "@/components/memory-graph/graph-card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
 import { ChromeIcon, RaycastIcon } from "@/components/integration-icons"
-import { SlackConnectCard } from "@/components/slack-connect-card"
-import { TrialSetupBanner } from "@/components/trial-setup-banner"
 import { GoogleDrive, Notion, MCPIcon } from "@ui/assets/icons"
 import { analytics } from "@/lib/analytics"
 import type { IntegrationParamValue } from "@/lib/search-params"
@@ -1345,8 +1343,6 @@ export function DashboardView({
 			)}
 		>
 			<div className="mx-auto w-full max-w-4xl space-y-4 md:space-y-5">
-				<TrialSetupBanner />
-				<SlackConnectCard />
 				{headerNotice ? <div className="space-y-2">{headerNotice}</div> : null}
 
 				{/* Header */}

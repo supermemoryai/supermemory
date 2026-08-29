@@ -13,7 +13,6 @@ import {
 import { authClient } from "@lib/auth"
 import { useRouter } from "next/navigation"
 import {
-	Brain,
 	CalendarClock,
 	LogOut,
 	Settings,
@@ -168,18 +167,6 @@ export function UserProfileMenu({
 					<Settings className="size-4 text-[#737373]" />
 					Settings
 				</DropdownMenuItem>
-				{isCompanyBrain ? null : (
-					<DropdownMenuItem
-						onClick={() => {
-							analytics.companyBrainPromoClicked({ source: "profile_menu" })
-							router.push("/onboarding?new=1&mode=team")
-						}}
-						className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
-					>
-						<Brain className="size-4 text-[#737373]" />
-						Set up Company Brain
-					</DropdownMenuItem>
-				)}
 				{isCompanyBrain ? (
 					<DropdownMenuItem
 						onClick={() => void setViewMode("configure")}
