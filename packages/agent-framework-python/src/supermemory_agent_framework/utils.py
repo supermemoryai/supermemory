@@ -92,14 +92,24 @@ def deduplicate_memories(
     def extract_memory_text(item: Any) -> Optional[str]:
         if item is None:
             return None
-        if isinstance(item, dict):
-            memory = item.get("memory")
-            if isinstance(memory, str):
-                trimmed = memory.strip()
-                return trimmed if trimmed else None
-            return None
         if isinstance(item, str):
             trimmed = item.strip()
+            return trimmed if trimmed else None
+        if isinstance(item, dict):
+            memory = item.get("memory")
+        else:
+            # The Supermemory SDK returns search results as Pydantic model
+            # objects, not dicts. Without this branch they matched neither
+            # dict nor str and were silently dropped, so query/full mode
+            # injected no search memories. Read "memory" from a model_dump
+            # (falling back to attribute access).
+            model_dump = getattr(item, "model_dump", None)
+            if callable(model_dump):
+                memory = model_dump(by_alias=True).get("memory")
+            else:
+                memory = getattr(item, "memory", None)
+        if isinstance(memory, str):
+            trimmed = memory.strip()
             return trimmed if trimmed else None
         return None
 
