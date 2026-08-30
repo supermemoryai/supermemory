@@ -330,8 +330,8 @@ export const transformParamsWithMemory = async (
 	const isNewTurn = isNewUserTurn(params)
 
 	// Check if we can use cached memories
-	const cachedMemories = ctx.memoryCache.get(turnKey)
-	if (!isNewTurn && cachedMemories) {
+	if (!isNewTurn && ctx.memoryCache.has(turnKey)) {
+		const cachedMemories = ctx.memoryCache.get(turnKey) ?? ""
 		ctx.logger.debug("Using cached memories: ", {
 			turnKey,
 		})

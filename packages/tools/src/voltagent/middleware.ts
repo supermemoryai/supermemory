@@ -211,8 +211,8 @@ export const enhanceMessagesWithMemories = async (
 	const turnKey = makeTurnKey(ctx, userMessage || "")
 	const isNewTurn = isNewUserTurn(messages)
 
-	const cachedMemories = ctx.memoryCache.get(turnKey)
-	if (!isNewTurn && cachedMemories) {
+	if (!isNewTurn && ctx.memoryCache.has(turnKey)) {
+		const cachedMemories = ctx.memoryCache.get(turnKey) ?? ""
 		ctx.logger.debug("Using cached memories", { turnKey })
 		return injectMemoriesIntoMessages(
 			messagesToEnhance,
@@ -300,21 +300,23 @@ export const enhanceMessagesWithMemories = async (
 		const formattedMemories = response.results
 			.map((result: SearchResult) => {
 				const text = result.memory || result.chunk
-				return text ? `- ${text}` : null
+				return text?.trim() ? `- ${text}` : null
 			})
 			.filter(Boolean)
 			.join("\n")
 
-		memories = ctx.promptTemplate
-			? ctx.promptTemplate({
-					userMemories: "",
-					generalSearchMemories: formattedMemories,
-					searchResults: response.results as Array<{
-						memory: string
-						metadata?: Record<string, unknown>
-					}>,
-				})
-			: `The following are relevant memories and context about this user retrieved from previous interactions. Use these to personalize your response:\n\n${formattedMemories}`
+		memories = formattedMemories
+			? ctx.promptTemplate
+				? ctx.promptTemplate({
+						userMemories: "",
+						generalSearchMemories: formattedMemories,
+						searchResults: response.results as Array<{
+							memory: string
+							metadata?: Record<string, unknown>
+						}>,
+					})
+				: `The following are relevant memories and context about this user retrieved from previous interactions. Use these to personalize your response:\n\n${formattedMemories}`
+			: ""
 	} else {
 		memories = await buildMemoriesText({
 			containerTag: ctx.containerTag,
@@ -346,6 +348,11 @@ const injectMemoriesIntoMessages = (
 	memories: string,
 	logger: Logger,
 ): VoltAgentMessage[] => {
+	if (!memories.trim()) {
+		logger.debug("No memories to inject")
+		return messages
+	}
+
 	const systemMessageIndex = messages.findIndex((msg) => msg.role === "system")
 
 	if (systemMessageIndex !== -1) {

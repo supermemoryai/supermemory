@@ -23,6 +23,49 @@ afterEach(() => {
 })
 
 describe("buildMemoriesText", () => {
+	it.each([
+		"profile",
+		"query",
+		"full",
+	] as const)("returns no prompt when %s mode finds no memories", async (mode) => {
+		mockProfileResponse({
+			profile: { static: [], dynamic: [] },
+			searchResults: { results: [] },
+		})
+
+		const memories = await buildMemoriesText({
+			containerTag: CONTAINER_TAG,
+			queryText: mode === "profile" ? "" : "what do you know about me?",
+			mode,
+			baseUrl: BASE_URL,
+			apiKey: API_KEY,
+			logger,
+		})
+
+		expect(memories).toBe("")
+	})
+
+	it("does not invoke a custom template when no memories are found", async () => {
+		mockProfileResponse({
+			profile: { static: [], dynamic: [] },
+			searchResults: { results: [] },
+		})
+		const promptTemplate = vi.fn(() => "<user_memories></user_memories>")
+
+		const memories = await buildMemoriesText({
+			containerTag: CONTAINER_TAG,
+			queryText: "what do you know about me?",
+			mode: "full",
+			baseUrl: BASE_URL,
+			apiKey: API_KEY,
+			logger,
+			promptTemplate,
+		})
+
+		expect(memories).toBe("")
+		expect(promptTemplate).not.toHaveBeenCalled()
+	})
+
 	// The profile is not injected in "query" mode. Deduplicating the search
 	// results against it would drop a fact present in both, leaving the model
 	// with nothing.

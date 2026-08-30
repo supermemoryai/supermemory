@@ -12,6 +12,19 @@ const normalizeBaseUrl = (url?: string): string => {
 	return url.endsWith("/") ? url.slice(0, -1) : url
 }
 
+const hasRelevantMemories = (
+	mode: "profile" | "query" | "full",
+	memories: { static: string[]; dynamic: string[]; searchResults: string[] },
+): boolean => {
+	const hasProfileMemories =
+		mode !== "query" &&
+		(memories.static.length > 0 || memories.dynamic.length > 0)
+	const hasSearchMemories =
+		mode !== "profile" && memories.searchResults.length > 0
+
+	return hasProfileMemories || hasSearchMemories
+}
+
 export interface OpenAIMiddlewareOptions {
 	/** Container tag/identifier for memory search (e.g., user ID, project ID). Required. */
 	containerTag: string
@@ -33,7 +46,6 @@ interface SupermemoryProfileSearch {
 		results: Array<{ memory: string; metadata?: Record<string, unknown> }>
 	}
 }
-
 /**
  * Extracts the last user message from an array of chat completion messages.
  *
@@ -215,6 +227,11 @@ const addSystemPrompt = async (
 			deduplicated: deduplicated.searchResults.length,
 		},
 	})
+
+	if (!hasRelevantMemories(mode, deduplicated)) {
+		logger.debug("No memories found for chat API prompt injection")
+		return messages
+	}
 
 	const profileData =
 		mode !== "query"
@@ -505,6 +522,11 @@ export function createOpenAIMiddleware(
 				deduplicated: deduplicated.searchResults.length,
 			},
 		})
+
+		if (!hasRelevantMemories(mode, deduplicated)) {
+			logger.debug(`No memories found for ${context} API prompt injection`)
+			return ""
+		}
 
 		const profileData =
 			mode !== "query"
