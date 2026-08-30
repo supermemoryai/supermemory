@@ -24,6 +24,22 @@ from .utils import (
     wrap_memory_injection,
 )
 
+try:
+    from agent_framework import Content
+
+    def _text_content(text: str) -> Any:
+        """Build a text content item for a Message."""
+        return Content(type="text", text=text)
+
+except ImportError:
+    # agent-framework-core exposed a dedicated TextContent class before the
+    # 1.0.0 stable release consolidated the content types into Content.
+    from agent_framework import TextContent  # type: ignore[attr-defined]
+
+    def _text_content(text: str) -> Any:
+        """Build a text content item for a Message."""
+        return TextContent(text=text)
+
 
 @dataclass
 class SupermemoryMiddlewareOptions:
@@ -352,7 +368,7 @@ class SupermemoryChatMiddleware(ChatMiddleware):
             )
 
             # Inject memories into messages
-            _inject_memories(context, memories)
+            _inject_memories(context, memories, self._logger)
 
         await call_next()
 
@@ -386,17 +402,21 @@ class SupermemoryChatMiddleware(ChatMiddleware):
             raise
 
 
-def _inject_memories(context: Any, memories: str) -> None:
+def _inject_memories(context: Any, memories: str, logger: Logger) -> None:
     """Inject memories into the chat context messages.
 
     Handles both object-based and dict-based message formats used by
     different Agent Framework providers.
+
+    Injection is best-effort: a failure here must not fail the chat request,
+    so problems are reported through the logger rather than raised.
     """
     messages = context.messages
-    memory_text = f"\n\n{wrap_memory_injection(memories)}"
+    wrapped_memories = wrap_memory_injection(memories)
+    memory_text = f"\n\n{wrapped_memories}"
 
     # Try to find and augment existing system message
-    for i, msg in enumerate(messages):
+    for msg in messages:
         role = None
         if hasattr(msg, "role"):
             role = msg.role
@@ -404,18 +424,28 @@ def _inject_memories(context: Any, memories: str) -> None:
             role = msg.get("role")
 
         if role == "system":
-            if hasattr(msg, "text"):
-                msg.text = (msg.text or "") + memory_text
+            if isinstance(msg, dict):
+                msg["content"] = (msg.get("content", "") or "") + memory_text
+            elif isinstance(getattr(msg, "contents", None), list):
+                # Message.text is a read-only view over contents, so the text
+                # has to be appended as an extra content item.
+                msg.contents.append(_text_content(memory_text))
             elif hasattr(msg, "content"):
                 msg.content = (msg.content or "") + memory_text
-            elif isinstance(msg, dict):
-                msg["content"] = (msg.get("content", "") or "") + memory_text
             return
 
-    # No system message found - prepend one
+    # No system message found - prepend one carrying the same wrapped memories
+    if not isinstance(messages, list):
+        logger.warn(
+            "Skipped memory injection: context.messages is not a list",
+            {"messages_type": type(messages).__name__},
+        )
+        return
+
     try:
-        if isinstance(messages, list):
-            messages.insert(0, Message("system", [memories]))
-    except Exception:
-        # If messages is immutable, log a warning
-        pass
+        messages.insert(0, Message("system", [wrapped_memories]))
+    except Exception as error:
+        logger.warn(
+            "Failed to prepend system message with memories",
+            {"error": str(error), "type": type(error).__name__},
+        )
