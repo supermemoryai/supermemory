@@ -408,13 +408,30 @@ class SupermemoryOpenAIWrapper:
             },
         )
 
-        enhanced_messages = await add_system_prompt(
-            messages,
-            self._container_tag,
-            self._logger,
-            self._options.mode,
-            self._get_api_key(),
-        )
+        try:
+            enhanced_messages = await add_system_prompt(
+                messages,
+                self._container_tag,
+                self._logger,
+                self._options.mode,
+                self._get_api_key(),
+            )
+        except (SupermemoryNetworkError, SupermemoryAPIError) as e:
+            # Expected failure modes (network/API issues) — fail open with the
+            # original messages so the chat completion still succeeds.
+            self._logger.warn(
+                "Memory search failed, proceeding without memory injection",
+                {"error": str(e), "type": type(e).__name__},
+            )
+            return await original_create(**kwargs)
+        except Exception as e:
+            # Unexpected errors should still fail open, but are logged at error
+            # level since they may indicate a real bug worth investigating.
+            self._logger.error(
+                "Unexpected error during memory search, proceeding without memory injection",
+                {"error": str(e), "type": type(e).__name__},
+            )
+            return await original_create(**kwargs)
 
         kwargs["messages"] = enhanced_messages
         return await original_create(**kwargs)
@@ -492,36 +509,58 @@ class SupermemoryOpenAIWrapper:
             },
         )
 
-        # Use asyncio.run() for memory search and injection
+        # Use asyncio.run() for memory search and injection. The memory-search
+        # path must fail open: any failure to fetch/inject memories should log
+        # and fall through to the original completion with the ORIGINAL
+        # messages, never propagate past this point.
         try:
-            enhanced_messages = asyncio.run(
-                add_system_prompt(
-                    messages,
-                    self._container_tag,
-                    self._logger,
-                    self._options.mode,
-                    self._get_api_key(),
-                )
-            )
-        except RuntimeError as e:
-            if "cannot be called from a running event loop" in str(e):
-                # We're in an async context, run in a separate thread
-                import concurrent.futures
-
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(
-                        asyncio.run,
-                        add_system_prompt(
-                            messages,
-                            self._container_tag,
-                            self._logger,
-                            self._options.mode,
-                            self._get_api_key(),
-                        ),
+            try:
+                enhanced_messages = asyncio.run(
+                    add_system_prompt(
+                        messages,
+                        self._container_tag,
+                        self._logger,
+                        self._options.mode,
+                        self._get_api_key(),
                     )
-                    enhanced_messages = future.result()
-            else:
-                raise
+                )
+            except RuntimeError as e:
+                if "cannot be called from a running event loop" in str(e):
+                    # We're in an async context, run in a separate thread
+                    import concurrent.futures
+
+                    with concurrent.futures.ThreadPoolExecutor(
+                        max_workers=1
+                    ) as executor:
+                        future = executor.submit(
+                            asyncio.run,
+                            add_system_prompt(
+                                messages,
+                                self._container_tag,
+                                self._logger,
+                                self._options.mode,
+                                self._get_api_key(),
+                            ),
+                        )
+                        enhanced_messages = future.result()
+                else:
+                    raise
+        except (SupermemoryNetworkError, SupermemoryAPIError) as e:
+            # Expected failure modes (network/API issues) — fail open with the
+            # original messages so the chat completion still succeeds.
+            self._logger.warn(
+                "Memory search failed, proceeding without memory injection",
+                {"error": str(e), "type": type(e).__name__},
+            )
+            return original_create(**kwargs)
+        except Exception as e:
+            # Unexpected errors should still fail open, but are logged at error
+            # level since they may indicate a real bug worth investigating.
+            self._logger.error(
+                "Unexpected error during memory search, proceeding without memory injection",
+                {"error": str(e), "type": type(e).__name__},
+            )
+            return original_create(**kwargs)
 
         kwargs["messages"] = enhanced_messages
         return original_create(**kwargs)
