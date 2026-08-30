@@ -432,7 +432,7 @@ export const SearchRequestSchema = z.object({
 		.positive()
 		.optional()
 		.default(10)
-		.refine((v) => v === undefined || (v > 0 && v <= 100), {
+		.refine((v) => v <= 100, {
 			message: "limit must be between 1 and 100",
 			params: {
 				max: 100,
@@ -527,7 +527,7 @@ export const Searchv4RequestSchema = z.object({
 		.positive()
 		.optional()
 		.default(10)
-		.refine((v) => v === undefined || (v > 0 && v <= 100), {
+		.refine((v) => v <= 100, {
 			message: "limit must be between 1 and 100",
 			params: {
 				max: 100,
