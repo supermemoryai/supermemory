@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { deduplicateMemoriesForMode, getContainerTags } from "./tools-shared"
+import {
+	deduplicateMemoriesForMode,
+	getContainerTags,
+	resolveConfiguredContainerTag,
+} from "./tools-shared"
 
 describe("getContainerTags", () => {
 	it("uses the default project when no config is provided", () => {
@@ -24,6 +28,32 @@ describe("getContainerTags", () => {
 				containerTags: ["tag-a"],
 			}),
 		).toThrow("either projectId or containerTags")
+	})
+})
+
+describe("resolveConfiguredContainerTag", () => {
+	it("defaults to the first configured tag", () => {
+		expect(resolveConfiguredContainerTag(["tenant-a", "tenant-b"])).toBe(
+			"tenant-a",
+		)
+	})
+
+	it("allows selection within a multi-tag scope", () => {
+		expect(
+			resolveConfiguredContainerTag(["tenant-a", "tenant-b"], "tenant-b"),
+		).toBe("tenant-b")
+	})
+
+	it("rejects tags outside the configured scope", () => {
+		expect(() =>
+			resolveConfiguredContainerTag(["tenant-a"], "tenant-b"),
+		).toThrow('Container tag "tenant-b" is outside the configured scope')
+	})
+
+	it("rejects an empty configured scope", () => {
+		expect(() => resolveConfiguredContainerTag([])).toThrow(
+			"require at least one configured container tag",
+		)
 	})
 })
 
