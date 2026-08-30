@@ -7,7 +7,11 @@ import {
 	TOOL_DESCRIPTIONS,
 	getContainerTags,
 } from "./tools-shared"
-import { forgetMemoryRequest } from "./shared/forget-memory"
+import {
+	forgetMatchingRequest,
+	forgetMemoryRequest,
+} from "./shared/forget-memory"
+import { profileBucketsRequest } from "./shared/profile-buckets"
 import type { SupermemoryToolsConfig } from "./types"
 
 // Export individual tool creators
@@ -354,6 +358,130 @@ export const memoryForgetTool = (
 	})
 }
 
+export const memoryForgetMatchingTool = (
+	apiKey: string,
+	config?: SupermemoryToolsConfig,
+) => {
+	const containerTags = getContainerTags(config)
+
+	return tool({
+		description: TOOL_DESCRIPTIONS.memoryForgetMatching,
+		inputSchema: z.object({
+			containerTag: z
+				.string()
+				.optional()
+				.describe(PARAMETER_DESCRIPTIONS.containerTag),
+			query: z.string().optional().describe(PARAMETER_DESCRIPTIONS.forgetQuery),
+			memoryIds: z
+				.array(z.string())
+				.optional()
+				.describe(PARAMETER_DESCRIPTIONS.forgetMemoryIds),
+			dryRun: z
+				.boolean()
+				.optional()
+				.default(DEFAULT_VALUES.forgetDryRun)
+				.describe(PARAMETER_DESCRIPTIONS.forgetDryRun),
+			maxForget: z.coerce
+				.number()
+				.optional()
+				.default(DEFAULT_VALUES.forgetMaxForget)
+				.describe(PARAMETER_DESCRIPTIONS.forgetMaxForget),
+			reason: z.string().optional().describe(PARAMETER_DESCRIPTIONS.reason),
+		}),
+		execute: async ({
+			containerTag,
+			query,
+			memoryIds,
+			dryRun = DEFAULT_VALUES.forgetDryRun,
+			maxForget = DEFAULT_VALUES.forgetMaxForget,
+			reason,
+		}) => {
+			try {
+				if (!query && !memoryIds?.length) {
+					return {
+						success: false,
+						error: "Either query or memoryIds must be provided",
+					}
+				}
+
+				const tag = containerTag || containerTags[0]
+
+				const result = await forgetMatchingRequest(
+					apiKey,
+					{
+						containerTag: tag as string,
+						dryRun,
+						maxForget,
+						...(query && { query }),
+						...(memoryIds?.length && { ids: memoryIds }),
+						...(reason && { reason }),
+					},
+					config?.baseUrl,
+				)
+
+				return {
+					success: true,
+					dryRun: result.dryRun,
+					count: result.count,
+					summary: result.summary,
+					memories: result.candidates ?? result.forgotten ?? [],
+					forgetBatchId: result.forgetBatchId,
+				}
+			} catch (error) {
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : "Unknown error",
+				}
+			}
+		},
+	})
+}
+
+export const getProfileBucketsTool = (
+	apiKey: string,
+	config?: SupermemoryToolsConfig,
+) => {
+	const containerTags = getContainerTags(config)
+
+	return tool({
+		description: TOOL_DESCRIPTIONS.getProfileBuckets,
+		inputSchema: z.object({
+			containerTag: z
+				.string()
+				.optional()
+				.describe(PARAMETER_DESCRIPTIONS.containerTag),
+			buckets: z
+				.array(z.string())
+				.optional()
+				.describe(PARAMETER_DESCRIPTIONS.bucketKeys),
+		}),
+		execute: async ({ containerTag, buckets }) => {
+			try {
+				const tag = containerTag || containerTags[0]
+
+				const result = await profileBucketsRequest(
+					apiKey,
+					{
+						containerTag: tag as string,
+						...(buckets?.length && { buckets }),
+					},
+					config?.baseUrl,
+				)
+
+				return {
+					success: true,
+					buckets: result.buckets,
+				}
+			} catch (error) {
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : "Unknown error",
+				}
+			}
+		},
+	})
+}
+
 /**
  * Create Supermemory tools for AI SDK
  */
@@ -365,10 +493,12 @@ export function supermemoryTools(
 		searchMemories: searchMemoriesTool(apiKey, config),
 		addMemory: addMemoryTool(apiKey, config),
 		getProfile: getProfileTool(apiKey, config),
+		getProfileBuckets: getProfileBucketsTool(apiKey, config),
 		documentList: documentListTool(apiKey, config),
 		documentDelete: documentDeleteTool(apiKey, config),
 		documentAdd: documentAddTool(apiKey, config),
 		memoryForget: memoryForgetTool(apiKey, config),
+		memoryForgetMatching: memoryForgetMatchingTool(apiKey, config),
 	}
 }
 

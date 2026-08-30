@@ -174,6 +174,149 @@ describe("memoryForget", () => {
 	})
 })
 
+describe("memoryForgetMatching", () => {
+	function stubFetch(
+		body: unknown = {
+			dryRun: true,
+			count: 1,
+			forgetBatchId: null,
+			summary: "Selected 1 memory about Project Titan",
+			candidates: [{ id: "mem_1", memory: "Titan ships in Q3", score: 0.7 }],
+		},
+	) {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
+		vi.stubGlobal("fetch", fetchMock)
+		return fetchMock
+	}
+
+	it("previews by default rather than deleting", async () => {
+		const fetchMock = stubFetch()
+		const tool = aiSdk.memoryForgetMatchingTool(API_KEY, {
+			containerTags: ["user_1"],
+		})
+
+		const result = (await executeTool(tool, {
+			query: "everything about Project Titan",
+		})) as { success: boolean; dryRun: boolean; memories: unknown[] }
+
+		const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+		expect(url).toBe("https://api.supermemory.ai/v4/memories/forget-matching")
+		expect(JSON.parse(init.body as string)).toEqual({
+			containerTag: "user_1",
+			dryRun: true,
+			maxForget: 100,
+			query: "everything about Project Titan",
+		})
+		expect(result.success).toBe(true)
+		expect(result.dryRun).toBe(true)
+		expect(result.memories).toHaveLength(1)
+	})
+
+	it("applies an explicit id list when dryRun is turned off", async () => {
+		const fetchMock = stubFetch({
+			dryRun: false,
+			count: 2,
+			forgetBatchId: "batch_1",
+			summary: "Forgot 2 memories",
+			forgotten: [
+				{ id: "mem_1", memory: "a", score: 1 },
+				{ id: "mem_2", memory: "b", score: 1 },
+			],
+		})
+		const memoryForgetMatching =
+			openAi.createMemoryForgetMatchingFunction(API_KEY)
+
+		const result = await memoryForgetMatching({
+			containerTag: "user_3",
+			memoryIds: ["mem_1", "mem_2"],
+			dryRun: false,
+			reason: "project cancelled",
+		})
+
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+		expect(JSON.parse(init.body as string)).toMatchObject({
+			containerTag: "user_3",
+			ids: ["mem_1", "mem_2"],
+			dryRun: false,
+			reason: "project cancelled",
+		})
+		expect(result.count).toBe(2)
+		expect(result.forgetBatchId).toBe("batch_1")
+	})
+
+	it("requires a query or ids", async () => {
+		const fetchMock = stubFetch()
+		const memoryForgetMatching =
+			openAi.createMemoryForgetMatchingFunction(API_KEY)
+
+		const result = await memoryForgetMatching({ containerTag: "user_1" })
+
+		expect(result.success).toBe(false)
+		expect(fetchMock).not.toHaveBeenCalled()
+	})
+})
+
+describe("getProfileBuckets", () => {
+	function stubFetch(
+		body: unknown = {
+			profile: { buckets: { preferences: ["Likes dark mode"] } },
+		},
+	) {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
+		vi.stubGlobal("fetch", fetchMock)
+		return fetchMock
+	}
+
+	it("requests only the bucket section of the profile", async () => {
+		const fetchMock = stubFetch()
+		const tool = aiSdk.getProfileBucketsTool(API_KEY, {
+			containerTags: ["user_1"],
+		})
+
+		const result = (await executeTool(tool, {
+			buckets: ["preferences"],
+		})) as { success: boolean; buckets: Record<string, string[]> }
+
+		const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+		expect(url).toBe("https://api.supermemory.ai/v4/profile")
+		expect(JSON.parse(init.body as string)).toEqual({
+			containerTag: "user_1",
+			include: ["buckets"],
+			buckets: ["preferences"],
+		})
+		expect(result.buckets).toEqual({ preferences: ["Likes dark mode"] })
+	})
+
+	it("omits the bucket filter to return every configured bucket", async () => {
+		const fetchMock = stubFetch()
+		const getProfileBuckets = openAi.createGetProfileBucketsFunction(API_KEY, {
+			containerTags: ["user_2"],
+		})
+
+		await getProfileBuckets({})
+
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+		expect(JSON.parse(init.body as string)).toEqual({
+			containerTag: "user_2",
+			include: ["buckets"],
+		})
+	})
+
+	it("returns an empty bucket map when the profile has none", async () => {
+		stubFetch({ profile: {} })
+		const getProfileBuckets = openAi.createGetProfileBucketsFunction(API_KEY)
+
+		const result = await getProfileBuckets({ containerTag: "user_1" })
+
+		expect(result.success).toBe(true)
+		expect(result.buckets).toEqual({})
+	})
+})
+
 describe("ClaudeMemoryTool", () => {
 	const FILE_PATH = "/memories/prefs.txt"
 	const CUSTOM_ID = "memories_prefs_txt"

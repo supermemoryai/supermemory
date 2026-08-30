@@ -20,6 +20,10 @@ export const TOOL_DESCRIPTIONS = {
 		"Add a new document (URL, text, or content) to memory. The content is queued for processing, and memories will be extracted automatically.",
 	memoryForget:
 		"Forget (soft delete) a specific memory by ID or content match. The memory is marked as forgotten but not permanently deleted. Use when user wants to remove specific information from their profile.",
+	memoryForgetMatching:
+		"Forget a whole topic at once — describe what to forget ('everything about Project Titan') and matching memories are soft deleted. Runs as a preview by default: review the returned candidates with the user, then call again with their ids and dryRun false to apply. Use when the user wants a subject removed rather than one specific memory.",
+	getProfileBuckets:
+		"Get profile memories grouped into topical buckets (e.g. preferences, goals, work) instead of the full profile. Use when only one slice of context is relevant, to keep the prompt small. Omit bucket keys to see every bucket configured for this user.",
 } as const
 
 // Parameter descriptions
@@ -41,6 +45,16 @@ export const PARAMETER_DESCRIPTIONS = {
 	memoryContent:
 		"Exact content match of the memory entry to operate on (alternative to ID)",
 	reason: "Optional reason for forgetting this memory",
+	forgetQuery:
+		"What to forget, as a topic or instruction (e.g. 'everything about Project Titan'). Leave empty when passing explicit memoryIds.",
+	forgetMemoryIds:
+		"Exact memory ids to forget, skipping the search. Use the ids from a preview to apply exactly what was reviewed.",
+	forgetDryRun:
+		"Preview without deleting anything. Defaults to true — only set false once the user has confirmed the specific memories to forget.",
+	forgetMaxForget:
+		"Maximum number of memories this call may forget (1-500). Lower it when the topic is broad.",
+	bucketKeys:
+		"Bucket keys to return (e.g. ['preferences', 'goals']). Omit to return every bucket configured for this user.",
 } as const
 
 // Default values
@@ -48,6 +62,9 @@ export const DEFAULT_VALUES = {
 	includeFullDocs: true,
 	limit: 10,
 	chunkThreshold: 0.6,
+	/** Mass forget previews by default so a model can't delete in one shot. */
+	forgetDryRun: true,
+	forgetMaxForget: 100,
 } as const
 
 // Container tag constants

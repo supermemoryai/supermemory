@@ -51,7 +51,7 @@ SUPERMEMORY_API_KEY=your_api_key_here
 ### TypeScript Example
 
 ```typescript
-import { Supermemory } from 'supermemory';
+import Supermemory from 'supermemory';
 
 const client = new Supermemory({
   apiKey: process.env.SUPERMEMORY_API_KEY
@@ -73,10 +73,10 @@ async function main() {
   // 2. Enrich your LLM prompt
   const systemMessage = `
     Static Profile:
-    ${response.profile.static.map(f => `- ${f}`).join('\n')}
+    ${(response.profile.static ?? []).map(f => `- ${f}`).join('\n')}
 
     Recent Context:
-    ${response.profile.dynamic.map(f => `- ${f}`).join('\n')}
+    ${(response.profile.dynamic ?? []).map(f => `- ${f}`).join('\n')}
   `;
 
   // Send systemMessage to your LLM...
@@ -112,14 +112,14 @@ def main():
         q="What does the user prefer?"
     )
 
-    print("Static Profile:", response["profile"]["static"])
-    print("Dynamic Profile:", response["profile"]["dynamic"])
-    if "searchResults" in response:
-        print("Search Results:", response["searchResults"]["results"])
+    print("Static Profile:", response.profile.static)
+    print("Dynamic Profile:", response.profile.dynamic)
+    if response.search_results:
+        print("Search Results:", response.search_results.results)
 
     # 2. Enrich your LLM prompt
-    static_facts = "\n".join(f"- {fact}" for fact in response["profile"]["static"])
-    dynamic_facts = "\n".join(f"- {fact}" for fact in response["profile"]["dynamic"])
+    static_facts = "\n".join(f"- {fact}" for fact in response.profile.static or [])
+    dynamic_facts = "\n".join(f"- {fact}" for fact in response.profile.dynamic or [])
 
     system_message = f"""
     Static Profile:
@@ -163,7 +163,7 @@ async def main():
         q="What does the user prefer?"
     )
 
-    print("User facts:", response["profile"]["static"])
+    print("User facts:", response.profile.static)
 
     # 2. Store new memories
     await client.add(
@@ -206,7 +206,7 @@ Control relevance strictness with the `threshold` parameter:
 ```typescript
 const context = await client.profile({
   containerTag: "user_123",
-  query: "user preferences",
+  q: "user preferences",
   threshold: 0.7  // 0-1: higher = stricter matching
 });
 ```
@@ -217,10 +217,11 @@ const context = await client.profile({
 
 ## Next Steps
 
-- **User Profiles**: Learn about static vs. dynamic facts
-- **Search API**: Explore advanced filtering and metadata queries
-- **Document Ingestion**: Add PDFs, images, videos, and URLs
-- **Integration Guides**: Connect with Vercel AI SDK, LangChain, CrewAI
+- **User Profiles**: Learn about static vs. dynamic facts, and topical buckets
+- **Search API**: Explore advanced filtering, re-ranking, and query rewriting
+- **Document Ingestion**: Add PDFs, images, videos, URLs, and chat transcripts
+- **Forgetting**: Correct facts that changed, and forget a memory or a whole topic
+- **Integration Guides**: Connect with Vercel AI SDK, LangChain, CrewAI — or use `@supermemory/tools`
 
 ## Common Patterns
 
@@ -229,7 +230,7 @@ const context = await client.profile({
 // Before generating response
 const context = await client.profile({
   containerTag: userId,
-  query: userMessage
+  q: userMessage
 });
 
 // After receiving LLM response
@@ -262,12 +263,31 @@ const response = await client.search({
 // Get user profile
 const profile = await client.profile({
   containerTag: userId,
-  query: "user interests and preferences"
+  q: "user interests and preferences"
 });
 
 // Use profile to personalize recommendations
 const recommendations = generateRecommendations(profile);
 ```
+
+### Correcting and Forgetting
+```typescript
+// A fact changed → new version supersedes the old one, history preserved
+await client.memories.updateMemory({
+  containerTag: userId,
+  id: "mem_abc123",
+  newContent: "Now prefers light mode"
+});
+
+// Should never have been stored → forget it
+await client.memories.forget({
+  containerTag: userId,
+  id: "mem_abc123",
+  reason: "user asked"
+});
+```
+
+To forget a whole topic at once, use `POST /v4/memories/forget-matching` with `dryRun: true`, review what matched, then apply with the returned `ids`. It has no SDK method yet — see `sdk-guide.md`.
 
 ## Troubleshooting
 
@@ -284,7 +304,7 @@ const recommendations = generateRecommendations(profile);
 **Slow Processing**
 - Large PDFs (100 pages) take 1-2 minutes
 - Videos take 5-10 minutes
-- Check document status with `documents.list()`
+- Check document status with `documents.listProcessing()`
 
 ## Support
 

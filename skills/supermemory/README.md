@@ -114,18 +114,23 @@ Ready-to-use code snippets for TypeScript and Python showing the basic workflow:
 - Store new memories
 
 ### 2. Complete SDK Documentation
-Full reference for all SDK methods:
-- `add()` - Store memories
+Full reference for all SDK methods, plus which endpoints have no SDK method yet and need a plain HTTP call:
+- `add()` - Ingest content
 - `profile()` - Retrieve user context
-- `search.memories()` - Semantic search
-- `documents.list()` - List documents
-- `documents.delete()` - Delete documents
+- `search()` - Semantic search (`search.memories()` in Python)
+- `memories.forget()` / `memories.updateMemory()` - Forget and correct
+- `documents.list()` / `.get()` / `.update()` / `.delete()` - Manage documents
+- `settings.get()` / `.update()` - Org settings, including profile buckets
 
 ### 3. REST API Reference
-Complete endpoint documentation with cURL examples:
-- `POST /v3/documents` - Add documents
-- `POST /v3/search` - Search memories
-- `POST /v4/memories` - Create direct memories
+Complete endpoint documentation with cURL examples, covering the full public surface:
+- `POST /v3/documents` - Ingest documents
+- `POST /v4/conversations` - Ingest chat transcripts
+- `POST /v4/memories` - Write memories directly
+- `POST /v4/search` - Search memories
+- `POST /v4/profile` and `/v4/profile/buckets` - Profiles and topical buckets
+- `PATCH|DELETE /v4/memories` and `POST /v4/memories/forget-matching` - Correct, forget, mass forget
+- `/v3/container-tags/*`, `/v3/settings/*` - Spaces and configuration
 
 ### 4. Architecture Deep Dive
 Understand how Supermemory works:

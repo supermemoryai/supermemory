@@ -6,7 +6,12 @@ import {
 	TOOL_DESCRIPTIONS,
 	getContainerTags,
 } from "../tools-shared"
-import { forgetMemoryRequest } from "../shared/forget-memory"
+import {
+	type ForgetMatchingMemory,
+	forgetMatchingRequest,
+	forgetMemoryRequest,
+} from "../shared/forget-memory"
+import { profileBucketsRequest } from "../shared/profile-buckets"
 import type { SupermemoryToolsConfig } from "../types"
 
 /**
@@ -59,6 +64,22 @@ export interface DocumentAddResult {
 export interface MemoryForgetResult {
 	success: boolean
 	message?: string
+	error?: string
+}
+
+export interface MemoryForgetMatchingResult {
+	success: boolean
+	dryRun?: boolean
+	count?: number
+	summary?: string
+	memories?: ForgetMatchingMemory[]
+	forgetBatchId?: string | null
+	error?: string
+}
+
+export interface ProfileBucketsResult {
+	success: boolean
+	buckets?: Record<string, string[]>
 	error?: string
 }
 
@@ -208,6 +229,64 @@ export const memoryToolSchemas = {
 				reason: {
 					type: "string",
 					description: PARAMETER_DESCRIPTIONS.reason,
+				},
+			},
+			required: [],
+		},
+	} satisfies OpenAI.FunctionDefinition,
+
+	memoryForgetMatching: {
+		name: "memoryForgetMatching",
+		description: TOOL_DESCRIPTIONS.memoryForgetMatching,
+		parameters: {
+			type: "object",
+			properties: {
+				containerTag: {
+					type: "string",
+					description: PARAMETER_DESCRIPTIONS.containerTag,
+				},
+				query: {
+					type: "string",
+					description: PARAMETER_DESCRIPTIONS.forgetQuery,
+				},
+				memoryIds: {
+					type: "array",
+					items: { type: "string" },
+					description: PARAMETER_DESCRIPTIONS.forgetMemoryIds,
+				},
+				dryRun: {
+					type: "boolean",
+					description: PARAMETER_DESCRIPTIONS.forgetDryRun,
+					default: DEFAULT_VALUES.forgetDryRun,
+				},
+				maxForget: {
+					type: "number",
+					description: PARAMETER_DESCRIPTIONS.forgetMaxForget,
+					default: DEFAULT_VALUES.forgetMaxForget,
+				},
+				reason: {
+					type: "string",
+					description: PARAMETER_DESCRIPTIONS.reason,
+				},
+			},
+			required: [],
+		},
+	} satisfies OpenAI.FunctionDefinition,
+
+	getProfileBuckets: {
+		name: "getProfileBuckets",
+		description: TOOL_DESCRIPTIONS.getProfileBuckets,
+		parameters: {
+			type: "object",
+			properties: {
+				containerTag: {
+					type: "string",
+					description: PARAMETER_DESCRIPTIONS.containerTag,
+				},
+				buckets: {
+					type: "array",
+					items: { type: "string" },
+					description: PARAMETER_DESCRIPTIONS.bucketKeys,
 				},
 			},
 			required: [],
@@ -512,6 +591,111 @@ export function createMemoryForgetFunction(
 }
 
 /**
+ * Mass forget function
+ */
+export function createMemoryForgetMatchingFunction(
+	apiKey: string,
+	config?: SupermemoryToolsConfig,
+) {
+	const containerTags = getContainerTags(config)
+
+	return async function memoryForgetMatching({
+		containerTag,
+		query,
+		memoryIds,
+		dryRun = DEFAULT_VALUES.forgetDryRun,
+		maxForget = DEFAULT_VALUES.forgetMaxForget,
+		reason,
+	}: {
+		containerTag?: string
+		query?: string
+		memoryIds?: string[]
+		dryRun?: boolean
+		maxForget?: number
+		reason?: string
+	}): Promise<MemoryForgetMatchingResult> {
+		try {
+			if (!query && !memoryIds?.length) {
+				return {
+					success: false,
+					error: "Either query or memoryIds must be provided",
+				}
+			}
+
+			const tag = containerTag || containerTags[0]
+
+			const result = await forgetMatchingRequest(
+				apiKey,
+				{
+					containerTag: tag as string,
+					dryRun,
+					maxForget,
+					...(query && { query }),
+					...(memoryIds?.length && { ids: memoryIds }),
+					...(reason && { reason }),
+				},
+				config?.baseUrl,
+			)
+
+			return {
+				success: true,
+				dryRun: result.dryRun,
+				count: result.count,
+				summary: result.summary,
+				memories: result.candidates ?? result.forgotten ?? [],
+				forgetBatchId: result.forgetBatchId,
+			}
+		} catch (error) {
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : "Unknown error",
+			}
+		}
+	}
+}
+
+/**
+ * Get bucketed profile function
+ */
+export function createGetProfileBucketsFunction(
+	apiKey: string,
+	config?: SupermemoryToolsConfig,
+) {
+	const containerTags = getContainerTags(config)
+
+	return async function getProfileBuckets({
+		containerTag,
+		buckets,
+	}: {
+		containerTag?: string
+		buckets?: string[]
+	}): Promise<ProfileBucketsResult> {
+		try {
+			const tag = containerTag || containerTags[0]
+
+			const result = await profileBucketsRequest(
+				apiKey,
+				{
+					containerTag: tag as string,
+					...(buckets?.length && { buckets }),
+				},
+				config?.baseUrl,
+			)
+
+			return {
+				success: true,
+				buckets: result.buckets,
+			}
+		} catch (error) {
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : "Unknown error",
+			}
+		}
+	}
+}
+
+/**
  * Create all memory tools functions
  */
 export function supermemoryTools(
@@ -525,15 +709,22 @@ export function supermemoryTools(
 	const documentDelete = createDocumentDeleteFunction(apiKey, config)
 	const documentAdd = createDocumentAddFunction(apiKey, config)
 	const memoryForget = createMemoryForgetFunction(apiKey, config)
+	const memoryForgetMatching = createMemoryForgetMatchingFunction(
+		apiKey,
+		config,
+	)
+	const getProfileBuckets = createGetProfileBucketsFunction(apiKey, config)
 
 	return {
 		searchMemories,
 		addMemory,
 		getProfile,
+		getProfileBuckets,
 		documentList,
 		documentDelete,
 		documentAdd,
 		memoryForget,
+		memoryForgetMatching,
 	}
 }
 
@@ -549,6 +740,8 @@ export function getToolDefinitions(): OpenAI.Chat.Completions.ChatCompletionTool
 		{ type: "function", function: memoryToolSchemas.documentDelete },
 		{ type: "function", function: memoryToolSchemas.documentAdd },
 		{ type: "function", function: memoryToolSchemas.memoryForget },
+		{ type: "function", function: memoryToolSchemas.memoryForgetMatching },
+		{ type: "function", function: memoryToolSchemas.getProfileBuckets },
 	]
 }
 
@@ -597,6 +790,10 @@ export function createToolCallExecutor(
 				return JSON.stringify(await tools.documentAdd(args))
 			case "memoryForget":
 				return JSON.stringify(await tools.memoryForget(args))
+			case "memoryForgetMatching":
+				return JSON.stringify(await tools.memoryForgetMatching(args))
+			case "getProfileBuckets":
+				return JSON.stringify(await tools.getProfileBuckets(args))
 			default:
 				return JSON.stringify({
 					success: false,
@@ -738,5 +935,38 @@ export function createMemoryForgetTool(
 			function: memoryToolSchemas.memoryForget,
 		},
 		execute: memoryForget,
+	}
+}
+
+export function createMemoryForgetMatchingTool(
+	apiKey: string,
+	config?: SupermemoryToolsConfig,
+) {
+	const memoryForgetMatching = createMemoryForgetMatchingFunction(
+		apiKey,
+		config,
+	)
+
+	return {
+		definition: {
+			type: "function" as const,
+			function: memoryToolSchemas.memoryForgetMatching,
+		},
+		execute: memoryForgetMatching,
+	}
+}
+
+export function createGetProfileBucketsTool(
+	apiKey: string,
+	config?: SupermemoryToolsConfig,
+) {
+	const getProfileBuckets = createGetProfileBucketsFunction(apiKey, config)
+
+	return {
+		definition: {
+			type: "function" as const,
+			function: memoryToolSchemas.getProfileBuckets,
+		},
+		execute: getProfileBuckets,
 	}
 }
