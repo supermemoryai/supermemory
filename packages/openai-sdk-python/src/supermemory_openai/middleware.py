@@ -48,6 +48,68 @@ class SupermemoryProfileSearch:
         self.search_results: dict[str, Any] = data.get("searchResults", {})
 
 
+class _ResourceFacade:
+    """Delegate an SDK resource while overriding selected attributes."""
+
+    def __init__(
+        self,
+        resource: Any,
+        lazy_overrides: Optional[dict[str, Any]] = None,
+        **overrides: Any,
+    ) -> None:
+        self._resource = resource
+        self._lazy_overrides = lazy_overrides or {}
+        for name, value in overrides.items():
+            setattr(self, name, value)
+
+    def __getattr__(self, name: str) -> Any:
+        factory = self._lazy_overrides.get(name)
+        if factory is not None:
+            value = factory()
+            setattr(self, name, value)
+            return value
+        return getattr(self._resource, name)
+
+
+class _AsyncMemoryResponseContextManager:
+    """Apply async middleware before entering a streaming response context."""
+
+    def __init__(
+        self,
+        wrapper: "SupermemoryOpenAIWrapper",
+        original_create: Any,
+        kwargs: dict[str, Any],
+    ) -> None:
+        self._wrapper = wrapper
+        self._original_create = original_create
+        self._kwargs = kwargs
+        self._response_context: Any = None
+
+    async def __aenter__(self) -> Any:
+        async def enter_original(**kwargs: Any) -> Any:
+            self._response_context = self._original_create(**kwargs)
+            return await self._response_context.__aenter__()
+
+        return await self._wrapper._create_with_memory_async(
+            enter_original,
+            **self._kwargs,
+        )
+
+    async def __aexit__(
+        self,
+        exc_type: Any,
+        exc_value: Any,
+        traceback: Any,
+    ) -> Any:
+        if self._response_context is None:
+            return None
+        return await self._response_context.__aexit__(
+            exc_type,
+            exc_value,
+            traceback,
+        )
+
+
 async def supermemory_profile_search(
     container_tag: str,
     query_text: str,
@@ -199,9 +261,11 @@ async def add_system_prompt(
     if system_prompt_exists:
         logger.debug("Added memories to existing system prompt")
         return [
-            {**msg, "content": f"{msg.get('content', '')} \n {memories}"}
-            if msg.get("role") == "system"
-            else msg
+            (
+                {**msg, "content": f"{msg.get('content', '')} \n {memories}"}
+                if msg.get("role") == "system"
+                else msg
+            )
             for msg in messages
         ]
 
@@ -269,10 +333,21 @@ class SupermemoryOpenAIWrapper:
         openai_client: Union[OpenAI, AsyncOpenAI],
         options: OpenAIMiddlewareOptions,
     ):
-        self._client: Union[OpenAI, AsyncOpenAI] = openai_client
+        self._client: Union[OpenAI, AsyncOpenAI] = getattr(
+            openai_client,
+            "__supermemory_openai_base_client__",
+            openai_client,
+        )
+        # A stable attribute also lets wrappers from another module copy or hot reload
+        # recover the pristine client instead of nesting middleware.
+        self.__supermemory_openai_base_client__ = self._client
         self._container_tag: str = options.container_tag
         self._options: OpenAIMiddlewareOptions = options
         self._logger: Logger = create_logger(self._options.verbose)
+        base_create = self._client.chat.completions.create
+        self._is_async_client = isinstance(
+            self._client, AsyncOpenAI
+        ) or inspect.iscoroutinefunction(inspect.unwrap(base_create))
 
         # Track background tasks to ensure they complete
         self._background_tasks: set[asyncio.Task] = set()
@@ -293,8 +368,8 @@ class SupermemoryOpenAIWrapper:
                 f"Failed to initialize Supermemory client: {e}", e
             )
 
-        # Wrap the chat completions create method
-        self._wrap_chat_completions()
+        # Expose isolated resource facades without mutating the supplied client.
+        self.chat = self._create_chat_facade()
 
     def _get_api_key(self) -> str:
         """Get Supermemory API key from environment."""
@@ -307,25 +382,114 @@ class SupermemoryOpenAIWrapper:
             )
         return api_key
 
-    def _wrap_chat_completions(self) -> None:
-        """Wrap the chat completions create method with memory injection."""
-        original_create = self._client.chat.completions.create
+    def _create_chat_facade(self) -> _ResourceFacade:
+        """Create isolated chat/completions facades with memory injection."""
+        completions_resource = self._client.chat.completions
+        completions = _ResourceFacade(
+            completions_resource,
+            lazy_overrides={
+                "with_raw_response": lambda: self._create_completion_variant_facade(
+                    "with_raw_response"
+                ),
+                "with_streaming_response": lambda: self._create_completion_variant_facade(
+                    "with_streaming_response"
+                ),
+            },
+            create=self._create_completion_method(completions_resource.create),
+        )
+        return _ResourceFacade(
+            self._client.chat,
+            lazy_overrides={
+                "with_raw_response": lambda: self._create_chat_variant_facade(
+                    "with_raw_response"
+                ),
+                "with_streaming_response": lambda: self._create_chat_variant_facade(
+                    "with_streaming_response"
+                ),
+            },
+            completions=completions,
+        )
 
-        if asyncio.iscoroutinefunction(original_create):
+    def _create_completion_variant_facade(self, name: str) -> _ResourceFacade:
+        """Preserve raw and streaming response behavior on isolated facades."""
+        resource = getattr(self._client.chat.completions, name)
+        return _ResourceFacade(
+            resource,
+            create=self._create_completion_method(
+                resource.create,
+                streaming_response=name == "with_streaming_response",
+            ),
+        )
 
-            async def create_with_memory(
+    def _create_chat_variant_facade(self, name: str) -> _ResourceFacade:
+        """Wrap completions reached through a chat response variant."""
+        chat_resource = getattr(self._client.chat, name)
+        completions_resource = chat_resource.completions
+        return _ResourceFacade(
+            chat_resource,
+            completions=_ResourceFacade(
+                completions_resource,
+                create=self._create_completion_method(
+                    completions_resource.create,
+                    streaming_response=name == "with_streaming_response",
+                ),
+            ),
+        )
+
+    def _create_client_variant_facade(self, name: str) -> _ResourceFacade:
+        """Wrap completions reached through a client response variant."""
+        client_resource = getattr(self._client, name)
+        chat_resource = client_resource.chat
+        completions_resource = chat_resource.completions
+        return _ResourceFacade(
+            client_resource,
+            chat=_ResourceFacade(
+                chat_resource,
+                completions=_ResourceFacade(
+                    completions_resource,
+                    create=self._create_completion_method(
+                        completions_resource.create,
+                        streaming_response=name == "with_streaming_response",
+                    ),
+                ),
+            ),
+        )
+
+    def _create_completion_method(
+        self,
+        original_create: Any,
+        *,
+        streaming_response: bool = False,
+    ) -> Any:
+        """Wrap one completion create implementation with memory injection."""
+        if self._is_async_client and streaming_response:
+
+            def create_streaming_with_memory(
+                **kwargs: Any,
+            ) -> _AsyncMemoryResponseContextManager:
+                return _AsyncMemoryResponseContextManager(
+                    self,
+                    original_create,
+                    kwargs,
+                )
+
+            return create_streaming_with_memory
+
+        if self._is_async_client:
+
+            async def create_async_with_memory(
                 **kwargs: Any,
             ) -> Any:
                 return await self._create_with_memory_async(original_create, **kwargs)
-        else:
 
-            def create_with_memory(
-                **kwargs: Any,
-            ) -> Any:
-                return self._create_with_memory_sync(original_create, **kwargs)
+            return create_async_with_memory
 
-        # Replace the create method with our wrapper
-        setattr(self._client.chat.completions, "create", create_with_memory)
+        def create_sync_with_memory(
+            **kwargs: Any,
+        ) -> Any:
+            return self._create_with_memory_sync(original_create, **kwargs)
+
+        return create_sync_with_memory
 
     async def _create_with_memory_async(
         self,
@@ -558,7 +722,9 @@ class SupermemoryOpenAIWrapper:
                 f"Background tasks did not complete within {timeout}s timeout"
             )
             # Cancel remaining tasks
-            tasks_to_cancel = [task for task in self._background_tasks if not task.done()]
+            tasks_to_cancel = [
+                task for task in self._background_tasks if not task.done()
+            ]
             for task in tasks_to_cancel:
                 task.cancel()
 
@@ -616,6 +782,10 @@ class SupermemoryOpenAIWrapper:
 
     def __getattr__(self, name: str) -> Any:
         """Delegate all other attributes to the wrapped client."""
+        if name in {"with_raw_response", "with_streaming_response"}:
+            value = self._create_client_variant_facade(name)
+            setattr(self, name, value)
+            return value
         return getattr(self._client, name)
 
 
