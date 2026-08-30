@@ -194,14 +194,13 @@ export class ClaudeMemoryTool {
 	private async listDirectory(dirPath: string): Promise<MemoryResponse> {
 		try {
 			// Search for all memory files
-			const response = await this.client.search.execute({
-				q: "*", // Search for all
+			const response = await this.client.documents.list({
 				containerTags: this.containerTags,
 				limit: 100, // Get many files (max allowed)
-				includeFullDocs: false,
+				includeContent: false,
 			})
 
-			if (!response.results) {
+			if (!response.memories) {
 				return {
 					success: true,
 					content: `Directory: ${dirPath}\n(empty)`,
@@ -212,7 +211,7 @@ export class ClaudeMemoryTool {
 			const files: string[] = []
 			const dirs = new Set<string>()
 
-			for (const result of response.results) {
+			for (const result of response.memories) {
 				// Get the file path from metadata (since customId is normalized)
 				const filePath = result.metadata?.file_path as string
 				if (!filePath || !filePath.startsWith(dirPath)) continue
@@ -577,30 +576,31 @@ export class ClaudeMemoryTool {
 		try {
 			const normalizedId = this.normalizePathToCustomId(filePath)
 
-			const response = await this.client.search.execute({
-				q: normalizedId,
+			const response = await this.client.documents.list({
 				containerTags: this.containerTags,
-				limit: 5,
-				includeFullDocs: true,
+				limit: 100,
+				includeContent: false,
 			})
 
-			// Only accept the exact customId match. Falling back to the top
-			// semantic hit would let callers read — and worse, modify or
-			// delete — a different file than the one they asked for.
-			const document = response.results?.find(
-				(r) => r.documentId === normalizedId,
+			const matchedDoc = response.memories?.find(
+				(d) => d.customId === normalizedId,
 			)
 
-			if (!document) {
+			if (!matchedDoc) {
 				return {
 					success: false,
 					error: `File not found: ${filePath}`,
 				}
 			}
 
+			const document = await this.client.documents.get(matchedDoc.id)
+
 			return {
 				success: true,
-				document,
+				document: {
+					...document,
+					documentId: document.id,
+				},
 			}
 		} catch (error) {
 			return {

@@ -2,14 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 // Mock the Supermemory SDK so the Claude memory tool's `view`/`readFile` path
 // can be exercised deterministically without any network access. We only need
-// `search.execute` to return a single document with known multi-line content.
-const searchExecute = vi.fn()
+// `documents.list` and `documents.get` to return a single document with known multi-line content.
+const listMock = vi.fn()
+const getMock = vi.fn()
 const addMock = vi.fn()
 
 vi.mock("supermemory", () => {
 	return {
 		default: class MockSupermemory {
-			search = { execute: searchExecute }
+			documents = { list: listMock, get: getMock }
 			add = addMock
 			memories = { forget: vi.fn() }
 		},
@@ -23,10 +24,13 @@ const FILE_PATH = "/memories/notes.txt"
 const FILE_CONTENT = "line1\nline2\nline3\nline4\nline5"
 
 function mockDocument(content: string) {
-	// `readFile` matches by `documentId === normalizePathToCustomId(path)`.
-	// normalizePathToCustomId("/memories/notes.txt") -> "memories_notes_txt"
-	searchExecute.mockResolvedValue({
-		results: [{ documentId: "memories_notes_txt", content }],
+	listMock.mockResolvedValue({
+		memories: [{ id: "doc_12345", customId: "memories_notes_txt" }],
+	})
+	getMock.mockResolvedValue({
+		id: "doc_12345",
+		customId: "memories_notes_txt",
+		content,
 	})
 }
 
@@ -34,7 +38,8 @@ describe("ClaudeMemoryTool view_range", () => {
 	let tool: ClaudeMemoryTool
 
 	beforeEach(() => {
-		searchExecute.mockReset()
+		listMock.mockReset()
+		getMock.mockReset()
 		mockDocument(FILE_CONTENT)
 		tool = new ClaudeMemoryTool("test-api-key")
 	})
@@ -89,17 +94,24 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 	let tool: ClaudeMemoryTool
 
 	beforeEach(() => {
-		searchExecute.mockReset()
+		listMock.mockReset()
+		getMock.mockReset()
 		addMock.mockReset()
 		tool = new ClaudeMemoryTool("test-api-key")
 	})
 
 	it("view finds the exact file even when a neighbour ranks first", async () => {
-		searchExecute.mockResolvedValue({
-			results: [
-				{ documentId: "memories_notes_backup_txt", content: "backup stuff" },
-				{ documentId: "memories_notes_txt", content: FILE_CONTENT },
+		listMock.mockResolvedValue({
+			memories: [
+				{ id: "doc_backup", customId: "memories_notes_backup_txt" },
+				{ id: "doc_primary", customId: "memories_notes_txt" },
 			],
+		})
+		getMock.mockImplementation(async (id: string) => {
+			if (id === "doc_primary") {
+				return { id: "doc_primary", customId: "memories_notes_txt", content: FILE_CONTENT }
+			}
+			return { id: "doc_backup", customId: "memories_notes_backup_txt", content: "backup stuff" }
 		})
 
 		const result = await tool.handleCommand({
@@ -115,9 +127,9 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 	it("view reports not-found instead of returning a different file", async () => {
 		// Semantic search can surface a similarly-named file; that must not
 		// be served as the requested one.
-		searchExecute.mockResolvedValue({
-			results: [
-				{ documentId: "memories_notes_backup_txt", content: "backup stuff" },
+		listMock.mockResolvedValue({
+			memories: [
+				{ id: "doc_backup", customId: "memories_notes_backup_txt" },
 			],
 		})
 
@@ -131,9 +143,9 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 	})
 
 	it("str_replace refuses to modify a different file than requested", async () => {
-		searchExecute.mockResolvedValue({
-			results: [
-				{ documentId: "memories_notes_backup_txt", content: "backup stuff" },
+		listMock.mockResolvedValue({
+			memories: [
+				{ id: "doc_backup", customId: "memories_notes_backup_txt" },
 			],
 		})
 
@@ -153,10 +165,16 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 	let tool: ClaudeMemoryTool
 
 	beforeEach(() => {
-		searchExecute.mockReset()
+		listMock.mockReset()
+		getMock.mockReset()
 		addMock.mockReset()
-		searchExecute.mockResolvedValue({
-			results: [{ documentId: "memories_notes_txt", content: FILE_CONTENT }],
+		listMock.mockResolvedValue({
+			memories: [{ id: "doc_12345", customId: "memories_notes_txt" }],
+		})
+		getMock.mockResolvedValue({
+			id: "doc_12345",
+			customId: "memories_notes_txt",
+			content: FILE_CONTENT,
 		})
 		tool = new ClaudeMemoryTool("test-api-key")
 	})
