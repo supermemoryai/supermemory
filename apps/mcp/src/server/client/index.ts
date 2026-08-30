@@ -3,6 +3,7 @@ import type {
 	DocumentGetResponse,
 	DocumentListResponse as SdkDocumentListResponse,
 } from "supermemory/resources/documents"
+import type { SearchDocumentsResponse } from "supermemory/resources/search"
 import { z } from "zod"
 import {
 	containerTagSchema,
@@ -111,6 +112,28 @@ function mapSdkResults(value: unknown): Memory[] {
 			}
 			return { ...base, memory: text }
 		})
+}
+
+function mapDocumentSearchResult(
+	result: SearchDocumentsResponse.Result,
+): Memory {
+	const relevantChunks = result.chunks.filter((chunk) => chunk.isRelevant)
+	const chunks = relevantChunks.length > 0 ? relevantChunks : result.chunks
+	const text = limitByChars(
+		chunks.map((chunk) => chunk.content).join("\n\n") ||
+			result.content ||
+			result.summary ||
+			result.title ||
+			"",
+	)
+
+	return {
+		id: result.documentId,
+		chunk: text,
+		similarity: result.score,
+		...(result.title ? { title: result.title } : {}),
+		...(result.content ? { content: result.content } : {}),
+	}
 }
 
 function objectProperty(value: unknown, key: string): unknown {
@@ -264,6 +287,89 @@ export class SupermemoryClient {
 		}
 	}
 
+	/**
+	 * Search documents with structured filters (type, date range, source).
+	 *
+	 * The document search API exposes type and createdAt as top-level result
+	 * fields, while its `filters` object only targets document metadata. Source
+	 * is a metadata field, so it is sent to the backend; type and date are
+	 * applied to the documented result fields instead of being misrepresented
+	 * as metadata filters.
+	 */
+	async searchDocuments(
+		query: string,
+		limit = 10,
+		filters?: {
+			types?: string[]
+			source?: string
+			dateFrom?: string
+			dateTo?: string
+		},
+	): Promise<SearchResult> {
+		try {
+			const needsResultFiltering = Boolean(
+				filters?.source ||
+					(filters?.types && filters.types.length > 0) ||
+					filters?.dateFrom ||
+					filters?.dateTo,
+			)
+			// The API caps document search at 100 results. Over-fetch whenever a
+			// top-level result filter is present so a selective filter can still fill
+			// the tool's requested page (which is capped at 50).
+			const candidateLimit = needsResultFiltering ? 100 : limit
+			const result = await this.client.search.documents({
+				q: query,
+				limit: candidateLimit,
+				containerTags: [this.containerTag],
+				onlyMatchingChunks: true,
+				...(filters?.source
+					? {
+							filters: {
+								AND: [
+									{
+										key: "source",
+										value: filters.source,
+										filterType: "metadata" as const,
+									},
+								],
+							},
+						}
+					: {}),
+			})
+			const dateFrom = filters?.dateFrom
+				? Date.parse(filters.dateFrom)
+				: undefined
+			const dateTo = filters?.dateTo ? Date.parse(filters.dateTo) : undefined
+			const types = filters?.types ? new Set(filters.types) : undefined
+			const matches = result.results.filter((document) => {
+				if (types?.size && (!document.type || !types.has(document.type))) {
+					return false
+				}
+				if (filters?.source && document.metadata?.source !== filters.source) {
+					return false
+				}
+				const createdAt = Date.parse(document.createdAt)
+				if (
+					(dateFrom !== undefined || dateTo !== undefined) &&
+					!Number.isFinite(createdAt)
+				) {
+					return false
+				}
+				if (dateFrom !== undefined && createdAt < dateFrom) return false
+				if (dateTo !== undefined && createdAt > dateTo) return false
+				return true
+			})
+
+			return {
+				results: matches.slice(0, limit).map(mapDocumentSearchResult),
+				total: needsResultFiltering ? matches.length : result.total,
+				timing: result.timing,
+			}
+		} catch (error) {
+			this.handleOperationError("Filtered search request", error)
+		}
+	}
+
 	async getProfile(query?: string): Promise<ProfileResponse> {
 		if (!this.hasExplicitContainerTag) {
 			return {
@@ -391,6 +497,36 @@ export class SupermemoryClient {
 		} catch (error) {
 			this.handleError(error)
 		}
+	}
+
+	/**
+	 * Verify a document belongs to this client's active space.
+	 *
+	 * The SDK documents.get(id) response carries an optional, deprecated
+	 * containerTags field that the API may omit, so it cannot be trusted as a
+	 * scope gate. Instead, list documents scoped to this space and check for the
+	 * id. Returns true only when the document is present in the space.
+	 *
+	 * Uses the maximum page size (1000) so most spaces resolve in a single call,
+	 * and caps the scan at 10 pages (10k docs) to bound latency for large orgs.
+	 */
+	async documentExistsInSpace(id: string): Promise<boolean> {
+		const pageSize = 1000
+		const maxPages = 10
+		const overallTimeout = AbortSignal.timeout(FETCH_TIMEOUT_MS * maxPages)
+		for (let attempt = 0; attempt < maxPages; attempt++) {
+			if (overallTimeout.aborted) return false
+			const result = await this.getDocuments(
+				[this.containerTag],
+				attempt + 1,
+				pageSize,
+				{ signal: overallTimeout },
+			)
+			const docs = result.documents
+			if (docs.some((doc) => doc.id === id)) return true
+			if (docs.length < pageSize) return false
+		}
+		return false
 	}
 
 	async listMemoryEntries(

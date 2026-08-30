@@ -10,6 +10,7 @@ import {
 	type AuthUser,
 } from "./auth"
 import { SupermemoryMCP } from "./legacy-protocol-state"
+import { rateLimitOptions, rateLimiterName, RateLimiter } from "./rate-limiter"
 import { createSupermemoryServer } from "./server"
 import type { ActorContext, ServerEnv } from "./types"
 import { SpaceState, uploadStateName } from "./space-state"
@@ -59,6 +60,40 @@ app.get("/", (c) => {
 		description: "Supermemory MCP - AI memory for teams",
 		docs: "https://supermemory.ai/docs/supermemory-mcp/mcp",
 	})
+})
+
+app.get("/health", async (c) => {
+	const apiUrl = (c.env.API_URL || DEFAULT_API_URL).replace(/\/+$/, "")
+	const started = performance.now()
+	let authBackend: "ok" | "degraded" | "down" = "ok"
+	let authLatencyMs: number | undefined
+
+	try {
+		const response = await fetch(`${apiUrl}/api/auth/health`, {
+			signal: AbortSignal.timeout(5_000),
+		})
+		authLatencyMs = Math.round(performance.now() - started)
+		if (!response.ok) authBackend = "degraded"
+	} catch {
+		authBackend = "down"
+		authLatencyMs = Math.round(performance.now() - started)
+	}
+
+	const status = authBackend === "ok" ? "ok" : "degraded"
+	return c.json(
+		{
+			status,
+			version: "1.0.0",
+			service: "supermemory-mcp",
+			timestamp: new Date().toISOString(),
+			dependencies: {
+				authBackend: { status: authBackend, latencyMs: authLatencyMs },
+				rateLimiter: { status: c.env.RATE_LIMITER ? "configured" : "disabled" },
+			},
+		},
+		authBackend === "ok" ? 200 : 503,
+		{ "Cache-Control": "no-store" },
+	)
 })
 
 function resourceMetadata(c: Context<{ Bindings: Bindings }>) {
@@ -224,6 +259,36 @@ async function handleMcpRequest(
 	if (!resolved.ok) return unauthorizedResponse(resourceMetadataUrl, true)
 	const authUser = resolved.user
 
+	// Per-organization sliding-window rate limit. Keyed by org id so a single
+	// busy org can't exhaust the auth backend or the API for others. Runs after
+	// auth so anonymous traffic is rejected first (no DO lookup for invalid tokens).
+	const limiter = c.env.RATE_LIMITER
+	if (limiter) {
+		const options = rateLimitOptions(c.env)
+		const doName = await rateLimiterName(authUser.organizationId)
+		const stub = limiter.getByName(doName)
+		const result = await stub.check(options)
+		if (!result.allowed) {
+			return Response.json(
+				{
+					jsonrpc: "2.0",
+					error: {
+						code: -32002,
+						message: `Rate limit exceeded. Retry after ${result.retryAfter} seconds.`,
+					},
+					id: null,
+				},
+				{
+					status: 429,
+					headers: {
+						"Retry-After": String(result.retryAfter),
+						"Access-Control-Allow-Origin": "*",
+					},
+				},
+			)
+		}
+	}
+
 	const actor: ActorContext = {
 		userId: authUser.userId,
 		organizationId: authUser.organizationId,
@@ -309,7 +374,7 @@ app.all("/", (c) => handleMcpRequest(c, "/mcp"))
 app.all("/mcp", (c) => handleMcpRequest(c))
 app.all("/mcp/", (c) => handleMcpRequest(c, "/mcp"))
 
-export { SpaceState, SupermemoryMCP }
+export { RateLimiter, SpaceState, SupermemoryMCP }
 export type { ActorContext, ServerEnv }
 
 export default app

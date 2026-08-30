@@ -8,6 +8,7 @@ import * as listMemories from "./list-memories"
 import * as memoryGraph from "./memory-graph"
 import * as prepareFileUpload from "./prepare-file-upload"
 import * as saveMemory from "./save-memory"
+import * as searchDocuments from "./search-documents"
 import * as searchMemory from "./search-memory"
 import * as selectSpace from "./select-space"
 import * as setActiveTag from "./set-active-tag"
@@ -17,6 +18,7 @@ import * as whoAmI from "./who-am-i"
 
 export function registerAllTools(deps: ToolDeps) {
 	searchMemory.register(deps)
+	searchDocuments.register(deps)
 	listDocuments.register(deps)
 	getDocument.register(deps)
 	listMemories.register(deps)

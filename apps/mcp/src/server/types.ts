@@ -1,3 +1,4 @@
+import type { RateLimiter } from "./rate-limiter"
 import type { SpaceState } from "./space-state"
 
 export interface ActorContext {
@@ -9,6 +10,7 @@ export interface ActorContext {
 
 export interface ServerEnv {
 	SPACE_STATE: DurableObjectNamespace<SpaceState>
+	RATE_LIMITER: DurableObjectNamespace<RateLimiter>
 	API_URL?: string
 	MCP_RESOURCE?: string
 	MCP_PUBLIC_ORIGIN?: string
@@ -16,4 +18,6 @@ export interface ServerEnv {
 	POSTHOG_API_KEY?: string
 	POSTHOG_HOST?: string
 	OPENAI_APPS_CHALLENGE?: string
+	RATE_LIMIT_MAX?: string
+	RATE_LIMIT_WINDOW_MS?: string
 }

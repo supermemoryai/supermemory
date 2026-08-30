@@ -30,16 +30,17 @@ export function register(deps: ToolDeps) {
 		async (args) => {
 			try {
 				const effectiveTag = await deps.resolveContainerTag()
-				const client = deps.getClient()
-				const document = await client.getDocument(args.documentId)
-				const docTags = document.containerTags
-				if (
-					Array.isArray(docTags) &&
-					docTags.length > 0 &&
-					!docTags.includes(effectiveTag)
-				) {
+				const client = deps.getClient(effectiveTag)
+				// The SDK documents.get(id) returns an optional, deprecated
+				// containerTags field the API may omit, so it can't gate scope.
+				// Verify the document belongs to the effective space via a scoped
+				// list before returning its content. An out-of-space document
+				// reports "not found" so the id is not an existence oracle.
+				const inSpace = await client.documentExistsInSpace(args.documentId)
+				if (!inSpace) {
 					throw new Error("Document not found")
 				}
+				const document = await client.getDocument(args.documentId)
 				const { content, truncated } = getDocumentContent(document)
 				const structuredContent: GetDocumentOutput = {
 					document: {

@@ -31,6 +31,10 @@
 			{
 				"name": "SPACE_STATE",
 				"class_name": "SpaceState"
+			},
+			{
+				"name": "RATE_LIMITER",
+				"class_name": "RateLimiter"
 			}
 		]
 	},
@@ -43,6 +47,10 @@
 		{
 			"tag": "v2",
 			"new_sqlite_classes": ["SpaceState"]
+		},
+		{
+			"tag": "v3",
+			"new_sqlite_classes": ["RateLimiter"]
 		}
 	],
 

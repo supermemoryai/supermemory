@@ -96,6 +96,7 @@
         "@radix-ui/react-popover": "^1.1.15",
         "@radix-ui/react-slot": "^1.2.3",
         "@radix-ui/react-tooltip": "^1.2.7",
+        "@repo/validation": "*",
         "@supermemory/memory-graph": "^0.2.0",
         "agents": "^0.20.1",
         "class-variance-authority": "^0.7.1",

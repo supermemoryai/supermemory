@@ -18,6 +18,7 @@ const EXPECTED_TOOLS = [
 	"memory-graph",
 	"prepare-file-upload",
 	"save-memory",
+	"search_documents",
 	"search_memory",
 	"select-space",
 	"set-active-tag",
@@ -28,6 +29,7 @@ const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
 const READ_ONLY_TOOL_NAMES = [
 	"search_memory",
+	"search_documents",
 	"listDocuments",
 	"listMemories",
 	"getDocument",

@@ -107,6 +107,24 @@ export const searchMemoryOutputSchema = z.object({
 
 export type SearchMemoryOutput = z.infer<typeof searchMemoryOutputSchema>
 
+export const searchDocumentsOutputSchema = z.object({
+	query: z.string(),
+	containerTag: z.string(),
+	results: z.array(
+		z.object({
+			id: z.string(),
+			text: z.string(),
+			similarity: z.number(),
+			title: z.string().optional(),
+			type: z.string().optional(),
+		}),
+	),
+	total: z.number(),
+	timing: z.number(),
+})
+
+export type SearchDocumentsOutput = z.infer<typeof searchDocumentsOutputSchema>
+
 export const whoAmIOutputSchema = z.object({
 	userId: z.string(),
 	email: z.string().optional(),
