@@ -527,9 +527,14 @@ export default function ConnectionsMCP() {
 			connectionId: string
 			deleteDocuments: boolean
 		}) => {
-			await $fetch(`@delete/connections/${connectionId}`, {
+			const response = await $fetch(`@delete/connections/${connectionId}`, {
 				query: { deleteDocuments },
 			})
+			if (response.error) {
+				throw new Error(
+					response.error?.message || "Failed to remove connection",
+				)
+			}
 			return { deleteDocuments }
 		},
 		onSuccess: (_data, variables) => {
