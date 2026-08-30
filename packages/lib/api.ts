@@ -452,11 +452,6 @@ export const $fetch = createFetch({
 			context.headers.set("X-App-Source", "nova")
 		}
 	},
-	retry: {
-		attempts: 3,
-		delay: 100,
-		type: "linear",
-	},
 	schema: apiSchema,
 })
 
