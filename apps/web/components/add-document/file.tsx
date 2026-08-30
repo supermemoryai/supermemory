@@ -6,9 +6,10 @@ import { dmSansClassName } from "@/lib/fonts"
 import { FileIcon, XIcon, AlertCircleIcon, CheckIcon } from "lucide-react"
 import { useHotkeys } from "react-hotkeys-hook"
 import { toast } from "sonner"
+import { getFileRejectionReason } from "./file-validation"
 
 export const FILE_ACCEPT =
-	"image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.mdx,.json,.html,.htm,text/markdown,application/json,text/html"
+	"image/*,.pdf,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.mdx,.json,.html,.htm,text/markdown,application/json,text/html"
 
 export type FileQueueItemStatus = "pending" | "uploading" | "success" | "error"
 
@@ -31,31 +32,6 @@ interface FileContentProps {
 	onRequestSubmit: () => void
 	isSubmitting?: boolean
 	isOpen?: boolean
-}
-
-function isAcceptedFile(file: File): boolean {
-	const name = file.name.toLowerCase()
-	const ext = name.includes(".") ? name.slice(name.lastIndexOf(".")) : ""
-	const allowedExt = new Set([
-		".pdf",
-		".doc",
-		".docx",
-		".xls",
-		".xlsx",
-		".csv",
-		".txt",
-		".md",
-		".mdx",
-		".json",
-		".html",
-		".htm",
-	])
-	if (allowedExt.has(ext)) return true
-	if (file.type.startsWith("image/")) return true
-	if (file.type === "text/markdown") return true
-	if (file.type === "application/json") return true
-	if (file.type === "text/html") return true
-	return false
 }
 
 function fileQueueKey(file: File): string {
@@ -100,13 +76,31 @@ export function FileContent({
 	const addFiles = useCallback(
 		(fileList: FileList | File[]) => {
 			const incoming = Array.from(fileList)
-			const accepted = incoming.filter(isAcceptedFile)
-			const rejected = incoming.length - accepted.length
-			if (rejected > 0) {
+			const accepted: File[] = []
+			let oversizedCount = 0
+			let unsupportedCount = 0
+			for (const file of incoming) {
+				const rejection = getFileRejectionReason(file)
+				if (rejection === null) {
+					accepted.push(file)
+				} else if (rejection === "file-too-large") {
+					oversizedCount++
+				} else {
+					unsupportedCount++
+				}
+			}
+			if (oversizedCount > 0) {
 				toast.error(
-					rejected === 1
+					oversizedCount === 1
+						? "One file exceeds the 50 MB limit"
+						: `${oversizedCount} files exceed the 50 MB limit`,
+				)
+			}
+			if (unsupportedCount > 0) {
+				toast.error(
+					unsupportedCount === 1
 						? "One file type is not supported"
-						: `${rejected} files are not supported`,
+						: `${unsupportedCount} files are not supported`,
 				)
 			}
 			if (accepted.length === 0) return
