@@ -553,8 +553,21 @@ export function getToolDefinitions(): OpenAI.Chat.Completions.ChatCompletionTool
 }
 
 function parseToolArguments(argumentsJson: string) {
+	// getProfile, documentList and memoryForget all declare `required: []`, so a model
+	// may legitimately call them with no arguments. OpenAI serialises that as `""`,
+	// which is "no arguments" rather than malformed JSON — parse it as `{}`.
+	const source = argumentsJson?.trim() || "{}"
+
 	try {
-		return { success: true as const, value: JSON.parse(argumentsJson) }
+		const value = JSON.parse(source)
+
+		// `"null"`, `"5"` and `"[]"` parse cleanly, then throw in the destructuring
+		// parameter of every tool function — the throw this gate exists to contain.
+		if (typeof value !== "object" || value === null || Array.isArray(value)) {
+			return { success: false as const }
+		}
+
+		return { success: true as const, value }
 	} catch {
 		return { success: false as const }
 	}

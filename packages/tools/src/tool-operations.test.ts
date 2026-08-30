@@ -6,12 +6,14 @@ const documentsDelete = vi.fn()
 const documentsList = vi.fn()
 const searchExecute = vi.fn()
 const clientAdd = vi.fn()
+const clientProfile = vi.fn()
 
 vi.mock("supermemory", () => {
 	return {
 		default: class MockSupermemory {
 			search = { execute: searchExecute }
 			add = clientAdd
+			profile = clientProfile
 			documents = {
 				delete: documentsDelete,
 				list: documentsList,
@@ -42,6 +44,10 @@ beforeEach(() => {
 	})
 	searchExecute.mockReset()
 	clientAdd.mockReset().mockResolvedValue({ id: "doc_new" })
+	clientProfile.mockReset().mockResolvedValue({
+		profile: { static: ["likes tea"], dynamic: [] },
+		searchResults: undefined,
+	})
 	vi.unstubAllGlobals()
 })
 
@@ -171,6 +177,87 @@ describe("memoryForget", () => {
 
 		expect(result.success).toBe(false)
 		expect(fetchMock).not.toHaveBeenCalled()
+	})
+})
+
+describe("openai executeToolCall argument parsing", () => {
+	type ExecutorToolCall = Parameters<
+		ReturnType<typeof openAi.createToolCallExecutor>
+	>[0]
+
+	function toolCall(name: string, args: string) {
+		return {
+			id: "call_1",
+			type: "function",
+			function: { name, arguments: args },
+		} as ExecutorToolCall
+	}
+
+	// getProfile, documentList and memoryForget declare `required: []`, so the model
+	// is allowed to call them with no arguments. OpenAI serialises that as "".
+	it.each([
+		"",
+		"   ",
+	])("runs a zero-argument tool when arguments are %p", async (args) => {
+		const execute = openAi.createToolCallExecutor(API_KEY, {
+			containerTags: ["user_1"],
+		})
+
+		const result = JSON.parse(await execute(toolCall("getProfile", args)))
+
+		expect(result.success).toBe(true)
+		expect(clientProfile).toHaveBeenCalledTimes(1)
+		expect(clientProfile).toHaveBeenCalledWith({ containerTag: "user_1" })
+	})
+
+	// These parse cleanly, so the JSON guard lets them through to a destructuring
+	// parameter that rejects — the throw the guard exists to contain.
+	it.each([
+		"null",
+		"5",
+		"[]",
+		'"text"',
+	])("rejects non-object arguments %p as a tool result rather than throwing", async (args) => {
+		const execute = openAi.createToolCallExecutor(API_KEY)
+
+		const result = JSON.parse(await execute(toolCall("getProfile", args)))
+
+		expect(result.success).toBe(false)
+		expect(result.error).toMatch(/Invalid JSON arguments for getProfile/)
+		expect(clientProfile).not.toHaveBeenCalled()
+	})
+
+	it("still reports malformed JSON as a tool error", async () => {
+		const execute = openAi.createToolCallExecutor(API_KEY)
+
+		const result = JSON.parse(
+			await execute(toolCall("searchMemories", "{not json")),
+		)
+
+		expect(result.success).toBe(false)
+		expect(result.error).toMatch(/Invalid JSON arguments for searchMemories/)
+		expect(searchExecute).not.toHaveBeenCalled()
+	})
+
+	it("still passes well-formed arguments through", async () => {
+		searchExecute.mockResolvedValue({ results: [{ id: "mem_1" }] })
+		const execute = openAi.createToolCallExecutor(API_KEY, {
+			containerTags: ["user_1"],
+		})
+
+		const result = JSON.parse(
+			await execute(
+				toolCall(
+					"searchMemories",
+					JSON.stringify({ informationToGet: "tea", limit: 3 }),
+				),
+			),
+		)
+
+		expect(result.success).toBe(true)
+		expect(searchExecute).toHaveBeenCalledWith(
+			expect.objectContaining({ q: "tea", limit: 3 }),
+		)
 	})
 })
 
