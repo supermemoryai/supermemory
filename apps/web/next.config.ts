@@ -37,8 +37,41 @@ const nextConfig: NextConfig = {
 		]
 	},
 	skipTrailingSlashRedirect: true,
+	async headers() {
+		// app.supermemory.ai is being deprecated in favour of the console.
+		// Anything that still serves HTML must not be framable, matching the
+		// console's clickjacking protection.
+		return [
+			{
+				source: "/:path*",
+				headers: [
+					{ key: "X-Frame-Options", value: "DENY" },
+					{
+						key: "Content-Security-Policy",
+						value: "frame-ancestors 'none'",
+					},
+				],
+			},
+		]
+	},
 	async redirects() {
 		return [
+			// The old app surface is dying: send its entry points to the console.
+			{
+				source: "/",
+				destination: "https://console.supermemory.ai",
+				permanent: false,
+			},
+			{
+				source: "/login",
+				destination: "https://console.supermemory.ai",
+				permanent: false,
+			},
+			{
+				source: "/login/:path*",
+				destination: "https://console.supermemory.ai",
+				permanent: false,
+			},
 			{
 				source: "/new",
 				destination: "/",
