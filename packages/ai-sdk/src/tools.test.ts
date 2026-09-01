@@ -5,32 +5,15 @@ import { type SupermemoryToolsConfig, supermemoryTools } from "./tools"
 
 import "dotenv/config"
 
+const hasIntegrationKeys = Boolean(
+	process.env.SUPERMEMORY_API_KEY && process.env.OPENAI_API_KEY,
+)
+const testApiKey = process.env.SUPERMEMORY_API_KEY ?? "test-api-key"
+const testOpenAIKey = process.env.OPENAI_API_KEY ?? "test-openai-key"
+const testBaseUrl = process.env.SUPERMEMORY_BASE_URL ?? undefined
+const testModelName = process.env.MODEL_NAME || "gpt-5-nano"
+
 describe("supermemoryTools", () => {
-	// Required API keys - tests will fail if not provided
-	const testApiKey = process.env.SUPERMEMORY_API_KEY
-	const testOpenAIKey = process.env.OPENAI_API_KEY
-
-	if (!testApiKey) {
-		throw new Error(
-			"SUPERMEMORY_API_KEY environment variable is required for tests",
-		)
-	}
-	if (!testOpenAIKey) {
-		throw new Error("OPENAI_API_KEY environment variable is required for tests")
-	}
-
-	// Optional configuration with defaults
-	const testBaseUrl = process.env.SUPERMEMORY_BASE_URL ?? undefined
-	const testModelName = process.env.MODEL_NAME || "gpt-5-nano"
-
-	const testPrompts = [
-		"What do you remember about my preferences?",
-		"Help me plan my day based on what you know about me",
-		"What are my current projects?",
-		"Remind me of my interests and hobbies",
-		"What should I focus on today?",
-	]
-
 	describe("client initialization", () => {
 		it("should create tools with default configuration", () => {
 			const config: SupermemoryToolsConfig = {}
@@ -39,6 +22,11 @@ describe("supermemoryTools", () => {
 			expect(tools).toBeDefined()
 			expect(tools.searchMemories).toBeDefined()
 			expect(tools.addMemory).toBeDefined()
+			expect(tools.getProfile).toBeDefined()
+			expect(tools.documentList).toBeDefined()
+			expect(tools.documentDelete).toBeDefined()
+			expect(tools.documentAdd).toBeDefined()
+			expect(tools.memoryForget).toBeDefined()
 		})
 
 		it("should create tools with custom baseUrl", () => {
@@ -75,7 +63,7 @@ describe("supermemoryTools", () => {
 		})
 	})
 
-	describe("AI SDK integration", () => {
+	describe.skipIf(!hasIntegrationKeys)("AI SDK integration", () => {
 		it("should work with AI SDK generateText", async () => {
 			const openai = createOpenAI({
 				apiKey: testOpenAIKey,
@@ -91,7 +79,7 @@ describe("supermemoryTools", () => {
 					},
 					{
 						role: "user",
-						content: testPrompts[0]!,
+						content: "What do you remember about my preferences?",
 					},
 				],
 				tools: {
