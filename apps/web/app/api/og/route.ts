@@ -15,40 +15,53 @@ function isValidUrl(urlString: string): boolean {
 	}
 }
 
-const MAX_HTML_BYTES = 2_000_000
+export const MAX_HEAD_BYTES = 128_000
 
-// OG parsing only needs <head>, so cap the read rather than buffering the whole body.
-async function readBoundedText(
+// OG parsing only needs <head>, so stream and stop early when </head> or <body is reached, or when maxBytes is hit.
+export async function readBoundedText(
 	response: Response,
-	maxBytes = MAX_HTML_BYTES,
+	maxBytes = MAX_HEAD_BYTES,
 ): Promise<string | null> {
-	const contentLength = response.headers.get("content-length")
-	if (contentLength && Number(contentLength) > maxBytes) {
-		return null
-	}
 	if (!response.body) {
 		return null
 	}
 	const reader = response.body.getReader()
-	const chunks: Uint8Array[] = []
-	let total = 0
-	for (;;) {
-		const { done, value } = await reader.read()
-		if (done) break
-		total += value.byteLength
-		if (total > maxBytes) {
-			await reader.cancel().catch(() => {})
-			return null
+	const decoder = new TextDecoder()
+	let accumulated = ""
+	let totalBytes = 0
+
+	try {
+		for (;;) {
+			const { done, value } = await reader.read()
+			if (done) break
+			if (value) {
+				totalBytes += value.byteLength
+				accumulated += decoder.decode(value, { stream: true })
+
+				const lower = accumulated.toLowerCase()
+				const headEndIndex = lower.indexOf("</head>")
+				if (headEndIndex !== -1) {
+					await reader.cancel().catch(() => {})
+					return accumulated.slice(0, headEndIndex + 7)
+				}
+				const bodyStartIndex = lower.indexOf("<body")
+				if (bodyStartIndex !== -1) {
+					await reader.cancel().catch(() => {})
+					return accumulated.slice(0, bodyStartIndex)
+				}
+
+				if (totalBytes >= maxBytes) {
+					await reader.cancel().catch(() => {})
+					break
+				}
+			}
 		}
-		chunks.push(value)
+		accumulated += decoder.decode()
+		return accumulated || null
+	} catch {
+		await reader.cancel().catch(() => {})
+		return accumulated || null
 	}
-	const merged = new Uint8Array(total)
-	let offset = 0
-	for (const chunk of chunks) {
-		merged.set(chunk, offset)
-		offset += chunk.byteLength
-	}
-	return new TextDecoder().decode(merged)
 }
 
 function isPrivateIPv4Octets(a: number, b: number): boolean {
@@ -375,10 +388,15 @@ export async function GET(request: Request) {
 						return Response.json({ title: "", description: "" })
 					}
 					const html = await readBoundedText(secondResponse)
-					if (html === null) {
+					if (!html) {
 						return Response.json(
-							{ error: "Response too large" },
-							{ status: 413 },
+							{ title: "", description: "" },
+							{
+								headers: {
+									"Cache-Control":
+										"public, s-maxage=3600, stale-while-revalidate=86400",
+								},
+							},
 						)
 					}
 					return processHtml(html, redirectUrl)
@@ -398,8 +416,16 @@ export async function GET(request: Request) {
 			}
 
 			const html = await readBoundedText(response)
-			if (html === null) {
-				return Response.json({ error: "Response too large" }, { status: 413 })
+			if (!html) {
+				return Response.json(
+					{ title: "", description: "" },
+					{
+						headers: {
+							"Cache-Control":
+								"public, s-maxage=3600, stale-while-revalidate=86400",
+						},
+					},
+				)
 			}
 			return processHtml(html, trimmedUrl)
 		} finally {
