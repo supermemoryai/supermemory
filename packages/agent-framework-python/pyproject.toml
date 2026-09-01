@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "supermemory-agent-framework"
-version = "1.0.1"
+version = "1.0.2"
 description = "Memory tools and middleware for Microsoft Agent Framework with supermemory"
 readme = "README.md"
 license = "MIT"

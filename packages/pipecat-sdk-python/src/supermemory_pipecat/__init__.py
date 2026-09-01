@@ -46,7 +46,7 @@ try:
     __version__ = version("supermemory-pipecat")
 except PackageNotFoundError:
     # Source-tree fallback; built wheels always use package metadata above.
-    __version__ = "0.1.2"
+    __version__ = "0.1.3"
 
 __all__ = [
     # Main service

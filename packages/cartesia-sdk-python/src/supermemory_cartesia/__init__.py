@@ -56,7 +56,7 @@ try:
     __version__ = version("supermemory-cartesia")
 except PackageNotFoundError:
     # Source checkouts do not have installed distribution metadata.
-    __version__ = "0.1.2"
+    __version__ = "0.1.3"
 
 __all__ = [
     # Main agent

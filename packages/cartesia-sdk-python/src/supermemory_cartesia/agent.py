@@ -14,7 +14,12 @@ from loguru import logger
 from pydantic import BaseModel, Field
 
 from .exceptions import ConfigurationError, MemoryRetrievalError
-from .utils import _field, deduplicate_memories, format_memories_to_text
+from .utils import (
+    _field,
+    deduplicate_memories,
+    escape_memory_delimiters,
+    format_memories_to_text,
+)
 
 try:
     import supermemory
@@ -237,9 +242,11 @@ class SupermemoryCartesiaAgent:
     def _build_memory_message(self, memories_data: Dict[str, Any]) -> Optional[str]:
         """Build memory context from retrieved data."""
         profile = memories_data["profile"]
+        include_profile = self.config.mode in ("profile", "full")
+        include_search = self.config.mode in ("query", "full")
         deduplicated = deduplicate_memories(
-            static=profile["static"],
-            dynamic=profile["dynamic"],
+            static=profile["static"] if include_profile else [],
+            dynamic=profile["dynamic"] if include_profile else [],
             search_results=memories_data["search_results"],
         )
 
@@ -252,9 +259,6 @@ class SupermemoryCartesiaAgent:
         if total == 0:
             return None
 
-        include_profile = self.config.mode in ("profile", "full")
-        include_search = self.config.mode in ("query", "full")
-
         memory_text = format_memories_to_text(
             deduplicated,
             system_prompt=self.config.system_prompt,
@@ -266,7 +270,8 @@ class SupermemoryCartesiaAgent:
         if not memory_text:
             return None
 
-        return f"{MEMORY_TAG_START}\n{memory_text}\n{MEMORY_TAG_END}"
+        safe_memory_text = escape_memory_delimiters(memory_text)
+        return f"{MEMORY_TAG_START}\n{safe_memory_text}\n{MEMORY_TAG_END}"
 
     def _extract_user_message(self, event: Any) -> Optional[str]:
         """Extract user text from a UserTurnEnded event."""

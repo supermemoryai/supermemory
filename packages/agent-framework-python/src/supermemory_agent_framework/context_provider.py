@@ -9,6 +9,8 @@ following the same pattern as the built-in Mem0 integration.
 
 from typing import Any, Literal
 
+from agent_framework import Message
+
 try:
     from agent_framework import BaseContextProvider  # type: ignore[attr-defined]
 except ImportError:
@@ -149,12 +151,12 @@ class SupermemoryContextProvider(BaseContextProvider):
 
         # Use extend_instructions to add memory context
         if hasattr(context, "extend_instructions"):
-            context.extend_instructions(full_text, source=self.source_id)
+            context.extend_instructions(self.source_id, full_text)
         elif hasattr(context, "extend_messages"):
             # Fallback: add as a system message
             context.extend_messages(
-                [{"role": "system", "content": full_text}],
-                source=self.source_id,
+                self.source_id,
+                [Message("system", [full_text])],
             )
 
     async def after_run(
@@ -217,8 +219,8 @@ class SupermemoryContextProvider(BaseContextProvider):
         )
 
         deduplicated = deduplicate_memories(
-            static=static,
-            dynamic=dynamic,
+            static=static if self._mode != "query" else [],
+            dynamic=dynamic if self._mode != "query" else [],
             search_results=search_results_raw,
         )
 

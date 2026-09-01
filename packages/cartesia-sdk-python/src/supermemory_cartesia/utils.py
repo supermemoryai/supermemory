@@ -75,6 +75,19 @@ _MEMORY_DATE_PREFIX = re.compile(
     re.IGNORECASE,
 )
 
+_USER_MEMORIES_TAG_PATTERN = re.compile(
+    r"<\s*/?\s*user_memories\b[^>]*>",
+    re.IGNORECASE,
+)
+
+
+def escape_memory_delimiters(text: str) -> str:
+    """Neutralize reserved memory-wrapper tags inside formatted content."""
+    return _USER_MEMORIES_TAG_PATTERN.sub(
+        lambda match: match.group(0).replace("<", "&lt;").replace(">", "&gt;"),
+        text,
+    )
+
 
 def _memory_key(memory: str) -> str:
     """Normalize display-only profile prefixes for duplicate comparison."""
