@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "supermemory-pipecat"
-version = "0.1.1"
+version = "0.1.2"
 description = "Supermemory integration for Pipecat - memory-enhanced conversational AI pipelines"
 readme = "README.md"
 license = "MIT"
@@ -31,7 +31,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "pipecat-ai>=0.0.98",
+    "pipecat-ai>=0.0.98,<2.0.0",
     "supermemory>=3.16.0",
     "pydantic>=2.10.0",
     "loguru>=0.7.3",

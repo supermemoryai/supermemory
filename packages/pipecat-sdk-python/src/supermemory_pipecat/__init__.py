@@ -25,6 +25,8 @@ Example:
     ```
 """
 
+from importlib.metadata import PackageNotFoundError, version
+
 from .exceptions import (
     APIError,
     ConfigurationError,
@@ -40,7 +42,11 @@ from .utils import (
     get_last_user_message,
 )
 
-__version__ = "0.1.1"
+try:
+    __version__ = version("supermemory-pipecat")
+except PackageNotFoundError:
+    # Source-tree fallback; built wheels always use package metadata above.
+    __version__ = "0.1.2"
 
 __all__ = [
     # Main service

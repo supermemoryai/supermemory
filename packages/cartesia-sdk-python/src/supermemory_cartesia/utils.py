@@ -1,5 +1,6 @@
 """Utility functions for Supermemory Cartesia integration."""
 
+import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Union
 
@@ -49,34 +50,74 @@ def format_relative_time(iso_timestamp: str) -> str:
         return ""
 
 
+def _field(item: Any, *names: str, default: Any = None) -> Any:
+    """Read a field from a dict or pydantic/SDK model.
+
+    Accepts camelCase and snake_case names so helpers work with both raw JSON
+    dicts and Stainless-generated response models.
+    """
+    if item is None:
+        return default
+    if isinstance(item, dict):
+        for name in names:
+            if name in item and item[name] is not None:
+                return item[name]
+        return default
+    for name in names:
+        value = getattr(item, name, None)
+        if value is not None:
+            return value
+    return default
+
+
+_MEMORY_DATE_PREFIX = re.compile(
+    r"^\s*(?:\[recent\]\s*)?(?:\[\d{4}-\d{2}-\d{2}\]\s*)?",
+    re.IGNORECASE,
+)
+
+
+def _memory_key(memory: str) -> str:
+    """Normalize display-only profile prefixes for duplicate comparison."""
+    without_prefix = _MEMORY_DATE_PREFIX.sub("", memory)
+    return " ".join(without_prefix.split()).casefold()
+
+
 def deduplicate_memories(
     static: List[str],
     dynamic: List[str],
-    search_results: List[Dict[str, Any]],
-) -> Dict[str, Union[List[str], List[Dict[str, Any]]]]:
+    search_results: List[Any],
+) -> Dict[str, Union[List[str], List[Any]]]:
     """Deduplicate memories. Priority: static > dynamic > search.
 
     Args:
         static: List of static memory strings.
         dynamic: List of dynamic memory strings.
-        search_results: List of search result dicts with 'memory' and 'updatedAt'.
+        search_results: Search result dicts or pydantic models with a memory field.
     """
     seen = set()
 
     def unique_strings(memories: List[str]) -> List[str]:
         out = []
         for m in memories:
-            if m not in seen:
-                seen.add(m)
+            if not isinstance(m, str):
+                continue
+            key = _memory_key(m)
+            if key and key not in seen:
+                seen.add(key)
                 out.append(m)
         return out
 
-    def unique_search(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def unique_search(results: List[Any]) -> List[Any]:
         out = []
         for r in results:
-            memory = r.get("memory", "")
-            if memory and memory not in seen:
-                seen.add(memory)
+            # v4 search.memories/hybrid uses `memory` or `chunk`.
+            memory = _field(r, "memory", "chunk", "content", default="")
+            if not isinstance(memory, str):
+                memory = ""
+            memory = memory.strip()
+            key = _memory_key(memory)
+            if key and key not in seen:
+                seen.add(key)
                 out.append(r)
         return out
 
@@ -88,7 +129,7 @@ def deduplicate_memories(
 
 
 def format_memories_to_text(
-    memories: Dict[str, Union[List[str], List[Dict[str, Any]]]],
+    memories: Dict[str, Union[List[str], List[Any]]],
     system_prompt: str = "Based on previous conversations, I recall:\n\n",
     include_static: bool = True,
     include_dynamic: bool = True,
@@ -116,16 +157,17 @@ def format_memories_to_text(
         sections.append("## Relevant Memories")
         lines = []
         for item in search_results:
-            if isinstance(item, dict):
-                memory = item.get("memory", "")
-                updated_at = item.get("updatedAt", "")
-                time_str = format_relative_time(updated_at) if updated_at else ""
-                if time_str:
-                    lines.append(f"- [{time_str}] {memory}")
-                else:
-                    lines.append(f"- {memory}")
-            else:
+            if isinstance(item, str):
                 lines.append(f"- {item}")
+                continue
+
+            memory = _field(item, "memory", "chunk", "content", default="")
+            updated_at = _field(item, "updatedAt", "updated_at", default="")
+            time_str = format_relative_time(updated_at) if updated_at else ""
+            if time_str:
+                lines.append(f"- [{time_str}] {memory}")
+            else:
+                lines.append(f"- {memory}")
         sections.append("\n".join(lines))
 
     if not sections:

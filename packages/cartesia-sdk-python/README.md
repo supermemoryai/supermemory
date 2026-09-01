@@ -23,6 +23,7 @@ async def get_agent(env, call_request):
     # Create base LLM agent
     base_agent = LlmAgent(
         model="gemini/gemini-2.5-flash-preview-09-2025",
+        api_key=os.getenv("GEMINI_API_KEY"),
         config=LlmConfig(
             system_prompt="You are a helpful voice assistant with memory.",
             introduction="Hello! Great to talk with you again!"
@@ -101,7 +102,7 @@ read_only_agent = SupermemoryCartesiaAgent(
 
 1. **Intercepts events** - Listens for `UserTurnEnded` events from Cartesia Line
 2. **Retrieves memories** - Queries Supermemory `/v4/profile` API with user's message
-3. **Enriches context** - Adds memories to event history as system message
+3. **Enriches context** - Passes memories as non-persistent context for the current turn
 4. **Stores messages** - Sends conversation to Supermemory (background, non-blocking)
 5. **Passes to agent** - Forwards enriched event to wrapped LlmAgent
 
@@ -135,7 +136,7 @@ UserTurnEnded Event {content: "user message", history: [...]}
 │    1. Intercept UserTurnEnded                │
 │    2. Extract user message                   │
 │    3. Query Supermemory API                  │
-│    4. Enrich event.history with memories     │
+│    4. Add memories as per-turn context       │
 │    5. Pass to wrapped LlmAgent               │
 │    6. Store conversation (async background)  │
 └──────────────────────────────────────────────┘
@@ -155,7 +156,7 @@ Audio Output
 | **Event Handling**      | `process_frame()` method       | `process()` method           |
 | **Events**              | `LLMContextFrame`, `LLMMessagesFrame` | `UserTurnEnded`, `CallStarted` |
 | **Context Object**      | `LLMContext.get_messages()`    | `event.history`              |
-| **Memory Injection**    | Modify `context.add_message()` | Modify `event.history`       |
+| **Memory Injection**    | Modify `context.add_message()` | Pass per-turn `context`      |
 
 ## Full Example with Tools
 
@@ -183,6 +184,7 @@ async def get_agent(env, call_request):
     # Create LLM agent with tools
     base_agent = LlmAgent(
         model="gemini/gemini-2.5-flash-preview-09-2025",
+        api_key=os.getenv("GEMINI_API_KEY"),
         tools=[weather_tool],
         config=LlmConfig(
             system_prompt="You are a personal assistant with memory and tools.",

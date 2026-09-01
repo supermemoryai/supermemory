@@ -28,6 +28,9 @@ from .utils import (
     get_last_user_message,
 )
 
+DEFAULT_SUPERMEMORY_BASE_URL = "https://api.supermemory.ai"
+PROFILE_REQUEST_TIMEOUT_SECONDS = 30.0
+
 
 @dataclass
 class OpenAIMiddlewareOptions:
@@ -38,6 +41,8 @@ class OpenAIMiddlewareOptions:
     verbose: bool = False
     mode: Literal["profile", "query", "full"] = "profile"
     add_memory: Literal["always", "never"] = "always"
+    api_key: Optional[str] = None
+    base_url: Optional[str] = None
 
 
 class SupermemoryProfileSearch:
@@ -52,6 +57,7 @@ async def supermemory_profile_search(
     container_tag: str,
     query_text: str,
     api_key: str,
+    base_url: str,
 ) -> SupermemoryProfileSearch:
     """Search for memories using the SuperMemory profile API."""
     payload = {
@@ -59,20 +65,23 @@ async def supermemory_profile_search(
     }
     if query_text:
         payload["q"] = query_text
+    profile_url = f"{base_url.rstrip('/')}/v4/profile"
 
     try:
         import aiohttp
 
-        async with aiohttp.ClientSession() as session:
+        timeout = aiohttp.ClientTimeout(total=PROFILE_REQUEST_TIMEOUT_SECONDS)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(
-                "https://api.supermemory.ai/v4/profile",
+                profile_url,
                 headers={
                     "Content-Type": "application/json",
                     "Authorization": f"Bearer {api_key}",
                 },
                 json=payload,
+                allow_redirects=False,
             ) as response:
-                if not response.ok:
+                if not 200 <= response.status < 300:
                     error_text = await response.text()
                     raise SupermemoryAPIError(
                         "Supermemory profile search failed",
@@ -88,15 +97,17 @@ async def supermemory_profile_search(
         import requests
 
         response = requests.post(
-            "https://api.supermemory.ai/v4/profile",
+            profile_url,
             headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {api_key}",
             },
             json=payload,
+            timeout=PROFILE_REQUEST_TIMEOUT_SECONDS,
+            allow_redirects=False,
         )
 
-        if not response.ok:
+        if not 200 <= response.status_code < 300:
             raise SupermemoryAPIError(
                 "Supermemory profile search failed",
                 status_code=response.status_code,
@@ -112,6 +123,7 @@ async def add_system_prompt(
     logger: Logger,
     mode: Literal["profile", "query", "full"],
     api_key: str,
+    base_url: str,
 ) -> list[ChatCompletionMessageParam]:
     """Add memory-enhanced system prompts to chat completion messages."""
     system_prompt_exists = any(msg.get("role") == "system" for msg in messages)
@@ -119,7 +131,10 @@ async def add_system_prompt(
     query_text = get_last_user_message(messages) if mode != "profile" else ""
 
     memories_response = await supermemory_profile_search(
-        container_tag, query_text, api_key
+        container_tag,
+        query_text,
+        api_key,
+        base_url,
     )
 
     profile = memories_response.profile or {}
@@ -199,9 +214,11 @@ async def add_system_prompt(
     if system_prompt_exists:
         logger.debug("Added memories to existing system prompt")
         return [
-            {**msg, "content": f"{msg.get('content', '')} \n {memories}"}
-            if msg.get("role") == "system"
-            else msg
+            (
+                {**msg, "content": f"{msg.get('content', '')} \n {memories}"}
+                if msg.get("role") == "system"
+                else msg
+            )
             for msg in messages
         ]
 
@@ -222,15 +239,17 @@ async def add_memory_tool(
 ) -> None:
     """Add a new memory to the SuperMemory system."""
     try:
-        # Handle both sync and async supermemory clients
-        if custom_id is None:
-            result = client.add(content=content, container_tag=container_tag)
+        kwargs = {"content": content, "container_tag": container_tag}
+        if custom_id is not None:
+            kwargs["custom_id"] = custom_id
+
+        # The wrapper currently constructs the synchronous Supermemory client for
+        # both OpenAI variants. Never execute that network call on an async event
+        # loop; mocks or future async clients can still return an awaitable.
+        if inspect.iscoroutinefunction(client.add):
+            result = client.add(**kwargs)
         else:
-            result = client.add(
-                content=content,
-                container_tag=container_tag,
-                custom_id=custom_id,
-            )
+            result = await asyncio.to_thread(client.add, **kwargs)
         if inspect.isawaitable(result):
             response = await result
         else:
@@ -273,6 +292,8 @@ class SupermemoryOpenAIWrapper:
         self._container_tag: str = options.container_tag
         self._options: OpenAIMiddlewareOptions = options
         self._logger: Logger = create_logger(self._options.verbose)
+        self._api_key = self._resolve_api_key(options.api_key)
+        self._base_url = self._resolve_base_url(options.base_url)
 
         # Track background tasks to ensure they complete
         self._background_tasks: set[asyncio.Task] = set()
@@ -283,10 +304,10 @@ class SupermemoryOpenAIWrapper:
                 ImportError("supermemory package not installed"),
             )
 
-        api_key = self._get_api_key()
         try:
             self._supermemory_client: supermemory.Supermemory = supermemory.Supermemory(
-                api_key=api_key
+                api_key=self._api_key,
+                base_url=self._base_url,
             )
         except Exception as e:
             raise SupermemoryConfigurationError(
@@ -296,16 +317,28 @@ class SupermemoryOpenAIWrapper:
         # Wrap the chat completions create method
         self._wrap_chat_completions()
 
-    def _get_api_key(self) -> str:
-        """Get Supermemory API key from environment."""
-        import os
-
-        api_key = os.getenv("SUPERMEMORY_API_KEY")
+    @staticmethod
+    def _resolve_api_key(configured_api_key: Optional[str]) -> str:
+        """Resolve the API key once when the middleware is constructed."""
+        api_key = (configured_api_key or "").strip() or (
+            os.getenv("SUPERMEMORY_API_KEY") or ""
+        ).strip()
         if not api_key:
             raise SupermemoryConfigurationError(
-                "SUPERMEMORY_API_KEY environment variable is required but not set"
+                "A Supermemory API key is required. Pass api_key to "
+                "OpenAIMiddlewareOptions or set SUPERMEMORY_API_KEY."
             )
-        return api_key
+        return api_key.strip()
+
+    @staticmethod
+    def _resolve_base_url(configured_base_url: Optional[str]) -> str:
+        """Resolve and normalize the API base URL once."""
+        base_url = (
+            (configured_base_url or "").strip()
+            or (os.getenv("SUPERMEMORY_BASE_URL") or "").strip()
+            or DEFAULT_SUPERMEMORY_BASE_URL
+        )
+        return base_url.rstrip("/")
 
     def _wrap_chat_completions(self) -> None:
         """Wrap the chat completions create method with memory injection."""
@@ -317,6 +350,7 @@ class SupermemoryOpenAIWrapper:
                 **kwargs: Any,
             ) -> Any:
                 return await self._create_with_memory_async(original_create, **kwargs)
+
         else:
 
             def create_with_memory(
@@ -413,7 +447,8 @@ class SupermemoryOpenAIWrapper:
             self._container_tag,
             self._logger,
             self._options.mode,
-            self._get_api_key(),
+            self._api_key,
+            self._base_url,
         )
 
         kwargs["messages"] = enhanced_messages
@@ -500,7 +535,8 @@ class SupermemoryOpenAIWrapper:
                     self._container_tag,
                     self._logger,
                     self._options.mode,
-                    self._get_api_key(),
+                    self._api_key,
+                    self._base_url,
                 )
             )
         except RuntimeError as e:
@@ -516,7 +552,8 @@ class SupermemoryOpenAIWrapper:
                             self._container_tag,
                             self._logger,
                             self._options.mode,
-                            self._get_api_key(),
+                            self._api_key,
+                            self._base_url,
                         ),
                     )
                     enhanced_messages = future.result()
@@ -558,7 +595,9 @@ class SupermemoryOpenAIWrapper:
                 f"Background tasks did not complete within {timeout}s timeout"
             )
             # Cancel remaining tasks
-            tasks_to_cancel = [task for task in self._background_tasks if not task.done()]
+            tasks_to_cancel = [
+                task for task in self._background_tasks if not task.done()
+            ]
             for task in tasks_to_cancel:
                 task.cancel()
 

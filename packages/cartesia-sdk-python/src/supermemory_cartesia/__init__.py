@@ -5,12 +5,15 @@ enabling persistent memory and context enhancement for voice AI applications.
 
 Example:
     ```python
+    import os
+
     from supermemory_cartesia import SupermemoryCartesiaAgent, MemoryConfig
     from line.llm_agent import LlmAgent, LlmConfig
 
     # Create base LLM agent
     base_agent = LlmAgent(
         model="gemini/gemini-2.5-flash-preview-09-2025",
+        api_key=os.getenv("GEMINI_API_KEY"),
         config=LlmConfig(
             system_prompt="You are a helpful assistant.",
             introduction="Hello!"
@@ -22,6 +25,7 @@ Example:
         agent=base_agent,
         api_key=os.getenv("SUPERMEMORY_API_KEY"),
         container_tag="user-123",
+        custom_id="conversation-456",
     )
     ```
 """
@@ -46,7 +50,13 @@ from .utils import (
     get_last_user_message,
 )
 
-__version__ = "0.1.0"
+try:
+    from importlib.metadata import PackageNotFoundError, version
+
+    __version__ = version("supermemory-cartesia")
+except PackageNotFoundError:
+    # Source checkouts do not have installed distribution metadata.
+    __version__ = "0.1.2"
 
 __all__ = [
     # Main agent

@@ -5,6 +5,7 @@ Cartesia Line voice agents, adding persistent memory and context enrichment.
 """
 
 import asyncio
+import inspect
 import os
 import re
 from typing import Any, AsyncGenerator, Dict, List, Literal, Optional
@@ -13,7 +14,7 @@ from loguru import logger
 from pydantic import BaseModel, Field
 
 from .exceptions import ConfigurationError, MemoryRetrievalError
-from .utils import deduplicate_memories, format_memories_to_text
+from .utils import _field, deduplicate_memories, format_memories_to_text
 
 try:
     import supermemory
@@ -34,8 +35,7 @@ class SupermemoryCartesiaAgent:
     """Memory-enhanced wrapper for Cartesia Line agents.
 
     This wrapper intercepts UserTurnEnded events, retrieves relevant memories
-    from Supermemory, and enriches the conversation history before passing to
-    the wrapped agent.
+    from Supermemory, and passes them as per-turn context to the wrapped agent.
 
     Example:
         ```python
@@ -44,6 +44,7 @@ class SupermemoryCartesiaAgent:
 
         base_agent = LlmAgent(
             model="anthropic/claude-haiku-4-5-20251001",
+            api_key=os.getenv("ANTHROPIC_API_KEY"),
             config=LlmConfig(
                 system_prompt="You are a helpful assistant.",
                 introduction="Hello! How can I help you today?"
@@ -141,8 +142,8 @@ class SupermemoryCartesiaAgent:
             except Exception as e:
                 logger.error(f"[Supermemory] Failed to initialize client: {e}")
 
-        self._messages_sent_count: int = 0
-        self._last_query: Optional[str] = None
+        self._history_cursor: List[Dict[str, str]] = []
+        self._last_retrieval_event: Optional[str] = None
         self._background_tasks: set = set()  # Track background tasks to prevent GC
 
     async def _retrieve_memories(self, query: str) -> Dict[str, Any]:
@@ -151,31 +152,31 @@ class SupermemoryCartesiaAgent:
             raise MemoryRetrievalError("Supermemory client not initialized")
 
         try:
-            # Use primary container tag for profile retrieval
-            kwargs: Dict[str, Any] = {"container_tag": self.container_tags[0]}
+            logger.info(f"[Supermemory] Retrieving memories for query: {query[:50]}...")
 
+            # One profile call: static + dynamic, and (when mode/query allow)
+            # search_results via `q` — keeps a single round trip for latency.
+            kwargs: Dict[str, Any] = {"container_tag": self.container_tags[0]}
             if self.config.mode != "profile" and query:
                 kwargs["q"] = query
                 kwargs["threshold"] = self.config.search_threshold
-                kwargs["extra_body"] = {"limit": self.config.search_limit}
-
-            logger.info(f"[Supermemory] Retrieving memories for query: {query[:50]}...")
 
             response = await asyncio.wait_for(
                 self._supermemory_client.profile(**kwargs),
-                timeout=10.0
+                timeout=10.0,
             )
 
             # A user with no stored memories yet gets a null profile back, which
             # is a normal case, not an error. Guard against it so we return an
             # empty profile instead of raising AttributeError on response.profile.
-            profile = getattr(response, "profile", None)
-            profile_static = profile.static if profile is not None and profile.static else []
-            profile_dynamic = profile.dynamic if profile is not None and profile.dynamic else []
+            profile = _field(response, "profile")
+            profile_static = list(_field(profile, "static", default=[]) or [])
+            profile_dynamic = list(_field(profile, "dynamic", default=[]) or [])
 
-            search_results = []
-            if response.search_results and response.search_results.results:
-                search_results = response.search_results.results
+            search_results: List[Any] = []
+            search_response = _field(response, "search_results", "searchResults")
+            raw_search_results = _field(search_response, "results", default=[]) or []
+            search_results = list(raw_search_results)[: self.config.search_limit]
 
             logger.info(
                 f"[Supermemory] Retrieved memories - static: {len(profile_static)}, "
@@ -292,53 +293,72 @@ class SupermemoryCartesiaAgent:
         return str(content)
 
     def _extract_conversation_from_history(self, history: list) -> List[Dict[str, str]]:
-        """Extract messages from Cartesia event history."""
-        messages = []
-        seen = set()
+        """Extract messages, suppressing only adjacent duplicate representations."""
+        messages: List[Dict[str, str]] = []
+
+        def append_message(role: str, content: Any) -> None:
+            if role not in ("user", "assistant") or not isinstance(content, str) or not content:
+                return
+            message = {"role": role, "content": content}
+            if not messages or messages[-1] != message:
+                messages.append(message)
 
         for item in history:
             if isinstance(item, dict):
                 if item.get("role") in ("user", "assistant"):
-                    content = item.get("content", "")
-                    if content and content not in seen:
-                        messages.append(item)
-                        seen.add(content)
+                    append_message(item["role"], item.get("content", ""))
                 continue
 
-            event_type = getattr(item, 'type', None) or type(item).__name__
+            event_type = getattr(item, "type", None) or type(item).__name__
 
-            if event_type in ('user_turn_ended', 'UserTurnEnded'):
-                nested = getattr(item, 'content', [])
+            if event_type in ("user_turn_ended", "UserTurnEnded"):
+                nested = getattr(item, "content", [])
                 if isinstance(nested, list):
-                    for n in nested:
-                        if hasattr(n, 'content') and isinstance(n.content, str):
-                            if n.content not in seen:
-                                messages.append({"role": "user", "content": n.content})
-                                seen.add(n.content)
+                    for nested_item in nested:
+                        if hasattr(nested_item, "content"):
+                            append_message("user", nested_item.content)
 
-            elif event_type in ('agent_turn_ended', 'AgentTurnEnded'):
-                nested = getattr(item, 'content', [])
+            elif event_type in ("agent_turn_ended", "AgentTurnEnded"):
+                nested = getattr(item, "content", [])
                 if isinstance(nested, list):
-                    texts = [n.content for n in nested if hasattr(n, 'content') and isinstance(n.content, str)]
+                    texts = [
+                        nested_item.content
+                        for nested_item in nested
+                        if hasattr(nested_item, "content") and isinstance(nested_item.content, str)
+                    ]
                     if texts:
-                        content = " ".join(texts)
-                        if content not in seen:
-                            messages.append({"role": "assistant", "content": content})
-                            seen.add(content)
+                        append_message("assistant", " ".join(texts))
 
-            elif event_type in ('user_text_sent', 'UserTextSent'):
-                content = getattr(item, 'content', '')
-                if content and isinstance(content, str) and content not in seen:
-                    messages.append({"role": "user", "content": content})
-                    seen.add(content)
+            elif event_type in ("user_text_sent", "UserTextSent"):
+                append_message("user", getattr(item, "content", ""))
 
-            elif event_type in ('agent_text_sent', 'AgentTextSent'):
-                content = getattr(item, 'content', '')
-                if content and isinstance(content, str) and content not in seen:
-                    messages.append({"role": "assistant", "content": content})
-                    seen.add(content)
+            elif event_type in ("agent_text_sent", "AgentTextSent"):
+                append_message("assistant", getattr(item, "content", ""))
 
         return messages
+
+    def _new_messages_from_sequence(
+        self,
+        current_messages: List[Dict[str, str]],
+    ) -> List[Dict[str, str]]:
+        """Return the append after the longest previous-suffix/current-prefix overlap."""
+        if current_messages and len(current_messages) <= len(self._history_cursor):
+            for start in range(len(self._history_cursor) - len(current_messages) + 1):
+                if self._history_cursor[start : start + len(current_messages)] == current_messages:
+                    return []
+
+        overlap = 0
+        for size in range(min(len(self._history_cursor), len(current_messages)), 0, -1):
+            if self._history_cursor[-size:] == current_messages[:size]:
+                overlap = size
+                break
+
+        self._history_cursor = current_messages
+        return current_messages[overlap:]
+
+    def _new_history_messages(self, history: list) -> List[Dict[str, str]]:
+        """Return only messages appended to a cumulative or front-truncated history."""
+        return self._new_messages_from_sequence(self._extract_conversation_from_history(history))
 
     async def _enrich_event_with_memories(self, event: Any) -> tuple[Any, Optional[str]]:
         """Enrich event by retrieving memories.
@@ -353,14 +373,16 @@ class SupermemoryCartesiaAgent:
             logger.warning("[Supermemory] Could not extract user message from event")
             return event, None
 
-        if user_message == self._last_query:
+        event_id = _field(event, "event_id", "eventId")
+        event_marker = f"event:{event_id}" if event_id else f"object:{id(event)}"
+        if event_marker == self._last_retrieval_event:
             return event, None
 
-        self._last_query = user_message
         logger.info(f"[Supermemory] Processing user message: {user_message[:50]}...")
 
         try:
             memories_data = await self._retrieve_memories(user_message)
+            self._last_retrieval_event = event_marker
             memory_context = self._build_memory_message(memories_data)
 
             if not memory_context:
@@ -377,6 +399,69 @@ class SupermemoryCartesiaAgent:
             logger.error(f"[Supermemory] Error in memory enrichment: {e}")
             return event, None
 
+    def _agent_accepts_context(self) -> bool:
+        """Return whether the wrapped agent supports per-call context."""
+        try:
+            parameters = inspect.signature(self.agent.process).parameters.values()
+        except (TypeError, ValueError):
+            return False
+
+        return any(
+            parameter.name == "context" or parameter.kind is inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters
+        )
+
+    @staticmethod
+    def _without_memory_context(prompt: str) -> str:
+        """Remove context previously injected by this wrapper."""
+        return re.sub(
+            rf"{re.escape(MEMORY_TAG_START)}.*?{re.escape(MEMORY_TAG_END)}\s*",
+            "",
+            prompt,
+            flags=re.DOTALL,
+        ).strip()
+
+    async def _process_agent(
+        self,
+        env: Any,
+        event: Event,
+        memory_context: Optional[str],
+    ) -> AsyncGenerator[Event, None]:
+        """Call modern Line agents with per-turn context, with a legacy fallback."""
+        if self._agent_accepts_context():
+            process_kwargs = {"context": memory_context} if memory_context else {}
+            async for output in self.agent.process(env, event, **process_kwargs):
+                yield output
+            return
+
+        # Cartesia Line 0.2.0-0.2.2 exposed a mutable ``config`` property and
+        # did not yet support per-call context. Keep that narrow compatibility
+        # path while avoiding persistent memory text in the base prompt.
+        legacy_config = getattr(self.agent, "config", None)
+        if legacy_config is None:
+            if memory_context:
+                logger.warning(
+                    "[Supermemory] Wrapped agent cannot accept memory context; "
+                    "forwarding the event unchanged"
+                )
+            async for output in self.agent.process(env, event):
+                yield output
+            return
+
+        original_prompt = getattr(legacy_config, "system_prompt", "") or ""
+        clean_prompt = self._without_memory_context(str(original_prompt))
+        prompt_for_call = (
+            f"{memory_context}\n\n{clean_prompt}"
+            if memory_context and clean_prompt
+            else memory_context or clean_prompt
+        )
+        legacy_config.system_prompt = prompt_for_call
+        try:
+            async for output in self.agent.process(env, event):
+                yield output
+        finally:
+            legacy_config.system_prompt = clean_prompt
+
     async def process(self, env: Any, event: Event) -> AsyncGenerator[Event, None]:
         """Process events with memory enrichment.
 
@@ -392,49 +477,31 @@ class SupermemoryCartesiaAgent:
                 logger.info("[Supermemory] Processing UserTurnEnded event")
                 event, memory_context = await self._enrich_event_with_memories(event)
 
-                # Clean up old memory context and inject new one if available
-                if hasattr(self.agent, 'config'):
-                    original_prompt = getattr(self.agent.config, 'system_prompt', '')
-                    # Always remove old memory context if present to prevent stale data
-                    if MEMORY_TAG_START in original_prompt:
-                        original_prompt = re.sub(
-                            rf'{re.escape(MEMORY_TAG_START)}.*?{re.escape(MEMORY_TAG_END)}\s*',
-                            '',
-                            original_prompt,
-                            flags=re.DOTALL
-                        )
-                        logger.debug("[Supermemory] Removed old memory context from system prompt")
-
-                    # Inject new memory context if available
-                    if memory_context:
-                        self.agent.config.system_prompt = f"{memory_context}\n\n{original_prompt}"
-                        logger.info("[Supermemory] Injected new memory context into system prompt")
-                    else:
-                        # No new memories, but we cleaned up old ones
-                        self.agent.config.system_prompt = original_prompt
-                        logger.debug("[Supermemory] No new memories to inject, using clean prompt")
-
                 # Store conversation in background
                 if hasattr(event, 'history') and event.history:
-                    messages = self._extract_conversation_from_history(event.history)
-                    unsent = messages[self._messages_sent_count:]
-                    if unsent:
-                        logger.info(f"[Supermemory] Queuing {len(unsent)} messages for storage")
-                        task = asyncio.create_task(self._store_messages(unsent))
+                    new_messages = self._new_history_messages(event.history)
+                    if new_messages:
+                        logger.info(
+                            f"[Supermemory] Queuing {len(new_messages)} messages for storage"
+                        )
+                        task = asyncio.create_task(self._store_messages(new_messages))
                         self._background_tasks.add(task)
                         task.add_done_callback(self._background_tasks.discard)
-                        self._messages_sent_count = len(messages)
                 else:
                     # No history yet, store just the current user message
-                    user_content = self._extract_user_message(event)
-                    if user_content:
-                        logger.info(f"[Supermemory] No history, storing current user message: {user_content[:50]}...")
-                        task = asyncio.create_task(self._store_messages([{"role": "user", "content": user_content}]))
+                    current_messages = self._extract_conversation_from_history([event])
+                    if not current_messages:
+                        user_content = self._extract_user_message(event)
+                        if user_content:
+                            current_messages = [{"role": "user", "content": user_content}]
+                    new_messages = self._new_messages_from_sequence(current_messages)
+                    if new_messages:
+                        logger.info("[Supermemory] No history, storing current user message")
+                        task = asyncio.create_task(self._store_messages(new_messages))
                         self._background_tasks.add(task)
                         task.add_done_callback(self._background_tasks.discard)
-                        self._messages_sent_count = 1  # CRITICAL: Increment counter to prevent duplicate storage
 
-                async for output in self.agent.process(env, event):
+                async for output in self._process_agent(env, event, memory_context):
                     yield output
             else:
                 async for output in self.agent.process(env, event):
@@ -447,6 +514,6 @@ class SupermemoryCartesiaAgent:
 
     def reset_memory_tracking(self) -> None:
         """Reset memory tracking for a new conversation."""
-        self._messages_sent_count = 0
-        self._last_query = None
+        self._history_cursor = []
+        self._last_retrieval_event = None
         logger.info("[Supermemory] Reset memory tracking state")

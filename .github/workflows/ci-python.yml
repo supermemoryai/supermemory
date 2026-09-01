@@ -21,13 +21,19 @@ env:
 
 jobs:
   agent-framework-python:
-    name: agent-framework-python (Python ${{ matrix.python-version }})
+    name: agent-framework-python (${{ matrix.dependency-lane }}, Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.13"]
+        include:
+          - python-version: "3.10"
+            dependency-lane: minimum-supermemory
+            supermemory-version: "3.16.0"
+          - python-version: "3.13"
+            dependency-lane: current-supermemory
+            supermemory-version: "3.59.0"
     defaults:
       run:
         working-directory: packages/agent-framework-python
@@ -50,15 +56,19 @@ jobs:
       - name: Build wheel
         run: python -m build --wheel --outdir "$RUNNER_TEMP/wheels"
 
-      - name: Install wheel and runtime dependencies
-        run: python -m pip install "$RUNNER_TEMP"/wheels/*.whl
+      - name: Install wheel and tested Supermemory SDK
+        run: >-
+          python -m pip install "$RUNNER_TEMP"/wheels/*.whl
+          "supermemory==${{ matrix.supermemory-version }}"
 
       - name: Check dependency compatibility
         run: python -m pip check
 
-      - name: Verify installed wheel
+      - name: Verify installed wheel and SDK version
         run: >-
-          python -c "from pathlib import Path; import supermemory_agent_framework;
+          python -c "from importlib.metadata import version; from pathlib import Path;
+          import supermemory_agent_framework;
+          assert version('supermemory') == '${{ matrix.supermemory-version }}';
           assert 'site-packages' in Path(supermemory_agent_framework.__file__).parts"
 
       - name: Run tests
@@ -141,13 +151,13 @@ jobs:
       matrix:
         include:
           - python-version: "3.10"
-            dependency-lane: minimum-supermemory
-            supermemory-spec: "supermemory==3.16.0"
+            dependency-lane: minimum-dependencies
             supermemory-version: "3.16.0"
+            cartesia-line-version: "0.2.0"
           - python-version: "3.12"
-            dependency-lane: current-supermemory
-            supermemory-spec: "supermemory==3.59.0"
+            dependency-lane: current-dependencies
             supermemory-version: "3.59.0"
+            cartesia-line-version: "0.2.17"
     defaults:
       run:
         working-directory: packages/cartesia-sdk-python
@@ -164,25 +174,29 @@ jobs:
           cache: pip
           cache-dependency-path: packages/cartesia-sdk-python/pyproject.toml
 
-      - name: Install build tools and lightweight test dependencies
-        run: >-
-          python -m pip install build pytest "loguru>=0.7.3" "pydantic>=2.10.0"
-          "${{ matrix.supermemory-spec }}"
+      - name: Install build and test tools
+        run: python -m pip install build pytest
 
       - name: Build wheel
         run: python -m build --wheel --outdir "$RUNNER_TEMP/wheels"
 
-      - name: Install wheel without the voice framework
-        run: python -m pip install --no-deps "$RUNNER_TEMP"/wheels/*.whl
+      - name: Install wheel and tested runtime dependencies
+        run: >-
+          python -m pip install "$RUNNER_TEMP"/wheels/*.whl
+          "supermemory==${{ matrix.supermemory-version }}"
+          "cartesia-line==${{ matrix.cartesia-line-version }}"
 
-      - name: Run tests against the installed wheel and real lightweight dependencies
+      - name: Check dependency compatibility
+        run: python -m pip check
+
+      - name: Verify real Cartesia Line integration and run tests
         run: >-
           python -c "from importlib.metadata import version;
-          from pathlib import Path; import loguru, pydantic, supermemory, pytest;
+          from pathlib import Path; import line, pytest, supermemory_cartesia;
           assert version('supermemory') == '${{ matrix.supermemory-version }}';
-          result = pytest.main(['-W', 'ignore::pytest.PytestAssertRewriteWarning', 'tests']);
-          import supermemory_cartesia;
+          assert version('cartesia-line') == '${{ matrix.cartesia-line-version }}';
           assert 'site-packages' in Path(supermemory_cartesia.__file__).parts;
+          result = pytest.main(['-W', 'ignore::pytest.PytestAssertRewriteWarning', 'tests']);
           raise SystemExit(result)"
 
   pipecat-sdk-python:
@@ -194,13 +208,13 @@ jobs:
       matrix:
         include:
           - python-version: "3.10"
-            dependency-lane: minimum-supermemory
-            supermemory-spec: "supermemory==3.16.0"
+            dependency-lane: minimum-dependencies
             supermemory-version: "3.16.0"
+            pipecat-version: "0.0.98"
           - python-version: "3.12"
-            dependency-lane: current-supermemory
-            supermemory-spec: "supermemory==3.59.0"
+            dependency-lane: current-dependencies
             supermemory-version: "3.59.0"
+            pipecat-version: "1.7.0"
     defaults:
       run:
         working-directory: packages/pipecat-sdk-python
@@ -217,23 +231,27 @@ jobs:
           cache: pip
           cache-dependency-path: packages/pipecat-sdk-python/pyproject.toml
 
-      - name: Install build tools and lightweight test dependencies
-        run: >-
-          python -m pip install build pytest "loguru>=0.7.3" "pydantic>=2.10.0"
-          "${{ matrix.supermemory-spec }}"
+      - name: Install build and test tools
+        run: python -m pip install build pytest
 
       - name: Build wheel
         run: python -m build --wheel --outdir "$RUNNER_TEMP/wheels"
 
-      - name: Install wheel without the voice framework
-        run: python -m pip install --no-deps "$RUNNER_TEMP"/wheels/*.whl
+      - name: Install wheel and tested runtime dependencies
+        run: >-
+          python -m pip install "$RUNNER_TEMP"/wheels/*.whl
+          "supermemory==${{ matrix.supermemory-version }}"
+          "pipecat-ai==${{ matrix.pipecat-version }}"
 
-      - name: Run tests against the installed wheel and real lightweight dependencies
+      - name: Check dependency compatibility
+        run: python -m pip check
+
+      - name: Verify real Pipecat integration and run tests
         run: >-
           python -c "from importlib.metadata import version;
-          from pathlib import Path; import loguru, pydantic, supermemory, pytest;
+          from pathlib import Path; import pipecat, pytest, supermemory_pipecat;
           assert version('supermemory') == '${{ matrix.supermemory-version }}';
-          result = pytest.main(['-W', 'ignore::pytest.PytestAssertRewriteWarning', 'tests']);
-          import supermemory_pipecat;
+          assert version('pipecat-ai') == '${{ matrix.pipecat-version }}';
           assert 'site-packages' in Path(supermemory_pipecat.__file__).parts;
+          result = pytest.main(['-W', 'ignore::pytest.PytestAssertRewriteWarning', 'tests']);
           raise SystemExit(result)"

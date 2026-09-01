@@ -7,10 +7,10 @@ This is the idiomatic way to integrate persistent memory in Agent Framework,
 following the same pattern as the built-in Mem0 integration.
 """
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 try:
-    from agent_framework import BaseContextProvider
+    from agent_framework import BaseContextProvider  # type: ignore[attr-defined]
 except ImportError:
     # Renamed in agent-framework-core 1.0.0 stable; the interface is
     # unchanged (source_id __init__, before_run/after_run hooks with

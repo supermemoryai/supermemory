@@ -1,14 +1,19 @@
 """Utility functions for Supermemory Pipecat integration."""
 
+import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Union
 
 
-def get_last_user_message(messages: List[Dict[str, str]]) -> str | None:
+_DYNAMIC_DATE_PREFIX = re.compile(r"^\s*(?:\[Recent\]\s*)?\[\d{4}-\d{2}-\d{2}\]\s*")
+
+
+def get_last_user_message(messages: List[Dict[str, Any]]) -> str | None:
     """Extract the last user message content from a list of messages."""
     for msg in reversed(messages):
-        if msg["role"] == "user":
-            return msg["content"]
+        content = msg.get("content")
+        if msg.get("role") == "user" and isinstance(content, str):
+            return content
     return None
 
 
@@ -49,34 +54,69 @@ def format_relative_time(iso_timestamp: str) -> str:
         return ""
 
 
+def _field(item: Any, *names: str, default: Any = None) -> Any:
+    """Read a field from a dict or pydantic/SDK model.
+
+    Accepts camelCase and snake_case names so helpers work with both raw JSON
+    dicts and Stainless-generated response models.
+    """
+    if item is None:
+        return default
+    if isinstance(item, dict):
+        for name in names:
+            if name in item and item[name] is not None:
+                return item[name]
+        return default
+    for name in names:
+        value = getattr(item, name, None)
+        if value is not None:
+            return value
+    return default
+
+
 def deduplicate_memories(
     static: List[str],
     dynamic: List[str],
-    search_results: List[Dict[str, Any]],
-) -> Dict[str, Union[List[str], List[Dict[str, Any]]]]:
+    search_results: List[Any],
+) -> Dict[str, Union[List[str], List[Any]]]:
     """Deduplicate memories. Priority: static > dynamic > search.
 
     Args:
         static: List of static memory strings.
         dynamic: List of dynamic memory strings.
-        search_results: List of search result dicts with 'memory' and 'updatedAt'.
+        search_results: Search result dicts or pydantic models with a memory field.
     """
-    seen = set()
+    seen: set[str] = set()
+
+    def comparison_key(memory: str) -> str:
+        # Dynamic profile entries are date-labelled by the API while search
+        # results contain the same memory without that presentation prefix.
+        return _DYNAMIC_DATE_PREFIX.sub("", memory.strip())
 
     def unique_strings(memories: List[str]) -> List[str]:
-        out = []
+        out: List[str] = []
         for m in memories:
-            if m not in seen:
-                seen.add(m)
+            if not isinstance(m, str):
+                continue
+            key = comparison_key(m)
+            if key and key not in seen:
+                seen.add(key)
                 out.append(m)
         return out
 
-    def unique_search(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        out = []
+    def unique_search(results: List[Any]) -> List[Any]:
+        out: List[Any] = []
         for r in results:
-            memory = r.get("memory", "")
-            if memory and memory not in seen:
-                seen.add(memory)
+            # v4 search.memories/hybrid uses `memory` or `chunk`.
+            memory = (
+                r if isinstance(r, str) else _field(r, "memory", "chunk", "content", default="")
+            )
+            if not isinstance(memory, str):
+                memory = ""
+            memory = memory.strip()
+            key = comparison_key(memory)
+            if key and key not in seen:
+                seen.add(key)
                 out.append(r)
         return out
 
@@ -88,7 +128,7 @@ def deduplicate_memories(
 
 
 def format_memories_to_text(
-    memories: Dict[str, Union[List[str], List[Dict[str, Any]]]],
+    memories: Dict[str, Union[List[str], List[Any]]],
     system_prompt: str = "Based on previous conversations, I recall:\n\n",
     include_static: bool = True,
     include_dynamic: bool = True,
@@ -116,16 +156,17 @@ def format_memories_to_text(
         sections.append("## Relevant Memories")
         lines = []
         for item in search_results:
-            if isinstance(item, dict):
-                memory = item.get("memory", "")
-                updated_at = item.get("updatedAt", "")
-                time_str = format_relative_time(updated_at) if updated_at else ""
-                if time_str:
-                    lines.append(f"- [{time_str}] {memory}")
-                else:
-                    lines.append(f"- {memory}")
-            else:
+            if isinstance(item, str):
                 lines.append(f"- {item}")
+                continue
+
+            memory = _field(item, "memory", "chunk", "content", default="")
+            updated_at = _field(item, "updatedAt", "updated_at", default="")
+            time_str = format_relative_time(updated_at) if updated_at else ""
+            if time_str:
+                lines.append(f"- [{time_str}] {memory}")
+            else:
+                lines.append(f"- {memory}")
         sections.append("\n".join(lines))
 
     if not sections:

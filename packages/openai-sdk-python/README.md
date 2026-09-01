@@ -49,7 +49,9 @@ async def main():
             custom_id="chat-123",      # Required: groups messages into documents
             mode="full",               # "profile", "query", or "full"
             verbose=True,              # Enable logging
-            add_memory="always"        # Automatically save conversations (default)
+            add_memory="always",       # Automatically save conversations (default)
+            api_key="your-supermemory-api-key",  # Or use SUPERMEMORY_API_KEY
+            # base_url="https://api.supermemory.ai",  # Optional custom endpoint
         )
     )
 
@@ -357,6 +359,8 @@ class OpenAIMiddlewareOptions:
     verbose: bool = False                      # Enable detailed logging
     mode: Literal["profile", "query", "full"] = "profile"  # Memory injection mode
     add_memory: Literal["always", "never"] = "always"      # Auto-save behavior
+    api_key: Optional[str] = None               # Falls back to SUPERMEMORY_API_KEY
+    base_url: Optional[str] = None              # Falls back to SUPERMEMORY_BASE_URL
 ```
 
 ### SupermemoryTools
@@ -436,7 +440,7 @@ All exceptions include the original error for debugging and have descriptive err
 
 Set these environment variables:
 
-- `SUPERMEMORY_API_KEY` - Your Supermemory API key (required)
+- `SUPERMEMORY_API_KEY` - Your Supermemory API key (unless passed in middleware options)
 - `OPENAI_API_KEY` - Your OpenAI API key (required for examples)
 
 Optional for testing:
