@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Detect SDK and playground changes
+      - name: Detect SDK, playground and browser extension changes
         id: sdk-changes
         run: |
           if git diff --quiet "${{ github.event.pull_request.base.sha }}" HEAD -- packages/tools; then
@@ -45,6 +45,12 @@ jobs:
             echo "sdk_playground=false" >> "$GITHUB_OUTPUT"
           else
             echo "sdk_playground=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if git diff --quiet "${{ github.event.pull_request.base.sha }}" HEAD -- apps/browser-extension; then
+            echo "browser_extension=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "browser_extension=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Setup Python for SDK Playground
@@ -97,6 +103,10 @@ jobs:
       - name: Build SDK Playground
         if: steps.sdk-changes.outputs.sdk_playground == 'true'
         run: bun run --cwd apps/sdk-playground build:app
+
+      - name: Run Browser Extension type checking
+        if: steps.sdk-changes.outputs.browser_extension == 'true'
+        run: bun run --cwd apps/browser-extension check-types
 
       - name: Run Memory Graph type checking
         run: bun run --cwd packages/memory-graph check-types
