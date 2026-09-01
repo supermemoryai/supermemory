@@ -32,9 +32,12 @@ export function register(deps: ToolDeps) {
 				const effectiveTag = await deps.resolveContainerTag()
 				const client = deps.getClient()
 				const document = await client.getDocument(args.documentId)
-				const docTags = document.containerTags
+				const docTags = Array.isArray(document.memoryEntries)
+					? document.memoryEntries
+							.map((entry: any) => entry.spaceContainerTag)
+							.filter(Boolean)
+					: []
 				if (
-					Array.isArray(docTags) &&
 					docTags.length > 0 &&
 					!docTags.includes(effectiveTag)
 				) {
