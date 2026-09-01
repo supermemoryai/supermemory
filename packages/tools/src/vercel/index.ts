@@ -2,7 +2,7 @@ import {
 	type LanguageModel,
 	type LanguageModelCallOptions,
 	type LanguageModelStreamPart,
-	getLastUserMessage,
+	hasPersistableUserContent,
 } from "./util"
 import {
 	createSupermemoryContext,
@@ -182,11 +182,9 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 						// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
 						const result = await target.doGenerate(modelParams as any)
 
-						const userMessage = getLastUserMessage(params)
 						if (
 							ctx.addMemory === "always" &&
-							userMessage &&
-							userMessage.trim()
+							hasPersistableUserContent(params)
 						) {
 							const assistantResponseText = extractAssistantResponseText(
 								result.content as unknown[],
@@ -261,11 +259,9 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 								controller.enqueue(chunk)
 							},
 							flush: async () => {
-								const userMessage = getLastUserMessage(params)
 								if (
 									ctx.addMemory === "always" &&
-									userMessage &&
-									userMessage.trim()
+									hasPersistableUserContent(params)
 								) {
 									saveMemoryAfterResponse(
 										ctx.client,

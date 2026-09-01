@@ -32,9 +32,11 @@ export const supermemoryProfileSearch = async (
 		? JSON.stringify({
 				q: queryText,
 				containerTag: containerTag,
+				include: ["static", "dynamic"],
 			})
 		: JSON.stringify({
 				containerTag: containerTag,
+				include: ["static", "dynamic"],
 			})
 
 	try {

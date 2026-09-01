@@ -2,23 +2,32 @@ import Supermemory from "supermemory"
 import { tool } from "ai"
 import { z } from "zod"
 import {
+	CLIENT_OPTIONS,
 	DEFAULT_VALUES,
 	PARAMETER_DESCRIPTIONS,
+	SEARCH_LIMIT_BOUNDS,
 	TOOL_DESCRIPTIONS,
+	clampSearchLimit,
+	deleteDocumentByIdentifier,
 	getContainerTags,
 } from "./tools-shared"
 import { forgetMemoryRequest } from "./shared/forget-memory"
 import type { SupermemoryToolsConfig } from "./types"
+
+function createClient(apiKey: string, config?: SupermemoryToolsConfig) {
+	return new Supermemory({
+		apiKey,
+		...CLIENT_OPTIONS,
+		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
+	})
+}
 
 // Export individual tool creators
 export const searchMemoriesTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = new Supermemory({
-		apiKey,
-		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
-	})
+	const client = createClient(apiKey, config)
 
 	const containerTags = getContainerTags(config)
 	const strict = config?.strict ?? false
@@ -42,26 +51,28 @@ export const searchMemoriesTool = (
 			limit: strict
 				? z.coerce
 						.number()
+						.int()
+						.min(SEARCH_LIMIT_BOUNDS.min)
+						.max(SEARCH_LIMIT_BOUNDS.max)
 						.default(DEFAULT_VALUES.limit)
-						.describe(PARAMETER_DESCRIPTIONS.limit)
+						.describe(PARAMETER_DESCRIPTIONS.searchLimit)
 				: z.coerce
 						.number()
+						.int()
+						.min(SEARCH_LIMIT_BOUNDS.min)
+						.max(SEARCH_LIMIT_BOUNDS.max)
 						.optional()
 						.default(DEFAULT_VALUES.limit)
-						.describe(PARAMETER_DESCRIPTIONS.limit),
+						.describe(PARAMETER_DESCRIPTIONS.searchLimit),
 		}),
-		execute: async ({
-			informationToGet,
-			includeFullDocs = DEFAULT_VALUES.includeFullDocs,
-			limit = DEFAULT_VALUES.limit,
-		}) => {
+		execute: async ({ informationToGet, limit = DEFAULT_VALUES.limit }) => {
 			try {
-				const response = await client.search.execute({
+				const response = await client.search({
 					q: informationToGet,
-					containerTags,
-					limit,
-					chunkThreshold: DEFAULT_VALUES.chunkThreshold,
-					includeFullDocs,
+					containerTag: containerTags[0],
+					limit: clampSearchLimit(limit),
+					threshold: DEFAULT_VALUES.searchThreshold,
+					searchMode: "hybrid",
 				})
 
 				return {
@@ -83,10 +94,7 @@ export const addMemoryTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = new Supermemory({
-		apiKey,
-		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
-	})
+	const client = createClient(apiKey, config)
 
 	const containerTags = getContainerTags(config)
 
@@ -123,10 +131,7 @@ export const getProfileTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = new Supermemory({
-		apiKey,
-		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
-	})
+	const client = createClient(apiKey, config)
 
 	const containerTags = getContainerTags(config)
 	const strict = config?.strict ?? false
@@ -167,10 +172,7 @@ export const documentListTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = new Supermemory({
-		apiKey,
-		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
-	})
+	const client = createClient(apiKey, config)
 
 	const containerTags = getContainerTags(config)
 	const strict = config?.strict ?? false
@@ -196,10 +198,12 @@ export const documentListTool = (
 		}),
 		execute: async ({ containerTag, limit, page }) => {
 			try {
-				const tag = containerTag || containerTags[0]
+				const scopeTags: [string, ...string[]] = containerTag
+					? [containerTag]
+					: containerTags
 
 				const response = await client.documents.list({
-					containerTags: [tag],
+					containerTags: scopeTags,
 					limit: limit || DEFAULT_VALUES.limit,
 					...(page !== undefined && { page }),
 				})
@@ -223,19 +227,30 @@ export const documentDeleteTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = new Supermemory({
-		apiKey,
-		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
-	})
+	const client = createClient(apiKey, config)
+	const containerTags = getContainerTags(config)
+	const strict = config?.strict ?? false
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.documentDelete,
 		inputSchema: z.object({
 			documentId: z.string().describe(PARAMETER_DESCRIPTIONS.documentId),
+			containerTag: strict
+				? z
+						.string()
+						.nullable()
+						.describe(PARAMETER_DESCRIPTIONS.documentContainerTag)
+				: z
+						.string()
+						.optional()
+						.describe(PARAMETER_DESCRIPTIONS.documentContainerTag),
 		}),
-		execute: async ({ documentId }) => {
+		execute: async ({ documentId, containerTag }) => {
 			try {
-				await client.documents.delete(documentId)
+				const scopeTags: [string, ...string[]] = containerTag
+					? [containerTag]
+					: containerTags
+				await deleteDocumentByIdentifier(client, documentId, scopeTags)
 
 				return {
 					success: true,
@@ -255,10 +270,7 @@ export const documentAddTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = new Supermemory({
-		apiKey,
-		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
-	})
+	const client = createClient(apiKey, config)
 
 	const containerTags = getContainerTags(config)
 
@@ -379,3 +391,4 @@ export {
 	type PromptTemplate,
 	type MemoryPromptData,
 } from "./vercel"
+export { getContainerTags } from "./tools-shared"

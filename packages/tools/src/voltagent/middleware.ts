@@ -7,7 +7,9 @@
 import Supermemory from "supermemory"
 import {
 	addConversation,
+	type ContentPart as ConversationContentPart,
 	type ConversationMessage,
+	toConversationImageUrl,
 } from "../conversations-client"
 import {
 	createLogger,
@@ -18,7 +20,11 @@ import {
 	type Logger,
 	type MemoryMode,
 } from "../shared"
-import type { SupermemoryVoltAgent, VoltAgentMessage } from "./types"
+import type {
+	SearchFilters,
+	SupermemoryVoltAgent,
+	VoltAgentMessage,
+} from "./types"
 
 /**
  * Context for Supermemory middleware operations.
@@ -47,7 +53,7 @@ export interface SupermemoryMiddlewareContext {
 	limit?: number
 	rerank?: boolean
 	rewriteQuery?: boolean
-	filters?: { OR: Array<unknown> } | { AND: Array<unknown> }
+	filters?: SearchFilters
 	include?: {
 		chunks?: boolean
 		documents?: boolean
@@ -58,7 +64,6 @@ export interface SupermemoryMiddlewareContext {
 	// Storage parameters
 	metadata?: Record<string, string | number | boolean>
 	searchMode?: "memories" | "documents" | "hybrid"
-	entityContext?: string
 }
 
 /**
@@ -89,7 +94,6 @@ export const createSupermemoryContext = (
 		include,
 		metadata,
 		searchMode,
-		entityContext,
 		verbose = false,
 	} = options
 
@@ -99,8 +103,25 @@ export const createSupermemoryContext = (
 			"customId is required and must be a non-empty string — provide it via `options.customId`",
 		)
 	}
+	if (
+		threshold !== undefined &&
+		(!Number.isFinite(threshold) || threshold < 0 || threshold > 1)
+	) {
+		throw new Error("threshold must be between 0 and 1")
+	}
+	if (
+		limit !== undefined &&
+		(!Number.isInteger(limit) || limit < 1 || limit > 100)
+	) {
+		throw new Error("limit must be an integer between 1 and 100")
+	}
 
 	const logger = createLogger(verbose)
+	if (options.entityContext !== undefined) {
+		logger.warn(
+			"entityContext is not supported by /v4/conversations and will be ignored; configure it on the container tag instead.",
+		)
+	}
 	const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
 
 	const client = new Supermemory({
@@ -129,7 +150,6 @@ export const createSupermemoryContext = (
 		include,
 		metadata,
 		searchMode,
-		entityContext,
 	}
 }
 
@@ -156,6 +176,21 @@ const isNewUserTurn = (messages: VoltAgentMessage[]): boolean => {
 	return lastMessage?.role === "user"
 }
 
+type VoltAgentContentPart = {
+	type: string
+	text?: string
+	[key: string]: unknown
+}
+
+const getMessageContent = (
+	message: VoltAgentMessage,
+): string | VoltAgentContentPart[] => {
+	if (typeof message.content === "string" || Array.isArray(message.content)) {
+		return message.content
+	}
+	return Array.isArray(message.parts) ? message.parts : ""
+}
+
 /**
  * Extracts the last user message text from messages array.
  */
@@ -169,7 +204,7 @@ const getLastUserMessage = (messages: VoltAgentMessage[]): string => {
 		return ""
 	}
 
-	const content = lastUserMessage.content
+	const content = getMessageContent(lastUserMessage)
 
 	if (typeof content === "string") {
 		return content
@@ -230,7 +265,7 @@ export const enhanceMessagesWithMemories = async (
 
 	const genericMessages = messages.map((msg) => ({
 		role: msg.role,
-		content: msg.content,
+		content: getMessageContent(msg),
 	}))
 
 	const queryText = extractQueryText(genericMessages, ctx.mode)
@@ -258,23 +293,7 @@ export const enhanceMessagesWithMemories = async (
 	if (useAdvancedSearch && ctx.mode !== "profile") {
 		ctx.logger.info("Using advanced search with custom parameters")
 
-		const searchParams: {
-			q: string
-			containerTag: string
-			threshold?: number
-			limit?: number
-			rerank?: boolean
-			rewriteQuery?: boolean
-			filters?: { OR: Array<unknown> } | { AND: Array<unknown> }
-			include?: {
-				chunks?: boolean
-				documents?: boolean
-				forgottenMemories?: boolean
-				relatedMemories?: boolean
-				summaries?: boolean
-			}
-			searchMode?: "memories" | "documents" | "hybrid"
-		} = {
+		const searchParams: Supermemory.SearchParams = {
 			q: queryText,
 			containerTag: ctx.containerTag,
 		}
@@ -288,31 +307,32 @@ export const enhanceMessagesWithMemories = async (
 		if (ctx.include !== undefined) searchParams.include = ctx.include
 		if (ctx.searchMode !== undefined) searchParams.searchMode = ctx.searchMode
 
-		const response = await ctx.client.search.memories(searchParams)
+		const response = await ctx.client.search(searchParams)
 
 		// Hybrid search returns both memory entries (`memory` field) and
-		// document chunks (`chunk` field). Handle both.
-		type SearchResult = {
-			memory?: string
-			chunk?: string
-			metadata?: Record<string, unknown>
-		}
-		const formattedMemories = response.results
-			.map((result: SearchResult) => {
-				const text = result.memory || result.chunk
-				return text ? `- ${text}` : null
-			})
-			.filter(Boolean)
+		// document chunks (`chunk` field). Normalize both for prompt templates.
+		const searchResults = response.results.flatMap((result) => {
+			const memory = result.memory ?? result.chunk
+			if (!memory) {
+				return []
+			}
+
+			return [
+				{
+					memory,
+					...(result.metadata ? { metadata: result.metadata } : {}),
+				},
+			]
+		})
+		const formattedMemories = searchResults
+			.map((result) => `- ${result.memory}`)
 			.join("\n")
 
 		memories = ctx.promptTemplate
 			? ctx.promptTemplate({
 					userMemories: "",
 					generalSearchMemories: formattedMemories,
-					searchResults: response.results as Array<{
-						memory: string
-						metadata?: Record<string, unknown>
-					}>,
+					searchResults,
 				})
 			: `The following are relevant memories and context about this user retrieved from previous interactions. Use these to personalize your response:\n\n${formattedMemories}`
 	} else {
@@ -399,46 +419,71 @@ const convertToConversationMessages = (
 	messages: VoltAgentMessage[],
 ): ConversationMessage[] => {
 	const conversationMessages: ConversationMessage[] = []
+	const convertPart = (
+		part: VoltAgentContentPart,
+	): ConversationContentPart | null => {
+		if (part.type === "text" && typeof part.text === "string" && part.text) {
+			return { type: "text", text: part.text }
+		}
+
+		if (part.type === "file") {
+			const mediaType = part.mediaType
+			const url =
+				typeof mediaType === "string" && mediaType.startsWith("image/")
+					? toConversationImageUrl(part.url ?? part.data, mediaType)
+					: null
+			if (url) return { type: "image_url", imageUrl: { url } }
+		}
+
+		if (part.type === "image") {
+			const mediaType =
+				typeof part.mediaType === "string" ? part.mediaType : "image/jpeg"
+			const url = toConversationImageUrl(part.image, mediaType)
+			if (url) return { type: "image_url", imageUrl: { url } }
+		}
+
+		if (part.type === "image_url") {
+			const imageUrl =
+				typeof part.imageUrl === "object" && part.imageUrl
+					? (part.imageUrl as { url?: unknown })
+					: typeof part.image_url === "object" && part.image_url
+						? (part.image_url as { url?: unknown })
+						: undefined
+			if (typeof imageUrl?.url === "string") {
+				return { type: "image_url", imageUrl: { url: imageUrl.url } }
+			}
+		}
+
+		return null
+	}
 
 	for (const msg of messages) {
 		if (msg.role === "system") {
 			continue
 		}
 
-		if (typeof msg.content === "string") {
-			if (msg.content) {
-				conversationMessages.push({
-					role: msg.role as "user" | "assistant" | "tool",
-					content: msg.content,
-				})
-			}
-		} else if (Array.isArray(msg.content)) {
-			const contentParts = msg.content
-				.map((c) => {
-					if (c.type === "text" && c.text) {
-						return {
-							type: "text" as const,
-							text: c.text,
-						}
-					}
-					// Handle image URLs if present
-					if (c.type === "image_url" && typeof c.image_url === "object") {
-						const imageUrl = c.image_url as { url?: string }
-						if (imageUrl.url) {
-							return {
-								type: "image_url" as const,
-								image_url: { url: imageUrl.url },
-							}
-						}
-					}
-					return null
-				})
+		const structuredParts = Array.isArray(msg.parts)
+			? msg.parts
+			: Array.isArray(msg.content)
+				? msg.content
+				: undefined
+
+		if (structuredParts) {
+			const contentParts = structuredParts
+				.map(convertPart)
 				.filter((part) => part !== null)
 
 			if (contentParts.length > 0) {
 				conversationMessages.push({
 					role: msg.role as "user" | "assistant" | "tool",
 					content: contentParts,
+				})
+			}
+		} else if (typeof msg.content === "string") {
+			if (msg.content) {
+				conversationMessages.push({
+					role: msg.role as "user" | "assistant" | "tool",
+					content: msg.content,
 				})
 			}
 		}
@@ -471,7 +516,6 @@ export const saveConversation = async (
 			messages: conversationMessages,
 			containerTags: [ctx.containerTag],
 			metadata: ctx.metadata,
-			entityContext: ctx.entityContext,
 			apiKey: ctx.apiKey,
 			baseUrl: ctx.normalizedBaseUrl,
 		})

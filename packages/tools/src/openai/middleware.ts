@@ -1,15 +1,67 @@
 import type OpenAI from "openai"
+import { APIPromise } from "openai/core"
 import Supermemory from "supermemory"
-import { addConversation } from "../conversations-client"
-import { validateApiKey } from "../shared"
+import {
+	addConversation,
+	type ContentPart as ConversationContentPart,
+	type ConversationMessage,
+} from "../conversations-client"
 import { deduplicateMemoriesForMode } from "../tools-shared"
 import { createLogger, type Logger } from "../vercel/logger"
 import { convertProfileToMarkdown } from "../vercel/util"
 
 const normalizeBaseUrl = (url?: string): string => {
 	const defaultUrl = "https://api.supermemory.ai"
-	if (!url) return defaultUrl
-	return url.endsWith("/") ? url.slice(0, -1) : url
+	return url?.trim().replace(/\/+$/, "") || defaultUrl
+}
+
+const PROFILE_REQUEST_TIMEOUT_MS = 30_000
+
+const deferAPIPromise = <T>(
+	start: () => Promise<{ request: APIPromise<T> }>,
+): APIPromise<T> => {
+	const ready = start()
+
+	const responsePromise = ready.then(async ({ request }) => ({
+		response: await request.asResponse(),
+		options: {} as never,
+		controller: new AbortController(),
+	}))
+
+	return new APIPromise<T>(responsePromise, async () => {
+		const { request } = await ready
+		return await request
+	})
+}
+
+const convertConversationContent = (
+	content: unknown,
+): string | ConversationContentPart[] => {
+	if (typeof content === "string") return content
+	if (!Array.isArray(content)) return ""
+
+	const converted: ConversationContentPart[] = []
+	for (const value of content) {
+		if (!value || typeof value !== "object") continue
+		const part = value as {
+			type?: unknown
+			text?: unknown
+			image_url?: { url?: unknown }
+		}
+		if (part.type === "text" && typeof part.text === "string") {
+			converted.push({ type: "text", text: part.text })
+		} else if (
+			part.type === "image_url" &&
+			typeof part.image_url?.url === "string"
+		) {
+			converted.push({
+				type: "image_url",
+				imageUrl: { url: part.image_url.url },
+			})
+		}
+	}
+
+	return converted
 }
 
 export interface OpenAIMiddlewareOptions {
@@ -20,8 +72,9 @@ export interface OpenAIMiddlewareOptions {
 	verbose?: boolean
 	mode?: "profile" | "query" | "full"
 	addMemory?: "always" | "never"
-	baseUrl?: string
+	/** Supermemory API key (falls back to SUPERMEMORY_API_KEY). */
 	apiKey?: string
+	baseUrl?: string
 }
 
 interface SupermemoryProfileSearch {
@@ -77,33 +130,35 @@ const getLastUserMessage = (
  *
  * @param containerTag - The container tag/identifier for memory search (e.g., user ID, project ID)
  * @param queryText - Optional query text to search for specific memories. If empty, returns all profile memories
- * @param baseUrl - The Supermemory API base URL
  * @param apiKey - The Supermemory API key used to authenticate the request
+ * @param baseUrl - The Supermemory API base URL
  * @returns Promise that resolves to the SuperMemory profile search response
  * @throws {Error} When the API request fails or returns an error status
  *
  * @example
  * ```typescript
  * // Search with query
- * const results = await supermemoryProfileSearch("user-123", "favorite programming language", baseUrl, apiKey)
+ * const results = await supermemoryProfileSearch("user-123", "favorite programming language", apiKey, baseUrl)
  *
  * // Get all profile memories
- * const profile = await supermemoryProfileSearch("user-123", "", baseUrl, apiKey)
+ * const profile = await supermemoryProfileSearch("user-123", "", apiKey, baseUrl)
  * ```
  */
 const supermemoryProfileSearch = async (
 	containerTag: string,
 	queryText: string,
-	baseUrl: string,
 	apiKey: string,
+	baseUrl: string,
 ): Promise<SupermemoryProfileSearch> => {
 	const payload = queryText
 		? JSON.stringify({
 				q: queryText,
 				containerTag: containerTag,
+				include: ["static", "dynamic"],
 			})
 		: JSON.stringify({
 				containerTag: containerTag,
+				include: ["static", "dynamic"],
 			})
 
 	try {
@@ -114,6 +169,8 @@ const supermemoryProfileSearch = async (
 				Authorization: `Bearer ${apiKey}`,
 			},
 			body: payload,
+			redirect: "error",
+			signal: AbortSignal.timeout(PROFILE_REQUEST_TIMEOUT_MS),
 		})
 
 		if (!response.ok) {
@@ -143,8 +200,8 @@ const supermemoryProfileSearch = async (
  * @param containerTag - The container tag/identifier for memory search
  * @param logger - Logger instance for debugging and info output
  * @param mode - Memory search mode: "profile" (all memories), "query" (search-based), or "full" (both)
- * @param baseUrl - The Supermemory API base URL
  * @param apiKey - The Supermemory API key used to authenticate the request
+ * @param baseUrl - The Supermemory API base URL
  * @returns Promise that resolves to enhanced messages with memory-injected system prompt
  *
  * @example
@@ -158,8 +215,8 @@ const supermemoryProfileSearch = async (
  *   "user-123",
  *   logger,
  *   "full",
- *   baseUrl,
- *   apiKey
+ *   apiKey,
+ *   baseUrl
  * )
  * // Returns messages with system prompt containing relevant memories
  * ```
@@ -169,8 +226,8 @@ const addSystemPrompt = async (
 	containerTag: string,
 	logger: Logger,
 	mode: "profile" | "query" | "full",
-	baseUrl: string,
 	apiKey: string,
+	baseUrl: string,
 ) => {
 	const systemPromptExists = messages.some((msg) => msg.role === "system")
 
@@ -179,8 +236,8 @@ const addSystemPrompt = async (
 	const memoriesResponse = await supermemoryProfileSearch(
 		containerTag,
 		queryText,
-		baseUrl,
 		apiKey,
+		baseUrl,
 	)
 
 	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
@@ -339,27 +396,24 @@ const addMemoryTool = async (
 			const conversationId = customId.replace("conversation:", "")
 
 			// Convert OpenAI messages to conversation format
-			const conversationMessages = messages.map((msg) => ({
-				role: msg.role as "user" | "assistant" | "system" | "tool",
-				content:
-					typeof msg.content === "string"
-						? msg.content
-						: Array.isArray(msg.content)
-							? msg.content
-									.filter((c) => c.type === "text")
-									.map((c) => ({
-										type: "text" as const,
-										text: (c as { type: "text"; text: string }).text,
-									}))
-							: "",
-				...("name" in msg && msg.name && { name: msg.name }),
-				...("tool_calls" in msg &&
-					msg.tool_calls && { tool_calls: msg.tool_calls }),
-				...("tool_call_id" in msg &&
-					msg.tool_call_id && {
-						tool_call_id: msg.tool_call_id,
-					}),
-			}))
+			const conversationMessages: ConversationMessage[] = messages.map(
+				(msg) => ({
+					role:
+						msg.role === "developer"
+							? "system"
+							: msg.role === "function"
+								? "tool"
+								: msg.role,
+					content: convertConversationContent(msg.content),
+					...("name" in msg && msg.name && { name: msg.name }),
+					...("tool_calls" in msg &&
+						msg.tool_calls && { tool_calls: msg.tool_calls }),
+					...("tool_call_id" in msg &&
+						msg.tool_call_id && {
+							tool_call_id: msg.tool_call_id,
+						}),
+				}),
+			)
 
 			const response = await addConversation({
 				conversationId,
@@ -411,9 +465,9 @@ const addMemoryTool = async (
  * @param options.verbose - Enable detailed logging of memory operations (default: false)
  * @param options.mode - Memory search mode: "profile" (all memories), "query" (search-based), or "full" (both) (default: "profile")
  * @param options.addMemory - Automatic memory storage mode: "always" or "never" (default: "always")
- * @param options.apiKey - Supermemory API key to use instead of the SUPERMEMORY_API_KEY environment variable
+ * @param options.apiKey - Supermemory API key (falls back to SUPERMEMORY_API_KEY)
  * @returns Object with `wrapClient` and `createClient` methods
- * @throws {Error} When neither `options.apiKey` nor `process.env.SUPERMEMORY_API_KEY` are set
+ * @throws {Error} When neither options.apiKey nor SUPERMEMORY_API_KEY is set
  *
  * @example
  * ```typescript
@@ -432,8 +486,14 @@ export function createOpenAIMiddleware(
 	options?: OpenAIMiddlewareOptions,
 ) {
 	const logger = createLogger(options?.verbose ?? false)
+	const apiKey =
+		options?.apiKey?.trim() || process.env.SUPERMEMORY_API_KEY?.trim() || ""
+	if (!apiKey) {
+		throw new Error(
+			"SUPERMEMORY_API_KEY is not set — provide it via options.apiKey or set the environment variable",
+		)
+	}
 	const baseUrl = normalizeBaseUrl(options?.baseUrl)
-	const apiKey = validateApiKey(options?.apiKey)
 	const client = new Supermemory({
 		apiKey,
 		...(baseUrl !== "https://api.supermemory.ai" ? { baseURL: baseUrl } : {}),
@@ -469,8 +529,8 @@ export function createOpenAIMiddleware(
 		const memoriesResponse = await supermemoryProfileSearch(
 			containerTag,
 			queryText,
-			baseUrl,
 			apiKey,
+			baseUrl,
 		)
 
 		const memoryCountStatic = memoriesResponse.profile.static?.length || 0
@@ -535,8 +595,9 @@ export function createOpenAIMiddleware(
 		return memories
 	}
 
-	const createResponsesWithMemory = async (
+	const prepareResponsesWithMemory = async (
 		params: Parameters<typeof originalResponsesCreate>[0],
+		requestOptions?: OpenAI.RequestOptions,
 	) => {
 		if (!originalResponsesCreate) {
 			throw new Error(
@@ -548,7 +609,13 @@ export function createOpenAIMiddleware(
 
 		if (mode !== "profile" && !input) {
 			logger.debug("No input found for Responses API, skipping memory search")
-			return originalResponsesCreate.call(openaiClient.responses, params)
+			return {
+				request: originalResponsesCreate.call(
+					openaiClient.responses,
+					params,
+					requestOptions,
+				),
+			}
 		}
 
 		logger.info("Starting memory search for Responses API", {
@@ -586,22 +653,58 @@ export function createOpenAIMiddleware(
 			? `${params.instructions || ""}\n\n${memories}`.trim()
 			: params.instructions
 
-		return originalResponsesCreate.call(openaiClient.responses, {
-			...params,
-			instructions: enhancedInstructions,
-		})
+		return {
+			request: originalResponsesCreate.call(
+				openaiClient.responses,
+				{
+					...params,
+					instructions: enhancedInstructions,
+				},
+				requestOptions,
+			),
+		}
 	}
 
-	const createWithMemory = async (
+	const createResponsesWithMemory = (
+		params: Parameters<typeof originalResponsesCreate>[0],
+		requestOptions?: OpenAI.RequestOptions,
+	) => deferAPIPromise(() => prepareResponsesWithMemory(params, requestOptions))
+
+	const prepareCreateWithMemory = async (
 		params: OpenAI.Chat.Completions.ChatCompletionCreateParams,
+		requestOptions?: OpenAI.RequestOptions,
 	) => {
 		const messages = Array.isArray(params.messages) ? params.messages : []
+		const userMessage = getLastUserMessage(messages)
+		const hasUserMessage = messages.some((message) => message.role === "user")
+		const shouldPersist =
+			addMemory === "always" &&
+			(customId ? hasUserMessage : Boolean(userMessage.trim()))
+		const memoryContent = customId
+			? getConversationContent(messages)
+			: userMessage
+		const memoryCustomId = customId ? `conversation:${customId}` : undefined
 
-		if (mode !== "profile") {
-			const userMessage = getLastUserMessage(messages)
-			if (!userMessage) {
-				logger.debug("No user message found, skipping memory search")
-				return originalCreate.call(openaiClient.chat.completions, params)
+		if (mode !== "profile" && !userMessage) {
+			if (shouldPersist) {
+				await addMemoryTool(
+					client,
+					containerTag,
+					memoryContent,
+					memoryCustomId,
+					logger,
+					messages,
+					apiKey,
+					baseUrl,
+				)
+			}
+			logger.debug("No textual user message found, skipping memory search")
+			return {
+				request: originalCreate.call(
+					openaiClient.chat.completions,
+					params,
+					requestOptions,
+				),
 			}
 		}
 
@@ -613,41 +716,46 @@ export function createOpenAIMiddleware(
 
 		const operations: Promise<unknown>[] = []
 
-		if (addMemory === "always") {
-			const userMessage = getLastUserMessage(messages)
-			if (userMessage?.trim()) {
-				const content = customId
-					? getConversationContent(messages)
-					: userMessage
-				const memoryCustomId = customId ? `conversation:${customId}` : undefined
-
-				operations.push(
-					addMemoryTool(
-						client,
-						containerTag,
-						content,
-						memoryCustomId,
-						logger,
-						messages,
-						apiKey,
-						baseUrl,
-					),
-				)
-			}
+		if (shouldPersist) {
+			operations.push(
+				addMemoryTool(
+					client,
+					containerTag,
+					memoryContent,
+					memoryCustomId,
+					logger,
+					messages,
+					apiKey,
+					baseUrl,
+				),
+			)
 		}
 
 		operations.push(
-			addSystemPrompt(messages, containerTag, logger, mode, baseUrl, apiKey),
+			addSystemPrompt(messages, containerTag, logger, mode, apiKey, baseUrl),
 		)
 
 		const results = await Promise.all(operations)
-		const enhancedMessages = results[results.length - 1] // Enhanced messages result is always last
+		const enhancedMessages = results[
+			results.length - 1
+		] as OpenAI.Chat.Completions.ChatCompletionMessageParam[] // Enhanced messages result is always last
 
-		return originalCreate.call(openaiClient.chat.completions, {
-			...params,
-			messages: enhancedMessages,
-		})
+		return {
+			request: originalCreate.call(
+				openaiClient.chat.completions,
+				{
+					...params,
+					messages: enhancedMessages,
+				},
+				requestOptions,
+			),
+		}
 	}
+
+	const createWithMemory = (
+		params: OpenAI.Chat.Completions.ChatCompletionCreateParams,
+		requestOptions?: OpenAI.RequestOptions,
+	) => deferAPIPromise(() => prepareCreateWithMemory(params, requestOptions))
 
 	openaiClient.chat.completions.create =
 		createWithMemory as typeof originalCreate
