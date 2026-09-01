@@ -3,6 +3,11 @@ import {
 	type MiddlewareRuntimeConfig,
 	normalizeMiddlewareConfig,
 } from "./middleware-config"
+import {
+	type MemoryMode,
+	type MiddlewareFlavor,
+	reconstructSdkMemoryBlock,
+} from "./memory-dedupe"
 
 export interface MemoryDebugEntry {
 	type:
@@ -91,45 +96,6 @@ function summarizeProfile(profile: ContainerContext["profile"]) {
 	}
 }
 
-function selectProfileForMode(
-	profile: ContainerContext["profile"],
-	mode: "profile" | "query" | "full",
-): ContainerContext["profile"] {
-	return {
-		static: mode === "query" ? [] : profile.static,
-		dynamic: mode === "query" ? [] : profile.dynamic,
-		searchResults: mode === "profile" ? [] : profile.searchResults,
-	}
-}
-
-function buildContextPreview(
-	profile: ContainerContext["profile"],
-	mode: "profile" | "query" | "full",
-	query?: string,
-): string {
-	const lines: string[] = [`[memory mode: ${mode}]`]
-	if (query) lines.push(`[query: ${query}]`)
-	if (mode !== "query" && profile.static.length) {
-		lines.push("Static:")
-		for (const item of profile.static.slice(0, 8)) {
-			lines.push(`- ${memoryText(item)}`)
-		}
-	}
-	if (mode !== "query" && profile.dynamic.length) {
-		lines.push("Dynamic:")
-		for (const item of profile.dynamic.slice(0, 8)) {
-			lines.push(`- ${memoryText(item)}`)
-		}
-	}
-	if (mode !== "profile" && profile.searchResults.length) {
-		lines.push("Search results:")
-		for (const item of profile.searchResults.slice(0, 8)) {
-			lines.push(`- ${memoryText(item)}`)
-		}
-	}
-	return lines.join("\n")
-}
-
 function normalizeSearchResults(searchResults: unknown): unknown[] {
 	if (!searchResults) return []
 	if (Array.isArray(searchResults)) return searchResults
@@ -154,16 +120,18 @@ async function fetchProfileContext(
 	query?: string,
 	signal?: AbortSignal,
 ): Promise<ContainerContext["profile"]> {
-	const profileResponse = await client.profile(
-		{
+	const profileResponse = await client.post<{
+		profile?: { static?: unknown[]; dynamic?: unknown[] }
+		searchResults?: unknown
+	}>("/v4/profile", {
+		body: {
 			containerTag,
+			include: ["static", "dynamic"],
 			...(query ? { q: query } : {}),
 		},
-		{ signal },
-	)
-	const profileRaw = profileResponse.profile as
-		| { static?: unknown[]; dynamic?: unknown[] }
-		| undefined
+		...(signal ? { signal } : {}),
+	})
+	const profileRaw = profileResponse.profile
 
 	return {
 		static: profileRaw?.static ?? [],
@@ -223,10 +191,11 @@ export async function fetchContainerContext(
 export async function buildMiddlewareMemoryDebug(
 	containerTag: string,
 	conversationId: string,
-	memoryMode: "profile" | "query" | "full",
+	memoryMode: MemoryMode,
 	lastUserMessage: string,
-	middlewareConfig?: Partial<MiddlewareRuntimeConfig>,
-	aiSdkExtras?: {
+	middlewareConfig: Partial<MiddlewareRuntimeConfig> | undefined,
+	sdk: {
+		flavor: MiddlewareFlavor
 		includeToolCalls?: boolean
 		skipMemoryOnError?: boolean
 	},
@@ -246,7 +215,12 @@ export async function buildMiddlewareMemoryDebug(
 			query,
 			signal,
 		)
-		const selectedProfile = selectProfileForMode(profile, memoryMode)
+		const reconstructed = reconstructSdkMemoryBlock(
+			memoryMode,
+			profile,
+			sdk.flavor,
+		)
+		const selectedProfile = reconstructed.profile
 		const summary = summarizeProfile(selectedProfile)
 
 		return [
@@ -262,11 +236,11 @@ export async function buildMiddlewareMemoryDebug(
 					memoryMode,
 					addMemory: config.addMemory,
 					verbose: config.verbose,
-					...(aiSdkExtras?.includeToolCalls !== undefined
-						? { includeToolCalls: aiSdkExtras.includeToolCalls }
+					...(sdk.includeToolCalls !== undefined
+						? { includeToolCalls: sdk.includeToolCalls }
 						: {}),
-					...(aiSdkExtras?.skipMemoryOnError !== undefined
-						? { skipMemoryOnError: aiSdkExtras.skipMemoryOnError }
+					...(sdk.skipMemoryOnError !== undefined
+						? { skipMemoryOnError: sdk.skipMemoryOnError }
 						: {}),
 					query: query ?? null,
 					...summary,
@@ -274,8 +248,15 @@ export async function buildMiddlewareMemoryDebug(
 			},
 			{
 				type: "context_preview",
-				label: "Reconstructed context preview (not middleware capture)",
-				preview: buildContextPreview(selectedProfile, memoryMode, query),
+				label: "Reconstructed SDK-owned memory block (not middleware capture)",
+				preview: reconstructed.block,
+				detail: {
+					totalFacts:
+						summary.staticCount +
+						summary.dynamicCount +
+						summary.searchResultCount,
+					fullLength: reconstructed.block.length,
+				},
 			},
 			config.addMemory === "always"
 				? {
@@ -287,8 +268,8 @@ export async function buildMiddlewareMemoryDebug(
 							customId: conversationId,
 							addMemory: config.addMemory,
 							verbose: config.verbose,
-							...(aiSdkExtras?.includeToolCalls !== undefined
-								? { includeToolCalls: aiSdkExtras.includeToolCalls }
+							...(sdk.includeToolCalls !== undefined
+								? { includeToolCalls: sdk.includeToolCalls }
 								: {}),
 						},
 					}

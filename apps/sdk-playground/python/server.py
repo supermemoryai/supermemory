@@ -343,6 +343,8 @@ async def fetch_profile_context(
     container_tag: str,
     sm_key: str,
     query: Optional[str] = None,
+    *,
+    include: Optional[list[str]] = None,
 ) -> dict[str, list[Any]]:
     from supermemory import AsyncSupermemory
 
@@ -351,10 +353,12 @@ async def fetch_profile_context(
         base_url=supermemory_base_url(),
         timeout=HTTP_TIMEOUT_SECONDS,
     )
-    profile_response = await client.profile(
-        container_tag=container_tag,
-        **({"q": query} if query else {}),
-    )
+    request: dict[str, Any] = {"container_tag": container_tag}
+    if query:
+        request["q"] = query
+    if include is not None:
+        request["include"] = include
+    profile_response = await client.profile(**request)
     return extract_profile_context(profile_response)
 
 
@@ -530,6 +534,49 @@ async def fetch_container_context(
     }
 
 
+def reconstruct_python_sdk_memory_block(
+    memory_mode: str,
+    profile: dict[str, Any],
+) -> tuple[dict[str, list[str]], str]:
+    from supermemory_openai import convert_profile_to_markdown, deduplicate_memories
+    from supermemory_openai.utils import wrap_memory_context
+
+    deduplicated = deduplicate_memories(
+        static=profile.get("static", []) if memory_mode != "query" else [],
+        dynamic=profile.get("dynamic", []) if memory_mode != "query" else [],
+        search_results=profile.get("searchResults", []),
+    )
+    visible_profile = {
+        "static": deduplicated.static,
+        "dynamic": deduplicated.dynamic,
+        "searchResults": (
+            [] if memory_mode == "profile" else deduplicated.search_results
+        ),
+    }
+
+    profile_data = ""
+    if memory_mode != "query":
+        profile_data = convert_profile_to_markdown(
+            {
+                "profile": {
+                    "static": visible_profile["static"],
+                    "dynamic": visible_profile["dynamic"],
+                },
+                "searchResults": {"results": []},
+            }
+        )
+
+    search_results_memories = ""
+    if memory_mode != "profile" and visible_profile["searchResults"]:
+        search_results_memories = (
+            "Search results for user's recent message: \n"
+            + "\n".join(f"- {memory}" for memory in visible_profile["searchResults"])
+        )
+
+    memories = f"{profile_data}\n{search_results_memories}".strip()
+    return visible_profile, wrap_memory_context(memories)
+
+
 def build_middleware_memory_debug(
     container_tag: str,
     conversation_id: str,
@@ -549,39 +596,20 @@ def build_middleware_memory_debug(
             }
         )
     else:
-        profile = context["profile"]
-        preview_lines = [
-            f"[memory mode: {memory_mode}]",
-            "[post-response snapshot; not the exact middleware prompt]",
-        ]
-        if context.get("query"):
-            preview_lines.append(f"[query: {context['query']}]")
-
-        selected_sections: list[tuple[str, list[Any]]] = []
-        if memory_mode in ("profile", "full"):
-            selected_sections.extend(
-                (
-                    ("Static", profile.get("static", [])),
-                    ("Dynamic", profile.get("dynamic", [])),
-                )
-            )
-        if memory_mode in ("query", "full"):
-            selected_sections.append(
-                ("Search results", profile.get("searchResults", []))
-            )
-
-        for label, items in selected_sections:
-            if items:
-                preview_lines.append(f"{label}:")
-                for item in items[:8]:
-                    preview_lines.append(f"- {display_context_item(item)}")
+        raw_profile = context["profile"]
+        profile, memory_block = reconstruct_python_sdk_memory_block(
+            memory_mode,
+            raw_profile,
+        )
 
         debug.extend(
             (
                 {
                     "type": "profile_fetch",
-                    "label": "Post-response profile snapshot",
+                    "label": "Post-response context reconstruction",
                     "detail": {
+                        "authoritativeMiddlewareCapture": False,
+                        "timing": "after model response",
                         "endpoint": "POST /v4/profile",
                         "containerTag": container_tag,
                         "customId": conversation_id,
@@ -594,8 +622,19 @@ def build_middleware_memory_debug(
                 },
                 {
                     "type": "context_preview",
-                    "label": "Post-response context preview",
-                    "preview": "\n".join(preview_lines),
+                    "label": (
+                        "Reconstructed SDK-owned memory block "
+                        "(not middleware capture)"
+                    ),
+                    "preview": memory_block,
+                    "detail": {
+                        "totalFacts": (
+                            len(profile.get("static", []))
+                            + len(profile.get("dynamic", []))
+                            + len(profile.get("searchResults", []))
+                        ),
+                        "fullLength": len(memory_block),
+                    },
                 },
             )
         )
@@ -632,7 +671,12 @@ async def fetch_context_for_debug(
 ) -> tuple[Optional[dict[str, Any]], Optional[str]]:
     try:
         async with asyncio.timeout(CONTEXT_DEBUG_TIMEOUT_SECONDS):
-            profile = await fetch_profile_context(container_tag, sm_key, query)
+            profile = await fetch_profile_context(
+                container_tag,
+                sm_key,
+                query,
+                include=["static", "dynamic"],
+            )
             return (
                 {
                     "containerTag": container_tag,

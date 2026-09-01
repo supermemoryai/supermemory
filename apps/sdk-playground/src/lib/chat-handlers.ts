@@ -424,10 +424,11 @@ export async function runTypeScriptChat(
 			middlewareConfig,
 			request.sdkId === "ts-ai-sdk-middleware"
 				? {
+						flavor: "ai-sdk",
 						includeToolCalls: middlewareConfig.includeToolCalls,
 						skipMemoryOnError: middlewareConfig.skipMemoryOnError,
 					}
-				: undefined,
+				: { flavor: "openai" },
 			keys.supermemoryApiKey,
 			signal,
 		),
