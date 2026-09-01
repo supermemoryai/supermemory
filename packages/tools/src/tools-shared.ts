@@ -291,13 +291,17 @@ function hasCompleteContainerTagScope(
  * Memory item interface representing a single memory with optional metadata
  */
 export interface MemoryItem {
-	memory: string
-	metadata?: Record<string, unknown>
+	memory?: string
+	chunk?: string
+	metadata?: Record<string, unknown> | null
 }
 
 /**
- * Profile data structure containing memory items from different sources.
- * API may return either MemoryItem objects or plain strings.
+ * Profile data from `/v4/profile`.
+ *
+ * Current profile arrays contain plain strings and search results contain
+ * MemoryItem objects. Object profile entries and string search entries remain
+ * accepted for compatibility with older API responses and SDK fixtures.
  */
 export interface ProfileWithMemories {
 	static?: Array<MemoryItem | string>
@@ -314,6 +318,32 @@ export interface DeduplicatedMemories {
 	searchResults: string[]
 }
 
+/** Normalize exact fact variants without attempting semantic/fuzzy matching. */
+export function normalizeMemoryFact(memory: string): string {
+	return memory
+		.trim()
+		.replace(/^\[recent\]\s*/i, "")
+		.replace(/^\[\d{4}-\d{2}-\d{2}\]\s*/, "")
+		.trim()
+		.replace(/\s+/g, " ")
+		.toLowerCase()
+}
+
+/** Extract the first non-empty fact from current memory or chunk result shapes. */
+export function getMemoryText(item: MemoryItem | string): string | null {
+	if (typeof item === "string") {
+		const trimmed = item.trim()
+		return trimmed.length > 0 ? trimmed : null
+	}
+
+	for (const value of [item.memory, item.chunk]) {
+		if (typeof value !== "string") continue
+		const trimmed = value.trim()
+		if (trimmed) return trimmed
+	}
+	return null
+}
+
 /**
  * Deduplicates memory items across static, dynamic, and search result sources.
  * Priority: Static > Dynamic > Search Results
@@ -324,8 +354,8 @@ export interface DeduplicatedMemories {
  * @example
  * ```typescript
  * const deduplicated = deduplicateMemories({
- *   static: [{ memory: "User likes TypeScript" }],
- *   dynamic: [{ memory: "User likes TypeScript" }, { memory: "User works remotely" }],
+ *   static: ["User likes TypeScript"],
+ *   dynamic: ["User likes TypeScript", "User works remotely"],
  *   searchResults: [{ memory: "User prefers async/await" }]
  * });
  * // Returns:
@@ -343,46 +373,37 @@ export function deduplicateMemories(
 	const dynamicItems = data.dynamic ?? []
 	const searchItems = data.searchResults ?? []
 
-	const getMemoryString = (item: MemoryItem | string): string | null => {
-		if (!item) return null
-		// Handle both string format (from API) and object format
-		if (typeof item === "string") {
-			const trimmed = item.trim()
-			return trimmed.length > 0 ? trimmed : null
-		}
-		if (typeof item.memory !== "string") return null
-		const trimmed = item.memory.trim()
-		return trimmed.length > 0 ? trimmed : null
-	}
-
 	const staticMemories: string[] = []
 	const seenMemories = new Set<string>()
 
 	for (const item of staticItems as Array<MemoryItem | string>) {
-		const memory = getMemoryString(item)
-		if (memory !== null) {
+		const memory = getMemoryText(item)
+		const key = memory === null ? null : normalizeMemoryFact(memory)
+		if (memory !== null && key && !seenMemories.has(key)) {
 			staticMemories.push(memory)
-			seenMemories.add(memory)
+			seenMemories.add(key)
 		}
 	}
 
 	const dynamicMemories: string[] = []
 
 	for (const item of dynamicItems as Array<MemoryItem | string>) {
-		const memory = getMemoryString(item)
-		if (memory !== null && !seenMemories.has(memory)) {
+		const memory = getMemoryText(item)
+		const key = memory === null ? null : normalizeMemoryFact(memory)
+		if (memory !== null && key && !seenMemories.has(key)) {
 			dynamicMemories.push(memory)
-			seenMemories.add(memory)
+			seenMemories.add(key)
 		}
 	}
 
 	const searchMemories: string[] = []
 
 	for (const item of searchItems as Array<MemoryItem | string>) {
-		const memory = getMemoryString(item)
-		if (memory !== null && !seenMemories.has(memory)) {
+		const memory = getMemoryText(item)
+		const key = memory === null ? null : normalizeMemoryFact(memory)
+		if (memory !== null && key && !seenMemories.has(key)) {
 			searchMemories.push(memory)
-			seenMemories.add(memory)
+			seenMemories.add(key)
 		}
 	}
 

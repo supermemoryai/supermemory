@@ -5,7 +5,13 @@ import {
 	addConversation,
 	type ContentPart as ConversationContentPart,
 	type ConversationMessage,
+	toConversationImageUrl,
 } from "../conversations-client"
+import {
+	replaceMemoryContext,
+	stripMemoryContext,
+	wrapMemoryContext,
+} from "../shared"
 import { deduplicateMemoriesForMode } from "../tools-shared"
 import { createLogger, type Logger } from "../vercel/logger"
 import { convertProfileToMarkdown } from "../vercel/util"
@@ -32,6 +38,61 @@ const deferAPIPromise = <T>(
 		const { request } = await ready
 		return await request
 	})
+}
+
+export interface OpenAIMiddlewareOptions {
+	/** Container tag/identifier for memory search (e.g., user ID, project ID). Required. */
+	containerTag: string
+	/** Custom ID to group messages into a single document. Required. */
+	customId: string
+	verbose?: boolean
+	mode?: "profile" | "query" | "full"
+	addMemory?: "always" | "never"
+	/** Supermemory API key (falls back to SUPERMEMORY_API_KEY). */
+	apiKey?: string
+	baseUrl?: string
+}
+
+interface SupermemoryProfileSearchResult {
+	id: string
+	memory?: string
+	chunk?: string
+	metadata: Record<string, unknown> | null
+	updatedAt: string
+	similarity: number
+}
+
+interface SupermemoryProfileSearch {
+	profile: {
+		static?: string[]
+		dynamic?: string[]
+		buckets?: Record<string, string[]>
+	}
+	searchResults?: {
+		results: SupermemoryProfileSearchResult[]
+		total: number
+		timing: number
+	}
+}
+
+const extractTextContent = (content: unknown): string => {
+	if (typeof content === "string") return content.trim()
+	if (!Array.isArray(content)) return ""
+
+	return content
+		.flatMap((part) => {
+			if (!part || typeof part !== "object") return []
+			const { type, text } = part as { type?: unknown; text?: unknown }
+			if (
+				(type === "text" || type === "input_text") &&
+				typeof text === "string" &&
+				text.trim()
+			) {
+				return [text.trim()]
+			}
+			return []
+		})
+		.join("\n")
 }
 
 const convertConversationContent = (
@@ -64,27 +125,263 @@ const convertConversationContent = (
 	return converted
 }
 
-export interface OpenAIMiddlewareOptions {
-	/** Container tag/identifier for memory search (e.g., user ID, project ID). Required. */
-	containerTag: string
-	/** Custom ID to group messages into a single document. Required. */
-	customId: string
-	verbose?: boolean
-	mode?: "profile" | "query" | "full"
-	addMemory?: "always" | "never"
-	/** Supermemory API key (falls back to SUPERMEMORY_API_KEY). */
-	apiKey?: string
-	baseUrl?: string
+const convertChatConversationMessages = (
+	messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+): ConversationMessage[] => {
+	return messages.map((message) => ({
+		role:
+			message.role === "developer"
+				? "system"
+				: message.role === "function"
+					? "tool"
+					: message.role,
+		content: convertConversationContent(message.content),
+		...("name" in message && message.name && { name: message.name }),
+		...("tool_calls" in message &&
+			message.tool_calls && { tool_calls: message.tool_calls }),
+		...("tool_call_id" in message &&
+			message.tool_call_id && { tool_call_id: message.tool_call_id }),
+	}))
 }
 
-interface SupermemoryProfileSearch {
-	profile: {
-		static?: Array<{ memory: string; metadata?: Record<string, unknown> }>
-		dynamic?: Array<{ memory: string; metadata?: Record<string, unknown> }>
+const convertResponsesConversationMessages = (
+	input: unknown,
+): ConversationMessage[] => {
+	if (typeof input === "string") {
+		return input.trim() ? [{ role: "user", content: input }] : []
 	}
-	searchResults: {
-		results: Array<{ memory: string; metadata?: Record<string, unknown> }>
+	if (!Array.isArray(input)) return []
+
+	const messages: ConversationMessage[] = []
+	for (const item of input) {
+		if (!item || typeof item !== "object") continue
+		const structuredItem = item as {
+			type?: unknown
+			call_id?: unknown
+			name?: unknown
+			arguments?: unknown
+			output?: unknown
+		}
+		if (
+			structuredItem.type === "function_call" &&
+			typeof structuredItem.call_id === "string" &&
+			typeof structuredItem.name === "string" &&
+			typeof structuredItem.arguments === "string"
+		) {
+			messages.push({
+				role: "assistant",
+				content: "",
+				tool_calls: [
+					{
+						id: structuredItem.call_id,
+						type: "function",
+						function: {
+							name: structuredItem.name,
+							arguments: structuredItem.arguments,
+						},
+					},
+				],
+			})
+			continue
+		}
+		if (
+			structuredItem.type === "function_call_output" &&
+			typeof structuredItem.call_id === "string" &&
+			typeof structuredItem.output === "string"
+		) {
+			messages.push({
+				role: "tool",
+				content: structuredItem.output,
+				tool_call_id: structuredItem.call_id,
+			})
+			continue
+		}
+
+		const message = item as { role?: unknown; content?: unknown }
+		if (
+			message.role !== "user" &&
+			message.role !== "assistant" &&
+			message.role !== "system" &&
+			message.role !== "developer"
+		) {
+			continue
+		}
+
+		const role = message.role === "developer" ? "system" : message.role
+		if (typeof message.content === "string") {
+			if (message.content.trim())
+				messages.push({ role, content: message.content })
+			continue
+		}
+		if (!Array.isArray(message.content)) continue
+
+		const content: ConversationContentPart[] = []
+		for (const part of message.content) {
+			if (!part || typeof part !== "object") continue
+			const value = part as {
+				type?: unknown
+				text?: unknown
+				image_url?: unknown
+			}
+			if (
+				(value.type === "text" ||
+					value.type === "input_text" ||
+					value.type === "output_text") &&
+				typeof value.text === "string" &&
+				value.text
+			) {
+				content.push({ type: "text", text: value.text })
+			} else if (value.type === "input_image") {
+				const url = toConversationImageUrl(value.image_url)
+				if (url) content.push({ type: "image_url", imageUrl: { url } })
+			}
+		}
+
+		if (content.length > 0) messages.push({ role, content })
 	}
+
+	return messages
+}
+
+const hasPersistableUserConversationMessage = (
+	messages: ConversationMessage[],
+): boolean => {
+	return messages.some(
+		(message) =>
+			message.role === "user" &&
+			(typeof message.content === "string"
+				? Boolean(message.content.trim())
+				: message.content.length > 0),
+	)
+}
+
+const getLastResponsesUserInput = (input: unknown): string => {
+	if (typeof input === "string") return input.trim()
+	if (!Array.isArray(input)) return ""
+
+	for (let index = input.length - 1; index >= 0; index -= 1) {
+		const item = input[index]
+		if (!item || typeof item !== "object") continue
+		const message = item as { role?: unknown; content?: unknown }
+		if (message.role === "user") {
+			return extractTextContent(message.content)
+		}
+	}
+
+	return ""
+}
+
+const stripResponsesInputMemoryContexts = <T>(input: T): T => {
+	if (!Array.isArray(input)) return input
+
+	let inputChanged = false
+	const cleanedInput = input.map((item) => {
+		if (!item || typeof item !== "object") return item
+		const message = item as { role?: unknown; content?: unknown }
+		if (message.role !== "system" && message.role !== "developer") return item
+
+		if (typeof message.content === "string") {
+			const content = stripMemoryContext(message.content)
+			if (content === message.content) return item
+			inputChanged = true
+			return { ...item, content }
+		}
+
+		if (!Array.isArray(message.content)) return item
+		let contentChanged = false
+		const content = message.content.map((part) => {
+			if (!part || typeof part !== "object") return part
+			const textPart = part as { type?: unknown; text?: unknown }
+			if (
+				(textPart.type !== "text" && textPart.type !== "input_text") ||
+				typeof textPart.text !== "string"
+			) {
+				return part
+			}
+			const text = stripMemoryContext(textPart.text)
+			if (text === textPart.text) return part
+			contentChanged = true
+			return { ...part, text }
+		})
+
+		if (!contentChanged) return item
+		inputChanged = true
+		return { ...item, content }
+	})
+
+	return (inputChanged ? cleanedInput : input) as T
+}
+
+const getSearchResultMemories = (
+	results: SupermemoryProfileSearchResult[] | undefined,
+): string[] => {
+	return (results ?? []).flatMap((result) => {
+		for (const value of [result.memory, result.chunk]) {
+			if (typeof value === "string" && value.trim()) return [value.trim()]
+		}
+		return []
+	})
+}
+
+type ChatInstructionMessage =
+	| OpenAI.Chat.Completions.ChatCompletionDeveloperMessageParam
+	| OpenAI.Chat.Completions.ChatCompletionSystemMessageParam
+
+const isChatInstructionMessage = (
+	message: OpenAI.Chat.Completions.ChatCompletionMessageParam,
+): message is ChatInstructionMessage =>
+	message.role === "developer" || message.role === "system"
+
+const updateInstructionMessageMemoryContext = (
+	message: ChatInstructionMessage,
+	memories?: string,
+): ChatInstructionMessage => {
+	if (typeof message.content === "string") {
+		return {
+			...message,
+			content:
+				memories === undefined
+					? stripMemoryContext(message.content)
+					: replaceMemoryContext(message.content, memories),
+		}
+	}
+
+	let injected = false
+	const content = message.content.map((part) => {
+		if (memories !== undefined && !injected) {
+			injected = true
+			return { ...part, text: replaceMemoryContext(part.text, memories) }
+		}
+		return { ...part, text: stripMemoryContext(part.text) }
+	})
+
+	if (memories !== undefined && !injected) {
+		const memoryContext = wrapMemoryContext(memories)
+		if (memoryContext) content.push({ type: "text", text: memoryContext })
+	}
+
+	return { ...message, content }
+}
+
+const updateChatMemoryContexts = (
+	messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+	memories?: string,
+): OpenAI.Chat.Completions.ChatCompletionMessageParam[] => {
+	const developerIndex = messages.findIndex(
+		(message) => message.role === "developer",
+	)
+	const injectionIndex =
+		developerIndex >= 0
+			? developerIndex
+			: messages.findIndex((message) => message.role === "system")
+
+	return messages.map((message, index) => {
+		if (!isChatInstructionMessage(message)) return message
+		return updateInstructionMessageMemoryContext(
+			message,
+			memories !== undefined && index === injectionIndex ? memories : undefined,
+		)
+	})
 }
 
 /**
@@ -117,9 +414,7 @@ const getLastUserMessage = (
 		.reverse()
 		.find((msg) => msg.role === "user")
 
-	return typeof lastUserMessage?.content === "string"
-		? lastUserMessage.content
-		: ""
+	return extractTextContent(lastUserMessage?.content)
 }
 
 /**
@@ -229,7 +524,7 @@ const addSystemPrompt = async (
 	apiKey: string,
 	baseUrl: string,
 ) => {
-	const systemPromptExists = messages.some((msg) => msg.role === "system")
+	const instructionPromptExists = messages.some(isChatInstructionMessage)
 
 	const queryText = mode !== "profile" ? getLastUserMessage(messages) : ""
 
@@ -255,7 +550,9 @@ const addSystemPrompt = async (
 	const deduplicated = deduplicateMemoriesForMode(mode, {
 		static: memoriesResponse.profile.static,
 		dynamic: memoriesResponse.profile.dynamic,
-		searchResults: memoriesResponse.searchResults?.results,
+		searchResults: getSearchResultMemories(
+			memoriesResponse.searchResults?.results,
+		),
 	})
 
 	logger.debug("Memory deduplication completed for chat API", {
@@ -284,7 +581,7 @@ const addSystemPrompt = async (
 				})
 			: ""
 	const searchResultsMemories =
-		mode !== "profile"
+		mode !== "profile" && deduplicated.searchResults.length > 0
 			? `Search results for user's recent message: \n${deduplicated.searchResults
 					.map((memory) => `- ${memory}`)
 					.join("\n")}`
@@ -299,19 +596,18 @@ const addSystemPrompt = async (
 		})
 	}
 
-	if (systemPromptExists) {
-		logger.debug("Added memories to existing system prompt")
-		return messages.map((msg) =>
-			msg.role === "system"
-				? { ...msg, content: `${msg.content} \n ${memories}` }
-				: msg,
-		)
+	if (instructionPromptExists) {
+		logger.debug("Replaced Supermemory context in existing instruction prompt")
+		return updateChatMemoryContexts(messages, memories)
 	}
 
 	logger.debug(
 		"System prompt does not exist, created system prompt with memories",
 	)
-	return [{ role: "system" as const, content: memories }, ...messages]
+	const memoryContext = wrapMemoryContext(memories)
+	return memoryContext
+		? [{ role: "system" as const, content: memoryContext }, ...messages]
+		: messages
 }
 
 /**
@@ -342,7 +638,7 @@ const getConversationContent = (
 	return messages
 		.map((msg) => {
 			const role = msg.role === "user" ? "User" : "Assistant"
-			const content = typeof msg.content === "string" ? msg.content : ""
+			const content = extractTextContent(msg.content)
 			return `${role}: ${content}`
 		})
 		.join("\n\n")
@@ -362,7 +658,7 @@ const getConversationContent = (
  * @param content - The content to save as a memory (used for fallback)
  * @param customId - Optional custom ID for the memory (e.g., conversation:456)
  * @param logger - Logger instance for debugging and info output
- * @param messages - Optional OpenAI messages array (for conversation endpoint)
+ * @param conversationMessages - Optional normalized messages (for conversation endpoint)
  * @param apiKey - API key for direct conversation endpoint calls
  * @param baseUrl - Base URL for API calls
  * @returns Promise that resolves when memory is saved (or fails silently)
@@ -387,33 +683,13 @@ const addMemoryTool = async (
 	content: string,
 	customId: string | undefined,
 	logger: Logger,
-	messages?: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+	conversationMessages?: ConversationMessage[],
 	apiKey?: string,
 	baseUrl?: string,
 ): Promise<void> => {
 	try {
-		if (customId && messages && apiKey) {
+		if (customId && conversationMessages && apiKey) {
 			const conversationId = customId.replace("conversation:", "")
-
-			// Convert OpenAI messages to conversation format
-			const conversationMessages: ConversationMessage[] = messages.map(
-				(msg) => ({
-					role:
-						msg.role === "developer"
-							? "system"
-							: msg.role === "function"
-								? "tool"
-								: msg.role,
-					content: convertConversationContent(msg.content),
-					...("name" in msg && msg.name && { name: msg.name }),
-					...("tool_calls" in msg &&
-						msg.tool_calls && { tool_calls: msg.tool_calls }),
-					...("tool_call_id" in msg &&
-						msg.tool_call_id && {
-							tool_call_id: msg.tool_call_id,
-						}),
-				}),
-			)
 
 			const response = await addConversation({
 				conversationId,
@@ -426,7 +702,7 @@ const addMemoryTool = async (
 			logger.info("Conversation saved successfully via /v4/conversations", {
 				containerTag,
 				customId,
-				messageCount: messages.length,
+				messageCount: conversationMessages.length,
 				responseId: response.id,
 			})
 			return
@@ -548,7 +824,9 @@ export function createOpenAIMiddleware(
 		const deduplicated = deduplicateMemoriesForMode(mode, {
 			static: memoriesResponse.profile.static,
 			dynamic: memoriesResponse.profile.dynamic,
-			searchResults: memoriesResponse.searchResults?.results,
+			searchResults: getSearchResultMemories(
+				memoriesResponse.searchResults?.results,
+			),
 		})
 
 		logger.debug(`Memory deduplication completed for ${context} API`, {
@@ -577,7 +855,7 @@ export function createOpenAIMiddleware(
 					})
 				: ""
 		const searchResultsMemories =
-			mode !== "profile"
+			mode !== "profile" && deduplicated.searchResults.length > 0
 				? `Search results for user's ${context === "chat" ? "recent message" : "input"}: \n${deduplicated.searchResults
 						.map((memory) => `- ${memory}`)
 						.join("\n")}`
@@ -605,14 +883,45 @@ export function createOpenAIMiddleware(
 			)
 		}
 
-		const input = typeof params.input === "string" ? params.input : ""
+		const input = getLastResponsesUserInput(params.input)
+		const cleanedInput = stripResponsesInputMemoryContexts(params.input)
+		const conversationMessages =
+			convertResponsesConversationMessages(cleanedInput)
+		const shouldPersist =
+			addMemory === "always" &&
+			(customId
+				? hasPersistableUserConversationMessage(conversationMessages)
+				: Boolean(input.trim()))
+		const memoryCustomId = customId ? `conversation:${customId}` : undefined
+
+		const persistResponsesInput = () =>
+			addMemoryTool(
+				client,
+				containerTag,
+				input,
+				memoryCustomId,
+				logger,
+				conversationMessages,
+				apiKey,
+				baseUrl,
+			)
 
 		if (mode !== "profile" && !input) {
-			logger.debug("No input found for Responses API, skipping memory search")
+			if (shouldPersist) await persistResponsesInput()
+			logger.debug(
+				"No textual user input found for Responses API, skipping memory search",
+			)
+			const cleanedParams = {
+				...params,
+				input: cleanedInput,
+				...(typeof params.instructions === "string"
+					? { instructions: stripMemoryContext(params.instructions) }
+					: {}),
+			}
 			return {
 				request: originalResponsesCreate.call(
 					openaiClient.responses,
-					params,
+					cleanedParams,
 					requestOptions,
 				),
 			}
@@ -626,14 +935,7 @@ export function createOpenAIMiddleware(
 
 		const operations: Promise<unknown>[] = []
 
-		if (addMemory === "always" && input?.trim()) {
-			const content = customId ? `Input: ${input}` : input
-			const memoryCustomId = customId ? `conversation:${customId}` : undefined
-
-			operations.push(
-				addMemoryTool(client, containerTag, content, memoryCustomId, logger),
-			)
-		}
+		if (shouldPersist) operations.push(persistResponsesInput())
 
 		const queryText = mode !== "profile" ? input : ""
 		operations.push(
@@ -646,18 +948,34 @@ export function createOpenAIMiddleware(
 			),
 		)
 
-		const results = await Promise.all(operations)
-		const memories = results[results.length - 1] // Memory search result is always last
+		let enhancedInstructions: string
+		try {
+			const results = await Promise.all(operations)
+			const memories = results[results.length - 1] // Memory search result is always last
 
-		const enhancedInstructions = memories
-			? `${params.instructions || ""}\n\n${memories}`.trim()
-			: params.instructions
+			enhancedInstructions = replaceMemoryContext(
+				params.instructions || "",
+				typeof memories === "string" ? memories : "",
+			)
+		} catch (error) {
+			logger.warn(
+				"Memory search failed for Responses API; continuing without stale Supermemory context",
+				{
+					error: error instanceof Error ? error.message : "Unknown error",
+				},
+			)
+			enhancedInstructions =
+				typeof params.instructions === "string"
+					? stripMemoryContext(params.instructions)
+					: ""
+		}
 
 		return {
 			request: originalResponsesCreate.call(
 				openaiClient.responses,
 				{
 					...params,
+					input: cleanedInput,
 					instructions: enhancedInstructions,
 				},
 				requestOptions,
@@ -676,10 +994,14 @@ export function createOpenAIMiddleware(
 	) => {
 		const messages = Array.isArray(params.messages) ? params.messages : []
 		const userMessage = getLastUserMessage(messages)
-		const hasUserMessage = messages.some((message) => message.role === "user")
+		const conversationMessages = convertChatConversationMessages(
+			updateChatMemoryContexts(messages),
+		)
 		const shouldPersist =
 			addMemory === "always" &&
-			(customId ? hasUserMessage : Boolean(userMessage.trim()))
+			(customId
+				? hasPersistableUserConversationMessage(conversationMessages)
+				: Boolean(userMessage.trim()))
 		const memoryContent = customId
 			? getConversationContent(messages)
 			: userMessage
@@ -693,7 +1015,7 @@ export function createOpenAIMiddleware(
 					memoryContent,
 					memoryCustomId,
 					logger,
-					messages,
+					conversationMessages,
 					apiKey,
 					baseUrl,
 				)
@@ -702,7 +1024,10 @@ export function createOpenAIMiddleware(
 			return {
 				request: originalCreate.call(
 					openaiClient.chat.completions,
-					params,
+					{
+						...params,
+						messages: updateChatMemoryContexts(messages),
+					},
 					requestOptions,
 				),
 			}
@@ -724,7 +1049,7 @@ export function createOpenAIMiddleware(
 					memoryContent,
 					memoryCustomId,
 					logger,
-					messages,
+					conversationMessages,
 					apiKey,
 					baseUrl,
 				),
@@ -735,10 +1060,21 @@ export function createOpenAIMiddleware(
 			addSystemPrompt(messages, containerTag, logger, mode, apiKey, baseUrl),
 		)
 
-		const results = await Promise.all(operations)
-		const enhancedMessages = results[
-			results.length - 1
-		] as OpenAI.Chat.Completions.ChatCompletionMessageParam[] // Enhanced messages result is always last
+		let enhancedMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]
+		try {
+			const results = await Promise.all(operations)
+			enhancedMessages = results[
+				results.length - 1
+			] as OpenAI.Chat.Completions.ChatCompletionMessageParam[] // Enhanced messages result is always last
+		} catch (error) {
+			logger.warn(
+				"Memory search failed for Chat Completions API; continuing without stale Supermemory context",
+				{
+					error: error instanceof Error ? error.message : "Unknown error",
+				},
+			)
+			enhancedMessages = updateChatMemoryContexts(messages)
+		}
 
 		return {
 			request: originalCreate.call(

@@ -87,6 +87,23 @@ describe("deduplicateMemoriesForMode", () => {
 		expect(deduplicated.searchResults).toEqual(["User likes TypeScript"])
 	})
 
+	it("deduplicates normalized fact variants within and across sources", () => {
+		const deduplicated = deduplicateMemoriesForMode("full", {
+			static: [
+				{ memory: "User likes TypeScript" },
+				{ memory: "  user likes typescript  " },
+			],
+			dynamic: [{ memory: "[2026-08-10] USER LIKES TYPESCRIPT" }],
+			searchResults: [{ memory: "User prefers async/await" }],
+		})
+
+		expect(deduplicated).toEqual({
+			static: ["User likes TypeScript"],
+			dynamic: [],
+			searchResults: ["User prefers async/await"],
+		})
+	})
+
 	it("deduplicates search results against the profile in full mode", () => {
 		const deduplicated = deduplicateMemoriesForMode("full", {
 			static: [{ memory: "User is allergic to peanuts" }],

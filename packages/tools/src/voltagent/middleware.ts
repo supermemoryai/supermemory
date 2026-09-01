@@ -16,10 +16,22 @@ import {
 	normalizeBaseUrl,
 	MemoryCache,
 	buildMemoriesText,
+	convertProfileToMarkdown,
+	defaultPromptTemplate,
 	extractQueryText,
+	replaceMemoryContext,
+	stripMemoryContext,
+	supermemoryProfileSearch,
+	wrapMemoryContext,
 	type Logger,
 	type MemoryMode,
+	type PromptTemplate,
 } from "../shared"
+import {
+	deduplicateMemoriesForMode,
+	getMemoryText,
+	normalizeMemoryFact,
+} from "../tools-shared"
 import type {
 	SearchFilters,
 	SupermemoryVoltAgent,
@@ -38,11 +50,7 @@ export interface SupermemoryMiddlewareContext {
 	addMemory: "always" | "never"
 	normalizedBaseUrl: string
 	apiKey: string
-	promptTemplate?: (data: {
-		userMemories: string
-		generalSearchMemories: string
-		searchResults: Array<{ memory: string; metadata?: Record<string, unknown> }>
-	}) => string
+	promptTemplate?: PromptTemplate
 	/**
 	 * Per-turn memory cache. Stores the injected memories string for each
 	 * user turn (keyed by turnKey) to avoid redundant API calls.
@@ -176,12 +184,6 @@ const isNewUserTurn = (messages: VoltAgentMessage[]): boolean => {
 	return lastMessage?.role === "user"
 }
 
-type VoltAgentContentPart = {
-	type: string
-	text?: string
-	[key: string]: unknown
-}
-
 const getMessageContent = (
 	message: VoltAgentMessage,
 ): string | VoltAgentContentPart[] => {
@@ -240,7 +242,7 @@ export const enhanceMessagesWithMemories = async (
 
 	if (ctx.mode !== "profile" && !userMessage) {
 		ctx.logger.debug("No user message found, skipping memory search")
-		return messagesToEnhance
+		return injectMemoriesIntoMessages(messagesToEnhance, "", ctx.logger)
 	}
 
 	const turnKey = makeTurnKey(ctx, userMessage || "")
@@ -288,55 +290,95 @@ export const enhanceMessagesWithMemories = async (
 		)
 	}
 
-	let memories: string
+	const memories = await (async (): Promise<string> => {
+		if (useAdvancedSearch && ctx.mode !== "profile") {
+			ctx.logger.info("Using advanced search with custom parameters")
 
-	if (useAdvancedSearch && ctx.mode !== "profile") {
-		ctx.logger.info("Using advanced search with custom parameters")
-
-		const searchParams: Supermemory.SearchParams = {
-			q: queryText,
-			containerTag: ctx.containerTag,
-		}
-
-		if (ctx.threshold !== undefined) searchParams.threshold = ctx.threshold
-		if (ctx.limit !== undefined) searchParams.limit = ctx.limit
-		if (ctx.rerank !== undefined) searchParams.rerank = ctx.rerank
-		if (ctx.rewriteQuery !== undefined)
-			searchParams.rewriteQuery = ctx.rewriteQuery
-		if (ctx.filters !== undefined) searchParams.filters = ctx.filters
-		if (ctx.include !== undefined) searchParams.include = ctx.include
-		if (ctx.searchMode !== undefined) searchParams.searchMode = ctx.searchMode
-
-		const response = await ctx.client.search(searchParams)
-
-		// Hybrid search returns both memory entries (`memory` field) and
-		// document chunks (`chunk` field). Normalize both for prompt templates.
-		const searchResults = response.results.flatMap((result) => {
-			const memory = result.memory ?? result.chunk
-			if (!memory) {
-				return []
+			const searchParams: Supermemory.SearchParams = {
+				q: queryText,
+				containerTag: ctx.containerTag,
 			}
 
-			return [
-				{
-					memory,
-					...(result.metadata ? { metadata: result.metadata } : {}),
-				},
-			]
-		})
-		const formattedMemories = searchResults
-			.map((result) => `- ${result.memory}`)
-			.join("\n")
+			if (ctx.threshold !== undefined) searchParams.threshold = ctx.threshold
+			if (ctx.limit !== undefined) searchParams.limit = ctx.limit
+			if (ctx.rerank !== undefined) searchParams.rerank = ctx.rerank
+			if (ctx.rewriteQuery !== undefined)
+				searchParams.rewriteQuery = ctx.rewriteQuery
+			if (ctx.filters !== undefined) searchParams.filters = ctx.filters
+			if (ctx.include !== undefined) searchParams.include = ctx.include
+			if (ctx.searchMode !== undefined) searchParams.searchMode = ctx.searchMode
 
-		memories = ctx.promptTemplate
-			? ctx.promptTemplate({
-					userMemories: "",
-					generalSearchMemories: formattedMemories,
-					searchResults,
+			const [response, profileResponse] = await Promise.all([
+				ctx.client.search(searchParams),
+				ctx.mode === "full"
+					? supermemoryProfileSearch(
+							ctx.containerTag,
+							"",
+							ctx.normalizedBaseUrl,
+							ctx.apiKey,
+						)
+					: Promise.resolve(undefined),
+			])
+
+			// Hybrid search returns both memory entries (`memory` field) and
+			// document chunks (`chunk` field). Normalize both for prompt templates.
+			const searchResults = response.results.flatMap((result) => {
+				const memory = getMemoryText(result)
+				if (!memory) {
+					return []
+				}
+
+				return [{ ...result, memory }]
+			})
+			const deduplicated = deduplicateMemoriesForMode(ctx.mode, {
+				static: profileResponse?.profile.static,
+				dynamic: profileResponse?.profile.dynamic,
+				searchResults,
+			})
+			const searchResultByKey = new Map<
+				string,
+				(typeof searchResults)[number]
+			>()
+			for (const result of searchResults) {
+				const key = normalizeMemoryFact(result.memory)
+				if (!searchResultByKey.has(key)) {
+					searchResultByKey.set(key, result)
+				}
+			}
+			const deduplicatedSearchResults = deduplicated.searchResults
+				.map((memory) => {
+					const original = searchResultByKey.get(normalizeMemoryFact(memory))
+					return original ? { ...original, memory } : undefined
 				})
-			: `The following are relevant memories and context about this user retrieved from previous interactions. Use these to personalize your response:\n\n${formattedMemories}`
-	} else {
-		memories = await buildMemoriesText({
+				.filter((result) => result !== undefined)
+			const userMemories = convertProfileToMarkdown({
+				profile: {
+					static: deduplicated.static,
+					dynamic: deduplicated.dynamic,
+				},
+				searchResults: { results: [] },
+			})
+			const generalSearchMemories =
+				deduplicated.searchResults.length > 0
+					? `Search results for user's recent message: \n${deduplicated.searchResults
+							.map((memory) => `- ${memory}`)
+							.join("\n")}`
+					: ""
+
+			ctx.logger.debug("Advanced memory deduplication completed", {
+				profileStatic: deduplicated.static.length,
+				profileDynamic: deduplicated.dynamic.length,
+				searchResults: deduplicated.searchResults.length,
+			})
+
+			return (ctx.promptTemplate ?? defaultPromptTemplate)({
+				userMemories,
+				generalSearchMemories,
+				searchResults: deduplicatedSearchResults,
+			})
+		}
+
+		return await buildMemoriesText({
 			containerTag: ctx.containerTag,
 			queryText,
 			mode: ctx.mode,
@@ -345,7 +387,12 @@ export const enhanceMessagesWithMemories = async (
 			logger: ctx.logger,
 			promptTemplate: ctx.promptTemplate,
 		})
-	}
+	})().catch((error) => {
+		ctx.logger.error("Error fetching memories", {
+			error: error instanceof Error ? error.message : "Unknown error",
+		})
+		return ""
+	})
 
 	ctx.memoryCache.set(turnKey, memories)
 	ctx.logger.debug("Cached memories for turn", { turnKey })
@@ -357,56 +404,117 @@ export const enhanceMessagesWithMemories = async (
  * Injects memories into messages by appending to existing system prompt
  * or creating a new one. Pure function - does not mutate the original messages.
  *
- * VoltAgent uses AI SDK v5's UIMessage format which requires `id` and `parts`
+ * VoltAgent uses AI SDK v6's UIMessage format which requires `id` and `parts`
  * (not just `content`). We must conform to this format for messages to
  * actually reach the LLM.
  */
+type VoltAgentContentPart = {
+	type: string
+	text?: string
+	[key: string]: unknown
+}
+
+const replaceMemoryContextInParts = (
+	parts: VoltAgentContentPart[],
+	memories: string,
+	shouldInject: boolean,
+	fallbackText = "",
+): VoltAgentContentPart[] => {
+	let injected = false
+	const updatedParts = parts.map((part) => {
+		if (part.type !== "text" || typeof part.text !== "string") {
+			return part
+		}
+
+		const text =
+			shouldInject && !injected
+				? replaceMemoryContext(part.text, memories)
+				: stripMemoryContext(part.text)
+		injected = injected || shouldInject
+		return { ...part, text }
+	})
+
+	if (shouldInject && !injected) {
+		const text = fallbackText
+			? replaceMemoryContext(fallbackText, memories)
+			: wrapMemoryContext(memories)
+		if (text) {
+			return [{ type: "text", text }, ...updatedParts]
+		}
+	}
+
+	return updatedParts
+}
+
+const updateSystemMessage = (
+	message: VoltAgentMessage,
+	memories: string,
+	shouldInject: boolean,
+): VoltAgentMessage => {
+	const content = message.content
+	const nextContent =
+		typeof content === "string"
+			? shouldInject
+				? replaceMemoryContext(content, memories)
+				: stripMemoryContext(content)
+			: Array.isArray(content)
+				? replaceMemoryContextInParts(content, memories, shouldInject)
+				: undefined
+	const contentText =
+		typeof nextContent === "string"
+			? nextContent
+			: (nextContent ?? [])
+					.filter(
+						(part) => part.type === "text" && typeof part.text === "string",
+					)
+					.map((part) => part.text || "")
+					.join("\n")
+	const parts = message.parts
+	const nextParts = Array.isArray(parts)
+		? replaceMemoryContextInParts(parts, memories, shouldInject, contentText)
+		: shouldInject
+			? contentText || wrapMemoryContext(memories)
+				? [
+						{
+							type: "text",
+							text: contentText || wrapMemoryContext(memories),
+						},
+					]
+				: []
+			: undefined
+
+	return {
+		...message,
+		...(Object.hasOwn(message, "content") ? { content: nextContent } : {}),
+		...(Array.isArray(parts) || nextParts ? { parts: nextParts ?? [] } : {}),
+	}
+}
+
 const injectMemoriesIntoMessages = (
 	messages: VoltAgentMessage[],
 	memories: string,
 	logger: Logger,
 ): VoltAgentMessage[] => {
-	const systemMessageIndex = messages.findIndex((msg) => msg.role === "system")
-
-	if (systemMessageIndex !== -1) {
-		logger.debug("Added memories to existing system message")
-		const newMessages = [...messages]
-		const systemMessage = newMessages[systemMessageIndex]
-		if (!systemMessage) {
-			return messages
-		}
-
-		// Extract existing text from parts (UIMessage format) or content fallback
-		const parts = (
-			systemMessage as { parts?: Array<{ type: string; text?: string }> }
-		).parts
-		const existingContent = parts
-			? parts
-					.filter((p) => p.type === "text")
-					.map((p) => p.text || "")
-					.join("\n")
-			: typeof systemMessage.content === "string"
-				? systemMessage.content
-				: ""
-
-		const newContent = `${existingContent}\n\n${memories}`
-
-		newMessages[systemMessageIndex] = {
-			...systemMessage,
-			content: newContent,
-			// Update parts array to match - this is what the LLM actually reads
-			parts: [{ type: "text", text: newContent }],
-		} as VoltAgentMessage
-		return newMessages
+	if (messages.some((msg) => msg.role === "system")) {
+		logger.debug("Replaced Supermemory context in existing system message")
+		let injected = false
+		return messages.map((message) => {
+			if (message.role !== "system") return message
+			const updated = updateSystemMessage(message, memories, !injected)
+			injected = true
+			return updated
+		})
 	}
 
 	logger.debug("Created system message with memories")
+	const memoryContext = wrapMemoryContext(memories)
+	if (!memoryContext) return messages
 	return [
 		{
 			id: crypto.randomUUID(),
 			role: "system" as const,
-			content: memories,
-			parts: [{ type: "text", text: memories }],
+			content: memoryContext,
+			parts: [{ type: "text", text: memoryContext }],
 		} as VoltAgentMessage,
 		...messages,
 	]
@@ -432,7 +540,9 @@ const convertToConversationMessages = (
 				typeof mediaType === "string" && mediaType.startsWith("image/")
 					? toConversationImageUrl(part.url ?? part.data, mediaType)
 					: null
-			if (url) return { type: "image_url", imageUrl: { url } }
+			if (url) {
+				return { type: "image_url", imageUrl: { url } }
+			}
 		}
 
 		if (part.type === "image") {

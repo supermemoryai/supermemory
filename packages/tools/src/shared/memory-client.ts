@@ -1,4 +1,8 @@
-import { deduplicateMemoriesForMode } from "../tools-shared"
+import {
+	deduplicateMemoriesForMode,
+	getMemoryText,
+	normalizeMemoryFact,
+} from "../tools-shared"
 import type {
 	Logger,
 	MemoryMode,
@@ -121,10 +125,11 @@ export const buildMemoriesText = async (
 		mode,
 	})
 
+	const rawSearchResults = memoriesResponse.searchResults?.results ?? []
 	const deduplicated = deduplicateMemoriesForMode(mode, {
 		static: memoriesResponse.profile.static,
 		dynamic: memoriesResponse.profile.dynamic,
-		searchResults: memoriesResponse.searchResults?.results,
+		searchResults: rawSearchResults,
 	})
 
 	logger.debug("Memory deduplication completed", {
@@ -153,16 +158,28 @@ export const buildMemoriesText = async (
 				})
 			: ""
 	const generalSearchMemories =
-		mode !== "profile"
+		mode !== "profile" && deduplicated.searchResults.length > 0
 			? `Search results for user's recent message: \n${deduplicated.searchResults
 					.map((memory) => `- ${memory}`)
 					.join("\n")}`
 			: ""
+	const visibleSearchKeys = new Set(
+		deduplicated.searchResults.map(normalizeMemoryFact),
+	)
+	const seenSearchKeys = new Set<string>()
+	const deduplicatedSearchResults = rawSearchResults.flatMap((result) => {
+		const memory = getMemoryText(result)
+		if (!memory) return []
+		const key = normalizeMemoryFact(memory)
+		if (!visibleSearchKeys.has(key) || seenSearchKeys.has(key)) return []
+		seenSearchKeys.add(key)
+		return [{ ...result, memory }]
+	})
 
 	const promptData: MemoryPromptData = {
 		userMemories,
 		generalSearchMemories,
-		searchResults: memoriesResponse.searchResults?.results ?? [],
+		searchResults: deduplicatedSearchResults,
 	}
 
 	const memories = promptTemplate(promptData)

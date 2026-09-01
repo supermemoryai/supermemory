@@ -11,6 +11,7 @@ import {
 	saveMemoryAfterResponse,
 } from "./middleware"
 import type { PromptTemplate, MemoryPromptData } from "./memory-prompt"
+import { injectMemoriesIntoParams } from "./memory-prompt"
 
 const DEFAULT_MEMORY_RETRIEVAL_TIMEOUT_MS = 5000
 
@@ -166,7 +167,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 											: "Unknown error",
 								},
 							)
-							modelParams = params
+							modelParams = injectMemoriesIntoParams(params, "", ctx.logger)
 						} else {
 							ctx.logger.error("Error during memory retrieval for generation", {
 								error:
@@ -230,7 +231,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 											: "Unknown error",
 								},
 							)
-							modelParams = params
+							modelParams = injectMemoriesIntoParams(params, "", ctx.logger)
 						} else {
 							ctx.logger.error("Error during memory retrieval for stream", {
 								error:

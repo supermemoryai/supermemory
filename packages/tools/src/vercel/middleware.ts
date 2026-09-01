@@ -321,8 +321,10 @@ export const transformParamsWithMemory = async (
 
 	if (ctx.mode !== "profile") {
 		if (!userMessage) {
-			ctx.logger.debug("No user message found, skipping memory search")
-			return params
+			ctx.logger.debug(
+				"No user message found, skipping memory search and clearing stale context",
+			)
+			return injectMemoriesIntoParams(params, "", ctx.logger)
 		}
 	}
 
