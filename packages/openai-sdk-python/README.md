@@ -229,6 +229,17 @@ openai_with_memory = with_supermemory(
 
 ## Manual Memory Tools
 
+`SupermemoryTools` exposes seven OpenAI function-calling tools:
+
+- `search_memories` and `add_memory`
+- `get_profile`
+- `document_list`, `document_add`, and `document_delete`
+- `memory_forget`
+
+The configured `project_id` or `container_tags` define the trusted scope. The
+primary tag is used for profile, list, search, and forget operations, and the
+model cannot select a different tag.
+
 ### SupermemoryTools Class
 
 ```python
@@ -253,9 +264,21 @@ result = await tools.add_memory(
     memory="User prefers tea over coffee"
 )
 
-# Fetch specific memory
-result = await tools.fetch_memory(
-    memory_id="memory-id-here"
+# Get the configured user's profile
+result = await tools.get_profile(query="favorite drinks")
+
+# List, add, or delete source documents
+documents = await tools.document_list(limit=10, page=1)
+document = await tools.document_add(
+    content="Meeting notes...",
+    title="Weekly meeting"
+)
+deleted = await tools.document_delete(document_id="document-id-here")
+
+# Soft-forget one extracted memory
+forgotten = await tools.memory_forget(
+    memory_id="memory-entry-id-here",
+    reason="outdated"
 )
 ```
 
@@ -269,12 +292,20 @@ It is no longer exposed in the OpenAI tool schema.
 from supermemory_openai import (
     create_search_memories_tool,
     create_add_memory_tool,
-    create_fetch_memory_tool
+    create_get_profile_tool,
+    create_document_list_tool,
+    create_document_delete_tool,
+    create_document_add_tool,
+    create_memory_forget_tool,
 )
 
 search_tool = create_search_memories_tool("your-api-key")
 add_tool = create_add_memory_tool("your-api-key")
-fetch_tool = create_fetch_memory_tool("your-api-key")
+profile_tool = create_get_profile_tool("your-api-key")
+list_tool = create_document_list_tool("your-api-key")
+delete_tool = create_document_delete_tool("your-api-key")
+document_add_tool = create_document_add_tool("your-api-key")
+forget_tool = create_memory_forget_tool("your-api-key")
 ```
 
 ### Function Calling Integration
@@ -346,6 +377,11 @@ SupermemoryTools(
 - `get_tool_definitions()` - Get OpenAI function definitions
 - `search_memories()` - Search user memories
 - `add_memory()` - Add new memory
+- `get_profile()` - Get the configured user's profile
+- `document_list()` - List source document metadata
+- `document_add()` - Queue a source document for processing
+- `document_delete()` - Delete an in-scope source document
+- `memory_forget()` - Soft-forget one extracted memory
 - `execute_tool_call()` - Execute individual tool call
 
 ## Error Handling
