@@ -1,7 +1,8 @@
 """Supermemory tools for OpenAI function calling."""
 
 import json
-from typing import Dict, List, Optional, TypedDict, Union
+import warnings
+from typing import Dict, List, Optional, TypedDict
 
 import supermemory
 from openai.types.chat import (
@@ -9,12 +10,7 @@ from openai.types.chat import (
     ChatCompletionMessageToolCall,
     ChatCompletionToolMessageParam,
 )
-from supermemory.types import (
-    MemoryAddResponse,
-    MemoryGetResponse,
-    SearchExecuteResponse,
-)
-from supermemory.types.search_execute_response import Result
+from supermemory.types import AddResponse, SearchMemoriesResponse
 
 from .exceptions import (
     SupermemoryConfigurationError,
@@ -27,6 +23,8 @@ class SupermemoryToolsConfig(TypedDict, total=False):
     """Configuration for Supermemory tools.
 
     Only one of `project_id` or `container_tags` can be provided.
+    The first container tag is the primary v4 search scope; all configured tags
+    are applied when adding a memory.
     """
 
     base_url: Optional[str]
@@ -35,14 +33,14 @@ class SupermemoryToolsConfig(TypedDict, total=False):
 
 
 # Type aliases using inferred types from supermemory package
-MemoryObject = Union[MemoryGetResponse, MemoryAddResponse]
+MemoryObject = AddResponse
 
 
 class MemorySearchResult(TypedDict, total=False):
     """Result type for memory search operations."""
 
     success: bool
-    results: Optional[List[Result]]
+    results: Optional[List[Dict[str, object]]]
     count: Optional[int]
     error: Optional[str]
 
@@ -51,7 +49,7 @@ class MemoryAddResult(TypedDict, total=False):
     """Result type for memory add operations."""
 
     success: bool
-    memory: Optional[MemoryAddResponse]
+    memory: Optional[Dict[str, object]]
     error: Optional[str]
 
 
@@ -68,14 +66,6 @@ MEMORY_TOOL_SCHEMAS: Dict[str, ChatCompletionFunctionToolParam] = {
                 "information_to_get": {
                     "type": "string",
                     "description": "Terms to search for in the user's memories",
-                },
-                "include_full_docs": {
-                    "type": "boolean",
-                    "description": (
-                        "Whether to include the full document content in the response. "
-                        "Defaults to true for better AI context."
-                    ),
-                    "default": True,
                 },
                 "limit": {
                     "type": "number",
@@ -173,32 +163,42 @@ class SupermemoryTools:
     async def search_memories(
         self,
         information_to_get: str,
-        include_full_docs: bool = True,
+        include_full_docs: Optional[bool] = None,
         limit: int = 10,
     ) -> MemorySearchResult:
         """Search memories.
 
         Args:
             information_to_get: Terms to search for
-            include_full_docs: Whether to include full document content
+            include_full_docs: Deprecated compatibility argument. V4 search
+                returns relevant memories and chunks, not full source documents.
             limit: Maximum number of results
 
         Returns:
             MemorySearchResult
         """
-        try:
-            response: SearchExecuteResponse = await self.client.search.execute(
-                q=information_to_get,
-                container_tags=self.container_tags,
-                limit=limit,
-                chunk_threshold=0.6,
-                include_full_docs=include_full_docs,
+        if include_full_docs is not None:
+            warnings.warn(
+                "include_full_docs is deprecated and ignored because v4 search "
+                "does not return full source documents",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
+        try:
+            response: SearchMemoriesResponse = await self.client.search.memories(
+                q=information_to_get,
+                container_tag=self.container_tags[0],
+                limit=limit,
+                threshold=0.6,
+                search_mode="hybrid",
+            )
+
+            results = response.results or []
             return MemorySearchResult(
                 success=True,
-                results=[r.model_dump() for r in response.results],
-                count=len(response.results),
+                results=[r.model_dump() for r in results],
+                count=len(results),
             )
         except (OSError, ConnectionError) as network_error:
             return MemorySearchResult(
@@ -221,12 +221,10 @@ class SupermemoryTools:
             MemoryAddResult
         """
         try:
-            add_params = {
-                "content": memory,
-                "container_tags": self.container_tags,
-            }
-
-            response: MemoryAddResponse = await self.client.memories.add(**add_params)
+            response: AddResponse = await self.client.add(
+                content=memory,
+                container_tags=self.container_tags,
+            )
 
             return MemoryAddResult(
                 success=True,
@@ -322,7 +320,7 @@ class SearchMemoriesTool:
     async def execute(
         self,
         information_to_get: str,
-        include_full_docs: bool = True,
+        include_full_docs: Optional[bool] = None,
         limit: int = 10,
     ) -> MemorySearchResult:
         """Execute search memories."""

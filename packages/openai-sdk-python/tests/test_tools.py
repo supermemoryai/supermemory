@@ -159,6 +159,10 @@ class TestToolDefinitions:
         assert search_tool is not None
         assert search_tool["type"] == "function"
         assert "information_to_get" in search_tool["function"]["parameters"]["required"]
+        assert (
+            "include_full_docs"
+            not in search_tool["function"]["parameters"]["properties"]
+        )
 
         # Check addMemory
         add_tool = next(
@@ -175,6 +179,65 @@ class TestToolDefinitions:
         helper_definitions = get_memory_tool_definitions()
 
         assert class_definitions == helper_definitions
+
+
+class TestMemoryOperationsUnit:
+    """Unit tests for memory operations (no live API)."""
+
+    @pytest.mark.asyncio
+    async def test_add_memory_uses_client_add(self):
+        """add_memory must call client.add (memories.add was removed in supermemory 3.50)."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+
+        tools = SupermemoryTools("test-key", {"container_tags": ["unit-tag"]})
+        tools.client.add = AsyncMock(
+            return_value=SimpleNamespace(
+                id="doc_123",
+                status="queued",
+                model_dump=lambda: {"id": "doc_123", "status": "queued"},
+            )
+        )
+
+        result = await tools.add_memory("User likes tea")
+
+        assert result["success"] is True
+        assert result["memory"]["id"] == "doc_123"
+        tools.client.add.assert_awaited_once_with(
+            content="User likes tea",
+            container_tags=["unit-tag"],
+        )
+
+    @pytest.mark.asyncio
+    async def test_search_memories_uses_search_memories_hybrid(self):
+        """V4 search must use the primary singular tag and hybrid mode."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+
+        tools = SupermemoryTools(
+            "test-key", {"container_tags": ["primary-tag", "secondary-tag"]}
+        )
+        tools.client.search.memories = AsyncMock(
+            return_value=SimpleNamespace(
+                results=[SimpleNamespace(model_dump=lambda: {"memory": "likes tea"})]
+            )
+        )
+
+        with pytest.warns(DeprecationWarning, match="include_full_docs"):
+            result = await tools.search_memories(
+                "tea", include_full_docs=False, limit=3
+            )
+
+        assert result["success"] is True
+        assert result["count"] == 1
+        tools.client.search.memories.assert_awaited_once()
+        kwargs = tools.client.search.memories.await_args.kwargs
+        assert kwargs["q"] == "tea"
+        assert kwargs["container_tag"] == "primary-tag"
+        assert "container_tags" not in kwargs
+        assert "include_full_docs" not in kwargs
+        assert kwargs["limit"] == 3
+        assert kwargs["search_mode"] == "hybrid"
 
 
 class TestMemoryOperations:
