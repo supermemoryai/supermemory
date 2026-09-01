@@ -64,5 +64,8 @@ jobs:
       - name: Run Memory Graph type checking
         run: bun run --cwd packages/memory-graph check-types
 
+      - name: Run Memory Graph unit tests
+        run: bun run --cwd packages/memory-graph test
+
       - name: Run Biome CI (format & lint on changed files)
         run: bunx biome ci --changed --since=origin/main --no-errors-on-unmatched
