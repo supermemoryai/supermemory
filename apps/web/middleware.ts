@@ -31,6 +31,23 @@ export default async function proxy(request: Request) {
 		return NextResponse.next()
 	}
 
+	if (
+		url.pathname === "/auth/connect" ||
+		url.pathname === "/auth/agent-connect"
+	) {
+		const target = new URL(url.toString())
+		const labels = url.hostname.split(".")
+		const appLabel = labels.indexOf("app")
+		if (appLabel !== -1) {
+			labels[appLabel] = "console"
+			target.hostname = labels.join(".")
+		} else {
+			target.hostname = "console.supermemory.ai"
+		}
+		target.pathname = "/auth/connect"
+		return NextResponse.redirect(target, 308)
+	}
+
 	const sessionCookie = getAuthSessionCookie(request)
 	console.debug("[PROXY] Session cookie exists:", !!sessionCookie)
 
