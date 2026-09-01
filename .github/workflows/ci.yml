@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Detect SDK package changes
+      - name: Detect SDK and playground changes
         id: sdk-changes
         run: |
           if git diff --quiet "${{ github.event.pull_request.base.sha }}" HEAD -- packages/tools; then
@@ -41,16 +41,45 @@ jobs:
             echo "ai_sdk=true" >> "$GITHUB_OUTPUT"
           fi
 
+          if git diff --quiet "${{ github.event.pull_request.base.sha }}" HEAD -- apps/sdk-playground; then
+            echo "sdk_playground=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "sdk_playground=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Python for SDK Playground
+        if: steps.sdk-changes.outputs.sdk_playground == 'true'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Setup uv for SDK Playground
+        if: steps.sdk-changes.outputs.sdk_playground == 'true'
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
+          enable-cache: true
+          working-directory: apps/sdk-playground/python
+          cache-dependency-glob: uv.lock
+
+      - name: Validate SDK Playground Python server
+        if: steps.sdk-changes.outputs.sdk_playground == 'true'
+        working-directory: apps/sdk-playground/python
+        run: |
+          uv sync --locked --python 3.12
+          .venv/bin/python -m py_compile server.py
+          .venv/bin/python -c "import server"
+
       - name: Run Tools unit tests
         if: steps.sdk-changes.outputs.tools == 'true'
         run: bun run --cwd packages/tools test:unit
 
       - name: Build Tools package
-        if: steps.sdk-changes.outputs.tools == 'true' || steps.sdk-changes.outputs.ai_sdk == 'true'
+        if: steps.sdk-changes.outputs.tools == 'true' || steps.sdk-changes.outputs.ai_sdk == 'true' || steps.sdk-changes.outputs.sdk_playground == 'true'
         run: bun run --cwd packages/tools build
 
       - name: Run AI SDK type checking
-        if: steps.sdk-changes.outputs.tools == 'true' || steps.sdk-changes.outputs.ai_sdk == 'true'
+        if: steps.sdk-changes.outputs.tools == 'true' || steps.sdk-changes.outputs.ai_sdk == 'true' || steps.sdk-changes.outputs.sdk_playground == 'true'
         run: bun run --cwd packages/ai-sdk check-types
 
       - name: Run AI SDK unit tests
@@ -58,8 +87,16 @@ jobs:
         run: bun run --cwd packages/ai-sdk test:unit
 
       - name: Build AI SDK package
-        if: steps.sdk-changes.outputs.ai_sdk == 'true'
+        if: steps.sdk-changes.outputs.ai_sdk == 'true' || steps.sdk-changes.outputs.sdk_playground == 'true'
         run: bun run --cwd packages/ai-sdk build
+
+      - name: Run SDK Playground type checking
+        if: steps.sdk-changes.outputs.sdk_playground == 'true'
+        run: bun run --cwd apps/sdk-playground check-types:app
+
+      - name: Build SDK Playground
+        if: steps.sdk-changes.outputs.sdk_playground == 'true'
+        run: bun run --cwd apps/sdk-playground build:app
 
       - name: Run Memory Graph type checking
         run: bun run --cwd packages/memory-graph check-types

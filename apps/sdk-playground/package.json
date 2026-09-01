@@ -1,0 +1,39 @@
+{
+  "name": "sdk-playground",
+  "version": "0.1.0",
+  "private": true,
+  "portless": { "name": "sdk.dev.supermemory", "script": "dev:app" },
+  "scripts": {
+    "dev": "portless",
+    "dev:app": "bun run build:dependencies && concurrently -k -n tools,ai-sdk,next,py -c yellow,magenta,blue,green \"bun run --cwd ../../packages/tools dev\" \"bun run --cwd ../../packages/ai-sdk dev\" \"next dev --hostname 127.0.0.1 --port ${PORT:-3005}\" \"bun run dev:python\"",
+    "dev:next": "bun run build:dependencies && next dev --hostname 127.0.0.1 --port ${PORT:-3005}",
+    "dev:python": "cd python && uv run server.py",
+    "build:dependencies": "bun run --cwd ../../packages/tools build && bun run --cwd ../../packages/ai-sdk build",
+    "build:app": "next build",
+    "build": "bun run build:dependencies && bun run build:app",
+    "start": "concurrently -k -n next,py -c blue,green \"next start --hostname 127.0.0.1 --port ${PORT:-3005}\" \"bun run dev:python\"",
+    "typegen": "next typegen",
+    "check-types:app": "bun run typegen && tsc --noEmit --incremental false",
+    "check-types": "bun run build:dependencies && bun run check-types:app"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.22",
+    "@supermemory/ai-sdk": "workspace:*",
+    "@supermemory/tools": "workspace:*",
+    "ai": "^5.0.113",
+    "next": "16.0.7",
+    "openai": "^4.104.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "supermemory": "^4.25.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^9.1.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
