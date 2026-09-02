@@ -30,6 +30,7 @@ import {
 	type PluginInfo,
 } from "@/lib/plugin-catalog"
 import { INSET, InstallSteps, PillButton } from "./install-steps"
+import { revokePluginKey } from "./plugin-key-revocation"
 import { usePromoCode } from "@/hooks/use-promo-code"
 
 interface ConnectedPlugin {
@@ -560,9 +561,11 @@ export function PluginsDetail() {
 
 	const handleRevoke = async (keyId: string) => {
 		try {
-			await authClient.apiKey.delete({ keyId })
-			toast.success("Plugin disconnected")
-			refetchKeys()
+			await revokePluginKey({
+				deleteKey: () => authClient.apiKey.delete({ keyId }),
+				onSuccess: () => toast.success("Plugin disconnected"),
+				refetch: () => void refetchKeys(),
+			})
 		} catch {
 			toast.error("Failed to disconnect plugin")
 		}
