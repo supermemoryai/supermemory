@@ -104,5 +104,9 @@ jobs:
       - name: Run Memory Graph unit tests
         run: bun run --cwd packages/memory-graph test
 
+      - name: Run MCP unit tests
+        working-directory: apps/mcp
+        run: bun run test:unit
+
       - name: Run Biome CI (format & lint on changed files)
         run: bunx biome ci --changed --since=origin/main --no-errors-on-unmatched
