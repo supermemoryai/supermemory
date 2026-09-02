@@ -9,7 +9,6 @@ import {
 	validateOAuthToken,
 	type AuthUser,
 } from "./auth"
-import { SupermemoryMCP } from "./legacy-protocol-state"
 import { createSupermemoryServer } from "./server"
 import type { ActorContext, ServerEnv } from "./types"
 import { SpaceState, uploadStateName } from "./space-state"
@@ -243,6 +242,7 @@ async function handleMcpRequest(
 			),
 		{
 			route: "/mcp",
+			// Supports 2025-era requests without creating protocol session state.
 			legacy: "stateless",
 			corsOptions: false,
 			allowedOriginHostnames: allowedOriginHostnames(c.env),
@@ -309,7 +309,7 @@ app.all("/", (c) => handleMcpRequest(c, "/mcp"))
 app.all("/mcp", (c) => handleMcpRequest(c))
 app.all("/mcp/", (c) => handleMcpRequest(c, "/mcp"))
 
-export { SpaceState, SupermemoryMCP }
+export { SpaceState }
 export type { ActorContext, ServerEnv }
 
 export default app

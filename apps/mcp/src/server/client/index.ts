@@ -8,6 +8,7 @@ import {
 	containerTagSchema,
 	documentsApiResponseSchema,
 	memoriesListSchema,
+	uploadResponseSchema,
 	type ContainerTag,
 	type DocumentMemoryEntry,
 	type DocumentsApiResponse,
@@ -388,6 +389,45 @@ export class SupermemoryClient {
 	async getDocument(id: string): Promise<DocumentDetails> {
 		try {
 			return await this.client.documents.get(id)
+		} catch (error) {
+			this.handleError(error)
+		}
+	}
+
+	async uploadFile(
+		fileData: ArrayBuffer,
+		fileName: string,
+		mimeType: string,
+		containerTag?: string,
+	): Promise<{ id: string; status: string }> {
+		try {
+			const formData = new FormData()
+			formData.append(
+				"file",
+				new Blob([fileData], { type: mimeType }),
+				fileName,
+			)
+			if (containerTag) formData.append("containerTag", containerTag)
+			formData.append("metadata", JSON.stringify({ sm_source: MCP_SOURCE }))
+
+			const response = await fetch(`${this.apiUrl}/v3/documents/file`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${this.bearerToken}`,
+					"x-sm-source": MCP_SOURCE,
+				},
+				body: formData,
+				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+			})
+
+			if (!response.ok) {
+				const message = extractApiErrorMessage(await response.text())
+				throw Object.assign(new Error(message || "Upload failed"), {
+					status: response.status,
+				})
+			}
+
+			return uploadResponseSchema.parse(await response.json())
 		} catch (error) {
 			this.handleError(error)
 		}
