@@ -21,7 +21,7 @@ vi.mock("supermemory", () => {
 	}
 })
 
-import { ClaudeMemoryTool } from "./claude-memory"
+import { ClaudeMemoryTool, pathToCustomId } from "./claude-memory"
 
 const FILE_PATH = "/memories/notes.txt"
 // 5 distinct lines so an off-by-one at either end is observable.
@@ -208,5 +208,40 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 		expect(addMock).toHaveBeenCalledTimes(1)
 		const stored = addMock.mock.calls[0]?.[0]?.content as string
 		expect(stored).toContain(`price is ${dollarSequence} today`)
+	})
+})
+
+describe("pathToCustomId", () => {
+	it("keeps the legacy flattening for canonical single-segment paths", () => {
+		// Backward compatibility: documents already stored under the legacy id
+		// (no underscores, one dot, one slash) must keep resolving.
+		expect(pathToCustomId("/memories/file.txt")).toBe("memories_file_txt")
+		expect(pathToCustomId("/projects/spec.md")).toBe("projects_spec_md")
+		// Shapes outside the canonical /dir/file.ext form are digested even
+		// when they look flattenable.
+		expect(pathToCustomId("notes.txt")).toBe("notes_txt_e39538e7")
+	})
+
+	it("disambiguates paths that would collide under plain flattening", () => {
+		// "notes.txt", "notes_txt", and "notes/txt" all flattened to the same
+		// id, so one file could silently overwrite another (#1547).
+		const a = pathToCustomId("/memories/notes.txt")
+		const b = pathToCustomId("/memories/notes_txt")
+		const c = pathToCustomId("/memories/notes/txt")
+
+		expect(new Set([a, b, c]).size).toBe(3)
+		for (const id of [a, b, c]) {
+			expect(id.startsWith("memories_notes_txt")).toBe(true)
+		}
+	})
+
+	it("is deterministic for the same input", () => {
+		expect(pathToCustomId("/memories/my_notes/v1.txt")).toBe(
+			pathToCustomId("/memories/my_notes/v1.txt"),
+		)
+	})
+
+	it("differs for distinct underscore paths sharing a flattening", () => {
+		expect(pathToCustomId("/a_b/c.txt")).not.toBe(pathToCustomId("/a/b_c.txt"))
 	})
 })
