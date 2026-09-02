@@ -18,6 +18,41 @@ describe("search threshold schemas", () => {
 
 		expect(searchSchemas).not.toContain(".transform(Number)")
 		expect(searchSchemas).not.toContain("v === undefined || (v >= 0 && v <= 1)")
+		expect(searchSchemas).not.toContain(
+			"v === undefined || (v > 0 && v <= 100)",
+		)
+	})
+
+	it.each([
+		1, 50, 100,
+	])("accepts in-range limit value %p on search schemas", (limit) => {
+		expect(SearchRequestSchema.parse({ q: "memory", limit }).limit).toBe(limit)
+		expect(Searchv4RequestSchema.parse({ q: "memory", limit }).limit).toBe(
+			limit,
+		)
+	})
+
+	it("preserves the limit default of 10 on search schemas", () => {
+		expect(SearchRequestSchema.parse({ q: "memory" }).limit).toBe(10)
+		expect(Searchv4RequestSchema.parse({ q: "memory" }).limit).toBe(10)
+	})
+
+	it("still rejects a limit above 100 on search schemas", () => {
+		expect(
+			SearchRequestSchema.safeParse({ q: "memory", limit: 101 }).success,
+		).toBe(false)
+		expect(
+			Searchv4RequestSchema.safeParse({ q: "memory", limit: 101 }).success,
+		).toBe(false)
+	})
+
+	it("still rejects a non-positive limit on search schemas", () => {
+		expect(
+			SearchRequestSchema.safeParse({ q: "memory", limit: 0 }).success,
+		).toBe(false)
+		expect(
+			Searchv4RequestSchema.safeParse({ q: "memory", limit: -1 }).success,
+		).toBe(false)
 	})
 
 	it("preserves threshold defaults", () => {
