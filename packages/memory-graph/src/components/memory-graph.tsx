@@ -19,6 +19,7 @@ import { Legend } from "./legend"
 import { LoadingIndicator } from "./loading-indicator"
 import { NavigationControls } from "./navigation-controls"
 import { NodeHoverPopover } from "./node-hover-popover"
+import { Minimap } from "./minimap"
 
 export function MemoryGraph({
 	documents = [],
@@ -32,6 +33,7 @@ export function MemoryGraph({
 	highlightDocumentIds = [],
 	highlightsVisible = true,
 	showFps = false,
+	showMinimap = false,
 	maxNodes,
 	isSlideshowActive = false,
 	onSlideshowNodeChange,
@@ -834,6 +836,30 @@ export function MemoryGraph({
 						/>
 					</div>
 				)}
+
+				{showMinimap &&
+					!isCompactViewport &&
+					containerSize.width > 0 &&
+					nodes.length > 0 && (
+						<div
+							aria-hidden="true"
+							style={{
+								position: "absolute",
+								bottom: 16,
+								right: 16,
+								zIndex: 20,
+							}}
+						>
+							<Minimap
+								nodes={nodes}
+								colors={colors}
+								viewportRef={viewportRef}
+								canvasWidth={containerSize.width}
+								canvasHeight={containerSize.height}
+								viewportVersion={viewportVersion}
+							/>
+						</div>
+					)}
 			</div>
 		</div>
 	)
