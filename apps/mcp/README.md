@@ -39,8 +39,12 @@ Example client configuration:
 }
 ```
 
-The client discovers the OAuth authorization server through
-`/.well-known/oauth-protected-resource/mcp`.
+For the default resource, the client discovers the OAuth authorization server
+through `/.well-known/oauth-protected-resource/mcp`. Custom deployments derive
+this location from `MCP_RESOURCE` by inserting
+`/.well-known/oauth-protected-resource` before the resource path while
+preserving its query string. For example, `https://memory.example.com/gateway/mcp`
+uses `https://memory.example.com/.well-known/oauth-protected-resource/gateway/mcp`.
 
 ## Tools
 
@@ -129,7 +133,7 @@ discovery and rejection tests still run.
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `API_URL` | Supermemory API and OAuth issuer | `https://api.supermemory.ai` |
-| `MCP_RESOURCE` | Expected OAuth audience | `https://mcp.supermemory.ai/mcp` |
+| `MCP_RESOURCE` | Expected OAuth audience and canonical resource URL used for metadata discovery | `https://mcp.supermemory.ai/mcp` |
 | `ALLOWED_MCP_ORIGIN_HOSTNAMES` | Additional comma-separated browser origins | Built-in host allowlist |
 | `POSTHOG_API_KEY` | Server-side MCP tool analytics project key | Disabled |
 | `POSTHOG_HOST` | PostHog ingestion host | `https://us.i.posthog.com` |
