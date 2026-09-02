@@ -88,28 +88,28 @@ export default function RootLayout({
 					disableTransitionOnChange
 					forcedTheme="dark"
 				>
-					<AutumnProvider
-						backendUrl={
-							process.env.NEXT_PUBLIC_BACKEND_URL ??
-							"https://api.supermemory.ai"
-						}
-						includeCredentials={true}
-						headers={{ "X-App-Source": "nova" }}
-					>
-						<PromoCodeCapture />
-						<QueryProvider>
-							<AuthProvider>
-								<PostHogProvider>
-									<ErrorTrackingProvider>
+					<AuthProvider>
+						<PostHogProvider>
+							<ErrorTrackingProvider>
+								<QueryProvider>
+									<AutumnProvider
+										backendUrl={
+											process.env.NEXT_PUBLIC_BACKEND_URL ??
+											"https://api.supermemory.ai"
+										}
+										includeCredentials={true}
+										headers={{ "X-App-Source": "nova" }}
+									>
+										<PromoCodeCapture />
 										<NuqsAdapter>
 											<Suspense>{children}</Suspense>
 											<Toaster />
 										</NuqsAdapter>
-									</ErrorTrackingProvider>
-								</PostHogProvider>
-							</AuthProvider>
-						</QueryProvider>
-					</AutumnProvider>
+									</AutumnProvider>
+								</QueryProvider>
+							</ErrorTrackingProvider>
+						</PostHogProvider>
+					</AuthProvider>
 				</ThemeProvider>
 			</body>
 		</html>

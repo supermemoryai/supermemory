@@ -1,5 +1,6 @@
 "use client"
 
+import { usePathname } from "next/navigation"
 import {
 	createContext,
 	type ReactNode,
@@ -17,6 +18,10 @@ type OrganizationListItem = NonNullable<
 >[number]
 
 const STORAGE_KEY = "supermemory-consumer-last-org-slug"
+
+function isOAuthConsentPath(pathname: string): boolean {
+	return pathname === "/oauth/consent" || pathname === "/oauth/consent/"
+}
 
 // Reads ?org=<slug> from the URL once and removes it, so a deep link that
 // selects an org doesn't re-fire on refresh or back-navigation.
@@ -53,6 +58,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const { data: session, isPending: isSessionPending } = useSession()
+	const currentPathname = usePathname()
 	const [org, setOrg] = useState<Organization | null>(null)
 	const [isRestoring, setIsRestoring] = useState(true)
 	const {
@@ -129,9 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		const run = async () => {
 			try {
 				// OAuth consent owns org selection for the authorization transaction.
-				const shouldRestoreSavedOrg =
-					typeof window === "undefined" ||
-					window.location.pathname !== "/oauth/consent"
+				const shouldRestoreSavedOrg = !isOAuthConsentPath(currentPathname)
 
 				if (orgs.length === 0) {
 					if (!cancelled) setOrg(null)
@@ -207,7 +211,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		return () => {
 			cancelled = true
 		}
-	}, [isSessionPending, session, orgsData, orgsPending, setActiveOrg])
+	}, [
+		currentPathname,
+		isSessionPending,
+		session,
+		orgsData,
+		orgsPending,
+		setActiveOrg,
+	])
 
 	useEffect(() => {
 		if (typeof window === "undefined") return
