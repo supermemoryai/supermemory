@@ -107,8 +107,19 @@ jobs:
       - name: Run Biome CI (format & lint on changed files)
         run: bunx biome ci --changed --since=origin/main --no-errors-on-unmatched
 
-      # mintlify@4.2.x may exit 0 even when it prints broken links
+      - name: Detect docs changes
+        id: docs-changes
+        run: |
+          if git diff --quiet "${{ github.event.pull_request.base.sha }}" HEAD -- apps/docs; then
+            echo "docs=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Isolated bunx avoids the monorepo React/ink hook crash from hoisted mintlify.
+      # mintlify@4.2.x may exit 0 even when it prints broken links.
       - name: Check docs for broken internal links
+        if: steps.docs-changes.outputs.docs == 'true'
         working-directory: apps/docs
         run: |
           set -o pipefail

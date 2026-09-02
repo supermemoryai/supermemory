@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "portless",
     "dev:app": "bunx mintlify@latest dev --no-open --port 3003",
-    "check-links": "mintlify broken-links"
+    "check-links": "bunx --bun mintlify@4.2.112 broken-links"
   },
   "devDependencies": {
     "@types/bun": "latest",
