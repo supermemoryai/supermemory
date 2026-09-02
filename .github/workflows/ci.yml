@@ -104,5 +104,13 @@ jobs:
       - name: Run Memory Graph unit tests
         run: bun run --cwd packages/memory-graph test
 
+      - name: Run memory graph unit tests
+        working-directory: packages/memory-graph
+        run: bun run test
+
+      - name: Run web unit tests
+        working-directory: apps/web
+        run: bun test
+
       - name: Run Biome CI (format & lint on changed files)
         run: bunx biome ci --changed --since=origin/main --no-errors-on-unmatched

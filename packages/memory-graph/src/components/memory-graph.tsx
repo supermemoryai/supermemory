@@ -73,37 +73,40 @@ export function MemoryGraph({
 	// Used as a dependency proxy to recalculate popover positions
 	const [viewportVersion, setViewportVersion] = useState(0)
 
-	// Limit documents so total node count (documents + their memories) stays under maxNodes
+	// Limit documents so total node count (documents + unique memories) stays
+	// under maxNodes. A memory can belong to more than one source document, so
+	// repeated occurrences must remain in each admitted document without
+	// consuming the node budget again.
 	const limitedDocuments = useMemo(() => {
 		if (!maxNodes || documents.length === 0) return documents
 		let totalNodes = 0
+		const seenMemoryIds = new Set<string>()
 		const limited: GraphApiDocument[] = []
-		for (let i = 0; i < documents.length; i++) {
-			const doc = documents[i]
-			if (!doc) continue
+		for (const doc of documents) {
 			if (totalNodes >= maxNodes) break
 
-			const remainingNodes = maxNodes - totalNodes
 			const memories = doc.memories ?? []
-			const docNodes = 1 + memories.length
-
-			if (docNodes <= remainingNodes) {
-				limited.push(doc)
-				totalNodes += docNodes
-				continue
-			}
-
-			if (remainingNodes > 1) {
-				limited.push({
-					...doc,
-					memories: memories.slice(0, remainingNodes - 1),
-				})
-				totalNodes = maxNodes
-				break
-			}
-
-			limited.push({ ...doc, memories: [] })
+			const includedMemories: GraphApiDocument["memories"] = []
 			totalNodes += 1
+
+			for (const memory of memories) {
+				if (seenMemoryIds.has(memory.id)) {
+					includedMemories.push(memory)
+					continue
+				}
+
+				if (totalNodes >= maxNodes) continue
+
+				seenMemoryIds.add(memory.id)
+				includedMemories.push(memory)
+				totalNodes += 1
+			}
+
+			limited.push(
+				includedMemories.length === memories.length
+					? doc
+					: { ...doc, memories: includedMemories },
+			)
 		}
 		return limited
 	}, [documents, maxNodes])
