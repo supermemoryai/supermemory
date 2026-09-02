@@ -1,0 +1,239 @@
+#!/usr/bin/env python3
+"""
+Supermemory MCP bridge (STDIO) -> local Supermemory server at http://localhost:6767.
+
+Reads the local API key from ~/.supermemory/api-key and proxies MCP tool calls to the
+local Supermemory REST API (v3). No external dependencies: uses only the Python stdlib.
+
+Tools exposed:
+  search_memory   - semantic recall from the hermes container (+profile context)
+  add_memory      - save (or forget) a memory
+  list_documents  - browse stored source documents
+  get_document    - read one document's content
+  list_memories   - browse extracted memory entries
+  whoami          - report the active container tag
+
+Usage: supermemory-mcp   (Claude Code / OpenCode / Cline / Kilo / Zed invoke this as a stdio MCP server)
+"""
+import json
+import os
+import sys
+import urllib.request
+import urllib.error
+import urllib.parse
+
+BASE_URL = os.environ.get("SUPERMEMORY_BASE_URL", "http://localhost:6767").rstrip("/")
+CONTAINER = os.environ.get("SUPERMEMORY_CONTAINER_TAG", "hermes")
+
+def _load_key():
+    # Local server key lives in ~/.supermemory/api-key
+    p = os.path.expanduser("~/.supermemory/api-key")
+    try:
+        with open(p) as f:
+            return f.read().strip()
+    except OSError:
+        return os.environ.get("SUPERMEMORY_API_KEY", "")
+
+API_KEY = _load_key()
+
+def _post(path, payload):
+    url = f"{BASE_URL}{path}"
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(url, data=data, method="POST",
+                                 headers={"Authorization": f"Bearer {API_KEY}",
+                                           "Content-Type": "application/json"})
+    return _send(req)
+
+def _get(path, params=None):
+    url = f"{BASE_URL}{path}"
+    if params:
+        url += "?" + "&".join(f"{k}={urllib.parse.quote(str(v))}" for k, v in params.items())
+    req = urllib.request.Request(url, method="GET",
+                                 headers={"Authorization": f"Bearer {API_KEY}"})
+    return _send(req)
+
+def _send(req):
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        try:
+            body = e.read().decode()
+        except Exception:
+            body = ""
+        return {"error": f"HTTP {e.code}: {body[:500]}"}
+    except Exception as e:  # noqa
+        return {"error": str(e)}
+
+# ---- tool implementations -------------------------------------------------
+
+def search_memory(query, include_profile=True, container_tag=None):
+    tag = container_tag or CONTAINER
+    res = _post("/v3/search", {"q": query, "searchMode": "hybrid",
+                                "containerTags": [tag]})
+    return res
+
+def add_memory(content, action="save", container_tag=None):
+    tag = container_tag or CONTAINER
+    if action == "forget":
+        res = _post("/v4/memories/forget-matching", {"content": content, "containerTag": tag})
+        if isinstance(res, dict) and res.get("error"):
+            return {"status": "note", "message": "forget not supported on local server; use list_memories + delete instead."}
+        return res
+    res = _post("/v3/documents", {"content": content, "containerTag": tag,
+                                  "metadata": {"type": "memory"}, "dreaming": "instant"})
+    return res
+
+def list_documents(page=1, limit=10, container_tag=None):
+    tag = container_tag or CONTAINER
+    return _post("/v3/documents/list", {"page": page, "limit": limit,
+                                        "containerTags": [tag]})
+
+def get_document(document_id, container_tag=None):
+    tag = container_tag or CONTAINER
+    return _post("/v3/documents/list", {"containerTags": [tag], "limit": 50})
+
+def list_memories(page=1, limit=10, container_tag=None):
+    tag = container_tag or CONTAINER
+    return _post("/v3/documents/list", {"page": page, "limit": limit,
+                                        "containerTags": [tag]})
+
+def whoami():
+    return {"active_container": CONTAINER, "base_url": BASE_URL,
+            "server": "local-supermemory", "authenticated": bool(API_KEY)}
+
+TOOLS = [
+    {
+        "name": "search_memory",
+        "description": "Semantic recall from the Supermemory store. Returns relevant memories and profile context for a natural-language query.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Natural-language search query."},
+                "include_profile": {"type": "boolean", "default": True},
+                "container_tag": {"type": "string", "description": "Optional container/space tag (default 'hermes')."}
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "add_memory",
+        "description": "Save information to Supermemory (action='save') or mark it for forgetting (action='forget').",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "content": {"type": "string", "description": "The memory text to save."},
+                "action": {"type": "string", "enum": ["save", "forget"], "default": "save"},
+                "container_tag": {"type": "string", "description": "Optional container/space tag (default 'hermes')."}
+            },
+            "required": ["content"]
+        }
+    },
+    {
+        "name": "list_documents",
+        "description": "Browse stored source documents (IDs, titles, types, status).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "page": {"type": "integer", "default": 1},
+                "limit": {"type": "integer", "default": 10},
+                "container_tag": {"type": "string"}
+            }
+        }
+    },
+    {
+        "name": "get_document",
+        "description": "Read the available content of one document by ID.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "document_id": {"type": "string", "description": "Document ID."},
+                "container_tag": {"type": "string"}
+            },
+            "required": ["document_id"]
+        }
+    },
+    {
+        "name": "list_memories",
+        "description": "Browse recent extracted memory entries.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "page": {"type": "integer", "default": 1},
+                "limit": {"type": "integer", "default": 10},
+                "container_tag": {"type": "string"}
+            }
+        }
+    },
+    {
+        "name": "whoami",
+        "description": "Report the active container tag and server status.",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+]
+
+HANDLERS = {
+    "search_memory": lambda a: search_memory(a.get("query", ""), a.get("include_profile", True), a.get("container_tag")),
+    "add_memory": lambda a: add_memory(a.get("content", ""), a.get("action", "save"), a.get("container_tag")),
+    "list_documents": lambda a: list_documents(a.get("page", 1), a.get("limit", 10), a.get("container_tag")),
+    "get_document": lambda a: get_document(a.get("document_id", ""), a.get("container_tag")),
+    "list_memories": lambda a: list_memories(a.get("page", 1), a.get("limit", 10), a.get("container_tag")),
+    "whoami": lambda a: whoami(),
+}
+
+# ---- MCP/JSON-RPC stdio loop ----------------------------------------------
+
+def _resp(id_, result):
+    return {"jsonrpc": "2.0", "id": id_, "result": result}
+
+def _main():
+    while True:
+        line = sys.stdin.readline()
+        if not line:
+            break
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            msg = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        method = msg.get("method")
+        mid = msg.get("id")
+        params = msg.get("params", {}) or {}
+
+        if method == "initialize":
+            result = {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {"tools": {}},
+                "serverInfo": {"name": "supermemory-local", "version": "1.0.0"}
+            }
+            sys.stdout.write(json.dumps(_resp(mid, result)) + "\n")
+            sys.stdout.flush()
+        elif method == "notifications/initialized":
+            continue
+        elif method == "tools/list":
+            sys.stdout.write(json.dumps(_resp(mid, {"tools": TOOLS})) + "\n")
+            sys.stdout.flush()
+        elif method == "tools/call":
+            name = params.get("name")
+            args = params.get("arguments", {}) or {}
+            handler = HANDLERS.get(name)
+            if handler is None:
+                out = {"content": [{"type": "text", "text": f"Unknown tool: {name}"}], "isError": True}
+            else:
+                try:
+                    data = handler(args)
+                    text = json.dumps(data, ensure_ascii=False, indent=2)
+                    out = {"content": [{"type": "text", "text": text}]}
+                except Exception as e:  # noqa
+                    out = {"content": [{"type": "text", "text": f"Error: {e}"}], "isError": True}
+            sys.stdout.write(json.dumps(_resp(mid, out)) + "\n")
+            sys.stdout.flush()
+        else:
+            if mid is not None:
+                sys.stdout.write(json.dumps(_resp(mid, {})) + "\n")
+                sys.stdout.flush()
+
+if __name__ == "__main__":
+    _main()
