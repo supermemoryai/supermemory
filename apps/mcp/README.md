@@ -12,14 +12,17 @@ memories, profile, spaces, and interactive MCP Apps.
 - Active space stored as application state in a dedicated Durable Object
 - Space state keyed by authenticated `organizationId + userId`
 
-The space used by an operation resolves in this order:
+Most operations resolve their space in this order:
 
 1. An explicit `containerTag` tool or prompt argument
 2. The account's durable active space
 3. The Supermemory client default, `sm_project_default`
 
 An explicit override applies only to that call. It does not mutate the active
-space.
+space. `search_memory` is the exception: when it has neither an explicit space
+nor an active space readable by the current OAuth grant, it omits `containerTag`
+so authorization can select the caller's readable scope. Its structured result
+reports `containerTag: null` in that case.
 
 ## Server URL
 

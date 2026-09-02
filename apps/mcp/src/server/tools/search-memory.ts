@@ -9,28 +9,48 @@ import {
 import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
+	const searchContainerTagSchema = optionalContainerTagSchema.describe(
+		"Space key to search. If the user names a space, call listSpaces to resolve its key and pass it here. If no space is named, omit this field so the server uses an active space readable by the current grant or lets authorization select the caller's readable scope.",
+	)
 	const inputSchema = z.object({
 		query: z
 			.string()
 			.max(1000, "Query exceeds maximum length")
 			.describe("The search query to find relevant memories"),
 		includeProfile: z.boolean().optional().default(true),
-		containerTag: optionalContainerTagSchema,
+		containerTag: searchContainerTagSchema,
 	})
 
 	deps.server.registerTool(
 		"search_memory",
 		{
 			description:
-				"Search memories in one space with a natural-language query. Returns relevant memories plus that space's profile summary. When the user names a space, resolve it with listSpaces and pass containerTag; otherwise use the active space.",
+				"Search memories with a natural-language query. Returns relevant memories plus a profile summary when a concrete space is selected. When the user names a space, resolve it with listSpaces and pass containerTag; otherwise use an active space readable by the current grant or the caller's authorized readable scope.",
 			inputSchema,
 			outputSchema: searchMemoryOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
 			try {
-				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
-				const client = deps.getClient(effectiveTag)
+				let effectiveTag = await deps.resolveSelectedContainerTag(
+					args.containerTag,
+				)
+				const unscopedClient =
+					args.containerTag === undefined && effectiveTag
+						? deps.getClient()
+						: undefined
+				if (unscopedClient) {
+					// Active state is account-wide and can outlive an OAuth grant.
+					// Revalidate inherited state before sending it as an explicit scope.
+					const visibleTags = await unscopedClient.listContainerTags()
+					if (!visibleTags.some((tag) => tag.containerTag === effectiveTag)) {
+						effectiveTag = undefined
+					}
+				}
+				const client =
+					effectiveTag === undefined
+						? (unscopedClient ?? deps.getClient())
+						: deps.getClient(effectiveTag)
 
 				const parts: string[] = []
 				let profile: SearchMemoryOutput["profile"]
@@ -75,7 +95,7 @@ export function register(deps: ToolDeps) {
 
 				const structuredContent: SearchMemoryOutput = {
 					query: args.query,
-					containerTag: effectiveTag,
+					containerTag: effectiveTag ?? null,
 					...(profile ? { profile } : {}),
 					results,
 					total: searchResult.total,
