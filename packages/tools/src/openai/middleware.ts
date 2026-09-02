@@ -56,17 +56,49 @@ interface SupermemoryProfileSearch {
  * // Returns: "What's the weather like?"
  * ```
  */
-const getLastUserMessage = (
+/**
+ * Extracts text content from a message's content, supporting both strings and
+ * multi-part / multimodal content arrays.
+ */
+export const extractMessageText = (content: unknown): string => {
+	if (typeof content === "string") {
+		return content
+	}
+	if (Array.isArray(content)) {
+		return content
+			.map((part) => {
+				if (typeof part === "string") return part
+				if (typeof part === "object" && part !== null) {
+					if ("text" in part && typeof (part as { text?: unknown }).text === "string") {
+						return (part as { text: string }).text
+					}
+				}
+				return ""
+			})
+			.filter(Boolean)
+			.join(" ")
+	}
+	return ""
+}
+
+/**
+ * Extracts the last user message from an array of chat completion messages.
+ *
+ * Searches through the messages array in reverse order to find the most recent
+ * message with role "user" and returns its content as a string.
+ *
+ * @param messages - Array of chat completion message parameters
+ * @returns The content of the last user message, or empty string if none found
+ */
+export const getLastUserMessage = (
 	messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-) => {
+): string => {
 	const lastUserMessage = messages
 		.slice()
 		.reverse()
 		.find((msg) => msg.role === "user")
 
-	return typeof lastUserMessage?.content === "string"
-		? lastUserMessage.content
-		: ""
+	return lastUserMessage ? extractMessageText(lastUserMessage.content) : ""
 }
 
 /**
@@ -279,13 +311,13 @@ const addSystemPrompt = async (
  * // Returns: "User: Hello!\n\nAssistant: Hi there!\n\nUser: How are you?"
  * ```
  */
-const getConversationContent = (
+export const getConversationContent = (
 	messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-) => {
+): string => {
 	return messages
 		.map((msg) => {
 			const role = msg.role === "user" ? "User" : "Assistant"
-			const content = typeof msg.content === "string" ? msg.content : ""
+			const content = extractMessageText(msg.content)
 			return `${role}: ${content}`
 		})
 		.join("\n\n")
