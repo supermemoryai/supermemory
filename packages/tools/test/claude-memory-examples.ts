@@ -6,7 +6,10 @@
  * 2. Anthropic SDK integration
  */
 
-import { createClaudeMemoryTool, type MemoryCommand } from "./claude-memory"
+import {
+	createClaudeMemoryTool,
+	type MemoryCommand,
+} from "../src/claude-memory"
 
 // =====================================================
 // Example 1: Direct TypeScript/fetch Integration
@@ -67,8 +70,7 @@ export async function directFetchExample() {
 	]
 
 	// Execute each command
-	for (let i = 0; i < commands.length; i++) {
-		const command = commands[i]
+	for (const [i, command] of commands.entries()) {
 		console.log(
 			`\n📝 Step ${i + 1}: ${command.command.toUpperCase()} ${command.path}`,
 		)

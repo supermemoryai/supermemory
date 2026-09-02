@@ -4,7 +4,10 @@
  * Run with: bun run src/test-memory-tool.ts
  */
 
-import { createClaudeMemoryTool, type MemoryCommand } from "./claude-memory"
+import {
+	createClaudeMemoryTool,
+	type MemoryCommand,
+} from "../src/claude-memory"
 import "dotenv/config"
 
 async function testMemoryTool() {
@@ -140,8 +143,7 @@ async function testMemoryTool() {
 	let passed = 0
 	let failed = 0
 
-	for (let i = 0; i < testCases.length; i++) {
-		const testCase = testCases[i]
+	for (const [i, testCase] of testCases.entries()) {
 		console.log(`\\n🔄 Test ${i + 1}/${testCases.length}: ${testCase.name}`)
 
 		try {
