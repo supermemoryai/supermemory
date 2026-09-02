@@ -11,6 +11,7 @@ import {
 	getContainerTags,
 } from "../tools-shared"
 import { forgetMemoryRequest } from "../shared/forget-memory"
+import { buildIdempotencyHeaders } from "../shared/idempotency"
 import type { SupermemoryToolsConfig } from "../types"
 
 /**
@@ -297,11 +298,15 @@ export function createAddMemoryFunction(
 		try {
 			const metadata: Record<string, string | number | boolean> = {}
 
-			const response = await client.add({
-				content: memory,
-				containerTags,
-				...(Object.keys(metadata).length > 0 && { metadata }),
-			})
+			const headers = await buildIdempotencyHeaders(memory, containerTags)
+			const response = await client.add(
+				{
+					content: memory,
+					containerTags,
+					...(Object.keys(metadata).length > 0 && { metadata }),
+				},
+				{ headers },
+			)
 
 			return {
 				success: true,

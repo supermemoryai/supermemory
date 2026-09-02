@@ -12,6 +12,7 @@ import {
 	getContainerTags,
 } from "./tools-shared"
 import { forgetMemoryRequest } from "./shared/forget-memory"
+import { buildIdempotencyHeaders } from "./shared/idempotency"
 import type { SupermemoryToolsConfig } from "./types"
 
 function createClient(apiKey: string, config?: SupermemoryToolsConfig) {
@@ -102,16 +103,37 @@ export const addMemoryTool = (
 		description: TOOL_DESCRIPTIONS.addMemory,
 		inputSchema: z.object({
 			memory: z.string().describe(PARAMETER_DESCRIPTIONS.memory),
+			idempotencyKey: z
+				.string()
+				.optional()
+				.describe(
+					"Optional custom idempotency key. If provided, used as-is; otherwise SDK generates a deterministic key.",
+				),
 		}),
-		execute: async ({ memory }) => {
+		execute: async ({
+			memory,
+			idempotencyKey,
+		}: {
+			memory: string
+			idempotencyKey?: string
+		}) => {
 			try {
 				const metadata: Record<string, string | number | boolean> = {}
-
-				const response = await client.add({
-					content: memory,
+				const headers = await buildIdempotencyHeaders(
+					memory,
 					containerTags,
-					...(Object.keys(metadata).length > 0 && { metadata }),
-				})
+					Date.now(),
+					idempotencyKey,
+				)
+
+				const response = await client.add(
+					{
+						content: memory,
+						containerTags,
+						...(Object.keys(metadata).length > 0 && { metadata }),
+					},
+					{ headers },
+				)
 
 				return {
 					success: true,
@@ -290,11 +312,15 @@ export const documentAddTool = (
 				if (title) metadata.title = title
 				if (description) metadata.description = description
 
-				const response = await client.documents.add({
-					content,
-					containerTags,
-					...(Object.keys(metadata).length > 0 && { metadata }),
-				})
+				const headers = await buildIdempotencyHeaders(content, containerTags)
+				const response = await client.documents.add(
+					{
+						content,
+						containerTags,
+						...(Object.keys(metadata).length > 0 && { metadata }),
+					},
+					{ headers },
+				)
 
 				return {
 					success: true,
