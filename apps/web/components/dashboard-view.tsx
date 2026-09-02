@@ -43,6 +43,7 @@ import { normalizePluginClientId } from "@/lib/plugin-catalog"
 import { detectPluginSpace } from "@/lib/plugin-space"
 import { useDigests } from "@/hooks/use-digests"
 import { ReviewMemoriesCard } from "@/components/review-memories-card"
+import { resolveDocumentTitle } from "@/lib/document-title"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -1595,7 +1596,7 @@ export function DashboardView({
 														)}
 													</div>
 													<span className="min-w-0 flex-1 truncate text-sm text-fg-muted group-hover:text-white transition-colors">
-														{doc.title?.trim() || "Untitled"}
+														{resolveDocumentTitle(doc) || "Untitled"}
 													</span>
 													<ArrowRight className="size-3.5 shrink-0 text-fg-faint group-hover:text-fg-muted transition-colors" />
 												</button>

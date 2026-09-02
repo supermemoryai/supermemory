@@ -6,6 +6,7 @@ import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { ClaudeDesktopIcon, MCPIcon } from "@ui/assets/icons"
 import type { ParsedPluginDocument } from "@/lib/plugin-document"
+import { resolveDocumentTitle } from "@/lib/document-title"
 import { PluginPreview } from "./plugin-preview"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
@@ -28,6 +29,8 @@ export function McpPreview({
 					.replace(/\b\w/g, (match) => match.toUpperCase())
 			: "MCP Client"
 
+	const title = resolveDocumentTitle(document)
+
 	return (
 		<div className="bg-[#0B1017] p-3 rounded-[18px] space-y-2">
 			<div className="flex items-center justify-between gap-1">
@@ -43,9 +46,9 @@ export function McpPreview({
 				<MCPIcon className="size-6" />
 			</div>
 			<div className="space-y-[6px]">
-				{document.title && (
+				{title && (
 					<p className={cn(dmSansClassName(), "text-[13px] font-semibold")}>
-						{document.title}
+						{title}
 					</p>
 				)}
 				{document.content && (

@@ -27,6 +27,7 @@ import type { UseMutationResult } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useIsMobile } from "@hooks/use-mobile"
 import { parsePluginDocument } from "@/lib/plugin-document"
+import { resolveDocumentTitle } from "@/lib/document-title"
 import { useFullDocumentContent } from "@/hooks/use-full-document"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
@@ -219,6 +220,10 @@ export function DocumentModal({
 		() => parsePluginDocument(effectiveDocument),
 		[effectiveDocument],
 	)
+	const resolvedTitle = useMemo(
+		() => resolveDocumentTitle(effectiveDocument),
+		[effectiveDocument],
+	)
 
 	const [draftContentString, setDraftContentString] =
 		useState(initialEditorString)
@@ -330,17 +335,17 @@ export function DocumentModal({
 		<>
 			{isMobile ? (
 				<DrawerTitle className="sr-only">
-					{_document?.title} - Document
+					{resolvedTitle} - Document
 				</DrawerTitle>
 			) : (
 				<DialogTitle className="sr-only">
-					{_document?.title} - Document
+					{resolvedTitle} - Document
 				</DialogTitle>
 			)}
 			<div className="flex items-center justify-between h-fit gap-2 md:gap-4">
 				<div className="flex-1 min-w-0">
 					<Title
-						title={_document?.title}
+						title={resolvedTitle}
 						documentType={_document?.type ?? "text"}
 						url={_document?.url}
 						pluginIconSrc={pluginDocument?.pluginIconSrc}

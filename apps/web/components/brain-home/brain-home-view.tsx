@@ -11,6 +11,7 @@ import { useBrainTrial } from "@/hooks/use-brain-trial"
 import { useTrialStatus } from "@/hooks/use-trial-status"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { useViewMode } from "@/lib/view-mode-context"
+import { resolveDocumentTitle } from "@/lib/document-title"
 import {
 	AskInSlackCard,
 	CONNECT_TOOLS_CARD_ID,
@@ -29,6 +30,8 @@ const cardStyle = {
 type RecentDoc = {
 	id?: string
 	title?: string | null
+	content?: string | null
+	metadata?: Record<string, unknown> | null
 	createdAt?: string | Date | null
 	updatedAt?: string | Date | null
 }
@@ -385,7 +388,7 @@ function RecentMemories({
 								<FileText className="size-3.5" />
 							</div>
 							<p className="min-w-0 flex-1 truncate text-[13px] font-medium text-[#fafafa]">
-								{doc.title?.trim() || "Untitled memory"}
+								{resolveDocumentTitle(doc) || "Untitled memory"}
 							</p>
 							<span className="shrink-0 text-[11px] font-medium text-[#737373]">
 								{formatWhen(doc.createdAt)}
