@@ -8,7 +8,6 @@ import {
 import { SpaceCard } from "../components/SpaceCard"
 import { Input, PageHeader } from "../design/ui"
 import { useApp } from "../hooks/useApp"
-import { useLog } from "../hooks/useLog"
 import { formatTagLabel } from "../lib/formatTag"
 import { Package, Search } from "../lib/icons"
 
@@ -33,7 +32,6 @@ export function Picker({
 	viewId,
 }: Props) {
 	const { callTool, handoffToModel } = useApp()
-	const log = useLog()
 	const [pending, setPending] = useState<string | null>(null)
 	const [query, setQuery] = useState("")
 
@@ -48,7 +46,6 @@ export function Picker({
 	}, [containerTags, query])
 
 	const handleSelect = async (containerTag: string) => {
-		log("info", `[picker] select: ${containerTag}`)
 		setPending(containerTag)
 		const result = await callTool(
 			"set-active-tag",
@@ -60,12 +57,11 @@ export function Picker({
 		)
 		setPending(null)
 		if (!result.ok || !result.data) {
-			log("error", `[picker] set-active-tag failed: ${result.error}`)
 			onError(result.error ?? "Failed to set active space")
 			return
 		}
 		onAdvance(result.data)
-		const handoff = await handoffToModel({
+		await handoffToModel({
 			context: `Supermemory space selection changed. Active space: "${containerTag}". Use it for future Supermemory actions until another space is selected.`,
 			message: `I selected "${containerTag}" as my active Supermemory space. Use this space for future Supermemory actions until I select another one.`,
 			structuredContent: {
@@ -75,18 +71,6 @@ export function Picker({
 				},
 			},
 		})
-		if (!handoff.contextUpdate.ok) {
-			log(
-				"warning",
-				`[picker] model context update failed: ${handoff.contextUpdate.error}`,
-			)
-		}
-		if (!handoff.conversationMessage.ok) {
-			log(
-				"warning",
-				`[picker] agent handoff failed: ${handoff.conversationMessage.error}`,
-			)
-		}
 	}
 
 	const count = containerTags.length

@@ -90,13 +90,6 @@ const ROWS: {
 		effortHelp:
 			"Deeper thinking routes messages more carefully but takes longer.",
 	},
-	{
-		role: "research",
-		effortKey: "researchEffort",
-		title: "Web research",
-		help: "Looks things up on the web when researching your company.",
-		effortHelp: "Deeper research per web search, at the cost of speed.",
-	},
 ]
 
 type FullConfig = Required<BrainModelConfig>
@@ -132,10 +125,8 @@ const PRESETS: PresetDef[] = [
 				? "grok-4-fast"
 				: defaults.main,
 			triage: defaults.triage,
-			research: defaults.research,
 			mainEffort: pickEffort(choices.mainEffort, "low", "low"),
 			triageEffort: pickEffort(choices.triageEffort, "low", "low"),
-			researchEffort: pickEffort(choices.researchEffort, "low", "low"),
 		}),
 	},
 	{
@@ -145,35 +136,24 @@ const PRESETS: PresetDef[] = [
 		build: (defaults) => ({
 			main: defaults.main,
 			triage: defaults.triage,
-			research: defaults.research,
 			mainEffort: defaults.mainEffort ?? "high",
 			triageEffort: defaults.triageEffort ?? "low",
-			researchEffort: defaults.researchEffort ?? "high",
 		}),
 	},
 	{
 		id: "thorough",
 		label: "Most thorough",
-		description: "Deepest answers and research. Slower, uses more credits.",
+		description: "Deepest answers. Slower, uses more credits.",
 		build: (defaults, choices) => ({
 			main: defaults.main,
 			triage: defaults.triage,
-			research: defaults.research,
 			mainEffort: pickEffort(choices.mainEffort, "xhigh", "high"),
 			triageEffort: pickEffort(choices.triageEffort, "medium", "low"),
-			researchEffort: pickEffort(choices.researchEffort, "xhigh", "high"),
 		}),
 	},
 ]
 
-const CONFIG_KEYS = [
-	"main",
-	"triage",
-	"research",
-	"mainEffort",
-	"triageEffort",
-	"researchEffort",
-] as const
+const CONFIG_KEYS = ["main", "triage", "mainEffort", "triageEffort"] as const
 
 const extraHighIsBounded = (model: string): boolean =>
 	model.startsWith("grok-") || model.startsWith("gpt-")

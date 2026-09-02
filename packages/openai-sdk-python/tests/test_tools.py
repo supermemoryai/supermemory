@@ -43,6 +43,8 @@ except ImportError:
 # SupermemoryOpenAI,
 # SupermemoryInfiniteChatConfigWithProviderName,
 
+EXPECTED_TOOL_COUNT = 7
+
 
 @pytest.fixture
 def test_api_key() -> str:
@@ -84,9 +86,7 @@ class TestToolInitialization:
 
         assert tools is not None
         assert tools.get_tool_definitions() is not None
-        assert (
-            len(tools.get_tool_definitions()) == 2
-        )  # Currently has search_memories and add_memory
+        assert len(tools.get_tool_definitions()) == EXPECTED_TOOL_COUNT
 
     def test_create_tools_with_helper(self, test_api_key: str):
         """Test creating tools with createSupermemoryTools helper."""
@@ -113,9 +113,7 @@ class TestToolInitialization:
         tools = SupermemoryTools(test_api_key, config)
 
         assert tools is not None
-        assert (
-            len(tools.get_tool_definitions()) == 2
-        )  # Currently has search_memories and add_memory
+        assert len(tools.get_tool_definitions()) == EXPECTED_TOOL_COUNT
 
     def test_create_tools_with_project_id(self, test_api_key: str):
         """Test creating tools with projectId configuration."""
@@ -125,9 +123,7 @@ class TestToolInitialization:
         tools = SupermemoryTools(test_api_key, config)
 
         assert tools is not None
-        assert (
-            len(tools.get_tool_definitions()) == 2
-        )  # Currently has search_memories and add_memory
+        assert len(tools.get_tool_definitions()) == EXPECTED_TOOL_COUNT
 
     def test_create_tools_with_custom_container_tags(self, test_api_key: str):
         """Test creating tools with custom container tags."""
@@ -137,9 +133,7 @@ class TestToolInitialization:
         tools = SupermemoryTools(test_api_key, config)
 
         assert tools is not None
-        assert (
-            len(tools.get_tool_definitions()) == 2
-        )  # Currently has search_memories and add_memory
+        assert len(tools.get_tool_definitions()) == EXPECTED_TOOL_COUNT
 
 
 class TestToolDefinitions:
@@ -150,7 +144,7 @@ class TestToolDefinitions:
         definitions = get_memory_tool_definitions()
 
         assert definitions is not None
-        assert len(definitions) == 2  # Currently has search_memories and add_memory
+        assert len(definitions) == EXPECTED_TOOL_COUNT
 
         # Check searchMemories
         search_tool = next(
@@ -159,6 +153,10 @@ class TestToolDefinitions:
         assert search_tool is not None
         assert search_tool["type"] == "function"
         assert "information_to_get" in search_tool["function"]["parameters"]["required"]
+        assert (
+            "include_full_docs"
+            not in search_tool["function"]["parameters"]["properties"]
+        )
 
         # Check addMemory
         add_tool = next(
@@ -175,6 +173,132 @@ class TestToolDefinitions:
         helper_definitions = get_memory_tool_definitions()
 
         assert class_definitions == helper_definitions
+
+
+class TestMemoryOperationsUnit:
+    """Unit tests for memory operations (no live API)."""
+
+    @pytest.mark.asyncio
+    async def test_add_memory_uses_client_add(self):
+        """add_memory must call client.add (memories.add was removed in supermemory 3.50)."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+
+        tools = SupermemoryTools("test-key", {"container_tags": ["unit-tag"]})
+        tools.client.add = AsyncMock(
+            return_value=SimpleNamespace(
+                id="doc_123",
+                status="queued",
+                model_dump=lambda: {"id": "doc_123", "status": "queued"},
+            )
+        )
+
+        result = await tools.add_memory("User likes tea")
+
+        assert result["success"] is True
+        assert result["memory"]["id"] == "doc_123"
+        tools.client.add.assert_awaited_once_with(
+            content="User likes tea",
+            container_tags=["unit-tag"],
+        )
+
+    @pytest.mark.asyncio
+    async def test_search_memories_uses_search_memories_hybrid(self):
+        """V4 search must use the primary singular tag and hybrid mode."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+
+        tools = SupermemoryTools(
+            "test-key", {"container_tags": ["primary-tag", "secondary-tag"]}
+        )
+        tools.client.search.memories = AsyncMock(
+            return_value=SimpleNamespace(
+                results=[SimpleNamespace(model_dump=lambda: {"memory": "likes tea"})]
+            )
+        )
+
+        with pytest.warns(DeprecationWarning, match="include_full_docs"):
+            result = await tools.search_memories(
+                "tea", include_full_docs=False, limit=3
+            )
+
+        assert result["success"] is True
+        assert result["count"] == 1
+        tools.client.search.memories.assert_awaited_once()
+        kwargs = tools.client.search.memories.await_args.kwargs
+        assert kwargs["q"] == "tea"
+        assert kwargs["container_tag"] == "primary-tag"
+        assert "container_tags" not in kwargs
+        assert "include_full_docs" not in kwargs
+        assert kwargs["limit"] == 3
+        assert kwargs["search_mode"] == "hybrid"
+
+    @pytest.mark.asyncio
+    async def test_get_profile_uses_client_profile(self):
+        """get_profile must call client.profile with container tag and optional query."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+
+        tools = SupermemoryTools("test-key", {"container_tags": ["unit-tag"]})
+        tools.client.profile = AsyncMock(
+            return_value=SimpleNamespace(
+                profile={"static": ["likes tea"], "dynamic": []},
+                search_results={"results": []},
+            )
+        )
+
+        result = await tools.get_profile(query="tea")
+
+        assert result["success"] is True
+        tools.client.profile.assert_awaited_once_with(
+            container_tag="unit-tag",
+            q="tea",
+        )
+
+    @pytest.mark.asyncio
+    async def test_document_list_uses_client_documents_list(self):
+        """document_list must call client.documents.list with container tag."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+
+        tools = SupermemoryTools("test-key", {"container_tags": ["unit-tag"]})
+        tools.client.documents.list = AsyncMock(
+            return_value=SimpleNamespace(
+                memories=[{"id": "doc_1"}],
+                pagination={"page": 1},
+            )
+        )
+
+        result = await tools.document_list(limit=5, page=2)
+
+        assert result["success"] is True
+        tools.client.documents.list.assert_awaited_once_with(
+            container_tags=["unit-tag"],
+            limit=5,
+            page=2,
+        )
+
+    @pytest.mark.asyncio
+    async def test_memory_forget_requires_id_or_content(self):
+        """memory_forget must reject calls without memory_id or memory_content."""
+        tools = SupermemoryTools("test-key", {"container_tags": ["unit-tag"]})
+        result = await tools.memory_forget()
+
+        assert result["success"] is False
+        assert "memory_id or memory_content" in result["error"]
+
+    def test_rejects_project_id_and_container_tags(self):
+        """Config must reject both project_id and container_tags."""
+        from supermemory_openai.exceptions import SupermemoryConfigurationError
+
+        with pytest.raises(SupermemoryConfigurationError):
+            SupermemoryTools(
+                "test-key",
+                {
+                    "project_id": "abc",
+                    "container_tags": ["tag-a"],
+                },
+            )
 
 
 class TestMemoryOperations:

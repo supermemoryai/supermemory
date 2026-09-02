@@ -7,11 +7,14 @@ import { z } from "zod"
 import {
 	containerTagSchema,
 	documentsApiResponseSchema,
-	paginationSchema,
+	memoriesListSchema,
 	type ContainerTag,
 	type DocumentMemoryEntry,
 	type DocumentsApiResponse,
 	type DocumentWithMemories,
+	type MemoriesList,
+	type MemoryEntry,
+	type MemoryEntryHistory,
 } from "../../shared/types"
 
 const MAX_CHARS = 200000
@@ -34,43 +37,10 @@ export interface DocumentsListResponse {
 	pagination: SdkDocumentListResponse["pagination"]
 }
 
-const memoryEntryHistorySchema = z.looseObject({
-	id: z.string(),
-	memory: z.string(),
-	version: z.number(),
-	createdAt: z.string(),
-	updatedAt: z.string(),
-	parentMemoryId: z.string().nullish(),
-	rootMemoryId: z.string().nullish(),
-	isLatest: z.boolean().optional(),
-	isForgotten: z.boolean().optional(),
-})
-
-export type MemoryEntryHistory = z.infer<typeof memoryEntryHistorySchema>
-
-const memoryEntrySchema = z.looseObject({
-	id: z.string(),
-	memory: z.string(),
-	version: z.number(),
-	isLatest: z.boolean(),
-	isForgotten: z.boolean(),
-	isStatic: z.boolean().optional(),
-	isInference: z.boolean().optional(),
-	createdAt: z.string(),
-	updatedAt: z.string(),
-	sourceCount: z.number().optional(),
-	documentIds: z.array(z.string()).optional(),
-	history: z.array(memoryEntryHistorySchema).optional(),
-})
-
-export type MemoryEntry = z.infer<typeof memoryEntrySchema>
-
-const memoryEntriesResponseSchema = z.object({
-	memoryEntries: z.array(memoryEntrySchema),
-	pagination: paginationSchema,
-})
-
-export type MemoryEntriesResponse = z.infer<typeof memoryEntriesResponseSchema>
+// Memory-entry shapes live in shared/types so the client parser and the
+// listMemories output schema share one definition and can't drift.
+export type { MemoryEntry, MemoryEntryHistory }
+export type MemoryEntriesResponse = MemoriesList
 
 export type Memory =
 	| {
@@ -122,11 +92,6 @@ const sdkResultSchema = z.looseObject({
 	context: z.string().nullish(),
 })
 
-const uploadResultSchema = z.object({
-	id: z.string(),
-	status: z.string(),
-})
-
 function mapSdkResults(value: unknown): Memory[] {
 	return z
 		.array(sdkResultSchema)
@@ -152,6 +117,19 @@ function objectProperty(value: unknown, key: string): unknown {
 	return value && typeof value === "object"
 		? Reflect.get(value, key)
 		: undefined
+}
+
+// API error bodies are JSON like {"error": "..."} — unwrap them so users see
+// the real reason instead of raw JSON or a generic fallback.
+function extractApiErrorMessage(raw: unknown): string | undefined {
+	if (typeof raw !== "string" || !raw) return undefined
+	try {
+		const parsed = JSON.parse(raw) as { error?: unknown; message?: unknown }
+		if (typeof parsed.error === "string" && parsed.error) return parsed.error
+		if (typeof parsed.message === "string" && parsed.message)
+			return parsed.message
+	} catch {}
+	return raw
 }
 
 export class SupermemoryClient {
@@ -376,7 +354,8 @@ export class SupermemoryClient {
 				signal,
 			})
 			if (!response.ok) {
-				throw Object.assign(new Error("Failed to fetch documents"), {
+				const message = extractApiErrorMessage(await response.text())
+				throw Object.assign(new Error(message ?? ""), {
 					status: response.status,
 				})
 			}
@@ -437,51 +416,13 @@ export class SupermemoryClient {
 			})
 
 			if (!response.ok) {
-				const message = await response.text()
-				throw Object.assign(
-					new Error(message || "Failed to fetch memory entries"),
-					{ status: response.status },
-				)
-			}
-
-			return memoryEntriesResponseSchema.parse(await response.json())
-		} catch (error) {
-			this.handleError(error)
-		}
-	}
-
-	async uploadFile(
-		fileData: ArrayBuffer,
-		fileName: string,
-		mimeType: string,
-		containerTag?: string,
-	): Promise<{ id: string; status: string }> {
-		try {
-			const formData = new FormData()
-			const blob = new Blob([fileData], { type: mimeType })
-			formData.append("file", blob, fileName)
-			if (containerTag) {
-				formData.append("containerTags", containerTag)
-			}
-			formData.append("metadata", JSON.stringify({ sm_source: MCP_SOURCE }))
-
-			const response = await fetch(`${this.apiUrl}/v3/documents/file`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${this.bearerToken}`,
-					"x-sm-source": MCP_SOURCE,
-				},
-				body: formData,
-			})
-
-			if (!response.ok) {
-				const text = await response.text()
-				throw Object.assign(new Error(text || "Upload failed"), {
+				const message = extractApiErrorMessage(await response.text())
+				throw Object.assign(new Error(message ?? ""), {
 					status: response.status,
 				})
 			}
 
-			return uploadResultSchema.parse(await response.json())
+			return memoriesListSchema.parse(await response.json())
 		} catch (error) {
 			this.handleError(error)
 		}
@@ -508,8 +449,7 @@ export class SupermemoryClient {
 
 		const status = objectProperty(error, "status")
 		if (typeof status === "number") {
-			const rawMessage = objectProperty(error, "message")
-			const message = typeof rawMessage === "string" ? rawMessage : undefined
+			const message = extractApiErrorMessage(objectProperty(error, "message"))
 			switch (status) {
 				case 400:
 				case 422:
@@ -521,7 +461,7 @@ export class SupermemoryClient {
 				case 403:
 					throw new Error(
 						message ||
-							"Access forbidden. Your account may be restricted or blocked.",
+							"Access forbidden. This connection may be read-only or scoped to specific spaces — reconnect with broader access, or check your account status.",
 					)
 				case 404:
 					throw new Error("Not found.")

@@ -21,6 +21,7 @@ import {
 	LifeBuoy,
 	LayoutGrid,
 	MenuIcon,
+	Plus,
 	SearchIcon,
 	Settings,
 	Settings2,
@@ -36,6 +37,7 @@ import { FeedbackModal } from "@/components/feedback-modal"
 import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
 import { SlackMark } from "@/components/brain-connector-icons"
 import { BrainTrialPill } from "@/components/brain-trial-pill"
+import { SetupCallLink } from "@/components/setup-call-link"
 import { GraphIcon } from "@/components/integration-icons"
 import { SpaceSelector } from "@/components/space-selector"
 import { UserProfileMenu } from "@/components/user-profile-menu"
@@ -55,6 +57,7 @@ const BACKEND =
 type SlackStatus = { connected: boolean; teamName: string | null }
 
 interface CompanyBrainHeaderProps {
+	onAddMemory?: () => void
 	onOpenSearch?: () => void
 }
 
@@ -108,7 +111,10 @@ function useSlackStatus() {
 	})
 }
 
-export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
+export function CompanyBrainHeader({
+	onAddMemory,
+	onOpenSearch,
+}: CompanyBrainHeaderProps) {
 	const { user, org, organizations, setActiveOrg } = useAuth()
 	const autumn = useCustomer()
 	const { currentPlan } = useTokenUsage(autumn)
@@ -412,6 +418,18 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 										"linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 								}}
 							>
+								{onAddMemory && (
+									<>
+										<DropdownMenuItem
+											onClick={onAddMemory}
+											className={menuItemClass}
+										>
+											<Plus className="size-4 text-[#737373]" />
+											Add memory
+										</DropdownMenuItem>
+										<DropdownMenuSeparator className="bg-[#2E3033]" />
+									</>
+								)}
 								<DropdownMenuItem
 									onClick={goOverview}
 									className={menuItemClass}
@@ -444,20 +462,13 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 									<Sun className="size-4 text-[#737373]" />
 									Integrations
 								</DropdownMenuItem>
-								{slackConnected ? (
+								{slackConnected && (
 									<DropdownMenuItem
 										onClick={goConfigure}
 										className={menuItemClass}
 									>
 										<SlackMark className="size-4" />
 										Slack connected
-									</DropdownMenuItem>
-								) : (
-									<DropdownMenuItem asChild className={menuItemClass}>
-										<a href={`${BACKEND}/brain/slack/oauth/install`}>
-											<SlackMark className="size-4" />
-											Add to Slack
-										</a>
 									</DropdownMenuItem>
 								)}
 								<DropdownMenuSeparator className="bg-[#2E3033]" />
@@ -498,7 +509,7 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 				) : (
 					<>
 						<BrainTrialPill className="h-9 px-3" />
-						{canInvite && (
+						{onAddMemory && (
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
@@ -509,18 +520,19 @@ export function CompanyBrainHeader({ onOpenSearch }: CompanyBrainHeaderProps) {
 											"lg:min-w-0 lg:gap-1.5 lg:px-3 lg:font-medium",
 											dmSansClassName(),
 										)}
-										onClick={handleInvite}
-										aria-label="Invite teammates"
+										onClick={onAddMemory}
+										aria-label="Add memory"
 									>
-										<UserPlus className="size-3.5 shrink-0 lg:size-4" />
-										<span className="max-lg:sr-only">Invite</span>
+										<Plus className="size-3.5 shrink-0 lg:size-4" />
+										<span className="max-lg:sr-only">Add</span>
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent side="bottom" className={dmSansClassName()}>
-									Invite teammates
+									Add memory (C)
 								</TooltipContent>
 							</Tooltip>
 						)}
+						<SetupCallLink />
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button
@@ -563,28 +575,9 @@ function SlackNavButton({
 	active: boolean
 	onManage: () => void
 }) {
-	const label = connected
-		? `Slack${teamName ? ` · ${teamName}` : ""}`
-		: "Add to Slack"
+	const label = `Slack${teamName ? ` · ${teamName}` : ""}`
 
-	if (!connected) {
-		return (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<a
-						href={`${BACKEND}/brain/slack/oauth/install`}
-						aria-label="Add to Slack"
-						className={circleNavClass(false)}
-					>
-						<SlackMark className="size-4" />
-					</a>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" className={dmSansClassName()}>
-					Add to Slack
-				</TooltipContent>
-			</Tooltip>
-		)
-	}
+	if (!connected) return null
 
 	return (
 		<Tooltip>

@@ -13,6 +13,7 @@ export type SkillDraft = {
 
 export type SkillMarkdown = Pick<SkillDraft, "name" | "description" | "body">
 export type NewSkillOrigin = "web" | "upload"
+export type SkillOrigin = NewSkillOrigin | "slack"
 
 export type SkillAuthoringTarget = {
 	canEdit: boolean
@@ -49,6 +50,10 @@ export function emptySkillDraft(): SkillDraft {
 		body: "",
 		scope: "personal",
 	}
+}
+
+export function skillOriginLabel(origin: SkillOrigin): string | null {
+	return origin === "slack" ? "Created by Company Brain" : null
 }
 
 export function setSkillDraftScope(

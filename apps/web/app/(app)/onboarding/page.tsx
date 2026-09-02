@@ -8,6 +8,7 @@ import { useAuth } from "@lib/auth-context"
 import { authClient } from "@lib/auth"
 import { SHARED_TEAM_BRAIN_TAG } from "@lib/constants"
 import { analytics } from "@/lib/analytics"
+import { hasCompanyBrain } from "@/lib/billing-utils"
 import { resolveCompanyBrainEntry } from "@/lib/company-brain-entry"
 import { BrainShell } from "@/components/onboarding-brain/shell"
 import {
@@ -107,6 +108,22 @@ export default function BrainOnboardingPage() {
 		[user?.email],
 	)
 	const [mode, setMode] = useState<BrainMode>(detectedMode)
+
+	const hasCompanyBrainOrg = useMemo(
+		() =>
+			(organizations ?? []).some((o) =>
+				hasCompanyBrain(
+					(o as { metadata?: Record<string, unknown> | string | null })
+						.metadata,
+				),
+			),
+		[organizations],
+	)
+	useEffect(() => {
+		if (mode === "team" && organizations != null && !hasCompanyBrainOrg) {
+			setMode("personal")
+		}
+	}, [mode, organizations, hasCompanyBrainOrg])
 	const [about, setAbout] = useState<AboutValues>({
 		name: user?.name ?? "",
 		about: "",
@@ -280,12 +297,9 @@ export default function BrainOnboardingPage() {
 			const metadata: BrainMetadata & { signupSource: string } = {
 				signupSource: "consumer",
 				brainOnboardingVersion: "v1",
-				brainMode: mode,
+				brainMode: "personal",
 				brainWorkspaceName: name,
-				brainWorkspaceDomain:
-					mode === "team"
-						? domainOverride || about.workspaceDomain || domain
-						: null,
+				brainWorkspaceDomain: null,
 				brainContainerTag: containerTag,
 				...(about.about.trim() ? { brainAbout: about.about.trim() } : {}),
 			}
@@ -368,7 +382,7 @@ export default function BrainOnboardingPage() {
 			setCreatingOrg(false)
 		}
 	}, [ensureOrg, goNext, forceCreate, organizations, router])
-	const isCompanyBrain = mode === "team"
+	const isCompanyBrain = mode === "team" && hasCompanyBrainOrg
 
 	const handleBrainConfirm = useCallback(
 		async (
@@ -385,10 +399,17 @@ export default function BrainOnboardingPage() {
 					workspaceDomain: confirmedDomain,
 					workspaceName: workspaceName || a.workspaceName,
 				}))
-				let orgCreated = false
+				const signupsPaused = () => {
+					toast.error("New Company Brain signups are paused", {
+						description: "Questions? Reach us at support@supermemory.com.",
+					})
+					return { ok: false as const }
+				}
+				const orgCreated = false
 				if (forceCreate) {
-					orgCreated = await ensureOrg(confirmedDomain, true)
-				} else if (organizationId) {
+					return signupsPaused()
+				}
+				if (organizationId) {
 					const selected = organizations?.find(
 						(organization) => organization.id === organizationId,
 					)
@@ -418,7 +439,7 @@ export default function BrainOnboardingPage() {
 					if (decision.action === "switch") {
 						await setActiveOrg(decision.organization.slug)
 					} else if (decision.action === "create") {
-						orgCreated = await ensureOrg(confirmedDomain, true)
+						return signupsPaused()
 					}
 				}
 				// Re-entering onboarding on an existing org ("Try onboarding") must
@@ -475,15 +496,7 @@ export default function BrainOnboardingPage() {
 				setCreatingOrg(false)
 			}
 		},
-		[
-			ensureOrg,
-			forceCreate,
-			org,
-			organizations,
-			queryClient,
-			setActiveOrg,
-			router,
-		],
+		[forceCreate, org, organizations, queryClient, setActiveOrg, router],
 	)
 
 	const [sendingInvites, setSendingInvites] = useState(false)
@@ -541,6 +554,10 @@ export default function BrainOnboardingPage() {
 
 	const mcpUrl = "https://mcp.supermemory.ai/mcp"
 
+	if (mode === "team" && organizations == null) {
+		return null
+	}
+
 	if (isCompanyBrain) {
 		return (
 			<CompanyBrainOnboarding
@@ -565,10 +582,6 @@ export default function BrainOnboardingPage() {
 			{step === "about" && (
 				<StepAbout
 					mode={mode}
-					onModeChange={(m) => {
-						analytics.onboardingModeSelected({ mode: m })
-						setMode(m)
-					}}
 					domain={domain}
 					suggestedWorkspaceName={suggestedWorkspaceName}
 					defaultName={user?.name ?? ""}

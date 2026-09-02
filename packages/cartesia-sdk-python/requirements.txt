@@ -2,4 +2,4 @@
 supermemory>=3.16.0
 pydantic>=2.10.0
 loguru>=0.7.3
-cartesia-line>=0.2.0
+cartesia-line>=0.2.0,<0.3.0

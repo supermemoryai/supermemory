@@ -1,0 +1,64 @@
+---
+title: "Grok Bot"
+sidebarTitle: "Grok Bot"
+description: "Supermemory for Grok Bot: persistent memory for your Grok Bots"
+icon: "/images/grok-logo.png"
+---
+
+Grok Bots are cloud agents. A new task can mean a new machine and a blank context. Supermemory is the memory they keep between those tasks — findings, decisions, and preferences — so the next Bot does not start cold.
+
+## How it helps
+
+Without memory, a Bot redoes investigation you already paid for. With Supermemory:
+
+- Later Bots know what earlier ones already figured out
+- You can save a decision or finding once and have it stick
+- You can ask what it already remembers instead of starting over
+
+Install once, sign in, and it is available to your Grok Bots.
+
+## Install
+
+Open the [Supermemory for Grok Bot plugin page](https://x.ai/bot/plugin/58578698) and select **Add to Grok Bot**.
+
+Restart Grok Bot afterwards so the plugin loads.
+
+## Authenticate
+
+Just ask Grok Bot:
+
+```
+Sign me in to Supermemory
+```
+
+It shows a connect card. Follow it to link your Supermemory account.
+
+To check later, ask `Is Supermemory connected?`
+
+## Skills
+
+Grok Bot picks these up from what you ask. There are no slash commands.
+
+| Skill | Ask for it like this |
+|-------|----------------------|
+| `memory-init` | "Learn this codebase and remember it" |
+| `memory-save` | "Remember that we use Vitest for unit tests" |
+| `memory-search` | "What do you remember about our database schema?" |
+
+## Log Out
+
+Ask Grok Bot to `Disconnect Supermemory`.
+
+This removes the stored credentials. Your memories in Supermemory are preserved.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="GitHub Repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/cursor-supermemory">
+    Source code, issues, and detailed README.
+  </Card>
+
+  <Card title="Cursor Plugin" icon="/images/cursor-logo.svg" href="/integrations/cursor">
+    The same plugin, installed through Cursor.
+  </Card>
+</CardGroup>

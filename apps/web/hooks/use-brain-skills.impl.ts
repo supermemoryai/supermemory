@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type {
 	NewSkillOrigin,
 	SkillDraft,
+	SkillOrigin,
 	SkillScope,
 } from "@/components/settings/company-brain-skills/domain"
 import { skillSaveRequestBody } from "@/components/settings/company-brain-skills/domain"
@@ -23,6 +24,7 @@ export type BrainSkill = {
 	scope: SkillScope
 	status: BrainSkillStatus
 	creatorUserId: string
+	origin: SkillOrigin
 	canEdit: boolean
 	canDelete: boolean
 	version: number
@@ -86,6 +88,9 @@ export function useBrainSkills() {
 		queryFn: () =>
 			jsonRequest<BrainSkillsResponse>(`${BASE}/`, {}, "Couldn't load skills."),
 		enabled: !!org?.id && !!user?.id,
+		staleTime: 0,
+		refetchOnWindowFocus: true,
+		refetchInterval: 15_000,
 	})
 }
 

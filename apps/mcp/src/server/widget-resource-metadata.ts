@@ -3,22 +3,30 @@ export const WIDGET_DESCRIPTION =
 
 const WIDGET_DOMAIN = "https://mcp.supermemory.ai"
 
-export const WIDGET_RESOURCE_UI_META = {
-	prefersBorder: true,
-	csp: {
-		resourceDomains: [
-			"https://fonts.googleapis.com",
-			"https://fonts.gstatic.com",
-		],
-		connectDomains: [
-			"https://fonts.googleapis.com",
-			"https://fonts.gstatic.com",
-		],
-	},
+function widgetResourceUiMeta(connectOrigin = WIDGET_DOMAIN) {
+	return {
+		prefersBorder: true,
+		csp: {
+			resourceDomains: [
+				"https://fonts.googleapis.com",
+				"https://fonts.gstatic.com",
+			],
+			connectDomains: [
+				"https://fonts.googleapis.com",
+				"https://fonts.gstatic.com",
+				...new Set([WIDGET_DOMAIN, connectOrigin]),
+			],
+		},
+	}
 }
 
-export const WIDGET_RESOURCE_META = {
-	ui: WIDGET_RESOURCE_UI_META,
-	"openai/widgetDescription": WIDGET_DESCRIPTION,
-	"openai/widgetDomain": WIDGET_DOMAIN,
+export function widgetResourceMeta(connectOrigin = WIDGET_DOMAIN) {
+	return {
+		ui: widgetResourceUiMeta(connectOrigin),
+		"openai/widgetDescription": WIDGET_DESCRIPTION,
+		"openai/widgetDomain": WIDGET_DOMAIN,
+	}
 }
+
+export const WIDGET_RESOURCE_UI_META = widgetResourceUiMeta()
+export const WIDGET_RESOURCE_META = widgetResourceMeta()

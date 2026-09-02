@@ -195,6 +195,11 @@
 								"group": "Other resources",
 								"pages": [
 									{
+										"group": "General",
+										"icon": "book-open",
+										"pages": ["ingestion/batch-ingest-historical-data"]
+									},
+									{
 										"group": "Benchmarking",
 										"icon": "flask-conical",
 										"pages": [
@@ -370,7 +375,10 @@
 									{
 										"group": "Setups",
 										"icon": "layers",
-										"pages": ["supermemory-mcp/claude-desktop"]
+										"pages": [
+											"supermemory-mcp/chatgpt-web",
+											"supermemory-mcp/claude-desktop"
+										]
 									}
 								]
 							},
@@ -380,6 +388,8 @@
 								"pages": [
 									"integrations/openclaw",
 									"integrations/claude-code",
+									"integrations/cursor",
+									"integrations/grok-bot",
 									"integrations/opencode",
 									"integrations/codex",
 									"integrations/hermes"

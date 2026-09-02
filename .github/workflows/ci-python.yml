@@ -1,0 +1,257 @@
+name: CI - Python SDKs
+
+on:
+  pull_request:
+    paths:
+      - "packages/agent-framework-python/**"
+      - "packages/cartesia-sdk-python/**"
+      - "packages/openai-sdk-python/**"
+      - "packages/pipecat-sdk-python/**"
+      - ".github/workflows/ci-python.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  agent-framework-python:
+    name: agent-framework-python (${{ matrix.dependency-lane }}, Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.10"
+            dependency-lane: minimum-supermemory
+            supermemory-version: "3.16.0"
+          - python-version: "3.13"
+            dependency-lane: current-supermemory
+            supermemory-version: "3.59.0"
+    defaults:
+      run:
+        working-directory: packages/agent-framework-python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: packages/agent-framework-python/pyproject.toml
+
+      - name: Install build and test tools
+        run: python -m pip install build pytest pytest-asyncio
+
+      - name: Build wheel
+        run: python -m build --wheel --outdir "$RUNNER_TEMP/wheels"
+
+      - name: Install wheel and tested Supermemory SDK
+        run: >-
+          python -m pip install "$RUNNER_TEMP"/wheels/*.whl
+          "supermemory==${{ matrix.supermemory-version }}"
+
+      - name: Check dependency compatibility
+        run: python -m pip check
+
+      - name: Verify installed wheel and SDK version
+        run: >-
+          python -c "from importlib.metadata import version; from pathlib import Path;
+          import supermemory_agent_framework;
+          assert version('supermemory') == '${{ matrix.supermemory-version }}';
+          assert 'site-packages' in Path(supermemory_agent_framework.__file__).parts"
+
+      - name: Run tests
+        run: python -m pytest
+
+  openai-sdk-python:
+    name: openai-sdk-python (${{ matrix.dependency-lane }}, Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.9"
+            dependency-lane: minimum-supermemory
+            supermemory-version: "3.50.0"
+            expected-supermemory-version: "3.50.0"
+          - python-version: "3.12"
+            dependency-lane: locked
+            supermemory-version: ""
+            expected-supermemory-version: "3.59.0"
+    defaults:
+      run:
+        working-directory: packages/openai-sdk-python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
+          enable-cache: true
+          working-directory: packages/openai-sdk-python
+          cache-dependency-glob: uv.lock
+
+      - name: Install locked dependencies
+        run: uv sync --locked --python "${{ matrix.python-version }}"
+
+      - name: Build wheel
+        run: uv build --wheel --out-dir "$RUNNER_TEMP/wheels"
+
+      - name: Install built wheel
+        run: >-
+          uv pip install --python .venv/bin/python --reinstall --no-deps
+          "$RUNNER_TEMP"/wheels/*.whl
+
+      - name: Install minimum Supermemory SDK
+        if: matrix.supermemory-version != ''
+        run: >-
+          uv pip install --python .venv/bin/python
+          "supermemory==${{ matrix.supermemory-version }}"
+
+      - name: Check dependency compatibility
+        run: uv pip check --python .venv/bin/python
+
+      - name: Verify installed wheel and SDK version
+        run: >-
+          .venv/bin/python -c "from importlib.metadata import version;
+          from pathlib import Path; import supermemory_openai;
+          assert version('supermemory') == '${{ matrix.expected-supermemory-version }}';
+          assert 'site-packages' in Path(supermemory_openai.__file__).parts"
+
+      - name: Run tests without changing the verified environment
+        run: .venv/bin/python -m pytest
+
+  cartesia-sdk-python:
+    name: cartesia-sdk-python (${{ matrix.dependency-lane }}, Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.10"
+            dependency-lane: minimum-dependencies
+            supermemory-version: "3.16.0"
+            cartesia-line-version: "0.2.0"
+          - python-version: "3.12"
+            dependency-lane: current-dependencies
+            supermemory-version: "3.59.0"
+            cartesia-line-version: "0.2.17"
+    defaults:
+      run:
+        working-directory: packages/cartesia-sdk-python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: packages/cartesia-sdk-python/pyproject.toml
+
+      - name: Install build and test tools
+        run: python -m pip install build pytest
+
+      - name: Build wheel
+        run: python -m build --wheel --outdir "$RUNNER_TEMP/wheels"
+
+      - name: Install wheel and tested runtime dependencies
+        run: >-
+          python -m pip install "$RUNNER_TEMP"/wheels/*.whl
+          "supermemory==${{ matrix.supermemory-version }}"
+          "cartesia-line==${{ matrix.cartesia-line-version }}"
+
+      - name: Check dependency compatibility
+        run: python -m pip check
+
+      - name: Verify real Cartesia Line integration and run tests
+        run: >-
+          python -c "from importlib.metadata import version;
+          from pathlib import Path; import line, pytest, supermemory_cartesia;
+          assert version('supermemory') == '${{ matrix.supermemory-version }}';
+          assert version('cartesia-line') == '${{ matrix.cartesia-line-version }}';
+          assert 'site-packages' in Path(supermemory_cartesia.__file__).parts;
+          result = pytest.main(['-W', 'ignore::pytest.PytestAssertRewriteWarning', 'tests']);
+          raise SystemExit(result)"
+
+  pipecat-sdk-python:
+    name: pipecat-sdk-python (${{ matrix.dependency-lane }}, Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.10"
+            dependency-lane: minimum-dependencies
+            supermemory-version: "3.16.0"
+            pipecat-version: "0.0.98"
+          - python-version: "3.12"
+            dependency-lane: current-dependencies
+            supermemory-version: "3.59.0"
+            pipecat-version: "1.7.0"
+    defaults:
+      run:
+        working-directory: packages/pipecat-sdk-python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: packages/pipecat-sdk-python/pyproject.toml
+
+      - name: Install build and test tools
+        run: python -m pip install build pytest
+
+      - name: Build wheel
+        run: python -m build --wheel --outdir "$RUNNER_TEMP/wheels"
+
+      - name: Install wheel and tested runtime dependencies
+        run: >-
+          python -m pip install "$RUNNER_TEMP"/wheels/*.whl
+          "supermemory==${{ matrix.supermemory-version }}"
+          "pipecat-ai==${{ matrix.pipecat-version }}"
+
+      - name: Check dependency compatibility
+        run: python -m pip check
+
+      - name: Verify real Pipecat integration and run tests
+        run: >-
+          python -c "from importlib.metadata import version;
+          from pathlib import Path; import pipecat, pytest, supermemory_pipecat;
+          assert version('supermemory') == '${{ matrix.supermemory-version }}';
+          assert version('pipecat-ai') == '${{ matrix.pipecat-version }}';
+          assert 'site-packages' in Path(supermemory_pipecat.__file__).parts;
+          result = pytest.main(['-W', 'ignore::pytest.PytestAssertRewriteWarning', 'tests']);
+          raise SystemExit(result)"

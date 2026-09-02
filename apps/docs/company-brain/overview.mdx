@@ -25,10 +25,12 @@ It'll answer a question, actually go do the work, or just jump into a conversati
 ### Ask it anything
 
 <SlackThread channel="#product">
-  <SlackMessage self time="10:42 AM">
+  <SlackMessage self hasAvatar time="10:42 AM">
+    <img src="/images/company-brain/dhravya-slack-icon.jpg" alt="" />
     <Mention>supermemory</Mention> what did we decide about pricing for the company brain
   </SlackMessage>
-  <SlackMessage bot time="10:42 AM">
+  <SlackMessage bot hasAvatar time="10:42 AM">
+    <img src="/images/company-brain/supermemory-slack-icon.png" alt="" />
     You and mahesh decided yesterday that it stays at **$400/mo**, usage based only. we landed on that in a <ChannelRef>product</ChannelRef> huddle
   </SlackMessage>
 </SlackThread>
@@ -36,10 +38,12 @@ It'll answer a question, actually go do the work, or just jump into a conversati
 ### Put it to work
 
 <SlackThread channel="#eng">
-  <SlackMessage self time="3:24 PM">
+  <SlackMessage self hasAvatar time="3:24 PM">
+    <img src="/images/company-brain/dhravya-slack-icon.jpg" alt="" />
     <Mention>supermemory</Mention> is the Stripe webhook timeout from Sentry already tracked anywhere?
   </SlackMessage>
-  <SlackMessage bot time="3:25 PM">
+  <SlackMessage bot hasAvatar time="3:25 PM">
+    <img src="/images/company-brain/supermemory-slack-icon.png" alt="" />
     nope, nothing yet — just opened **ENG-847** for it, added the sentry issue to it, and put it on <Mention>Sam</Mention> since they were the last one in `webhooks/stripe.ts` and their beautiful code broke it ☠️. <AgentLink href="https://linear.app">here you go</AgentLink>, should probably fix it asap.
   </SlackMessage>
 </SlackThread>
@@ -50,7 +54,8 @@ It'll answer a question, actually go do the work, or just jump into a conversati
   <SlackMessage name="Alex" color="#E01E5A" time="11:03 AM">
     is prod down? a couple of customers are pinging me
   </SlackMessage>
-  <SlackMessage bot time="11:03 AM">
+  <SlackMessage bot hasAvatar time="11:03 AM">
+    <img src="/images/company-brain/supermemory-slack-icon.png" alt="" />
     not fully down — `api/search` is just elevated, 42 errors in the last 15 min (SM-2041), and <Mention>Kush</Mention> is on it. probably that deploy from this morning. Only one user has complained on support and i already replied to them saying it's being investigated.
   </SlackMessage>
 </SlackThread>

@@ -2,7 +2,7 @@ import {
 	type LanguageModel,
 	type LanguageModelCallOptions,
 	type LanguageModelStreamPart,
-	getLastUserMessage,
+	hasPersistableUserContent,
 } from "./util"
 import {
 	createSupermemoryContext,
@@ -11,6 +11,7 @@ import {
 	saveMemoryAfterResponse,
 } from "./middleware"
 import type { PromptTemplate, MemoryPromptData } from "./memory-prompt"
+import { injectMemoriesIntoParams } from "./memory-prompt"
 
 const DEFAULT_MEMORY_RETRIEVAL_TIMEOUT_MS = 5000
 
@@ -166,7 +167,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 											: "Unknown error",
 								},
 							)
-							modelParams = params
+							modelParams = injectMemoriesIntoParams(params, "", ctx.logger)
 						} else {
 							ctx.logger.error("Error during memory retrieval for generation", {
 								error:
@@ -182,11 +183,9 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 						// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
 						const result = await target.doGenerate(modelParams as any)
 
-						const userMessage = getLastUserMessage(params)
 						if (
 							ctx.addMemory === "always" &&
-							userMessage &&
-							userMessage.trim()
+							hasPersistableUserContent(params)
 						) {
 							const assistantResponseText = extractAssistantResponseText(
 								result.content as unknown[],
@@ -232,7 +231,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 											: "Unknown error",
 								},
 							)
-							modelParams = params
+							modelParams = injectMemoriesIntoParams(params, "", ctx.logger)
 						} else {
 							ctx.logger.error("Error during memory retrieval for stream", {
 								error:
@@ -261,11 +260,9 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 								controller.enqueue(chunk)
 							},
 							flush: async () => {
-								const userMessage = getLastUserMessage(params)
 								if (
 									ctx.addMemory === "always" &&
-									userMessage &&
-									userMessage.trim()
+									hasPersistableUserContent(params)
 								) {
 									saveMemoryAfterResponse(
 										ctx.client,

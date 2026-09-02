@@ -2,18 +2,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 // Mock the Supermemory SDK (same pattern as claude-memory.test.ts) so tool
 // executions can be verified deterministically without network access.
-const documentsDelete = vi.fn()
+const documentsDeleteBulk = vi.fn()
+const documentsGet = vi.fn()
 const documentsList = vi.fn()
-const searchExecute = vi.fn()
 const clientAdd = vi.fn()
+const clientSearch = vi.fn()
+const clientOptions: unknown[] = []
 
 vi.mock("supermemory", () => {
 	return {
 		default: class MockSupermemory {
-			search = { execute: searchExecute }
+			constructor(options: unknown) {
+				clientOptions.push(options)
+			}
 			add = clientAdd
+			search = clientSearch
 			documents = {
-				delete: documentsDelete,
+				deleteBulk: documentsDeleteBulk,
+				get: documentsGet,
 				list: documentsList,
 				add: vi.fn(),
 			}
@@ -35,14 +41,75 @@ function executeTool(tool: unknown, args: Record<string, unknown>) {
 }
 
 beforeEach(() => {
-	documentsDelete.mockReset().mockResolvedValue(undefined)
+	documentsDeleteBulk.mockReset().mockResolvedValue({
+		success: true,
+		deletedCount: 1,
+		errors: [],
+	})
+	documentsGet.mockReset().mockResolvedValue({
+		id: "doc_123",
+		customId: "doc_123",
+		containerTags: ["sm_project_default"],
+	})
 	documentsList.mockReset().mockResolvedValue({
 		memories: [{ id: "doc_1", title: "Doc one" }],
 		pagination: { currentPage: 1, totalItems: 1, totalPages: 1 },
 	})
-	searchExecute.mockReset()
 	clientAdd.mockReset().mockResolvedValue({ id: "doc_new" })
+	clientSearch.mockReset().mockResolvedValue({ results: [] })
+	clientOptions.length = 0
 	vi.unstubAllGlobals()
+})
+
+describe("searchMemories", () => {
+	it("ai-sdk variant clamps an oversized limit before calling the SDK", async () => {
+		const tool = aiSdk.searchMemoriesTool(API_KEY)
+		const result = (await executeTool(tool, {
+			informationToGet: "coffee order",
+			limit: 999,
+		})) as { success: boolean }
+
+		expect(result.success).toBe(true)
+		expect(clientSearch).toHaveBeenCalledWith(
+			expect.objectContaining({ q: "coffee order", limit: 50 }),
+		)
+	})
+
+	it("ai-sdk schema rejects out-of-range limits", () => {
+		const tool = aiSdk.searchMemoriesTool(API_KEY) as unknown as {
+			inputSchema: { safeParse: (v: unknown) => { success: boolean } }
+		}
+		expect(
+			tool.inputSchema.safeParse({ informationToGet: "x", limit: 0 }).success,
+		).toBe(false)
+		expect(
+			tool.inputSchema.safeParse({ informationToGet: "x", limit: 51 }).success,
+		).toBe(false)
+		expect(
+			tool.inputSchema.safeParse({ informationToGet: "x", limit: 50 }).success,
+		).toBe(true)
+	})
+
+	it("openai variant clamps a non-positive limit before calling the SDK", async () => {
+		const search = openAi.createSearchMemoriesFunction(API_KEY)
+		await search({ informationToGet: "coffee order", limit: 0 })
+
+		expect(clientSearch).toHaveBeenCalledWith(
+			expect.objectContaining({ limit: 1 }),
+		)
+	})
+
+	it("creates SDK clients with a bounded timeout and retry budget", () => {
+		aiSdk.searchMemoriesTool(API_KEY)
+		openAi.createSearchMemoriesFunction(API_KEY)
+
+		expect(clientOptions).toHaveLength(2)
+		for (const options of clientOptions) {
+			expect(options).toEqual(
+				expect.objectContaining({ timeout: 30_000, maxRetries: 2 }),
+			)
+		}
+	})
 })
 
 describe("documentDelete", () => {
@@ -53,7 +120,8 @@ describe("documentDelete", () => {
 		}
 
 		expect(result.success).toBe(true)
-		expect(documentsDelete).toHaveBeenCalledWith("doc_123")
+		expect(documentsGet).toHaveBeenCalledWith("doc_123")
+		expect(documentsDeleteBulk).toHaveBeenCalledWith({ ids: ["doc_123"] })
 	})
 })
 
@@ -109,6 +177,22 @@ describe("memoryForget", () => {
 			id: "mem_1",
 			reason: "outdated",
 		})
+		expect(init.signal).toBeInstanceOf(AbortSignal)
+	})
+
+	it("uses a caller-provided signal instead of creating a timeout", async () => {
+		const fetchMock = stubFetch()
+		const controller = new AbortController()
+
+		await forgetMemoryRequest(
+			API_KEY,
+			{ containerTag: "user_1", id: "mem_1" },
+			undefined,
+			{ signal: controller.signal },
+		)
+
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+		expect(init.signal).toBe(controller.signal)
 	})
 
 	it("throws a descriptive error on non-2xx responses", async () => {
@@ -161,16 +245,30 @@ describe("memoryForget", () => {
 describe("ClaudeMemoryTool", () => {
 	const FILE_PATH = "/memories/prefs.txt"
 	const CUSTOM_ID = "memories_prefs_txt"
+	const DOCUMENT_ID = "doc_file_1"
 
 	function mockFileDocument(content: string) {
-		searchExecute.mockResolvedValue({
-			results: [
+		const metadata = {
+			claude_memory_type: "file",
+			file_path: FILE_PATH,
+		}
+		documentsList.mockResolvedValue({
+			memories: [
 				{
-					documentId: CUSTOM_ID,
-					content,
-					metadata: { file_path: FILE_PATH },
+					id: DOCUMENT_ID,
+					customId: CUSTOM_ID,
+					containerTags: ["claude_memory"],
+					metadata,
 				},
 			],
+			pagination: { currentPage: 1, totalItems: 1, totalPages: 1 },
+		})
+		documentsGet.mockResolvedValue({
+			id: DOCUMENT_ID,
+			customId: CUSTOM_ID,
+			containerTags: ["sm_project_default", "claude_memory"],
+			content,
+			metadata,
 		})
 	}
 
@@ -231,7 +329,7 @@ describe("ClaudeMemoryTool", () => {
 		})
 
 		expect(result.success).toBe(true)
-		expect(documentsDelete).toHaveBeenCalledWith(CUSTOM_ID)
+		expect(documentsDeleteBulk).toHaveBeenCalledWith({ ids: [DOCUMENT_ID] })
 	})
 
 	it("rename removes the old document after creating the new one", async () => {
@@ -248,6 +346,6 @@ describe("ClaudeMemoryTool", () => {
 		expect(clientAdd).toHaveBeenCalledWith(
 			expect.objectContaining({ customId: "memories_renamed_txt" }),
 		)
-		expect(documentsDelete).toHaveBeenCalledWith(CUSTOM_ID)
+		expect(documentsDeleteBulk).toHaveBeenCalledWith({ ids: [DOCUMENT_ID] })
 	})
 })

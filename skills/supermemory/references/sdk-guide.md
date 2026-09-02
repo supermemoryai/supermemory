@@ -13,6 +13,9 @@ npm install supermemory
 yarn add supermemory
 # or
 pnpm add supermemory
+
+# Agent tools and Vercel AI SDK middleware
+npm install @supermemory/tools
 ```
 
 📦 View on npm: [https://www.npmjs.com/package/supermemory](https://www.npmjs.com/package/supermemory)
@@ -22,6 +25,9 @@ pnpm add supermemory
 pip install supermemory
 # Or for async support with aiohttp
 pip install 'supermemory[aiohttp]'
+
+# OpenAI function tools and middleware
+pip install supermemory-openai-sdk
 ```
 
 📦 View on PyPI: [https://pypi.org/project/supermemory/](https://pypi.org/project/supermemory/)
@@ -44,6 +50,8 @@ const client = new Supermemory({
 
 ### Python
 ```python
+import os
+
 from supermemory import Supermemory
 
 # Synchronous client
@@ -69,7 +77,7 @@ Add content to Supermemory for processing and memory extraction.
 #### TypeScript
 ```typescript
 await client.add({
-  content: string | URL,          // Required: text, URL, or file path
+  content: string,                // Required: plaintext or a URL string
   containerTag?: string,           // Optional: isolation identifier
   entityContext?: string,          // Optional: context for memory extraction
   customId?: string,               // Optional: your custom identifier
@@ -80,13 +88,15 @@ await client.add({
 #### Python
 ```python
 client.add(
-    content=str | url,              # Required: text, URL, or file path
+    content=str,                    # Required: plaintext or a URL string
     container_tag=str,              # Optional: isolation identifier
     entity_context=str,             # Optional: context for memory extraction
     custom_id=str,                  # Optional: your custom identifier
     metadata=dict                   # Optional: custom key-value pairs
 )
 ```
+
+`add()` does not read a local file path. Upload local files with `client.documents.uploadFile({ file })` in TypeScript or `client.documents.upload_file(file=...)` in Python; `filepath` is metadata, not a file upload.
 
 #### Examples
 
@@ -137,7 +147,7 @@ const response = await client.profile({
 // Returns:
 // {
 //   profile: {
-//     static: string[],      // Array of static memories (permanent facts)
+//     static: string[],      // Array of long-lived profile facts
 //     dynamic: string[]      // Array of dynamic memories (recent context)
 //   },
 //   searchResults?: {        // Only included if q parameter was provided
@@ -161,18 +171,9 @@ response = client.profile(
     threshold=float            # Optional: relevance threshold (0-1, default 0.5)
 )
 
-# Returns dict:
-# {
-#   "profile": {
-#     "static": List[str],     # Array of static memories (permanent facts)
-#     "dynamic": List[str]     # Array of dynamic memories (recent context)
-#   },
-#   "searchResults": {         # Only included if q parameter was provided
-#     "results": List[dict],   # Search results
-#     "total": int,
-#     "timing": int
-#   }
-# }
+# Returns a ProfileResponse model:
+# response.profile.static / response.profile.dynamic
+# response.search_results.results  # only when q was provided
 ```
 
 #### Examples
@@ -203,15 +204,15 @@ console.log(response.profile.dynamic);  // Recent dynamic memories
 
 ### `search()` - Semantic Search
 
-Search across memories using semantic understanding, not just keywords. `client.search.memories()` and `client.search.documents()` still work (deprecated) but `client.search()` is the current, recommended call — Python keeps `client.search.memories()`.
+Search across memories using semantic retrieval. `client.search()` is the current TypeScript v4 call. Python uses `client.search.memories()` for the same v4 endpoint; the TypeScript `client.search.documents()` method is the legacy v3 document response.
 
 #### TypeScript
 ```typescript
 const response = await client.search({
   q: string,                  // Required: search query
   containerTag?: string,      // Optional: filter by container tag
-  limit?: number,             // Optional: max results (default 10)
-  threshold?: number,         // Optional: similarity threshold (0-1, default 0.5)
+  limit?: number,             // Optional: max results (default 10, max 100)
+  threshold?: number,         // Optional: similarity threshold (0-1, default 0.6)
   searchMode?: "memories" | "hybrid" | "documents",  // Optional: "memories" (default), "hybrid" (memories + document chunks), or "documents" (chunks only)
   filters?: FilterObject      // Optional: advanced filtering
 });
@@ -237,18 +238,14 @@ const response = await client.search({
 response = client.search.memories(
     q=str,                      # Required: search query
     container_tag=str,          # Optional: filter by container tag
-    threshold=float,            # Optional: similarity threshold (0-1, default 0.5)
-    limit=int,                  # Optional: max results (default 50)
+    threshold=float,            # Optional: similarity threshold (0-1, default 0.6)
+    limit=int,                  # Optional: max results (default 10, max 100)
     search_mode=str,            # Optional: "memories" (default), "hybrid", or "documents"
     filters=dict                # Optional: advanced filtering
 )
 
-# Returns dict:
-# {
-#   "results": List[dict],      # Array of search results
-#   "total": int,
-#   "timing": int               # Search time in milliseconds
-# }
+# Returns a SearchMemoriesResponse model:
+# response.results, response.total, response.timing
 ```
 
 #### Examples
@@ -262,17 +259,17 @@ const response = await client.search({
 });
 
 response.results.forEach(result => {
-  console.log(`Score: ${result.score}`);
-  console.log(`Content: ${result.content}`);
+  console.log(`Similarity: ${result.similarity}`);
+  console.log(`Content: ${result.memory ?? result.chunk}`);
 });
 ```
 
-**Hybrid search for RAG (semantic + keyword):**
+**Hybrid search for RAG (memories + source chunks):**
 ```typescript
 const response = await client.search({
   q: "authentication methods",
   containerTag: "docs",
-  searchMode: "hybrid",  // Combines semantic and keyword search for better RAG accuracy
+  searchMode: "hybrid",  // Returns both extracted memories and document chunks
   threshold: 0.3,
   limit: 10
 });
@@ -285,19 +282,20 @@ const response = await client.search({
   containerTag: "docs",
   threshold: 0.3,
   filters: {
-    metadata: {
-      type: "tutorial",
-      category: "security"
-    }
+    AND: [
+      { key: "type", value: "tutorial" },
+      { key: "category", value: "security" }
+    ]
   }
 });
 ```
 
-**Search within specific document:**
+**Search within a filepath:**
 ```typescript
 const response = await client.search({
   q: "rate limiting configuration",
-  containerTag: "specific_project"
+  containerTag: "specific_project",
+  filepath: "/docs/api.md"
 });
 ```
 
@@ -308,32 +306,34 @@ Retrieve stored documents with optional filtering and pagination.
 #### TypeScript
 ```typescript
 const docs = await client.documents.list({
-  containerTag?: string,     // Optional: filter by container
-  limit?: number,            // Optional: number of results (default 20)
-  offset?: number,           // Optional: pagination offset
-  status?: string            // Optional: filter by processing status
+  containerTags?: string[],  // Optional: filter by one or more containers
+  limit?: number,            // Optional: items per page (default 10)
+  page?: number,             // Optional: 1-based page number (default 1)
+  includeContent?: boolean,  // Optional: include source content (default false)
+  sort?: "createdAt" | "updatedAt",
+  order?: "asc" | "desc"
 });
 
 // Returns:
 // {
-//   documents: Array<{
+//   memories: Array<{
 //     id: string,
-//     content: string,
 //     status: string,
 //     metadata: object,
-//     createdAt: string
+//     createdAt: string,
+//     content?: string       // only when includeContent=true
 //   }>,
-//   total: number
+//   pagination: { currentPage, totalItems, totalPages, limit? }
 // }
 ```
 
 #### Python
 ```python
 docs = client.documents.list(
-    container_tag=str,         # Optional: filter by container
-    limit=int,                 # Optional: number of results (default 20)
-    offset=int,                # Optional: pagination offset
-    status=str                 # Optional: filter by processing status
+    container_tags=[str],       # Optional: filter by one or more containers
+    limit=int,                  # Optional: items per page (default 10)
+    page=int,                   # Optional: 1-based page number (default 1)
+    include_content=bool        # Optional: include source content (default False)
 )
 ```
 
@@ -342,53 +342,39 @@ docs = client.documents.list(
 **List all documents for a user:**
 ```typescript
 const docs = await client.documents.list({
-  containerTag: "user_123",
+  containerTags: ["user_123"],
   limit: 50
 });
 
-docs.documents.forEach(doc => {
+docs.memories.forEach(doc => {
   console.log(`${doc.id}: ${doc.status}`);
 });
 ```
 
 **Paginated listing:**
 ```typescript
-const page1 = await client.documents.list({ limit: 20, offset: 0 });
-const page2 = await client.documents.list({ limit: 20, offset: 20 });
-```
-
-**Filter by status:**
-```typescript
-const processing = await client.documents.list({
-  containerTag: "project_abc",
-  status: "processing"
-});
+const page1 = await client.documents.list({ limit: 20, page: 1 });
+const page2 = await client.documents.list({ limit: 20, page: 2 });
 ```
 
 ### `documents.delete()` - Delete Document
 
-Remove a document and its associated memories.
+Permanently remove a source document. Memories extracted from that source are soft-forgotten so they no longer appear in profile or search.
 
 #### TypeScript
 ```typescript
-await client.documents.delete({
-  docId: string    // Required: document ID
-});
+await client.documents.delete(documentId);
 ```
 
 #### Python
 ```python
-client.documents.delete(
-    doc_id=str       # Required: document ID
-)
+client.documents.delete(document_id)
 ```
 
 #### Example
 
 ```typescript
-await client.documents.delete({
-  docId: "doc_abc123"
-});
+await client.documents.delete("doc_abc123");
 ```
 
 ## Advanced Features
@@ -414,11 +400,11 @@ const results = await client.search({
   q: "phone reviews",
   containerTag: "reviews",
   filters: {
-    metadata: {
-      rating: { $gte: 4.0 },     // Rating >= 4.0
-      verified: true,
-      tags: { $contains: "apple" }
-    }
+    AND: [
+      { key: "rating", value: "4.0", filterType: "numeric", numericOperator: ">=" },
+      { key: "verified", value: "true" },
+      { key: "tags", value: "apple", filterType: "array_contains" }
+    ]
   }
 });
 ```
@@ -472,6 +458,60 @@ await client.add({
 
 ### Vercel AI SDK
 
+#### Agent tools (`@supermemory/tools/ai-sdk` / `@supermemory/ai-sdk`)
+
+For models that call memory operations explicitly, use the 7-tool set instead of hand-rolling SDK calls:
+
+```typescript
+import { generateText, stepCountIs } from "ai"
+import { openai } from "@ai-sdk/openai"
+import { supermemoryTools } from "@supermemory/tools/ai-sdk"
+
+const allTools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
+  containerTags: ["user_123"],
+})
+
+// Select the operations this agent is allowed to call.
+const tools = {
+  searchMemories: allTools.searchMemories,
+  addMemory: allTools.addMemory,
+  getProfile: allTools.getProfile,
+  documentList: allTools.documentList,
+  documentAdd: allTools.documentAdd,
+}
+
+const { text } = await generateText({
+  model: openai("gpt-4o"),
+  tools,
+  stopWhen: stepCountIs(5),
+  prompt: "What do you remember about my coffee preferences?",
+})
+```
+
+Tools: `searchMemories`, `addMemory`, `getProfile`, `documentList`, `documentAdd`, `documentDelete`, `memoryForget`.
+
+Use `searchMemories` for targeted hybrid recall; `getProfile` for broad static/dynamic user context; `documentList`, `documentAdd`, and `documentDelete` for source management. Hybrid search returns both extracted memories and source-document chunks.
+
+If you configure multiple container tags, `searchMemories`, `getProfile`, and `memoryForget` use the first tag because v4 memory operations are single-space. Add, list, and delete operations use the broader configured scope where supported.
+
+`supermemoryTools()` includes destructive operations. Expose `documentDelete` and `memoryForget` only when the agent is authorized to remove data, and require user confirmation when appropriate. `stopWhen` allows the model to consume tool results and produce a final answer instead of stopping immediately after the first tool call.
+
+#### Middleware (`withSupermemory`)
+
+For automatic profile injection and conversation saving without tool calls, import `withSupermemory` from `@supermemory/tools/ai-sdk`:
+
+```typescript
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+const modelWithMemory = withSupermemory(openai("gpt-4o"), {
+  containerTag: "user_123",
+  customId: "conversation_456",
+})
+```
+
+#### Manual SDK integration
+
 ```typescript
 import { Supermemory } from 'supermemory';
 import { openai } from '@ai-sdk/openai';
@@ -485,11 +525,16 @@ async function chat(userId: string, message: string) {
     containerTag: userId,
     q: message
   });
+  const profileText = [
+    ...context.profile.static,
+    ...context.profile.dynamic,
+  ].join('\n');
+  const searchText = JSON.stringify(context.searchResults?.results ?? []);
 
   // 2. Generate response with context
   const { text } = await generateText({
     model: openai('gpt-4'),
-    system: `User Profile: ${context.profile}\n\nRelevant Context:\n${context.memories.map(m => m.content).join('\n')}`,
+    system: `User Profile:\n${profileText}\n\nRelevant Context:\n${searchText}`,
     prompt: message
   });
 
@@ -550,13 +595,22 @@ def create_memory_enhanced_agent(user_id: str):
     # Get user context
     context = memory.profile(
         container_tag=user_id,
-        query="user preferences and history"
+        q="user preferences and history"
+    )
+
+    profile_text = "\n".join(
+        (context.profile.static or []) + (context.profile.dynamic or [])
+    )
+    search_text = "\n".join(
+        result.memory
+        for result in (context.search_results.results if context.search_results else [])
+        if result.memory
     )
 
     agent = Agent(
         role="Personal Assistant",
         goal="Help the user with personalized assistance",
-        backstory=f"User Context: {context['profile']}\n\nRecent interactions:\n{context['memories']}",
+        backstory=f"User Context:\n{profile_text}\n\nRelevant memories:\n{search_text}",
         verbose=True
     )
 
@@ -602,9 +656,9 @@ await client.add({
 ```
 
 ### 4. Appropriate Thresholds
-Start with default (0.5) and adjust based on results:
+Start with the v4 search default (`0.6`) and adjust based on results:
 - **0.3-0.5**: Broader recall, good for discovery
-- **0.5-0.7**: Balanced precision and recall
+- **0.5-0.7**: Balanced precision and recall; `0.6` is the default
 - **0.7-1.0**: High precision, fewer but more relevant results
 
 ### 5. Error Handling
@@ -630,7 +684,6 @@ try {
 - `entityContext`
 - `customId`
 - `threshold`
-- `docId`
 - `q`
 
 ### Python (snake_case)
@@ -638,15 +691,13 @@ try {
 - `entity_context`
 - `custom_id`
 - `threshold`
-- `doc_id`
 
 ## Performance Tips
 
 1. **Batch Operations**: Add multiple documents in quick succession if needed
 2. **Async/Await**: Always use async operations to avoid blocking
-3. **Pagination**: Use `limit` and `offset` for large result sets
+3. **Pagination**: Use `limit` and 1-based `page` for large document lists
 4. **Caching**: Cache profile() results for short periods if making multiple calls
-5. **Processing Time**: Allow 1-2 minutes for PDFs, 5-10 minutes for videos
 
 ## Support
 

@@ -1,10 +1,3 @@
-export const DHRAVYA = {
-  name: "Dhravya Shah",
-  avatar: "/images/company-brain/dhravya-slack-icon.jpg",
-};
-
-export const BOT_AVATAR = "/images/company-brain/supermemory-slack-icon.png";
-
 export const Mention = ({ children, self = false }) => (
   <span
     className="rounded px-1 py-px font-medium"
@@ -53,9 +46,13 @@ export const SlackThread = ({
   private: isPrivate = false,
   members,
   dmWith,
+  hasAvatar = false,
   maxHeight = "70vh",
   children,
 }) => {
+  const childItems = Array.isArray(children) ? children : [children];
+  const dmAvatar = hasAvatar ? childItems[0] : null;
+  const threadMessages = hasAvatar ? childItems.slice(1) : children;
   const composerLabel =
     type === "dm"
       ? `Message ${dmWith?.name || "someone"}`
@@ -91,11 +88,9 @@ export const SlackThread = ({
       ) : type === "dm" ? (
         <div className="flex items-center gap-2 border-b border-black/10 px-4 py-3 dark:border-white/10">
           <div className="relative h-6 w-6 flex-none">
-            <img
-              src={dmWith?.avatar || "/images/company-brain/supermemory-slack-icon.png"}
-              alt={dmWith?.name || "DM"}
-              className="h-6 w-6 rounded-md object-cover"
-            />
+            <span className="block h-full w-full overflow-hidden rounded-md [&_img]:h-full [&_img]:w-full [&_img]:object-cover">
+              {dmAvatar}
+            </span>
             <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#2BAC76] dark:border-[#1A1D21]" />
           </div>
           <span className="truncate text-[15px] font-bold text-gray-900 dark:text-zinc-50">
@@ -149,7 +144,7 @@ export const SlackThread = ({
           className="overflow-y-auto bg-white dark:bg-[#1A1D21]"
           style={maxHeight ? { maxHeight } : undefined}
         >
-          {children}
+          {threadMessages}
         </div>
         {maxHeight ? (
           <div
@@ -213,7 +208,7 @@ export const SlackMessage = ({
   bot = false,
   time,
   color = "#611f69",
-  avatar,
+  hasAvatar = false,
   badges,
   reactions,
   highlighted = false,
@@ -221,11 +216,11 @@ export const SlackMessage = ({
   children,
 }) => {
   const SELF_NAME = "Dhravya Shah";
-  const SELF_AVATAR = "/images/company-brain/dhravya-slack-icon.jpg";
-  const BOT_AVATAR = "/images/company-brain/supermemory-slack-icon.png";
 
+  const childItems = Array.isArray(children) ? children : [children];
+  const resolvedAvatar = hasAvatar ? childItems[0] : null;
+  const messageBody = hasAvatar ? childItems.slice(1) : children;
   const resolvedName = bot ? "supermemory" : self ? SELF_NAME : name || SELF_NAME;
-  const resolvedAvatar = bot ? BOT_AVATAR : self ? SELF_AVATAR : avatar;
   const resolvedBadges = badges || (bot ? ["AGENT"] : null);
 
   return (
@@ -248,11 +243,9 @@ export const SlackMessage = ({
         ))}
       </div>
       {resolvedAvatar ? (
-        <img
-          src={resolvedAvatar}
-          alt={resolvedName}
-          className="mt-0.5 h-9 w-9 flex-none rounded-md object-cover"
-        />
+        <span className="mt-0.5 h-9 w-9 flex-none overflow-hidden rounded-md [&_img]:h-full [&_img]:w-full [&_img]:object-cover">
+          {resolvedAvatar}
+        </span>
       ) : (
         <div
           className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-md text-sm font-bold text-white"
@@ -286,7 +279,7 @@ export const SlackMessage = ({
           ) : null}
         </div>
         <div className="text-[15px] leading-normal text-gray-800 dark:text-zinc-200 [&_p]:m-0 [&_strong]:font-bold [&_strong]:text-gray-900 dark:[&_strong]:text-zinc-50 [&_code]:rounded [&_code]:bg-black/5 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.9em] dark:[&_code]:bg-white/10">
-          {children}
+          {messageBody}
         </div>
         {reactions ? (
           <div className="mt-1.5 flex flex-wrap gap-1">

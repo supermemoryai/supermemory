@@ -8,13 +8,13 @@ import { ArrowRight, Check, FileText, Loader2, UserPlus } from "lucide-react"
 import { useQueryState } from "nuqs"
 import { useSettingsModal } from "@/components/settings/settings-modal"
 import { useBrainTrial } from "@/hooks/use-brain-trial"
+import { useTrialStatus } from "@/hooks/use-trial-status"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { useViewMode } from "@/lib/view-mode-context"
 import {
 	AskInSlackCard,
 	CONNECT_TOOLS_CARD_ID,
 	ConnectToolsCard,
-	SlackBanner,
 	useConnectionsBoard,
 } from "./connections-board"
 
@@ -195,7 +195,6 @@ export function BrainHomeView() {
 				setupTotal={milestonesTotal}
 				lastUpdatedAt={o.lastUpdatedAt}
 			/>
-			{board.slack && !board.slack.connected && <SlackBanner />}
 			<div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
 				<div className="min-w-0 space-y-6">
 					{board.showBoard && <ConnectToolsCard board={board} />}
@@ -486,7 +485,7 @@ function BrainTimeline({
 	canInvite: boolean
 	toolsCardVisible: boolean
 }) {
-	const trial = useBrainTrial()
+	const { needsSetup } = useTrialStatus()
 	const { openSettings } = useSettingsModal()
 	const { setViewMode } = useViewMode()
 	const [, setInvite] = useQueryState("invite")
@@ -532,12 +531,13 @@ function BrainTimeline({
 			title: slackConnected ? "Slack connected" : "Connect Slack",
 			hint: slackConnected
 				? undefined
-				: trial.state === "trialing"
-					? "Ask your brain from any channel."
-					: "Starts your 14-day free trial. No credit card needed.",
-			action: slackConnected
-				? undefined
-				: { label: "Add", href: `${BACKEND}/brain/slack/oauth/install` },
+				: needsSetup
+					? "Starts with your trial."
+					: "Ask your brain from any channel.",
+			action:
+				slackConnected || needsSetup
+					? undefined
+					: { label: "Add", href: `${BACKEND}/brain/slack/oauth/install` },
 		},
 		...(rollout != null
 			? [

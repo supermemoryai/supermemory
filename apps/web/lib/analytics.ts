@@ -1,5 +1,6 @@
 import posthog from "posthog-js"
 import type { BrainStep } from "@/components/onboarding-brain/types"
+import type { SetupCallSurface } from "@/lib/cal"
 
 const pendingEvents: Array<{
 	eventName: string
@@ -83,6 +84,8 @@ export const analytics = {
 	connectionDeleted: () => safeCapture("connection_deleted"),
 	connectionAuthStarted: (props: { provider: string }) =>
 		safeCapture("connection_auth_started", props),
+	connectorPausedClicked: (props: { provider: string; reason: string }) =>
+		safeCapture("connector_paused_clicked", props),
 
 	// integrations surface (main Nova page)
 	integrationCardClicked: (props: { kind: string; id: string; name: string }) =>
@@ -222,7 +225,13 @@ export const analytics = {
 
 	// settings / spaces / docs analytics
 	settingsTabChanged: (props: {
-		tab: "account" | "billing" | "integrations" | "connections" | "support"
+		tab:
+			| "account"
+			| "billing"
+			| "api-keys"
+			| "integrations"
+			| "connections"
+			| "support"
 	}) => safeCapture("settings_tab_changed", props),
 
 	spaceCreated: () => safeCapture("space_created"),
@@ -265,4 +274,14 @@ export const analytics = {
 	}) => safeCapture("company_brain_promo_clicked", props),
 	companyBrainPromoDismissed: () =>
 		safeCapture("company_brain_promo_dismissed"),
+
+	brainTrialCardViewed: () => safeCapture("brain_trial_card_viewed"),
+	brainTrialCheckoutStarted: () => safeCapture("brain_trial_checkout_started"),
+	brainTrialCheckoutAbandoned: () =>
+		safeCapture("brain_trial_checkout_abandoned"),
+	brainSetupCallClicked: (props: { surface: SetupCallSurface }) =>
+		safeCapture("brain_setup_call_clicked", props),
+	brainSetupModalSeen: () => safeCapture("brain_setup_modal_seen"),
+	brainSetupModalPicked: (props: { choice: "slack" | "call" }) =>
+		safeCapture("brain_setup_modal_picked", props),
 }

@@ -18,7 +18,7 @@ Supermemory integrates with [VoltAgent](https://github.com/VoltAgent/voltagent),
 ## Installation
 
 ```bash
-npm install @supermemory/tools @voltagent/core
+npm install @supermemory/tools @voltagent/core ai@^6 @ai-sdk/openai@^3
 ```
 
 Set up your API key as an environment variable:
@@ -52,9 +52,7 @@ const configWithMemory = withSupermemory({
 const agent = new Agent(configWithMemory)
 
 // Memories are automatically injected and saved
-const result = await agent.generateText({
-  messages: [{ role: "user", content: "What's my name?" }],
-})
+const result = await agent.generateText("What's my name?")
 ```
 
 <Note>
@@ -131,14 +129,13 @@ const configWithMemory = withSupermemory({
 
   // Search tuning
   searchMode: "hybrid",            // "memories" | "documents" | "hybrid"
-  threshold: 0.1,                  // 0.0-1.0 (higher = more accurate)
-  limit: 10,                       // Max results to return
+  threshold: 0.6,                  // 0.0-1.0 (higher = more accurate)
+  limit: 10,                       // Integer from 1 to 100
   rerank: true,                    // Rerank for best relevance
   rewriteQuery: false,             // AI-rewrite query (+400ms latency)
 
   // Context
-  entityContext: "This is John, a software engineer",  // Guides memory extraction (max 1500 chars)
-  metadata: { source: "voltagent" },                   // Attached to saved conversations
+  metadata: { source: "voltagent" },  // Attached to saved conversations
 
   // API
   apiKey: "sk-...",                // Falls back to SUPERMEMORY_API_KEY env var
@@ -154,13 +151,15 @@ const configWithMemory = withSupermemory({
 | `addMemory`       | string   | `"always"`   | Whether to save conversations after each response        |
 | `customId`        | string   | **required** | Custom ID to group messages into a conversation          |
 | `searchMode`      | string   | —            | `"memories"`, `"documents"`, or `"hybrid"`               |
-| `threshold`       | number   | `0.1`        | Similarity threshold (0 = more results, 1 = more accurate) |
-| `limit`           | number   | `10`         | Maximum number of memory results                         |
+| `threshold`       | number   | —            | Similarity threshold (0 = more results, 1 = more accurate) |
+| `limit`           | number   | —            | Maximum number of memory results (integer from 1 to 100) |
 | `rerank`          | boolean  | `false`      | Rerank results for relevance                             |
 | `rewriteQuery`    | boolean  | `false`      | AI-rewrite query for better results (+400ms)             |
-| `entityContext`   | string   | —            | Context for memory extraction (max 1500 chars)           |
+| `entityContext`   | string   | —            | Deprecated and ignored. [Configure it on the container tag instead](/concepts/customization#entity-context). |
 | `metadata`        | object   | —            | Custom metadata attached to saved conversations          |
 | `promptTemplate`  | function | —            | Custom function to format memory data into prompt        |
+
+When `threshold` or `limit` is omitted, the selected Supermemory backend route applies its own default. Set them explicitly when you need consistent search tuning across modes.
 
 ## Search Modes
 
@@ -171,4 +170,3 @@ The `searchMode` option controls what type of results are searched:
 | `"memories"`  | Search only memory entries (atomic facts about the user) |
 | `"documents"` | Search only document chunks                            |
 | `"hybrid"`    | Search both memories AND document chunks (recommended) |
-

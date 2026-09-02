@@ -1,0 +1,208 @@
+---
+title: "Cursor"
+sidebarTitle: "Cursor"
+description: "cursor-supermemory: persistent memory across your Cursor chats"
+icon: "/images/cursor-logo.svg"
+---
+
+Your agent remembers the decisions, bugs, and conventions from earlier chats instead of starting cold every time.
+
+## Install
+
+<Note>
+Requires [Node.js](https://nodejs.org) on your `PATH`. Installing Cursor does not put one there.
+</Note>
+
+Run this in Cursor:
+
+```
+/add-plugin cursor-supermemory
+```
+
+Or install it from the [Cursor Marketplace](https://cursor.com/marketplace/supermemory): open **Customize**, find **Supermemory**, select **Install**, and choose **project** or **user** scope.
+
+Restart Cursor or run **Developer: Reload Window** afterwards.
+
+## Authenticate
+
+Open a new chat in Cursor and run:
+
+```
+/supermemory-setup
+```
+
+A browser window opens. Sign in to Supermemory and you are done.
+
+As a fallback, set an API key from [API Keys](https://console.supermemory.ai/keys):
+
+<Tabs>
+  <Tab title="macOS / Linux (zsh)">
+    ```bash
+    echo 'export SUPERMEMORY_API_KEY="sm_..."' >> ~/.zshrc
+    source ~/.zshrc
+    ```
+  </Tab>
+  <Tab title="macOS / Linux (bash)">
+    ```bash
+    echo 'export SUPERMEMORY_API_KEY="sm_..."' >> ~/.bashrc
+    source ~/.bashrc
+    ```
+  </Tab>
+  <Tab title="Windows (PowerShell)">
+    ```powershell
+    [System.Environment]::SetEnvironmentVariable("SUPERMEMORY_API_KEY", "sm_...", "User")
+    ```
+    Restart your terminal after running this.
+  </Tab>
+</Tabs>
+
+Restart Cursor after installing the plugin or changing credentials.
+
+Check the connection any time with `/supermemory-status`.
+
+<Accordion title="Prefer the terminal?" icon="terminal">
+The slash commands just run the plugin's CLI for you. To drive it yourself:
+
+```bash
+node "${CURSOR_PLUGIN_ROOT}/dist/cli.js" login
+node "${CURSOR_PLUGIN_ROOT}/dist/cli.js" status
+node "${CURSOR_PLUGIN_ROOT}/dist/cli.js" logout
+```
+
+`CURSOR_PLUGIN_ROOT` is set for plugin hooks. If it is empty in your shell, run `node dist/cli.js <command>` from the installed plugin directory.
+
+Credentials are stored in `~/.supermemory-cursor/credentials.json`.
+</Accordion>
+
+## How It Works
+
+| Layer | What it does |
+|-------|--------------|
+| Session profile | Loads your persistent profile when a Cursor conversation starts |
+| Automatic recall | Searches on substantive prompts, deduplicates results, and injects them after the first supported tool result |
+| Incremental capture | Saves each completed turn, and retries unsaved transcript deltas at session end |
+| MCP tools | Explicit memory control from any Cursor AI session |
+| Context gatherer | Fans out targeted searches before substantial work |
+| Always-on rule | Makes the agent recall relevant history proactively |
+
+### Skills and Commands
+
+| Name | Type | Description |
+|------|------|-------------|
+| `memory-init` | Skill | Explore the codebase and initialize project memory |
+| `memory-save` | Skill | Save an insight, decision, or solution worth keeping |
+| `memory-search` | Skill | Search memory for past work, bugs, and decisions |
+| `supermemory-context-gatherer` | Agent | Gather deep background before substantial work |
+| `supermemory-setup` | Command | Connect Supermemory to Cursor |
+| `supermemory-status` | Command | Check authentication and live connectivity |
+| `supermemory-config` | Command | Create or edit the project config file |
+| `supermemory-logout` | Command | Disconnect Supermemory from Cursor |
+
+## MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `supermemory_get_config` | Show current config, resolved container tags, and config file paths |
+| `supermemory_set_config` | Update config at project or global scope |
+| `supermemory_containers` | Show what `user` and `project` container tags resolve to |
+| `supermemory_search` | Search memories by query |
+| `supermemory_add` | Save new information to memory |
+| `supermemory_list` | List stored memories |
+| `supermemory_forget` | Delete a memory by id or content |
+| `supermemory_profile` | Get your user profile summary |
+
+Every tool that takes a `container` argument accepts:
+
+- `"user"` (default): personal memories for the current repository
+- `"project"`: project knowledge for the current repository
+- `"both"`: both scopes plus compatible legacy memories
+- any custom string: used as a raw container tag
+
+`user` and `project` write to the same repository container. The `sm_scope` metadata field is what keeps personal and session memories separate from explicit project knowledge when an agent asks for one scope.
+
+## Container Tags
+
+Cursor shares one repository tag with the [Claude Code](/integrations/claude-code), [OpenAI Codex](/integrations/codex), and [OpenCode](/integrations/opencode) plugins, so agents working on the same repo read and write the same memory:
+
+```text
+repo_<project_name>__<project_id>
+```
+
+The project ID is a stable hash of the normalized Git remote. Repositories without a remote fall back to their resolved local path. Two repos with the same directory name never collide, and different agents on the same repository share memory.
+
+The plugin still reads the former `cursor_user_*` and `cursor_project_*` tags, along with legacy tags from the other agents. New writes only use the unified repository tag. Set `repoContainerTag` only when you need an explicit shared override.
+
+## Configuration
+
+<Tip>
+**Prefer to keep everything on your machine?** This plugin works with [self-hosted Supermemory](/self-hosting/overview): run `npx supermemory local`, then set `SUPERMEMORY_API_URL="http://localhost:6767"` (or `baseUrl` in your config file) and use the API key printed on first boot.
+</Tip>
+
+### Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `SUPERMEMORY_API_KEY` | API key (overrides all other sources) |
+| `SUPERMEMORY_API_URL` | Override the Supermemory API base URL |
+| `SUPERMEMORY_REPO_TAG` | Override the unified repository container tag |
+| `SUPERMEMORY_USER_TAG` | Legacy Cursor personal container to continue reading |
+| `SUPERMEMORY_PROJECT_TAG` | Legacy Cursor project container to continue reading |
+| `CURSOR_USER_EMAIL` | Used only to find legacy Cursor personal memories |
+
+### Global config
+
+`~/.config/cursor/supermemory.json` holds user-wide defaults and applies to all projects.
+
+```json
+{
+  "repoContainerTag": "repo_my_project__0123456789abcdef",
+  "similarityThreshold": 0.55,
+  "maxMemories": 10,
+  "injectProfile": true,
+  "signalExtraction": false,
+  "signalKeywords": ["remember", "architecture", "decision", "bug", "fix"],
+  "signalTurnsBefore": 3
+}
+```
+
+### Project config
+
+`.cursor/.supermemory/config.json` holds per-workspace overrides and wins over global config. Add it to `.gitignore` if it contains an API key.
+
+```json
+{
+  "apiKey": "sm_...",
+  "repoContainerTag": "repo_my_project__0123456789abcdef",
+  "similarityThreshold": 0.55,
+  "maxMemories": 10,
+  "injectProfile": true
+}
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `apiKey` | — | Project-specific API key |
+| `baseUrl` | Supermemory API | Override the Supermemory API base URL |
+| `repoContainerTag` | derived from normalized Git remote or project path | Override the unified repository container |
+| `userContainerTag` | — | Legacy Cursor personal container to continue reading |
+| `projectContainerTag` | — | Legacy Cursor project container to continue reading |
+| `similarityThreshold` | `0.55` | Minimum similarity for prompt recall. Values below `0.55` are floored. |
+| `maxMemories` | `10` | Max profile facts injected at session start |
+| `injectProfile` | `true` | Whether to inject the user profile at session start |
+| `signalExtraction` | `false` | Capture only turns containing durable-signal keywords |
+| `signalKeywords` | `remember`, `architecture`, `decision`, `bug`, `fix` | Keywords that trigger signal-based capture |
+| `signalTurnsBefore` | `3` | Number of nearby turns retained around a signal |
+
+You can also set these from the agent with `supermemory_set_config`, or edit the file by hand.
+
+## Log Out
+
+Run `/supermemory-logout` in Cursor.
+
+This removes the stored credentials. Your memories in Supermemory are preserved.
+
+## Next Steps
+
+<Card title="GitHub Repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/cursor-supermemory">
+  Source code, issues, and detailed README.
+</Card>

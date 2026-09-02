@@ -129,6 +129,14 @@ Use the dimension published for your chosen model. A mismatch with vectors alrea
 
 **Changing embeddings later:** Not supported in place. Start from a fresh data directory or re-ingest all content so vectors stay comparable.
 
+> [!IMPORTANT]
+> **Model Mixing Bug in v0.0.5 (Exact match returns nothing)**
+>
+> In version `v0.0.5`, there was a bug where the server could mix different embedding models between write and read paths (e.g., document ingestion using OpenAI but memory queries using local default embeddings). In multilingual contexts like Japanese (which lacks space tokenization for fallback lexical FTS matching), this caused exact-text memory searches through `/v4/search` and `/v4/profile` to silently return `{"results":[],"total":0}`.
+>
+> **Resolution:**
+> This was fully resolved in `v0.0.7` by locking the embedding plan uniformly across all document and query embedding paths (enforced via a locked plan in the database store). If you are running `v0.0.5` and experiencing this issue, you should upgrade to `v0.0.7` or later.
+
 ## Related
 
 - [Configuration](/self-hosting/configuration) — LLM providers, storage, ingestion limits

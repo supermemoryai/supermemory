@@ -1,9 +1,5 @@
 import { z } from "zod"
-import {
-	graphViewSchema,
-	type GraphResultMeta,
-	type ViewMessage,
-} from "../../shared/types"
+import { graphViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { optionalContainerTagSchema } from "../container-tag"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
@@ -47,10 +43,6 @@ export function register(deps: ToolDeps) {
 					truncated: result.documents.length < result.pagination.totalItems,
 					rendered: true,
 				}
-				const graphMeta: GraphResultMeta = {
-					graphData: { documents: result.documents },
-				}
-
 				return {
 					content: [
 						textContent(
@@ -58,7 +50,7 @@ export function register(deps: ToolDeps) {
 						),
 					],
 					structuredContent: sc,
-					_meta: { ...appResultMeta(viewId), ...graphMeta },
+					_meta: appResultMeta(viewId),
 				}
 			} catch (error) {
 				return deps.errorResult(error)

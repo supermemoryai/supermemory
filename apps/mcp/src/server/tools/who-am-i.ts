@@ -20,7 +20,6 @@ export function register(deps: ToolDeps) {
 					deps.getActiveContainerTag(),
 				])
 				const client = deps.getClientInfo(context)
-				const sessionId = context.sessionId
 				const structuredContent: WhoAmIOutput = {
 					userId: session.user.id,
 					...(session.user.email ? { email: session.user.email } : {}),
@@ -34,7 +33,6 @@ export function register(deps: ToolDeps) {
 							: null,
 					...(session.scope ? { scope: session.scope } : {}),
 					...(client ? { client } : {}),
-					...(sessionId ? { sessionId } : {}),
 				}
 				return {
 					content: [textContent(JSON.stringify(structuredContent))],

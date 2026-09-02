@@ -21,6 +21,7 @@ import { formatUsageNumber } from "@/lib/billing-utils"
 import { SpaceSelector } from "../space-selector"
 import { useIsMobile } from "@hooks/use-mobile"
 import { addDocumentParam } from "@/lib/search-params"
+import { usePromoCode } from "@/hooks/use-promo-code"
 
 type TabType = "note" | "link" | "file" | "connect"
 
@@ -153,6 +154,7 @@ export function AddDocument({
 		})
 
 	const autumn = useCustomer()
+	const promoCode = usePromoCode()
 	const {
 		tokensUsed,
 		searchesUsed,
@@ -342,8 +344,10 @@ export function AddDocument({
 							try {
 								const result = await autumn.attach({
 									planId: "api_pro",
+									discounts: promoCode.getDiscounts(),
 									successUrl: `${window.location.origin}/settings#account`,
 								})
+								promoCode.clear()
 								if (result?.paymentUrl) {
 									window.open(result.paymentUrl, "_self")
 									return
@@ -442,8 +446,10 @@ export function AddDocument({
 									try {
 										const result = await autumn.attach({
 											planId: "api_pro",
+											discounts: promoCode.getDiscounts(),
 											successUrl: `${window.location.origin}/settings#account`,
 										})
+										promoCode.clear()
 										if (result?.paymentUrl) {
 											window.open(result.paymentUrl, "_self")
 											return

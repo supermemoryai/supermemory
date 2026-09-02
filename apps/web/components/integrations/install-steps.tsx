@@ -16,17 +16,22 @@ export function PillButton({
 	onClick,
 	disabled,
 	type = "button",
+	className,
+	title,
 }: {
 	children: ReactNode
 	onClick?: () => void
 	disabled?: boolean
 	type?: "button" | "submit"
+	className?: string
+	title?: string
 }) {
 	return (
 		<button
 			type={type}
 			onClick={onClick}
 			disabled={disabled}
+			title={title}
 			className={cn(
 				dmSans125ClassName(),
 				"relative flex h-8 min-w-[94px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-3 sm:h-9 sm:min-w-[116px] sm:px-5",
@@ -34,6 +39,7 @@ export function PillButton({
 				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
 				"cursor-pointer transition-opacity hover:opacity-80",
 				"disabled:cursor-not-allowed disabled:opacity-50",
+				className,
 			)}
 		>
 			{children}

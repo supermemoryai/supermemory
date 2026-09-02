@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useCustomer } from "autumn-js/react"
 import { cn } from "@lib/utils"
 import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
+import { SectionRail } from "@/components/directory/section-rail"
 import { $fetch } from "@lib/api"
 import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
@@ -36,13 +37,17 @@ import {
 	FileText,
 	Globe,
 	Info,
+	Bell,
 	Loader,
+	Pause,
 	Plus,
 	Search,
 	X,
 	Zap,
 } from "lucide-react"
 import { formatRelativeTime } from "@/components/settings/sync-utils"
+import { connectorPause } from "@/lib/connector-availability"
+import { useConnectorNotify } from "@/lib/connector-notify"
 import { useConnectorAccess } from "@/hooks/use-connector-access"
 import { useConnectionHealth } from "@/hooks/use-connection-health"
 import { useContainerTags } from "@/hooks/use-container-tags"
@@ -71,8 +76,14 @@ import {
 	isFreeTierPlugin,
 	normalizePluginClientId,
 	type InstallStep,
+	type PluginInfo,
 } from "@/lib/plugin-catalog"
-import { INSET, InstallSteps, PillButton } from "./integrations/install-steps"
+import {
+	CopyButton,
+	INSET,
+	InstallSteps,
+	PillButton,
+} from "./integrations/install-steps"
 import {
 	ShortcutsConnectButtons,
 	useShortcutsConnect,
@@ -80,6 +91,7 @@ import {
 import { MCPSteps } from "./mcp-modal/mcp-detail-view"
 import { GranolaConnectModal } from "./granola-connect-modal"
 import { detectPluginSpace, detectPluginSource } from "@/lib/plugin-space"
+import { usePromoCode } from "@/hooks/use-promo-code"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
@@ -536,13 +548,13 @@ const SECTIONS: Array<{
 				action: { type: "external", href: POKE_RECIPE_URL },
 			},
 			{
-				kind: "client",
-				id: "shortcuts",
-				name: "Apple Shortcuts",
-				tagline: "Add memories from iPhone, iPad or Mac",
-				simpleTitle: "Save anything from your phone or Mac",
-				icon: <AppleShortcutsIcon />,
-				action: { type: "view", viewMode: "shortcuts" as ViewParamValue },
+				kind: "import",
+				id: "x-bookmarks",
+				name: "Import X bookmarks",
+				tagline: "Turn your X/Twitter bookmarks into memories",
+				simpleTitle: "Turn your X bookmarks into memory",
+				icon: <Image src="/onboarding/x.png" alt="X" width={24} height={24} />,
+				viewMode: "import" as ViewParamValue,
 			},
 			{
 				kind: "client",
@@ -555,13 +567,13 @@ const SECTIONS: Array<{
 				dev: true,
 			},
 			{
-				kind: "import",
-				id: "x-bookmarks",
-				name: "Import X bookmarks",
-				tagline: "Turn your X/Twitter bookmarks into memories",
-				simpleTitle: "Turn your X bookmarks into memory",
-				icon: <Image src="/onboarding/x.png" alt="X" width={24} height={24} />,
-				viewMode: "import" as ViewParamValue,
+				kind: "client",
+				id: "shortcuts",
+				name: "Apple Shortcuts",
+				tagline: "Add memories from iPhone, iPad or Mac",
+				simpleTitle: "Save anything from your phone or Mac",
+				icon: <AppleShortcutsIcon />,
+				action: { type: "view", viewMode: "shortcuts" as ViewParamValue },
 			},
 		],
 	},
@@ -588,6 +600,52 @@ export function DetailWrapper({
 				{children}
 			</div>
 		</div>
+	)
+}
+
+function NotifyMeButton({
+	provider,
+	title,
+	onClick,
+}: {
+	provider: string
+	title?: string
+	onClick?: () => void
+}) {
+	const { isRequested, request } = useConnectorNotify()
+	const requested = isRequested(provider)
+	return (
+		<PillButton
+			className={requested ? "cursor-default opacity-60" : undefined}
+			onClick={() => {
+				onClick?.()
+				if (!requested) request(provider)
+			}}
+			title={title}
+		>
+			{requested ? (
+				<>
+					<Check className="size-3.5" /> We&apos;ll email you
+				</>
+			) : (
+				<>
+					<Bell className="size-3.5" /> Notify me
+				</>
+			)}
+		</PillButton>
+	)
+}
+
+function PausedChip() {
+	return (
+		<span
+			className={cn(
+				dmSans125ClassName(),
+				"shrink-0 rounded-full bg-[#F5A524]/12 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#F5A524]",
+			)}
+		>
+			Paused
+		</span>
 	)
 }
 
@@ -634,6 +692,206 @@ function IconBox({
 		>
 			{children}
 		</div>
+	)
+}
+
+const PLUGIN_COMMANDS: InstallStep[] = [
+	{
+		code: "npx supermemory plugin",
+		copyLabel: "Install plugins",
+		title: "Install plugins",
+		description:
+			"Detect Claude Code, Cursor, OpenCode, and Codex, install your selections, then approve OAuth once in the browser.",
+	},
+	{
+		code: "npx supermemory plugin login",
+		copyLabel: "Reconnect plugins",
+		title: "Reconnect plugins",
+		description:
+			"Run browser OAuth again for plugins that are already installed, without reinstalling them.",
+	},
+	{
+		code: "npx supermemory plugin uninstall",
+		copyLabel: "Uninstall plugins",
+		title: "Uninstall plugins",
+		description:
+			"Remove selected plugin integrations while keeping your credentials and memories.",
+	},
+]
+
+const PLUGIN_COMMAND_CLIENTS = [
+	"claude_code",
+	"cursor",
+	"codex",
+	"opencode",
+] as const
+
+type PluginSetupTab = "agent" | "manual"
+
+const PLUGIN_CLI_TARGETS: Partial<Record<string, string>> = {
+	claude_code: "claude",
+	codex: "codex",
+	cursor: "cursor",
+	opencode: "opencode",
+}
+
+function pluginAgentPrompt(plugin: PluginInfo): string {
+	const cliTarget = PLUGIN_CLI_TARGETS[plugin.id]
+	if (cliTarget) {
+		return `Install and connect the Supermemory plugin for ${plugin.name} on this machine. Run \`npx supermemory plugin --only ${cliTarget}\`, complete the browser OAuth flow when it opens, then verify the plugin is installed and authenticated.`
+	}
+
+	const docsInstruction = plugin.docsUrl
+		? ` Follow the official setup instructions at ${plugin.docsUrl}.`
+		: " Follow its official setup instructions."
+	return `Install and connect the Supermemory integration for ${plugin.name} on this machine.${docsInstruction} Complete authentication securely, then verify the integration is working.`
+}
+
+function PluginSetupMethodTabs({
+	value,
+	onChange,
+}: {
+	value: PluginSetupTab
+	onChange: (value: PluginSetupTab) => void
+}) {
+	return (
+		<div
+			className={cn(
+				"flex w-full flex-row gap-0.5 rounded-full bg-[#0D121A] p-0.5",
+				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.5)]",
+			)}
+			role="tablist"
+			aria-label="Setup method"
+		>
+			{(["agent", "manual"] as const).map((tab) => (
+				<button
+					key={tab}
+					className={cn(
+						"min-h-8 flex-1 rounded-full px-3 text-center text-[12px] font-medium transition-colors",
+						value === tab
+							? "bg-white/[0.10] text-[#FAFAFA]"
+							: "text-[#A1A1AA] hover:text-[#FAFAFA]",
+					)}
+					onClick={() => onChange(tab)}
+					role="tab"
+					type="button"
+					aria-selected={value === tab}
+				>
+					{tab === "agent" ? "Agent instructions" : "Manual instructions"}
+				</button>
+			))}
+		</div>
+	)
+}
+
+function PluginAgentInstructions({ plugin }: { plugin: PluginInfo }) {
+	const prompt = pluginAgentPrompt(plugin)
+	return (
+		<div className="flex min-w-0 items-start gap-2 rounded-[10px] border border-white/[0.07] bg-[#0B0E13] px-3 py-2.5">
+			<p className="min-w-0 flex-1 whitespace-pre-wrap break-words font-mono text-[12px] leading-[1.6] text-[#E4E4E7]">
+				{prompt}
+			</p>
+			<CopyButton text={prompt} label="Agent instructions" />
+		</div>
+	)
+}
+
+function PluginCommandsDialog({
+	open,
+	onOpenChange,
+}: {
+	open: boolean
+	onOpenChange: (open: boolean) => void
+}) {
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent
+				showCloseButton={false}
+				style={{
+					boxShadow:
+						"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset",
+				}}
+				className={cn(
+					dmSans125ClassName(),
+					"flex max-h-[88dvh] flex-col gap-3 overflow-hidden border border-white/[0.12] bg-[#1B1F24] p-0 px-3 pt-3 pb-4 text-[#FAFAFA] rounded-2xl md:px-4 sm:max-w-[620px] sm:rounded-[22px]",
+				)}
+			>
+				<DialogTitle className="sr-only">
+					Supermemory plugin commands
+				</DialogTitle>
+				<div className="flex shrink-0 items-center gap-3">
+					<div
+						role="img"
+						aria-label="Claude Code, Cursor, Codex, and OpenCode"
+						className="flex shrink-0 -space-x-2"
+					>
+						{PLUGIN_COMMAND_CLIENTS.map((pluginId) => {
+							const plugin = PLUGIN_CATALOG[pluginId]
+							if (!plugin) return null
+							return (
+								<span
+									key={pluginId}
+									className="flex size-8 items-center justify-center rounded-[9px] border border-white/[0.12] bg-[#0D121A] p-1.5 shadow-sm"
+								>
+									<Image
+										src={plugin.icon}
+										alt=""
+										width={20}
+										height={20}
+										className="size-5 object-contain"
+									/>
+								</span>
+							)
+						})}
+					</div>
+					<div className="min-w-0 flex-1">
+						<p className="text-[16px] font-semibold leading-tight text-[#FAFAFA]">
+							Plugin commands
+						</p>
+						<p className="mt-0.5 text-[12px] text-[#A1A1AA]">
+							Install, reconnect, or remove integrations from one CLI.
+						</p>
+					</div>
+					<DialogPrimitive.Close
+						type="button"
+						aria-label="Close"
+						className={cn(
+							"flex size-7 shrink-0 items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80 focus:outline-none",
+							INSET,
+						)}
+					>
+						<X className="size-4 text-[#737373]" />
+					</DialogPrimitive.Close>
+				</div>
+				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+					<div
+						className={cn(
+							"min-w-0 rounded-[14px] bg-[#14161A] p-3 sm:p-4",
+							INSET,
+						)}
+					>
+						<InstallSteps steps={PLUGIN_COMMANDS} />
+					</div>
+				</div>
+				<div className="flex shrink-0 items-center justify-between gap-3 pt-1">
+					<p className="text-[11px] text-[#737373]">
+						Run these commands from your terminal.
+					</p>
+					<DialogPrimitive.Close asChild>
+						<button
+							type="button"
+							className={cn(
+								dmSans125ClassName(),
+								"flex h-9 items-center gap-1.5 rounded-full bg-[#0D121A] px-5 text-[13px] font-medium text-[#FAFAFA] transition-opacity hover:opacity-80",
+								INSET,
+							)}
+						>
+							<Check className="size-3.5 text-[#4BA0FA]" /> Done
+						</button>
+					</DialogPrimitive.Close>
+				</div>
+			</DialogContent>
+		</Dialog>
 	)
 }
 
@@ -2067,6 +2325,8 @@ function ItemCard({
 	docsUrl,
 	leftIndicator,
 	statusSlot,
+	layoutClassName,
+	paused,
 }: {
 	actionSlot: ReactNode
 	infoActionSlot?: ReactNode
@@ -2081,6 +2341,8 @@ function ItemCard({
 	docsUrl?: string
 	leftIndicator?: ReactNode
 	statusSlot?: ReactNode
+	layoutClassName?: string
+	paused?: boolean
 }) {
 	const [infoOpen, setInfoOpen] = useState(false)
 	return (
@@ -2098,6 +2360,9 @@ function ItemCard({
 			className={cn(
 				"group relative flex h-full cursor-pointer flex-row items-center gap-2.5 rounded-[10px] bg-[#14161A] px-2.5 py-2 transition-colors hover:bg-[#16181D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4BA0FA]/45 sm:flex-col sm:items-stretch sm:gap-4 sm:rounded-[12px] sm:p-4",
 				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+				id === "shortcuts" &&
+					"max-sm:grid max-sm:grid-cols-[auto_minmax(0,1fr)] max-sm:items-center",
+				layoutClassName,
 			)}
 		>
 			<ItemInfoButton name={name} onClick={() => setInfoOpen(true)} />
@@ -2115,7 +2380,12 @@ function ItemCard({
 			<div className="flex shrink-0 items-start justify-between gap-2">
 				<IconBox>{icon}</IconBox>
 			</div>
-			<div className="flex min-w-0 flex-1 flex-row items-center justify-between gap-2 sm:flex-col sm:items-stretch sm:justify-end sm:gap-3">
+			<div
+				className={cn(
+					"flex min-w-0 flex-1 flex-row items-center justify-between gap-2 sm:flex-col sm:items-stretch sm:justify-end sm:gap-3",
+					id === "shortcuts" && "max-sm:contents",
+				)}
+			>
 				<div className="min-w-0 flex-1">
 					<div className="flex min-w-0 items-center gap-1">
 						{leftIndicator}
@@ -2127,7 +2397,8 @@ function ItemCard({
 						>
 							{name}
 						</span>
-						{isNew && <NewChip />}
+						{paused && <PausedChip />}
+						{isNew && !paused && <NewChip />}
 						{max ? <ProChip>Max</ProChip> : pro && <ProChip />}
 					</div>
 					<p
@@ -2139,7 +2410,13 @@ function ItemCard({
 						{tagline}
 					</p>
 				</div>
-				<div className="flex w-auto shrink-0 items-center justify-end gap-2 sm:w-full sm:justify-between">
+				<div
+					className={cn(
+						"flex w-auto shrink-0 items-center justify-end gap-2 sm:w-full sm:justify-between",
+						id === "shortcuts" &&
+							"max-sm:col-span-2 max-sm:row-start-2 max-sm:w-full",
+					)}
+				>
 					{/* biome-ignore lint/a11y/noStaticElementInteractions: stop card click from swallowing the status action. */}
 					<div
 						className="hidden min-w-0 flex-1 sm:flex"
@@ -2150,7 +2427,11 @@ function ItemCard({
 					</div>
 					{/* biome-ignore lint/a11y/noStaticElementInteractions: stop card click from swallowing the primary action. */}
 					<div
-						className="flex shrink-0 justify-end [&>button]:!h-7 [&>button]:!min-w-[82px] [&>button]:!px-3 [&>button]:!text-[11px] sm:[&>button]:!h-9 sm:[&>button]:!min-w-[116px] sm:[&>button]:!px-5 sm:[&>button]:!text-[14px]"
+						className={cn(
+							"flex shrink-0 justify-end [&>button]:!h-7 [&>button]:!min-w-[82px] [&>button]:!px-3 [&>button]:!text-[11px] sm:[&>button]:!h-9 sm:[&>button]:!min-w-[116px] sm:[&>button]:!px-5 sm:[&>button]:!text-[14px]",
+							id === "shortcuts" &&
+								"max-sm:w-full max-sm:shrink max-sm:[&>div]:w-full",
+						)}
 						onClick={(e) => e.stopPropagation()}
 						onKeyDown={(e) => e.stopPropagation()}
 					>
@@ -2453,95 +2734,6 @@ function CategoryFilterToggle({
 	)
 }
 
-function SectionRail({
-	label,
-	children,
-	headerSlot,
-}: {
-	label: string
-	children: ReactNode
-	headerSlot?: ReactNode
-}) {
-	const scrollRef = useRef<HTMLDivElement>(null)
-	const [canScrollLeft, setCanScrollLeft] = useState(false)
-	const [canScrollRight, setCanScrollRight] = useState(false)
-
-	const update = useCallback(() => {
-		const el = scrollRef.current
-		if (!el) return
-		setCanScrollLeft(el.scrollLeft > 4)
-		setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
-	}, [])
-
-	useEffect(() => {
-		update()
-		const el = scrollRef.current
-		if (!el) return
-		el.addEventListener("scroll", update, { passive: true })
-		el.addEventListener("scrollend", update)
-		const ro = new ResizeObserver(update)
-		ro.observe(el)
-		return () => {
-			el.removeEventListener("scroll", update)
-			el.removeEventListener("scrollend", update)
-			ro.disconnect()
-		}
-	}, [update])
-
-	const scrollBy = (dir: 1 | -1) => {
-		scrollRef.current?.scrollBy({ left: 292 * dir, behavior: "smooth" })
-		setTimeout(update, 450)
-	}
-
-	const arrowClass = cn(
-		"flex size-7 items-center justify-center rounded-full bg-[#0D121A] text-[#FAFAFA] transition-opacity",
-		"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]",
-		"hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30",
-	)
-
-	return (
-		<section className="flex flex-col gap-3">
-			<div className="flex items-center justify-between gap-3">
-				<h3
-					className={cn(
-						dmSans125ClassName(),
-						"text-[13px] font-semibold tracking-[-0.01em] text-[#A1A1AA]",
-					)}
-				>
-					{label}
-				</h3>
-				<div className="hidden items-center gap-1.5 sm:flex">
-					{headerSlot}
-					<button
-						type="button"
-						aria-label="Show previous"
-						disabled={!canScrollLeft}
-						onClick={() => scrollBy(-1)}
-						className={arrowClass}
-					>
-						<ArrowLeft className="size-3.5" />
-					</button>
-					<button
-						type="button"
-						aria-label="Show more"
-						disabled={!canScrollRight}
-						onClick={() => scrollBy(1)}
-						className={arrowClass}
-					>
-						<ArrowRight className="size-3.5" />
-					</button>
-				</div>
-			</div>
-			<div
-				ref={scrollRef}
-				className="scrollbar-none flex flex-col gap-1.5 sm:-mx-1 sm:flex-row sm:gap-3 sm:overflow-x-auto sm:px-1"
-			>
-				{children}
-			</div>
-		</section>
-	)
-}
-
 export function IntegrationsView({
 	publicMode = false,
 	onOpenDocument,
@@ -2555,6 +2747,7 @@ export function IntegrationsView({
 	const { allProjects } = useContainerTags()
 	const shortcutsConnect = useShortcutsConnect()
 	const autumn = useCustomer({ queryOptions: { enabled: !publicMode } })
+	const promoCode = usePromoCode()
 	// connectorAccess covers pro-tier connectors (incl. company_brain orgs); plugins
 	// stay on hasProProduct. See useConnectorAccess.
 	const { hasPro: hasProProduct, connectorAccess } = useConnectorAccess({
@@ -2566,16 +2759,19 @@ export function IntegrationsView({
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
 	const [granolaModalOpen, setGranolaModalOpen] = useState(false)
+	const [pluginCommandsOpen, setPluginCommandsOpen] = useState(false)
 	const [newKey, setNewKey] = useState<{
 		open: boolean
 		key: string
 		pluginId: string | null
 		loading: boolean
 	}>({ open: false, key: "", pluginId: null, loading: false })
+	const [pluginSetupTab, setPluginSetupTab] = useState<PluginSetupTab>("agent")
+	const openPluginSetup = useCallback((pluginId: string) => {
+		setPluginSetupTab("agent")
+		setNewKey({ open: true, key: "", pluginId, loading: false })
+	}, [])
 	const [connectedPluginId, setConnectedPluginId] = useState<string | null>(
-		null,
-	)
-	const [finishSetupPluginId, setFinishSetupPluginId] = useState<string | null>(
 		null,
 	)
 
@@ -2747,11 +2943,6 @@ export function IntegrationsView({
 				credentials: "include",
 			})
 			if (!res.ok) {
-				if (res.status === 403) {
-					throw new Error(
-						"Plugin access was denied. Check your plan or try again.",
-					)
-				}
 				const errorData = (await res.json().catch(() => ({}))) as {
 					message?: string
 				}
@@ -2761,12 +2952,7 @@ export function IntegrationsView({
 		},
 		onMutate: (pluginId) => setConnectingPlugin(pluginId),
 		onError: (err) => {
-			// Tear down a pre-opened (loading) modal so a failed mint doesn't hang on a spinner.
-			setNewKey((s) =>
-				s.loading
-					? { open: false, key: "", pluginId: null, loading: false }
-					: s,
-			)
+			setNewKey((s) => ({ ...s, loading: false }))
 			toast.error("Failed to connect plugin", {
 				description: err instanceof Error ? err.message : "Unknown error",
 			})
@@ -2776,9 +2962,31 @@ export function IntegrationsView({
 			queryClient.invalidateQueries({ queryKey: ["api-keys", org?.id] })
 		},
 		onSuccess: (data, pluginId) => {
-			setNewKey({ open: true, key: data.key, pluginId, loading: false })
+			setNewKey((s) =>
+				s.open && s.pluginId === pluginId
+					? { ...s, key: data.key, loading: false }
+					: s,
+			)
 		},
 	})
+
+	const generatePluginKey = () => {
+		const pluginId = newKey.pluginId
+		if (
+			!pluginId ||
+			newKey.key ||
+			newKey.loading ||
+			createPluginKeyMutation.isPending
+		)
+			return
+		setNewKey((s) => ({ ...s, loading: true }))
+		createPluginKeyMutation.mutate(pluginId)
+	}
+
+	const selectPluginSetupTab = (tab: PluginSetupTab) => {
+		setPluginSetupTab(tab)
+		if (tab === "manual") generatePluginKey()
+	}
 
 	const addConnectionMutation = useMutation({
 		mutationFn: async (provider: ConnectorProvider) => {
@@ -2824,14 +3032,22 @@ export function IntegrationsView({
 		}
 	}
 
+	const handlePausedConnector = useCallback((provider: string) => {
+		const pause = connectorPause(provider)
+		if (!pause) return
+		toast.info(pause.message)
+	}, [])
+
 	const handleUpgrade = useCallback(
 		async (planId?: unknown) => {
 			const checkoutPlanId = planId === "api_max" ? "api_max" : "api_pro"
 			try {
 				const result = await autumn.attach({
 					planId: checkoutPlanId,
+					discounts: promoCode.getDiscounts(),
 					successUrl: `${window.location.origin}/integrations`,
 				})
+				promoCode.clear()
 				if (result?.paymentUrl) {
 					window.open(result.paymentUrl, "_self")
 					return
@@ -2842,7 +3058,7 @@ export function IntegrationsView({
 				toast.error("Failed to start checkout. Please try again.")
 			}
 		},
-		[autumn],
+		[autumn, promoCode],
 	)
 
 	const redirectToLogin = useCallback(() => {
@@ -2909,10 +3125,7 @@ export function IntegrationsView({
 					void setConnectTarget(null)
 					handleUpgrade("api_pro")
 				} else {
-					// Open instantly; the key fills in on mint. The ?connect param stays the source
-					// of truth until the modal closes.
-					setNewKey({ open: true, key: "", pluginId: target, loading: true })
-					createPluginKeyMutation.mutate(target)
+					openPluginSetup(target)
 				}
 				return
 			}
@@ -2930,6 +3143,10 @@ export function IntegrationsView({
 			if (["notion", "google-drive", "onedrive"].includes(target)) {
 				// The add-document modal is driven by its own ?add param, so clearing ?connect is safe.
 				void setConnectTarget(null)
+				if (connectorPause(target)) {
+					handlePausedConnector(target)
+					return
+				}
 				void setAddDoc("connect")
 			}
 		}, 0)
@@ -2947,8 +3164,9 @@ export function IntegrationsView({
 		redirectToLogin,
 		setConnectTarget,
 		setAddDoc,
-		createPluginKeyMutation,
 		handleUpgrade,
+		openPluginSetup,
+		handlePausedConnector,
 	])
 
 	const closeMcpModal = () => {
@@ -3263,7 +3481,7 @@ export function IntegrationsView({
 					handleUpgrade("api_pro")
 					return
 				}
-				createPluginKeyMutation.mutate("claude_code")
+				openPluginSetup("claude_code")
 			},
 		},
 		{
@@ -3341,7 +3559,7 @@ export function IntegrationsView({
 									return
 								}
 								trackCard(item)
-								createPluginKeyMutation.mutate(item.pluginId)
+								openPluginSetup(item.pluginId)
 							}}
 							disabled={!!connectingPlugin}
 							className={cn(
@@ -3362,12 +3580,7 @@ export function IntegrationsView({
 						<FinishSetupButton
 							onClick={() => {
 								trackCard(item)
-								if (!PLUGIN_CATALOG[item.pluginId]?.usesOAuth) {
-									if (connectingPlugin) return
-									createPluginKeyMutation.mutate(item.pluginId)
-									return
-								}
-								setFinishSetupPluginId(item.pluginId)
+								openPluginSetup(item.pluginId)
 							}}
 						/>
 					)
@@ -3384,7 +3597,7 @@ export function IntegrationsView({
 					<PillButton
 						onClick={() => {
 							trackCard(item)
-							createPluginKeyMutation.mutate(item.pluginId)
+							openPluginSetup(item.pluginId)
 						}}
 						disabled={!!connectingPlugin}
 					>
@@ -3402,15 +3615,20 @@ export function IntegrationsView({
 				const count = connectionsByProvider[item.provider].length
 				const isGranola = item.provider === "granola"
 				const needsPlanUpgrade = !isAutumnLoading && !connectorAccess
+				const pause = connectorPause(item.provider)
 				if (count > 0) {
 					return (
 						<div className="flex w-full items-center justify-between gap-2">
 							<button
 								type="button"
-								aria-label="Add another knowledge source"
-								title="Add another knowledge source"
+								aria-label={pause ? "Paused" : "Add another knowledge source"}
+								title={pause ? pause.message : "Add another knowledge source"}
 								onClick={() => {
 									trackCard(item)
+									if (pause) {
+										handlePausedConnector(item.provider)
+										return
+									}
 									if (isGranola) {
 										if (!connectorAccess) {
 											handleUpgrade("api_pro")
@@ -3424,11 +3642,25 @@ export function IntegrationsView({
 								className={cn(
 									"flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[#A1A1AA] transition-colors hover:text-[#FAFAFA] sm:size-9",
 									"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
+									pause && "cursor-not-allowed opacity-50",
 								)}
 							>
-								<Plus className="size-4" />
+								{pause ? (
+									<Pause className="size-4" />
+								) : (
+									<Plus className="size-4" />
+								)}
 							</button>
 						</div>
+					)
+				}
+				if (pause) {
+					return (
+						<NotifyMeButton
+							onClick={() => trackCard(item)}
+							provider={item.provider}
+							title={pause.message}
+						/>
 					)
 				}
 				if (needsPlanUpgrade) {
@@ -3554,7 +3786,7 @@ export function IntegrationsView({
 									return
 								}
 								trackCard(item)
-								createPluginKeyMutation.mutate(item.pluginId)
+								openPluginSetup(item.pluginId)
 							}}
 							disabled={!!connectingPlugin}
 						>
@@ -3629,7 +3861,7 @@ export function IntegrationsView({
 		}
 	}
 
-	const renderItemCard = (item: Item) => (
+	const renderItemCard = (item: Item, layoutClassName?: string) => (
 		<ItemCard
 			key={item.id}
 			actionSlot={renderRight(item)}
@@ -3645,6 +3877,8 @@ export function IntegrationsView({
 			docsUrl={item.docsUrl}
 			leftIndicator={renderLeftIndicator(item)}
 			statusSlot={renderStatus(item)}
+			layoutClassName={layoutClassName}
+			paused={item.kind === "connector" && !!connectorPause(item.provider)}
 		/>
 	)
 
@@ -3666,10 +3900,6 @@ export function IntegrationsView({
 		!isAutumnLoading &&
 		!hasProProduct &&
 		!isFreeTierPlugin(connectedPluginId)
-	const finishSetupPlugin = finishSetupPluginId
-		? PLUGIN_CATALOG[finishSetupPluginId]
-		: undefined
-	const finishSetupSteps = finishSetupPlugin?.installSteps ?? []
 	const pluginSteps = dialogPlugin?.installSteps ?? []
 	const stepsEmbedKey = pluginSteps.some((s) => s.code?.includes("sm_..."))
 	const skipGeneratedKeyStep = stepsEmbedKey || !!dialogPlugin?.usesOAuth
@@ -3754,7 +3984,14 @@ export function IntegrationsView({
 									</p>
 								) : q || category !== "all" ? (
 									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-										{visibleItems.map((item) => renderItemCard(item))}
+										{visibleItems.map((item) =>
+											renderItemCard(
+												item,
+												item.id === "shortcuts"
+													? "sm:w-max sm:min-w-full"
+													: undefined,
+											),
+										)}
 									</div>
 								) : (
 									<div className="flex flex-col gap-6">
@@ -3767,6 +4004,23 @@ export function IntegrationsView({
 												<SectionRail
 													key={cat}
 													label={CATEGORY_LABEL[cat]}
+													labelSlot={
+														cat === "plugins" ? (
+															<button
+																type="button"
+																aria-haspopup="dialog"
+																aria-expanded={pluginCommandsOpen}
+																onClick={() => setPluginCommandsOpen(true)}
+																className={cn(
+																	dmSans125ClassName(),
+																	"inline-flex items-center gap-1.5 rounded-full text-[10px] font-medium text-[#737373] transition-colors hover:text-[#FAFAFA] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4BA0FA]/60 sm:text-[11px]",
+																)}
+															>
+																<span>Install plugins with one command</span>
+																<NewChip />
+															</button>
+														) : null
+													}
 													headerSlot={
 														cat === "ai-clients" && activeMcpKey ? (
 															<McpConnectedPill
@@ -3812,6 +4066,11 @@ export function IntegrationsView({
 				</div>
 			</div>
 
+			<PluginCommandsDialog
+				open={pluginCommandsOpen}
+				onOpenChange={setPluginCommandsOpen}
+			/>
+
 			<Dialog
 				open={newKey.open}
 				onOpenChange={(open) => {
@@ -3821,7 +4080,10 @@ export function IntegrationsView({
 						pluginId: open ? s.pluginId : null,
 						loading: open ? s.loading : false,
 					}))
-					if (!open) void setConnectTarget(null)
+					if (!open) {
+						setPluginSetupTab("agent")
+						void setConnectTarget(null)
+					}
 				}}
 			>
 				<DialogContent
@@ -3854,9 +4116,11 @@ export function IntegrationsView({
 								Set up {dialogPlugin?.name ?? "your plugin"}
 							</p>
 							<p className="mt-0.5 truncate text-[12px] text-[#A1A1AA]">
-								{newKey.loading
-									? "Generating your key…"
-									: "Copy your key and run these steps to finish."}
+								{pluginSetupTab === "agent"
+									? "Copy this prompt into your coding agent."
+									: newKey.loading
+										? "Generating your key…"
+										: "Follow these steps to finish manually."}
 							</p>
 						</div>
 						<div className="flex shrink-0 items-center gap-2">
@@ -3889,17 +4153,30 @@ export function IntegrationsView({
 					<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 						<div
 							className={cn(
-								"min-w-0 rounded-[14px] bg-[#14161A] p-4 sm:p-5",
+								"min-w-0 space-y-4 rounded-[14px] bg-[#14161A] p-4 sm:p-5",
 								INSET,
 							)}
 						>
-							{newKey.loading ? (
+							<PluginSetupMethodTabs
+								value={pluginSetupTab}
+								onChange={selectPluginSetupTab}
+							/>
+							{pluginSetupTab === "agent" && dialogPlugin ? (
+								<PluginAgentInstructions plugin={dialogPlugin} />
+							) : newKey.loading ? (
 								<div className="flex items-center justify-center gap-2 py-10 text-[13px] text-[#A1A1AA]">
 									<Loader className="size-4 animate-spin" />
 									Generating your key…
 								</div>
-							) : (
+							) : newKey.key ? (
 								<InstallSteps steps={setupSteps} apiKey={newKey.key} />
+							) : (
+								<div className="flex flex-col items-center gap-3 py-8 text-center">
+									<p className="text-[13px] text-[#A1A1AA]">
+										We couldn&apos;t generate the key for the manual setup.
+									</p>
+									<PillButton onClick={generatePluginKey}>Try again</PillButton>
+								</div>
 							)}
 						</div>
 					</div>
@@ -3913,6 +4190,7 @@ export function IntegrationsView({
 									pluginId: null,
 									loading: false,
 								})
+								setPluginSetupTab("agent")
 								void setConnectTarget(null)
 							}}
 							className={cn(
@@ -4051,7 +4329,7 @@ export function IntegrationsView({
 									if (!connectedPluginId) return
 									const pluginId = connectedPluginId
 									setConnectedPluginId(null)
-									createPluginKeyMutation.mutate(pluginId)
+									openPluginSetup(pluginId)
 								}}
 								disabled={!!connectingPlugin}
 							>
@@ -4066,91 +4344,6 @@ export function IntegrationsView({
 								)}
 							</PillButton>
 						)}
-						<DialogPrimitive.Close asChild>
-							<button
-								type="button"
-								className={cn(
-									dmSans125ClassName(),
-									"flex h-9 items-center gap-1.5 rounded-full bg-[#0D121A] px-5 text-[13px] font-medium text-[#FAFAFA] transition-opacity hover:opacity-80",
-									INSET,
-								)}
-							>
-								<Check className="size-3.5 text-[#4BA0FA]" /> Done
-							</button>
-						</DialogPrimitive.Close>
-					</div>
-				</DialogContent>
-			</Dialog>
-
-			<Dialog
-				open={!!finishSetupPluginId}
-				onOpenChange={(open) => {
-					if (!open) setFinishSetupPluginId(null)
-				}}
-			>
-				<DialogContent
-					showCloseButton={false}
-					style={{
-						boxShadow:
-							"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset",
-					}}
-					className={cn(
-						dmSans125ClassName(),
-						"flex max-h-[88dvh] flex-col gap-3 overflow-hidden border border-white/[0.12] bg-[#1B1F24] p-0 px-3 pt-3 pb-4 rounded-2xl md:px-4 sm:max-w-[560px] sm:rounded-[22px]",
-					)}
-				>
-					<DialogTitle className="sr-only">
-						Finish setup {finishSetupPlugin?.name ?? "plugin"}
-					</DialogTitle>
-					<div className="flex shrink-0 items-center gap-3">
-						{finishSetupPlugin && (
-							<IconBox>
-								<Image
-									src={finishSetupPlugin.icon}
-									alt={finishSetupPlugin.name}
-									width={24}
-									height={24}
-								/>
-							</IconBox>
-						)}
-						<div className="min-w-0 flex-1">
-							<p className="truncate text-[16px] font-semibold leading-tight text-[#FAFAFA]">
-								Finish setup {finishSetupPlugin?.name ?? "plugin"}
-							</p>
-							<p className="mt-0.5 truncate text-[12px] text-[#A1A1AA]">
-								Complete install in the tool — this card turns active after the
-								first API call.
-							</p>
-						</div>
-						<DialogPrimitive.Close
-							type="button"
-							aria-label="Close"
-							className={cn(
-								"flex size-7 items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80 focus:outline-none",
-								INSET,
-							)}
-						>
-							<X className="size-4 text-[#737373]" />
-						</DialogPrimitive.Close>
-					</div>
-					<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-						<div
-							className={cn(
-								"min-w-0 rounded-[14px] bg-[#14161A] p-4 sm:p-5",
-								INSET,
-							)}
-						>
-							{finishSetupSteps.length > 0 ? (
-								<InstallSteps steps={finishSetupSteps} />
-							) : (
-								<p className="text-[13px] text-[#A1A1AA]">
-									Open {finishSetupPlugin?.name ?? "the plugin"} and finish
-									authentication, then send a test memory.
-								</p>
-							)}
-						</div>
-					</div>
-					<div className="flex shrink-0 items-center justify-end">
 						<DialogPrimitive.Close asChild>
 							<button
 								type="button"

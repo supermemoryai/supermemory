@@ -6,22 +6,42 @@ historical information.
 """
 
 import asyncio
+import copy
 import json
 import os
 import re
+from collections import deque
 from typing import Any, Dict, List, Literal, Optional
 
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from pipecat.frames.frames import Frame, InputAudioRawFrame, LLMContextFrame, LLMMessagesFrame
+from pipecat.frames.frames import Frame, InputAudioRawFrame, LLMContextFrame
 from pipecat.processors.aggregators.llm_context import LLMContext
-from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContextFrame
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
-from pydantic import BaseModel, Field
 
-from .exceptions import ConfigurationError, MemoryRetrievalError
-from .utils import deduplicate_memories, format_memories_to_text, get_last_user_message
+from .exceptions import ConfigurationError, MemoryRetrievalError, MemoryStorageError
+from .utils import (
+    _field,
+    deduplicate_memories,
+    escape_memory_delimiters,
+    format_memories_to_text,
+)
+
+# Pipecat 1.0 removed the legacy message and OpenAI-specific context frames.
+# Keep them optional so the integration supports both the declared 0.0.98
+# minimum and the universal LLMContextFrame used by current Pipecat releases.
+try:
+    from pipecat.frames.frames import LLMMessagesFrame as _LegacyLLMMessagesFrame
+except ImportError:  # Pipecat >= 1.0
+    _LegacyLLMMessagesFrame = None  # type: ignore[assignment]
+
+try:
+    from pipecat.processors.aggregators.openai_llm_context import (
+        OpenAILLMContextFrame as _LegacyOpenAILLMContextFrame,
+    )
+except (ImportError, ModuleNotFoundError):  # Pipecat >= 1.0
+    _LegacyOpenAILLMContextFrame = None  # type: ignore[assignment]
 
 try:
     import supermemory
@@ -32,6 +52,72 @@ except ImportError:
 MEMORY_TAG_START = "<user_memories>"
 MEMORY_TAG_END = "</user_memories>"
 MEMORY_TAG_PATTERN = re.compile(r"<user_memories>.*?</user_memories>", re.DOTALL)
+
+
+def _is_legacy_openai_context_frame(frame: Frame) -> bool:
+    return _LegacyOpenAILLMContextFrame is not None and isinstance(
+        frame, _LegacyOpenAILLMContextFrame
+    )
+
+
+def _is_legacy_messages_frame(frame: Frame) -> bool:
+    return _LegacyLLMMessagesFrame is not None and isinstance(frame, _LegacyLLMMessagesFrame)
+
+
+def _snapshot_storable_messages(messages: List[Any]) -> List[Dict[str, Any]]:
+    """Copy real conversation messages, excluding injected memory context."""
+    storable: List[Dict[str, Any]] = []
+    for message in messages:
+        if not isinstance(message, dict) or message.get("role") not in ("user", "assistant"):
+            continue
+
+        if _is_injected_user_memory(message):
+            continue
+
+        storable.append(copy.deepcopy(message))
+
+    return storable
+
+
+def _is_injected_user_memory(message: Any) -> bool:
+    """Return whether a message is the wrapper's standalone memory message."""
+    return _is_standalone_memory_message(message, roles=("user",))
+
+
+def _is_standalone_memory_message(message: Any, *, roles: tuple[str, ...]) -> bool:
+    if not isinstance(message, dict) or message.get("role") not in roles:
+        return False
+    content = message.get("content")
+    return isinstance(content, str) and MEMORY_TAG_PATTERN.fullmatch(content.strip()) is not None
+
+
+def _messages_after_overlap(
+    previous: List[Dict[str, Any]],
+    current: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Return messages after the largest previous-suffix/current-prefix overlap.
+
+    Comparing ordered occurrences instead of only list lengths handles appended,
+    replaced, and front-truncated contexts. Identical repeated messages remain
+    distinct because overlap is positional rather than set-based.
+    """
+    max_overlap = min(len(previous), len(current))
+    for overlap in range(max_overlap, 0, -1):
+        if previous[-overlap:] == current[:overlap]:
+            return copy.deepcopy(current[overlap:])
+    return copy.deepcopy(current)
+
+
+def _latest_user_occurrence(
+    messages: List[Dict[str, Any]],
+) -> tuple[Optional[str], Optional[List[Dict[str, Any]]]]:
+    """Return the last text user query and its ordered conversation prefix."""
+    for index in range(len(messages) - 1, -1, -1):
+        message = messages[index]
+        content = message.get("content")
+        if message.get("role") == "user" and isinstance(content, str):
+            return content, copy.deepcopy(messages[: index + 1])
+    return None, None
 
 
 class SupermemoryPipecatService(FrameProcessor):
@@ -115,9 +201,12 @@ class SupermemoryPipecatService(FrameProcessor):
             except Exception as e:
                 logger.warning(f"Failed to initialize Supermemory client: {e}")
 
-        self._messages_sent_count: int = 0
         self._last_query: Optional[str] = None
+        self._last_recalled_user_prefix: Optional[List[Dict[str, Any]]] = None
         self._audio_frames_detected: bool = False
+        self._latest_storable_context: List[Dict[str, Any]] = []
+        self._storage_queue: deque[List[Dict[str, Any]]] = deque()
+        self._storage_worker_task: Optional[asyncio.Task[None]] = None
 
     async def _retrieve_memories(self, query: str) -> Dict[str, Any]:
         """Retrieve relevant memories from Supermemory.
@@ -137,26 +226,25 @@ class SupermemoryPipecatService(FrameProcessor):
             )
 
         try:
+            # One profile call: static + dynamic, and (when mode/query allow)
+            # search_results via `q`. This is the intended profile API shape.
             kwargs: Dict[str, Any] = {"container_tag": self.container_tag}
-
             if self.params.mode != "profile" and query:
                 kwargs["q"] = query
                 kwargs["threshold"] = self.params.search_threshold
-                kwargs["extra_body"] = {"limit": self.params.search_limit}
 
             response = await self._supermemory_client.profile(**kwargs)
 
-            profile = getattr(response, "profile", None)
-            search_results_response = getattr(response, "search_results", None)
+            profile = _field(response, "profile")
+            search_results_response = _field(response, "search_results", "searchResults")
 
-            search_results = []
-            if search_results_response and search_results_response.results:
-                search_results = search_results_response.results
+            raw_search_results = _field(search_results_response, "results", default=[]) or []
+            search_results = list(raw_search_results)[: self.params.search_limit]
 
             return {
                 "profile": {
-                    "static": profile.static if profile is not None else [],
-                    "dynamic": profile.dynamic if profile is not None else [],
+                    "static": list(_field(profile, "static", default=[]) or []),
+                    "dynamic": list(_field(profile, "dynamic", default=[]) or []),
                 },
                 "search_results": search_results,
             }
@@ -166,9 +254,12 @@ class SupermemoryPipecatService(FrameProcessor):
             raise MemoryRetrievalError("Failed to retrieve memories", e)
 
     async def _store_messages(self, messages: List[Dict[str, Any]]) -> None:
-        """Store messages in Supermemory (non-blocking, fire-and-forget)."""
-        if self._supermemory_client is None or not messages:
+        """Store one ordered message batch in Supermemory."""
+        if not messages:
             return
+
+        if self._supermemory_client is None:
+            raise MemoryStorageError("Supermemory client is not initialized")
 
         try:
             add_params: Dict[str, Any] = {
@@ -179,10 +270,82 @@ class SupermemoryPipecatService(FrameProcessor):
             if self.session_id:
                 add_params["custom_id"] = self.session_id
 
-            await self._supermemory_client.memories.add(**add_params)
+            await self._supermemory_client.add(**add_params)
 
         except Exception as e:
-            logger.error(f"Error storing messages: {e}")
+            raise MemoryStorageError("Failed to store messages", e) from e
+
+    def _queue_context_for_storage(self, messages: List[Dict[str, Any]]) -> None:
+        """Queue only newly observed message occurrences, preserving order."""
+        current = copy.deepcopy(messages)
+        new_messages = _messages_after_overlap(self._latest_storable_context, current)
+        self._latest_storable_context = current
+
+        if new_messages:
+            self._storage_queue.append(new_messages)
+
+        # A new frame also retries a previously failed head batch.
+        self._start_storage_worker()
+
+    def _start_storage_worker(self) -> None:
+        """Start the single serial storage worker when work is pending."""
+        if not self._storage_queue:
+            return
+        if self._storage_worker_task is not None and not self._storage_worker_task.done():
+            return
+        self._storage_worker_task = asyncio.create_task(self._run_storage_queue())
+
+    async def _run_storage_queue(self) -> None:
+        """Write queued batches serially, retaining the head batch on failure."""
+        while self._storage_queue:
+            messages = self._storage_queue[0]
+            try:
+                await self._store_messages(messages)
+            except Exception as e:
+                logger.error(f"Error storing messages; batch remains queued for retry: {e}")
+                return
+            self._storage_queue.popleft()
+
+    async def _drain_storage_queue(self) -> None:
+        """Wait for queued writes and retry a failed head batch once at teardown."""
+        task = self._storage_worker_task
+        if task is not None and not task.done():
+            await task
+
+        if self._storage_queue:
+            self._start_storage_worker()
+            retry_task = self._storage_worker_task
+            if retry_task is not None:
+                await retry_task
+
+        if self._storage_queue:
+            logger.error(
+                f"Unable to drain {len(self._storage_queue)} Supermemory storage batch(es)"
+            )
+
+    @staticmethod
+    def _clear_injected_memories(context: LLMContext) -> None:
+        """Remove memory tags owned by this wrapper while preserving other entries."""
+        messages = context.get_messages()
+        cleaned_messages: List[Any] = []
+
+        for message in messages:
+            if _is_standalone_memory_message(message, roles=("system", "user")):
+                continue
+            if not isinstance(message, dict):
+                cleaned_messages.append(message)
+                continue
+
+            role = message.get("role")
+            content = message.get("content")
+            if role in ("system", "user") and isinstance(content, str):
+                cleaned_content = MEMORY_TAG_PATTERN.sub("", content)
+                if cleaned_content != content:
+                    message["content"] = cleaned_content.strip()
+
+            cleaned_messages.append(message)
+
+        messages[:] = cleaned_messages
 
     def _enhance_context_with_memories(
         self,
@@ -200,15 +363,12 @@ class SupermemoryPipecatService(FrameProcessor):
             query: The query used for retrieval.
             memories_data: Memory data from Supermemory API.
         """
-        if self._last_query == query:
-            return
-
-        self._last_query = query
-
         profile = memories_data["profile"]
+        include_profile = self.params.mode in ("profile", "full")
+        include_search = self.params.mode in ("query", "full")
         deduplicated = deduplicate_memories(
-            static=profile["static"],
-            dynamic=profile["dynamic"],
+            static=profile["static"] if include_profile else [],
+            dynamic=profile["dynamic"] if include_profile else [],
             search_results=memories_data["search_results"],
         )
 
@@ -221,9 +381,6 @@ class SupermemoryPipecatService(FrameProcessor):
         if total_memories == 0:
             return
 
-        include_profile = self.params.mode in ("profile", "full")
-        include_search = self.params.mode in ("query", "full")
-
         memory_text = format_memories_to_text(
             deduplicated,
             system_prompt=self.params.system_prompt,
@@ -235,7 +392,8 @@ class SupermemoryPipecatService(FrameProcessor):
         if not memory_text:
             return
 
-        tagged_memory = f"{MEMORY_TAG_START}\n{memory_text}\n{MEMORY_TAG_END}"
+        safe_memory_text = escape_memory_delimiters(memory_text)
+        tagged_memory = f"{MEMORY_TAG_START}\n{safe_memory_text}\n{MEMORY_TAG_END}"
 
         inject_to_system = self.params.inject_mode == "system" or (
             self.params.inject_mode == "auto" and self._audio_frames_detected
@@ -246,7 +404,11 @@ class SupermemoryPipecatService(FrameProcessor):
         if inject_to_system:
             system_idx = None
             for i, msg in enumerate(messages):
-                if msg.get("role") == "system":
+                if (
+                    isinstance(msg, dict)
+                    and msg.get("role") == "system"
+                    and isinstance(msg.get("content"), str)
+                ):
                     system_idx = i
                     break
 
@@ -264,7 +426,7 @@ class SupermemoryPipecatService(FrameProcessor):
             # Remove previous memory message if exists
             for i in range(len(messages) - 1, -1, -1):
                 msg = messages[i]
-                if msg.get("role") == "user" and MEMORY_TAG_START in msg.get("content", ""):
+                if _is_injected_user_memory(msg):
                     messages.pop(i)
                     break
 
@@ -282,51 +444,66 @@ class SupermemoryPipecatService(FrameProcessor):
             return
 
         context = None
-        messages = None
 
-        if isinstance(frame, (LLMContextFrame, OpenAILLMContextFrame)):
+        legacy_messages_frame = False
+
+        if isinstance(frame, LLMContextFrame) or _is_legacy_openai_context_frame(frame):
             context = frame.context
-        elif isinstance(frame, LLMMessagesFrame):
-            messages = frame.messages
-            context = LLMContext(messages)
+        elif _is_legacy_messages_frame(frame):
+            legacy_messages_frame = True
+            context = LLMContext(frame.messages)
 
-        if context:
+        if context is not None:
             try:
                 context_messages = context.get_messages()
-                latest_user_message = get_last_user_message(context_messages)
+                # Snapshot the real conversation before adding memory context.
+                # Injected <user_memories> messages must never be persisted or
+                # included in the sent-message cursor.
+                storable_messages = _snapshot_storable_messages(context_messages)
+                latest_user_message, user_prefix = _latest_user_occurrence(storable_messages)
 
-                if latest_user_message:
+                if (
+                    latest_user_message
+                    and user_prefix is not None
+                    and user_prefix != self._last_recalled_user_prefix
+                ):
+                    # Clear stale recall before a new lookup. If retrieval
+                    # fails or returns no memories, old context cannot leak
+                    # into the new turn.
+                    self._clear_injected_memories(context)
                     try:
                         memories_data = await self._retrieve_memories(latest_user_message)
                         self._enhance_context_with_memories(
                             context, latest_user_message, memories_data
                         )
+                        # Mark only successful recalls (including empty ones).
+                        # Failures stay retryable on the next repeated frame.
+                        self._last_query = latest_user_message
+                        self._last_recalled_user_prefix = user_prefix
                     except MemoryRetrievalError as e:
                         logger.warning(f"Memory retrieval failed: {e}")
 
-                # Store unsent messages (user and assistant only)
-                storable_messages = [
-                    msg for msg in context_messages if msg["role"] in ("user", "assistant")
-                ]
-                unsent_messages = storable_messages[self._messages_sent_count :]
+                self._queue_context_for_storage(storable_messages)
 
-                if unsent_messages:
-                    asyncio.create_task(self._store_messages(unsent_messages))
-                    self._messages_sent_count = len(storable_messages)
-
-                if messages is not None:
-                    await self.push_frame(LLMMessagesFrame(context.get_messages()))
+                if legacy_messages_frame:
+                    await self.push_frame(frame.__class__(context.get_messages()), direction)
                 else:
-                    await self.push_frame(frame)
+                    await self.push_frame(frame, direction)
 
             except Exception as e:
                 logger.error(f"Error processing frame: {e}")
-                await self.push_frame(frame)
+                await self.push_frame(frame, direction)
         else:
             await self.push_frame(frame, direction)
 
+    async def cleanup(self) -> None:
+        """Drain pending Supermemory writes before Pipecat tears down the processor."""
+        await self._drain_storage_queue()
+        await super().cleanup()
+
     def reset_memory_tracking(self) -> None:
         """Reset memory tracking state for a new conversation."""
-        self._messages_sent_count = 0
+        self._latest_storable_context = []
         self._last_query = None
+        self._last_recalled_user_prefix = None
         self._audio_frames_detected = False

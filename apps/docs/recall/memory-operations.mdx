@@ -173,7 +173,7 @@ The memory will no longer appear in search results but remains in the database (
 
 ## Forget Matching
 
-Forget **everything** about a topic in one call. You give a prompt or a query; the service semantically searches the container's memories, an LLM decides which ones are genuinely about your target, and those are soft-deleted. Use this for "forget everything about X" rather than deleting memories one by one.
+Forget in bulk in one call, two ways. Give a **`query`** (a prompt or topic) and the service semantically searches the container, an LLM decides which memories are genuinely about your target, and those are soft-deleted — use this for "forget everything about X". Or give an explicit **`ids`** list to forget exactly those memories with no search. Provide one or the other.
 
 <Warning>
 This is a bulk, destructive operation. Always **`dryRun` first** to review what would be forgotten, then re-run with `dryRun: false`. The match is semantic, so a too-broad query can select more than you intend — `threshold` and `maxForget` bound the blast radius.
@@ -197,7 +197,7 @@ This is a bulk, destructive operation. Always **`dryRun` first** to review what 
     }).then((r) => r.json());
     // preview.candidates → [{ id, memory, score }, ...]
 
-    // 2) Apply
+    // 2) Apply — pass the ids from the preview to forget exactly that set
     const result = await fetch("https://api.supermemory.ai/v4/memories/forget-matching", {
       method: "POST",
       headers: {
@@ -205,7 +205,7 @@ This is a bulk, destructive operation. Always **`dryRun` first** to review what 
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        query: "forget everything about Project Titan",
+        ids: preview.candidates.map((c) => c.id),
         containerTag: "user_123",
         dryRun: false,
         reason: "project cancelled"
@@ -227,12 +227,12 @@ This is a bulk, destructive operation. Always **`dryRun` first** to review what 
         "dryRun": true
       }'
 
-    # Apply
+    # Apply — pass the ids from the preview to forget exactly that set
     curl -X POST "https://api.supermemory.ai/v4/memories/forget-matching" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "query": "forget everything about Project Titan",
+        "ids": ["abc123", "def456", "ghi789"],
         "containerTag": "user_123",
         "dryRun": false,
         "reason": "project cancelled"
@@ -245,12 +245,15 @@ This is a bulk, destructive operation. Always **`dryRun` first** to review what 
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `query` | string | yes | What to forget — a natural-language instruction ("forget everything about Project Titan") or a bare topic ("Project Titan") |
+| `query` | string | one of* | What to forget — a natural-language instruction ("forget everything about Project Titan") or a bare topic ("Project Titan") |
+| `ids` | string[] | one of* | Exact memory ids to forget instead of a `query` — no semantic search. Ids are validated against `containerTag`, so unknown or out-of-scope ids are ignored |
 | `containerTag` | string | yes | Container tag / space to scope the operation to |
 | `dryRun` | boolean | no | When `true`, returns what *would* be forgotten without changing anything. Defaults to `false` |
-| `threshold` | number | no | Similarity floor (0–1) for candidate memories. Lower casts a wider net. Defaults to `0.5` |
-| `maxForget` | number | no | Safety cap on how many memories may be forgotten in one call (1–500). Defaults to `100` |
+| `threshold` | number | no | Similarity floor (0–1) for candidate memories (`query` mode only). Lower casts a wider net. Defaults to `0.5` |
+| `maxForget` | number | no | Safety cap for **query mode** — the most matches one call may forget (1–500). Defaults to `100`. Ignored in id mode, which forgets exactly the ids you pass (bounded only by the 500-item array limit) |
 | `reason` | string | no | Reason recorded as `forgetReason` on each forgotten memory |
+
+\* Provide either `query` or `ids`.
 
 ### Response
 
@@ -278,6 +281,10 @@ This is a bulk, destructive operation. Always **`dryRun` first** to review what 
 <Note>
 Identity is server-owned: the LLM only ever references opaque handles for the memories a search returned, so it can never forget a memory outside the results it reviewed, and every operation is scoped to the `containerTag` you pass.
 </Note>
+
+<Tip>
+**Exact, bound deletes.** Applying with a `query` re-runs the semantic match, so the result can drift from the preview if the container changed in between. To forget *precisely* what you reviewed, take the `id`s from a `dryRun` preview and send them back as `ids` on the apply — the delete is then bound to exactly that set. (`ids` with `dryRun: true` returns the validated set as `candidates` without deleting, so you can confirm first.)
+</Tip>
 
 ---
 

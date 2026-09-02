@@ -13,7 +13,7 @@ import {
 import { authClient } from "@lib/auth"
 import { useRouter } from "next/navigation"
 import {
-	Brain,
+	CalendarClock,
 	LogOut,
 	Settings,
 	Settings2,
@@ -29,6 +29,7 @@ import { useOrgOnboarding } from "@hooks/use-org-onboarding"
 import { useTokenUsage } from "@/hooks/use-token-usage"
 import { useSettingsModal } from "@/components/settings/settings-modal"
 import { useHasCompanyBrain } from "@/hooks/use-company-brain"
+import { COMPANY_BRAIN_CAL_HREF } from "@/lib/cal"
 import { useViewMode } from "@/lib/view-mode-context"
 
 export function UserProfileMenu({
@@ -166,18 +167,6 @@ export function UserProfileMenu({
 					<Settings className="size-4 text-[#737373]" />
 					Settings
 				</DropdownMenuItem>
-				{isCompanyBrain ? null : (
-					<DropdownMenuItem
-						onClick={() => {
-							analytics.companyBrainPromoClicked({ source: "profile_menu" })
-							router.push("/onboarding?new=1&mode=team")
-						}}
-						className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
-					>
-						<Brain className="size-4 text-[#737373]" />
-						Set up Company Brain
-					</DropdownMenuItem>
-				)}
 				{isCompanyBrain ? (
 					<DropdownMenuItem
 						onClick={() => void setViewMode("configure")}
@@ -213,6 +202,24 @@ export function UserProfileMenu({
 					</DropdownMenuItem>
 				) : null}
 				<DropdownMenuSeparator className="mx-1 my-1.5 bg-white/[0.06]" />
+				{isCompanyBrain ? (
+					<DropdownMenuItem
+						asChild
+						className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
+					>
+						<a
+							href={COMPANY_BRAIN_CAL_HREF}
+							target="_blank"
+							rel="noreferrer"
+							onClick={() =>
+								analytics.brainSetupCallClicked({ surface: "user_menu" })
+							}
+						>
+							<CalendarClock className="size-4 text-[#737373]" />
+							Book a setup call
+						</a>
+					</DropdownMenuItem>
+				) : null}
 				<DropdownMenuItem
 					asChild
 					className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"

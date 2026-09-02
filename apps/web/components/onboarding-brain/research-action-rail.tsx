@@ -16,6 +16,7 @@ import {
 import { useRouter } from "next/navigation"
 import { useResearchStatus } from "@/hooks/use-research-status"
 import { dmSans125ClassName } from "@/lib/fonts"
+import { SetupCallButton } from "./setup-call-button"
 import { cardSurfaceStyle, inputBevelStyle, inputClass } from "./step-about"
 
 const BACKEND =
@@ -480,6 +481,14 @@ export function ResearchActionRail({
 						})}
 					</ol>
 				)}
+
+				<div className="mt-6 border-t border-white/[0.06] pt-5">
+					<p className="mb-3 text-[12px] font-medium leading-[1.5] text-[#525D6E]">
+						Want us to wire it up live? Slack, connectors, plugins, and a
+						working walkthrough.
+					</p>
+					<SetupCallButton className="w-full" surface="research_rail" />
+				</div>
 			</div>
 		</div>
 	)
@@ -525,6 +534,8 @@ function SlackStepBody({
 		<div>
 			<a
 				href={`${BACKEND}/brain/slack/oauth/install`}
+				target="_blank"
+				rel="noopener noreferrer"
 				className={cn(
 					"inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-[13px] font-semibold text-[#1D1C1D] transition-opacity hover:opacity-90",
 					dmSans125ClassName(),
@@ -534,7 +545,7 @@ function SlackStepBody({
 				Add to Slack
 			</a>
 			<p className="mt-2 text-center text-[11px] font-medium leading-[1.5] text-[#525D6E]">
-				Starts your 14-day free trial. No credit card needed.
+				Included in your 14-day trial.
 			</p>
 		</div>
 	)

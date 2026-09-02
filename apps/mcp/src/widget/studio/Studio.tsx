@@ -425,8 +425,8 @@ export function Studio() {
 						<Frame label="Graph (@supermemory/memory-graph)" width={frameWidth}>
 							<WidgetShell immersive>
 								<Graph
-									initialDocuments={mockDocuments}
-									initialTotalCount={mockDocuments.length}
+									documents={mockDocuments}
+									totalCount={mockDocuments.length}
 								/>
 							</WidgetShell>
 						</Frame>

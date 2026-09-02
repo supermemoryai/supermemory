@@ -86,7 +86,7 @@ export const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		name: "Cursor",
 		tagline: "Persistent memory, session hooks, and MCP tools inside Cursor",
 		icon: "/images/plugins/cursor.png",
-		docsUrl: "https://github.com/supermemoryai/cursor-supermemory#readme",
+		docsUrl: "https://supermemory.ai/docs/integrations/cursor",
 		githubUrl: "https://github.com/supermemoryai/cursor-supermemory",
 		installSteps: [
 			{

@@ -17,6 +17,7 @@ import {
 	acceptMemorySuggestion,
 	clearMemorySuggestion,
 	hasAcceptedSupermemoryContext,
+	serializeMemoriesForDataset,
 	setMemoryMarkerStatus,
 	showLoadingSuggestion,
 	showMarkerPopover,
@@ -417,7 +418,9 @@ async function getRelatedMemoriesForGemini(actionSource: string) {
 
 		if (response?.success && response?.data && input) {
 			const memoryText = showMemorySuggestion("gemini", input, response.data)
-			iconElement.dataset.memoriesData = String(response.data)
+			iconElement.dataset.memoriesData = serializeMemoriesForDataset(
+				response.data,
+			)
 			iconElement.dataset.supermemories = memoryText
 			if (isAutoSearch) {
 				setMemoryMarkerStatus(iconElement, "found")

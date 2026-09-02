@@ -73,7 +73,7 @@ These tools are available to the embedded MCP App and hidden from the model.
 | --- | --- |
 | `set-active-tag` | Persist the selected active space |
 | `save-memory` | Submit the guided save form |
-| `upload-file-submit` | Submit an encoded file upload |
+| `prepare-file-upload` | Prepare a secure direct file upload |
 | `fetch-graph-data` | Fetch graph documents for the app |
 
 ## Resources And Prompt

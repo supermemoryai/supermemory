@@ -9,9 +9,12 @@ export function useConnectorAccess(opts?: { enabled?: boolean }) {
 	const hasCompanyBrain = useHasCompanyBrain()
 	const hasPro = enabled && hasActivePlan(autumn.data?.subscriptions, "api_pro")
 	const hasMax = enabled && hasActivePlan(autumn.data?.subscriptions, "api_max")
+	const hasScale =
+		enabled && hasActivePlan(autumn.data?.subscriptions, "api_scale")
 	return {
 		hasPro,
 		hasMax,
+		hasScale,
 		hasCompanyBrain,
 		connectorAccess: hasPro || hasCompanyBrain,
 		loading: enabled && autumn.isLoading,

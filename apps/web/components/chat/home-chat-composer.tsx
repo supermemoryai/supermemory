@@ -36,9 +36,9 @@ export function HomeChatComposer({
 	const [attachmentDrafts, setAttachmentDrafts] = useState<
 		ChatAttachmentDraft[]
 	>([])
-	const [selectedModel, setSelectedModel] = useState<ModelId>("grok-4.3")
+	const [selectedModel, setSelectedModel] = useState<ModelId>("grok-4.5")
 	const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(
-		getDefaultReasoningEffort("grok-4.3"),
+		getDefaultReasoningEffort("grok-4.5"),
 	)
 	const { selectedProject } = useProject()
 	const [chatSpaceProjects, setChatSpaceProjects] = useState<string[]>([

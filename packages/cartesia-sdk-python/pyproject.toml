@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "supermemory-cartesia"
-version = "0.1.1"
+version = "0.1.3"
 description = "Supermemory integration for Cartesia Line - memory-enhanced voice agents"
 readme = "README.md"
 license = "MIT"
@@ -33,7 +33,7 @@ classifiers = [
 ]
 dependencies = [
     "supermemory>=3.16.0",
-    "cartesia-line>=0.2.0",
+    "cartesia-line>=0.2.0,<0.3.0",
     "pydantic>=2.10.0",
     "loguru>=0.7.3",
 ]

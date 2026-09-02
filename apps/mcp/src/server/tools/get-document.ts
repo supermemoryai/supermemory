@@ -21,7 +21,7 @@ export function register(deps: ToolDeps) {
 		{
 			title: "Get Document",
 			description:
-				"Read one stored document by ID, including its summary and available content. Use listDocuments in the intended space to discover document IDs.",
+				"Read one stored document by ID from any space you can access, including its summary and available content. Use listDocuments to discover document IDs.",
 			inputSchema,
 			outputSchema: getDocumentOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,

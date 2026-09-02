@@ -6,13 +6,13 @@ import * as listContainerTags from "./list-container-tags"
 import * as listDocuments from "./list-documents"
 import * as listMemories from "./list-memories"
 import * as memoryGraph from "./memory-graph"
+import * as prepareFileUpload from "./prepare-file-upload"
 import * as saveMemory from "./save-memory"
 import * as searchMemory from "./search-memory"
 import * as selectSpace from "./select-space"
 import * as setActiveTag from "./set-active-tag"
 import type { ToolDeps } from "./types"
 import * as uploadFile from "./upload-file"
-import * as uploadFileSubmit from "./upload-file-submit"
 import * as whoAmI from "./who-am-i"
 
 export function registerAllTools(deps: ToolDeps) {
@@ -30,5 +30,5 @@ export function registerAllTools(deps: ToolDeps) {
 	guidedSave.register(deps)
 	saveMemory.register(deps)
 	uploadFile.register(deps)
-	uploadFileSubmit.register(deps)
+	prepareFileUpload.register(deps)
 }

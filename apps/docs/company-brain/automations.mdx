@@ -14,10 +14,12 @@ Company Brain doesn't only answer when you @mention it. It can run recurring wor
 An automation is a prompt that runs on a schedule and posts the result somewhere. You write it once, in plain language:
 
 <SlackThread channel="#product">
-  <SlackMessage self time="9:03 AM">
+  <SlackMessage self hasAvatar time="9:03 AM">
+    <img src="/images/company-brain/dhravya-slack-icon.jpg" alt="" />
     <Mention>supermemory</Mention> every Monday at 9am, post a digest of what shipped last week and what's still open, to <ChannelRef>product</ChannelRef>.
   </SlackMessage>
-  <SlackMessage bot time="9:03 AM">
+  <SlackMessage bot hasAvatar time="9:03 AM">
+    <img src="/images/company-brain/supermemory-slack-icon.png" alt="" />
     Got it — scheduled. First digest posts Monday, 9:00 AM, to <ChannelRef>product</ChannelRef>.
   </SlackMessage>
 </SlackThread>
