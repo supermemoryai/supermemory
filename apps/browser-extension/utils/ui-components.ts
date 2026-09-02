@@ -605,7 +605,7 @@ export function createProjectSelectionModal(
 		if (selectedOption.value) {
 			const selectedProject = {
 				id: selectedOption.value,
-				name: selectedOption.textContent,
+				name: selectedOption.textContent ?? "",
 				containerTag: selectedOption.dataset.containerTag || "",
 			}
 			onImport(selectedProject)
