@@ -507,8 +507,7 @@ export function useGraphData(
 		// Golden angle (~137.5 deg) produces optimal packing in a spiral
 		const goldenAngle = Math.PI * (3 - Math.sqrt(5))
 
-		for (let docIdx = 0; docIdx < docCount; docIdx++) {
-			const doc = documents[docIdx]
+		for (const [docIdx, doc] of documents.entries()) {
 			const docCluster = getDocumentClusterAssignment(doc, clusterAssignments)
 			const angle = docIdx * goldenAngle
 			const radius = spiralScale * Math.sqrt((docIdx + 1) / docCount)

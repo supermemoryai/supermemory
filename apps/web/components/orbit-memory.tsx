@@ -48,7 +48,7 @@ const INTEG: {
 	key?: string
 	label?: string
 	sub?: string
-	ring: number
+	ring: 0 | 1
 	ang: number
 	size: number
 	dim: boolean
@@ -76,8 +76,8 @@ const DW = 780
 const DH = 1024
 const CX = 390
 const CY = 512
-const RR = [200, 335]
-const SPEED = [1.0, 0.78]
+const RR: [number, number] = [200, 335]
+const SPEED: [number, number] = [1.0, 0.78]
 const DRAW: [number, number, number, string][] = [
 	[125, 0.28, 1.7, "#74a8f6"],
 	[200, 0.18, 1.9, "#4389ff"],
@@ -167,16 +167,15 @@ export default function OrbitMemory({
 			track.setAttribute("stroke-opacity", "0")
 			dtrack.setAttribute("stroke-opacity", "0")
 			for (let k = 0; k < NC; k++) {
-				cms[k].setAttribute("opacity", "0")
-				cmgs[k].setAttribute("opacity", "0")
-				oms[k].setAttribute("opacity", "0")
-				omgs[k].setAttribute("opacity", "0")
+				cms[k]?.setAttribute("opacity", "0")
+				cmgs[k]?.setAttribute("opacity", "0")
+				oms[k]?.setAttribute("opacity", "0")
+				omgs[k]?.setAttribute("opacity", "0")
 			}
 		}
 		let angle = 0
 		const place = () => {
-			for (let i = 0; i < INTEG.length; i++) {
-				const it = INTEG[i]
+			for (const [i, it] of INTEG.entries()) {
 				const a = ((it.ang + angle * SPEED[it.ring]) * Math.PI) / 180
 				const R = RR[it.ring]
 				const ux = CX + R * Math.cos(a)
@@ -199,8 +198,8 @@ export default function OrbitMemory({
 		const DISC = 700
 		const INN: number[] = []
 		const OUT: number[] = []
-		for (let i = 0; i < INTEG.length; i++) {
-			;(INTEG[i].ring === 0 ? INN : OUT).push(i)
+		for (const [i, it] of INTEG.entries()) {
+			;(it.ring === 0 ? INN : OUT).push(i)
 		}
 		let phase = "orbit"
 		let pT0 = 0
@@ -259,12 +258,16 @@ export default function OrbitMemory({
 				const ay = pyc - uy * HL
 				const bx = pxc + ux * HL
 				const by = pyc + uy * HL
-				setLine(gr[k], ax, ay, bx, by)
-				setLine(cr[k], ax, ay, bx, by)
-				setLine(gl[k], ax, ay, bx, by)
+				const grad = gr[k]
+				const comet = cr[k]
+				const glow = gl[k]
+				if (!grad || !comet || !glow) continue
+				setLine(grad, ax, ay, bx, by)
+				setLine(comet, ax, ay, bx, by)
+				setLine(glow, ax, ay, bx, by)
 				const o = Math.sin(f * Math.PI) * P
-				cr[k].setAttribute("opacity", o.toFixed(2))
-				gl[k].setAttribute("opacity", (0.6 * o).toFixed(2))
+				comet.setAttribute("opacity", o.toFixed(2))
+				glow.setAttribute("opacity", (0.6 * o).toFixed(2))
 			}
 		}
 		const frame = (now: number) => {
@@ -276,13 +279,13 @@ export default function OrbitMemory({
 			if (phase === "orbit" && pt > ORBIT) {
 				phase = "receive"
 				pT0 = now
-				src = INN[(ci * 5) % INN.length]
-				dst = OUT[(ci * 7) % OUT.length]
+				src = INN[(ci * 5) % INN.length] ?? 0
+				dst = OUT[(ci * 7) % OUT.length] ?? 0
 				ci++
 				nodes[src]?.classList.add("sm-active")
 				stage.style.setProperty(
 					"--cm",
-					`rgb(${ACCENT[INTEG[src].key!] || "91,157,255"})`,
+					`rgb(${ACCENT[INTEG[src]?.key ?? ""] || "91,157,255"})`,
 				)
 			} else if (phase === "receive" && pt > RECV) {
 				phase = "send"
@@ -318,8 +321,8 @@ export default function OrbitMemory({
 				seg(
 					now,
 					track,
-					INTEG[src]._x!,
-					INTEG[src]._y!,
+					INTEG[src]?._x ?? 0,
+					INTEG[src]?._y ?? 0,
 					ps,
 					grads,
 					cms,
@@ -330,8 +333,8 @@ export default function OrbitMemory({
 				seg(
 					now,
 					dtrack,
-					INTEG[dst]._x!,
-					INTEG[dst]._y!,
+					INTEG[dst]?._x ?? 0,
+					INTEG[dst]?._y ?? 0,
 					pd,
 					ogrs,
 					oms,
@@ -508,7 +511,9 @@ export default function OrbitMemory({
 								<span
 									className="sm-glyph"
 									// biome-ignore lint/security/noDangerouslySetInnerHtml: static, vetted inline brand SVG markup
-									dangerouslySetInnerHTML={{ __html: ICONS[it.key!] }}
+									dangerouslySetInnerHTML={{
+										__html: (it.key && ICONS[it.key]) || "",
+									}}
 								/>
 								<span className="sm-gsub">{it.sub}</span>
 							</span>
@@ -518,7 +523,9 @@ export default function OrbitMemory({
 							<span
 								className="sm-glyph"
 								// biome-ignore lint/security/noDangerouslySetInnerHtml: static, vetted inline brand SVG markup
-								dangerouslySetInnerHTML={{ __html: ICONS[it.key!] }}
+								dangerouslySetInnerHTML={{
+									__html: (it.key && ICONS[it.key]) || "",
+								}}
 							/>
 						)}
 					</div>

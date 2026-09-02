@@ -1612,11 +1612,11 @@ export function ChatSidebar({
 		]
 		for (const t of filtered) {
 			const ts = new Date(t.updatedAt).getTime()
-			if (ts >= startOfToday) buckets[0].items.push(t)
-			else if (ts >= startOfToday - day) buckets[1].items.push(t)
-			else if (ts >= startOfToday - 7 * day) buckets[2].items.push(t)
-			else if (ts >= startOfToday - 30 * day) buckets[3].items.push(t)
-			else buckets[4].items.push(t)
+			if (ts >= startOfToday) buckets[0]?.items.push(t)
+			else if (ts >= startOfToday - day) buckets[1]?.items.push(t)
+			else if (ts >= startOfToday - 7 * day) buckets[2]?.items.push(t)
+			else if (ts >= startOfToday - 30 * day) buckets[3]?.items.push(t)
+			else buckets[4]?.items.push(t)
 		}
 		return buckets.filter((b) => b.items.length > 0)
 	}, [threads, historySearch])
