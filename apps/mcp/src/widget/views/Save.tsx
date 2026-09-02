@@ -11,6 +11,11 @@ import {
 } from "../design/ui"
 import { useApp } from "../hooks/useApp"
 import { formatTagLabel } from "../lib/formatTag"
+import {
+	isWritableTag,
+	preferredWritableTag,
+	retainedWritableTag,
+} from "../lib/writableTag"
 
 interface Props {
 	activeTag?: string | null
@@ -31,16 +36,14 @@ export function Save({
 }: Props) {
 	const { callTool, handoffToModel } = useApp()
 	const [content, setContent] = useState(prefill ?? "")
-	const [selectedTag, setSelectedTag] = useState<string | null>(
-		activeTag ?? writableTags[0] ?? null,
+	const [selectedTag, setSelectedTag] = useState<string | null>(() =>
+		preferredWritableTag(activeTag, writableTags),
 	)
 	const [saving, setSaving] = useState(false)
 
 	useEffect(() => {
-		if (!selectedTag && writableTags.length > 0) {
-			setSelectedTag(writableTags[0])
-		}
-	}, [selectedTag, writableTags])
+		setSelectedTag((current) => retainedWritableTag(current, writableTags))
+	}, [writableTags])
 
 	const options = useMemo(
 		() =>
@@ -53,10 +56,11 @@ export function Save({
 	)
 
 	const trimmed = content.trim()
-	const canSave = trimmed.length > 0 && !!selectedTag && !saving
+	const canSave =
+		trimmed.length > 0 && isWritableTag(selectedTag, writableTags) && !saving
 
 	const handleSave = async () => {
-		if (!canSave || !selectedTag) return
+		if (!canSave || !isWritableTag(selectedTag, writableTags)) return
 		setSaving(true)
 		const result = await callTool(
 			"save-memory",
