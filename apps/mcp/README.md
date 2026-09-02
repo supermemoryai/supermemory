@@ -51,6 +51,7 @@ The client discovers the OAuth authorization server through
 | `search_memory` | Search memories and optionally include profile context |
 | `listDocuments` | List document metadata and summaries in a space |
 | `getDocument` | Read one document's available content by ID |
+| `deleteDocument` | Permanently delete a document by ID |
 | `listMemories` | List extracted memory entries and their source document IDs |
 | `listSpaces` | List spaces visible to the authenticated account |
 | `whoAmI` | Return identity, access, and active-space context |
