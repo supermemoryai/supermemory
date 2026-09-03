@@ -154,3 +154,52 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(
             any(fact in message.get("content", "") for message in context.messages)
         )
+
+    def test_system_injection_replaces_stale_block_with_backslash_memory(self) -> None:
+        """A memory containing backslashes must not be read as a regex template.
+
+        re.sub() expands escapes in a *string* replacement, so a Windows path or
+        a group-reference-looking fact used to raise re.error and abort the turn.
+        """
+        backslash = chr(92)
+        fact = "User's repo is at C:" + backslash + "Users" + backslash + "alice"
+        service = SupermemoryPipecatService(
+            api_key="mock_key",
+            user_id="user-123",
+            session_id="conversation-456",
+            params=SupermemoryPipecatService.InputParams(inject_mode="system"),
+        )
+        newline = chr(10)
+        stale = newline.join(["<user_memories>", "Stale fact", "</user_memories>"])
+
+        class Context:
+            def __init__(self):
+                self.messages = [
+                    {
+                        "role": "system",
+                        "content": "You are helpful." + newline + newline + stale,
+                    },
+                    {"role": "user", "content": "Where is my repo?"},
+                ]
+
+            def get_messages(self):
+                return self.messages
+
+            def add_message(self, message):
+                self.messages.append(message)
+
+        context = Context()
+        service._enhance_context_with_memories(
+            context,
+            "Where is my repo?",
+            {
+                "profile": {"static": [fact], "dynamic": []},
+                "search_results": [],
+            },
+        )
+
+        system_content = context.messages[0]["content"]
+        self.assertIn(fact, system_content)
+        self.assertNotIn("Stale fact", system_content)
+        self.assertIn("You are helpful.", system_content)
+        self.assertEqual(system_content.count("<user_memories>"), 1)
