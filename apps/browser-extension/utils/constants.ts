@@ -76,6 +76,30 @@ export const DOMAINS = {
 	SUPERMEMORY: ["localhost", "supermemory.ai", "app.supermemory.ai"],
 } as const
 
+/** X moved bookmarks from /i/bookmarks into the History hub. */
+export const TWITTER_BOOKMARKS_PAGE_URL = "https://x.com/i/history"
+
+/**
+ * True for the current History page and the old Bookmarks URL, so import still
+ * works during the rollout and if X redirects /i/bookmarks → /i/history.
+ */
+export function isTwitterBookmarksPage(urlOrPath: string): boolean {
+	let pathname = urlOrPath
+	try {
+		if (/^https?:\/\//i.test(urlOrPath)) {
+			pathname = new URL(urlOrPath).pathname
+		}
+	} catch {
+		return urlOrPath.includes("/i/history") || urlOrPath.includes("/i/bookmarks")
+	}
+
+	return (
+		pathname === "/i/bookmarks" ||
+		pathname === "/i/history" ||
+		pathname.startsWith("/i/history/")
+	)
+}
+
 /**
  * Container Tags
  */

@@ -1,6 +1,7 @@
 import {
 	DOMAINS,
 	ELEMENT_IDS,
+	isTwitterBookmarksPage,
 	MESSAGE_TYPES,
 	POSTHOG_EVENT_KEY,
 	STORAGE_KEYS,
@@ -86,9 +87,9 @@ export async function initializeTwitter() {
 		return
 	}
 
-	if (window.location.pathname === "/i/bookmarks") {
+	if (isTwitterBookmarksPage(window.location.pathname)) {
 		setTimeout(async () => {
-			if (window.location.pathname === "/i/bookmarks") {
+			if (isTwitterBookmarksPage(window.location.pathname)) {
 				await handleBookmarksPageLoad()
 			}
 		}, 2000)
@@ -102,7 +103,7 @@ export async function initializeTwitter() {
  * Handle what to show when user lands on bookmarks page
  */
 async function handleBookmarksPageLoad() {
-	if (window.location.pathname !== "/i/bookmarks") {
+	if (!isTwitterBookmarksPage(window.location.pathname)) {
 		return
 	}
 
@@ -589,7 +590,7 @@ export async function handleTwitterNavigation() {
 		return
 	}
 
-	if (window.location.pathname === "/i/bookmarks") {
+	if (isTwitterBookmarksPage(window.location.pathname)) {
 		addTwitterImportButtonForFolders()
 		await handleBookmarksPageLoad()
 	} else {
@@ -601,7 +602,7 @@ export async function handleTwitterNavigation() {
  * Adds import buttons to bookmark folders
  */
 function addTwitterImportButtonForFolders() {
-	if (window.location.pathname !== "/i/bookmarks") {
+	if (!isTwitterBookmarksPage(window.location.pathname)) {
 		return
 	}
 
