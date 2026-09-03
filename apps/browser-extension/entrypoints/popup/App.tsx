@@ -4,9 +4,9 @@ import "./App.css"
 import { validateAuthToken } from "../../utils/api"
 import {
 	getSupermemoryLoginUrl,
-	isTwitterBookmarksPage,
 	MESSAGE_TYPES,
 	STORAGE_KEYS,
+	TWITTER_BOOKMARKS_PATH,
 	TWITTER_BOOKMARKS_PAGE_URL,
 	UI_CONFIG,
 } from "../../utils/constants"
@@ -494,7 +494,10 @@ function App() {
 				currentWindow: true,
 			})
 
-			const isOnBookmarksPage = !!activeTab?.url && isTwitterBookmarksPage(activeTab.url)
+			const activePathname = activeTab?.url
+				? new URL(activeTab.url).pathname
+				: ""
+			const isOnBookmarksPage = activePathname === TWITTER_BOOKMARKS_PATH
 
 			if (isOnBookmarksPage && activeTab?.id) {
 				try {

@@ -1,10 +1,10 @@
 import {
 	DOMAINS,
 	ELEMENT_IDS,
-	isTwitterBookmarksPage,
 	MESSAGE_TYPES,
 	POSTHOG_EVENT_KEY,
 	STORAGE_KEYS,
+	TWITTER_BOOKMARKS_PATH,
 	UI_CONFIG,
 } from "../../utils/constants"
 import { trackEvent } from "../../utils/posthog"
@@ -87,9 +87,9 @@ export async function initializeTwitter() {
 		return
 	}
 
-	if (isTwitterBookmarksPage(window.location.pathname)) {
+	if (window.location.pathname === TWITTER_BOOKMARKS_PATH) {
 		setTimeout(async () => {
-			if (isTwitterBookmarksPage(window.location.pathname)) {
+			if (window.location.pathname === TWITTER_BOOKMARKS_PATH) {
 				await handleBookmarksPageLoad()
 			}
 		}, 2000)
@@ -103,7 +103,7 @@ export async function initializeTwitter() {
  * Handle what to show when user lands on bookmarks page
  */
 async function handleBookmarksPageLoad() {
-	if (!isTwitterBookmarksPage(window.location.pathname)) {
+	if (window.location.pathname !== TWITTER_BOOKMARKS_PATH) {
 		return
 	}
 
@@ -590,7 +590,7 @@ export async function handleTwitterNavigation() {
 		return
 	}
 
-	if (isTwitterBookmarksPage(window.location.pathname)) {
+	if (window.location.pathname === TWITTER_BOOKMARKS_PATH) {
 		addTwitterImportButtonForFolders()
 		await handleBookmarksPageLoad()
 	} else {
@@ -602,7 +602,7 @@ export async function handleTwitterNavigation() {
  * Adds import buttons to bookmark folders
  */
 function addTwitterImportButtonForFolders() {
-	if (!isTwitterBookmarksPage(window.location.pathname)) {
+	if (window.location.pathname !== TWITTER_BOOKMARKS_PATH) {
 		return
 	}
 
