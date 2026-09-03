@@ -78,7 +78,7 @@ jobs:
             Repository: ${{ github.repository }}
 
             Fix the CI failures. Common fixes:
-            - Biome lint errors: Run `bun run format-lint` or `biome check --fix .`
+            - Biome lint errors: Run `bun run format-lint:fix` or `biome check --fix .`
             - Type errors: Run `bun run check-types` and fix reported issues
             - Test failures: Debug and fix the failing tests
 
