@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useSession } from "./auth"
 import { usePostHog } from "./posthog"
 
@@ -79,10 +79,19 @@ export function ErrorTrackingProvider({
 }) {
 	const { trackError } = useErrorTracking()
 
+	// trackError is a fresh closure every render (it captures posthog, session and
+	// pathname), so keying the listener effect on it re-subscribed the two global
+	// window listeners on every render of this app-wide provider. Hold the latest
+	// trackError in a ref and register the listeners once for the provider's life.
+	const trackErrorRef = useRef(trackError)
+	useEffect(() => {
+		trackErrorRef.current = trackError
+	}, [trackError])
+
 	useEffect(() => {
 		// Global error handler for unhandled errors
 		const handleError = (event: ErrorEvent) => {
-			trackError(event.error, {
+			trackErrorRef.current(event.error, {
 				error_type: "global_error",
 				source: "window_error",
 				filename: event.filename,
@@ -93,7 +102,7 @@ export function ErrorTrackingProvider({
 
 		// Global handler for unhandled promise rejections
 		const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-			trackError(event.reason, {
+			trackErrorRef.current(event.reason, {
 				error_type: "unhandled_promise_rejection",
 				source: "promise_rejection",
 			})
@@ -106,7 +115,7 @@ export function ErrorTrackingProvider({
 			window.removeEventListener("error", handleError)
 			window.removeEventListener("unhandledrejection", handleUnhandledRejection)
 		}
-	}, [trackError])
+	}, [])
 
 	return <>{children}</>
 }
