@@ -6,6 +6,8 @@ import {
 	getSupermemoryLoginUrl,
 	MESSAGE_TYPES,
 	STORAGE_KEYS,
+	TWITTER_BOOKMARKS_PATH,
+	TWITTER_BOOKMARKS_PAGE_URL,
 	UI_CONFIG,
 } from "../../utils/constants"
 import {
@@ -484,7 +486,7 @@ function App() {
 	}
 
 	const handleTwitterBookmarksImport = async () => {
-		const targetUrl = "https://x.com/i/bookmarks"
+		const targetUrl = TWITTER_BOOKMARKS_PAGE_URL
 
 		try {
 			const [activeTab] = await chrome.tabs.query({
@@ -492,9 +494,10 @@ function App() {
 				currentWindow: true,
 			})
 
-			const isOnBookmarksPage =
-				activeTab?.url?.includes("x.com/i/bookmarks") ||
-				activeTab?.url?.includes("twitter.com/i/bookmarks")
+			const activePathname = activeTab?.url
+				? new URL(activeTab.url).pathname
+				: ""
+			const isOnBookmarksPage = activePathname === TWITTER_BOOKMARKS_PATH
 
 			if (isOnBookmarksPage && activeTab?.id) {
 				try {

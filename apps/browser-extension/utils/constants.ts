@@ -76,6 +76,9 @@ export const DOMAINS = {
 	SUPERMEMORY: ["localhost", "supermemory.ai", "app.supermemory.ai"],
 } as const
 
+export const TWITTER_BOOKMARKS_PATH = "/i/history"
+export const TWITTER_BOOKMARKS_PAGE_URL = `https://x.com${TWITTER_BOOKMARKS_PATH}`
+
 /**
  * Container Tags
  */
