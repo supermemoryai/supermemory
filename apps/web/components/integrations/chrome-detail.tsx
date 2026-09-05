@@ -1,6 +1,6 @@
 "use client"
 
-import { CHROME_EXTENSION_URL } from "@repo/lib/constants"
+import { CHROME_EXTENSION_URL } from "@lib/constants"
 import { cn } from "@lib/utils"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { ChromeIcon } from "@/components/integration-icons"
