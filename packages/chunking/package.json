@@ -1,0 +1,20 @@
+{
+	"name": "@repo/chunking",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "Stable, content-defined text chunking plus content-hash chunk reuse planning for living documents",
+	"exports": {
+		"./*": "./*",
+		"./package.json": "./package.json"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"devDependencies": {
+		"@total-typescript/tsconfig": "^1.0.4",
+		"typescript": "^5.9.2",
+		"vitest": "^3.2.4"
+	}
+}
