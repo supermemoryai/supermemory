@@ -47,6 +47,12 @@ jobs:
             echo "sdk_playground=true" >> "$GITHUB_OUTPUT"
           fi
 
+          if git diff --quiet "${{ github.event.pull_request.base.sha }}" HEAD -- packages/chunking; then
+            echo "chunking=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "chunking=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Python for SDK Playground
         if: steps.sdk-changes.outputs.sdk_playground == 'true'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -89,6 +95,14 @@ jobs:
       - name: Build AI SDK package
         if: steps.sdk-changes.outputs.ai_sdk == 'true' || steps.sdk-changes.outputs.sdk_playground == 'true'
         run: bun run --cwd packages/ai-sdk build
+
+      - name: Run Chunking unit tests
+        if: steps.sdk-changes.outputs.chunking == 'true'
+        run: bun run --cwd packages/chunking test
+
+      - name: Run Chunking type checking
+        if: steps.sdk-changes.outputs.chunking == 'true'
+        run: bun run --cwd packages/chunking check-types
 
       - name: Run SDK Playground type checking
         if: steps.sdk-changes.outputs.sdk_playground == 'true'
