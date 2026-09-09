@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { assertWriteAccess } from "../auth/rbac"
 import { optionalContainerTagSchema } from "../container-tag"
 import { MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import { addMemoryOutputSchema, type AddMemoryOutput } from "./output-schemas"
@@ -26,6 +27,9 @@ export function register(deps: ToolDeps) {
 		async (args) => {
 			try {
 				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
+				const session = await deps.getSession()
+				assertWriteAccess(effectiveTag, session)
+
 				const client = deps.getClient(effectiveTag)
 
 				if (args.action === "forget") {
