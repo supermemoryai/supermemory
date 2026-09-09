@@ -50,6 +50,7 @@ Your assistant chooses these tools automatically. Use this table when you need t
 | `add_memory` | Save information or forget outdated information | `content` (required), `action` (`save` or `forget`), `containerTag` | Save or forget confirmation |
 | `listDocuments` | Browse stored source documents and their summaries | `page`, `limit`, `containerTag` | Document IDs, titles, types, status, dates, and summaries |
 | `getDocument` | Read the available content of one document | `documentId` (required) | Document metadata, summary, and available content |
+| `deleteDocument` | Permanently delete a document by ID | `documentId` (required) | Deletion confirmation |
 | `listMemories` | Browse recent extracted memory entries and their source document IDs | `page`, `limit`, `containerTag` | Memory IDs, text, versions, and source document IDs |
 | `listSpaces` | List accessible spaces and resolve a space name to its key | None | Formatted list plus structured `spaces` and `count` fields |
 | `whoAmI` | Inspect the authenticated account, permissions, scope, and active space | None | Account and access context |

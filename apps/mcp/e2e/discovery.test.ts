@@ -9,6 +9,7 @@ import {
 
 const EXPECTED_TOOLS = [
 	"add_memory",
+	"deleteDocument",
 	"fetch-graph-data",
 	"getDocument",
 	"guided-save",

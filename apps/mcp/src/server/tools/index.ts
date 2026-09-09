@@ -1,4 +1,5 @@
 import * as addMemory from "./add-memory"
+import * as deleteDocument from "./delete-document"
 import * as fetchGraphData from "./fetch-graph-data"
 import * as getDocument from "./get-document"
 import * as guidedSave from "./guided-save"
@@ -19,6 +20,7 @@ export function registerAllTools(deps: ToolDeps) {
 	searchMemory.register(deps)
 	listDocuments.register(deps)
 	getDocument.register(deps)
+	deleteDocument.register(deps)
 	listMemories.register(deps)
 	listContainerTags.register(deps)
 	whoAmI.register(deps)
