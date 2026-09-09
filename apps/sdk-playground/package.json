@@ -21,7 +21,7 @@
     "@supermemory/ai-sdk": "workspace:*",
     "@supermemory/tools": "workspace:*",
     "ai": "^5.0.113",
-    "next": "16.0.7",
+    "next": "^16.3.3",
     "openai": "^4.104.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
