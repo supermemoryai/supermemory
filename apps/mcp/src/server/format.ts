@@ -18,6 +18,18 @@ function day(value: string | null | undefined): string {
 	return value?.slice(0, 10) ?? ""
 }
 
+function documentTitle(document: {
+	title?: string | null
+	metadata?: unknown
+}): string {
+	const metadata = document.metadata
+	if (metadata && typeof metadata === "object") {
+		const pinned = (metadata as Record<string, unknown>).title
+		if (typeof pinned === "string" && pinned.trim()) return pinned.trim()
+	}
+	return document.title?.trim() || "(untitled)"
+}
+
 function paginationSummary(
 	currentPage: number,
 	totalPages: number,
@@ -39,7 +51,7 @@ export function formatDocumentsList(response: DocumentsListResponse): string {
 	}
 
 	const blocks = documents.map((document) => {
-		const title = document.title?.trim() || "(untitled)"
+		const title = documentTitle(document)
 		const lines = [
 			`- [${document.id}] "${title}" (${document.type}, ${document.status}, ${day(document.createdAt)})`,
 		]
@@ -150,7 +162,7 @@ export function getDocumentContent(document: DocumentDetails): {
 }
 
 export function formatDocument(document: DocumentDetails): string {
-	const title = document.title?.trim() || "(untitled)"
+	const title = documentTitle(document)
 	const parts = [
 		`# ${title}`,
 		`Document ID: ${document.id}`,
