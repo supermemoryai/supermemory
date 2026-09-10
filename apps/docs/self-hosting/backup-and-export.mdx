@@ -75,9 +75,24 @@ Authorization: Bearer <SUPERMEMORY_API_KEY>
 
 ## Full Export Scripts
 
-### 1. Using `@supermemory/tools` (Node.js / Bun)
+### 1. Using the CLI (`supermemory-export`)
 
-If you use `@supermemory/tools`, use the built-in export helpers:
+You can export memories directly from your terminal using the CLI packaged with `@supermemory/tools`:
+
+```bash
+# Export to stdout as JSON
+bunx @supermemory/tools supermemory-export --tag user_123
+
+# Export to a JSON file from local self-hosted server
+bunx @supermemory/tools supermemory-export --tag user_123 --out ./memories.json --url http://localhost:6767
+
+# Export as formatted Markdown notes
+bunx @supermemory/tools supermemory-export --tag user_123 --format markdown --out ./memories.md
+```
+
+### 2. Programmatic Export (TypeScript / Bun)
+
+If you use `@supermemory/tools` in your application:
 
 ```typescript
 import {
@@ -100,7 +115,7 @@ const markdownNotes = await exportMemoriesAsMarkdown("user_123", options);
 await Bun.write("memories-export.md", markdownNotes);
 ```
 
-### 2. Standalone Python Export Script
+### 3. Standalone Python Export Script
 
 Run this script against your local server to export all memories to JSON:
 
@@ -160,7 +175,7 @@ if __name__ == "__main__":
     print(f"Exported {len(memories)} memories to {output_file}")
 ```
 
-### 3. Quick cURL Export
+### 4. Quick cURL Export
 
 ```bash
 curl -s -X POST "http://localhost:6767/v4/memories/list" \
