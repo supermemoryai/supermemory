@@ -14,7 +14,37 @@ The installer writes API keys to `~/.supermemory/env`, which is loaded on every 
 | Variable | Purpose | Default |
 |---|---|---|
 | `PORT` (or `SUPERMEMORY_PORT`) | HTTP listen port | `6767` |
+| `HOST` (or `SUPERMEMORY_HOST`) | Network interface to bind (`127.0.0.1` for loopback, `0.0.0.0` for all interfaces) | `0.0.0.0` |
 | `SUPERMEMORY_DATA_DIR` | Where the graph engine's data, auth secret, and model cache live | `./.supermemory` |
+
+### Network interface binding & Security
+
+By default, the self-hosted binary binds to all network interfaces (`0.0.0.0`), allowing access from local containers, remote devices, and the host.
+
+<Warning>
+**Public & Shared Network Caution**: On shared networks (coffee shops, offices, hotels), listening on `0.0.0.0` exposes the server port to other devices on the LAN.
+To enforce loopback-only binding on local machines:
+```bash
+SUPERMEMORY_HOST=127.0.0.1 supermemory-server
+# or in ~/.supermemory/env:
+# SUPERMEMORY_HOST=127.0.0.1
+```
+</Warning>
+
+#### Localhost Loopback Isolation
+
+For local development alongside tools like Claude Code, Cursor, or Codex, bind explicitly to `127.0.0.1` so that requests can only originate from your local machine:
+
+```bash
+HOST=127.0.0.1 PORT=6767 supermemory-server
+```
+
+If you are running an older binary release (such as v0.0.6) that hardcodes `0.0.0.0`, you can isolate port access to localhost without elevated administrator privileges:
+
+- **Reverse Proxy / Port Forwarding**: Run a local forwarder such as `socat` or Nginx bound strictly to `127.0.0.1`.
+- **Docker / Container Isolation**: Run the container with explicit loopback binding: `-p 127.0.0.1:6767:6767`.
+- **OS Firewall**: Restrict inbound port 6767/6768 traffic via `pfctl` (macOS) or `iptables` / `ufw` (Linux).
+
 
 ## LLM providers
 
