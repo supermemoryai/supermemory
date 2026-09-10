@@ -185,6 +185,7 @@
 											"self-hosting/quickstart",
 											"self-hosting/configuration",
 											"self-hosting/embeddings",
+											"self-hosting/backup-and-export",
 											"self-hosting/providers",
 											"self-hosting/local-vs-enterprise"
 										]

@@ -1,0 +1,213 @@
+---
+title: "Backup & Export"
+sidebarTitle: "Backup & Export"
+description: "How to export and back up distilled memories and documents from your self-hosted instance."
+icon: "download"
+---
+
+Self-hosted Supermemory stores all state inside `$SUPERMEMORY_DATA_DIR` (default: `./.supermemory`).
+This guide explains how to back up and export both your **distilled memory cards** (extracted facts) and **raw ingested documents**.
+
+## Overview: Memories vs Documents
+
+Supermemory distinguishes between two layers of context:
+
+1. **Documents (`/v3/documents`)**: The raw source material you ingested (chat logs, transcripts, Markdown files, PDFs, web pages).
+2. **Extracted Memories (`/v4/memories`)**: The distilled, atomic facts extracted from documents, complete with version history, temporal status, and container tags.
+
+> **Why not copy `./.supermemory/data` directly?**
+> The local store uses an encrypted PGlite container (`SMD1` format) keyed to the machine environment. To produce portable, human-readable backups or migrate between machines, use the HTTP export APIs described below.
+
+---
+
+## Exporting Extracted Memories
+
+To export the distilled memory cards for any container tag, use the `POST /v4/memories/list` endpoint. Unlike search recall (`searchMode: "memories"`), which only returns top-K semantically matching items, `/v4/memories/list` provides **exhaustive, paginated access** to all extracted facts.
+
+### Endpoint
+
+```http
+POST /v4/memories/list
+Content-Type: application/json
+Authorization: Bearer <SUPERMEMORY_API_KEY>
+```
+
+#### Request Payload
+
+```json
+{
+  "containerTags": ["user_123"],
+  "page": 1,
+  "limit": 50,
+  "sort": "createdAt",
+  "order": "desc"
+}
+```
+
+#### Response Structure
+
+```json
+{
+  "memoryEntries": [
+    {
+      "id": "mem_01J6ABC...",
+      "memory": "User prefers TypeScript and strict mode enabled",
+      "version": 1,
+      "isLatest": true,
+      "isForgotten": false,
+      "isStatic": true,
+      "createdAt": "2026-08-20T10:00:00.000Z",
+      "updatedAt": "2026-08-20T10:00:00.000Z",
+      "documentIds": ["doc_01J6XYZ..."],
+      "history": []
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "limit": 50,
+    "totalItems": 142,
+    "totalPages": 3
+  }
+}
+```
+
+---
+
+## Full Export Scripts
+
+### 1. Using `@supermemory/tools` (Node.js / Bun)
+
+If you use `@supermemory/tools`, use the built-in export helpers:
+
+```typescript
+import {
+  exportMemoriesAsJson,
+  exportMemoriesAsMarkdown,
+  fetchAllMemories,
+} from "@supermemory/tools";
+
+const options = {
+  baseUrl: "http://localhost:6767",
+  apiKey: process.env.SUPERMEMORY_API_KEY || "sm_...",
+};
+
+// Export to JSON backup
+const jsonBackup = await exportMemoriesAsJson("user_123", options);
+await Bun.write("memories-backup.json", jsonBackup);
+
+// Export to human-readable Markdown
+const markdownNotes = await exportMemoriesAsMarkdown("user_123", options);
+await Bun.write("memories-export.md", markdownNotes);
+```
+
+### 2. Standalone Python Export Script
+
+Run this script against your local server to export all memories to JSON:
+
+```python
+import os
+import json
+import requests
+
+BASE_URL = os.getenv("SUPERMEMORY_API_URL", "http://localhost:6767")
+API_KEY = os.getenv("SUPERMEMORY_API_KEY", "")
+CONTAINER_TAG = "user_123"
+
+def export_all_memories(container_tag):
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    page = 1
+    limit = 50
+    all_memories = []
+    
+    while True:
+        payload = {
+            "containerTags": [container_tag],
+            "page": page,
+            "limit": limit,
+            "sort": "createdAt",
+            "order": "desc"
+        }
+        res = requests.post(f"{BASE_URL}/v4/memories/list", json=payload, headers=headers)
+        res.raise_for_status()
+        data = res.json()
+        
+        entries = data.get("memoryEntries", [])
+        all_memories.extend(entries)
+        
+        pagination = data.get("pagination", {})
+        total_pages = pagination.get("totalPages", 1)
+        
+        print(f"Fetched page {page} / {total_pages} ({len(entries)} entries)")
+        if page >= total_pages or not entries:
+            break
+        page += 1
+        
+    return all_memories
+
+if __name__ == "__main__":
+    memories = export_all_memories(CONTAINER_TAG)
+    output_file = f"memories_{CONTAINER_TAG}.json"
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump({
+            "containerTag": CONTAINER_TAG,
+            "totalCount": len(memories),
+            "memories": memories
+        }, f, indent=2)
+    print(f"Exported {len(memories)} memories to {output_file}")
+```
+
+### 3. Quick cURL Export
+
+```bash
+curl -s -X POST "http://localhost:6767/v4/memories/list" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "containerTags": ["user_123"],
+    "page": 1,
+    "limit": 50
+  }' | jq .
+```
+
+---
+
+## Exporting Raw Documents
+
+To back up the underlying conversation sessions, files, and text documents:
+
+```bash
+curl -s "http://localhost:6767/v3/documents?containerTag=user_123&page=1&limit=50" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" | jq .
+```
+
+To fetch the full text of a specific document:
+
+```bash
+curl -s "http://localhost:6767/v3/documents/{documentId}" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" | jq .
+```
+
+---
+
+## Migration to Hosted Platform
+
+To migrate your exported memories from a local server to the hosted platform:
+
+1. Export your memory cards using the scripts above.
+2. Direct-write the memories into the hosted platform via `POST /v4/memories`:
+
+```bash
+curl -X POST "https://api.supermemory.ai/v4/memories" \
+  -H "Authorization: Bearer $SUPERMEMORY_CLOUD_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "memories": [
+      { "content": "User prefers TypeScript and strict mode enabled", "isStatic": true }
+    ],
+    "containerTag": "user_123"
+  }'
+```
