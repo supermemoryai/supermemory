@@ -76,7 +76,7 @@ export const LoadingIndicator = memo<
 		}
 
 		return (
-			<div style={containerStyle}>
+			<output style={containerStyle} aria-live="polite">
 				<div style={flexStyle}>
 					<svg
 						aria-hidden="true"
@@ -96,7 +96,7 @@ export const LoadingIndicator = memo<
 							: labels.loadingMoreDocuments(totalLoaded)}
 					</span>
 				</div>
-			</div>
+			</output>
 		)
 	},
 )
