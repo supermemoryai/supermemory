@@ -110,9 +110,11 @@ async function main() {
 
 		if (values.out) {
 			await writeFile(values.out, output, "utf-8")
-			console.error(`✓ Successfully exported memories for '${tag}' to ${values.out}`)
+			console.error(
+				`✓ Successfully exported memories for '${tag}' to ${values.out}`,
+			)
 		} else {
-			process.stdout.write(output + "\n")
+			process.stdout.write(`${output}\n`)
 		}
 	} catch (err: unknown) {
 		console.error(

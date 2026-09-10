@@ -218,7 +218,9 @@ export async function exportMemoriesAsMarkdown(
 		lines.push(`- **Created:** ${m.createdAt}`)
 		lines.push(`- **Updated:** ${m.updatedAt}`)
 		if (m.documentIds && m.documentIds.length > 0) {
-			lines.push(`- **Source Documents:** ${m.documentIds.map((d) => `\`${d}\``).join(", ")}`)
+			lines.push(
+				`- **Source Documents:** ${m.documentIds.map((d) => `\`${d}\``).join(", ")}`,
+			)
 		}
 		if (m.history && m.history.length > 0) {
 			lines.push(`- **Previous Revisions:** ${m.history.length}`)

@@ -9,10 +9,18 @@ import {
 
 function createMockFetch(responses: MemoriesListResponse[]) {
 	let callCount = 0
-	const fetchMock = async (url: string | URL | Request, init?: RequestInit) => {
+	const fetchMock = async (
+		_url: string | URL | Request,
+		_init?: RequestInit,
+	) => {
 		const pageResponse = responses[callCount] || {
 			memoryEntries: [],
-			pagination: { currentPage: callCount + 1, limit: 10, totalItems: 0, totalPages: 1 },
+			pagination: {
+				currentPage: callCount + 1,
+				limit: 10,
+				totalItems: 0,
+				totalPages: 1,
+			},
 		}
 		callCount++
 
@@ -35,7 +43,10 @@ describe("listMemoriesRequest", () => {
 		let capturedUrl = ""
 		let capturedInit: RequestInit | undefined
 
-		const customFetch = async (url: string | URL | Request, init?: RequestInit) => {
+		const customFetch = async (
+			url: string | URL | Request,
+			init?: RequestInit,
+		) => {
 			capturedUrl = String(url)
 			capturedInit = init
 			return {
@@ -53,7 +64,12 @@ describe("listMemoriesRequest", () => {
 							updatedAt: "2026-09-01T10:00:00.000Z",
 						},
 					],
-					pagination: { currentPage: 1, limit: 10, totalItems: 1, totalPages: 1 },
+					pagination: {
+						currentPage: 1,
+						limit: 10,
+						totalItems: 1,
+						totalPages: 1,
+					},
 				}),
 			} as Response
 		}
@@ -67,9 +83,9 @@ describe("listMemoriesRequest", () => {
 
 		expect(capturedUrl).toBe("http://localhost:6767/v4/memories/list")
 		expect(capturedInit?.method).toBe("POST")
-		expect((capturedInit?.headers as Record<string, string>)?.Authorization).toBe(
-			"Bearer sm_test_key",
-		)
+		expect(
+			(capturedInit?.headers as Record<string, string>)?.Authorization,
+		).toBe("Bearer sm_test_key")
 		const parsedBody = JSON.parse(String(capturedInit?.body))
 		expect(parsedBody.containerTags).toEqual(["user_123"])
 		expect(parsedBody.page).toBe(1)
@@ -83,7 +99,8 @@ describe("listMemoriesRequest", () => {
 				ok: false,
 				status: 400,
 				statusText: "Bad Request",
-				text: async () => JSON.stringify({ error: "Container tag is required" }),
+				text: async () =>
+					JSON.stringify({ error: "Container tag is required" }),
 			}) as unknown as Response
 
 		expect(
