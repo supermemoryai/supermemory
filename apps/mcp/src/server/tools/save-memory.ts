@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { saveSuccessViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
+import { assertWriteAccess } from "../auth/rbac"
 import { containerTagSchema } from "../container-tag"
 import { ADDITIVE_MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import { textContent, type ToolDeps } from "./types"
@@ -21,6 +22,9 @@ export function register(deps: ToolDeps) {
 		},
 		async (args) => {
 			try {
+				const session = await deps.getSession()
+				assertWriteAccess(args.containerTag, session)
+
 				const viewId = args.viewId ?? crypto.randomUUID()
 				const client = deps.getClient(args.containerTag)
 				const result = await client.createMemory(args.content)

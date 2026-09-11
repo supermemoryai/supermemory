@@ -32,3 +32,25 @@ export function effectiveContainerTagAccess(
 		return { containerTag, permission }
 	})
 }
+
+// Tools that write (save/forget a memory, upload a file) must call this
+// before performing the write. effectiveContainerTagAccess above is used
+// elsewhere only to build picker/dropdown option lists for the widgets --
+// nothing stops a client from calling a write tool directly with an
+// arbitrary containerTag, bypassing whatever the UI would have offered.
+export class ContainerTagAccessError extends Error {
+	constructor(containerTag: string) {
+		super(`You do not have write access to space "${containerTag}".`)
+		this.name = "ContainerTagAccessError"
+	}
+}
+
+export function assertWriteAccess(
+	containerTag: string,
+	session: SessionInfo,
+): void {
+	const [access] = effectiveContainerTagAccess([containerTag], session)
+	if (access?.permission !== "write") {
+		throw new ContainerTagAccessError(containerTag)
+	}
+}
