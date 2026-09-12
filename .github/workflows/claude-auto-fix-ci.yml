@@ -15,9 +15,21 @@ permissions:
 
 jobs:
   auto-fix:
+    # SECURITY BOUNDARY: `workflow_run` executes in the base-repo context with
+    # repository secrets (CLAUDE_CODE_OAUTH_TOKEN, write-scoped GITHUB_TOKEN),
+    # so checking out untrusted head-branch code here is the canonical "pwn
+    # request" pattern
+    # (https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/).
+    # The fork boundary must be explicit and must not depend on
+    # `pull_requests` happening to be empty for fork runs. Require the head repo
+    # to match the base repo so fork-triggered runs can never execute this job,
+    # and exclude bot-triggered runs to match the sibling claude-code-review.yml.
     if: |
       github.event.workflow_run.conclusion == 'failure' &&
-      github.event.workflow_run.pull_requests[0]
+      github.event.workflow_run.pull_requests[0] &&
+      github.event.workflow_run.head_repository.full_name == github.event.workflow_run.repository.full_name &&
+      github.event.workflow_run.actor.login != 'graphite-app[bot]' &&
+      github.event.workflow_run.actor.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
