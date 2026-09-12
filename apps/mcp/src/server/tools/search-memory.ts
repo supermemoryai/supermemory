@@ -18,10 +18,10 @@ export function register(deps: ToolDeps) {
 	})
 
 	deps.server.registerTool(
-		"search_memory",
+		"searchMemory",
 		{
 			description:
-				"Search memories in one space with a natural-language query. Returns matching memories only — not the space profile. If you need who-the-user-is, preferences, or recent context after searching, call get_profile. When the user names a space, resolve it with listSpaces and pass containerTag; otherwise use the active space.",
+				"Search memories in one space with a natural-language query. Returns matching memories only — not the space profile. If you need who-the-user-is, preferences, or recent context after searching, call getProfile. When the user names a space, resolve it with listSpaces and pass containerTag; otherwise use the active space.",
 			inputSchema,
 			outputSchema: searchMemoryOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,

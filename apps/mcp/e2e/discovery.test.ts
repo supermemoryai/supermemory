@@ -8,10 +8,10 @@ import {
 } from "./helpers"
 
 const EXPECTED_TOOLS = [
-	"add_memory",
+	"addMemory",
 	"fetch-graph-data",
 	"getDocument",
-	"get_profile",
+	"getProfile",
 	"guided-save",
 	"listDocuments",
 	"listMemories",
@@ -19,7 +19,7 @@ const EXPECTED_TOOLS = [
 	"memory-graph",
 	"prepare-file-upload",
 	"save-memory",
-	"search_memory",
+	"searchMemory",
 	"select-space",
 	"set-active-tag",
 	"upload-file",
@@ -28,8 +28,8 @@ const EXPECTED_TOOLS = [
 const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
 const READ_ONLY_TOOL_NAMES = [
-	"search_memory",
-	"get_profile",
+	"searchMemory",
+	"getProfile",
 	"listDocuments",
 	"listMemories",
 	"getDocument",
@@ -76,9 +76,9 @@ describeWithAuth("MCP — discovery & identity", () => {
 		}
 	})
 
-	it("marks add_memory as mutating", async () => {
+	it("marks addMemory as mutating", async () => {
 		const { tools } = await s.client.listTools()
-		const memory = tools.find((t) => t.name === "add_memory")
+		const memory = tools.find((t) => t.name === "addMemory")
 		expect(memory?.annotations).toMatchObject(MEMORY_TOOL_ANNOTATIONS)
 	})
 

@@ -54,7 +54,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 
 		afterAll(async () => {
 			for (const memory of createdMemories) {
-				await callTool(session.client, "add_memory", {
+				await callTool(session.client, "addMemory", {
 					content: memory.content,
 					action: "forget",
 					containerTag: memory.containerTag,

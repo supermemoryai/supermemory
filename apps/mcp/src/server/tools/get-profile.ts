@@ -11,11 +11,11 @@ export function register(deps: ToolDeps) {
 	})
 
 	deps.server.registerTool(
-		"get_profile",
+		"getProfile",
 		{
 			title: "Get Profile",
 			description:
-				"Get the stable and recent profile for one space — long-lived facts plus recent context. search_memory does not include this. After searching, call this if matching memories are not enough and you need who-the-user-is, preferences, or recent context. When the user names a space, resolve it with listSpaces and pass containerTag; otherwise use the active space. Use whoAmI for account identity and access, not profile facts.",
+				"Get the stable and recent profile for one space — long-lived facts plus recent context. searchMemory does not include this. After searching, call this if matching memories are not enough and you need who-the-user-is, preferences, or recent context. When the user names a space, resolve it with listSpaces and pass containerTag; otherwise use the active space. Use whoAmI for account identity and access, not profile facts.",
 			inputSchema,
 			outputSchema: getProfileOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,

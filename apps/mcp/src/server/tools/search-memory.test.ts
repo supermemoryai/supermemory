@@ -46,11 +46,11 @@ function registerSearch(client: {
 		}),
 	} as unknown as ToolDeps)
 
-	if (!handler) throw new Error("search_memory was not registered")
+	if (!handler) throw new Error("searchMemory was not registered")
 	return handler
 }
 
-describe("search_memory", () => {
+describe("searchMemory", () => {
 	it("returns matching memories without fetching or including profile", async () => {
 		const getProfile = vi.fn()
 		const handler = registerSearch({

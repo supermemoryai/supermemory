@@ -34,11 +34,11 @@ function registerProfile(client: {
 		}),
 	} as unknown as ToolDeps)
 
-	if (!handler) throw new Error("get_profile was not registered")
+	if (!handler) throw new Error("getProfile was not registered")
 	return handler
 }
 
-describe("get_profile", () => {
+describe("getProfile", () => {
 	it("returns stable and recent profile facts for the resolved space", async () => {
 		const handler = registerProfile({
 			getProfile: async () => ({

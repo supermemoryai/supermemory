@@ -15,7 +15,7 @@ export function register(deps: ToolDeps) {
 	})
 
 	deps.server.registerTool(
-		"add_memory",
+		"addMemory",
 		{
 			description:
 				"Add (save) or forget a memory in the user's ACTIVE space. Defaults to 'save'. The target space is the one the user selected via select-space; pass containerTag only to override it. Use 'forget' when information is outdated or the user asks to remove it.",

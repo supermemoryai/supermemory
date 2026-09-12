@@ -18,7 +18,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => 
 	})
 	afterAll(async () => {
 		for (const { content, containerTag } of created) {
-			await callTool(s.client, "add_memory", {
+			await callTool(s.client, "addMemory", {
 				content,
 				action: "forget",
 				...(containerTag ? { containerTag } : {}),
@@ -32,7 +32,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => 
 		const content = `e2e round-trip. token=${marker}. The test fruit is dragonfruit.`
 		created.push({ content })
 
-		const save = await callTool(s.client, "add_memory", {
+		const save = await callTool(s.client, "addMemory", {
 			content,
 			action: "save",
 		})
@@ -43,8 +43,8 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => 
 		expect(found, `recall never returned marker ${marker}`).not.toBeNull()
 	}, 120_000)
 
-	it("search_memory does not include profile sections", async () => {
-		const res = await callTool(s.client, "search_memory", {
+	it("searchMemory does not include profile sections", async () => {
+		const res = await callTool(s.client, "searchMemory", {
 			query: "dragonfruit",
 		})
 		expect(res.isError).toBeFalsy()
@@ -53,8 +53,8 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => 
 		expect(txt).toMatch(/## Matching memories|No matching memories found/i)
 	}, 30_000)
 
-	it("get_profile returns profile sections", async () => {
-		const res = await callTool(s.client, "get_profile", {})
+	it("getProfile returns profile sections", async () => {
+		const res = await callTool(s.client, "getProfile", {})
 		expect(res.isError).toBeFalsy()
 		const txt = textOf(res)
 		expect(txt).toMatch(
@@ -64,7 +64,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => 
 
 	// Hybrid search returns nearest matches even for unrelated queries — assert it responds gracefully, not empty.
 	it("recall responds gracefully for an unmatched query", async () => {
-		const res = await callTool(s.client, "search_memory", {
+		const res = await callTool(s.client, "searchMemory", {
 			query: `zzz-no-such-memory-${randomUUID()}`,
 		})
 		expect(res.isError).toBeFalsy()
@@ -78,11 +78,11 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => 
 		const content = `e2e forget target. token=${marker}. Secret animal is axolotl.`
 		created.push({ content })
 
-		await callTool(s.client, "add_memory", { content, action: "save" })
+		await callTool(s.client, "addMemory", { content, action: "save" })
 		const found = await recallUntil(s.client, "secret animal axolotl", marker)
 		expect(found, "memory should exist before forget").not.toBeNull()
 
-		const forgotten = await callTool(s.client, "add_memory", {
+		const forgotten = await callTool(s.client, "addMemory", {
 			content,
 			action: "forget",
 		})
@@ -98,7 +98,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => 
 		const content = `e2e scoping. token=${marker}. Project color is teal.`
 		created.push({ content, containerTag: tagA })
 
-		await callTool(s.client, "add_memory", {
+		await callTool(s.client, "addMemory", {
 			content,
 			action: "save",
 			containerTag: tagA,
@@ -119,7 +119,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => 
 	}, 120_000)
 
 	it("returns an error result for a missing required argument", async () => {
-		const res = await callTool(s.client, "search_memory", {})
+		const res = await callTool(s.client, "searchMemory", {})
 		expect(res.isError).toBe(true)
 		expect(textOf(res).length).toBeGreaterThan(0)
 	})
