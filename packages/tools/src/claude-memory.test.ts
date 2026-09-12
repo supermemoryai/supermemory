@@ -210,3 +210,29 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 		expect(stored).toContain(`price is ${dollarSequence} today`)
 	})
 })
+
+describe("ClaudeMemoryTool path traversal", () => {
+	let tool: ClaudeMemoryTool
+
+	beforeEach(() => {
+		documentsListMock.mockReset()
+		documentsGetMock.mockReset()
+		addMock.mockReset()
+		mockDocument(FILE_CONTENT)
+		tool = new ClaudeMemoryTool("test-api-key")
+	})
+
+	it.each(["/memories/..", "/memories/foo/..", "/memories/../secrets.txt"])(
+		"rejects parent-directory path %s",
+		async (path) => {
+			const result = await tool.handleCommand({
+				command: "view",
+				path,
+			})
+
+			expect(result.success).toBe(false)
+			expect(result.error).toContain("Invalid path")
+			expect(documentsListMock).not.toHaveBeenCalled()
+		},
+	)
+})
