@@ -46,37 +46,37 @@ Your assistant chooses these tools automatically. Use this table when you need t
 
 | Tool | Use it for | Inputs | Result |
 | --- | --- | --- | --- |
-| `searchMemory` | Semantic recall from one space | `query` (required), `containerTag` | Matching memories |
-| `getProfile` | Stable and recent profile context for one space | `containerTag` | Profile facts |
-| `addMemory` | Save information or forget outdated information | `content` (required), `action` (`save` or `forget`), `containerTag` | Save or forget confirmation |
-| `listDocuments` | Browse stored source documents and their summaries | `page`, `limit`, `containerTag` | Document IDs, titles, types, status, dates, and summaries |
-| `getDocument` | Read the available content of one document | `documentId` (required) | Document metadata, summary, and available content |
-| `listMemories` | Browse recent extracted memory entries and their source document IDs | `page`, `limit`, `containerTag` | Memory IDs, text, versions, and source document IDs |
-| `listSpaces` | List accessible spaces and resolve a space name to its key | None | Formatted list plus structured `spaces` and `count` fields |
-| `whoAmI` | Inspect the authenticated account, permissions, scope, and active space | None | Account and access context |
+| `search_memory` | Semantic recall from one space | `query` (required), `containerTag` | Matching memories |
+| `get_profile` | Stable and recent profile context for one space | `containerTag` | Profile facts |
+| `add_memory` | Save information or forget outdated information | `content` (required), `action` (`save` or `forget`), `containerTag` | Save or forget confirmation |
+| `list_documents` | Browse stored source documents and their summaries | `page`, `limit`, `containerTag` | Document IDs, titles, types, status, dates, and summaries |
+| `get_document` | Read the available content of one document | `documentId` (required) | Document metadata, summary, and available content |
+| `list_memories` | Browse recent extracted memory entries and their source document IDs | `page`, `limit`, `containerTag` | Memory IDs, text, versions, and source document IDs |
+| `list_spaces` | List accessible spaces and resolve a space name to its key | None | Formatted list plus structured `spaces` and `count` fields |
+| `who_am_i` | Inspect the authenticated account, permissions, scope, and active space | None | Account and access context |
 
 ### Search
 
-`searchMemory` accepts a natural-language query and returns semantically relevant memories. It does not include the space profile. Use `getProfile` when the assistant needs stable facts or recent context that search did not return.
+`search_memory` accepts a natural-language query and returns semantically relevant memories. It does not include the space profile. Use `get_profile` when the assistant needs stable facts or recent context that search did not return.
 
 Use the retrieval tools for different questions:
 
-- Use `searchMemory` to answer a question from remembered context.
-- Use `getProfile` for who-the-user-is, preferences, and recent context.
-- Use `listDocuments` to discover stored sources, then `getDocument` to read one source in full.
-- Use `listMemories` to inspect the extracted memory entries themselves, including their IDs and source document IDs.
+- Use `search_memory` to answer a question from remembered context.
+- Use `get_profile` for who-the-user-is, preferences, and recent context.
+- Use `list_documents` to discover stored sources, then `get_document` to read one source in full.
+- Use `list_memories` to inspect the extracted memory entries themselves, including their IDs and source document IDs.
 
-`listDocuments` and `listMemories` default to 10 results per page and accept up to 50.
+`list_documents` and `list_memories` default to 10 results per page and accept up to 50.
 
 ### Save or forget
 
-`addMemory` saves the supplied `content` by default. Set `action` to `forget` when a fact is outdated or should be removed. There is no separate forget tool.
+`add_memory` saves the supplied `content` by default. Set `action` to `forget` when a fact is outdated or should be removed. There is no separate forget tool.
 
-If the content is already final, the assistant should use `addMemory`. If you want to review, edit, or choose a space before saving, it should open the `guided-save` widget instead.
+If the content is already final, the assistant should use `add_memory`. If you want to review, edit, or choose a space before saving, it should open the `guided-save` widget instead.
 
 ### Access control
 
-`whoAmI` returns the current identity, role, access type, granted scope, and active space. `listSpaces` returns only spaces the authenticated account can access, with names, keys, document and memory counts, and recent activity.
+`who_am_i` returns the current identity, role, access type, granted scope, and active space. `list_spaces` returns only spaces the authenticated account can access, with names, keys, document and memory counts, and recent activity.
 
 ## Interactive widgets
 
@@ -140,7 +140,7 @@ Supported types include text, Markdown, PDF, Word, CSV, common images, MP3, WAV,
 
 `memory-graph` renders the selected space as an interactive graph of source documents and extracted memories.
 
-When no space is named, the server automatically uses the active space or account default. If you name a specific space, the assistant calls `listSpaces` to resolve its name to a space key, then opens that space's graph.
+When no space is named, the server automatically uses the active space or account default. If you name a specific space, the assistant calls `list_spaces` to resolve its name to a space key, then opens that space's graph.
 
 <img
   className="hidden dark:block"

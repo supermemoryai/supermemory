@@ -13,15 +13,15 @@ export function register(deps: ToolDeps) {
 			.string()
 			.min(1, "Document ID is required")
 			.max(255, "Document ID exceeds maximum length")
-			.describe("Document ID returned by listDocuments or a memory result"),
+			.describe("Document ID returned by list_documents or a memory result"),
 	})
 
 	deps.server.registerTool(
-		"getDocument",
+		"get_document",
 		{
 			title: "Get Document",
 			description:
-				"Read one stored document by ID from any space you can access, including its summary and available content. Use listDocuments to discover document IDs.",
+				"Read one stored document by ID from any space you can access, including its summary and available content. Use list_documents to discover document IDs.",
 			inputSchema,
 			outputSchema: getDocumentOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,

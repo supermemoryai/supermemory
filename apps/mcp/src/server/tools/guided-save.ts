@@ -11,7 +11,7 @@ export function register(deps: ToolDeps) {
 		{
 			title: "Add Memory",
 			description:
-				"Open an interactive form when the user wants to draft, review, edit, or choose the target space before saving information to Supermemory. Use this when the user wants to add a memory but has not supplied final content, or explicitly wants to review supplied content before saving. If the user provides the exact content and asks to save it immediately, use addMemory instead.",
+				"Open an interactive form when the user wants to draft, review, edit, or choose the target space before saving information to Supermemory. Use this when the user wants to add a memory but has not supplied final content, or explicitly wants to review supplied content before saving. If the user provides the exact content and asks to save it immediately, use add_memory instead.",
 			inputSchema: z.object({
 				prefill: z
 					.string()

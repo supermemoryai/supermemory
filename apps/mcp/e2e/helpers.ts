@@ -223,7 +223,7 @@ export async function recallUntil(
 	} = {},
 ): Promise<string | null> {
 	for (let i = 0; i < tries; i++) {
-		const res = await callTool(client, "searchMemory", {
+		const res = await callTool(client, "search_memory", {
 			query,
 			...(containerTag ? { containerTag } : {}),
 		})

@@ -38,7 +38,7 @@ function registerProfile(client: {
 	return handler
 }
 
-describe("getProfile", () => {
+describe("get_profile", () => {
 	it("returns stable and recent profile facts for the resolved space", async () => {
 		const handler = registerProfile({
 			getProfile: async () => ({

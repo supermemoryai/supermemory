@@ -21,15 +21,17 @@ describeWithAuth("MCP - space scoping", () => {
 			const scopedTools = (await scoped.client.listTools()).tools
 			const plainTools = (await plain.client.listTools()).tools
 
-			expect(propsOf(plainTools, "addMemory")).toHaveProperty("containerTag")
-			expect(propsOf(plainTools, "searchMemory")).toHaveProperty("containerTag")
-			expect(propsOf(plainTools, "getProfile")).toHaveProperty("containerTag")
-
-			expect(propsOf(scopedTools, "addMemory")).toHaveProperty("containerTag")
-			expect(propsOf(scopedTools, "searchMemory")).toHaveProperty(
+			expect(propsOf(plainTools, "add_memory")).toHaveProperty("containerTag")
+			expect(propsOf(plainTools, "search_memory")).toHaveProperty(
 				"containerTag",
 			)
-			expect(propsOf(scopedTools, "getProfile")).toHaveProperty("containerTag")
+			expect(propsOf(plainTools, "get_profile")).toHaveProperty("containerTag")
+
+			expect(propsOf(scopedTools, "add_memory")).toHaveProperty("containerTag")
+			expect(propsOf(scopedTools, "search_memory")).toHaveProperty(
+				"containerTag",
+			)
+			expect(propsOf(scopedTools, "get_profile")).toHaveProperty("containerTag")
 		} finally {
 			await scoped.close()
 			await plain.close()

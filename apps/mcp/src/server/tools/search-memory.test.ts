@@ -50,7 +50,7 @@ function registerSearch(client: {
 	return handler
 }
 
-describe("searchMemory", () => {
+describe("search_memory", () => {
 	it("returns matching memories without fetching or including profile", async () => {
 		const getProfile = vi.fn()
 		const handler = registerSearch({

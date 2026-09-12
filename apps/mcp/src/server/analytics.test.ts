@@ -44,7 +44,7 @@ describe("MCP tool analytics", () => {
 		}))
 
 		server.registerTool(
-			"searchMemory",
+			"search_memory",
 			{
 				inputSchema: z.object({ query: z.string(), containerTag: z.string() }),
 			},
@@ -61,7 +61,7 @@ describe("MCP tool analytics", () => {
 		expect(record).toHaveBeenCalledOnce()
 		expect(record).toHaveBeenCalledWith(
 			expect.objectContaining({
-				toolName: "searchMemory",
+				toolName: "search_memory",
 				surface: "model_tool",
 				outcome: "success",
 				spaceExplicit: true,

@@ -62,7 +62,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 
 			const separateSession = await connect()
 			try {
-				const identity = await callTool(separateSession.client, "whoAmI")
+				const identity = await callTool(separateSession.client, "who_am_i")
 				expect(identity.isError).toBeFalsy()
 				expect(JSON.parse(textOf(identity))).toMatchObject({
 					activeSpace: firstTag,
