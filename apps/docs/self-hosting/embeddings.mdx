@@ -42,10 +42,11 @@ For Docker, CI, or any non-interactive deploy, set env vars — there is **no in
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `SUPERMEMORY_EMBEDDING_PROVIDER` | Embedding backend: `local`, `openai`, `gemini`, or an OpenAI-compatible remote (`ollama` / custom base URL) | `local` |
-| `SUPERMEMORY_EMBEDDING_MODEL` | Model id for the chosen provider | `Xenova/bge-base-en-v1.5` (local) |
-| `SUPERMEMORY_EMBEDDING_DIMENSIONS` | Vector size; must match the model and any already-stored data | `768` (local default) |
+| `SUPERMEMORY_EMBEDDING_PROVIDER` | Embedding backend: `local`, `openai`, `openai-compatible`, or `gemini` (for Ollama, use `openai-compatible` with `SUPERMEMORY_EMBEDDING_BASE_URL`) | `local` |
+| `SUPERMEMORY_EMBEDDING_MODEL` | Model id for the chosen provider (e.g., `Xenova/bge-m3`, `text-embedding-3-small`) | `Xenova/bge-base-en-v1.5` (local) |
+| `SUPERMEMORY_EMBEDDING_DIMENSIONS` | Vector size; must match the model's native dimensions and stored data | `768` (local default) |
 | `SUPERMEMORY_EMBEDDING_BASE_URL` | Base URL for OpenAI-compatible embedding APIs (Ollama, vLLM, etc.) | unset |
+| `SUPERMEMORY_EMBEDDING_API_KEY` | API key for embedding endpoint (falls back to `OPENAI_API_KEY` / `GEMINI_API_KEY`; required for `openai-compatible`, use any non-empty string if unauthenticated) | unset |
 | `OPENAI_API_KEY` | Used when provider is `openai` (or compatible) if not otherwise supplied | unset |
 | `GEMINI_API_KEY` | Used when provider is `gemini` | unset |
 
@@ -91,6 +92,22 @@ SUPERMEMORY_EMBEDDING_MODEL=Xenova/bge-base-en-v1.5
 SUPERMEMORY_EMBEDDING_DIMENSIONS=768
 ```
 
+#### Supported local models & dimensions
+
+When using `SUPERMEMORY_EMBEDDING_PROVIDER=local`, local ONNX models do not support dimension reduction. `SUPERMEMORY_EMBEDDING_DIMENSIONS` must match the model's native dimensions:
+
+| Model ID | Native Dimensions | Description |
+|---|---|---|
+| `Xenova/bge-base-en-v1.5` | `768` | Default local model (English) |
+| `Xenova/bge-m3` | `1024` | Multilingual (uses `cls` pooling) |
+| `Xenova/bge-small-en-v1.5` | `384` | English (lightweight) |
+| `Xenova/bge-large-en-v1.5` | `1024` | English (high capacity) |
+| `Xenova/multilingual-e5-small` | `384` | Multilingual (lightweight) |
+| `Xenova/multilingual-e5-base` | `768` | Multilingual |
+| `Xenova/multilingual-e5-large` | `1024` | Multilingual (high capacity) |
+| `Xenova/all-MiniLM-L6-v2` | `384` | English general purpose |
+| `Xenova/paraphrase-multilingual-MiniLM-L12-v2` | `384` | Multilingual sentence similarity |
+
 ### OpenAI
 
 ```bash
@@ -112,9 +129,9 @@ SUPERMEMORY_EMBEDDING_DIMENSIONS=768
 ### Ollama (OpenAI-compatible)
 
 ```bash
-SUPERMEMORY_EMBEDDING_PROVIDER=openai
+SUPERMEMORY_EMBEDDING_PROVIDER=openai-compatible
 SUPERMEMORY_EMBEDDING_BASE_URL=http://localhost:11434/v1
-OPENAI_API_KEY=ollama
+SUPERMEMORY_EMBEDDING_API_KEY=ollama
 SUPERMEMORY_EMBEDDING_MODEL=nomic-embed-text
 SUPERMEMORY_EMBEDDING_DIMENSIONS=768
 ```
@@ -128,6 +145,16 @@ Use the dimension published for your chosen model. A mismatch with vectors alrea
 </Warning>
 
 **Changing embeddings later:** Not supported in place. Start from a fresh data directory or re-ingest all content so vectors stay comparable.
+
+> [!IMPORTANT]
+> **Release Binary Env Var Support (v0.0.6 / v0.0.7-rc.2 vs v0.0.7+)**
+>
+> In release `v0.0.6` and `v0.0.7-rc.2`, the compiled standalone release binaries were built without pluggable embedding configuration hooks (environment variables like `SUPERMEMORY_EMBEDDING_PROVIDER`, `SUPERMEMORY_EMBEDDING_MODEL`, and `SUPERMEMORY_EMBEDDING_DIMENSIONS` were omitted from the binary and defaulted to local English `Xenova/bge-base-en-v1.5`).
+>
+> **Resolution & Upgrade Steps:**
+> - Full pluggable embedding configuration via environment variables is active in `v0.0.7` and `v0.0.8+`.
+> - **Existing Data Directory Notice:** If your data directory (`$SUPERMEMORY_DATA_DIR`) was created on `v0.0.6`, it contains pre-existing rows embedded with the 768d local model without an `embedding-plan.json` lock file. When upgrading to `v0.0.8+`, the server automatically assumes and locks to legacy `local · Xenova/bge-base-en-v1.5 · 768d` to preserve vector compatibility.
+> - To switch to a custom provider or multilingual model (`bge-m3`, `openai`, etc.), you **must wipe the data directory** (e.g. `rm -rf "$SUPERMEMORY_DATA_DIR"`) or point `SUPERMEMORY_DATA_DIR` to a fresh directory before starting the server with your new embedding variables.
 
 > [!IMPORTANT]
 > **Model Mixing Bug in v0.0.5 (Exact match returns nothing)**
