@@ -51,3 +51,18 @@ export {
 	wrapMemoryContext,
 	replaceMemoryContext,
 } from "./memory-context"
+
+// Memory listing and export
+export {
+	listMemoriesRequest,
+	fetchAllMemories,
+	exportMemoriesAsJson,
+	exportMemoriesAsMarkdown,
+	type MemoryEntry,
+	type MemoryEntryHistory,
+	type MemoriesListResponse,
+	type ListMemoriesParams,
+	type ListMemoriesRequestOptions,
+	type ExportMemoriesOptions,
+	type MemoriesExportData,
+} from "./export-memories"

@@ -41,11 +41,15 @@
       "optional": true
     }
   },
+  "bin": {
+    "supermemory-export": "./bin/supermemory-export.ts"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "exports": {
     ".": "./dist/index.js",
