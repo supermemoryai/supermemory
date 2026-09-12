@@ -11,6 +11,7 @@ const EXPECTED_TOOLS = [
 	"add_memory",
 	"fetch-graph-data",
 	"getDocument",
+	"get_profile",
 	"guided-save",
 	"listDocuments",
 	"listMemories",
@@ -28,6 +29,7 @@ const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
 const READ_ONLY_TOOL_NAMES = [
 	"search_memory",
+	"get_profile",
 	"listDocuments",
 	"listMemories",
 	"getDocument",

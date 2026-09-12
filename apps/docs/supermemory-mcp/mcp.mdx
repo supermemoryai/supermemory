@@ -46,7 +46,8 @@ Your assistant chooses these tools automatically. Use this table when you need t
 
 | Tool | Use it for | Inputs | Result |
 | --- | --- | --- | --- |
-| `search_memory` | Semantic recall from one space, with optional profile context | `query` (required), `includeProfile`, `containerTag` | Profile context and matching memories |
+| `search_memory` | Semantic recall from one space | `query` (required), `containerTag` | Matching memories |
+| `get_profile` | Stable and recent profile context for one space | `containerTag` | Profile facts |
 | `add_memory` | Save information or forget outdated information | `content` (required), `action` (`save` or `forget`), `containerTag` | Save or forget confirmation |
 | `listDocuments` | Browse stored source documents and their summaries | `page`, `limit`, `containerTag` | Document IDs, titles, types, status, dates, and summaries |
 | `getDocument` | Read the available content of one document | `documentId` (required) | Document metadata, summary, and available content |
@@ -56,11 +57,12 @@ Your assistant chooses these tools automatically. Use this table when you need t
 
 ### Search
 
-`search_memory` accepts a natural-language query and returns semantically relevant memories. By default, it also includes stable and recent profile context from the same space. Set `includeProfile` to `false` when only matching memories are needed.
+`search_memory` accepts a natural-language query and returns semantically relevant memories. It does not include the space profile. Use `get_profile` when the assistant needs stable facts or recent context that search did not return.
 
 Use the retrieval tools for different questions:
 
 - Use `search_memory` to answer a question from remembered context.
+- Use `get_profile` for who-the-user-is, preferences, and recent context.
 - Use `listDocuments` to discover stored sources, then `getDocument` to read one source in full.
 - Use `listMemories` to inspect the extracted memory entries themselves, including their IDs and source document IDs.
 

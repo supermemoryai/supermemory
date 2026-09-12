@@ -1,6 +1,7 @@
 import * as addMemory from "./add-memory"
 import * as fetchGraphData from "./fetch-graph-data"
 import * as getDocument from "./get-document"
+import * as getProfile from "./get-profile"
 import * as guidedSave from "./guided-save"
 import * as listContainerTags from "./list-container-tags"
 import * as listDocuments from "./list-documents"
@@ -17,6 +18,7 @@ import * as whoAmI from "./who-am-i"
 
 export function registerAllTools(deps: ToolDeps) {
 	searchMemory.register(deps)
+	getProfile.register(deps)
 	listDocuments.register(deps)
 	getDocument.register(deps)
 	listMemories.register(deps)

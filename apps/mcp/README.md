@@ -48,7 +48,8 @@ The client discovers the OAuth authorization server through
 
 | Tool | Purpose |
 | --- | --- |
-| `search_memory` | Search memories and optionally include profile context |
+| `search_memory` | Search memories in a space |
+| `get_profile` | Get stable and recent profile context for a space |
 | `listDocuments` | List document metadata and summaries in a space |
 | `getDocument` | Read one document's available content by ID |
 | `listMemories` | List extracted memory entries and their source document IDs |
