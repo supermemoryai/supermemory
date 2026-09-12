@@ -10,6 +10,7 @@ import {
 	type AuthUser,
 } from "./auth"
 import { SupermemoryMCP } from "./legacy-protocol-state"
+import { describeThrownError } from "./request-error"
 import { createSupermemoryServer } from "./server"
 import type { ActorContext, ServerEnv } from "./types"
 import { SpaceState, uploadStateName } from "./space-state"
@@ -246,7 +247,8 @@ async function handleMcpRequest(
 			legacy: "stateless",
 			corsOptions: false,
 			allowedOriginHostnames: allowedOriginHostnames(c.env),
-			onerror: (error) => console.error("MCP request error:", error),
+			onerror: (error) =>
+				console.error(`MCP request error: ${describeThrownError(error)}`),
 		},
 	)
 
