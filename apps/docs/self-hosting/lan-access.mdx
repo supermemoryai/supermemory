@@ -1,0 +1,91 @@
+---
+title: "Access the dashboard over LAN"
+sidebarTitle: "LAN access"
+description: "Why the Memory tab returns 401 off localhost, and how to open the local dash from another device on your network."
+icon: "wifi"
+---
+
+<Info>
+Tracked in [issue #1538](https://github.com/supermemoryai/supermemory/issues/1538) (supermemory-server v0.0.8).
+</Info>
+
+The self-hosted dash at `http://localhost:6767` works without pasting the API key. Opening the same UI via the machine's LAN or public IP — `http://192.168.x.x:6767` — still renders the overview, but switching to the **Memory** tab shows **401 Unauthorized** for documents and stats.
+
+## What is going on
+
+On boot the server prints:
+
+```
+the api key above is auto-applied for unauthenticated localhost requests.
+```
+
+That auto-auth checks the request **Host**, not whether you are physically on the same box. Only these hosts qualify:
+
+- `localhost`
+- `127.0.0.1`
+- `::1`
+
+A LAN hostname such as `192.168.1.20` or `10.0.0.5` does **not**.
+
+The Memory tab (`/local-console.js`) then calls:
+
+- `POST /v3/documents/documents`
+- `GET /v3/container-tags/list`
+
+with **no `Authorization` header**. On localhost those succeed; off localhost they return `{"error":"Unauthorized"}`. Sending the banner key as `Authorization: Bearer sm_…` succeeds on the same IP — which is why a request modifier that injects the header unblocks the UI.
+
+```bash
+# 200 on loopback, no header
+curl -sS -X POST http://127.0.0.1:6767/v3/documents/documents \
+  -H 'Content-Type: application/json' -d '{"page":1}'
+
+# 401 on a LAN Host, no header
+curl -sS -X POST http://192.168.1.20:6767/v3/documents/documents \
+  -H 'Content-Type: application/json' -d '{"page":1}'
+
+# 200 on LAN Host once the banner key is sent
+curl -sS -X POST http://192.168.1.20:6767/v3/documents/documents \
+  -H "Authorization: Bearer sm_…" \
+  -H 'Content-Type: application/json' -d '{"page":1}'
+```
+
+SDK and curl clients that already send the key are unaffected. This is a dashboard-only gap.
+
+## Recommended: SSH tunnel (no extra attack surface)
+
+From the laptop you browse on:
+
+```bash
+ssh -L 6767:127.0.0.1:6767 user@the-linux-box
+```
+
+Open `http://localhost:6767` locally. Host stays loopback, auto-auth applies, the Memory tab works.
+
+## Option: inject the API key for LAN browsing
+
+If you need to open the dash at `http://<lan-ip>:…` in a browser, run the proxy in this repo in front of supermemory-server. It forwards traffic and adds `Authorization: Bearer <api-key>` when the Memory tab omits it.
+
+<Warning>
+Anyone who can reach the proxy can use the local API as the instance owner. Bind it to a trusted network only — do not expose it to the public internet.
+</Warning>
+
+```bash
+# supermemory-server already running on :6767
+SUPERMEMORY_DATA_DIR=./.supermemory \
+  node scripts/lan-dashboard-proxy.mjs --listen 0.0.0.0:6768
+```
+
+Then open `http://<this-machine-ip>:6768` (not `:6767`).
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--target` | `http://127.0.0.1:6767` | Upstream supermemory-server |
+| `--listen` | `0.0.0.0:6768` | Address the browser should use |
+| `--data-dir` | `SUPERMEMORY_DATA_DIR` or `./.supermemory` | Directory with the `api-key` file |
+| `--api-key` | unset | Override instead of reading `api-key` |
+
+You can keep using a request modifier that adds the same `Authorization` header directly against `:6767`; the proxy is that behavior without a browser extension.
+
+## What a first-class server option would look like
+
+A durable fix belongs in supermemory-server: either send the key from `/local-console.js`, or treat additional Hosts as local behind an explicit allowlist (for example `SUPERMEMORY_TRUSTED_HOSTS`). Until that ships in a `server-v*` release, use a tunnel or the proxy above.

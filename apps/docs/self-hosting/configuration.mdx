@@ -116,6 +116,12 @@ SUPERMEMORY_EMBEDDING_RAM_LIMIT=4gb ./supermemory-server
 
 Raise the limit and concurrency on machines with spare RAM for faster bulk imports; lower them on small VPSes where you want the server to stay lean and don't mind adds draining slowly.
 
+## Dashboard auth (localhost vs LAN)
+
+The self-hosted binary auto-applies the printed API key only when the request **Host** is `localhost`, `127.0.0.1`, or `::1`. The local dashboard Memory tab does not send `Authorization`, so opening `http://<lan-ip>:6767` loads the overview but **documents / stats return 401**.
+
+Workarounds, a LAN proxy, and why this happens: **[Access the dashboard over LAN](/self-hosting/lan-access)**.
+
 ## Telemetry
 
 The self-hosted binary sends no analytics — there is nothing to opt out of. The only related switch:
