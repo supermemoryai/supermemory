@@ -97,7 +97,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 
 			const listedDocument = await waitForToolText(
 				session,
-				"listDocuments",
+				"list_documents",
 				{ page: 1, limit: 50, containerTag },
 				`[${savedView.id}]`,
 				20,
@@ -107,7 +107,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 
 			const document = await waitForToolText(
 				session,
-				"getDocument",
+				"get_document",
 				{ documentId: savedView.id },
 				`Document ID: ${savedView.id}`,
 				20,
@@ -115,7 +115,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 			)
 			expect(document, "saved document could not be read").not.toBeNull()
 
-			const memoriesResult = await callTool(session.client, "listMemories", {
+			const memoriesResult = await callTool(session.client, "list_memories", {
 				page: 1,
 				limit: 10,
 				containerTag: "sm_project_default",
@@ -132,7 +132,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 				throw new Error("Listed memory did not include a source document")
 			}
 
-			const sourceDocument = await callTool(session.client, "getDocument", {
+			const sourceDocument = await callTool(session.client, "get_document", {
 				documentId: sourceDocumentId,
 			})
 			expect(sourceDocument.isError).toBeFalsy()
@@ -182,7 +182,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 
 			const document = await waitForToolText(
 				session,
-				"getDocument",
+				"get_document",
 				{ documentId: uploaded.id },
 				`Document ID: ${uploaded.id}`,
 				20,

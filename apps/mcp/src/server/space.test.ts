@@ -39,7 +39,7 @@ describe("space application state", () => {
 		expect(optionalContainerTagSchema.description).toContain(
 			"If the user names a space",
 		)
-		expect(optionalContainerTagSchema.description).toContain("listSpaces")
+		expect(optionalContainerTagSchema.description).toContain("list_spaces")
 		expect(optionalContainerTagSchema.description).toContain("active space")
 	})
 })

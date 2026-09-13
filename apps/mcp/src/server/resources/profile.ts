@@ -65,7 +65,7 @@ export function registerProfileResource(
 
 			parts.push(
 				"",
-				"Other spaces are available. Use `listSpaces` to find the relevant space key, then use that key with space-aware tools when the user asks about another space. Keep space contexts separate unless the user asks to combine them.",
+				"Other spaces are available. Use `list_spaces` to find the relevant space key, then use that key with space-aware tools when the user asks about another space. Keep space contexts separate unless the user asks to combine them.",
 			)
 
 			return {

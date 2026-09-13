@@ -5,7 +5,7 @@ import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	deps.server.registerTool(
-		"listSpaces",
+		"list_spaces",
 		{
 			description:
 				"List the spaces available to the user. Returns each space's name, key, emoji, document/memory counts, and last activity. Use this first to resolve a named space before calling a space-aware tool, or when the user asks which space may contain something. The list is auto-filtered to spaces the user can access.",

@@ -34,11 +34,12 @@ type ClientInfoResolver = (
 
 const TOOL_SURFACES: Record<string, McpToolSurface> = {
 	search_memory: "model_tool",
-	listDocuments: "model_tool",
-	getDocument: "model_tool",
-	listMemories: "model_tool",
-	listSpaces: "model_tool",
-	whoAmI: "model_tool",
+	get_profile: "model_tool",
+	list_documents: "model_tool",
+	get_document: "model_tool",
+	list_memories: "model_tool",
+	list_spaces: "model_tool",
+	who_am_i: "model_tool",
 	add_memory: "model_tool",
 	"select-space": "app_launcher",
 	"memory-graph": "app_launcher",
