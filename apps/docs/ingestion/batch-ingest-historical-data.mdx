@@ -15,7 +15,7 @@ Use `POST /v3/documents/batch` to backfill exports, emails, messages, or other d
 
 Backfill dated content by setting `documentDate` on each document, sorting the source records oldest to newest, and sending them in batches. Each request can contain up to 600 documents.
 
-**Endpoint:** [`POST /v3/documents/batch`](/api-reference/ingest/batch-add-documents)
+**Endpoint:** [`POST /v3/documents/batch`](/api-reference/ingest)
 
 <CodeGroup>
 
@@ -93,7 +93,7 @@ def backfill_historical_data(source_documents: list[dict[str, str]]) -> None:
 
 ## Optional: wait for processing to finish
 
-**Endpoint:** [`GET /v3/documents/{id}`](/api-reference/documents/get-document)
+**Endpoint:** [`GET /v3/documents/{id}`](/api-reference/ingest)
 
 The batch endpoint returns after accepting the documents. If a later step depends on completed memory generation, poll the returned document IDs until both `status` and `dreamingStatus` are `done`.
 
