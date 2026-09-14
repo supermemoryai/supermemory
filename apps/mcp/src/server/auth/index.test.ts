@@ -83,16 +83,19 @@ describe("MCP authentication", () => {
 	})
 
 	it("rejects a token issued for a different audience", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => {})
+		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+		vi.spyOn(console, "debug").mockImplementation(() => {})
 		const token = await signToken({ audience: "https://api.example.com" })
 
 		await expect(
 			validateOAuthToken(token, API_URL, MCP_RESOURCE, keySet),
 		).resolves.toBeNull()
+		expect(errorSpy).not.toHaveBeenCalled()
 	})
 
 	it("rejects expired tokens and tokens without a subject", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => {})
+		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+		vi.spyOn(console, "debug").mockImplementation(() => {})
 		const expired = await signToken({ expiresIn: "-1s" })
 		const noSubject = await signToken({ subject: "" })
 
@@ -102,10 +105,11 @@ describe("MCP authentication", () => {
 		await expect(
 			validateOAuthToken(noSubject, API_URL, MCP_RESOURCE, keySet),
 		).resolves.toBeNull()
+		expect(errorSpy).not.toHaveBeenCalled()
 	})
 
 	it("rejects opaque API keys without an API request", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => {})
+		vi.spyOn(console, "debug").mockImplementation(() => {})
 		const fetchSpy = vi.fn()
 		vi.stubGlobal("fetch", fetchSpy)
 
@@ -166,7 +170,8 @@ describe("MCP authentication", () => {
 	})
 
 	it("rejects an API key the session endpoint refuses", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => {})
+		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+		vi.spyOn(console, "debug").mockImplementation(() => {})
 		vi.stubGlobal(
 			"fetch",
 			vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
@@ -175,6 +180,7 @@ describe("MCP authentication", () => {
 		await expect(
 			validateApiKey("sm_revoked_key_0123456789abcdef", API_URL),
 		).resolves.toBeNull()
+		expect(errorSpy).not.toHaveBeenCalled()
 	})
 
 	it("rejects malformed API keys without an API request", async () => {
@@ -187,7 +193,7 @@ describe("MCP authentication", () => {
 	})
 
 	it("surfaces a 500 from the session endpoint as TransientAuthError, not invalid token", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => {})
+		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
 		vi.stubGlobal(
 			"fetch",
 			vi.fn().mockResolvedValue(new Response(null, { status: 500 })),
@@ -196,10 +202,14 @@ describe("MCP authentication", () => {
 		await expect(
 			validateApiKey("sm_outage_key_0123456789abcdef", API_URL),
 		).rejects.toThrow(TransientAuthError)
+		expect(errorSpy).toHaveBeenCalledWith(
+			"Auth backend transient failure:",
+			expect.anything(),
+		)
 	})
 
 	it("surfaces a session-endpoint timeout as TransientAuthError", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => {})
+		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
 		vi.stubGlobal(
 			"fetch",
 			vi.fn().mockRejectedValue(
@@ -212,5 +222,9 @@ describe("MCP authentication", () => {
 		await expect(
 			validateApiKey("sm_timeout_key_0123456789abcd", API_URL),
 		).rejects.toThrow(TransientAuthError)
+		expect(errorSpy).toHaveBeenCalledWith(
+			"Auth backend transient failure:",
+			expect.anything(),
+		)
 	})
 })
