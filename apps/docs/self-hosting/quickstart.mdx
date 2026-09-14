@@ -76,6 +76,10 @@ In production, Supermemory runs proprietary models tuned for long-horizon data u
 **Docker / non-interactive:** set an LLM key via env and, if you don’t want local embeddings, set `SUPERMEMORY_EMBEDDING_PROVIDER` / `MODEL` / `DIMENSIONS`. There is no wizard without a TTY.
 </Tip>
 
+<Tip>
+**Loopback-only binding:** By default, the server binds to `0.0.0.0`. To restrict access to your local machine (recommended on shared Wi-Fi networks), start with `SUPERMEMORY_HOST=127.0.0.1 supermemory-server`. See [Configuration](/self-hosting/configuration#network-interface-binding--security).
+</Tip>
+
 ## Add your first memory
 
 <Tabs>
