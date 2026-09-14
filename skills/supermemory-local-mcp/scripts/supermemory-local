@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Launch the local Supermemory server (self-hosted memory backend for Hermes).
+# Requires ONE LLM key in the environment for memory extraction:
+#   GEMINI_API_KEY  (recommended, free from https://aistudio.google.com/app/apikey)
+#   or OPENAI_API_KEY / ANTHROPIC_API_KEY / GROQ_API_KEY
+set -euo pipefail
+
+BIN="$HOME/.supermemory/bin/supermemory-server"
+DATA_DIR="$HOME/.supermemory"
+
+if [ ! -x "$BIN" ]; then
+  echo "ERROR: supermemory-server binary not found at $BIN" >&2
+  exit 1
+fi
+
+if [ -z "${GEMINI_API_KEY:-}" ] && [ -z "${OPENAI_API_KEY:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${GROQ_API_KEY:-}" ]; then
+  echo "ERROR: set one of GEMINI_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY / GROQ_API_KEY first." >&2
+  echo "  Get a free Gemini key: https://aistudio.google.com/app/apikey" >&2
+  exit 1
+fi
+
+# Pin the data store so we keep the existing store (doctor warned it follows CWD otherwise).
+export SUPERMEMORY_DATA_DIR="$DATA_DIR"
+cd "$DATA_DIR"
+echo "Starting Supermemory local on http://localhost:6767 (data: $DATA_DIR)"
+exec "$BIN"
