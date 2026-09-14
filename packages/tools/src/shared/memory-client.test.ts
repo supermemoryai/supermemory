@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { buildMemoriesText } from "./memory-client"
+import { buildMemoriesText, supermemoryProfileSearch } from "./memory-client"
 import { createLogger } from "./logger"
 
 const API_KEY = "sm_test_key"
@@ -74,5 +74,74 @@ describe("buildMemoriesText", () => {
 		expect(memories).toContain("User prefers async/await")
 		// Present once, under the profile — not duplicated into the search results.
 		expect(memories.match(/User is allergic to peanuts/g)).toHaveLength(1)
+	})
+})
+
+describe("supermemoryProfileSearch request hardening", () => {
+	/** Captures the `fetch` init so the request options can be asserted. */
+	function captureRequestInit() {
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			json: async () => ({ profile: { static: [], dynamic: [] } }),
+		})
+		vi.stubGlobal("fetch", fetchMock)
+		return () => fetchMock.mock.calls[0]?.[1] as RequestInit | undefined
+	}
+
+	// The request carries the API key in an Authorization header. Following a
+	// redirect would replay it against a host the caller never configured.
+	it("refuses to follow redirects", async () => {
+		const getInit = captureRequestInit()
+
+		await supermemoryProfileSearch(CONTAINER_TAG, "", BASE_URL, API_KEY)
+
+		expect(getInit()?.redirect).toBe("error")
+	})
+
+	// Mastra, VoltAgent and the exported helpers call this with no signal, so
+	// without an unconditional timeout a hung socket blocks the turn forever.
+	it("bounds the request even when the caller passes no signal", async () => {
+		const getInit = captureRequestInit()
+
+		await supermemoryProfileSearch(CONTAINER_TAG, "", BASE_URL, API_KEY)
+
+		const signal = getInit()?.signal
+		expect(signal).toBeInstanceOf(AbortSignal)
+		expect(signal?.aborted).toBe(false)
+	})
+
+	// The caller signal is composed with the timeout rather than replacing it,
+	// so a caller-side budget still shortens the request.
+	it("still aborts when the caller's signal fires", async () => {
+		const getInit = captureRequestInit()
+		const controller = new AbortController()
+
+		await supermemoryProfileSearch(
+			CONTAINER_TAG,
+			"",
+			BASE_URL,
+			API_KEY,
+			controller.signal,
+		)
+
+		const signal = getInit()?.signal
+		expect(signal?.aborted).toBe(false)
+		controller.abort(new Error("caller budget exhausted"))
+		expect(signal?.aborted).toBe(true)
+		expect((signal?.reason as Error).message).toBe("caller budget exhausted")
+	})
+
+	it("passes an already-aborted caller signal straight through", async () => {
+		const getInit = captureRequestInit()
+
+		await supermemoryProfileSearch(
+			CONTAINER_TAG,
+			"",
+			BASE_URL,
+			API_KEY,
+			AbortSignal.abort(new Error("already cancelled")),
+		)
+
+		expect(getInit()?.signal?.aborted).toBe(true)
 	})
 })
