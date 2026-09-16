@@ -92,6 +92,38 @@ class TestSupermemoryCartesiaNullProfile(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(context)
         self.assertIn(fact, context)
 
+    async def test_process_does_not_retry_agent_after_output(self) -> None:
+        class UserTurnEnded:
+            pass
+
+        class FailingAfterOutputAgent:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            async def process(self, _env, _event, **_kwargs):
+                self.calls += 1
+                yield "partial"
+                raise RuntimeError("agent failed after output")
+
+        wrapped_agent = FailingAfterOutputAgent()
+        agent = SupermemoryCartesiaAgent(
+            agent=wrapped_agent,
+            api_key="mock_key",
+            container_tag="user-123",
+            custom_id="conversation-456",
+            add_memory="never",
+        )
+        event = UserTurnEnded()
+        agent._enrich_event_with_memories = AsyncMock(return_value=(event, None))
+
+        outputs = []
+        with self.assertRaisesRegex(RuntimeError, "agent failed after output"):
+            async for output in agent.process(None, event):
+                outputs.append(output)
+
+        self.assertEqual(outputs, ["partial"])
+        self.assertEqual(wrapped_agent.calls, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
