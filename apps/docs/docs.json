@@ -233,6 +233,7 @@
 						"pages": [
 							"integrations/supermemory-sdk",
 							"integrations/ai-sdk",
+							"integrations/eve",
 							"integrations/openai",
 							"integrations/langgraph",
 							"integrations/openai-agents-sdk",
@@ -387,12 +388,12 @@
 								"icon": "puzzle",
 								"pages": [
 									"integrations/openclaw",
+									"integrations/hermes",
 									"integrations/claude-code",
-									"integrations/cursor",
-									"integrations/grok-bot",
-									"integrations/opencode",
 									"integrations/codex",
-									"integrations/hermes"
+									"integrations/opencode",
+									"integrations/cursor",
+									"integrations/grok-bot"
 								]
 							}
 						]
