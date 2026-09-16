@@ -1,0 +1,149 @@
+---
+title: "Eve"
+sidebarTitle: "Eve"
+description: "Give your Eve agent memory across conversations with Supermemory."
+icon: "/images/eve.svg"
+---
+
+Your next conversation can start where the last one left off. Supermemory gives your [Eve](https://eve.dev) agent the context to continue a project: what was decided, what changed, and the source material behind it.
+
+You don't need to build a separate parsing, embedding, indexing, or memory-retrieval pipeline. Supermemory handles that infrastructure. Eve's memory scope and namespace let you keep context separated by user or workspace.
+
+## Add Supermemory
+
+Start with an existing Eve project, Node.js 24 or newer, and an Eve version compatible with `eve@^0.47.3`.
+
+<Steps>
+  <Step title="Add the provider">
+    Run this from your Eve project:
+
+    ```bash
+    eve add memory/supermemory
+    ```
+
+    Eve installs `@supermemory/eve` and creates `agent/memory/supermemory.ts`, the file that connects your agent to Supermemory.
+  </Step>
+
+  <Step title="Connect your Supermemory account">
+    Create an [API key in the Supermemory console](https://console.supermemory.ai/keys) and add it to your project's environment:
+
+    ```bash .env.local
+    SUPERMEMORY_API_KEY="your-supermemory-api-key"
+    ```
+  </Step>
+
+  <Step title="Start your agent">
+    Start or restart Eve to load the provider and API key:
+
+    ```bash
+    eve dev
+    ```
+
+    Automatic recall and conversation capture are enabled by default. The memory tools are available to your agent alongside its existing tools.
+  </Step>
+</Steps>
+
+You can also [install the provider manually](#manual-installation).
+
+## How memory works
+
+Two conversations about the same launch show the three parts working together: **session history**, **indexed sources**, and **memories**.
+
+<video
+  className="eve-memory-video"
+  controls
+  playsInline
+  preload="metadata"
+  poster="/images/eve-memory-poster.png"
+  aria-label="How Eve saves context and retrieves it in a new session"
+>
+  <source src="/videos/eve-memory.mp4" type="video/mp4" />
+  <a href="/videos/eve-memory.mp4">Watch the memory explainer</a>.
+</video>
+
+After a successful turn, the provider saves the user and assistant messages as **session history**. Supermemory processes that conversation into durable **memories**, such as the launch date or the decision to keep the first release web-only. Capture is automatic; processing happens asynchronously.
+
+Files take a separate path. When Eve works with an attachment, URL, or text, [SuperRAG](/concepts/super-rag) parses or transcribes it into an **indexed source** the agent can read. Eve can then save a useful conclusion as a memory, retaining the source document's ID. In the example, the budget stays connected to the launch brief.
+
+Before a later turn, the provider loads the [user profile](/concepts/user-profiles) and searches for relevant saved context. Eve can read an earlier session or follow a source-backed memory to the original document when it needs more detail. The new conversation can then use both the earlier decision and the evidence behind it. Recall also runs after context compaction.
+
+## Memory tools
+
+The provider gives Eve seven tools alongside automatic recall and capture. The generated file is named `supermemory.ts`, so Eve prefixes their names with `supermemory__`.
+
+<Accordion title="Tool reference">
+
+  | Tool | Purpose |
+  | --- | --- |
+  | `search` | Find relevant memories and session history in the current memory scope. |
+  | `read_session` | Read a stored conversation found through search. |
+  | `read_document` | Read sections of a processed source, fetching more as needed. |
+  | `remember` | Save a standalone fact, preference, decision, or correction; optionally retain its `sourceDocumentId`. |
+  | `extract` | Parse, transcribe, and index an Eve attachment, URL, or text with SuperRAG. |
+  | `forget` | Remove one memory by ID. |
+  | `forget_matching` | Preview memories within a requested boundary, then remove selected IDs. |
+</Accordion>
+
+<Accordion title="Forgetting saved memories">
+  Eve can find a specific memory with `search` and remove it with `forget`. For a broader request, `forget_matching` supports a dry run that returns candidate memories. Its tool instructions tell Eve to show that preview, ask you to confirm, and remove the exact IDs you approved.
+
+  Forgetting removes derived memories. The original session history and source documents remain stored.
+</Accordion>
+
+## Choose whose memory Eve uses
+
+The generated memory file uses Eve's `byPrincipal` scope. In an authenticated application, memory follows the caller's identity. During `eve dev`, it uses the shared `local-dev` scope. Outside local development, anonymous and runtime principals have memory disabled.
+
+For a team or multi-tenant application, derive the scope from verified user and tenant identity. Eve resolves that scope before the provider runs, so the agent's tools cannot choose another user's memory. See [Eve's multi-tenant memory guide](https://eve.dev/docs/patterns/multi-tenant-memory).
+
+Eve also supplies a default namespace for the memory slot. You only need to set `namespace` yourself when you want a custom memory domain. Keep it stable: changing it selects a different memory space. [Eve's namespace documentation](https://eve.dev/docs/memory#namespace) explains the defaults and how to share a domain intentionally.
+
+## Configure the provider
+
+Edit the options passed to `supermemory(...)` in `agent/memory/supermemory.ts`. The generated file only needs your API key; the defaults enable automatic search and capture.
+
+You can adjust those behaviors independently. Set `autoSearch.enabled` to `false` to disable automatic search while keeping profile recall. Set `capture.enabled` to `false` to stop saving completed turns automatically. Both settings leave the explicit memory tools available.
+
+<Accordion title="Provider options and defaults">
+  | Option | Default | Purpose |
+  | --- | --- | --- |
+  | `apiKey` | Required | Supermemory API key, or a function returning the key synchronously or asynchronously. |
+  | `containerTagPrefix` | `"eve_agent"` | Prefix for storage tags derived from Eve's scope. Keep it stable to access the same data. |
+  | `autoSearch.enabled` | `true` | Search for context relevant to the current request during recall. |
+  | `profileContext.timeZone` | `"UTC"` | IANA time zone used to format profile context. |
+  | `capture.enabled` | `true` | Save completed turns automatically. |
+  | `capture.taskType` | `"memory"` | Generate memories from conversations. Use `"superrag"` to index them for document retrieval only. |
+  | `capture.dreaming` | `"dynamic"` | Memory generation mode: `"dynamic"` or `"instant"`. |
+  | `capture.entityContext` | Built-in capture policy | Instructions for what durable information to learn from conversations. |
+  | `capture.metadata` | `{}` | Additional metadata attached to captured conversation documents. |
+
+  Namespace, description, and scope are Eve memory-slot settings. Configure them on `defineMemory(...)`, outside the provider options.
+</Accordion>
+
+## Manual installation
+
+If you prefer to create the memory file yourself, install the package in your Eve project:
+
+```bash
+npm install @supermemory/eve
+```
+
+Then create the same memory slot that `eve add` generates:
+
+```typescript agent/memory/supermemory.ts
+import supermemory from "@supermemory/eve";
+import { defineMemory } from "eve/memory";
+import { byPrincipal } from "eve/memory/scope";
+
+export default defineMemory({
+  description: "Recall and manage durable context for the current user.",
+  provider: supermemory({
+    apiKey: process.env.SUPERMEMORY_API_KEY!,
+  }),
+  scope: byPrincipal,
+});
+```
+
+Set `SUPERMEMORY_API_KEY` in `.env.local` and start your agent as described in [Add Supermemory](#add-supermemory).
+
+For implementation details, see the [provider repository](https://github.com/supermemoryai/eve-supermemory) and [Eve's Supermemory integration](https://eve.dev/integrations/supermemory).

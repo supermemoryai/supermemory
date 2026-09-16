@@ -3,3 +3,13 @@
 .dark img[src*="supermemory.svg"] {
 	filter: invert(1);
 }
+
+.dark img[src*="opencode-logo.svg"] {
+	content: url("/images/opencode-logo-dark.svg");
+}
+
+.eve-memory-video {
+	display: block;
+	width: 100%;
+	border-radius: 0;
+}
