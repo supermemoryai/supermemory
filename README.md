@@ -67,7 +67,7 @@ All of this is in our single memory structure and ontology.
 
 <h3>🧑‍💻 I use AI tools</h3>
 
-Give Claude Code, Cursor, Codex and OpenCode **persistent memory across every conversation** with a plugin or the MCP server.
+Give Claude Code, Muse Code, Cursor, Codex and OpenCode **persistent memory across every conversation** with a plugin or the MCP server.
 
 Your AI remembers your preferences, projects, past discussions — and gets smarter over time.
 
@@ -111,7 +111,7 @@ Plugins and the MCP server give any compatible AI assistant persistent memory. O
 
 ### Supermemory Plugins
 
-Supermemory comes built with plugins for Claude Code, Cursor, Codex, OpenCode, OpenClaw, and Hermes.
+Supermemory comes built with plugins for Claude Code, Muse Code, Cursor, Codex, OpenCode, OpenClaw, and Hermes.
 
 <img width="844" height="484" alt="image" src="https://github.com/user-attachments/assets/ecb879a2-8652-495d-9228-f305a97ba603" />
 
@@ -120,6 +120,7 @@ These plugins are implementations of the supermemory API, and they are open sour
 You can find them here: 
 
 - Claude Code plugin: https://github.com/supermemoryai/claude-supermemory
+- Muse Code plugin: https://github.com/supermemoryai/muse-supermemory
 - Cursor plugin: https://github.com/supermemoryai/cursor-supermemory
 - Codex plugin: https://github.com/supermemoryai/codex-supermemory
 - OpenClaw plugin: https://github.com/supermemoryai/openclaw-supermemory

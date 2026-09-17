@@ -390,6 +390,7 @@
 									"integrations/openclaw",
 									"integrations/hermes",
 									"integrations/claude-code",
+									"integrations/muse-code",
 									"integrations/codex",
 									"integrations/opencode",
 									"integrations/cursor",

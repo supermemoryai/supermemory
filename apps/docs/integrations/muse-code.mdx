@@ -1,0 +1,137 @@
+---
+title: "Muse Code"
+sidebarTitle: "Muse Code"
+description: "muse-supermemory — persistent memory for Meta Muse Code"
+icon: "sparkles"
+---
+
+[muse-supermemory](https://github.com/supermemoryai/muse-supermemory) is a native [Muse Code](https://dev.meta.ai/docs/muse-code) plugin that gives your agent persistent memory across sessions. Your agent remembers what you worked on — across sessions, across projects.
+
+<Tip>
+**Prefer to keep everything on your machine?** This plugin works with [self-hosted Supermemory](/self-hosting/overview) — run `npx supermemory local`, then set `baseUrl` in `.muse/supermemory.json` (Muse clears hook env, so `SUPERMEMORY_API_URL` may not reach the plugin) and use the API key printed on first boot.
+</Tip>
+
+## Install the Plugin
+
+> **Requires Node.js 18+** on your PATH — the memory hooks and MCP proxy run as Node scripts.
+
+In a Muse session, open `/plugins` and install from the marketplace. Or from the CLI:
+
+```bash
+export MUSE_EXPERIMENTAL_PLUGINS=1
+muse plugins marketplace add supermemory https://github.com/supermemoryai/muse-supermemory
+muse plugins install supermemory@supermemory
+muse plugins approve supermemory
+```
+
+`approve` trusts the runtime capabilities (hooks + MCP). Without it, the plugin is installed but inert.
+
+Local bundle (a clone of the repo):
+
+```bash
+export MUSE_EXPERIMENTAL_PLUGINS=1
+muse plugins install . --scope user
+muse plugins approve supermemory
+```
+
+## Authenticate
+
+Muse runs hooks with a **cleared environment**, so an exported API key in your shell does not reach them. Auth is file-based.
+
+The first session opens a browser login and writes `~/.supermemory-muse/credentials.json`.
+
+If you already logged in through the [Claude Code plugin](/integrations/claude-code), that key is reused from `~/.supermemory-claude/credentials.json`.
+
+Or write the file yourself with a key from [API Keys](https://console.supermemory.ai/keys):
+
+```json
+{ "apiKey": "sm_..." }
+```
+
+Check the connection any time with `/supermemory:status`.
+
+## How It Works
+
+Two layers, same as the other coding plugins:
+
+| Layer | When | What it does |
+| --- | --- | --- |
+| Session profile | `SessionStart` | Injects up to 5 persistent profile facts and 5 recent memories for this repo |
+| Prompt recall | `UserPromptSubmit` | Searches supermemory with the prompt, injects up to 5 new hits (similarity ≥ 0.55) |
+| Auto-approve | `PreToolUse` | Allows read-only supermemory MCP tools without a permission prompt |
+| Auto-capture | `Stop` | Saves new user prompts and assistant messages from Muse's `session.jsonl` |
+| MCP tools | on demand | Search, save, list, and manage memories explicitly |
+
+Recalled lines are marked `◪`. When the model uses one, it keeps that mark and says "from supermemory" — never "from memory".
+
+Slash commands and very short prompts skip recall. Timeouts fail open so a slow network never blocks the turn.
+
+### Memory scope
+
+Container tags match [Claude Code](/integrations/claude-code):
+
+```text
+repo_<project_name>__<project_id>
+```
+
+The project ID is a hash of the git remote (or the resolved local path if there isn't one). The same repo in Muse and Claude Code shares memory. Override with `repoContainerTag` in project config.
+
+## Commands
+
+| Command | Description |
+| --- | --- |
+| `/supermemory:status` | Auth, container tag, API and MCP reachability |
+| `/supermemory:logout` | Clear saved Muse credentials |
+
+A bundled skill also tells the agent when to search vs save on its own.
+
+## Configuration
+
+### Global settings
+
+`~/.supermemory-muse/settings.json`
+
+```json
+{
+  "maxProfileItems": 5,
+  "debug": false
+}
+```
+
+| Option | Description |
+| --- | --- |
+| `maxProfileItems` | Max profile facts injected at session start (default: 5) |
+| `debug` | Log hook activity to stderr |
+| `recallDirective` | Replace prompt-recall injection with a fixed instruction |
+
+### Project config
+
+Per-repo overrides in `.muse/supermemory.json`. A Claude Code config at `.claude/.supermemory-claude/config.json` is also read, so one repo keeps one container tag across tools.
+
+```json
+{
+  "apiKey": "sm_...",
+  "baseUrl": "https://api.supermemory.ai",
+  "repoContainerTag": "my-team-project"
+}
+```
+
+| Option | Description |
+| --- | --- |
+| `apiKey` | Project-specific API key |
+| `baseUrl` | Supermemory API URL (use for self-hosted) |
+| `repoContainerTag` | Override the auto-derived project container |
+
+Add the project file to `.gitignore` if it contains an API key.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="GitHub Repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/muse-supermemory">
+    Source code, issues, and detailed README.
+  </Card>
+
+  <Card title="Claude Code Plugin" icon="/images/claude-code-icon.svg" href="/integrations/claude-code">
+    The same memory in Claude Code.
+  </Card>
+</CardGroup>
