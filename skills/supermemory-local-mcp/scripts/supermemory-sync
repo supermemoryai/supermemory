@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# supermemory-sync — keep local Supermemory in sync with the user's coding projects.
+#
+# Subcommands:
+#   sync-rules        Re-ingest CLAUDE.md/AGENTS.md per project only if changed (hash-gated).
+#   remember-commit   Feed a git commit summary into the project's container.
+#                     args: <project> <commit-msg> [files-changed...]
+#   remember-bug      Feed a bug/fix note into the project's container.
+#                     args: <project> <note>
+#
+# Requires: local Supermemory server running on http://localhost:6767 and
+# ~/.supermemory/api-key present. All projects map to a container_tag.
+
+set -euo pipefail
+
+SUPERMEMORY_KEY_FILE="$HOME/.supermemory/api-key"
+BASE_URL="http://localhost:6767"
+STATE_FILE="$HOME/.supermemory/sync-state.json"
+
+# Project -> container_tag + path to its rule files
+declare -A PROJECTS=(
+  [dafgpt]="/media/themorida/647ECE1E7ECDE93E/Elementary OS/DafGpt"
+  [hejle]="/media/themorida/647ECE1E7ECDE93E/Elementary OS/hejle"
+  [limbik]="/media/themorida/647ECE1E7ECDE93E/Elementary OS/Limbik"
+)
+
+api_key() {
+  cat "$SUPERMEMORY_KEY_FILE" 2>/dev/null || true
+}
+
+post_doc() {
+  # $1=containerTag $2=content $3=type
+  local ct="$1" content="$2" type="$3"
+  local k; k=$(api_key)
+  local payload
+  payload=$(python3 - "$ct" "$content" "$type" <<'PY'
+import json, sys
+ct, content, type_ = sys.argv[1], sys.argv[2], sys.argv[3]
+print(json.dumps({"content": content, "containerTag": ct,
+                   "metadata": {"type": type_}, "dreaming": "instant"}))
+PY
+)
+  curl -s -X POST "$BASE_URL/v3/documents" \
+    -H "Authorization: Bearer $k" -H "Content-Type: application/json" \
+    -d "$payload" >/dev/null 2>&1 || true
+}
+
+hash_of() {
+  local f="$1"
+  [ -f "$f" ] && sha256sum "$f" | cut -d' ' -f1 || echo "missing"
+}
+
+cmd_sync_rules() {
+  local state='{}'
+  [ -f "$STATE_FILE" ] && state=$(cat "$STATE_FILE")
+  local new_state='{}'
+  for p in "${!PROJECTS[@]}"; do
+    dir="${PROJECTS[$p]}"
+    rules=""
+    for rf in "$dir/CLAUDE.md" "$dir/AGENTS.md"; do
+      [ -f "$rf" ] && rules+="$(cat "$rf" 2>/dev/null)
+"
+    done
+    h=$(printf '%s' "$rules" | sha256sum | cut -d' ' -f1)
+    old=$(echo "$state" | python3 -c "import json,sys; print(json.load(sys.stdin).get('$p',''))" 2>/dev/null || true)
+    if [ -n "$rules" ]; then
+      if [ "$h" != "$old" ]; then
+        echo "  [$p] rules changed -> re-ingesting"
+        post_doc "$p" "$rules" "project-rules"
+      else
+        echo "  [$p] unchanged"
+      fi
+      new_state=$(echo "$new_state" | python3 -c "import json,sys; d=json.load(sys.stdin); d['$p']='$h'; print(json.dumps(d))" 2>/dev/null || echo "$new_state")
+    fi
+  done
+  echo "$new_state" > "$STATE_FILE"
+  echo "sync-rules done"
+}
+
+cmd_remember_commit() {
+  local project="$1"; shift || true
+  local msg="${1:-}"; shift || true
+  [ -z "$project" ] && { echo "usage: remember-commit <project> <msg> [files...]" >&2; exit 1; }
+  local files="$*"
+  local ct="${PROJECTS[$project]:-}"
+  [ -z "$ct" ] && { echo "unknown project: $project" >&2; exit 1; }
+  local note="[commit] $msg
+Changed files: ${files:-n/a}
+Project: $project"
+  post_doc "$project" "$note" "commit"
+  echo "remembered commit for $project"
+}
+
+cmd_remember_bug() {
+  local project="$1"; shift || true
+  local note="$*"
+  [ -z "$project" ] && { echo "usage: remember-bug <project> <note>" >&2; exit 1; }
+  local ct="${PROJECTS[$project]:-}"
+  [ -z "$ct" ] && { echo "unknown project: $project" >&2; exit 1; }
+  post_doc "$project" "[bug-fix] $note" "bug-fix"
+  echo "remembered bug/fix for $project"
+}
+
+case "${1:-}" in
+  sync-rules)      cmd_sync_rules ;;
+  remember-commit) shift; cmd_remember_commit "$@" ;;
+  remember-bug)    shift; cmd_remember_bug "$@" ;;
+  *) echo "usage: supermemory-sync {sync-rules|remember-commit <p> <msg> [files]|remember-bug <p> <note>}" >&2; exit 1 ;;
+esac

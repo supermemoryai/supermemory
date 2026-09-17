@@ -1,0 +1,17 @@
+[Unit]
+Description=Supermemory local memory server (self-hosted)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.supermemory
+Environment=SUPERMEMORY_DATA_DIR=%h/.supermemory
+# Replace the value below with a real Gemini/OpenAI/Anthropic/Groq API key.
+# The local server needs an LLM key to perform memory extraction.
+Environment=GEMINI_API_KEY=__REPLACE_WITH_YOUR_LLM_KEY__
+ExecStart=%h/.supermemory/bin/supermemory-server
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
