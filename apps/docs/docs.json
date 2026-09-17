@@ -933,6 +933,146 @@
 			"destination": "/overview/what-is-supermemory",
 			"permanent": true,
 			"source": "/company-brain/:slug*"
+		},
+		{
+			"source": "/api-reference/conversations/ingest-or-update-conversation",
+			"destination": "/api-reference/ingest/ingest-or-update-conversation"
+		},
+		{
+			"source": "/api-reference/manage-documents/add-document",
+			"destination": "/api-reference/ingest/add-document"
+		},
+		{
+			"source": "/api-reference/manage-documents/batch-add-documents",
+			"destination": "/api-reference/ingest/batch-add-documents"
+		},
+		{
+			"source": "/api-reference/manage-documents/bulk-delete-documents",
+			"destination": "/api-reference/ingest/bulk-delete-documents"
+		},
+		{
+			"source": "/api-reference/manage-documents/delete-document-by-id-or-customid",
+			"destination": "/api-reference/ingest/delete-document-by-id-or-customid"
+		},
+		{
+			"source": "/api-reference/manage-documents/update-document",
+			"destination": "/api-reference/ingest/update-document"
+		},
+		{
+			"source": "/api-reference/manage-documents/upload-a-file",
+			"destination": "/api-reference/ingest/upload-a-file"
+		},
+		{
+			"source": "/api-reference/manage-documents/get-document",
+			"destination": "/api-reference/documents/get-document"
+		},
+		{
+			"source": "/api-reference/manage-documents/get-document-chunks",
+			"destination": "/api-reference/documents/get-document-chunks"
+		},
+		{
+			"source": "/api-reference/manage-documents/list-documents",
+			"destination": "/api-reference/documents/list-documents"
+		},
+		{
+			"source": "/api-reference/memories-v4/list-memory-entries-with-history",
+			"destination": "/api-reference/content-management/list-memory-entries-with-history"
+		},
+		{
+			"source": "/api-reference/memories/create-memories-directly",
+			"destination": "/api-reference/content-management/create-memories-directly"
+		},
+		{
+			"source": "/api-reference/memories/forget-a-memory",
+			"destination": "/api-reference/content-management/forget-a-memory"
+		},
+		{
+			"source": "/api-reference/memories/update-a-memory-creates-new-version",
+			"destination": "/api-reference/content-management/update-a-memory-creates-new-version"
+		},
+		{
+			"source": "/api-reference/organization-settings/get-settings",
+			"destination": "/api-reference/settings/get-settings"
+		},
+		{
+			"source": "/api-reference/profile/get-user-profile",
+			"destination": "/api-reference/profiles/get-user-profile"
+		},
+		{
+			"source": "/api-reference/search/search-documents",
+			"destination": "/api-reference/documents/search-documents"
+		},
+		{
+			"source": "/api-reference/search/search-memory-entries",
+			"destination": "/api-reference/recall-search/search-memory-entries"
+		},
+		{
+			"source": "/api-reference/spaces/delete-container-tag",
+			"destination": "/api-reference/container-tags/delete-container-tag"
+		},
+		{
+			"source": "/api-reference/graph/get-graph-bounds",
+			"destination": "/concepts/graph-memory"
+		},
+		{
+			"source": "/api-reference/graph/get-graph-statistics",
+			"destination": "/concepts/graph-memory"
+		},
+		{
+			"source": "/api-reference/graph/get-graph-viewport-data",
+			"destination": "/concepts/graph-memory"
+		},
+		{
+			"source": "/api-reference/knowledge-graph/get-graph-bounds",
+			"destination": "/concepts/graph-memory"
+		},
+		{
+			"source": "/api-reference/knowledge-graph/get-graph-statistics",
+			"destination": "/concepts/graph-memory"
+		},
+		{
+			"source": "/api-reference/knowledge-graph/get-graph-viewport-data",
+			"destination": "/concepts/graph-memory"
+		},
+		{
+			"source": "/api-reference/organization-settings/toggle-overage",
+			"destination": "/api-reference/settings"
+		},
+		{
+			"source": "/api-reference/settings/toggle-overage",
+			"destination": "/api-reference/settings"
+		},
+		{
+			"source": "/deployment/self-hosting",
+			"destination": "/self-hosting/configuration"
+		},
+		{
+			"source": "/self-hosting/embed",
+			"destination": "/self-hosting/configuration"
+		},
+		{
+			"source": "/concepts/memory",
+			"destination": "/concepts/graph-memory"
+		},
+		{
+			"source": "/architecture.md",
+			"destination": "/"
+		},
+		{
+			"source": "/cli/commands",
+			"destination": "/"
+		},
+		{
+			"source": "/cli/overview",
+			"destination": "/"
+		},
+		{
+			"source": "/integrations/_generated/api",
+			"destination": "/"
+		},
+		{
+			"source": "/smfs/providers/Dockerfile",
+			"destination": "/"
 		}
 	],
 	"styling": {
