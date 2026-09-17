@@ -220,6 +220,10 @@ export interface MemoryGraphProps {
 	labels?: MemoryGraphLabels
 	/** Overlay layering controls */
 	layering?: MemoryGraphLayering
+	/** Show the in-graph node search box (default: true) */
+	showSearch?: boolean
+	/** Placeholder text for the search box */
+	searchPlaceholder?: string
 }
 
 export interface ChainEntry {
