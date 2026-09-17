@@ -244,6 +244,7 @@ function StatRow({
 				onClick={expandable ? onToggle : undefined}
 				style={buttonStyle}
 				type="button"
+				aria-expanded={expandable ? expanded : undefined}
 			>
 				<div style={leftStyle}>
 					{icon}
@@ -428,6 +429,7 @@ export const Legend = memo(function Legend({
 						onClick={() => setIsExpanded(!isExpanded)}
 						style={headerBtnStyle}
 						type="button"
+						aria-expanded={isExpanded}
 					>
 						{isExpanded ? (
 							<ChevronDownIcon color={colors.textPrimary} />
