@@ -694,8 +694,12 @@ export class ClaudeMemoryTool {
 					hasUnverifiedCandidate = true
 					continue
 				}
+				const isMatchingCustomId =
+					document.customId === normalizedId ||
+					document.customId === this.legacyNormalizePathToCustomId(filePath)
+
 				if (
-					document.customId !== normalizedId ||
+					!isMatchingCustomId ||
 					this.getDocumentFilePath(document) !== filePath ||
 					!this.hasExactContainerTags(document.containerTags)
 				) {
