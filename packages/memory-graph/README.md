@@ -66,6 +66,7 @@ function App() {
 | `error` | `Error \| null` | Error to display |
 | `loadMoreDocuments` | `() => Promise<void>` | Function to load more data |
 | `highlightDocumentIds` | `string[]` | IDs of documents to highlight |
+| `onNodeSelect` | `(nodeId: string \| null) => void` | Called when the selected node changes (click, keyboard, slideshow, or cleared) |
 
 ## Documentation
 
