@@ -94,12 +94,16 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 		simulation,
 	}
 
-	// Rebuild nodeMap + spatial index when nodes change
+	// Rebuild nodeMap + spatial index when nodes change. Force the spatial
+	// rebuild: a new node generation can carry identical ids/positions
+	// (resize, theme change), which the content hash cannot distinguish,
+	// and stale objects in the grid break dragging — the hit-test returns
+	// a node the renderer no longer draws.
 	useEffect(() => {
 		const map = nodeMapRef.current
 		map.clear()
 		for (const n of nodes) map.set(n.id, n)
-		spatialRef.current.rebuild(nodes)
+		spatialRef.current.rebuild(nodes, true)
 		renderNeeded.current = true
 	}, [nodes])
 

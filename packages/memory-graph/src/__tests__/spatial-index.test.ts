@@ -54,6 +54,36 @@ describe("SpatialIndex", () => {
 		expect(result).toBe(true)
 	})
 
+	it("hash guard keeps stale objects for a new generation at the same positions", () => {
+		// Documents why force exists: a regenerated node array (resize,
+		// theme change) carries identical ids/positions, so the content
+		// hash cannot see it.
+		const idx = new SpatialIndex()
+		const genA = [makeNode("a", 100, 100)]
+		idx.rebuild(genA)
+
+		const genB = [makeNode("a", 100, 100)]
+		expect(idx.rebuild(genB)).toBe(false)
+		expect(idx.queryPoint(100, 100)).toBe(genA[0])
+	})
+
+	it("force rebuild swaps the grid to the new node generation", () => {
+		const idx = new SpatialIndex()
+		const genA = [makeNode("a", 100, 100)]
+		idx.rebuild(genA)
+
+		const genB = [makeNode("a", 100, 100)]
+		expect(idx.rebuild(genB, true)).toBe(true)
+		expect(idx.queryPoint(100, 100)).toBe(genB[0])
+	})
+
+	it("force rebuild still refreshes the hash for subsequent unforced calls", () => {
+		const idx = new SpatialIndex()
+		const nodes = [makeNode("a", 100, 100)]
+		idx.rebuild(nodes, true)
+		expect(idx.rebuild(nodes)).toBe(false)
+	})
+
 	it("rebuild detects sub-pixel movements (10x granularity)", () => {
 		const idx = new SpatialIndex()
 		const nodes = [makeNode("a", 100.0, 100.0)]
