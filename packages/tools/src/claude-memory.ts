@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import Supermemory from "supermemory"
 import { deleteDocumentById, getContainerTags } from "./tools-shared"
 import type { SupermemoryToolsConfig } from "./types"
@@ -46,6 +47,33 @@ interface ClaudeFileDocument {
 }
 
 /**
+ * Normalize a memory file path to the customId used for document identity.
+ *
+ * Paths in the canonical single-segment shape (`/memories/file.txt`: no
+ * underscores, exactly one dot, exactly one slash) keep the exact legacy id,
+ * so documents already stored under it continue to resolve.
+ *
+ * Plain flattening is otherwise non-injective — `notes.txt`, `notes_txt`,
+ * and `notes/txt` all collapse to the same id, so creating one file could
+ * silently overwrite another (#1547). Every other shape therefore gets a
+ * short digest of the original path appended, making distinct paths map to
+ * distinct ids again.
+ */
+export function pathToCustomId(path: string): string {
+	const stripped = path.replace(/^\//, "")
+	const legacyCompatible =
+		!stripped.includes("_") &&
+		stripped.split(".").length === 2 &&
+		stripped.split("/").length === 2
+	if (legacyCompatible) {
+		return stripped.replace(/\//g, "_").replace(/\./g, "_")
+	}
+	const flattened = stripped.replace(/\//g, "_").replace(/\./g, "_")
+	const digest = createHash("sha256").update(stripped).digest("hex").slice(0, 8)
+	return `${flattened}_${digest}`
+}
+
+/**
  * Claude Memory Tool - Client-side implementation
  * Maps Claude's memory tool commands to supermemory document operations
  */
@@ -60,10 +88,7 @@ export class ClaudeMemoryTool {
 	 * Converts /memories/file.txt -> memories_file_txt
 	 */
 	private normalizePathToCustomId(path: string): string {
-		return path
-			.replace(/^\//, "") // Remove leading slash
-			.replace(/\//g, "_") // Replace / with _
-			.replace(/\./g, "_") // Replace . with _
+		return pathToCustomId(path)
 	}
 
 	constructor(apiKey: string, config?: ClaudeMemoryConfig) {
