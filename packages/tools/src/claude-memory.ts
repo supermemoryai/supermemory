@@ -53,8 +53,17 @@ export class ClaudeMemoryTool {
 	private client: Supermemory
 	private namespace: string
 
-	/** Converts /memories/file.txt -> memories_file_txt */
+	/** Reversible encoding so distinct paths never share an ID: /memories/a_b.txt -> memories_s_a__b_d_txt */
 	private normalizePathToId(path: string): string {
+		return path
+			.replace(/^\//, "")
+			.replace(/_/g, "__")
+			.replace(/\//g, "_s_")
+			.replace(/\./g, "_d_")
+	}
+
+	/** Pre-3.0.1 IDs, where / and . both became _ */
+	private legacyNormalizePathToId(path: string): string {
 		return path.replace(/^\//, "").replace(/\//g, "_").replace(/\./g, "_")
 	}
 
@@ -561,39 +570,45 @@ export class ClaudeMemoryTool {
 		error?: string
 	}> {
 		try {
-			const id = this.normalizePathToId(filePath)
-			let document: Awaited<ReturnType<Supermemory["documents"]["get"]>>
-			try {
-				document = await this.client.documents.get(this.namespace, id)
-			} catch (error) {
-				if (isNotFoundError(error)) {
-					return { success: false, error: `File not found: ${filePath}` }
+			// Files written before 3.0.1 still live under the legacy ID.
+			const ids = [
+				this.normalizePathToId(filePath),
+				this.legacyNormalizePathToId(filePath),
+			]
+			for (const id of ids) {
+				let document: Awaited<ReturnType<Supermemory["documents"]["get"]>>
+				try {
+					document = await this.client.documents.get(this.namespace, id)
+				} catch (error) {
+					if (isNotFoundError(error)) continue
+					throw error
 				}
-				throw error
-			}
 
-			// Different paths can normalize to the same ID; only the exact file counts.
-			if (
-				document.metadata?.source !== CLAUDE_MEMORY_SOURCE ||
-				this.getDocumentFilePath(document) !== filePath
-			) {
-				return { success: false, error: `File not found: ${filePath}` }
-			}
-			if (typeof document.content !== "string") {
+				// Different paths can share a legacy ID; only the exact file counts.
+				if (
+					document.metadata?.source !== CLAUDE_MEMORY_SOURCE ||
+					this.getDocumentFilePath(document) !== filePath
+				) {
+					continue
+				}
+				if (typeof document.content !== "string") {
+					return {
+						success: false,
+						error: `File content unavailable: ${filePath}`,
+					}
+				}
+
 				return {
-					success: false,
-					error: `File content unavailable: ${filePath}`,
+					success: true,
+					document: {
+						documentId: id,
+						content: document.content,
+						metadata: document.metadata as ClaudeFileMetadata,
+					},
 				}
 			}
 
-			return {
-				success: true,
-				document: {
-					documentId: id,
-					content: document.content,
-					metadata: document.metadata as ClaudeFileMetadata,
-				},
-			}
+			return { success: false, error: `File not found: ${filePath}` }
 		} catch (error) {
 			return {
 				success: false,
