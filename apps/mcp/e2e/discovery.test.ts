@@ -10,11 +10,12 @@ import {
 const EXPECTED_TOOLS = [
 	"add_memory",
 	"fetch-graph-data",
-	"getDocument",
+	"get_document",
+	"get_profile",
 	"guided-save",
-	"listDocuments",
-	"listMemories",
-	"listSpaces",
+	"list_documents",
+	"list_memories",
+	"list_spaces",
 	"memory-graph",
 	"prepare-file-upload",
 	"save-memory",
@@ -22,17 +23,18 @@ const EXPECTED_TOOLS = [
 	"select-space",
 	"set-active-tag",
 	"upload-file",
-	"whoAmI",
+	"who_am_i",
 ]
 const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
 const READ_ONLY_TOOL_NAMES = [
 	"search_memory",
-	"listDocuments",
-	"listMemories",
-	"getDocument",
-	"listSpaces",
-	"whoAmI",
+	"get_profile",
+	"list_documents",
+	"list_memories",
+	"get_document",
+	"list_spaces",
+	"who_am_i",
 	"memory-graph",
 ]
 
@@ -74,7 +76,7 @@ describeWithAuth("MCP — discovery & identity", () => {
 		}
 	})
 
-	it("marks add_memory as mutating", async () => {
+	it("marks addMemory as mutating", async () => {
 		const { tools } = await s.client.listTools()
 		const memory = tools.find((t) => t.name === "add_memory")
 		expect(memory?.annotations).toMatchObject(MEMORY_TOOL_ANNOTATIONS)
@@ -93,7 +95,7 @@ describeWithAuth("MCP — discovery & identity", () => {
 	})
 
 	it("whoAmI resolves to the authenticated account", async () => {
-		const res = await callTool(s.client, "whoAmI")
+		const res = await callTool(s.client, "who_am_i")
 		expect(res.isError).toBeFalsy()
 		const parsed = JSON.parse(textOf(res))
 		expect(parsed.userId).toBeTruthy()
@@ -101,7 +103,7 @@ describeWithAuth("MCP — discovery & identity", () => {
 	})
 
 	it("listSpaces returns content", async () => {
-		const res = await callTool(s.client, "listSpaces")
+		const res = await callTool(s.client, "list_spaces")
 		expect(res.isError).toBeFalsy()
 		expect(textOf(res).length).toBeGreaterThan(0)
 	})
