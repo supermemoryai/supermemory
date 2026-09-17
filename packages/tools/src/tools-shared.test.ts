@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { makeTurnKey } from "./shared/cache"
+import { toConversationImageUrl } from "./conversations-client"
+import { normalizeBaseUrl } from "./shared/context"
 import {
 	DEFAULT_VALUES,
 	SEARCH_LIMIT_BOUNDS,
@@ -192,5 +194,51 @@ describe("makeTurnKey", () => {
 		expect(keyA).toBe("user%253A123:456:profile:hi")
 		expect(keyB).toBe("user%3A123:456:profile:hi")
 		expect(keyA).not.toBe(keyB)
+	})
+})
+
+describe("normalizeBaseUrl", () => {
+	it("returns default URL when input is missing or empty", () => {
+		expect(normalizeBaseUrl()).toBe("https://api.supermemory.ai")
+		expect(normalizeBaseUrl("")).toBe("https://api.supermemory.ai")
+		expect(normalizeBaseUrl("   ")).toBe("https://api.supermemory.ai")
+	})
+
+	it("collapses single and multiple trailing slashes", () => {
+		expect(normalizeBaseUrl("http://localhost:6768/")).toBe(
+			"http://localhost:6768",
+		)
+		expect(normalizeBaseUrl("http://localhost:6768///")).toBe(
+			"http://localhost:6768",
+		)
+		expect(normalizeBaseUrl("https://api.supermemory.ai/")).toBe(
+			"https://api.supermemory.ai",
+		)
+	})
+
+	it("trims whitespace around URLs", () => {
+		expect(normalizeBaseUrl("  http://localhost:6768/  ")).toBe(
+			"http://localhost:6768",
+		)
+	})
+})
+
+describe("toConversationImageUrl", () => {
+	it("handles string URLs and trims whitespace", () => {
+		expect(toConversationImageUrl("https://example.com/image.png")).toBe(
+			"https://example.com/image.png",
+		)
+	})
+
+	it("handles object representations containing url", () => {
+		expect(
+			toConversationImageUrl({ url: "https://example.com/avatar.jpg" }),
+		).toBe("https://example.com/avatar.jpg")
+	})
+
+	it("returns null for invalid or empty inputs", () => {
+		expect(toConversationImageUrl("")).toBeNull()
+		expect(toConversationImageUrl(null)).toBeNull()
+		expect(toConversationImageUrl(undefined)).toBeNull()
 	})
 })
