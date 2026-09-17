@@ -10,7 +10,7 @@ import { toConversationImageUrl } from "../conversations-client"
 export type {
 	ProfileStructure,
 	ProfileMarkdownData,
-} from "../shared"
+} from "../shared/types"
 
 // Provider v2 does not export V3 names, so keep the public declaration on the
 // common V2 surface and structurally accept V3 models at the wrapper boundary.
@@ -98,12 +98,30 @@ export const hasPersistableUserContent = (
 			if (part.type === "text" && typeof part.text === "string") {
 				return Boolean(part.text.trim())
 			}
-			return (
-				part.type === "file" &&
-				typeof part.mediaType === "string" &&
-				part.mediaType.startsWith("image/") &&
-				toConversationImageUrl(part.data, part.mediaType) !== null
-			)
+			if (part.type === "file") {
+				const mediaType =
+					typeof part.mediaType === "string"
+						? part.mediaType
+						: typeof part.mimeType === "string"
+							? part.mimeType
+							: ""
+				return (
+					mediaType.startsWith("image/") &&
+					toConversationImageUrl(part.data, mediaType) !== null
+				)
+			}
+			if (part.type === "image") {
+				const mediaType =
+					typeof part.mimeType === "string"
+						? part.mimeType
+						: typeof part.mediaType === "string"
+							? part.mediaType
+							: "image/jpeg"
+				return (
+					toConversationImageUrl(part.image ?? part.data, mediaType) !== null
+				)
+			}
+			return false
 		})
 	})
 }
