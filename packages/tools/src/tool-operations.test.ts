@@ -180,7 +180,7 @@ describe("memoryForget", () => {
 		expect(init.signal).toBeInstanceOf(AbortSignal)
 	})
 
-	it("uses a caller-provided signal instead of creating a timeout", async () => {
+	it("composes a caller-provided signal with the timeout", async () => {
 		const fetchMock = stubFetch()
 		const controller = new AbortController()
 
@@ -192,7 +192,10 @@ describe("memoryForget", () => {
 		)
 
 		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-		expect(init.signal).toBe(controller.signal)
+		expect(init.signal).toBeInstanceOf(AbortSignal)
+		expect(init.signal?.aborted).toBe(false)
+		controller.abort()
+		expect(init.signal?.aborted).toBe(true)
 	})
 
 	it("throws a descriptive error on non-2xx responses", async () => {
