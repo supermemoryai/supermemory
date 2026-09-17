@@ -41,6 +41,7 @@ export class InputHandler {
 	// the release hit-test is not thrown off by sub-threshold pans during the tap.
 	private touchStartWorldX = 0
 	private touchStartWorldY = 0
+	private touchStartNodeId: string | null = null
 
 	private boundMouseDown: (e: MouseEvent) => void
 	private boundMouseMove: (e: MouseEvent) => void
@@ -253,6 +254,12 @@ export class InputHandler {
 		if (touches.length >= 2) {
 			this.isTouchGesture = true
 			this.tapCandidate = false
+			if (this.draggingNode) {
+				this.draggingNode.fx = null
+				this.draggingNode.fy = null
+				this.draggingNode = null
+				this.callbacks.onNodeDragEnd()
+			}
 			const t0 = touches[0]
 			const t1 = touches[1]
 			if (!t0 || !t1) return
@@ -279,7 +286,19 @@ export class InputHandler {
 			this.touchStartWorldX = startWorld.x
 			this.touchStartWorldY = startWorld.y
 			this.tapCandidate = true
-			this.isPanning = true
+
+			const node = this.spatialIndex.queryPoint(startWorld.x, startWorld.y)
+			this.touchStartNodeId = node?.id ?? null
+			if (node) {
+				this.draggingNode = node
+				node.fx = node.x
+				node.fy = node.y
+				this.callbacks.onNodeDragStart(node.id, node)
+				this.isPanning = false
+			} else {
+				this.draggingNode = null
+				this.isPanning = true
+			}
 		}
 	}
 
@@ -312,7 +331,6 @@ export class InputHandler {
 			this.callbacks.onRequestRender()
 		} else if (
 			touches.length === 1 &&
-			this.isPanning &&
 			!this.isTouchGesture &&
 			touches[0]
 		) {
@@ -327,10 +345,20 @@ export class InputHandler {
 			) {
 				this.tapCandidate = false
 			}
-			this.viewport.pan(x - this.lastMouseX, y - this.lastMouseY)
-			this.lastMouseX = x
-			this.lastMouseY = y
-			this.callbacks.onRequestRender()
+
+			if (this.draggingNode) {
+				const world = this.viewport.screenToWorld(x, y)
+				this.draggingNode.fx = world.x
+				this.draggingNode.fy = world.y
+				this.draggingNode.x = world.x
+				this.draggingNode.y = world.y
+				this.callbacks.onRequestRender()
+			} else if (this.isPanning) {
+				this.viewport.pan(x - this.lastMouseX, y - this.lastMouseY)
+				this.lastMouseX = x
+				this.lastMouseY = y
+				this.callbacks.onRequestRender()
+			}
 		}
 	}
 
@@ -340,15 +368,16 @@ export class InputHandler {
 		}
 		if (e.touches.length === 0) {
 			this.isPanning = false
+			if (this.draggingNode) {
+				this.draggingNode.fx = null
+				this.draggingNode.fy = null
+				this.draggingNode = null
+				this.callbacks.onNodeDragEnd()
+				this.callbacks.onRequestRender()
+			}
 			if (this.tapCandidate) {
 				this.tapCandidate = false
-				// Use the world point captured at touchstart, not the start screen
-				// point re-projected through the (possibly panned) current viewport.
-				const node = this.spatialIndex.queryPoint(
-					this.touchStartWorldX,
-					this.touchStartWorldY,
-				)
-				this.callbacks.onNodeClick(node?.id ?? null)
+				this.callbacks.onNodeClick(this.touchStartNodeId)
 			}
 		}
 	}
