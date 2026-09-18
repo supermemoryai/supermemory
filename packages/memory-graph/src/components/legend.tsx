@@ -1,4 +1,4 @@
-import { memo, useState } from "react"
+import { memo, useEffect, useState } from "react"
 import { DEFAULT_LABELS } from "../constants"
 import type {
 	GraphEdge,
@@ -161,25 +161,6 @@ function ChevronDownIcon({ color }: { color: string }) {
 	)
 }
 
-function ChevronRightIcon({ color }: { color: string }) {
-	return (
-		<svg
-			width="12"
-			height="12"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke={color}
-			strokeWidth="2"
-			strokeLinecap="round"
-			strokeLinejoin="round"
-			style={{ flexShrink: 0 }}
-			aria-hidden="true"
-		>
-			<path d="m9 18 6-6-6-6" />
-		</svg>
-	)
-}
-
 function StatRow({
 	icon,
 	label,
@@ -241,6 +222,7 @@ function StatRow({
 	return (
 		<div style={{ display: "flex", flexDirection: "column" }}>
 			<button
+				aria-expanded={expandable ? expanded : undefined}
 				onClick={expandable ? onToggle : undefined}
 				style={buttonStyle}
 				type="button"
@@ -248,18 +230,75 @@ function StatRow({
 				<div style={leftStyle}>
 					{icon}
 					<span style={labelStyle}>{label}</span>
-					{expandable &&
-						(expanded ? (
-							<ChevronDownIcon color={colors.textMuted} />
-						) : (
-							<ChevronRightIcon color={colors.textMuted} />
-						))}
+					{expandable && (
+						<LegendChevron color={colors.textMuted} expanded={expanded} />
+					)}
 				</div>
 				<span style={countStyle}>{count}</span>
 			</button>
-			{expandable && expanded && children && (
-				<div style={childrenContainerStyle}>{children}</div>
+			{expandable && children && (
+				<LegendReveal expanded={expanded}>
+					<div style={childrenContainerStyle}>{children}</div>
+				</LegendReveal>
 			)}
+		</div>
+	)
+}
+
+const LEGEND_MOTION_STYLE_ID = "supermemory-graph-legend-motion"
+const LEGEND_MOTION_STYLES = `
+.mg-legend-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 200ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.mg-legend-reveal[data-expanded="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.mg-legend-chevron {
+  display: inline-flex;
+  flex-shrink: 0;
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mg-legend-reveal,
+  .mg-legend-chevron {
+    transition: none;
+  }
+}
+`
+
+function LegendChevron({
+	color,
+	expanded,
+}: {
+	color: string
+	expanded: boolean
+}) {
+	return (
+		<span
+			className="mg-legend-chevron"
+			style={{ transform: expanded ? "rotate(0deg)" : "rotate(-90deg)" }}
+		>
+			<ChevronDownIcon color={color} />
+		</span>
+	)
+}
+
+function LegendReveal({
+	expanded,
+	children,
+}: {
+	expanded: boolean
+	children: React.ReactNode
+}) {
+	return (
+		<div className="mg-legend-reveal" data-expanded={expanded}>
+			<div style={{ minHeight: 0, overflow: "hidden" }}>{children}</div>
 		</div>
 	)
 }
@@ -306,6 +345,14 @@ export const Legend = memo(function Legend({
 	const [isExpanded, setIsExpanded] = useState(false)
 	const [connectionsExpanded, setConnectionsExpanded] = useState(true)
 
+	useEffect(() => {
+		if (document.getElementById(LEGEND_MOTION_STYLE_ID)) return
+		const style = document.createElement("style")
+		style.id = LEGEND_MOTION_STYLE_ID
+		style.textContent = LEGEND_MOTION_STYLES
+		document.head.appendChild(style)
+	}, [])
+
 	const memoryCount = nodes.filter((n) => n.type === "memory").length
 	const documentCount = nodes.filter((n) => n.type === "document").length
 	const connectionCount = edges.length
@@ -322,7 +369,6 @@ export const Legend = memo(function Legend({
 	const updateNodeCount = nodes.filter(isUpdateMemoryNode).length
 
 	const outerStyle: React.CSSProperties = {
-		overflow: "hidden",
 		width: compact ? "min(214px, calc(100vw - 32px))" : 214,
 		maxWidth: "100%",
 	}
@@ -406,7 +452,7 @@ export const Legend = memo(function Legend({
 	}
 
 	const expandedContentStyle: React.CSSProperties = {
-		marginTop: 16,
+		paddingTop: 16,
 		display: "flex",
 		flexDirection: "column",
 		gap: 16,
@@ -425,19 +471,16 @@ export const Legend = memo(function Legend({
 			<div style={cardStyle}>
 				<div style={{ padding: 12 }}>
 					<button
+						aria-expanded={isExpanded}
 						onClick={() => setIsExpanded(!isExpanded)}
 						style={headerBtnStyle}
 						type="button"
 					>
-						{isExpanded ? (
-							<ChevronDownIcon color={colors.textPrimary} />
-						) : (
-							<ChevronRightIcon color={colors.textPrimary} />
-						)}
+						<LegendChevron color={colors.textPrimary} expanded={isExpanded} />
 						<span style={headerTextStyle}>Legend</span>
 					</button>
 
-					{isExpanded && (
+					<LegendReveal expanded={isExpanded}>
 						<div style={expandedContentStyle}>
 							{/* Statistics section */}
 							<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -654,7 +697,7 @@ export const Legend = memo(function Legend({
 								</div>
 							</div>
 						</div>
-					)}
+					</LegendReveal>
 				</div>
 			</div>
 		</div>
