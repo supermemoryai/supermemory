@@ -43,8 +43,17 @@ export class ViewportState {
 	}
 
 	pan(dx: number, dy: number): void {
+		this.cancelAnimation()
 		this.panX += dx
 		this.panY += dy
+		this.targetPanX = null
+		this.targetPanY = null
+	}
+
+	cancelAnimation(): void {
+		this.velocityX = 0
+		this.velocityY = 0
+		this.targetZoom = this.zoom
 		this.targetPanX = null
 		this.targetPanY = null
 	}
@@ -72,6 +81,7 @@ export class ViewportState {
 		nodes: Array<{ x: number; y: number; size: number }>,
 		width: number,
 		height: number,
+		{ animate = true }: { animate?: boolean } = {},
 	): void {
 		const fit = computeFit(nodes, width, height)
 		if (!fit) return
@@ -83,6 +93,12 @@ export class ViewportState {
 		this.zoomAnchorY = height / 2
 		this.targetPanX = width / 2 - cx * this.targetZoom
 		this.targetPanY = height / 2 - cy * this.targetZoom
+		if (!animate) {
+			this.zoom = this.targetZoom
+			this.panX = this.targetPanX
+			this.panY = this.targetPanY
+			this.cancelAnimation()
+		}
 	}
 
 	setMinZoomForNodes(
@@ -99,7 +115,6 @@ export class ViewportState {
 			ViewportState.ABSOLUTE_MIN_ZOOM,
 			ViewportState.DEFAULT_MIN_ZOOM,
 		)
-		this.zoom = clamp(this.zoom, this.minZoom, ViewportState.MAX_ZOOM)
 		this.targetZoom = clamp(
 			this.targetZoom,
 			this.minZoom,
@@ -132,7 +147,7 @@ export class ViewportState {
 		}
 
 		const zoomDiff = this.targetZoom - this.zoom
-		if (Math.abs(zoomDiff) > 0.001) {
+		if (Math.abs(zoomDiff) > this.zoom * 0.001) {
 			const world = this.screenToWorld(this.zoomAnchorX, this.zoomAnchorY)
 			this.zoom += zoomDiff * this.zoomSpring
 			this.panX = this.zoomAnchorX - world.x * this.zoom

@@ -44,6 +44,10 @@ export const FORCE_CONFIG = {
 	alphaMin: 0.001,
 	velocityDecay: 0.45,
 	alphaTarget: 0.3,
+	settleMeanVelocity: 1,
+	settleMaxVelocity: 3,
+	settleStableTicks: 12,
+	settleMaxTicks: 360,
 	preSettleTicks: 150,
 	densePreSettleTicks: 12,
 }

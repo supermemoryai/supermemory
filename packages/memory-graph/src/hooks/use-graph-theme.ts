@@ -13,6 +13,7 @@ function readCssVar(name: string, fallback: string): string {
 function resolveColors(): GraphThemeColors {
 	return {
 		bg: readCssVar("--graph-bg", DEFAULT_COLORS.bg),
+		dotColor: readCssVar("--graph-dot", "") || undefined,
 		docFill: readCssVar("--graph-doc-fill", DEFAULT_COLORS.docFill),
 		docStroke: readCssVar("--graph-doc-stroke", DEFAULT_COLORS.docStroke),
 		docInnerFill: readCssVar("--graph-doc-inner", DEFAULT_COLORS.docInnerFill),

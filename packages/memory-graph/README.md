@@ -53,7 +53,7 @@ function App() {
 - **Relationship visualization** - Edges show document similarity and memory version chains
 - **Space filtering** - Filter by workspace or view all memories
 - **Two variants** - Full-featured console mode or embedded consumer mode
-- **Pagination support** - Load more documents on demand
+- **Pagination support** - Keep the initial graph fitted as pages arrive; manual pan, zoom, or selection takes control of the view
 - **TypeScript support** - Full type definitions included
 
 ## Essential Props
@@ -66,6 +66,12 @@ function App() {
 | `error` | `Error \| null` | Error to display |
 | `loadMoreDocuments` | `() => Promise<void>` | Function to load more data |
 | `highlightDocumentIds` | `string[]` | IDs of documents to highlight |
+
+Console mode uses the supplied theme colors for its surface, 16px dot grid, document icons, and node fills and strokes. Consumer mode keeps its transparent surface and cluster colors.
+
+Set `colors.dotColor` or the `--graph-dot` CSS variable to style the dot grid independently of text. When neither is set, the grid uses `textMuted`.
+
+For paginated initial loading, pass `hasMore` and `isLoadingMore` alongside `documents`. In both variants, new batches gradually warm the force layout from the existing node positions. Initial and appended nodes relax until their movement stays low, then cool automatically; a tick limit bounds settling for layouts that keep drifting. The initial view smoothly follows the changing bounds until loading and settling finish. Manual interaction immediately cancels automatic camera movement. Clicking a node selects it without restarting the forces; dragging warms the layout until release, including release outside the canvas. Changing the document selection starts a new fit; the Fit control remains available at any time. The existing static layout safeguard for more than 6,000 nodes remains in place.
 
 ## Documentation
 

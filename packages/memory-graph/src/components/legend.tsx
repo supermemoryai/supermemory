@@ -320,6 +320,7 @@ export const Legend = memo(function Legend({
 			.filter(Boolean),
 	).size
 	const updateNodeCount = nodes.filter(isUpdateMemoryNode).length
+	const hasClusterColors = nodes.some((node) => node.clusterColor)
 
 	const outerStyle: React.CSSProperties = {
 		overflow: "hidden",
@@ -571,22 +572,26 @@ export const Legend = memo(function Legend({
 							</div>
 
 							<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-								<span style={sectionLabelStyle}>Color</span>
-								<div style={statusRowStyle}>
-									<ClusterSwatches />
-									<div
-										style={{
-											display: "flex",
-											flexDirection: "column",
-											gap: 2,
-										}}
-									>
-										<span style={edgeLabelStyle}>Cluster</span>
-										<span style={detailTextStyle}>
-											Same document or connected memory group
-										</span>
+								<span style={sectionLabelStyle}>
+									{hasClusterColors ? "Color" : "Clusters"}
+								</span>
+								{hasClusterColors && (
+									<div style={statusRowStyle}>
+										<ClusterSwatches />
+										<div
+											style={{
+												display: "flex",
+												flexDirection: "column",
+												gap: 2,
+											}}
+										>
+											<span style={edgeLabelStyle}>Cluster</span>
+											<span style={detailTextStyle}>
+												Same document or connected memory group
+											</span>
+										</div>
 									</div>
-								</div>
+								)}
 								<div style={rowStyle}>
 									<span style={detailTextStyle}>Visible clusters</span>
 									<span style={countStyle}>{clusterCount}</span>

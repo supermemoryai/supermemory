@@ -6,6 +6,7 @@ export const DENSE_GRAPH_STATIC_THRESHOLD = 6000
 
 export class ForceSimulation {
 	private sim: d3.Simulation<GraphNode, GraphEdge> | null = null
+	private holdingHeat = false
 
 	init(nodes: GraphNode[], edges: GraphEdge[]): void {
 		this.destroy()
@@ -72,7 +73,7 @@ export class ForceSimulation {
 			if (nodes.length > DENSE_GRAPH_STATIC_THRESHOLD) {
 				this.stop()
 			} else {
-				this.sim.alphaTarget(0).restart()
+				this.settle()
 			}
 		} catch (e) {
 			console.error("ForceSimulation.init failed:", e)
@@ -89,22 +90,62 @@ export class ForceSimulation {
 	}
 
 	reheat(): void {
+		this.holdingHeat = true
+		this.sim?.on("tick.settle", null)
 		this.sim?.alphaTarget(FORCE_CONFIG.alphaTarget).restart()
 	}
 
+	settle(): void {
+		const sim = this.sim
+		if (!sim || this.holdingHeat) return
+		let ticks = 0
+		let stableTicks = 0
+		sim
+			.alphaTarget(FORCE_CONFIG.alphaTarget)
+			.on("tick.settle", () => {
+				let squaredVelocity = 0
+				let maxSquaredVelocity = 0
+				const nodes = sim.nodes()
+				for (const node of nodes) {
+					const velocity = (node.vx ?? 0) ** 2 + (node.vy ?? 0) ** 2
+					squaredVelocity += velocity
+					maxSquaredVelocity = Math.max(maxSquaredVelocity, velocity)
+				}
+				const settled =
+					sim.alpha() >= FORCE_CONFIG.alphaTarget * 0.9 &&
+					squaredVelocity / Math.max(1, nodes.length) <=
+						FORCE_CONFIG.settleMeanVelocity ** 2 &&
+					maxSquaredVelocity <= FORCE_CONFIG.settleMaxVelocity ** 2
+				stableTicks = settled ? stableTicks + 1 : 0
+				if (
+					++ticks >= FORCE_CONFIG.settleMaxTicks ||
+					stableTicks >= FORCE_CONFIG.settleStableTicks
+				) {
+					sim.alphaTarget(0).on("tick.settle", null)
+				}
+			})
+			.restart()
+	}
+
 	coolDown(): void {
-		this.sim?.alphaTarget(0)
+		this.holdingHeat = false
+		this.sim?.alphaTarget(0).on("tick.settle", null)
 	}
 
 	stop(): void {
-		this.sim?.alpha(0).alphaTarget(0).stop()
+		this.coolDown()
+		this.sim?.alpha(0).stop()
 	}
 
 	isActive(): boolean {
-		return (this.sim?.alpha() ?? 0) > FORCE_CONFIG.alphaMin
+		return (
+			Math.max(this.sim?.alpha() ?? 0, this.sim?.alphaTarget() ?? 0) >
+			FORCE_CONFIG.alphaMin
+		)
 	}
 
 	destroy(): void {
+		this.holdingHeat = false
 		if (this.sim) {
 			this.sim.stop()
 			this.sim = null

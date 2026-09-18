@@ -99,6 +99,7 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 		const map = nodeMapRef.current
 		map.clear()
 		for (const n of nodes) map.set(n.id, n)
+		inputRef.current?.syncNodes(map)
 		spatialRef.current.rebuild(nodes)
 		renderNeeded.current = true
 	}, [nodes])

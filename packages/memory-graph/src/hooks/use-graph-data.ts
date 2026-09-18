@@ -461,6 +461,7 @@ export function useGraphData(
 	canvasWidth: number,
 	canvasHeight: number,
 	colors: GraphThemeColors,
+	colorMode: "theme" | "cluster" = "cluster",
 ) {
 	const nodeCache = useRef<Map<string, GraphNode>>(new Map())
 
@@ -510,6 +511,7 @@ export function useGraphData(
 		for (let docIdx = 0; docIdx < docCount; docIdx++) {
 			const doc = documents[docIdx]
 			const docCluster = getDocumentClusterAssignment(doc, clusterAssignments)
+			const docColor = colorMode === "cluster" ? docCluster.color : null
 			const angle = docIdx * goldenAngle
 			const radius = spiralScale * Math.sqrt((docIdx + 1) / docCount)
 			const initialX = cx + Math.cos(angle) * radius
@@ -531,9 +533,9 @@ export function useGraphData(
 				docNode = {
 					...previousDocNode,
 					data: docData,
-					borderColor: docCluster.color,
+					borderColor: docColor ?? colors.docStroke,
 					clusterKey: docCluster.key,
-					clusterColor: docCluster.color,
+					clusterColor: docColor,
 					isDragging: draggingNodeId === doc.id,
 				}
 			} else {
@@ -556,9 +558,9 @@ export function useGraphData(
 					y: appendPosition?.y ?? initialY,
 					data: docData,
 					size: 50,
-					borderColor: docCluster.color,
+					borderColor: docColor ?? colors.docStroke,
 					clusterKey: docCluster.key,
-					clusterColor: docCluster.color,
+					clusterColor: docColor,
 					isHovered: false,
 					isDragging: false,
 				}
@@ -581,15 +583,16 @@ export function useGraphData(
 					content: mem.memory,
 				}
 				const cluster = clusterAssignments.get(mem.id)
+				const memoryColor = colorMode === "cluster" ? cluster?.color : undefined
 
 				let memNode: GraphNode
 				if (previousMemNode) {
 					memNode = {
 						...previousMemNode,
 						data: memData,
-						borderColor: getMemoryNodeBorderColor(mem, colors, cluster?.color),
+						borderColor: getMemoryNodeBorderColor(mem, colors, memoryColor),
 						clusterKey: cluster?.key ?? null,
-						clusterColor: cluster?.color ?? null,
+						clusterColor: memoryColor ?? null,
 						isDragging: draggingNodeId === mem.id,
 					}
 				} else {
@@ -601,9 +604,9 @@ export function useGraphData(
 						y: docNode.y + memOffset.y,
 						data: memData,
 						size: 36,
-						borderColor: getMemoryNodeBorderColor(mem, colors, cluster?.color),
+						borderColor: getMemoryNodeBorderColor(mem, colors, memoryColor),
 						clusterKey: cluster?.key ?? null,
-						clusterColor: cluster?.color ?? null,
+						clusterColor: memoryColor ?? null,
 						isHovered: false,
 						isDragging: false,
 					}
@@ -618,7 +621,7 @@ export function useGraphData(
 		}
 
 		return { nodes: result, cache: nextCache }
-	}, [documents, canvasWidth, canvasHeight, draggingNodeId, colors])
+	}, [documents, canvasWidth, canvasHeight, draggingNodeId, colors, colorMode])
 
 	useEffect(() => {
 		nodeCache.current = graphData.cache

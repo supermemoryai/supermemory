@@ -728,8 +728,18 @@ function drawDocumentNode(
 		sx + half,
 		sy + half,
 	)
-	grad.addColorStop(0, mixHexColors(colors.docFill, clusterColor, 0.1))
-	grad.addColorStop(1, mixHexColors(colors.docFill, clusterColor, 0.22))
+	grad.addColorStop(
+		0,
+		node.clusterColor
+			? mixHexColors(colors.docFill, clusterColor, 0.1)
+			: colors.docFill,
+	)
+	grad.addColorStop(
+		1,
+		node.clusterColor
+			? mixHexColors(colors.docFill, clusterColor, 0.22)
+			: colors.docFill,
+	)
 	ctx.fillStyle = grad
 
 	ctx.strokeStyle =
@@ -750,14 +760,23 @@ function drawDocumentNode(
 	const innerSize = size * 0.72
 	const innerHalf = innerSize * 0.5
 	const innerR = 6 * (size / 50)
-	ctx.fillStyle = mixHexColors(colors.docInnerFill, clusterColor, 0.08)
+	ctx.fillStyle = node.clusterColor
+		? mixHexColors(colors.docInnerFill, clusterColor, 0.08)
+		: colors.docInnerFill
 	roundRect(ctx, sx - innerHalf, sy - innerHalf, innerSize, innerSize, innerR)
 	ctx.fill()
 
 	const iconSize = size * 0.35
 	const docType =
 		node.type === "document" ? (node.data as DocumentNodeData).type : "text"
-	drawDocIcon(ctx, sx, sy, iconSize, docType || "text", clusterColor)
+	drawDocIcon(
+		ctx,
+		sx,
+		sy,
+		iconSize,
+		docType || "text",
+		node.clusterColor ? clusterColor : colors.iconColor,
+	)
 }
 
 function drawMemoryNode(

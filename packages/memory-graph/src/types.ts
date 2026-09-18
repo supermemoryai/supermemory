@@ -105,6 +105,7 @@ export interface GraphEdge {
 
 export interface GraphThemeColors {
 	bg: string
+	dotColor?: string
 	docFill: string
 	docStroke: string
 	docInnerFill: string
