@@ -71,6 +71,22 @@ def _field(item: Any, *names: str, default: Any = None) -> Any:
     return default
 
 
+def _memory_text(item: Any) -> str:
+    """First non-empty memory field, mirroring the TypeScript `getMemoryText`.
+
+    `_field` stops at the first value that is not None, so a hybrid-search hit
+    shaped `{"memory": "", "chunk": "..."}` resolves to the empty string and
+    never falls through to `chunk`.
+    """
+    if isinstance(item, str):
+        return item.strip()
+    for name in ("memory", "chunk", "content"):
+        value = _field(item, name)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
 _MEMORY_DATE_PREFIX = re.compile(
     r"^\s*(?:\[recent\]\s*)?(?:\[\d{4}-\d{2}-\d{2}\]\s*)?",
     re.IGNORECASE,
@@ -125,12 +141,7 @@ def deduplicate_memories(
         out = []
         for r in results:
             # v4 search.memories/hybrid uses `memory` or `chunk`.
-            memory = (
-                r if isinstance(r, str) else _field(r, "memory", "chunk", "content", default="")
-            )
-            if not isinstance(memory, str):
-                memory = ""
-            memory = memory.strip()
+            memory = _memory_text(r)
             key = _memory_key(memory)
             if key and key not in seen:
                 seen.add(key)
@@ -177,7 +188,7 @@ def format_memories_to_text(
                 lines.append(f"- {item}")
                 continue
 
-            memory = _field(item, "memory", "chunk", "content", default="")
+            memory = _memory_text(item)
             updated_at = _field(item, "updatedAt", "updated_at", default="")
             time_str = format_relative_time(updated_at) if updated_at else ""
             if time_str:
