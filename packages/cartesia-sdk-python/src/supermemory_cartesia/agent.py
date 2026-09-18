@@ -477,45 +477,46 @@ class SupermemoryCartesiaAgent:
         Yields:
             Output events from the wrapped agent.
         """
+        if type(event).__name__ != "UserTurnEnded":
+            async for output in self.agent.process(env, event):
+                yield output
+            return
+
         try:
-            if type(event).__name__ == "UserTurnEnded":
-                logger.info("[Supermemory] Processing UserTurnEnded event")
-                event, memory_context = await self._enrich_event_with_memories(event)
+            logger.info("[Supermemory] Processing UserTurnEnded event")
+            event, memory_context = await self._enrich_event_with_memories(event)
 
-                # Store conversation in background
-                if hasattr(event, 'history') and event.history:
-                    new_messages = self._new_history_messages(event.history)
-                    if new_messages:
-                        logger.info(
-                            f"[Supermemory] Queuing {len(new_messages)} messages for storage"
-                        )
-                        task = asyncio.create_task(self._store_messages(new_messages))
-                        self._background_tasks.add(task)
-                        task.add_done_callback(self._background_tasks.discard)
-                else:
-                    # No history yet, store just the current user message
-                    current_messages = self._extract_conversation_from_history([event])
-                    if not current_messages:
-                        user_content = self._extract_user_message(event)
-                        if user_content:
-                            current_messages = [{"role": "user", "content": user_content}]
-                    new_messages = self._new_messages_from_sequence(current_messages)
-                    if new_messages:
-                        logger.info("[Supermemory] No history, storing current user message")
-                        task = asyncio.create_task(self._store_messages(new_messages))
-                        self._background_tasks.add(task)
-                        task.add_done_callback(self._background_tasks.discard)
-
-                async for output in self._process_agent(env, event, memory_context):
-                    yield output
+            # Store conversation in background
+            if hasattr(event, 'history') and event.history:
+                new_messages = self._new_history_messages(event.history)
+                if new_messages:
+                    logger.info(
+                        f"[Supermemory] Queuing {len(new_messages)} messages for storage"
+                    )
+                    task = asyncio.create_task(self._store_messages(new_messages))
+                    self._background_tasks.add(task)
+                    task.add_done_callback(self._background_tasks.discard)
             else:
-                async for output in self.agent.process(env, event):
-                    yield output
-
+                # No history yet, store just the current user message
+                current_messages = self._extract_conversation_from_history([event])
+                if not current_messages:
+                    user_content = self._extract_user_message(event)
+                    if user_content:
+                        current_messages = [{"role": "user", "content": user_content}]
+                new_messages = self._new_messages_from_sequence(current_messages)
+                if new_messages:
+                    logger.info("[Supermemory] No history, storing current user message")
+                    task = asyncio.create_task(self._store_messages(new_messages))
+                    self._background_tasks.add(task)
+                    task.add_done_callback(self._background_tasks.discard)
         except Exception as e:
             logger.error(f"[Supermemory] Error in process: {e}")
             async for output in self.agent.process(env, event):
                 yield output
+            return
+
+        async for output in self._process_agent(env, event, memory_context):
+            yield output
 
     def reset_memory_tracking(self) -> None:
         """Reset memory tracking for a new conversation."""
