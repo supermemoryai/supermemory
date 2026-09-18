@@ -5,11 +5,12 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Union
 
 
-def get_last_user_message(messages: List[Dict[str, str]]) -> str | None:
+def get_last_user_message(messages: List[Dict[str, Any]]) -> str | None:
     """Extract the last user message content from a list of messages."""
     for msg in reversed(messages):
-        if msg["role"] == "user":
-            return msg["content"]
+        content = msg.get("content")
+        if msg.get("role") == "user" and isinstance(content, str):
+            return content
     return None
 
 
@@ -124,7 +125,9 @@ def deduplicate_memories(
         out = []
         for r in results:
             # v4 search.memories/hybrid uses `memory` or `chunk`.
-            memory = _field(r, "memory", "chunk", "content", default="")
+            memory = (
+                r if isinstance(r, str) else _field(r, "memory", "chunk", "content", default="")
+            )
             if not isinstance(memory, str):
                 memory = ""
             memory = memory.strip()
