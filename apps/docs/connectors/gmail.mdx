@@ -383,7 +383,7 @@ The Gmail connector requests the following OAuth scopes:
 
 <Warning>
 **Important Limitations:**
-- **Plan requirement**: Requires Scale Plan or Enterprise Plan
+- **Plan requirement**: Requires Max Plan or above
 - **INBOX only** for real-time sync: Only INBOX label triggers real-time updates; other labels sync via scheduled sync
 - **Watch expiration**: Gmail watch subscriptions expire after 7 days (automatically renewed by supermemory)
 - **Document limit**: Default limit is 10,000 threads per connection (configurable via `documentLimit` parameter)
@@ -430,5 +430,5 @@ If real-time sync isn't working:
 If you see permission errors:
 
 - Ensure the user granted the required Gmail scopes during OAuth
-- Verify your organization has Scale Plan or Enterprise Plan access
+- Verify your organization has Max Plan or above access
 - Check if the user revoked app access in their Google Account settings
