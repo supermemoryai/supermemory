@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 import type { SessionInfo } from "../../shared/types"
-import { effectiveContainerTagAccess } from "./rbac"
+import {
+	assertWriteAccess,
+	ContainerTagAccessError,
+	effectiveContainerTagAccess,
+} from "./rbac"
 
 const baseSession: SessionInfo = {
 	user: { id: "user_test" },
@@ -45,5 +49,55 @@ describe("effectiveContainerTagAccess", () => {
 		expect(effectiveContainerTagAccess(["one"], session)).toEqual([
 			{ containerTag: "one", permission: "read" },
 		])
+	})
+})
+
+describe("assertWriteAccess", () => {
+	it("does not throw when the session has write access to the tag", () => {
+		expect(() => assertWriteAccess("one", baseSession)).not.toThrow()
+	})
+
+	it("throws ContainerTagAccessError for a restricted read-only tag", () => {
+		const session: SessionInfo = {
+			...baseSession,
+			accessType: "restricted",
+			containerTags: [{ containerTag: "one", permission: "read" }],
+		}
+
+		expect(() => assertWriteAccess("one", session)).toThrow(
+			ContainerTagAccessError,
+		)
+	})
+
+	it("throws for a tag outside a scoped session's assigned tags", () => {
+		const session: SessionInfo = {
+			...baseSession,
+			scope: { type: "scoped", permission: "write", tags: ["allowed"] },
+		}
+
+		expect(() => assertWriteAccess("other", session)).toThrow(
+			ContainerTagAccessError,
+		)
+	})
+
+	it("throws for a read-only scoped session even on its own tag", () => {
+		const session: SessionInfo = {
+			...baseSession,
+			scope: { type: "scoped", permission: "read", tags: ["one"] },
+		}
+
+		expect(() => assertWriteAccess("one", session)).toThrow(
+			ContainerTagAccessError,
+		)
+	})
+
+	it("does not throw for a restricted member with explicit write access", () => {
+		const session: SessionInfo = {
+			...baseSession,
+			accessType: "restricted",
+			containerTags: [{ containerTag: "one", permission: "write" }],
+		}
+
+		expect(() => assertWriteAccess("one", session)).not.toThrow()
 	})
 })
