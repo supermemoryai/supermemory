@@ -69,10 +69,11 @@ Full provider table, multilingual guidance, remote examples (OpenAI / Gemini / O
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `SUPERMEMORY_EMBEDDING_PROVIDER` | `local`, `openai`, `gemini`, or OpenAI-compatible remote | `local` |
-| `SUPERMEMORY_EMBEDDING_MODEL` | Model id for the chosen provider | `Xenova/bge-base-en-v1.5` |
+| `SUPERMEMORY_EMBEDDING_PROVIDER` | `local`, `openai`, `openai-compatible`, or `gemini` (use `openai-compatible` for Ollama) | `local` |
+| `SUPERMEMORY_EMBEDDING_MODEL` | Model id for the chosen provider (e.g. `Xenova/bge-m3`, `text-embedding-3-small`) | `Xenova/bge-base-en-v1.5` |
 | `SUPERMEMORY_EMBEDDING_DIMENSIONS` | Vector size; must match model and stored data | `768` |
-| `SUPERMEMORY_EMBEDDING_BASE_URL` | Base URL for OpenAI-compatible embedding APIs | unset |
+| `SUPERMEMORY_EMBEDDING_BASE_URL` | Base URL for OpenAI-compatible embedding APIs (Ollama, vLLM) | unset |
+| `SUPERMEMORY_EMBEDDING_API_KEY` | API key for embedding endpoint (falls back to `OPENAI_API_KEY` / `GEMINI_API_KEY`) | unset |
 
 ### Embedding performance
 
