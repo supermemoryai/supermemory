@@ -52,6 +52,7 @@ The client discovers the OAuth authorization server through
 | `get_profile` | Get stable and recent profile context for a space |
 | `list_documents` | List document metadata and summaries in a space |
 | `get_document` | Read one document's available content by ID |
+| `delete_document` | Permanently delete a stored document by ID |
 | `list_memories` | List extracted memory entries and their source document IDs |
 | `list_spaces` | List spaces visible to the authenticated account |
 | `who_am_i` | Return identity, access, and active-space context |
