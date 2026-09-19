@@ -57,13 +57,22 @@ export class ClaudeMemoryTool {
 
 	/**
 	 * Normalize file path to be used as customId
-	 * Converts /memories/file.txt -> memories_file_txt
+	 * Reversibly encodes path components to prevent collisions between paths like
+	 * `/memories/notes.txt`, `/memories/notes_txt`, and `/memories/notes/txt`.
 	 */
-	private normalizePathToCustomId(path: string): string {
+	normalizePathToCustomId(path: string): string {
 		return path
 			.replace(/^\//, "") // Remove leading slash
-			.replace(/\//g, "_") // Replace / with _
-			.replace(/\./g, "_") // Replace . with _
+			.replace(/_/g, "__") // Escape underscores: _ -> __
+			.replace(/\//g, "_s_") // Encode slashes: / -> _s_
+			.replace(/\./g, "_d_") // Encode dots: . -> _d_
+	}
+
+	/**
+	 * Legacy normalization used in older versions (/ and . both flattened to _)
+	 */
+	private legacyNormalizePathToCustomId(path: string): string {
+		return path.replace(/^\//, "").replace(/\//g, "_").replace(/\./g, "_")
 	}
 
 	constructor(apiKey: string, config?: ClaudeMemoryConfig) {
@@ -650,8 +659,12 @@ export class ClaudeMemoryTool {
 				})
 
 				for (const document of response.memories) {
+					const isMatchingCustomId =
+						document.customId === normalizedId ||
+						document.customId === this.legacyNormalizePathToCustomId(filePath)
+
 					if (
-						document.customId === normalizedId &&
+						isMatchingCustomId &&
 						this.getDocumentFilePath(document) === filePath &&
 						this.isDocumentInConfiguredScope(document)
 					) {
@@ -681,8 +694,12 @@ export class ClaudeMemoryTool {
 					hasUnverifiedCandidate = true
 					continue
 				}
+				const isMatchingCustomId =
+					document.customId === normalizedId ||
+					document.customId === this.legacyNormalizePathToCustomId(filePath)
+
 				if (
-					document.customId !== normalizedId ||
+					!isMatchingCustomId ||
 					this.getDocumentFilePath(document) !== filePath ||
 					!this.hasExactContainerTags(document.containerTags)
 				) {

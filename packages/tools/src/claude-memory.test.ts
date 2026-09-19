@@ -210,3 +210,42 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 		expect(stored).toContain(`price is ${dollarSequence} today`)
 	})
 })
+
+describe("ClaudeMemoryTool path normalization collision resistance", () => {
+	it("produces distinct customIds for paths that previously collided", () => {
+		const tool = new ClaudeMemoryTool("test-api-key")
+		const paths = [
+			"/memories/notes.txt",
+			"/memories/notes_txt",
+			"/memories/notes/txt",
+			"/memories/project/a.md",
+			"/memories/project_a.md",
+		]
+
+		const ids = paths.map((path) => tool.normalizePathToCustomId(path))
+		const uniqueIds = new Set(ids)
+
+		expect(uniqueIds.size).toBe(paths.length)
+	})
+
+	it("resolves documents stored under legacy customId format", async () => {
+		// Mock a document saved with legacy normalization (memories_notes_txt)
+		mockDocuments([
+			{
+				id: "legacy-doc",
+				customId: "memories_notes_txt",
+				filePath: "/memories/notes.txt",
+				content: "legacy content",
+			},
+		])
+
+		const tool = new ClaudeMemoryTool("test-api-key")
+		const result = await tool.handleCommand({
+			command: "view",
+			path: "/memories/notes.txt",
+		})
+
+		expect(result.success).toBe(true)
+		expect(result.content).toContain("legacy content")
+	})
+})
