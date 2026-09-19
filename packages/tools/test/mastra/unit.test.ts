@@ -191,6 +191,7 @@ describe("SupermemoryInputProcessor", () => {
 				messageList,
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processInput(args)
@@ -227,6 +228,7 @@ describe("SupermemoryInputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processInput(args1)
@@ -238,6 +240,7 @@ describe("SupermemoryInputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processInput(args2)
@@ -270,6 +273,7 @@ describe("SupermemoryInputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processInput(args1)
@@ -281,6 +285,7 @@ describe("SupermemoryInputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processInput(args2)
@@ -302,6 +307,7 @@ describe("SupermemoryInputProcessor", () => {
 				messageList,
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			const result = await processor.processInput(args)
@@ -333,6 +339,7 @@ describe("SupermemoryInputProcessor", () => {
 				messageList,
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			const result = await processor.processInput(args)
@@ -360,6 +367,7 @@ describe("SupermemoryInputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processInput(args)
@@ -390,6 +398,7 @@ describe("SupermemoryInputProcessor", () => {
 				abort: vi.fn() as never,
 				retryCount: 0,
 				requestContext,
+				state: {},
 			}
 
 			await processor.processInput(args)
@@ -432,6 +441,7 @@ describe("SupermemoryInputProcessor", () => {
 				messageList,
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processInput(args)
@@ -499,6 +509,7 @@ describe("SupermemoryOutputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processOutputResult(args)
@@ -539,6 +550,7 @@ describe("SupermemoryOutputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processOutputResult(args)
@@ -567,6 +579,7 @@ describe("SupermemoryOutputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processOutputResult(args)
@@ -603,6 +616,7 @@ describe("SupermemoryOutputProcessor", () => {
 				abort: vi.fn() as never,
 				retryCount: 0,
 				requestContext,
+				state: {},
 			}
 
 			await processor.processOutputResult(args)
@@ -636,6 +650,7 @@ describe("SupermemoryOutputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processOutputResult(args)
@@ -672,6 +687,7 @@ describe("SupermemoryOutputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processOutputResult(args)
@@ -727,6 +743,7 @@ describe("SupermemoryOutputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processOutputResult(args)
@@ -760,6 +777,7 @@ describe("SupermemoryOutputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			// Should not throw
@@ -779,6 +797,7 @@ describe("SupermemoryOutputProcessor", () => {
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
+				state: {},
 			}
 
 			await processor.processOutputResult(args)
