@@ -1,0 +1,13 @@
+## Agent migration prompt
+
+```text
+Migrate this repository from Supermemory V3/V4 to V5. Start with a checklist of every legacy call site. Follow the linked domain guides, use one explicit namespace per request, preserve changed defaults explicitly during rollout, update response readers, and add side-by-side contract tests. Do not add /v5 to application routes or rewrite unchanged connector routes. Report operations with no V5 replacement instead of inventing substitutes.
+```
+
+## Operations without a direct replacement
+
+- Direct memory creation and version updates: ingest or replace a source document instead.
+- Organization bucket suggestion and organization reset: not part of the V5 public surface.
+- Connector routes that still use `/v3`: unchanged; do not rewrite them.
+
+Use `/v5/reference` for the stable V5 reference. `/reference` always points to the latest public version.

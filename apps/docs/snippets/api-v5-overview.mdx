@@ -1,0 +1,47 @@
+V5 keeps the core ingestion and recall workflows while making scope explicit, consolidating overlapping routes, and tightening request and response types.
+
+<Warning>
+  This is a breaking API migration. Do not change only the URL: fields moved, search defaults changed, response envelopes changed, and some legacy operations have no V5 replacement.
+</Warning>
+
+The API base URL and bearer keys do not change. V5 application routes are unversioned; `/v5/reference` identifies the documentation version, not an API path prefix.
+
+## Recommended migration process
+
+<Steps>
+  <Step title="Inventory every legacy call">
+    Search for `/v3/`, `/v4/`, `containerTag`, `containerTags`, `customId`, `entityContext`, `filterByMetadata`, `filters`, and legacy SDK methods.
+  </Step>
+  <Step title="Resolve one namespace per request">
+    Move the legacy `containerTag` into `/ns/{namespace}`. Never infer scope from a document or memory ID, and never send multiple namespaces to one V5 request.
+  </Step>
+  <Step title="Translate requests by domain">
+    Apply [ingestion](./api-v5-document-writes), [updates](./api-v5-document-updates), [content management](./api-v5-document-reads), [search](./api-v5-recall), [profiles](./api-v5-profiles), [forgetting](./api-v5-memory-forgetting), [namespaces](./api-v5-settings), [organization](./api-v5-organization), and [filter](./api-v5-filters) changes independently.
+  </Step>
+  <Step title="Update response readers">
+    Migrate envelopes, attachments, pagination, profile buckets, system fields, and partial-error handling before switching traffic.
+  </Step>
+  <Step title="Verify legacy and V5 side by side">
+    Follow the [verification and rollout guide](./api-v5-rollout). Compare identity and behavior—not raw JSON ordering—and set changed defaults explicitly during rollout.
+  </Step>
+  <Step title="Cut over one domain at a time">
+    Switch traffic, monitor failures and semantic drift, then remove legacy compatibility code only after that domain passes verification.
+  </Step>
+</Steps>
+
+## Endpoint map
+
+| Legacy | V5 |
+| --- | --- |
+| `POST /v3/documents` | `POST /ns/{namespace}/document` |
+| `POST /v3/documents/batch` | `POST /ns/{namespace}/document/batch` |
+| `POST /v3/documents/file` | `POST /ns/{namespace}/document/file` |
+| `GET/PATCH /v3/documents/{id}` | `GET/PATCH /ns/{namespace}/document/{id}` |
+| Single or bulk document delete | `DELETE /ns/{namespace}/document` |
+| Legacy document or memory lists | `POST /ns/{namespace}/list/{type}` |
+| `POST /v3/search` or `/v4/search` | `POST /ns/{namespace}/search` |
+| `POST /v4/profile` | `POST /ns/{namespace}/profile` |
+| `POST /v4/profile/buckets` | `GET /ns/{namespace}/profile/buckets` |
+| Legacy memory forget routes | `DELETE /ns/{namespace}/memories...` |
+| Container-tag settings and lifecycle | `/namespaces` and `/ns/{namespace}` |
+| `GET/PATCH /v3/settings` | `GET/PATCH /organization` |

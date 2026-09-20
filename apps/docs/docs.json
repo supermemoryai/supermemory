@@ -219,6 +219,23 @@
 								"group": "Migration Guides",
 								"pages": [
 									{
+										"group": "Supermemory API upgrades",
+										"icon": "arrow-up-right",
+										"pages": [
+											"migration/api-v5",
+											"migration/api-v5-document-writes",
+											"migration/api-v5-document-updates",
+											"migration/api-v5-document-reads",
+											"migration/api-v5-recall",
+											"migration/api-v5-profiles",
+											"migration/api-v5-memory-forgetting",
+											"migration/api-v5-settings",
+											"migration/api-v5-organization",
+											"migration/api-v5-filters",
+											"migration/api-v5-rollout"
+										]
+									},
+									{
 										"group": "From another provider",
 										"icon": "truck",
 										"pages": ["migration/from-mem0", "migration/from-zep"]

@@ -1,0 +1,57 @@
+V5 exposes only the organization-wide context needed to guide memory formation. Internal controls and profile bucket mutation are no longer part of this settings resource.
+
+### Endpoint mapping
+
+| Legacy | V5 |
+| --- | --- |
+| `GET /v3/settings` | `GET /organization` |
+| `PATCH /v3/settings` | `PATCH /organization` |
+| `filterPrompt` | `organizationalContext` |
+
+### Read organization settings
+
+```bash
+GET /organization
+```
+
+```json
+{
+  "organizationalContext": "Acme builds security tools for enterprises",
+  "namespaceCount": 42
+}
+```
+
+Remove readers for legacy settings that are not present in this allowlisted response. `namespaceCount` is informational and cannot be changed through PATCH.
+
+### Update organization context
+
+<CodeGroup>
+```bash Legacy
+PATCH /v3/settings
+{"filterPrompt":"Acme builds security tools for enterprises"}
+```
+
+```bash V5
+PATCH /organization
+{"organizationalContext":"Acme builds security tools for enterprises"}
+```
+</CodeGroup>
+
+The field is exhaustive: the supplied value replaces the existing context. Send `null` to remove it. Empty strings are rejected.
+
+Organization updates require an organization administrator. Do not silently fall back to namespace context when the caller receives `403`.
+
+### Removed public operations
+
+- Organization profile-bucket mutation is not exposed through organization settings.
+- Bucket suggestion is not part of V5.
+- Organization data reset is not part of V5.
+- Namespace-owned profile buckets are managed through `/ns/{namespace}/profile/buckets`.
+
+### Verification
+
+- Compare the V5 context with the legacy `filterPrompt` before cutover.
+- Set, replace, and clear organizational context.
+- Confirm `namespaceCount` agrees with `GET /namespaces` for the same credentials.
+- Verify non-admin callers receive `403` on PATCH.
+- Confirm removed fields are not required by downstream configuration code.

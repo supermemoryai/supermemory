@@ -1,0 +1,75 @@
+V5 searches one namespace, defaults to hybrid recall, and moves ranking controls into a typed request body.
+
+### Request mapping
+
+| Legacy | V5 |
+| --- | --- |
+| `containerTag` | `/ns/{namespace}` |
+| body `q` | body `query` |
+| body `limit` | query `limit` |
+| `searchMode: "documents"` | `searchMode=chunks` |
+| omitted search mode | `searchMode=hybrid` |
+| `filters` | singular `filter` |
+| `include.documents` or `.summaries` | `attach.documents` |
+| `include.relatedMemories` | `attach.related` |
+| `include.forgottenMemories` | `attach.forgotten` |
+| `rerank: true` / `aggregate: true` | `rerank: "order"` / `"aggregate"` |
+
+<CodeGroup>
+```bash Legacy
+POST /v4/search
+{"q":"What did the user decide?","containerTag":"user_1","limit":10,"searchMode":"memories"}
+```
+
+```bash V5
+POST /ns/user_1/search?limit=10&searchMode=memories
+{"query":"What did the user decide?","threshold":0.6,"rewriteQuery":false}
+```
+</CodeGroup>
+
+### Changed defaults
+
+| Setting | V4 | V5 |
+| --- | --- | --- |
+| Search mode | `memories` | `hybrid` |
+| Similarity threshold | `0.6` | `0.3` |
+| Reranking | Disabled | `rerank: "none"` |
+| Query rewriting | Disabled | `false` |
+
+Set mode and threshold explicitly while comparing versions. After parity testing, remove them only if you want the broader V5 hybrid defaults.
+
+### Search modes
+
+| Mode | Returns |
+| --- | --- |
+| `memories` | Formed memories only |
+| `chunks` | Source chunks only |
+| `hybrid` | Both result types in one ranked list |
+
+Legacy `include.chunks` has no V5 equivalent. Choose `chunks` or `hybrid` instead.
+
+### Attachments and ranking
+
+- `attach.documents` adds the most relevant source document to each result.
+- `attach.related` adds parent, child, and sibling memories.
+- `attach.forgotten` allows forgotten memories in related context; it does not make them primary results.
+- `rerank` accepts `none`, `order`, or `aggregate`; `rewriteQuery` controls retrieval-oriented query rewriting.
+
+### Response mapping
+
+| Legacy reader | V5 reader |
+| --- | --- |
+| Result array | `results` |
+| Timing | `searchTime` |
+| Source expansion | `result.included.document` |
+| Related context | `result.included.related.{parents,children,siblings}` |
+| Lifecycle fields | `result.system` |
+
+Each primary result contains either `memory`, `chunk`, or both only if the contract allows it. Branch on field presence rather than assuming one result shape.
+
+### Verification
+
+- Compare IDs using explicit V4-equivalent defaults, then test V5 hybrid behavior separately.
+- Cover all three modes, thresholds at `0` and `1`, each rerank option, and query rewriting.
+- Cover every attachment alone and in combination, including empty attachments.
+- Verify filters, namespace isolation, result limits, and invalid body/query placement.
