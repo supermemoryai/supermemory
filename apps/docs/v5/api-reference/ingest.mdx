@@ -1,0 +1,21 @@
+---
+title: "Ingest"
+sidebarTitle: "Overview"
+description: "Turn source content into searchable memory and keep it current"
+icon: "download"
+---
+
+Ingestion gives Supermemory the source material it uses to build searchable context and memories. Add new content or update an existing source without creating a disconnected copy.
+
+| Operation | Purpose |
+| --- | --- |
+| `POST /ns/{namespace}/document` | Add text or a URL; reuse an ID to build on an existing document |
+| `POST /ns/{namespace}/document/batch` | Bring in up to 600 documents together |
+| `POST /ns/{namespace}/document/file` | Turn an uploaded file into searchable memory |
+| `PATCH /ns/{namespace}/document/{id}` | Update metadata or replace canonical content |
+| `POST /ns/{namespace}/document/file/{id}` | Completely replace a file-backed document |
+| `PATCH /ns/{namespace}/document/file/{id}` | Refresh selected file details or its source |
+
+The `dynamic` processing mode (default) groups related documents together so memories form from coherent, logical units rather than one isolated entry at a time. Use `instant` to process each document on its own right away; it bills one extra operation per document.
+
+Every request is scoped to a namespace, keeping each user, project, or tenant isolated. See [document write migration](/migration/api-v5-document-writes).

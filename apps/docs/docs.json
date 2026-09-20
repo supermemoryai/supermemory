@@ -261,98 +261,179 @@
 					{
 						"anchor": "API Reference",
 						"icon": "unplug",
-						"openapi": "https://api.supermemory.ai/v4/openapi",
-						"pages": [
-							"api-reference/overview",
-							"authentication",
+						"versions": [
 							{
-								"group": "Ingest",
-								"icon": "download",
+								"version": "Legacy (V3, V4)",
+								"openapi": "https://api.supermemory.ai/v4/openapi",
 								"pages": [
-									"api-reference/ingest",
-									"POST /v3/documents",
-									"POST /v3/documents/file",
-									"POST /v3/documents/batch",
-									"POST /v4/conversations",
-									"GET /v3/documents/{id}"
+									"api-reference/overview",
+									"authentication",
+									{
+										"group": "Ingest",
+										"icon": "download",
+										"pages": [
+											"api-reference/ingest",
+											"POST /v3/documents",
+											"POST /v3/documents/file",
+											"POST /v3/documents/batch",
+											"POST /v4/conversations",
+											"GET /v3/documents/{id}"
+										]
+									},
+									{
+										"group": "Recall",
+										"icon": "search",
+										"pages": [
+											"api-reference/search",
+											"POST /v4/search",
+											"POST /v3/search",
+											"api-reference/profiles",
+											"POST /v4/profile",
+											"POST /v4/profile/buckets"
+										]
+									},
+									{
+										"group": "Documents",
+										"icon": "file-text",
+										"pages": [
+											"api-reference/documents",
+											"POST /v3/documents/list",
+											"GET /v3/documents/processing",
+											"PATCH /v3/documents/{id}",
+											"DELETE /v3/documents/{id}",
+											"DELETE /v3/documents/bulk",
+											"GET /v3/documents/{id}/chunks",
+											"GET /v3/documents/{id}/file-url"
+										]
+									},
+									{
+										"group": "Memories",
+										"icon": "database",
+										"pages": [
+											"api-reference/memories",
+											"POST /v4/memories",
+											"POST /v4/memories/list",
+											"PATCH /v4/memories",
+											"DELETE /v4/memories",
+											"POST /v4/memories/forget-matching"
+										]
+									},
+									{
+										"group": "Container tags",
+										"icon": "tags",
+										"pages": [
+											"api-reference/container-tags",
+											"GET /v3/container-tags/{containerTag}",
+											"PATCH /v3/container-tags/{containerTag}",
+											"DELETE /v3/container-tags/{containerTag}",
+											"POST /v3/container-tags/merge",
+											"GET /v3/container-tags/merge/{mergeId}"
+										]
+									},
+									{
+										"group": "Connections",
+										"icon": "plug",
+										"pages": [
+											"api-reference/connections",
+											"POST /v3/connections/{provider}",
+											"POST /v3/connections/list",
+											"GET /v3/connections/{connectionId}",
+											"POST /v3/connections/{connectionId}/configure",
+											"GET /v3/connections/{connectionId}/resources",
+											"POST /v3/connections/{provider}/import",
+											"POST /v3/connections/{provider}/documents",
+											"POST /v3/connections/{provider}/connection",
+											"DELETE /v3/connections/{connectionId}",
+											"DELETE /v3/connections/{provider}"
+										]
+									},
+									{
+										"group": "Settings",
+										"icon": "settings",
+										"pages": [
+											"api-reference/settings",
+											"GET /v3/settings",
+											"PATCH /v3/settings",
+											"POST /v3/settings/suggest-buckets",
+											"POST /v3/settings/reset"
+										]
+									}
 								]
 							},
 							{
-								"group": "Recall",
-								"icon": "search",
+								"version": "Latest (V5)",
+								"default": true,
+								"openapi": {
+									"source": "https://api.supermemory.ai/v5/openapi",
+									"directory": "v5/api-reference"
+								},
 								"pages": [
-									"api-reference/search",
-									"POST /v4/search",
-									"POST /v3/search",
-									"api-reference/profiles",
-									"POST /v4/profile",
-									"POST /v4/profile/buckets"
-								]
-							},
-							{
-								"group": "Documents",
-								"icon": "file-text",
-								"pages": [
-									"api-reference/documents",
-									"POST /v3/documents/list",
-									"GET /v3/documents/processing",
-									"PATCH /v3/documents/{id}",
-									"DELETE /v3/documents/{id}",
-									"DELETE /v3/documents/bulk",
-									"GET /v3/documents/{id}/chunks",
-									"GET /v3/documents/{id}/file-url"
-								]
-							},
-							{
-								"group": "Memories",
-								"icon": "database",
-								"pages": [
-									"api-reference/memories",
-									"POST /v4/memories",
-									"POST /v4/memories/list",
-									"PATCH /v4/memories",
-									"DELETE /v4/memories",
-									"POST /v4/memories/forget-matching"
-								]
-							},
-							{
-								"group": "Container tags",
-								"icon": "tags",
-								"pages": [
-									"api-reference/container-tags",
-									"GET /v3/container-tags/{containerTag}",
-									"PATCH /v3/container-tags/{containerTag}",
-									"DELETE /v3/container-tags/{containerTag}",
-									"POST /v3/container-tags/merge",
-									"GET /v3/container-tags/merge/{mergeId}"
-								]
-							},
-							{
-								"group": "Connections",
-								"icon": "plug",
-								"pages": [
-									"api-reference/connections",
-									"POST /v3/connections/{provider}",
-									"POST /v3/connections/list",
-									"GET /v3/connections/{connectionId}",
-									"POST /v3/connections/{connectionId}/configure",
-									"GET /v3/connections/{connectionId}/resources",
-									"POST /v3/connections/{provider}/import",
-									"POST /v3/connections/{provider}/documents",
-									"POST /v3/connections/{provider}/connection",
-									"DELETE /v3/connections/{connectionId}",
-									"DELETE /v3/connections/{provider}"
-								]
-							},
-							{
-								"group": "Settings",
-								"icon": "settings",
-								"pages": [
-									"api-reference/settings",
-									"GET /v3/settings",
-									"PATCH /v3/settings",
-									"POST /v3/settings/suggest-buckets",
-									"POST /v3/settings/reset"
+									"v5/api-reference/overview",
+									"authentication",
+									{
+										"group": "Ingest",
+										"icon": "download",
+										"pages": [
+											"v5/api-reference/ingest",
+											"POST /ns/{namespace}/document",
+											"POST /ns/{namespace}/document/batch",
+											"POST /ns/{namespace}/document/file",
+											"PATCH /ns/{namespace}/document/{id}",
+											"POST /ns/{namespace}/document/file/{id}",
+											"PATCH /ns/{namespace}/document/file/{id}"
+										]
+									},
+									{
+										"group": "Content Management",
+										"icon": "file-text",
+										"pages": [
+											"v5/api-reference/content-management",
+											"GET /ns/{namespace}/document/{id}",
+											"POST /ns/{namespace}/list/{type}",
+											"DELETE /ns/{namespace}/document",
+											"DELETE /ns/{namespace}/memories",
+											"DELETE /ns/{namespace}/memories/semantic"
+										]
+									},
+									{
+										"group": "Search",
+										"icon": "search",
+										"pages": [
+											"v5/api-reference/search",
+											"POST /ns/{namespace}/search"
+										]
+									},
+									{
+										"group": "Profiles",
+										"icon": "id-card",
+										"pages": [
+											"v5/api-reference/profiles",
+											"POST /ns/{namespace}/profile",
+											"GET /ns/{namespace}/profile/buckets",
+											"PUT /ns/{namespace}/profile/buckets",
+											"DELETE /ns/{namespace}/profile/buckets"
+										]
+									},
+									{
+										"group": "Namespaces",
+										"icon": "layers",
+										"pages": [
+											"v5/api-reference/namespaces",
+											"GET /namespaces",
+											"GET /ns/{namespace}",
+											"PATCH /ns/{namespace}",
+											"DELETE /ns/{namespace}"
+										]
+									},
+									{
+										"group": "Organization",
+										"icon": "building",
+										"pages": [
+											"v5/api-reference/organization",
+											"GET /organization",
+											"PATCH /organization"
+										]
+									}
 								]
 							}
 						]
