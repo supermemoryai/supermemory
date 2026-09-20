@@ -1,0 +1,68 @@
+V5 uses one optional singular `filter` field for search, profiles, and list operations.
+
+### Shape
+
+```ts
+type Filter =
+  | { field: string; operator: "eq" | "neq"; value: string; caseSensitive?: boolean }
+  | { field: string; operator: "eq" | "neq"; value: number | boolean }
+  | { field: string; operator: "gt" | "gte" | "lt" | "lte"; value: number }
+  | { field: string; operator: "contains" | "notContains"; value: string; caseSensitive?: boolean }
+  | { field: string; operator: "arrayContains" | "arrayNotContains"; value: string }
+  | { operator: "and" | "or"; operands: Filter[] };
+```
+
+Fields may contain letters, numbers, `_`, `.`, and `-`. Expressions allow up to five nested levels and 200 operands per logical group.
+
+### Operator mapping
+
+| Legacy condition | V5 predicate |
+| --- | --- |
+| `{ key, value }` | `{ field: key, operator: "eq", value }` |
+| `negate: true` equality | `operator: "neq"` |
+| `filterType: "string_contains"` | `operator: "contains"` |
+| contains + `negate: true` | `operator: "notContains"` |
+| `filterType: "array_contains"` | `operator: "arrayContains"` |
+| array contains + `negate: true` | `operator: "arrayNotContains"` |
+| numeric `=` / numeric `=` + `negate: true` | `eq` / `neq` with a JSON number |
+| numeric `>`, `>=`, `<`, `<=` | `gt`, `gte`, `lt`, `lte` |
+| `AND` / `OR` arrays | lowercase `and` / `or` with `operands` |
+| `ignoreCase: true` | `caseSensitive: false` |
+
+### Before and after
+
+<CodeGroup>
+```json Legacy
+{
+  "AND": [
+    { "key": "category", "value": "research" },
+    { "key": "score", "value": 0.8, "filterType": "numeric", "numericOperator": ">=" }
+  ]
+}
+```
+
+```json V5
+{
+  "operator": "and",
+  "operands": [
+    { "field": "category", "operator": "eq", "value": "research" },
+    { "field": "score", "operator": "gte", "value": 0.8 }
+  ]
+}
+```
+</CodeGroup>
+
+### Deterministic conversion
+
+1. Rename outer `filters` to `filter`.
+2. Recursively replace `AND`/`OR` objects with `{ operator, operands }`.
+3. Rename `key` to `field`.
+4. Convert legacy flags into one explicit operator.
+5. Keep numeric values as JSON numbers rather than numeric strings.
+6. Remove legacy `filterType`, `negate`, `numericOperator`, and `ignoreCase` keys.
+
+### Verification
+
+- Compare result IDs for equality, inequality, contains, numeric, array, nested AND, and nested OR fixtures.
+- Add negative tests: legacy shapes, empty operands, incompatible value types, and unknown keys must return `400`.
+- Confirm omitted `filter` preserves unfiltered behavior.

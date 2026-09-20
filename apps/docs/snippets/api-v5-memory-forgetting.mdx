@@ -1,0 +1,67 @@
+V5 scopes forgetting to one namespace and returns the same result envelope for exact and semantic requests.
+
+### Choose exact or semantic forgetting
+
+| Intent | V5 operation |
+| --- | --- |
+| Forget reviewed memory IDs | `DELETE /ns/{namespace}/memories` |
+| Find memories by meaning | `DELETE /ns/{namespace}/memories/semantic` |
+
+### Forget exact IDs
+
+```bash
+DELETE /ns/user_1/memories
+Content-Type: application/json
+
+{"ids":["mem_1","mem_2"]}
+```
+
+Send 1–500 IDs. The response reports successful IDs in `matches` and missing or ineligible IDs in `errors`, so HTTP success does not imply every requested ID changed.
+
+### Preview a semantic request
+
+```bash
+DELETE /ns/user_1/memories/semantic
+Content-Type: application/json
+
+{"query":"outdated home address","dryRun":true}
+```
+
+`dryRun: true` performs selection without changing memory state. `dryRun: false` forgets the memories selected when that request executes.
+
+### Avoid selection drift
+
+```text
+semantic request with dryRun: true
+                |
+                v
+review matches[].id
+                |
+                v
+exact DELETE with reviewed IDs
+```
+
+Use this workflow when a human or policy must approve the exact set. Re-running the semantic request with `dryRun: false` can select a different set if memories changed after preview.
+
+### Read the normalized response
+
+```json
+{
+  "count": 1,
+  "matches": [{ "id": "mem_1", "memory": "Old address" }],
+  "errors": [{ "id": "mem_2", "error": "Memory not found" }]
+}
+```
+
+`count` always equals `matches.length`. Both dry-run and applied semantic requests use this shape; the payload alone does not replace your record of which mode was sent.
+
+### Removed memory-write routes
+
+Direct V4 memory creation and version updates have no V5 replacement. Ingest source material through document routes and update the canonical document when facts change.
+
+### Verification
+
+- Exercise all-success, partial-success, duplicate, unknown, and cross-namespace ID sets.
+- Confirm dry runs leave matched memories recallable.
+- Apply reviewed IDs exactly and confirm normal recall excludes them.
+- Persist the request mode alongside audit logs for semantic operations.

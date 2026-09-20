@@ -1,0 +1,63 @@
+V5 renames the public isolation boundary from container tag to namespace. Existing values remain valid identifiers; no stored data rename is required.
+
+### Endpoint mapping
+
+| Legacy | V5 |
+| --- | --- |
+| `GET /v3/container-tags/list` | `GET /namespaces` |
+| `GET /v3/container-tags/{tag}` | `GET /ns/{namespace}` |
+| `PATCH /v3/container-tags/{tag}` | `PATCH /ns/{namespace}` |
+| `DELETE /v3/container-tags/{tag}` | `DELETE /ns/{namespace}` |
+| Merge container tags | `DELETE /ns/{source}` with `{ "moveTo": "target" }` |
+
+`GET /ns` is an alias for `GET /namespaces`. Prefer `/namespaces` in new integrations.
+
+### List namespaces
+
+Each entry now exposes `id`, `namespace`, `documentCount`, `memoryCount`, nullable `description`, and `system.createdAt/updatedAt`. Update readers that still expect `containerTag`, flat timestamps, or unbounded internal settings.
+
+### Read and update settings
+
+<CodeGroup>
+```bash Legacy
+PATCH /v3/container-tags/project_alpha
+{"entityContext":"Research project for distributed systems"}
+```
+
+```bash V5
+PATCH /ns/project_alpha
+{"supportingContext":"Research project for distributed systems"}
+```
+</CodeGroup>
+
+The public GET and PATCH shapes contain only `namespace`, `supportingContext`, and lifecycle timestamps. Profile buckets have their own `/profile/buckets` resource and are not namespace settings.
+
+Send `supportingContext: null` to remove existing context. Omitting the field entirely is invalid because PATCH requires at least one supported setting.
+
+### Permanently delete a namespace
+
+```bash
+DELETE /ns/project_alpha
+{}
+```
+
+With no `moveTo`, deletion is synchronous and returns `200` with `deletedDocumentsCount` and `deletedMemoriesCount`. This removes the namespace and its content.
+
+### Move then remove a namespace
+
+```bash
+DELETE /ns/project_alpha
+{"moveTo":"project_archive"}
+```
+
+This returns `202` with `status: "queued"` and `operationId`. The destination must differ from the source. Do not treat acceptance as completed migration.
+
+Legacy merge can accept multiple sources; V5 moves one source per request. Run multi-source migrations sequentially and record each operation independently.
+
+### Verification
+
+- Confirm existing container-tag values resolve unchanged as namespace paths.
+- Compare namespace counts with namespace-scoped document and memory lists.
+- Verify a permanent delete returns final counts while a move returns `202`.
+- Verify restricted callers cannot read or mutate namespaces outside their scope.
+- Verify only organization-authorized callers can change settings or lifecycle.

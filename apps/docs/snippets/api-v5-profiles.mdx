@@ -1,0 +1,75 @@
+V5 returns a maintained profile directly and gives profile bucket definitions their own namespace-scoped resource.
+
+### Remove search behavior from profile calls
+
+<CodeGroup>
+```bash Legacy
+POST /v4/profile
+{"containerTag":"user_1","q":"work preferences","threshold":0.6,"include":{}}
+```
+
+```bash V5
+POST /ns/user_1/profile
+{"filter":{"field":"region","operator":"eq","value":"us-west"},"buckets":["work"]}
+```
+</CodeGroup>
+
+Remove legacy `q`, `threshold`, and `include`. If the caller needs query-ranked results, issue a separate V5 search request. Move `containerTag` to the path and rename `filters` to singular `filter`.
+
+### Read the V5 profile shape
+
+```json
+{
+  "profile": {
+    "static": ["The user works in design"],
+    "dynamic": ["The user is preparing a launch"],
+    "buckets": { "work": ["Prefers concise project updates"] }
+  }
+}
+```
+
+`static` and `dynamic` are always returned and cannot be disabled. Omit `buckets` in the request to return every effective custom bucket; pass up to 50 names to narrow only the bucket section.
+
+### Read bucket definitions
+
+<CodeGroup>
+```bash Legacy
+POST /v4/profile/buckets
+{"containerTag":"user_1"}
+```
+
+```bash V5
+GET /ns/user_1/profile/buckets
+```
+</CodeGroup>
+
+The response changes from key/description objects to a map:
+
+```json
+{"buckets":{"work":"Professional preferences and ongoing work"}}
+```
+
+### Add or edit namespace buckets
+
+```bash
+PUT /ns/user_1/profile/buckets
+{"buckets":{"work":"Professional preferences and ongoing work"}}
+```
+
+Send one to 50 name-to-description entries. Existing namespace names are updated, new names are added, and omitted namespace buckets remain unchanged.
+
+### Delete namespace buckets
+
+```bash
+DELETE /ns/user_1/profile/buckets
+{"buckets":["work"]}
+```
+
+Names must be unique. Organization-owned buckets can appear in the effective GET response but cannot be changed or removed through namespace PUT or DELETE calls.
+
+### Verification
+
+- Confirm every profile response contains `static`, `dynamic`, and `buckets`.
+- Compare omitted buckets with one-name and multi-name narrowing.
+- Add, edit, and delete a namespace bucket without replacing omitted buckets.
+- Attempt to mutate an inherited organization bucket and expect the documented error.

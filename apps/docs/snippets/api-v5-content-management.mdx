@@ -1,0 +1,73 @@
+V5 retrieves, lists, and removes content within one explicit namespace.
+
+### Retrieve a document and its derived context
+
+<CodeGroup>
+```bash Legacy
+GET /v3/documents/{id}
+GET /v3/documents/{id}/chunks
+```
+
+```bash V5
+GET /ns/{namespace}/document/{id}?attach=chunks&attach=memories
+```
+</CodeGroup>
+
+Repeat `attach` to include chunks, memories, or both. Omitted attachment keys are absent; requested attachments with no results are empty arrays. Lifecycle fields move under `system`:
+
+```json
+{"system":{"status":"done","createdAt":"...","updatedAt":"..."}}
+```
+
+### List documents, chunks, or memories
+
+<CodeGroup>
+```bash Legacy
+POST /v3/documents/list
+POST /v4/memories/list
+```
+
+```bash V5
+POST /ns/{namespace}/list/{type}?page=1&limit=100&sort=createdAt&order=desc
+{}
+```
+</CodeGroup>
+
+Set `type` to `documents`, `chunks`, or `memories`. Pagination and sorting move to the query string; the body contains only optional `filter`.
+
+Every response contains `documents`, `chunks`, `memories`, and `pagination`. Only the selected resource array is populated. Replace legacy `memories` assumptions in document-list callers with `documents`.
+
+### Delete documents
+
+<CodeGroup>
+```bash Legacy
+DELETE /v3/documents/{id}
+DELETE /v3/documents/bulk
+```
+
+```bash V5
+DELETE /ns/{namespace}/document
+{"ids":["doc_1","external_id_2"]}
+```
+</CodeGroup>
+
+The V5 array accepts 1–100 Supermemory or caller-defined IDs. Inspect both `deletedCount` and per-ID `errors`; HTTP success can include partial failures.
+
+### Forget memories
+
+| Legacy intent | V5 operation |
+| --- | --- |
+| Forget exact IDs | `DELETE /ns/{namespace}/memories` with `{ "ids": [...] }` |
+| Find memories by meaning | `DELETE /ns/{namespace}/memories/semantic` with `{ "query": "...", "dryRun": true }` |
+
+Both return `{ count, matches, errors }`. For drift-free semantic deletion, preview with `dryRun: true`, review the IDs, then submit them to the exact-ID endpoint.
+
+See [memory forgetting](./api-v5-memory-forgetting) for the complete dry-run, approval, response, and audit workflow.
+
+### Verification
+
+- Assert requested empty attachments are `[]`, while omitted attachments are absent.
+- Paginate each resource type until `currentPage >= totalPages`; unselected arrays stay empty.
+- Verify chunk rows contain their parent `documentId`.
+- Exercise partial document-delete failures and semantic dry runs.
+- Verify IDs cannot read, list, or delete content outside their namespace.

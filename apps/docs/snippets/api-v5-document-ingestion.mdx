@@ -1,0 +1,70 @@
+V5 moves document scope into the URL and keeps repeated caller IDs attached to one evolving document.
+
+### Rename common fields
+
+| Legacy | V5 | Location |
+| --- | --- | --- |
+| `containerTag` | `{namespace}` | Path |
+| `customId` | `id` | JSON body |
+| `entityContext` | `supportingContext` | JSON/form body |
+| `filterByMetadata` | `group` | JSON/form body |
+| `documentDate` | `date` | JSON/form body |
+| `taskType`, `dreaming` | unchanged | Query string |
+
+### Add or append one document
+
+<CodeGroup>
+```bash Legacy
+POST /v3/documents
+{"content":"new turn","customId":"conv_1","containerTag":"user_1"}
+```
+
+```bash V5
+POST /ns/user_1/document?dreaming=dynamic
+{"content":"new turn","id":"conv_1"}
+```
+</CodeGroup>
+
+The response remains an acceptance result with `id` and `status`. Repeating the V5 request with `id: "conv_1"` adds or diffs the new content into that document; it does not silently replace the canonical source.
+
+### Batch ingestion
+
+<CodeGroup>
+```json Legacy
+{"documents":["first","second"],"containerTag":"user_1"}
+```
+
+```json V5
+{"documents":[{"content":"first","id":"doc_1"},{"content":"second","id":"doc_2"}]}
+```
+</CodeGroup>
+
+Send the V5 body to `POST /ns/user_1/document/batch`. The array accepts 1–600 document objects. Namespace, `taskType`, and processing mode apply to the request; document content, ID, context, metadata, grouping, and date stay per item.
+
+Batch results preserve input order. Inspect `success`, `failed`, and every item in `results`; a batch can contain successful and failed items together.
+
+### File ingestion
+
+Replace `POST /v3/documents/file` with `POST /ns/{namespace}/document/file`. Continue using `multipart/form-data`:
+
+| Part | Encoding |
+| --- | --- |
+| `file` | Binary file |
+| `supportingContext`, `date` | Plain strings |
+| `metadata`, `group` | JSON-encoded strings |
+| `fileType`, `mimeType` | Query parameters when inference is insufficient |
+
+The API acknowledges the file after durable acceptance. Extraction, indexing, and memory formation continue asynchronously; poll the document rather than assuming the first response means processing is complete.
+
+### Processing choices
+
+- `taskType=memory` extracts long-term memories; `taskType=superrag` indexes source context without memory generation.
+- `dreaming=dynamic` (default) groups related documents into coherent memory units.
+- `dreaming=instant` processes each document independently and bills one extra operation per document.
+
+### Verification
+
+- Ingest text, a public URL, and a file, then wait for each document to finish processing.
+- Repeat a caller-defined ID and confirm append/diff behavior instead of replacement.
+- Submit a mixed-success batch and verify result order and per-item errors.
+- Confirm metadata and grouping remain filterable after processing.
