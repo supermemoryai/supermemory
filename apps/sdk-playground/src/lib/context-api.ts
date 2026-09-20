@@ -152,19 +152,48 @@ export async function fetchContainerContext(
 	const client = getSupermemoryClient(apiKey)
 	const profile = await fetchProfileContext(client, containerTag, query)
 
-	const docsResponse = await client.post<{
-		documents?: unknown[]
-		pagination?: unknown
-	}>("/v3/documents/documents", {
-		body: {
-			containerTags: [containerTag],
-			limit: 25,
-			sort: "createdAt",
-			order: "desc",
-		},
-	})
+	async function fetchDocs() {
+		try {
+			return await client.post<{
+				documents?: unknown[]
+				memories?: unknown[]
+				pagination?: unknown
+			}>("/v3/documents/documents", {
+				body: {
+					containerTags: [containerTag],
+					limit: 25,
+					sort: "createdAt",
+					order: "desc",
+				},
+			})
+		} catch (error) {
+			// Fallback for servers without the rich graph endpoint (see #1672):
+			// supermemory-server 0.0.8 returns 404 for /documents/documents.
+			// POST /v3/documents/list exists on both cloud and self-hosted.
+			const status =
+				typeof error === "object" && error !== null && "status" in error
+					? (error as { status?: unknown }).status
+					: undefined
+			const message = error instanceof Error ? error.message : String(error)
+			if (status !== 404 && !message.includes("404")) throw error
+			return await client.post<{
+				documents?: unknown[]
+				memories?: unknown[]
+				pagination?: unknown
+			}>("/v3/documents/list", {
+				body: {
+					containerTags: [containerTag],
+					limit: 25,
+					sort: "createdAt",
+					order: "desc",
+				},
+			})
+		}
+	}
 
-	const rawDocuments = docsResponse.documents ?? []
+	const docsResponse = await fetchDocs()
+
+	const rawDocuments = docsResponse.documents ?? docsResponse.memories ?? []
 	const documents = rawDocuments.map((doc) => {
 		const record = doc as Record<string, unknown>
 		return {

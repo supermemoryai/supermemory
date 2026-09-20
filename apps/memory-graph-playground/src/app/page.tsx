@@ -113,7 +113,14 @@ function toGraphDocuments(docs: PlaygroundApiDocument[]): GraphApiDocument[] {
 }
 
 export default function Home() {
-	const [apiKey, setApiKey] = useState("")
+	const [apiKey, setApiKey] = useState(() => {
+		if (typeof window === "undefined") return ""
+		try {
+			return window.localStorage.getItem("supermemory-api-key") ?? ""
+		} catch {
+			return ""
+		}
+	})
 	const [containerTag, setContainerTag] = useState("")
 	const [containerTags, setContainerTags] = useState<ContainerTagOption[]>([])
 	const [isLoadingContainerTags, setIsLoadingContainerTags] = useState(false)
@@ -139,6 +146,20 @@ export default function Home() {
 	const [mockData, setMockData] = useState<{
 		documents: GraphApiDocument[]
 	} | null>(null)
+
+	// Persist API key so all graph calls send `Authorization: Bearer <key>`
+	// (see #1672 — unauthenticated calls 401 on non-localhost hosts).
+	useEffect(() => {
+		try {
+			if (apiKey) {
+				window.localStorage.setItem("supermemory-api-key", apiKey)
+			} else {
+				window.localStorage.removeItem("supermemory-api-key")
+			}
+		} catch {
+			// ignore storage errors (private mode, etc.)
+		}
+	}, [apiKey])
 
 	const selectedContainerTags = useMemo(() => {
 		const trimmed = containerTag.trim()

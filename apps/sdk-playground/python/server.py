@@ -484,23 +484,35 @@ async def fetch_container_context(
         timeout=HTTP_TIMEOUT_SECONDS,
         follow_redirects=False,
     ) as http:
+        headers = {
+            "Authorization": f"Bearer {sm_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "containerTags": [container_tag],
+            "limit": 25,
+            "sort": "createdAt",
+            "order": "desc",
+        }
         docs_response = await http.post(
             f"{base_url}/v3/documents/documents",
-            headers={
-                "Authorization": f"Bearer {sm_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "containerTags": [container_tag],
-                "limit": 25,
-                "sort": "createdAt",
-                "order": "desc",
-            },
+            headers=headers,
+            json=payload,
         )
+        # Fallback for servers without the rich graph endpoint (see #1672):
+        # supermemory-server 0.0.8 returns 404 for /documents/documents.
+        # POST /v3/documents/list exists on both cloud and self-hosted.
+        if docs_response.status_code == 404:
+            docs_response = await http.post(
+                f"{base_url}/v3/documents/list",
+                headers=headers,
+                json=payload,
+            )
         docs_response.raise_for_status()
         docs = docs_response.json()
 
-    raw_documents = docs.get("documents", []) if isinstance(docs, dict) else []
+    if isinstance(docs, dict):
+        raw_documents = docs.get("documents", []) or docs.get("memories", [])
 
     documents = []
     for doc in raw_documents:

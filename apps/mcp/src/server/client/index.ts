@@ -337,22 +337,72 @@ export class SupermemoryClient {
 	): Promise<DocumentsApiResponse> {
 		try {
 			const signal = options?.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS)
-			const response = await fetch(`${this.apiUrl}/v3/documents/documents`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${this.bearerToken}`,
-					"Content-Type": "application/json",
-					"x-sm-source": MCP_SOURCE,
-				},
-				body: JSON.stringify({
-					page,
-					limit,
-					sort: "createdAt",
-					order: "desc",
-					containerTags,
-				}),
-				signal,
+			const headers = {
+				Authorization: `Bearer ${this.bearerToken}`,
+				"Content-Type": "application/json",
+				"x-sm-source": MCP_SOURCE,
+			}
+			const body = JSON.stringify({
+				page,
+				limit,
+				sort: "createdAt",
+				order: "desc",
+				containerTags,
 			})
+
+			const postDocuments = async (path: string) =>
+				fetch(`${this.apiUrl}${path}`, {
+					method: "POST",
+					headers,
+					body,
+					signal,
+				})
+
+			let response = await postDocuments("/v3/documents/documents")
+
+			// Fallback for servers without the rich graph endpoint (see #1672):
+			// POST /v3/documents/list exists on both cloud and self-hosted
+			// (supermemory-server 0.0.8 returns 404 for /documents/documents).
+			if (response.status === 404) {
+				response = await postDocuments("/v3/documents/list")
+				if (!response.ok) {
+					const message = extractApiErrorMessage(await response.text())
+					throw Object.assign(new Error(message ?? ""), {
+						status: response.status,
+					})
+				}
+				const listData = (await response.json()) as {
+					memories?: Array<Record<string, unknown>>
+					pagination?: DocumentsApiResponse["pagination"]
+				}
+				const memories = Array.isArray(listData.memories)
+					? listData.memories
+					: []
+				return documentsApiResponseSchema.parse({
+					documents: memories.map((mem) => ({
+						id: String(mem.id ?? ""),
+						title: (mem.title as string | null | undefined) ?? null,
+						summary: (mem.summary as string | null | undefined) ?? null,
+						type: (mem.type as string | undefined) ?? "unknown",
+						createdAt: String(
+							(mem.createdAt as string | undefined) ??
+								new Date(0).toISOString(),
+						),
+						updatedAt: String(
+							(mem.updatedAt as string | undefined) ??
+								new Date(0).toISOString(),
+						),
+						memoryEntries: [],
+					})),
+					pagination: listData.pagination ?? {
+						currentPage: page,
+						limit,
+						totalItems: memories.length,
+						totalPages: 1,
+					},
+				})
+			}
+
 			if (!response.ok) {
 				const message = extractApiErrorMessage(await response.text())
 				throw Object.assign(new Error(message ?? ""), {
