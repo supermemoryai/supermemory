@@ -1,0 +1,91 @@
+V5 moves document scope into the URL and keeps a repeated caller-supplied ID attached to one evolving document instead of creating a new one each time.
+
+### Rename common fields
+
+| Legacy | V5 | Location |
+| --- | --- | --- |
+| `containerTag` | `{namespace}` | Path |
+| `customId` | `id` | JSON body |
+| `entityContext` | `supportingContext` | JSON / form body |
+| `filterByMetadata` | `group` | JSON / form body |
+| `documentDate` | `date` | JSON / form body |
+| `taskType`, `dreaming` | unchanged | Query string |
+
+In the legacy schema these live in `MemoryUpdateSchema` (`customId`,
+`entityContext`, `metadata`, `containerTags`) and are sent in the request body.
+In V5 the scope leaves the body entirely and becomes a path segment, so a single
+request can only ever address one namespace.
+
+### Add or append one document
+
+<CodeGroup>
+```bash Legacy
+POST /v3/documents
+{"content":"new turn","customId":"conv_1","containerTag":"user_1"}
+```
+
+```bash V5
+POST /ns/user_1/document?dreaming=dynamic
+{"content":"new turn","id":"conv_1"}
+```
+</CodeGroup>
+
+The response is still an acceptance result carrying `id` and `status`. Repeating
+the V5 request with the same `id: "conv_1"` adds or diffs the new content into
+that document — it does **not** silently replace the canonical source.
+
+### Batch ingestion
+
+<CodeGroup>
+```json Legacy
+{"documents":["first","second"],"containerTag":"user_1"}
+```
+
+```json V5
+{"documents":[{"content":"first","id":"doc_1"},{"content":"second","id":"doc_2"}]}
+```
+</CodeGroup>
+
+Post that V5 body to `POST /ns/user_1/document/batch`. The array holds anything
+from **1** to **600** document objects. Namespace, `taskType`, and processing mode
+apply once for the whole request, while content, ID, context, metadata, grouping,
+and date are set per item.
+
+Results come back in submission order. Read `success`, `failed`, and every entry
+of `results` — a single batch may mix accepted and rejected documents, so a `200`
+on its own proves nothing.
+
+### File ingestion
+
+`POST /v3/documents/file` becomes `POST /ns/{namespace}/document/file`. Keep
+sending `multipart/form-data`:
+
+| Part | Encoding |
+| --- | --- |
+| `file` | Binary file |
+| `supportingContext`, `date` | Plain strings |
+| `metadata`, `group` | JSON-encoded strings |
+| `fileType`, `mimeType` | Query parameters, when inference is not enough |
+
+The API acknowledges the file once it is durably accepted. Extraction, indexing,
+and memory formation continue asynchronously — poll the document rather than
+assuming the first response means processing is complete.
+
+### Processing choices
+
+- `taskType=memory` extracts long-term memories; `taskType=superrag` indexes
+  source context without generating memories.
+- `dreaming=dynamic` (the default) groups related documents so memories form
+  from coherent units rather than one isolated entry at a time.
+- `dreaming=instant` handles documents one at a time and adds one billable
+  operation for each of them.
+
+### Verification
+
+- Ingest text, a public URL, and a file, then wait for each document to reach a
+  terminal processing state.
+- Repeat a caller-defined ID and confirm append/diff behavior rather than
+  replacement.
+- Post a batch in which some documents succeed and some fail; check that the
+  result order holds and that per-item errors are reported.
+- Confirm metadata and grouping are still filterable after processing completes.

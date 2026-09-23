@@ -1,0 +1,93 @@
+Forgetting in V5 acts on a single namespace, and an exact-ID request and a
+semantic request come back in the same result envelope.
+
+### Choose exact or semantic forgetting
+
+| Intent | V5 operation |
+| --- | --- |
+| Forget reviewed memory IDs | `DELETE /ns/{namespace}/memories` |
+| Find memories by meaning | `DELETE /ns/{namespace}/memories/semantic` |
+
+The legacy API split these across two differently shaped endpoints:
+`DELETE /v4/memories` (identify by `id` **or** exact `content`, plus a `reason`)
+and `POST /v4/memories/forget-matching` (semantic `query` or explicit `ids`, with
+`dryRun`, `threshold`, and `maxForget`). V5 normalizes both onto one response
+contract.
+
+### Forget exact IDs
+
+```bash
+DELETE /ns/user_1/memories
+Content-Type: application/json
+
+{"ids":["mem_1","mem_2"]}
+```
+
+The count runs from **1** to **500** IDs. Your successes arrive under `matches`;
+anything missing or ineligible lands in `errors`. A 2xx status therefore does not
+prove that every ID you named was actually forgotten.
+
+### Preview a semantic request
+
+```bash
+DELETE /ns/user_1/memories/semantic
+Content-Type: application/json
+
+{"query":"outdated home address","dryRun":true}
+```
+
+With `dryRun: true` the request only selects — memory state is left **untouched**.
+With `dryRun: false` it removes whatever the selection resolves to at the moment
+the request runs.
+
+### Avoid selection drift
+
+```text
+semantic request with dryRun: true
+                |
+                v
+review matches[].id
+                |
+                v
+exact DELETE with reviewed IDs
+```
+
+Use this workflow whenever a human or a policy must approve the exact set.
+Re-running the semantic request with `dryRun: false` can select a **different**
+set if memories changed after the preview.
+
+<Warning>
+  Do not assume the semantic endpoint is idempotent with respect to your earlier
+  preview. The legacy `forget-matching` route had the same property, but the
+  legacy docs described the two-step preview flow as optional; in V5 it is the
+  recommended path for any deletion a reviewer has to sign off on.
+</Warning>
+
+### Read the normalized response
+
+```json
+{
+  "count": 1,
+  "matches": [{ "id": "mem_1", "memory": "Old address" }],
+  "errors": [{ "id": "mem_2", "error": "Memory not found" }]
+}
+```
+
+The value of `count` is by definition the length of `matches`. Dry-run and
+applied semantic requests share this shape, so the response body on its own will
+not reveal which mode produced it — record the mode next to your audit entry.
+
+### Removed memory-write routes
+
+V5 offers nothing in place of direct V4 memory creation or version updates. Feed
+source material in through the document routes and rewrite the canonical document
+whenever the underlying facts change.
+
+### Verification
+
+- Try ID sets that are all-success, partially successful, duplicated, unknown,
+  and drawn from across namespaces.
+- A dry run should leave every matched memory recallable.
+- Forget the reviewed IDs exactly, then check that ordinary recall no longer
+  surfaces them.
+- Log the request mode alongside the audit trail for semantic operations.

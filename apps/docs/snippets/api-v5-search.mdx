@@ -1,0 +1,98 @@
+A V5 search runs against a single namespace, falls back to hybrid recall when you
+say nothing, and takes its ranking controls from a typed request body.
+
+### Request mapping
+
+| Legacy | V5 |
+| --- | --- |
+| `containerTag` | `/ns/{namespace}` |
+| body `q` | body `query` |
+| body `limit` | query `limit` |
+| `searchMode: "documents"` | `searchMode=chunks` |
+| omitted search mode | `searchMode=hybrid` |
+| `filters` | singular `filter` |
+| `include.documents` or `include.summaries` | `attach.documents` |
+| `include.relatedMemories` | `attach.related` |
+| `include.forgottenMemories` | `attach.forgotten` |
+| `rerank: true` / `aggregate: true` | `rerank: "order"` / `"aggregate"` |
+
+<CodeGroup>
+```bash Legacy
+POST /v4/search
+{"q":"What did the user decide?","containerTag":"user_1","limit":10,"searchMode":"memories"}
+```
+
+```bash V5
+POST /ns/user_1/search?limit=10&searchMode=memories
+{"query":"What did the user decide?","threshold":0.6,"rewriteQuery":false}
+```
+</CodeGroup>
+
+### Changed defaults
+
+| Setting | V4 | V5 |
+| --- | --- | --- |
+| Search mode | `memories` | `hybrid` |
+| Similarity threshold | `0.6` | `0.3` |
+| Reranking | Disabled | `rerank: "none"` |
+| Query rewriting | Disabled | `false` |
+
+These are the values actually declared in `Searchv4RequestSchema` in this
+repository: `threshold` defaults to `0.6`, `limit` to `10`, and `rerank` and
+`rewriteQuery` both default to `false`. V5 widens recall by default, so set mode
+and threshold **explicitly** while you compare versions. Once parity testing
+passes, drop them only if you actually want the broader V5 hybrid defaults.
+
+<Warning>
+  A silently widened threshold is the single most common false "regression"
+  during this migration. It returns *more* results, not wrong ones — pin
+  `threshold` and `searchMode` until your comparison is green.
+</Warning>
+
+### Search modes
+
+| Mode | Returns |
+| --- | --- |
+| `memories` | Formed memories only |
+| `chunks` | Source chunks only |
+| `hybrid` | Both result types in one ranked list |
+
+Nothing in V5 corresponds to the legacy `include.chunks` flag. Pick `chunks` or
+`hybrid` instead.
+
+### Attachments and ranking
+
+- Asking for `attach.documents` pulls the single most relevant source document
+  into each result.
+- `attach.related` brings in parent, child, and sibling memories. The legacy
+  `Searchv4RequestSchema` exposed this as `include.relatedMemories`, and memory
+  results still carry a `context` object with `parents` and `children` arrays
+  whose entries use the `updates` / `extends` / `derives` relation enum.
+- `attach.forgotten` lets forgotten memories appear in related context; it does
+  not promote them to primary results.
+- The `rerank` setting takes `none`, `order`, or `aggregate`, while
+  `rewriteQuery` governs query rewriting aimed at retrieval.
+
+### Response mapping
+
+| Legacy reader | V5 reader |
+| --- | --- |
+| Result array | `results` |
+| Timing | `searchTime` |
+| Source expansion | `result.included.document` |
+| Related context | `result.included.related.{parents,children,siblings}` |
+| Lifecycle fields | `result.system` |
+
+Each primary result contains either `memory`, `chunk`, or both only where the
+contract allows it. Branch on field presence rather than assuming one result
+shape — in hybrid mode a single result array mixes both kinds.
+
+### Verification
+
+- Pin the V4 defaults explicitly and check result IDs against them first; treat
+  V5 hybrid behavior as a separate test.
+- Cover all three modes, thresholds at `0` and `1`, each rerank option, and query
+  rewriting on and off.
+- Try each attachment on its own and in combination, including the empty case.
+- Verify filters, namespace isolation, result limits, and rejection of body
+  parameters placed in the query string (or vice versa).

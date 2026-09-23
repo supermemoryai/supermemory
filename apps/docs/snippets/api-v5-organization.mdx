@@ -1,0 +1,76 @@
+What survives into V5 is the single organization-wide context string that steers
+memory formation. The administrative knobs and the profile-bucket mutation
+endpoints are gone from this resource.
+
+### Endpoint mapping
+
+| Legacy | V5 |
+| --- | --- |
+| `GET /v3/settings` | `GET /organization` |
+| `PATCH /v3/settings` | `PATCH /organization` |
+| `filterPrompt` | `organizationalContext` |
+
+### Read organization settings
+
+```bash
+GET /organization
+```
+
+```json
+{
+  "organizationalContext": "Acme builds security tools for enterprises",
+  "namespaceCount": 42
+}
+```
+
+Any reader you have for a legacy setting that is absent from this allowlisted
+payload should be deleted. `namespaceCount` is read-only information; `PATCH`
+will not move it.
+
+### Update organization context
+
+<CodeGroup>
+```bash Legacy
+PATCH /v3/settings
+{"filterPrompt":"Acme builds security tools for enterprises"}
+```
+
+```bash V5
+PATCH /organization
+{"organizationalContext":"Acme builds security tools for enterprises"}
+```
+</CodeGroup>
+
+The write is exhaustive — whatever you supply becomes the context, fully
+**replacing** what was there. Passing `null` clears it; an empty string is
+refused.
+
+An organization administrator is required for these writes. A `403` means the
+caller is not one — it is not an invitation to fall back to namespace context
+quietly.
+
+### Removed public operations
+
+- There is no organization-settings route for profile-bucket mutation.
+- Bucket suggestion (`POST /v3/settings/suggest-buckets`) is not part of V5.
+- Organization data reset (`POST /v3/settings/reset`) is not part of V5.
+- Buckets belonging to a namespace live under
+  `/ns/{namespace}/profile/buckets`.
+
+<Warning>
+  The legacy `OrganizationSettingsSchema` in this repository carries connection
+  credentials (`googleDriveClientId`, `notionClientId`, `onedriveClientId`, and
+  their secrets and enablement flags) alongside the filtering fields. Those are
+  **not** part of the public V5 `/organization` response. If your code read them
+  from `GET /v3/settings`, move that configuration to your own secret store or to
+  the connector setup flow.
+</Warning>
+
+### Verification
+
+- Diff the V5 context against the legacy `filterPrompt` before you cut over.
+- Write the context, rewrite it, then clear it.
+- Check that `namespaceCount` matches what `GET /namespaces` reports for the same
+  credentials.
+- Verify non-admin callers receive `403` on `PATCH`.
+- Check that nothing downstream still depends on the fields V5 dropped.

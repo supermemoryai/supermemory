@@ -1,0 +1,95 @@
+V5 returns a maintained profile directly, and gives profile bucket definitions
+their own namespace-scoped resource.
+
+### Remove search behavior from profile calls
+
+<CodeGroup>
+```bash Legacy
+POST /v4/profile
+{"containerTag":"user_1","q":"work preferences","threshold":0.6,"include":{}}
+```
+
+```bash V5
+POST /ns/user_1/profile
+{"filter":{"field":"region","operator":"eq","value":"us-west"},"buckets":["work"]}
+```
+</CodeGroup>
+
+Remove the legacy `q`, `threshold`, and `include`. If the caller needs
+query-ranked results, issue a **separate** V5 search request. Move `containerTag`
+to the path and rename `filters` to the singular `filter`.
+
+<Note>
+  The legacy shape is visible in this repository: `POST /v4/profile` is called
+  with a body of `{ q, containerTag, include: ["static","dynamic"] }` and the
+  response is read as `profile.static`, `profile.dynamic`, and
+  `profile.buckets`. V5 keeps the `profile.static` / `profile.dynamic` /
+  `profile.buckets` reader intact — what changes is that query parameters no
+  longer belong on the profile call.
+</Note>
+
+### Read the V5 profile shape
+
+```json
+{
+  "profile": {
+    "static": ["The user works in design"],
+    "dynamic": ["The user is preparing a launch"],
+    "buckets": { "work": ["Prefers concise project updates"] }
+  }
+}
+```
+
+There is no way to switch off `static` or `dynamic`; both come back on every
+call. Leave `buckets` out of the request and you receive every effective custom
+bucket — or name up to 50 of them to restrict just that section.
+
+### Read bucket definitions
+
+<CodeGroup>
+```bash Legacy
+POST /v4/profile/buckets
+{"containerTag":"user_1"}
+```
+
+```bash V5
+GET /ns/user_1/profile/buckets
+```
+</CodeGroup>
+
+The response changes from key/description objects to a plain map:
+
+```json
+{"buckets":{"work":"Professional preferences and ongoing work"}}
+```
+
+### Add or edit namespace buckets
+
+```bash
+PUT /ns/user_1/profile/buckets
+{"buckets":{"work":"Professional preferences and ongoing work"}}
+```
+
+Supply anywhere between one and 50 name-to-description entries. Names already in
+the namespace get rewritten, new ones get created, and any namespace bucket you
+leave out stays exactly as it was.
+
+### Delete namespace buckets
+
+```bash
+DELETE /ns/user_1/profile/buckets
+{"buckets":["work"]}
+```
+
+Every name has to be distinct. Buckets owned by the organization may show up in
+the effective `GET` response, but a namespace-level `PUT` or `DELETE` will not
+alter or drop them.
+
+### Verification
+
+- Check that `static`, `dynamic`, and `buckets` are present in every profile
+  response.
+- Compare an omitted `buckets` request against one-name and multi-name narrowing.
+- Add, edit, and delete a namespace bucket without disturbing omitted buckets.
+- Attempt to mutate an inherited organization bucket and expect the documented
+  error rather than a silent no-op.
