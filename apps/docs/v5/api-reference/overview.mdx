@@ -1,0 +1,138 @@
+---
+title: "V5 API Reference"
+sidebarTitle: "Overview"
+description: "What V5 is, how it is versioned, and how to authenticate against it."
+icon: "code"
+---
+
+**V5** is the current generation of the Supermemory HTTP API. It keeps the resource model you already know — documents, memories, profiles, container tags — and organizes the operations by **workflow** instead of by internal service.
+
+This section is the contract-level reference. Every operation listed here is grouped by the job it does, with the request and response shapes the API actually accepts.
+
+## Base URL
+
+```
+https://api.supermemory.ai
+```
+
+Self-hosted deployments use your own instance URL (for example `http://localhost:6767`). See [Self-hosting](/self-hosting/overview).
+
+Operations in this reference are versioned by path segment. The paths on these pages carry their own version prefix — for example `POST /v4/search` — so you always know which contract you are calling.
+
+## Authentication
+
+Every request is authenticated with a Bearer API key:
+
+```bash
+Authorization: Bearer $SUPERMEMORY_API_KEY
+```
+
+Create and rotate keys in the [developer console](https://console.supermemory.ai). Full details, including self-hosted keys: [API keys & auth](/authentication).
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v4/search" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"q": "machine learning", "containerTag": "user_123"}'
+```
+
+```typescript Typescript
+import Supermemory from 'supermemory';
+
+const client = new Supermemory({
+  apiKey: process.env.SUPERMEMORY_API_KEY,
+});
+
+const results = await client.search({
+  q: "machine learning",
+  containerTag: "user_123",
+});
+```
+
+```python Python
+from supermemory import Supermemory
+
+client = Supermemory()
+
+results = client.search.memories(
+    q="machine learning",
+    container_tag="user_123",
+)
+```
+
+</CodeGroup>
+
+## Legacy and Latest
+
+The API is versioned by path prefix. Two reference sections are published side by side, and each documents a mix of prefixes:
+
+- **[Legacy API Reference](/api-reference/overview)** — the reference generated from the OpenAPI document below, covering the long-served operations. Calls keep working; new capabilities are not added there.
+- **V5 API Reference** (this section) — the workflow-organized reference. Each operation carries its own path prefix, so `POST /v3/search` and `POST /v4/search` both appear here.
+
+<Note>
+The version prefix is part of the path, not a header. Pin the prefix you were written against — `POST /v3/documents` and `POST /v4/search` are separate contracts, and a change to one does not silently change the other.
+</Note>
+
+| Prefix | Used by |
+| --- | --- |
+| `/v3` | Documents, ingest, document/SuperRAG search, connections, settings, container tags, usage analytics |
+| `/v4` | Memory search, profiles, memories, conversations |
+
+When you start a new integration, follow the workflow pages in this section; each names the exact prefix it calls. Existing integrations can keep calling the prefixes they were written against until they are ready to migrate.
+
+## Operations by workflow
+
+The groups below mirror how you use the API, in the order you typically call it.
+
+| Workflow | What it covers |
+| --- | --- |
+| [Ingest](/v5/api-reference/ingest) | Add documents, files, batches, and conversations into the pipeline |
+| [Search](/v5/api-reference/search) | Semantic recall over memories, document chunks, or both |
+| [Content management](/v5/api-reference/content-management) | List, inspect, update, and delete ingested documents |
+| [Namespaces](/v5/api-reference/namespaces) | `containerTag` lifecycle — settings, projects, and deletion |
+| [Organization](/v5/api-reference/organization) | Org-level settings, analytics, and reset |
+| [Profiles](/v5/api-reference/profiles) | Static and dynamic facts for a container |
+| [Connections](/api-reference/connections) | Create, sync, and manage external connectors — see the Legacy reference |
+
+<Note>
+Connection operations are managed through the [Connections reference](/api-reference/connections) in the Legacy API Reference: `POST /v3/connections/{provider}`, `POST /v3/connections/list`, `GET /v3/connections`, `GET /v3/connections/{connectionId}`, `DELETE /v3/connections/{connectionId}`, `GET /v3/connections/{connectionId}/sync-runs`, and `POST /v3/connections/{provider}/import`.
+</Note>
+
+## Suggested reading order
+
+1. **[Ingest](/v5/api-reference/ingest)** — `POST /v3/documents` returns an id immediately.
+2. **[Content management](/v5/api-reference/content-management)** — poll `GET /v3/documents/{id}` until `status: "done"`.
+3. **[Search](/v5/api-reference/search)** — recall what was indexed.
+4. **[Profiles](/v5/api-reference/profiles)** — read the compacted view of a container.
+
+Everything is scoped by `containerTag`, the same key across ingest, search, and profiles. See [Container tags](/concepts/container-tags) for the multi-tenancy model.
+
+## SDKs
+
+The official clients wrap these operations:
+
+- TypeScript: `npm install supermemory`
+- Python: `pip install supermemory`
+
+See [Supermemory SDK](/integrations/supermemory-sdk). Narrative guides — when to use which operation, and end-to-end patterns — live under [Using supermemory](/using-supermemory) and the [Quickstart](/quickstart).
+
+## Errors
+
+Failures return a JSON body with an `error` message and an optional `details` string:
+
+```json
+{
+  "error": "Invalid request parameters",
+  "details": "Query must be at least 1 character long"
+}
+```
+
+## OpenAPI
+
+The operations on these pages are backed by the generated OpenAPI document that also drives the [Legacy API Reference](/api-reference/overview):
+
+- Spec (live): [https://api.supermemory.ai/v4/openapi](https://api.supermemory.ai/v4/openapi)
+
+That document describes the version-prefixed operations the API serves. This reference reorganizes the same operations by workflow, so you can read them in the order you call them.

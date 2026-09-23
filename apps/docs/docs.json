@@ -259,7 +259,7 @@
 						]
 					},
 					{
-						"anchor": "API Reference",
+						"anchor": "Legacy API Reference",
 						"icon": "unplug",
 						"openapi": "https://api.supermemory.ai/v4/openapi",
 						"pages": [
@@ -353,6 +353,26 @@
 									"PATCH /v3/settings",
 									"POST /v3/settings/suggest-buckets",
 									"POST /v3/settings/reset"
+								]
+							}
+						]
+					},
+					{
+						"anchor": "V5 API Reference",
+						"icon": "book-open",
+						"openapi": "https://api.supermemory.ai/v4/openapi",
+						"pages": [
+							"v5/api-reference/overview",
+							{
+								"group": "Workflow reference",
+								"icon": "sparkles",
+								"pages": [
+									"v5/api-reference/ingest",
+									"v5/api-reference/search",
+									"v5/api-reference/content-management",
+									"v5/api-reference/namespaces",
+									"v5/api-reference/organization",
+									"v5/api-reference/profiles"
 								]
 							}
 						]

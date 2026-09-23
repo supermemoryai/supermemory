@@ -1,0 +1,265 @@
+---
+title: "Content management"
+sidebarTitle: "Content management"
+description: "List, inspect, update, and delete ingested documents and the memories extracted from them."
+icon: "file-text"
+---
+
+Once content is ingested, these operations cover its lifecycle: check processing status, list and filter documents, update them, and delete them — either as documents or as extracted memories.
+
+## Get a document
+
+`GET /v3/documents/{id}`
+
+Returns a single document, including its processing `status`.
+
+```bash
+curl "https://api.supermemory.ai/v3/documents/{id}" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+The `status` field moves through the pipeline: `unknown`, `queued`, `extracting`, `chunking`, `embedding`, `indexing`, `done`, or `failed`. Poll until `done` before searching or reading profiles.
+
+## List documents
+
+`POST /v3/documents/list`
+
+Paginated list of documents, filterable by container and status.
+
+```bash
+curl -X POST "https://api.supermemory.ai/v3/documents/list" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"limit": 10, "page": 1, "containerTags": ["user_123"]}'
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `limit` | number | Items per page |
+| `page` | number | Page number |
+| `status` | string | Filter by processing status |
+| `containerTags` | string[] | Filter by container tags |
+
+The response carries a `memories` array plus `pagination` with `currentPage`, `limit`, `totalItems`, and `totalPages`.
+
+## List documents with memories
+
+`POST /v3/documents/documents`
+
+Returns documents together with the memory entries extracted from each one — useful for reviewing what the pipeline produced.
+
+```bash
+curl -X POST "https://api.supermemory.ai/v3/documents/documents" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"page": 1, "limit": 10, "containerTags": ["sm_project_default"]}'
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `page` | number | 1 | Page number |
+| `limit` | number | 10 | Items per page (max 1000) |
+| `sort` | string | `createdAt` | Sort by `createdAt` or `updatedAt` |
+| `order` | string | `desc` | `asc` or `desc` |
+| `containerTags` | string[] | — | Filter documents by container tags |
+| `sources` | string[] | — | Filter by document source (OR logic), e.g. `["claude-code", "codex"]` |
+
+### Response
+
+```json
+{
+  "documents": [
+    {
+      "id": "doc_xyz789",
+      "customId": "mem_abc123",
+      "title": "Introduction to Machine Learning",
+      "type": "text",
+      "status": "done",
+      "metadata": { "category": "technology" },
+      "chunkCount": 10,
+      "createdAt": "2025-01-15T10:30:00.000Z",
+      "updatedAt": "2025-01-15T10:30:00.000Z",
+      "memoryEntries": []
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "limit": 10,
+    "totalItems": 100,
+    "totalPages": 10
+  }
+}
+```
+
+## List documents by id
+
+`POST /v3/documents/documents/by-ids`
+
+Fetch a specific set of documents in one call.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `ids` | string[] | Document ids to fetch |
+| `by` | string | Match on `id` or `customId` |
+| `containerTags` | string[] | Restrict the lookup to these containers |
+
+## List processing documents
+
+`GET /v3/documents/processing`
+
+Everything currently moving through the pipeline, with a `totalCount`.
+
+```bash
+curl "https://api.supermemory.ai/v3/documents/processing?containerTags=sm_project_default" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+## Update a document
+
+`PATCH /v3/documents/{id}`
+
+Update content or metadata. Updating `content` re-runs processing.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `content` | string | New content (re-processes the document) |
+| `customId` | string | Replace the custom id |
+| `metadata` | object | Replace metadata |
+| `containerTag` | string | Re-containerize the document |
+| `entityContext` | string | Extraction context for this container (max 1500 chars) |
+
+## Delete a document
+
+`DELETE /v3/documents/{id}`
+
+Deletes a document by `id` or `customId`. Returns no content on success.
+
+```bash
+curl -X DELETE "https://api.supermemory.ai/v3/documents/{id}" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+## Bulk delete
+
+`DELETE /v3/documents/bulk`
+
+Delete many documents in one call, by ids or by container.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `ids` | string[] | Document ids to delete (1–100) |
+| `containerTags` | string[] | Delete everything in these containers (1–100) |
+
+Provide at least one of the two.
+
+```json
+{
+  "success": true,
+  "deletedCount": 2,
+  "errors": [{ "id": "doc_3", "error": "Not found" }]
+}
+```
+
+## Create memories directly
+
+`POST /v4/memories`
+
+Write extracted memories without going through the document pipeline. Use this when you already know the exact facts to store.
+
+```bash
+curl -X POST "https://api.supermemory.ai/v4/memories" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "memories": [
+      { "content": "John prefers dark mode", "isStatic": false, "metadata": { "source": "user_preference" } },
+      { "content": "John is from Seattle", "isStatic": true }
+    ],
+    "containerTag": "user_123"
+  }'
+```
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `memories` | array | 1–100 memory objects |
+| `memories[].content` | string | The memory text (max 10,000 chars) |
+| `memories[].isStatic` | boolean | `true` for permanent traits; defaults to `false` |
+| `memories[].metadata` | object | Key-value metadata |
+| `containerTag` | string | Container these memories belong to |
+
+The response returns a `documentId` for traceability plus the created `memories` entries.
+
+## List memories
+
+`POST /v4/memories/list`
+
+Paginated listing with sort control.
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `containerTags` | string[] | — | Filter by container |
+| `limit` | number | 10 | Items per page (max 1100) |
+| `page` | number | 1 | Page number |
+| `sort` | string | `createdAt` | `createdAt` or `updatedAt` |
+| `order` | string | `desc` | `asc` or `desc` |
+| `filters` | string | — | JSON-encoded metadata filters |
+
+## Update a memory
+
+`PATCH /v4/memories`
+
+Update a memory's content. The update creates a new version rather than overwriting history — search results expose that through `version` and the `context` field.
+
+## Forget a memory
+
+`DELETE /v4/memories`
+
+Soft-delete a single memory. Excluded from search results but preserved in the database.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `id` | string | Memory id to forget |
+| `content` | string | Exact content match, as an alternative to `id` |
+| `containerTag` | string | Container the memory belongs to |
+| `reason` | string | Optional reason, recorded as `forgetReason` |
+
+## Forget by match
+
+`POST /v4/memories/forget-matching`
+
+Forget a set of memories by natural-language match, or by explicit ids.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `query` | string | What to forget, in natural language (one of `query`/`ids`) |
+| `ids` | string[] | Exact memory ids to forget, skipping semantic search |
+| `containerTag` | string | Container to scope the operation to |
+| `dryRun` | boolean | Preview the matches without deleting |
+| `maxForget` | number | Safety cap in query mode (1–500, default 100) |
+| `reason` | string | Reason recorded as `forgetReason` on each memory |
+
+<Warning>
+Use `dryRun: true` first, then send the returned ids back as `ids` to delete exactly the set you reviewed. Applying with a `query` re-runs the match, so the result can drift if the container changed in between.
+</Warning>
+
+## Get a file URL
+
+`GET /v3/documents/{id}/file-url`
+
+Returns a presigned URL for a document uploaded through the file endpoint.
+
+## Inspect chunks
+
+`GET /v3/documents/{id}/chunks`
+
+Returns the RAG chunks generated for a document — useful when debugging retrieval quality.
+
+## Next steps
+
+- [Memory operations](/recall/memory-operations) — narrative guide to memory CRUD and forgetting
+- [Document operations](/ingestion/document-operations) — narrative guide to document lifecycle
+- [Namespaces](/v5/api-reference/namespaces) — container tag lifecycle
