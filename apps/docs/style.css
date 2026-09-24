@@ -9,6 +9,10 @@
 	content: url("/images/opencode-logo-dark.svg");
 }
 
+.dark img[src*="livekit.svg"] {
+	content: url("/images/livekit-dark.svg");
+}
+
 .eve-memory-video {
 	display: block;
 	width: 100%;

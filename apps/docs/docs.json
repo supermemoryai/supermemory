@@ -248,6 +248,7 @@
 							"integrations/claude-memory",
 							"integrations/pipecat",
 							"integrations/cartesia",
+							"integrations/livekit",
 							"integrations/n8n",
 							"integrations/viasocket",
 							"integrations/zapier",
@@ -514,6 +515,11 @@
 			"destination": "/integrations/pipecat",
 			"permanent": true,
 			"source": "/voice-realtime/pipecat"
+		},
+		{
+			"destination": "/integrations/livekit",
+			"permanent": true,
+			"source": "/voice-realtime/livekit"
 		},
 		{
 			"destination": "/integrations/n8n",
