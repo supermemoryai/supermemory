@@ -29,6 +29,7 @@ export type {
 	ResolvedMemoryGraphLabels,
 	GraphNode,
 	GraphEdge,
+	GraphEdgeType,
 	GraphThemeColors,
 	GraphCanvasProps,
 	GraphApiDocument,

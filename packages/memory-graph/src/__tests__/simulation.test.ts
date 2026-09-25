@@ -30,7 +30,7 @@ function makeEdge(source: string, target: string): GraphEdge {
 		source,
 		target,
 		visualProps: { opacity: 0.5, thickness: 1.5 },
-		edgeType: "derives",
+		edgeType: "document",
 	}
 }
 

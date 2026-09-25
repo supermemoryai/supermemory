@@ -42,6 +42,8 @@ export interface GraphApiEdge {
 	edgeType: MemoryRelation
 }
 
+export type GraphEdgeType = MemoryRelation | "document"
+
 // Typed node data
 
 export interface DocumentNodeData {
@@ -100,7 +102,7 @@ export interface GraphEdge {
 		opacity: number
 		thickness: number
 	}
-	edgeType: MemoryRelation
+	edgeType: GraphEdgeType
 }
 
 export interface GraphThemeColors {
@@ -116,6 +118,7 @@ export interface GraphThemeColors {
 	textPrimary: string
 	textSecondary: string
 	textMuted: string
+	edgeDocument: string
 	edgeDerives: string
 	edgeUpdates: string
 	edgeExtends: string

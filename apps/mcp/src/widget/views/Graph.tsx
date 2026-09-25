@@ -15,10 +15,7 @@ import { useApp } from "../hooks/useApp"
 import { useHostContext } from "../hooks/useHostContext"
 import { ArrowsIn, ArrowsOut } from "../lib/icons"
 
-// GraphThemeColors key → the --graph-* CSS variable it resolves from. Same
-// mapping as the package's internal useGraphTheme, but we drive it ourselves
-// so we can re-read at a reliable time (see useGraphColors).
-const GRAPH_VARS: Record<keyof GraphThemeColors, string> = {
+const GRAPH_VARS = {
 	bg: "--graph-bg",
 	docFill: "--graph-doc-fill",
 	docStroke: "--graph-doc-stroke",
@@ -30,6 +27,7 @@ const GRAPH_VARS: Record<keyof GraphThemeColors, string> = {
 	textPrimary: "--graph-text-primary",
 	textSecondary: "--graph-text-secondary",
 	textMuted: "--graph-text-muted",
+	edgeDocument: "--graph-edge-document",
 	edgeDerives: "--graph-edge-derives",
 	edgeUpdates: "--graph-edge-updates",
 	edgeExtends: "--graph-edge-extends",
@@ -45,23 +43,18 @@ const GRAPH_VARS: Record<keyof GraphThemeColors, string> = {
 	popoverTextMuted: "--graph-popover-text-muted",
 	controlBg: "--graph-control-bg",
 	controlBorder: "--graph-control-border",
-}
+} satisfies Record<Exclude<keyof GraphThemeColors, "dotColor">, string>
 
 function readGraphColors(): GraphThemeColors {
 	const s = getComputedStyle(document.documentElement)
 	const out = {} as GraphThemeColors
-	for (const key of Object.keys(GRAPH_VARS) as (keyof GraphThemeColors)[]) {
+	for (const key of Object.keys(GRAPH_VARS) as (keyof typeof GRAPH_VARS)[]) {
 		out[key] = s.getPropertyValue(GRAPH_VARS[key]).trim() || DEFAULT_COLORS[key]
 	}
 	return out
 }
 
-// Read the graph palette from CSS, and re-read whenever the document theme
-// flips. We can't rely on the package's own useGraphTheme (it watches `class`),
-// nor on the `theme` prop alone: the host themes via `data-theme`, and in
-// standalone/Studio the attribute can change without the prop changing. So we
-// observe `data-theme`/`class` on <html> directly and re-read after the next
-// paint (rAF), by which point the --graph-* values are current.
+// Host themes can update CSS variables after render, so re-read after theme mutations.
 function useGraphColors(theme: string): GraphThemeColors {
 	const [colors, setColors] = useState<GraphThemeColors>(readGraphColors)
 	useEffect(() => {

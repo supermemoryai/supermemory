@@ -309,6 +309,7 @@ export const Legend = memo(function Legend({
 	const memoryCount = nodes.filter((n) => n.type === "memory").length
 	const documentCount = nodes.filter((n) => n.type === "document").length
 	const connectionCount = edges.length
+	const documentEdgeCount = countEdgesByType(edges, "document")
 	const derivesCount = countEdgesByType(edges, "derives")
 	const updatesCount = countEdgesByType(edges, "updates")
 	const extendsCount = countEdgesByType(edges, "extends")
@@ -531,15 +532,27 @@ export const Legend = memo(function Legend({
 											<div>
 												<div style={rowStyle}>
 													<div style={rowLeftStyle}>
-														<LineIcon color={colors.edgeDerives} />
+														<LineIcon color={colors.edgeDocument} />
 														<span style={edgeLabelStyle}>
 															{labels.documentSourceEdge}
 														</span>
 													</div>
-													<span style={countStyle}>{derivesCount}</span>
+													<span style={countStyle}>{documentEdgeCount}</span>
 												</div>
 												<div style={edgeDescriptionStyle}>
 													{labels.documentToMemoryEdge}
+												</div>
+											</div>
+											<div>
+												<div style={rowStyle}>
+													<div style={rowLeftStyle}>
+														<LineIcon color={colors.edgeDerives} />
+														<span style={edgeLabelStyle}>Derives</span>
+													</div>
+													<span style={countStyle}>{derivesCount}</span>
+												</div>
+												<div style={edgeDescriptionStyle}>
+													Memory derived from another memory
 												</div>
 											</div>
 											<div>

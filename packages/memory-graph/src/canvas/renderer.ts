@@ -21,8 +21,8 @@ const edgeBatches = new Map<string, PreparedEdge[]>()
 const RELATION_LOD_ZOOM = 0.5
 const RELATION_LOD_MAX_BACKGROUND_EDGES = 260
 const RELATION_LOD_DENSE_COUNT = 180
-const DERIVES_LOD_ZOOM = 0.38
-const DERIVES_LOD_MAX_BACKGROUND_EDGES = 3200
+const DOCUMENT_LOD_ZOOM = 0.38
+const DOCUMENT_LOD_MAX_BACKGROUND_EDGES = 3200
 const DENSE_POINT_THRESHOLD = 25000
 const DENSE_POINT_ZOOM = 0.42
 
@@ -83,6 +83,8 @@ function edgeStyle(
 	edge: GraphEdge,
 	colors: GraphThemeColors,
 ): { color: string; width: number; opacity: number } {
+	if (edge.edgeType === "document")
+		return { color: colors.edgeDocument, width: 1.2, opacity: 0.4 }
 	if (edge.edgeType === "derives")
 		return { color: colors.edgeDerives, width: 1.2, opacity: 0.4 }
 	if (edge.edgeType === "updates")
@@ -104,14 +106,17 @@ export function getRelationEdgeStride(
 	return Math.ceil(relationEdgeCount / RELATION_LOD_MAX_BACKGROUND_EDGES)
 }
 
-function getDerivesEdgeStride(derivesEdgeCount: number, zoom: number): number {
+function getDocumentEdgeStride(
+	documentEdgeCount: number,
+	zoom: number,
+): number {
 	if (
-		zoom >= DERIVES_LOD_ZOOM ||
-		derivesEdgeCount <= DERIVES_LOD_MAX_BACKGROUND_EDGES
+		zoom >= DOCUMENT_LOD_ZOOM ||
+		documentEdgeCount <= DOCUMENT_LOD_MAX_BACKGROUND_EDGES
 	) {
 		return 1
 	}
-	return Math.ceil(derivesEdgeCount / DERIVES_LOD_MAX_BACKGROUND_EDGES)
+	return Math.ceil(documentEdgeCount / DOCUMENT_LOD_MAX_BACKGROUND_EDGES)
 }
 
 export function shouldDrawRelationEdge(
@@ -119,7 +124,7 @@ export function shouldDrawRelationEdge(
 	edgeType: string,
 	stride: number,
 ): boolean {
-	if (edgeType === "derives" || stride <= 1) return true
+	if (edgeType === "document" || stride <= 1) return true
 	return hashString(edgeId) % stride === 0
 }
 
@@ -135,7 +140,7 @@ function applyRelationLevelOfDetail(
 	hasFocus: boolean,
 	hasActiveHover: boolean,
 ) {
-	if (edgeType === "derives") return { style, glow: true }
+	if (edgeType === "document") return { style, glow: true }
 	if (hasFocus || hasActiveHover) {
 		const isUpdate = edgeType === "updates"
 		const minOpacity = hasActiveHover ? 0.9 : 0.76
@@ -213,17 +218,17 @@ function drawEdges(
 	const margin = 100
 	const hasDim = state.selectedNodeId !== null && state.dimProgress > 0
 	const relationEdgeCount = edges.reduce(
-		(count, edge) => count + (edge.edgeType === "derives" ? 0 : 1),
+		(count, edge) => count + (edge.edgeType === "document" ? 0 : 1),
 		0,
 	)
-	const derivesEdgeCount = edges.length - relationEdgeCount
+	const documentEdgeCount = edges.length - relationEdgeCount
 	const relationStride = getRelationEdgeStride(relationEdgeCount, viewport.zoom)
-	const derivesStride = getDerivesEdgeStride(derivesEdgeCount, viewport.zoom)
+	const documentStride = getDocumentEdgeStride(documentEdgeCount, viewport.zoom)
 
 	const prepared: PreparedEdge[] = []
 
 	for (const edge of edges) {
-		const edgeType = edge.edgeType ?? "derives"
+		const edgeType = edge.edgeType ?? "document"
 		const srcId = typeof edge.source === "string" ? edge.source : edge.source.id
 		const tgtId = typeof edge.target === "string" ? edge.target : edge.target.id
 		const hoverConnected =
@@ -235,7 +240,7 @@ function drawEdges(
 		const activeConnected = hoverConnected || selectedConnected
 		const shouldAlwaysDrawActiveUpdate =
 			edgeType === "updates" && activeConnected
-		const edgeStride = edgeType === "derives" ? derivesStride : relationStride
+		const edgeStride = edgeType === "document" ? documentStride : relationStride
 		if (
 			!shouldAlwaysDrawActiveUpdate &&
 			!hasDim &&
@@ -248,7 +253,7 @@ function drawEdges(
 		const tgt = nodeMap.get(tgtId)
 		if (!src || !tgt) continue
 
-		if (edgeType === "derives") {
+		if (edgeType === "document") {
 			const mem = src.type === "memory" ? src : tgt
 			if (mem.size * viewport.zoom < 3) continue
 		}
@@ -297,9 +302,9 @@ function drawEdges(
 		)
 		let style = edgeDetail.style
 		let glow = edgeDetail.glow
-		if (edgeType === "derives" && derivesStride > 1 && !activeConnected) {
+		if (edgeType === "document" && documentStride > 1 && !activeConnected) {
 			const zoomFactor = clampNumber(
-				viewport.zoom / DERIVES_LOD_ZOOM,
+				viewport.zoom / DOCUMENT_LOD_ZOOM,
 				0.08,
 				0.32,
 			)

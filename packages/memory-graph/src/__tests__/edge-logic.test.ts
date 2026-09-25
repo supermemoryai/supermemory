@@ -20,7 +20,10 @@
 
 import { describe, it, expect } from "vitest"
 import type { GraphApiDocument, GraphApiMemory } from "../types"
-import { getEdgeVisualProps } from "../hooks/use-graph-data"
+import {
+	computeEdges as computeGraphEdges,
+	getEdgeVisualProps,
+} from "../hooks/use-graph-data"
 
 // ---------------------------------------------------------------------------
 // Pure extraction of edges useMemo from use-graph-data.ts
@@ -48,14 +51,13 @@ function computeEdges(documents: GraphApiDocument[]): ComputedEdge[] {
 		for (const mem of doc.memories) allNodeIds.add(mem.id)
 	}
 
-	// 1. Derives edges: document -> memory (structural)
 	for (const doc of documents) {
 		for (const mem of doc.memories) {
 			result.push({
 				id: `dm-${doc.id}-${mem.id}`,
 				source: doc.id,
 				target: mem.id,
-				edgeType: "derives",
+				edgeType: "document",
 			})
 		}
 	}
@@ -574,12 +576,8 @@ describe("MCP transformData: forward-reference fix (pre-populated nodeIds)", () 
 	})
 })
 
-// ===========================================================================
-// (6) Structural correctness: derives edges always created, doc->mem
-// ===========================================================================
-
-describe("use-graph-data edges: derives edges always present for all doc->mem pairs", () => {
-	it("creates exactly one derives edge per memory across multiple documents", () => {
+describe("use-graph-data edges: document edges always present for all doc->mem pairs", () => {
+	it("creates exactly one document edge per memory across multiple documents", () => {
 		const docs = [
 			makeDoc("d1", [makeMem({ id: "m1" }), makeMem({ id: "m2" })]),
 			makeDoc("d2", [
@@ -589,10 +587,9 @@ describe("use-graph-data edges: derives edges always present for all doc->mem pa
 			]),
 		]
 		const edges = computeEdges(docs)
-		const derivesEdges = edges.filter((e) => e.edgeType === "derives")
-		// 2 memories in d1 + 3 in d2 = 5 derives edges
-		expect(derivesEdges.length).toBe(5)
-		expect(derivesEdges.map((e) => e.target).sort()).toEqual([
+		const documentEdges = edges.filter((e) => e.edgeType === "document")
+		expect(documentEdges.length).toBe(5)
+		expect(documentEdges.map((e) => e.target).sort()).toEqual([
 			"m1",
 			"m2",
 			"m3",
@@ -615,6 +612,27 @@ describe("use-graph-data edges: derives edges always present for all doc->mem pa
 		const edges = computeEdges(docs)
 		const relEdges = edges.filter((e) => e.id.startsWith("rel-"))
 		expect(relEdges.length).toBe(0)
+	})
+})
+
+describe("document and derives edge types", () => {
+	it("keeps document links separate from derives relations", () => {
+		const docs = [
+			makeDoc("d1", [
+				makeMem({ id: "source" }),
+				makeMem({
+					id: "derived",
+					memoryRelations: { source: "derives" },
+				}),
+			]),
+		]
+
+		const edges = computeGraphEdges(docs)
+
+		expect(edges.filter((edge) => edge.edgeType === "document")).toHaveLength(2)
+		expect(
+			edges.find((edge) => edge.id === "rel-source-derived")?.edgeType,
+		).toBe("derives")
 	})
 })
 
