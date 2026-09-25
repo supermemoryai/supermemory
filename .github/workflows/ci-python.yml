@@ -7,6 +7,7 @@ on:
       - "packages/cartesia-sdk-python/**"
       - "packages/openai-sdk-python/**"
       - "packages/pipecat-sdk-python/**"
+      - "packages/livekit-sdk-python/**"
       - ".github/workflows/ci-python.yml"
 
 permissions:
@@ -253,5 +254,62 @@ jobs:
           assert version('supermemory') == '${{ matrix.supermemory-version }}';
           assert version('pipecat-ai') == '${{ matrix.pipecat-version }}';
           assert 'site-packages' in Path(supermemory_pipecat.__file__).parts;
+          result = pytest.main(['-W', 'ignore::pytest.PytestAssertRewriteWarning', 'tests']);
+          raise SystemExit(result)"
+
+  livekit-sdk-python:
+    name: livekit-sdk-python (${{ matrix.dependency-lane }}, Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.10"
+            dependency-lane: minimum-dependencies
+            supermemory-version: "3.50.0"
+            livekit-agents-version: "1.2.0"
+          - python-version: "3.12"
+            dependency-lane: current-dependencies
+            supermemory-version: "3.59.0"
+            livekit-agents-version: "1.8.3"
+    defaults:
+      run:
+        working-directory: packages/livekit-sdk-python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: packages/livekit-sdk-python/pyproject.toml
+
+      - name: Install build and test tools
+        run: python -m pip install build pytest
+
+      - name: Build wheel
+        run: python -m build --wheel --outdir "$RUNNER_TEMP/wheels"
+
+      - name: Install wheel and tested runtime dependencies
+        run: >-
+          python -m pip install "$RUNNER_TEMP"/wheels/*.whl
+          "supermemory==${{ matrix.supermemory-version }}"
+          "livekit-agents==${{ matrix.livekit-agents-version }}"
+
+      - name: Check dependency compatibility
+        run: python -m pip check
+
+      - name: Verify real LiveKit integration and run tests
+        run: >-
+          python -c "from importlib.metadata import version;
+          from pathlib import Path; import livekit.agents, pytest, supermemory_livekit;
+          assert version('supermemory') == '${{ matrix.supermemory-version }}';
+          assert version('livekit-agents') == '${{ matrix.livekit-agents-version }}';
+          assert 'site-packages' in Path(supermemory_livekit.__file__).parts;
           result = pytest.main(['-W', 'ignore::pytest.PytestAssertRewriteWarning', 'tests']);
           raise SystemExit(result)"

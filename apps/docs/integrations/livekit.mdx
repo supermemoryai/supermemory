@@ -1,0 +1,173 @@
+---
+title: "LiveKit"
+sidebarTitle: "LiveKit (Voice)"
+description: "Add persistent memory to LiveKit Agents voice sessions"
+icon: "/images/livekit.svg"
+---
+
+Supermemory integrates with [LiveKit Agents](https://docs.livekit.io/agents/), so a voice agent can remember a caller across sessions and use that context on the next turn. Recall runs before the model replies. Completed turns are stored automatically. The model can also search, remember, and forget explicitly.
+
+A Supermemory timeout or outage is skipped. It does not end the call.
+
+## Installation
+
+```bash
+pip install supermemory-livekit
+```
+
+```bash
+export SUPERMEMORY_API_KEY=your_supermemory_api_key
+```
+
+Create a key at [console.supermemory.ai](https://console.supermemory.ai). For a self-hosted API, pass `base_url` to `SupermemoryLiveKit`.
+
+## Scope
+
+Memory is isolated by container tag. Use a stable caller id, the same one you use in the rest of your app, so a LiveKit call and a chat session share one profile.
+
+Container tags may only contain letters, numbers, `_`, `-`, and `:`, and must be 100 characters or fewer. Two ways to set it:
+
+- Pass `container_tag` yourself, usually from [job metadata](https://docs.livekit.io/agents/build/external-data/).
+- Let the plugin read the participant attribute `supermemory_container_tag`, or fall back to the participant identity.
+
+Identities that are not valid container tags are sanitized to a stable tag. Set the attribute when the identity is an email, phone number, or SIP address and you already have memories under a different id.
+
+One call is stored as a single document. Pass the LiveKit room name as `session_id`. The document id is `lk-<session_id>`, so a later update with the same id appends to that call instead of creating another.
+
+## Quick start
+
+Create one `SupermemoryLiveKit` inside the job. A worker handles many calls, and each call needs its own scope.
+
+```python
+import json
+import os
+
+from livekit import agents
+from livekit.agents import AgentServer, AgentSession, ChatContext, JobContext
+from supermemory_livekit import SupermemoryAgent, SupermemoryLiveKit
+
+server = AgentServer()
+
+
+@server.rtc_session(agent_name="memory-agent")
+async def entrypoint(ctx: JobContext):
+    memory = SupermemoryLiveKit(api_key=os.environ["SUPERMEMORY_API_KEY"])
+    metadata = json.loads(ctx.job.metadata or "{}")
+    container_tag = metadata.get("container_tag")
+    if container_tag:
+        memory.bind(container_tag=container_tag, session_id=ctx.room.name)
+
+    chat_ctx = ChatContext()
+    if container_tag:
+        await memory.preload(chat_ctx)
+
+    await ctx.connect()
+    if not container_tag:
+        participant = await ctx.wait_for_participant()
+        memory.bind(participant=participant, session_id=ctx.room.name)
+
+    session = AgentSession(
+        stt="deepgram/nova-3:en",
+        llm="openai/gpt-4.1-mini",
+        tts="cartesia/sonic-3",
+    )
+    memory.attach(session)
+    await session.start(
+        room=ctx.room,
+        agent=SupermemoryAgent(
+            memory,
+            chat_ctx=chat_ctx,
+            instructions=(
+                "You are a helpful voice assistant. You remember this caller across calls. "
+                "Use that naturally, and do not mention the memory system."
+            ),
+        ),
+    )
+
+
+if __name__ == "__main__":
+    agents.cli.run_app(server)
+```
+
+`preload` puts the caller's profile into the first turn, so the greeting can use it. `attach` stores user and assistant turns when the session closes, including a caller who hangs up mid-turn. `SupermemoryAgent` recalls before each reply and adds the memory tools. Voice turns use `on_user_turn_completed`. Text turns from `generate_reply` or `session.run` skip that hook, so the agent also recalls inside `llm_node`. A turn that already has memory is not fetched again.
+
+## Your own agent
+
+If you already subclass `Agent`, keep that class. Pass the tools in, and recall from the turn hook.
+
+```python
+from livekit.agents import Agent
+from supermemory_livekit import SupermemoryLiveKit
+
+memory = SupermemoryLiveKit(container_tag="user_123", session_id="room_123")
+
+
+class Assistant(Agent):
+    def __init__(self) -> None:
+        super().__init__(
+            instructions="You are a helpful voice assistant.",
+            tools=memory.tools(),
+        )
+
+    async def on_user_turn_completed(self, turn_ctx, new_message) -> None:
+        await memory.on_user_turn_completed(turn_ctx, new_message)
+```
+
+Call `memory.attach(session)` before `session.start`.
+
+`on_user_turn_completed` runs for STT-LLM-TTS pipelines. A realtime model only hits that hook when turn detection runs in your agent, not inside the model. See [LiveKit's external data guide](https://docs.livekit.io/agents/build/external-data/). Turn capture still listens for `conversation_item_added`.
+
+## What gets recalled
+
+| Mode | Static profile | Dynamic profile | Search | Use when |
+| --- | --- | --- | --- | --- |
+| `profile` | Yes | Yes | No | Durable facts are enough |
+| `query` | No | No | Yes | Only this turn's related memories |
+| `full` | Yes | Yes | Yes | Default |
+
+```python
+from supermemory_livekit import InputParams, SupermemoryLiveKit
+
+memory = SupermemoryLiveKit(
+    container_tag="user_123",
+    params=InputParams(
+        mode="full",
+        search_limit=10,
+        search_threshold=0.1,
+        recall_timeout=1.5,
+        capture="always",
+    ),
+)
+```
+
+Recall waits at most `recall_timeout` seconds (default 1.5). If the profile call is slower than that, the turn proceeds without memory. Retrieved text is inserted immediately before the user message and is not stored back as something the agent said.
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `search_limit` | `10` | Maximum search results merged into the turn |
+| `search_threshold` | `0.1` | Minimum similarity, from 0 to 1 |
+| `mode` | `"full"` | `profile`, `query`, or `full` |
+| `recall_timeout` | `1.5` | Seconds to wait before skipping recall |
+| `capture` | `"always"` | `never` disables storing the call |
+
+## Tools
+
+`SupermemoryAgent` adds these tools. They are scoped to the bound container tag, so the model cannot read or write another caller.
+
+| Tool | Used for |
+| --- | --- |
+| `search_memories` | Look up facts and past calls when the automatic recall is not enough |
+| `remember` | Save one explicit fact, preference, or correction |
+| `forget` | Forget one fact by id from `search_memories`, or by exact text |
+
+`remember` stores a standalone fact. It is not appended to the call transcript. Automatic capture is what records the conversation.
+
+## Self-hosting
+
+```python
+memory = SupermemoryLiveKit(
+    api_key=os.environ["SUPERMEMORY_API_KEY"],
+    base_url="http://localhost:6767",
+    container_tag="user_123",
+)
+```
