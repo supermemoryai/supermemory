@@ -150,6 +150,29 @@ class SupermemoryLiveKit:
         except Exception:
             logger.warning("memory inject failed", exc_info=True)
 
+    async def enrich(self, chat_ctx: Any) -> None:
+        """Recall for a context that already contains the user message.
+
+        ``session.run`` and ``generate_reply`` skip ``on_user_turn_completed``, so the
+        agent calls this from ``llm_node``. A voice turn that already injected memory
+        is left alone.
+        """
+        if self._has_injection(chat_ctx):
+            return
+        user = self._last_user_item(chat_ctx)
+        query = message_text(user) if user is not None else None
+        if not query:
+            return
+        try:
+            text = await self._recall_text(query=query)
+            if not text:
+                return
+            created_at = getattr(user, "created_at", None)
+            before = created_at - 0.001 if isinstance(created_at, (int, float)) else None
+            self._inject(chat_ctx, text, created_at=before)
+        except Exception:
+            logger.warning("memory inject failed", exc_info=True)
+
     def attach(
         self,
         session: Any,
@@ -314,6 +337,19 @@ class SupermemoryLiveKit:
             chat_ctx.add_message(role="assistant", content=wrapped, created_at=created_at)
         except TypeError:
             chat_ctx.add_message(role="assistant", content=wrapped)
+
+    def _last_user_item(self, chat_ctx: Any) -> Any:
+        for item in reversed(list(getattr(chat_ctx, "items", []) or [])):
+            if message_role(item) == "user" and message_text(item):
+                return item
+        return None
+
+    def _has_injection(self, chat_ctx: Any) -> bool:
+        for item in getattr(chat_ctx, "items", []) or []:
+            text = message_text(item)
+            if text and is_injected_memory(text):
+                return True
+        return False
 
     def _strip_injected(self, chat_ctx: Any) -> None:
         items = list(getattr(chat_ctx, "items", []) or [])

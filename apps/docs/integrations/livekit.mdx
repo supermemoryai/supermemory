@@ -89,7 +89,7 @@ if __name__ == "__main__":
     agents.cli.run_app(server)
 ```
 
-`preload` puts the caller's profile into the first turn, so the greeting can use it. `attach` stores user and assistant turns when the session closes, including a caller who hangs up mid-turn. `SupermemoryAgent` recalls before each reply and adds the memory tools.
+`preload` puts the caller's profile into the first turn, so the greeting can use it. `attach` stores user and assistant turns when the session closes, including a caller who hangs up mid-turn. `SupermemoryAgent` recalls before each reply and adds the memory tools. Voice turns use `on_user_turn_completed`. Text turns from `generate_reply` or `session.run` skip that hook, so the agent also recalls inside `llm_node`. A turn that already has memory is not fetched again.
 
 ## Your own agent
 

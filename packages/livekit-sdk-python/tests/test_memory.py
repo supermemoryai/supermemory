@@ -174,6 +174,20 @@ class MemoryTests(unittest.TestCase):
         self.assertIn("Lives in Lisbon", ctx.items[0].content)
         self.assertNotIn("Name is Ada", ctx.items[0].content)
 
+    def test_enrich_injects_when_the_user_message_is_already_present(self):
+        client = FakeClient(FakeProfile(static=["The secret word is kelp"]))
+        plugin = memory(client, container_tag="user_1")
+        ctx = ChatCtx()
+        ctx.add_message(role="user", content="what is the secret word?", created_at=8.0)
+
+        asyncio.run(plugin.enrich(ctx))
+
+        self.assertEqual(len(ctx.items), 2)
+        self.assertIn("kelp", ctx.items[1].content)
+        self.assertAlmostEqual(ctx.items[1].created_at, 7.999)
+        asyncio.run(plugin.enrich(ctx))
+        self.assertEqual(len(client.profile.calls), 1)
+
     def test_timeout_and_errors_do_not_fail_the_turn(self):
         slow = FakeClient(FakeProfile(static=["Name is Ada"], delay=0.05))
         plugin = memory(slow, container_tag="user_1", params=InputParams(recall_timeout=0.01))

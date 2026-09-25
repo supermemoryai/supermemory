@@ -23,3 +23,7 @@ class SupermemoryAgent(Agent):
 
     async def on_user_turn_completed(self, turn_ctx: Any, new_message: Any) -> None:
         await self.memory.on_user_turn_completed(turn_ctx, new_message)
+
+    async def llm_node(self, chat_ctx: Any, tools: list[Any], model_settings: Any) -> Any:
+        await self.memory.enrich(chat_ctx)
+        return Agent.default.llm_node(self, chat_ctx, tools, model_settings)
