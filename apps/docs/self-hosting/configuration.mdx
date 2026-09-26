@@ -39,6 +39,17 @@ With multiple providers configured, the first one in the order above is used.
 Image, video, and high-fidelity PDF understanding require a Gemini or Vertex AI key. Text ingestion, memory extraction, and search work with any provider.
 </Note>
 
+> [!WARNING]
+> **Known Issue: LLM Provider Configuration Bug (No model provider configured)**
+>
+> In version `v0.0.8` (and some previous releases), there is a known issue where document processing succeeds at first but the background memory generation fails with `[llm] No model provider configured. Set OPENAI_API_KEY ...`. This occurs even if `supermemory doctor` detects the provider (e.g. `llm provider openai` checks pass) and `OPENAI_API_KEY` is present in the parent process environment.
+>
+> **Root Cause:**
+> The LLM provider registry is instantiated inside a memoized initializer that runs exactly once when the server modules are loaded. Because the background `IngestContentWorkflow` runs in a sandboxed V8 isolate (Miniflare/workerd context), host environment variables on `process.env` are not automatically propagated to the sandbox. Additionally, if the credentials database was decrypted post-startup, the in-memory registry remains unpopulated for the worker.
+>
+> **Workaround:**
+> Ensure that `OPENAI_API_KEY` (or the relevant key for your provider) is exported in the shell environment **before** starting the `supermemory-server` process, and that the server is launched via the generated wrapper script (`~/.local/bin/supermemory-server`) which properly exports keys from `~/.supermemory/env` using `set -a`. If using a process manager (like systemd or PM2) or Docker, explicitly pass the environment variables to the service container/process.
+
 ### Fully offline with local models
 
 `OPENAI_API_KEY` + `OPENAI_BASE_URL` covers any OpenAI-compatible endpoint: Ollama, LM Studio, vLLM, llama.cpp server, Together, Fireworks, and more.
