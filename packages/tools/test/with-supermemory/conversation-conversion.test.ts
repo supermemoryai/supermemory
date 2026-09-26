@@ -355,4 +355,36 @@ describe("convertToConversationMessages", () => {
 			{ role: "assistant", content: "Found it" },
 		])
 	})
+
+	it("converts standard Vercel AI SDK type: 'image' parts to conversation image_url", async () => {
+		const params: LanguageModelV2CallOptions = {
+			prompt: [
+				{
+					role: "user",
+					content: [
+						{ type: "text", text: "Look at this screenshot" },
+						{
+							type: "image",
+							image: "https://example.com/screenshot.png",
+							mimeType: "image/png",
+						},
+					],
+				} as unknown as LanguageModelV2Message,
+			],
+		}
+
+		expect(await persistMessages(params, "I see it")).toEqual([
+			{
+				role: "user",
+				content: [
+					{ type: "text", text: "Look at this screenshot" },
+					{
+						type: "image_url",
+						imageUrl: { url: "https://example.com/screenshot.png" },
+					},
+				],
+			},
+			{ role: "assistant", content: "I see it" },
+		])
+	})
 })

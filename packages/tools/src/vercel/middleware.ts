@@ -104,11 +104,41 @@ export const convertToConversationMessages = (
 					type: "text",
 					text: content.text,
 				})
-			} else if (
-				content.type === "file" &&
-				content.mediaType.startsWith("image/")
-			) {
-				const url = toConversationImageUrl(content.data, content.mediaType)
+			} else if (content.type === "file") {
+				const fileContent = content as {
+					mediaType?: unknown
+					mimeType?: unknown
+					data?: unknown
+				}
+				const mediaType =
+					typeof fileContent.mediaType === "string"
+						? fileContent.mediaType
+						: typeof fileContent.mimeType === "string"
+							? fileContent.mimeType
+							: ""
+				if (mediaType.startsWith("image/")) {
+					const url = toConversationImageUrl(fileContent.data, mediaType)
+					if (url) {
+						contentParts.push({ type: "image_url", imageUrl: { url } })
+					}
+				}
+			} else if (content.type === "image") {
+				const imageContent = content as {
+					image?: unknown
+					data?: unknown
+					mimeType?: unknown
+					mediaType?: unknown
+				}
+				const mediaType =
+					typeof imageContent.mimeType === "string"
+						? imageContent.mimeType
+						: typeof imageContent.mediaType === "string"
+							? imageContent.mediaType
+							: "image/jpeg"
+				const url = toConversationImageUrl(
+					imageContent.image ?? imageContent.data,
+					mediaType,
+				)
 				if (url) {
 					contentParts.push({ type: "image_url", imageUrl: { url } })
 				}
