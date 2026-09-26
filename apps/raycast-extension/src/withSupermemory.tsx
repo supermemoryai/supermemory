@@ -1,9 +1,7 @@
-import { usePromise } from "@raycast/utils"
-import { fetchSettings } from "./api"
 import {
 	Action,
 	ActionPanel,
-	Detail,
+	getPreferenceValues,
 	Icon,
 	List,
 	openExtensionPreferences,
@@ -12,18 +10,11 @@ import type { ComponentType } from "react"
 
 export function withSupermemory<P extends object>(Component: ComponentType<P>) {
 	return function SupermemoryWrappedComponent(props: P) {
-		const { isLoading, data } = usePromise(fetchSettings, [], {
-			failureToastOptions: {
-				title: "Invalid API Key",
-				message:
-					"Invalid API key. Please check your API key in preferences. Get a new one from https://supermemory.link/raycast",
-			},
-		})
+		// Let each command enforce its own endpoint-specific permissions and rate limit.
+		const { apiKey } = getPreferenceValues<Preferences>()
 
-		if (!data) {
-			return isLoading ? (
-				<Detail isLoading />
-			) : (
+		if (!apiKey.trim()) {
+			return (
 				<List>
 					<List.EmptyView
 						icon={Icon.ExclamationMark}
