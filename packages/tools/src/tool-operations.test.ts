@@ -344,7 +344,9 @@ describe("ClaudeMemoryTool", () => {
 
 		expect(result.success).toBe(true)
 		expect(clientAdd).toHaveBeenCalledWith(
-			expect.objectContaining({ customId: "memories_renamed_txt" }),
+			expect.objectContaining({
+				customId: tool.normalizePathToCustomId("/memories/renamed.txt"),
+			}),
 		)
 		expect(documentsDeleteBulk).toHaveBeenCalledWith({ ids: [DOCUMENT_ID] })
 	})
