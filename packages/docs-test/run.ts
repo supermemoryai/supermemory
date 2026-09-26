@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { spawn } from "child_process"
-import path from "path"
+import { spawn } from "node:child_process"
+import path from "node:path"
 
 const args = process.argv.slice(2)
 const filter = args[0] // e.g., "typescript", "python", "integrations", or specific file
@@ -11,6 +11,15 @@ interface TestFile {
 	name: string
 	path: string
 	type: "ts" | "py"
+}
+
+export function getPythonExecutable(
+	platform = process.platform,
+	baseDir = import.meta.dir,
+): string {
+	return platform === "win32"
+		? path.join(baseDir, ".venv", "Scripts", "python.exe")
+		: path.join(baseDir, ".venv", "bin", "python3")
 }
 
 function getTests(): TestFile[] {
@@ -64,16 +73,24 @@ async function runTest(test: TestFile): Promise<boolean> {
 		console.log(`Running: ${test.name}`)
 		console.log("=".repeat(60))
 
-		const cmd =
-			test.type === "ts"
-				? "bun"
-				: path.join(import.meta.dir, ".venv", "bin", "python3")
+		const cmd = test.type === "ts" ? "bun" : getPythonExecutable()
 		const proc = spawn(cmd, [test.path], {
 			stdio: "inherit",
 			env: { ...process.env },
 		})
 
-		proc.on("close", (code) => {
+		proc.once("error", (error) => {
+			console.error(`Failed to start ${test.name}: ${error.message}`)
+			if (test.type === "py" && "code" in error && error.code === "ENOENT") {
+				console.error(`Expected Python executable at: ${cmd}`)
+				console.error(
+					'Create it with "python -m venv .venv" and install requirements.txt.',
+				)
+			}
+			resolve(false)
+		})
+
+		proc.once("close", (code) => {
 			resolve(code === 0)
 		})
 	})
@@ -95,7 +112,9 @@ async function main() {
 	if (tests.length === 0) {
 		console.log("No tests matched the filter:", filter)
 		console.log("\nAvailable tests:")
-		getTests().forEach((t) => console.log(`  - ${t.name} (${t.type})`))
+		getTests().forEach((t) => {
+			console.log(`  - ${t.name} (${t.type})`)
+		})
 		process.exit(1)
 	}
 
@@ -127,4 +146,9 @@ async function main() {
 	}
 }
 
-main().catch(console.error)
+if (import.meta.main) {
+	main().catch((error) => {
+		console.error(error)
+		process.exitCode = 1
+	})
+}
