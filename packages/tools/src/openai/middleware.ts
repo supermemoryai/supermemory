@@ -970,13 +970,22 @@ export function createOpenAIMiddleware(
 					: ""
 		}
 
+		// Sending `instructions` at all tells the Responses API to drop whatever a
+		// `previous_response_id` turn carried over, so an empty result must leave
+		// the caller's own field untouched rather than blank it. Matches the
+		// no-input early return above.
+		const instructionsOverride =
+			enhancedInstructions || typeof params.instructions === "string"
+				? { instructions: enhancedInstructions }
+				: {}
+
 		return {
 			request: originalResponsesCreate.call(
 				openaiClient.responses,
 				{
 					...params,
 					input: cleanedInput,
-					instructions: enhancedInstructions,
+					...instructionsOverride,
 				},
 				requestOptions,
 			),
