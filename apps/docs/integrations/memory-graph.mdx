@@ -70,21 +70,42 @@ Create an API route to fetch documents from Supermemory:
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
+  const body = JSON.stringify({
+    page: 1,
+    limit: 500,
+    sort: 'createdAt',
+    order: 'desc',
+  });
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+  };
+
+  let response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
-    },
-    body: JSON.stringify({
-      page: 1,
-      limit: 500,
-      sort: 'createdAt',
-      order: 'desc',
-    }),
+    headers,
+    body,
   });
 
+  // Fallback for servers without the rich graph endpoint (e.g. self-hosted
+  // supermemory-server returns 404 for /documents/documents).
+  // POST /v3/documents/list exists on both cloud and self-hosted.
+  if (response.status === 404) {
+    response = await fetch('https://api.supermemory.ai/v3/documents/list', {
+      method: 'POST',
+      headers,
+      body,
+    });
+  }
+
   const data = await response.json();
+  // Normalize /list ({ memories }) to graph shape ({ documents }).
+  if (!data.documents && Array.isArray(data.memories)) {
+    return NextResponse.json({
+      documents: data.memories.map((m) => ({ ...m, memories: [], memoryEntries: [] })),
+      pagination: data.pagination,
+    });
+  }
   return NextResponse.json(data);
 }
 ```
@@ -94,32 +115,50 @@ export async function GET() {
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
+  const body = JSON.stringify({ page: 1, limit: 500, sort: 'createdAt', order: 'desc' });
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+  };
+
+  let response = await fetch('https://api.supermemory.ai/v3/documents/list', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
-    },
-    body: JSON.stringify({ page: 1, limit: 500, sort: 'createdAt', order: 'desc' }),
+    headers,
+    body,
   });
 
   const data = await response.json();
+  if (!data.documents && Array.isArray(data.memories)) {
+    return res.json({
+      documents: data.memories.map((m) => ({ ...m, memories: [], memoryEntries: [] })),
+      pagination: data.pagination,
+    });
+  }
   res.json(data);
 }
 ```
 
 ```javascript Express
 app.get('/api/graph', async (req, res) => {
-  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
+  const body = JSON.stringify({ page: 1, limit: 500, sort: 'createdAt', order: 'desc' });
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+  };
+
+  let response = await fetch('https://api.supermemory.ai/v3/documents/list', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
-    },
-    body: JSON.stringify({ page: 1, limit: 500, sort: 'createdAt', order: 'desc' }),
+    headers,
+    body,
   });
 
   const data = await response.json();
+  if (!data.documents && Array.isArray(data.memories)) {
+    return res.json({
+      documents: data.memories.map((m) => ({ ...m, memories: [], memoryEntries: [] })),
+      pagination: data.pagination,
+    });
+  }
   res.json(data);
 });
 ```
