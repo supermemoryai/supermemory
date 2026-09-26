@@ -57,9 +57,21 @@ OPENAI_MODEL=gpt-oss:20b
 | `OPENAI_FAST_MODEL` | Override for fast/light tasks | `OPENAI_MODEL` |
 | `OPENAI_TEXT_MODEL` | Override for heavier text tasks | `OPENAI_MODEL` |
 
-## File storage
+## Storage & persistence
 
-Nothing to configure. Uploaded files (PDFs, images) are stored on local disk inside `$SUPERMEMORY_DATA_DIR` and served by the server at `/files/:key`.
+### File storage
+
+Uploaded files (PDFs, images) are stored on local disk inside `$SUPERMEMORY_DATA_DIR` and served by the server at `/files/:key`.
+
+### Database snapshots & resource usage
+
+The self-hosted server persists its embedded relational database and vector indices as an encrypted snapshot container (`$SUPERMEMORY_DATA_DIR/data` with an `SMD1` header):
+
+- **Dirty-tracked snapshots (`v0.0.7+`):** The server checks for pending writes on an internal timer. If no documents, memories, or metadata changed since the last snapshot, the dump is skipped completely, keeping idle CPU near 0%.
+- **Streaming encryption:** Encryption streams directly to disk during snapshot writes to avoid double-buffering the raw unencrypted dump in RAM.
+- **Write-activity bursts:** When new documents are being ingested or edited, the server writes dirty changes on its snapshot cycle. For larger stores (>100 MB), disk writes and CPU will spike briefly during active ingestion until the queue drains.
+- **Graceful shutdown:** On `SIGINT` or `SIGTERM`, any pending dirty changes are flushed to disk before the process exits so no queued writes are lost.
+
 
 ## Embeddings
 
