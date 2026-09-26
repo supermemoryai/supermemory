@@ -1,0 +1,95 @@
+V5 makes the difference between *adding* new information and *replacing* the canonical source explicit. Legacy `PATCH /v3/documents/{id}` overloaded both meanings, so pick the write deliberately.
+
+### Choose the correct write
+
+| Intent | Operation | Content behavior |
+| --- | --- | --- |
+| Add information to a stable caller ID | `POST /ns/{namespace}/document` | Append / diff |
+| Replace text or URL content | `PATCH /ns/{namespace}/document/{id}` | Replace and reprocess |
+| Update only supporting fields | Same `PATCH`, without `content` | Canonical content unchanged |
+| Replace a source file and its user metadata | `POST /ns/{namespace}/document/file/{id}` | Full replacement and reprocess |
+| Partially update a file or its supporting fields | `PATCH /ns/{namespace}/document/file/{id}` | Omitted fields unchanged |
+
+### Update text or URL content
+
+<CodeGroup>
+```bash Legacy
+PATCH /v3/documents/doc_1
+{"content":"corrected source","metadata":{"revision":2}}
+```
+
+```bash V5
+PATCH /ns/user_1/document/doc_1?dreaming=dynamic
+{"content":"corrected source","metadata":{"revision":2}}
+```
+</CodeGroup>
+
+You may send any non-empty selection from `content`, `supportingContext`,
+`metadata`, `group`, and `date`. Once `content` is present it becomes the new
+canonical source — which means facts that only the previous source supported can
+vanish when the document is reprocessed.
+
+<Warning>
+  Replacing `content` is not a metadata edit. If you only want to re-label a
+  document, send `metadata` / `group` / `date` and omit `content` entirely.
+</Warning>
+
+### Replace a file-backed document
+
+```bash
+POST /ns/user_1/document/file/doc_1?dreaming=dynamic
+Content-Type: multipart/form-data
+
+file=@corrected.pdf
+metadata={"revision":2}
+```
+
+`file` is mandatory on `POST`, and the call swaps out the canonical source along
+with the user-controlled metadata, grouping, context, and date. Any supporting
+field you leave out is **cleared**. Reach for this when the request you are
+sending is the whole new state of the file-backed document.
+
+### Partially update a file-backed document
+
+```bash
+PATCH /ns/user_1/document/file/doc_1?dreaming=dynamic
+Content-Type: multipart/form-data
+
+metadata={"reviewed":true}
+```
+
+`PATCH` touches nothing beyond the fields you actually send. Send `file` to swap
+the source while the supporting fields you omit survive, or drop `file` entirely
+for a change confined to metadata, group, context, or date. Note the encoding
+split: `metadata` and `group` travel as JSON-encoded strings, whereas
+`supportingContext` and `date` are plain strings.
+
+<Warning>
+  V5 exposes no public `PUT /ns/{namespace}/document/file/{id}`. For a full
+  replacement use `POST`; for a partial one use `PATCH`.
+</Warning>
+
+### IDs and scope
+
+The path `id` may be the Supermemory document ID **or** your caller-defined ID.
+It is resolved only inside `{namespace}`. An ID from another namespace is not a
+cross-namespace update mechanism — the request is rejected or not found rather
+than reaching across the boundary.
+
+### Processing and conflicts
+
+Content or file replacement is accepted before downstream processing finishes. A
+document that is still processing, a namespace conflict, or a conflicting
+internal file path can return `409`. Retry only after the conflicting operation
+reaches a terminal state.
+
+### Verification
+
+- Patch metadata alone and confirm the document content and its derived facts are
+  unchanged.
+- Patch content, then check that the replacement source is canonical once
+  processing finishes.
+- Replace a file with `POST` and confirm omitted user metadata is cleared.
+- Patch a file-backed document and confirm omitted fields survive.
+- Try the same ID against a different namespace; the update should be rejected or
+  come back not found.

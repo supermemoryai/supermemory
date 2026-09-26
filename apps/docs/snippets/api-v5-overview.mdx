@@ -1,0 +1,90 @@
+V5 keeps the same ingestion and recall workflows as V3/V4, but makes scope explicit in the URL, consolidates routes that used to overlap, and tightens request and response types.
+
+<Warning>
+  This is a **breaking API migration**. Changing only the URL is not enough: fields moved between path, query, and body, search defaults changed, response envelopes changed, and a few legacy operations have no V5 replacement at all.
+</Warning>
+
+The API base URL and your bearer keys do not change. V5 application routes are **unversioned** — `/v5/reference` identifies the documentation version, not an API path prefix. Do not put `/v5` in application request paths.
+
+## Recommended migration process
+
+<Steps>
+  <Step title="Inventory every legacy call site">
+    Grep your integration for `/v3/`, `/v4/`, `containerTag`, `containerTags`,
+    `customId`, `entityContext`, `filterByMetadata`, `filters`, and any legacy
+    SDK method wrappers. Record each one with its caller and its purpose.
+  </Step>
+  <Step title="Resolve exactly one namespace per request">
+    Move the legacy `containerTag` value into the `/ns/{namespace}` path
+    segment. Never infer scope from a document or memory ID, and never send
+    more than one namespace in a single V5 request.
+  </Step>
+  <Step title="Translate requests one domain at a time">
+    Apply [document writes](./api-v5-document-writes),
+    [document updates](./api-v5-document-updates),
+    [content management](./api-v5-document-reads),
+    [recall/search](./api-v5-recall),
+    [profiles](./api-v5-profiles),
+    [forgetting](./api-v5-memory-forgetting),
+    [namespaces](./api-v5-settings),
+    [organization](./api-v5-organization), and
+    [typed filters](./api-v5-filters) independently.
+  </Step>
+  <Step title="Update response readers before switching traffic">
+    Migrate envelopes, attachments, pagination, profile buckets, `system`
+    lifecycle fields, and partial-error handling. A translated request with an
+    untranslated reader still fails.
+  </Step>
+  <Step title="Verify legacy and V5 side by side">
+    Work through the [verification and rollout guide](./api-v5-rollout). Check
+    identity and behavior — never raw JSON ordering — and pass changed defaults
+    explicitly so a default change cannot masquerade as a bug.
+  </Step>
+  <Step title="Cut over one domain at a time">
+    Switch traffic, monitor failures and semantic drift, then delete that
+    domain's legacy compatibility code only after it passes verification.
+  </Step>
+</Steps>
+
+## Endpoint map
+
+| Legacy | V5 |
+| --- | --- |
+| `POST /v3/documents` | `POST /ns/{namespace}/document` |
+| `POST /v3/documents/batch` | `POST /ns/{namespace}/document/batch` |
+| `POST /v3/documents/file` | `POST /ns/{namespace}/document/file` |
+| `GET/PATCH /v3/documents/{id}` | `GET/PATCH /ns/{namespace}/document/{id}` |
+| `DELETE /v3/documents/{id}`, `DELETE /v3/documents/bulk` | `DELETE /ns/{namespace}/document` |
+| `POST /v3/documents/list`, `POST /v4/memories/list` | `POST /ns/{namespace}/list/{type}` |
+| `POST /v3/search`, `POST /v4/search` | `POST /ns/{namespace}/search` |
+| `POST /v4/profile` | `POST /ns/{namespace}/profile` |
+| `POST /v4/profile/buckets` | `GET/PUT/DELETE /ns/{namespace}/profile/buckets` |
+| `DELETE /v4/memories`, `POST /v4/memories/forget-matching` | `DELETE /ns/{namespace}/memories`, `DELETE /ns/{namespace}/memories/semantic` |
+| `GET/PATCH/DELETE /v3/container-tags/{tag}`, `POST /v3/container-tags/merge` | `GET /namespaces`, `GET/PATCH/DELETE /ns/{namespace}` |
+| `GET/PATCH /v3/settings` | `GET/PATCH /organization` |
+
+## What has no V5 replacement
+
+These legacy operations were deliberately dropped. Do not invent a substitute —
+rework the caller instead.
+
+- **Direct memory creation and version updates.** `POST /v4/memories` and
+  `PATCH /v4/memories` have no V5 equivalent. Ingest or replace a source
+  document and let memories form from it.
+- **Organization bucket suggestion.** `POST /v3/settings/suggest-buckets` is not
+  part of the V5 public surface.
+- **Organization data reset.** `POST /v3/settings/reset` is not part of the V5
+  public surface.
+- **Connector routes.** Connections still use their existing `/v3/connections/*`
+  paths and are **unchanged** by this migration. Do not rewrite them.
+
+## Grounding note
+
+This guide tracks the contract described by the V5 OpenAPI document that
+accompanies the V5 deployment. (For the legacy surfaces, the live
+`/v4/openapi` and `/v3/openapi` documents remain the references.) The legacy
+field names and defaults contrasted here are the ones still present in this
+repository's shared validation package — notably `SearchRequestSchema`,
+`Searchv4RequestSchema`, `ListMemoriesQuerySchema`, `MemoryUpdateSchema`, and the
+`SearchFiltersSchema` union. Where a behavior is not described by either source,
+this guide says so rather than guessing.

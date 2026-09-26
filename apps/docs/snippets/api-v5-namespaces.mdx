@@ -1,0 +1,86 @@
+V5 renames the public isolation boundary from *container tag* to *namespace*.
+Existing values remain valid identifiers — no stored data rename is required.
+
+### Endpoint mapping
+
+| Legacy | V5 |
+| --- | --- |
+| `GET /v3/container-tags/list` | `GET /namespaces` |
+| `GET /v3/container-tags/{tag}` | `GET /ns/{namespace}` |
+| `PATCH /v3/container-tags/{tag}` | `PATCH /ns/{namespace}` |
+| `DELETE /v3/container-tags/{tag}` | `DELETE /ns/{namespace}` |
+| Merge container tags | `DELETE /ns/{source}` with `{"moveTo":"target"}` |
+
+`GET /ns` also works and answers the same way as `GET /namespaces`; new code
+should standardize on the longer form.
+
+### List namespaces
+
+Each entry now exposes `id`, `namespace`, `documentCount`, `memoryCount`,
+nullable `description`, and `system.createdAt` / `system.updatedAt`. If a reader
+of yours still looks for `containerTag`, top-level timestamps, or the internal
+settings blobs, it needs to change.
+
+<Note>
+  The legacy list response in this repository is a flat array whose entries carry
+  `id`, `name`, `containerTag`, `createdAt`, `updatedAt`, `isExperimental`,
+  `emoji`, `isNova`, and `visibility`. V5 replaces `containerTag` with
+  `namespace`, nests the timestamps under `system`, and drops the
+  project/consumer distinction fields from the public shape.
+</Note>
+
+### Read and update settings
+
+<CodeGroup>
+```bash Legacy
+PATCH /v3/container-tags/project_alpha
+{"entityContext":"Research project for distributed systems"}
+```
+
+```bash V5
+PATCH /ns/project_alpha
+{"supportingContext":"Research project for distributed systems"}
+```
+</CodeGroup>
+
+The public `GET` and `PATCH` shapes contain only `namespace`, `supportingContext`,
+and lifecycle timestamps. Profile buckets have their own `/profile/buckets`
+resource and are **not** namespace settings.
+
+Passing `supportingContext: null` wipes whatever context is stored. You cannot
+simply leave the field out — `PATCH` demands at least one supported setting.
+
+### Permanently delete a namespace
+
+```bash
+DELETE /ns/project_alpha
+{}
+```
+
+Omit `moveTo` and the delete runs synchronously: you get `200` back along with
+`deletedDocumentsCount` and `deletedMemoriesCount`. Namespace and content are
+both gone.
+
+### Move then remove a namespace
+
+```bash
+DELETE /ns/project_alpha
+{"moveTo":"project_archive"}
+```
+
+You get `202` back with `status: "queued"` and an `operationId`. Source and
+destination must not be the same namespace. A `202` here means the move was
+queued, not that it finished.
+
+Where legacy merge took several sources at once, V5 takes **one source per
+request**. Chain the moves and log each one separately.
+
+### Verification
+
+- Check that existing container-tag values still resolve when used as namespace
+  paths.
+- Compare namespace counts against namespace-scoped document and memory lists.
+- A permanent delete should return final counts; a move should return `202`.
+- Confirm a restricted caller can neither read nor change namespaces beyond its
+  own scope.
+- Confirm only organization-authorized callers can change settings or lifecycle.

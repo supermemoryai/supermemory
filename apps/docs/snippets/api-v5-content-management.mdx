@@ -1,0 +1,105 @@
+In V5, retrieving, listing, and deleting all happen inside one namespace you name
+explicitly.
+
+### Retrieve a document and its derived context
+
+<CodeGroup>
+```bash Legacy
+GET /v3/documents/{id}
+GET /v3/documents/{id}/chunks
+```
+
+```bash V5
+GET /ns/{namespace}/document/{id}?attach=chunks&attach=memories
+```
+</CodeGroup>
+
+Supply `attach` more than once to pull in chunks, memories, or both. An
+attachment you never asked for is simply **missing** from the payload, whereas one
+you did ask for that found nothing comes back as an **empty array**. The
+difference is real: `result.chunks === undefined` and `result.chunks.length === 0`
+do not mean the same thing.
+
+The lifecycle fields have moved beneath `system`:
+
+```json
+{"system":{"status":"done","createdAt":"...","updatedAt":"..."}}
+```
+
+Legacy `GET /v3/documents/{id}` returned `status`, `createdAt`, and `updatedAt`
+as top-level fields, and needed a separate `GET /v3/documents/{id}/chunks` call
+for chunk data. V5 folds both into one request.
+
+### List documents, chunks, or memories
+
+<CodeGroup>
+```bash Legacy
+POST /v3/documents/list
+POST /v4/memories/list
+```
+
+```bash V5
+POST /ns/{namespace}/list/{type}?page=1&limit=100&sort=createdAt&order=desc
+{}
+```
+</CodeGroup>
+
+Give `type` one of `documents`, `chunks`, or `memories`. Paging and ordering move
+into the **query string**; the body carries nothing beyond an optional `filter`.
+
+Whichever type you ask for, the response carries `documents`, `chunks`,
+`memories`, and `pagination` — but only the array you selected has entries in it.
+Code that used to pull `memories` out of a document list has to read `documents`
+now.
+
+<Note>
+  This is the one place where the legacy and V5 shapes diverge most sharply.
+  `ListMemoriesQuerySchema` in this repository takes `page`, `limit`, `sort`,
+  `order`, and a **stringified** `filters` value in the query string; V5 keeps
+  the paging controls in the query string but moves filtering into a typed body
+  field.
+</Note>
+
+### Delete documents
+
+<CodeGroup>
+```bash Legacy
+DELETE /v3/documents/{id}
+DELETE /v3/documents/bulk
+```
+
+```bash V5
+DELETE /ns/{namespace}/document
+{"ids":["doc_1","external_id_2"]}
+```
+</CodeGroup>
+
+The V5 array accepts **1–100** Supermemory or caller-defined IDs. Inspect both
+`deletedCount` **and** per-ID `errors`: HTTP success can still include partial
+failures. The legacy bulk schema capped `ids` at 100 as well, so the limit is
+unchanged — but the legacy single-delete route is gone, and one call now covers
+both cases.
+
+### Forget memories
+
+| Legacy intent | V5 operation |
+| --- | --- |
+| Forget exact IDs | `DELETE /ns/{namespace}/memories` with `{"ids":[...]}` |
+| Find memories by meaning | `DELETE /ns/{namespace}/memories/semantic` with `{"query":"...","dryRun":true}` |
+
+Both answer with `{ count, matches, errors }`. To delete semantically without
+drift, preview under `dryRun: true`, inspect the returned IDs, and send that exact
+list to the exact-ID endpoint.
+
+The full dry-run, approval, response, and audit flow lives in
+[memory forgetting](./api-v5-memory-forgetting).
+
+### Verification
+
+- Assert that requested-but-empty attachments are `[]` while omitted attachments
+  are absent.
+- Paginate each resource type until `currentPage >= totalPages`; confirm
+  unselected arrays stay empty.
+- Verify chunk rows carry their parent `documentId`.
+- Try a document delete that only partly succeeds, and a semantic dry run.
+- Verify an ID cannot read, list, or delete content outside its namespace.

@@ -1,0 +1,109 @@
+V5 uses one optional **singular** `filter` field for search, profiles, and list
+operations, replacing the loosely-typed `filters` object.
+
+### Why the legacy shape was hard to migrate
+
+In this repository the legacy filter type is deliberately permissive:
+
+```ts
+export const SearchFiltersSchema = z
+  .object({
+    AND: z.array(z.unknown()).optional(),
+    OR: z.array(z.unknown()).optional(),
+  })
+  .or(z.record(z.unknown()))
+```
+
+`z.array(z.unknown())` means the individual conditions are **unvalidated**. The
+only place their intended shape is written down is an OpenAPI example and a
+`// TODO: Improve filter schema` comment above `ListMemoriesQuerySchema`. Any
+condition that "looked right" was accepted at the edge and interpreted
+downstream. V5 replaces that with a discriminated union the server can reject.
+
+### Shape
+
+```ts
+type Filter =
+  | { field: string; operator: "eq" | "neq"; value: string; caseSensitive?: boolean }
+  | { field: string; operator: "eq" | "neq"; value: number | boolean }
+  | { field: string; operator: "gt" | "gte" | "lt" | "lte"; value: number }
+  | { field: string; operator: "contains" | "notContains"; value: string; caseSensitive?: boolean }
+  | { field: string; operator: "arrayContains" | "arrayNotContains"; value: string }
+  | { operator: "and" | "or"; operands: Filter[] };
+```
+
+A field name may be built from letters, numbers, `_`, `.`, and `-`. An expression
+may nest at most **five levels** deep and carry at most **200 operands** in a
+single logical group.
+
+### Operator mapping
+
+| Legacy condition | V5 predicate |
+| --- | --- |
+| `{ key, value }` | `{ field: key, operator: "eq", value }` |
+| `negate: true` equality | `operator: "neq"` |
+| `filterType: "string_contains"` | `operator: "contains"` |
+| contains + `negate: true` | `operator: "notContains"` |
+| `filterType: "array_contains"` | `operator: "arrayContains"` |
+| array contains + `negate: true` | `operator: "arrayNotContains"` |
+| numeric `=` / numeric `=` + `negate: true` | `eq` / `neq` with a JSON number |
+| numeric `>`, `>=`, `<`, `<=` | `gt`, `gte`, `lt`, `lte` |
+| `AND` / `OR` arrays | lowercase `and` / `or` with `operands` |
+| `ignoreCase: true` | `caseSensitive: false` |
+
+### Before and after
+
+<CodeGroup>
+```json Legacy
+{
+  "AND": [
+    { "key": "category", "value": "research" },
+    { "key": "score", "value": 0.8, "filterType": "numeric", "numericOperator": ">=" }
+  ]
+}
+```
+
+```json V5
+{
+  "operator": "and",
+  "operands": [
+    { "field": "category", "operator": "eq", "value": "research" },
+    { "field": "score", "operator": "gte", "value": 0.8 }
+  ]
+}
+```
+</CodeGroup>
+
+### Deterministic conversion
+
+Apply these steps in order. They are mechanical on purpose — a codemod should be
+able to do them without judgement calls.
+
+1. Rename the outer `filters` field to `filter`.
+2. Recursively replace `AND` / `OR` objects with `{ operator, operands }`.
+3. The legacy `key` becomes `field`.
+4. Convert legacy flags (`negate`, `numericOperator`, `filterType`) into one
+   explicit operator.
+5. Keep numeric values as JSON **numbers**, not numeric strings.
+6. Delete the legacy `filterType`, `negate`, `numericOperator`, and `ignoreCase`
+   keys.
+
+<Warning>
+  Step 5 is the step most likely to be missed. Three schemas in this repository
+  carry the same trap — `ListMemoriesQuerySchema`, `SearchRequestSchema`
+  (`packages/validation/api.ts:414`), and `Searchv4RequestSchema`
+  (`packages/validation/api.ts:508`) each ship an example that passes
+  `"value": "1742745777"`, a numeric comparison written as a **string**. Every
+  `gt`/`gte`/`lt`/`lte` operator in V5's union demands a JSON number, so a
+  straight rename will fail validation.
+</Warning>
+
+### Verification
+
+- Compare result IDs for equality, inequality, contains, numeric, array, nested
+  `AND`, and nested `OR` fixtures.
+- Add negative tests: legacy shapes, empty `operands`, incompatible value types,
+  and unknown keys must all return `400`.
+- Confirm an omitted `filter` preserves unfiltered behavior.
+- Test one fixture at the nesting limit and one beyond it, to pin the five-level
+  bound.

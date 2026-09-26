@@ -1,0 +1,77 @@
+Treat migration as a **behavioral comparison**, not a raw response-snapshot
+update. A diff of two JSON blobs will be dominated by generated IDs and
+timestamps and will tell you nothing about whether recall still works.
+
+### Build deterministic fixtures
+
+Use an isolated namespace, give every fixture a stable ID, and hold the source
+content fixed. The fixture set should span plaintext, URL, file, and batch
+ingestion, plus metadata, grouping, profile facts, related memories, forgotten
+memories, and the case where nothing matches.
+
+For each case, write down the legacy request, the V5 request, the semantic
+outcome you expect, and any delta you are knowingly accepting. Whatever you do,
+keep generated IDs, signed URLs, timings, and JSON key ordering out of the
+comparison unless the contract actually promises them.
+
+### Compare writes
+
+- Repeated `POST` appends or diffs; `PATCH` replaces canonical content.
+- A batch keeps its results in the order you submitted them, and reports
+  per-item failures rather than hiding them.
+- Touching only metadata leaves the source content as it was.
+- An accepted write is not a finished one: poll until processing settles into a
+  terminal state.
+
+### Compare reads and recall
+
+- Attachments you did not request are missing from the payload; attachments you
+  did request but that matched nothing come back as empty arrays.
+- A list call fills in the array for the resource type you asked for and leaves
+  the others untouched.
+- Before trying V5's own search defaults, establish parity with the V4 mode and
+  threshold stated explicitly.
+- Profiles always contain `static`, `dynamic`, and `buckets`.
+
+### Exercise boundaries
+
+| Boundary | Cases |
+| --- | --- |
+| Namespace | Correct, missing, unauthorized, cross-namespace ID |
+| Pagination | First, middle, final, empty, maximum limit |
+| Filters | Every operator, nested AND/OR, invalid type, excessive depth |
+| Deletion | All success, partial success, unknown IDs, semantic dry run |
+| Settings | Admin, non-admin, null removal, invalid empty value |
+
+### Classify differences
+
+```text
+same request intent
+       |
+       +-- same semantic result ------> parity
+       +-- documented V5 difference --> update assertion
+       +-- undocumented difference ----> block cutover
+```
+
+An undocumented difference is a finding, not noise to be smoothed over. Save the
+request pair, the namespace, the IDs, the response status, and the smallest slice
+of the response that reproduces it.
+
+### Cut over by domain
+
+1. Build V5 requests behind a switch you can flip per domain.
+2. Where side effects permit, read both paths or shadow-call the new one.
+3. Cut over ingestion, content management, search, profiles, and settings one at
+   a time, in that order.
+4. Watch for validation and authorization failures, latency shifts, a changing
+   empty-result rate, and processing errors.
+5. Keep the legacy path in place until the observation window closes.
+
+### Completion checklist
+
+- No application call ends up pointing at a `/v5` prefix by mistake.
+- Connector routes, which this migration leaves alone, still carry their
+  documented `/v3` paths.
+- Nothing still reads a legacy field name or legacy response shape.
+- Every default that changed is either deliberately accepted or sent explicitly.
+- Rolling back returns the previous caller to service without a data repair.

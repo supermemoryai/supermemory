@@ -1,0 +1,29 @@
+## Agent migration prompt
+
+```text
+Move this repository off the legacy Supermemory V3/V4 API and onto V5. Begin by
+taking inventory: list every call site still targeting a legacy route. Then work
+through the per-domain guides linked from this page. Address exactly one
+namespace in each request. Where a default differs between the two versions,
+state it in the request rather than relying on whatever the server supplies.
+Bring response readers up to date as well. Back the change with contract tests
+that exercise old and new side by side. Leave application routes unprefixed, and
+leave connector routes alone. When an operation has been dropped, name it as
+dropped rather than manufacturing a stand-in.
+```
+
+## Operations without a direct replacement
+
+- **Direct memory creation and version updates** (`POST /v4/memories`,
+  `PATCH /v4/memories`): ingest or replace a source document instead.
+- **Organization bucket suggestion** (`POST /v3/settings/suggest-buckets`) and
+  **organization reset** (`POST /v3/settings/reset`): not part of the V5 public
+  surface.
+- **Connector routes** that still use `/v3`: unchanged; do not rewrite them.
+
+## Where to go next
+
+- [Authentication](/authentication) — unchanged bearer keys
+- [Search guide](/recall/search)
+- [Memory operations](/recall/memory-operations)
+- [API reference](/api-reference/overview) — legacy V3/V4 reference
