@@ -6,6 +6,8 @@
  * diffing and append detection on the backend.
  */
 
+import { normalizeBaseUrl } from "./shared/context"
+
 export interface ConversationMessage {
 	role: "user" | "assistant" | "system" | "tool"
 	content: string | ContentPart[]
@@ -50,6 +52,16 @@ export const toConversationImageUrl = (
 		return /^[a-z][a-z\d+.-]*:/i.test(trimmed)
 			? trimmed
 			: `data:${mediaType};base64,${trimmed}`
+	}
+
+	if (typeof value === "object" && value !== null && "url" in value) {
+		const rawUrl = (value as { url: unknown }).url
+		if (
+			typeof rawUrl === "string" ||
+			(typeof URL !== "undefined" && rawUrl instanceof URL)
+		) {
+			return toConversationImageUrl(rawUrl, mediaType)
+		}
 	}
 
 	const bytes =
@@ -117,7 +129,7 @@ const CONVERSATION_REQUEST_TIMEOUT_MS = 30_000
 export async function addConversation(
 	params: AddConversationParams,
 ): Promise<AddConversationResponse> {
-	const baseUrl = params.baseUrl || "https://api.supermemory.ai"
+	const baseUrl = normalizeBaseUrl(params.baseUrl)
 	const url = `${baseUrl}/v4/conversations`
 
 	const response = await fetch(url, {
