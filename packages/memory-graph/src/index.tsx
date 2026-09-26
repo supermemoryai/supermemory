@@ -6,6 +6,9 @@ export { GraphCanvas } from "./components/graph-canvas"
 export { useGraphData } from "./hooks/use-graph-data"
 export { useGraphTheme } from "./hooks/use-graph-theme"
 
+// Utilities
+export { searchNodes } from "./utils/node-search"
+
 // Engine classes (for advanced usage)
 export { ForceSimulation } from "./canvas/simulation"
 export { ViewportState } from "./canvas/viewport"
