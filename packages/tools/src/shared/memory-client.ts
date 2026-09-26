@@ -16,13 +16,37 @@ import {
 } from "./prompt-builder"
 
 /**
+ * Upper bound for a single `/v4/profile` request, matching the budget the other
+ * Supermemory calls in this package already use (`/v4/conversations` and
+ * `/v4/memories`). Without it a stalled connection has no deadline at all: the
+ * Mastra and VoltAgent integrations, and the exported `buildMemoriesText` /
+ * `addSystemPrompt` helpers, call this function with no signal of their own, so
+ * a hung socket would block the agent turn forever.
+ */
+export const PROFILE_REQUEST_TIMEOUT_MS = 30_000
+
+/**
+ * Bound a request by the package timeout, keeping any caller signal live.
+ *
+ * The caller signal is composed with the timeout rather than replacing it, so
+ * a caller-supplied deadline can only ever shorten the request, never remove
+ * its upper bound.
+ */
+const withRequestTimeout = (signal?: AbortSignal): AbortSignal => {
+	const timeout = AbortSignal.timeout(PROFILE_REQUEST_TIMEOUT_MS)
+	return signal ? AbortSignal.any([signal, timeout]) : timeout
+}
+
+/**
  * Fetches profile and search results from the Supermemory API.
  *
  * @param containerTag - The container tag/user ID for scoping memories
  * @param queryText - Optional query text for semantic search
  * @param baseUrl - The API base URL
  * @param apiKey - The API key for authentication
- * @param signal - Optional AbortSignal to cancel the request (e.g. retrieval timeout)
+ * @param signal - Optional AbortSignal to cancel the request early (e.g. a
+ *   caller-side retrieval budget). It is composed with the package timeout, so
+ *   it can shorten the request but never leaves it unbounded.
  * @returns The profile structure with static, dynamic, and search results
  */
 export const supermemoryProfileSearch = async (
@@ -51,7 +75,10 @@ export const supermemoryProfileSearch = async (
 				Authorization: `Bearer ${apiKey}`,
 			},
 			body: payload,
-			...(signal ? { signal } : {}),
+			// The request carries the API key in an Authorization header, so a
+			// redirect is refused rather than followed to an unverified host.
+			redirect: "error",
+			signal: withRequestTimeout(signal),
 		})
 
 		if (!response.ok) {
