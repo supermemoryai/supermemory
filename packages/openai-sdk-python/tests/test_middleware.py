@@ -1,8 +1,11 @@
 """Tests for middleware module."""
 
 import os
+import sys
 import pytest
+import requests
 import asyncio
+import threading
 from unittest.mock import AsyncMock, Mock, patch, MagicMock
 from typing import Dict, Any
 
@@ -26,6 +29,7 @@ except ImportError:
         SupermemoryOpenAIWrapper,
     )
 
+from supermemory_openai.middleware import supermemory_profile_search
 from openai import OpenAI, AsyncOpenAI
 from openai.types.chat import ChatCompletion, ChatCompletionMessage
 from openai.types import CompletionUsage
@@ -812,3 +816,37 @@ class TestBackgroundTaskManagement:
                         )
 
                     # Should complete without error
+
+
+class TestProfileSearchFallback:
+    """Test the requests fallback used when aiohttp is not installed."""
+
+    @pytest.mark.asyncio
+    async def test_requests_fallback_does_not_block_event_loop(self):
+        """requests.post must run off the event loop so other tasks keep running."""
+        released = threading.Event()
+
+        def slow_post(*args, **kwargs):
+            # The test sets the event from the event loop, which it can only do
+            # while this call is running somewhere else.
+            if not released.wait(timeout=2):
+                raise AssertionError("requests.post blocked the event loop")
+            response = Mock(status_code=200)
+            response.json.return_value = {
+                "profile": {"static": ["Prefers vegetarian food"], "dynamic": []},
+                "searchResults": {"results": []},
+            }
+            return response
+
+        with patch.dict(sys.modules, {"aiohttp": None}):
+            with patch.object(requests, "post", side_effect=slow_post):
+                search = asyncio.create_task(
+                    supermemory_profile_search(
+                        "user-123", "", "test-key", "https://api.supermemory.ai"
+                    )
+                )
+                await asyncio.sleep(0)
+                released.set()
+                result = await search
+
+        assert result.profile["static"] == ["Prefers vegetarian food"]
