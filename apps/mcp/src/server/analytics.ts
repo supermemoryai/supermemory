@@ -37,6 +37,7 @@ const TOOL_SURFACES: Record<string, McpToolSurface> = {
 	get_profile: "model_tool",
 	list_documents: "model_tool",
 	get_document: "model_tool",
+	delete_document: "model_tool",
 	list_memories: "model_tool",
 	list_spaces: "model_tool",
 	who_am_i: "model_tool",
