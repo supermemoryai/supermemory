@@ -16,12 +16,14 @@ This is a **Turbo monorepo** containing multiple applications and shared package
 - `bun run dev` - Start all applications in development mode
 - `bun run build` - Build all applications
 - `bun run check-types` - Run TypeScript checks across all apps
-- `bun run format-lint` - Format and lint code using Biome
+- `bun run format-lint` - Check formatting and lint with Biome (read-only)
+- `bun run format-lint:fix` - Apply Biome's formatting and lint fixes
 
 ### Web Application (`apps/web/`)
 - `bun run dev` - Start Next.js development server
 - `bun run build` - Build Next.js application
-- `bun run lint` - Run Next.js linting
+- `bun run lint` - Check the web app with Biome (read-only)
+- `bun run lint:fix` - Apply Biome's fixes to the web app
 
 ## Architecture Overview
 
@@ -89,7 +91,7 @@ All content goes through the `IngestContentWorkflow` which handles:
 
 ### Linting & Formatting
 - **Biome** used for linting and formatting across the monorepo
-- Run `bun run format-lint` to format and lint all code
+- Run `bun run format-lint` to check all code; `bun run format-lint:fix` to apply fixes
 - Configuration in `biome.json` at repository root
 
 ### TypeScript

@@ -80,7 +80,8 @@ supermemory/
 - `bun run dev:local` - Start dev servers on plain localhost ports (recommended for OSS contributors)
 - `bun run dev` - Start dev servers through portless (`*.dev.supermemory.ai`, internal team)
 - `bun run build` - Build all applications
-- `bun run format-lint` - Format and lint code using Biome
+- `bun run format-lint` - Check formatting and lint with Biome (read-only)
+- `bun run format-lint:fix` - Apply Biome's formatting and lint fixes
 - `bun run check-types` - Type check all packages
 
 ### Code Quality
@@ -98,6 +99,8 @@ bun run format-lint
 bun run check-types
 bun run build
 ```
+
+These are read-only. To let Biome apply its fixes, run `bun run format-lint:fix`.
 
 ### Tech Stack
 
