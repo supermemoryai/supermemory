@@ -1,0 +1,242 @@
+---
+title: "Ingest"
+sidebarTitle: "Ingest"
+description: "Add documents, files, batches, and conversations into the processing pipeline."
+icon: "download"
+---
+
+Ingest is how content enters Supermemory. Every ingest call returns an id immediately; extraction, chunking, and embedding happen asynchronously in the background.
+
+## Add a document
+
+`POST /v3/documents`
+
+Accepts plaintext, a URL, or structured content. The content type is detected from the URL's response format.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "content": "This is a detailed article about machine learning concepts...",
+    "containerTag": "user_123",
+    "customId": "mem_abc123",
+    "metadata": { "category": "technology" }
+  }'
+```
+
+```typescript Typescript
+const response = await fetch("https://api.supermemory.ai/v3/documents", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    content: "This is a detailed article about machine learning concepts...",
+    containerTag: "user_123",
+    customId: "mem_abc123",
+    metadata: { category: "technology" },
+  }),
+});
+```
+
+```python Python
+import os, requests
+
+response = requests.post(
+    "https://api.supermemory.ai/v3/documents",
+    headers={
+        "Authorization": f"Bearer {os.environ['SUPERMEMORY_API_KEY']}",
+        "Content-Type": "application/json",
+    },
+    json={
+        "content": "This is a detailed article about machine learning concepts...",
+        "containerTag": "user_123",
+        "customId": "mem_abc123",
+        "metadata": {"category": "technology"},
+    },
+)
+```
+
+</CodeGroup>
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `content` | string | one of | Plaintext, or a URL to a website, PDF, image, or video |
+| `containerTag` | string | no | Tag to containerize this memory by — a user id, project id, or any grouping identifier |
+| `customId` | string | no | Your own id for this memory; makes re-sends upsert instead of duplicate |
+| `metadata` | object | no | Flat key-value pairs (strings, numbers, booleans). Keys are case sensitive; nested objects are not supported |
+| `entityContext` | string | no | Context that guides how memories are extracted for this container (max 1500 chars) |
+
+<Note>
+`customId` is the idempotency handle. Use a stable value (conversation id, document id) so re-sending the same content updates the existing document rather than creating a second one.
+</Note>
+
+### Response
+
+```json
+{
+  "id": "acxV5LHMEsG2hMSNb4umbn",
+  "status": "queued"
+}
+```
+
+Poll [`GET /v3/documents/{id}`](/v5/api-reference/content-management#get-a-document) until `status` reaches `done` before relying on search or profiles.
+
+## Upload a file
+
+`POST /v3/documents/file`
+
+Send binary content as `multipart/form-data`. Use this for local files that are not reachable by URL.
+
+```bash
+curl -X POST "https://api.supermemory.ai/v3/documents/file" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --form "file=@./report.pdf" \
+  --form "containerTag=user_123"
+```
+
+The uploaded file can be read back later through the presigned URL on the document — see [Content management](/v5/api-reference/content-management#get-a-file-url).
+
+## Batch ingest
+
+`POST /v3/documents/batch`
+
+Add many documents in one request.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/documents/batch" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "documents": [
+      { "content": "Batch doc 1" },
+      { "content": "Batch doc 2", "containerTags": ["user_123"] }
+    ],
+    "containerTag": "user_123"
+  }'
+```
+
+```typescript Typescript
+const response = await fetch("https://api.supermemory.ai/v3/documents/batch", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    documents: [
+      { content: "Batch doc 1" },
+      { content: "Batch doc 2", containerTags: ["user_123"] },
+    ],
+    containerTag: "user_123",
+  }),
+});
+```
+
+</CodeGroup>
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `documents` | array | yes | 1–600 document objects |
+| `documents[].content` | string | yes | The document content or URL |
+| `documents[].containerTags` | string[] | no | Per-document tags for this document |
+| `documents[].metadata` | object | no | Per-document metadata |
+| `documents[].entityContext` | string | no | Per-document extraction context (max 1500 chars) |
+| `containerTag` | string | no | Default container for documents that do not set their own |
+| `metadata` | object | no | Default metadata for the batch |
+| `entityContext` | string | no | Default extraction context for the batch |
+
+### Response
+
+Per-document results, so a partial failure does not fail the whole batch:
+
+```json
+{
+  "results": [
+    { "id": "doc_1", "status": "queued" },
+    { "id": "doc_2", "status": "failed", "error": "Unsupported content type" }
+  ],
+  "success": 1,
+  "failed": 1
+}
+```
+
+<Warning>
+Check `failed` and the per-result `error` field. A batch request returns `200` even when individual documents fail.
+</Warning>
+
+## Add a conversation
+
+`POST /v4/conversations`
+
+Ingest a chat session as structured, turn-aware messages rather than a single text blob. The service diffs against the previous state of the same conversation and appends what is new.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v4/conversations" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "conversationId": "conv-123",
+    "messages": [
+      { "role": "user", "content": "Hello!" },
+      { "role": "assistant", "content": "Hi there!" }
+    ],
+    "containerTags": ["user_123"]
+  }'
+```
+
+```typescript Typescript
+await fetch("https://api.supermemory.ai/v4/conversations", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    conversationId: "conv-123",
+    messages: [
+      { role: "user", content: "Hello!" },
+      { role: "assistant", content: "Hi there!" },
+    ],
+    containerTags: ["user_123"],
+  }),
+});
+```
+
+</CodeGroup>
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `conversationId` | string | yes | Stable id for the conversation; used for diffing across sends |
+| `messages` | array | yes | Structured turns |
+| `messages[].role` | string | yes | `user`, `assistant`, `system`, or `tool` |
+| `messages[].content` | string \| array | yes | Text, or an array of content parts for multi-modal turns |
+| `messages[].name` | string | no | Participant name |
+| `messages[].tool_calls` | array | no | Tool calls made in this turn |
+| `messages[].tool_call_id` | string | no | Id linking a tool result back to its call |
+| `containerTags` | string[] | no | Tags this conversation belongs to |
+| `metadata` | object | no | Metadata attached to the ingested conversation |
+
+<Info>
+Keep `conversationId` stable for the lifetime of a chat. Re-sending the growing transcript with the same id lets the service store only the new turns instead of duplicating the whole history.
+</Info>
+
+## Next steps
+
+- [Content management](/v5/api-reference/content-management) — poll status and manage what you ingested
+- [Search](/v5/api-reference/search) — recall the indexed content
+- [Add memories](/ingestion/add-memories) — narrative ingest guide

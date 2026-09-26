@@ -1,0 +1,136 @@
+---
+title: "Profiles"
+sidebarTitle: "Profiles"
+description: "Read the static and dynamic profile Supermemory maintains for a container."
+icon: "id-card"
+---
+
+A profile is a compact summary of what Supermemory knows about an entity — usually a user, but any container works. It combines long-lived *static* facts with recent *dynamic* context, and is maintained automatically as you ingest content.
+
+## Get a profile
+
+`POST /v4/profile`
+
+Returns the profile for a `containerTag`. Add `q` to get search results in the same response.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v4/profile" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"containerTag": "user_123", "q": "deployment errors"}'
+```
+
+```typescript Typescript
+const response = await fetch("https://api.supermemory.ai/v4/profile", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    containerTag: "user_123",
+    q: "deployment errors",
+  }),
+});
+
+const { profile } = await response.json();
+```
+
+```python Python
+import os, requests
+
+response = requests.post(
+    "https://api.supermemory.ai/v4/profile",
+    headers={
+        "Authorization": f"Bearer {os.environ['SUPERMEMORY_API_KEY']}",
+        "Content-Type": "application/json",
+    },
+    json={"containerTag": "user_123", "q": "deployment errors"},
+)
+```
+
+</CodeGroup>
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `containerTag` | string | yes | Container to read the profile for |
+| `q` | string | no | Search query; adds search results to the response |
+| `threshold` | number | no | Filter search results by relevance score (0–1) |
+| `filters` | object | no | Metadata filters applied to the profile and search results |
+| `include` | string[] | no | Sections to return — any of `static`, `dynamic`, `buckets`. Omit for all |
+| `buckets` | string[] | no | Restrict the `buckets` section to specific keys |
+
+### Response
+
+```json
+{
+  "profile": {
+    "static": [
+      "User is a software engineer",
+      "User specializes in Python and React",
+      "User prefers dark mode interfaces"
+    ],
+    "dynamic": [
+      "User is working on Project Alpha",
+      "User recently started learning Rust"
+    ]
+  }
+}
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `profile.static` | string[] | Long-lived facts about the entity |
+| `profile.dynamic` | string[] | Recent context and episodes |
+
+When you pass `q`, the response also carries `searchResults` with the matching memories.
+
+<Info>
+Static facts are the durable identity traits — role, expertise, standing preferences. Dynamic entries are the recent, changing context. Inject both into an agent's system prompt for personalized responses.
+</Info>
+
+## Build agent context
+
+The common pattern is to fetch the profile once per turn and inject it into the prompt:
+
+```typescript
+async function buildContext(containerTag: string, message: string) {
+  const response = await fetch("https://api.supermemory.ai/v4/profile", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ containerTag, q: message }),
+  });
+
+  const { profile, searchResults } = await response.json();
+
+  return [
+    "User Profile:",
+    ...profile.static,
+    "",
+    "Recent Context:",
+    ...profile.dynamic,
+    "",
+    "Relevant Memories:",
+    ...searchResults.results.map((r) => r.memory),
+  ].join("\n");
+}
+```
+
+## Profile buckets
+
+`POST /v4/profile/buckets`
+
+Returns the profile organized by custom buckets instead of the flat static/dynamic split. Buckets are configured per organization — see [Buckets](/user-profiles/buckets).
+
+## Next steps
+
+- [User profiles](/recall/user-profiles) — narrative guide with SDK examples
+- [User profiles concept](/concepts/user-profiles) — how profiles are built and maintained
+- [Buckets](/user-profiles/buckets) — organizing a profile by topic

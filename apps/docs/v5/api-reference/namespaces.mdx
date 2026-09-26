@@ -1,0 +1,166 @@
+---
+title: "Namespaces"
+sidebarTitle: "Namespaces"
+description: "Container tag and project lifecycle — settings, listing, and deletion."
+icon: "tags"
+---
+
+A `containerTag` is the namespace that scopes everything in Supermemory: ingest, search, and profiles all key off it. These operations manage the tags themselves and the projects that group them.
+
+## List container tags
+
+`GET /v3/container-tags/list`
+
+Returns every container tag available to the organization as a flat array.
+
+```bash
+curl "https://api.supermemory.ai/v3/container-tags/list" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+Each entry carries the tag identity plus an `isNova` flag, which is `true` when the tag starts with `sm_project_`:
+
+```json
+[
+  {
+    "id": "space_abc123",
+    "name": "My Project",
+    "containerTag": "sm_project_my_project",
+    "createdAt": "2025-01-15T10:30:00.000Z",
+    "updatedAt": "2025-01-15T10:30:00.000Z",
+    "isExperimental": false,
+    "isNova": true
+  }
+]
+```
+
+## Read container tag settings
+
+`GET /v3/container-tags/{containerTag}`
+
+Returns the settings attached to one tag.
+
+## Update container tag settings
+
+`PATCH /v3/container-tags/{containerTag}`
+
+Set a display name and an entity context for a tag.
+
+```bash
+curl -X PATCH "https://api.supermemory.ai/v3/container-tags/sm_project_default" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "name": "Research Notes",
+    "entityContext": "This project contains research papers about machine learning."
+  }'
+```
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `name` | string | Display name (1–100 chars). Does not change the tag identifier |
+| `entityContext` | string \| null | Extraction context for this container (max 1500 chars) |
+| `memoryFilesystemPaths` | string[] \| null | Filesystem paths associated with this container |
+
+The response echoes the tag with its `updatedAt` timestamp:
+
+```json
+{
+  "containerTag": "sm_project_default",
+  "name": "Research Notes",
+  "entityContext": "This project contains research papers about machine learning.",
+  "memoryFilesystemPaths": null,
+  "updatedAt": "2025-01-15T10:30:00.000Z"
+}
+```
+
+## Delete a container tag
+
+`DELETE /v3/container-tags/{containerTag}`
+
+Deletes a container and everything in it. Returns counts so you can confirm what was removed.
+
+```json
+{
+  "success": true,
+  "containerTag": "user_123",
+  "deletedDocumentsCount": 42,
+  "deletedMemoriesCount": 118
+}
+```
+
+<Warning>
+This is destructive and scoped to the tag. Deleting a container removes its documents and memories. There is no undo.
+</Warning>
+
+## List projects
+
+`GET /v3/projects`
+
+Projects are the user-created containers behind `sm_project_*` tags.
+
+```bash
+curl "https://api.supermemory.ai/v3/projects" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+```json
+{
+  "projects": [
+    {
+      "id": "proj_abc123",
+      "name": "My Awesome Project",
+      "containerTag": "sm_project_my_awesome_project",
+      "createdAt": "2025-01-15T10:30:00.000Z",
+      "updatedAt": "2025-01-15T10:30:00.000Z",
+      "isExperimental": false,
+      "documentCount": 42,
+      "emoji": "📁"
+    }
+  ]
+}
+```
+
+## Create a project
+
+`POST /v3/projects`
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `name` | string | Project name (1–100 chars) |
+| `emoji` | string | Optional emoji icon (max 10 chars) |
+
+The `containerTag` is derived from the name in the form `sm_project_{name}`.
+
+## Delete a project
+
+`DELETE /v3/projects/{projectId}`
+
+Deleting a project requires deciding what happens to its documents.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `action` | string | `move` or `delete` |
+| `targetProjectId` | string | Required when `action` is `move` |
+
+```bash
+curl -X DELETE "https://api.supermemory.ai/v3/projects/proj_abc123" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"action": "move", "targetProjectId": "proj_xyz789"}'
+```
+
+```json
+{
+  "success": true,
+  "message": "Project deleted successfully",
+  "documentsAffected": 10,
+  "memoriesAffected": 5
+}
+```
+
+## Next steps
+
+- [Container tags](/concepts/container-tags) — the multi-tenancy model
+- [Filtering](/concepts/filtering) — metadata filters within a namespace
+- [Multi-tenancy examples](/concepts/multi-tenancy-examples) — common layouts

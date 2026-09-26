@@ -1,0 +1,127 @@
+---
+title: "Organization"
+sidebarTitle: "Organization"
+description: "Organization settings, analytics, and data reset."
+icon: "settings"
+---
+
+Organization-level operations configure how Supermemory behaves for your whole org: extraction customization, connector credentials, usage analytics, and the destructive reset.
+
+## Read settings
+
+`GET /v3/settings`
+
+Returns the current organization settings.
+
+```bash
+curl "https://api.supermemory.ai/v3/settings" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+## Update settings
+
+`PATCH /v3/settings`
+
+Update any subset of the settings below. Omitted fields are left unchanged.
+
+```bash
+curl -X PATCH "https://api.supermemory.ai/v3/settings" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "shouldLLMFilter": true,
+    "filterPrompt": "Ignore marketing newsletters and automated notifications."
+  }'
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `shouldLLMFilter` | boolean | Enable LLM-based filtering of ingested content |
+| `filterPrompt` | string \| null | Prompt steering what the filter should drop |
+| `includeItems` | string[] \| null | Content categories to always include |
+| `excludeItems` | string[] \| null | Content categories to always exclude |
+| `workspacePrompt` | string \| null | Org-wide context prompt (max 1500 chars) |
+| `googleDriveCustomKeyEnabled` | boolean | Use your own Google Drive OAuth app |
+| `googleDriveClientId` | string \| null | Google Drive client id |
+| `googleDriveClientSecret` | string \| null | Google Drive client secret |
+| `notionCustomKeyEnabled` | boolean | Use your own Notion OAuth app |
+| `notionClientId` | string \| null | Notion client id |
+| `notionClientSecret` | string \| null | Notion client secret |
+| `onedriveCustomKeyEnabled` | boolean | Use your own OneDrive OAuth app |
+| `onedriveClientId` | string \| null | OneDrive client id |
+| `onedriveClientSecret` | string \| null | OneDrive client secret |
+
+The response returns the `orgId`, the `orgSlug`, and the `updated` settings.
+
+## Suggest buckets
+
+`POST /v3/settings/suggest-buckets`
+
+Generates suggested profile buckets from your organization's existing content. See [Buckets](/user-profiles/buckets) for how buckets organize a profile.
+
+## Reset organization data
+
+`POST /v3/settings/reset`
+
+<Warning>
+Destructive and organization-wide. This deletes connections, documents, memory rows, and extra spaces. It cannot be undone.
+</Warning>
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `confirmation` | string | Confirmation string required to proceed |
+
+```bash
+curl -X POST "https://api.supermemory.ai/v3/settings/reset" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"confirmation": "RESET"}'
+```
+
+The response reports exactly what was removed:
+
+```json
+{
+  "success": true,
+  "deletedConnections": 3,
+  "deletedDocumentBatches": 12,
+  "deletedDocumentsApprox": 480,
+  "deletedMemoryRows": 1290,
+  "deletedExtraSpaces": 2,
+  "clearedDefaultSpaceContext": true,
+  "settingsReset": true
+}
+```
+
+## Usage analytics
+
+`GET /v3/analytics/usage`
+
+Request counts grouped by type and API key, plus hourly breakdowns.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `from` | string | Start of the period (ISO 8601) |
+| `to` | string | End of the period (ISO 8601) |
+| `period` | string | Shorthand alternative to `from`: `24h`, `7d`, `30d`, or `all` |
+| `page` | number | Page number (default 1) |
+| `limit` | number | Items per page (default 20, max 100) |
+
+```bash
+curl "https://api.supermemory.ai/v3/analytics/usage?period=24h" \
+  --header "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+The response contains `usage` (per request type), `byKey` (per API key, with `lastUsed`), `hourly` counts, `totalMemories`, and `pagination`.
+
+<Info>
+Analytics are read-only and scoped to your organization. For the full breakdown of the analytics surface — including error and log endpoints — see [Analytics](/overview/analytics).
+</Info>
+
+## Next steps
+
+- [Customization](/concepts/customization) — what the settings above control
+- [Analytics](/overview/analytics) — full analytics reference
+- [Buckets](/user-profiles/buckets) — profile organization
