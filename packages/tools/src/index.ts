@@ -10,3 +10,17 @@ export {
 	DEFAULT_VALUES,
 	getContainerTags,
 } from "./tools-shared"
+
+export {
+	listMemoriesRequest,
+	fetchAllMemories,
+	exportMemoriesAsJson,
+	exportMemoriesAsMarkdown,
+	type MemoryEntry,
+	type MemoryEntryHistory,
+	type MemoriesListResponse,
+	type ListMemoriesParams,
+	type ListMemoriesRequestOptions,
+	type ExportMemoriesOptions,
+	type MemoriesExportData,
+} from "./shared"
