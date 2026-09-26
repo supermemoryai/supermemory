@@ -10,6 +10,10 @@ import {
 	type AuthUser,
 } from "./auth"
 import { SupermemoryMCP } from "./legacy-protocol-state"
+import {
+	PROTECTED_RESOURCE_METADATA_PATH,
+	protectedResourceMetadataUrl,
+} from "./oauth-metadata"
 import { createSupermemoryServer } from "./server"
 import type { ActorContext, ServerEnv } from "./types"
 import { SpaceState, uploadStateName } from "./space-state"
@@ -20,8 +24,6 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 const DEFAULT_API_URL = "https://api.supermemory.ai"
 const DEFAULT_MCP_RESOURCE = "https://mcp.supermemory.ai/mcp"
-const PROTECTED_RESOURCE_METADATA_PATH =
-	"/.well-known/oauth-protected-resource/mcp"
 const UPLOAD_ID_PATTERN =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const DEFAULT_ALLOWED_ORIGIN_HOSTNAMES = [
@@ -64,6 +66,19 @@ app.get("/", (c) => {
 function resourceMetadata(c: Context<{ Bindings: Bindings }>) {
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
 	const mcpResource = c.env.MCP_RESOURCE || DEFAULT_MCP_RESOURCE
+	const requestUrl = new URL(c.req.url)
+	const canonicalMetadataUrl = new URL(
+		protectedResourceMetadataUrl(mcpResource),
+	)
+	// MCP clients also try the root well-known location as a compatibility fallback.
+	const isMcpRootFallback =
+		requestUrl.pathname === PROTECTED_RESOURCE_METADATA_PATH &&
+		requestUrl.search === ""
+	const isCanonicalLocation =
+		requestUrl.pathname === canonicalMetadataUrl.pathname &&
+		requestUrl.search === canonicalMetadataUrl.search
+
+	if (!isMcpRootFallback && !isCanonicalLocation) return c.notFound()
 
 	return c.json({
 		resource: mcpResource,
@@ -74,8 +89,8 @@ function resourceMetadata(c: Context<{ Bindings: Bindings }>) {
 	})
 }
 
-app.get("/.well-known/oauth-protected-resource", resourceMetadata)
 app.get(PROTECTED_RESOURCE_METADATA_PATH, resourceMetadata)
+app.get(`${PROTECTED_RESOURCE_METADATA_PATH}/*`, resourceMetadata)
 
 app.get("/.well-known/openai-apps-challenge", (c) => {
 	return c.text(c.env.OPENAI_APPS_CHALLENGE || "")
@@ -197,11 +212,7 @@ async function handleMcpRequest(
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
 	const mcpResource = c.env.MCP_RESOURCE || DEFAULT_MCP_RESOURCE
 
-	const reqHost = c.req.header("x-forwarded-host") || c.req.header("host") || ""
-	const reqProto = c.req.header("x-forwarded-proto") || "https"
-	const resourceMetadataUrl = reqHost
-		? `${reqProto}://${reqHost}${PROTECTED_RESOURCE_METADATA_PATH}`
-		: PROTECTED_RESOURCE_METADATA_PATH
+	const resourceMetadataUrl = protectedResourceMetadataUrl(mcpResource)
 	const mcpOrigin = c.env.MCP_PUBLIC_ORIGIN || new URL(mcpResource).origin
 
 	if (!token) return unauthorizedResponse(resourceMetadataUrl)
