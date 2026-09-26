@@ -1,5 +1,8 @@
 {
 	"extends": "@total-typescript/tsconfig/bundler/dom/library-monorepo",
+	// test/chatapp is a standalone Next.js demo with its own package.json,
+	// lockfile and tsconfig; it is not part of this package's program.
+	"exclude": ["node_modules", "test/chatapp"],
 	"compilerOptions": {
 		"baseUrl": ".",
 		"paths": {
