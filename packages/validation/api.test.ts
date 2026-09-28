@@ -85,6 +85,19 @@ describe("search threshold schemas", () => {
 			}).success,
 		).toBe(false)
 	})
+
+	it("names the v4 threshold field in validation errors", () => {
+		const result = Searchv4RequestSchema.safeParse({
+			q: "memory",
+			threshold: 1.1,
+		})
+
+		expect(result.success).toBe(false)
+		if (result.success) return
+		expect(result.error.issues[0]?.message).toBe(
+			"threshold must be between 0 and 1",
+		)
+	})
 })
 
 describe("pagination query schemas", () => {
