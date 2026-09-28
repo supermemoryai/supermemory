@@ -26,13 +26,14 @@ import {
 	SearchResponseSchema,
 	type SearchResult,
 	SettingsRequestSchema,
+	SettingsResponseSchema,
 	UpdateContainerTagSettingsRequestSchema,
 } from "../validation/api"
 
 const UpdateSettingsResponseSchema = z.object({
 	orgId: z.string(),
 	orgSlug: z.string(),
-	updated: SettingsRequestSchema,
+	updated: SettingsResponseSchema,
 })
 
 // Analytics request schema - custom to console
@@ -190,7 +191,7 @@ export const apiSchema = createSchema({
 
 	// Settings operations
 	"@get/settings": {
-		output: SettingsRequestSchema,
+		output: SettingsResponseSchema,
 	},
 	"@patch/settings": {
 		input: SettingsRequestSchema,
