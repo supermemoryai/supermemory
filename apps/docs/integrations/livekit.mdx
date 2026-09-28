@@ -93,6 +93,8 @@ if __name__ == "__main__":
 
 `preload` puts the caller's profile into the first turn, so the greeting can use it. `attach` stores the conversation after each agent reply, and stores anything left when the session closes, including a caller who hangs up mid-turn. `SupermemoryAgent` recalls inside `llm_node` before each reply and adds the memory tools. That covers voice turns, text turns from `generate_reply` or `session.run`, and LiveKit's preemptive generation. Each user message is recalled once, and tool follow-ups reuse it.
 
+A runnable version, with a greeting that uses the caller's memory, is in the [example agent](https://github.com/supermemoryai/supermemory/tree/main/packages/livekit-sdk-python/examples).
+
 `agent_name` turns on explicit dispatch, which is how job metadata reaches the agent. Remove it to join every new room automatically, for example when testing in the [Agents Playground](https://agents-playground.livekit.io).
 
 ## Your own agent

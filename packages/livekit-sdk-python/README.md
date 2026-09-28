@@ -71,6 +71,8 @@ if __name__ == "__main__":
     agents.cli.run_app(server)
 ```
 
+A runnable version with a greeting that uses memory is in [examples/](examples/).
+
 If you already have an `Agent` subclass, pass `tools=memory.tools()` and recall from `llm_node`:
 
 ```python
