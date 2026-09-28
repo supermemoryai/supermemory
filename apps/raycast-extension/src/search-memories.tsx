@@ -153,7 +153,7 @@ function Command() {
 							subtitle={{ value: truncateContent(content), tooltip: content }}
 							accessories={[
 								{ text: formatDate(memory.createdAt) },
-								...(memory.score
+								...(memory.score !== undefined
 									? [{ text: `${Math.round(memory.score * 100)}%` }]
 									: []),
 							]}
@@ -199,7 +199,7 @@ ${content}
 
 **Created:** ${new Date(memory.createdAt).toLocaleString()}
 ${url ? `**URL:** ${url}` : ""}
-${memory.score ? `**Relevance:** ${Math.round(memory.score * 100)}%` : ""}
+${memory.score !== undefined ? `**Relevance:** ${Math.round(memory.score * 100)}%` : ""}
 `
 
 	return (
