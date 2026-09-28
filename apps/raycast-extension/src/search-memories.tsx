@@ -8,9 +8,10 @@ import {
 	Toast,
 	getSelectedText,
 } from "@raycast/api"
+import { usePromise } from "@raycast/utils"
 import { useState, useEffect } from "react"
 import { searchMemories, type SearchResult } from "./api"
-import { usePromise } from "@raycast/utils"
+import { formatRelevanceScore } from "./relevance-score"
 import { withSupermemory } from "./withSupermemory"
 
 const extractContent = (memory: SearchResult) => {
@@ -144,6 +145,7 @@ function Command() {
 			) : (
 				searchResults.map((memory) => {
 					const content = extractContent(memory)
+					const relevanceScore = formatRelevanceScore(memory.score)
 					const url = extractUrl(memory)
 					return (
 						<List.Item
@@ -153,8 +155,8 @@ function Command() {
 							subtitle={{ value: truncateContent(content), tooltip: content }}
 							accessories={[
 								{ text: formatDate(memory.createdAt) },
-								...(memory.score !== undefined
-									? [{ text: `${Math.round(memory.score * 100)}%` }]
+								...(relevanceScore !== undefined
+									? [{ text: relevanceScore }]
 									: []),
 							]}
 							actions={
@@ -188,6 +190,7 @@ function Command() {
 
 function MemoryDetail({ memory }: { memory: SearchResult }) {
 	const content = extractContent(memory)
+	const relevanceScore = formatRelevanceScore(memory.score)
 	const url = extractUrl(memory)
 
 	const markdown = `
@@ -199,7 +202,7 @@ ${content}
 
 **Created:** ${new Date(memory.createdAt).toLocaleString()}
 ${url ? `**URL:** ${url}` : ""}
-${memory.score !== undefined ? `**Relevance:** ${Math.round(memory.score * 100)}%` : ""}
+${relevanceScore !== undefined ? `**Relevance:** ${relevanceScore}` : ""}
 `
 
 	return (
