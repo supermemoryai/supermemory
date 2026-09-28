@@ -187,6 +187,55 @@ class MemoryTests(unittest.TestCase):
         self.assertAlmostEqual(ctx.items[1].created_at, 7.999)
         asyncio.run(plugin.enrich(ctx))
         self.assertEqual(len(client.profile.calls), 1)
+        self.assertEqual(len(ctx.items), 2)
+
+    def test_enrich_replaces_preloaded_profile_each_turn(self):
+        client = FakeClient(
+            FakeProfile(static=["Name is Ada"], results=[SimpleNamespace(memory="Owns a dog named Biscuit")])
+        )
+        plugin = memory(client, container_tag="user_1")
+        ctx = ChatCtx()
+
+        asyncio.run(plugin.preload(ctx))
+        ctx.add_message(role="user", content="what is my dog called?", created_at=30.0)
+        asyncio.run(plugin.enrich(ctx))
+
+        injected = [item for item in ctx.items if is_injected_memory(item.content)]
+        self.assertEqual(len(injected), 1)
+        self.assertIn("Biscuit", injected[0].content)
+        self.assertEqual(client.profile.calls[-1]["q"], "what is my dog called?")
+
+    def test_one_recall_per_user_message(self):
+        client = FakeClient(FakeProfile(static=[], dynamic=[], delay=0.05))
+        plugin = memory(client, container_tag="user_1")
+
+        async def run():
+            first, second = ChatCtx(), ChatCtx()
+            for ctx in (first, second):
+                ctx.add_message(role="user", content="hi, first time calling", created_at=5.0)
+            # A preemptive attempt is cancelled while the retry reuses its recall.
+            preemptive = asyncio.ensure_future(plugin.enrich(first))
+            await asyncio.sleep(0.01)
+            preemptive.cancel()
+            await plugin.enrich(second)
+            await plugin.enrich(second)
+
+        asyncio.run(run())
+
+        self.assertEqual(len(client.profile.calls), 1)
+
+    def test_new_user_message_recalls_again(self):
+        client = FakeClient(FakeProfile(static=["Name is Ada"]))
+        plugin = memory(client, container_tag="user_1")
+        ctx = ChatCtx()
+
+        ctx.add_message(role="user", content="hello", created_at=1.0)
+        asyncio.run(plugin.enrich(ctx))
+        ctx.add_message(role="user", content="what's my name?", created_at=2.0)
+        asyncio.run(plugin.enrich(ctx))
+
+        self.assertEqual([call["q"] for call in client.profile.calls], ["hello", "what's my name?"])
+        self.assertEqual(sum(is_injected_memory(item.content) for item in ctx.items), 1)
 
     def test_timeout_and_errors_do_not_fail_the_turn(self):
         slow = FakeClient(FakeProfile(static=["Name is Ada"], delay=0.05))
@@ -261,6 +310,7 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(stored["custom_id"], to_identifier("lk-room 1"))
         self.assertNotIn("secret", stored["content"])
         self.assertEqual(stored["metadata"]["source"], "livekit")
+        self.assertEqual(stored["dreaming"], "dynamic")
 
     def test_close_flushes_a_trailing_user_turn(self):
         client = FakeClient()
@@ -340,6 +390,7 @@ class MemoryTests(unittest.TestCase):
         self.assertNotIn("chunk_1", found)
         self.assertEqual(saved, "Saved.")
         self.assertEqual(client.added[0]["metadata"]["kind"], "explicit")
+        self.assertEqual(client.added[0]["dreaming"], "instant")
         self.assertNotIn("custom_id", client.added[0])
         self.assertEqual(forgotten, "Forgotten.")
         self.assertEqual(client.memories.calls[0]["id"], "mem_1")

@@ -34,14 +34,15 @@ class InputParams(BaseModel):
     search_threshold: float = Field(default=0.1, ge=0.0, le=1.0)
     system_prompt: str = Field(default="Relevant memory for this caller:\n\n")
     mode: Literal["profile", "query", "full"] = "full"
-    recall_timeout: float = Field(default=1.5, gt=0.0, le=8.0)
+    recall_timeout: float = Field(default=2.0, gt=0.0, le=8.0)
     capture: Literal["always", "never"] = "always"
+    capture_dreaming: Literal["dynamic", "instant"] = "dynamic"
 
 
 class SupermemoryLiveKit:
     """Persistent memory for a LiveKit Agents session.
 
-    Call ``on_user_turn_completed`` before the LLM replies, and ``attach`` the
+    Call ``enrich`` from ``llm_node`` before the LLM replies, and ``attach`` the
     session so completed turns are stored. ``tools()`` exposes search, remember,
     and forget to the model. A Supermemory outage never fails the call.
     """
@@ -73,6 +74,7 @@ class SupermemoryLiveKit:
         self._buffer: list[dict[str, str]] = []
         self._lock = asyncio.Lock()
         self._flush_task: Optional[asyncio.Task[None]] = None
+        self._recall: Optional[tuple[tuple[Optional[str], str], asyncio.Future[Optional[str]]]] = None
         self._session: Any = None
         self._shutdown_registered = False
 
@@ -134,44 +136,46 @@ class SupermemoryLiveKit:
         self._inject(chat_ctx, text, created_at=None)
         return True
 
-    async def on_user_turn_completed(self, turn_ctx: Any, new_message: Any) -> None:
-        """Retrieve memory for this turn and insert it just before the user message."""
-        query = message_text(new_message)
-        if not query:
-            return
-        try:
-            text = await self._recall_text(query=query)
-            if not text:
-                return
-            created_at = getattr(new_message, "created_at", None)
-            before = created_at - 0.001 if isinstance(created_at, (int, float)) else None
-            self._strip_injected(turn_ctx)
-            self._inject(turn_ctx, text, created_at=before)
-        except Exception:
-            logger.warning("memory inject failed", exc_info=True)
-
     async def enrich(self, chat_ctx: Any) -> None:
-        """Recall for a context that already contains the user message.
+        """Recall for the latest user message and insert it just before that message.
 
-        ``session.run`` and ``generate_reply`` skip ``on_user_turn_completed``, so the
-        agent calls this from ``llm_node``. A voice turn that already injected memory
-        is left alone.
+        Call from ``llm_node``. That covers voice and text turns, and runs during
+        LiveKit's preemptive generation instead of invalidating it. Each user message
+        is recalled once; tool follow-ups and preemptive retries reuse the result.
         """
-        if self._has_injection(chat_ctx):
-            return
         user = self._last_user_item(chat_ctx)
-        query = message_text(user) if user is not None else None
+        if user is not None:
+            await self._recall_into(chat_ctx, user)
+
+    async def on_user_turn_completed(self, turn_ctx: Any, new_message: Any) -> None:
+        """Recall from the turn hook, for realtime models that skip ``llm_node``.
+
+        With an STT-LLM-TTS pipeline use ``enrich`` from ``llm_node`` instead. Editing
+        the turn context here discards LiveKit's preemptive generation.
+        """
+        await self._recall_into(turn_ctx, new_message)
+
+    async def _recall_into(self, chat_ctx: Any, user: Any) -> None:
+        query = message_text(user)
         if not query:
             return
         try:
-            text = await self._recall_text(query=query)
+            text = await self._recall_once(query)
             if not text:
                 return
             created_at = getattr(user, "created_at", None)
             before = created_at - 0.001 if isinstance(created_at, (int, float)) else None
+            self._strip_injected(chat_ctx)
             self._inject(chat_ctx, text, created_at=before)
         except Exception:
             logger.warning("memory inject failed", exc_info=True)
+
+    async def _recall_once(self, query: str) -> Optional[str]:
+        key = (self.container_tag, query)
+        if self._recall is None or self._recall[0] != key:
+            self._recall = (key, asyncio.ensure_future(self._recall_text(query=query)))
+        # A cancelled preemptive generation must not cancel a recall the next attempt reuses.
+        return await asyncio.shield(self._recall[1])
 
     def attach(
         self,
@@ -243,6 +247,7 @@ class SupermemoryLiveKit:
                     content=text,
                     container_tag=tag,
                     metadata={"source": "livekit", "kind": "explicit"},
+                    dreaming="instant",
                 ),
                 timeout=4.0,
             )
@@ -285,7 +290,7 @@ class SupermemoryLiveKit:
                 self._retrieve(query if include_search else None),
                 timeout=self.params.recall_timeout,
             )
-        except TimeoutError:
+        except asyncio.TimeoutError:
             logger.warning("memory recall timed out after %.2fs", self.params.recall_timeout)
             return None
         except Exception:
@@ -343,13 +348,6 @@ class SupermemoryLiveKit:
             if message_role(item) == "user" and message_text(item):
                 return item
         return None
-
-    def _has_injection(self, chat_ctx: Any) -> bool:
-        for item in getattr(chat_ctx, "items", []) or []:
-            text = message_text(item)
-            if text and is_injected_memory(text):
-                return True
-        return False
 
     def _strip_injected(self, chat_ctx: Any) -> None:
         items = list(getattr(chat_ctx, "items", []) or [])
@@ -417,6 +415,7 @@ class SupermemoryLiveKit:
             container_tag=self.container_tag,
             custom_id=self._custom_id(),
             metadata={"source": "livekit", "kind": "conversation"},
+            dreaming=self.params.capture_dreaming,
         )
 
     def _custom_id(self) -> str:

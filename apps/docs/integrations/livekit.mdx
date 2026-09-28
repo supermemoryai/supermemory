@@ -32,6 +32,8 @@ Container tags may only contain letters, numbers, `_`, `-`, and `:`, and must be
 
 Identities that are not valid container tags are sanitized to a stable tag. Set the attribute when the identity is an email, phone number, or SIP address and you already have memories under a different id.
 
+Set the attribute in the access token your backend issues. Do not grant the caller `canUpdateOwnMetadata`, or they could change the attribute and read another caller's memory.
+
 One call is stored as a single document. Pass the LiveKit room name as `session_id`. The document id is `lk-<session_id>`, so a later update with the same id appends to that call instead of creating another.
 
 ## Quick start
@@ -89,33 +91,37 @@ if __name__ == "__main__":
     agents.cli.run_app(server)
 ```
 
-`preload` puts the caller's profile into the first turn, so the greeting can use it. `attach` stores user and assistant turns when the session closes, including a caller who hangs up mid-turn. `SupermemoryAgent` recalls before each reply and adds the memory tools. Voice turns use `on_user_turn_completed`. Text turns from `generate_reply` or `session.run` skip that hook, so the agent also recalls inside `llm_node`. A turn that already has memory is not fetched again.
+`preload` puts the caller's profile into the first turn, so the greeting can use it. `attach` stores the conversation after each agent reply, and stores anything left when the session closes, including a caller who hangs up mid-turn. `SupermemoryAgent` recalls inside `llm_node` before each reply and adds the memory tools. That covers voice turns, text turns from `generate_reply` or `session.run`, and LiveKit's preemptive generation. Each user message is recalled once, and tool follow-ups reuse it.
+
+`agent_name` turns on explicit dispatch, which is how job metadata reaches the agent. Remove it to join every new room automatically, for example when testing in the [Agents Playground](https://agents-playground.livekit.io).
 
 ## Your own agent
 
-If you already subclass `Agent`, keep that class. Pass the tools in, and recall from the turn hook.
+If you already subclass `Agent`, keep that class. Pass the tools in, and recall from `llm_node`.
 
 ```python
 from livekit.agents import Agent
 from supermemory_livekit import SupermemoryLiveKit
 
-memory = SupermemoryLiveKit(container_tag="user_123", session_id="room_123")
-
 
 class Assistant(Agent):
-    def __init__(self) -> None:
+    def __init__(self, memory: SupermemoryLiveKit) -> None:
         super().__init__(
             instructions="You are a helpful voice assistant.",
             tools=memory.tools(),
         )
+        self.memory = memory
 
-    async def on_user_turn_completed(self, turn_ctx, new_message) -> None:
-        await memory.on_user_turn_completed(turn_ctx, new_message)
+    async def llm_node(self, chat_ctx, tools, model_settings):
+        await self.memory.enrich(chat_ctx)
+        return Agent.default.llm_node(self, chat_ctx, tools, model_settings)
 ```
 
 Call `memory.attach(session)` before `session.start`.
 
-`on_user_turn_completed` runs for STT-LLM-TTS pipelines. A realtime model only hits that hook when turn detection runs in your agent, not inside the model. See [LiveKit's external data guide](https://docs.livekit.io/agents/build/external-data/). Turn capture still listens for `conversation_item_added`.
+Recall in `llm_node` rather than `on_user_turn_completed`. Changing the turn context in that hook makes LiveKit discard its preemptive generation, which adds latency to every turn.
+
+Realtime models skip `llm_node`. With a realtime model, call `await self.memory.on_user_turn_completed(turn_ctx, new_message)` from `on_user_turn_completed` instead. That hook only runs when turn detection runs in your agent, not inside the model. See [LiveKit's external data guide](https://docs.livekit.io/agents/build/external-data/). `SupermemoryAgent` picks the right hook for you. Turn capture still listens for `conversation_item_added`.
 
 ## What gets recalled
 
@@ -134,21 +140,23 @@ memory = SupermemoryLiveKit(
         mode="full",
         search_limit=10,
         search_threshold=0.1,
-        recall_timeout=1.5,
+        recall_timeout=2.0,
         capture="always",
+        capture_dreaming="dynamic",
     ),
 )
 ```
 
-Recall waits at most `recall_timeout` seconds (default 1.5). If the profile call is slower than that, the turn proceeds without memory. Retrieved text is inserted immediately before the user message and is not stored back as something the agent said.
+Recall waits at most `recall_timeout` seconds (default 2). If the profile call is slower than that, the turn proceeds without memory. Retrieved text is inserted immediately before the user message and is not stored back as something the agent said.
 
 | Parameter | Default | Description |
 | --- | --- | --- |
 | `search_limit` | `10` | Maximum search results merged into the turn |
 | `search_threshold` | `0.1` | Minimum similarity, from 0 to 1 |
 | `mode` | `"full"` | `profile`, `query`, or `full` |
-| `recall_timeout` | `1.5` | Seconds to wait before skipping recall |
+| `recall_timeout` | `2.0` | Seconds to wait before skipping recall |
 | `capture` | `"always"` | `never` disables storing the call |
+| `capture_dreaming` | `"dynamic"` | How the call transcript becomes memories. `dynamic` batches related documents and can take several minutes. `instant` is usually ready within a minute and bills one extra operation per document. Until then, `search_memories` still finds the raw call text. |
 
 ## Tools
 
@@ -160,7 +168,7 @@ Recall waits at most `recall_timeout` seconds (default 1.5). If the profile call
 | `remember` | Save one explicit fact, preference, or correction |
 | `forget` | Forget one fact by id from `search_memories`, or by exact text |
 
-`remember` stores a standalone fact. It is not appended to the call transcript. Automatic capture is what records the conversation.
+`remember` stores a standalone fact and processes it right away, so the next call can recall it. It is not appended to the call transcript. Automatic capture is what records the conversation.
 
 ## Self-hosting
 

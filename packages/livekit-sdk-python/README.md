@@ -71,9 +71,15 @@ if __name__ == "__main__":
     agents.cli.run_app(server)
 ```
 
-If you already have an `Agent` subclass, pass `tools=memory.tools()` and call `await memory.on_user_turn_completed(turn_ctx, new_message)` from `on_user_turn_completed`.
+If you already have an `Agent` subclass, pass `tools=memory.tools()` and recall from `llm_node`:
 
-`on_user_turn_completed` runs for STT-LLM-TTS pipelines. Realtime models only hit that hook when turn detection runs in the agent, not inside the model. Call capture still listens to `conversation_item_added`.
+```python
+async def llm_node(self, chat_ctx, tools, model_settings):
+    await memory.enrich(chat_ctx)
+    return Agent.default.llm_node(self, chat_ctx, tools, model_settings)
+```
+
+Recall in `llm_node`, not `on_user_turn_completed`: changing the turn context in that hook makes LiveKit discard its preemptive generation. Realtime models skip `llm_node`, so with one call `await memory.on_user_turn_completed(turn_ctx, new_message)` from `on_user_turn_completed`. `SupermemoryAgent` picks the right hook for you. Call capture listens to `conversation_item_added`.
 
 ## Configuration
 
@@ -87,8 +93,9 @@ memory = SupermemoryLiveKit(
         mode="full",            # "profile" | "query" | "full"
         search_limit=10,
         search_threshold=0.1,
-        recall_timeout=1.5,     # seconds; a slow recall is skipped
+        recall_timeout=2.0,     # seconds; a slow recall is skipped
         capture="always",       # "always" | "never"
+        capture_dreaming="dynamic",  # "dynamic" | "instant" (ready within a minute, extra operation)
     ),
 )
 ```
@@ -99,7 +106,7 @@ memory = SupermemoryLiveKit(
 | `query` | No | Yes | You only need memories related to this turn |
 | `full` | Yes | Yes | Default |
 
-One call is stored as a single document under custom id `lk-<session_id>`, so a reconnect with the same session id updates that document instead of creating another. Explicit `remember` calls are separate facts and are not tied to the call document.
+One call is stored as a single document under custom id `lk-<session_id>`, so a reconnect with the same session id updates that document instead of creating another. Explicit `remember` calls are separate facts, processed right away so the next call can recall them, and are not tied to the call document.
 
 ## Links
 
