@@ -15,10 +15,9 @@ The installer writes API keys to `~/.supermemory/env`, which is loaded on every 
 |---|---|---|
 | `PORT` (or `SUPERMEMORY_PORT`) | HTTP listen port | `6767` |
 | `SUPERMEMORY_HOST` | In the next release, controls the listen address; not supported by v0.0.8 | `127.0.0.1` in the next release |
-| `SUPERMEMORY_ALLOW_LOOPBACK_AUTH` | In the next release, opt into unauthenticated direct loopback requests; unsafe behind a same-host reverse proxy | unset in the next release |
 | `SUPERMEMORY_DATA_DIR` | Where the graph engine's data, auth secret, and model cache live | `./.supermemory` |
 
-**The currently published v0.0.8 binds all interfaces and its implicit local authentication is unsafe when exposed to untrusted networks. Do not expose it; restrict access with a firewall or run it on an isolated machine.** The next release will bind loopback and require the generated key for every API request by default, including requests from localhost. Its browser welcome page will no longer reveal the key; enter the key printed at first boot in the Memory tab. When you later expose that release through a reverse proxy, leave loopback auto-auth disabled and protect the endpoint with TLS and access controls.
+**The currently published v0.0.8 binds all interfaces and its implicit local authentication is unsafe when exposed to untrusted networks. Do not expose it; restrict access with a firewall or run it on an isolated machine.** The next release will bind loopback and require the generated key for every API request, including requests from localhost. Its browser welcome page will no longer reveal the key; enter the key printed at first boot in the Memory tab. If you later expose that release through a reverse proxy, protect the endpoint with TLS and access controls.
 
 ## LLM providers
 
