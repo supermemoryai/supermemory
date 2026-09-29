@@ -1,10 +1,10 @@
-V5 keeps the core ingestion and recall workflows while making scope explicit, consolidating overlapping routes, and tightening request and response types.
+## Migrate by hand
 
 <Warning>
-  This is a breaking API migration. Do not change only the URL: fields moved, search defaults changed, response envelopes changed, and some legacy operations have no V5 replacement.
+  This is a breaking API migration. Do not change only the URL: fields moved, search defaults changed, response envelopes changed, and some legacy operations have no v5 replacement.
 </Warning>
 
-The API base URL and bearer keys do not change. V5 application routes are unversioned; `/v5/reference` identifies the documentation version, not an API path prefix.
+The API base URL and bearer keys do not change. v5 application routes are unversioned; `/v5/reference` identifies the documentation version, not an API path prefix.
 
 ## Recommended migration process
 
@@ -13,7 +13,7 @@ The API base URL and bearer keys do not change. V5 application routes are unvers
     Search for `/v3/`, `/v4/`, `containerTag`, `containerTags`, `customId`, `entityContext`, `filterByMetadata`, `filters`, and legacy SDK methods.
   </Step>
   <Step title="Resolve one namespace per request">
-    Move the legacy `containerTag` into `/ns/{namespace}`. Never infer scope from a document or memory ID, and never send multiple namespaces to one V5 request.
+    Move the legacy `containerTag` into `/ns/{namespace}`. Never infer scope from a document or memory ID, and never send multiple namespaces to one v5 request.
   </Step>
   <Step title="Translate requests by domain">
     Apply [ingestion](./api-v5-document-writes), [updates](./api-v5-document-updates), [content management](./api-v5-document-reads), [search](./api-v5-recall), [profiles](./api-v5-profiles), [forgetting](./api-v5-memory-forgetting), [namespaces](./api-v5-settings), [organization](./api-v5-organization), and [filter](./api-v5-filters) changes independently.
@@ -21,7 +21,7 @@ The API base URL and bearer keys do not change. V5 application routes are unvers
   <Step title="Update response readers">
     Migrate envelopes, attachments, pagination, profile buckets, system fields, and partial-error handling before switching traffic.
   </Step>
-  <Step title="Verify legacy and V5 side by side">
+  <Step title="Verify legacy and v5 side by side">
     Follow the [verification and rollout guide](./api-v5-rollout). Compare identity and behavior—not raw JSON ordering—and set changed defaults explicitly during rollout.
   </Step>
   <Step title="Cut over one domain at a time">
@@ -31,7 +31,7 @@ The API base URL and bearer keys do not change. V5 application routes are unvers
 
 ## Endpoint map
 
-| Legacy | V5 |
+| Legacy | v5 |
 | --- | --- |
 | `POST /v3/documents` | `POST /ns/{namespace}/document` |
 | `POST /v3/documents/batch` | `POST /ns/{namespace}/document/batch` |

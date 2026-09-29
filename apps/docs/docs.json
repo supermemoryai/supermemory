@@ -1,5 +1,9 @@
 {
 	"$schema": "https://mintlify.com/docs.json",
+	"banner": {
+		"content": "**v3 and v4 are deprecated and will be shut down on December 31, 2026.** Move to v5 before then. [Read the migration guide](/migration/api-v5).",
+		"dismissible": true
+	},
 	"api": {
 		"examples": {
 			"defaults": "required",
@@ -280,7 +284,7 @@
 						"icon": "unplug",
 						"versions": [
 							{
-								"version": "Legacy (V3, V4)",
+								"version": "Legacy (v3, v4)",
 								"openapi": "https://api.supermemory.ai/v4/openapi",
 								"pages": [
 									"api-reference/overview",
@@ -378,7 +382,7 @@
 								]
 							},
 							{
-								"version": "Latest (V5)",
+								"version": "Latest (v5)",
 								"default": true,
 								"openapi": {
 									"source": "https://api.supermemory.ai/v5/openapi",
