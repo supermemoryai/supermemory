@@ -15,14 +15,13 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "openai>=1.102.0",
     "supermemory>=3.50.0",
@@ -31,11 +30,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-async = ["aiohttp>=3.8.0"]
+async = ["aiohttp>=3.14.3"]
 
 [dependency-groups]
 dev = [
-    "black>=24.8.0",
+    "black>=26.3.1",
     "flake8>=7.1.2",
     "isort>=5.13.2",
     "mypy>=1.14.1",
@@ -61,7 +60,7 @@ multi_line_output = 3
 line_length = 88
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
