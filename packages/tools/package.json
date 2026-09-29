@@ -30,7 +30,7 @@
     "dotenv": "^16.6.1",
     "tsdown": "^0.14.2",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "3.2.6"
   },
   "peerDependencies": {
     "@ai-sdk/provider": "^2.0.0 || ^3.0.0",
