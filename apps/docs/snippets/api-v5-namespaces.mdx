@@ -1,8 +1,8 @@
-V5 renames the public isolation boundary from container tag to namespace. Existing values remain valid identifiers; no stored data rename is required.
+v5 renames the public isolation boundary from container tag to namespace. Existing values remain valid identifiers; no stored data rename is required.
 
 ### Endpoint mapping
 
-| Legacy | V5 |
+| Legacy | v5 |
 | --- | --- |
 | `GET /v3/container-tags/list` | `GET /namespaces` |
 | `GET /v3/container-tags/{tag}` | `GET /ns/{namespace}` |
@@ -24,7 +24,7 @@ PATCH /v3/container-tags/project_alpha
 {"entityContext":"Research project for distributed systems"}
 ```
 
-```bash V5
+```bash v5
 PATCH /ns/project_alpha
 {"supportingContext":"Research project for distributed systems"}
 ```
@@ -52,7 +52,7 @@ DELETE /ns/project_alpha
 
 This returns `202` with `status: "queued"` and `operationId`. The destination must differ from the source. Do not treat acceptance as completed migration.
 
-Legacy merge can accept multiple sources; V5 moves one source per request. Run multi-source migrations sequentially and record each operation independently.
+Legacy merge can accept multiple sources; v5 moves one source per request. Run multi-source migrations sequentially and record each operation independently.
 
 ### Verification
 

@@ -1,4 +1,4 @@
-V5 makes the difference between adding new information and replacing the canonical source explicit.
+v5 makes the difference between adding new information and replacing the canonical source explicit.
 
 ### Choose the correct write
 
@@ -18,13 +18,13 @@ PATCH /v3/documents/doc_1
 {"content":"corrected source","metadata":{"revision":2}}
 ```
 
-```bash V5
+```bash v5
 PATCH /ns/user_1/document/doc_1?dreaming=dynamic
 {"content":"corrected source","metadata":{"revision":2}}
 ```
 </CodeGroup>
 
-The V5 body accepts any non-empty subset of `content`, `supportingContext`, `metadata`, `group`, or `date`. Supplying `content` makes it the new canonical source; facts supported only by the previous source can disappear after reprocessing.
+The v5 body accepts any non-empty subset of `content`, `supportingContext`, `metadata`, `group`, or `date`. Supplying `content` makes it the new canonical source; facts supported only by the previous source can disappear after reprocessing.
 
 ### Replace a file-backed document
 
@@ -50,7 +50,7 @@ metadata={"reviewed":true}
 PATCH changes only supplied fields. Include `file` to replace the source while retaining omitted supporting fields, or omit `file` for metadata-, group-, context-, or date-only changes. `metadata` and `group` are JSON-encoded strings; `supportingContext` and `date` are plain strings.
 
 <Warning>
-  There is no public V5 `PUT /ns/{namespace}/document/file/{id}` operation. Use POST for a complete replacement and PATCH for a partial update.
+  There is no public v5 `PUT /ns/{namespace}/document/file/{id}` operation. Use POST for a complete replacement and PATCH for a partial update.
 </Warning>
 
 ### IDs and scope

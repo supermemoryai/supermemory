@@ -1,4 +1,4 @@
-V5 returns a maintained profile directly and gives profile bucket definitions their own namespace-scoped resource.
+v5 returns a maintained profile directly and gives profile bucket definitions their own namespace-scoped resource.
 
 ### Remove search behavior from profile calls
 
@@ -8,15 +8,15 @@ POST /v4/profile
 {"containerTag":"user_1","q":"work preferences","threshold":0.6,"include":{}}
 ```
 
-```bash V5
+```bash v5
 POST /ns/user_1/profile
 {"filter":{"field":"region","operator":"eq","value":"us-west"},"buckets":["work"]}
 ```
 </CodeGroup>
 
-Remove legacy `q`, `threshold`, and `include`. If the caller needs query-ranked results, issue a separate V5 search request. Move `containerTag` to the path and rename `filters` to singular `filter`.
+Remove legacy `q`, `threshold`, and `include`. If the caller needs query-ranked results, issue a separate v5 search request. Move `containerTag` to the path and rename `filters` to singular `filter`.
 
-### Read the V5 profile shape
+### Read the v5 profile shape
 
 ```json
 {
@@ -38,7 +38,7 @@ POST /v4/profile/buckets
 {"containerTag":"user_1"}
 ```
 
-```bash V5
+```bash v5
 GET /ns/user_1/profile/buckets
 ```
 </CodeGroup>

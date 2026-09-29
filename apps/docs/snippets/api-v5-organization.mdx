@@ -1,8 +1,8 @@
-V5 exposes only the organization-wide context needed to guide memory formation. Internal controls and profile bucket mutation are no longer part of this settings resource.
+v5 exposes only the organization-wide context needed to guide memory formation. Internal controls and profile bucket mutation are no longer part of this settings resource.
 
 ### Endpoint mapping
 
-| Legacy | V5 |
+| Legacy | v5 |
 | --- | --- |
 | `GET /v3/settings` | `GET /organization` |
 | `PATCH /v3/settings` | `PATCH /organization` |
@@ -31,7 +31,7 @@ PATCH /v3/settings
 {"filterPrompt":"Acme builds security tools for enterprises"}
 ```
 
-```bash V5
+```bash v5
 PATCH /organization
 {"organizationalContext":"Acme builds security tools for enterprises"}
 ```
@@ -44,13 +44,13 @@ Organization updates require an organization administrator. Do not silently fall
 ### Removed public operations
 
 - Organization profile-bucket mutation is not exposed through organization settings.
-- Bucket suggestion is not part of V5.
-- Organization data reset is not part of V5.
+- Bucket suggestion is not part of v5.
+- Organization data reset is not part of v5.
 - Namespace-owned profile buckets are managed through `/ns/{namespace}/profile/buckets`.
 
 ### Verification
 
-- Compare the V5 context with the legacy `filterPrompt` before cutover.
+- Compare the v5 context with the legacy `filterPrompt` before cutover.
 - Set, replace, and clear organizational context.
 - Confirm `namespaceCount` agrees with `GET /namespaces` for the same credentials.
 - Verify non-admin callers receive `403` on PATCH.

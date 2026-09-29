@@ -4,7 +4,7 @@ Treat migration as a behavioral comparison, not a raw response snapshot update.
 
 Use an isolated namespace with stable IDs and fixed source content. Include plaintext, URL, file, batch, metadata, grouping, profile facts, related memories, forgotten memories, and empty-result cases.
 
-Record each legacy request, V5 request, expected semantic result, and intentional difference. Never compare generated IDs, signed URLs, timing, or JSON object order unless the contract guarantees them.
+Record each legacy request, v5 request, expected semantic result, and intentional difference. Never compare generated IDs, signed URLs, timing, or JSON object order unless the contract guarantees them.
 
 ### Compare writes
 
@@ -17,7 +17,7 @@ Record each legacy request, V5 request, expected semantic result, and intentiona
 
 - Document attachments are absent when omitted and empty arrays when requested without results.
 - Unified list responses populate only the selected resource array.
-- Search parity uses explicit V4-equivalent mode and threshold before testing V5 defaults.
+- Search parity uses explicit v4-equivalent mode and threshold before testing v5 defaults.
 - Profiles always contain static, dynamic, and bucket sections.
 
 ### Exercise boundaries
@@ -36,7 +36,7 @@ Record each legacy request, V5 request, expected semantic result, and intentiona
 same request intent
        |
        +-- same semantic result ------> parity
-       +-- documented V5 difference --> update assertion
+       +-- documented v5 difference --> update assertion
        +-- undocumented difference ----> block cutover
 ```
 
@@ -44,7 +44,7 @@ Do not normalize away an undocumented difference. Capture the request pair, name
 
 ### Cut over by domain
 
-1. Ship V5 request construction behind a per-domain flag.
+1. Ship v5 request construction behind a per-domain flag.
 2. Dual-read or shadow-call where side effects allow it.
 3. Switch ingestion, content management, search, profiles, then settings independently.
 4. Monitor validation failures, authorization failures, latency, empty-result rate, and processing failures.

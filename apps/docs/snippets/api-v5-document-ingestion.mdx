@@ -1,8 +1,8 @@
-V5 moves document scope into the URL and keeps repeated caller IDs attached to one evolving document.
+v5 moves document scope into the URL and keeps repeated caller IDs attached to one evolving document.
 
 ### Rename common fields
 
-| Legacy | V5 | Location |
+| Legacy | v5 | Location |
 | --- | --- | --- |
 | `containerTag` | `{namespace}` | Path |
 | `customId` | `id` | JSON body |
@@ -19,13 +19,13 @@ POST /v3/documents
 {"content":"new turn","customId":"conv_1","containerTag":"user_1"}
 ```
 
-```bash V5
+```bash v5
 POST /ns/user_1/document?dreaming=dynamic
 {"content":"new turn","id":"conv_1"}
 ```
 </CodeGroup>
 
-The response remains an acceptance result with `id` and `status`. Repeating the V5 request with `id: "conv_1"` adds or diffs the new content into that document; it does not silently replace the canonical source.
+The response remains an acceptance result with `id` and `status`. Repeating the v5 request with `id: "conv_1"` adds or diffs the new content into that document; it does not silently replace the canonical source.
 
 ### Batch ingestion
 
@@ -34,12 +34,12 @@ The response remains an acceptance result with `id` and `status`. Repeating the 
 {"documents":["first","second"],"containerTag":"user_1"}
 ```
 
-```json V5
+```json v5
 {"documents":[{"content":"first","id":"doc_1"},{"content":"second","id":"doc_2"}]}
 ```
 </CodeGroup>
 
-Send the V5 body to `POST /ns/user_1/document/batch`. The array accepts 1–600 document objects. Namespace, `taskType`, and processing mode apply to the request; document content, ID, context, metadata, grouping, and date stay per item.
+Send the v5 body to `POST /ns/user_1/document/batch`. The array accepts 1–600 document objects. Namespace, `taskType`, and processing mode apply to the request; document content, ID, context, metadata, grouping, and date stay per item.
 
 Batch results preserve input order. Inspect `success`, `failed`, and every item in `results`; a batch can contain successful and failed items together.
 

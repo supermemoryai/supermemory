@@ -1,4 +1,4 @@
-V5 uses one optional singular `filter` field for search, profiles, and list operations.
+v5 uses one optional singular `filter` field for search, profiles, and list operations.
 
 ### Shape
 
@@ -16,7 +16,7 @@ Fields may contain letters, numbers, `_`, `.`, and `-`. Expressions allow up to 
 
 ### Operator mapping
 
-| Legacy condition | V5 predicate |
+| Legacy condition | v5 predicate |
 | --- | --- |
 | `{ key, value }` | `{ field: key, operator: "eq", value }` |
 | `negate: true` equality | `operator: "neq"` |
@@ -41,7 +41,7 @@ Fields may contain letters, numbers, `_`, `.`, and `-`. Expressions allow up to 
 }
 ```
 
-```json V5
+```json v5
 {
   "operator": "and",
   "operands": [

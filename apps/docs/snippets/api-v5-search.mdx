@@ -1,8 +1,8 @@
-V5 searches one namespace, defaults to hybrid recall, and moves ranking controls into a typed request body.
+v5 searches one namespace, defaults to hybrid recall, and moves ranking controls into a typed request body.
 
 ### Request mapping
 
-| Legacy | V5 |
+| Legacy | v5 |
 | --- | --- |
 | `containerTag` | `/ns/{namespace}` |
 | body `q` | body `query` |
@@ -21,7 +21,7 @@ POST /v4/search
 {"q":"What did the user decide?","containerTag":"user_1","limit":10,"searchMode":"memories"}
 ```
 
-```bash V5
+```bash v5
 POST /ns/user_1/search?limit=10&searchMode=memories
 {"query":"What did the user decide?","threshold":0.6,"rewriteQuery":false}
 ```
@@ -29,14 +29,14 @@ POST /ns/user_1/search?limit=10&searchMode=memories
 
 ### Changed defaults
 
-| Setting | V4 | V5 |
+| Setting | v4 | v5 |
 | --- | --- | --- |
 | Search mode | `memories` | `hybrid` |
 | Similarity threshold | `0.6` | `0.3` |
 | Reranking | Disabled | `rerank: "none"` |
 | Query rewriting | Disabled | `false` |
 
-Set mode and threshold explicitly while comparing versions. After parity testing, remove them only if you want the broader V5 hybrid defaults.
+Set mode and threshold explicitly while comparing versions. After parity testing, remove them only if you want the broader v5 hybrid defaults.
 
 ### Search modes
 
@@ -46,7 +46,7 @@ Set mode and threshold explicitly while comparing versions. After parity testing
 | `chunks` | Source chunks only |
 | `hybrid` | Both result types in one ranked list |
 
-Legacy `include.chunks` has no V5 equivalent. Choose `chunks` or `hybrid` instead.
+Legacy `include.chunks` has no v5 equivalent. Choose `chunks` or `hybrid` instead.
 
 ### Attachments and ranking
 
@@ -57,7 +57,7 @@ Legacy `include.chunks` has no V5 equivalent. Choose `chunks` or `hybrid` instea
 
 ### Response mapping
 
-| Legacy reader | V5 reader |
+| Legacy reader | v5 reader |
 | --- | --- |
 | Result array | `results` |
 | Timing | `searchTime` |
@@ -69,7 +69,7 @@ Each primary result contains either `memory`, `chunk`, or both only if the contr
 
 ### Verification
 
-- Compare IDs using explicit V4-equivalent defaults, then test V5 hybrid behavior separately.
+- Compare IDs using explicit v4-equivalent defaults, then test v5 hybrid behavior separately.
 - Cover all three modes, thresholds at `0` and `1`, each rerank option, and query rewriting.
 - Cover every attachment alone and in combination, including empty attachments.
 - Verify filters, namespace isolation, result limits, and invalid body/query placement.
