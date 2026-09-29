@@ -4,7 +4,6 @@ import { PostHog } from "posthog-node"
 import type { ActorContext, ServerEnv } from "./types"
 
 const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com"
-// Must match the API's personless id hashing so MCP and API events share one id.
 const PERSONLESS_DISTINCT_ID_NAMESPACE = "supermemory-posthog-personless-v1"
 const MCP_EVENT_PROPERTIES = [
 	"$mcp_source",
@@ -17,11 +16,14 @@ const MCP_EVENT_PROPERTIES = [
 	"$mcp_client_version",
 	"$mcp_protocol_version",
 	"$mcp_listed_tool_names",
+	"$mcp_conversation_id",
+	"$session_id",
 	"$groups",
 ] as const
 
 export type WaitUntil = (promise: Promise<unknown>) => void
 
+// Must match the API's personless id hashing so MCP and API events share one id.
 async function personlessDistinctId(userId: string): Promise<string> {
 	const input = new TextEncoder().encode(
 		`${PERSONLESS_DISTINCT_ID_NAMESPACE}:${userId}`,
@@ -79,6 +81,7 @@ const metadataOnlyMcpEvent: NonNullable<MCPAnalyticsOptions["beforeSend"]> = (
 	}
 }
 
+// Stateless HTTP builds a server per request, so only the echoed conversation id groups calls.
 export function instrumentPosthogMcp(
 	server: McpServer,
 	env: ServerEnv,
@@ -101,7 +104,7 @@ export function instrumentPosthogMcp(
 			}),
 			context: false,
 			captureModel: false,
-			enableConversationId: false,
+			enableConversationId: true,
 			enableExceptionAutocapture: false,
 			beforeSend: metadataOnlyMcpEvent,
 		},
