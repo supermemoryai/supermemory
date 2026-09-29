@@ -140,6 +140,27 @@ describe("cluster assignments", () => {
 
 		expect(assignments.get("a1")?.key).toBe(assignments.get("b1")?.key)
 	})
+
+	it("merges a wide fan-out of memories relating to one hub into a single cluster", () => {
+		// Regression test for the BFS queue drain: a hub with many direct
+		// relations produces a wide frontier, which previously interacted
+		// badly with an O(n) `Array.shift()` dequeue.
+		const hub = makeDocument("doc-hub", [makeMemory({ id: "hub" })])
+		const spokes = Array.from({ length: 200 }, (_, i) =>
+			makeDocument(`doc-${i}`, [
+				makeMemory({ id: `spoke-${i}`, memoryRelations: { hub: "derives" } }),
+			]),
+		)
+
+		const assignments = computeClusterAssignments([hub, ...spokes])
+
+		const hubKey = assignments.get("hub")?.key
+		expect(hubKey).toBeDefined()
+		for (let i = 0; i < spokes.length; i++) {
+			expect(assignments.get(`spoke-${i}`)?.key).toBe(hubKey)
+		}
+		expect(assignments.get("hub")?.size).toBe(spokes.length + 1)
+	})
 })
 
 describe("memory orbit placement", () => {
