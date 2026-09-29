@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "mintlify": "^4.2.112",
+    "mintlify": "4.2.933",
     "typescript": "^5.9.2"
   },
   "dependencies": {
