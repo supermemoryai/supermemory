@@ -47,6 +47,12 @@ jobs:
             echo "sdk_playground=true" >> "$GITHUB_OUTPUT"
           fi
 
+          if git diff --quiet "${{ github.event.pull_request.base.sha }}" HEAD -- apps/mcp; then
+            echo "mcp=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "mcp=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Python for SDK Playground
         if: steps.sdk-changes.outputs.sdk_playground == 'true'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -97,6 +103,10 @@ jobs:
       - name: Build SDK Playground
         if: steps.sdk-changes.outputs.sdk_playground == 'true'
         run: bun run --cwd apps/sdk-playground build:app
+
+      - name: Run MCP unit tests
+        if: steps.sdk-changes.outputs.mcp == 'true'
+        run: bun run --cwd apps/mcp test:unit
 
       - name: Run Memory Graph type checking
         run: bun run --cwd packages/memory-graph check-types
