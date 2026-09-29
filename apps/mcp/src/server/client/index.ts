@@ -315,12 +315,10 @@ export class SupermemoryClient {
 			})
 
 			if (!response.ok) {
-				if (response.status === 401) {
-					throw new Error("Authentication failed. Please re-authenticate.")
-				}
-				throw new Error(
-					`Failed to fetch container tags: ${response.statusText}`,
-				)
+				const message = extractApiErrorMessage(await response.text())
+				throw Object.assign(new Error(message ?? ""), {
+					status: response.status,
+				})
 			}
 
 			return z.array(containerTagSchema).parse(await response.json())
@@ -471,6 +469,10 @@ export class SupermemoryClient {
 					if (status >= 500) {
 						throw new Error("Server error. Please try again later.")
 					}
+					if (message) throw new Error(message)
+					throw new Error(
+						`Supermemory API request failed with status ${status}`,
+					)
 			}
 		}
 
