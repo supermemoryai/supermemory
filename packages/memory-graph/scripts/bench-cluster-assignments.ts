@@ -21,8 +21,17 @@
  * than itself" purely from GC noise on 40k-node allocations, which is why
  * this script uses best-of-N sampling at multiple sizes instead.
  *
+ * IMPORTANT: this repo's dev tooling runs on Bun, whose JavaScriptCore
+ * engine optimizes Array.shift() far better than V8 (what Chrome/Edge/most
+ * browsers -- i.e. this component's actual users -- run). Run under Bun,
+ * this benchmark will show close to NO difference between old and new. That
+ * does not mean the fix is a no-op -- see the companion script
+ * bench-cluster-assignments-v8.mjs, which is engine-independent (plain
+ * Node, zero dependencies) and shows the real, growing gap.
+ *
  * Usage:
- *   bun run scripts/bench-cluster-assignments.ts
+ *   bun run scripts/bench-cluster-assignments.ts       (correctness + Bun numbers)
+ *   node scripts/bench-cluster-assignments-v8.mjs       (V8/real-world numbers)
  */
 import { computeClusterAssignments } from "../src/hooks/use-graph-data"
 import type { GraphApiDocument, GraphApiMemory } from "../src/types"
@@ -229,7 +238,16 @@ function bestOf(fn: () => void, runs: number): number {
 }
 
 const RUNS_PER_SIZE = 5
-const SIZES = [5_000, 10_000, 20_000, 40_000, 80_000]
+const SIZES = [5_000, 10_000, 20_000, 40_000, 80_000, 100_000]
+
+if ((process.versions as { bun?: string }).bun) {
+	console.log(
+		"WARNING: running under Bun -- its JavaScriptCore engine optimizes\n" +
+			"Array.shift() well, so the numbers below will look flat regardless\n" +
+			"of the fix. Run `node scripts/bench-cluster-assignments-v8.mjs` for\n" +
+			"the engine-independent, real-world (V8) comparison.\n",
+	)
+}
 
 console.log(
 	"Correctness check: previous vs. current produce identical assignments",
