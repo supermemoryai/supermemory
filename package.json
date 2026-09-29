@@ -35,7 +35,7 @@
     "ai": "^5.0.59",
     "alchemy": "^0.81.4",
     "atmn": "^0.0.16",
-    "better-auth": "^1.3.3",
+    "better-auth": "1.7.6",
     "boxen": "^8.0.1",
     "cloudflare": "^4.5.0",
     "compromise": "^14.14.4",
