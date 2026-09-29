@@ -1,13 +1,13 @@
 ---
-title: "Connector Troubleshooting"
+title: "Connector troubleshooting"
 sidebarTitle: "Troubleshooting"
 description: "Diagnose and resolve common issues with Google Drive, Gmail, Notion, and OneDrive connectors"
-icon: "wrench"
+icon: "/icons/hugeicons/wrench-01.svg"
 ---
 
 Quick guide to resolve common connector issues with authentication, syncing, and permissions.
 
-## Quick Health Check
+## Quick health check
 
 Check if your connectors are working properly:
 
@@ -66,9 +66,9 @@ curl -X POST "https://api.supermemory.ai/v3/documents/list" \
 
 </CodeGroup>
 
-## Common Issues
+## Common issues
 
-### OAuth Callback Fails
+### OAuth callback fails
 
 **Problem:** "Invalid redirect URI" error after user grants permissions
 
@@ -90,7 +90,7 @@ const connection = await client.connections.create('notion', {
 - Copy the exact URL from your OAuth app settings
 - Test the flow in development first
 
-### Documents Not Syncing
+### Documents not syncing
 
 **Problem:** Documents stuck in "queued" or "extracting" status for over 30 minutes
 
@@ -108,7 +108,7 @@ If documents consistently fail:
 - Verify you have permission to access the documents
 - Ensure the document type is supported
 
-### Permission Denied Errors
+### Permission denied errors
 
 **Problem:** Some documents show "permission denied" or aren't syncing
 
@@ -129,7 +129,7 @@ const newConnection = await client.connections.create('google-drive', {
 window.location.href = newConnection.authLink;
 ```
 
-### Sync Takes Too Long
+### Sync takes too long
 
 **Problem:** Hundreds of documents taking hours to sync
 
@@ -143,7 +143,7 @@ const connection = await client.connections.create('onedrive', {
 });
 ```
 
-## Provider-Specific Issues
+## Provider-specific issues
 
 ### Google Drive
 
@@ -226,7 +226,7 @@ Gmail connector requires Scale Plan or Enterprise Plan. If you see access errors
 - Contact support to upgrade your plan
 
 
-## Best Practices
+## Best practices
 
 1. **Set reasonable document limits** - Start with 500-1000 documents
 2. **Use descriptive container tags** - Makes debugging easier

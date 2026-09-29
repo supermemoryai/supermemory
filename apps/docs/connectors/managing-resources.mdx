@@ -1,6 +1,6 @@
 ---
-title: 'Managing Connection Resources'
-sidebarTitle: 'Managing Resources'
+title: 'Managing connection resources'
+sidebarTitle: 'Managing resources'
 description: 'Get and configure resources for connections that support resource management'
 icon: 'folder-sync'
 ---
@@ -11,7 +11,7 @@ icon: 'folder-sync'
 
 Some connectors require you to select which resources (e.g., repositories) to sync before syncing begins. Use these generic endpoints to list and configure resources for connections that support resource management.
 
-## Get Resources
+## Get resources
 
 `GET /v3/connections/:connectionId/resources`
 
@@ -66,7 +66,7 @@ curl -X GET \
 ```
 </CodeGroup>
 
-### Query Parameters
+### Query parameters
 
 - `page`: Optional. Page number for pagination. Default: `1`
 - `per_page`: Optional. Number of resources per page. Default: `30`
@@ -101,7 +101,7 @@ curl -X GET \
 **Provider Support:** Not all providers support resource fetching. This endpoint is only available for providers that implement the `fetchResources()` method (e.g., GitHub). For providers that don't support this, you'll receive a `501 Not Implemented` response.
 </Note>
 
-## Configure Connection
+## Configure connection
 
 `POST /v3/connections/:connectionId/configure`
 
@@ -200,7 +200,7 @@ curl -X POST \
 ```
 </CodeGroup>
 
-### Request Body
+### Request body
 
 ```json
 {
@@ -244,7 +244,7 @@ The structure of each resource object depends on the provider. For GitHub, resou
 **Provider Support:** Not all providers support resource configuration. This endpoint is only available for providers that implement the `configureConnection()` method (e.g., GitHub). For providers that don't support this, you'll receive a `501 Not Implemented` response.
 </Warning>
 
-## Example: GitHub Repository Selection
+## Example: GitHub repository selection
 
 Here's a complete example for GitHub:
 

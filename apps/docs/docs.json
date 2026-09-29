@@ -8,23 +8,39 @@
 		},
 		"openapi": "https://api.supermemory.ai/v4/openapi"
 	},
+	"background": {
+		"color": {
+			"dark": "#0A0A0A",
+			"light": "#FFFFFF"
+		}
+	},
 	"colors": {
-		"dark": "#1E3A8A",
-		"light": "#3B82F6",
-		"primary": "#1E3A8A"
+		"dark": "#091120",
+		"light": "#F5F5F5",
+		"primary": "#091120"
 	},
 	"contextual": {
-		"options": ["copy", "view", "assistant", "chatgpt", "claude"]
+		"options": [
+			"copy",
+			"view",
+			"assistant",
+			"chatgpt",
+			"claude",
+			"mcp",
+			"add-mcp",
+			"cursor",
+			"vscode",
+			"download-spec"
+		]
 	},
 	"favicon": "/favicon.png",
 	"fonts": {
 		"body": {
-			"family": "Space Grotesk",
-			"format": "woff2"
+			"family": "Geist"
 		},
 		"heading": {
-			"family": "Space Grotesk",
-			"format": "woff2"
+			"family": "Geist",
+			"weight": 500
 		}
 	},
 	"footer": {
@@ -66,13 +82,14 @@
 				"pages": ["index"]
 			},
 			{
-				"icon": "code",
+				"icon": "/icons/hugeicons/source-code.svg",
 				"anchors": [
 					{
-						"anchor": "Developer Platform (API)",
+						"anchor": "Developer platform (API)",
+						"icon": "/icons/hugeicons/book-open-01.svg",
 						"pages": [
 							{
-								"group": "Getting Started",
+								"group": "Getting started",
 								"pages": [
 									"overview/what-is-supermemory",
 									"overview/comparison",
@@ -88,12 +105,12 @@
 									"concepts/content-types",
 									{
 										"group": "Retrieval",
-										"icon": "search",
+										"icon": "/icons/hugeicons/search-01.svg",
 										"pages": ["concepts/super-rag", "concepts/memory-vs-rag"]
 									},
 									{
 										"group": "Multi-tenancy and filtering",
-										"icon": "users",
+										"icon": "/icons/hugeicons/user-multiple.svg",
 										"pages": [
 											"concepts/multi-tenancy",
 											"concepts/multi-tenancy-examples",
@@ -102,8 +119,8 @@
 										]
 									},
 									{
-										"group": "User Profiles",
-										"icon": "id-card",
+										"group": "User profiles",
+										"icon": "/icons/hugeicons/id.svg",
 										"pages": ["concepts/user-profiles", "user-profiles/buckets"]
 									}
 								]
@@ -116,7 +133,7 @@
 									"concepts/customization",
 									{
 										"group": "Ingestion",
-										"icon": "download",
+										"icon": "/icons/hugeicons/download-01.svg",
 										"pages": [
 											"ingestion/add-memories",
 											"ingestion/document-operations"
@@ -124,7 +141,7 @@
 									},
 									{
 										"group": "Connectors",
-										"icon": "plug",
+										"icon": "/icons/hugeicons/plug-01.svg",
 										"pages": [
 											"connectors/overview",
 											"connectors/notion",
@@ -141,7 +158,7 @@
 									},
 									{
 										"group": "Recall",
-										"icon": "upload",
+										"icon": "/icons/hugeicons/upload-01.svg",
 										"pages": [
 											"recall/search",
 											"recall/user-profiles",
@@ -151,7 +168,7 @@
 									},
 									{
 										"group": "SMFS",
-										"icon": "database",
+										"icon": "/icons/hugeicons/database-01.svg",
 										"pages": [
 											"smfs/overview",
 											"smfs/install",
@@ -160,7 +177,7 @@
 											"smfs/bash-tool-python",
 											{
 												"group": "Providers",
-												"icon": "cloud",
+												"icon": "/icons/hugeicons/cloud.svg",
 												"pages": [
 													"smfs/providers/daytona",
 													"smfs/providers/e2b",
@@ -179,7 +196,7 @@
 								"pages": [
 									{
 										"group": "Supermemory local",
-										"icon": "server",
+										"icon": "/icons/hugeicons/server-stack-01.svg",
 										"pages": [
 											"self-hosting/overview",
 											"self-hosting/quickstart",
@@ -196,12 +213,12 @@
 								"pages": [
 									{
 										"group": "General",
-										"icon": "book-open",
+										"icon": "/icons/hugeicons/book-open-01.svg",
 										"pages": ["ingestion/batch-ingest-historical-data"]
 									},
 									{
 										"group": "Benchmarking",
-										"icon": "flask-conical",
+										"icon": "/icons/hugeicons/test-tube-01.svg",
 										"pages": [
 											"memorybench/overview",
 											"memorybench/extend-benchmark",
@@ -216,11 +233,11 @@
 								]
 							},
 							{
-								"group": "Migration Guides",
+								"group": "Migration guides",
 								"pages": [
 									{
 										"group": "From another provider",
-										"icon": "truck",
+										"icon": "/icons/hugeicons/delivery-truck-01.svg",
 										"pages": ["migration/from-mem0", "migration/from-zep"]
 									}
 								]
@@ -228,8 +245,8 @@
 						]
 					},
 					{
-						"anchor": "API Integrations",
-						"icon": "plug",
+						"anchor": "API integrations",
+						"icon": "/icons/hugeicons/plug-01.svg",
 						"pages": [
 							"integrations/supermemory-sdk",
 							"integrations/ai-sdk",
@@ -252,22 +269,22 @@
 							"integrations/viasocket",
 							"integrations/zapier",
 							{
-								"group": "Migration Guides",
-								"icon": "arrow-up-right",
+								"group": "Migration guides",
+								"icon": "/icons/hugeicons/arrow-up-right-01.svg",
 								"pages": ["migration/tools-v2-upgrade"]
 							}
 						]
 					},
 					{
-						"anchor": "API Reference",
-						"icon": "unplug",
+						"anchor": "API reference",
+						"icon": "/icons/hugeicons/plug-socket.svg",
 						"openapi": "https://api.supermemory.ai/v4/openapi",
 						"pages": [
 							"api-reference/overview",
 							"authentication",
 							{
 								"group": "Ingest",
-								"icon": "download",
+								"icon": "/icons/hugeicons/download-01.svg",
 								"pages": [
 									"api-reference/ingest",
 									"POST /v3/documents",
@@ -279,7 +296,7 @@
 							},
 							{
 								"group": "Recall",
-								"icon": "search",
+								"icon": "/icons/hugeicons/search-01.svg",
 								"pages": [
 									"api-reference/search",
 									"POST /v4/search",
@@ -291,7 +308,7 @@
 							},
 							{
 								"group": "Documents",
-								"icon": "file-text",
+								"icon": "/icons/hugeicons/file-02.svg",
 								"pages": [
 									"api-reference/documents",
 									"POST /v3/documents/list",
@@ -305,7 +322,7 @@
 							},
 							{
 								"group": "Memories",
-								"icon": "database",
+								"icon": "/icons/hugeicons/database-01.svg",
 								"pages": [
 									"api-reference/memories",
 									"POST /v4/memories",
@@ -317,7 +334,7 @@
 							},
 							{
 								"group": "Container tags",
-								"icon": "tags",
+								"icon": "/icons/hugeicons/tag-01.svg",
 								"pages": [
 									"api-reference/container-tags",
 									"GET /v3/container-tags/{containerTag}",
@@ -329,7 +346,7 @@
 							},
 							{
 								"group": "Connections",
-								"icon": "plug",
+								"icon": "/icons/hugeicons/plug-01.svg",
 								"pages": [
 									"api-reference/connections",
 									"POST /v3/connections/{provider}",
@@ -346,7 +363,7 @@
 							},
 							{
 								"group": "Settings",
-								"icon": "settings",
+								"icon": "/icons/hugeicons/settings-01.svg",
 								"pages": [
 									"api-reference/settings",
 									"GET /v3/settings",
@@ -358,24 +375,24 @@
 						]
 					}
 				],
-				"tab": "Developer Platform"
+				"tab": "Developer platform"
 			},
 			{
-				"icon": "puzzle",
+				"icon": "/icons/hugeicons/puzzle.svg",
 				"anchors": [
 					{
 						"anchor": "Plugins and MCP",
-						"icon": "puzzle",
+						"icon": "/icons/hugeicons/puzzle.svg",
 						"pages": [
 							{
 								"group": "Supermemory MCP",
-								"icon": "terminal",
+								"icon": "/icons/hugeicons/command-line.svg",
 								"pages": [
 									"supermemory-mcp/mcp",
 									"supermemory-mcp/setup",
 									{
 										"group": "Setups",
-										"icon": "layers",
+										"icon": "/icons/hugeicons/layers-01.svg",
 										"pages": [
 											"supermemory-mcp/chatgpt-web",
 											"supermemory-mcp/claude-desktop"
@@ -385,7 +402,7 @@
 							},
 							{
 								"group": "Plugins",
-								"icon": "puzzle",
+								"icon": "/icons/hugeicons/puzzle.svg",
 								"pages": [
 									"integrations/openclaw",
 									"integrations/hermes",
@@ -1077,6 +1094,12 @@
 		}
 	],
 	"styling": {
+		"codeblocks": {
+			"theme": {
+				"dark": "github-dark-default",
+				"light": "github-light-default"
+			}
+		},
 		"eyebrows": "breadcrumbs"
 	},
 	"theme": "aspen"

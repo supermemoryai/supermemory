@@ -1,7 +1,7 @@
 ---
 title: "Quickstart"
-description: "Ingest a conversation and a document, then use document search, memory graph traversal, and profiles — and wire it into a chat harness."
-icon: "play"
+description: "Ingest a conversation and a document, retrieve them three ways, then wire it into a chat harness."
+icon: "/icons/hugeicons/play.svg"
 ---
 
 By the end of this page you will:
@@ -114,7 +114,7 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 `add` returns immediately with `status: "queued"`. Processing is still **async** — wait until `done` before searching.
 
 <Note>
-**`dreaming: "instant"`** — By default, dreaming is `"dynamic"`: Supermemory may batch related documents so memories form from coherent units, which can lag after `status: "done"`. For this quickstart (and any path where you need memories/profiles right away), pass **`dreaming: "instant"`** so the document is processed on its own as soon as it finishes indexing. That bills one extra operation per document. See [Processing Modes](/ingestion/add-memories#processing-modes).
+By default, dreaming is `"dynamic"`: Supermemory may batch related documents so memories form from coherent units, which can lag behind `status: "done"`. This quickstart passes `dreaming: "instant"` so each document is processed on its own as soon as it finishes indexing. Use it whenever you need memories or profiles right away; it bills one extra operation per document. See [processing modes](/ingestion/add-memories#processing-modes).
 </Note>
 
 ## 2. Ingest a document
@@ -603,22 +603,22 @@ Nothing was reloaded from your process. Memory and docs live in supermemory.
 ## Where next
 
 <CardGroup cols={2}>
-  <Card title="Add context" icon="plus" href="/ingestion/add-memories">
+  <Card title="Add context" icon="/icons/hugeicons/plus-sign.svg" href="/ingestion/add-memories">
     Conversations, files, URLs, customId updates, and status.
   </Card>
-  <Card title="Search" icon="search" href="/recall/search">
+  <Card title="Search" icon="/icons/hugeicons/search-01.svg" href="/recall/search">
     Hybrid vs memories, filters, thresholds, rerank.
   </Card>
-  <Card title="Graph memory" icon="waypoints" href="/concepts/graph-memory">
+  <Card title="Graph memory" icon="/icons/hugeicons/route-02.svg" href="/concepts/graph-memory">
     How relations and entity chains are produced.
   </Card>
-  <Card title="User profiles" icon="user" href="/concepts/user-profiles">
+  <Card title="User profiles" icon="/icons/hugeicons/user.svg" href="/concepts/user-profiles">
     Static vs dynamic, and when to inject a profile every turn.
   </Card>
-  <Card title="AI SDK" icon="triangle" href="/integrations/ai-sdk">
+  <Card title="AI SDK" icon="/icons/hugeicons/triangle.svg" href="/integrations/ai-sdk">
     withSupermemory modes, customId, addMemory.
   </Card>
-  <Card title="Container tags" icon="lock" href="/concepts/container-tags">
+  <Card title="Container tags" icon="/icons/hugeicons/lock.svg" href="/concepts/container-tags">
     Isolation for multi-tenant products.
   </Card>
 </CardGroup>

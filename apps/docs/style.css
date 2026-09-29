@@ -1,3 +1,721 @@
+/* ------------------------------------------------------------------
+   supermemory docs · the console's design language over Mintlify (aspen)
+   Tokens copied from apps/console-v2/src/styles/tokens.css in the mono repo.
+   Type:   Geist everywhere · Geist Mono for eyebrows and data only
+   Color:  neutral grays, cobalt accent family (#2f86ff fill, #175cd4 text)
+   Radius: 6 / 8 / 10 / 14 · controls 8 · cards 10 · no pills
+   ------------------------------------------------------------------ */
+
+@import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap");
+
+:root {
+	--sm-bg: #ffffff;
+	--sm-bg-2: #f5f5f5;
+	--sm-bg-3: #f1f2f4;
+	--sm-surface: #ffffff;
+	--sm-control: #ffffff;
+	--sm-control-hover: #f1f2f4;
+	--sm-border: #ededed;
+	--sm-border-muted: #f4f4f5;
+	--sm-border-hover: #dcdcdc;
+
+	--sm-text-strong: #05080f;
+	--sm-text: #091120;
+	--sm-text-2: #5b6472;
+	--sm-text-3: #9ea3ad;
+	--sm-text-body: #3d424d;
+
+	--sm-accent: #2f86ff;
+	--sm-accent-hover: #1d6fe8;
+	--sm-accent-text: #175cd4;
+	--sm-accent-text-hover: #1148f7;
+	--sm-tint: #f5f9ff;
+	--sm-tint-stroke: #b8d1ff;
+
+	--sm-success: #187a44;
+	--sm-success-muted: rgba(24, 122, 68, 0.12);
+	--sm-error: #b82929;
+	--sm-error-muted: rgba(184, 41, 41, 0.1);
+	--sm-warning: #8c540d;
+	--sm-warning-muted: rgba(140, 84, 13, 0.12);
+	--sm-info: #175cd4;
+	--sm-info-muted: rgba(23, 92, 212, 0.1);
+
+	--sm-shadow-sm: 0 1px 2px 0 rgba(9, 17, 32, 0.05);
+	--sm-shadow-md:
+		0 2px 6px -1px rgba(9, 17, 32, 0.07), 0 1px 2px 0 rgba(9, 17, 32, 0.05);
+	--sm-shadow-float:
+		0 8px 40px 0 rgba(0, 0, 0, 0.08), 0 1px 3px 0 rgba(0, 0, 0, 0.1),
+		0 1px 2px 0 rgba(0, 0, 0, 0.06);
+	--sm-sidebar-active-fill: #f1f2f4;
+	--sm-shadow-sidebar-active: none;
+
+	--sm-radius-sm: 6px;
+	--sm-radius-md: 8px;
+	--sm-radius-lg: 10px;
+	--sm-radius-xl: 14px;
+
+	--sm-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--sm-dur-fast: 180ms;
+	--sm-dur-hover: 150ms;
+	--sm-dur-press: 100ms;
+
+	--sm-font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+	--sm-font-mono:
+		"Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+		monospace;
+}
+
+.dark {
+	--sm-bg: #0a0a0a;
+	--sm-bg-2: #101010;
+	--sm-bg-3: #121212;
+	--sm-surface: #0a0a0a;
+	--sm-control: #0a0a0a;
+	--sm-control-hover: #121212;
+	--sm-border: rgba(255, 255, 255, 0.07);
+	--sm-border-muted: rgba(255, 255, 255, 0.04);
+	--sm-border-hover: rgba(255, 255, 255, 0.14);
+
+	--sm-text-strong: #fafafa;
+	--sm-text: #f5f5f5;
+	--sm-text-2: #a2a2a2;
+	--sm-text-3: #838383;
+	--sm-text-body: #a1a1a1;
+
+	--sm-accent-text: #6fa8ff;
+	--sm-accent-text-hover: #86b6ff;
+	--sm-tint: #0d131a;
+	--sm-tint-stroke: #1e3973;
+
+	--sm-success: #4fb877;
+	--sm-success-muted: rgba(79, 184, 119, 0.16);
+	--sm-error: #f27070;
+	--sm-error-muted: rgba(242, 112, 112, 0.14);
+	--sm-warning: #f0b359;
+	--sm-warning-muted: rgba(240, 179, 89, 0.14);
+	--sm-info: #6fa8ff;
+	--sm-info-muted: rgba(111, 168, 255, 0.14);
+
+	--sm-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+	--sm-shadow-md:
+		0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+	--sm-shadow-float:
+		0 8px 40px 0 rgba(0, 0, 0, 0.5), 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+	--sm-sidebar-active-fill: rgba(255, 255, 255, 0.07);
+	--sm-shadow-sidebar-active: none;
+}
+
+/* ---- Global type: console voice at reading scale ---- */
+
+/* Match the page colour under Mintlify's fixed backdrop, so overscroll and
+   long pages never show a second shade */
+html,
+body {
+	background-color: var(--sm-bg);
+}
+
+body {
+	font-family: var(--sm-font-sans);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: var(--sm-font-sans) !important;
+	font-weight: 500 !important;
+	letter-spacing: -0.01em;
+	text-wrap: balance;
+}
+
+/* ---- Reading type (modelled on docs.privy.io) ----
+   Body 16/28 in a soft ink so headings carry the contrast. Headings step 36 / 24 / 20
+   with -0.025em tracking, and sit closer to the text they introduce than to the text above. */
+h1#page-title {
+	font-size: 2.25rem;
+	line-height: 2.5rem;
+	letter-spacing: -0.025em;
+	color: var(--sm-text-strong);
+}
+
+#header .prose {
+	font-size: 1.0625rem;
+	line-height: 1.65;
+	color: var(--sm-text-2);
+}
+
+#content.prose,
+#content .prose {
+	font-size: 1rem;
+	line-height: 1.75rem;
+	color: var(--sm-text-body);
+	hyphens: manual;
+	text-wrap: pretty;
+}
+
+#content h2:not([data-component-part]),
+#content h3:not([data-component-part]),
+/* Headings inside link cards (the overview's hero cards) are card titles,
+   not section headings, so they keep their own spacing. */
+	#content
+	a
+	h2:not([data-component-part]),
+#content a h3:not([data-component-part]) {
+	margin: 0;
+}
+
+#content h4:not([data-component-part]) {
+	color: var(--sm-text-strong);
+}
+
+#content h2:not([data-component-part]) {
+	font-size: 1.5rem;
+	line-height: 2rem;
+	letter-spacing: -0.025em;
+	margin-top: 2.25rem;
+	margin-bottom: 1.125rem;
+}
+
+#content h3:not([data-component-part]) {
+	font-size: 1.25rem;
+	line-height: 1.75rem;
+	letter-spacing: -0.025em;
+	margin-top: 2rem;
+	margin-bottom: 0.875rem;
+}
+
+#content h4:not([data-component-part]) {
+	font-size: 1.0625rem;
+	line-height: 1.625rem;
+	letter-spacing: -0.015em;
+	margin-top: 1.75rem;
+	margin-bottom: 0.625rem;
+}
+
+/* ---- Emphasis: one job per treatment ----
+   Links: blue at reading weight, a faint underline that firms up on hover.
+   Bold: ink, reserved for the phrase that matters. Code: a quiet pill.
+   Links never look like bold, so a sentence can carry both without shouting. */
+#content a.link:not(.mint-group):not(.card):not(.sm-card),
+#header .prose a.link {
+	font-weight: inherit !important;
+	color: var(--sm-accent-text) !important;
+	border-bottom: 0 !important;
+	text-decoration-line: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.2em;
+	text-decoration-color: color-mix(
+		in srgb,
+		var(--sm-accent-text) 30%,
+		transparent
+	);
+	transition:
+		text-decoration-color var(--sm-dur-fast) var(--sm-ease-out),
+		color var(--sm-dur-fast) var(--sm-ease-out);
+}
+
+#content a.link:not(.mint-group):not(.card):not(.sm-card):hover,
+#header .prose a.link:hover {
+	color: var(--sm-accent-text-hover) !important;
+	text-decoration-color: currentColor;
+}
+
+/* A link that wraps bold or code keeps the link colour, not ink */
+#content a.link:not(.mint-group):not(.card):not(.sm-card) strong,
+#content a.link:not(.mint-group):not(.card):not(.sm-card) code {
+	color: inherit !important;
+}
+
+#content :not(pre) > code {
+	font-size: 0.875em !important;
+	font-weight: 400 !important;
+	padding: 0.1em 0.35em !important;
+	border-radius: var(--sm-radius-sm) !important;
+	background: var(--sm-bg-3) !important;
+	color: var(--sm-text-strong) !important;
+	border: 0 !important;
+}
+
+.dark #content :not(pre) > code {
+	background: rgba(255, 255, 255, 0.06) !important;
+}
+
+#content strong {
+	color: var(--sm-text-strong);
+	font-weight: 500;
+}
+
+/* The page outline lists h2 and h3 only; deeper headings stay in the body */
+#table-of-contents-content .toc-item[data-depth="2"],
+#table-of-contents-content .toc-item[data-depth="3"] {
+	display: none;
+}
+
+code,
+kbd,
+pre,
+samp {
+	font-family: var(--sm-font-mono) !important;
+}
+
+::selection {
+	background: color-mix(in srgb, var(--sm-text) 16%, transparent);
+	color: var(--sm-text-strong);
+}
+
+:focus-visible {
+	outline: 2px solid var(--sm-text);
+	outline-offset: 2px;
+}
+
+/* Sidebar group labels, the breadcrumb above the title and the TOC title are plain
+   sentence-case labels in the UI face, not mono eyebrows */
+#sidebar-content .sidebar-group-header,
+#sidebar-content .sidebar-group-header .sidebar-title,
+#header .breadcrumb-list {
+	font-family: var(--sm-font-sans) !important;
+	font-size: 0.875rem;
+	line-height: 1.25rem;
+	letter-spacing: -0.005em;
+	text-transform: none;
+	font-weight: 500 !important;
+	color: var(--sm-text-strong) !important;
+}
+
+#header .breadcrumb-list .breadcrumb-item {
+	color: var(--sm-text-2) !important;
+}
+
+#header .breadcrumb-list .breadcrumb-item:last-child {
+	color: var(--sm-text-strong) !important;
+}
+
+#table-of-contents h2 button {
+	font-family: var(--sm-font-sans) !important;
+	font-size: 0.875rem;
+	text-transform: none;
+	letter-spacing: normal;
+	font-weight: 400 !important;
+	color: var(--sm-text-2) !important;
+}
+
+/* Outline, after docs.privy.io: no rail and no accent. Sections sit flush left in
+   the secondary tone, subsections indent 16px and step down a weight, and the
+   section you are reading turns ink. */
+#table-of-contents-content .toc-item,
+#table-of-contents-content .toc-item > a {
+	border-left: 0 !important;
+	margin-left: 0 !important;
+	padding-left: 0 !important;
+}
+
+#table-of-contents-content .toc-item[data-depth="0"] > a {
+	color: var(--sm-text-2) !important;
+	font-weight: 500;
+}
+
+#table-of-contents-content .toc-item[data-depth="1"] > a {
+	padding-left: 16px !important;
+	color: var(--sm-text-2) !important;
+	font-weight: 400;
+}
+
+#table-of-contents-content .toc-item[data-active="true"] > a {
+	color: var(--sm-text-strong) !important;
+	font-weight: 500;
+}
+
+/* ---- Radius: controls 8, rows and cards 10, nothing is a pill ---- */
+
+#search-bar-entry,
+#search-bar-entry-mobile,
+#assistant-entry,
+#assistant-entry-mobile,
+li.navbar-link a,
+#topbar-cta-button [class*="rounded"],
+#theme-preference-menu-trigger,
+.chat-assistant-floating-input [class*="rounded"] {
+	border-radius: var(--sm-radius-md) !important;
+}
+
+#page-context-menu-button {
+	border-top-left-radius: var(--sm-radius-md) !important;
+	border-bottom-left-radius: var(--sm-radius-md) !important;
+}
+
+#page-context-menu [class*="rounded-r"] {
+	border-top-right-radius: var(--sm-radius-md) !important;
+	border-bottom-right-radius: var(--sm-radius-md) !important;
+}
+
+#navigation-items li > a,
+#navigation-items a[class*="rounded-xl"],
+#content .card,
+#content [class*="rounded-2xl"] {
+	border-radius: var(--sm-radius-lg) !important;
+}
+
+/* Blue belongs to links only. The current page is a quiet neutral fill with ink text,
+   like docs.privy.io; every other selected state in the chrome is black and white too. */
+#navigation-items li > a {
+	transition:
+		color var(--sm-dur-fast) var(--sm-ease-out),
+		background-color var(--sm-dur-fast) var(--sm-ease-out);
+}
+
+#navigation-items a[class*="bg-primary"] {
+	background-image: none !important;
+	background-color: var(--sm-sidebar-active-fill) !important;
+	box-shadow: var(--sm-shadow-sidebar-active);
+	color: var(--sm-text-strong) !important;
+	font-weight: 500;
+}
+
+/* Dashboard button: ink on white in light mode, and the inverse in dark mode, so it
+   never becomes navy on black */
+.dark #topbar-cta-button a > span.absolute {
+	background-color: var(--sm-text-strong) !important;
+}
+
+.dark #topbar-cta-button a .text-white,
+.dark #topbar-cta-button a svg {
+	color: var(--sm-bg) !important;
+}
+
+/* The assistant's send button is painted with the primary (ink), which would vanish
+   on the dark page; invert it in dark mode like the Dashboard button */
+.dark .chat-assistant-send-button {
+	background-color: color-mix(
+		in srgb,
+		var(--sm-text-strong) 30%,
+		transparent
+	) !important;
+	color: var(--sm-bg) !important;
+}
+
+.dark .chat-assistant-send-button svg {
+	color: var(--sm-bg) !important;
+}
+
+/* HTTP method badges: one neutral pill instead of a blue/green/orange/red code */
+[class*="bg-blue-400/20"],
+[class*="bg-green-400/20"],
+[class*="bg-orange-400/20"],
+[class*="bg-red-400/20"],
+[class*="bg-yellow-400/20"],
+[class*="bg-purple-400/20"] {
+	background-color: var(--sm-bg-3) !important;
+	color: var(--sm-text-2) !important;
+}
+
+/* Code blocks sit on the band colour with one hairline, like every console panel.
+   A standalone block is a single r10 surface. A group is an r10 frame with 2px of
+   padding around an r8 panel (concentric), with the tabs on the frame. */
+#content .code-block,
+#content .code-group,
+.sm-home-sample .code-group {
+	border-color: var(--sm-border) !important;
+	border-radius: var(--sm-radius-lg) !important;
+	background: var(--sm-bg-2) !important;
+}
+
+#content .code-block > .code-block-background {
+	border: 0 !important;
+	border-radius: calc(var(--sm-radius-lg) - 1px) !important;
+	background: transparent !important;
+}
+
+/* Mintlify sets the panel radius with a layered !important through --rounded-xl,
+   which beats any unlayered rule, so set the variable instead */
+#content .code-group,
+.sm-home-sample .code-group {
+	--rounded-xl: var(--sm-radius-md);
+}
+
+#content .code-group .code-block-background,
+.sm-home-sample .code-group .code-block-background {
+	border: 1px solid var(--sm-border) !important;
+	border-radius: var(--sm-radius-md) !important;
+	background: var(--sm-bg-2) !important;
+}
+
+/* The copy button's fade has to melt into the panel, not into white */
+#content .code-block-fade-overlay,
+.sm-home-sample .code-block-fade-overlay {
+	background-image: linear-gradient(
+		to right,
+		transparent 0,
+		var(--sm-bg-2) 40px
+	) !important;
+}
+
+/* Card titles are h2s inside the card. Without this they pick up the 22px
+   section size and outrank the headings around them. */
+#content .card [data-component-part="card-title"] {
+	font-size: 1rem !important;
+	line-height: 1.5 !important;
+	letter-spacing: -0.005em;
+	margin-top: 12px !important;
+}
+
+#content .card [data-component-part="card-content"],
+#content .card .prose {
+	font-size: 0.9375rem !important;
+	line-height: 1.6 !important;
+	color: var(--sm-text-2) !important;
+}
+
+/* Feature tiles (logo + label links) match the card surface */
+#content a.link.mint-group {
+	border-radius: var(--sm-radius-lg) !important;
+	border-color: var(--sm-border) !important;
+	box-shadow: none !important;
+	transition: border-color var(--sm-dur-fast) var(--sm-ease-out) !important;
+}
+
+#content a.link.mint-group:hover {
+	border-color: var(--sm-border-hover) !important;
+}
+
+/* Screenshots and diagrams: card radius and a neutral hairline edge */
+#content img.rounded,
+#content img[class*="rounded-lg"] {
+	border-radius: var(--sm-radius-lg) !important;
+	outline: 1px solid rgba(0, 0, 0, 0.08);
+	outline-offset: -1px;
+	box-shadow: none !important;
+}
+
+.dark #content img.rounded,
+.dark #content img[class*="rounded-lg"] {
+	outline-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Callouts: notes and info are neutral (blue is for links only); tip, warning and
+   danger keep a faint tint of their status colour, with only the icon in colour */
+#content .callout {
+	--sm-callout: var(--sm-text-2);
+	background: color-mix(in srgb, var(--sm-callout) 5%, var(--sm-bg)) !important;
+	border-color: color-mix(
+		in srgb,
+		var(--sm-callout) 20%,
+		var(--sm-bg)
+	) !important;
+	border-radius: var(--sm-radius-lg) !important;
+}
+
+#content .callout[data-callout-type="tip"],
+#content .callout[data-callout-type="check"] {
+	--sm-callout: var(--sm-success);
+}
+
+#content .callout[data-callout-type="warning"] {
+	--sm-callout: var(--sm-warning);
+}
+
+#content .callout[data-callout-type="danger"] {
+	--sm-callout: var(--sm-error);
+}
+
+#content .callout[data-callout-type="info"] {
+	background: var(--sm-bg-2) !important;
+	border-color: var(--sm-border) !important;
+}
+
+.dark #content .callout {
+	background: color-mix(in srgb, var(--sm-callout) 8%, var(--sm-bg)) !important;
+	border-color: color-mix(
+		in srgb,
+		var(--sm-callout) 24%,
+		var(--sm-bg)
+	) !important;
+}
+
+.dark #content .callout[data-callout-type="info"] {
+	background: var(--sm-bg-2) !important;
+	border-color: var(--sm-border) !important;
+}
+
+#content .callout [data-component-part="callout-content"] {
+	color: var(--sm-text-body) !important;
+}
+
+#content .callout [data-component-part="callout-content"] strong {
+	color: var(--sm-text-strong) !important;
+}
+
+#content .callout [data-component-part="callout-icon"],
+#content .callout [data-component-part="callout-icon"] svg {
+	color: var(--sm-callout) !important;
+}
+
+#content
+	.callout[data-callout-type="info"]
+	[data-component-part="callout-icon"],
+#content
+	.callout[data-callout-type="info"]
+	[data-component-part="callout-icon"]
+	svg {
+	color: var(--sm-text-2) !important;
+}
+
+/* API reference pages render outside #content, so they get the same text roles here:
+   section headings in ink at the h3 step, parameter prose in the body tone, links and
+   inline code on the shared emphasis rules. Parameter text stays a step smaller (15px). */
+.api-section-heading-title {
+	font-size: 1.25rem !important;
+	line-height: 1.75rem !important;
+	letter-spacing: -0.025em;
+	color: var(--sm-text-strong) !important;
+}
+
+.api-section .prose,
+.api-section .prose p {
+	font-size: 0.9375rem !important;
+	line-height: 1.6rem !important;
+	color: var(--sm-text-body) !important;
+	hyphens: manual !important;
+}
+
+.api-section .prose a {
+	font-weight: inherit !important;
+	color: var(--sm-accent-text) !important;
+	border-bottom: 0 !important;
+	text-decoration-line: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.2em;
+	text-decoration-color: color-mix(
+		in srgb,
+		var(--sm-accent-text) 30%,
+		transparent
+	);
+}
+
+.api-section .prose a:hover {
+	color: var(--sm-accent-text-hover) !important;
+	text-decoration-color: currentColor;
+}
+
+.api-section .prose :not(pre) > code {
+	font-size: 0.875em !important;
+	font-weight: 400 !important;
+	padding: 0.1em 0.35em !important;
+	border-radius: var(--sm-radius-sm) !important;
+	background: var(--sm-bg-3) !important;
+	color: var(--sm-text-strong) !important;
+	border: 0 !important;
+}
+
+.dark .api-section .prose :not(pre) > code {
+	background: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* ---- Interaction layer ----
+   Every control answers the pointer the same way: colour, fill and border ease over
+   150ms on the console's ease-out, buttons dip to 0.96 on press (100ms), and every
+   clickable surface (cards, tiles, pager) takes the same neutral hover border.
+   Nothing animates layout, and nothing moves for reduced-motion users. */
+#search-bar-entry,
+#assistant-entry,
+li.navbar-link a,
+#topbar-cta-button a,
+#topbar-cta-button a > span,
+#theme-preference-menu-trigger,
+#page-context-menu-button,
+#page-context-menu button,
+.code-block-copy-button button,
+[data-component-part="tab-button"],
+.code-group [role="tab"],
+a.nav-tabs-item,
+a.nav-tabs-item > div,
+#navigation-items li > a,
+#table-of-contents-content a,
+#pagination a,
+#content .card,
+#content details > summary,
+#content [data-component-part="accordion-button"] {
+	transition-property:
+		color, background-color, border-color, opacity, transform;
+	transition-duration:
+		var(--sm-dur-hover), var(--sm-dur-hover), var(--sm-dur-hover),
+		var(--sm-dur-hover), var(--sm-dur-press);
+	transition-timing-function: var(--sm-ease-out);
+}
+
+/* Hover: rows and quiet controls fill with the control-hover step, text moves to ink */
+#navigation-items li > a:not([class*="bg-primary"]):hover,
+#theme-preference-menu-trigger:hover,
+.code-block-copy-button button:hover {
+	background-color: var(--sm-control-hover) !important;
+	color: var(--sm-text) !important;
+}
+
+#table-of-contents-content .toc-item:not([data-active="true"]) > a:hover,
+[data-component-part="tab-button"]:not([data-active="true"]):hover,
+.code-group [role="tab"]:not([aria-selected="true"]):hover {
+	color: var(--sm-text) !important;
+}
+
+#content details > summary:hover,
+#content [data-component-part="accordion-button"]:hover {
+	background-color: var(--sm-control-hover) !important;
+}
+
+/* Clickable surfaces share one hover: a slightly stronger neutral hairline */
+#content .card:hover,
+#pagination a:hover {
+	border-color: var(--sm-border-hover) !important;
+}
+
+/* Mintlify paints the card hover border with a layered !important rgb(var(--primary)),
+   which no unlayered rule can beat. Point --primary at the hover grey on the card only,
+   and hand the real brand triplets back to everything inside it (icons, links). */
+#content {
+	--sm-primary-keep: var(--primary);
+	--sm-primary-light-keep: var(--primary-light);
+}
+
+#content .card:hover {
+	--primary: 220 220 220;
+	--primary-light: 45 45 45;
+}
+
+#content .card:hover > * {
+	--primary: var(--sm-primary-keep);
+	--primary-light: var(--sm-primary-light-keep);
+}
+
+/* Press: buttons dip, large surfaces and text links do not */
+#search-bar-entry:active,
+#assistant-entry:active,
+#topbar-cta-button a:active,
+#theme-preference-menu-trigger:active,
+#page-context-menu-button:active,
+.code-block-copy-button button:active {
+	transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sm-home-btn,
+	.sm-card-title svg,
+	#search-bar-entry,
+	#assistant-entry,
+	#topbar-cta-button a,
+	#theme-preference-menu-trigger,
+	#page-context-menu-button,
+	.code-block-copy-button button {
+		transition-property:
+			color, background-color, border-color, opacity !important;
+		transform: none !important;
+	}
+}
+
+/* Existing dark-mode logo inversions */
 .dark img[src*="openai.svg"],
 .dark img[src*="pipecat.svg"],
 .dark img[src*="eve.svg"],
@@ -13,4 +731,1429 @@
 	display: block;
 	width: 100%;
 	border-radius: 0;
+}
+
+/* ------------------------------------------------------------------
+   Landing page (index.mdx, mode: custom)
+   ------------------------------------------------------------------ */
+
+/* Modelled on docs.privy.io: a two-column hero (title, lede, link chips | code
+   sample), then labelled sections of cards. Images keep their own shape. */
+.sm-home {
+	max-width: 1240px;
+	margin: 0 auto;
+	padding: 56px 24px 96px;
+	font-family: var(--sm-font-sans);
+	color: var(--sm-text);
+}
+
+.sm-home-hero {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 64px;
+	align-items: center;
+}
+
+.sm-home-title {
+	margin: 0;
+	font-family: var(--sm-font-sans) !important;
+	font-size: 48px;
+	font-weight: 500 !important;
+	line-height: 1.05;
+	letter-spacing: -0.025em;
+	color: var(--sm-text);
+	text-wrap: balance;
+}
+
+.sm-home-lede {
+	max-width: 480px;
+	margin: 20px 0 0;
+	font-size: 17px;
+	line-height: 1.55;
+	color: var(--sm-text-2);
+}
+
+.sm-home-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-top: 28px;
+}
+
+.sm-home-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 36px;
+	padding: 0 14px;
+	border-radius: var(--sm-radius-md);
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1;
+	text-decoration: none !important;
+	transition-property: background-color, border-color, color, transform;
+	transition-duration:
+		var(--sm-dur-hover), var(--sm-dur-hover), var(--sm-dur-hover),
+		var(--sm-dur-press);
+	transition-timing-function: var(--sm-ease-out);
+}
+
+.sm-home-btn:active {
+	transform: scale(0.96);
+}
+
+/* The overview's one call to action keeps the accent; the rest of the chrome is black and white */
+.sm-home-btn-primary {
+	background: var(--sm-accent);
+	color: #ffffff !important;
+}
+
+.sm-home-btn-primary:hover {
+	background: var(--sm-accent-hover);
+}
+
+.sm-home-btn-secondary {
+	border: 1px solid var(--sm-border);
+	background: var(--sm-control);
+	box-shadow: var(--sm-shadow-sm);
+	color: var(--sm-text) !important;
+}
+
+.sm-home-btn-secondary:hover {
+	border-color: var(--sm-border-hover);
+	background: var(--sm-control-hover);
+}
+
+.sm-home-sample {
+	min-width: 0;
+}
+
+.sm-home-sample > div {
+	margin: 0 !important;
+}
+
+.sm-home-sample pre {
+	font-size: 13px !important;
+	line-height: 1.7 !important;
+	/* Every tab reserves the tallest sample's 15 lines, so switching TypeScript,
+	   Python and curl never changes the panel height or moves the hero. */
+	min-height: calc(15 * 1.7em);
+}
+
+.sm-home-section {
+	margin-top: 112px;
+}
+
+.sm-home-label {
+	margin: 0;
+	font-size: 16px;
+	line-height: 24px;
+	color: var(--sm-text-2);
+}
+
+.sm-home-heading {
+	margin: 8px 0 0 !important;
+	font-family: var(--sm-font-sans) !important;
+	font-size: 34px !important;
+	font-weight: 500 !important;
+	line-height: 1.2 !important;
+	letter-spacing: -0.03em !important;
+	color: var(--sm-text-strong) !important;
+}
+
+.sm-home-sub {
+	margin: 12px 0 0;
+	font-size: 16px;
+	line-height: 24px;
+	color: var(--sm-text-2);
+}
+
+.sm-home-grid {
+	display: grid;
+	gap: 24px;
+	margin-top: 36px;
+}
+
+.sm-home-grid-3 {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sm-home-grid-2 {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sm-home-card {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border: 1px solid var(--sm-border);
+	border-radius: var(--sm-radius-lg);
+	background: var(--sm-surface);
+}
+
+.sm-home-card-media {
+	display: block;
+	border-bottom: 1px solid var(--sm-border) !important;
+}
+
+.sm-home-card-media img {
+	display: block;
+	width: 100%;
+	height: auto;
+	margin: 0;
+}
+
+.sm-home-card-body {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	padding: 24px;
+}
+
+.sm-home-card-title {
+	font-size: 22px;
+	font-weight: 500;
+	line-height: 28px;
+	letter-spacing: -0.02em;
+	color: var(--sm-text-strong) !important;
+	text-decoration: none !important;
+	border: 0 !important;
+}
+
+.sm-home-card-desc {
+	margin: 8px 0 0;
+	font-size: 14px;
+	line-height: 22px;
+	color: var(--sm-text-2);
+}
+
+.sm-home-links {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-top: 20px;
+}
+
+.sm-home-list-card .sm-home-links {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	column-gap: 16px;
+}
+
+.sm-home-link {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	height: 36px;
+	margin: 0 -8px;
+	padding: 0 8px;
+	border: 0 !important;
+	border-radius: var(--sm-radius-md);
+	color: var(--sm-text) !important;
+	font-size: 15px;
+	font-weight: 400;
+	text-decoration: none !important;
+	transition: background-color var(--sm-dur-hover) var(--sm-ease-out);
+}
+
+.sm-home-link:hover {
+	background: var(--sm-control-hover);
+}
+
+.sm-home-link-icon {
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+	width: 22px;
+	height: 22px;
+	border-radius: var(--sm-radius-sm);
+	background: var(--sm-bg-3);
+}
+
+.sm-home-link-icon svg.icon,
+.sm-home-link-icon img[src^="/icons/hugeicons/"] {
+	background-color: var(--sm-text-2) !important;
+}
+
+.sm-card {
+	display: flex;
+	flex-direction: column;
+	border: 1px solid var(--sm-border);
+	border-radius: var(--sm-radius-lg);
+	background: var(--sm-surface);
+	overflow: hidden;
+	color: var(--sm-text) !important;
+	text-decoration: none !important;
+	transition: border-color var(--sm-dur-fast) var(--sm-ease-out);
+}
+
+.sm-card:hover {
+	border-color: var(--sm-border-hover);
+}
+
+.sm-card-media {
+	height: clamp(84px, 14vh, 140px);
+	border-bottom: 1px solid var(--sm-border);
+	overflow: hidden;
+	background: var(--sm-bg-2);
+}
+
+.sm-card-media {
+	position: relative;
+}
+
+.sm-card-media::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.sm-card-media img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+	margin: 0;
+}
+
+.sm-card-body {
+	padding: 14px 16px 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.sm-card-title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 15px;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+}
+
+.sm-card-title svg {
+	color: var(--sm-text-3);
+	flex-shrink: 0;
+}
+
+.sm-card-title svg {
+	transition:
+		color var(--sm-dur-hover) var(--sm-ease-out),
+		transform var(--sm-dur-fast) var(--sm-ease-out);
+}
+
+.sm-card:hover .sm-card-title svg {
+	color: var(--sm-text);
+	transform: translateX(2px);
+}
+
+.sm-card-desc {
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--sm-text-2);
+	margin: 0;
+}
+
+/* Art tiles: a film photograph (the console's plan art) with a small real
+   fragment of the product on top that states exactly what the block does.
+   The photo stays the same in both themes; the fragment follows the theme. */
+.sm-art-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 12px;
+	margin: 32px 0;
+}
+
+@media (min-width: 640px) {
+	.sm-art-grid {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+/* Mintlify gives every content anchor a primary underline border; tiles keep the card hairline. */
+#content a.sm-card {
+	border-color: var(--sm-border) !important;
+}
+
+#content a.sm-card:hover {
+	border-color: var(--sm-border-hover) !important;
+}
+
+.sm-card-media.sm-art-media {
+	height: auto;
+	aspect-ratio: 2 / 1;
+}
+
+/* The photo is blurred into a soft colour field and washed light in the
+   centre, so the objects carry all the detail. */
+.sm-art-media > img {
+	position: absolute;
+	inset: 0;
+	filter: blur(14px) saturate(1.05);
+	transform: scale(1.2) scaleX(var(--flip, 1));
+}
+
+.sm-art-wash {
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(
+		ellipse 75% 70% at 50% 50%,
+		rgba(255, 255, 255, 0.5),
+		rgba(255, 255, 255, 0.12) 75%
+	);
+}
+
+.dark .sm-art-wash {
+	background: radial-gradient(
+		ellipse 75% 70% at 50% 50%,
+		rgba(10, 10, 10, 0.42),
+		rgba(10, 10, 10, 0.1) 75%
+	);
+}
+
+/* Scenes: a fixed 264x152 stage centred on the photo; objects are placed by
+   inline left/top, lines are an SVG in the same coordinates.
+   Material, after the reference bento cards: an opaque top-lit surface, a
+   hairline ring, a white inner highlight and wide, faint shadows. Secondary
+   objects recede to a flatter, lighter fill with muted content, never to
+   transparency, so the photo never shows through a surface. */
+.sm-scene {
+	--m-surface: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+	--m-surface-2: linear-gradient(180deg, #f7f8fa 0%, #f1f3f6 100%);
+	--m-ring: rgba(9, 17, 32, 0.06);
+	--m-highlight: inset 0 1px 0 #ffffff;
+	--m-shadow:
+		0 1px 2px rgba(9, 17, 32, 0.05), 0 6px 16px -6px rgba(9, 17, 32, 0.12),
+		0 22px 40px -18px rgba(9, 17, 32, 0.2);
+	--m-shadow-2:
+		0 1px 2px rgba(9, 17, 32, 0.04), 0 8px 18px -10px rgba(9, 17, 32, 0.12);
+	--m-well: #eef1f5;
+	--m-fg-muted: 0.5;
+	--m-accent-fill: linear-gradient(
+		180deg,
+		#58a0ff 0%,
+		#2a7ef7 55%,
+		#1c6ae0 100%
+	);
+	--m-accent-glow: 0 6px 16px -6px rgba(28, 106, 224, 0.55);
+	--m-focus-ring:
+		0 0 0 1px rgba(47, 134, 255, 0.55), 0 0 0 4px rgba(47, 134, 255, 0.14);
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 264px;
+	height: 152px;
+	transform: translate(-50%, -50%) scale(0.84);
+	font-size: 11.5px;
+	line-height: 16px;
+	letter-spacing: -0.005em;
+	color: var(--sm-text);
+}
+
+.dark .sm-scene {
+	--m-surface: linear-gradient(180deg, #1c1c1c 0%, #161616 100%);
+	--m-surface-2: linear-gradient(180deg, #151515 0%, #121212 100%);
+	--m-ring: rgba(255, 255, 255, 0.08);
+	--m-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+	--m-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 16px -6px rgba(0, 0, 0, 0.45),
+		0 22px 40px -18px rgba(0, 0, 0, 0.6);
+	--m-shadow-2:
+		0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 18px -10px rgba(0, 0, 0, 0.45);
+	--m-well: #262626;
+	--m-focus-ring:
+		0 0 0 1px rgba(111, 168, 255, 0.6), 0 0 0 4px rgba(111, 168, 255, 0.14);
+}
+
+.sm-scene *,
+.sm-scene *::before {
+	box-sizing: border-box;
+}
+
+.sm-scene > * {
+	position: absolute;
+}
+
+.sm-scene .m {
+	background: var(--m-surface);
+	box-shadow:
+		0 0 0 1px var(--m-ring),
+		var(--m-highlight),
+		var(--m-shadow);
+}
+
+.sm-scene .m.is-faded {
+	background: var(--m-surface-2);
+	box-shadow:
+		0 0 0 1px var(--m-ring),
+		var(--m-highlight),
+		var(--m-shadow-2);
+}
+
+.sm-scene .is-faded > * {
+	opacity: var(--m-fg-muted);
+}
+
+.sm-scene svg.m-lines {
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	fill: none;
+	stroke: #ffffff;
+	stroke-width: 1.5;
+	stroke-linecap: round;
+	stroke-dasharray: 0.01 4.5;
+	opacity: 0.9;
+}
+
+/* Cards, rows and chips */
+.sm-scene .m-card {
+	border-radius: var(--sm-radius-lg);
+}
+
+.sm-scene .m-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 38px;
+	padding: 0 10px 0 8px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.sm-scene .m-grow {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.sm-scene .m-row s {
+	color: var(--sm-text-2);
+	text-decoration-thickness: 1px;
+}
+
+.sm-scene .m-ic {
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+	width: 22px;
+	height: 22px;
+	border-radius: var(--sm-radius-sm);
+	background: var(--m-well);
+}
+
+.sm-scene .m-ic.is-on {
+	background: var(--m-accent-fill);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.28),
+		var(--m-accent-glow);
+}
+
+.sm-scene .m-tag,
+.sm-scene .m-score {
+	flex-shrink: 0;
+	height: 18px;
+	padding: 0 6px;
+	border-radius: 5px;
+	background: var(--sm-tint);
+	box-shadow: inset 0 0 0 1px var(--sm-tint-stroke);
+	color: var(--sm-accent-text);
+	font-size: 10.5px;
+	line-height: 18px;
+}
+
+.sm-scene .m-score {
+	font-family: var(--sm-font-mono);
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0;
+}
+
+.sm-scene .is-front {
+	z-index: 2;
+}
+
+.sm-scene .m-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	height: 28px;
+	padding: 0 10px 0 8px;
+	border-radius: var(--sm-radius-md);
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.sm-scene .m-search {
+	gap: 8px;
+	padding: 0 12px;
+	color: var(--sm-text-2);
+	font-weight: 400;
+}
+
+.sm-scene .m-ghost {
+	height: 38px;
+}
+
+.sm-scene .m-skel {
+	display: block;
+	height: 5px;
+	border-radius: 3px;
+	background: var(--m-well);
+}
+
+.sm-scene .m-skel + .m-skel {
+	margin-top: 5px;
+}
+
+/* Filesystems: the container mounted as a folder. A back panel with a tab,
+   a lighter front panel carrying the mark, both in the brand gradient. */
+.sm-scene .m-folder {
+	width: 84px;
+	height: 70px;
+	border-radius: 4px 12px 12px 12px;
+	background: linear-gradient(180deg, #3b8cff 0%, #1f6fe6 100%);
+	box-shadow:
+		0 14px 28px -12px rgba(28, 106, 224, 0.6),
+		0 2px 4px rgba(28, 106, 224, 0.2);
+}
+
+.sm-scene .m-folder::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: -8px;
+	width: 34px;
+	height: 11px;
+	border-radius: 6px 8px 0 0;
+	background: #3b8cff;
+}
+
+.sm-scene .m-folder-front {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 58px;
+	display: grid;
+	place-items: center;
+	border-radius: 10px 10px 12px 12px;
+	background: linear-gradient(180deg, #74b2ff 0%, #3d8fff 100%);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.45),
+		0 -1px 3px rgba(9, 30, 90, 0.12);
+}
+
+.sm-scene .m-folder-front img {
+	width: 23px;
+	height: auto;
+	margin: 0;
+	opacity: 0.95;
+}
+
+.sm-scene .m-files {
+	padding: 4px;
+}
+
+.sm-scene .m-file {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	height: 28px;
+	padding: 0 8px;
+	border-radius: var(--sm-radius-sm);
+	color: var(--sm-text-2);
+	white-space: nowrap;
+}
+
+.sm-scene .m-file svg {
+	flex-shrink: 0;
+}
+
+.sm-scene .m-file.is-on {
+	background: var(--sm-tint);
+	box-shadow: inset 0 0 0 1px var(--sm-tint-stroke);
+	color: var(--sm-accent-text);
+}
+
+/* Tiles and badges. App icons are shown as the icon itself, clipped to the
+   tile, the way the references show them. */
+.sm-scene .m-tile {
+	display: grid;
+	place-items: center;
+	border-radius: var(--sm-radius-lg);
+}
+
+.sm-scene .m-tile img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	object-fit: contain;
+}
+
+.sm-scene .m-tile.is-app img {
+	border-radius: inherit;
+}
+
+/* Brand glyphs sit on a white tile in both themes, inset like the
+   reference icon tiles, so marks never touch the edge. */
+.sm-scene .m-tile.is-logo {
+	background: linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%);
+	box-shadow:
+		0 0 0 1px rgba(9, 17, 32, 0.07),
+		inset 0 1px 0 #ffffff,
+		var(--m-shadow);
+}
+
+.sm-scene .m-tile.is-logo.is-on {
+	box-shadow:
+		0 0 0 1px rgba(47, 134, 255, 0.55),
+		0 0 0 4px rgba(47, 134, 255, 0.14),
+		var(--m-shadow);
+}
+
+.sm-scene .m-tile.is-on {
+	box-shadow: var(--m-focus-ring), var(--m-shadow);
+}
+
+.sm-scene .m-badge {
+	position: absolute;
+	right: -5px;
+	bottom: -5px;
+	display: grid;
+	place-items: center;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: var(--m-accent-fill);
+	box-shadow:
+		0 0 0 2px var(--sm-bg),
+		0 2px 4px rgba(9, 17, 32, 0.18);
+}
+
+/* The Supermemory hub: a gradient square with a spaced, concentric halo ring and a soft
+   coloured glow beneath, no dark inner shading. */
+.sm-scene .m-orb {
+	display: grid;
+	place-items: center;
+	width: 52px;
+	height: 52px;
+	border-radius: var(--sm-radius-xl);
+	background: var(--m-accent-fill);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.3),
+		0 12px 24px -8px rgba(28, 106, 224, 0.6),
+		0 2px 4px rgba(28, 106, 224, 0.2);
+}
+
+.sm-scene .m-orb::before {
+	content: "";
+	position: absolute;
+	inset: -7px;
+	border-radius: calc(var(--sm-radius-xl) + 7px);
+	background: rgba(255, 255, 255, 0.22);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+	z-index: -1;
+}
+
+.dark .sm-scene .m-orb::before {
+	background: rgba(255, 255, 255, 0.06);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.sm-scene .m-orb img {
+	width: 24px;
+	height: auto;
+	margin: 0;
+}
+
+/* Profile card: the avatar breaks out of the top edge, like the reference
+   profile cards; each fact row says whether it is static or dynamic. */
+.sm-scene .m-profile {
+	padding: 0 12px 6px;
+}
+
+.sm-scene .m-profile-head {
+	display: flex;
+	align-items: flex-end;
+	gap: 10px;
+	padding: 10px 0;
+	box-shadow: inset 0 -1px 0 var(--m-ring);
+}
+
+.sm-scene .m-profile-head .m-grow {
+	display: flex;
+	flex-direction: column;
+	padding-bottom: 1px;
+}
+
+.sm-scene .m-profile-head b {
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 16px;
+}
+
+.sm-scene .m-profile-head .m-grow > span {
+	color: var(--sm-text-2);
+	font-size: 11px;
+	line-height: 14px;
+}
+
+.sm-scene .m-avatar {
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+	width: 40px;
+	height: 40px;
+	align-self: flex-start;
+	margin-top: -24px;
+	border-radius: 50%;
+	background: linear-gradient(180deg, #eaf2ff 0%, #cfe0ff 100%);
+	box-shadow:
+		0 0 0 3px #ffffff,
+		0 0 0 4px var(--m-ring),
+		0 6px 14px -4px rgba(28, 106, 224, 0.35);
+	color: var(--sm-accent-text);
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: 0.01em;
+}
+
+.sm-scene .m-avatar img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.dark .sm-scene .m-avatar {
+	background: linear-gradient(180deg, #1d2d4a 0%, #142240 100%);
+	box-shadow:
+		0 0 0 3px #1c1c1c,
+		0 0 0 4px var(--m-ring),
+		0 6px 14px -4px rgba(0, 0, 0, 0.6);
+}
+
+.sm-scene .m-fact {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 30px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.sm-scene .m-fact + .m-fact {
+	box-shadow: inset 0 1px 0 var(--m-ring);
+}
+
+.sm-scene .m-fact .m-ic {
+	width: 20px;
+	height: 20px;
+}
+
+.sm-scene .m-fact-kind {
+	flex-shrink: 0;
+	color: var(--sm-text-3);
+	font-size: 10.5px;
+}
+
+/* Extractors */
+.sm-scene .m-pdf {
+	display: grid;
+	place-items: center;
+	width: 64px;
+	height: 80px;
+}
+
+.sm-scene .m-pdf-tag {
+	position: absolute;
+	left: -6px;
+	bottom: 12px;
+	height: 16px;
+	padding: 0 5px;
+	border-radius: 4px;
+	background: linear-gradient(180deg, #ef5b5b 0%, #d23a3a 100%);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.25),
+		0 3px 8px -2px rgba(210, 58, 58, 0.5);
+	color: #ffffff;
+	font-size: 9.5px;
+	font-weight: 500;
+	line-height: 16px;
+	letter-spacing: 0.02em;
+}
+
+.sm-scene .m-chunk {
+	height: 26px;
+	padding: 0 10px;
+	display: flex;
+	align-items: center;
+}
+
+.sm-scene .m-chunk .m-skel {
+	flex: none;
+}
+
+.sm-scene .m-chunk.is-on {
+	box-shadow: var(--m-focus-ring), var(--m-highlight), var(--m-shadow);
+}
+
+.sm-scene .m-chunk.is-on .m-skel {
+	background: rgba(47, 134, 255, 0.3);
+}
+
+/* Leaderboard */
+.sm-scene .m-board {
+	padding: 0 12px 4px;
+}
+
+.sm-scene .m-board-head {
+	height: 30px;
+	line-height: 30px;
+	color: var(--sm-text-2);
+	font-weight: 500;
+}
+
+.sm-scene .m-board-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 34px;
+	box-shadow: inset 0 1px 0 var(--m-ring);
+	font-weight: 500;
+}
+
+.sm-scene .m-board-row.is-faded > * {
+	opacity: 0.6;
+}
+
+.sm-scene .m-board-row > :last-child:not(.m-grow) {
+	color: var(--sm-accent-text);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Mintlify icons are masks filled with the accent: neutral objects take the
+   secondary ink, filled accent objects take white. */
+.sm-scene svg.icon,
+.sm-scene img[src^="/icons/hugeicons/"] {
+	background-color: var(--sm-text-2) !important;
+}
+
+.sm-scene .is-on > svg.icon,
+.sm-scene .is-on > img[src^="/icons/hugeicons/"],
+.sm-scene .m-search svg.icon,
+.sm-scene .m-search img[src^="/icons/hugeicons/"] {
+	background-color: var(--sm-accent-text) !important;
+}
+
+.sm-scene .m-ic.is-on svg.icon,
+.sm-scene .m-ic.is-on img[src^="/icons/hugeicons/"],
+.sm-scene .m-badge svg.icon,
+.sm-scene .m-badge img[src^="/icons/hugeicons/"] {
+	background-color: #ffffff !important;
+}
+
+/* ---- Weights: regular (400) and medium (500) only ----
+   Nothing on the site is semibold or bold. Mintlify's own utility classes, headings,
+   bold text and table headers are all capped at medium. */
+.font-semibold,
+.font-bold,
+.font-extrabold,
+.font-black,
+strong,
+b,
+th,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+[class*="font-semibold"],
+[class*="font-bold"] {
+	font-weight: 500 !important;
+}
+
+/* Heading permalink anchors carry their own semibold; they follow the heading */
+:is(h1, h2, h3, h4, h5, h6) a,
+a[class*="-ml-10"] {
+	font-weight: inherit !important;
+}
+
+/* ---- Icons: Hugeicons (free set, MIT) ----
+   Mintlify only ships Font Awesome, Lucide and Tabler, so the Hugeicons SVGs live in
+   /icons/hugeicons and are referenced by path. Mintlify draws path icons as a plain
+   <img>, which cannot take the text colour, so each one is redrawn as a mask filled
+   with currentColor: it follows the sidebar's active blue, the link ink and dark mode
+   exactly like the built-in icons do. */
+img[src^="/icons/hugeicons/"] {
+	object-position: -9999px 0;
+	background-color: currentColor !important;
+	-webkit-mask: var(--hi) center / 100% 100% no-repeat;
+	mask: var(--hi) center / 100% 100% no-repeat;
+}
+
+img[src="/icons/hugeicons/activity-01.svg"] {
+	--hi: url("/icons/hugeicons/activity-01.svg");
+}
+
+img[src="/icons/hugeicons/agreement-01.svg"] {
+	--hi: url("/icons/hugeicons/agreement-01.svg");
+}
+
+img[src="/icons/hugeicons/ai-brain-01.svg"] {
+	--hi: url("/icons/hugeicons/ai-brain-01.svg");
+}
+
+img[src="/icons/hugeicons/arrow-data-transfer-horizontal.svg"] {
+	--hi: url("/icons/hugeicons/arrow-data-transfer-horizontal.svg");
+}
+
+img[src="/icons/hugeicons/arrow-up-right-01.svg"] {
+	--hi: url("/icons/hugeicons/arrow-up-right-01.svg");
+}
+
+img[src="/icons/hugeicons/award-01.svg"] {
+	--hi: url("/icons/hugeicons/award-01.svg");
+}
+
+img[src="/icons/hugeicons/balance-scale.svg"] {
+	--hi: url("/icons/hugeicons/balance-scale.svg");
+}
+
+img[src="/icons/hugeicons/book-02.svg"] {
+	--hi: url("/icons/hugeicons/book-02.svg");
+}
+
+img[src="/icons/hugeicons/book-open-01.svg"] {
+	--hi: url("/icons/hugeicons/book-open-01.svg");
+}
+
+img[src="/icons/hugeicons/brain-01.svg"] {
+	--hi: url("/icons/hugeicons/brain-01.svg");
+}
+
+img[src="/icons/hugeicons/bug-01.svg"] {
+	--hi: url("/icons/hugeicons/bug-01.svg");
+}
+
+img[src="/icons/hugeicons/building-03.svg"] {
+	--hi: url("/icons/hugeicons/building-03.svg");
+}
+
+img[src="/icons/hugeicons/chart-line-data-01.svg"] {
+	--hi: url("/icons/hugeicons/chart-line-data-01.svg");
+}
+
+img[src="/icons/hugeicons/chat-bot.svg"] {
+	--hi: url("/icons/hugeicons/chat-bot.svg");
+}
+
+img[src="/icons/hugeicons/check-list.svg"] {
+	--hi: url("/icons/hugeicons/check-list.svg");
+}
+
+img[src="/icons/hugeicons/clipboard.svg"] {
+	--hi: url("/icons/hugeicons/clipboard.svg");
+}
+
+img[src="/icons/hugeicons/clock-01.svg"] {
+	--hi: url("/icons/hugeicons/clock-01.svg");
+}
+
+img[src="/icons/hugeicons/cloud.svg"] {
+	--hi: url("/icons/hugeicons/cloud.svg");
+}
+
+img[src="/icons/hugeicons/command-line.svg"] {
+	--hi: url("/icons/hugeicons/command-line.svg");
+}
+
+img[src="/icons/hugeicons/compass-01.svg"] {
+	--hi: url("/icons/hugeicons/compass-01.svg");
+}
+
+img[src="/icons/hugeicons/computer.svg"] {
+	--hi: url("/icons/hugeicons/computer.svg");
+}
+
+img[src="/icons/hugeicons/copy-01.svg"] {
+	--hi: url("/icons/hugeicons/copy-01.svg");
+}
+
+img[src="/icons/hugeicons/cpu.svg"] {
+	--hi: url("/icons/hugeicons/cpu.svg");
+}
+
+img[src="/icons/hugeicons/credit-card.svg"] {
+	--hi: url("/icons/hugeicons/credit-card.svg");
+}
+
+img[src="/icons/hugeicons/cube.svg"] {
+	--hi: url("/icons/hugeicons/cube.svg");
+}
+
+img[src="/icons/hugeicons/cursor-01.svg"] {
+	--hi: url("/icons/hugeicons/cursor-01.svg");
+}
+
+img[src="/icons/hugeicons/dashboard-speed-01.svg"] {
+	--hi: url("/icons/hugeicons/dashboard-speed-01.svg");
+}
+
+img[src="/icons/hugeicons/database-01.svg"] {
+	--hi: url("/icons/hugeicons/database-01.svg");
+}
+
+img[src="/icons/hugeicons/delivery-truck-01.svg"] {
+	--hi: url("/icons/hugeicons/delivery-truck-01.svg");
+}
+
+img[src="/icons/hugeicons/download-01.svg"] {
+	--hi: url("/icons/hugeicons/download-01.svg");
+}
+
+img[src="/icons/hugeicons/eraser-01.svg"] {
+	--hi: url("/icons/hugeicons/eraser-01.svg");
+}
+
+img[src="/icons/hugeicons/file-01.svg"] {
+	--hi: url("/icons/hugeicons/file-01.svg");
+}
+
+img[src="/icons/hugeicons/file-02.svg"] {
+	--hi: url("/icons/hugeicons/file-02.svg");
+}
+
+img[src="/icons/hugeicons/file-search.svg"] {
+	--hi: url("/icons/hugeicons/file-search.svg");
+}
+
+img[src="/icons/hugeicons/files-01.svg"] {
+	--hi: url("/icons/hugeicons/files-01.svg");
+}
+
+img[src="/icons/hugeicons/files-02.svg"] {
+	--hi: url("/icons/hugeicons/files-02.svg");
+}
+
+img[src="/icons/hugeicons/filter.svg"] {
+	--hi: url("/icons/hugeicons/filter.svg");
+}
+
+img[src="/icons/hugeicons/flash.svg"] {
+	--hi: url("/icons/hugeicons/flash.svg");
+}
+
+img[src="/icons/hugeicons/folder-01.svg"] {
+	--hi: url("/icons/hugeicons/folder-01.svg");
+}
+
+img[src="/icons/hugeicons/github.svg"] {
+	--hi: url("/icons/hugeicons/github.svg");
+}
+
+img[src="/icons/hugeicons/globe-02.svg"] {
+	--hi: url("/icons/hugeicons/globe-02.svg");
+}
+
+img[src="/icons/hugeicons/hard-drive.svg"] {
+	--hi: url("/icons/hugeicons/hard-drive.svg");
+}
+
+img[src="/icons/hugeicons/headphones.svg"] {
+	--hi: url("/icons/hugeicons/headphones.svg");
+}
+
+img[src="/icons/hugeicons/help-circle.svg"] {
+	--hi: url("/icons/hugeicons/help-circle.svg");
+}
+
+img[src="/icons/hugeicons/hierarchy-square-01.svg"] {
+	--hi: url("/icons/hugeicons/hierarchy-square-01.svg");
+}
+
+img[src="/icons/hugeicons/id.svg"] {
+	--hi: url("/icons/hugeicons/id.svg");
+}
+
+img[src="/icons/hugeicons/idea-01.svg"] {
+	--hi: url("/icons/hugeicons/idea-01.svg");
+}
+
+img[src="/icons/hugeicons/invoice-01.svg"] {
+	--hi: url("/icons/hugeicons/invoice-01.svg");
+}
+
+img[src="/icons/hugeicons/java-script.svg"] {
+	--hi: url("/icons/hugeicons/java-script.svg");
+}
+
+img[src="/icons/hugeicons/justice-scale-01.svg"] {
+	--hi: url("/icons/hugeicons/justice-scale-01.svg");
+}
+
+img[src="/icons/hugeicons/key-01.svg"] {
+	--hi: url("/icons/hugeicons/key-01.svg");
+}
+
+img[src="/icons/hugeicons/layers-01.svg"] {
+	--hi: url("/icons/hugeicons/layers-01.svg");
+}
+
+img[src="/icons/hugeicons/left-to-right-list-bullet.svg"] {
+	--hi: url("/icons/hugeicons/left-to-right-list-bullet.svg");
+}
+
+img[src="/icons/hugeicons/link-01.svg"] {
+	--hi: url("/icons/hugeicons/link-01.svg");
+}
+
+img[src="/icons/hugeicons/location-01.svg"] {
+	--hi: url("/icons/hugeicons/location-01.svg");
+}
+
+img[src="/icons/hugeicons/lock.svg"] {
+	--hi: url("/icons/hugeicons/lock.svg");
+}
+
+img[src="/icons/hugeicons/login-01.svg"] {
+	--hi: url("/icons/hugeicons/login-01.svg");
+}
+
+img[src="/icons/hugeicons/logout-01.svg"] {
+	--hi: url("/icons/hugeicons/logout-01.svg");
+}
+
+img[src="/icons/hugeicons/mail-01.svg"] {
+	--hi: url("/icons/hugeicons/mail-01.svg");
+}
+
+img[src="/icons/hugeicons/message-01.svg"] {
+	--hi: url("/icons/hugeicons/message-01.svg");
+}
+
+img[src="/icons/hugeicons/message-02.svg"] {
+	--hi: url("/icons/hugeicons/message-02.svg");
+}
+
+img[src="/icons/hugeicons/note-01.svg"] {
+	--hi: url("/icons/hugeicons/note-01.svg");
+}
+
+img[src="/icons/hugeicons/package.svg"] {
+	--hi: url("/icons/hugeicons/package.svg");
+}
+
+img[src="/icons/hugeicons/play-circle.svg"] {
+	--hi: url("/icons/hugeicons/play-circle.svg");
+}
+
+img[src="/icons/hugeicons/play.svg"] {
+	--hi: url("/icons/hugeicons/play.svg");
+}
+
+img[src="/icons/hugeicons/plug-01.svg"] {
+	--hi: url("/icons/hugeicons/plug-01.svg");
+}
+
+img[src="/icons/hugeicons/plug-socket.svg"] {
+	--hi: url("/icons/hugeicons/plug-socket.svg");
+}
+
+img[src="/icons/hugeicons/plus-sign.svg"] {
+	--hi: url("/icons/hugeicons/plus-sign.svg");
+}
+
+img[src="/icons/hugeicons/puzzle.svg"] {
+	--hi: url("/icons/hugeicons/puzzle.svg");
+}
+
+img[src="/icons/hugeicons/python.svg"] {
+	--hi: url("/icons/hugeicons/python.svg");
+}
+
+img[src="/icons/hugeicons/refresh.svg"] {
+	--hi: url("/icons/hugeicons/refresh.svg");
+}
+
+img[src="/icons/hugeicons/robotic.svg"] {
+	--hi: url("/icons/hugeicons/robotic.svg");
+}
+
+img[src="/icons/hugeicons/rotate-clockwise.svg"] {
+	--hi: url("/icons/hugeicons/rotate-clockwise.svg");
+}
+
+img[src="/icons/hugeicons/route-01.svg"] {
+	--hi: url("/icons/hugeicons/route-01.svg");
+}
+
+img[src="/icons/hugeicons/route-02.svg"] {
+	--hi: url("/icons/hugeicons/route-02.svg");
+}
+
+img[src="/icons/hugeicons/search-01.svg"] {
+	--hi: url("/icons/hugeicons/search-01.svg");
+}
+
+img[src="/icons/hugeicons/server-stack-01.svg"] {
+	--hi: url("/icons/hugeicons/server-stack-01.svg");
+}
+
+img[src="/icons/hugeicons/settings-01.svg"] {
+	--hi: url("/icons/hugeicons/settings-01.svg");
+}
+
+img[src="/icons/hugeicons/settings-02.svg"] {
+	--hi: url("/icons/hugeicons/settings-02.svg");
+}
+
+img[src="/icons/hugeicons/share-08.svg"] {
+	--hi: url("/icons/hugeicons/share-08.svg");
+}
+
+img[src="/icons/hugeicons/shield-01.svg"] {
+	--hi: url("/icons/hugeicons/shield-01.svg");
+}
+
+img[src="/icons/hugeicons/sliders-horizontal.svg"] {
+	--hi: url("/icons/hugeicons/sliders-horizontal.svg");
+}
+
+img[src="/icons/hugeicons/source-code.svg"] {
+	--hi: url("/icons/hugeicons/source-code.svg");
+}
+
+img[src="/icons/hugeicons/sparkles.svg"] {
+	--hi: url("/icons/hugeicons/sparkles.svg");
+}
+
+img[src="/icons/hugeicons/square.svg"] {
+	--hi: url("/icons/hugeicons/square.svg");
+}
+
+img[src="/icons/hugeicons/tag-01.svg"] {
+	--hi: url("/icons/hugeicons/tag-01.svg");
+}
+
+img[src="/icons/hugeicons/test-tube-01.svg"] {
+	--hi: url("/icons/hugeicons/test-tube-01.svg");
+}
+
+img[src="/icons/hugeicons/tick-02.svg"] {
+	--hi: url("/icons/hugeicons/tick-02.svg");
+}
+
+img[src="/icons/hugeicons/triangle.svg"] {
+	--hi: url("/icons/hugeicons/triangle.svg");
+}
+
+img[src="/icons/hugeicons/upload-01.svg"] {
+	--hi: url("/icons/hugeicons/upload-01.svg");
+}
+
+img[src="/icons/hugeicons/user-circle.svg"] {
+	--hi: url("/icons/hugeicons/user-circle.svg");
+}
+
+img[src="/icons/hugeicons/user-multiple.svg"] {
+	--hi: url("/icons/hugeicons/user-multiple.svg");
+}
+
+img[src="/icons/hugeicons/user.svg"] {
+	--hi: url("/icons/hugeicons/user.svg");
+}
+
+img[src="/icons/hugeicons/workflow-square-01.svg"] {
+	--hi: url("/icons/hugeicons/workflow-square-01.svg");
+}
+
+img[src="/icons/hugeicons/wrench-01.svg"] {
+	--hi: url("/icons/hugeicons/wrench-01.svg");
+}
+
+/* ---- Motion: nothing moves for people who asked it not to ---- */
+
+@media (prefers-reduced-motion: reduce) {
+	.sm-home *,
+	#navigation-items li > a {
+		transition-duration: 0.01ms !important;
+	}
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 1024px) {
+	.sm-home {
+		padding-top: 56px;
+	}
+
+	.sm-home-hero {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 40px;
+	}
+
+	.sm-home-grid-3 {
+		gap: 16px;
+	}
+
+	.sm-home-grid-3 .sm-home-card-body {
+		padding: 20px;
+	}
+}
+
+@media (max-width: 767px) {
+	.sm-home-grid-3 {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+@media (max-width: 640px) {
+	.sm-home {
+		padding: 40px 16px 64px;
+	}
+
+	.sm-home-title {
+		font-size: 34px;
+		line-height: 1.1;
+	}
+
+	.sm-home-actions {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.sm-home-btn {
+		justify-content: center;
+		height: 44px;
+		font-size: 14px;
+	}
+
+	.sm-home-lede {
+		font-size: 16px;
+	}
+
+	.sm-home-section {
+		margin-top: 72px;
+	}
+
+	.sm-home-heading {
+		font-size: 26px !important;
+	}
+
+	.sm-home-grid-3,
+	.sm-home-grid-2,
+	.sm-home-list-card .sm-home-links {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
