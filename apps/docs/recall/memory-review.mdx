@@ -1,18 +1,17 @@
 ---
-title: "Review Inferred Memories"
-sidebarTitle: "Memory Review"
-description: "List and act on low-confidence inferred memories — approve, decline, or undo"
-icon: "list-checks"
+title: "Review inferred memories"
+sidebarTitle: "Memory review"
+description: "List low-confidence inferred memories, then approve, decline or undo them."
+icon: "/icons/hugeicons/check-list.svg"
 ---
 
-Supermemory's graph automatically **derives** new facts from patterns across your
-existing memories (see [Graph Memory](/concepts/graph-memory)). These derived facts
-are guesses — the engine wasn't told them directly — so they are flagged as
-**inferred** (`isInference: true`) and **down-weighted in search** until confirmed.
+Supermemory's graph derives new facts from patterns across your existing memories
+(see [graph memory](/concepts/graph-memory)). Because nobody stated these facts
+directly, they are flagged as inferred (`isInference: true`) and **down-weighted in
+search until someone confirms them**.
 
-These two endpoints let you build a review experience on top of that queue: list the
-inferred memories awaiting review, then **approve**, **decline**, or **undo** a
-decision on each one.
+These two endpoints let you build a review flow on top of that queue: list the
+inferred memories awaiting review, then approve, decline or undo a decision on each one.
 
 <Info>
 These endpoints are scoped to a single [container tag](/concepts/container-tags)
@@ -37,7 +36,7 @@ clears that stamp — and un-forgets a declined memory — bringing it back.
 
 ---
 
-## List Inferred Memories
+## List inferred memories
 
 Return the inferred memories for a container tag that are still awaiting review (the
 review queue). Reviewed memories are excluded.
@@ -108,7 +107,7 @@ is forgotten, expired, or already reviewed. An unknown or empty container tag re
 
 ---
 
-## Review an Inferred Memory
+## Review an inferred memory
 
 Record a decision on a single inferred memory.
 
@@ -281,7 +280,7 @@ a request and the memory simply stays in the queue for a later session.
 
 ---
 
-## Next Steps
+## Next steps
 
 - [Graph Memory](/concepts/graph-memory) — How inferred (`derive`) memories are created
 - [Memory Operations](/recall/memory-operations) — Create, forget, and update memories

@@ -3,11 +3,7 @@ import {
 	McpServer,
 	type ServerContext,
 } from "@modelcontextprotocol/server"
-import {
-	createPosthogAnalytics,
-	createTrackedToolServer,
-	type WaitUntil,
-} from "./analytics"
+import { instrumentPosthogMcp, type WaitUntil } from "./analytics"
 import { fetchSession } from "./auth"
 import { DEFAULT_PROJECT_ID, SupermemoryClient } from "./client"
 import { registerContextPrompt } from "./prompts/context"
@@ -59,6 +55,7 @@ export function createSupermemoryServer(
 		},
 		{ instructions: SERVER_INSTRUCTIONS },
 	)
+	instrumentPosthogMcp(server, env, actor, waitUntil)
 	const apiUrl = env.API_URL || DEFAULT_API_URL
 	const spaceState = env.SPACE_STATE.getByName(spaceStateName(actor))
 
@@ -88,15 +85,8 @@ export function createSupermemoryServer(
 			expiresAt,
 		}
 	}
-	const analytics = createPosthogAnalytics(env, actor, waitUntil)
-	const toolServer = createTrackedToolServer(
-		server,
-		analytics,
-		clientInfoFromContext,
-	)
-
 	registerAllTools({
-		server: toolServer,
+		server,
 		actor,
 		getClient,
 		getSession: () => fetchSession(actor.bearerToken, apiUrl),

@@ -71,6 +71,8 @@ Console mode uses the supplied theme colors for its surface, 16px dot grid, docu
 
 Set `colors.dotColor` or the `--graph-dot` CSS variable to style the dot grid independently of text. When neither is set, the grid uses `textMuted`.
 
+Document-to-memory links use `colors.edgeDocument` or `--graph-edge-document`, while derived-memory relations use `colors.edgeDerives` or `--graph-edge-derives`.
+
 For paginated initial loading, pass `hasMore` and `isLoadingMore` alongside `documents`. In both variants, new batches gradually warm the force layout from the existing node positions. Initial and appended nodes relax until their movement stays low, then cool automatically; a tick limit bounds settling for layouts that keep drifting. The initial view smoothly follows the changing bounds until loading and settling finish. Manual interaction immediately cancels automatic camera movement. Clicking a node selects it without restarting the forces; dragging warms the layout until release, including release outside the canvas. Changing the document selection starts a new fit; the Fit control remains available at any time. The existing static layout safeguard for more than 6,000 nodes remains in place.
 
 ## Documentation

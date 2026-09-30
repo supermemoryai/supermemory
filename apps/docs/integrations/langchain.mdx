@@ -2,7 +2,7 @@
 title: "LangChain"
 sidebarTitle: "LangChain"
 description: "Build AI agents with persistent memory using LangChain and Supermemory"
-icon: "link"
+icon: "/icons/hugeicons/link-01.svg"
 ---
 
 Build AI applications with LangChain that remember context across conversations. Supermemory handles memory storage, retrieval, and user profiling while LangChain manages your conversation flow.
@@ -32,7 +32,7 @@ OPENAI_API_KEY=your-openai-api-key
 
 <Note>Get your Supermemory API key from [console.supermemory.ai](https://console.supermemory.ai).</Note>
 
-## Basic Integration
+## Basic integration
 
 Initialize both clients and set up a simple chat function with memory:
 
@@ -90,9 +90,9 @@ Relevant Memories:
 
 ---
 
-## Core Concepts
+## Core concepts
 
-### User Profiles
+### User profiles
 
 Supermemory automatically maintains user profiles with two types of information:
 
@@ -110,7 +110,7 @@ print(result.profile.static)   # ["User is a Python developer", "Prefers dark mo
 print(result.profile.dynamic)  # ["Currently working on API integration", "Debugging auth issues"]
 ```
 
-### Memory Storage
+### Memory storage
 
 Content you add is automatically processed into searchable memories:
 
@@ -129,7 +129,7 @@ memory.add(
 )
 ```
 
-### Memory Search
+### Memory search
 
 Search returns both extracted memories and document chunks:
 
@@ -147,7 +147,7 @@ for r in results.results:
 
 ---
 
-## Complete Example: Code Review Assistant
+## Complete example: Code review assistant
 
 Here's a full example of a code review assistant that learns from past reviews and adapts to the user's coding style:
 
@@ -254,9 +254,9 @@ def calc(x, y):
 
 ---
 
-## Advanced Patterns
+## Advanced patterns
 
-### Conversation History with Memory
+### Conversation history with memory
 
 Maintain multi-turn conversations while building long-term memory:
 
@@ -319,7 +319,7 @@ Use this context to provide personalized, contextual responses."""
         self.messages = []
 ```
 
-### Metadata Filtering
+### Metadata filtering
 
 Use metadata to organize and filter memories:
 
@@ -348,7 +348,7 @@ results = memory.search.memories(
 )
 ```
 
-### Batch Memory Operations
+### Batch memory operations
 
 Efficiently store multiple memories:
 
@@ -370,19 +370,19 @@ for note in notes:
 
 ---
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="User Profiles" icon="user" href="/recall/user-profiles">
+  <Card title="User profiles" icon="/icons/hugeicons/user.svg" href="/recall/user-profiles">
     Deep dive into automatic user profiling
   </Card>
-  <Card title="Search API" icon="search" href="/recall/search">
+  <Card title="Search API" icon="/icons/hugeicons/search-01.svg" href="/recall/search">
     Advanced search patterns and filtering
   </Card>
-  <Card title="OpenAI SDK" icon="robot" href="/integrations/openai">
+  <Card title="OpenAI SDK" icon="/icons/hugeicons/robotic.svg" href="/integrations/openai">
     Native OpenAI integration with memory tools
   </Card>
-  <Card title="Vercel AI SDK" icon="triangle" href="/integrations/ai-sdk">
+  <Card title="Vercel AI SDK" icon="/icons/hugeicons/triangle.svg" href="/integrations/ai-sdk">
     Memory middleware for Next.js apps
   </Card>
 </CardGroup>

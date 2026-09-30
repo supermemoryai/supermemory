@@ -1,8 +1,8 @@
 ---
-title: "Container Tags"
+title: "Container tags"
 sidebarTitle: "Container tags"
 description: "The isolation boundary that groups and partitions memories by user, project, or any logical scope"
-icon: "folder"
+icon: "/icons/hugeicons/folder-01.svg"
 ---
 
 A **container tag** is the primary way you organize and isolate memories in Supermemory. It's a simple string identifier you attach to content when you add it — and that you pass back when you search, list, or update it.
@@ -10,10 +10,10 @@ A **container tag** is the primary way you organize and isolate memories in Supe
 Think of a container tag as a **namespace**: every memory tagged with `user_alex` lives in its own isolated space, completely separate from memories tagged `user_jordan`. This is what makes Supermemory safe to use in multi-tenant applications — one user can never see another user's memories unless you explicitly query across both tags.
 
 <CardGroup cols={2}>
-  <Card title="Group" icon="layers">
+  <Card title="Group" icon="/icons/hugeicons/layers-01.svg">
     Bucket memories by user, project, agent, workspace, or any boundary that makes sense for your app.
   </Card>
-  <Card title="Isolate" icon="shield">
+  <Card title="Isolate" icon="/icons/hugeicons/shield-01.svg">
     Each container tag maps to its own vector namespace, so search and retrieval never leak across boundaries.
   </Card>
 </CardGroup>
@@ -167,13 +167,13 @@ Keep tags **deterministic** — derive them directly from IDs you already have (
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Organizing & Filtering" icon="filter" href="/concepts/filtering">
+  <Card title="Organizing & filtering" icon="/icons/hugeicons/filter.svg" href="/concepts/filtering">
     Combine container tags with metadata filters for precise retrieval.
   </Card>
-  <Card title="Scoped API keys" icon="key" href="/authentication#scoped-api-keys">
+  <Card title="Scoped API keys" icon="/icons/hugeicons/key-01.svg" href="/authentication#scoped-api-keys">
     Mint keys that can only touch one container — multi-tenant clients without the org master key.
   </Card>
-  <Card title="Adding Memories" icon="plus" href="/ingestion/add-memories">
+  <Card title="Adding memories" icon="/icons/hugeicons/plus-sign.svg" href="/ingestion/add-memories">
     See container tags in action across the add API.
   </Card>
 </CardGroup>

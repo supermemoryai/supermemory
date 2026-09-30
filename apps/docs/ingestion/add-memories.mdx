@@ -2,12 +2,12 @@
 title: "Ingesting context to supermemory"
 sidebarTitle: "API"
 description: "Add text, files, and URLs to Supermemory"
-icon: "plus"
+icon: "/icons/hugeicons/plus-sign.svg"
 ---
 
 Send any raw content to Supermemory — conversations, documents, files, URLs. We extract the memories automatically. Pass `customId` to identify content and avoid duplicates, and `taskType: "superrag"` if you just need it searchable, not remembered — that's [5x cheaper](#memory-vs-superrag-ingestion) per token.
 
-## Quick Start
+## Quick start
 
 <Tabs>
   <Tab title="TypeScript">
@@ -75,7 +75,7 @@ If an irrecoverable processing error occurs, the document is automatically delet
 
 ---
 
-## Updating Content
+## Updating content
 
 Use `customId` to update existing documents or conversations. When you send content with the same `customId`, Supermemory intelligently processes only what's new.
 
@@ -144,7 +144,7 @@ content: formatConversation(messages)
 
 ---
 
-## Upload Files
+## Upload files
 
 Upload PDFs, images, and documents directly.
 
@@ -178,7 +178,7 @@ Upload PDFs, images, and documents directly.
   </Tab>
 </Tabs>
 
-### Supported File Types
+### Supported file types
 
 | Type | Formats | Processing |
 |------|---------|------------|
@@ -205,7 +205,7 @@ Upload PDFs, images, and documents directly.
 | `taskType` | `"memory" \| "superrag"` | Pipeline to run. Default `"memory"`. `"superrag"` skips fact extraction and profile updates, doing only chunk/embed/index — at 5x cheaper per token. See [SuperRAG ingestion](/concepts/super-rag#ingesting-as-pure-superrag-tasktype-superrag) |
 
 <AccordionGroup>
-  <Accordion title="Parameter Details & Examples">
+  <Accordion title="Parameter details & examples">
     **Content Types:**
     ```typescript
     // Any text — conversations, notes, documents
@@ -279,7 +279,7 @@ Upload PDFs, images, and documents directly.
 
 ---
 
-## Processing Modes
+## Processing modes
 
 ### Dreaming: dynamic vs instant
 
@@ -313,7 +313,7 @@ Use `"superrag"` for reference material you want searchable but that shouldn't s
 
 ---
 
-## Filtered Writes
+## Filtered writes
 
 By default, when you add content, Supermemory uses **all** existing memories in the space as context for generating new memories. With **filtered writes**, you can scope this context to only memories from documents matching specific metadata.
 
@@ -390,7 +390,7 @@ await client.add({
 
 ---
 
-## Processing Pipeline
+## Processing pipeline
 
 When you add content, Supermemory:
 
@@ -408,7 +408,7 @@ console.log(doc.status); // "queued" | "processing" | "done"
 ```
 
 <AccordionGroup>
-  <Accordion title="Batch Upload">
+  <Accordion title="Batch upload">
     Process multiple documents with rate limiting:
 
     ```typescript
@@ -441,7 +441,7 @@ console.log(doc.status); // "queued" | "processing" | "done"
     - Use `customId` to track and deduplicate
   </Accordion>
 
-  <Accordion title="Error Handling">
+  <Accordion title="Error handling">
     | Status | Error | Cause |
     |--------|-------|-------|
     | 400 | BadRequestError | Missing required fields, invalid parameters |
@@ -467,7 +467,7 @@ console.log(doc.status); // "queued" | "processing" | "done"
     ```
   </Accordion>
 
-  <Accordion title="Delete Content">
+  <Accordion title="Delete content">
     **Single delete:**
     ```typescript
     await client.documents.delete("doc_id_123");
@@ -494,7 +494,7 @@ console.log(doc.status); // "queued" | "processing" | "done"
 
 ---
 
-## Next Steps
+## Next steps
 
 - [How to backfill historical data](/ingestion/batch-ingest-historical-data) — Import dated content with the batch API
 - [Search Memories](/recall/search) — Query your content

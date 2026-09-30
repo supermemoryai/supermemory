@@ -1,8 +1,8 @@
 ---
-title: "User Profiles"
+title: "User profiles"
 sidebarTitle: "Overview"
 description: "Fetch and use automatically maintained user context"
-icon: "user"
+icon: "/icons/hugeicons/user.svg"
 ---
 
 User profiles are extremely short summaries of context about an entity (Usually a user, but can be anything) which includes both the *static* facts about them, as well as a few recent episodes.
@@ -17,7 +17,7 @@ Get a user's profile — their static facts and dynamic context — with a singl
 Profiles are built automatically as you [ingest content](/ingestion/add-memories). No setup required.
 </Tip>
 
-## Quick Start
+## Quick start
 
 <Tabs>
   <Tab title="TypeScript">
@@ -76,7 +76,7 @@ Profiles are built automatically as you [ingest content](/ingestion/add-memories
 
 ---
 
-## Profile + Search
+## Profile + search
 
 Get profile and search results in one call by adding the `q` parameter:
 
@@ -127,7 +127,7 @@ Get profile and search results in one call by adding the `q` parameter:
 
 ---
 
-## Filtering Profiles
+## Filtering profiles
 
 Profiles support the same [metadata filters](/concepts/filtering) as `/search` and `/documents/list` — `filters` narrows which memories are eligible to contribute to `static`, `dynamic`, and `buckets`, not just which search results come back.
 
@@ -179,7 +179,7 @@ All filter types from [Organizing & Filtering](/concepts/filtering) are supporte
 
 ---
 
-## Building Prompts
+## Building prompts
 
 The most common pattern — inject profile into your LLM's system prompt:
 
@@ -208,7 +208,7 @@ Personalize responses to their expertise and preferences.`;
 
 ---
 
-## Full Context Pattern
+## Full context pattern
 
 Get profile + query-specific memories in one call:
 
@@ -235,22 +235,22 @@ ${result.searchResults?.results.map(m => m.memory).join('\n') || 'None'}
 
 ---
 
-## Profile Buckets
+## Profile buckets
 
 Buckets are **custom topical categories** for a profile — an axis that sits alongside
 `static` and `dynamic`, grouping facts by subject (e.g. `preferences`, `goals`,
 `work`) instead of by how long-lived they are.
 
-<Card title="Profile Buckets" icon="tags" href="/user-profiles/buckets">
+<Card title="Profile buckets" icon="/icons/hugeicons/tag-01.svg" href="/user-profiles/buckets">
   Read and configure buckets — request bucketed profiles, create org/space buckets,
   get AI-generated bucket suggestions, and see validation limits.
 </Card>
 
 ---
 
-## Framework Examples
+## Framework examples
 
-<Accordion title="Express.js Middleware">
+<Accordion title="Express.js middleware">
   ```typescript
   async function withProfile(req, res, next) {
     if (!req.user?.id) return next();
@@ -274,7 +274,7 @@ Buckets are **custom topical categories** for a profile — an axis that sits al
   ```
 </Accordion>
 
-<Accordion title="Next.js API Route">
+<Accordion title="Next.js API route">
   ```typescript
   // app/api/chat/route.ts
   export async function POST(req: NextRequest) {
@@ -290,7 +290,7 @@ Buckets are **custom topical categories** for a profile — an axis that sits al
   ```
 </Accordion>
 
-<Accordion title="AI SDK Integration">
+<Accordion title="AI SDK integration">
   ```typescript
   import { withSupermemory } from "@supermemory/tools/ai-sdk"
   import { openai } from "@ai-sdk/openai"
@@ -312,7 +312,7 @@ Buckets are **custom topical categories** for a profile — an axis that sits al
 
 ---
 
-## Response Schema
+## Response schema
 
 ```typescript
 interface ProfileResponse {
@@ -331,7 +331,7 @@ interface ProfileResponse {
 
 ---
 
-## Next Steps
+## Next steps
 
 - [Profile Buckets](/user-profiles/buckets) — Custom topical categories for profiles
 - [User Profiles Concept](/concepts/user-profiles) — Understand static vs dynamic

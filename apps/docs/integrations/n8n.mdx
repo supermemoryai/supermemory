@@ -2,12 +2,12 @@
 title: "n8n"
 sidebarTitle: "n8n"
 description: "Automate knowledge management with Supermemory in n8n workflows"
-icon: "workflow"
+icon: "/icons/hugeicons/workflow-square-01.svg"
 ---
 
 Connect Supermemory to your n8n workflows to build intelligent automation workflows and agents that leverage your full knowledge base.
 
-## Quick Start
+## Quick start
 
 ### Prerequisites
 
@@ -15,7 +15,7 @@ Connect Supermemory to your n8n workflows to build intelligent automation workfl
 - Supermemory API key ([get one here](https://console.supermemory.ai/settings))
 - Basic understanding of n8n workflows
 
-### Setting Up the HTTP Request Node
+### Setting up the HTTP request node
 
 The Supermemory integration in n8n uses the HTTP Request node to interact with the Supermemory API. Here's how to configure it:
 
@@ -30,15 +30,15 @@ The Supermemory integration in n8n uses the HTTP Request node to interact with t
 ![](/images/bearer-auth-add-n8n.png)
 6. Check **Send Body** and select **JSON** as the Body Content Type. The fields depend on what API endpoint you're sending the request to. You can find detailed step-by-step examples below.
 
-## Step-by-Step Tutorial
+## Step-by-step tutorial
 
 In this tutorial, we'll create a workflow that automatically adds every email from Gmail to your Supermemory knowledge base. We'll use the HTTP Request node to send email data to Supermemory's API, creating a searchable archive of all your communications.
 
-### Adding Gmail Emails to Supermemory
+### Adding Gmail emails to Supermemory
 
 Follow these steps to build a workflow that captures and stores your Gmail messages:
 
-#### Step 1: Set Up Gmail Trigger
+#### Step 1: Set up Gmail trigger
 
 ![](/images/gmail-trigger.png)
 
@@ -47,14 +47,14 @@ Follow these steps to build a workflow that captures and stores your Gmail messa
 3. Set the trigger to **Message Received**
 4. Optional: Add labels or filters to process specific emails only
 
-#### Step 2: Configure HTTP Request Node
+#### Step 2: Configure HTTP request node
 
 1. **Add an HTTP Request node** after the Gmail Trigger
 2. **Method**: `POST`
 3. **URL**: `https://api.supermemory.ai/v3/documents`
 4. Select your auth credentials you created with the Supermemory API Key.
 
-#### Step 3: Format Email Data for Supermemory
+#### Step 3: Format email data for Supermemory
 
 In the HTTP Request node's **Body**, select **JSON** and **Using Fields Below**
 
@@ -66,7 +66,7 @@ And create 2 fields:
 
 ![](/images/gmail-content.png)
 
-#### Step 4: Handle Attachments (Optional)
+#### Step 4: Handle attachments (optional)
 
 If you want to process attachments:
 
@@ -76,14 +76,14 @@ If you want to process attachments:
 4. **Add another HTTP Request node** to store attachment metadata
 
 
-#### Step 5: Add Error Handling
+#### Step 5: Add error handling
 
 1. **Add an Error Trigger node** connected to your workflow
 2. Configure it to catch errors from the HTTP Request node
 3. **Add a notification node** (Email, Slack, etc.) to alert you of failures
 4. Optional: Add a **Wait node** with retry logic
 
-#### Step 6: Test Your Workflow
+#### Step 6: Test your workflow
 
 1. **Activate the workflow** in test mode
 2. Send a test email to your Gmail account

@@ -1,8 +1,8 @@
 ---
-title: "Multi-tenancy Overview"
+title: "Multi-tenancy overview"
 sidebarTitle: "Overview"
 description: "How Supermemory isolates and organizes memories across users, tenants, and projects"
-icon: "users"
+icon: "/icons/hugeicons/user-multiple.svg"
 ---
 
 Most apps built on Supermemory serve more than one user, customer, or tenant out of a single Supermemory organization. Multi-tenancy is how you keep those memories apart — so User A's data is never visible to User B, and so you can still slice and query within a user's own data by things like category, status, or date.
@@ -10,10 +10,10 @@ Most apps built on Supermemory serve more than one user, customer, or tenant out
 Supermemory gives you two complementary tools for this:
 
 <CardGroup cols={2}>
-  <Card title="Container Tags" icon="folder" href="/concepts/container-tags">
+  <Card title="Container tags" icon="/icons/hugeicons/folder-01.svg" href="/concepts/container-tags">
     **Isolation.** A container tag is a hard boundary — its own namespace. Memories in one tag are never returned by a search scoped to another tag.
   </Card>
-  <Card title="Metadata Filtering" icon="database" href="/concepts/filtering">
+  <Card title="Metadata filtering" icon="/icons/hugeicons/database-01.svg" href="/concepts/filtering">
     **Organization.** Metadata is a set of custom key/value properties on a memory that you filter by — category, priority, date, participants, anything you define.
   </Card>
 </CardGroup>
@@ -99,16 +99,16 @@ Container tags aren't just organizational — they're enforced as an authorizati
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Examples" icon="list-checks" href="/concepts/multi-tenancy-examples">
+  <Card title="Examples" icon="/icons/hugeicons/check-list.svg" href="/concepts/multi-tenancy-examples">
     Personal agents, company agents, email assistants, and support platforms.
   </Card>
-  <Card title="Container Tags" icon="folder" href="/concepts/container-tags">
+  <Card title="Container tags" icon="/icons/hugeicons/folder-01.svg" href="/concepts/container-tags">
     How isolation works, naming rules, and access control.
   </Card>
-  <Card title="Organizing & Filtering" icon="filter" href="/concepts/filtering">
+  <Card title="Organizing & filtering" icon="/icons/hugeicons/filter.svg" href="/concepts/filtering">
     Metadata filter types, combining `AND`/`OR`, and query limits.
   </Card>
-  <Card title="Scoped API keys" icon="key" href="/authentication#scoped-api-keys">
+  <Card title="Scoped API keys" icon="/icons/hugeicons/key-01.svg" href="/authentication#scoped-api-keys">
     Mint keys that can only touch one container tag.
   </Card>
 </CardGroup>
