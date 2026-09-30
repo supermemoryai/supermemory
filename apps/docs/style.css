@@ -977,7 +977,8 @@ a.nav-tabs-item > div,
 	color: var(--sm-text-3);
 	cursor: pointer;
 	transition-property: background-color, color, transform;
-	transition-duration: var(--sm-dur-hover), var(--sm-dur-hover), var(--sm-dur-press);
+	transition-duration:
+		var(--sm-dur-hover), var(--sm-dur-hover), var(--sm-dur-press);
 	transition-timing-function: var(--sm-ease-out);
 }
 
@@ -1004,7 +1005,13 @@ a.nav-tabs-item > div,
 	padding: 14px 18px 28px !important;
 	overflow-y: auto;
 	background: transparent !important;
-	font-family: var(--sm-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+	font-family: var(
+		--sm-font-mono,
+		ui-monospace,
+		SFMono-Regular,
+		Menlo,
+		monospace
+	);
 	font-size: 12.5px;
 	line-height: 20px;
 	white-space: pre-wrap;
