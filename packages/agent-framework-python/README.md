@@ -256,7 +256,17 @@ agent_tools = tools.get_tools()
 result = await tools.search_memories("user preferences")
 result = await tools.add_memory("User prefers dark mode")
 result = await tools.get_profile()
+result = await tools.document_list(limit=20)
+result = await tools.document_add("Meeting transcript...", title="Standup")
+result = await tools.document_delete("doc_id")
+result = await tools.memory_forget(memory_id="mem_id")
 ```
+
+`get_tools()` returns seven tools: `search_memories`, `add_memory`,
+`get_profile`, `document_list`, `document_delete`, `document_add` and
+`memory_forget`. All are scoped to the connection's `container_tag`, and
+`document_delete` refuses documents that carry any other tag or are still
+processing.
 
 `search_memories` uses v4 hybrid search, so results can contain either a
 structured memory or a source chunk. The old Python-only `include_full_docs`

@@ -154,11 +154,17 @@ asyncio.run(main())
 
 ### Available tools
 
-The agent gets three tools:
+The agent gets seven tools, the same set as the other Supermemory SDKs:
 
 - **`search_memories`** — Search for relevant memories by query
 - **`add_memory`** — Store new information for later recall
 - **`get_profile`** — Fetch the user's full profile (static + dynamic facts)
+- **`document_list`** — List stored source documents with pagination
+- **`document_add`** — Store a longer source (transcript, notes, URL) for automatic memory extraction
+- **`document_delete`** — Delete a source document and soft-forget its extracted memories
+- **`memory_forget`** — Forget a single learned fact by ID or exact text
+
+All tools are scoped to the connection's `container_tag`. `document_delete` refuses documents that carry any other tag or are still processing.
 
 ---
 
