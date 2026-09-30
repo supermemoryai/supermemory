@@ -1,0 +1,42 @@
+Check which client you call the API through before you translate requests. Not every client supports v5 yet.
+
+| Client | v5 support | What to do |
+| --- | --- | --- |
+| TypeScript SDK (`supermemory` on npm) | `5.0.0-rc.5` and later | Install `supermemory@rc` and follow the SDK changes below. Release candidates before `rc.5` still use the v3/v4 surface. |
+| Python SDK (`supermemory` on PyPI) | Not yet | The 3.x SDK calls v3/v4. Call v5 over HTTP as shown in this guide, or keep the SDK on v3/v4 until a v5 release ships. |
+| `@supermemory/tools` (AI SDK, OpenAI and agent integrations) | Not yet | These call v3/v4 (`/v4/profile`, `/v4/conversations`). No change needed today. |
+| CLI (`npx supermemory`) and `supermemory local` | Unchanged | The CLI calls v3/v4 directly and keeps working. No change needed. |
+
+### TypeScript SDK changes
+
+The v5 SDK scopes every content call to one `namespace` and moves the payload under `body`:
+
+```ts
+import Supermemory from "supermemory";
+
+const client = new Supermemory(); // reads SUPERMEMORY_API_KEY, as before
+
+// v4
+await client.add({ content: "Alex prefers morning meetings.", containerTag: "user_alex" });
+
+// v5
+await client.add({
+  namespace: "user_alex",
+  body: { content: "Alex prefers morning meetings." },
+});
+```
+
+| v4 | v5 |
+| --- | --- |
+| `client.search.memories({ q, containerTag })` | `client.search({ namespace, body: { query } })` |
+| `client.profile({ containerTag, q })` | `client.profile({ namespace })`, plus `client.search` in parallel if you need results |
+| `client.documents.list(...)`, `client.memories.list(...)` | `client.list({ namespace, type })` |
+| `client.containerTags.*` | `client.namespaces.*` |
+| `client.settings.{get, update}` | `client.organization.{get, update}` |
+| Errors per status (`RateLimitError`, …) | One `SupermemoryError`; branch on `statusCode` |
+| Retries on by default | Retries are opt-in through `retryConfig` |
+| `timeout` | `timeoutMs` |
+
+The v5 SDK drops methods that have no v5 endpoint: `connections`, `conversations.add`, `settings.{reset, suggestBuckets}`, `containerTags.{merge, mergeStatus}`, `memories.{add, updateMemory}`, and `documents.{listProcessing, chunks, fileUrl, search}`. Stay on `supermemory@4` for those calls.
+
+The full method map is in the SDK's [migration guide](https://github.com/supermemoryai/sdk-ts/blob/main/MIGRATION.md).
