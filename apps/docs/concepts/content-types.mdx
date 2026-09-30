@@ -55,6 +55,16 @@ await client.documents.uploadFile({
 
 **Extracts:** Text, tables, headers. OCR for scanned documents.
 
+#### Advanced document extraction
+
+**Scale and Enterprise** include advanced extraction for PDFs: page-by-page OCR with descriptions of figures and diagrams merged into the extracted text. This helps make the visual content in reports, research papers, and technical documents searchable alongside their text.
+
+**Free, Pro, and Max** continue to support standard PDF extraction, including OCR for scanned documents. The advanced extraction tier applies to PDFs; it does not change support for other file types.
+
+Use the same `uploadFile` call shown above. Supermemory selects the extraction tier automatically from your organization's plan; no additional request parameter is needed. If advanced extraction cannot process a PDF, Supermemory falls back to standard extraction, so figure and diagram descriptions are not guaranteed for every document.
+
+See [Billing & usage](/overview/billing#feature-availability) for plan availability.
+
 ### Microsoft Office
 
 Word, Excel, and PowerPoint files upload the same way — Supermemory detects the type from the file itself:
