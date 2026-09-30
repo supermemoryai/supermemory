@@ -1,7 +1,3 @@
-// Port of the console onboarding prompt panel
-// (supermemory-mono apps/console-v2/src/components/onboarding/agent-quickstart.tsx).
-// Styles live in style.css under .sm-prompt-*.
-
 export const AgentMarks = () => (
 	<p className="sm-works">
 		<span className="sm-works-label">Or add memory to</span>
@@ -48,9 +44,7 @@ export const CopyPromptButton = ({ prompt, className, label, copiedLabel }) => {
 			await navigator.clipboard.writeText(prompt)
 			setCopied(true)
 			setTimeout(() => setCopied(false), 1600)
-		} catch {
-			// Clipboard can be blocked (http, iframes); the text stays selectable.
-		}
+		} catch {}
 	}
 	return (
 		<button
@@ -94,8 +88,6 @@ export const CopyPromptButton = ({ prompt, className, label, copiedLabel }) => {
 	)
 }
 
-// Mintlify can't resolve a sibling export used as JSX, so the panel owns its copy button.
-// tabs: [{ label, text, kind: "prompt" | "code" }]; the copy icon copies the open tab.
 export const PromptPanel = ({ tabs }) => {
 	const [active, setActive] = useState(0)
 	const [copied, setCopied] = useState(false)
@@ -106,9 +98,7 @@ export const PromptPanel = ({ tabs }) => {
 			await navigator.clipboard.writeText(tab.text)
 			setCopied(true)
 			setTimeout(() => setCopied(false), 1600)
-		} catch {
-			// Clipboard can be blocked (http, iframes); the text stays selectable.
-		}
+		} catch {}
 	}
 
 	const promptLine = (line) => {
@@ -148,7 +138,6 @@ export const PromptPanel = ({ tabs }) => {
 		return out
 	}
 
-	// Code stays quiet: comments muted, strings in the accent, everything else ink.
 	const codeLine = (line) => {
 		if (/^\s*(\/\/|#)/.test(line))
 			return <span className="sm-prompt-muted">{line}</span>

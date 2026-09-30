@@ -1,11 +1,3 @@
-/* ------------------------------------------------------------------
-   supermemory docs · the console's design language over Mintlify (aspen)
-   Tokens copied from apps/console-v2/src/styles/tokens.css in the mono repo.
-   Type:   Geist everywhere · Geist Mono for eyebrows and data only
-   Color:  neutral grays, cobalt accent family (#2f86ff fill, #175cd4 text)
-   Radius: 6 / 8 / 10 / 14 · controls 8 · cards 10 · no pills
-   ------------------------------------------------------------------ */
-
 @import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap");
 
 :root {
@@ -106,10 +98,6 @@
 	--sm-shadow-sidebar-active: none;
 }
 
-/* ---- Global type: console voice at reading scale ---- */
-
-/* Match the page colour under Mintlify's fixed backdrop, so overscroll and
-   long pages never show a second shade */
 html,
 body {
 	background-color: var(--sm-bg);
@@ -133,9 +121,6 @@ h6 {
 	text-wrap: balance;
 }
 
-/* ---- Reading type (modelled on docs.privy.io) ----
-   Body 16/28 in a soft ink so headings carry the contrast. Headings step 36 / 24 / 20
-   with -0.025em tracking, and sit closer to the text they introduce than to the text above. */
 h1#page-title {
 	font-size: 2.25rem;
 	line-height: 2.5rem;
@@ -160,11 +145,7 @@ h1#page-title {
 
 #content h2:not([data-component-part]),
 #content h3:not([data-component-part]),
-/* Headings inside link cards (the overview's hero cards) are card titles,
-   not section headings, so they keep their own spacing. */
-	#content
-	a
-	h2:not([data-component-part]),
+#content a h2:not([data-component-part]),
 #content a h3:not([data-component-part]) {
 	margin: 0;
 }
@@ -197,10 +178,6 @@ h1#page-title {
 	margin-bottom: 0.625rem;
 }
 
-/* ---- Emphasis: one job per treatment ----
-   Links: blue at reading weight, a faint underline that firms up on hover.
-   Bold: ink, reserved for the phrase that matters. Code: a quiet pill.
-   Links never look like bold, so a sentence can carry both without shouting. */
 #content a.link:not(.mint-group):not(.card):not(.sm-card),
 #header .prose a.link {
 	font-weight: inherit !important;
@@ -225,7 +202,6 @@ h1#page-title {
 	text-decoration-color: currentColor;
 }
 
-/* A link that wraps bold or code keeps the link colour, not ink */
 #content a.link:not(.mint-group):not(.card):not(.sm-card) strong,
 #content a.link:not(.mint-group):not(.card):not(.sm-card) code {
 	color: inherit !important;
@@ -250,7 +226,6 @@ h1#page-title {
 	font-weight: 500;
 }
 
-/* The page outline lists h2 and h3 only; deeper headings stay in the body */
 #table-of-contents-content .toc-item[data-depth="2"],
 #table-of-contents-content .toc-item[data-depth="3"] {
 	display: none;
@@ -273,8 +248,6 @@ samp {
 	outline-offset: 2px;
 }
 
-/* Sidebar group labels, the breadcrumb above the title and the TOC title are plain
-   sentence-case labels in the UI face, not mono eyebrows */
 #sidebar-content .sidebar-group-header,
 #sidebar-content .sidebar-group-header .sidebar-title,
 #header .breadcrumb-list {
@@ -304,9 +277,6 @@ samp {
 	color: var(--sm-text-2) !important;
 }
 
-/* Outline, after docs.privy.io: no rail and no accent. Sections sit flush left in
-   the secondary tone, subsections indent 16px and step down a weight, and the
-   section you are reading turns ink. */
 #table-of-contents-content .toc-item,
 #table-of-contents-content .toc-item > a {
 	border-left: 0 !important;
@@ -329,8 +299,6 @@ samp {
 	color: var(--sm-text-strong) !important;
 	font-weight: 500;
 }
-
-/* ---- Radius: controls 8, rows and cards 10, nothing is a pill ---- */
 
 #search-bar-entry,
 #search-bar-entry-mobile,
@@ -360,8 +328,6 @@ li.navbar-link a,
 	border-radius: var(--sm-radius-lg) !important;
 }
 
-/* Blue belongs to links only. The current page is a quiet neutral fill with ink text,
-   like docs.privy.io; every other selected state in the chrome is black and white too. */
 #navigation-items li > a {
 	transition:
 		color var(--sm-dur-fast) var(--sm-ease-out),
@@ -376,8 +342,6 @@ li.navbar-link a,
 	font-weight: 500;
 }
 
-/* Dashboard button: ink on white in light mode, and the inverse in dark mode, so it
-   never becomes navy on black */
 .dark #topbar-cta-button a > span.absolute {
 	background-color: var(--sm-text-strong) !important;
 }
@@ -387,8 +351,6 @@ li.navbar-link a,
 	color: var(--sm-bg) !important;
 }
 
-/* The assistant's send button is painted with the primary (ink), which would vanish
-   on the dark page; invert it in dark mode like the Dashboard button */
 .dark .chat-assistant-send-button {
 	background-color: color-mix(
 		in srgb,
@@ -402,7 +364,6 @@ li.navbar-link a,
 	color: var(--sm-bg) !important;
 }
 
-/* HTTP method badges: one neutral pill instead of a blue/green/orange/red code */
 [class*="bg-blue-400/20"],
 [class*="bg-green-400/20"],
 [class*="bg-orange-400/20"],
@@ -413,9 +374,6 @@ li.navbar-link a,
 	color: var(--sm-text-2) !important;
 }
 
-/* Code blocks sit on the band colour with one hairline, like every console panel.
-   A standalone block is a single r10 surface. A group is an r10 frame with 2px of
-   padding around an r8 panel (concentric), with the tabs on the frame. */
 #content .code-block,
 #content .code-group,
 .sm-home-sample .code-group {
@@ -430,8 +388,6 @@ li.navbar-link a,
 	background: transparent !important;
 }
 
-/* Mintlify sets the panel radius with a layered !important through --rounded-xl,
-   which beats any unlayered rule, so set the variable instead */
 #content .code-group,
 .sm-home-sample .code-group {
 	--rounded-xl: var(--sm-radius-md);
@@ -444,7 +400,6 @@ li.navbar-link a,
 	background: var(--sm-bg-2) !important;
 }
 
-/* The copy button's fade has to melt into the panel, not into white */
 #content .code-block-fade-overlay,
 .sm-home-sample .code-block-fade-overlay {
 	background-image: linear-gradient(
@@ -454,8 +409,6 @@ li.navbar-link a,
 	) !important;
 }
 
-/* Card titles are h2s inside the card. Without this they pick up the 22px
-   section size and outrank the headings around them. */
 #content .card [data-component-part="card-title"] {
 	font-size: 1rem !important;
 	line-height: 1.5 !important;
@@ -470,7 +423,6 @@ li.navbar-link a,
 	color: var(--sm-text-2) !important;
 }
 
-/* Feature tiles (logo + label links) match the card surface */
 #content a.link.mint-group {
 	border-radius: var(--sm-radius-lg) !important;
 	border-color: var(--sm-border) !important;
@@ -482,7 +434,6 @@ li.navbar-link a,
 	border-color: var(--sm-border-hover) !important;
 }
 
-/* Screenshots and diagrams: card radius and a neutral hairline edge */
 #content img.rounded,
 #content img[class*="rounded-lg"] {
 	border-radius: var(--sm-radius-lg) !important;
@@ -496,8 +447,6 @@ li.navbar-link a,
 	outline-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Callouts: notes and info are neutral (blue is for links only); tip, warning and
-   danger keep a faint tint of their status colour, with only the icon in colour */
 #content .callout {
 	--sm-callout: var(--sm-text-2);
 	background: color-mix(in srgb, var(--sm-callout) 5%, var(--sm-bg)) !important;
@@ -564,9 +513,6 @@ li.navbar-link a,
 	color: var(--sm-text-2) !important;
 }
 
-/* API reference pages render outside #content, so they get the same text roles here:
-   section headings in ink at the h3 step, parameter prose in the body tone, links and
-   inline code on the shared emphasis rules. Parameter text stays a step smaller (15px). */
 .api-section-heading-title {
 	font-size: 1.25rem !important;
 	line-height: 1.75rem !important;
@@ -615,11 +561,6 @@ li.navbar-link a,
 	background: rgba(255, 255, 255, 0.06) !important;
 }
 
-/* ---- Interaction layer ----
-   Every control answers the pointer the same way: colour, fill and border ease over
-   150ms on the console's ease-out, buttons dip to 0.96 on press (100ms), and every
-   clickable surface (cards, tiles, pager) takes the same neutral hover border.
-   Nothing animates layout, and nothing moves for reduced-motion users. */
 #search-bar-entry,
 #assistant-entry,
 li.navbar-link a,
@@ -647,7 +588,6 @@ a.nav-tabs-item > div,
 	transition-timing-function: var(--sm-ease-out);
 }
 
-/* Hover: rows and quiet controls fill with the control-hover step, text moves to ink */
 #navigation-items li > a:not([class*="bg-primary"]):hover,
 #theme-preference-menu-trigger:hover,
 .code-block-copy-button button:hover {
@@ -666,15 +606,11 @@ a.nav-tabs-item > div,
 	background-color: var(--sm-control-hover) !important;
 }
 
-/* Clickable surfaces share one hover: a slightly stronger neutral hairline */
 #content .card:hover,
 #pagination a:hover {
 	border-color: var(--sm-border-hover) !important;
 }
 
-/* Mintlify paints the card hover border with a layered !important rgb(var(--primary)),
-   which no unlayered rule can beat. Point --primary at the hover grey on the card only,
-   and hand the real brand triplets back to everything inside it (icons, links). */
 #content {
 	--sm-primary-keep: var(--primary);
 	--sm-primary-light-keep: var(--primary-light);
@@ -690,7 +626,6 @@ a.nav-tabs-item > div,
 	--primary-light: var(--sm-primary-light-keep);
 }
 
-/* Press: buttons dip, large surfaces and text links do not */
 #search-bar-entry:active,
 #assistant-entry:active,
 #topbar-cta-button a:active,
@@ -715,7 +650,6 @@ a.nav-tabs-item > div,
 	}
 }
 
-/* Existing dark-mode logo inversions */
 .dark img[src*="openai.svg"],
 .dark img[src*="pipecat.svg"],
 .dark img[src*="eve.svg"],
@@ -733,12 +667,6 @@ a.nav-tabs-item > div,
 	border-radius: 0;
 }
 
-/* ------------------------------------------------------------------
-   Landing page (index.mdx, mode: custom)
-   ------------------------------------------------------------------ */
-
-/* Modelled on docs.privy.io: a two-column hero (title, lede, link chips | code
-   sample), then labelled sections of cards. Images keep their own shape. */
 .sm-home {
 	max-width: 1240px;
 	margin: 0 auto;
@@ -803,7 +731,6 @@ a.nav-tabs-item > div,
 	transform: scale(0.96);
 }
 
-/* The overview's one call to action keeps the accent; the rest of the chrome is black and white */
 .sm-home-btn-primary {
 	background: var(--sm-accent);
 	color: #ffffff !important;
@@ -839,9 +766,6 @@ a.nav-tabs-item > div,
 	container-type: inline-size;
 }
 
-/* Two-tone headline: what it is in ink, who it's for in grey. Each half holds one
-   line on desktop, so the size follows the column (6.9cqi ≈ one line of the longer
-   half) up to 40px. The grey sits between text-2 and text-3 to keep ~3.8:1. */
 .sm-home-title-split > span {
 	display: block;
 }
@@ -866,7 +790,6 @@ a.nav-tabs-item > div,
 	font-family: inherit;
 }
 
-/* "Or add memory to" row: quiet caption under the actions, marks in ink with names */
 .sm-works {
 	display: flex;
 	flex-wrap: wrap;
@@ -901,8 +824,6 @@ a.nav-tabs-item > div,
 	flex-shrink: 0;
 }
 
-/* Setup prompt: built like a docs code group (band frame, tab header, r8 inner
-   panel) so the hero reads as documentation, not console chrome. */
 .sm-prompt-panel {
 	min-width: 0;
 	border: 1px solid var(--sm-border);
@@ -927,7 +848,6 @@ a.nav-tabs-item > div,
 	scrollbar-width: none;
 }
 
-/* Same tab treatment as the docs code groups: ink + underline when selected */
 .sm-prompt-tab {
 	display: inline-flex;
 	flex-shrink: 0;
@@ -958,7 +878,6 @@ a.nav-tabs-item > div,
 	color: var(--sm-accent-text);
 }
 
-/* Code reads at the docs' code size and in ink, not the prompt's softer grey */
 .sm-prompt-code {
 	font-size: 13px;
 	line-height: 1.7;
@@ -1177,8 +1096,7 @@ a.nav-tabs-item > div,
 	background: var(--sm-bg-3);
 }
 
-.sm-home-link-icon svg.icon,
-.sm-home-link-icon img[src^="/icons/hugeicons/"] {
+.sm-home-link-icon svg.icon {
 	background-color: var(--sm-text-2) !important;
 }
 
@@ -1265,9 +1183,6 @@ a.nav-tabs-item > div,
 	margin: 0;
 }
 
-/* Art tiles: a film photograph (the console's plan art) with a small real
-   fragment of the product on top that states exactly what the block does.
-   The photo stays the same in both themes; the fragment follows the theme. */
 .sm-art-grid {
 	display: grid;
 	grid-template-columns: 1fr;
@@ -1281,7 +1196,6 @@ a.nav-tabs-item > div,
 	}
 }
 
-/* Mintlify gives every content anchor a primary underline border; tiles keep the card hairline. */
 #content a.sm-card {
 	border-color: var(--sm-border) !important;
 }
@@ -1295,8 +1209,6 @@ a.nav-tabs-item > div,
 	aspect-ratio: 2 / 1;
 }
 
-/* The photo is blurred into a soft colour field and washed light in the
-   centre, so the objects carry all the detail. */
 .sm-art-media > img {
 	position: absolute;
 	inset: 0;
@@ -1322,12 +1234,6 @@ a.nav-tabs-item > div,
 	);
 }
 
-/* Scenes: a fixed 264x152 stage centred on the photo; objects are placed by
-   inline left/top, lines are an SVG in the same coordinates.
-   Material, after the reference bento cards: an opaque top-lit surface, a
-   hairline ring, a white inner highlight and wide, faint shadows. Secondary
-   objects recede to a flatter, lighter fill with muted content, never to
-   transparency, so the photo never shows through a surface. */
 .sm-scene {
 	--m-surface: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
 	--m-surface-2: linear-gradient(180deg, #f7f8fa 0%, #f1f3f6 100%);
@@ -1417,7 +1323,6 @@ a.nav-tabs-item > div,
 	opacity: 0.9;
 }
 
-/* Cards, rows and chips */
 .sm-scene .m-card {
 	border-radius: var(--sm-radius-lg);
 }
@@ -1517,8 +1422,6 @@ a.nav-tabs-item > div,
 	margin-top: 5px;
 }
 
-/* Filesystems: the container mounted as a folder. A back panel with a tab,
-   a lighter front panel carrying the mark, both in the brand gradient. */
 .sm-scene .m-folder {
 	width: 84px;
 	height: 70px;
@@ -1587,8 +1490,6 @@ a.nav-tabs-item > div,
 	color: var(--sm-accent-text);
 }
 
-/* Tiles and badges. App icons are shown as the icon itself, clipped to the
-   tile, the way the references show them. */
 .sm-scene .m-tile {
 	display: grid;
 	place-items: center;
@@ -1607,8 +1508,6 @@ a.nav-tabs-item > div,
 	border-radius: inherit;
 }
 
-/* Brand glyphs sit on a white tile in both themes, inset like the
-   reference icon tiles, so marks never touch the edge. */
 .sm-scene .m-tile.is-logo {
 	background: linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%);
 	box-shadow:
@@ -1643,8 +1542,6 @@ a.nav-tabs-item > div,
 		0 2px 4px rgba(9, 17, 32, 0.18);
 }
 
-/* The Supermemory hub: a gradient square with a spaced, concentric halo ring and a soft
-   coloured glow beneath, no dark inner shading. */
 .sm-scene .m-orb {
 	display: grid;
 	place-items: center;
@@ -1679,8 +1576,6 @@ a.nav-tabs-item > div,
 	margin: 0;
 }
 
-/* Profile card: the avatar breaks out of the top edge, like the reference
-   profile cards; each fact row says whether it is static or dynamic. */
 .sm-scene .m-profile {
 	padding: 0 12px 6px;
 }
@@ -1772,7 +1667,6 @@ a.nav-tabs-item > div,
 	font-size: 10.5px;
 }
 
-/* Extractors */
 .sm-scene .m-pdf {
 	display: grid;
 	place-items: center;
@@ -1817,7 +1711,6 @@ a.nav-tabs-item > div,
 	background: rgba(47, 134, 255, 0.3);
 }
 
-/* Leaderboard */
 .sm-scene .m-board {
 	padding: 0 12px 4px;
 }
@@ -1847,30 +1740,20 @@ a.nav-tabs-item > div,
 	font-variant-numeric: tabular-nums;
 }
 
-/* Mintlify icons are masks filled with the accent: neutral objects take the
-   secondary ink, filled accent objects take white. */
-.sm-scene svg.icon,
-.sm-scene img[src^="/icons/hugeicons/"] {
+.sm-scene svg.icon {
 	background-color: var(--sm-text-2) !important;
 }
 
 .sm-scene .is-on > svg.icon,
-.sm-scene .is-on > img[src^="/icons/hugeicons/"],
-.sm-scene .m-search svg.icon,
-.sm-scene .m-search img[src^="/icons/hugeicons/"] {
+.sm-scene .m-search svg.icon {
 	background-color: var(--sm-accent-text) !important;
 }
 
 .sm-scene .m-ic.is-on svg.icon,
-.sm-scene .m-ic.is-on img[src^="/icons/hugeicons/"],
-.sm-scene .m-badge svg.icon,
-.sm-scene .m-badge img[src^="/icons/hugeicons/"] {
+.sm-scene .m-badge svg.icon {
 	background-color: #ffffff !important;
 }
 
-/* ---- Weights: regular (400) and medium (500) only ----
-   Nothing on the site is semibold or bold. Mintlify's own utility classes, headings,
-   bold text and table headers are all capped at medium. */
 .font-semibold,
 .font-bold,
 .font-extrabold,
@@ -1889,406 +1772,16 @@ h6,
 	font-weight: 500 !important;
 }
 
-/* Heading permalink anchors carry their own semibold; they follow the heading */
 :is(h1, h2, h3, h4, h5, h6) a,
 a[class*="-ml-10"] {
 	font-weight: inherit !important;
 }
 
-/* ---- Icons: Hugeicons (free set, MIT) ----
-   Mintlify only ships Font Awesome, Lucide and Tabler, so the Hugeicons SVGs live in
-   /icons/hugeicons and are referenced by path. Mintlify draws path icons as a plain
-   <img>, which cannot take the text colour, so each one is redrawn as a mask filled
-   with currentColor: it follows the sidebar's active blue, the link ink and dark mode
-   exactly like the built-in icons do. */
-img[src^="/icons/hugeicons/"] {
-	object-position: -9999px 0;
-	background-color: currentColor !important;
-	-webkit-mask: var(--hi) center / 100% 100% no-repeat;
-	mask: var(--hi) center / 100% 100% no-repeat;
+.dark img[src*="/icons/hugeicons/"],
+.sm-scene .m-ic.is-on img[src*="/icons/hugeicons/"],
+.sm-scene .m-badge img[src*="/icons/hugeicons/"] {
+	filter: invert(1);
 }
-
-img[src="/icons/hugeicons/activity-01.svg"] {
-	--hi: url("/icons/hugeicons/activity-01.svg");
-}
-
-img[src="/icons/hugeicons/agreement-01.svg"] {
-	--hi: url("/icons/hugeicons/agreement-01.svg");
-}
-
-img[src="/icons/hugeicons/ai-brain-01.svg"] {
-	--hi: url("/icons/hugeicons/ai-brain-01.svg");
-}
-
-img[src="/icons/hugeicons/arrow-data-transfer-horizontal.svg"] {
-	--hi: url("/icons/hugeicons/arrow-data-transfer-horizontal.svg");
-}
-
-img[src="/icons/hugeicons/arrow-up-right-01.svg"] {
-	--hi: url("/icons/hugeicons/arrow-up-right-01.svg");
-}
-
-img[src="/icons/hugeicons/award-01.svg"] {
-	--hi: url("/icons/hugeicons/award-01.svg");
-}
-
-img[src="/icons/hugeicons/balance-scale.svg"] {
-	--hi: url("/icons/hugeicons/balance-scale.svg");
-}
-
-img[src="/icons/hugeicons/book-02.svg"] {
-	--hi: url("/icons/hugeicons/book-02.svg");
-}
-
-img[src="/icons/hugeicons/book-open-01.svg"] {
-	--hi: url("/icons/hugeicons/book-open-01.svg");
-}
-
-img[src="/icons/hugeicons/brain-01.svg"] {
-	--hi: url("/icons/hugeicons/brain-01.svg");
-}
-
-img[src="/icons/hugeicons/bug-01.svg"] {
-	--hi: url("/icons/hugeicons/bug-01.svg");
-}
-
-img[src="/icons/hugeicons/building-03.svg"] {
-	--hi: url("/icons/hugeicons/building-03.svg");
-}
-
-img[src="/icons/hugeicons/chart-line-data-01.svg"] {
-	--hi: url("/icons/hugeicons/chart-line-data-01.svg");
-}
-
-img[src="/icons/hugeicons/chat-bot.svg"] {
-	--hi: url("/icons/hugeicons/chat-bot.svg");
-}
-
-img[src="/icons/hugeicons/check-list.svg"] {
-	--hi: url("/icons/hugeicons/check-list.svg");
-}
-
-img[src="/icons/hugeicons/clipboard.svg"] {
-	--hi: url("/icons/hugeicons/clipboard.svg");
-}
-
-img[src="/icons/hugeicons/clock-01.svg"] {
-	--hi: url("/icons/hugeicons/clock-01.svg");
-}
-
-img[src="/icons/hugeicons/cloud.svg"] {
-	--hi: url("/icons/hugeicons/cloud.svg");
-}
-
-img[src="/icons/hugeicons/command-line.svg"] {
-	--hi: url("/icons/hugeicons/command-line.svg");
-}
-
-img[src="/icons/hugeicons/compass-01.svg"] {
-	--hi: url("/icons/hugeicons/compass-01.svg");
-}
-
-img[src="/icons/hugeicons/computer.svg"] {
-	--hi: url("/icons/hugeicons/computer.svg");
-}
-
-img[src="/icons/hugeicons/copy-01.svg"] {
-	--hi: url("/icons/hugeicons/copy-01.svg");
-}
-
-img[src="/icons/hugeicons/cpu.svg"] {
-	--hi: url("/icons/hugeicons/cpu.svg");
-}
-
-img[src="/icons/hugeicons/credit-card.svg"] {
-	--hi: url("/icons/hugeicons/credit-card.svg");
-}
-
-img[src="/icons/hugeicons/cube.svg"] {
-	--hi: url("/icons/hugeicons/cube.svg");
-}
-
-img[src="/icons/hugeicons/cursor-01.svg"] {
-	--hi: url("/icons/hugeicons/cursor-01.svg");
-}
-
-img[src="/icons/hugeicons/dashboard-speed-01.svg"] {
-	--hi: url("/icons/hugeicons/dashboard-speed-01.svg");
-}
-
-img[src="/icons/hugeicons/database-01.svg"] {
-	--hi: url("/icons/hugeicons/database-01.svg");
-}
-
-img[src="/icons/hugeicons/delivery-truck-01.svg"] {
-	--hi: url("/icons/hugeicons/delivery-truck-01.svg");
-}
-
-img[src="/icons/hugeicons/download-01.svg"] {
-	--hi: url("/icons/hugeicons/download-01.svg");
-}
-
-img[src="/icons/hugeicons/eraser-01.svg"] {
-	--hi: url("/icons/hugeicons/eraser-01.svg");
-}
-
-img[src="/icons/hugeicons/file-01.svg"] {
-	--hi: url("/icons/hugeicons/file-01.svg");
-}
-
-img[src="/icons/hugeicons/file-02.svg"] {
-	--hi: url("/icons/hugeicons/file-02.svg");
-}
-
-img[src="/icons/hugeicons/file-search.svg"] {
-	--hi: url("/icons/hugeicons/file-search.svg");
-}
-
-img[src="/icons/hugeicons/files-01.svg"] {
-	--hi: url("/icons/hugeicons/files-01.svg");
-}
-
-img[src="/icons/hugeicons/files-02.svg"] {
-	--hi: url("/icons/hugeicons/files-02.svg");
-}
-
-img[src="/icons/hugeicons/filter.svg"] {
-	--hi: url("/icons/hugeicons/filter.svg");
-}
-
-img[src="/icons/hugeicons/flash.svg"] {
-	--hi: url("/icons/hugeicons/flash.svg");
-}
-
-img[src="/icons/hugeicons/folder-01.svg"] {
-	--hi: url("/icons/hugeicons/folder-01.svg");
-}
-
-img[src="/icons/hugeicons/github.svg"] {
-	--hi: url("/icons/hugeicons/github.svg");
-}
-
-img[src="/icons/hugeicons/globe-02.svg"] {
-	--hi: url("/icons/hugeicons/globe-02.svg");
-}
-
-img[src="/icons/hugeicons/hard-drive.svg"] {
-	--hi: url("/icons/hugeicons/hard-drive.svg");
-}
-
-img[src="/icons/hugeicons/headphones.svg"] {
-	--hi: url("/icons/hugeicons/headphones.svg");
-}
-
-img[src="/icons/hugeicons/help-circle.svg"] {
-	--hi: url("/icons/hugeicons/help-circle.svg");
-}
-
-img[src="/icons/hugeicons/hierarchy-square-01.svg"] {
-	--hi: url("/icons/hugeicons/hierarchy-square-01.svg");
-}
-
-img[src="/icons/hugeicons/id.svg"] {
-	--hi: url("/icons/hugeicons/id.svg");
-}
-
-img[src="/icons/hugeicons/idea-01.svg"] {
-	--hi: url("/icons/hugeicons/idea-01.svg");
-}
-
-img[src="/icons/hugeicons/invoice-01.svg"] {
-	--hi: url("/icons/hugeicons/invoice-01.svg");
-}
-
-img[src="/icons/hugeicons/java-script.svg"] {
-	--hi: url("/icons/hugeicons/java-script.svg");
-}
-
-img[src="/icons/hugeicons/justice-scale-01.svg"] {
-	--hi: url("/icons/hugeicons/justice-scale-01.svg");
-}
-
-img[src="/icons/hugeicons/key-01.svg"] {
-	--hi: url("/icons/hugeicons/key-01.svg");
-}
-
-img[src="/icons/hugeicons/layers-01.svg"] {
-	--hi: url("/icons/hugeicons/layers-01.svg");
-}
-
-img[src="/icons/hugeicons/left-to-right-list-bullet.svg"] {
-	--hi: url("/icons/hugeicons/left-to-right-list-bullet.svg");
-}
-
-img[src="/icons/hugeicons/link-01.svg"] {
-	--hi: url("/icons/hugeicons/link-01.svg");
-}
-
-img[src="/icons/hugeicons/location-01.svg"] {
-	--hi: url("/icons/hugeicons/location-01.svg");
-}
-
-img[src="/icons/hugeicons/lock.svg"] {
-	--hi: url("/icons/hugeicons/lock.svg");
-}
-
-img[src="/icons/hugeicons/login-01.svg"] {
-	--hi: url("/icons/hugeicons/login-01.svg");
-}
-
-img[src="/icons/hugeicons/logout-01.svg"] {
-	--hi: url("/icons/hugeicons/logout-01.svg");
-}
-
-img[src="/icons/hugeicons/mail-01.svg"] {
-	--hi: url("/icons/hugeicons/mail-01.svg");
-}
-
-img[src="/icons/hugeicons/message-01.svg"] {
-	--hi: url("/icons/hugeicons/message-01.svg");
-}
-
-img[src="/icons/hugeicons/message-02.svg"] {
-	--hi: url("/icons/hugeicons/message-02.svg");
-}
-
-img[src="/icons/hugeicons/note-01.svg"] {
-	--hi: url("/icons/hugeicons/note-01.svg");
-}
-
-img[src="/icons/hugeicons/package.svg"] {
-	--hi: url("/icons/hugeicons/package.svg");
-}
-
-img[src="/icons/hugeicons/play-circle.svg"] {
-	--hi: url("/icons/hugeicons/play-circle.svg");
-}
-
-img[src="/icons/hugeicons/play.svg"] {
-	--hi: url("/icons/hugeicons/play.svg");
-}
-
-img[src="/icons/hugeicons/plug-01.svg"] {
-	--hi: url("/icons/hugeicons/plug-01.svg");
-}
-
-img[src="/icons/hugeicons/plug-socket.svg"] {
-	--hi: url("/icons/hugeicons/plug-socket.svg");
-}
-
-img[src="/icons/hugeicons/plus-sign.svg"] {
-	--hi: url("/icons/hugeicons/plus-sign.svg");
-}
-
-img[src="/icons/hugeicons/puzzle.svg"] {
-	--hi: url("/icons/hugeicons/puzzle.svg");
-}
-
-img[src="/icons/hugeicons/python.svg"] {
-	--hi: url("/icons/hugeicons/python.svg");
-}
-
-img[src="/icons/hugeicons/refresh.svg"] {
-	--hi: url("/icons/hugeicons/refresh.svg");
-}
-
-img[src="/icons/hugeicons/robotic.svg"] {
-	--hi: url("/icons/hugeicons/robotic.svg");
-}
-
-img[src="/icons/hugeicons/rotate-clockwise.svg"] {
-	--hi: url("/icons/hugeicons/rotate-clockwise.svg");
-}
-
-img[src="/icons/hugeicons/route-01.svg"] {
-	--hi: url("/icons/hugeicons/route-01.svg");
-}
-
-img[src="/icons/hugeicons/route-02.svg"] {
-	--hi: url("/icons/hugeicons/route-02.svg");
-}
-
-img[src="/icons/hugeicons/search-01.svg"] {
-	--hi: url("/icons/hugeicons/search-01.svg");
-}
-
-img[src="/icons/hugeicons/server-stack-01.svg"] {
-	--hi: url("/icons/hugeicons/server-stack-01.svg");
-}
-
-img[src="/icons/hugeicons/settings-01.svg"] {
-	--hi: url("/icons/hugeicons/settings-01.svg");
-}
-
-img[src="/icons/hugeicons/settings-02.svg"] {
-	--hi: url("/icons/hugeicons/settings-02.svg");
-}
-
-img[src="/icons/hugeicons/share-08.svg"] {
-	--hi: url("/icons/hugeicons/share-08.svg");
-}
-
-img[src="/icons/hugeicons/shield-01.svg"] {
-	--hi: url("/icons/hugeicons/shield-01.svg");
-}
-
-img[src="/icons/hugeicons/sliders-horizontal.svg"] {
-	--hi: url("/icons/hugeicons/sliders-horizontal.svg");
-}
-
-img[src="/icons/hugeicons/source-code.svg"] {
-	--hi: url("/icons/hugeicons/source-code.svg");
-}
-
-img[src="/icons/hugeicons/sparkles.svg"] {
-	--hi: url("/icons/hugeicons/sparkles.svg");
-}
-
-img[src="/icons/hugeicons/square.svg"] {
-	--hi: url("/icons/hugeicons/square.svg");
-}
-
-img[src="/icons/hugeicons/tag-01.svg"] {
-	--hi: url("/icons/hugeicons/tag-01.svg");
-}
-
-img[src="/icons/hugeicons/test-tube-01.svg"] {
-	--hi: url("/icons/hugeicons/test-tube-01.svg");
-}
-
-img[src="/icons/hugeicons/tick-02.svg"] {
-	--hi: url("/icons/hugeicons/tick-02.svg");
-}
-
-img[src="/icons/hugeicons/triangle.svg"] {
-	--hi: url("/icons/hugeicons/triangle.svg");
-}
-
-img[src="/icons/hugeicons/upload-01.svg"] {
-	--hi: url("/icons/hugeicons/upload-01.svg");
-}
-
-img[src="/icons/hugeicons/user-circle.svg"] {
-	--hi: url("/icons/hugeicons/user-circle.svg");
-}
-
-img[src="/icons/hugeicons/user-multiple.svg"] {
-	--hi: url("/icons/hugeicons/user-multiple.svg");
-}
-
-img[src="/icons/hugeicons/user.svg"] {
-	--hi: url("/icons/hugeicons/user.svg");
-}
-
-img[src="/icons/hugeicons/workflow-square-01.svg"] {
-	--hi: url("/icons/hugeicons/workflow-square-01.svg");
-}
-
-img[src="/icons/hugeicons/wrench-01.svg"] {
-	--hi: url("/icons/hugeicons/wrench-01.svg");
-}
-
-/* ---- Motion: nothing moves for people who asked it not to ---- */
 
 @media (prefers-reduced-motion: reduce) {
 	.sm-home *,
@@ -2296,8 +1789,6 @@ img[src="/icons/hugeicons/wrench-01.svg"] {
 		transition-duration: 0.01ms !important;
 	}
 }
-
-/* ---- Responsive ---- */
 
 @media (max-width: 1024px) {
 	.sm-home {
@@ -2368,10 +1859,6 @@ img[src="/icons/hugeicons/wrench-01.svg"] {
 	}
 }
 
-/* Overview page only: swap the navbar icon for the console wordmark plus a "Docs"
-   label, so the landing page reads "supermemory | Docs". Every other page keeps the
-   icon from docs.json. The wordmark's text sits low in its box, so 18px tall lines
-   its x-height up with the label. */
 html:has(.sm-home) a:has(> img.nav-logo) {
 	display: inline-flex !important;
 	align-items: center;

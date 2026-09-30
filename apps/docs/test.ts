@@ -12,7 +12,6 @@ const conversation = [
 	{ role: "user", content: "Can I go to the club?" },
 ]
 
-// Get user profile + relevant memories for context
 const profile = await client.profile({
 	containerTag: USER_ID,
 	q: conversation.at(-1)?.content,
@@ -27,15 +26,11 @@ ${profile.profile.dynamic.join("\n")}
 Relevant memories:
 ${profile.searchResults?.results.map((r) => r.content).join("\n")}`
 
-// Build messages with memory-enriched context
 const _messages = [
 	{ role: "system", content: `User context:\n${context}` },
 	...conversation,
 ]
 
-// const response = await llm.chat({ messages });
-
-// Store conversation for future context
 await client.add({
 	content: conversation.map((m) => `${m.role}: ${m.content}`).join("\n"),
 	containerTag: USER_ID,

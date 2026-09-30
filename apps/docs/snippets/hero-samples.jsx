@@ -1,5 +1,3 @@
-// Homepage hero samples. Each one tells the same story (a fact that changes) and
-// was run verbatim against the live API before publishing; re-run after edits.
 export const HERO_TS =
 	'import Supermemory from "supermemory";\n\nconst client = new Supermemory();\n\n// March\nawait client.add({\n  content: "I work at Google on the Maps team.",\n  containerTag: "user_4f8a",\n});\n\n// June\nawait client.add({\n  content: "Big news: I just started at Stripe!",\n  containerTag: "user_4f8a",\n});\n\n// Later: what does your agent know about this user?\nconst { profile } = await client.profile({ containerTag: "user_4f8a" });\n\nconsole.log(profile.static);\n// \u2192 ["Now works at Stripe."]'
 

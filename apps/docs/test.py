@@ -9,7 +9,6 @@ conversation = [
     {"role": "user", "content": "Can I go to the club?"},
 ]
 
-# Get user profile + relevant memories for context
 profile = client.profile(container_tag=USER_ID, q=conversation[-1]["content"])
 
 static = "\n".join(profile.profile.static)
@@ -25,12 +24,8 @@ Dynamic profile:
 Relevant memories:
 {memories}"""
 
-# Build messages with memory-enriched context
 messages = [{"role": "system", "content": f"User context:\n{context}"}, *conversation]
 
-# response = llm.chat(messages=messages)
-
-# Store conversation for future context
 client.add(
     content="\n".join(f"{m['role']}: {m['content']}" for m in conversation),
     container_tag=USER_ID,
