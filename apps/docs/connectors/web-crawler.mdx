@@ -1,7 +1,7 @@
 ---
-title: "Web Crawler Connector"
+title: "Web Crawler connector"
 description: "Crawl and sync websites automatically with scheduled recrawling and robots.txt compliance"
-icon: "globe"
+icon: "/icons/hugeicons/globe-02.svg"
 ---
 
 Connect websites to automatically crawl and sync web pages into your Supermemory knowledge base. The web crawler respects robots.txt rules, includes SSRF protection, and automatically recrawls sites on a schedule.
@@ -10,9 +10,9 @@ Connect websites to automatically crawl and sync web pages into your Supermemory
 The web crawler connector requires a **Scale Plan** or **Enterprise Plan**.
 </Warning>
 
-## Quick Setup
+## Quick setup
 
-### 1. Create Web Crawler Connection
+### 1. Create Web Crawler connection
 
 <Tabs>
   <Tab title="TypeScript">
@@ -85,11 +85,11 @@ The web crawler connector requires a **Scale Plan** or **Enterprise Plan**.
   </Tab>
 </Tabs>
 
-### 2. Connection Established
+### 2. Connection established
 
 Unlike other connectors, the web crawler doesn't require OAuth authentication. The connection is established immediately upon creation, and crawling begins automatically.
 
-### 3. Monitor Sync Progress
+### 3. Monitor sync progress
 
 <Tabs>
   <Tab title="TypeScript">
@@ -162,22 +162,22 @@ Unlike other connectors, the web crawler doesn't require OAuth authentication. T
   </Tab>
 </Tabs>
 
-## Supported Content Types
+## Supported content types
 
-### Web Pages
+### Web pages
 - **HTML content** extracted and converted to markdown
 - **Same-domain crawling** only (respects hostname boundaries)
 - **Robots.txt compliance** - respects disallow rules
 - **Content filtering** - only HTML pages (skips non-HTML content)
 
-### URL Requirements
+### URL requirements
 
 The web crawler only processes valid public URLs:
 - Must be a public URL (not localhost, private IPs, or internal domains)
 - Must be accessible from the internet
 - Must return HTML content (non-HTML files are skipped)
 
-## Sync Mechanism
+## Sync mechanism
 
 The web crawler uses **scheduled recrawling** rather than real-time webhooks:
 
@@ -189,9 +189,9 @@ The web crawler uses **scheduled recrawling** rather than real-time webhooks:
 The recrawl schedule is automatically assigned when the connection is created. Sites are recrawled periodically to keep content up to date, but updates are not instantaneous.
 </Note>
 
-## Connection Management
+## Connection management
 
-### List All Connections
+### List all connections
 
 <Tabs>
   <Tab title="TypeScript">
@@ -248,7 +248,7 @@ The recrawl schedule is automatically assigned when the connection is created. S
   </Tab>
 </Tabs>
 
-### Delete Connection
+### Delete connection
 
 Remove a web crawler connection when no longer needed:
 
@@ -302,9 +302,9 @@ Deleting a connection will:
 - Remove the connection configuration
 </Note>
 
-## Advanced Configuration
+## Advanced configuration
 
-### Content Filtering
+### Content filtering
 
 Control which web pages get synced using the settings API:
 
@@ -365,9 +365,9 @@ Control which web pages get synced using the settings API:
   </Tab>
 </Tabs>
 
-## Security & Compliance
+## Security & compliance
 
-### SSRF Protection
+### SSRF protection
 
 Built-in protection against Server-Side Request Forgery (SSRF) attacks:
 - Blocks private IP addresses (10.x.x.x, 192.168.x.x, 172.16-31.x.x)
@@ -375,7 +375,7 @@ Built-in protection against Server-Side Request Forgery (SSRF) attacks:
 - Blocks cloud metadata endpoints
 - Only allows public, internet-accessible URLs
 
-### URL Validation
+### URL validation
 
 All URLs are validated before crawling:
 - Must be valid HTTP/HTTPS URLs

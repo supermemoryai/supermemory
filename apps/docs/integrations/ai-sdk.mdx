@@ -2,7 +2,7 @@
 title: "Vercel AI SDK"
 sidebarTitle: "Vercel AI SDK"
 description: "Use Supermemory with Vercel AI SDK for seamless memory management"
-icon: "triangle"
+icon: "/icons/hugeicons/triangle.svg"
 ---
 
 The Supermemory AI SDK provides native integration with Vercel's AI SDK through two approaches: **User Profiles** for automatic personalization and **Memory Tools** for agent-based interactions.
@@ -11,7 +11,7 @@ The Supermemory AI SDK provides native integration with Vercel's AI SDK through 
   Migrating to v2 from 1.4.x? Check the [migration guide](/migration/tools-v2-upgrade).
 </Note>
 
-<Card title="@supermemory/tools on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/tools">
+<Card title="@supermemory/tools on npm" icon="/icons/hugeicons/package.svg" href="https://www.npmjs.com/package/@supermemory/tools">
     Check out the NPM page for more details
 </Card>
 
@@ -21,7 +21,7 @@ The Supermemory AI SDK provides native integration with Vercel's AI SDK through 
 npm install @supermemory/tools
 ```
 
-## Quick Comparison
+## Quick comparison
 
 | Approach | Use Case | Setup |
 |----------|----------|-------|
@@ -30,7 +30,7 @@ npm install @supermemory/tools
 
 ---
 
-## User Profiles with Middleware
+## User profiles with middleware
 
 Automatically inject user profiles into every LLM call for instant personalization.
 
@@ -69,7 +69,7 @@ Both `containerTag` and `customId` are required.
   ```
 </Note>
 
-### Memory Search Modes
+### Memory search modes
 
 **Profile Mode (Default)** - Retrieves the user's complete profile:
 
@@ -89,7 +89,7 @@ const model = withSupermemory(openai("gpt-4"), { containerTag: "user-123", custo
 const model = withSupermemory(openai("gpt-4"), { containerTag: "user-123", customId: "conv-1", mode: "full" })
 ```
 
-### Custom Prompt Templates
+### Custom prompt templates
 
 Customize how memories are formatted. The template receives `userMemories`, `generalSearchMemories`, and `searchResults` (raw array for filtering by metadata):
 
@@ -115,7 +115,7 @@ const model = withSupermemory(anthropic("claude-3-sonnet"), {
 })
 ```
 
-### Verbose Logging
+### Verbose logging
 
 ```typescript
 const model = withSupermemory(openai("gpt-4"), {
@@ -140,7 +140,7 @@ const model = withSupermemory(openai("gpt-5"), {
 })
 ```
 
-### Persisting Tool Calls (default: off)
+### Persisting tool calls (default: off)
 
 By default, saved conversations include only user and assistant text — tool calls and tool results are dropped, since tool payloads are often large and low-signal and would pollute memory extraction. To persist the full tool round trip (tool calls with their arguments, plus tool results, in their original order), set `includeToolCalls: true`:
 
@@ -154,7 +154,7 @@ const model = withSupermemory(openai("gpt-5"), {
 
 ---
 
-## Memory Tools
+## Memory tools
 
 Add memory capabilities to AI agents with search, add, and fetch operations.
 
@@ -172,7 +172,7 @@ const result = await streamText({
 })
 ```
 
-### Available Tools
+### Available tools
 
 **Search Memories** - Semantic search through user memories:
 
@@ -196,7 +196,7 @@ const result = await streamText({
 // AI will call: addMemory({ memory: "User is allergic to peanuts" })
 ```
 
-### Using Individual Tools
+### Using individual tools
 
 For more control, import tools separately:
 
@@ -216,7 +216,7 @@ const result = await streamText({
 })
 ```
 
-### Tool Results
+### Tool results
 
 ```typescript
 // searchMemories result

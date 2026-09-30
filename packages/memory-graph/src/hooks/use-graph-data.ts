@@ -56,6 +56,7 @@ export function getMemoryBorderColor(
 
 export function getEdgeVisualProps(edgeType: string) {
 	switch (edgeType) {
+		case "document":
 		case "derives":
 			return { opacity: 0.4, thickness: 1.2 }
 		case "updates":
@@ -413,15 +414,14 @@ export function computeEdges(documents: GraphApiDocument[]): GraphEdge[] {
 		for (const mem of doc.memories) allNodeIds.add(mem.id)
 	}
 
-	// 1. Derives edges: document -> memory (structural)
 	for (const doc of documents) {
 		for (const mem of doc.memories) {
 			result.push({
 				id: `dm-${doc.id}-${mem.id}`,
 				source: doc.id,
 				target: mem.id,
-				visualProps: getEdgeVisualProps("derives"),
-				edgeType: "derives",
+				visualProps: getEdgeVisualProps("document"),
+				edgeType: "document",
 			})
 		}
 	}

@@ -4,7 +4,7 @@ description: "Quick guide to migrate from Zep to Supermemory"
 sidebarTitle: "From Zep"
 ---
 
-## Key Differences
+## Key differences
 
 | Zep AI | Supermemory |
 |--------|-------------|
@@ -41,9 +41,9 @@ const client = new Supermemory({ apiKey: "your-api-key" });
 
 </CodeGroup>
 
-## API Mapping
+## API mapping
 
-### Session Management
+### Session management
 
 <CodeGroup>
 
@@ -61,7 +61,7 @@ containerTag = "user_123"
 
 </CodeGroup>
 
-### Adding Memories
+### Adding memories
 
 <CodeGroup>
 
@@ -102,7 +102,7 @@ results = client.search.execute({
 
 </CodeGroup>
 
-### Getting All Memories
+### Getting all memories
 
 <CodeGroup>
 
@@ -119,7 +119,7 @@ documents = client.documents.list({
 
 </CodeGroup>
 
-## Migration Steps
+## Migration steps
 
 1. **Replace client initialization** - Use Supermemory client instead of Zep
 2. **Map sessions to container tags** - Replace `session_id="user_123"` with `containerTag: "user_123"`
@@ -127,7 +127,7 @@ documents = client.documents.list({
 4. **Change search parameter** - Use `q` instead of `text`
 5. **Handle async processing** - Documents process asynchronously (status: `queued` → `done`)
 
-## Complete Example
+## Complete example
 
 <CodeGroup>
 
@@ -169,16 +169,16 @@ results = client.search.execute({
 
 </CodeGroup>
 
-## Important Notes
+## Important notes
 
 - **No session creation needed** - Just use `containerTag` in requests
 - **Messages are documents** - Store with `metadata.role` and `metadata.type`
 - **Async processing** - Documents may take a moment to be searchable
 - **Response structure** - Supermemory returns chunks with scores, not direct memory content
 
-## Migrating Existing Data
+## Migrating existing data
 
-### Quick Migration (All-in-One)
+### Quick migration (all-in-one)
 
 Complete migration in one script:
 
@@ -253,7 +253,7 @@ print("Migration complete!")
 
 </CodeGroup>
 
-### Full Migration Script
+### Full migration script
 
 For a complete migration script with error handling, verification, and progress tracking, copy this TypeScript script:
 
