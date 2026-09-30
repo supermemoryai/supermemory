@@ -2,7 +2,7 @@
 title: "Mount"
 sidebarTitle: "Mount"
 description: "Mount a Supermemory container, generate memories, and sync."
-icon: "hard-drive"
+icon: "/icons/hugeicons/hard-drive.svg"
 ---
 
 A mount turns a Supermemory container into a directory on your machine. macOS uses NFSv3, Linux uses FUSE. Both are handled for you.
@@ -130,7 +130,7 @@ Pushes pending writes and pulls remote changes immediately. Useful right before 
 Every `smfs` subcommand. Click any one to expand.
 
 <AccordionGroup>
-  <Accordion title="smfs mount" icon="play">
+  <Accordion title="smfs mount" icon="/icons/hugeicons/play.svg">
     Mount a container. Defaults to `./<container-tag>/`; pass `--path` to mount elsewhere.
 
     ```bash
@@ -141,7 +141,7 @@ Every `smfs` subcommand. Click any one to expand.
     See the flags table above for everything you can pass.
   </Accordion>
 
-  <Accordion title="smfs unmount" icon="square">
+  <Accordion title="smfs unmount" icon="/icons/hugeicons/square.svg">
     Unmount a running mount. Drains pending writes up to `--drain-timeout`, then exits the daemon. Anything not drained resumes on the next mount.
 
     ```bash
@@ -156,7 +156,7 @@ Every `smfs` subcommand. Click any one to expand.
     ```
   </Accordion>
 
-  <Accordion title="smfs list" icon="list">
+  <Accordion title="smfs list" icon="/icons/hugeicons/left-to-right-list-bullet.svg">
     List every SMFS mount running on this machine.
 
     ```bash
@@ -164,7 +164,7 @@ Every `smfs` subcommand. Click any one to expand.
     ```
   </Accordion>
 
-  <Accordion title="smfs status" icon="activity">
+  <Accordion title="smfs status" icon="/icons/hugeicons/activity-01.svg">
     Show daemon status for a mount: connectivity, queue depth, last sync. Auto-detects the tag via the nearest `.smfs` marker.
 
     ```bash
@@ -174,7 +174,7 @@ Every `smfs` subcommand. Click any one to expand.
     ```
   </Accordion>
 
-  <Accordion title="smfs logs" icon="scroll-text">
+  <Accordion title="smfs logs" icon="/icons/hugeicons/note-01.svg">
     Tail the daemon log for a mount. Auto-detects the tag via the nearest `.smfs` marker.
 
     ```bash
@@ -184,7 +184,7 @@ Every `smfs` subcommand. Click any one to expand.
     ```
   </Accordion>
 
-  <Accordion title="smfs sync" icon="refresh-cw">
+  <Accordion title="smfs sync" icon="/icons/hugeicons/refresh.svg">
     Force an immediate sync cycle. Push pending writes, pull remote changes.
 
     ```bash
@@ -198,7 +198,7 @@ Every `smfs` subcommand. Click any one to expand.
     ```
   </Accordion>
 
-  <Accordion title="smfs grep" icon="search">
+  <Accordion title="smfs grep" icon="/icons/hugeicons/search-01.svg">
     Semantic search across a container without being inside the mount. The optional second argument scopes the search to a subpath inside the container. Inside a mount, plain `grep` already does this; `smfs grep` is the explicit form for scripts.
 
     ```bash
@@ -207,7 +207,7 @@ Every `smfs` subcommand. Click any one to expand.
     ```
   </Accordion>
 
-  <Accordion title="smfs login" icon="log-in">
+  <Accordion title="smfs login" icon="/icons/hugeicons/login-01.svg">
     One-time auth. Prompts for your Supermemory API key and stores it in your global credentials. You can also pass it directly with `--key`.
 
     ```bash
@@ -216,7 +216,7 @@ Every `smfs` subcommand. Click any one to expand.
     ```
   </Accordion>
 
-  <Accordion title="smfs whoami" icon="user">
+  <Accordion title="smfs whoami" icon="/icons/hugeicons/user.svg">
     Print the currently-authenticated user, organization, and API endpoint.
 
     ```bash
@@ -224,7 +224,7 @@ Every `smfs` subcommand. Click any one to expand.
     ```
   </Accordion>
 
-  <Accordion title="smfs logout" icon="log-out">
+  <Accordion title="smfs logout" icon="/icons/hugeicons/logout-01.svg">
     Remove stored credentials. Active mounts keep running until you `smfs unmount` them.
 
     ```bash
@@ -232,7 +232,7 @@ Every `smfs` subcommand. Click any one to expand.
     ```
   </Accordion>
 
-  <Accordion title="smfs init" icon="terminal">
+  <Accordion title="smfs init" icon="/icons/hugeicons/command-line.svg">
     Force-installs the shell wrapper that makes plain `grep` semantic inside mounts. Writes directly to `~/.zshrc`. `smfs mount` also installs it automatically the first time, so you only need this to refresh after an upgrade.
 
     ```bash
@@ -242,7 +242,7 @@ Every `smfs` subcommand. Click any one to expand.
     Reopen your terminal (or `source ~/.zshrc`) after running it.
   </Accordion>
 
-  <Accordion title="smfs install" icon="download">
+  <Accordion title="smfs install" icon="/icons/hugeicons/download-01.svg">
     Self-install. Copies the running binary to `~/.local/bin` and resets permissions. Run this if your `smfs` install ever feels broken.
 
     ```bash
@@ -254,19 +254,19 @@ Every `smfs` subcommand. Click any one to expand.
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Semantic grep isn't working inside my mount" icon="circle-help">
+  <Accordion title="Semantic grep isn't working inside my mount" icon="/icons/hugeicons/help-circle.svg">
     Run `smfs init` to force-install the shell wrapper. It writes directly to `~/.zshrc`. Then reopen your terminal so the new shell picks it up.
 
     The wrapper only triggers when you're inside a mount (it looks for the `.smfs` marker file at the mount root). Outside a mount, `grep` stays normal. Inside a mount, any flag you pass falls through to the real `grep`.
   </Accordion>
 
-  <Accordion title="Can I install SMFS on Windows?" icon="circle-help">
+  <Accordion title="Can I install SMFS on Windows?" icon="/icons/hugeicons/help-circle.svg">
     Not yet. SMFS supports macOS (arm64, x64) and Linux (arm64, x64) for now. Windows isn't on the v0 roadmap.
 
     On Windows, use the [Bash Tool](/smfs/bash-tool) instead. It runs anywhere TypeScript runs and gives your agent the same `ls`, `cat`, `grep`, `sgrep` surface without needing a mount.
   </Accordion>
 
-  <Accordion title="My cache feels stale or out of sync" icon="circle-help">
+  <Accordion title="My cache feels stale or out of sync" icon="/icons/hugeicons/help-circle.svg">
     Re-mount with `--clean` to wipe the local cache and pull everything fresh from the API:
 
     ```bash
@@ -277,11 +277,11 @@ Every `smfs` subcommand. Click any one to expand.
     Nothing on the server changes; only the local SQLite cache gets reset.
   </Accordion>
 
-  <Accordion title="Can two agents on the same machine share a mount?" icon="circle-help">
+  <Accordion title="Can two agents on the same machine share a mount?" icon="/icons/hugeicons/help-circle.svg">
     Yes. Once a container is mounted, anything on that machine can read and write through the mount path. The constraint is one mount per container tag per device. Mount it once, point both agents at the same folder.
   </Accordion>
 
-  <Accordion title="Can two separate sandboxes use the same container?" icon="circle-help">
+  <Accordion title="Can two separate sandboxes use the same container?" icon="/icons/hugeicons/help-circle.svg">
     Yes, absolutely. Mount the same container tag from each sandbox. Bidirectional sync keeps everything in step as either side writes, so Agent A in sandbox 1 sees Agent B's writes from sandbox 2 within a sync interval.
 
     To avoid stepping on each other, give each agent its own subdirectory (`/agent_a/`, `/agent_b/`, etc.). They can still read across the whole mount, cross-reference each other's findings, and build on each other's work. The shared container is the point.

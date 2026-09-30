@@ -1,8 +1,8 @@
 ---
-title: "Building a Benchmark"
+title: "Building a benchmark"
 description: "Add a custom benchmark dataset when the built-in ones don't match your use case"
-sidebarTitle: "Building a Benchmark"
-icon: "flask-conical"
+sidebarTitle: "Building a benchmark"
+icon: "/icons/hugeicons/test-tube-01.svg"
 ---
 
 MemoryBench ships with three datasets — [LoCoMo](https://github.com/snap-research/locomo), [LongMemEval](https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned), and [ConvoMem](https://huggingface.co/datasets/Salesforce/ConvoMem) — but they won't cover every product. If your agent has a workflow the built-in benchmarks don't exercise (a specific domain, a scenario your users actually hit, a regression you want to guard against), you can add your own benchmark dataset and every provider — including Supermemory — runs against it the same way.
@@ -19,7 +19,7 @@ Before building your own, check whether one of the existing datasets already cov
 
 You can also run all three to get a full picture of where a memory system is strong or weak — a system that's great at LoCoMo but weak at LongMemEval is good at temporal recall but struggles with dense information retrieval, for example.
 
-## The Benchmark interface
+## The benchmark interface
 
 Every dataset — built-in or custom — implements the same interface (`src/types/benchmark.ts`):
 
@@ -72,10 +72,10 @@ Full interface details and a working template: [`src/benchmarks/README.md`](http
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Adding a Provider" icon="plug" href="/memorybench/extend-provider">
+  <Card title="Adding a provider" icon="/icons/hugeicons/plug-01.svg" href="/memorybench/extend-provider">
     Register a memory system to run against your new benchmark.
   </Card>
-  <Card title="Measuring Results" icon="gauge" href="/memorybench/memscore">
+  <Card title="Measuring results" icon="/icons/hugeicons/dashboard-speed-01.svg" href="/memorybench/memscore">
     How accuracy, latency, and MemScore are computed.
   </Card>
 </CardGroup>

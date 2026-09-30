@@ -1,15 +1,15 @@
 ---
 title: "MemoryBench"
-description: "Open-source framework for benchmarking memory providers — including your own"
+description: "Open-source framework for benchmarking memory providers, including your own."
 sidebarTitle: "Overview"
-icon: "flask-conical"
+icon: "/icons/hugeicons/test-tube-01.svg"
 ---
 
 Benchmarking memory systems is hard, and most comparisons you'll find aren't apples-to-apples — different datasets, different judges, different prompts, cherry-picked runs. **MemoryBench** ([`supermemoryai/memorybench`](https://github.com/supermemoryai/memorybench), MIT licensed) is the open-source framework we built to fix that: the same benchmark questions, the same pipeline, and the same judges run against every provider, so a comparison actually means something.
 
 We open-sourced it so you don't have to take our word for anything — you can run it yourself, against your own memory implementation, on the datasets that match your use case.
 
-<Card title="git.new/membench" icon="github" href="https://github.com/supermemoryai/memorybench">
+<Card title="git.new/membench" icon="/icons/hugeicons/github.svg" href="https://github.com/supermemoryai/memorybench">
   Clone it, run it against your own data, or read the source for exactly how each provider is scored.
 </Card>
 
@@ -45,13 +45,13 @@ INGEST → SEARCH → ANSWER → EVALUATE → REPORT
 Ingestion can take hours for large datasets, and API calls fail — so every phase checkpoints independently and a run resumes from the last completed step instead of starting over.
 
 <Columns cols={3}>
-  <Card title="Supermemory" icon="brain" href="https://supermemory.ai">
+  <Card title="Supermemory" icon="/icons/hugeicons/brain-01.svg" href="https://supermemory.ai">
     Chunk-based semantic search
   </Card>
-  <Card title="Mem0" icon="database" href="https://mem0.ai">
+  <Card title="Mem0" icon="/icons/hugeicons/database-01.svg" href="https://mem0.ai">
     LLM-powered memory extraction
   </Card>
-  <Card title="Zep" icon="zap" href="https://getzep.com">
+  <Card title="Zep" icon="/icons/hugeicons/flash.svg" href="https://getzep.com">
     Knowledge graph construction
   </Card>
 </Columns>
@@ -71,16 +71,16 @@ Judging is judge-agnostic too — score a run with GPT-4o, Claude, Gemini, or an
 ## Read next
 
 <CardGroup cols={2}>
-  <Card title="Building a Benchmark" icon="flask-conical" href="/memorybench/extend-benchmark">
+  <Card title="Building a benchmark" icon="/icons/hugeicons/test-tube-01.svg" href="/memorybench/extend-benchmark">
     Test on scenarios that actually match your product, not just the built-in datasets.
   </Card>
-  <Card title="Adding a Provider" icon="plug" href="/memorybench/extend-provider">
+  <Card title="Adding a provider" icon="/icons/hugeicons/plug-01.svg" href="/memorybench/extend-provider">
     Register your own memory system so it can be scored and compared.
   </Card>
-  <Card title="Measuring Results" icon="gauge" href="/memorybench/memscore">
+  <Card title="Measuring results" icon="/icons/hugeicons/dashboard-speed-01.svg" href="/memorybench/memscore">
     MemScore, judge scoring, and how to read a report.
   </Card>
-  <Card title="Report an issue" icon="bug" href="https://github.com/supermemoryai/memorybench/issues">
+  <Card title="Report an issue" icon="/icons/hugeicons/bug-01.svg" href="https://github.com/supermemoryai/memorybench/issues">
     Found a bug, or want a provider/benchmark we don't support yet?
   </Card>
 </CardGroup>

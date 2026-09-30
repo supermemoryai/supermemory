@@ -1,7 +1,7 @@
 ---
 title: "Muse Code"
 sidebarTitle: "Muse Code"
-description: "muse-supermemory — persistent memory for Meta Muse Code"
+description: "Persistent memory for Meta Muse Code with the muse-supermemory plugin."
 icon: "/images/muse-code-icon.svg"
 ---
 
@@ -11,7 +11,7 @@ icon: "/images/muse-code-icon.svg"
 **Prefer to keep everything on your machine?** This plugin works with [self-hosted Supermemory](/self-hosting/overview) — run `npx supermemory local`, then set `baseUrl` in `.muse/supermemory.json` (Muse clears hook env, so `SUPERMEMORY_API_URL` may not reach the plugin) and use the API key printed on first boot.
 </Tip>
 
-## Install the Plugin
+## Install the plugin
 
 > **Requires Node.js 18+** on your PATH — the memory hooks and MCP proxy run as Node scripts.
 
@@ -50,7 +50,7 @@ Or write the file yourself with a key from [API Keys](https://console.supermemor
 
 Check the connection any time with `/supermemory:status`.
 
-## How It Works
+## How it works
 
 Two layers, same as the other coding plugins:
 
@@ -125,14 +125,14 @@ Per-repo overrides in `.muse/supermemory.json`. A Claude Code config at `.claude
 
 Add the project file to `.gitignore` if it contains an API key.
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="GitHub Repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/muse-supermemory">
+  <Card title="GitHub repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/muse-supermemory">
     Source code, issues, and detailed README.
   </Card>
 
-  <Card title="Claude Code Plugin" icon="/images/claude-code-icon.svg" href="/integrations/claude-code">
+  <Card title="Claude Code plugin" icon="/images/claude-code-icon.svg" href="/integrations/claude-code">
     The same memory in Claude Code.
   </Card>
 </CardGroup>

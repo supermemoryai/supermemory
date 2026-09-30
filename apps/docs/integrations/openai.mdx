@@ -19,17 +19,17 @@ Add memory capabilities to the official OpenAI SDKs using Supermemory. Two appro
 </Tip>
 
 <CardGroup>
-<Card title="Supermemory tools on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/tools">
+<Card title="Supermemory tools on npm" icon="/icons/hugeicons/package.svg" href="https://www.npmjs.com/package/@supermemory/tools">
     Check out the NPM page for more details
 </Card>
-<Card title="Supermemory AI SDK" icon="python" href="https://pypi.org/project/supermemory-openai-sdk/">
+<Card title="Supermemory AI SDK" icon="/icons/hugeicons/python.svg" href="https://pypi.org/project/supermemory-openai-sdk/">
     Check out the PyPI page for more details
 </Card>
 </CardGroup>
 
 ---
 
-## withSupermemory Wrapper
+## withSupermemory wrapper
 
 The simplest way to add memory to your OpenAI client. Wraps your client to automatically inject relevant memories into system prompts.
 
@@ -39,7 +39,7 @@ The simplest way to add memory to your OpenAI client. Wraps your client to autom
 npm install @supermemory/tools openai
 ```
 
-### Quick Start
+### Quick start
 
 ```typescript
 import OpenAI from "openai"
@@ -65,7 +65,7 @@ const response = await client.chat.completions.create({
 })
 ```
 
-### Configuration Options
+### Configuration options
 
 ```typescript
 const client = withSupermemory(openai, {
@@ -89,7 +89,7 @@ const client = withSupermemory(openai, {
 })
 ```
 
-### Modes Explained
+### Modes explained
 
 | Mode | Description | Use Case |
 |------|-------------|----------|
@@ -97,7 +97,7 @@ const client = withSupermemory(openai, {
 | `query` | Searches memories based on user message | Question answering |
 | `full` | Both profile and query-based search | Best for chatbots |
 
-### Works with Responses API Too
+### Works with Responses API too
 
 ```typescript
 const client = withSupermemory(openai, { containerTag: "user-123", customId: "conv-456", mode: "full" })
@@ -110,7 +110,7 @@ const response = await client.responses.create({
 })
 ```
 
-### Environment Variables
+### Environment variables
 
 ```bash
 SUPERMEMORY_API_KEY=your_supermemory_key
@@ -119,7 +119,7 @@ OPENAI_API_KEY=your_openai_key
 
 ---
 
-## Function Calling Tools
+## Function calling tools
 
 For explicit control over memory operations, use function calling tools. The model decides when to search or add memories.
 
@@ -141,7 +141,7 @@ npm install @supermemory/tools
 
 </CodeGroup>
 
-## Quick Start
+## Quick start
 
 <CodeGroup>
 
@@ -231,7 +231,7 @@ if (completion.choices[0]?.message.tool_calls) {
 
 ## Configuration
 
-### Memory Tools Configuration
+### Memory tools configuration
 
 <CodeGroup>
 
@@ -258,9 +258,9 @@ const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
 
 </CodeGroup>
 
-## Available Tools
+## Available tools
 
-### Search Memories
+### Search memories
 
 Search through user memories using semantic search:
 
@@ -287,7 +287,7 @@ console.log(`Found ${searchResult.memories.length} memories`)
 
 </CodeGroup>
 
-### Add Memory
+### Add memory
 
 Store new information in memory:
 
@@ -311,7 +311,7 @@ console.log(`Added memory with ID: ${addResult.memory.id}`)
 
 </CodeGroup>
 
-## Individual Tools
+## Individual tools
 
 Use tools separately for more granular control:
 
@@ -345,7 +345,7 @@ const toolDefinitions = [searchTool.definition, addTool.definition]
 
 </CodeGroup>
 
-## Complete Chat Example
+## Complete chat example
 
 Here's a complete example showing a multi-turn conversation with memory:
 
@@ -498,7 +498,7 @@ chatWithMemory()
 
 </CodeGroup>
 
-## Error Handling
+## Error handling
 
 Handle errors gracefully in your applications:
 
@@ -551,7 +551,7 @@ async function safeChat() {
 
 </CodeGroup>
 
-## API Reference
+## API reference
 
 ### Python SDK
 
@@ -601,7 +601,7 @@ createToolCallExecutor(
 ) -> (toolCall: OpenAI.Chat.ChatCompletionMessageToolCall) => Promise<any>
 ```
 
-## Environment Variables
+## Environment variables
 
 Set these environment variables:
 
@@ -613,7 +613,7 @@ SUPERMEMORY_BASE_URL=https://custom-endpoint.com  # optional
 
 ## Development
 
-### Python Setup
+### Python setup
 
 ```bash
 # Install uv
@@ -635,7 +635,7 @@ uv run black src/ tests/
 uv run isort src/ tests/
 ```
 
-### JavaScript Setup
+### JavaScript setup
 
 ```bash
 # Install dependencies
@@ -651,14 +651,14 @@ npm run type-check
 npm run lint
 ```
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="AI SDK Integration" icon="triangle" href="/integrations/ai-sdk">
+  <Card title="AI SDK integration" icon="/icons/hugeicons/triangle.svg" href="/integrations/ai-sdk">
     Use with Vercel AI SDK for streamlined development
   </Card>
 
-  <Card title="Add Memories" icon="database" href="/ingestion/add-memories">
+  <Card title="Add memories" icon="/icons/hugeicons/database-01.svg" href="/ingestion/add-memories">
     Direct API access for advanced memory management
   </Card>
 </CardGroup>

@@ -2,12 +2,12 @@
 title: 'Memory Graph'
 sidebarTitle: "Memory Graph"
 description: 'Interactive visualization for documents, memories and connections'
-icon: "network"
+icon: "/icons/hugeicons/hierarchy-square-01.svg"
 ---
 
 Memory Graph is a React component that visualizes your Supermemory documents and memories as an interactive network. Documents appear as rectangular nodes, memories as hexagonal nodes, and connections between them show relationships and similarity.
 
-<Card title="@supermemory/memory-graph on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/memory-graph">
+<Card title="@supermemory/memory-graph on npm" icon="/icons/hugeicons/package.svg" href="https://www.npmjs.com/package/@supermemory/memory-graph">
     Check out the NPM page for more details
 </Card>
 
@@ -19,7 +19,7 @@ npm install @supermemory/memory-graph
 
 **Requirements:** React 18.0.0 or higher
 
-## Quick Start
+## Quick start
 
 ```tsx
 'use client'; // For Next.js App Router
@@ -59,7 +59,7 @@ export default function GraphPage() {
 }
 ```
 
-## Backend API Route
+## Backend API route
 
 Create an API route to fetch documents from Supermemory:
 
@@ -150,7 +150,7 @@ app.get('/api/graph', async (req, res) => {
 
 ## Examples
 
-### With Pagination
+### With pagination
 
 ```tsx
 'use client';
@@ -200,7 +200,7 @@ export default function PaginatedGraph() {
 }
 ```
 
-### Highlighting Search Results
+### Highlighting search results
 
 ```tsx
 <MemoryGraph
@@ -210,7 +210,7 @@ export default function PaginatedGraph() {
 />
 ```
 
-### Controlled Space Selection
+### Controlled space selection
 
 ```tsx
 <MemoryGraph
@@ -221,7 +221,7 @@ export default function PaginatedGraph() {
 />
 ```
 
-### Custom Empty State
+### Custom empty state
 
 ```tsx
 <MemoryGraph documents={documents} isLoading={isLoading}>
@@ -234,9 +234,9 @@ export default function PaginatedGraph() {
 
 ---
 
-## Props Reference
+## Props reference
 
-### Core Props
+### Core props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
@@ -246,7 +246,7 @@ export default function PaginatedGraph() {
 | `variant` | `"console" \| "consumer"` | `"console"` | Visual variant |
 | `children` | `ReactNode` | - | Custom empty state content |
 
-### Pagination Props
+### Pagination props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
@@ -256,7 +256,7 @@ export default function PaginatedGraph() {
 | `loadMoreDocuments` | `() => Promise<void>` | - | Callback to load more |
 | `autoLoadOnViewport` | `boolean` | `true` | Auto-load when 80% visible |
 
-### Display Props
+### Display props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
@@ -265,7 +265,7 @@ export default function PaginatedGraph() {
 | `highlightsVisible` | `boolean` | `true` | Whether highlights shown |
 | `occludedRightPx` | `number` | `0` | Pixels occluded on right |
 
-### Controlled State Props
+### Controlled state props
 
 | Prop | Type | Description |
 |------|------|-------------|
@@ -275,7 +275,7 @@ export default function PaginatedGraph() {
 
 ---
 
-## Data Types
+## Data types
 
 ### DocumentWithMemories
 
@@ -358,6 +358,6 @@ The graph handles hundreds of nodes efficiently through:
 
 For very large datasets (1000+ documents), use pagination to load data in chunks.
 
-## Browser Support
+## Browser support
 
 Works in all modern browsers supporting Canvas 2D API, ES2020, and CSS custom properties. Tested on Chrome, Firefox, Safari, and Edge.

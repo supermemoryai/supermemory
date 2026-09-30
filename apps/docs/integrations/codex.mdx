@@ -1,7 +1,7 @@
 ---
 title: "Codex"
 sidebarTitle: "Codex"
-description: "codex-supermemory — persistent memory for OpenAI Codex CLI"
+description: "Persistent memory for the OpenAI Codex CLI with the codex-supermemory plugin."
 icon: "/images/codex.svg"
 ---
 
@@ -14,7 +14,7 @@ icon: "/images/codex.svg"
 **Prefer to keep everything on your machine?** This plugin works with [self-hosted Supermemory](/self-hosting/overview) — run `npx supermemory local`, then `export SUPERMEMORY_API_URL="http://localhost:6767"` (or set `baseUrl` in `~/.codex/supermemory.json`) and use the API key printed on first boot.
 </Tip>
 
-## Install the Plugin
+## Install the plugin
 
 ```bash
 npx codex-supermemory@latest install
@@ -59,7 +59,7 @@ Alternatively:
   </Tab>
 </Tabs>
 
-## How It Works
+## How it works
 
 Once installed, the plugin runs on every Codex session:
 
@@ -71,7 +71,7 @@ Once installed, the plugin runs on every Codex session:
 - **Incremental capture** — Memories are saved every N turns (default: 3) so mid-session context is available for later prompts in the same session.
 - **Privacy** — Content wrapped in `<private>...</private>` is redacted before storage.
 
-### Memory Scopes
+### Memory scopes
 
 | Tag | Derived from | Description |
 |-----|-------------|-------------|
@@ -89,7 +89,7 @@ Override tags in `~/.codex/supermemory.json` if needed:
 
 Set `SUPERMEMORY_ISOLATE_WORKTREES=true` to keep each worktree isolated.
 
-## Explicit Memory Skills
+## Explicit memory skills
 
 | Skill | Description |
 |-------|-------------|
@@ -110,7 +110,7 @@ Example prompts:
 > Is Supermemory connected?
 ```
 
-## Verify Installation
+## Verify installation
 
 ```bash
 npx codex-supermemory status
@@ -163,14 +163,14 @@ export SUPERMEMORY_DEBUG=true
 tail -f ~/.codex-supermemory.log
 ```
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="GitHub Repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/codex-supermemory">
+  <Card title="GitHub repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/codex-supermemory">
     Source code, issues, and detailed README.
   </Card>
 
-  <Card title="Cursor Plugin" icon="/images/cursor-logo.svg" href="/integrations/cursor">
+  <Card title="Cursor plugin" icon="/images/cursor-logo.svg" href="/integrations/cursor">
     Memory for your Cursor chats.
   </Card>
 </CardGroup>

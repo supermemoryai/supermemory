@@ -1,8 +1,8 @@
 ---
-title: "Memory Operations"
-sidebarTitle: "CRUD & Forgetting"
+title: "Memory operations"
+sidebarTitle: "CRUD & forgetting"
 description: "Advanced memory operations (v4 API)"
-icon: "database"
+icon: "/icons/hugeicons/database-01.svg"
 ---
 
 <Info>
@@ -12,7 +12,7 @@ For document management (list, get, update, delete), see [Document Operations](/
 For ingesting raw content (text, files, URLs) through the processing pipeline, see [Add Context](/ingestion/add-memories).
 </Info>
 
-## Create Memories
+## Create memories
 
 Create memories directly without going through the document ingestion workflow. Memories are embedded and immediately searchable.
 
@@ -112,14 +112,12 @@ This is useful for storing user preferences, traits, or any structured facts whe
 | `memories[].createdAt` | string | ISO 8601 timestamp |
 
 <Tip>
-**When to use this vs [Add Context](/ingestion/add-memories)?**
-
-Use **Create Memories** when you already know the exact facts to store (user preferences, traits, structured data). Use **Add Context** when you have raw content (conversations, documents, URLs) that Supermemory should process and extract memories from.
+**When should you create memories directly?** When you already know the exact facts to store, such as user preferences, traits or structured data. When you have raw content (conversations, documents, URLs) that Supermemory should process and extract memories from, [add context](/ingestion/add-memories) instead.
 </Tip>
 
 ---
 
-## Forget Memory
+## Forget memory
 
 Soft-delete a single memory — excluded from search results but preserved in the database. Identify it by `id` or by exact `content`, scoped to its `containerTag`.
 
@@ -171,7 +169,7 @@ The memory will no longer appear in search results but remains in the database (
 
 ---
 
-## Forget Matching
+## Forget matching
 
 Forget in bulk in one call, two ways. Give a **`query`** (a prompt or topic) and the service semantically searches the container, an LLM decides which memories are genuinely about your target, and those are soft-deleted — use this for "forget everything about X". Or give an explicit **`ids`** list to forget exactly those memories with no search. Provide one or the other.
 
@@ -288,7 +286,7 @@ Identity is server-owned: the LLM only ever references opaque handles for the me
 
 ---
 
-## Update Memory (Versioned)
+## Update memory (versioned)
 
 Update a memory by creating a new version. The original is preserved with `isLatest=false`.
 
@@ -341,7 +339,7 @@ Update a memory by creating a new version. The original is preserved with `isLat
 
 ---
 
-## Next Steps
+## Next steps
 
 - [Review Inferred Memories](/recall/memory-review) — Approve or decline low-confidence memories
 - [Document Operations](/ingestion/document-operations) — Manage documents (SDK supported)

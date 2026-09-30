@@ -1,5 +1,5 @@
 ---
-title: "Granola Connector"
+title: "Granola connector"
 description: "Sync AI meeting notes and transcripts from Granola into your Supermemory knowledge base"
 icon: "/images/granola.svg"
 ---
@@ -10,9 +10,9 @@ Connect Granola to sync AI meeting notes and transcripts into your Supermemory k
 The Granola connector requires a **Pro Plan** or higher in Supermemory and a Granola plan that can create API keys. In Granola, create one from **Settings > Connectors > API keys**.
 </Note>
 
-## Quick Setup
+## Quick setup
 
-### From the Console
+### From the console
 
 1. Open the [Supermemory Console](https://console.supermemory.ai).
 2. Go to **Connectors**.
@@ -86,7 +86,7 @@ The console limits connector setup to 500 documents. Use the API setup below for
 
 Supermemory validates the Granola API key before creating the connection. The initial sync starts automatically after the connection is created.
 
-## Configuration Options
+## Configuration options
 
 For Granola, provider-specific fields are passed inside the top-level `metadata` object. General connection options stay top-level.
 
@@ -100,7 +100,7 @@ For Granola, provider-specific fields are passed inside the top-level `metadata`
 In the Python SDK, use `container_tags` and `document_limit` for top-level options, but keep the Granola metadata key in camelCase: `apiKey`.
 </Note>
 
-## What Gets Synced
+## What gets synced
 
 Granola notes are synced as markdown documents. Each document can include:
 
@@ -109,7 +109,7 @@ Granola notes are synced as markdown documents. Each document can include:
 - AI-generated summary when present
 - Full transcript when present
 
-### Document Metadata
+### Document metadata
 
 Each synced note includes searchable metadata:
 
@@ -139,9 +139,9 @@ const results = await client.search({
 });
 ```
 
-## Connection Management
+## Connection management
 
-### Delete Connection
+### Delete connection
 
 <Tabs>
   <Tab title="TypeScript">
@@ -166,7 +166,7 @@ const results = await client.search({
 By default, deleting a connection removes all synced documents from Supermemory. To keep documents, pass `deleteDocuments=false` as a query parameter: `DELETE /v3/connections/:id?deleteDocuments=false`
 </Warning>
 
-### Manual Sync
+### Manual sync
 
 <Tabs>
   <Tab title="TypeScript">
@@ -194,7 +194,7 @@ By default, deleting a connection removes all synced documents from Supermemory.
   </Tab>
 </Tabs>
 
-## Sync Behavior
+## Sync behavior
 
 | Feature | Behavior |
 |---------|----------|

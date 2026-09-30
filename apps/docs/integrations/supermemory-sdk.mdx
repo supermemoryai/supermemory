@@ -6,10 +6,10 @@ icon: "/images/supermemory.svg"
 ---
 
 <CardGroup cols={2}>
-  <Card title="Python SDK" icon="python" href="https://pypi.org/project/supermemory/">
+  <Card title="Python SDK" icon="/icons/hugeicons/python.svg" href="https://pypi.org/project/supermemory/">
     pip install supermemory
   </Card>
-  <Card title="JavaScript SDK" icon="js" href="https://www.npmjs.com/package/supermemory">
+  <Card title="JavaScript SDK" icon="/icons/hugeicons/java-script.svg" href="https://www.npmjs.com/package/supermemory">
     npm install supermemory
   </Card>
 </CardGroup>
@@ -26,7 +26,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     npm install supermemory
     ```
 
-    ## Quick Start
+    ## Quick start
 
     ```typescript
     import Supermemory from 'supermemory';
@@ -52,7 +52,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     console.log(profile.profile.dynamic);
     ```
 
-    ## Common Operations
+    ## Common operations
 
     ```typescript
     // Add with metadata
@@ -81,7 +81,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     await client.documents.delete({ docId: "doc_123" });
     ```
 
-    ## Error Handling & Retries
+    ## Error handling & retries
 
     | Status | Error |
     |--------|-------|
@@ -106,7 +106,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     pip install supermemory
     ```
 
-    ## Quick Start
+    ## Quick start
 
     ```python
     import os
@@ -133,7 +133,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     print(profile.profile.dynamic)
     ```
 
-    ## Common Operations
+    ## Common operations
 
     ```python
     # Add with metadata
@@ -162,7 +162,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     client.documents.delete(doc_id="doc_123")
     ```
 
-    ## Error Handling & Retries
+    ## Error handling & retries
 
     Same error classes as the TypeScript SDK (`BadRequestError`, `AuthenticationError`, `PermissionDeniedError`, `NotFoundError`, `ConflictError`, `UnprocessableEntityError`, `RateLimitError`, `InternalServerError`), all inheriting from `supermemory.APIError`. Connection errors, 408, 409, 429, and >=500 responses are retried automatically (`max_retries`, default 2). Requests time out after 1 minute by default (`timeout` option). Set `SUPERMEMORY_LOG=info` (or `debug`) to enable logging.
 

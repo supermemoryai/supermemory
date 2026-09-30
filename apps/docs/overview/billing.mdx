@@ -1,8 +1,8 @@
 ---
 title: "Billing & usage"
-description: "Enterprise-grade reference for Supermemory metering — SM tokens, operations, search, SuperRAG, plans, diff billing, and programmatic usage APIs."
+description: "How Supermemory metering works: SM tokens, operations, search, SuperRAG, plans, diff billing and the usage APIs."
 sidebarTitle: "Billing & usage"
-icon: "credit-card"
+icon: "/icons/hugeicons/credit-card.svg"
 ---
 
 Supermemory billing is **usage-based USD credits**. Plans include a monthly credit balance; metered product usage draws that balance down. You manage plan, invoices, top-ups, and auto top-up in the [Developer Console](https://console.supermemory.ai).
@@ -72,7 +72,7 @@ Text-like document types bill on the **text** meters; everything else bills as *
 
 **`sm_operations`** is the meter for discrete platform work that is not “how many tokens did we embed.” Examples include:
 
-- **`dreaming: "instant"`** — processes a document’s memory extraction immediately (does not wait for dynamic batch dreaming). Documented as **one extra operation per document** on top of normal token metering. See [Processing modes](/ingestion/add-memories#processing-modes).
+- `dreaming: "instant"` extracts a document's memories immediately instead of waiting for the next dynamic batch. It costs **one extra operation per document** on top of normal token metering. See [processing modes](/ingestion/add-memories#processing-modes).
 - Other non-token platform actions the product attributes to the operations meter (console: “counted platform operations not attributed to token or search meters”).
 
 Search is primarily metered as **`sm_search_queries`** (one unit per gated search/profile request). Prefer thinking of operations as **extra platform work**, not as a synonym for “API call.”
@@ -104,7 +104,7 @@ When you re-add content under the **same `customId`** (same org / document ident
 billableTokens = max(0, fullTokenCount - previousTokenCount)
 ```
 
-So **tokens Supermemory has already processed are not billed again**. Unchanged content is a **full discount** on the token meters. Only the **net-new delta** (and any new rich extraction on that delta) draws credits.
+So **tokens Supermemory has already processed are not billed again**. Unchanged content costs nothing on the token meters; only the net-new delta, and any new extraction on it, draws credits.
 
 This is why long-lived agent loops stay cheap: re-sync the same conversation `customId`, re-upload the same policy doc, or connector re-sync with stable IDs — you pay for **new** material, not the whole history every time.
 

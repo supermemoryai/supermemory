@@ -1,13 +1,13 @@
 ---
-title: "Document Operations"
+title: "Document operations"
 sidebarTitle: "Documents"
 description: "List, get, update, and delete your ingested documents"
-icon: "files"
+icon: "/icons/hugeicons/files-02.svg"
 ---
 
 Manage documents after ingestion using the SDK.
 
-## List Documents
+## List documents
 
 Retrieve paginated documents with filtering.
 
@@ -77,7 +77,7 @@ Retrieve paginated documents with filtering.
 | `sort` | string | `createdAt` | Sort by `createdAt` or `updatedAt` |
 | `order` | string | `desc` | `desc` (newest) or `asc` (oldest) |
 
-<Accordion title="Pagination Example">
+<Accordion title="Pagination example">
   ```typescript
   async function getAllDocuments(containerTag: string) {
     const all = [];
@@ -100,7 +100,7 @@ Retrieve paginated documents with filtering.
   ```
 </Accordion>
 
-<Accordion title="Filter by Metadata">
+<Accordion title="Filter by metadata">
   ```typescript
   const documents = await client.documents.list({
     containerTags: ["user_123"],
@@ -116,7 +116,7 @@ Retrieve paginated documents with filtering.
 
 ---
 
-## Get Document
+## Get document
 
 Get a specific document with its processing status.
 
@@ -145,7 +145,7 @@ Get a specific document with its processing status.
   </Tab>
 </Tabs>
 
-### Processing Status
+### Processing status
 
 | Status | Description |
 |--------|-------------|
@@ -156,7 +156,7 @@ Get a specific document with its processing status.
 | `done` | Ready for search |
 | `failed` | Processing failed |
 
-<Accordion title="Poll for Completion">
+<Accordion title="Poll for completion">
   ```typescript
   async function waitForProcessing(docId: string) {
     while (true) {
@@ -173,7 +173,7 @@ Get a specific document with its processing status.
 
 ---
 
-## Update Document
+## Update document
 
 Update a document's content or metadata. **Content changes** trigger full reprocessing; **metadata-only changes** (e.g. updating `accepted`, `version`) do not reindex.
 
@@ -207,7 +207,7 @@ Update a document's content or metadata. **Content changes** trigger full reproc
 
 ---
 
-## Delete Documents
+## Delete documents
 
 Permanently remove documents.
 
@@ -261,7 +261,7 @@ Deletes are permanent — no recovery.
 
 ---
 
-## Processing Queue
+## Processing queue
 
 Check documents currently being processed.
 
@@ -288,7 +288,7 @@ Check documents currently being processed.
 
 ---
 
-## Next Steps
+## Next steps
 
 - [Memory Operations](/recall/memory-operations) — Advanced v4 memory operations
 - [Search](/recall/search) — Query your memories
