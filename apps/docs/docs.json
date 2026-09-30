@@ -37,6 +37,13 @@
 		"light": "/favicon-light-mode.png",
 		"dark": "/favicon-dark-mode.png"
 	},
+	"thumbnails": {
+		"appearance": "dark",
+		"background": "/images/og-background.jpg",
+		"fonts": {
+			"family": "Geist"
+		}
+	},
 	"fonts": {
 		"body": {
 			"family": "Geist"
