@@ -9,6 +9,10 @@ from .tools import (
     MemorySearchResult,
     MemoryAddResult,
     ProfileResult,
+    DocumentListResult,
+    DocumentDeleteResult,
+    DocumentAddResult,
+    MemoryForgetResult,
 )
 
 from .middleware import (
@@ -43,6 +47,10 @@ __all__ = [
     "MemorySearchResult",
     "MemoryAddResult",
     "ProfileResult",
+    "DocumentListResult",
+    "DocumentDeleteResult",
+    "DocumentAddResult",
+    "MemoryForgetResult",
     "SupermemoryChatMiddleware",
     "SupermemoryMiddlewareOptions",
     "SupermemoryContextProvider",

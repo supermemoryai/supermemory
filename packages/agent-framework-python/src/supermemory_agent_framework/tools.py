@@ -38,6 +38,44 @@ class ProfileResult(TypedDict, total=False):
     error: str | None
 
 
+class DocumentListResult(TypedDict, total=False):
+    """Result type for document list operations."""
+
+    success: bool
+    documents: list[Any] | None
+    pagination: dict[str, Any] | None
+    error: str | None
+
+
+class DocumentDeleteResult(TypedDict, total=False):
+    """Result type for document delete operations."""
+
+    success: bool
+    message: str | None
+    error: str | None
+
+
+class DocumentAddResult(TypedDict, total=False):
+    """Result type for document add operations."""
+
+    success: bool
+    document: Any | None
+    error: str | None
+
+
+class MemoryForgetResult(TypedDict, total=False):
+    """Result type for memory forget operations."""
+
+    success: bool
+    message: str | None
+    error: str | None
+
+
+# Deleting a document mid-ingestion races the extraction pipeline, so only
+# documents that reached a terminal state are eligible.
+_TERMINAL_DOCUMENT_STATUSES = {"done", "failed"}
+
+
 def _to_jsonable(value: Any) -> Any:
     """Convert generated SDK models into JSON-compatible structures."""
     if isinstance(value, dict):
@@ -176,6 +214,151 @@ class SupermemoryTools:
             result = {"success": False, "error": str(error)}
             return json.dumps(result)
 
+    async def document_list(
+        self,
+        limit: Annotated[int, "Maximum number of documents to return"] = 10,
+        page: Annotated[int, "Page number to fetch, 1-based"] = 1,
+    ) -> str:
+        """List stored source documents in the configured container tag."""
+        try:
+            response = await self._client.documents.list(
+                container_tags=[self._connection.container_tag],
+                limit=limit,
+                page=page,
+            )
+            result: DocumentListResult = {
+                "success": True,
+                "documents": [_to_jsonable(item) for item in response.memories or []],
+                "pagination": _to_jsonable(response.pagination),
+            }
+            return json.dumps(result, default=str)
+        except Exception as error:
+            result = {"success": False, "error": str(error)}
+            return json.dumps(result)
+
+    async def document_delete(
+        self,
+        document_id: Annotated[
+            str,
+            "Document ID from document_list. Permanently deletes the source and "
+            "soft-forgets its extracted memories. Not a profile memory ID.",
+        ],
+    ) -> str:
+        """Delete a stored source document if it is safely within scope."""
+        try:
+            # The delete endpoint takes no container tag, so verify scope on the
+            # document itself first. This also resolves a custom ID to its real ID.
+            document = await self._client.documents.get(document_id)
+            tags = document.container_tags or []
+            if not tags or any(tag != self._connection.container_tag for tag in tags):
+                result: DocumentDeleteResult = {
+                    "success": False,
+                    "error": "Document is outside the configured container tag",
+                }
+                return json.dumps(result)
+
+            status = getattr(document, "status", None)
+            if status is not None and status not in _TERMINAL_DOCUMENT_STATUSES:
+                result = {
+                    "success": False,
+                    "error": (
+                        "Document cannot be deleted while it is still processing "
+                        f"(status: {status})"
+                    ),
+                }
+                return json.dumps(result)
+
+            await self._client.documents.delete(document.id)
+            result = {
+                "success": True,
+                "message": f"Document {document_id} deleted successfully",
+            }
+            return json.dumps(result)
+        except Exception as error:
+            result = {"success": False, "error": str(error)}
+            return json.dumps(result)
+
+    async def document_add(
+        self,
+        content: Annotated[
+            str,
+            "Document body to store: plain text, a conversation transcript, a long "
+            "pasted blob, or a URL. Memories are extracted automatically; do not "
+            "split into add_memory calls.",
+        ],
+        title: Annotated[Optional[str], "Optional title for the document"] = None,
+        description: Annotated[
+            Optional[str], "Optional description for the document"
+        ] = None,
+    ) -> str:
+        """Store a source document for background processing and memory extraction."""
+        try:
+            metadata: dict[str, str] = {}
+            if title:
+                metadata["title"] = title
+            if description:
+                metadata["description"] = description
+
+            # No custom_id: the connection's custom_id keys the conversation
+            # document, and reusing it here would overwrite that conversation.
+            kwargs: dict[str, Any] = {
+                "content": content,
+                "container_tag": self._connection.container_tag,
+            }
+            if metadata:
+                kwargs["metadata"] = metadata
+
+            response = await self._client.documents.add(**kwargs)
+            result: DocumentAddResult = {
+                "success": True,
+                "document": _to_jsonable(response),
+            }
+            return json.dumps(result, default=str)
+        except Exception as error:
+            result = {"success": False, "error": str(error)}
+            return json.dumps(result)
+
+    async def memory_forget(
+        self,
+        memory_id: Annotated[
+            Optional[str],
+            "Memory entry ID from a search_memories result containing a memory. "
+            "Chunk and document IDs are invalid.",
+        ] = None,
+        memory_content: Annotated[
+            Optional[str],
+            "Exact text of the profile memory to forget (alternative to memory_id). "
+            "If unsure, search first and use memory_id.",
+        ] = None,
+        reason: Annotated[
+            Optional[str],
+            "Optional reason recorded when forgetting (e.g. outdated, user correction)",
+        ] = None,
+    ) -> str:
+        """Soft-delete a single extracted profile memory."""
+        if not memory_id and not memory_content:
+            result: MemoryForgetResult = {
+                "success": False,
+                "error": "Either memory_id or memory_content must be provided",
+            }
+            return json.dumps(result)
+
+        try:
+            kwargs: dict[str, Any] = {"container_tag": self._connection.container_tag}
+            if memory_id:
+                kwargs["id"] = memory_id
+            if memory_content:
+                kwargs["content"] = memory_content
+            if reason:
+                kwargs["reason"] = reason
+
+            await self._client.memories.forget(**kwargs)
+            result = {"success": True, "message": "Memory forgotten successfully"}
+            return json.dumps(result)
+        except Exception as error:
+            result = {"success": False, "error": str(error)}
+            return json.dumps(result)
+
     def get_tools(self) -> list[FunctionTool]:
         """Get all Supermemory tools as FunctionTool instances.
 
@@ -207,6 +390,47 @@ class SupermemoryTools:
                     "by providing a query."
                 ),
             )(self.get_profile),
+            tool(
+                name="document_list",
+                description=(
+                    "List stored source documents (conversations, URLs, files, pasted "
+                    "text) with pagination. Returns document metadata and summaries, "
+                    "including IDs for document_delete. It does not return full source "
+                    "content or memory IDs."
+                ),
+            )(self.document_list),
+            tool(
+                name="document_delete",
+                description=(
+                    "Permanently delete a stored source document and soft-forget "
+                    "memories extracted from it. Use a document ID from document_list "
+                    "when the user wants to remove an entire source. Deletion is "
+                    "refused for documents outside the configured scope, shared with "
+                    "another scope, or still processing. Use memory_forget to remove "
+                    "one learned fact."
+                ),
+            )(self.document_delete),
+            tool(
+                name="document_add",
+                description=(
+                    "Store a source document for asynchronous processing and automatic "
+                    "memory extraction. Use when the user gives you raw content to "
+                    "ingest (a pasted text blob, conversation transcript, notes, URL, "
+                    "or article) rather than a single atomic fact; use add_memory for "
+                    "one short generalizable sentence. Memories are extracted in the "
+                    "background, so do not call add_memory for facts inside the document."
+                ),
+            )(self.document_add),
+            tool(
+                name="memory_forget",
+                description=(
+                    "Soft-delete a single extracted profile memory (a learned fact) so "
+                    "it no longer appears in profile or search. This does not delete "
+                    "source documents. Provide a memory_id from a search result "
+                    "containing a memory, or memory_content for an exact text match. "
+                    "Use document_delete to remove an entire source."
+                ),
+            )(self.memory_forget),
         ]
 
     async def _search_memories_tool(
