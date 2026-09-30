@@ -1,11 +1,11 @@
 ---
 title: "Run with Docker"
 sidebarTitle: "Docker"
-description: "Run the self-hosted server in a container with Docker Compose, with state in a persistent volume."
+description: "Optional: run the self-hosted server in a container with Docker Compose, with state in a persistent volume."
 icon: "/icons/hugeicons/package.svg"
 ---
 
-There's no official image yet, but the server is a single binary with no runtime dependencies, so wrapping it is short. The Dockerfile below downloads a pinned release from [GitHub Releases](https://github.com/supermemoryai/supermemory/releases), verifies its checksum, and runs it as a non-root user.
+You don't need Docker to run Supermemory locally: the [quickstart](/self-hosting/quickstart) binary runs on its own. This page is for setups that are already container-based, like a homelab, a NAS, or a VPS running Compose. The Dockerfile below wraps the same release binary. It downloads a pinned version from [GitHub Releases](https://github.com/supermemoryai/supermemory/releases), verifies its checksum, and runs it as a non-root user with its data in a persistent volume.
 
 ## Dockerfile
 
