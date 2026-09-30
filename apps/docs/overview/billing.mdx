@@ -183,6 +183,8 @@ Usage meters are shared; **feature gates** differ by tier.
 | Feature | Free | Pro | Max | Scale | Enterprise |
 |---|---|---|---|---|---|
 | Memory API, search, profiles | Yes | Yes | Yes | Yes | Yes |
+| Standard PDF extraction, including OCR for scans | Yes | Yes | Yes | Yes | Yes |
+| [Advanced document extraction for PDFs](/concepts/content-types#advanced-document-extraction) (figure and diagram descriptions) | — | — | — | Yes | Yes |
 | Diff / delta token billing | Yes | Yes | Yes | Yes | Yes |
 | Coding plugins (Claude Code, Codex, Cursor, OpenCode, OpenClaw, Hermes) | Yes | Yes | Yes | Yes | Yes |
 | Team management | — | Yes | Yes | Yes | Yes |
@@ -196,6 +198,8 @@ Usage meters are shared; **feature gates** differ by tier.
 | Custom metering / SSO / dedicated deploy | — | — | — | — | Yes |
 
 Coding plugins are available on every plan, including Free. Their API usage still consumes your plan's credits at the applicable rates.
+
+PDF uploads use the extraction tier available to your organization automatically; no extra API parameter is required. On plans without advanced extraction, uploads still use standard extraction rather than returning a feature-gate error. Advanced extraction can also fall back to standard extraction if needed. This tier distinction applies to PDFs, not all supported file types.
 
 Overrides can be applied per org in metadata (`featureOverrides`) for enterprise deals.
 
