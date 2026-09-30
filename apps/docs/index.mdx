@@ -4,6 +4,10 @@ description: "Context infrastructure for AI agents"
 mode: "custom"
 ---
 
+import { AGENT_PROMPT } from "/snippets/agent-prompt.jsx"
+import { HERO_TS, HERO_PY, HERO_CURL } from "/snippets/hero-samples.jsx"
+import { AgentMarks, CopyPromptButton, PromptPanel } from "/snippets/agent-prompt-panel.jsx"
+
 export const HomeLink = ({ href, icon, children }) => (
   <a className="sm-home-link" href={href}>
     <span className="sm-home-link-icon"><Icon icon={icon} size={12} /></span>
@@ -36,72 +40,28 @@ export const ListCard = ({ title, children }) => (
 <div className="sm-home">
 
   <section className="sm-home-hero">
-    <div>
-      <h1 className="sm-home-title">Make every agent remember.</h1>
+    <div className="sm-home-hero-copy">
+      <h1 className="sm-home-title sm-home-title-split">
+        <span>Memory and continual learning</span> <span className="sm-home-title-muted">for the world’s best agents.</span>
+      </h1>
       <p className="sm-home-lede">
-        Supermemory saves what your users tell your agent and hands it back when it's relevant. One API for memory, search and user profiles.
+        Supermemory gives your agent long-term memory of every user. Paste one prompt into your coding agent and it wires memory into your project.
       </p>
       <div className="sm-home-actions">
-        <a href="/quickstart" className="sm-home-btn sm-home-btn-primary">
-          Read the quickstart
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </a>
-        <a href="/concepts/how-it-works" className="sm-home-btn sm-home-btn-secondary">See how it works</a>
+        <CopyPromptButton prompt={AGENT_PROMPT} label="Copy prompt" copiedLabel="Copied" className="sm-home-btn sm-home-btn-primary" />
+        <a href="/quickstart" className="sm-home-btn sm-home-btn-secondary">Read the quickstart</a>
       </div>
+      <AgentMarks />
     </div>
     <div className="sm-home-sample not-prose">
-      <CodeGroup>
-      ```typescript TypeScript
-      import Supermemory from "supermemory";
-
-      const client = new Supermemory();
-
-      // Save what the user said
-      await client.add({
-        content: "I'm vegetarian and I want to see Paris in spring.",
-        containerTag: "user_4f8a",
-      });
-
-      // Get it back when it matters
-      const { results } = await client.search({
-        q: "Where should we book dinner?",
-        containerTag: "user_4f8a",
-      });
-      ```
-
-      ```python Python
-      from supermemory import Supermemory
-
-      client = Supermemory()
-
-      # Save what the user said
-      client.add(
-          content="I'm vegetarian and I want to see Paris in spring.",
-          container_tag="user_4f8a",
-      )
-
-      # Get it back when it matters
-      results = client.search(
-          q="Where should we book dinner?",
-          container_tag="user_4f8a",
-      )
-      ```
-
-      ```bash curl
-      # Save what the user said
-      curl https://api.supermemory.ai/v3/documents \
-        -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-        -H "Content-Type: application/json" \
-        -d '{"content": "I am vegetarian and I want to see Paris in spring.",
-             "containerTag": "user_4f8a"}'
-
-      # Get it back when it matters
-      curl https://api.supermemory.ai/v4/search \
-        -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-        -H "Content-Type: application/json" \
-        -d '{"q": "Where should we book dinner?", "containerTag": "user_4f8a"}'
-      ```
-      </CodeGroup>
+      <PromptPanel
+        tabs={[
+          { label: "setup-prompt.md", text: AGENT_PROMPT, kind: "prompt" },
+          { label: "TypeScript", text: HERO_TS, kind: "code" },
+          { label: "Python", text: HERO_PY, kind: "code" },
+          { label: "curl", text: HERO_CURL, kind: "code" },
+        ]}
+      />
     </div>
   </section>
 

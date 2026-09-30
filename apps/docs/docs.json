@@ -33,7 +33,10 @@
 			"download-spec"
 		]
 	},
-	"favicon": "/favicon.png",
+	"favicon": {
+		"light": "/favicon-light-mode.png",
+		"dark": "/favicon-dark-mode.png"
+	},
 	"fonts": {
 		"body": {
 			"family": "Geist"

@@ -833,12 +833,211 @@ a.nav-tabs-item > div,
 	margin: 0 !important;
 }
 
-.sm-home-sample pre {
-	font-size: 13px !important;
-	line-height: 1.7 !important;
-	/* Every tab reserves the tallest sample's 15 lines, so switching TypeScript,
-	   Python and curl never changes the panel height or moves the hero. */
-	min-height: calc(15 * 1.7em);
+.sm-home-hero-copy {
+	display: flex;
+	flex-direction: column;
+	container-type: inline-size;
+}
+
+/* Two-tone headline: what it is in ink, who it's for in grey. Each half holds one
+   line on desktop, so the size follows the column (6.9cqi ≈ one line of the longer
+   half) up to 40px. The grey sits between text-2 and text-3 to keep ~3.8:1. */
+.sm-home-title-split > span {
+	display: block;
+}
+
+.sm-home-title-muted {
+	color: color-mix(in srgb, var(--sm-text-2) 60%, var(--sm-text-3));
+}
+
+@media (min-width: 1025px) {
+	.sm-home-title-split {
+		font-size: min(40px, 6.9cqi);
+	}
+
+	.sm-home-hero-copy .sm-home-lede {
+		text-wrap: pretty;
+	}
+}
+
+.sm-home-btn-primary {
+	border: 0;
+	cursor: pointer;
+	font-family: inherit;
+}
+
+/* "Or add memory to" row: quiet caption under the actions, marks in ink with names */
+.sm-works {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 16px;
+	margin: 24px 0 0 !important;
+	font-size: 13px;
+	line-height: 20px;
+	color: var(--sm-text-2);
+}
+
+.sm-works-label {
+	color: var(--sm-text-3);
+}
+
+.sm-works-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--sm-text-2) !important;
+	text-decoration: none !important;
+	transition: color var(--sm-dur-hover) var(--sm-ease-out);
+}
+
+.sm-works-item:hover {
+	color: var(--sm-text) !important;
+}
+
+.sm-works-item svg {
+	width: auto;
+	height: 14px;
+	flex-shrink: 0;
+}
+
+/* Setup prompt: built like a docs code group (band frame, tab header, r8 inner
+   panel) so the hero reads as documentation, not console chrome. */
+.sm-prompt-panel {
+	min-width: 0;
+	border: 1px solid var(--sm-border);
+	border-radius: var(--sm-radius-lg);
+	background: var(--sm-bg-2);
+	padding: 0 2px 2px;
+}
+
+.sm-prompt-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 40px;
+	padding: 0 6px 0 12px;
+}
+
+.sm-prompt-tabs {
+	display: flex;
+	gap: 16px;
+	min-width: 0;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+/* Same tab treatment as the docs code groups: ink + underline when selected */
+.sm-prompt-tab {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	height: 40px;
+	padding: 0;
+	border: 0;
+	border-bottom: 1.5px solid transparent;
+	background: transparent;
+	font-family: inherit;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--sm-text-2);
+	cursor: pointer;
+	transition: color var(--sm-dur-hover) var(--sm-ease-out);
+}
+
+.sm-prompt-tab:hover {
+	color: var(--sm-text);
+}
+
+.sm-prompt-tab[aria-selected="true"] {
+	border-bottom-color: var(--sm-text);
+	color: var(--sm-text);
+}
+
+.sm-prompt-string {
+	color: var(--sm-accent-text);
+}
+
+/* Code reads at the docs' code size and in ink, not the prompt's softer grey */
+.sm-prompt-code {
+	font-size: 13px;
+	line-height: 1.7;
+	color: var(--sm-text);
+}
+
+.sm-prompt-copy-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border: 0;
+	border-radius: var(--sm-radius-sm);
+	background: transparent;
+	color: var(--sm-text-3);
+	cursor: pointer;
+	transition-property: background-color, color, transform;
+	transition-duration: var(--sm-dur-hover), var(--sm-dur-hover), var(--sm-dur-press);
+	transition-timing-function: var(--sm-ease-out);
+}
+
+.sm-prompt-copy-icon:hover {
+	background: var(--sm-control-hover);
+	color: var(--sm-text);
+}
+
+.sm-prompt-copy-icon:active {
+	transform: scale(0.96);
+}
+
+.sm-prompt-body {
+	position: relative;
+	overflow: hidden;
+	border: 1px solid var(--sm-border);
+	border-radius: var(--sm-radius-md);
+	background: var(--sm-surface);
+}
+
+.sm-prompt-scroll {
+	height: 360px;
+	margin: 0 !important;
+	padding: 14px 18px 28px !important;
+	overflow-y: auto;
+	background: transparent !important;
+	font-family: var(--sm-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+	font-size: 12.5px;
+	line-height: 20px;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	color: var(--sm-text-2);
+}
+
+.sm-prompt-line {
+	display: block;
+}
+
+.sm-prompt-muted {
+	color: var(--sm-text-3);
+}
+
+.sm-prompt-heading {
+	font-weight: 500;
+	color: var(--sm-text);
+}
+
+.sm-prompt-endpoint {
+	font-weight: 500;
+	color: var(--sm-accent-text);
+}
+
+.sm-prompt-fade {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	height: 40px;
+	background: linear-gradient(to top, var(--sm-surface), transparent);
+	pointer-events: none;
 }
 
 .sm-home-section {
@@ -2113,6 +2312,10 @@ img[src="/icons/hugeicons/wrench-01.svg"] {
 }
 
 @media (max-width: 767px) {
+	.sm-prompt-scroll {
+		height: 280px;
+	}
+
 	.sm-home-grid-3 {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -2156,4 +2359,35 @@ img[src="/icons/hugeicons/wrench-01.svg"] {
 	.sm-home-list-card .sm-home-links {
 		grid-template-columns: minmax(0, 1fr);
 	}
+}
+
+/* Overview page only: swap the navbar icon for the console wordmark plus a "Docs"
+   label, so the landing page reads "supermemory | Docs". Every other page keeps the
+   icon from docs.json. The wordmark's text sits low in its box, so 18px tall lines
+   its x-height up with the label. */
+html:has(.sm-home) a:has(> img.nav-logo) {
+	display: inline-flex !important;
+	align-items: center;
+	gap: 10px;
+}
+
+html:has(.sm-home) img.nav-logo[src="/logo/light.svg"] {
+	content: url("/logo/wordmark-light.svg");
+	height: 18px !important;
+}
+
+html:has(.sm-home) img.nav-logo[src="/logo/dark.svg"] {
+	content: url("/logo/wordmark-dark.svg");
+	height: 18px !important;
+}
+
+html:has(.sm-home) a:has(> img.nav-logo)::after {
+	content: "Docs";
+	padding-left: 10px;
+	border-left: 1px solid var(--sm-border-hover);
+	font-family: var(--sm-font-sans);
+	font-size: 15px;
+	font-weight: 500;
+	line-height: 18px;
+	color: var(--sm-text-2);
 }
