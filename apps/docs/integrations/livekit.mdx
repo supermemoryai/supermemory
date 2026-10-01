@@ -36,6 +36,8 @@ Set the attribute in the access token your backend issues. Do not grant the call
 
 One call is stored as a single document. Pass the LiveKit room name as `session_id`. The document id is `lk-<session_id>`, so a later update with the same id appends to that call instead of creating another.
 
+Use one `SupermemoryLiveKit` per call. If you do rebind it, turns already captured stay with the caller who said them, and memory from the earlier caller is never shown to the new one.
+
 ## Quick start
 
 Create one `SupermemoryLiveKit` inside the job. A worker handles many calls, and each call needs its own scope.
@@ -149,7 +151,7 @@ memory = SupermemoryLiveKit(
 )
 ```
 
-Recall waits at most `recall_timeout` seconds (default 2). If the profile call is slower than that, the turn proceeds without memory. Retrieved text is inserted immediately before the user message and is not stored back as something the agent said.
+Recall waits at most `recall_timeout` seconds (default 2). If the profile call is slower than that, or fails, the turn falls back to the profile loaded by `preload` at the start of the call, or proceeds without memory if there was none. In our tests most recalls took 0.4 to 1.4 seconds, with occasional calls near 3 seconds. Raise `recall_timeout` if you would rather wait than miss memory on a slow turn. Retrieved text is inserted immediately before the user message and is not stored back as something the agent said.
 
 | Parameter | Default | Description |
 | --- | --- | --- |
@@ -158,7 +160,7 @@ Recall waits at most `recall_timeout` seconds (default 2). If the profile call i
 | `mode` | `"full"` | `profile`, `query`, or `full` |
 | `recall_timeout` | `2.0` | Seconds to wait before skipping recall |
 | `capture` | `"always"` | `never` disables storing the call |
-| `capture_dreaming` | `"dynamic"` | How the call transcript becomes memories. `dynamic` batches related documents and can take several minutes. `instant` is usually ready within a minute and bills one extra operation per document. Until then, `search_memories` still finds the raw call text. |
+| `capture_dreaming` | `"dynamic"` | How the call transcript becomes memories. See below. |
 
 ## Tools
 
@@ -170,7 +172,15 @@ Recall waits at most `recall_timeout` seconds (default 2). If the profile call i
 | `remember` | Save one explicit fact, preference, or correction |
 | `forget` | Forget one fact by id from `search_memories`, or by exact text |
 
-`remember` stores a standalone fact and processes it right away, so the next call can recall it. It is not appended to the call transcript. Automatic capture is what records the conversation.
+`remember` stores a standalone fact and processes it immediately (`dreaming="instant"`), so it is usually recallable within a minute. If your organization has no balance for instant processing, it is saved on the default schedule instead. It is not appended to the call transcript. Automatic capture is what records the conversation.
+
+### When a call becomes recallable
+
+Captured turns are written after each agent reply, but they become memories on Supermemory's processing schedule:
+
+- With the default `capture_dreaming="dynamic"`, related documents are processed together. In our tests this took 10 to 20 minutes, so a caller who rings back right away is not recalled from the last call yet.
+- With `capture_dreaming="instant"`, each write is processed on its own and is usually recallable within a minute. Each write bills one extra operation, and the call is written after every agent reply.
+- In both modes, `search_memories` finds the raw call text as soon as it is stored, so the model can still look up a recent call.
 
 ## Self-hosting
 

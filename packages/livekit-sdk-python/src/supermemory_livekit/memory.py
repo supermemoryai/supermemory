@@ -27,6 +27,14 @@ logger = logging.getLogger("supermemory_livekit")
 
 _UNAVAILABLE = "I couldn't reach memory just now."
 _ATTRIBUTE = "supermemory_container_tag"
+_STORE_TIMEOUT = 10.0
+_MAX_DOCUMENT_CHARS = 100_000
+_MAX_BUFFERED = 2_000
+
+
+def _log_flush_failure(task: "asyncio.Task[None]") -> None:
+    if not task.cancelled() and task.exception() is not None:
+        logger.warning("memory capture failed; will retry", exc_info=task.exception())
 
 
 class InputParams(BaseModel):
@@ -71,10 +79,12 @@ class SupermemoryLiveKit:
         self._generated_session = f"session-{uuid4().hex[:12]}"
         self._client = client if client is not None else self._build_client(base_url)
         self._seen: set[str] = set()
-        self._buffer: list[dict[str, str]] = []
+        # Each captured turn keeps the scope it was spoken in, so a rebind cannot move it.
+        self._buffer: list[dict[str, Optional[str]]] = []
         self._lock = asyncio.Lock()
         self._flush_task: Optional[asyncio.Task[None]] = None
         self._recall: Optional[tuple[tuple[Optional[str], str], asyncio.Future[Optional[str]]]] = None
+        self._preloaded: Optional[tuple[str, str]] = None
         self._session: Any = None
         self._shutdown_registered = False
 
@@ -120,8 +130,12 @@ class SupermemoryLiveKit:
                 self.container_tag = scoped
         if session_id:
             self.session_id = str(session_id)
-        if self._buffer and self.container_tag:
-            self._schedule_flush()
+        if self.container_tag:
+            custom_id = self._custom_id()
+            for message in self._buffer:
+                if message["tag"] is None:
+                    message["tag"], message["custom_id"] = self.container_tag, custom_id
+        self._schedule_flush()
 
     def tools(self) -> list[Any]:
         from .tools import build_tools
@@ -130,9 +144,11 @@ class SupermemoryLiveKit:
 
     async def preload(self, chat_ctx: Any) -> bool:
         """Inject the caller profile into the initial chat context. Returns whether anything was added."""
+        tag = self.container_tag
         text = await self._recall_text(query=None)
-        if not text:
+        if not text or tag is None or tag != self.container_tag:
             return False
+        self._preloaded = (tag, text)
         self._inject(chat_ctx, text, created_at=None)
         return True
 
@@ -146,6 +162,8 @@ class SupermemoryLiveKit:
         user = self._last_user_item(chat_ctx)
         if user is not None:
             await self._recall_into(chat_ctx, user)
+        elif not self._preload_matches():
+            self._strip_injected(chat_ctx)
 
     async def on_user_turn_completed(self, turn_ctx: Any, new_message: Any) -> None:
         """Recall from the turn hook, for realtime models that skip ``llm_node``.
@@ -159,23 +177,39 @@ class SupermemoryLiveKit:
         query = message_text(user)
         if not query:
             return
+        tag = self.container_tag
+        # Drop earlier injections first, so a failed recall leaves no memory rather than stale
+        # or foreign memory. The caller's own call-start profile is the fallback.
+        self._strip_injected(chat_ctx)
+        text: Optional[str] = None
         try:
-            text = await self._recall_once(query)
-            if not text:
-                return
-            created_at = getattr(user, "created_at", None)
-            before = created_at - 0.001 if isinstance(created_at, (int, float)) else None
-            self._strip_injected(chat_ctx)
+            text = await self._recall_once(user, query)
+        except Exception:
+            logger.warning("memory recall failed", exc_info=True)
+        if tag != self.container_tag:
+            return
+        if not text and self._preload_matches():
+            text = self._preloaded[1] if self._preloaded else None
+        if not text:
+            return
+        created_at = getattr(user, "created_at", None)
+        before = created_at - 0.001 if isinstance(created_at, (int, float)) else None
+        try:
             self._inject(chat_ctx, text, created_at=before)
         except Exception:
             logger.warning("memory inject failed", exc_info=True)
 
-    async def _recall_once(self, query: str) -> Optional[str]:
-        key = (self.container_tag, query)
+    async def _recall_once(self, user: Any, query: str) -> Optional[str]:
+        # Keyed on the user message, so retries and tool follow-ups of one turn share a recall
+        # while a later turn with the same words recalls again.
+        key = (self.container_tag, str(getattr(user, "id", None) or query))
         if self._recall is None or self._recall[0] != key:
             self._recall = (key, asyncio.ensure_future(self._recall_text(query=query)))
         # A cancelled preemptive generation must not cancel a recall the next attempt reuses.
         return await asyncio.shield(self._recall[1])
+
+    def _preload_matches(self) -> bool:
+        return self._preloaded is not None and self._preloaded[0] == self.container_tag
 
     def attach(
         self,
@@ -241,19 +275,23 @@ class SupermemoryLiveKit:
             return "Memory is not scoped to a caller yet."
         if not text:
             return "Nothing to remember."
+        add = {
+            "content": text,
+            "container_tag": tag,
+            "metadata": {"source": "livekit", "kind": "explicit"},
+        }
         try:
-            await asyncio.wait_for(
-                self._client.add(
-                    content=text,
-                    container_tag=tag,
-                    metadata={"source": "livekit", "kind": "explicit"},
-                    dreaming="instant",
-                ),
-                timeout=4.0,
-            )
-        except Exception:
-            logger.warning("memory remember failed", exc_info=True)
-            return _UNAVAILABLE
+            await asyncio.wait_for(self._client.add(**add, dreaming="instant"), timeout=4.0)
+        except Exception as exc:
+            if getattr(exc, "status_code", None) != 402:
+                logger.warning("memory remember failed", exc_info=True)
+                return _UNAVAILABLE
+            # No balance for instant processing: save it on the default schedule instead.
+            try:
+                await asyncio.wait_for(self._client.add(**add), timeout=4.0)
+            except Exception:
+                logger.warning("memory remember failed", exc_info=True)
+                return _UNAVAILABLE
         return "Saved."
 
     async def forget(self, *, memory_id: str = "", memory_text: str = "") -> str:
@@ -373,7 +411,18 @@ class SupermemoryLiveKit:
         if item_id in self._seen:
             return
         self._seen.add(item_id)
-        self._buffer.append({"role": role, "content": text})
+        tag = self.container_tag
+        self._buffer.append(
+            {
+                "role": role,
+                "content": text,
+                "tag": tag,
+                "custom_id": self._custom_id() if tag else None,
+            }
+        )
+        if len(self._buffer) > _MAX_BUFFERED:
+            del self._buffer[: len(self._buffer) - _MAX_BUFFERED]
+            logger.warning("memory capture buffer full; dropped the oldest turns")
         if role == "assistant":
             self._schedule_flush()
 
@@ -381,7 +430,7 @@ class SupermemoryLiveKit:
         self._schedule_flush()
 
     def _schedule_flush(self) -> None:
-        if self.params.capture != "always" or not self._buffer or not self.container_tag:
+        if self.params.capture != "always" or not self._buffer or self._buffer[0]["tag"] is None:
             return
         try:
             loop = asyncio.get_running_loop()
@@ -390,30 +439,48 @@ class SupermemoryLiveKit:
         if self._flush_task is not None and not self._flush_task.done():
             return
         self._flush_task = loop.create_task(self._flush())
+        self._flush_task.add_done_callback(_log_flush_failure)
 
     async def _flush(self) -> None:
         while True:
             async with self._lock:
-                if self.params.capture != "always" or not self._buffer or not self.container_tag:
+                if self.params.capture != "always":
                     return
-                batch = self._buffer
-                self._buffer = []
+                batch = self._take_batch()
+                if not batch:
+                    return
             try:
-                await self._store(batch)
-            except Exception:
+                await asyncio.wait_for(self._store(batch), timeout=_STORE_TIMEOUT)
+            except BaseException:
                 async with self._lock:
                     self._buffer = batch + self._buffer
                 raise
 
-    async def _store(self, messages: list[dict[str, str]]) -> None:
+    def _take_batch(self) -> list[dict[str, Optional[str]]]:
+        """Take the leading turns that share one scope, capped in size."""
+        if not self._buffer or self._buffer[0]["tag"] is None:
+            return []
+        scope = (self._buffer[0]["tag"], self._buffer[0]["custom_id"])
+        count, size = 0, 0
+        for message in self._buffer:
+            length = len(message["content"] or "")
+            if (message["tag"], message["custom_id"]) != scope:
+                break
+            if count and size + length > _MAX_DOCUMENT_CHARS:
+                break
+            count, size = count + 1, size + length
+        batch, self._buffer = self._buffer[:count], self._buffer[count:]
+        return batch
+
+    async def _store(self, messages: list[dict[str, Optional[str]]]) -> None:
         lines = [
             f"{'User' if message['role'] == 'user' else 'Assistant'}: {message['content']}"
             for message in messages
         ]
         await self._client.add(
             content="\n".join(lines),
-            container_tag=self.container_tag,
-            custom_id=self._custom_id(),
+            container_tag=messages[0]["tag"],
+            custom_id=messages[0]["custom_id"],
             metadata={"source": "livekit", "kind": "conversation"},
             dreaming=self.params.capture_dreaming,
         )

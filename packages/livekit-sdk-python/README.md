@@ -95,9 +95,9 @@ memory = SupermemoryLiveKit(
         mode="full",            # "profile" | "query" | "full"
         search_limit=10,
         search_threshold=0.1,
-        recall_timeout=2.0,     # seconds; a slow recall is skipped
+        recall_timeout=2.0,     # seconds; a slow recall falls back to the preloaded profile
         capture="always",       # "always" | "never"
-        capture_dreaming="dynamic",  # "dynamic" | "instant" (ready within a minute, extra operation)
+        capture_dreaming="dynamic",  # see "When a call becomes recallable" below
     ),
 )
 ```
@@ -108,7 +108,11 @@ memory = SupermemoryLiveKit(
 | `query` | No | Yes | You only need memories related to this turn |
 | `full` | Yes | Yes | Default |
 
-One call is stored as a single document under custom id `lk-<session_id>`, so a reconnect with the same session id updates that document instead of creating another. Explicit `remember` calls are separate facts, processed right away so the next call can recall them, and are not tied to the call document.
+One call is stored as a single document under custom id `lk-<session_id>`, so a reconnect with the same session id updates that document instead of creating another. Explicit `remember` calls are separate facts, processed immediately (usually recallable within a minute), and are not tied to the call document.
+
+### When a call becomes recallable
+
+With the default `capture_dreaming="dynamic"`, a captured call took 10 to 20 minutes to become memories in our tests, so a caller who rings back right away is not recalled from the last call yet. `capture_dreaming="instant"` is usually ready within a minute but bills one extra operation per write, and the call is written after every agent reply. In both modes `search_memories` finds the raw call text as soon as it is stored.
 
 ## Links
 

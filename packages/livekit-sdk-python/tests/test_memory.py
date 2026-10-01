@@ -7,6 +7,7 @@ import unittest
 from types import SimpleNamespace
 
 from supermemory_livekit import ConfigurationError, InputParams, SupermemoryLiveKit
+from supermemory_livekit import memory as memory_module
 from supermemory_livekit.identifiers import to_identifier
 from supermemory_livekit.utils import format_tool_results, is_injected_memory, wrap_memory
 
@@ -213,7 +214,7 @@ class MemoryTests(unittest.TestCase):
             first, second = ChatCtx(), ChatCtx()
             for ctx in (first, second):
                 ctx.add_message(role="user", content="hi, first time calling", created_at=5.0)
-            # A preemptive attempt is cancelled while the retry reuses its recall.
+            # A cancelled attempt must not cancel the recall a follow-up of the same turn reuses.
             preemptive = asyncio.ensure_future(plugin.enrich(first))
             await asyncio.sleep(0.01)
             preemptive.cancel()
@@ -223,6 +224,56 @@ class MemoryTests(unittest.TestCase):
         asyncio.run(run())
 
         self.assertEqual(len(client.profile.calls), 1)
+
+    def test_same_words_in_a_later_turn_recall_again(self):
+        client = FakeClient(FakeProfile(static=["Name is Ada"]))
+        plugin = memory(client, container_tag="user_1")
+        ctx = ChatCtx()
+
+        ctx.add_message(role="user", content="what's my name?", created_at=1.0)
+        asyncio.run(plugin.enrich(ctx))
+        ctx.add_message(role="user", content="what's my name?", created_at=2.0)
+        asyncio.run(plugin.enrich(ctx))
+
+        self.assertEqual(len(client.profile.calls), 2)
+
+    def test_failed_recall_never_shows_another_callers_memory(self):
+        class ScopedProfile:
+            def __init__(self):
+                self.calls = []
+
+            async def __call__(self, **kwargs):
+                self.calls.append(kwargs)
+                if kwargs["container_tag"] == "bob":
+                    raise RuntimeError("down")
+                return SimpleNamespace(
+                    profile=SimpleNamespace(static=["Alice's door code is 4471"], dynamic=[]),
+                    search_results=SimpleNamespace(results=[]),
+                )
+
+        plugin = memory(FakeClient(ScopedProfile()), container_tag="alice")
+        ctx = ChatCtx()
+        asyncio.run(plugin.preload(ctx))
+        plugin.bind(container_tag="bob")
+        ctx.add_message(role="user", content="what's my door code?", created_at=50.0)
+
+        asyncio.run(plugin.enrich(ctx))
+
+        self.assertFalse(any("4471" in item.content for item in ctx.items))
+
+    def test_slow_recall_falls_back_to_the_callers_call_start_profile(self):
+        profile = FakeProfile(static=["Name is Ada"])
+        plugin = memory(FakeClient(profile), container_tag="user_1", params=InputParams(recall_timeout=0.01))
+        ctx = ChatCtx()
+        asyncio.run(plugin.preload(ctx))
+        profile.delay = 0.05
+        ctx.add_message(role="user", content="what's my name?", created_at=50.0)
+
+        asyncio.run(plugin.enrich(ctx))
+
+        injected = [item for item in ctx.items if is_injected_memory(item.content)]
+        self.assertEqual(len(injected), 1)
+        self.assertIn("Name is Ada", injected[0].content)
 
     def test_new_user_message_recalls_again(self):
         client = FakeClient(FakeProfile(static=["Name is Ada"]))
@@ -396,6 +447,86 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(client.memories.calls[0]["id"], "mem_1")
         self.assertEqual(client.memories.calls[0]["container_tag"], "user_1")
         self.assertIn("memory id", missing)
+
+    def test_remember_falls_back_when_instant_is_not_available(self):
+        class NoBalance(Exception):
+            status_code = 402
+
+        client = FakeClient()
+        original = client.add
+
+        async def add(**kwargs):
+            if kwargs.get("dreaming") == "instant":
+                raise NoBalance("insufficient_balance")
+            return await original(**kwargs)
+
+        client.add = add
+        plugin = memory(client, container_tag="user_1")
+
+        self.assertEqual(asyncio.run(plugin.remember("Likes tea")), "Saved.")
+        self.assertEqual(len(client.added), 1)
+        self.assertNotIn("dreaming", client.added[0])
+
+    def test_rebind_keeps_captured_turns_in_the_callers_scope(self):
+        client = FakeClient()
+        plugin = memory(client, session_id="room-1")
+        session = Session()
+        plugin.attach(session)
+
+        def say(item_id, role, text):
+            item = SimpleNamespace(id=item_id, role=role, text_content=text)
+            session.emit("conversation_item_added", SimpleNamespace(item=item))
+
+        say("u0", "user", "hello before we know who you are")
+        plugin.bind(container_tag="alice")
+        say("u1", "user", "Alice secret: door code 4471")
+        plugin.bind(container_tag="bob")
+        say("u2", "user", "Bob here")
+        asyncio.run(plugin.aclose())
+
+        stored = {call["container_tag"]: call["content"] for call in client.added}
+        self.assertEqual(set(stored), {"alice", "bob"})
+        self.assertIn("4471", stored["alice"])
+        self.assertIn("hello before we know who you are", stored["alice"])
+        self.assertNotIn("4471", stored["bob"])
+
+    def test_hung_store_times_out_and_keeps_the_turns(self):
+        client = FakeClient()
+
+        async def hang(**kwargs):
+            await asyncio.sleep(60)
+
+        client.add = hang
+        plugin = memory(client, container_tag="user_1", session_id="room-3")
+        session = Session()
+        plugin.attach(session)
+        session.emit(
+            "conversation_item_added",
+            SimpleNamespace(item=SimpleNamespace(id="u1", role="user", text_content="keep me")),
+        )
+
+        original = memory_module._STORE_TIMEOUT
+        memory_module._STORE_TIMEOUT = 0.01
+        try:
+            asyncio.run(asyncio.wait_for(plugin.aclose(), timeout=2))
+        finally:
+            memory_module._STORE_TIMEOUT = original
+
+        self.assertEqual([m["content"] for m in plugin._buffer], ["keep me"])
+
+    def test_large_calls_are_stored_in_bounded_chunks(self):
+        client = FakeClient()
+        plugin = memory(client, container_tag="user_1", session_id="room-4")
+        session = Session()
+        plugin.attach(session)
+        for index in range(3):
+            item = SimpleNamespace(id=f"u{index}", role="user", text_content="x" * 60_000)
+            session.emit("conversation_item_added", SimpleNamespace(item=item))
+
+        asyncio.run(plugin.aclose())
+
+        self.assertEqual(len(client.added), 3)
+        self.assertEqual({call["custom_id"] for call in client.added}, {to_identifier("lk-room-4")})
 
     def test_unscoped_tools_do_not_call_the_api(self):
         client = FakeClient()

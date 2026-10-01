@@ -27,7 +27,7 @@ In the browser: run `python voice_agent.py dev`, open the [Agents Playground](ht
 
 1. Say "My name is Priya, and please remember I'm vegetarian."
 2. Hang up and start a new call.
-3. The agent greets you by name. Ask "What should I order for dinner?"
+3. The agent welcomes you back. Ask "What should I order for dinner?"
 
 Memory is scoped per caller:
 
@@ -35,4 +35,4 @@ Memory is scoped per caller:
 - In rooms, the agent uses the participant attribute `supermemory_container_tag`, or else the participant identity. The Playground gives each session a new identity, so set `SUPERMEMORY_CONTAINER_TAG` in `.env` to keep one caller across Playground calls.
 - In production, dispatch the agent from your backend with `{"container_tag": "<your user id>"}` as job metadata, and set `LIVEKIT_AGENT_NAME`.
 
-Each call is stored as one document, and facts the caller asks it to remember are saved right away. See the [integration docs](https://supermemory.ai/docs/integrations/livekit) for configuration.
+Each call is stored as one document. Facts the caller asks it to remember are usually recallable within a minute; the rest of the call takes longer, see [when a call becomes recallable](https://supermemory.ai/docs/integrations/livekit#when-a-call-becomes-recallable). See the [integration docs](https://supermemory.ai/docs/integrations/livekit) for configuration.
