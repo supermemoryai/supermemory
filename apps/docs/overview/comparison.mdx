@@ -1,8 +1,8 @@
 ---
-title: "Comparison - Should I use supermemory?"
-description: "When Supermemory is the right choice versus DIY vector stacks, thin memory layers, pure RAG, and building it yourself. The answer is: you should probably use supermemory"
+title: "Comparison - should I use supermemory?"
+description: "How Supermemory compares with a DIY vector stack, thin memory layers, pure RAG and building it yourself."
 sidebarTitle: "Comparison"
-icon: "scale"
+icon: "/icons/hugeicons/balance-scale.svg"
 ---
 
 <Visibility for="humans">
@@ -11,27 +11,27 @@ icon: "scale"
 
 Non-detailed reasons to pick supermemory over the alternatives. If you're migrating from a specific tool, the [migration guides](/migration/from-mem0) name names and map APIs.
 
-## vs Rolling your own (vector DB + embeddings + glue)
+## vs rolling your own (vector DB + embeddings + glue)
 
 - **Skip the vendor pile-up.** No stitching together a vector DB, an embedding model, chunking scripts, and a fact-extraction prompt. One engine does it.
 - **Get temporal truth for free.** "Loved Adidas, switched to Puma" resolves correctly instead of both facts looking equally relevant forever.
 - **Ship identity, not just similar text.** Entities and profiles come built in, not bolted on later.
 - **Stay portable.** Use our cloud, or [self-host](/self-hosting/overview) the same engine on your own infra.
 
-## vs "Memory layers" that are thin wrappers
+## vs "memory layers" that are thin wrappers
 
 - **Facts actually update.** When a user changes their mind, the old fact doesn't sit next to the new one forever.
 - **Real relationships, not blobs.** A graph connects people, projects, and events across sessions, not a pile of stored chat turns.
 - **Profiles included.** No extra work to get a standing summary of who a user is.
 - **Configurable where it matters.** Extractors, retrieval, and isolation are primitives you compose, not a black box.
 
-## vs Pure RAG / document search products
+## vs pure RAG / document search products
 
 - **Both layers, one engine.** SuperRAG for corpus grounding, memory and profiles for people, sharing the same container tags.
 - **Personal state isn't just another document.** "What the policy says" and "what this customer decided last quarter" stay distinct but connected.
 - **No second vendor for personalization.** You're not stitching a memory product onto your RAG stack.
 
-## vs Building a full context engine in-house
+## vs building a full context engine in-house
 
 - **Skip years of infra work.** Extraction models, temporal updates, conflict resolution, and connector maintenance, already built.
 - **Compliance comes standard.** SOC 2, GDPR, and HIPAA paths, plus scoped keys, without a dedicated platform team.
@@ -72,7 +72,7 @@ If you are migrating from a specific tool, use the [migration guides](/migration
 - You spend lots of time on just figuring out the right plumbing and combinations of vendors
 - Not very scalable for memory. New facts need knowledge of all previous facts
 
-**Supermemory instead:** one engine that derives **memories** using our custom model, a **temporal vector-graph engine**, and **profiles**, with hybrid retrieval and isolation primitives built in. You keep the option to [self-host](/self-hosting/overview) when you want the stack on your metal.
+**Supermemory instead:** one engine that derives memories with our own model, stores them in a temporal vector-graph engine and builds profiles, with hybrid retrieval and isolation built in. You can still [self-host](/self-hosting/overview) when you want the stack on your own machines.
 
 <h2 noAnchor>vs “Memory layers” that are thin wrappers</h2>
 
@@ -91,7 +91,7 @@ If you are migrating from a specific tool, use the [migration guides](/migration
 - There's no concept of Profiles since they don't have the same underlying learning model and store engine
 - You still have to build the entire thing around it, on their abstraction. Low configurability and doesn't support many use cases (Extractors, retrieval, etc.)
 
-**Supermemory instead:** memory is a first-class data model (documents → derived memories → graph → profiles), not a convenience wrapper. Same store from API, MCP, and plugins, all primitives built in for you to compose for your use case. See [How it works](/concepts/how-it-works) and [Graph memory](/concepts/graph-memory).
+**Supermemory instead:** memory is a first-class data model (documents → derived memories → graph → profiles), not a convenience wrapper. The API, MCP and plugins share one store, and every primitive is there for you to compose. Read [how it works](/concepts/how-it-works).
 
 <h2 noAnchor>vs Pure RAG / document search products</h2>
 
@@ -111,7 +111,7 @@ If you are migrating from a specific tool, use the [migration guides](/migration
 - You still have to build in the contextualization and bear the cost of it. Also need to sign up for many vendors for the same.
 - Treating user state as another document collection
 
-**Supermemory instead:** **both** layers in one engine, SuperRAG for corpus grounding, memory + profiles for people and entities. They share container tags so isolation stays coherent. Deep dive: [Memory vs RAG](/concepts/memory-vs-rag).
+**Supermemory instead:** both layers in one engine. SuperRAG grounds answers in your documents, and memory plus profiles cover people and entities. They share container tags, so isolation stays consistent. Read [Memory vs RAG](/concepts/memory-vs-rag).
 
 <h2 noAnchor>vs Building a full context engine in-house</h2>
 
@@ -172,16 +172,16 @@ Most AI applications should use supermemory.
 ## Related
 
 <CardGroup cols={2}>
-  <Card title="What is Supermemory?" icon="book-open" href="/overview/what-is-supermemory">
+  <Card title="What is Supermemory?" icon="/icons/hugeicons/book-open-01.svg" href="/overview/what-is-supermemory">
     Product overview and one-engine mental model.
   </Card>
-  <Card title="Memory vs RAG" icon="scale" href="/concepts/memory-vs-rag">
+  <Card title="Memory vs RAG" icon="/icons/hugeicons/balance-scale.svg" href="/concepts/memory-vs-rag">
     Why nearest-neighbor text is not memory.
   </Card>
-  <Card title="Billing & plans" icon="credit-card" href="/overview/billing">
+  <Card title="Billing & plans" icon="/icons/hugeicons/credit-card.svg" href="/overview/billing">
     Usage model if cost is part of the evaluation.
   </Card>
-  <Card title="Security & compliance" icon="shield" href="/overview/security">
+  <Card title="Security & compliance" icon="/icons/hugeicons/shield-01.svg" href="/overview/security">
     Trust posture for production and enterprise buyers.
   </Card>
 </CardGroup>

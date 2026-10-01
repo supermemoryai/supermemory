@@ -2,7 +2,7 @@
 title: "SMFS"
 sidebarTitle: "Overview"
 description: "Memory your agent can grep."
-icon: "database"
+icon: "/icons/hugeicons/database-01.svg"
 ---
 
 **SMFS** mounts your Supermemory container as a real directory. Agents read it with `ls`, `cat`, and `grep`. No SDK to learn, no client to wire up, no embeddings to think about.
@@ -29,10 +29,10 @@ You get filesystem ergonomics without paying the filesystem tax in tokens.
 Pick by where your agent runs.
 
 <CardGroup cols={2}>
-  <Card title="Mount (smfs binary)" icon="hard-drive" href="/smfs/install">
+  <Card title="Mount (smfs binary)" icon="/icons/hugeicons/hard-drive.svg" href="/smfs/install">
     For agents and tools with a real filesystem. Claude Code, Cursor, devcontainers, Docker, Codespaces. NFSv3 on macOS, FUSE on Linux.
   </Card>
-  <Card title="Bash Tool (TypeScript & Python)" icon="terminal" href="/smfs/bash-tool">
+  <Card title="Bash tool (TypeScript & Python)" icon="/icons/hugeicons/command-line.svg" href="/smfs/bash-tool">
     For agents running serverless or at the edge. Cloudflare Workers, AWS Lambda, Vercel, Modal. A virtual bash where the filesystem is your container. Available as [`@supermemory/bash`](/smfs/bash-tool) for TypeScript and [`supermemory-bash`](/smfs/bash-tool-python) for Python.
   </Card>
 </CardGroup>
@@ -42,16 +42,16 @@ Pick by where your agent runs.
 Already using a sandbox or agent platform? Jump straight to the guide for your provider.
 
 <CardGroup cols={2}>
-  <Card title="Daytona" icon="server" href="/smfs/providers/daytona">
+  <Card title="Daytona" icon="/icons/hugeicons/server-stack-01.svg" href="/smfs/providers/daytona">
     Isolated Linux sandboxes with millisecond boot times. Mount SMFS inside or use the bash tool from your orchestrating code.
   </Card>
-  <Card title="E2B" icon="cube" href="/smfs/providers/e2b">
+  <Card title="E2B" icon="/icons/hugeicons/cube.svg" href="/smfs/providers/e2b">
     Firecracker microVMs for AI code execution. Install SMFS directly or use a custom template with it pre-installed.
   </Card>
-  <Card title="Vercel AI SDK" icon="triangle" href="/smfs/providers/vercel">
+  <Card title="Vercel AI SDK" icon="/icons/hugeicons/triangle.svg" href="/smfs/providers/vercel">
     The most popular TypeScript agent framework. Add memory as a tool with one function call.
   </Card>
-  <Card title="Cloudflare Workers" icon="cloud" href="/smfs/providers/cloudflare">
+  <Card title="Cloudflare Workers" icon="/icons/hugeicons/cloud.svg" href="/smfs/providers/cloudflare">
     Edge-first agents. Use the bash tool in Workers, or mount SMFS in Cloudflare Containers.
   </Card>
 </CardGroup>
@@ -59,13 +59,13 @@ Already using a sandbox or agent platform? Jump straight to the guide for your p
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Install SMFS" icon="download" href="/smfs/install">
+  <Card title="Install SMFS" icon="/icons/hugeicons/download-01.svg" href="/smfs/install">
     One curl, one mount, you're done.
   </Card>
-  <Card title="Use the Bash Tool" icon="terminal" href="/smfs/bash-tool">
+  <Card title="Use the Bash tool" icon="/icons/hugeicons/command-line.svg" href="/smfs/bash-tool">
     Drop SMFS into a TypeScript or Python agent without mounting anything.
   </Card>
-  <Card title="Examples" icon="code" href="/smfs/examples">
+  <Card title="Examples" icon="/icons/hugeicons/source-code.svg" href="/smfs/examples">
     Full working apps you can clone and run — legal docs, support agents, and more.
   </Card>
 </CardGroup>

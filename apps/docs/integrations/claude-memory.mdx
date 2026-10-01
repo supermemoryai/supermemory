@@ -17,7 +17,7 @@ This integration works with Claude's built-in `memory` tool type, introduced in 
 npm install @supermemory/tools @anthropic-ai/sdk
 ```
 
-## Quick Start
+## Quick start
 
 ```typescript
 import Anthropic from "@anthropic-ai/sdk"
@@ -98,7 +98,7 @@ const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 })
 ```
 
-## How It Works
+## How it works
 
 Claude's memory tool uses a file-system metaphor. Supermemory maps these operations to document storage:
 
@@ -111,7 +111,7 @@ Claude's memory tool uses a file-system metaphor. Supermemory maps these operati
 | `delete` | Delete document |
 | `rename` | Move document to new path |
 
-### Memory Path Structure
+### Memory path structure
 
 All memory paths must start with `/memories/`:
 
@@ -125,9 +125,9 @@ All memory paths must start with `/memories/`:
 Paths are normalized for storage: `/memories/preferences` is stored as `--memories--preferences`.
 </Note>
 
-## Commands Reference
+## Commands reference
 
-### View (Read/List)
+### View (read/list)
 
 ```typescript
 // List directory contents
@@ -150,7 +150,7 @@ Paths are normalized for storage: `/memories/preferences` is stored as `--memori
 }
 ```
 
-### String Replace
+### String replace
 
 ```typescript
 {
@@ -188,7 +188,7 @@ Paths are normalized for storage: `/memories/preferences` is stored as `--memori
 }
 ```
 
-## Complete Example
+## Complete example
 
 ```typescript
 import Anthropic from "@anthropic-ai/sdk"
@@ -253,14 +253,14 @@ async function runConversation() {
 runConversation()
 ```
 
-## Environment Variables
+## Environment variables
 
 ```bash
 SUPERMEMORY_API_KEY=your_supermemory_key
 ANTHROPIC_API_KEY=your_anthropic_key
 ```
 
-## Comparison with Other Approaches
+## Comparison with other approaches
 
 | Feature | Claude Memory Tool | OpenAI SDK Tools | AI SDK Tools |
 |---------|-------------------|------------------|--------------|
@@ -269,14 +269,14 @@ ANTHROPIC_API_KEY=your_anthropic_key
 | Path organization | ✅ Hierarchical | ❌ Tags only | ❌ Tags only |
 | Integration | Anthropic SDK only | OpenAI SDK only | Vercel AI SDK |
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="AI SDK Integration" icon="triangle" href="/integrations/ai-sdk">
+  <Card title="AI SDK integration" icon="/icons/hugeicons/triangle.svg" href="/integrations/ai-sdk">
     Use with Vercel AI SDK for streamlined development
   </Card>
 
-  <Card title="OpenAI SDK" icon="bolt" href="/integrations/openai">
+  <Card title="OpenAI SDK" icon="/icons/hugeicons/flash.svg" href="/integrations/openai">
     Memory tools for OpenAI function calling
   </Card>
 </CardGroup>

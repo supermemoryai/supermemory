@@ -11,7 +11,7 @@ Integrate Supermemory with [Mastra](https://mastra.ai) to give your AI agents pe
   Migrating to v2 from 1.4.x? Check the [migration guide](/migration/tools-v2-upgrade).
 </Note>
 
-<Card title="@supermemory/tools on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/tools">
+<Card title="@supermemory/tools on npm" icon="/icons/hugeicons/package.svg" href="https://www.npmjs.com/package/@supermemory/tools">
     Check out the NPM page for more details
 </Card>
 
@@ -21,7 +21,7 @@ Integrate Supermemory with [Mastra](https://mastra.ai) to give your AI agents pe
 npm install @supermemory/tools @mastra/core
 ```
 
-## Quick Start
+## Quick start
 
 Wrap your agent config with `withSupermemory` to add memory capabilities:
 
@@ -65,7 +65,7 @@ const response = await agent.generate("What do you know about me?")
 
 ---
 
-## How It Works
+## How it works
 
 The Mastra integration uses Mastra's native [Processor](https://mastra.ai/docs/agents/processors) interface:
 
@@ -95,7 +95,7 @@ sequenceDiagram
 
 ---
 
-## Configuration Options
+## Configuration options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -110,7 +110,7 @@ sequenceDiagram
 
 ---
 
-## Memory Search Modes
+## Memory search modes
 
 **Profile Mode (Default)** - Retrieves the user's complete profile without query-based filtering:
 
@@ -476,11 +476,11 @@ const agent = new Agent(withSupermemory(
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Vercel AI SDK" icon="triangle" href="/integrations/ai-sdk">
+  <Card title="Vercel AI SDK" icon="/icons/hugeicons/triangle.svg" href="/integrations/ai-sdk">
     Use with Vercel AI SDK for streamlined development
   </Card>
 
-  <Card title="User Profiles" icon="user" href="/recall/user-profiles">
+  <Card title="User Profiles" icon="/icons/hugeicons/user.svg" href="/recall/user-profiles">
     Learn about user profile management
   </Card>
 </CardGroup>

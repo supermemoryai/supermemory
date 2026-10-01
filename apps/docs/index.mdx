@@ -4,86 +4,112 @@ description: "Context infrastructure for AI agents"
 mode: "custom"
 ---
 
-export const HeroCard = ({ title, description, href, children }) => {
-  return (
-    <a
-      className="group flex flex-col h-full rounded-2xl overflow-hidden bg-white dark:bg-zinc-950 border border-gray-200/80 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-300"
-      href={href}
-    >
-      <div className="overflow-hidden bg-gray-50 dark:bg-zinc-900 border-b border-gray-100 dark:border-zinc-800">
-        {children}
-      </div>
-      <div className="flex flex-col gap-2 p-6 sm:p-7">
-        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-zinc-50 tracking-tight">
-          {title}
-        </h3>
-        <p className="text-[15px] leading-relaxed text-gray-600 dark:text-zinc-400">
-          {description}
-        </p>
-      </div>
+import { AGENT_PROMPT } from "/snippets/agent-prompt.jsx"
+import { HERO_TS, HERO_PY, HERO_CURL } from "/snippets/hero-samples.jsx"
+import { AgentMarks, CopyPromptButton, PromptPanel } from "/snippets/agent-prompt-panel.jsx"
+
+export const HomeLink = ({ href, icon, children }) => (
+  <a className="sm-home-link" href={href}>
+    <span className="sm-home-link-icon"><Icon icon={icon} size={12} /></span>
+    <span>{children}</span>
+  </a>
+)
+
+export const PathCard = ({ title, description, href, image, children }) => (
+  <div className="sm-home-card">
+    <a className="sm-home-card-media" href={href} aria-label={title}>
+      <img src={image} alt="" />
     </a>
-  )
-}
-
-<div className="relative overflow-hidden">
-  <div className="relative px-4 sm:px-6 pt-16 sm:pt-20 lg:pt-24 pb-20 max-w-5xl mx-auto">
-    <div className="max-w-2xl">
-      <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-semibold text-gray-900 dark:text-zinc-50 tracking-tight leading-[1.1]">
-        supermemory
-      </h1>
-      <p className="mt-5 text-lg sm:text-xl text-gray-600 dark:text-zinc-400 leading-relaxed">
-        Context infrastructure for AI agents. Use it with the API, your tools, your team, or run it yourself.
-      </p>
-      <div className="mt-8 flex flex-wrap items-center gap-3">
-        <a
-          href="/concepts/how-it-works"
-          className="inline-flex items-center justify-center rounded-lg bg-gray-900 dark:bg-zinc-100 px-4 py-2.5 text-sm font-medium text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-white transition-colors"
-        >
-          Architecture
-        </a>
-        <a
-          href="/quickstart"
-          className="inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-4 py-2.5 text-sm font-medium text-gray-900 dark:text-zinc-100 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
-        >
-          Quickstart
-        </a>
-      </div>
-    </div>
-
-    <div className="mt-12 sm:mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-      <HeroCard
-        title="Developer platform"
-        description="API reference, concepts, and SDKs"
-        href="/overview/what-is-supermemory"
-      >
-        <img
-          src="/images/intro-developer-platform.jpg"
-          className="w-full h-56 sm:h-64 object-cover transform group-hover:scale-[1.03] transition-transform duration-500"
-          alt="Developer platform"
-        />
-      </HeroCard>
-      <HeroCard
-        title="Plugins and MCP"
-        description="Drop memory into Claude and coding agents"
-        href="/supermemory-mcp/mcp"
-      >
-        <img
-          src="/images/intro-plugins.jpg"
-          className="w-full h-56 sm:h-64 object-cover transform group-hover:scale-[1.03] transition-transform duration-500"
-          alt="Plugins and MCP"
-        />
-      </HeroCard>
-      <HeroCard
-        title="Self-hosting"
-        description="Run it locally with zero config"
-        href="/self-hosting/overview"
-      >
-        <img
-          src="/images/intro-developer-platform.png"
-          className="w-full h-56 sm:h-64 object-cover transform group-hover:scale-[1.03] transition-transform duration-500"
-          alt="Self-hosting"
-        />
-      </HeroCard>
+    <div className="sm-home-card-body">
+      <a className="sm-home-card-title" href={href}>{title}</a>
+      <p className="sm-home-card-desc">{description}</p>
+      <div className="sm-home-links">{children}</div>
     </div>
   </div>
+)
+
+export const ListCard = ({ title, children }) => (
+  <div className="sm-home-card sm-home-list-card">
+    <div className="sm-home-card-body">
+      <div className="sm-home-card-title">{title}</div>
+      <div className="sm-home-links">{children}</div>
+    </div>
+  </div>
+)
+
+<div className="sm-home">
+
+  <section className="sm-home-hero">
+    <div className="sm-home-hero-copy">
+      <h1 className="sm-home-title sm-home-title-split">
+        <span>Memory and continual learning</span> <span className="sm-home-title-muted">for the world’s best agents.</span>
+      </h1>
+      <p className="sm-home-lede">
+        Supermemory gives your agent long-term memory of every user. Paste one prompt into your coding agent and it wires memory into your project.
+      </p>
+      <div className="sm-home-actions">
+        <CopyPromptButton prompt={AGENT_PROMPT} label="Copy prompt" copiedLabel="Copied" className="sm-home-btn sm-home-btn-primary" />
+        <a href="/quickstart" className="sm-home-btn sm-home-btn-secondary">Read the quickstart</a>
+      </div>
+      <AgentMarks />
+    </div>
+    <div className="sm-home-sample not-prose">
+      <PromptPanel
+        tabs={[
+          { label: "setup-prompt.md", text: AGENT_PROMPT, kind: "prompt" },
+          { label: "TypeScript", text: HERO_TS, kind: "code" },
+          { label: "Python", text: HERO_PY, kind: "code" },
+          { label: "curl", text: HERO_CURL, kind: "code" },
+        ]}
+      />
+    </div>
+  </section>
+
+  <section className="sm-home-section">
+    <p className="sm-home-label">Platform</p>
+    <h2 className="sm-home-heading">Choose how you use supermemory</h2>
+    <p className="sm-home-sub">Start with the path that fits your app and your team.</p>
+    <div className="sm-home-grid sm-home-grid-3">
+      <PathCard title="Developer platform" description="API reference, concepts, and SDKs" href="/overview/what-is-supermemory" image="/images/intro-developer-platform.jpg">
+        <HomeLink href="/quickstart" icon="/icons/hugeicons/play-circle.svg">Quickstart</HomeLink>
+        <HomeLink href="/concepts/how-it-works" icon="/icons/hugeicons/layers-01.svg">How it works</HomeLink>
+        <HomeLink href="/api-reference/overview" icon="/icons/hugeicons/source-code.svg">API reference</HomeLink>
+      </PathCard>
+      <PathCard title="Plugins and MCP" description="Drop memory into Claude and coding agents" href="/supermemory-mcp/mcp" image="/images/intro-plugins.jpg">
+        <HomeLink href="/supermemory-mcp/mcp" icon="/icons/hugeicons/plug-01.svg">Supermemory MCP</HomeLink>
+        <HomeLink href="/integrations/claude-code" icon="/icons/hugeicons/command-line.svg">Claude Code</HomeLink>
+        <HomeLink href="/integrations/cursor" icon="/icons/hugeicons/cursor-01.svg">Cursor</HomeLink>
+      </PathCard>
+      <PathCard title="Self-hosting" description="Run it locally with zero config" href="/self-hosting/overview" image="/images/intro-developer-platform.png">
+        <HomeLink href="/self-hosting/quickstart" icon="/icons/hugeicons/play-circle.svg">Local quickstart</HomeLink>
+        <HomeLink href="/self-hosting/configuration" icon="/icons/hugeicons/sliders-horizontal.svg">Configuration</HomeLink>
+        <HomeLink href="/self-hosting/providers" icon="/icons/hugeicons/server-stack-01.svg">Model providers</HomeLink>
+      </PathCard>
+    </div>
+  </section>
+
+  <section className="sm-home-section">
+    <p className="sm-home-label">Products</p>
+    <h2 className="sm-home-heading">Explore features</h2>
+    <p className="sm-home-sub">Browse memory, retrieval, profiles, and connectors.</p>
+    <div className="sm-home-grid sm-home-grid-2">
+      <ListCard title="Memory and retrieval">
+        <HomeLink href="/concepts/graph-memory" icon="/icons/hugeicons/brain-01.svg">Graph memory</HomeLink>
+        <HomeLink href="/concepts/super-rag" icon="/icons/hugeicons/search-01.svg">SuperRAG</HomeLink>
+        <HomeLink href="/recall/search" icon="/icons/hugeicons/file-search.svg">Search memories</HomeLink>
+        <HomeLink href="/concepts/user-profiles" icon="/icons/hugeicons/user.svg">User profiles</HomeLink>
+        <HomeLink href="/concepts/filtering" icon="/icons/hugeicons/filter.svg">Filtering</HomeLink>
+        <HomeLink href="/concepts/memory-vs-rag" icon="/icons/hugeicons/balance-scale.svg">Memory vs RAG</HomeLink>
+      </ListCard>
+      <ListCard title="Build and connect">
+        <HomeLink href="/ingestion/add-memories" icon="/icons/hugeicons/plus-sign.svg">Add memories</HomeLink>
+        <HomeLink href="/connectors/overview" icon="/icons/hugeicons/plug-01.svg">Connectors</HomeLink>
+        <HomeLink href="/smfs/overview" icon="/icons/hugeicons/folder-01.svg">SMFS</HomeLink>
+        <HomeLink href="/concepts/container-tags" icon="/icons/hugeicons/tag-01.svg">Container tags</HomeLink>
+        <HomeLink href="/concepts/customization" icon="/icons/hugeicons/sliders-horizontal.svg">Customization</HomeLink>
+        <HomeLink href="/migration/from-mem0" icon="/icons/hugeicons/arrow-data-transfer-horizontal.svg">Migrate from mem0</HomeLink>
+      </ListCard>
+    </div>
+  </section>
+
 </div>

@@ -1,8 +1,8 @@
 ---
-title: "Self-Hosting Configuration"
+title: "Self-hosting configuration"
 sidebarTitle: "Configuration"
 description: "Every environment variable the self-hosted server understands."
-icon: "settings"
+icon: "/icons/hugeicons/settings-01.svg"
 ---
 
 The self-hosted server aims for **zero configuration** — the only required input is one LLM provider key, which the first-boot wizard collects interactively (or set via env var for non-interactive deployments). Embeddings default to local English; you can pick another provider in the optional wizard step or via env. Everything else below is opt-in.
@@ -65,7 +65,7 @@ Nothing to configure. Uploaded files (PDFs, images) are stored on local disk ins
 
 By default, vectors are computed locally with `Xenova/bge-base-en-v1.5` (768d) — no embedding API key. On interactive first boot you can pick a different provider after the LLM key step; for Docker/CI set env vars instead.
 
-Full provider table, multilingual guidance, remote examples (OpenAI / Gemini / Ollama), and the re-ingestion / dimension-lock warning: **[Embeddings (self-hosted)](/self-hosting/embeddings)**.
+The full provider table, multilingual guidance, remote examples (OpenAI, Gemini, Ollama) and the dimension-lock warning are in [embeddings for self-hosting](/self-hosting/embeddings).
 
 | Variable | Purpose | Default |
 |---|---|---|

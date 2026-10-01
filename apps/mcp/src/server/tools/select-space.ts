@@ -11,7 +11,7 @@ export function register(deps: ToolDeps) {
 		{
 			title: "Select Space",
 			description:
-				"Open an interactive picker to choose or change the active Supermemory space used for future actions. Use this only when the user asks to switch, select, or change their active or default space. Do not use it merely because the user names a space for a search, list, graph, save, or upload; resolve that space with listSpaces and pass containerTag to the relevant tool instead.",
+				"Open an interactive picker to choose or change the active Supermemory space used for future actions. Use this only when the user asks to switch, select, or change their active or default space. Do not use it merely because the user names a space for a search, list, graph, save, or upload; resolve that space with list_spaces and pass containerTag to the relevant tool instead.",
 			inputSchema: z.object({}),
 			outputSchema: pickerViewSchema,
 			_meta: appToolMeta(),

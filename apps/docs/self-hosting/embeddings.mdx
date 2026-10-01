@@ -1,8 +1,8 @@
 ---
 title: "Embeddings (self-hosted)"
 sidebarTitle: "Embeddings"
-description: "Local and remote embedding providers for Supermemory local — defaults, env vars, multilingual options, and dimension lock."
-icon: "waypoints"
+description: "Local and remote embedding providers for Supermemory local: defaults, env vars, multilingual options and dimension lock."
+icon: "/icons/hugeicons/route-02.svg"
 ---
 
 Self-hosted Supermemory uses the **same embedding provider stack** as the hosted platform: local ONNX models, OpenAI, Gemini, or any OpenAI-compatible embeddings endpoint (including Ollama). LLM keys power extraction and summarization; embeddings are configured separately.
@@ -42,8 +42,8 @@ For Docker, CI, or any non-interactive deploy, set env vars — there is **no in
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `SUPERMEMORY_EMBEDDING_PROVIDER` | Embedding backend: `local`, `openai`, `openai-compatible`, or `gemini` (for Ollama, use `openai-compatible` with `SUPERMEMORY_EMBEDDING_BASE_URL`) | `local` |
-| `SUPERMEMORY_EMBEDDING_MODEL` | Model id for the chosen provider (e.g., `Xenova/bge-m3`, `text-embedding-3-small`) | `Xenova/bge-base-en-v1.5` (local) |
+| `SUPERMEMORY_EMBEDDING_PROVIDER` | Embedding backend: `local`, `openai`, `gemini`, or an OpenAI-compatible remote (`ollama` / custom base URL) | `local` |
+| `SUPERMEMORY_EMBEDDING_MODEL` | Model id for the chosen provider (e.g. `Xenova/bge-m3`, `text-embedding-3-small`) | `Xenova/bge-base-en-v1.5` (local) |
 | `SUPERMEMORY_EMBEDDING_DIMENSIONS` | Vector size; must match the model's native dimensions and stored data | `768` (local default) |
 | `SUPERMEMORY_EMBEDDING_BASE_URL` | Base URL for OpenAI-compatible embedding APIs (Ollama, vLLM, etc.) | unset |
 | `SUPERMEMORY_EMBEDDING_API_KEY` | API key for embedding endpoint (falls back to `OPENAI_API_KEY` / `GEMINI_API_KEY`; required for `openai-compatible`, use any non-empty string if unauthenticated) | unset |
@@ -129,9 +129,9 @@ SUPERMEMORY_EMBEDDING_DIMENSIONS=768
 ### Ollama (OpenAI-compatible)
 
 ```bash
-SUPERMEMORY_EMBEDDING_PROVIDER=openai-compatible
+SUPERMEMORY_EMBEDDING_PROVIDER=openai
 SUPERMEMORY_EMBEDDING_BASE_URL=http://localhost:11434/v1
-SUPERMEMORY_EMBEDDING_API_KEY=ollama
+OPENAI_API_KEY=ollama
 SUPERMEMORY_EMBEDDING_MODEL=nomic-embed-text
 SUPERMEMORY_EMBEDDING_DIMENSIONS=768
 ```

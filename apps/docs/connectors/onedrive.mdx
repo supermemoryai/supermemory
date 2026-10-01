@@ -1,5 +1,6 @@
 ---
-title: "OneDrive Connector"
+title: "OneDrive connector"
+sidebarTitle: "OneDrive"
 description: "Sync Microsoft Office documents from OneDrive with scheduled synchronization and business account support"
 icon: "/images/microsoft-icon.svg"
 ---
@@ -7,9 +8,9 @@ icon: "/images/microsoft-icon.svg"
 
 Connect OneDrive to automatically sync Word documents, Excel spreadsheets, and PowerPoint presentations into your Supermemory knowledge base. Supports both personal and business accounts with scheduled synchronization.
 
-## Quick Setup
+## Quick setup
 
-### 1. Create OneDrive Connection
+### 1. Create OneDrive connection
 
 <CodeGroup>
 
@@ -89,7 +90,7 @@ curl -X POST "https://api.supermemory.ai/v3/connections/onedrive" \
 
 After user grants permissions, Microsoft redirects to your callback URL. The connection is automatically established and initial sync begins.
 
-### 3. Monitor Sync Status
+### 3. Monitor sync status
 
 <CodeGroup>
   ```typescript Typescript
@@ -138,32 +139,32 @@ After user grants permissions, Microsoft redirects to your callback URL. The con
     ```
 </CodeGroup>
 
-## Supported Document Types
+## Supported document types
 
-### Microsoft Word Documents
+### Microsoft Word documents
 - **Rich text formatting** converted to markdown
 - **Headers and styles** preserved as markdown hierarchy
 - **Images and charts** extracted and referenced
 - **Tables** converted to markdown tables
 
-### Excel Spreadsheets
+### Excel spreadsheets
 - **Worksheet data** converted to structured markdown
 - **Multiple sheets** processed separately
 - **Charts and graphs** extracted as images
 - **Formulas** converted to calculated values
 - **Cell formatting** simplified in markdown
 
-### PowerPoint Presentations
+### PowerPoint presentations
 - **Slide content** converted to structured markdown
 - **Speaker notes** included when present
 - **Images and media** extracted and referenced
 - **Embedded objects** processed when possible
 
-## Sync Mechanism
+## Sync mechanism
 
 Webhooks lead to real-time syncing of changes in documents. You may also manually trigger a sync.
 
-### Manual Sync Trigger
+### Manual sync trigger
 
 <CodeGroup>
   ```typescript Typescript
@@ -198,7 +199,7 @@ Webhooks lead to real-time syncing of changes in documents. You may also manuall
     ```
 </CodeGroup>
 
-## Delete Connection
+## Delete connection
 
 Remove a OneDrive connection when no longer needed:
 
@@ -250,9 +251,9 @@ Deleting a connection will:
 - Keep existing synced documents in Supermemory (they won't be deleted)
 </Note>
 
-## Advanced Configuration
+## Advanced configuration
 
-### Custom Microsoft App
+### Custom Microsoft app
 
 For production deployments, configure your own Microsoft application:
 
@@ -301,7 +302,7 @@ For production deployments, configure your own Microsoft application:
     ```
 </CodeGroup>
 
-### Document Filtering
+### Document filtering
 
 Control which OneDrive documents get synced:
 
@@ -366,7 +367,7 @@ Control which OneDrive documents get synced:
     ```
 </CodeGroup>
 
-### Optimization Tips
+### Optimization tips
 
 1. **Set realistic document limits** based on storage and usage
 2. **Use targeted filtering** to sync only business-critical documents
