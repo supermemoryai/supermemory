@@ -146,7 +146,7 @@ memory = SupermemoryLiveKit(
         search_threshold=0.1,
         recall_timeout=2.0,
         capture="always",
-        capture_dreaming="dynamic",
+        capture_dreaming="instant",
     ),
 )
 ```
@@ -160,7 +160,7 @@ Recall waits at most `recall_timeout` seconds (default 2). If the profile call i
 | `mode` | `"full"` | `profile`, `query`, or `full` |
 | `recall_timeout` | `2.0` | Seconds to wait before skipping recall |
 | `capture` | `"always"` | `never` disables storing the call |
-| `capture_dreaming` | `"dynamic"` | How the call transcript becomes memories. See below. |
+| `capture_dreaming` | `"instant"` | How the call transcript becomes memories. See below. |
 
 ## Tools
 
@@ -178,8 +178,8 @@ Recall waits at most `recall_timeout` seconds (default 2). If the profile call i
 
 Captured turns are written after each agent reply, but they become memories on Supermemory's processing schedule:
 
-- With the default `capture_dreaming="dynamic"`, related documents are processed together. In our tests this took 10 to 20 minutes, so a caller who rings back right away is not recalled from the last call yet.
-- With `capture_dreaming="instant"`, each write is processed on its own and is usually recallable within a minute. Each write bills one extra operation, and the call is written after every agent reply.
+- With the default `capture_dreaming="instant"`, each write is processed on its own and is usually recallable within a minute, so a caller who rings back is recalled from the last call. Each write bills one extra operation, and the call is written after every agent reply. If your organization has no balance for instant processing, the call is saved on the `dynamic` schedule instead.
+- With `capture_dreaming="dynamic"`, related documents are processed together at no extra cost. In our tests this took 10 to 20 minutes, so a caller who rings back right away is not recalled from the last call yet.
 - In both modes, `search_memories` finds the raw call text as soon as it is stored, so the model can still look up a recent call.
 
 ## Self-hosting

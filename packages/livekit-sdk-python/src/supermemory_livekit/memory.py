@@ -44,7 +44,7 @@ class InputParams(BaseModel):
     mode: Literal["profile", "query", "full"] = "full"
     recall_timeout: float = Field(default=2.0, gt=0.0, le=8.0)
     capture: Literal["always", "never"] = "always"
-    capture_dreaming: Literal["dynamic", "instant"] = "dynamic"
+    capture_dreaming: Literal["dynamic", "instant"] = "instant"
 
 
 class SupermemoryLiveKit:
@@ -85,6 +85,7 @@ class SupermemoryLiveKit:
         self._flush_task: Optional[asyncio.Task[None]] = None
         self._recall: Optional[tuple[tuple[Optional[str], str], asyncio.Future[Optional[str]]]] = None
         self._preloaded: Optional[tuple[str, str]] = None
+        self._instant_unavailable = False
         self._session: Any = None
         self._shutdown_registered = False
 
@@ -275,23 +276,19 @@ class SupermemoryLiveKit:
             return "Memory is not scoped to a caller yet."
         if not text:
             return "Nothing to remember."
-        add = {
-            "content": text,
-            "container_tag": tag,
-            "metadata": {"source": "livekit", "kind": "explicit"},
-        }
         try:
-            await asyncio.wait_for(self._client.add(**add, dreaming="instant"), timeout=4.0)
-        except Exception as exc:
-            if getattr(exc, "status_code", None) != 402:
-                logger.warning("memory remember failed", exc_info=True)
-                return _UNAVAILABLE
-            # No balance for instant processing: save it on the default schedule instead.
-            try:
-                await asyncio.wait_for(self._client.add(**add), timeout=4.0)
-            except Exception:
-                logger.warning("memory remember failed", exc_info=True)
-                return _UNAVAILABLE
+            await asyncio.wait_for(
+                self._add(
+                    "instant",
+                    content=text,
+                    container_tag=tag,
+                    metadata={"source": "livekit", "kind": "explicit"},
+                ),
+                timeout=4.0,
+            )
+        except Exception:
+            logger.warning("memory remember failed", exc_info=True)
+            return _UNAVAILABLE
         return "Saved."
 
     async def forget(self, *, memory_id: str = "", memory_text: str = "") -> str:
@@ -477,13 +474,27 @@ class SupermemoryLiveKit:
             f"{'User' if message['role'] == 'user' else 'Assistant'}: {message['content']}"
             for message in messages
         ]
-        await self._client.add(
+        await self._add(
+            self.params.capture_dreaming,
             content="\n".join(lines),
             container_tag=messages[0]["tag"],
             custom_id=messages[0]["custom_id"],
             metadata={"source": "livekit", "kind": "conversation"},
-            dreaming=self.params.capture_dreaming,
         )
+
+    async def _add(self, dreaming: str, **kwargs: Any) -> None:
+        """Add a document, on the default schedule when instant processing is not available."""
+        if dreaming == "instant" and not self._instant_unavailable:
+            try:
+                await self._client.add(**kwargs, dreaming="instant")
+                return
+            except Exception as exc:
+                if getattr(exc, "status_code", None) != 402:
+                    raise
+                # No balance for instant processing: use the default schedule for the rest of the call.
+                self._instant_unavailable = True
+                logger.warning("instant memory processing unavailable; using the default schedule")
+        await self._client.add(**kwargs)
 
     def _custom_id(self) -> str:
         raw = self.session_id or self._generated_session

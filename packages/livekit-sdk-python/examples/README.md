@@ -35,4 +35,4 @@ Memory is scoped per caller:
 - In rooms, the agent uses the participant attribute `supermemory_container_tag`, or else the participant identity. The Playground gives each session a new identity, so set `SUPERMEMORY_CONTAINER_TAG` in `.env` to keep one caller across Playground calls.
 - In production, dispatch the agent from your backend with `{"container_tag": "<your user id>"}` as job metadata, and set `LIVEKIT_AGENT_NAME`.
 
-Each call is stored as one document. Facts the caller asks it to remember are usually recallable within a minute; the rest of the call takes longer, see [when a call becomes recallable](https://supermemory.ai/docs/integrations/livekit#when-a-call-becomes-recallable). See the [integration docs](https://supermemory.ai/docs/integrations/livekit) for configuration.
+Each call is stored as one document and is usually recallable within a minute, see [when a call becomes recallable](https://supermemory.ai/docs/integrations/livekit#when-a-call-becomes-recallable). See the [integration docs](https://supermemory.ai/docs/integrations/livekit) for configuration.

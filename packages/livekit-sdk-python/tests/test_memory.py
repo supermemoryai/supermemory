@@ -361,7 +361,7 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(stored["custom_id"], to_identifier("lk-room 1"))
         self.assertNotIn("secret", stored["content"])
         self.assertEqual(stored["metadata"]["source"], "livekit")
-        self.assertEqual(stored["dreaming"], "dynamic")
+        self.assertEqual(stored["dreaming"], "instant")
 
     def test_close_flushes_a_trailing_user_turn(self):
         client = FakeClient()
@@ -466,6 +466,39 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(asyncio.run(plugin.remember("Likes tea")), "Saved.")
         self.assertEqual(len(client.added), 1)
         self.assertNotIn("dreaming", client.added[0])
+
+    def test_capture_falls_back_once_when_instant_is_not_available(self):
+        class NoBalance(Exception):
+            status_code = 402
+
+        client = FakeClient()
+        original = client.add
+        attempts = []
+
+        async def add(**kwargs):
+            attempts.append(kwargs.get("dreaming"))
+            if kwargs.get("dreaming") == "instant":
+                raise NoBalance("insufficient_balance")
+            return await original(**kwargs)
+
+        client.add = add
+        plugin = memory(client, container_tag="user_1", session_id="room-5")
+        session = Session()
+        plugin.attach(session)
+
+        async def run():
+            for index, role in enumerate(["user", "assistant", "user", "assistant"]):
+                item = SimpleNamespace(id=f"m{index}", role=role, text_content=f"turn {index}")
+                session.emit("conversation_item_added", SimpleNamespace(item=item))
+                await asyncio.sleep(0)
+                if plugin._flush_task:
+                    await plugin._flush_task
+            await plugin.aclose()
+
+        asyncio.run(run())
+
+        self.assertEqual(attempts, ["instant", None, None])
+        self.assertEqual(len(client.added), 2)
 
     def test_rebind_keeps_captured_turns_in_the_callers_scope(self):
         client = FakeClient()
