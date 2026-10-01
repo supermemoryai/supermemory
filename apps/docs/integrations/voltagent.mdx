@@ -2,7 +2,7 @@
 title: "VoltAgent"
 sidebarTitle: "VoltAgent"
 description: "Integrate Supermemory with VoltAgent for long-term memory in AI agents"
-icon: "bolt"
+icon: "/icons/hugeicons/flash.svg"
 ---
 
 Supermemory integrates with [VoltAgent](https://github.com/VoltAgent/voltagent), providing long-term memory capabilities for AI agents. Your VoltAgent applications will remember past conversations and provide personalized responses based on user history.
@@ -11,14 +11,14 @@ Supermemory integrates with [VoltAgent](https://github.com/VoltAgent/voltagent),
   Migrating to v2 from 1.4.x? Check the [migration guide](/migration/tools-v2-upgrade).
 </Note>
 
-<Card title="@supermemory/tools on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/tools">
+<Card title="@supermemory/tools on npm" icon="/icons/hugeicons/package.svg" href="https://www.npmjs.com/package/@supermemory/tools">
     Check out the NPM page for more details
 </Card>
 
 ## Installation
 
 ```bash
-npm install @supermemory/tools @voltagent/core
+npm install @supermemory/tools @voltagent/core ai@^6 @ai-sdk/openai@^3
 ```
 
 Set up your API key as an environment variable:
@@ -29,7 +29,7 @@ export SUPERMEMORY_API_KEY=your_supermemory_api_key
 
 You can obtain an API key from [console.supermemory.ai](https://console.supermemory.ai).
 
-## Quick Start
+## Quick start
 
 Supermemory provides a `withSupermemory` wrapper that enhances any VoltAgent agent config with automatic memory retrieval and storage:
 
@@ -52,9 +52,7 @@ const configWithMemory = withSupermemory({
 const agent = new Agent(configWithMemory)
 
 // Memories are automatically injected and saved
-const result = await agent.generateText({
-  messages: [{ role: "user", content: "What's my name?" }],
-})
+const result = await agent.generateText("What's my name?")
 ```
 
 <Note>
@@ -74,22 +72,22 @@ const result = await agent.generateText({
   ```
 </Note>
 
-## How It Works
+## How it works
 
 When integrated with VoltAgent, Supermemory hooks into two lifecycle events:
 
-### 1. Memory Retrieval (onPrepareMessages)
+### 1. Memory retrieval (onPrepareMessages)
 
 Before each LLM call, Supermemory automatically:
 - Extracts the user's latest message
 - Searches for relevant memories scoped to the `containerTag`
 - Injects retrieved memories into the system prompt
 
-### 2. Conversation Saving (onEnd)
+### 2. Conversation saving (onEnd)
 
 After each agent response, the conversation is saved to Supermemory for future retrieval. This requires a `customId` to be set.
 
-## Memory Modes
+## Memory modes
 
 | Mode        | Description                                 | Use Case                       |
 | ----------- | ------------------------------------------- | ------------------------------ |
@@ -110,7 +108,7 @@ const configWithMemory = withSupermemory({
 })
 ```
 
-## Configuration Options
+## Configuration options
 
 ```typescript
 const configWithMemory = withSupermemory({
@@ -131,14 +129,13 @@ const configWithMemory = withSupermemory({
 
   // Search tuning
   searchMode: "hybrid",            // "memories" | "documents" | "hybrid"
-  threshold: 0.1,                  // 0.0-1.0 (higher = more accurate)
-  limit: 10,                       // Max results to return
+  threshold: 0.6,                  // 0.0-1.0 (higher = more accurate)
+  limit: 10,                       // Integer from 1 to 100
   rerank: true,                    // Rerank for best relevance
   rewriteQuery: false,             // AI-rewrite query (+400ms latency)
 
   // Context
-  entityContext: "This is John, a software engineer",  // Guides memory extraction (max 1500 chars)
-  metadata: { source: "voltagent" },                   // Attached to saved conversations
+  metadata: { source: "voltagent" },  // Attached to saved conversations
 
   // API
   apiKey: "sk-...",                // Falls back to SUPERMEMORY_API_KEY env var
@@ -154,15 +151,17 @@ const configWithMemory = withSupermemory({
 | `addMemory`       | string   | `"always"`   | Whether to save conversations after each response        |
 | `customId`        | string   | **required** | Custom ID to group messages into a conversation          |
 | `searchMode`      | string   | —            | `"memories"`, `"documents"`, or `"hybrid"`               |
-| `threshold`       | number   | `0.1`        | Similarity threshold (0 = more results, 1 = more accurate) |
-| `limit`           | number   | `10`         | Maximum number of memory results                         |
+| `threshold`       | number   | —            | Similarity threshold (0 = more results, 1 = more accurate) |
+| `limit`           | number   | —            | Maximum number of memory results (integer from 1 to 100) |
 | `rerank`          | boolean  | `false`      | Rerank results for relevance                             |
 | `rewriteQuery`    | boolean  | `false`      | AI-rewrite query for better results (+400ms)             |
-| `entityContext`   | string   | —            | Context for memory extraction (max 1500 chars)           |
+| `entityContext`   | string   | —            | Deprecated and ignored. [Configure it on the container tag instead](/concepts/customization#entity-context). |
 | `metadata`        | object   | —            | Custom metadata attached to saved conversations          |
 | `promptTemplate`  | function | —            | Custom function to format memory data into prompt        |
 
-## Search Modes
+When `threshold` or `limit` is omitted, the selected Supermemory backend route applies its own default. Set them explicitly when you need consistent search tuning across modes.
+
+## Search modes
 
 The `searchMode` option controls what type of results are searched:
 
@@ -171,4 +170,3 @@ The `searchMode` option controls what type of results are searched:
 | `"memories"`  | Search only memory entries (atomic facts about the user) |
 | `"documents"` | Search only document chunks                            |
 | `"hybrid"`    | Search both memories AND document chunks (recommended) |
-

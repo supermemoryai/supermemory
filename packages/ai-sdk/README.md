@@ -19,7 +19,7 @@ yarn add @supermemory/ai-sdk
 Choose **one** of the following approaches (they cannot be used together):
 
 - **Infinite Chat Provider**: Connect to various LLM providers with unlimited context support
-- **Memory Tools**: Search, add, and fetch memories from supermemory using AI agents
+- **Memory Tools**: Search, add, inspect, and manage Supermemory data using AI agents
 
 ## Infinite Chat Provider
 
@@ -27,6 +27,7 @@ The infinite chat provider allows you to connect to various LLM providers with s
 
 ```typescript
 import { generateText } from 'ai'
+import { createOpenAI } from '@ai-sdk/openai'
 
 // Using a custom provider URL
 const supermemoryOpenai = createOpenAI({
@@ -50,6 +51,7 @@ const result = await generateText({
 
 ```typescript
 import { generateText } from 'ai'
+import { createOpenAI } from '@ai-sdk/openai'
 
 const supermemoryApiKey = process.env.SUPERMEMORY_API_KEY!
 const openaiApiKey = process.env.OPENAI_API_KEY!
@@ -104,11 +106,12 @@ interface ConfigWithProviderUrl {
 
 ## Memory Tools
 
-supermemory tools allow AI agents to interact with user memories for enhanced context and personalization.
+Supermemory tools allow AI agents to search, add, inspect, and manage scoped Supermemory data.
 
 ```typescript
 import { supermemoryTools } from '@supermemory/ai-sdk'
-import { generateText } from 'ai'
+import { generateText, stepCountIs } from 'ai'
+import { openai } from '@ai-sdk/openai'
 
 const result = await generateText({
   model: openai('gpt-5'),
@@ -117,24 +120,21 @@ const result = await generateText({
   ],
   tools: {
     ...supermemoryTools('your-supermemory-api-key', {
-  // Optional: specify a base URL for self-hosted instances
-  baseUrl: 'https://api.supermemory.com',
-
-  // Use either projectId OR containerTags, not both
-  projectId: 'your-project-id',
-  // OR
-  containerTags: ['tag1', 'tag2']
-}),
-// Your other tools go here
-  }
+      // Use either projectId OR containerTags, not both.
+      containerTags: ['user-123']
+    })
+  },
+  stopWhen: stepCountIs(5)
 })
 ```
+
+> **Important:** `supermemoryTools()` includes destructive operations: `documentDelete` permanently deletes a source document, while `memoryForget` soft-forgets an extracted profile memory. Do not expose the complete aggregate to an agent unless it should be allowed to perform those operations.
 
 ### Complete Memory Tools Example
 
 ```typescript
 import { supermemoryTools } from '@supermemory/ai-sdk'
-import { generateText } from 'ai'
+import { generateText, stepCountIs } from 'ai'
 import { openai } from '@ai-sdk/openai'
 
 const supermemoryApiKey = process.env.SUPERMEMORY_API_KEY!
@@ -157,7 +157,7 @@ async function chatWithTools(userMessage: string) {
         containerTags: ['my-user-id']
       })
     },
-    maxToolRoundtrips: 5
+    stopWhen: stepCountIs(5)
   })
 
   return result.text
@@ -167,17 +167,31 @@ async function chatWithTools(userMessage: string) {
 ### Configuration
 
 ```typescript
-interface SupermemoryConfig {
-  // Optional: Base URL for API calls (default: https://api.supermemory.com)
+interface SupermemoryToolsConfig {
+  // Optional API base URL (default: https://api.supermemory.ai)
   baseUrl?: string
 
-  // Container tags for organizing memories (cannot be used with projectId)
+  // One or more non-empty scope tags (cannot be used with projectId)
   containerTags?: string[]
 
-  // Project ID for scoping memories (cannot be used with containerTags)
+  // Converted to sm_project_<projectId> (cannot be used with containerTags)
   projectId?: string
+
+  // Enable the package's stricter provider-compatible input schemas
+  // (default: false)
+  strict?: boolean
 }
 ```
+
+`projectId` and `containerTags` are mutually exclusive and empty values are rejected. If neither is provided, v2 uses the explicit scope `sm_project_default`. With multiple `containerTags`, add operations attach every configured tag and document list/delete use their union. V4 search, profile, and forget operations use the first configured tag because those APIs are single-space.
+
+In strict mode, fields covered by a strict schema are required or defaulted. For example, `documentDelete.containerTag` must be a string or `null`; pass `null` to use the configured scope.
+
+### Migrating from v1
+
+Version 1 returned only `searchMemories` and `addMemory` from `supermemoryTools()`. Version 2 returns all seven tools listed below, including deletion and forgetting, so review any code that spreads the aggregate directly into an agent.
+
+Version 1 also left `containerTags` undefined when no scope was configured. Version 2 sends `['sm_project_default']` instead. Before upgrading, choose an explicit `projectId` or `containerTags`, or migrate data that should live in the new default scope.
 
 ### Self-Hosted supermemory
 
@@ -192,45 +206,35 @@ const tools = supermemoryTools('your-api-key', {
 
 ### Available Tools
 
-##### Search Memories
+| Aggregate key | Individual creator | Purpose |
+| --- | --- | --- |
+| `searchMemories` | `searchMemoriesTool` | Search learned memories and source chunks in the primary configured tag |
+| `addMemory` | `addMemoryTool` | Add a short, atomic memory |
+| `getProfile` | `getProfileTool` | Read static/dynamic profile text and optional query results |
+| `documentList` | `documentListTool` | List paginated source-document metadata |
+| `documentDelete` | `documentDeleteTool` | Permanently delete a source and soft-forget its extracted memories |
+| `documentAdd` | `documentAddTool` | Ingest a source document for asynchronous processing |
+| `memoryForget` | `memoryForgetTool` | Soft-forget one extracted profile memory |
 
-Search through user memories using semantic matching.
+There is no `fetchMemory` or `fetchMemoryTool`. Use `getProfile` for profile memories, `searchMemories` for relevant source content, and `documentList` for source-document IDs and metadata.
 
-```typescript
-const searchResult = await tools.searchMemories.execute({
-  informationToGet: 'user preferences about coffee'
-})
-```
-
-##### Add Memory
-
-Add new memories to the user's memory store.
-
-```typescript
-const addResult = await tools.addMemory.execute({
-  memory: 'User prefers dark roast coffee in the morning'
-})
-```
-
-##### Fetch Memory
-
-Retrieve a specific memory by its ID.
-
-```typescript
-const fetchResult = await tools.fetchMemory.execute({
-  memoryId: 'memory-id-123'
-})
-```
+`memoryForget` accepts a memory ID from query-backed `getProfile` search results or from a `searchMemories` result containing a `memory` field; chunk and document IDs are not valid. For safety, `documentDelete` refuses documents that are still processing, lack a verifiable non-empty tag set, or contain any tag outside the effective scope.
 
 ### Using Individual Tools
 
 For more flexibility, you can import and use individual tools:
 
 ```typescript
+import { openai } from '@ai-sdk/openai'
+import { generateText, stepCountIs } from 'ai'
 import {
   searchMemoriesTool,
   addMemoryTool,
-  fetchMemoryTool
+  getProfileTool,
+  documentListTool,
+  documentDeleteTool,
+  documentAddTool,
+  memoryForgetTool
 } from '@supermemory/ai-sdk'
 
 const searchTool = searchMemoriesTool('your-api-key', {
@@ -243,8 +247,25 @@ const result = await generateText({
   messages: [...],
   tools: {
     searchMemories: searchTool
-  }
+  },
+  stopWhen: stepCountIs(5)
 })
+```
+
+To expose a non-destructive subset, create the aggregate once and select only the tools the agent needs:
+
+```typescript
+const allTools = supermemoryTools('your-api-key', {
+  containerTags: ['user-123']
+})
+
+const safeTools = {
+  searchMemories: allTools.searchMemories,
+  addMemory: allTools.addMemory,
+  getProfile: allTools.getProfile,
+  documentList: allTools.documentList,
+  documentAdd: allTools.documentAdd
+}
 ```
 
 ### Error Handling
@@ -269,33 +290,24 @@ if (result.success) {
 ### Running Tests
 
 ```bash
-# Run all tests
-bun test
+# From the repository root
+bun run --cwd packages/ai-sdk test:unit
 
-# Run tests in watch mode
-bun test --watch
+# Or from packages/ai-sdk
+bun run test:unit
 ```
 
 #### Environment Variables for Tests
 
-All tests require API keys to run. Copy `.env.example` to `.env` and set the required values:
+Local initialization and unit checks do not require API keys. Network integration checks run only when both of these are set; otherwise they are skipped:
 
-```bash
-cp .env.example .env
-```
-
-**Required:**
-- `SUPERMEMORY_API_KEY`: Your Supermemory API key
-- `PROVIDER_API_KEY`: Your AI provider API key (OpenAI, Anthropic, etc.)
-- `OPENAI_API_KEY`: Your OpenAI API key for tool integration tests
+- `SUPERMEMORY_API_KEY`: Supermemory API key
+- `OPENAI_API_KEY`: OpenAI API key
 
 **Optional:**
-- `SUPERMEMORY_BASE_URL`: Custom Supermemory base URL (defaults to `https://api.supermemory.ai`)
-- `PROVIDER_NAME`: Provider name (defaults to `openai`) - one of: `openai`, `anthropic`, `openrouter`, `deepinfra`, `groq`, `google`, `cloudflare`
-- `PROVIDER_URL`: Custom provider URL (use instead of `PROVIDER_NAME`)
-- `MODEL_NAME`: Model to use in tests (defaults to `gpt-3.5-turbo`)
 
-Tests will fail if required API keys are not provided.
+- `SUPERMEMORY_BASE_URL`: Custom Supermemory base URL
+- `MODEL_NAME`: OpenAI model used by integration checks (defaults to `gpt-5-nano`)
 
 ## License
 

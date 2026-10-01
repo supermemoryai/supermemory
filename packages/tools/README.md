@@ -22,7 +22,7 @@ The package provides three submodule imports:
 ```typescript
 import { supermemoryTools, searchMemoriesTool, addMemoryTool } from "@supermemory/tools/ai-sdk"
 import { createOpenAI } from "@ai-sdk/openai"
-import { generateText } from "ai"
+import { generateText, stepCountIs } from "ai"
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -43,6 +43,7 @@ const result = await generateText({
     },
   ],
   tools,
+  stopWhen: stepCountIs(5),
 })
 
 // Or create individual tools
@@ -271,6 +272,8 @@ import { withSupermemory } from "@supermemory/tools/openai"
 const openaiWithSupermemory = withSupermemory(openai, {
   containerTag: "user-123",      // Required: identifies the user/container
   customId: "conversation-456",  // Required: groups messages into the same document 
+  apiKey: process.env.SUPERMEMORY_API_KEY, // Optional env fallback
+  baseUrl: process.env.SUPERMEMORY_BASE_URL,
   mode: "full",
   addMemory: "always",           // Default: "always"
   verbose: true,
@@ -295,6 +298,8 @@ The middleware supports the same configuration options as the AI SDK version:
 const openaiWithSupermemory = withSupermemory(openai, {
   containerTag: "user-123",      // Required: identifies the user/container
   customId: "conversation-456",  // Required: groups messages for contextual memory
+  apiKey: process.env.SUPERMEMORY_API_KEY, // Optional; captured per client
+  baseUrl: process.env.SUPERMEMORY_BASE_URL,
   mode: "full",                  // "profile" | "query" | "full"
   addMemory: "always",           // "always" (default) | "never"
   verbose: true,                 // Enable detailed logging
@@ -319,6 +324,8 @@ export async function POST(req: Request) {
   const openaiWithSupermemory = withSupermemory(openai, {
     containerTag: "user-123",
     customId: conversationId,
+    apiKey: process.env.SUPERMEMORY_API_KEY,
+    baseUrl: process.env.SUPERMEMORY_BASE_URL,
     mode: "full",
     addMemory: "always",
     verbose: true,
@@ -606,7 +613,7 @@ interface SupermemoryToolsConfig {
 ```
 
 - **baseUrl**: Custom base URL for the supermemory API
-- **containerTags**: Array of custom container tags (mutually exclusive with projectId)
+- **containerTags**: Non-empty array of custom container tags (mutually exclusive with `projectId`). `searchMemories`, `getProfile`, and `memoryForget` use the first tag because v4 memory APIs are single-space. Add operations attach every configured tag, while `documentList` and `documentDelete` use the configured tags as their supported union scope. `documentDelete` still refuses a document with any tag outside that scope or a nonterminal processing status.
 - **projectId**: Project ID which gets converted to container tag format (mutually exclusive with containerTags)
 - **strict**: Enable strict schema mode for OpenAI strict validation. When `true`, all schema properties are required (satisfies OpenAI strict mode). When `false` (default), optional fields remain optional for maximum compatibility with all models.
 
@@ -670,11 +677,11 @@ interface WithSupermemoryOptions {
 ## Available Tools
 
 ### Search Memories
-Searches through stored memories based on a query string.
+Runs v4 hybrid search in the primary (first) configured container tag. Results can contain learned memories (`memory`) and source chunks (`chunk`). Only IDs on results containing `memory` can be passed to `memoryForget`; chunk-result IDs cannot.
 
 **Parameters:**
 - `informationToGet` (string): Terms to search for
-- `includeFullDocs` (boolean, optional): Whether to include full document content (default: true)
+- `includeFullDocs` (boolean, optional): Deprecated compatibility input; ignored by v4 hybrid search
 - `limit` (number, optional): Maximum number of results (default: 10)
 
 ### Add Memory

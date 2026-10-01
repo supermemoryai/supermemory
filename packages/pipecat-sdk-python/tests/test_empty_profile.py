@@ -121,3 +121,36 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
                 "search_results": [],
             },
         )
+
+    def test_query_mode_keeps_search_fact_also_present_in_profile(self) -> None:
+        fact = "User likes machine learning projects"
+        service = SupermemoryPipecatService(
+            api_key="mock_key",
+            user_id="user-123",
+            session_id="conversation-456",
+            params=SupermemoryPipecatService.InputParams(mode="query"),
+        )
+
+        class Context:
+            def __init__(self):
+                self.messages = [{"role": "user", "content": "What do I like?"}]
+
+            def get_messages(self):
+                return self.messages
+
+            def add_message(self, message):
+                self.messages.append(message)
+
+        context = Context()
+        service._enhance_context_with_memories(
+            context,
+            "What do I like?",
+            {
+                "profile": {"static": [fact], "dynamic": []},
+                "search_results": [SimpleNamespace(memory=fact)],
+            },
+        )
+
+        self.assertTrue(
+            any(fact in message.get("content", "") for message in context.messages)
+        )

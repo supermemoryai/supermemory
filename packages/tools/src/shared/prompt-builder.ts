@@ -7,8 +7,10 @@ import type {
 /**
  * Default prompt template that formats memories in the original "User Supermemories" format.
  */
-export const defaultPromptTemplate: PromptTemplate = (data) =>
-	`User Supermemories: \n${data.userMemories}\n${data.generalSearchMemories}`.trim()
+export const defaultPromptTemplate: PromptTemplate = (data) => {
+	if (!data.userMemories.trim() && !data.generalSearchMemories.trim()) return ""
+	return `User Supermemories: \n${data.userMemories}\n${data.generalSearchMemories}`.trim()
+}
 
 /**
  * Convert profile data to markdown format with sections for static and dynamic memories.

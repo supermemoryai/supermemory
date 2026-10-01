@@ -77,6 +77,7 @@ const createIntegrationMessageList = (): MessageList & {
 	const calls: { method: string; args: unknown[] }[] = []
 	return {
 		calls,
+		clearSystemMessages: vi.fn(),
 		addSystem: vi.fn((content: string, id?: string) => {
 			calls.push({ method: "addSystem", args: [content, id] })
 		}),

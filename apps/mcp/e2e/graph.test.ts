@@ -52,7 +52,7 @@ describeWithAuth("MCP — graph, resources & prompts", () => {
 		expect(res.contents[0].text).toMatch(/# Active Space Profile/)
 		expect(res.contents[0].text).toMatch(/Space:/)
 		expect(res.contents[0].text).toMatch(
-			/Use `listSpaces` to find the relevant space key/,
+			/Use `list_spaces` to find the relevant space key/,
 		)
 	})
 

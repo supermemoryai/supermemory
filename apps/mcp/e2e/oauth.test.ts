@@ -128,7 +128,7 @@ describe.skipIf(!OAUTH_REFRESH_TOKEN || !OAUTH_CLIENT_ID)(
 
 		it("connects to /mcp with the OAuth token and resolves identity", async () => {
 			s = await connect({ token: accessToken })
-			const res = await callTool(s.client, "whoAmI")
+			const res = await callTool(s.client, "who_am_i")
 			expect(res.isError).toBeFalsy()
 			expect(JSON.parse(textOf(res)).userId).toBeTruthy()
 		})

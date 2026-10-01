@@ -18,6 +18,32 @@ import {
 	saveConversation,
 } from "./middleware"
 
+const getInputMessages = (input: unknown): VoltAgentMessage[] => {
+	if (typeof input === "string") {
+		return input.trim() ? [{ role: "user", content: input }] : []
+	}
+	if (Array.isArray(input)) return input as VoltAgentMessage[]
+	if (
+		input &&
+		typeof input === "object" &&
+		"messages" in input &&
+		Array.isArray(input.messages)
+	) {
+		return input.messages as VoltAgentMessage[]
+	}
+	return []
+}
+
+const getOutputText = (output: unknown): string => {
+	if (typeof output === "string") return output
+	if (!output || typeof output !== "object") return ""
+	if ("text" in output && typeof output.text === "string") return output.text
+	if ("content" in output && typeof output.content === "string") {
+		return output.content
+	}
+	return ""
+}
+
 /**
  * Creates Supermemory hooks for VoltAgent agents.
  *
@@ -41,7 +67,6 @@ import {
  * const agent = new Agent({
  *   name: "my-agent",
  *   instructions: "You are a helpful assistant",
- *   llm: new VercelAIProvider(),
  *   model: openai("gpt-4o"),
  *   hooks
  * })
@@ -54,16 +79,12 @@ export function createSupermemoryHooks(
 	const ctx = createSupermemoryContext(containerTag, options)
 
 	return {
-		onPrepareMessages: async (
-			args: HookPrepareMessagesArgs,
-		): Promise<{ messages: VoltAgentMessage[] }> => {
+		onPrepareMessages: async (args: HookPrepareMessagesArgs) => {
 			try {
-				// VoltAgent passes user messages in args.context.input.messages
-				// and the prepared messages (system + conversation) in args.messages
-				const contextInput = args.context?.input as
-					| { messages?: VoltAgentMessage[] }
-					| undefined
-				const inputMessages = contextInput?.messages || []
+				// VoltAgent 2.x supplies canonical UI messages directly on the hook.
+				const inputMessages = (args.rawMessages ??
+					args.messages) as unknown as VoltAgentMessage[]
+				const preparedMessages = args.messages as unknown as VoltAgentMessage[]
 
 				ctx.logger.debug("onPrepareMessages called", {
 					messageCount: args.messages.length,
@@ -74,7 +95,7 @@ export function createSupermemoryHooks(
 				const enhancedMessages = await enhanceMessagesWithMemories(
 					inputMessages,
 					ctx,
-					args.messages,
+					preparedMessages,
 				)
 
 				ctx.logger.debug("Messages enhanced with memories", {
@@ -82,7 +103,9 @@ export function createSupermemoryHooks(
 					enhancedCount: enhancedMessages.length,
 				})
 
-				return { messages: enhancedMessages }
+				return {
+					messages: enhancedMessages as unknown as typeof args.messages,
+				}
 			} catch (error) {
 				ctx.logger.error("Error in onPrepareMessages", {
 					error: error instanceof Error ? error.message : "Unknown error",
@@ -102,19 +125,8 @@ export function createSupermemoryHooks(
 				let messages: VoltAgentMessage[] = []
 
 				if (args.context?.input && args.output) {
-					const inputData = args.context.input as
-						| { messages?: VoltAgentMessage[] }
-						| undefined
-					const inputMessages = inputData?.messages || []
-
-					const outputData = args.output as
-						| string
-						| { text?: string; content?: string }
-						| undefined
-					const outputText =
-						typeof outputData === "string"
-							? outputData
-							: outputData?.text || outputData?.content
+					const inputMessages = getInputMessages(args.context.input)
+					const outputText = getOutputText(args.output)
 
 					if (inputMessages.length > 0 && outputText) {
 						messages = [

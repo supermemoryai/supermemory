@@ -1,6 +1,6 @@
 ---
 title: "Pipecat"
-sidebarTitle: "Pipecat (Voice)"
+sidebarTitle: "Pipecat (voice)"
 description: "Integrate Supermemory with Pipecat for conversational memory in voice AI agents"
 icon: "/images/pipecat.svg"
 ---
@@ -44,7 +44,7 @@ memory = SupermemoryPipecatService(
 )
 ```
 
-## Pipeline Integration
+## Pipeline integration
 
 The `SupermemoryPipecatService` should be positioned between your context aggregator and LLM service in the Pipecat pipeline:
 
@@ -61,11 +61,11 @@ pipeline = Pipeline([
 ])
 ```
 
-## How It Works
+## How it works
 
 When integrated with Pipecat, Supermemory provides two key functionalities:
 
-### 1. Memory Retrieval
+### 1. Memory retrieval
 
 When a user message is detected, Supermemory retrieves relevant memories:
 
@@ -73,11 +73,11 @@ When a user message is detected, Supermemory retrieves relevant memories:
 - **Dynamic Profile**: Recent context and preferences
 - **Search Results**: Semantically relevant past memories
 
-### 2. Context Enhancement
+### 2. Context enhancement
 
 Retrieved memories are formatted and injected into the LLM context before generation, giving the model awareness of past conversations.
 
-## Memory Modes
+## Memory modes
 
 | Mode        | Static Profile | Dynamic Profile | Search Results | Use Case                       |
 | ----------- | -------------- | --------------- | -------------- | ------------------------------ |
@@ -85,7 +85,7 @@ Retrieved memories are formatted and injected into the LLM context before genera
 | `"query"`   | No             | No              | Yes            | Finding relevant past context  |
 | `"full"`    | Yes            | Yes             | Yes            | Complete memory (default)      |
 
-## Configuration Options
+## Configuration options
 
 You can customize how memories are retrieved and used:
 
@@ -109,7 +109,7 @@ InputParams(
 | `system_prompt`    | str   | "Based on previous conversations:\n\n" | Prefix text for memory context                               |
 | `inject_mode`      | str   | "auto"                                 | How memories are injected: `"auto"`, `"system"`, or `"user"` |
 
-## Injection Modes
+## Injection modes
 
 The `inject_mode` parameter controls how memories are added to the LLM context:
 
@@ -119,7 +119,7 @@ The `inject_mode` parameter controls how memories are added to the LLM context:
 | `"system"` | Always injects memories into the system prompt                                                                                                                          |
 | `"user"`   | Always injects memories as a user message                                                                                                                               |
 
-## Speech-to-Speech Models (Gemini Live, etc.)
+## Speech-to-speech models (Gemini Live, etc.)
 
 For speech-to-speech models like Gemini Live, the SDK **automatically detects** audio frames and injects memories into the system prompt. No configuration needed:
 
@@ -133,7 +133,7 @@ memory = SupermemoryPipecatService(
 )
 ```
 
-## Example: Voice Agent with Memory
+## Example: Voice agent with memory
 
 Here's a complete example of a Pipecat voice agent with Supermemory integration:
 
@@ -230,7 +230,7 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
 
-## Example: Gemini Live with Memory
+## Example: Gemini Live with memory
 
 For a complete example using Gemini Live speech-to-speech with Supermemory, check out the reference implementation:
 

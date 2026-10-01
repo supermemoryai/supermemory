@@ -1,13 +1,13 @@
 ---
-title: "Customizing for Your Use Case"
+title: "Customizing for your use case"
 sidebarTitle: "Customizing"
 description: "Configure Supermemory's behavior for your specific application"
-icon: "settings-2"
+icon: "/icons/hugeicons/settings-02.svg"
 ---
 
 Configure how Supermemory processes and retrieves content for your specific use case.
 
-## Filter Prompts
+## Filter prompts
 
 Tell Supermemory what content matters during ingestion. This helps filter and prioritize what gets indexed.
 
@@ -32,25 +32,25 @@ await client.settings.update({
 ```
 
 <AccordionGroup>
-  <Accordion title="Personal Assistant">
+  <Accordion title="Personal assistant">
     ```typescript
     filterPrompt: `Personal AI assistant. Prioritize recent content, action items,
     and personal context. Exclude spam and duplicates.`
     ```
   </Accordion>
-  <Accordion title="Customer Support">
+  <Accordion title="Customer support">
     ```typescript
     filterPrompt: `Customer support agent. Prioritize verified solutions, official docs,
     and resolved tickets. Exclude internal discussions and PII.`
     ```
   </Accordion>
-  <Accordion title="Legal Assistant">
+  <Accordion title="Legal assistant">
     ```typescript
     filterPrompt: `Legal research assistant. Prioritize precedents, current regulations,
     and approved contract language. Exclude privileged communications.`
     ```
   </Accordion>
-  <Accordion title="Finance Agent">
+  <Accordion title="Finance agent">
     ```typescript
     filterPrompt: `Financial analysis assistant. Prioritize latest reports, verified data,
     and regulatory filings. Exclude speculative data and MNPI.`
@@ -62,7 +62,7 @@ await client.settings.update({
     and FDA-approved info. Exclude PHI and outdated recommendations.`
     ```
   </Accordion>
-  <Accordion title="Developer Docs">
+  <Accordion title="Developer docs">
     ```typescript
     filterPrompt: `Developer documentation assistant. Prioritize current APIs, working
     examples, and best practices. Exclude deprecated APIs and test fixtures.`
@@ -82,7 +82,7 @@ await client.settings.update({
 
 ---
 
-## Entity Context
+## Entity context
 
 Guide memory extraction for a specific container tag. Filter prompts are org-wide; entity context is per container.
 
@@ -112,7 +112,7 @@ Entity context persists on the container tag and combines with org-level filter 
 
 ---
 
-## Chunk Size
+## Chunk size
 
 Control how documents are split into searchable pieces. Smaller chunks = more precise retrieval but less context per result.
 
@@ -135,7 +135,7 @@ Smaller chunks generate more memories per document. Larger chunks provide more c
 
 ---
 
-## Connector Branding
+## Connector branding
 
 Show "Log in to **YourApp**" instead of "Log in to Supermemory" when users connect external services. See [Connectors Overview](/connectors/overview) for the full list of supported integrations.
 
@@ -180,7 +180,7 @@ Show "Log in to **YourApp**" instead of "Log in to Supermemory" when users conne
 
 ---
 
-## API Reference
+## API reference
 
 ```typescript
 // Get current settings
@@ -200,13 +200,13 @@ Settings are organization-wide. Changes apply to new content only—existing mem
 
 ---
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Add Memories" icon="plus" href="/ingestion/add-memories">
+  <Card title="Add memories" icon="/icons/hugeicons/plus-sign.svg" href="/ingestion/add-memories">
     See your custom settings in action
   </Card>
-  <Card title="Connectors" icon="plug" href="/connectors/overview">
+  <Card title="Connectors" icon="/icons/hugeicons/plug-01.svg" href="/connectors/overview">
     Set up automatic syncing from external platforms
   </Card>
 </CardGroup>

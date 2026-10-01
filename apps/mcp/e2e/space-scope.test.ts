@@ -25,11 +25,13 @@ describeWithAuth("MCP - space scoping", () => {
 			expect(propsOf(plainTools, "search_memory")).toHaveProperty(
 				"containerTag",
 			)
+			expect(propsOf(plainTools, "get_profile")).toHaveProperty("containerTag")
 
 			expect(propsOf(scopedTools, "add_memory")).toHaveProperty("containerTag")
 			expect(propsOf(scopedTools, "search_memory")).toHaveProperty(
 				"containerTag",
 			)
+			expect(propsOf(scopedTools, "get_profile")).toHaveProperty("containerTag")
 		} finally {
 			await scoped.close()
 			await plain.close()

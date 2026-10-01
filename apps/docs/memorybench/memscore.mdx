@@ -1,11 +1,11 @@
 ---
-title: "Measuring Results"
-description: "How MemoryBench scores a run — qualitative judging and quantitative metrics"
+title: "Measuring results"
+description: "How MemoryBench scores a run with qualitative judging and quantitative metrics."
 sidebarTitle: "Measuring"
-icon: "gauge"
+icon: "/icons/hugeicons/dashboard-speed-01.svg"
 ---
 
-Every question goes through the same pipeline — **ingest → search → answer → evaluate → report** — and produces two different kinds of signal: a **qualitative** judgment on whether the answer was actually right, and **quantitative** measurements of how fast and how expensive getting there was. MemoryBench keeps both instead of collapsing everything into a single number.
+Every question goes through the same pipeline (ingest → search → answer → evaluate → report) and produces two kinds of signal: a qualitative judgment on whether the answer was right, and quantitative measurements of how fast and how expensive it was to get there. MemoryBench keeps both instead of collapsing everything into a single number.
 
 ## Qualitative: was the answer right?
 
@@ -82,10 +82,10 @@ Results and checkpoints for every run live at `data/runs/{runId}/report.json`, w
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Adding a Provider" icon="plug" href="/memorybench/extend-provider">
+  <Card title="Adding a provider" icon="/icons/hugeicons/plug-01.svg" href="/memorybench/extend-provider">
     Get your own system into a run that produces these numbers.
   </Card>
-  <Card title="Building a Benchmark" icon="flask-conical" href="/memorybench/extend-benchmark">
+  <Card title="Building a benchmark" icon="/icons/hugeicons/test-tube-01.svg" href="/memorybench/extend-benchmark">
     Measure against scenarios specific to your product.
   </Card>
 </CardGroup>

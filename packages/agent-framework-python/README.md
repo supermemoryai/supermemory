@@ -9,23 +9,13 @@ This package provides both **automatic memory injection middleware** and **manua
 Install using uv (recommended):
 
 ```bash
-uv add --prerelease=allow supermemory-agent-framework
+uv add supermemory-agent-framework
 ```
 
 Or with pip:
 
 ```bash
-pip install --pre supermemory-agent-framework
-```
-
-> **Note:** The `--prerelease=allow` / `--pre` flag is required because `agent-framework-core` depends on pre-release versions of Azure packages.
-
-For async HTTP support (recommended):
-
-```bash
-uv add supermemory-agent-framework[async]
-# or
-pip install 'supermemory-agent-framework[async]'
+pip install supermemory-agent-framework
 ```
 
 ## Quick Start
@@ -38,14 +28,19 @@ The easiest way to add memory capabilities is using the `SupermemoryChatMiddlewa
 import asyncio
 from agent_framework.openai import OpenAIResponsesClient
 from supermemory_agent_framework import (
+    AgentSupermemory,
     SupermemoryChatMiddleware,
     SupermemoryMiddlewareOptions,
 )
 
 async def main():
-    # Create Supermemory middleware
-    middleware = SupermemoryChatMiddleware(
+    connection = AgentSupermemory(
+        api_key="your-supermemory-api-key",
         container_tag="user-123",
+    )
+
+    middleware = SupermemoryChatMiddleware(
+        connection,
         options=SupermemoryMiddlewareOptions(
             mode="full",        # "profile", "query", or "full"
             verbose=True,       # Enable logging
@@ -77,13 +72,16 @@ The most idiomatic way to add memory in Agent Framework, using the same pattern 
 import asyncio
 from agent_framework import AgentSession
 from agent_framework.openai import OpenAIResponsesClient
-from supermemory_agent_framework import SupermemoryContextProvider
+from supermemory_agent_framework import AgentSupermemory, SupermemoryContextProvider
 
 async def main():
-    # Create context provider
-    provider = SupermemoryContextProvider(
-        container_tag="user-123",
+    connection = AgentSupermemory(
         api_key="your-supermemory-api-key",
+        container_tag="user-123",
+    )
+
+    provider = SupermemoryContextProvider(
+        connection,
         mode="full",
         store_conversations=True,
     )
@@ -113,14 +111,14 @@ For explicit tool-based memory access:
 ```python
 import asyncio
 from agent_framework.openai import OpenAIResponsesClient
-from supermemory_agent_framework import SupermemoryTools
+from supermemory_agent_framework import AgentSupermemory, SupermemoryTools
 
 async def main():
-    # Create memory tools
-    tools = SupermemoryTools(
+    connection = AgentSupermemory(
         api_key="your-supermemory-api-key",
-        config={"project_id": "my-project"},
+        container_tag="user-123",
     )
+    tools = SupermemoryTools(connection)
 
     # Create agent
     agent = OpenAIResponsesClient().as_agent(
@@ -146,6 +144,7 @@ For maximum flexibility, use both middleware (automatic context injection) and t
 import asyncio
 from agent_framework.openai import OpenAIResponsesClient
 from supermemory_agent_framework import (
+    AgentSupermemory,
     SupermemoryChatMiddleware,
     SupermemoryMiddlewareOptions,
     SupermemoryTools,
@@ -153,14 +152,17 @@ from supermemory_agent_framework import (
 
 async def main():
     api_key = "your-supermemory-api-key"
-
-    middleware = SupermemoryChatMiddleware(
-        container_tag="user-123",
-        options=SupermemoryMiddlewareOptions(mode="full"),
+    connection = AgentSupermemory(
         api_key=api_key,
+        container_tag="user-123",
     )
 
-    tools = SupermemoryTools(api_key=api_key)
+    middleware = SupermemoryChatMiddleware(
+        connection,
+        options=SupermemoryMiddlewareOptions(mode="full"),
+    )
+
+    tools = SupermemoryTools(connection)
 
     agent = OpenAIResponsesClient().as_agent(
         name="MemoryAgent",
@@ -217,11 +219,20 @@ SupermemoryMiddlewareOptions(add_memory="never")
 ### Complete Configuration
 
 ```python
-SupermemoryMiddlewareOptions(
-    conversation_id="chat-session-456",  # Group messages into conversations
-    verbose=True,                        # Enable detailed logging
-    mode="full",                         # Use both profile and query
-    add_memory="always"                  # Auto-save conversations
+connection = AgentSupermemory(
+    api_key="your-supermemory-api-key",
+    container_tag="user-123",               # Memory scope
+    conversation_id="chat-session-456",     # Groups stored conversations
+    entity_context="User is on the pro plan", # Optional fixed context
+)
+
+middleware = SupermemoryChatMiddleware(
+    connection,
+    options=SupermemoryMiddlewareOptions(
+        verbose=True,
+        mode="full",
+        add_memory="always",
+    ),
 )
 ```
 
@@ -232,13 +243,11 @@ SupermemoryMiddlewareOptions(
 Memory tools that integrate with Agent Framework's tool system.
 
 ```python
-tools = SupermemoryTools(
+connection = AgentSupermemory(
     api_key="your-api-key",
-    config={
-        "project_id": "my-project",       # or use container_tags
-        "base_url": "https://custom.com", # optional
-    }
+    container_tag="user-123",
 )
+tools = SupermemoryTools(connection)
 
 # Get FunctionTool instances for Agent.run()
 agent_tools = tools.get_tools()
@@ -249,26 +258,19 @@ result = await tools.add_memory("User prefers dark mode")
 result = await tools.get_profile()
 ```
 
+`search_memories` uses v4 hybrid search, so results can contain either a
+structured memory or a source chunk. The old Python-only `include_full_docs`
+argument is deprecated and ignored because v4 search does not return full
+source documents; it is not exposed to the model as a tool parameter.
+
 ### SupermemoryChatMiddleware
 
 Chat middleware for automatic memory injection.
 
 ```python
 middleware = SupermemoryChatMiddleware(
-    container_tag="user-123",           # Memory scope identifier
+    connection,                           # Shared AgentSupermemory connection
     options=SupermemoryMiddlewareOptions(...),
-    api_key="your-api-key",             # Or set SUPERMEMORY_API_KEY env var
-)
-```
-
-### with_supermemory_middleware()
-
-Convenience function for creating middleware:
-
-```python
-middleware = with_supermemory_middleware(
-    "user-123",
-    SupermemoryMiddlewareOptions(mode="full"),
 )
 ```
 
@@ -278,11 +280,9 @@ Context provider for the Agent Framework session pipeline (like Mem0):
 
 ```python
 provider = SupermemoryContextProvider(
-    container_tag="user-123",
-    api_key="your-api-key",           # Or set SUPERMEMORY_API_KEY env var
+    connection,                        # Shared AgentSupermemory connection
     mode="full",                      # "profile", "query", or "full"
     store_conversations=True,         # Save conversations after each run
-    conversation_id="chat-456",       # Optional grouping ID
     context_prompt="## Memories\n...",  # Custom header for injected memories
     verbose=True,                     # Enable logging
 )
@@ -292,6 +292,7 @@ provider = SupermemoryContextProvider(
 
 ```python
 from supermemory_agent_framework import (
+    AgentSupermemory,
     SupermemoryConfigurationError,
     SupermemoryAPIError,
     SupermemoryNetworkError,
@@ -299,7 +300,7 @@ from supermemory_agent_framework import (
 )
 
 try:
-    middleware = SupermemoryChatMiddleware("user-123")
+    connection = AgentSupermemory(container_tag="user-123")
 except SupermemoryConfigurationError as e:
     print(f"Configuration issue: {e}")
 ```
@@ -322,11 +323,8 @@ except SupermemoryConfigurationError as e:
 
 ### Required
 - `agent-framework-core>=1.0.0rc3` - Microsoft Agent Framework
-- `supermemory>=3.1.0` - Supermemory client
-- `requests>=2.25.0` - HTTP requests (fallback)
-
-### Optional
-- `aiohttp>=3.8.0` - Async HTTP requests (recommended)
+- `supermemory>=3.16.0` - Supermemory client with v4 hybrid search support
+- `typing-extensions>=4.0.0` - Typing compatibility helpers
 
 ## Development
 

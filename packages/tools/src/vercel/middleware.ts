@@ -3,6 +3,7 @@ import {
 	addConversation,
 	type ContentPart,
 	type ConversationMessage,
+	toConversationImageUrl,
 } from "../conversations-client"
 import {
 	createLogger,
@@ -105,13 +106,12 @@ export const convertToConversationMessages = (
 				})
 			} else if (
 				content.type === "file" &&
-				typeof content.data === "string" &&
 				content.mediaType.startsWith("image/")
 			) {
-				contentParts.push({
-					type: "image_url",
-					image_url: { url: content.data },
-				})
+				const url = toConversationImageUrl(content.data, content.mediaType)
+				if (url) {
+					contentParts.push({ type: "image_url", imageUrl: { url } })
+				}
 			} else if (
 				includeToolCalls &&
 				content.type === "tool-call" &&
@@ -321,8 +321,10 @@ export const transformParamsWithMemory = async (
 
 	if (ctx.mode !== "profile") {
 		if (!userMessage) {
-			ctx.logger.debug("No user message found, skipping memory search")
-			return params
+			ctx.logger.debug(
+				"No user message found, skipping memory search and clearing stale context",
+			)
+			return injectMemoriesIntoParams(params, "", ctx.logger)
 		}
 	}
 

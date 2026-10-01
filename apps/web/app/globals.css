@@ -1,0 +1,200 @@
+:root {
+	--ink: #05080d;
+	--text: #fafafa;
+	--muted: #737373;
+	--faint: #525d6e;
+	--accent: #4ba0fa;
+	--line: rgba(82, 89, 102, 0.2);
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	background: var(--ink);
+	color: var(--text);
+	font-family:
+		var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	-webkit-font-smoothing: antialiased;
+}
+
+.page {
+	position: relative;
+	min-height: 100dvh;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.page::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background-image: radial-gradient(
+		circle at center,
+		rgba(105, 167, 240, 0.22) 1px,
+		transparent 1px
+	);
+	background-size: 28px 28px;
+	mask-image: radial-gradient(
+		ellipse at 30% 50%,
+		black 0%,
+		black 30%,
+		transparent 75%
+	);
+	-webkit-mask-image: radial-gradient(
+		ellipse at 30% 50%,
+		black 0%,
+		black 30%,
+		transparent 75%
+	);
+}
+
+.brand {
+	position: relative;
+	padding: 28px 32px;
+}
+
+.brand img {
+	display: block;
+	height: 22px;
+	width: auto;
+}
+
+.notice {
+	position: relative;
+	flex: 1;
+	display: flex;
+	align-items: center;
+	padding: 24px 32px 96px;
+}
+
+.notice-inner {
+	width: 100%;
+	max-width: 560px;
+}
+
+.headline {
+	margin: 0 0 32px;
+	font-size: clamp(40px, 7vw, 64px);
+	font-weight: 600;
+	line-height: 1;
+	letter-spacing: -0.03em;
+}
+
+.hosts {
+	margin: 0 0 28px;
+	padding: 0;
+	list-style: none;
+	font-size: clamp(20px, 3.2vw, 28px);
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	line-height: 1.35;
+}
+
+.host-old {
+	color: var(--faint);
+	text-decoration: line-through;
+	text-decoration-color: var(--faint);
+	text-decoration-thickness: 1.5px;
+}
+
+.host-new {
+	color: var(--accent);
+}
+
+.body {
+	margin: 0 0 36px;
+	max-width: 44ch;
+	font-size: 16px;
+	line-height: 1.55;
+	color: var(--muted);
+}
+
+.action {
+	display: inline-block;
+	width: 100%;
+	max-width: 280px;
+}
+
+.button {
+	display: block;
+	width: 100%;
+	padding: 14px 20px;
+	border-radius: 10px;
+	background: var(--text);
+	color: var(--ink);
+	font: inherit;
+	font-size: 15px;
+	font-weight: 600;
+	text-align: center;
+	text-decoration: none;
+	transition: background-color 120ms ease;
+}
+
+.button:hover {
+	background: #e5e5e5;
+}
+
+.button:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+}
+
+.progress {
+	position: relative;
+	margin-top: 14px;
+	height: 2px;
+	background: var(--line);
+	overflow: hidden;
+}
+
+.progress::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: var(--accent);
+	transform-origin: left;
+	animation: drain var(--seconds) linear forwards;
+}
+
+.status {
+	margin: 10px 0 0;
+	font-size: 13px;
+	color: var(--faint);
+}
+
+@keyframes drain {
+	from {
+		transform: scaleX(1);
+	}
+	to {
+		transform: scaleX(0);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.progress {
+		display: none;
+	}
+	.button {
+		transition: none;
+	}
+}
+
+@media (max-width: 640px) {
+	.brand {
+		padding: 22px 20px;
+	}
+	.notice {
+		align-items: flex-start;
+		padding: 40px 20px 64px;
+	}
+	.action {
+		max-width: none;
+	}
+}

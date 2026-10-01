@@ -1,5 +1,8 @@
 """Tests for Supermemory middleware."""
 
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock
+
 import pytest
 
 from supermemory_agent_framework import (
@@ -10,6 +13,8 @@ from supermemory_agent_framework import (
 from supermemory_agent_framework.middleware import (
     _get_last_user_message,
     _get_conversation_content,
+    _build_memories_text,
+    _inject_memories,
 )
 
 
@@ -111,3 +116,52 @@ class TestMiddlewareConfiguration:
         conn = _make_conn(entity_context="User is a Python developer")
         middleware = SupermemoryChatMiddleware(conn)
         assert middleware._connection.entity_context == "User is a Python developer"
+
+
+class TestMemoryInjection:
+    def test_replaces_prior_sdk_context(self) -> None:
+        context = SimpleNamespace(
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Be helpful.\n\n"
+                        '<supermemory context="user-memories" readonly>\n'
+                        "Stale profile fact\n"
+                        "</supermemory>"
+                    ),
+                },
+                {"role": "user", "content": "What do you remember?"},
+            ]
+        )
+
+        _inject_memories(context, "Fresh profile fact")
+
+        content = context.messages[0]["content"]
+        assert "Be helpful." in content
+        assert "Fresh profile fact" in content
+        assert "Stale profile fact" not in content
+        assert content.count(
+            '<supermemory context="user-memories" readonly>'
+        ) == 1
+
+    @pytest.mark.asyncio
+    async def test_query_mode_keeps_search_fact_also_present_in_profile(self) -> None:
+        fact = "User likes machine learning projects"
+        client = SimpleNamespace(
+            profile=AsyncMock(
+                return_value=SimpleNamespace(
+                    profile=SimpleNamespace(static=[fact], dynamic=[]),
+                    search_results=SimpleNamespace(
+                        results=[SimpleNamespace(memory=fact)]
+                    ),
+                )
+            )
+        )
+        logger = Mock()
+
+        memories = await _build_memories_text(
+            "user-123", logger, "query", client, "machine learning"
+        )
+
+        assert fact in memories

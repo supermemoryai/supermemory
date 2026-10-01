@@ -1,0 +1,7 @@
+.next
+.env*
+!.env.example
+node_modules
+python/.venv
+next-env.d.ts
+*.tsbuildinfo

@@ -4,7 +4,7 @@ on:
     push:
         branches:
             - main
-        paths: 
+        paths:
             - "packages/ai-sdk/package.json"
 
 concurrency:
@@ -15,7 +15,7 @@ jobs:
     publish:
         runs-on: ubuntu-latest
         timeout-minutes: 15
-        permissions: 
+        permissions:
             contents: read
             id-token: write
         defaults:
@@ -38,25 +38,64 @@ jobs:
               uses: oven-sh/setup-bun@v2
 
             - name: Install dependencies
-              run: bun install
+              working-directory: .
+              run: bun install --frozen-lockfile
 
             - name: Check if version changed
               id: version-check
               run: |
                 PACKAGE_NAME=$(jq -r '.name' package.json)
                 LOCAL_VERSION=$(jq -r '.version' package.json)
-                NPM_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || echo "0.0.0")
-                if [ "$LOCAL_VERSION" = "$NPM_VERSION" ]; then
+                if npm view "$PACKAGE_NAME@$LOCAL_VERSION" version >/dev/null 2>&1; then
                   echo "Version $LOCAL_VERSION already published, skipping."
                   echo "changed=false" >> "$GITHUB_OUTPUT"
                 else
-                  echo "Publishing $LOCAL_VERSION (npm has $NPM_VERSION)"
+                  echo "Publishing $LOCAL_VERSION."
                   echo "changed=true" >> "$GITHUB_OUTPUT"
                 fi
 
-            - name: Build
+            - name: Wait for the Tools dependency
+              if: steps.version-check.outputs.changed == 'true'
+              run: |
+                TOOLS_SPEC=$(jq -r '.dependencies["@supermemory/tools"]' package.json)
+                TOOLS_VERSION=${TOOLS_SPEC#^}
+                TOOLS_VERSION=${TOOLS_VERSION#~}
+
+                if [[ ! "$TOOLS_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$ ]]; then
+                  echo "Unsupported @supermemory/tools dependency spec: $TOOLS_SPEC" >&2
+                  exit 1
+                fi
+
+                for attempt in {1..20}; do
+                  PUBLISHED_VERSION=$(npm view "@supermemory/tools@$TOOLS_VERSION" version 2>/dev/null || true)
+                  if [ "$PUBLISHED_VERSION" = "$TOOLS_VERSION" ]; then
+                    echo "@supermemory/tools@$TOOLS_VERSION is available on npm."
+                    exit 0
+                  fi
+
+                  echo "Waiting for @supermemory/tools@$TOOLS_VERSION (attempt $attempt/20)."
+                  sleep 15
+                done
+
+                echo "@supermemory/tools@$TOOLS_VERSION was not published within five minutes." >&2
+                exit 1
+
+            - name: Build Tools dependency
+              if: steps.version-check.outputs.changed == 'true'
+              run: bun run --cwd ../tools build
+
+            - name: Build AI SDK package
               if: steps.version-check.outputs.changed == 'true'
               run: bun run build
+
+            - name: Verify packed artifact
+              if: steps.version-check.outputs.changed == 'true'
+              run: |
+                npm pack --dry-run --json > "$RUNNER_TEMP/ai-sdk-pack.json"
+                jq -e '
+                  (.[0].files | any(.path == "dist/index.js")) and
+                  (.[0].files | any(.path == "dist/index.d.ts"))
+                ' "$RUNNER_TEMP/ai-sdk-pack.json" >/dev/null
 
             - name: Publish
               if: steps.version-check.outputs.changed == 'true'

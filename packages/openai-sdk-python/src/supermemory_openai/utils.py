@@ -1,9 +1,56 @@
 """Utility functions for Supermemory OpenAI middleware."""
 
 import json
+import re
 from typing import Optional, Any, Protocol
 
 from openai.types.chat import ChatCompletionMessageParam
+
+
+MEMORY_CONTEXT_START = '<supermemory context="user-memories" readonly>'
+MEMORY_CONTEXT_END = "</supermemory>"
+MEMORY_CONTEXT_PATTERN = re.compile(
+    r'(?:\r?\n)?<supermemory context="user-memories" readonly>.*?</supermemory>',
+    re.DOTALL,
+)
+SUPERMEMORY_TAG_PATTERN = re.compile(
+    r"<\s*/?\s*supermemory\b[^>]*>",
+    re.IGNORECASE,
+)
+
+
+def strip_memory_context(content: str) -> str:
+    """Remove every context block previously owned by this middleware."""
+    return MEMORY_CONTEXT_PATTERN.sub("", content)
+
+
+def _escape_memory_context_delimiters(memories: str) -> str:
+    """Prevent retrieved text from terminating or nesting the owned block."""
+
+    def escape_tag(match: re.Match[str]) -> str:
+        return match.group(0).replace("<", "&lt;").replace(">", "&gt;")
+
+    return SUPERMEMORY_TAG_PATTERN.sub(escape_tag, memories)
+
+
+def wrap_memory_context(memories: str) -> str:
+    """Mark retrieved context so the next turn can replace it safely."""
+    normalized = memories.strip()
+    if not normalized:
+        return ""
+    escaped = _escape_memory_context_delimiters(normalized)
+    return f"{MEMORY_CONTEXT_START}\n{escaped}\n{MEMORY_CONTEXT_END}"
+
+
+def replace_memory_context(content: str, memories: str) -> str:
+    """Replace middleware-owned context while preserving caller instructions."""
+    preserved = strip_memory_context(content)
+    memory_context = wrap_memory_context(memories)
+    if not memory_context:
+        return preserved
+    # The inserted newline is part of the SDK-owned separator: the strip pattern
+    # removes it together with the block, preserving every caller-authored byte.
+    return f"{preserved}\n{memory_context}" if preserved else memory_context
 
 
 class Logger(Protocol):
@@ -32,7 +79,9 @@ class SimpleLogger:
     def __init__(self, verbose: bool = False):
         self.verbose: bool = verbose
 
-    def _log(self, level: str, message: str, data: Optional[dict[str, Any]] = None) -> None:
+    def _log(
+        self, level: str, message: str, data: Optional[dict[str, Any]] = None
+    ) -> None:
         """Internal logging method."""
         if not self.verbose:
             return
@@ -190,7 +239,9 @@ def get_conversation_content(
 class DeduplicatedMemories:
     """Deduplicated memory strings organized by source."""
 
-    def __init__(self, static: list[str], dynamic: list[str], search_results: list[str]):
+    def __init__(
+        self, static: list[str], dynamic: list[str], search_results: list[str]
+    ):
         self.static = static
         self.dynamic = dynamic
         self.search_results = search_results
@@ -212,39 +263,63 @@ def deduplicate_memories(
     def extract_memory_text(item: Any) -> Optional[str]:
         if item is None:
             return None
-        if isinstance(item, dict):
-            memory = item.get("memory")
-            if isinstance(memory, str):
-                trimmed = memory.strip()
-                return trimmed if trimmed else None
-            return None
         if isinstance(item, str):
             trimmed = item.strip()
             return trimmed if trimmed else None
+        if isinstance(item, dict):
+            for field in ("memory", "chunk", "content"):
+                memory = item.get(field)
+                if isinstance(memory, str) and memory.strip():
+                    return memory.strip()
+            return None
+        # Stainless SDK returns pydantic models (attribute access, snake_case).
+        for field in ("memory", "chunk", "content"):
+            memory = getattr(item, field, None)
+            if isinstance(memory, str) and memory.strip():
+                return memory.strip()
         return None
 
     static_memories: list[str] = []
     seen_memories: set[str] = set()
 
+    def normalize_fact(memory: str) -> str:
+        without_recent = re.sub(
+            r"^\[recent\]\s*",
+            "",
+            memory.strip(),
+            count=1,
+            flags=re.IGNORECASE,
+        )
+        without_date = re.sub(
+            r"^\[\d{4}-\d{2}-\d{2}\]\s*",
+            "",
+            without_recent,
+            count=1,
+        )
+        return " ".join(without_date.strip().split()).casefold()
+
     for item in static_items:
         memory = extract_memory_text(item)
-        if memory is not None:
+        key = normalize_fact(memory) if memory is not None else None
+        if memory is not None and key and key not in seen_memories:
             static_memories.append(memory)
-            seen_memories.add(memory)
+            seen_memories.add(key)
 
     dynamic_memories: list[str] = []
     for item in dynamic_items:
         memory = extract_memory_text(item)
-        if memory is not None and memory not in seen_memories:
+        key = normalize_fact(memory) if memory is not None else None
+        if memory is not None and key and key not in seen_memories:
             dynamic_memories.append(memory)
-            seen_memories.add(memory)
+            seen_memories.add(key)
 
     search_memories: list[str] = []
     for item in search_items:
         memory = extract_memory_text(item)
-        if memory is not None and memory not in seen_memories:
+        key = normalize_fact(memory) if memory is not None else None
+        if memory is not None and key and key not in seen_memories:
             search_memories.append(memory)
-            seen_memories.add(memory)
+            seen_memories.add(key)
 
     return DeduplicatedMemories(
         static=static_memories,

@@ -3,11 +3,8 @@ import type {
 	LanguageModelV2CallOptions,
 	LanguageModelV2Message,
 	LanguageModelV2StreamPart,
-	LanguageModelV3,
-	LanguageModelV3CallOptions,
-	LanguageModelV3Message,
-	LanguageModelV3StreamPart,
 } from "@ai-sdk/provider"
+import { toConversationImageUrl } from "../conversations-client"
 
 // Re-export shared types for backward compatibility
 export type {
@@ -15,17 +12,23 @@ export type {
 	ProfileMarkdownData,
 } from "../shared"
 
-// Union types for dual SDK version support (V2 = SDK 5, V3 = SDK 6)
-export type LanguageModel = LanguageModelV2 | LanguageModelV3
-export type LanguageModelCallOptions =
-	| LanguageModelV2CallOptions
-	| LanguageModelV3CallOptions
-export type LanguageModelMessage =
-	| LanguageModelV2Message
-	| LanguageModelV3Message
-export type LanguageModelStreamPart =
-	| LanguageModelV2StreamPart
-	| LanguageModelV3StreamPart
+// Provider v2 does not export V3 names, so keep the public declaration on the
+// common V2 surface and structurally accept V3 models at the wrapper boundary.
+type LanguageModelV3Compat = Omit<
+	LanguageModelV2,
+	"specificationVersion" | "doGenerate" | "doStream"
+> & {
+	readonly specificationVersion: "v3"
+	// biome-ignore lint/suspicious/noExplicitAny: Bridges mutually exclusive provider major declarations.
+	doGenerate(...args: any[]): PromiseLike<any>
+	// biome-ignore lint/suspicious/noExplicitAny: Bridges mutually exclusive provider major declarations.
+	doStream(...args: any[]): PromiseLike<any>
+}
+
+export type LanguageModel = LanguageModelV2 | LanguageModelV3Compat
+export type LanguageModelCallOptions = LanguageModelV2CallOptions
+export type LanguageModelMessage = LanguageModelV2Message
+export type LanguageModelStreamPart = LanguageModelV2StreamPart
 
 export type OutputContentItem =
 	| { type: "text"; text: string }
@@ -71,6 +74,38 @@ export const getLastUserMessage = (
 		.filter((part) => part.type === "text")
 		.map((part) => (part as { type: "text"; text: string }).text)
 		.join(" ")
+}
+
+/** Whether the prompt contains user content that `/v4/conversations` can store. */
+export const hasPersistableUserContent = (
+	params: LanguageModelCallOptions,
+): boolean => {
+	return params.prompt.some((message) => {
+		if (message.role !== "user") return false
+		const content: unknown = message.content
+		if (typeof content === "string") {
+			return Boolean(content.trim())
+		}
+		if (!Array.isArray(content)) return false
+		return content.some((value) => {
+			if (!value || typeof value !== "object") return false
+			const part = value as {
+				type?: unknown
+				text?: unknown
+				mediaType?: unknown
+				data?: unknown
+			}
+			if (part.type === "text" && typeof part.text === "string") {
+				return Boolean(part.text.trim())
+			}
+			return (
+				part.type === "file" &&
+				typeof part.mediaType === "string" &&
+				part.mediaType.startsWith("image/") &&
+				toConversationImageUrl(part.data, part.mediaType) !== null
+			)
+		})
+	})
 }
 
 export const filterOutSupermemories = (content: string) => {

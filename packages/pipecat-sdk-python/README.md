@@ -13,7 +13,7 @@ pip install supermemory-pipecat
 ```python
 import os
 from pipecat.pipeline.pipeline import Pipeline
-from pipecat.services.openai import OpenAILLMService, OpenAIUserContextAggregator
+from pipecat.processors.aggregators.llm_context import LLMContext
 from supermemory_pipecat import SupermemoryPipecatService
 
 # Create memory service
@@ -23,14 +23,19 @@ memory = SupermemoryPipecatService(
     session_id="conversation-456",  # Optional: groups memories by session
 )
 
+# Use the universal LLM context supported by current Pipecat releases.
+context = LLMContext([{"role": "system", "content": "You are a helpful assistant."}])
+context_aggregator = llm.create_context_aggregator(context)
+
 # Create pipeline with memory
 pipeline = Pipeline([
     transport.input(),
     stt,
-    user_context,
+    context_aggregator.user(),
     memory,  # Automatically retrieves and injects relevant memories
     llm,
     transport.output(),
+    context_aggregator.assistant(),
 ])
 ```
 
@@ -58,6 +63,7 @@ memory = SupermemoryPipecatService(
         search_limit=10,           # Max memories to retrieve
         search_threshold=0.1,      # Similarity threshold
         mode="full",               # "profile", "query", or "full"
+        inject_mode="auto",        # "auto", "system", or "user"
         system_prompt="Based on previous conversations, I recall:\n\n",
     ),
 )
@@ -73,25 +79,30 @@ memory = SupermemoryPipecatService(
 
 ## How It Works
 
-1. **Intercepts context frames** - Listens for `LLMContextFrame` in the pipeline
-2. **Tracks conversation** - Maintains clean conversation history (no injected memories)
+1. **Intercepts context frames** - Listens for Pipecat's universal `LLMContextFrame` (and legacy 0.x frames)
+2. **Tracks conversation** - Separates real conversation messages from tagged memory context
 3. **Retrieves memories** - Queries `/v4/profile` API with user's message
-4. **Injects memories** - Formats and adds to LLM context as system message
-5. **Stores messages** - Sends last user message to Supermemory (background, non-blocking)
+4. **Injects memories** - Uses a system message for audio/system mode and a tagged user message otherwise
+5. **Stores messages** - Serializes newly observed user and assistant messages through a background queue that drains during cleanup
 
 ### What Gets Stored
 
-Only the last user message is sent to Supermemory:
+New user and assistant messages are stored as a JSON conversation segment. The
+injected `<user_memories>` message is filtered out before storage and does not
+advance the storage cursor.
+
+For example, this conversation segment:
 
 ```
 User: What's the weather like today?
+Assistant: It's sunny today.
 ```
 
-Stored as:
+is sent to Supermemory as:
 
 ```json
 {
-  "content": "User: What's the weather like today?",
+  "content": "[{\"role\": \"user\", \"content\": \"What's the weather like today?\"}, {\"role\": \"assistant\", \"content\": \"It's sunny today.\"}]",
   "container_tags": ["user-123"],
   "custom_id": "conversation-456",
   "metadata": { "platform": "pipecat" }
@@ -107,7 +118,7 @@ from fastapi import FastAPI, WebSocket
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.task import PipelineTask
 from pipecat.pipeline.runner import PipelineRunner
-from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
+from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.services.google.gemini_live.llm import GeminiLiveLLMService
 from pipecat.transports.websocket.fastapi import (
     FastAPIWebsocketTransport,
@@ -132,7 +143,7 @@ async def websocket_endpoint(websocket: WebSocket):
         model="models/gemini-2.5-flash-native-audio-preview-12-2025",
     )
 
-    context = OpenAILLMContext([{"role": "system", "content": "You are a helpful assistant."}])
+    context = LLMContext([{"role": "system", "content": "You are a helpful assistant."}])
     context_aggregator = llm.create_context_aggregator(context)
 
     # Supermemory memory service

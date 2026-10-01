@@ -1,7 +1,7 @@
 ---
-title: "Analytics & Monitoring"
+title: "Analytics & monitoring"
 description: "Observe usage, errors, and logs to monitor your Supermemory integration"
-icon: "chart-line"
+icon: "/icons/hugeicons/chart-line-data-01.svg"
 ---
 
 Monitor your Supermemory usage with detailed analytics on API calls, errors, and performance metrics.
@@ -19,7 +19,7 @@ The Analytics API provides comprehensive insights into your Supermemory usage:
 Analytics data is available for your entire organization and can be filtered by time period.
 </Note>
 
-## Usage Statistics
+## Usage statistics
 
 Get comprehensive usage statistics including hourly breakdowns and per-key metrics.
 
@@ -37,7 +37,7 @@ Get comprehensive usage statistics including hourly breakdowns and per-key metri
 | `page` | integer | Page number for pagination (default: 1) |
 | `limit` | integer | Items per page (default: 20, max: 100) |
 
-### Example Request
+### Example request
 
 <CodeGroup>
 
@@ -74,7 +74,7 @@ curl -X GET "https://api.supermemory.ai/v3/analytics/usage?from=2024-01-01T00:00
 
 </CodeGroup>
 
-### Response Schema
+### Response schema
 
 ```json
 {
@@ -118,7 +118,7 @@ curl -X GET "https://api.supermemory.ai/v3/analytics/usage?from=2024-01-01T00:00
 }
 ```
 
-## Error Monitoring
+## Error monitoring
 
 Track and analyze errors to identify issues and improve reliability.
 
@@ -130,7 +130,7 @@ Track and analyze errors to identify issues and improve reliability.
 
 Same as usage endpoint - supports `from`, `to`, `period`, `page`, and `limit`.
 
-### Example Request
+### Example request
 
 <CodeGroup>
 
@@ -163,7 +163,7 @@ curl -X GET "https://api.supermemory.ai/v3/analytics/errors?period=7d" \
 
 </CodeGroup>
 
-### Response Schema
+### Response schema
 
 ```json
 {
@@ -199,7 +199,7 @@ curl -X GET "https://api.supermemory.ai/v3/analytics/errors?period=7d" \
 }
 ```
 
-## Detailed Logs
+## Detailed logs
 
 Access complete request/response logs for debugging and auditing.
 
@@ -214,7 +214,7 @@ Same as usage endpoint, plus optional filters:
 - `statusCode`: Filter by HTTP status code
 - `keyId`: Filter by specific API key
 
-### Example Request
+### Example request
 
 <CodeGroup>
 
@@ -252,7 +252,7 @@ curl -X GET "https://api.supermemory.ai/v3/analytics/logs?period=1h&limit=50" \
 
 </CodeGroup>
 
-### Response Schema
+### Response schema
 
 ```json
 {
@@ -282,7 +282,7 @@ curl -X GET "https://api.supermemory.ai/v3/analytics/logs?period=1h&limit=50" \
 }
 ```
 
-## Rate Limits
+## Rate limits
 
 Analytics endpoints have the following rate limits:
 - 100 requests per minute per organization

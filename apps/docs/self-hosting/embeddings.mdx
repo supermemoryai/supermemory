@@ -1,8 +1,8 @@
 ---
 title: "Embeddings (self-hosted)"
 sidebarTitle: "Embeddings"
-description: "Local and remote embedding providers for Supermemory local — defaults, env vars, multilingual options, and dimension lock."
-icon: "waypoints"
+description: "Local and remote embedding providers for Supermemory local: defaults, env vars, multilingual options and dimension lock."
+icon: "/icons/hugeicons/route-02.svg"
 ---
 
 Self-hosted Supermemory uses the **same embedding provider stack** as the hosted platform: local ONNX models, OpenAI, Gemini, or any OpenAI-compatible embeddings endpoint (including Ollama). LLM keys power extraction and summarization; embeddings are configured separately.
@@ -128,6 +128,14 @@ Use the dimension published for your chosen model. A mismatch with vectors alrea
 </Warning>
 
 **Changing embeddings later:** Not supported in place. Start from a fresh data directory or re-ingest all content so vectors stay comparable.
+
+> [!IMPORTANT]
+> **Model Mixing Bug in v0.0.5 (Exact match returns nothing)**
+>
+> In version `v0.0.5`, there was a bug where the server could mix different embedding models between write and read paths (e.g., document ingestion using OpenAI but memory queries using local default embeddings). In multilingual contexts like Japanese (which lacks space tokenization for fallback lexical FTS matching), this caused exact-text memory searches through `/v4/search` and `/v4/profile` to silently return `{"results":[],"total":0}`.
+>
+> **Resolution:**
+> This was fully resolved in `v0.0.7` by locking the embedding plan uniformly across all document and query embedding paths (enforced via a locked plan in the database store). If you are running `v0.0.5` and experiencing this issue, you should upgrade to `v0.0.7` or later.
 
 ## Related
 

@@ -215,7 +215,10 @@ class TestMemoryInjection:
         with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
             with patch("supermemory_openai.middleware.supermemory_profile_search") as mock_search:
                 mock_search.return_value = Mock()
-                mock_search.return_value.profile = {"static": [], "dynamic": []}
+                mock_search.return_value.profile = {
+                    "static": [{"memory": "User likes machine learning projects"}],
+                    "dynamic": [],
+                }
                 mock_search.return_value.search_results = mock_supermemory_response["searchResults"]
 
                 wrapped_client = with_supermemory(
@@ -236,6 +239,8 @@ class TestMemoryInjection:
                 mock_search.assert_called_once()
                 search_args = mock_search.call_args[0]
                 assert search_args[1] == "What machine learning frameworks do I like?"
+                enhanced_messages = original_create.call_args[1]["messages"]
+                assert "User likes machine learning projects" in enhanced_messages[0]["content"]
 
     @pytest.mark.asyncio
     async def test_memory_injection_full_mode(
@@ -295,7 +300,15 @@ class TestMemoryInjection:
                 )
 
                 messages = [
-                    {"role": "system", "content": "You are a helpful assistant."},
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a helpful assistant.\n\n"
+                            '<supermemory context="user-memories" readonly>\n'
+                            "Stale profile fact\n"
+                            "</supermemory>"
+                        ),
+                    },
                     {"role": "user", "content": "What do you know about me?"}
                 ]
 
@@ -316,6 +329,10 @@ class TestMemoryInjection:
                 assert system_message["role"] == "system"
                 assert "You are a helpful assistant." in system_message["content"]
                 assert "User prefers Python" in system_message["content"]
+                assert "Stale profile fact" not in system_message["content"]
+                assert system_message["content"].count(
+                    '<supermemory context="user-memories" readonly>'
+                ) == 1
 
 
     @pytest.mark.asyncio

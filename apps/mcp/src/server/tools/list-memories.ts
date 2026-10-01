@@ -29,11 +29,11 @@ export function register(deps: ToolDeps) {
 	})
 
 	deps.server.registerTool(
-		"listMemories",
+		"list_memories",
 		{
 			title: "List Memories",
 			description:
-				"List the latest extracted memory entries in one space, including stable memory IDs, version information, and source document IDs. This lists memories directly, not documents. When the user names a space, resolve it with listSpaces and pass containerTag; otherwise use the active space. Use search_memory instead for semantic recall.",
+				"List the latest extracted memory entries in one space, including stable memory IDs, version information, and source document IDs. This lists memories directly, not documents. When the user names a space, resolve it with list_spaces and pass containerTag; otherwise use the active space. Use search_memory instead for semantic recall.",
 			inputSchema,
 			outputSchema: listMemoriesOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,

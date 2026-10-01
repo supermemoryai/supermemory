@@ -1,17 +1,17 @@
 ---
-title: "How Supermemory Works"
+title: "How Supermemory works"
 sidebarTitle: "How it works"
-description: "From a file or chat turn to something you can search — the ingest pipeline, statuses, and outputs."
-icon: "cpu"
+description: "How a file or chat turn becomes something you can search: the ingest pipeline, statuses and outputs."
+icon: "/icons/hugeicons/cpu.svg"
 ---
 
-At it's core, supermemory is powered by a custom learning model and a graph database that we built internally.
+At its core, supermemory is powered by a custom learning model and a graph database that we built internally.
 
 <CardGroup cols={2}>
   <Card title="Learning model">
     Decides what and how to learn, what is important, when to forget, creating relations, etc.
   </Card>
-  <Card title="Temporal Vector-graph engine">
+  <Card title="Temporal vector-graph engine">
     Where the learnings are actually stored, optimized for search. Fact-based temporal graph that has Vector, FTS, and graph built in.
   </Card>
 </CardGroup>
@@ -21,20 +21,17 @@ But, you don't have to think about the above. The interface for users is as simp
 ## Get started in under a minute
 
 <CardGroup cols={2}>
-  <Card title="1. Get an API key" icon="key" href="https://console.supermemory.ai">
+  <Card title="1. Get an API key" icon="/icons/hugeicons/key-01.svg" href="https://console.supermemory.ai">
     From the [developer console](https://console.supermemory.ai) — **API Keys → Create API Key**. `console.supermemory.ai` is where keys and usage live.
   </Card>
-  <Card title="2. Use it" icon="terminal" href="/using-supermemory">
+  <Card title="2. Use it" icon="/icons/hugeicons/command-line.svg" href="/using-supermemory">
     Install the SDK, drop in your key, add a memory, and search it — right below, or the full [ingest → retrieve loop](/using-supermemory).
   </Card>
 </CardGroup>
 
 <CodeGroup>
-```bash TypeScript
-npm install supermemory
-```
-
 ```typescript TypeScript
+// npm install supermemory
 import Supermemory from "supermemory";
 
 const client = new Supermemory({ apiKey: "sm_..." }); // from console.supermemory.ai → API Keys
@@ -48,6 +45,7 @@ const { results } = await client.search({
 ```
 
 ```python Python
+# pip install supermemory
 from supermemory import Supermemory
 
 client = Supermemory(api_key="sm_...")  # from console.supermemory.ai → API Keys
@@ -113,7 +111,7 @@ Larger PDFs and long video take longer. Short chat turns usually finish in secon
 
 ## Dreaming (how memories enter the graph)
 
-Document **status `done`** means chunks are indexed for search. **Memories** — the graph facts, updates, and derives — come from a second phase called **dreaming**.
+A document with status `done` has its chunks indexed for search. Memories (the graph's facts, updates and derived facts) come from a second phase called **dreaming**.
 
 This is when the content is passed through the memory model and merged, arranged and organized for the future.
 
@@ -122,7 +120,7 @@ Pass `dreaming` on [add](/ingestion/add-memories):
 | Mode | Default? | Behavior | When to use |
 | --- | --- | --- | --- |
 | **`dynamic`** | Yes | Related documents are grouped so memories form from **coherent units**, not one isolated write at a time. Graph quality is higher for real multi-turn / multi-doc flows. Memory extraction may continue **after** `status: "done"`. | Production agents, connectors, ongoing sessions |
-| **`instant`** | No | This document is dreamed **on its own, right away**. Memories are available as soon as processing finishes for that doc. Bills **one extra [operation](/overview/billing)** per document. | Demos, quickstarts, “I need the graph now” |
+| **`instant`** | No | This document is dreamed on its own, right away. Memories are available as soon as processing finishes for that document. Bills one extra [operation](/overview/billing) per document. | Demos, quickstarts, “I need the graph now” |
 
 ```typescript
 // Production default — omit or set explicitly
@@ -142,7 +140,7 @@ await client.add({
 });
 ```
 
-**Rule of thumb:** prefer **`dynamic`** for quality and cost in real apps, use **`instant`** when the next step is a memory search or profile that must reflect this document immediately (as in the [quickstart](/quickstart)). Keeping it dynamic helps it pair better with other memories and better connections, inferences to be made.
+**Rule of thumb:** use `dynamic` in real apps for better quality and cost, because batching lets new memories connect to related ones. Use `instant` when the very next step is a memory search or profile that must already reflect this document, as in the [quickstart](/quickstart).
 
 How those memories connect and stay true over time is [Graph memory](/concepts/graph-memory). API detail: [Processing modes](/ingestion/add-memories#processing-modes).
 
@@ -156,27 +154,27 @@ After the pipeline runs, the same document leads to three things -> Chunks, Memo
 | **Memories** | Extracted facts in a living graph — updates, links, time | [Graph memory](/concepts/graph-memory) |
 | **Profile** | A sample of memories, static + dynamic summary for always-on context | [Profiles](/concepts/user-profiles), [Profile API](/recall/user-profiles) |
 
-Supermemory does **not** only store the file. It derives **memories** (understanding) and keeps **chunks** (the source) so you can personalize *and* ground. That distinction is the core of [Memory vs RAG](/concepts/memory-vs-rag).
+Supermemory does more than store the file. It derives memories (what it understood) and keeps chunks (the source), so you can both personalize and ground answers. That distinction is the core of [Memory vs RAG](/concepts/memory-vs-rag).
 
 ## Isolation and identity
 
 - **`containerTag`** — hard isolation boundary (user, tenant, project). See [Container tags](/concepts/container-tags).
-- **Metadata** — soft dimensions *inside* a tag for filtering. See [Metadata filtering](/concepts/filtering).
+- **Metadata**: extra dimensions inside a tag that you can filter on. See [metadata filtering](/concepts/filtering).
 - **Scoped API keys** — credentials that cannot cross a container. See [API keys](/authentication#scoped-api-keys).
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Graph memory" icon="vector-square" href="/concepts/graph-memory">
+  <Card title="Graph memory" icon="/icons/hugeicons/share-08.svg" href="/concepts/graph-memory">
     How facts connect, update, and stay true over time.
   </Card>
-  <Card title="Multi-modal ingestion" icon="file-stack" href="/concepts/content-types">
+  <Card title="Multi-modal ingestion" icon="/icons/hugeicons/files-01.svg" href="/concepts/content-types">
     Formats, extractors, and what you can send.
   </Card>
-  <Card title="Add context" icon="plus" href="/ingestion/add-memories">
+  <Card title="Add context" icon="/icons/hugeicons/plus-sign.svg" href="/ingestion/add-memories">
     API: add, customId, files, dreaming, status.
   </Card>
-  <Card title="Search API" icon="search" href="/recall/search">
+  <Card title="Search API" icon="/icons/hugeicons/search-01.svg" href="/recall/search">
     Query documents and memories after the pipeline finishes.
   </Card>
 </CardGroup>

@@ -1,7 +1,7 @@
 ---
 title: "OpenClaw"
 sidebarTitle: "OpenClaw"
-description: "OpenClaw Supermemory Plugin — works across Telegram, WhatsApp, Discord, Slack, and more"
+description: "Supermemory plugin for OpenClaw. Works across Telegram, WhatsApp, Discord, Slack and more."
 icon: "/images/openclaw-logo.jpg"
 ---
 
@@ -11,7 +11,7 @@ icon: "/images/openclaw-logo.jpg"
 **Prefer to keep everything on your machine?** This plugin works with [self-hosted Supermemory](/self-hosting/overview) — run `npx supermemory local`, then `export SUPERMEMORY_BASE_URL="http://localhost:6767"` (or set `baseUrl` in the plugin config) and use the API key printed on first boot.
 </Tip>
 
-## Install the Plugin
+## Install the plugin
 
 ```bash
 openclaw plugins install @supermemory/openclaw-supermemory
@@ -28,10 +28,10 @@ openclaw supermemory setup
 openclaw gateway restart
 ```
 
-Enter your API key from [app.supermemory.ai](https://app.supermemory.ai/?view=integrations). That's it.
+Enter your API key from the [API Keys](https://console.supermemory.ai/keys) page in the console. That's it.
 
 <AccordionGroup>
-  <Accordion title="Advanced Setup">
+  <Accordion title="Advanced setup">
     Configure all options interactively with the advanced setup command:
 
     ```bash
@@ -45,7 +45,7 @@ Enter your API key from [app.supermemory.ai](https://app.supermemory.ai/?view=in
   </Accordion>
 </AccordionGroup>
 
-## How It Works
+## How it works
 
 Once installed, the plugin runs automatically with zero interaction.
 
@@ -55,7 +55,7 @@ Once installed, the plugin runs automatically with zero interaction.
 
 ## Features
 
-### AI Tools
+### AI tools
 
 The AI can use these tools autonomously during conversations. With custom container tags enabled, all tools support a `containerTag` parameter.
 
@@ -66,7 +66,7 @@ The AI can use these tools autonomously during conversations. With custom contai
 | `supermemory_forget` | Delete a memory by query or ID. |
 | `supermemory_profile` | View the user profile — persistent facts and recent context. |
 
-### Slash Commands
+### Slash commands
 
 Users can interact with memory directly in chat.
 
@@ -75,7 +75,7 @@ Users can interact with memory directly in chat.
 | `/remember [text]` | Manually save something to memory. |
 | `/recall [query]` | Search memories and see results with similarity scores. |
 
-### CLI Commands
+### CLI commands
 
 Manage your memory from the terminal.
 
@@ -91,8 +91,8 @@ openclaw supermemory wipe               # Delete all memories (requires confirma
 <a id="configuration-options" />
 
 <AccordionGroup>
-  <Accordion title="Manual Configuration">
-    ### Configuration Options
+  <Accordion title="Manual configuration">
+    ### Configuration options
 
     Set API key (and, for self-hosted instances, the base URL) via environment variables:
 
@@ -118,7 +118,7 @@ openclaw supermemory wipe               # Delete all memories (requires confirma
     | `customContainers` | `array` | `[]` | Custom containers with `tag` and `description`. |
     | `customContainerInstructions` | `string` | `""` | Instructions for AI on container routing. |
 
-    ### Full Example
+    ### Full example
 
     ```json
     {
@@ -166,7 +166,7 @@ openclaw supermemory wipe               # Delete all memories (requires confirma
     openclaw supermemory setup
     ```
 
-    3. When prompted, paste your API key from [app.supermemory.ai](https://app.supermemory.ai/?view=integrations). The key starts with `sm_`.
+    3. When prompted, paste your API key from the [API Keys](https://console.supermemory.ai/keys) page in the console. The key starts with `sm_`.
 
     4. Restart OpenClaw to activate the plugin:
 
@@ -277,20 +277,20 @@ openclaw supermemory wipe               # Delete all memories (requires confirma
 
     Automatic per-channel separation is not supported yet. If you need this, let us know — with enough requests, we'll implement it right away.
 
-    <Card title="Request this feature" icon="mail" href="mailto:support@supermemory.com?subject=Feature%20Request%3A%20Per-Channel%20Container%20Tags&body=Hey%2C%0A%0AMy%20name%20is%20%5Byour%20name%5D.%20I%20just%20saw%20that%20you%20offer%20custom%20plugins.%0A%0AThis%20is%20my%20use%20case%3A%20%5Bdescribe%20your%20use%20case%5D%0A%0AI%20would%20love%20to%20have%20separate%20container%20tags%20for%20each%20channel%20so%20my%20session%20memories%20are%20automatically%20isolated.%0A%0AThanks!">
+    <Card title="Request this feature" icon="/icons/hugeicons/mail-01.svg" href="mailto:support@supermemory.com?subject=Feature%20Request%3A%20Per-Channel%20Container%20Tags&body=Hey%2C%0A%0AMy%20name%20is%20%5Byour%20name%5D.%20I%20just%20saw%20that%20you%20offer%20custom%20plugins.%0A%0AThis%20is%20my%20use%20case%3A%20%5Bdescribe%20your%20use%20case%5D%0A%0AI%20would%20love%20to%20have%20separate%20container%20tags%20for%20each%20channel%20so%20my%20session%20memories%20are%20automatically%20isolated.%0A%0AThanks!">
       Email us with your use case.
     </Card>
   </Accordion>
 </AccordionGroup>
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="GitHub Repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/openclaw-supermemory">
+  <Card title="GitHub repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/openclaw-supermemory">
     Source code, issues, and detailed README.
   </Card>
 
-  <Card title="Claude Memory Tool" icon="brain" href="/integrations/claude-memory">
+  <Card title="Claude Memory Tool" icon="/icons/hugeicons/brain-01.svg" href="/integrations/claude-memory">
     Use Claude's native memory tool with Supermemory as backend.
   </Card>
 </CardGroup>

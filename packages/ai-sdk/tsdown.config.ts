@@ -7,6 +7,7 @@ export default defineConfig({
 	target: "es2020",
 	tsconfig: "./tsconfig.json",
 	clean: true,
+	hash: false,
 	minify: true,
 	dts: {
 		sourcemap: true,

@@ -1,7 +1,8 @@
 ---
-title: "Gmail Connector"
+title: "Gmail connector"
+sidebarTitle: "Gmail"
 description: "Sync email threads from Gmail with real-time Pub/Sub webhooks and incremental sync"
-icon: "mail"
+icon: "/icons/hugeicons/mail-01.svg"
 ---
 
 Connect Gmail to automatically sync email threads into your supermemory knowledge base. Supports real-time updates via Google Cloud Pub/Sub webhooks and incremental synchronization.
@@ -10,9 +11,9 @@ Connect Gmail to automatically sync email threads into your supermemory knowledg
 **Max Plan Required:** The Gmail connector is available on Max plan and above.
 </Note>
 
-## Quick Setup
+## Quick setup
 
-### 1. Create Gmail Connection
+### 1. Create Gmail connection
 
 <Tabs>
   <Tab title="TypeScript">
@@ -79,11 +80,11 @@ Connect Gmail to automatically sync email threads into your supermemory knowledg
   </Tab>
 </Tabs>
 
-### 2. Handle OAuth Callback
+### 2. Handle OAuth callback
 
 After user grants permissions, Google redirects to your callback URL. The connection is automatically established and the initial sync begins.
 
-### 3. Check Connection Status
+### 3. Check connection status
 
 <Tabs>
   <Tab title="TypeScript">
@@ -146,9 +147,9 @@ After user grants permissions, Google redirects to your callback URL. The connec
   </Tab>
 </Tabs>
 
-## What Gets Synced
+## What gets synced
 
-### Email Threads
+### Email threads
 
 Gmail threads (conversations) are synced as individual documents with all messages included:
 
@@ -158,7 +159,7 @@ Gmail threads (conversations) are synced as individual documents with all messag
 - **HTML content** converted to clean markdown
 - **Attachment metadata**: filename, mime type, size (attachments are referenced, not stored)
 
-### Document Metadata
+### Document metadata
 
 Each synced thread includes searchable metadata:
 
@@ -190,9 +191,9 @@ const results = await client.search({
 });
 ```
 
-## Connection Management
+## Connection management
 
-### List All Connections
+### List all connections
 
 <Tabs>
   <Tab title="TypeScript">
@@ -241,7 +242,7 @@ const results = await client.search({
   </Tab>
 </Tabs>
 
-### Delete Connection
+### Delete connection
 
 <Tabs>
   <Tab title="TypeScript">
@@ -295,7 +296,7 @@ Deleting a connection will:
 - Keep existing synced documents in supermemory (they won't be deleted)
 </Note>
 
-### Manual Sync
+### Manual sync
 
 Trigger a manual synchronization:
 
@@ -344,7 +345,7 @@ Trigger a manual synchronization:
   </Tab>
 </Tabs>
 
-## Sync Mechanism
+## Sync mechanism
 
 Gmail connector supports multiple sync methods:
 
@@ -355,7 +356,7 @@ Gmail connector supports multiple sync methods:
 | **Manual sync** | On-demand via API |
 | **Incremental sync** | Uses Gmail `historyId` to fetch only changed threads |
 
-### How Real-time Sync Works
+### How real-time sync works
 
 1. When a connection is created, supermemory registers a Gmail API "watch" subscription
 2. Gmail sends notifications to a Google Cloud Pub/Sub topic when emails change
@@ -366,7 +367,7 @@ Gmail connector supports multiple sync methods:
 Real-time sync monitors the **INBOX** label. Emails in other labels are synced via scheduled/manual sync.
 </Note>
 
-## Permissions & Scopes
+## Permissions & scopes
 
 The Gmail connector requests the following OAuth scopes:
 
@@ -383,7 +384,7 @@ The Gmail connector requests the following OAuth scopes:
 
 <Warning>
 **Important Limitations:**
-- **Plan requirement**: Requires Scale Plan or Enterprise Plan
+- **Plan requirement**: Requires Max Plan or above
 - **INBOX only** for real-time sync: Only INBOX label triggers real-time updates; other labels sync via scheduled sync
 - **Watch expiration**: Gmail watch subscriptions expire after 7 days (automatically renewed by supermemory)
 - **Document limit**: Default limit is 10,000 threads per connection (configurable via `documentLimit` parameter)
@@ -393,7 +394,7 @@ The Gmail connector requests the following OAuth scopes:
 
 ## Troubleshooting
 
-### OAuth Fails or Missing Refresh Token
+### OAuth fails or missing refresh token
 
 If OAuth fails or the connection stops syncing:
 
@@ -416,7 +417,7 @@ const newConnection = await client.connections.create('gmail', {
 window.location.href = newConnection.authLink;
 ```
 
-### Emails Not Syncing in Real-time
+### Emails not syncing in real-time
 
 If real-time sync isn't working:
 
@@ -425,10 +426,10 @@ If real-time sync isn't working:
 - Check if the connection was created recently (watch registration happens on creation)
 - Trigger a manual sync to verify the connection is working
 
-### Permission Denied Errors
+### Permission denied errors
 
 If you see permission errors:
 
 - Ensure the user granted the required Gmail scopes during OAuth
-- Verify your organization has Scale Plan or Enterprise Plan access
+- Verify your organization has Max Plan or above access
 - Check if the user revoked app access in their Google Account settings

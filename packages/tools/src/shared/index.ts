@@ -1,6 +1,8 @@
 // Types
 export type {
 	MemoryPromptData,
+	MemorySearchResult,
+	ProfileSearchResult,
 	PromptTemplate,
 	MemoryMode,
 	AddMemoryMode,
@@ -40,3 +42,12 @@ export {
 	type BuildMemoriesTextOptions,
 	type GenericMessage,
 } from "./memory-client"
+
+// SDK-owned prompt context
+export {
+	MEMORY_CONTEXT_START,
+	MEMORY_CONTEXT_END,
+	stripMemoryContext,
+	wrapMemoryContext,
+	replaceMemoryContext,
+} from "./memory-context"

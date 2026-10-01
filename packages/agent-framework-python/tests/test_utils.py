@@ -56,6 +56,14 @@ class TestDeduplicateMemories:
         )
         assert result.static == ["valid"]
 
+    def test_normalized_fact_variants(self) -> None:
+        result = deduplicate_memories(
+            static=["User likes Python", " user likes python "],
+            dynamic=["[2026-08-10] USER LIKES PYTHON"],
+        )
+        assert result.static == ["User likes Python"]
+        assert result.dynamic == []
+
 
 class TestConvertProfileToMarkdown:
     def test_empty_profile(self) -> None:

@@ -301,6 +301,121 @@ describe("Unit: withSupermemory", () => {
 			expect(fetchMock).toHaveBeenCalledTimes(2)
 			expect(result2.prompt[0]?.content).toContain("Memory from call 2")
 		})
+
+		it("replaces the prior SDK memory block instead of accumulating context", async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: () =>
+					Promise.resolve(createMockProfileResponse(["Fresh profile fact"])),
+			})
+
+			const inner = createMockLanguageModel()
+			vi.mocked(inner.doGenerate).mockResolvedValue({
+				content: [{ type: "text", text: "Done" }],
+				finishReason: "stop",
+				usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+				warnings: [],
+			})
+			const wrapped = withSupermemory(inner, {
+				containerTag: TEST_CONFIG.containerTag,
+				customId: "conversation-a",
+				mode: "profile",
+				addMemory: "never",
+				apiKey: TEST_CONFIG.apiKey,
+			})
+
+			await wrapped.doGenerate({
+				prompt: [
+					{
+						role: "system",
+						content:
+							'Be helpful.\n\n<supermemory context="user-memories" readonly>\nStale profile fact\n</supermemory>',
+					},
+					{
+						role: "user",
+						content: [{ type: "text", text: "What do you remember?" }],
+					},
+				],
+			})
+
+			const forwarded = vi.mocked(inner.doGenerate).mock.calls[0]?.[0]
+			const system = forwarded?.prompt.find(
+				(message) => message.role === "system",
+			)
+			const content = String(system?.content ?? "")
+
+			expect(content).toContain("Be helpful.")
+			expect(content).toContain("Fresh profile fact")
+			expect(content).not.toContain("Stale profile fact")
+			expect(
+				content.match(/<supermemory context="user-memories" readonly>/g),
+			).toHaveLength(1)
+		})
+
+		it("keeps concurrent user contexts isolated", async () => {
+			fetchMock.mockImplementation(async (_url, init) => {
+				const body = JSON.parse(String(init?.body ?? "{}"))
+				return {
+					ok: true,
+					json: async () =>
+						createMockProfileResponse([
+							body.containerTag === "user-a"
+								? "Fact for Alice"
+								: "Fact for Bob",
+						]),
+				}
+			})
+			const innerA = createMockLanguageModel()
+			const innerB = createMockLanguageModel()
+			vi.mocked(innerA.doGenerate).mockResolvedValue({
+				content: [{ type: "text", text: "A" }],
+				finishReason: "stop",
+				usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+				warnings: [],
+			})
+			vi.mocked(innerB.doGenerate).mockResolvedValue({
+				content: [{ type: "text", text: "B" }],
+				finishReason: "stop",
+				usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+				warnings: [],
+			})
+			const wrappedA = withSupermemory(innerA, {
+				containerTag: "user-a",
+				customId: "conversation-a",
+				apiKey: TEST_CONFIG.apiKey,
+				addMemory: "never",
+			})
+			const wrappedB = withSupermemory(innerB, {
+				containerTag: "user-b",
+				customId: "conversation-b",
+				apiKey: TEST_CONFIG.apiKey,
+				addMemory: "never",
+			})
+			const params = {
+				prompt: [
+					{
+						role: "user" as const,
+						content: [{ type: "text" as const, text: "Remember me" }],
+					},
+				],
+			}
+
+			await Promise.all([
+				wrappedA.doGenerate(params),
+				wrappedB.doGenerate(params),
+			])
+
+			const promptA = String(
+				vi.mocked(innerA.doGenerate).mock.calls[0]?.[0].prompt[0]?.content,
+			)
+			const promptB = String(
+				vi.mocked(innerB.doGenerate).mock.calls[0]?.[0].prompt[0]?.content,
+			)
+			expect(promptA).toContain("Fact for Alice")
+			expect(promptA).not.toContain("Fact for Bob")
+			expect(promptB).toContain("Fact for Bob")
+			expect(promptB).not.toContain("Fact for Alice")
+		})
 	})
 
 	describe("Edge cases", () => {

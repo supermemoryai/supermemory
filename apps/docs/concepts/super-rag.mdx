@@ -1,13 +1,13 @@
 ---
-title: "SuperRAG (Managed RAG as a service)"
+title: "SuperRAG (managed RAG as a service)"
 sidebarTitle: "SuperRAG"
 description: "Supermemory provides a managed RAG solution - extraction, indexing, storing, and retrieval."
-icon: "bolt"
+icon: "/icons/hugeicons/flash.svg"
 ---
 
 Supermemory doesn't just store your content—it transforms it into optimized, searchable knowledge. Every upload goes through an intelligent pipeline that extracts, chunks, and indexes content in the ideal way for its type.
 
-## Automatic Content Intelligence
+## Automatic content intelligence
 
 When you add content, Supermemory:
 
@@ -86,7 +86,7 @@ When you're searching over a mix of both, `searchMode: "hybrid"` (below) is what
 
 ---
 
-## Smart Chunking by Content Type
+## Smart chunking by content type
 
 Different content types need different chunking strategies. Supermemory applies the optimal approach automatically:
 
@@ -121,7 +121,7 @@ Code is chunked using [code-chunk](https://github.com/supermemoryai/code-chunk),
 
 This means searching for "authentication middleware" finds the actual function, not a random slice of code.
 
-### Web Pages
+### Web pages
 
 URLs are fetched, cleaned of navigation/ads, and chunked by article structure — headings, paragraphs, lists.
 
@@ -133,18 +133,18 @@ See [Content Types](/concepts/content-types) for the full list of supported form
 
 ---
 
-## Hybrid Memory + RAG
+## Hybrid memory + RAG
 
 Supermemory combines the best of both approaches in every search:
 
 <CardGroup cols={2}>
-  <Card title="Traditional RAG" icon="magnifying-glass">
+  <Card title="Traditional RAG" icon="/icons/hugeicons/search-01.svg">
     - Finds similar document chunks
     - Great for knowledge retrieval
     - Stateless — same results for everyone
   </Card>
 
-  <Card title="Memory System" icon="brain">
+  <Card title="Memory system" icon="/icons/hugeicons/brain-01.svg">
     - Extracts and tracks user facts
     - Understands temporal context
     - Personalizes results per user
@@ -168,7 +168,7 @@ const results = await client.search({
 
 ---
 
-## Search Optimization
+## Search optimization
 
 Two flags give you fine-grained control over result quality:
 
@@ -185,7 +185,7 @@ const results = await client.search({
 
 **When to use:** Complex queries, technical documentation, when precision matters more than speed.
 
-### Query Rewriting
+### Query rewriting
 
 Expands your query to capture more relevant results:
 
@@ -200,7 +200,7 @@ const results = await client.search({
 
 ---
 
-## Why It's "Super"
+## Why it's "Super"
 
 | Traditional RAG | SUPER RAG |
 |-----------------|-----------|
@@ -214,25 +214,25 @@ You focus on building your product. Supermemory handles the RAG complexity.
 
 ---
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Content Types" icon="file-stack" href="/concepts/content-types">
+  <Card title="Content types" icon="/icons/hugeicons/files-01.svg" href="/concepts/content-types">
     All supported formats and how they're processed
   </Card>
-  <Card title="How It Works" icon="cpu" href="/concepts/how-it-works">
+  <Card title="How it works" icon="/icons/hugeicons/cpu.svg" href="/concepts/how-it-works">
     The full processing pipeline
   </Card>
-  <Card title="Memory vs RAG" icon="scale" href="/concepts/memory-vs-rag">
+  <Card title="Memory vs RAG" icon="/icons/hugeicons/balance-scale.svg" href="/concepts/memory-vs-rag">
     When to use each approach
   </Card>
-  <Card title="Search" icon="search" href="/recall/search">
+  <Card title="Search" icon="/icons/hugeicons/search-01.svg" href="/recall/search">
     Search parameters and optimization
   </Card>
-  <Card title="Billing" icon="receipt" href="/overview/billing#memory-vs-superrag-tokens">
+  <Card title="Billing" icon="/icons/hugeicons/invoice-01.svg" href="/overview/billing#memory-vs-superrag-tokens">
     Exact meter rates for memory vs SuperRAG tokens
   </Card>
-  <Card title="Adding Memories" icon="plus" href="/ingestion/add-memories">
+  <Card title="Adding memories" icon="/icons/hugeicons/plus-sign.svg" href="/ingestion/add-memories">
     `taskType` and other ingestion parameters
   </Card>
 </CardGroup>

@@ -14,11 +14,28 @@ export interface MemoryPromptData {
 	 */
 	generalSearchMemories: string
 	/**
-	 * Raw search results from the API for the current query.
-	 * Use this to traverse, filter, or selectively include results based on metadata.
-	 * Empty array if mode is "profile" or when no search was performed.
+	 * Metadata-preserving search results that remain after cross-source deduplication.
+	 * Use this to traverse, filter, or selectively include visible results.
+	 * The runtime always supplies an array (empty in profile mode or when no search
+	 * was performed).
 	 */
-	searchResults: Array<{ memory: string; metadata?: Record<string, unknown> }>
+	searchResults: MemorySearchResult[]
+}
+
+/** A raw query result returned inside `/v4/profile.searchResults.results`. */
+export interface ProfileSearchResult {
+	id: string
+	memory?: string
+	chunk?: string
+	metadata: Record<string, unknown> | null
+	updatedAt: string
+	similarity: number
+}
+
+/** A visible, deduplicated query result provided to prompt templates. */
+export interface MemorySearchResult
+	extends Omit<ProfileSearchResult, "memory"> {
+	memory: string
 }
 
 /**
@@ -73,19 +90,23 @@ export interface ProfileStructure {
 		 * Core, stable facts about the user that rarely change.
 		 * Examples: name, profession, long-term preferences, goals.
 		 */
-		static?: Array<{ memory: string; metadata?: Record<string, unknown> }>
+		static?: string[]
 		/**
 		 * Recently learned or frequently updated information about the user.
 		 * Examples: current projects, recent interests, ongoing topics.
 		 */
-		dynamic?: Array<{ memory: string; metadata?: Record<string, unknown> }>
+		dynamic?: string[]
+		/** Memories grouped by custom profile bucket. */
+		buckets?: Record<string, string[]>
 	}
-	searchResults: {
+	searchResults?: {
 		/**
 		 * Memories retrieved based on semantic similarity to the current query.
 		 * Most relevant to the immediate conversation context.
 		 */
-		results: Array<{ memory: string; metadata?: Record<string, unknown> }>
+		results: ProfileSearchResult[]
+		total: number
+		timing: number
 	}
 }
 
@@ -99,7 +120,7 @@ export interface ProfileMarkdownData {
 		/** Recently learned or updated information (current projects, interests) */
 		dynamic?: string[]
 	}
-	searchResults: {
+	searchResults?: {
 		/** Query-relevant memories based on semantic similarity */
 		results: Array<{ memory: string }>
 	}

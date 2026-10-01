@@ -1,26 +1,17 @@
 import type { Metadata, Viewport } from "next"
-import { Space_Grotesk } from "next/font/google"
-import "../globals.css"
-import "@ui/globals.css"
-import { AuthProvider } from "@lib/auth-context"
-import { ErrorTrackingProvider } from "@lib/error-tracking"
-import { PostHogProvider } from "@lib/posthog"
-import { QueryProvider } from "../components/query-client"
-import { AutumnProvider } from "autumn-js/react"
-import { Suspense } from "react"
-import { Toaster } from "@ui/components/sonner"
-import { NuqsAdapter } from "nuqs/adapters/next/app"
-import { ThemeProvider } from "@/lib/theme-provider"
-import { PromoCodeCapture } from "@/hooks/use-promo-code"
+import { DM_Sans } from "next/font/google"
+import "./globals.css"
 
-const font = Space_Grotesk({
+const font = DM_Sans({
 	subsets: ["latin"],
 	variable: "--font-sans",
+	weight: ["400", "500", "600"],
 })
 
 export const metadata: Metadata = {
 	metadataBase: new URL("https://app.supermemory.ai"),
-	description: "Your memories, wherever you are",
+	title: "Supermemory has moved",
+	description: "Supermemory now lives at console.supermemory.ai",
 	icons: {
 		icon: [
 			{ url: "/favicon.ico", sizes: "any" },
@@ -31,87 +22,29 @@ export const metadata: Metadata = {
 			{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
 		],
 	},
-	manifest: "/manifest.webmanifest",
+	manifest: "/site.webmanifest",
 	openGraph: {
-		description: "Your memories, wherever you are",
-		images: [
-			{
-				url: "/OG.png",
-				width: 1800,
-				height: 945,
-				alt: "supermemory app",
-			},
-		],
-		siteName: "supermemory",
-		title: "supermemory app",
+		title: "Supermemory has moved",
+		description: "Supermemory now lives at console.supermemory.ai",
+		images: [{ url: "/OG.png", width: 1800, height: 945, alt: "Supermemory" }],
+		siteName: "Supermemory",
 		type: "website",
 	},
-	title: "supermemory app",
-	twitter: {
-		card: "summary_large_image",
-		description: "Your memories, wherever you are",
-		images: ["/OG.png"],
-		title: "supermemory app",
-	},
+	robots: { index: false, follow: true },
 }
 
 export const viewport: Viewport = {
 	width: "device-width",
 	initialScale: 1,
-	viewportFit: "cover",
-	interactiveWidget: "resizes-content",
+	themeColor: "#05080d",
 }
 
 export default function RootLayout({
 	children,
-}: Readonly<{
-	children: React.ReactNode
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<head>
-				{process.env.NODE_ENV === "development" && (
-					<script
-						crossOrigin="anonymous"
-						src="https://unpkg.com/react-scan/dist/auto.global.js"
-					/>
-				)}
-			</head>
-			<body
-				className={`${font.variable} antialiased overflow-x-hidden`}
-				suppressHydrationWarning
-			>
-				<ThemeProvider
-					attribute="class"
-					defaultTheme="dark"
-					enableSystem={false}
-					disableTransitionOnChange
-					forcedTheme="dark"
-				>
-					<AutumnProvider
-						backendUrl={
-							process.env.NEXT_PUBLIC_BACKEND_URL ??
-							"https://api.supermemory.ai"
-						}
-						includeCredentials={true}
-						headers={{ "X-App-Source": "nova" }}
-					>
-						<PromoCodeCapture />
-						<QueryProvider>
-							<AuthProvider>
-								<PostHogProvider>
-									<ErrorTrackingProvider>
-										<NuqsAdapter>
-											<Suspense>{children}</Suspense>
-											<Toaster />
-										</NuqsAdapter>
-									</ErrorTrackingProvider>
-								</PostHogProvider>
-							</AuthProvider>
-						</QueryProvider>
-					</AutumnProvider>
-				</ThemeProvider>
-			</body>
+		<html className={font.variable} lang="en">
+			<body>{children}</body>
 		</html>
 	)
 }

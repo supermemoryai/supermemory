@@ -72,6 +72,26 @@ class TestSupermemoryCartesiaNullProfile(unittest.IsolatedAsyncioTestCase):
             },
         )
 
+    def test_query_mode_keeps_search_fact_also_present_in_profile(self) -> None:
+        fact = "User likes machine learning projects"
+        agent = SupermemoryCartesiaAgent(
+            agent=SimpleNamespace(),
+            api_key="mock_key",
+            container_tag="user-123",
+            custom_id="conversation-456",
+            config=SupermemoryCartesiaAgent.MemoryConfig(mode="query"),
+        )
+
+        context = agent._build_memory_message(
+            {
+                "profile": {"static": [fact], "dynamic": []},
+                "search_results": [SimpleNamespace(memory=fact)],
+            }
+        )
+
+        self.assertIsNotNone(context)
+        self.assertIn(fact, context)
+
 
 if __name__ == "__main__":
     unittest.main()

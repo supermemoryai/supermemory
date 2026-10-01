@@ -1,17 +1,15 @@
 ---
 title: "Claude Code"
 sidebarTitle: "Claude Code"
-description: "Claude Code Supermemory Plugin — persistent memory across coding sessions"
+description: "Supermemory plugin for Claude Code. Keeps memory across coding sessions."
 icon: "/images/claude-code-icon.svg"
 ---
 
-<div className="w-1/2">
-  <img
-    src="/images/claude-code-supermemory.png"
-    alt="Claude Code + Supermemory"
-    className="rounded-lg shadow-lg"
-  />
-</div>
+<img
+  src="/images/claude-code-supermemory.png"
+  alt="Claude Code + Supermemory"
+  className="rounded-lg"
+/>
 
 [supermemory](https://github.com/supermemoryai/claude-supermemory) is a Claude Code plugin that gives your AI persistent memory across sessions. Your agent remembers what you worked on — across sessions, across projects.
 
@@ -19,7 +17,7 @@ icon: "/images/claude-code-icon.svg"
 **Prefer to keep everything on your machine?** This plugin works with [self-hosted Supermemory](/self-hosting/overview) — run `npx supermemory local`, then set `baseUrl` in project config (or point your install at your local API) and use the API key printed on first boot.
 </Tip>
 
-## Install the Plugin
+## Install the plugin
 
 > **Requires Node.js 18+** on your PATH — the memory hooks run as Node scripts.
 
@@ -44,7 +42,7 @@ icon: "/images/claude-code-icon.svg"
 
 ## Authenticate
 
-Create a Supermemory API key from [app.supermemory.ai](https://app.supermemory.ai) (or [API Keys](https://console.supermemory.ai/keys)), then add it to your shell profile:
+Create a Supermemory API key from the [API Keys](https://console.supermemory.ai/keys) page in the console, then add it to your shell profile:
 
 <Tabs>
   <Tab title="macOS / Linux (zsh)">
@@ -67,7 +65,7 @@ Create a Supermemory API key from [app.supermemory.ai](https://app.supermemory.a
   </Tab>
 </Tabs>
 
-## How It Works
+## How it works
 
 Once installed, the plugin runs automatically:
 
@@ -88,14 +86,14 @@ Once installed, the plugin runs automatically:
 
 ## Configuration
 
-### Environment Variables
+### Environment variables
 
 ```bash
 SUPERMEMORY_CC_API_KEY=sm_...    # Required
 SUPERMEMORY_DEBUG=true           # Optional: enable debug logging
 ```
 
-### Global Settings
+### Global settings
 
 Create `~/.supermemory-claude/settings.json`:
 
@@ -118,7 +116,7 @@ Create `~/.supermemory-claude/settings.json`:
 | `signalTurnsBefore` | Context turns before a signal (default: 3) |
 | `includeTools` | Tools to explicitly capture |
 
-### Project Config
+### Project config
 
 Per-repo overrides in `.claude/.supermemory-claude/config.json`. Run `/supermemory:project-config` or create manually:
 
@@ -138,14 +136,14 @@ Per-repo overrides in `.claude/.supermemory-claude/config.json`. Run `/supermemo
 | `personalContainerTag` | Override personal container |
 | `repoContainerTag` | Override team container tag |
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="GitHub Repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/claude-supermemory">
+  <Card title="GitHub repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/claude-supermemory">
     Source code, issues, and detailed README.
   </Card>
 
-  <Card title="OpenClaw Plugin" icon="messages-square" href="/integrations/openclaw">
-    Multi-platform memory for Telegram, WhatsApp, Discord, and more.
+  <Card title="Cursor plugin" icon="/images/cursor-logo.svg" href="/integrations/cursor">
+    Memory for your Cursor chats.
   </Card>
 </CardGroup>

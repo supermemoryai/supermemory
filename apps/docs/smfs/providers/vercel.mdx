@@ -16,7 +16,7 @@ your code actually runs:
 
 ## How it works
 
-### Self-hosted Node (real mount)
+### Self-hosted node (real mount)
 
 The agent runs as a separate process with direct access to the SMFS mount.
 Best when you want full bash, read, and write capabilities and your server is
@@ -30,7 +30,7 @@ graph LR
     Mount -->|sync| SM["Supermemory"]
 ```
 
-### Vercel Functions / serverless (Bash Tool)
+### Vercel functions / serverless (Bash tool)
 
 The agent runs inside `generateText` and accesses memory through `@supermemory/bash`,
 which proxies bash commands to your Supermemory container over HTTP. No mount,
@@ -52,7 +52,7 @@ graph LR
 
 ---
 
-## Pattern A: Claude Agent SDK on self-hosted Node
+## Pattern A: Claude Agent SDK on self-hosted node
 
 Use this when the Vercel AI SDK is just the orchestrator and your real workload
 is a Claude agent running on a long-lived server you control.
@@ -100,7 +100,7 @@ python3 agent.py
 
 ---
 
-## Pattern B: Vercel AI SDK + Bash Tool (serverless-friendly)
+## Pattern B: Vercel AI SDK + Bash tool (serverless-friendly)
 
 `@supermemory/bash` exposes your Supermemory container as a single agent tool
 — `run_bash(command)` — without mounting anything. It runs anywhere TypeScript

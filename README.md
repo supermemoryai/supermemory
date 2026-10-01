@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>State-of-the-art memory and context engine for AI. And yes - you can use it as a company/personal brain.</strong>
+  <strong>State-of-the-art memory and context engine for AI.</strong>
 </p>
 
 <p align="center">
@@ -67,7 +67,7 @@ All of this is in our single memory structure and ontology.
 
 <h3>🧑‍💻 I use AI tools</h3>
 
-Build your own personal supermemory by using our app. Builds **persistent memory graph across every conversation**.
+Give Claude Code, Muse Code, Cursor, Codex and OpenCode **persistent memory across every conversation** with a plugin or the MCP server.
 
 Your AI remembers your preferences, projects, past discussions — and gets smarter over time.
 
@@ -107,21 +107,11 @@ curl -fsSL https://supermemory.ai/install | bash
 
 ## Give your AI memory
 
-The Supermemory App, browser extension, plugins and MCP server gives any compatible AI assistant persistent memory. One install, and your AI remembers you.
-
-### The app
-
-You can use supermemory without any code, by using our consumer-facing app for free.
-
-Start at https://app.supermemory.ai
-
-<img width="1705" height="1030" alt="image" src="https://github.com/user-attachments/assets/5b43af30-b998-4585-8de6-f3e9a26d894a" />
-
-It also comes with an agent embedded inside, which we call Nova.
+Plugins and the MCP server give any compatible AI assistant persistent memory. One install, and your AI remembers you.
 
 ### Supermemory Plugins
 
-Supermemory comes built with Plugins for Claude Code, OpenCode, OpenClaw, and Hermes.
+Supermemory comes built with plugins for Claude Code, Muse Code, Cursor, Codex, OpenCode, OpenClaw, and Hermes.
 
 <img width="844" height="484" alt="image" src="https://github.com/user-attachments/assets/ecb879a2-8652-495d-9228-f305a97ba603" />
 
@@ -129,8 +119,11 @@ These plugins are implementations of the supermemory API, and they are open sour
 
 You can find them here: 
 
-- Openclaw plugin: https://github.com/supermemoryai/openclaw-supermemory
-- Claude code plugin: https://github.com/supermemoryai/claude-supermemory
+- Claude Code plugin: https://github.com/supermemoryai/claude-supermemory
+- Muse Code plugin: https://github.com/supermemoryai/muse-supermemory
+- Cursor plugin: https://github.com/supermemoryai/cursor-supermemory
+- Codex plugin: https://github.com/supermemoryai/codex-supermemory
+- OpenClaw plugin: https://github.com/supermemoryai/openclaw-supermemory
 - OpenCode plugin: https://github.com/supermemoryai/opencode-supermemory
 - Hermes agent (Supermemory memory provider): https://github.com/NousResearch/hermes-agent
 

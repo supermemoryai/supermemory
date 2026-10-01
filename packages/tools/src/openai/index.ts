@@ -1,5 +1,4 @@
 import type OpenAI from "openai"
-import { validateApiKey } from "../shared"
 import {
 	createOpenAIMiddleware,
 	type OpenAIMiddlewareOptions,
@@ -22,7 +21,7 @@ import {
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile" (default), "query", or "full"
  * @param options.addMemory - Optional mode for memory addition: "always" (default), "never"
- * @param options.apiKey - Optional Supermemory API key to use instead of the SUPERMEMORY_API_KEY environment variable
+ * @param options.apiKey - Optional Supermemory API key; falls back to SUPERMEMORY_API_KEY
  *
  * @returns An OpenAI client with SuperMemory middleware injected for both Chat Completions and Responses APIs
  *
@@ -58,14 +57,18 @@ import {
  * })
  * ```
  *
- * @throws {Error} When neither `options.apiKey` nor `process.env.SUPERMEMORY_API_KEY` are set
+ * @throws {Error} When neither options.apiKey nor SUPERMEMORY_API_KEY is set
  * @throws {Error} When supermemory API request fails
  */
 export function withSupermemory(
 	openaiClient: OpenAI,
 	options: OpenAIMiddlewareOptions,
 ) {
-	validateApiKey(options.apiKey)
+	if (!options.apiKey?.trim() && !process.env.SUPERMEMORY_API_KEY?.trim()) {
+		throw new Error(
+			"SUPERMEMORY_API_KEY is not set — provide it via options.apiKey or set the environment variable",
+		)
+	}
 
 	if (!options.containerTag) {
 		throw new Error(

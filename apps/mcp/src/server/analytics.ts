@@ -1,216 +1,112 @@
-import type { McpServer, ServerContext } from "@modelcontextprotocol/server"
+import type { McpServer } from "@modelcontextprotocol/server"
+import { instrument, type MCPAnalyticsOptions } from "@posthog/mcp"
 import { PostHog } from "posthog-node"
 import type { ActorContext, ServerEnv } from "./types"
 
 const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com"
-
-export type McpToolSurface =
-	| "model_tool"
-	| "app_launcher"
-	| "app_action"
-	| "app_internal"
-
-export type McpToolOutcome = "success" | "error"
-
-export interface McpToolExecution {
-	toolName: string
-	surface: McpToolSurface
-	outcome: McpToolOutcome
-	durationMs: number
-	spaceExplicit: boolean
-	client?: { name: string; version?: string }
-	errorType?: string
-}
-
-export interface McpToolAnalytics {
-	record(execution: McpToolExecution): void
-}
+const PERSONLESS_DISTINCT_ID_NAMESPACE = "supermemory-posthog-personless-v1"
+const MCP_EVENT_PROPERTIES = [
+	"$mcp_source",
+	"$mcp_server_name",
+	"$mcp_server_version",
+	"$mcp_tool_name",
+	"$mcp_duration_ms",
+	"$mcp_is_error",
+	"$mcp_client_name",
+	"$mcp_client_version",
+	"$mcp_protocol_version",
+	"$mcp_listed_tool_names",
+	"$mcp_conversation_id",
+	"$session_id",
+	"$groups",
+] as const
 
 export type WaitUntil = (promise: Promise<unknown>) => void
 
-type ClientInfoResolver = (
-	context: ServerContext,
-) => { name: string; version?: string } | null
-
-const TOOL_SURFACES: Record<string, McpToolSurface> = {
-	search_memory: "model_tool",
-	listDocuments: "model_tool",
-	getDocument: "model_tool",
-	listMemories: "model_tool",
-	listSpaces: "model_tool",
-	whoAmI: "model_tool",
-	add_memory: "model_tool",
-	"select-space": "app_launcher",
-	"memory-graph": "app_launcher",
-	"guided-save": "app_launcher",
-	"upload-file": "app_launcher",
-	"set-active-tag": "app_action",
-	"save-memory": "app_action",
-	"prepare-file-upload": "app_action",
-	"fetch-graph-data": "app_internal",
+// Must match the API's personless id hashing so MCP and API events share one id.
+async function personlessDistinctId(userId: string): Promise<string> {
+	const input = new TextEncoder().encode(
+		`${PERSONLESS_DISTINCT_ID_NAMESPACE}:${userId}`,
+	)
+	const digest = await crypto.subtle.digest("SHA-256", input)
+	const hash = Array.from(new Uint8Array(digest), (byte) =>
+		byte.toString(16).padStart(2, "0"),
+	).join("")
+	return `personless_${hash}`
 }
 
-let posthogConfig:
-	| {
-			apiKey: string
-			host: string
-			client: PostHog
-	  }
-	| undefined
-
-function posthogClient(apiKey: string, host: string): PostHog {
-	if (posthogConfig?.apiKey === apiKey && posthogConfig.host === host) {
-		return posthogConfig.client
+class ImmediateMcpPostHog extends PostHog {
+	constructor(
+		apiKey: string,
+		host: string,
+		private readonly waitUntil: WaitUntil,
+	) {
+		super(apiKey, { host })
 	}
 
-	const client = new PostHog(apiKey, {
-		host,
-		flushAt: 1,
-		flushInterval: 0,
-	})
-	posthogConfig = { apiKey, host, client }
-	return client
+	override capture(event: Parameters<PostHog["capture"]>[0]): void {
+		try {
+			this.waitUntil(
+				this.captureImmediate(event).catch((error) =>
+					console.error("PostHog MCP tracking error:", error),
+				),
+			)
+		} catch (error) {
+			console.error("PostHog MCP tracking error:", error)
+		}
+	}
 }
 
-export function posthogEventForToolExecution(
-	actor: Pick<ActorContext, "userId" | "organizationId" | "oauthClientId">,
-	execution: McpToolExecution,
-) {
+const metadataOnlyMcpEvent: NonNullable<MCPAnalyticsOptions["beforeSend"]> = (
+	event,
+) => {
+	if (
+		!["$mcp_tool_call", "$mcp_tools_list", "$mcp_initialize"].includes(
+			event.event,
+		)
+	) {
+		return null
+	}
+
 	return {
-		distinctId: actor.userId,
-		event: "mcp_tool_executed",
-		groups: { company: actor.organizationId },
+		...event,
 		properties: {
-			app: "mcp",
-			tool_name: execution.toolName,
-			outcome: execution.outcome,
-			duration_ms: execution.durationMs,
-			mcp_runtime: "stateless",
-			mcp_surface: execution.surface,
-			space_explicit: execution.spaceExplicit,
-			...(execution.client
-				? {
-						mcp_client_name: execution.client.name,
-						...(execution.client.version
-							? { mcp_client_version: execution.client.version }
-							: {}),
-					}
-				: {}),
-			...(actor.oauthClientId ? { oauth_client_id: actor.oauthClientId } : {}),
-			...(execution.errorType ? { error_type: execution.errorType } : {}),
+			...Object.fromEntries(
+				MCP_EVENT_PROPERTIES.filter(
+					(key) => event.properties[key] !== undefined,
+				).map((key) => [key, event.properties[key]]),
+			),
+			$process_person_profile: false,
 		},
 	}
 }
 
-export function createPosthogAnalytics(
+// Stateless HTTP builds a server per request, so only the echoed conversation id groups calls.
+export function instrumentPosthogMcp(
+	server: McpServer,
 	env: ServerEnv,
 	actor: ActorContext,
 	waitUntil: WaitUntil,
-): McpToolAnalytics {
-	const apiKey = env.POSTHOG_API_KEY
-	if (!apiKey) return { record: () => undefined }
+): void {
+	if (!env.POSTHOG_API_KEY) return
 
-	const client = posthogClient(apiKey, env.POSTHOG_HOST || DEFAULT_POSTHOG_HOST)
-
-	return {
-		record(execution) {
-			try {
-				const capture = client
-					.captureImmediate(posthogEventForToolExecution(actor, execution))
-					.catch((error) => console.error("PostHog MCP tracking error:", error))
-				waitUntil(capture)
-			} catch (error) {
-				console.error("PostHog MCP tracking error:", error)
-			}
+	instrument(
+		server,
+		new ImmediateMcpPostHog(
+			env.POSTHOG_API_KEY,
+			env.POSTHOG_HOST || DEFAULT_POSTHOG_HOST,
+			waitUntil,
+		),
+		{
+			identify: async () => ({
+				distinctId: await personlessDistinctId(actor.userId),
+				groups: { company: actor.organizationId },
+			}),
+			context: false,
+			captureModel: false,
+			enableConversationId: true,
+			enableExceptionAutocapture: false,
+			beforeSend: metadataOnlyMcpEvent,
 		},
-	}
-}
-
-function spaceWasExplicit(value: unknown): boolean {
-	if (!value || typeof value !== "object") return false
-	const containerTag = Reflect.get(value, "containerTag")
-	return typeof containerTag === "string" && containerTag.trim().length > 0
-}
-
-function isErrorResult(value: unknown): boolean {
-	return (
-		!!value &&
-		typeof value === "object" &&
-		Reflect.get(value, "isError") === true
 	)
-}
-
-function thrownErrorType(error: unknown): string {
-	if (error instanceof Error && error.name) return error.name
-	if (error && typeof error === "object") {
-		const status = Reflect.get(error, "status")
-		if (typeof status === "number") return `http_${status}`
-	}
-	return "unknown"
-}
-
-function safeRecord(analytics: McpToolAnalytics, execution: McpToolExecution) {
-	try {
-		analytics.record(execution)
-	} catch (error) {
-		console.error("MCP analytics recording error:", error)
-	}
-}
-
-export function createTrackedToolServer(
-	server: McpServer,
-	analytics: McpToolAnalytics,
-	getClientInfo: ClientInfoResolver,
-): Pick<McpServer, "registerTool"> {
-	const registerTool = ((
-		name: string,
-		config: unknown,
-		handler: (...args: unknown[]) => unknown,
-	) => {
-		const trackedHandler = async (...callbackArgs: unknown[]) => {
-			const startedAt = performance.now()
-			const input = callbackArgs.length > 1 ? callbackArgs[0] : undefined
-			const context = callbackArgs.at(-1) as ServerContext
-
-			const finish = (outcome: McpToolOutcome, errorType?: string) => {
-				let client: ReturnType<ClientInfoResolver> = null
-				try {
-					client = getClientInfo(context)
-				} catch {
-					// Client metadata is optional and must never affect a tool call.
-				}
-
-				safeRecord(analytics, {
-					toolName: name,
-					surface: TOOL_SURFACES[name] ?? "model_tool",
-					outcome,
-					durationMs: Math.max(0, Math.round(performance.now() - startedAt)),
-					spaceExplicit: spaceWasExplicit(input),
-					...(client ? { client } : {}),
-					...(errorType ? { errorType } : {}),
-				})
-			}
-
-			try {
-				const result = await handler(...callbackArgs)
-				if (isErrorResult(result)) {
-					finish("error", "tool_result")
-				} else {
-					finish("success")
-				}
-				return result
-			} catch (error) {
-				finish("error", thrownErrorType(error))
-				throw error
-			}
-		}
-
-		return Reflect.apply(server.registerTool, server, [
-			name,
-			config,
-			trackedHandler,
-		])
-	}) as McpServer["registerTool"]
-
-	return { registerTool }
 }
