@@ -41,6 +41,7 @@ type ClaudeFileMetadata = Record<string, string | number | boolean | string[]>
 
 interface ClaudeFileDocument {
 	documentId: string
+	customId?: string
 	content: string
 	metadata: ClaudeFileMetadata
 }
@@ -393,6 +394,8 @@ export class ClaudeMemoryTool {
 		fileText: string,
 	): Promise<MemoryResponse> {
 		try {
+			const existing = await this.getFileDocument(filePath)
+
 			const normalizedId = this.normalizePathToCustomId(filePath)
 
 			const _response = await this.client.add({
@@ -407,6 +410,17 @@ export class ClaudeMemoryTool {
 					last_modified: new Date().toISOString(),
 				},
 			})
+
+			// If an existing document was stored under a legacy customId, clean it up
+			// so the file path does not collide or become ambiguous with multiple documents.
+			if (
+				existing.success &&
+				existing.document &&
+				existing.document.customId &&
+				existing.document.customId !== normalizedId
+			) {
+				await deleteDocumentById(this.client, existing.document.documentId)
+			}
 
 			return {
 				success: true,
@@ -466,6 +480,15 @@ export class ClaudeMemoryTool {
 				},
 			})
 
+			// If the modified file was stored under a legacy customId, clean up the legacy
+			// document to prevent path ambiguity.
+			if (
+				readResult.document.customId &&
+				readResult.document.customId !== normalizedId
+			) {
+				await deleteDocumentById(this.client, readResult.document.documentId)
+			}
+
 			return {
 				success: true,
 				content: `String replaced in file: ${filePath}`,
@@ -523,6 +546,15 @@ export class ClaudeMemoryTool {
 					last_modified: new Date().toISOString(),
 				},
 			})
+
+			// If the modified file was stored under a legacy customId, clean up the legacy
+			// document to prevent path ambiguity.
+			if (
+				readResult.document.customId &&
+				readResult.document.customId !== normalizedId
+			) {
+				await deleteDocumentById(this.client, readResult.document.documentId)
+			}
 
 			return {
 				success: true,
@@ -754,7 +786,12 @@ export class ClaudeMemoryTool {
 
 			return {
 				success: true,
-				document: { documentId: candidate.id, content, metadata },
+				document: {
+					documentId: candidate.id,
+					customId: document.customId ?? candidate.customId,
+					content,
+					metadata,
+				},
 			}
 		} catch (error) {
 			return {
