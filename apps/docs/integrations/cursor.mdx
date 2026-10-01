@@ -60,7 +60,7 @@ Restart Cursor after installing the plugin or changing credentials.
 
 Check the connection any time with `/supermemory-status`.
 
-<Accordion title="Prefer the terminal?" icon="terminal">
+<Accordion title="Prefer the terminal?" icon="/icons/hugeicons/command-line.svg">
 The slash commands just run the plugin's CLI for you. To drive it yourself:
 
 ```bash
@@ -74,7 +74,7 @@ node "${CURSOR_PLUGIN_ROOT}/dist/cli.js" logout
 Credentials are stored in `~/.supermemory-cursor/credentials.json`.
 </Accordion>
 
-## How It Works
+## How it works
 
 | Layer | What it does |
 |-------|--------------|
@@ -85,7 +85,7 @@ Credentials are stored in `~/.supermemory-cursor/credentials.json`.
 | Context gatherer | Fans out targeted searches before substantial work |
 | Always-on rule | Makes the agent recall relevant history proactively |
 
-### Skills and Commands
+### Skills and commands
 
 | Name | Type | Description |
 |------|------|-------------|
@@ -98,7 +98,7 @@ Credentials are stored in `~/.supermemory-cursor/credentials.json`.
 | `supermemory-config` | Command | Create or edit the project config file |
 | `supermemory-logout` | Command | Disconnect Supermemory from Cursor |
 
-## MCP Tools
+## MCP tools
 
 | Tool | Description |
 |------|-------------|
@@ -120,9 +120,9 @@ Every tool that takes a `container` argument accepts:
 
 `user` and `project` write to the same repository container. The `sm_scope` metadata field is what keeps personal and session memories separate from explicit project knowledge when an agent asks for one scope.
 
-## Container Tags
+## Container tags
 
-Cursor shares one repository tag with the [Claude Code](/integrations/claude-code), [OpenAI Codex](/integrations/codex), and [OpenCode](/integrations/opencode) plugins, so agents working on the same repo read and write the same memory:
+Cursor shares one repository tag with the [Claude Code](/integrations/claude-code), [Muse Code](/integrations/muse-code), [OpenAI Codex](/integrations/codex), and [OpenCode](/integrations/opencode) plugins, so agents working on the same repo read and write the same memory:
 
 ```text
 repo_<project_name>__<project_id>
@@ -195,14 +195,14 @@ The plugin still reads the former `cursor_user_*` and `cursor_project_*` tags, a
 
 You can also set these from the agent with `supermemory_set_config`, or edit the file by hand.
 
-## Log Out
+## Log out
 
 Run `/supermemory-logout` in Cursor.
 
 This removes the stored credentials. Your memories in Supermemory are preserved.
 
-## Next Steps
+## Next steps
 
-<Card title="GitHub Repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/cursor-supermemory">
+<Card title="GitHub repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/cursor-supermemory">
   Source code, issues, and detailed README.
 </Card>

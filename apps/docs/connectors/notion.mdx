@@ -1,13 +1,14 @@
 ---
-title: "Notion Connector"
+title: "Notion connector"
+sidebarTitle: "Notion"
 description: "Sync Notion pages, databases, and blocks with real-time webhooks and workspace integration"
 icon: "/images/notion-icon.svg"
 ---
 Connect Notion workspaces to automatically sync pages, databases, and content blocks into your Supermemory knowledge base. Supports real-time updates, rich formatting, and database properties.
 
-## Quick Setup
+## Quick setup
 
-### 1. Create Notion Connection
+### 1. Create Notion connection
 
 <Tabs>
   <Tab title="TypeScript">
@@ -75,11 +76,11 @@ Connect Notion workspaces to automatically sync pages, databases, and content bl
   </Tab>
 </Tabs>
 
-### 2. Handle OAuth Flow
+### 2. Handle OAuth flow
 
 After user grants workspace access, Notion redirects to your callback URL. The connection is automatically established.
 
-### 3. Monitor Sync Progress
+### 3. Monitor sync progress
 
 <Tabs>
   <Tab title="TypeScript">
@@ -151,30 +152,30 @@ After user grants workspace access, Notion redirects to your callback URL. The c
 
 ## Document limit
 
-Each connection has a **`documentLimit`** (optional when creating the connection; allowed range **1–10,000**). For Notion, each sync run asks the Notion Search API for **pages** shared with the integration, ordered by **last edited time, newest first**, and **stops after that many pages** (or when Search has no more results).
+Each connection has an optional `documentLimit` between 1 and 10,000. For Notion, each sync asks the Notion Search API for pages shared with the integration, newest edits first, and **stops after that many pages** or when Search runs out of results.
 
 - **Full sync:** If your workspace has more shareable pages than `documentLimit`, the rest are **not** included in that run. Pages that look “missing” are often older or less recently edited relative to that ordering. Increase `documentLimit` or trigger another sync after pages change if you need broader coverage.
 - **Incremental sync:** Only pages edited **after** the previous sync are candidates; each one still counts toward the same `documentLimit`. If more pages changed than the limit since last sync, only the first batch in that newest-first order is returned for that run.
 
 Nested and child pages still count as normal pages in Search if the integration can access them—they are not skipped *because* they are nested. The limit applies to **how many pages** are fetched per sync, not to depth.
 
-## Supported Content Types
+## Supported content types
 
-### Notion Pages
+### Notion pages
 - **Rich text blocks** with formatting preserved
 - **Nested pages** and hierarchical structure
 - **Embedded content** (images, videos, files)
 - **Code blocks** with syntax highlighting
 - **Callouts and quotes** converted to markdown
 
-### Notion Databases
+### Notion databases
 - **Database entries** synced as individual documents
 - **Properties** included in metadata
 - **Relations** between database entries
 - **Formulas and rollups** calculated values
 - **Multi-select and select** properties
 
-### Block Types
+### Block types
 
 | Block Type | Processing | Markdown Output |
 |------------|------------|-----------------|
@@ -188,7 +189,7 @@ Nested and child pages still count as normal pages in Search if the integration 
 | **Image** | Referenced with metadata | `![alt text](url)` |
 | **Embed** | Link with context | `[Embedded Content](url)` |
 
-## Delete Connection
+## Delete connection
 
 Remove a Notion connection when no longer needed:
 
@@ -242,9 +243,9 @@ Deleting a connection will:
 - Keep existing synced documents in Supermemory (they won't be deleted)
 </Note>
 
-## Advanced Configuration
+## Advanced configuration
 
-### Custom Notion Integration
+### Custom Notion integration
 
 For production deployments, create your own Notion integration:
 
@@ -299,7 +300,7 @@ For production deployments, create your own Notion integration:
   </Tab>
 </Tabs>
 
-### Content Filtering
+### Content filtering
 
 Control which Notion content gets synced:
 
@@ -369,7 +370,7 @@ Control which Notion content gets synced:
   </Tab>
 </Tabs>
 
-## Workspace Permissions
+## Workspace permissions
 
 Notion connector respects workspace permissions:
 
@@ -381,9 +382,9 @@ Notion connector respects workspace permissions:
 | **No Access** | Removed from index |
 
 
-## Database Integration
+## Database integration
 
-### Database Properties
+### Database properties
 
 Notion database properties are mapped to metadata:
 
@@ -412,7 +413,7 @@ const projectWithStatus = await client.search({
 });
 ```
 
-### Optimization Strategies
+### Optimization strategies
 
 1. **Set `documentLimit` high enough** for your workspace size (see [Document limit](#document-limit))
 2. **Use targeted container tags** for efficient organization

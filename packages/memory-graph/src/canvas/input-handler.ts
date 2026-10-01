@@ -23,6 +23,11 @@ export class InputHandler {
 	private posHistory: Array<{ x: number; y: number; t: number }> = []
 
 	private draggingNode: GraphNode | null = null
+	private pressedNode: GraphNode | null = null
+	private pressX = 0
+	private pressY = 0
+	private grabOffset = { x: 0, y: 0 }
+	private gestureWindow: Window | null = null
 	private didDrag = false
 
 	private currentHoveredId: string | null = null
@@ -45,6 +50,8 @@ export class InputHandler {
 	private boundMouseDown: (e: MouseEvent) => void
 	private boundMouseMove: (e: MouseEvent) => void
 	private boundMouseUp: (e: MouseEvent) => void
+	private boundWindowMove: (e: MouseEvent) => void
+	private boundBlur: () => void
 	private boundWheel: (e: WheelEvent) => void
 	private boundClick: (e: MouseEvent) => void
 	private boundDblClick: (e: MouseEvent) => void
@@ -67,6 +74,10 @@ export class InputHandler {
 		this.boundMouseDown = this.onMouseDown.bind(this)
 		this.boundMouseMove = this.onMouseMove.bind(this)
 		this.boundMouseUp = this.onMouseUp.bind(this)
+		this.boundWindowMove = (event) => {
+			if (event.target !== this.canvas) this.onMouseMove(event)
+		}
+		this.boundBlur = () => this.endMouseGesture(false)
 		this.boundWheel = this.onWheel.bind(this)
 		this.boundClick = this.onClick.bind(this)
 		this.boundDblClick = this.onDblClick.bind(this)
@@ -77,7 +88,6 @@ export class InputHandler {
 
 		canvas.addEventListener("mousedown", this.boundMouseDown)
 		canvas.addEventListener("mousemove", this.boundMouseMove)
-		canvas.addEventListener("mouseup", this.boundMouseUp)
 		canvas.addEventListener("click", this.boundClick)
 		canvas.addEventListener("dblclick", this.boundDblClick)
 		canvas.addEventListener("wheel", this.boundWheel, { passive: false })
@@ -98,10 +108,10 @@ export class InputHandler {
 	}
 
 	destroy(): void {
+		this.endMouseGesture(false)
 		const c = this.canvas
 		c.removeEventListener("mousedown", this.boundMouseDown)
 		c.removeEventListener("mousemove", this.boundMouseMove)
-		c.removeEventListener("mouseup", this.boundMouseUp)
 		c.removeEventListener("click", this.boundClick)
 		c.removeEventListener("dblclick", this.boundDblClick)
 		c.removeEventListener("wheel", this.boundWheel)
@@ -117,12 +127,32 @@ export class InputHandler {
 		return this.draggingNode
 	}
 
+	syncNodes(nodes: Map<string, GraphNode>): void {
+		if (this.pressedNode) {
+			this.pressedNode = nodes.get(this.pressedNode.id) ?? null
+		}
+		if (!this.draggingNode) return
+		const current = nodes.get(this.draggingNode.id)
+		if (!current) {
+			this.endMouseGesture(false)
+		} else if (current !== this.draggingNode) {
+			current.x = current.fx = this.draggingNode.x
+			current.y = current.fy = this.draggingNode.y
+			this.draggingNode.fx = null
+			this.draggingNode.fy = null
+			this.draggingNode = current
+		}
+	}
+
 	private canvasXY(e: MouseEvent): { x: number; y: number } {
 		const rect = this.canvas.getBoundingClientRect()
 		return { x: e.clientX - rect.left, y: e.clientY - rect.top }
 	}
 
 	private onMouseDown(e: MouseEvent): void {
+		if (e.button !== 0) return
+		this.endMouseGesture(false)
+		this.viewport.cancelAnimation()
 		const { x, y } = this.canvasXY(e)
 		const world = this.viewport.screenToWorld(x, y)
 		const node = this.spatialIndex.queryPoint(world.x, world.y)
@@ -131,13 +161,16 @@ export class InputHandler {
 		this.lastMouseY = y
 		this.posHistory = [{ x, y, t: performance.now() }]
 		this.didDrag = false
+		this.pressX = x
+		this.pressY = y
+		this.gestureWindow = this.canvas.ownerDocument.defaultView
+		this.gestureWindow?.addEventListener("mousemove", this.boundWindowMove)
+		this.gestureWindow?.addEventListener("mouseup", this.boundMouseUp)
+		this.gestureWindow?.addEventListener("blur", this.boundBlur)
 
 		if (node) {
-			this.draggingNode = node
-			node.fx = node.x
-			node.fy = node.y
-			this.callbacks.onNodeDragStart(node.id, node)
-			this.canvas.style.cursor = "grabbing"
+			this.pressedNode = node
+			this.grabOffset = { x: world.x - node.x, y: world.y - node.y }
 		} else {
 			this.isPanning = true
 			this.canvas.style.cursor = "grabbing"
@@ -146,13 +179,18 @@ export class InputHandler {
 
 	private onMouseMove(e: MouseEvent): void {
 		const { x, y } = this.canvasXY(e)
+		if (this.pressedNode) {
+			if (Math.hypot(x - this.pressX, y - this.pressY) < 4) return
+			this.draggingNode = this.pressedNode
+			this.pressedNode = null
+			this.callbacks.onNodeDragStart(this.draggingNode.id, this.draggingNode)
+			this.canvas.style.cursor = "grabbing"
+		}
 
 		if (this.draggingNode) {
 			const world = this.viewport.screenToWorld(x, y)
-			this.draggingNode.fx = world.x
-			this.draggingNode.fy = world.y
-			this.draggingNode.x = world.x
-			this.draggingNode.y = world.y
+			this.draggingNode.x = this.draggingNode.fx = world.x - this.grabOffset.x
+			this.draggingNode.y = this.draggingNode.fy = world.y - this.grabOffset.y
 			this.didDrag = true
 			this.callbacks.onRequestRender()
 			return
@@ -186,6 +224,15 @@ export class InputHandler {
 	}
 
 	private onMouseUp(_e: MouseEvent): void {
+		this.endMouseGesture(true)
+	}
+
+	private endMouseGesture(withInertia: boolean): void {
+		this.gestureWindow?.removeEventListener("mousemove", this.boundWindowMove)
+		this.gestureWindow?.removeEventListener("mouseup", this.boundMouseUp)
+		this.gestureWindow?.removeEventListener("blur", this.boundBlur)
+		this.gestureWindow = null
+		this.pressedNode = null
 		if (this.draggingNode) {
 			this.draggingNode.fx = null
 			this.draggingNode.fy = null
@@ -198,7 +245,7 @@ export class InputHandler {
 		if (this.isPanning) {
 			this.isPanning = false
 
-			if (this.posHistory.length >= 2) {
+			if (withInertia && this.posHistory.length >= 2) {
 				const newest = this.posHistory[this.posHistory.length - 1]
 				const oldest = this.posHistory[0]
 				if (!newest || !oldest) return

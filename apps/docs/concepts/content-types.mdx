@@ -1,13 +1,13 @@
 ---
-title: "Supported Content Types"
+title: "Supported content types"
 sidebarTitle: "Multi-modal ingestion"
 description: "All the content formats Supermemory can ingest and process"
-icon: "file-stack"
+icon: "/icons/hugeicons/files-01.svg"
 ---
 
 Supermemory automatically extracts and indexes content from various formats. There are two entry points: `client.add()` for text and URLs, `client.documents.uploadFile()` for actual files. See [Add Memories](/ingestion/add-memories) to learn how to ingest content via the API.
 
-## Text Content
+## Text content
 
 Raw text, conversations, notes, or any string content.
 
@@ -22,7 +22,7 @@ await client.add({
 
 ---
 
-## URLs & Web Pages
+## URLs & Web pages
 
 Send a URL and Supermemory fetches, extracts, and indexes the content.
 
@@ -55,6 +55,16 @@ await client.documents.uploadFile({
 
 **Extracts:** Text, tables, headers. OCR for scanned documents.
 
+#### Advanced document extraction
+
+**Scale and Enterprise** include advanced extraction for PDFs: page-by-page OCR with descriptions of figures and diagrams merged into the extracted text. This helps make the visual content in reports, research papers, and technical documents searchable alongside their text.
+
+**Free, Pro, and Max** continue to support standard PDF extraction, including OCR for scanned documents. The advanced extraction tier applies to PDFs; it does not change support for other file types.
+
+Use the same `uploadFile` call shown above. Supermemory selects the extraction tier automatically from your organization's plan; no additional request parameter is needed. If advanced extraction cannot process a PDF, Supermemory falls back to standard extraction, so figure and diagram descriptions are not guaranteed for every document.
+
+See [Billing & usage](/overview/billing#feature-availability) for plan availability.
+
 ### Microsoft Office
 
 Word, Excel, and PowerPoint files upload the same way — Supermemory detects the type from the file itself:
@@ -76,7 +86,7 @@ Automatically handled via [Google Drive connector](/connectors/google-drive):
 
 ---
 
-## Code & Markdown
+## Code & markdown
 
 Both are plain text, so they go through `add` like any other string content — no file upload needed:
 
@@ -122,7 +132,7 @@ await client.documents.uploadFile({
 
 ---
 
-## Audio & Video
+## Audio & video
 
 Video has a dedicated `fileType`; audio is uploaded the same way and detected from the file itself:
 
@@ -151,7 +161,7 @@ await client.documents.uploadFile({
 
 ---
 
-## Structured Data
+## Structured data
 
 JSON and CSV are text — stringify and send them through `add()`, no file upload needed.
 
@@ -177,7 +187,7 @@ await client.add({
 
 ---
 
-## File Upload
+## File upload
 
 For any binary file, use `uploadFile` — it accepts a stream, not base64:
 
@@ -219,7 +229,7 @@ For files, `uploadFile` detects type from the file itself in most cases. `fileTy
 
 ---
 
-## Content Limits
+## Content limits
 
 | Type | Max Size |
 |------|----------|
@@ -235,13 +245,13 @@ For large files, consider chunking or using [connectors](/connectors/overview) f
 
 ---
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Add Memories" icon="plus" href="/ingestion/add-memories">
+  <Card title="Add memories" icon="/icons/hugeicons/plus-sign.svg" href="/ingestion/add-memories">
     Upload content via the API
   </Card>
-  <Card title="Super RAG" icon="bolt" href="/concepts/super-rag">
+  <Card title="Super RAG" icon="/icons/hugeicons/flash.svg" href="/concepts/super-rag">
     How content is chunked and indexed
   </Card>
 </CardGroup>

@@ -309,6 +309,7 @@ export const Legend = memo(function Legend({
 	const memoryCount = nodes.filter((n) => n.type === "memory").length
 	const documentCount = nodes.filter((n) => n.type === "document").length
 	const connectionCount = edges.length
+	const documentEdgeCount = countEdgesByType(edges, "document")
 	const derivesCount = countEdgesByType(edges, "derives")
 	const updatesCount = countEdgesByType(edges, "updates")
 	const extendsCount = countEdgesByType(edges, "extends")
@@ -320,6 +321,7 @@ export const Legend = memo(function Legend({
 			.filter(Boolean),
 	).size
 	const updateNodeCount = nodes.filter(isUpdateMemoryNode).length
+	const hasClusterColors = nodes.some((node) => node.clusterColor)
 
 	const outerStyle: React.CSSProperties = {
 		overflow: "hidden",
@@ -530,15 +532,27 @@ export const Legend = memo(function Legend({
 											<div>
 												<div style={rowStyle}>
 													<div style={rowLeftStyle}>
-														<LineIcon color={colors.edgeDerives} />
+														<LineIcon color={colors.edgeDocument} />
 														<span style={edgeLabelStyle}>
 															{labels.documentSourceEdge}
 														</span>
 													</div>
-													<span style={countStyle}>{derivesCount}</span>
+													<span style={countStyle}>{documentEdgeCount}</span>
 												</div>
 												<div style={edgeDescriptionStyle}>
 													{labels.documentToMemoryEdge}
+												</div>
+											</div>
+											<div>
+												<div style={rowStyle}>
+													<div style={rowLeftStyle}>
+														<LineIcon color={colors.edgeDerives} />
+														<span style={edgeLabelStyle}>Derives</span>
+													</div>
+													<span style={countStyle}>{derivesCount}</span>
+												</div>
+												<div style={edgeDescriptionStyle}>
+													Memory derived from another memory
 												</div>
 											</div>
 											<div>
@@ -571,22 +585,26 @@ export const Legend = memo(function Legend({
 							</div>
 
 							<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-								<span style={sectionLabelStyle}>Color</span>
-								<div style={statusRowStyle}>
-									<ClusterSwatches />
-									<div
-										style={{
-											display: "flex",
-											flexDirection: "column",
-											gap: 2,
-										}}
-									>
-										<span style={edgeLabelStyle}>Cluster</span>
-										<span style={detailTextStyle}>
-											Same document or connected memory group
-										</span>
+								<span style={sectionLabelStyle}>
+									{hasClusterColors ? "Color" : "Clusters"}
+								</span>
+								{hasClusterColors && (
+									<div style={statusRowStyle}>
+										<ClusterSwatches />
+										<div
+											style={{
+												display: "flex",
+												flexDirection: "column",
+												gap: 2,
+											}}
+										>
+											<span style={edgeLabelStyle}>Cluster</span>
+											<span style={detailTextStyle}>
+												Same document or connected memory group
+											</span>
+										</div>
 									</div>
-								</div>
+								)}
 								<div style={rowStyle}>
 									<span style={detailTextStyle}>Visible clusters</span>
 									<span style={countStyle}>{clusterCount}</span>

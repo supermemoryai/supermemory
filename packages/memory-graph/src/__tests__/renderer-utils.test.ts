@@ -80,8 +80,8 @@ describe("relation edge level-of-detail helpers", () => {
 		expect(getRelationEdgeStride(1040, 0.1)).toBe(4)
 	})
 
-	test("always draws structural derives edges", () => {
-		expect(shouldDrawRelationEdge("edge-1", "derives", 10)).toBe(true)
+	test("always draws structural document edges", () => {
+		expect(shouldDrawRelationEdge("edge-1", "document", 10)).toBe(true)
 	})
 
 	test("deterministically samples non-structural relation edges", () => {

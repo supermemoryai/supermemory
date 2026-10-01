@@ -1,13 +1,13 @@
 ---
 title: "Agents, skills and MCP"
-description: "Set up coding agents to integrate Supermemory — CLI, skill, and docs MCP."
+description: "Set up coding agents to integrate Supermemory with the CLI, the skill and the docs MCP."
 sidebarTitle: "Agents, skills and MCP"
-icon: "bot"
+icon: "/icons/hugeicons/robotic.svg"
 ---
 
 This page is for **building with Supermemory** using coding agents: scaffolding a project, following the real API, and searching product docs.
 
-It is **not** the consumer Memory MCP (give Claude/Cursor long-term memory about *you*). That is a separate product surface — see [Supermemory MCP](/supermemory-mcp/mcp).
+This is not the consumer memory MCP that gives Claude or Cursor long-term memory about you. That is a separate product: [Supermemory MCP](/supermemory-mcp/mcp).
 
 | Path | How | For |
 |---|---|---|
@@ -52,7 +52,7 @@ npx skills add https://github.com/supermemoryai/skills --skill supermemory
 Source: [github.com/supermemoryai/skills](https://github.com/supermemoryai/skills).
 
 <Tip>
-Best combo for coding agents: **skill** + **docs MCP** + **`npx supermemory setup`**.
+For coding agents, use all three together: the skill, the docs MCP and `npx supermemory setup`.
 </Tip>
 
 ## Docs MCP
@@ -186,7 +186,7 @@ You are integrating Supermemory into my app.
 
 If the skill is not installed, paste a fuller prompt so the agent asks the right product questions:
 
-<Accordion title="Copy full integration prompt" icon="copy">
+<Accordion title="Copy full integration prompt" icon="/icons/hugeicons/copy-01.svg">
 ````
 You are integrating Supermemory into my application. Supermemory provides user memory, semantic search, and automatic knowledge extraction for AI applications.
 
@@ -233,16 +233,16 @@ Want your **assistant** to remember you across chats (save/recall/profile in Cla
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Quickstart" icon="play" href="/quickstart">
+  <Card title="Quickstart" icon="/icons/hugeicons/play.svg" href="/quickstart">
     Conversation + document ingest, RAG, graph, profile, harness.
   </Card>
-  <Card title="Memory MCP" icon="brain-circuit" href="/supermemory-mcp/mcp">
+  <Card title="Memory MCP" icon="/icons/hugeicons/ai-brain-01.svg" href="/supermemory-mcp/mcp">
     Persistent memory for assistants — separate from docs setup.
   </Card>
-  <Card title="Plugins" icon="puzzle" href="/integrations/openclaw">
+  <Card title="Plugins" icon="/icons/hugeicons/puzzle.svg" href="/integrations/openclaw">
     Claude Code, OpenClaw, Codex, Hermes, and more.
   </Card>
-  <Card title="AI SDK" icon="triangle" href="/integrations/ai-sdk">
+  <Card title="AI SDK" icon="/icons/hugeicons/triangle.svg" href="/integrations/ai-sdk">
     withSupermemory and memory tools in app code.
   </Card>
 </CardGroup>

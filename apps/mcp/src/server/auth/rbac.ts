@@ -21,10 +21,12 @@ export function effectiveContainerTagAccess(
 			permission = memberAccess.get(containerTag) ?? "read"
 		}
 
-		if (
+		if (session.scope?.permission === "read") {
+			permission = "read"
+		} else if (
 			session.scope?.type === "scoped" &&
-			(session.scope.permission === "read" ||
-				(scopedTags.size > 0 && !scopedTags.has(containerTag)))
+			scopedTags.size > 0 &&
+			!scopedTags.has(containerTag)
 		) {
 			permission = "read"
 		}
