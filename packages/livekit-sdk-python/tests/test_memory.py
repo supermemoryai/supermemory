@@ -358,9 +358,9 @@ class MemoryTests(unittest.TestCase):
         stored = client.added[0]
         self.assertEqual(stored["content"], "User: I like tea\nAssistant: Noted.")
         self.assertEqual(stored["container_tag"], "user_1")
-        self.assertEqual(stored["custom_id"], to_identifier("lk-room 1"))
+        self.assertEqual(stored["custom_id"], to_identifier("room 1"))
         self.assertNotIn("secret", stored["content"])
-        self.assertEqual(stored["metadata"]["source"], "livekit")
+        self.assertEqual(stored["metadata"]["platform"], "livekit")
         self.assertEqual(stored["dreaming"], "instant")
 
     def test_close_flushes_a_trailing_user_turn(self):
@@ -559,7 +559,7 @@ class MemoryTests(unittest.TestCase):
         asyncio.run(plugin.aclose())
 
         self.assertEqual(len(client.added), 3)
-        self.assertEqual({call["custom_id"] for call in client.added}, {to_identifier("lk-room-4")})
+        self.assertEqual({call["custom_id"] for call in client.added}, {"room-4"})
 
     def test_unscoped_tools_do_not_call_the_api(self):
         client = FakeClient()

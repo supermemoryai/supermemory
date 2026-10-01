@@ -34,7 +34,7 @@ Identities that are not valid container tags are sanitized to a stable tag. Set 
 
 Set the attribute in the access token your backend issues. Do not grant the caller `canUpdateOwnMetadata`, or they could change the attribute and read another caller's memory.
 
-One call is stored as a single document. Pass the LiveKit room name as `session_id`. The document id is `lk-<session_id>`, so a later update with the same id appends to that call instead of creating another.
+One call is stored as a single document. Pass the LiveKit room name as `session_id`. The session id is the document's custom id, so a later update with the same id appends to that call instead of creating another.
 
 Use one `SupermemoryLiveKit` per call. If you do rebind it, turns already captured stay with the caller who said them, and memory from the earlier caller is never shown to the new one.
 

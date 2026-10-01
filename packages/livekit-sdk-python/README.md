@@ -108,7 +108,7 @@ memory = SupermemoryLiveKit(
 | `query` | No | Yes | You only need memories related to this turn |
 | `full` | Yes | Yes | Default |
 
-One call is stored as a single document under custom id `lk-<session_id>`, so a reconnect with the same session id updates that document instead of creating another. Explicit `remember` calls are separate facts, processed immediately (usually recallable within a minute), and are not tied to the call document.
+One call is stored as a single document whose custom id is the session id, so a reconnect with the same session id updates that document instead of creating another. Explicit `remember` calls are separate facts, processed immediately (usually recallable within a minute), and are not tied to the call document.
 
 ### When a call becomes recallable
 

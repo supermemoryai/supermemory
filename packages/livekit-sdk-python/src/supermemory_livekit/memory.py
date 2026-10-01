@@ -282,7 +282,7 @@ class SupermemoryLiveKit:
                     "instant",
                     content=text,
                     container_tag=tag,
-                    metadata={"source": "livekit", "kind": "explicit"},
+                    metadata={"platform": "livekit", "kind": "explicit"},
                 ),
                 timeout=4.0,
             )
@@ -479,7 +479,7 @@ class SupermemoryLiveKit:
             content="\n".join(lines),
             container_tag=messages[0]["tag"],
             custom_id=messages[0]["custom_id"],
-            metadata={"source": "livekit", "kind": "conversation"},
+            metadata={"platform": "livekit", "kind": "conversation"},
         )
 
     async def _add(self, dreaming: str, **kwargs: Any) -> None:
@@ -498,7 +498,7 @@ class SupermemoryLiveKit:
 
     def _custom_id(self) -> str:
         raw = self.session_id or self._generated_session
-        return to_identifier(f"lk-{raw}")
+        return to_identifier(raw)
 
     def _detach(self) -> None:
         session = self._session
