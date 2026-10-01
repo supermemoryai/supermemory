@@ -2,7 +2,7 @@
 title: "Search"
 sidebarTitle: "Search API"
 description: "Semantic search across your memories and documents"
-icon: "search"
+icon: "/icons/hugeicons/search-01.svg"
 ---
 
 Search through your memories and documents with a single API call.
@@ -15,7 +15,7 @@ Search through your memories and documents with a single API call.
 **TypeScript SDK:** call `client.search({ q, searchMode })` directly — `searchMode` (`"memories"`, `"documents"`, or `"hybrid"`) picks what comes back. `client.search.memories()` and `client.search.documents()` still work but are deprecated; no migration is required, just use `client.search()` going forward. The Python SDK is unaffected — `client.search.memories()` remains the call there.
 </Note>
 
-## Quick Start
+## Quick start
 
 <Tabs>
   <Tab title="TypeScript">
@@ -114,7 +114,7 @@ In hybrid mode, results contain either a `memory` field (extracted facts) or a `
 | `filters` | object | — | Metadata filters (`AND`/`OR` structure) |
 | `include` | object | — | `{ documents, summaries, relatedMemories, forgottenMemories }` — opt in to extra context per result |
 
-### Search Modes
+### Search modes
 
 - **`hybrid`** (recommended) — Searches both memories and document chunks, and returns both in the response
 - **`memories`** — Only searches extracted memories
@@ -165,7 +165,7 @@ const results = await client.search({
 });
 ```
 
-<Accordion title="Filter Types">
+<Accordion title="Filter types">
   - **String equality:** `{ key: "status", value: "active" }`
   - **String contains:** `{ filterType: "string_contains", key: "title", value: "react" }`
   - **Numeric:** `{ filterType: "numeric", key: "priority", value: "5", numericOperator: ">=" }`
@@ -177,7 +177,7 @@ const results = await client.search({
 
 ---
 
-## Query Optimization
+## Query optimization
 
 ### Reranking
 
@@ -203,7 +203,7 @@ await client.search({ q: "...", threshold: 0.3 });
 await client.search({ q: "...", threshold: 0.8 });
 ```
 
-### Including Forgotten Memories
+### Including forgotten memories
 
 By default, search excludes memories that have been forgotten or have passed their `forgetAfter` expiration. Set `include.forgottenMemories` to `true` to recover them:
 
@@ -216,7 +216,7 @@ await client.search({
 
 ---
 
-## Chatbot Example
+## Chatbot example
 
 Optimal configuration for conversational AI:
 
@@ -236,7 +236,7 @@ async function getContext(userId: string, message: string) {
 }
 ```
 
-<Accordion title="Response Schema">
+<Accordion title="Response schema">
   ```typescript
   interface SearchResult {
     id: string;
@@ -258,7 +258,7 @@ async function getContext(userId: string, message: string) {
 
 ---
 
-## Next Steps
+## Next steps
 
 - [Ingesting Content](/ingestion/add-memories) — Add content to search
 - [User Profiles](/recall/user-profiles) — Get user context with search

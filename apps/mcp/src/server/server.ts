@@ -3,11 +3,7 @@ import {
 	McpServer,
 	type ServerContext,
 } from "@modelcontextprotocol/server"
-import {
-	createPosthogAnalytics,
-	createTrackedToolServer,
-	type WaitUntil,
-} from "./analytics"
+import { instrumentPosthogMcp, type WaitUntil } from "./analytics"
 import { fetchSession } from "./auth"
 import { DEFAULT_PROJECT_ID, SupermemoryClient } from "./client"
 import { registerContextPrompt } from "./prompts/context"
@@ -26,7 +22,7 @@ import { uploadStateName } from "./space-state"
 const DEFAULT_API_URL = "https://api.supermemory.ai"
 const UPLOAD_SESSION_TTL_MS = 2 * 60 * 1000
 const SERVER_INSTRUCTIONS =
-	"Supermemory is the authenticated user's persistent memory and knowledge layer across conversations and spaces. Use these tools whenever the user wants to recall something they may have saved, inspect stored sources or extracted memories, remember or upload new information, check their Supermemory account or access, change their active space, or explore their memory graph, even if they do not mention Supermemory by name. Use the active or account-default space when none is named. Resolve a named space with listSpaces and pass its key to the relevant tool; change the active space only when the user explicitly asks."
+	"Supermemory is the authenticated user's persistent memory and knowledge layer across conversations and spaces. Use these tools whenever the user wants to recall something they may have saved, inspect stored sources or extracted memories, remember or upload new information, check their Supermemory account or access, change their active space, or explore their memory graph, even if they do not mention Supermemory by name. Use the active or account-default space when none is named. Resolve a named space with list_spaces and pass its key to the relevant tool; change the active space only when the user explicitly asks."
 
 type ClientInfo = { name: string; version?: string }
 
@@ -59,6 +55,7 @@ export function createSupermemoryServer(
 		},
 		{ instructions: SERVER_INSTRUCTIONS },
 	)
+	instrumentPosthogMcp(server, env, actor, waitUntil)
 	const apiUrl = env.API_URL || DEFAULT_API_URL
 	const spaceState = env.SPACE_STATE.getByName(spaceStateName(actor))
 
@@ -88,15 +85,8 @@ export function createSupermemoryServer(
 			expiresAt,
 		}
 	}
-	const analytics = createPosthogAnalytics(env, actor, waitUntil)
-	const toolServer = createTrackedToolServer(
-		server,
-		analytics,
-		clientInfoFromContext,
-	)
-
 	registerAllTools({
-		server: toolServer,
+		server,
 		actor,
 		getClient,
 		getSession: () => fetchSession(actor.bearerToken, apiUrl),

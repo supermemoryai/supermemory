@@ -2,7 +2,7 @@
 title: "Rules of supermemory"
 description: "Best practices and things to consider when using supermemory in your system"
 sidebarTitle: "Rules of supermemory"
-icon: "gavel"
+icon: "/icons/hugeicons/justice-scale-01.svg"
 ---
 
 Supermemory provides powerful primitives and the full context stack for building AI agents. This page collects rules of thumb from building and running supermemory in production. They aren't hard constraints, just shortcuts that save you time, cost, and confusing search results.
@@ -30,7 +30,7 @@ Agents benefit most from having a _general_ idea of the topic alongside tools to
 
 Two things about this table that trip people up.
 
-**"Remember" and "look up" are both supermemory, but different reads.** You [ingest documents](/ingestion/add-memories); the pipeline derives memories from them and maintains a profile per [container tag](/concepts/how-it-works). `client.search({ searchMode: "memories" })` recalls the derived facts. `client.search({ searchMode: "documents" })` recalls the source material itself. A support agent usually needs both: memories for "this customer runs self-hosted and already tried reinstalling", documents for the actual troubleshooting guide.
+**"Remember" and "look up" are both supermemory, but different reads.** You [ingest documents](/ingestion/add-memories); the pipeline derives memories from them and maintains a profile per container tag. `client.search({ searchMode: "memories" })` recalls the derived facts. `client.search({ searchMode: "documents" })` recalls the source material itself. A support agent usually needs both: memories for "this customer runs self-hosted and already tried reinstalling", documents for the actual troubleshooting guide.
 
 **Supermemory is not your system of record.** There's no SQL over memories, no joins, no aggregates, no querying by primary key. Keep transactional data in your database, and ingest the narrative *around* it ("the customer disputed invoice #4821 and churned over it") so your AI understands what the rows mean.
 

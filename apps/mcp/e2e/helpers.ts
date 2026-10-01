@@ -225,7 +225,6 @@ export async function recallUntil(
 	for (let i = 0; i < tries; i++) {
 		const res = await callTool(client, "search_memory", {
 			query,
-			includeProfile: false,
 			...(containerTag ? { containerTag } : {}),
 		})
 		const txt = textOf(res)

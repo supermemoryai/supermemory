@@ -43,21 +43,29 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => 
 		expect(found, `recall never returned marker ${marker}`).not.toBeNull()
 	}, 120_000)
 
-	it("recall includeProfile=true returns profile + memories sections", async () => {
+	it("searchMemory does not include profile sections", async () => {
 		const res = await callTool(s.client, "search_memory", {
 			query: "dragonfruit",
-			includeProfile: true,
 		})
 		expect(res.isError).toBeFalsy()
 		const txt = textOf(res)
-		expect(txt).toMatch(/## (Profile|Recent context|Matching memories)/)
+		expect(txt).not.toMatch(/## (Profile|Stable Context|Recent [Cc]ontext)/)
+		expect(txt).toMatch(/## Matching memories|No matching memories found/i)
+	}, 30_000)
+
+	it("getProfile returns profile sections", async () => {
+		const res = await callTool(s.client, "get_profile", {})
+		expect(res.isError).toBeFalsy()
+		const txt = textOf(res)
+		expect(txt).toMatch(
+			/## (Stable Context|Recent Context)|No profile facts are available/i,
+		)
 	}, 30_000)
 
 	// Hybrid search returns nearest matches even for unrelated queries — assert it responds gracefully, not empty.
 	it("recall responds gracefully for an unmatched query", async () => {
 		const res = await callTool(s.client, "search_memory", {
 			query: `zzz-no-such-memory-${randomUUID()}`,
-			includeProfile: false,
 		})
 		expect(res.isError).toBeFalsy()
 		expect(textOf(res)).toMatch(

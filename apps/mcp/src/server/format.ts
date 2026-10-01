@@ -60,12 +60,12 @@ export function formatDocumentsList(response: DocumentsListResponse): string {
 		"",
 		blocks.join("\n\n"),
 		"",
-		"Use getDocument with a document ID to read its content.",
+		"Use get_document with a document ID to read its content.",
 	]
 
 	if (pagination.currentPage < pagination.totalPages) {
 		parts.push(
-			`More available - call listDocuments with page: ${pagination.currentPage + 1}.`,
+			`More available - call list_documents with page: ${pagination.currentPage + 1}.`,
 		)
 	}
 
@@ -121,7 +121,7 @@ export function formatMemoryEntriesList(
 	if (pagination.currentPage < pagination.totalPages) {
 		parts.push(
 			"",
-			`More available - call listMemories with page: ${pagination.currentPage + 1}.`,
+			`More available - call list_memories with page: ${pagination.currentPage + 1}.`,
 		)
 	}
 

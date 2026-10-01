@@ -1,8 +1,8 @@
 ---
 title: "OpenCode"
 sidebarTitle: "OpenCode"
-description: "OpenCode Supermemory Plugin — persistent memory across coding sessions"
-icon: "/images/opencode-logo.png"
+description: "Supermemory plugin for OpenCode. Keeps memory across coding sessions."
+icon: "/images/opencode-logo.svg"
 ---
 
 [OpenCode-Supermemory](https://github.com/supermemoryai/opencode-supermemory) is an OpenCode plugin that gives your AI persistent memory across sessions. Your agent remembers what you worked on — across sessions, across projects.
@@ -11,7 +11,7 @@ icon: "/images/opencode-logo.png"
 **Prefer to keep everything on your machine?** This plugin works with [self-hosted Supermemory](/self-hosting/overview) — run `npx supermemory local`, then set `apiKey` / base URL in `~/.config/opencode/supermemory.jsonc` and use the API key printed on first boot.
 </Tip>
 
-## Install the Plugin
+## Install the plugin
 
 ```bash
 bunx opencode-supermemory@latest install
@@ -68,7 +68,7 @@ Ensure your `~/.config/opencode/opencode.jsonc` contains:
 }
 ```
 
-## How It Works
+## How it works
 
 Once installed, the plugin runs automatically:
 
@@ -77,14 +77,14 @@ Once installed, the plugin runs automatically:
 - **Smart Compaction** — At 80% context capacity, sessions are summarized and saved as memories.
 - **Privacy Protection** — Content within `<private>` tags never persists.
 
-### Memory Scopes
+### Memory scopes
 
 | Scope | Description |
 |-------|-------------|
 | `user` | Memories that persist across all projects |
 | `project` | Memories isolated to the current project (default) |
 
-### Memory Types
+### Memory types
 
 | Type | Description |
 |------|-------------|
@@ -145,14 +145,14 @@ View plugin activity:
 tail -f ~/.opencode-supermemory.log
 ```
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="GitHub Repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/opencode-supermemory">
+  <Card title="GitHub repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/opencode-supermemory">
     Source code, issues, and detailed README.
   </Card>
 
-  <Card title="Claude Code Plugin" icon="code" href="/integrations/claude-code">
+  <Card title="Claude Code plugin" icon="/icons/hugeicons/source-code.svg" href="/integrations/claude-code">
     Memory plugin for Claude Code.
   </Card>
 </CardGroup>

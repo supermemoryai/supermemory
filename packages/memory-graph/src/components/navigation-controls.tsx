@@ -165,6 +165,7 @@ export const NavigationControls = memo<NavigationControlsProps>(
 					<span style={labelStyle}>{zoomLevel}%</span>
 					<div style={zoomBtnGroupStyle}>
 						<button
+							aria-label="Zoom out"
 							onClick={onZoomOut}
 							style={zoomBtnStyle}
 							type="button"
@@ -178,6 +179,7 @@ export const NavigationControls = memo<NavigationControlsProps>(
 							<span style={{ fontSize: 12 }}>−</span>
 						</button>
 						<button
+							aria-label="Zoom in"
 							onClick={onZoomIn}
 							style={zoomBtnStyle}
 							type="button"

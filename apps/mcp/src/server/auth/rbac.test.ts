@@ -46,4 +46,16 @@ describe("effectiveContainerTagAccess", () => {
 			{ containerTag: "one", permission: "read" },
 		])
 	})
+
+	it("treats full-scope read-only grants as read on every tag", () => {
+		const session: SessionInfo = {
+			...baseSession,
+			scope: { type: "full", permission: "read" },
+		}
+
+		expect(effectiveContainerTagAccess(["one", "two"], session)).toEqual([
+			{ containerTag: "one", permission: "read" },
+			{ containerTag: "two", permission: "read" },
+		])
+	})
 })

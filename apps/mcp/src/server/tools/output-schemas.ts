@@ -107,6 +107,16 @@ export const searchMemoryOutputSchema = z.object({
 
 export type SearchMemoryOutput = z.infer<typeof searchMemoryOutputSchema>
 
+export const getProfileOutputSchema = z.object({
+	containerTag: z.string(),
+	profile: z.object({
+		static: z.array(z.string()),
+		dynamic: z.array(z.string()),
+	}),
+})
+
+export type GetProfileOutput = z.infer<typeof getProfileOutputSchema>
+
 export const whoAmIOutputSchema = z.object({
 	userId: z.string(),
 	email: z.string().optional(),

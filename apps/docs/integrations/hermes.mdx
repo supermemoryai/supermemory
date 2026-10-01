@@ -1,16 +1,16 @@
 ---
 title: "Hermes"
 sidebarTitle: "Hermes"
-description: "Hermes Supermemory Plugin — semantic memory, profiles, and search across Telegram, Discord, Slack, CLI, and more"
+description: "Supermemory plugin for Hermes. Semantic memory, profiles and search across Telegram, Discord, Slack, the CLI and more."
 icon: "/images/hermes.svg"
 ---
 
 
 [Hermes agent](https://github.com/NousResearch/hermes-agent) ships a native **supermemory** memory provider: semantic long-term memory, profile recall, search, explicit memory tools, and session-aware ingest — not a bolt-on script the model might skip. Hermes runs across Telegram, Discord, Slack, WhatsApp, Signal, and the CLI from one gateway.
 
-Hermes also includes built-in **`MEMORY.md`** and **`USER.md`**. supermemory adds **structure and isolation** (profile-scoped and optional multi-container tags) plus retrieval that goes beyond a single flat file.
+Hermes also ships with built-in `MEMORY.md` and `USER.md` files. Supermemory adds structure and isolation (profile-scoped and optional multi-container tags), plus retrieval that goes beyond a single flat file.
 
-## Get Your API Key
+## Get your API key
 
 Create a supermemory API key from the [API Keys](https://console.supermemory.ai/keys) page in the console. During `hermes memory setup` you can paste it when prompted, or persist it in your environment:
 
@@ -36,7 +36,7 @@ echo 'SUPERMEMORY_API_KEY=sm_...' >> ~/.hermes/.env
 
 (Adjust the path if your Hermes home directory differs.)
 
-## How It Works
+## How it works
 
 Once configured, the provider runs through Hermes’s normal memory lifecycle:
 
@@ -138,14 +138,14 @@ Example profile-scoped container:
 
 If you run your own supermemory API, set **`base_url`** (and any other host-specific options) in `supermemory.json` or via env as documented in the [upstream plugin README](https://github.com/NousResearch/hermes-agent/tree/main/plugins/memory/supermemory) — alongside your key and container settings.
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
   <Card title="Hermes + plugin README" icon="/images/github-icon.svg" href="https://github.com/NousResearch/hermes-agent/tree/main/plugins/memory/supermemory">
     Full config table, env vars, and multi-container details.
   </Card>
 
-  <Card title="OpenClaw Plugin" icon="messages-square" href="/integrations/openclaw">
+  <Card title="OpenClaw plugin" icon="/icons/hugeicons/message-02.svg" href="/integrations/openclaw">
     Multi-platform memory for Telegram, WhatsApp, Discord, and more.
   </Card>
 </CardGroup>
