@@ -223,6 +223,14 @@ describe("SupermemoryStore", () => {
 			filter: { type: "pref" },
 		})
 		expect(exact.map((hit) => hit.key)).toEqual(["a", "b"])
+		expect(searchDocuments.mock.calls[0]?.[0].limit).toBe(50)
+
+		const page = await store.search(["memories"], {
+			filter: { type: "pref" },
+			offset: 1,
+			limit: 1,
+		})
+		expect(page.map((hit) => hit.key)).toEqual(["b"])
 
 		const operators = await store.search(["memories"], {
 			filter: { type: "pref", rating: { $gt: 3 } },

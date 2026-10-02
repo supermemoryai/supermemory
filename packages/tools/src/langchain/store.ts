@@ -11,7 +11,12 @@ import type {
 } from "@langchain/langgraph"
 import type { SearchItem } from "@langchain/langgraph-checkpoint"
 import Supermemory from "supermemory"
-import { CLIENT_OPTIONS, DEFAULT_VALUES } from "../tools-shared"
+import {
+	CLIENT_OPTIONS,
+	DEFAULT_VALUES,
+	SEARCH_LIMIT_BOUNDS,
+	clampSearchLimit,
+} from "../tools-shared"
 import type { SupermemoryToolsConfig } from "../types"
 import {
 	containerTagToNamespace,
@@ -77,7 +82,10 @@ export class SupermemoryStore extends BaseStore {
 			// paths (#1704).
 			containerTags: [namespaceToContainerTag(operation.namespacePrefix)],
 			includeFullDocs: true,
-			limit: limit + offset,
+			// A filter discards results after the fetch, so take the widest page.
+			limit: clampSearchLimit(
+				operation.filter ? SEARCH_LIMIT_BOUNDS.max : limit + offset,
+			),
 		})
 
 		const items = response.results.map((result) => ({
@@ -86,7 +94,7 @@ export class SupermemoryStore extends BaseStore {
 		}))
 
 		// Values are stored as JSON content, so the filter runs client-side over
-		// the fetched page and can return fewer than `limit` items.
+		// the top SEARCH_LIMIT_BOUNDS.max matches.
 		const { filter } = operation
 		const matching = filter
 			? items.filter((item) =>
