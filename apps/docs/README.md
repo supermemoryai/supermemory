@@ -42,6 +42,8 @@ The Worker uses its `AI` binding for answer generation and `CHAT_RATE_LIMITER` f
 
 First deploy and inspect the direct Workers URL while Mintlify remains live. Keep `https://supermemory.ai/docs/` as the canonical URL. Switch the existing `/docs/*` proxy or Cloudflare route to this Worker only after verification; forward the full path without stripping `/docs`. Preserve the rest of the main website. The Wrangler configuration does not change public DNS or routes automatically.
 
+Mintlify's repository integration does not run Holocron's preparation step, so it cannot fetch the generated OpenAPI file or validate generated API-page links. Its deployment and link checks fail against this migration. Before merging, retire the legacy repository deployment integration and replace any required Mintlify checks with the `Docs - Build, Deploy and Index` build job. Keep the existing Mintlify-hosted site live until the routing cutover is verified.
+
 ## Documentation indexing
 
 ```text
