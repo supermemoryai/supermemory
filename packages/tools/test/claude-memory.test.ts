@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest"
-import { createClaudeMemoryTool, type MemoryCommand } from "./claude-memory"
+import {
+	createClaudeMemoryTool,
+	type MemoryCommand,
+} from "../src/claude-memory"
 import "dotenv/config"
 
 // Test configuration
@@ -9,6 +12,10 @@ const TEST_CONFIG = {
 	projectId: "test-claude-memory",
 	memoryContainerTag: "claude_memory_test",
 }
+
+// Same gate the other integration suites use: these hit the live API, so they
+// only run when a key is present. Without one every request comes back 401.
+const shouldRunIntegration = !!process.env.SUPERMEMORY_API_KEY
 
 describe("Claude Memory Tool", () => {
 	let memoryTool: ReturnType<typeof createClaudeMemoryTool>
@@ -62,7 +69,7 @@ describe("Claude Memory Tool", () => {
 		})
 	})
 
-	describe("File operations", () => {
+	describe.skipIf(!shouldRunIntegration)("File operations", () => {
 		const testFilePath = "/memories/test-file.txt"
 		const testContent = "Hello, World!\nThis is a test file.\nLine 3 here."
 
@@ -219,7 +226,7 @@ describe("Claude Memory Tool", () => {
 		})
 	})
 
-	describe("Directory operations", () => {
+	describe.skipIf(!shouldRunIntegration)("Directory operations", () => {
 		it("should list empty directory", async () => {
 			const result = await memoryTool.handleCommand({
 				command: "view",
@@ -263,7 +270,7 @@ describe("Claude Memory Tool", () => {
 		})
 	})
 
-	describe("Error handling", () => {
+	describe.skipIf(!shouldRunIntegration)("Error handling", () => {
 		it("should handle missing file", async () => {
 			const result = await memoryTool.handleCommand({
 				command: "view",
