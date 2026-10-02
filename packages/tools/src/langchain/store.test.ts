@@ -143,6 +143,9 @@ describe("SupermemoryStore", () => {
 		})
 
 		expect(searchDocuments.mock.calls[0]?.[0].limit).toBe(3)
+		expect(searchDocuments.mock.calls[0]?.[0].containerTags).toEqual([
+			"memories",
+		])
 		expect(hits.map((hit) => hit.key)).toEqual(["b", "c"])
 	})
 

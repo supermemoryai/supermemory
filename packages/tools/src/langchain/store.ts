@@ -73,7 +73,9 @@ export class SupermemoryStore extends BaseStore {
 
 		const response = await this.client.search.documents({
 			q: operation.query ?? "",
-			containerTag: namespaceToContainerTag(operation.namespacePrefix),
+			// Array form: the singular containerTag is reported as ignored on some
+			// paths (#1704).
+			containerTags: [namespaceToContainerTag(operation.namespacePrefix)],
 			includeFullDocs: true,
 			limit: limit + offset,
 		})
