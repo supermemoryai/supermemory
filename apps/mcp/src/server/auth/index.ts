@@ -132,9 +132,12 @@ export async function validateApiKey(
 		})
 		return user
 	} catch (error) {
-		console.error("API key validation error:", error)
 		const transient = transientAuthErrorFor(error)
-		if (transient) throw transient
+		if (transient) {
+			console.error("Auth backend transient failure:", error)
+			throw transient
+		}
+		console.debug("API key validation rejected:", error)
 		return null
 	}
 }
@@ -183,9 +186,12 @@ export async function validateOAuthToken(
 			expiresAt: payload.exp,
 		}
 	} catch (error) {
-		console.error("OAuth token validation error:", error)
 		const transient = transientAuthErrorFor(error)
-		if (transient) throw transient
+		if (transient) {
+			console.error("Auth backend transient failure:", error)
+			throw transient
+		}
+		console.debug("OAuth token validation rejected:", error)
 		return null
 	}
 }
