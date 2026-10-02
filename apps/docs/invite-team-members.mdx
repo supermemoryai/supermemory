@@ -1,0 +1,66 @@
+---
+title: "Invite team members"
+sidebarTitle: "Invite Team Members"
+description: "Invite a colleague to your Supermemory organization, choose their access, and share the invitation link."
+contentType: "How-to"
+icon: "/icons/hugeicons/user-multiple.svg"
+---
+
+Invite colleagues from the [Supermemory console](https://console.supermemory.ai) so they can access your organization’s workspace. Choose their role and access, then share an invitation link they can accept with their own account.
+
+## Before you begin
+
+Check these requirements before you invite someone:
+
+- You’re an **Owner** or **Admin** in the organization.
+- Your organization has a plan that supports team invitations. Pro and higher include this feature.
+- You have an available member seat. Members and unexpired pending invitations count toward your limit.
+- You know the email address your colleague uses to sign in to Supermemory.
+
+If **Invite member** is disabled, hover over it to check the plan or member limit. Open **Billing** to upgrade if needed.
+
+## Create and share an invitation
+
+Create the invitation in the organization your colleague needs to join:
+
+<Steps>
+  <Step title="Open your organization’s Team settings">
+    Open the [console](https://console.supermemory.ai) and select your organization from the top-left organization menu. Open **Settings** → **Team**.
+
+    <Frame caption="Team settings lists members and pending invitations. This screenshot uses a local Acme demo organization.">
+      <img src="/images/team/team-settings.png" alt="Acme Team settings with Invite member above Members and a Pending invitations table containing an invite link." />
+    </Frame>
+  </Step>
+  <Step title="Enter your colleague’s email">
+    Click **Invite member**. Enter the email address your colleague uses to sign in.
+  </Step>
+  <Step title="Choose their role and access">
+    Select a role:
+
+    - **Member**: Use this role for workspace access without team or billing administration.
+    - **Admin**: Use this role for full access, including members, billing, and settings.
+
+    For a **Member**, keep **Full access** to include all containers. On Scale or Enterprise, choose **Restricted** to limit access to selected [container tags](/concepts/container-tags). Add at least one tag and select **Read** or **Write** for each tag.
+
+    <Frame caption="The Invite member dialog defaults to Member and Full access.">
+      <img src="/images/team/invite-member.png" alt="Invite member dialog with jordan@example.com entered, Member and Full access selected, and the Send invite button enabled." width="512" />
+    </Frame>
+  </Step>
+  <Step title="Create the invitation and share its link">
+    Click **Send invite**. Find your colleague’s email under **Pending invitations**. Click their link in the **Invite link** column to copy it, then share it privately with that colleague.
+
+    The invitation expires after seven days. To cancel it, click the **×** at the end of its row.
+  </Step>
+</Steps>
+
+## Accept the invitation
+
+Ask your colleague to complete these steps:
+
+1. Open the invitation link you shared.
+2. Log in or create an account with the email address you invited.
+3. Check the organization name and role, then click **ACCEPT**.
+
+If they see **This invitation is not for you**, ask them to click **LOG IN WITH A DIFFERENT ACCOUNT**. They need to sign in with the invited email address. If the invitation has expired or you canceled it, create a new invitation and share its new link.
+
+Return to **Settings** → **Team** and confirm your colleague appears under **Members**. Their invitation no longer appears under **Pending invitations** after they accept.
