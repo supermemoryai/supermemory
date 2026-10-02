@@ -13,6 +13,17 @@ export default {
 		if (new URL(request.url).pathname === "/docs/mcp") {
 			return docsMcp(request, env)
 		}
-		return app.handle(request)
+		const response = await app.handle(request)
+		const location = response.headers.get("Location")
+		if (!location) return response
+		const target = new URL(location, request.url)
+		if (target.origin !== new URL(request.url).origin) return response
+		const headers = new Headers(response.headers)
+		headers.set("Location", `${target.pathname}${target.search}${target.hash}`)
+		return new Response(response.body, {
+			status: response.status,
+			statusText: response.statusText,
+			headers,
+		})
 	},
 }
