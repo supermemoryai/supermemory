@@ -12,6 +12,10 @@ export function register(deps: ToolDeps) {
 			.describe("The memory content to save or forget"),
 		action: z.enum(["save", "forget"]).optional().default("save"),
 		containerTag: optionalContainerTagSchema,
+		metadata: z
+			.record(z.string(), z.unknown())
+			.optional()
+			.describe("Optional key-value metadata to attach to the memory"),
 	})
 
 	deps.server.registerTool(
@@ -42,7 +46,7 @@ export function register(deps: ToolDeps) {
 					}
 				}
 
-				const result = await client.createMemory(args.content)
+				const result = await client.createMemory(args.content, args.metadata)
 				const message = `Memory saved (ID: ${result.id}, space: ${result.containerTag})`
 				const structuredContent: AddMemoryOutput = {
 					action: "save",
