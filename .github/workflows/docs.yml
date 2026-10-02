@@ -1,0 +1,62 @@
+name: Docs - Build, Deploy and Index
+
+on:
+  pull_request:
+    paths:
+      - apps/docs/**
+      - bun.lock
+      - .github/workflows/docs.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/docs/**
+      - bun.lock
+      - .github/workflows/docs.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/docs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install dependencies
+        working-directory: .
+        run: bun install --frozen-lockfile
+      - name: Check types
+        run: bun run check-types
+      - name: Build Cloudflare Worker
+        run: bun run build
+      - name: Deploy docs
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DOCS_CLOUDFLARE_ENABLED == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "CLOUDFLARE_API_TOKEN is required"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "CLOUDFLARE_ACCOUNT_ID is required"; exit 1; }
+          bun run deploy
+      - name: Index published docs in Supermemory
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DOCS_CLOUDFLARE_ENABLED == 'true'
+        env:
+          DOCS_SITE_URL: ${{ vars.DOCS_SITE_URL }}
+          DOCS_CANONICAL_URL: https://supermemory.ai/docs/
+          DOCS_CONTAINER_TAG: supermemory_docs
+          SUPERMEMORY_API_KEY: ${{ secrets.SUPERMEMORY_DOCS_API_KEY }}
+        run: bun run index-docs
