@@ -1,7 +1,8 @@
 ---
 title: "S3 Connector"
+sidebarTitle: "S3"
 description: "Connect Amazon S3 or S3-compatible storage to sync files into your Supermemory knowledge base"
-icon: "database"
+icon: "/icons/hugeicons/database-01.svg"
 ---
 
 Connect Amazon S3 buckets or S3-compatible storage services (MinIO, DigitalOcean Spaces, Cloudflare R2, Tigris) to sync files into your Supermemory knowledge base.
@@ -10,7 +11,7 @@ Connect Amazon S3 buckets or S3-compatible storage services (MinIO, DigitalOcean
 The S3 connector requires a **Scale Plan** or higher. You can also create S3 connections directly from the [Supermemory Console](https://console.supermemory.ai).
 </Note>
 
-## Quick Setup
+## Quick setup
 
 <Tabs>
   <Tab title="TypeScript">
@@ -69,7 +70,7 @@ The S3 connector requires a **Scale Plan** or higher. You can also create S3 con
   </Tab>
 </Tabs>
 
-## Configuration Options
+## Configuration options
 
 For S3, provider-specific connection fields are passed inside the top-level `metadata` object. General connection options stay top-level.
 
@@ -89,7 +90,7 @@ For S3, provider-specific connection fields are passed inside the top-level `met
 In the Python SDK, use `container_tags` for the top-level option, but keep S3 metadata keys in camelCase: `accessKeyId`, `secretAccessKey`, and `containerTagRegex`.
 </Note>
 
-## S3-Compatible Services
+## S3-compatible services
 
 Use `metadata.endpoint` to connect to S3-compatible storage. These services don't use AWS-style regions, so set `metadata.region` to `auto` — the value is still required for request signing but the service ignores it.
 
@@ -134,7 +135,7 @@ const connection = await client.connections.create('s3', {
 For S3-compatible services, `metadata.endpoint` is the base S3 endpoint. Do not include the bucket name in the endpoint URL; pass the bucket separately as `metadata.bucket`.
 </Note>
 
-## Prefix Filtering
+## Prefix filtering
 
 Sync only files within a specific path:
 
@@ -151,7 +152,7 @@ const connection = await client.connections.create('s3', {
 });
 ```
 
-## Dynamic Container Tags
+## Dynamic container tags
 
 Extract container tags from S3 key paths for multi-tenant setups:
 
@@ -175,9 +176,9 @@ const connection = await client.connections.create('s3', {
 The regex must contain a named capture group `(?<userId>...)` and be less than 200 characters.
 </Warning>
 
-## Connection Management
+## Connection management
 
-### Delete Connection
+### Delete connection
 
 <Tabs>
   <Tab title="TypeScript">
@@ -197,7 +198,7 @@ The regex must contain a named capture group `(?<userId>...)` and be less than 2
 By default, deleting a connection removes all synced documents from Supermemory. To keep documents, pass `deleteDocuments=false` as a query parameter: `DELETE /v3/connections/:id?deleteDocuments=false`
 </Warning>
 
-### Manual Sync
+### Manual sync
 
 <Tabs>
   <Tab title="TypeScript">
@@ -217,7 +218,7 @@ By default, deleting a connection removes all synced documents from Supermemory.
   </Tab>
 </Tabs>
 
-## Sync Behavior
+## Sync behavior
 
 | Feature | Behavior |
 |---------|----------|
@@ -226,7 +227,7 @@ By default, deleting a connection removes all synced documents from Supermemory.
 | **Sync schedule** | Every 4 hours + manual triggers |
 | **Document limit** | 10,000 files per connection (default) |
 
-## IAM Permissions
+## IAM permissions
 
 Minimum required permissions:
 
@@ -246,7 +247,7 @@ Minimum required permissions:
 }
 ```
 
-## Error Codes
+## Error codes
 
 | Code | Message | Solution |
 |------|---------|----------|

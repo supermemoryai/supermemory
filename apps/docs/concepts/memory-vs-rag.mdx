@@ -1,23 +1,23 @@
 ---
-title: "Memory vs RAG: Understanding the Difference"
+title: "Memory vs RAG: Understanding the difference"
 description: "Learn why agent memory and RAG are fundamentally different, and when to use each approach"
 sidebarTitle: "Memory vs RAG"
-icon: "scale"
+icon: "/icons/hugeicons/balance-scale.svg"
 ---
 
 Most developers confuse RAG (Retrieval-Augmented Generation) with agent memory. They're not the same thing, and using RAG for memory is why your agents keep forgetting important context. Let's understand the fundamental difference.
 
-## The Core Problem
+## The core problem
 
 When building AI agents, developers often treat memory as just another retrieval problem. They store conversations in a vector database, embed queries, and hope semantic search will surface the right context.
 
 **This approach fails because memory isn't about finding similar text—it's about understanding relationships, temporal context, and user state over time.**
 
-## Documents vs Memories in Supermemory
+## Documents vs memories in Supermemory
 
 Supermemory makes a clear distinction between these two concepts:
 
-### Documents: Raw Knowledge
+### Documents: Raw knowledge
 Documents are the raw content you send to Supermemory—PDFs, web pages, text files. They represent static knowledge that doesn't change based on who's accessing it.
 
 **Characteristics:**
@@ -32,7 +32,7 @@ Documents are the raw content you send to Supermemory—PDFs, web pages, text fi
 - Research papers
 - General reference material
 
-### Memories: Contextual Understanding
+### Memories: Contextual understanding
 Memories are the insights, preferences, and relationships extracted from documents and conversations. They're tied to specific users or entities and evolve over time.
 
 **Characteristics:**
@@ -47,12 +47,12 @@ Memories are the insights, preferences, and relationships extracted from documen
 - Personal facts and relationships
 - Behavioral patterns
 
-## Why RAG Fails as Memory
+## Why RAG fails as memory
 
 Let's look at a real scenario that illustrates the problem:
 
 <Tabs>
-  <Tab title="The Scenario">
+  <Tab title="The scenario">
     ```
     Day 1: "I love Adidas sneakers"
     Day 30: "My Adidas broke after a month, terrible quality"
@@ -61,7 +61,7 @@ Let's look at a real scenario that illustrates the problem:
     ```
   </Tab>
 
-  <Tab title="RAG Approach (Wrong)">
+  <Tab title="RAG approach (wrong)">
     ```python
     # RAG sees these as isolated embeddings
     query = "What sneakers should I buy?"
@@ -76,7 +76,7 @@ Let's look at a real scenario that illustrates the problem:
     **Problem**: RAG finds the most semantically similar text but misses the temporal progression and causal relationships.
   </Tab>
 
-  <Tab title="Memory Approach (Right)">
+  <Tab title="Memory approach (right)">
     ```python
     # Supermemory understands temporal context
     query = "What sneakers should I buy?"
@@ -93,16 +93,16 @@ Let's look at a real scenario that illustrates the problem:
   </Tab>
 </Tabs>
 
-## The Technical Difference
+## The technical difference
 
-### RAG: Semantic Similarity
+### RAG: Semantic similarity
 ```
 Query → Embedding → Vector Search → Top-K Results → LLM
 ```
 
 RAG excels at finding information that's semantically similar to your query. It's stateless—each query is independent.
 
-### Memory: Contextual Graph
+### Memory: Contextual graph
 ```
 Query → Entity Recognition → Graph Traversal → Temporal Filtering → Context Assembly → LLM
 ```
@@ -113,10 +113,10 @@ Memory systems build a knowledge graph that understands:
 - **Temporal Context**: When facts were true
 - **Invalidation**: When facts became outdated
 
-## When to Use Each
+## When to use each
 
 <CardGroup cols={2}>
-  <Card title="Use RAG For" icon="search">
+  <Card title="Use RAG For" icon="/icons/hugeicons/search-01.svg">
     - Static documentation
     - Knowledge bases
     - Research queries
@@ -124,7 +124,7 @@ Memory systems build a knowledge graph that understands:
     - Content that doesn't change per user
   </Card>
 
-  <Card title="Use Memory For" icon="brain">
+  <Card title="Use memory for" icon="/icons/hugeicons/brain-01.svg">
     - User preferences
     - Conversation history
     - Personal facts
@@ -133,12 +133,12 @@ Memory systems build a knowledge graph that understands:
   </Card>
 </CardGroup>
 
-## Real-World Examples
+## Real-world examples
 
-### E-commerce Assistant
+### E-commerce assistant
 
 <Tabs>
-  <Tab title="RAG Component">
+  <Tab title="RAG component">
     Stores product catalogs, specifications, reviews
 
     ```python
@@ -149,7 +149,7 @@ Memory systems build a knowledge graph that understands:
     ```
   </Tab>
 
-  <Tab title="Memory Component">
+  <Tab title="Memory component">
     Tracks user preferences, purchase history, interactions
 
     ```python
@@ -161,10 +161,10 @@ Memory systems build a knowledge graph that understands:
   </Tab>
 </Tabs>
 
-### Customer Support Bot
+### Customer support bot
 
 <Tabs>
-  <Tab title="RAG Component">
+  <Tab title="RAG component">
     FAQ documents, troubleshooting guides, policies
 
     ```python
@@ -175,7 +175,7 @@ Memory systems build a knowledge graph that understands:
     ```
   </Tab>
 
-  <Tab title="Memory Component">
+  <Tab title="Memory component">
     Previous issues, user account details, conversation context
 
     ```python
@@ -187,11 +187,11 @@ Memory systems build a knowledge graph that understands:
   </Tab>
 </Tabs>
 
-## How Supermemory Handles Both
+## How Supermemory handles both
 
 Supermemory provides a unified platform that correctly handles both patterns:
 
-### 1. Document Storage (RAG)
+### 1. Document storage (RAG)
 ```python
 # Add a document for RAG-style retrieval
 client.add(
@@ -200,7 +200,7 @@ client.add(
 )
 ```
 
-### 2. Memory Creation
+### 2. Memory creation
 ```python
 # Add a user-specific memory
 client.add(
@@ -213,7 +213,7 @@ client.add(
 )
 ```
 
-### 3. Hybrid Retrieval
+### 3. Hybrid retrieval
 ```python
 # Search combines both approaches
 results = client.search.memories(
@@ -227,7 +227,7 @@ results = client.search.memories(
 # - Latest Android phone specs (documents)
 ```
 
-## The Bottom Line
+## The bottom line
 
 <Note>
 **Key Insight**: RAG answers "What do I know?" while Memory answers "What do I remember about you?"
@@ -241,19 +241,19 @@ Supermemory provides both capabilities in a unified platform, ensuring your agen
 
 ---
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Graph Memory" icon="network" href="/concepts/graph-memory">
+  <Card title="Graph memory" icon="/icons/hugeicons/hierarchy-square-01.svg" href="/concepts/graph-memory">
     How memory relationships work
   </Card>
-  <Card title="Super RAG" icon="bolt" href="/concepts/super-rag">
+  <Card title="Super RAG" icon="/icons/hugeicons/flash.svg" href="/concepts/super-rag">
     Our managed RAG solution
   </Card>
-  <Card title="Add Memories" icon="plus" href="/ingestion/add-memories">
+  <Card title="Add memories" icon="/icons/hugeicons/plus-sign.svg" href="/ingestion/add-memories">
     Start ingesting content
   </Card>
-  <Card title="Search" icon="search" href="/recall/search">
+  <Card title="Search" icon="/icons/hugeicons/search-01.svg" href="/recall/search">
     Query your memories and documents
   </Card>
 </CardGroup>

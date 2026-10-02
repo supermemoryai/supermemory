@@ -1,5 +1,6 @@
 ---
-title: "GitHub Connector"
+title: "GitHub connector"
+sidebarTitle: "GitHub"
 description: "Connect GitHub repositories to sync documentation files into your Supermemory knowledge base"
 icon: "/images/github-icon.svg"
 ---
@@ -10,9 +11,9 @@ Connect GitHub repositories to sync documentation files into your Supermemory kn
 The GitHub connector requires a **Scale Plan** or **Enterprise Plan**.
 </Warning>
 
-## Quick Setup
+## Quick setup
 
-### 1. Create GitHub Connection
+### 1. Create GitHub connection
 
 <Tabs>
   <Tab title="TypeScript">
@@ -86,11 +87,11 @@ The GitHub connector requires a **Scale Plan** or **Enterprise Plan**.
 - `admin:repo_hook` - Manage webhooks for incremental sync
 </Note>
 
-### 2. Handle OAuth Callback
+### 2. Handle OAuth callback
 
 After the user grants permissions, GitHub redirects to your callback URL. The connection is automatically established, and the user can now select which repositories to sync.
 
-### 3. List and Configure Repositories
+### 3. List and configure repositories
 
 Unlike other connectors, GitHub requires repository selection before syncing begins. This gives your users control over which repositories to index.
 
@@ -202,7 +203,7 @@ Supermemory provides the API endpoints to list and configure repositories. As a 
 This gives you complete control over the user experience and allows you to integrate repository selection seamlessly into your application's workflow.
 </Warning>
 
-## Supported Document Types
+## Supported document types
 
 The GitHub connector syncs documentation and text files with the following extensions:
 
@@ -218,7 +219,7 @@ Files are indexed as `github_markdown` document type in Supermemory.
 Only text-based documentation files are synced. Binary files, images, and code files (`.js`, `.py`, `.go`, etc.) are excluded by default to focus on searchable documentation content.
 </Note>
 
-## Incremental Sync with Webhooks
+## Incremental sync with webhooks
 
 The GitHub connector automatically sets up webhooks for real-time incremental syncing. When files are pushed or deleted in configured repositories, Supermemory is notified immediately.
 
@@ -226,14 +227,14 @@ The GitHub connector automatically sets up webhooks for real-time incremental sy
 **Batch Processing:** Webhook events are processed in batches with a 10-minute delay to optimize performance and prevent excessive syncing during rapid commits. This means changes pushed to your repository will be reflected in Supermemory within approximately 10 minutes.
 </Note>
 
-### How It Works
+### How it works
 
 1. **Webhook Setup**: When you configure repositories, a webhook is automatically installed in each repository
 2. **Push Events**: When commits are pushed to the default branch, changed documentation files are synced
 3. **Delete Events**: When documentation files are deleted, they're removed from your Supermemory knowledge base
 4. **Incremental Updates**: Only changed files are processed, keeping sync fast and efficient
 
-### Webhook Security
+### Webhook security
 
 Webhooks are secured using HMAC-SHA256 signature validation with constant-time comparison. Supermemory automatically validates that webhook events come from GitHub before processing them. Each repository gets a unique webhook secret for maximum security.
 
@@ -269,9 +270,9 @@ Webhooks are secured using HMAC-SHA256 signature validation with constant-time c
   </Tab>
 </Tabs>
 
-## Connection Management
+## Connection management
 
-### List All Connections
+### List all connections
 
 <Tabs>
   <Tab title="TypeScript">
@@ -325,7 +326,7 @@ Webhooks are secured using HMAC-SHA256 signature validation with constant-time c
   </Tab>
 </Tabs>
 
-### Update Repository Configuration
+### Update repository configuration
 
 You can update which repositories are synced at any time:
 
@@ -404,7 +405,7 @@ When you update the repository configuration:
 - Existing documents from removed repositories remain in Supermemory unless you delete them manually
 </Note>
 
-### Delete Connection
+### Delete connection
 
 <Tabs>
   <Tab title="TypeScript">
@@ -451,7 +452,7 @@ Deleting a GitHub connection will:
 - **Permanently delete all synced documents** from your Supermemory knowledge base (unless you pass `deleteDocuments=false` as a query parameter to keep them)
 </Warning>
 
-### Manual Sync
+### Manual sync
 
 Trigger a manual synchronization for all configured repositories:
 
@@ -502,9 +503,9 @@ Trigger a manual synchronization for all configured repositories:
   </Tab>
 </Tabs>
 
-## Advanced Configuration
+## Advanced configuration
 
-### Custom OAuth Application
+### Custom OAuth application
 
 For white-label deployments or custom branding, configure your own GitHub OAuth app using the settings API:
 

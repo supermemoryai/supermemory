@@ -1,6 +1,6 @@
 ---
 title: "Cartesia"
-sidebarTitle: "Cartesia (Voice)"
+sidebarTitle: "Cartesia (voice)"
 description: "Integrate Supermemory with Cartesia for conversational memory in voice AI agents"
 icon: "/images/cartesia.svg"
 ---
@@ -55,7 +55,7 @@ memory_agent = SupermemoryCartesiaAgent(
 )
 ```
 
-## Agent Wrapper Pattern
+## Agent wrapper pattern
 
 The `SupermemoryCartesiaAgent` wraps your existing `LlmAgent` to add memory capabilities:
 
@@ -82,11 +82,11 @@ async def get_agent(env, call_request):
 app = VoiceAgentApp(get_agent=get_agent)
 ```
 
-## How It Works
+## How it works
 
 When integrated with Cartesia Line, Supermemory provides two key functionalities:
 
-### 1. Memory Retrieval
+### 1. Memory retrieval
 
 When a `UserTurnEnded` event is detected, Supermemory retrieves relevant memories:
 
@@ -94,15 +94,15 @@ When a `UserTurnEnded` event is detected, Supermemory retrieves relevant memorie
 - **Dynamic Profile**: Recent context and preferences
 - **Search Results**: Semantically relevant past memories
 
-### 2. Context Enhancement
+### 2. Context enhancement
 
 Retrieved memories are formatted and injected into the agent's system prompt before processing, giving the model awareness of past conversations.
 
-### 3. Background Storage
+### 3. Background storage
 
 Conversations are automatically stored in Supermemory (non-blocking) for future retrieval.
 
-## Memory Modes
+## Memory modes
 
 | Mode        | Static Profile | Dynamic Profile | Search Results | Use Case                       |
 | ----------- | -------------- | --------------- | -------------- | ------------------------------ |
@@ -110,7 +110,7 @@ Conversations are automatically stored in Supermemory (non-blocking) for future 
 | `"query"`   | No             | No              | Yes            | Finding relevant past context  |
 | `"full"`    | Yes            | Yes             | Yes            | Complete memory (default)      |
 
-## Configuration Options
+## Configuration options
 
 You can customize how memories are retrieved and used:
 
@@ -132,7 +132,7 @@ SupermemoryCartesiaAgent.MemoryConfig(
 | `mode`             | str   | "full"                                 | Memory retrieval mode: `"profile"`, `"query"`, or `"full"` |
 | `system_prompt`    | str   | "Based on previous conversations:\n\n" | Prefix text for memory context                             |
 
-### Agent Parameters
+### Agent parameters
 
 ```python
 SupermemoryCartesiaAgent(
@@ -158,7 +158,7 @@ SupermemoryCartesiaAgent(
 | `config`        | MemoryConfig | No       | Advanced configuration                                             |
 | `base_url`      | str          | No       | Custom API endpoint                                                |
 
-## Container Tags
+## Container tags
 
 Container tags allow you to organize memories across multiple dimensions:
 
@@ -179,7 +179,7 @@ Memories are stored with all tags:
 }
 ```
 
-## Automatic Document Grouping
+## Automatic document grouping
 
 The SDK **automatically groups all messages from the same conversation** into a single Supermemory document using `custom_id`:
 
@@ -197,7 +197,7 @@ memory_agent = SupermemoryCartesiaAgent(
 - All messages from that conversation are appended to the same document
 - This ensures conversation continuity and proper memory generation
 
-## Example: Basic Voice Agent with Memory
+## Example: Basic voice agent with memory
 
 Here's a complete example of a Cartesia Line voice agent with Supermemory integration:
 
@@ -238,7 +238,7 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
 ```
 
-## Example: Advanced Agent with Tools
+## Example: Advanced agent with tools
 
 Here's an example with custom tools and multi-tag support:
 
