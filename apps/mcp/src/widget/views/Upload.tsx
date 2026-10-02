@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
 	uploadPreparationSchema,
 	uploadResponseSchema,
@@ -16,6 +16,11 @@ import {
 import { useApp } from "../hooks/useApp"
 import { formatTagLabel } from "../lib/formatTag"
 import { FileText, X } from "../lib/icons"
+import {
+	isWritableTag,
+	preferredWritableTag,
+	retainedWritableTag,
+} from "../lib/writableTag"
 
 interface Props {
 	activeTag?: string | null
@@ -43,10 +48,14 @@ export function Upload({
 }: Props) {
 	const { callTool, handoffToModel } = useApp()
 	const [file, setFile] = useState<File | null>(null)
-	const [selectedTag, setSelectedTag] = useState<string | null>(
-		activeTag ?? writableTags[0] ?? null,
+	const [selectedTag, setSelectedTag] = useState<string | null>(() =>
+		preferredWritableTag(activeTag, writableTags),
 	)
 	const [uploading, setUploading] = useState(false)
+
+	useEffect(() => {
+		setSelectedTag((current) => retainedWritableTag(current, writableTags))
+	}, [writableTags])
 
 	const options = useMemo(
 		() =>
@@ -58,10 +67,11 @@ export function Upload({
 		[writableTags],
 	)
 
-	const canUpload = !!file && !!selectedTag && !uploading
+	const canUpload =
+		!!file && isWritableTag(selectedTag, writableTags) && !uploading
 
 	const handleUpload = async () => {
-		if (!file || !selectedTag) return
+		if (!file || !isWritableTag(selectedTag, writableTags)) return
 		setUploading(true)
 		try {
 			const preparation = await callTool(
