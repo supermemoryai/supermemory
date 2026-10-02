@@ -478,7 +478,7 @@ export const Searchv4RequestSchema = z.object({
 		.optional()
 		.default(0.6)
 		.refine((v) => v >= 0 && v <= 1, {
-			message: "documentThreshold must be between 0 and 1",
+			message: "threshold must be between 0 and 1",
 			params: {
 				max: 1,
 				min: 0,
