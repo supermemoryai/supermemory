@@ -94,13 +94,15 @@ export class SupermemoryStore extends BaseStore {
 			return
 		}
 
+		const containerTag = namespaceToContainerTag(operation.namespace)
+
 		await this.client.documents.add({
 			content: JSON.stringify(operation.value),
-			containerTags: [namespaceToContainerTag(operation.namespace)],
+			containerTags: [containerTag],
 			customId: operation.key,
 			metadata: {
 				[KEY_FIELD]: operation.key,
-				[NAMESPACE_FIELD]: namespaceToContainerTag(operation.namespace),
+				[NAMESPACE_FIELD]: containerTag,
 			},
 		})
 	}
