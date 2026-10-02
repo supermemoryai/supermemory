@@ -4,6 +4,9 @@ import {
 	namespaceToContainerTag,
 } from "./container-tag"
 
+/** What the API accepts: alphanumerics, hyphens, underscores, colons. */
+const ALLOWED = /^[A-Za-z0-9\-_:]*$/
+
 describe("namespace <-> container tag", () => {
 	it("round-trips a simple namespace", () => {
 		const namespace = ["memories", "user123"]
@@ -13,22 +16,28 @@ describe("namespace <-> container tag", () => {
 	})
 
 	it("keeps a segment containing the separator distinct from a deeper namespace", () => {
-		// The collision this escaping exists to prevent.
-		expect(namespaceToContainerTag(["a/b"])).not.toBe(
+		expect(namespaceToContainerTag(["a:b"])).not.toBe(
 			namespaceToContainerTag(["a", "b"]),
 		)
-		expect(containerTagToNamespace(namespaceToContainerTag(["a/b"]))).toEqual([
-			"a/b",
+		expect(containerTagToNamespace(namespaceToContainerTag(["a:b"]))).toEqual([
+			"a:b",
 		])
 		expect(
 			containerTagToNamespace(namespaceToContainerTag(["a", "b"])),
 		).toEqual(["a", "b"])
 	})
 
-	it("round-trips backslashes", () => {
-		const namespace = ["a\\b", "c"]
-		expect(containerTagToNamespace(namespaceToContainerTag(namespace))).toEqual(
-			namespace,
-		)
+	it("only emits characters the API accepts", () => {
+		for (const namespace of [
+			["memories", "user 123"],
+			["a/b", "c.d"],
+			["emoji 🙂", "slash/"],
+			["under_score", "colon:"],
+		]) {
+			expect(namespaceToContainerTag(namespace)).toMatch(ALLOWED)
+			expect(
+				containerTagToNamespace(namespaceToContainerTag(namespace)),
+			).toEqual(namespace)
+		}
 	})
 })

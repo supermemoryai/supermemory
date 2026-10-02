@@ -1,48 +1,38 @@
 /**
  * Mapping between LangGraph store namespaces and supermemory container tags.
  *
- * LangGraph addresses items by a hierarchical `string[]` namespace plus a key.
- * supermemory scopes documents by a flat container tag, so a namespace is
- * joined into a single tag and parsed back on the way out.
- */
-
-const SEPARATOR = "/"
-
-/**
- * Join a LangGraph namespace into a single supermemory container tag.
+ * LangGraph addresses items by a hierarchical `string[]` namespace; supermemory
+ * scopes documents by a flat container tag that the API restricts to
+ * alphanumerics, hyphens, underscores and colons.
  *
- * Segments are escaped so a segment containing the separator cannot collide
- * with a deeper namespace: `["a/b"]` and `["a", "b"]` map to distinct tags.
+ * Segments are joined with `:` and everything outside `[A-Za-z0-9-]` is encoded
+ * as `_<hex>`, so arbitrary namespace text survives the round trip and
+ * `["a:b"]` cannot collide with `["a", "b"]`.
  */
-export function namespaceToContainerTag(namespace: string[]): string {
-	return namespace
-		.map((segment) => segment.replace(/\\/g, "\\\\").replace(/\//g, "\\/"))
-		.join(SEPARATOR)
+
+const SEPARATOR = ":"
+
+function encodeSegment(segment: string): string {
+	return encodeURIComponent(segment).replace(
+		/[^A-Za-z0-9-]/g,
+		(char) => `_${char.charCodeAt(0).toString(16).padStart(2, "0")}`,
+	)
 }
 
-/**
- * Parse a container tag produced by {@link namespaceToContainerTag} back into
- * its namespace segments.
- */
+function decodeSegment(segment: string): string {
+	return decodeURIComponent(
+		segment.replace(/_([0-9a-f]{2})/gi, (_match, hex: string) =>
+			String.fromCharCode(Number.parseInt(hex, 16)),
+		),
+	)
+}
+
+/** Join a LangGraph namespace into a single supermemory container tag. */
+export function namespaceToContainerTag(namespace: string[]): string {
+	return namespace.map(encodeSegment).join(SEPARATOR)
+}
+
+/** Parse a container tag back into its namespace segments. */
 export function containerTagToNamespace(tag: string): string[] {
-	const segments: string[] = []
-	let current = ""
-	let escaped = false
-
-	for (const char of tag) {
-		if (escaped) {
-			current += char
-			escaped = false
-		} else if (char === "\\") {
-			escaped = true
-		} else if (char === SEPARATOR) {
-			segments.push(current)
-			current = ""
-		} else {
-			current += char
-		}
-	}
-	segments.push(current)
-
-	return segments
+	return tag.split(SEPARATOR).map(decodeSegment)
 }

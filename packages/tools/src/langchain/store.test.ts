@@ -44,7 +44,7 @@ describe("SupermemoryStore", () => {
 
 		expect(documentsAdd).toHaveBeenCalledTimes(1)
 		const body = documentsAdd.mock.calls[0]?.[0]
-		expect(body.containerTags).toEqual(["memories/user1"])
+		expect(body.containerTags).toEqual(["memories:user1"])
 		expect(body.customId).toBe("profile")
 		expect(JSON.parse(body.content)).toEqual({ name: "Ada" })
 	})
@@ -68,7 +68,7 @@ describe("SupermemoryStore", () => {
 		expect(item?.key).toBe("profile")
 		expect(item?.namespace).toEqual(["memories", "user1"])
 		expect(documentsList.mock.calls[0]?.[0].containerTags).toEqual([
-			"memories/user1",
+			"memories:user1",
 		])
 	})
 
@@ -109,7 +109,7 @@ describe("SupermemoryStore", () => {
 					updatedAt: "2026-01-02T00:00:00Z",
 					metadata: {
 						langgraphKey: "profile",
-						langgraphNamespace: "memories/user1",
+						langgraphNamespace: "memories:user1",
 					},
 				},
 			],
@@ -149,9 +149,9 @@ describe("SupermemoryStore", () => {
 	it("lists namespaces from container tags, filtered by prefix", async () => {
 		documentsList.mockResolvedValue(
 			listPage([
-				{ id: "1", containerTags: ["memories/user1"], content: "{}" },
-				{ id: "2", containerTags: ["memories/user2"], content: "{}" },
-				{ id: "3", containerTags: ["other/user3"], content: "{}" },
+				{ id: "1", containerTags: ["memories:user1"], content: "{}" },
+				{ id: "2", containerTags: ["memories:user2"], content: "{}" },
+				{ id: "3", containerTags: ["other:user3"], content: "{}" },
 			]),
 		)
 
@@ -166,9 +166,9 @@ describe("SupermemoryStore", () => {
 	it('treats "*" as a single-segment wildcard when matching namespaces', async () => {
 		documentsList.mockResolvedValue(
 			listPage([
-				{ id: "1", containerTags: ["memories/user1"], content: "{}" },
-				{ id: "2", containerTags: ["other/user1"], content: "{}" },
-				{ id: "3", containerTags: ["other/user2"], content: "{}" },
+				{ id: "1", containerTags: ["memories:user1"], content: "{}" },
+				{ id: "2", containerTags: ["other:user1"], content: "{}" },
+				{ id: "3", containerTags: ["other:user2"], content: "{}" },
 			]),
 		)
 
