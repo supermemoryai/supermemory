@@ -805,11 +805,15 @@ export class ClaudeMemoryTool {
 	 * Validate that path starts with /memories for security
 	 */
 	private isValidPath(path: string): boolean {
-		return (
-			(path.startsWith("/memories/") || path === "/memories") &&
-			!path.includes("../") &&
-			!path.includes("..\\")
-		)
+		if (!(path.startsWith("/memories/") || path === "/memories")) {
+			return false
+		}
+		if (path.includes("..\\")) {
+			return false
+		}
+		// Reject any parent-directory segment, including trailing "/.." which
+		// the previous "../" substring check missed (e.g. "/memories/..").
+		return !path.split("/").some((segment) => segment === "..")
 	}
 }
 
