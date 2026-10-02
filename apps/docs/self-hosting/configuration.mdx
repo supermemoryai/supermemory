@@ -16,6 +16,14 @@ The installer writes API keys to `~/.supermemory/env`, which is loaded on every 
 | `PORT` (or `SUPERMEMORY_PORT`) | HTTP listen port | `6767` |
 | `SUPERMEMORY_DATA_DIR` | Where the graph engine's data, auth secret, and model cache live | `./.supermemory` |
 
+<Warning>
+**Always set a stable `SUPERMEMORY_DATA_DIR` (e.g., `~/.supermemory`)**
+
+If `SUPERMEMORY_DATA_DIR` is left unset, it defaults to `./.supermemory` (relative to your current working directory). Running the server from different directories will silently create a new empty database store and generate a new API key in that folder. 
+
+To prevent this, it is highly recommended to explicitly define `SUPERMEMORY_DATA_DIR=~/.supermemory` (or another stable folder) in your process manager, systemd unit file, or shell rc.
+</Warning>
+
 ## LLM providers
 
 In production, Supermemory uses its own proprietary models tuned for long-horizon data understanding. Self-hosted, you bring your own LLM for the intelligent steps — summaries, contextual chunking, and memory extraction. Embeddings default to a local model (no API key) and can optionally use OpenAI, Gemini, or Ollama — see [Embeddings](/self-hosting/embeddings). Configure **at least one** LLM provider:
