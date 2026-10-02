@@ -144,11 +144,12 @@ export class SupermemoryClient {
 		containerTag?: string,
 		apiUrl = "https://api.supermemory.ai",
 	) {
+		const normalizedApiUrl = apiUrl.trim().replace(/\/+$/, "")
 		this.bearerToken = bearerToken
-		this.apiUrl = apiUrl
+		this.apiUrl = normalizedApiUrl
 		this.client = new Supermemory({
 			apiKey: bearerToken,
-			baseURL: apiUrl,
+			baseURL: normalizedApiUrl,
 			timeout: FETCH_TIMEOUT_MS,
 			defaultHeaders: { "x-sm-source": MCP_SOURCE },
 		})
@@ -233,6 +234,21 @@ export class SupermemoryClient {
 			}
 		} catch (error) {
 			this.handleOperationError("Forget memory request", error)
+		}
+	}
+
+	async deleteDocument(
+		documentId: string,
+	): Promise<{ success: boolean; message: string; documentId: string }> {
+		try {
+			await this.client.documents.delete(documentId)
+			return {
+				success: true,
+				message: `Document ${documentId} deleted successfully.`,
+				documentId,
+			}
+		} catch (error) {
+			this.handleOperationError("Delete document request", error)
 		}
 	}
 
