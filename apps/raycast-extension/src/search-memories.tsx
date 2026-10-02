@@ -8,8 +8,9 @@ import {
 	Toast,
 	getSelectedText,
 } from "@raycast/api"
-import { useState, useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import { searchMemories, type SearchResult } from "./api"
+import { createSearchInputAdapter } from "./deferred-prefill"
 import { usePromise } from "@raycast/utils"
 import { withSupermemory } from "./withSupermemory"
 
@@ -62,23 +63,25 @@ const truncateContent = (content: string, maxLength = 100) => {
 }
 
 export default withSupermemory(Command)
-function Command() {
+export function Command() {
 	const [searchText, setSearchText] = useState("")
+	const [searchQuery, setSearchQuery] = useState("")
+	const searchInputRef = useRef<
+		ReturnType<typeof createSearchInputAdapter> | undefined
+	>(undefined)
+	searchInputRef.current ??= createSearchInputAdapter(
+		setSearchText,
+		setSearchQuery,
+	)
+	const searchInput = searchInputRef.current
 
 	useEffect(() => {
-		async function loadSelectedText() {
-			try {
-				const selectedText = await getSelectedText()
-				if (selectedText) {
-					setSearchText(selectedText)
-				}
-			} catch {
-				// No text selected or error getting selected text - silently fail
-			}
+		const request = searchInput.startPrefill(getSelectedText)
+		return () => {
+			request.cancel()
+			searchInput.cancelPendingQuery()
 		}
-
-		loadSelectedText()
-	}, [])
+	}, [searchInput])
 
 	const { isLoading, data: searchResults = [] } = usePromise(
 		async (query: string) => {
@@ -98,7 +101,7 @@ function Command() {
 			}
 			return results
 		},
-		[searchText],
+		[searchQuery],
 	)
 
 	const formatDate = (dateString: string) => {
@@ -115,14 +118,13 @@ function Command() {
 		}
 	}
 
-	const hasSearched = !isLoading && !searchResults.length
+	const isSearching = isLoading || searchText !== searchQuery
+	const hasSearched = !isSearching && !searchResults.length
 	return (
 		<List
-			isLoading={isLoading}
-			onSearchTextChange={setSearchText}
-			searchText={searchText}
+			{...searchInput.getListProps(searchText)}
+			isLoading={isSearching}
 			searchBarPlaceholder="Search your memories..."
-			throttle
 		>
 			{hasSearched && !searchText.trim() ? (
 				<List.EmptyView
@@ -136,7 +138,7 @@ function Command() {
 					title="No Memories Found"
 					description={`No memories found for "${searchText}"`}
 				/>
-			) : isLoading && searchText.trim() ? (
+			) : isSearching && searchText.trim() ? (
 				<List.EmptyView
 					icon={Icon.MagnifyingGlass}
 					title="Searching Your Memories"
