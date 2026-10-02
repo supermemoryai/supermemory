@@ -78,6 +78,10 @@ describe("InputHandler touch tap-to-select", () => {
 	let clicks: Array<string | null>
 	let viewport: ViewportState
 
+	let dragStarts: Array<{ id: string; node: GraphNode }>
+	let dragEnds: number
+	let testNode: GraphNode
+
 	const fire = (name: string, e: TouchEvent) => {
 		const fn = listeners.get(name)
 		if (!fn) throw new Error(`no listener registered for ${name}`)
@@ -88,19 +92,26 @@ describe("InputHandler touch tap-to-select", () => {
 		const stub = makeStubCanvas()
 		listeners = stub.listeners
 		clicks = []
+		dragStarts = []
+		dragEnds = 0
 
 		// zoom 1 / pan 0 so screen coordinates equal world coordinates
 		viewport = new ViewportState(0, 0, 1)
 		const index = new SpatialIndex()
-		index.rebuild([makeNode("doc-1", 100, 100)])
+		testNode = makeNode("doc-1", 100, 100)
+		index.rebuild([testNode])
 
 		new InputHandler(stub.canvas, viewport, index, {
 			onNodeHover: () => {},
 			onNodeClick: (id) => {
 				clicks.push(id)
 			},
-			onNodeDragStart: () => {},
-			onNodeDragEnd: () => {},
+			onNodeDragStart: (id, node) => {
+				dragStarts.push({ id, node })
+			},
+			onNodeDragEnd: () => {
+				dragEnds++
+			},
 			onRequestRender: () => {},
 		})
 	})
@@ -127,9 +138,28 @@ describe("InputHandler touch tap-to-select", () => {
 		expect(clicks).toEqual(["doc-1"])
 	})
 
-	it("does not fire a click after a pan", () => {
+	it("drags a node on touch and updates its fixed coordinates", () => {
 		fire("touchstart", touchEvent([touch(100, 100)]))
-		fire("touchmove", touchEvent([touch(160, 100)]))
+		expect(dragStarts.length).toBe(1)
+		expect(dragStarts[0]?.id).toBe("doc-1")
+
+		fire("touchmove", touchEvent([touch(160, 120)]))
+		expect(testNode.x).toBe(160)
+		expect(testNode.y).toBe(120)
+		expect(testNode.fx).toBe(160)
+		expect(testNode.fy).toBe(120)
+
+		fire("touchend", touchEvent([]))
+		expect(dragEnds).toBe(1)
+		expect(testNode.fx).toBeNull()
+		expect(testNode.fy).toBeNull()
+		// no tap click should fire after a real drag
+		expect(clicks).toEqual([])
+	})
+
+	it("pans the viewport when dragging empty space", () => {
+		fire("touchstart", touchEvent([touch(400, 400)]))
+		fire("touchmove", touchEvent([touch(460, 400)]))
 		fire("touchend", touchEvent([]))
 
 		expect(clicks).toEqual([])
@@ -149,18 +179,15 @@ describe("InputHandler touch tap-to-select", () => {
 
 	it("hit-tests a jittery tap against the node under the finger at touchstart", () => {
 		// Zoomed out, a few-pixel finger jitter maps to a large world-space shift.
-		// The sub-threshold move still pans the viewport, so re-projecting the
-		// start screen point through the panned transform lands well off the node.
 		// zoom 0.25: world (100, 100) renders at screen (25, 25).
 		viewport.zoomImmediate(0.25, 0, 0)
 
 		fire("touchstart", touchEvent([touch(25, 25)]))
-		// 8px screen jitter (below the 10px tap threshold) that pans the viewport
+		// 8px screen jitter (below the 10px tap threshold)
 		fire("touchmove", touchEvent([touch(33, 25)]))
 		fire("touchend", touchEvent([]))
 
-		// the jitter did move the viewport, but the tap still resolves the node
-		expect(viewport.panX).toBe(8)
+		// the tap resolves the node under the finger at touchstart
 		expect(clicks).toEqual(["doc-1"])
 	})
 
