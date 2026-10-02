@@ -2,7 +2,7 @@ import { BaseStore } from "@langchain/langgraph"
 import type { Item, Operation, OperationResults } from "@langchain/langgraph"
 import type { SearchItem } from "@langchain/langgraph-checkpoint"
 import Supermemory from "supermemory"
-import { CLIENT_OPTIONS } from "../tools-shared"
+import { CLIENT_OPTIONS, DEFAULT_VALUES } from "../tools-shared"
 import type { SupermemoryToolsConfig } from "../types"
 import {
 	containerTagToNamespace,
@@ -68,7 +68,7 @@ export class SupermemoryStore extends BaseStore {
 		limit?: number
 		offset?: number
 	}): Promise<SearchItem[]> {
-		const limit = operation.limit ?? 10
+		const limit = operation.limit ?? DEFAULT_VALUES.limit
 		const offset = operation.offset ?? 0
 
 		const response = await this.client.search.documents({
@@ -131,6 +131,7 @@ export class SupermemoryStore extends BaseStore {
 		limit: number
 		offset: number
 	}): Promise<string[][]> {
+		const conditions = operation.matchConditions ?? []
 		const seen = new Map<string, string[]>()
 
 		for await (const document of this.scanDocuments()) {
@@ -139,7 +140,6 @@ export class SupermemoryStore extends BaseStore {
 				if (operation.maxDepth !== undefined) {
 					namespace = namespace.slice(0, operation.maxDepth)
 				}
-				const conditions = operation.matchConditions ?? []
 				if (!conditions.every((c) => matches(namespace, c))) continue
 				seen.set(namespace.join("\u0000"), namespace)
 			}
