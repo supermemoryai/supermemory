@@ -415,8 +415,13 @@ class SupermemoryPipecatService(FrameProcessor):
             if system_idx is not None:
                 existing_content = messages[system_idx].get("content", "")
                 if MEMORY_TAG_PATTERN.search(existing_content):
+                    # A callable replacement keeps the memory text literal. As a
+                    # plain string, re.sub reads backslash escapes in it as group
+                    # references and raises on real memories such as a Windows
+                    # path ("bad escape \\U") or a regex fact ("invalid group
+                    # reference 1").
                     messages[system_idx]["content"] = MEMORY_TAG_PATTERN.sub(
-                        tagged_memory, existing_content
+                        lambda _match: tagged_memory, existing_content
                     )
                 else:
                     messages[system_idx]["content"] = f"{existing_content}\n\n{tagged_memory}"
