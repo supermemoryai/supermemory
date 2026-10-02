@@ -1,0 +1,1 @@
+These are static 400/600 weight instances of Geist 1.800 from the Google Fonts `ofl/geist/Geist[wght].ttf` distribution. They render social-preview images at build time, without a hosted image renderer or system fonts. The accompanying OFL.txt is the upstream font license.

@@ -24,3 +24,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .idea
 
 .DS_Store
+
+.holocron-public
+.holocron-openapi.json
+.holocron
+.wrangler

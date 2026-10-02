@@ -1,6 +1,14 @@
 {
-	"$schema": "https://mintlify.com/docs.json",
+	"$schema": "https://holocron.so/schema.json",
+	"decorativeLines": "none",
+	"assistant": {
+		"enabled": false
+	},
+	"feedback": { "endpoint": "/api/feedback" },
 	"api": {
+		"playground": {
+			"display": "interactive"
+		},
 		"examples": {
 			"defaults": "required",
 			"languages": ["typescript", "python", "bash"],
@@ -64,6 +72,7 @@
 		"library": "lucide"
 	},
 	"logo": {
+		"text": "Docs",
 		"dark": "/logo/dark.svg",
 		"light": "/logo/light.svg"
 	},
@@ -289,7 +298,7 @@
 					{
 						"anchor": "API reference",
 						"icon": "/icons/hugeicons/plug-socket.svg",
-						"openapi": "https://api.supermemory.ai/v4/openapi",
+						"openapi": ".holocron-openapi.json",
 						"pages": [
 							"api-reference/overview",
 							"authentication",
@@ -383,7 +392,8 @@
 									"POST /v3/settings/reset"
 								]
 							}
-						]
+						],
+						"base": "api-reference"
 					}
 				],
 				"tab": "Developer platform"

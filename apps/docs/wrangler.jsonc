@@ -1,0 +1,20 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "supermemory-docs",
+	"main": "spiceflow/cloudflare-entrypoint",
+	"compatibility_date": "2026-10-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"workers_dev": true,
+	"ai": { "binding": "AI" },
+	"analytics_engine_datasets": [
+		{ "binding": "DOCS_FEEDBACK", "dataset": "supermemory_docs_feedback" }
+	],
+	"ratelimits": [
+		{
+			"name": "CHAT_RATE_LIMITER",
+			"namespace_id": "1042026",
+			"simple": { "limit": 10, "period": 60 }
+		}
+	],
+	"vars": { "DOCS_CONTAINER_TAG": "supermemory_docs" }
+}

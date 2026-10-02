@@ -1,19 +1,35 @@
 {
   "name": "@repo/docs",
-  "module": "index.ts",
   "type": "module",
   "private": true,
   "portless": { "name": "docs.dev.supermemory", "script": "dev:app", "appPort": 3003 },
   "scripts": {
     "dev": "portless",
-    "dev:app": "bunx mintlify@latest dev --no-open --port 3003"
+    "dev:app": "bun run prepare-site && vite --host 0.0.0.0 --port 3003",
+    "prepare-site": "bun scripts/prepare-site.ts",
+    "build": "bun run prepare-site && vite build",
+    "deploy": "wrangler deploy",
+    "check-types": "tsc --noEmit",
+    "index-docs": "bun scripts/index-docs.ts"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "yaml": "2.8.3",
     "@types/bun": "latest",
-    "mintlify": "4.2.933",
-    "typescript": "^5.9.2"
+    "@cloudflare/vite-plugin": "1.62.4",
+    "@cloudflare/workers-types": "5.20261001.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.2",
+    "vite": "8.3.2",
+    "wrangler": "4.146.0"
   },
   "dependencies": {
-    "supermemory": "3.10.0"
+    "@holocron.so/vite": "0.36.0",
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "supermemory": "3.10.0",
+    "zod": "4.4.3"
   }
 }

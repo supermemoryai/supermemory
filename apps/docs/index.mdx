@@ -7,35 +7,7 @@ mode: "custom"
 import { AGENT_PROMPT } from "/snippets/agent-prompt.jsx"
 import { HERO_TS, HERO_PY, HERO_CURL } from "/snippets/hero-samples.jsx"
 import { AgentMarks, CopyPromptButton, PromptPanel } from "/snippets/agent-prompt-panel.jsx"
-
-export const HomeLink = ({ href, icon, children }) => (
-  <a className="sm-home-link" href={href}>
-    <span className="sm-home-link-icon"><Icon icon={icon} size={12} /></span>
-    <span>{children}</span>
-  </a>
-)
-
-export const PathCard = ({ title, description, href, image, children }) => (
-  <div className="sm-home-card">
-    <a className="sm-home-card-media" href={href} aria-label={title}>
-      <img src={image} alt="" />
-    </a>
-    <div className="sm-home-card-body">
-      <a className="sm-home-card-title" href={href}>{title}</a>
-      <p className="sm-home-card-desc">{description}</p>
-      <div className="sm-home-links">{children}</div>
-    </div>
-  </div>
-)
-
-export const ListCard = ({ title, children }) => (
-  <div className="sm-home-card sm-home-list-card">
-    <div className="sm-home-card-body">
-      <div className="sm-home-card-title">{title}</div>
-      <div className="sm-home-links">{children}</div>
-    </div>
-  </div>
-)
+import { HomeLink, PathCard, ListCard } from "./snippets/home-cards.jsx"
 
 <div className="sm-home">
 
