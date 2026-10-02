@@ -227,10 +227,12 @@ async def supermemory_profile_search(
                 return SupermemoryProfileSearch(data)
 
     except ImportError:
-        # Fallback to requests if aiohttp not available
+        # Fallback to requests if aiohttp not available. requests blocks, so it
+        # runs on a worker thread to keep the caller's event loop free.
         import requests
 
-        response = requests.post(
+        response = await asyncio.to_thread(
+            requests.post,
             profile_url,
             headers={
                 "Content-Type": "application/json",
