@@ -10,5 +10,4 @@ export type { SupermemoryRetrieverOptions } from "./retriever"
 export {
 	namespaceToContainerTag,
 	containerTagToNamespace,
-	isUnderPrefix,
 } from "./container-tag"

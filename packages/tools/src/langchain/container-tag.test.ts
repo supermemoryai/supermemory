@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
 	containerTagToNamespace,
-	isUnderPrefix,
 	namespaceToContainerTag,
 } from "./container-tag"
 
@@ -31,13 +30,5 @@ describe("namespace <-> container tag", () => {
 		expect(containerTagToNamespace(namespaceToContainerTag(namespace))).toEqual(
 			namespace,
 		)
-	})
-
-	it("matches prefixes by segment, not by string", () => {
-		expect(isUnderPrefix(["documents", "user1"], ["documents"])).toBe(true)
-		expect(isUnderPrefix(["documents"], ["documents"])).toBe(true)
-		expect(isUnderPrefix(["documents"], ["documents", "user1"])).toBe(false)
-		// "doc" must not match "documents"
-		expect(isUnderPrefix(["documents", "user1"], ["doc"])).toBe(false)
 	})
 })

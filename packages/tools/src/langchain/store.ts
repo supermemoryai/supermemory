@@ -9,26 +9,26 @@ import {
 	namespaceToContainerTag,
 } from "./container-tag"
 
-/** Page size used when scanning documents to resolve a key. */
+interface MatchCondition {
+	matchType: "prefix" | "suffix"
+	path: string[]
+}
+
 const LOOKUP_PAGE_SIZE = 100
 
-/**
- * Metadata keys used to carry the store's addressing back out of search
- * results, which expose `documentId` but not `customId`.
- */
+// Search results expose documentId but not customId, so addressing is carried
+// in metadata.
 const KEY_FIELD = "langgraphKey"
 const NAMESPACE_FIELD = "langgraphNamespace"
 
 /**
  * LangGraph `BaseStore` backed by supermemory.
  *
- * `BaseStore` declares only `batch` as abstract — `get`, `put`, `search`,
- * `delete` and `listNamespaces` are concrete helpers that build operations and
- * delegate here, so implementing `batch` implements the whole interface.
+ * `batch` is the only abstract member — get/put/search/delete/listNamespaces
+ * are concrete helpers that delegate to it.
  *
- * An item is one supermemory document: the namespace becomes the container tag
- * (see `./container-tag`), the key becomes the document's `customId`, and the
- * value is stored as JSON content.
+ * An item is one supermemory document: namespace becomes the container tag,
+ * key becomes `customId`, and the value is stored as JSON content.
  */
 export class SupermemoryStore extends BaseStore {
 	private client: Supermemory
@@ -74,7 +74,6 @@ export class SupermemoryStore extends BaseStore {
 		const response = await this.client.search.documents({
 			q: operation.query ?? "",
 			containerTag: namespaceToContainerTag(operation.namespacePrefix),
-			// Values are stored as JSON content, so the document body is the item.
 			includeFullDocs: true,
 			limit: limit + offset,
 		})
@@ -123,7 +122,7 @@ export class SupermemoryStore extends BaseStore {
 	}
 
 	private async runListNamespaces(operation: {
-		matchConditions?: { matchType: "prefix" | "suffix"; path: string[] }[]
+		matchConditions?: MatchCondition[]
 		maxDepth?: number
 		limit: number
 		offset: number
@@ -136,12 +135,8 @@ export class SupermemoryStore extends BaseStore {
 				if (operation.maxDepth !== undefined) {
 					namespace = namespace.slice(0, operation.maxDepth)
 				}
-				const matches = (operation.matchConditions ?? []).every((condition) =>
-					condition.matchType === "prefix"
-						? matchesPrefix(namespace, condition.path)
-						: matchesSuffix(namespace, condition.path),
-				)
-				if (!matches) continue
+				const conditions = operation.matchConditions ?? []
+				if (!conditions.every((c) => matches(namespace, c))) continue
 				seen.set(namespace.join("\u0000"), namespace)
 			}
 		}
@@ -161,11 +156,8 @@ export class SupermemoryStore extends BaseStore {
 		await this.client.documents.delete(document.id)
 	}
 
-	/**
-	 * Resolve a store key to its document. Search exposes `documentId` but not
-	 * `customId`, so the listing endpoint is used instead, scoped to the
-	 * namespace's container tag.
-	 */
+	// ponytail: linear scan of documents.list, the only endpoint exposing
+	// customId. Fine per namespace; revisit if namespaces grow large.
 	private async findByKey(namespace: string[], key: string) {
 		const containerTag = namespaceToContainerTag(namespace)
 
@@ -200,27 +192,20 @@ export class SupermemoryStore extends BaseStore {
 		content?: string | null
 		metadata: Record<string, unknown> | null
 	}): Item {
-		const key = asString(result.metadata?.[KEY_FIELD]) ?? result.documentId
-		const tag = asString(result.metadata?.[NAMESPACE_FIELD])
+		const key = result.metadata?.[KEY_FIELD]
+		const tag = result.metadata?.[NAMESPACE_FIELD]
 
 		return {
 			value: parseValue(result.content),
-			key,
-			namespace: tag ? containerTagToNamespace(tag) : [],
+			key: typeof key === "string" ? key : result.documentId,
+			namespace: typeof tag === "string" ? containerTagToNamespace(tag) : [],
 			createdAt: new Date(result.createdAt),
 			updatedAt: new Date(result.updatedAt),
 		}
 	}
 }
 
-function asString(value: unknown): string | undefined {
-	return typeof value === "string" ? value : undefined
-}
-
-/**
- * Values are written as JSON. Anything else — a document ingested outside this
- * store, for instance — is surfaced as raw content rather than throwing.
- */
+/** Documents ingested outside this store aren't JSON; surface them raw. */
 function parseValue(
 	content: string | null | undefined,
 ): Record<string, unknown> {
@@ -235,22 +220,12 @@ function parseValue(
 	}
 }
 
-/** `"*"` matches any single segment, per LangGraph's NameSpacePath. */
-function segmentMatches(segment: string, pattern: string): boolean {
-	return pattern === "*" || segment === pattern
-}
-
-function matchesPrefix(namespace: string[], prefix: string[]): boolean {
-	if (prefix.length > namespace.length) return false
-	return prefix.every((pattern, i) =>
-		segmentMatches(namespace[i] as string, pattern),
-	)
-}
-
-function matchesSuffix(namespace: string[], suffix: string[]): boolean {
-	if (suffix.length > namespace.length) return false
-	const start = namespace.length - suffix.length
-	return suffix.every((pattern, i) =>
-		segmentMatches(namespace[start + i] as string, pattern),
+/** `"*"` in a path matches any single segment, per LangGraph's NameSpacePath. */
+function matches(namespace: string[], condition: MatchCondition): boolean {
+	const { matchType, path } = condition
+	if (path.length > namespace.length) return false
+	const start = matchType === "suffix" ? namespace.length - path.length : 0
+	return path.every(
+		(pattern, i) => pattern === "*" || namespace[start + i] === pattern,
 	)
 }

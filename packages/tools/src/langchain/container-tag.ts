@@ -46,11 +46,3 @@ export function containerTagToNamespace(tag: string): string[] {
 
 	return segments
 }
-
-/**
- * True when `namespace` is `prefix` or sits underneath it.
- */
-export function isUnderPrefix(namespace: string[], prefix: string[]): boolean {
-	if (prefix.length > namespace.length) return false
-	return prefix.every((segment, i) => namespace[i] === segment)
-}
