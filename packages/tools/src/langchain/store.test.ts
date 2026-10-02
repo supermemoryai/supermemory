@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const documentsAdd = vi.fn()
 const documentsList = vi.fn()
 const documentsDelete = vi.fn()
+const documentsUpdate = vi.fn()
+const documentsGet = vi.fn()
 const searchDocuments = vi.fn()
 
 vi.mock("supermemory", () => {
@@ -14,6 +16,8 @@ vi.mock("supermemory", () => {
 				add: documentsAdd,
 				list: documentsList,
 				delete: documentsDelete,
+				update: documentsUpdate,
+				get: documentsGet,
 			}
 			search = { documents: searchDocuments }
 		},
@@ -34,6 +38,7 @@ describe("SupermemoryStore", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks()
+		documentsList.mockResolvedValue(listPage([]))
 		store = new SupermemoryStore(API_KEY)
 	})
 
@@ -55,6 +60,7 @@ describe("SupermemoryStore", () => {
 				{
 					id: "doc_1",
 					customId: "profile",
+					status: "done",
 					content: JSON.stringify({ name: "Ada" }),
 					createdAt: "2026-01-01T00:00:00Z",
 					updatedAt: "2026-01-02T00:00:00Z",
@@ -75,6 +81,48 @@ describe("SupermemoryStore", () => {
 		})
 	})
 
+	it("updates an existing key instead of adding a duplicate", async () => {
+		documentsList.mockResolvedValue(
+			listPage([
+				{ id: "doc_1", customId: "profile", status: "done", content: "{}" },
+			]),
+		)
+
+		await store.put(["memories"], "profile", { name: "Grace" })
+
+		expect(documentsAdd).not.toHaveBeenCalled()
+		expect(documentsUpdate).toHaveBeenCalledWith("doc_1", {
+			content: JSON.stringify({ name: "Grace" }),
+		})
+	})
+
+	it("waits for a document still being ingested before reading it", async () => {
+		documentsList.mockResolvedValue(
+			listPage([
+				{
+					id: "doc_1",
+					customId: "profile",
+					status: "queued",
+					content: null,
+					createdAt: "2026-01-01T00:00:00Z",
+					updatedAt: "2026-01-01T00:00:00Z",
+				},
+			]),
+		)
+		documentsGet.mockResolvedValue({
+			id: "doc_1",
+			status: "done",
+			content: JSON.stringify({ name: "Ada" }),
+			createdAt: "2026-01-01T00:00:00Z",
+			updatedAt: "2026-01-01T00:00:00Z",
+		})
+
+		const item = await store.get(["memories"], "profile")
+
+		expect(documentsGet).toHaveBeenCalledWith("doc_1")
+		expect(item?.value).toEqual({ name: "Ada" })
+	})
+
 	it("returns null when the key is absent", async () => {
 		documentsList.mockResolvedValue(
 			listPage([{ id: "doc_2", customId: "other", content: "{}" }]),
@@ -85,7 +133,9 @@ describe("SupermemoryStore", () => {
 
 	it("deletes by resolving the key to a document id", async () => {
 		documentsList.mockResolvedValue(
-			listPage([{ id: "doc_1", customId: "profile", content: "{}" }]),
+			listPage([
+				{ id: "doc_1", customId: "profile", status: "done", content: "{}" },
+			]),
 		)
 
 		await store.delete(["memories"], "profile")
@@ -194,6 +244,7 @@ describe("SupermemoryStore", () => {
 				{
 					id: "doc_1",
 					customId: "notes",
+					status: "done",
 					content: "plain text, not JSON",
 					createdAt: "2026-01-01T00:00:00Z",
 					updatedAt: "2026-01-01T00:00:00Z",

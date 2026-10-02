@@ -32,7 +32,8 @@ const NAMESPACE_FIELD = "langgraphNamespace"
  * are concrete helpers that delegate to it.
  *
  * An item is one supermemory document: namespace becomes the container tag,
- * key becomes `customId`, and the value is stored as JSON content.
+ * key becomes `customId`, and the value is stored as JSON content. Writes and
+ * reads wait for an item still being ingested by supermemory.
  */
 export class SupermemoryStore extends BaseStore {
 	private client: Supermemory
@@ -86,16 +87,26 @@ export class SupermemoryStore extends BaseStore {
 	}
 
 	private async runPut(operation: PutOperation): Promise<void> {
+		const found = await this.findByKey(operation.namespace, operation.key)
+		const existing = found && (await this.settle(found))
+
 		if (operation.value === null) {
-			const document = await this.findByKey(operation.namespace, operation.key)
-			if (document) await this.client.documents.delete(document.id)
+			if (existing) await this.client.documents.delete(existing.id)
+			return
+		}
+
+		const content = JSON.stringify(operation.value)
+
+		// add() with an existing customId appends to the content; update replaces.
+		if (existing) {
+			await this.client.documents.update(existing.id, { content })
 			return
 		}
 
 		const containerTag = namespaceToContainerTag(operation.namespace)
 
 		await this.client.documents.add({
-			content: JSON.stringify(operation.value),
+			content,
 			containerTags: [containerTag],
 			customId: operation.key,
 			metadata: {
@@ -106,8 +117,9 @@ export class SupermemoryStore extends BaseStore {
 	}
 
 	private async runGet(operation: GetOperation): Promise<Item | null> {
-		const document = await this.findByKey(operation.namespace, operation.key)
-		if (!document) return null
+		const found = await this.findByKey(operation.namespace, operation.key)
+		if (!found) return null
+		const document = await this.settle(found)
 
 		return {
 			value: parseValue(document.content),
@@ -156,6 +168,27 @@ export class SupermemoryStore extends BaseStore {
 		return undefined
 	}
 
+	// Mid-ingestion the API drops updates, rejects deletes with 409 and returns
+	// null content, so wait for a document to settle before touching it.
+	// ponytail: fixed 1s poll capped at 60s; make it configurable if needed.
+	private async settle(document: {
+		id: string
+		status: string
+		content?: string | null
+		createdAt: string
+		updatedAt: string
+	}) {
+		let current = document
+		for (let attempt = 0; !isSettled(current.status); attempt++) {
+			if (attempt === 60) {
+				throw new Error(`supermemory document ${document.id} still processing`)
+			}
+			await new Promise((resolve) => setTimeout(resolve, 1000))
+			current = await this.client.documents.get(document.id)
+		}
+		return current
+	}
+
 	private async *scanDocuments(
 		containerTag?: string,
 		filters?: Supermemory.DocumentListParams["filters"],
@@ -196,6 +229,10 @@ export class SupermemoryStore extends BaseStore {
 			updatedAt: new Date(result.updatedAt),
 		}
 	}
+}
+
+function isSettled(status: string): boolean {
+	return status === "done" || status === "failed"
 }
 
 /** Documents ingested outside this store aren't JSON; surface them raw. */
