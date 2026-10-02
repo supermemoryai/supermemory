@@ -41,6 +41,7 @@ type ClaudeFileMetadata = Record<string, string | number | boolean | string[]>
 
 interface ClaudeFileDocument {
 	documentId: string
+	customId?: string
 	content: string
 	metadata: ClaudeFileMetadata
 }
@@ -57,13 +58,22 @@ export class ClaudeMemoryTool {
 
 	/**
 	 * Normalize file path to be used as customId
-	 * Converts /memories/file.txt -> memories_file_txt
+	 * Reversibly encodes path components to prevent collisions between paths like
+	 * `/memories/notes.txt`, `/memories/notes_txt`, and `/memories/notes/txt`.
 	 */
-	private normalizePathToCustomId(path: string): string {
+	normalizePathToCustomId(path: string): string {
 		return path
 			.replace(/^\//, "") // Remove leading slash
-			.replace(/\//g, "_") // Replace / with _
-			.replace(/\./g, "_") // Replace . with _
+			.replace(/_/g, "__") // Escape underscores: _ -> __
+			.replace(/\//g, "_s_") // Encode slashes: / -> _s_
+			.replace(/\./g, "_d_") // Encode dots: . -> _d_
+	}
+
+	/**
+	 * Legacy normalization used in older versions (/ and . both flattened to _)
+	 */
+	private legacyNormalizePathToCustomId(path: string): string {
+		return path.replace(/^\//, "").replace(/\//g, "_").replace(/\./g, "_")
 	}
 
 	constructor(apiKey: string, config?: ClaudeMemoryConfig) {
@@ -384,6 +394,8 @@ export class ClaudeMemoryTool {
 		fileText: string,
 	): Promise<MemoryResponse> {
 		try {
+			const existing = await this.getFileDocument(filePath)
+
 			const normalizedId = this.normalizePathToCustomId(filePath)
 
 			const _response = await this.client.add({
@@ -398,6 +410,17 @@ export class ClaudeMemoryTool {
 					last_modified: new Date().toISOString(),
 				},
 			})
+
+			// If an existing document was stored under a legacy customId, clean it up
+			// so the file path does not collide or become ambiguous with multiple documents.
+			if (
+				existing.success &&
+				existing.document &&
+				existing.document.customId &&
+				existing.document.customId !== normalizedId
+			) {
+				await deleteDocumentById(this.client, existing.document.documentId)
+			}
 
 			return {
 				success: true,
@@ -457,6 +480,15 @@ export class ClaudeMemoryTool {
 				},
 			})
 
+			// If the modified file was stored under a legacy customId, clean up the legacy
+			// document to prevent path ambiguity.
+			if (
+				readResult.document.customId &&
+				readResult.document.customId !== normalizedId
+			) {
+				await deleteDocumentById(this.client, readResult.document.documentId)
+			}
+
 			return {
 				success: true,
 				content: `String replaced in file: ${filePath}`,
@@ -514,6 +546,15 @@ export class ClaudeMemoryTool {
 					last_modified: new Date().toISOString(),
 				},
 			})
+
+			// If the modified file was stored under a legacy customId, clean up the legacy
+			// document to prevent path ambiguity.
+			if (
+				readResult.document.customId &&
+				readResult.document.customId !== normalizedId
+			) {
+				await deleteDocumentById(this.client, readResult.document.documentId)
+			}
 
 			return {
 				success: true,
@@ -650,8 +691,12 @@ export class ClaudeMemoryTool {
 				})
 
 				for (const document of response.memories) {
+					const isMatchingCustomId =
+						document.customId === normalizedId ||
+						document.customId === this.legacyNormalizePathToCustomId(filePath)
+
 					if (
-						document.customId === normalizedId &&
+						isMatchingCustomId &&
 						this.getDocumentFilePath(document) === filePath &&
 						this.isDocumentInConfiguredScope(document)
 					) {
@@ -681,8 +726,12 @@ export class ClaudeMemoryTool {
 					hasUnverifiedCandidate = true
 					continue
 				}
+				const isMatchingCustomId =
+					document.customId === normalizedId ||
+					document.customId === this.legacyNormalizePathToCustomId(filePath)
+
 				if (
-					document.customId !== normalizedId ||
+					!isMatchingCustomId ||
 					this.getDocumentFilePath(document) !== filePath ||
 					!this.hasExactContainerTags(document.containerTags)
 				) {
@@ -737,7 +786,12 @@ export class ClaudeMemoryTool {
 
 			return {
 				success: true,
-				document: { documentId: candidate.id, content, metadata },
+				document: {
+					documentId: candidate.id,
+					customId: document.customId ?? candidate.customId,
+					content,
+					metadata,
+				},
 			}
 		} catch (error) {
 			return {

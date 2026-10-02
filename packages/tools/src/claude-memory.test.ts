@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 // operations can be exercised deterministically without any network access.
 const documentsListMock = vi.fn()
 const documentsGetMock = vi.fn()
-const documentsDeleteBulkMock = vi.fn()
+const documentsDeleteBulkMock = vi
+	.fn()
+	.mockResolvedValue({ success: true, deletedCount: 1 })
 const addMock = vi.fn()
 
 vi.mock("supermemory", () => {
@@ -208,5 +210,140 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 		expect(addMock).toHaveBeenCalledTimes(1)
 		const stored = addMock.mock.calls[0]?.[0]?.content as string
 		expect(stored).toContain(`price is ${dollarSequence} today`)
+	})
+})
+
+describe("ClaudeMemoryTool path normalization collision resistance", () => {
+	beforeEach(() => {
+		documentsListMock.mockReset()
+		documentsGetMock.mockReset()
+		addMock.mockReset()
+		documentsDeleteBulkMock.mockReset()
+	})
+
+	it("produces distinct customIds for paths that previously collided", () => {
+		const tool = new ClaudeMemoryTool("test-api-key")
+		const paths = [
+			"/memories/notes.txt",
+			"/memories/notes_txt",
+			"/memories/notes/txt",
+			"/memories/project/a.md",
+			"/memories/project_a.md",
+		]
+
+		const ids = paths.map((path) => tool.normalizePathToCustomId(path))
+		const uniqueIds = new Set(ids)
+
+		expect(uniqueIds.size).toBe(paths.length)
+	})
+
+	it("resolves documents stored under legacy customId format", async () => {
+		// Mock a document saved with legacy normalization (memories_notes_txt)
+		mockDocuments([
+			{
+				id: "legacy-doc",
+				customId: "memories_notes_txt",
+				filePath: "/memories/notes.txt",
+				content: "legacy content",
+			},
+		])
+
+		const tool = new ClaudeMemoryTool("test-api-key")
+		const result = await tool.handleCommand({
+			command: "view",
+			path: "/memories/notes.txt",
+		})
+
+		expect(result.success).toBe(true)
+		expect(result.content).toContain("legacy content")
+	})
+
+	it("cleans up legacy-customId document when str_replace updates the file", async () => {
+		mockDocuments([
+			{
+				id: "legacy-doc",
+				customId: "memories_notes_txt",
+				filePath: "/memories/notes.txt",
+				content: "legacy content hello",
+			},
+		])
+		documentsDeleteBulkMock.mockResolvedValue({
+			success: true,
+			deletedCount: 1,
+		})
+
+		const tool = new ClaudeMemoryTool("test-api-key")
+		const result = await tool.handleCommand({
+			command: "str_replace",
+			path: "/memories/notes.txt",
+			old_str: "hello",
+			new_str: "world",
+		})
+
+		expect(result.success).toBe(true)
+		expect(addMock).toHaveBeenCalledTimes(1)
+		expect(addMock.mock.calls[0]?.[0]?.customId).toBe("memories_s_notes_d_txt")
+		expect(documentsDeleteBulkMock).toHaveBeenCalledWith({
+			ids: ["legacy-doc"],
+		})
+	})
+
+	it("cleans up legacy-customId document when insert updates the file", async () => {
+		mockDocuments([
+			{
+				id: "legacy-doc",
+				customId: "memories_notes_txt",
+				filePath: "/memories/notes.txt",
+				content: "line1\nline2",
+			},
+		])
+		documentsDeleteBulkMock.mockResolvedValue({
+			success: true,
+			deletedCount: 1,
+		})
+
+		const tool = new ClaudeMemoryTool("test-api-key")
+		const result = await tool.handleCommand({
+			command: "insert",
+			path: "/memories/notes.txt",
+			insert_line: 2,
+			insert_text: "inserted line",
+		})
+
+		expect(result.success).toBe(true)
+		expect(addMock).toHaveBeenCalledTimes(1)
+		expect(addMock.mock.calls[0]?.[0]?.customId).toBe("memories_s_notes_d_txt")
+		expect(documentsDeleteBulkMock).toHaveBeenCalledWith({
+			ids: ["legacy-doc"],
+		})
+	})
+
+	it("cleans up legacy-customId document when create overwrites an existing file", async () => {
+		mockDocuments([
+			{
+				id: "legacy-doc",
+				customId: "memories_notes_txt",
+				filePath: "/memories/notes.txt",
+				content: "legacy content",
+			},
+		])
+		documentsDeleteBulkMock.mockResolvedValue({
+			success: true,
+			deletedCount: 1,
+		})
+
+		const tool = new ClaudeMemoryTool("test-api-key")
+		const result = await tool.handleCommand({
+			command: "create",
+			path: "/memories/notes.txt",
+			file_text: "brand new content",
+		})
+
+		expect(result.success).toBe(true)
+		expect(addMock).toHaveBeenCalledTimes(1)
+		expect(addMock.mock.calls[0]?.[0]?.customId).toBe("memories_s_notes_d_txt")
+		expect(documentsDeleteBulkMock).toHaveBeenCalledWith({
+			ids: ["legacy-doc"],
+		})
 	})
 })
