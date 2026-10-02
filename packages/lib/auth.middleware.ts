@@ -1,8 +1,8 @@
+import { apiKeyClient } from "@better-auth/api-key/client"
 import { createAuthClient } from "better-auth/client"
 import {
 	adminClient,
 	anonymousClient,
-	apiKeyClient,
 	emailOTPClient,
 	magicLinkClient,
 	organizationClient,
