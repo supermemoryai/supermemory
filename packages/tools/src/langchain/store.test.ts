@@ -70,6 +70,9 @@ describe("SupermemoryStore", () => {
 		expect(documentsList.mock.calls[0]?.[0].containerTags).toEqual([
 			"memories:user1",
 		])
+		expect(documentsList.mock.calls[0]?.[0].filters).toEqual({
+			AND: [{ key: "langgraphKey", value: "profile" }],
+		})
 	})
 
 	it("returns null when the key is absent", async () => {

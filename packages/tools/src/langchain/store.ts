@@ -160,23 +160,28 @@ export class SupermemoryStore extends BaseStore {
 		await this.client.documents.delete(document.id)
 	}
 
-	// ponytail: linear scan of documents.list, the only endpoint exposing
-	// customId. Fine per namespace; revisit if namespaces grow large.
+	// customId is only unique within a container tag, so get(customId) could
+	// hit another namespace. List within the tag, narrowed by the key metadata.
 	private async findByKey(namespace: string[], key: string) {
 		const containerTag = namespaceToContainerTag(namespace)
+		const filters = { AND: [{ key: KEY_FIELD, value: key }] }
 
-		for await (const document of this.scanDocuments(containerTag)) {
+		for await (const document of this.scanDocuments(containerTag, filters)) {
 			if (document.customId === key) return document
 		}
 		return undefined
 	}
 
-	private async *scanDocuments(containerTag?: string) {
+	private async *scanDocuments(
+		containerTag?: string,
+		filters?: Supermemory.DocumentListParams["filters"],
+	) {
 		let page = 1
 
 		while (true) {
 			const response = await this.client.documents.list({
 				...(containerTag ? { containerTags: [containerTag] } : {}),
+				...(filters ? { filters } : {}),
 				includeContent: true,
 				limit: LOOKUP_PAGE_SIZE,
 				page,
