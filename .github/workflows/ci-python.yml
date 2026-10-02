@@ -23,7 +23,7 @@ env:
 jobs:
   agent-framework-python:
     name: agent-framework-python (${{ matrix.dependency-lane }}, Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: "peak-ubuntu-24.04-4"
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -77,7 +77,7 @@ jobs:
 
   openai-sdk-python:
     name: openai-sdk-python (${{ matrix.dependency-lane }}, Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: "peak-ubuntu-24.04-4"
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -145,7 +145,7 @@ jobs:
 
   cartesia-sdk-python:
     name: cartesia-sdk-python (${{ matrix.dependency-lane }}, Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: "peak-ubuntu-24.04-4"
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -202,7 +202,7 @@ jobs:
 
   pipecat-sdk-python:
     name: pipecat-sdk-python (${{ matrix.dependency-lane }}, Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: "peak-ubuntu-24.04-4"
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -259,7 +259,7 @@ jobs:
 
   livekit-sdk-python:
     name: livekit-sdk-python (${{ matrix.dependency-lane }}, Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: "peak-ubuntu-24.04-4"
     timeout-minutes: 15
     strategy:
       fail-fast: false

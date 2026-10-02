@@ -20,7 +20,7 @@ jobs:
       github.event.workflow_run.pull_requests[0] &&
       github.event.workflow_run.head_repository.full_name == github.event.workflow_run.repository.full_name &&
       !endsWith(github.event.workflow_run.actor.login, '[bot]')
-    runs-on: ubuntu-latest
+    runs-on: "peak-ubuntu-24.04-4"
     timeout-minutes: 30
     steps:
       - name: Checkout code

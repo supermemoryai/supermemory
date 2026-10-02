@@ -41,7 +41,7 @@ jobs:
          github.event.issue.author_association == 'MEMBER' ||
          github.event.issue.author_association == 'COLLABORATOR')
       )
-    runs-on: ubuntu-latest
+    runs-on: "peak-ubuntu-24.04-4"
     timeout-minutes: 30
     permissions:
       contents: read
