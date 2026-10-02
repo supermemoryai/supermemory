@@ -1,5 +1,14 @@
 import { BaseStore } from "@langchain/langgraph"
-import type { Item, Operation, OperationResults } from "@langchain/langgraph"
+import type {
+	GetOperation,
+	Item,
+	ListNamespacesOperation,
+	MatchCondition,
+	Operation,
+	OperationResults,
+	PutOperation,
+	SearchOperation,
+} from "@langchain/langgraph"
 import type { SearchItem } from "@langchain/langgraph-checkpoint"
 import Supermemory from "supermemory"
 import { CLIENT_OPTIONS, DEFAULT_VALUES } from "../tools-shared"
@@ -8,11 +17,6 @@ import {
 	containerTagToNamespace,
 	namespaceToContainerTag,
 } from "./container-tag"
-
-interface MatchCondition {
-	matchType: "prefix" | "suffix"
-	path: string[]
-}
 
 const LOOKUP_PAGE_SIZE = 100
 
@@ -62,12 +66,7 @@ export class SupermemoryStore extends BaseStore {
 		return results as OperationResults<Op>
 	}
 
-	private async runSearch(operation: {
-		namespacePrefix: string[]
-		query?: string
-		limit?: number
-		offset?: number
-	}): Promise<SearchItem[]> {
+	private async runSearch(operation: SearchOperation): Promise<SearchItem[]> {
 		const limit = operation.limit ?? DEFAULT_VALUES.limit
 		const offset = operation.offset ?? 0
 
@@ -86,13 +85,10 @@ export class SupermemoryStore extends BaseStore {
 		}))
 	}
 
-	private async runPut(operation: {
-		namespace: string[]
-		key: string
-		value: Record<string, unknown> | null
-	}): Promise<void> {
+	private async runPut(operation: PutOperation): Promise<void> {
 		if (operation.value === null) {
-			await this.deleteByKey(operation.namespace, operation.key)
+			const document = await this.findByKey(operation.namespace, operation.key)
+			if (document) await this.client.documents.delete(document.id)
 			return
 		}
 
@@ -109,10 +105,7 @@ export class SupermemoryStore extends BaseStore {
 		})
 	}
 
-	private async runGet(operation: {
-		namespace: string[]
-		key: string
-	}): Promise<Item | null> {
+	private async runGet(operation: GetOperation): Promise<Item | null> {
 		const document = await this.findByKey(operation.namespace, operation.key)
 		if (!document) return null
 
@@ -125,12 +118,9 @@ export class SupermemoryStore extends BaseStore {
 		}
 	}
 
-	private async runListNamespaces(operation: {
-		matchConditions?: MatchCondition[]
-		maxDepth?: number
-		limit: number
-		offset: number
-	}): Promise<string[][]> {
+	private async runListNamespaces(
+		operation: ListNamespacesOperation,
+	): Promise<string[][]> {
 		const conditions = operation.matchConditions ?? []
 		const seen = new Map<string, string[]>()
 
@@ -152,12 +142,6 @@ export class SupermemoryStore extends BaseStore {
 			operation.offset,
 			operation.offset + operation.limit,
 		)
-	}
-
-	private async deleteByKey(namespace: string[], key: string): Promise<void> {
-		const document = await this.findByKey(namespace, key)
-		if (!document) return
-		await this.client.documents.delete(document.id)
 	}
 
 	// customId is only unique within a container tag, so get(customId) could

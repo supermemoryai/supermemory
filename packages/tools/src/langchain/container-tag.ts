@@ -5,26 +5,23 @@
  * scopes documents by a flat container tag that the API restricts to
  * alphanumerics, hyphens, underscores and colons.
  *
- * Segments are joined with `:` and everything outside `[A-Za-z0-9-]` is encoded
- * as `_<hex>`, so arbitrary namespace text survives the round trip and
- * `["a:b"]` cannot collide with `["a", "b"]`.
+ * Segments are joined with `:` and percent-encoded with `_` in place of `%`
+ * (everything outside `[A-Za-z0-9-]` becomes `_<hex>` UTF-8 bytes), so arbitrary
+ * namespace text survives the round trip and `["a:b"]` cannot collide with
+ * `["a", "b"]`.
  */
 
 const SEPARATOR = ":"
 
 function encodeSegment(segment: string): string {
-	return encodeURIComponent(segment).replace(
-		/[^A-Za-z0-9-]/g,
-		(char) => `_${char.charCodeAt(0).toString(16).padStart(2, "0")}`,
-	)
+	// encodeURIComponent leaves `_.!~*'()` alone; escape those too.
+	return encodeURIComponent(segment)
+		.replace(/[^A-Za-z0-9%-]/g, (char) => `%${char.charCodeAt(0).toString(16)}`)
+		.replaceAll("%", "_")
 }
 
 function decodeSegment(segment: string): string {
-	return decodeURIComponent(
-		segment.replace(/_([0-9a-f]{2})/gi, (_match, hex: string) =>
-			String.fromCharCode(Number.parseInt(hex, 16)),
-		),
-	)
+	return decodeURIComponent(segment.replaceAll("_", "%"))
 }
 
 /** Join a LangGraph namespace into a single supermemory container tag. */
