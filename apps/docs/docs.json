@@ -140,6 +140,7 @@
 								"pages": [
 									"using-supermemory",
 									"authentication",
+									"invite-team-members",
 									"concepts/customization",
 									{
 										"group": "Ingestion",
