@@ -202,6 +202,34 @@ describe("SupermemoryStore", () => {
 		expect(hits.map((hit) => hit.key)).toEqual(["b", "c"])
 	})
 
+	it("applies LangGraph filters to search results, including operators", async () => {
+		const result = (id: string, value: Record<string, unknown>) => ({
+			documentId: id,
+			score: 0.5,
+			content: JSON.stringify(value),
+			createdAt: "2026-01-01T00:00:00Z",
+			updatedAt: "2026-01-01T00:00:00Z",
+			metadata: { langgraphKey: id },
+		})
+		searchDocuments.mockResolvedValue({
+			results: [
+				result("a", { type: "pref", rating: 5 }),
+				result("b", { type: "pref", rating: 2 }),
+				result("c", { type: "note", rating: 5 }),
+			],
+		})
+
+		const exact = await store.search(["memories"], {
+			filter: { type: "pref" },
+		})
+		expect(exact.map((hit) => hit.key)).toEqual(["a", "b"])
+
+		const operators = await store.search(["memories"], {
+			filter: { type: "pref", rating: { $gt: 3 } },
+		})
+		expect(operators.map((hit) => hit.key)).toEqual(["a"])
+	})
+
 	it("lists namespaces from container tags, filtered by prefix", async () => {
 		documentsList.mockResolvedValue(
 			listPage([

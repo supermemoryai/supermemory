@@ -80,10 +80,23 @@ export class SupermemoryStore extends BaseStore {
 			limit: limit + offset,
 		})
 
-		return response.results.slice(offset).map((result) => ({
+		const items = response.results.map((result) => ({
 			...this.toItem(result),
 			score: result.score,
 		}))
+
+		// Values are stored as JSON content, so the filter runs client-side over
+		// the fetched page and can return fewer than `limit` items.
+		const { filter } = operation
+		const matching = filter
+			? items.filter((item) =>
+					Object.entries(filter).every(([field, expected]) =>
+						compareValues(item.value[field], expected),
+					),
+				)
+			: items
+
+		return matching.slice(offset, offset + limit)
 	}
 
 	private async runPut(operation: PutOperation): Promise<void> {
@@ -229,6 +242,39 @@ export class SupermemoryStore extends BaseStore {
 			updatedAt: new Date(result.updatedAt),
 		}
 	}
+}
+
+/**
+ * LangGraph's search filter semantics: exact match, or `$eq`/`$ne`/`$gt`/
+ * `$gte`/`$lt`/`$lte`/`$in`/`$nin`. Mirrors InMemoryStore, which doesn't
+ * export its helper.
+ */
+function compareValues(actual: unknown, expected: unknown): boolean {
+	if (expected === null || typeof expected !== "object") {
+		return actual === expected
+	}
+	return Object.entries(expected).every(([op, value]) => {
+		switch (op) {
+			case "$eq":
+				return actual === value
+			case "$ne":
+				return actual !== value
+			case "$gt":
+				return Number(actual) > Number(value)
+			case "$gte":
+				return Number(actual) >= Number(value)
+			case "$lt":
+				return Number(actual) < Number(value)
+			case "$lte":
+				return Number(actual) <= Number(value)
+			case "$in":
+				return Array.isArray(value) && value.includes(actual)
+			case "$nin":
+				return !Array.isArray(value) || !value.includes(actual)
+			default:
+				return false
+		}
+	})
 }
 
 function isSettled(status: string): boolean {
