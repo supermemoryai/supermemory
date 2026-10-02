@@ -13,6 +13,8 @@
     "index-docs": "bun scripts/index-docs.ts"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "yaml": "2.8.3",
     "@types/bun": "latest",
     "@cloudflare/vite-plugin": "1.62.4",
     "@cloudflare/workers-types": "5.20261001.1",
@@ -28,6 +30,6 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "supermemory": "3.10.0",
-    "zod": "^4.4.3"
+    "zod": "4.4.3"
   }
 }

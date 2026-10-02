@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js"
-import { z } from "zod"
+import { z } from "zod/v3"
 import { app } from "@holocron.so/vite/app"
 import { AGENT_PROMPT } from "../snippets/agent-prompt.jsx"
 import { readRequestBody, type ChatEnvironment } from "./chat"

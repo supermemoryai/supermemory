@@ -1,9 +1,14 @@
 {
 	"$schema": "https://holocron.so/schema.json",
+	"decorativeLines": "none",
 	"assistant": {
 		"enabled": false
 	},
+	"feedback": { "endpoint": "/api/feedback" },
 	"api": {
+		"playground": {
+			"display": "interactive"
+		},
 		"examples": {
 			"defaults": "required",
 			"languages": ["typescript", "python", "bash"],
@@ -67,16 +72,13 @@
 		"library": "lucide"
 	},
 	"logo": {
+		"text": "Docs",
 		"dark": "/logo/dark.svg",
 		"light": "/logo/light.svg"
 	},
 	"name": "supermemory | Memory API for the AI era",
 	"navbar": {
 		"links": [
-			{
-				"href": "/ask",
-				"label": "Ask AI"
-			},
 			{
 				"href": "https://supermemory.ai/changelog",
 				"label": "Changelog"
@@ -96,330 +98,343 @@
 		"tabs": [
 			{
 				"tab": "Overview",
-				"pages": ["index", "ask"]
+				"pages": ["index"]
 			},
 			{
-				"icon": "/icons/hugeicons/book-open-01.svg",
-				"pages": [
+				"icon": "/icons/hugeicons/source-code.svg",
+				"anchors": [
 					{
-						"group": "Getting started",
+						"anchor": "Developer platform (API)",
+						"icon": "/icons/hugeicons/book-open-01.svg",
 						"pages": [
-							"overview/what-is-supermemory",
-							"overview/comparison",
-							"quickstart",
-							"agents-and-mcp"
-						]
-					},
-					{
-						"group": "Concepts",
-						"pages": [
-							"concepts/how-it-works",
-							"concepts/graph-memory",
-							"concepts/content-types",
 							{
-								"group": "Retrieval",
-								"icon": "/icons/hugeicons/search-01.svg",
-								"pages": ["concepts/super-rag", "concepts/memory-vs-rag"]
-							},
-							{
-								"group": "Multi-tenancy and filtering",
-								"icon": "/icons/hugeicons/user-multiple.svg",
+								"group": "Getting started",
 								"pages": [
-									"concepts/multi-tenancy",
-									"concepts/multi-tenancy-examples",
-									"concepts/container-tags",
-									"concepts/filtering"
+									"overview/what-is-supermemory",
+									"overview/comparison",
+									"quickstart",
+									"agents-and-mcp"
 								]
 							},
 							{
-								"group": "User profiles",
-								"icon": "/icons/hugeicons/id.svg",
-								"pages": ["concepts/user-profiles", "user-profiles/buckets"]
+								"group": "Concepts",
+								"pages": [
+									"concepts/how-it-works",
+									"concepts/graph-memory",
+									"concepts/content-types",
+									{
+										"group": "Retrieval",
+										"icon": "/icons/hugeicons/search-01.svg",
+										"pages": ["concepts/super-rag", "concepts/memory-vs-rag"]
+									},
+									{
+										"group": "Multi-tenancy and filtering",
+										"icon": "/icons/hugeicons/user-multiple.svg",
+										"pages": [
+											"concepts/multi-tenancy",
+											"concepts/multi-tenancy-examples",
+											"concepts/container-tags",
+											"concepts/filtering"
+										]
+									},
+									{
+										"group": "User profiles",
+										"icon": "/icons/hugeicons/id.svg",
+										"pages": ["concepts/user-profiles", "user-profiles/buckets"]
+									}
+								]
+							},
+							{
+								"group": "Using supermemory",
+								"pages": [
+									"using-supermemory",
+									"authentication",
+									"concepts/customization",
+									{
+										"group": "Ingestion",
+										"icon": "/icons/hugeicons/download-01.svg",
+										"pages": [
+											"ingestion/add-memories",
+											"ingestion/document-operations"
+										]
+									},
+									{
+										"group": "Connectors",
+										"icon": "/icons/hugeicons/plug-01.svg",
+										"pages": [
+											"connectors/overview",
+											"connectors/notion",
+											"connectors/google-drive",
+											"connectors/gmail",
+											"connectors/onedrive",
+											"connectors/s3",
+											"connectors/granola",
+											"connectors/github",
+											"connectors/web-crawler",
+											"connectors/troubleshooting",
+											"connectors/managing-resources"
+										]
+									},
+									{
+										"group": "Recall",
+										"icon": "/icons/hugeicons/upload-01.svg",
+										"pages": [
+											"recall/search",
+											"recall/user-profiles",
+											"recall/memory-operations",
+											"recall/memory-review"
+										]
+									},
+									{
+										"group": "SMFS",
+										"icon": "/icons/hugeicons/database-01.svg",
+										"pages": [
+											"smfs/overview",
+											"smfs/install",
+											"smfs/mount",
+											"smfs/bash-tool",
+											"smfs/bash-tool-python",
+											{
+												"group": "Providers",
+												"icon": "/icons/hugeicons/cloud.svg",
+												"pages": [
+													"smfs/providers/daytona",
+													"smfs/providers/e2b",
+													"smfs/providers/vercel",
+													"smfs/providers/cloudflare"
+												]
+											},
+											"smfs/examples"
+										]
+									},
+									"concepts/rules"
+								]
+							},
+							{
+								"group": "Deployment",
+								"pages": [
+									{
+										"group": "Supermemory local",
+										"icon": "/icons/hugeicons/server-stack-01.svg",
+										"pages": [
+											"self-hosting/overview",
+											"self-hosting/quickstart",
+											"self-hosting/configuration",
+											"self-hosting/embeddings",
+											"self-hosting/providers",
+											"self-hosting/local-vs-enterprise"
+										]
+									}
+								]
+							},
+							{
+								"group": "Other resources",
+								"pages": [
+									{
+										"group": "General",
+										"icon": "/icons/hugeicons/book-open-01.svg",
+										"pages": ["ingestion/batch-ingest-historical-data"]
+									},
+									{
+										"group": "Benchmarking",
+										"icon": "/icons/hugeicons/test-tube-01.svg",
+										"pages": [
+											"memorybench/overview",
+											"memorybench/extend-benchmark",
+											"memorybench/extend-provider",
+											"memorybench/memscore"
+										]
+									},
+									"overview/billing",
+									"overview/security",
+									"overview/use-cases",
+									"overview/analytics"
+								]
+							},
+							{
+								"group": "Migration guides",
+								"pages": [
+									{
+										"group": "From another provider",
+										"icon": "/icons/hugeicons/delivery-truck-01.svg",
+										"pages": ["migration/from-mem0", "migration/from-zep"]
+									}
+								]
 							}
 						]
 					},
 					{
-						"group": "Using supermemory",
+						"anchor": "API integrations",
+						"icon": "/icons/hugeicons/plug-01.svg",
 						"pages": [
-							"using-supermemory",
-							"authentication",
-							"concepts/customization",
+							"integrations/supermemory-sdk",
+							"integrations/ai-sdk",
+							"integrations/eve",
+							"integrations/openai",
+							"integrations/langgraph",
+							"integrations/openai-agents-sdk",
+							"integrations/agent-framework",
+							"integrations/mastra",
+							"integrations/voltagent",
+							"integrations/convex",
+							"integrations/langchain",
+							"integrations/crewai",
+							"integrations/agno",
+							"integrations/memory-graph",
+							"integrations/claude-memory",
+							"integrations/pipecat",
+							"integrations/cartesia",
+							"integrations/livekit",
+							"integrations/n8n",
+							"integrations/viasocket",
+							"integrations/zapier",
 							{
-								"group": "Ingestion",
+								"group": "Migration guides",
+								"icon": "/icons/hugeicons/arrow-up-right-01.svg",
+								"pages": ["migration/tools-v2-upgrade"]
+							}
+						]
+					},
+					{
+						"anchor": "API reference",
+						"icon": "/icons/hugeicons/plug-socket.svg",
+						"openapi": ".holocron-openapi.json",
+						"pages": [
+							"api-reference/overview",
+							"authentication",
+							{
+								"group": "Ingest",
 								"icon": "/icons/hugeicons/download-01.svg",
 								"pages": [
-									"ingestion/add-memories",
-									"ingestion/document-operations"
-								]
-							},
-							{
-								"group": "Connectors",
-								"icon": "/icons/hugeicons/plug-01.svg",
-								"pages": [
-									"connectors/overview",
-									"connectors/notion",
-									"connectors/google-drive",
-									"connectors/gmail",
-									"connectors/onedrive",
-									"connectors/s3",
-									"connectors/granola",
-									"connectors/github",
-									"connectors/web-crawler",
-									"connectors/troubleshooting",
-									"connectors/managing-resources"
+									"api-reference/ingest",
+									"POST /v3/documents",
+									"POST /v3/documents/file",
+									"POST /v3/documents/batch",
+									"POST /v4/conversations",
+									"GET /v3/documents/{id}"
 								]
 							},
 							{
 								"group": "Recall",
-								"icon": "/icons/hugeicons/upload-01.svg",
+								"icon": "/icons/hugeicons/search-01.svg",
 								"pages": [
-									"recall/search",
-									"recall/user-profiles",
-									"recall/memory-operations",
-									"recall/memory-review"
+									"api-reference/search",
+									"POST /v4/search",
+									"POST /v3/search",
+									"api-reference/profiles",
+									"POST /v4/profile",
+									"POST /v4/profile/buckets"
 								]
 							},
 							{
-								"group": "SMFS",
+								"group": "Documents",
+								"icon": "/icons/hugeicons/file-02.svg",
+								"pages": [
+									"api-reference/documents",
+									"POST /v3/documents/list",
+									"GET /v3/documents/processing",
+									"PATCH /v3/documents/{id}",
+									"DELETE /v3/documents/{id}",
+									"DELETE /v3/documents/bulk",
+									"GET /v3/documents/{id}/chunks",
+									"GET /v3/documents/{id}/file-url"
+								]
+							},
+							{
+								"group": "Memories",
 								"icon": "/icons/hugeicons/database-01.svg",
 								"pages": [
-									"smfs/overview",
-									"smfs/install",
-									"smfs/mount",
-									"smfs/bash-tool",
-									"smfs/bash-tool-python",
-									{
-										"group": "Providers",
-										"icon": "/icons/hugeicons/cloud.svg",
-										"pages": [
-											"smfs/providers/daytona",
-											"smfs/providers/e2b",
-											"smfs/providers/vercel",
-											"smfs/providers/cloudflare"
-										]
-									},
-									"smfs/examples"
+									"api-reference/memories",
+									"POST /v4/memories",
+									"POST /v4/memories/list",
+									"PATCH /v4/memories",
+									"DELETE /v4/memories",
+									"POST /v4/memories/forget-matching"
 								]
 							},
-							"concepts/rules"
-						]
-					},
-					{
-						"group": "Deployment",
-						"pages": [
 							{
-								"group": "Supermemory local",
-								"icon": "/icons/hugeicons/server-stack-01.svg",
+								"group": "Container tags",
+								"icon": "/icons/hugeicons/tag-01.svg",
 								"pages": [
-									"self-hosting/overview",
-									"self-hosting/quickstart",
-									"self-hosting/configuration",
-									"self-hosting/embeddings",
-									"self-hosting/providers",
-									"self-hosting/local-vs-enterprise"
+									"api-reference/container-tags",
+									"GET /v3/container-tags/{containerTag}",
+									"PATCH /v3/container-tags/{containerTag}",
+									"DELETE /v3/container-tags/{containerTag}",
+									"POST /v3/container-tags/merge",
+									"GET /v3/container-tags/merge/{mergeId}"
+								]
+							},
+							{
+								"group": "Connections",
+								"icon": "/icons/hugeicons/plug-01.svg",
+								"pages": [
+									"api-reference/connections",
+									"POST /v3/connections/{provider}",
+									"POST /v3/connections/list",
+									"GET /v3/connections/{connectionId}",
+									"POST /v3/connections/{connectionId}/configure",
+									"GET /v3/connections/{connectionId}/resources",
+									"POST /v3/connections/{provider}/import",
+									"POST /v3/connections/{provider}/documents",
+									"POST /v3/connections/{provider}/connection",
+									"DELETE /v3/connections/{connectionId}",
+									"DELETE /v3/connections/{provider}"
+								]
+							},
+							{
+								"group": "Settings",
+								"icon": "/icons/hugeicons/settings-01.svg",
+								"pages": [
+									"api-reference/settings",
+									"GET /v3/settings",
+									"PATCH /v3/settings",
+									"POST /v3/settings/suggest-buckets",
+									"POST /v3/settings/reset"
 								]
 							}
-						]
-					},
-					{
-						"group": "Other resources",
-						"pages": [
-							{
-								"group": "General",
-								"icon": "/icons/hugeicons/book-open-01.svg",
-								"pages": ["ingestion/batch-ingest-historical-data"]
-							},
-							{
-								"group": "Benchmarking",
-								"icon": "/icons/hugeicons/test-tube-01.svg",
-								"pages": [
-									"memorybench/overview",
-									"memorybench/extend-benchmark",
-									"memorybench/extend-provider",
-									"memorybench/memscore"
-								]
-							},
-							"overview/billing",
-							"overview/security",
-							"overview/use-cases",
-							"overview/analytics"
-						]
-					},
-					{
-						"group": "Migration guides",
-						"pages": [
-							{
-								"group": "From another provider",
-								"icon": "/icons/hugeicons/delivery-truck-01.svg",
-								"pages": ["migration/from-mem0", "migration/from-zep"]
-							}
-						]
+						],
+						"base": "api-reference"
 					}
 				],
-				"tab": "Developer platform (API)"
-			},
-			{
-				"icon": "/icons/hugeicons/plug-01.svg",
-				"pages": [
-					"integrations/supermemory-sdk",
-					"integrations/ai-sdk",
-					"integrations/eve",
-					"integrations/openai",
-					"integrations/langgraph",
-					"integrations/openai-agents-sdk",
-					"integrations/agent-framework",
-					"integrations/mastra",
-					"integrations/voltagent",
-					"integrations/convex",
-					"integrations/langchain",
-					"integrations/crewai",
-					"integrations/agno",
-					"integrations/memory-graph",
-					"integrations/claude-memory",
-					"integrations/pipecat",
-					"integrations/cartesia",
-					"integrations/livekit",
-					"integrations/n8n",
-					"integrations/viasocket",
-					"integrations/zapier",
-					{
-						"group": "Migration guides",
-						"icon": "/icons/hugeicons/arrow-up-right-01.svg",
-						"pages": ["migration/tools-v2-upgrade"]
-					}
-				],
-				"tab": "API integrations"
-			},
-			{
-				"icon": "/icons/hugeicons/plug-socket.svg",
-				"openapi": ".holocron-openapi.json",
-				"pages": [
-					"api-reference/overview",
-					"authentication",
-					{
-						"group": "Ingest",
-						"icon": "/icons/hugeicons/download-01.svg",
-						"pages": [
-							"api-reference/ingest",
-							"POST /v3/documents",
-							"POST /v3/documents/file",
-							"POST /v3/documents/batch",
-							"POST /v4/conversations",
-							"GET /v3/documents/{id}"
-						]
-					},
-					{
-						"group": "Recall",
-						"icon": "/icons/hugeicons/search-01.svg",
-						"pages": [
-							"api-reference/search",
-							"POST /v4/search",
-							"POST /v3/search",
-							"api-reference/profiles",
-							"POST /v4/profile",
-							"POST /v4/profile/buckets"
-						]
-					},
-					{
-						"group": "Documents",
-						"icon": "/icons/hugeicons/file-02.svg",
-						"pages": [
-							"api-reference/documents",
-							"POST /v3/documents/list",
-							"GET /v3/documents/processing",
-							"PATCH /v3/documents/{id}",
-							"DELETE /v3/documents/{id}",
-							"DELETE /v3/documents/bulk",
-							"GET /v3/documents/{id}/chunks",
-							"GET /v3/documents/{id}/file-url"
-						]
-					},
-					{
-						"group": "Memories",
-						"icon": "/icons/hugeicons/database-01.svg",
-						"pages": [
-							"api-reference/memories",
-							"POST /v4/memories",
-							"POST /v4/memories/list",
-							"PATCH /v4/memories",
-							"DELETE /v4/memories",
-							"POST /v4/memories/forget-matching"
-						]
-					},
-					{
-						"group": "Container tags",
-						"icon": "/icons/hugeicons/tag-01.svg",
-						"pages": [
-							"api-reference/container-tags",
-							"GET /v3/container-tags/{containerTag}",
-							"PATCH /v3/container-tags/{containerTag}",
-							"DELETE /v3/container-tags/{containerTag}",
-							"POST /v3/container-tags/merge",
-							"GET /v3/container-tags/merge/{mergeId}"
-						]
-					},
-					{
-						"group": "Connections",
-						"icon": "/icons/hugeicons/plug-01.svg",
-						"pages": [
-							"api-reference/connections",
-							"POST /v3/connections/{provider}",
-							"POST /v3/connections/list",
-							"GET /v3/connections/{connectionId}",
-							"POST /v3/connections/{connectionId}/configure",
-							"GET /v3/connections/{connectionId}/resources",
-							"POST /v3/connections/{provider}/import",
-							"POST /v3/connections/{provider}/documents",
-							"POST /v3/connections/{provider}/connection",
-							"DELETE /v3/connections/{connectionId}",
-							"DELETE /v3/connections/{provider}"
-						]
-					},
-					{
-						"group": "Settings",
-						"icon": "/icons/hugeicons/settings-01.svg",
-						"pages": [
-							"api-reference/settings",
-							"GET /v3/settings",
-							"PATCH /v3/settings",
-							"POST /v3/settings/suggest-buckets",
-							"POST /v3/settings/reset"
-						]
-					}
-				],
-				"tab": "API reference"
+				"tab": "Developer platform"
 			},
 			{
 				"icon": "/icons/hugeicons/puzzle.svg",
-				"pages": [
+				"anchors": [
 					{
-						"group": "Supermemory MCP",
-						"icon": "/icons/hugeicons/command-line.svg",
-						"pages": [
-							"supermemory-mcp/mcp",
-							"supermemory-mcp/setup",
-							{
-								"group": "Setups",
-								"icon": "/icons/hugeicons/layers-01.svg",
-								"pages": [
-									"supermemory-mcp/chatgpt-web",
-									"supermemory-mcp/claude-desktop"
-								]
-							}
-						]
-					},
-					{
-						"group": "Plugins",
+						"anchor": "Plugins and MCP",
 						"icon": "/icons/hugeicons/puzzle.svg",
 						"pages": [
-							"integrations/openclaw",
-							"integrations/hermes",
-							"integrations/claude-code",
-							"integrations/muse-code",
-							"integrations/codex",
-							"integrations/opencode",
-							"integrations/cursor",
-							"integrations/grok-bot"
+							{
+								"group": "Supermemory MCP",
+								"icon": "/icons/hugeicons/command-line.svg",
+								"pages": [
+									"supermemory-mcp/mcp",
+									"supermemory-mcp/setup",
+									{
+										"group": "Setups",
+										"icon": "/icons/hugeicons/layers-01.svg",
+										"pages": [
+											"supermemory-mcp/chatgpt-web",
+											"supermemory-mcp/claude-desktop"
+										]
+									}
+								]
+							},
+							{
+								"group": "Plugins",
+								"icon": "/icons/hugeicons/puzzle.svg",
+								"pages": [
+									"integrations/openclaw",
+									"integrations/hermes",
+									"integrations/claude-code",
+									"integrations/muse-code",
+									"integrations/codex",
+									"integrations/opencode",
+									"integrations/cursor",
+									"integrations/grok-bot"
+								]
+							}
 						]
 					}
 				],

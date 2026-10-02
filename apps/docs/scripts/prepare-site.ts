@@ -1,9 +1,11 @@
-import { cp, mkdir, readdir } from "node:fs/promises"
+import { cp, mkdir, readdir, rm } from "node:fs/promises"
 import { resolve } from "node:path"
 import apiPaths from "./api-paths.json"
+import { prepareSocialImages } from "./social-images"
 
 const root = resolve(import.meta.dir, "..")
 const publicDir = resolve(root, ".holocron-public")
+await rm(publicDir, { recursive: true, force: true })
 await mkdir(publicDir, { recursive: true })
 for (const name of ["images", "icons", "logo", "videos"]) {
 	await cp(resolve(root, name), resolve(publicDir, name), { recursive: true })
@@ -32,6 +34,7 @@ for (const [operation, href] of Object.entries(apiPaths)) {
 	definition["x-holocron"] = { href }
 }
 await Bun.write(resolve(publicDir, "openapi.json"), JSON.stringify(spec))
+await prepareSocialImages(root, spec)
 
 function expandSchemaReferences(
 	value: unknown,

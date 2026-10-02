@@ -6,6 +6,9 @@
 	"compatibility_flags": ["nodejs_compat"],
 	"workers_dev": true,
 	"ai": { "binding": "AI" },
+	"analytics_engine_datasets": [
+		{ "binding": "DOCS_FEEDBACK", "dataset": "supermemory_docs_feedback" }
+	],
 	"ratelimits": [
 		{
 			"name": "CHAT_RATE_LIMITER",
