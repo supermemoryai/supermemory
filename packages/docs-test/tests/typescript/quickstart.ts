@@ -54,4 +54,7 @@ ${profile.searchResults?.results.map((r) => r.content).join("\n")}`
 	console.log("\n✅ Quickstart TypeScript test passed!")
 }
 
-main().catch(console.error)
+main().catch((error) => {
+	console.error(error)
+	process.exitCode = 1
+})
