@@ -214,9 +214,3 @@ export async function searchMemories(
 		throw error
 	}
 }
-
-// Helper function to check if API key is configured and valid
-export async function fetchSettings(): Promise<object> {
-	const response = await makeAuthenticatedRequest<object>("/v3/settings")
-	return response
-}
