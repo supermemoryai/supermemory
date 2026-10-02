@@ -169,6 +169,7 @@ export const NavigationControls = memo<NavigationControlsProps>(
 							onClick={onZoomOut}
 							style={zoomBtnStyle}
 							type="button"
+							aria-label="Zoom out"
 							onMouseEnter={(e) => {
 								e.currentTarget.style.opacity = "0.8"
 							}}
@@ -176,13 +177,16 @@ export const NavigationControls = memo<NavigationControlsProps>(
 								e.currentTarget.style.opacity = "1"
 							}}
 						>
-							<span style={{ fontSize: 12 }}>−</span>
+							<span aria-hidden="true" style={{ fontSize: 12 }}>
+								−
+							</span>
 						</button>
 						<button
 							aria-label="Zoom in"
 							onClick={onZoomIn}
 							style={zoomBtnStyle}
 							type="button"
+							aria-label="Zoom in"
 							onMouseEnter={(e) => {
 								e.currentTarget.style.opacity = "0.8"
 							}}
@@ -190,7 +194,9 @@ export const NavigationControls = memo<NavigationControlsProps>(
 								e.currentTarget.style.opacity = "1"
 							}}
 						>
-							<span style={{ fontSize: 12 }}>+</span>
+							<span aria-hidden="true" style={{ fontSize: 12 }}>
+								+
+							</span>
 						</button>
 					</div>
 				</div>
