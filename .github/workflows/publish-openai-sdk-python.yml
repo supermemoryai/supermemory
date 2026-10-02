@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
     publish:
-        runs-on: "peak-ubuntu-24.04-4"
+        runs-on: ubuntu-latest
         timeout-minutes: 15
         permissions:
             contents: read
