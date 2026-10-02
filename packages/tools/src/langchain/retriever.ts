@@ -1,7 +1,9 @@
-import Supermemory from "supermemory"
-import { BaseRetriever } from "@langchain/core/retrievers"
-import type { BaseRetrieverInput } from "@langchain/core/retrievers"
 import { Document } from "@langchain/core/documents"
+import {
+	BaseRetriever,
+	type BaseRetrieverInput,
+} from "@langchain/core/retrievers"
+import Supermemory from "supermemory"
 import {
 	CLIENT_OPTIONS,
 	DEFAULT_VALUES,
@@ -18,7 +20,7 @@ export interface SupermemoryRetrieverOptions extends BaseRetrieverInput {
 }
 
 /**
- * LangChain retriever backed by supermemory's memory search, so supermemory
+ * LangChain retriever backed by supermemory's hybrid search, so supermemory
  * can be dropped into an existing RAG chain or agent that already accepts a
  * `BaseRetriever`.
  */
@@ -41,18 +43,19 @@ export class SupermemoryRetriever extends BaseRetriever {
 	}
 
 	override async _getRelevantDocuments(query: string): Promise<Document[]> {
-		const response = await this.client.search.memories({
+		// Hybrid search, the same call ai-sdk.ts uses: extracted memories when
+		// they exist, source chunks otherwise.
+		const response = await this.client.search({
 			q: query,
 			containerTag: this.containerTag,
 			limit: this.limit,
 			threshold: DEFAULT_VALUES.searchThreshold,
+			searchMode: "hybrid",
 		})
 
 		return response.results.map(
 			(result) =>
 				new Document({
-					// Hybrid results mix learned memories and source chunks; either
-					// field may be absent.
 					pageContent: result.memory ?? result.chunk ?? "",
 					metadata: {
 						id: result.id,
