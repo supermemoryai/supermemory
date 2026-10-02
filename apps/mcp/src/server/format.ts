@@ -81,9 +81,20 @@ export function formatMemoryEntriesList(
 	)
 
 	if (activeEntries.length === 0) {
-		return pagination.currentPage > 1
-			? `No active memories on page ${pagination.currentPage} (${pagination.totalPages} page${pagination.totalPages === 1 ? "" : "s"} total).`
-			: "No active memories stored yet."
+		if (pagination.currentPage === 1 && pagination.totalItems === 0) {
+			return "No active memories stored yet."
+		}
+
+		const parts = [
+			`No active memories on page ${pagination.currentPage} (${pagination.totalPages} page${pagination.totalPages === 1 ? "" : "s"} total).`,
+		]
+		if (pagination.currentPage < pagination.totalPages) {
+			parts.push(
+				"",
+				`More available - call listMemories with page: ${pagination.currentPage + 1}.`,
+			)
+		}
+		return parts.join("\n")
 	}
 
 	const blocks = activeEntries.map((entry) => {
