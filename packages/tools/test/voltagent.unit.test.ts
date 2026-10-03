@@ -36,10 +36,13 @@ describe("VoltAgent memory context", () => {
 					parts: [],
 				},
 			],
-		} as Parameters<NonNullable<typeof hooks.onPrepareMessages>>[0]
+		} as unknown as Parameters<NonNullable<typeof hooks.onPrepareMessages>>[0]
 		const result = await hooks.onPrepareMessages?.(args)
 
-		const content = String(result?.messages?.[0]?.content ?? "")
+		const firstMessage = result?.messages?.[0] as
+			| Record<string, unknown>
+			| undefined
+		const content = String(firstMessage?.content ?? "")
 		expect(content).toContain("Be helpful.")
 		expect(content).toContain("Fresh profile fact")
 		expect(content).not.toContain("Stale profile fact")
