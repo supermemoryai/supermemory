@@ -21,7 +21,7 @@ describe("OpenAI middleware memory context", () => {
 			"fetch",
 			vi.fn(async () => jsonResponse(profileBody(["Fresh profile fact"]))),
 		)
-		const originalCreate = vi.fn(() =>
+		const originalCreate = vi.fn((_body?: unknown) =>
 			Object.assign(Promise.resolve({ choices: [] }), {
 				asResponse: async () => new Response(),
 			}),
@@ -48,8 +48,11 @@ describe("OpenAI middleware memory context", () => {
 			],
 		})
 
-		const forwarded = originalCreate.mock.calls[0]?.[0]
-		const content = String(forwarded.messages[0].content)
+		const forwarded = originalCreate.mock.calls[0]?.[0] as
+			| { messages: Array<{ role: string; content: unknown }> }
+			| undefined
+		expect(forwarded).toBeDefined()
+		const content = String(forwarded?.messages[0]?.content)
 		expect(content).toContain("Be helpful.")
 		expect(content).toContain("Fresh profile fact")
 		expect(content).not.toContain("Stale profile fact")
