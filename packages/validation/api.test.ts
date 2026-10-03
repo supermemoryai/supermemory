@@ -6,7 +6,41 @@ import {
 	ListMemoriesQuerySchema,
 	SearchRequestSchema,
 	Searchv4RequestSchema,
+	SettingsRequestSchema,
+	SettingsResponseSchema,
 } from "./api"
+
+describe("organization settings schemas", () => {
+	it.each([
+		"x",
+		"x".repeat(750),
+	])("accepts a filter prompt at a documented boundary", (filterPrompt) => {
+		expect(SettingsRequestSchema.parse({ filterPrompt }).filterPrompt).toBe(
+			filterPrompt,
+		)
+	})
+
+	it.each([
+		"",
+		"x".repeat(751),
+	])("rejects a filter prompt outside the documented boundaries", (filterPrompt) => {
+		expect(SettingsRequestSchema.safeParse({ filterPrompt }).success).toBe(
+			false,
+		)
+	})
+
+	it("accepts null to clear the filter prompt", () => {
+		expect(
+			SettingsRequestSchema.parse({ filterPrompt: null }).filterPrompt,
+		).toBe(null)
+	})
+
+	it("continues to parse legacy empty prompts in settings responses", () => {
+		expect(
+			SettingsResponseSchema.parse({ filterPrompt: "" }).filterPrompt,
+		).toBe("")
+	})
+})
 
 describe("search threshold schemas", () => {
 	it("do not contain redundant number transforms or unreachable range guards", () => {

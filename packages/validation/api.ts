@@ -803,11 +803,15 @@ export const ErrorResponseSchema = z.object({
 
 export type SearchResult = z.infer<typeof SearchResultSchema>
 
-export const SettingsRequestSchema = OrganizationSettingsSchema.omit({
+export const SettingsResponseSchema = OrganizationSettingsSchema.omit({
 	id: true,
 	orgId: true,
 	updatedAt: true,
 }).partial()
+
+export const SettingsRequestSchema = SettingsResponseSchema.extend({
+	filterPrompt: z.string().min(1).max(750).nullable().optional(),
+})
 
 export const ConnectionResponseSchema = z.object({
 	createdAt: z.string().datetime(),
