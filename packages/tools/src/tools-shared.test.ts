@@ -129,4 +129,23 @@ describe("deduplicateMemoriesForMode", () => {
 		expect(deduplicated.static).toEqual(["User is allergic to peanuts"])
 		expect(deduplicated.searchResults).toEqual([])
 	})
+
+	it("preserves pure-CJK and non-ASCII memories during deduplication", () => {
+		const deduplicated = deduplicateMemoriesForMode("full", {
+			static: [{ memory: "超哥是程序员。" }],
+			dynamic: [{ memory: "Это тестовая память" }],
+			searchResults: [
+				{ memory: "مرحبا بالعالم" },
+				{ memory: "Γειά σου Κόσμε" },
+				{ memory: "超哥是程序员。" },
+			],
+		})
+
+		expect(deduplicated.static).toEqual(["超哥是程序员。"])
+		expect(deduplicated.dynamic).toEqual(["Это тестовая память"])
+		expect(deduplicated.searchResults).toEqual([
+			"مرحبا بالعالم",
+			"Γειά σου Κόσμε",
+		])
+	})
 })

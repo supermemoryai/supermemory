@@ -127,17 +127,32 @@ Use the dimension published for your chosen model. A mismatch with vectors alrea
 **Not supported in place.** Embeddings from different models (or different dimensions) are not comparable. Start from a fresh data directory or re-ingest all content so vectors stay in one space. If configured dimensions disagree with stored data, the server **refuses to boot**.
 </Warning>
 
-**Changing embeddings later:** Not supported in place. Start from a fresh data directory or re-ingest all content so vectors stay comparable.
+<Note>
+**Model Mixing Bug in v0.0.5 (Exact match returns nothing)**
 
-> [!IMPORTANT]
-> **Model Mixing Bug in v0.0.5 (Exact match returns nothing)**
->
-> In version `v0.0.5`, there was a bug where the server could mix different embedding models between write and read paths (e.g., document ingestion using OpenAI but memory queries using local default embeddings). In multilingual contexts like Japanese (which lacks space tokenization for fallback lexical FTS matching), this caused exact-text memory searches through `/v4/search` and `/v4/profile` to silently return `{"results":[],"total":0}`.
->
-> **Resolution:**
-> This was fully resolved in `v0.0.7` by locking the embedding plan uniformly across all document and query embedding paths (enforced via a locked plan in the database store). If you are running `v0.0.5` and experiencing this issue, you should upgrade to `v0.0.7` or later.
+In version `v0.0.5`, there was a bug where the server could mix different embedding models between write and read paths (e.g., document ingestion using OpenAI but memory queries using local default embeddings). In multilingual contexts like Japanese (which lacks space tokenization for fallback lexical FTS matching), this caused exact-text memory searches through `/v4/search` and `/v4/profile` to silently return `{"results":[],"total":0}`.
+
+**Resolution:**
+This was fully resolved in `v0.0.7` by locking the embedding plan uniformly across all document and query embedding paths (enforced via a locked plan in the database store). If you are running `v0.0.5` and experiencing this issue, you should upgrade to `v0.0.7` or later.
+</Note>
+
+<Note>
+**Pure-CJK & Non-ASCII Retrieval in v0.0.7 & v0.0.8 (#1740)**
+
+When memory content contains purely non-ASCII characters (e.g. Chinese, Japanese, Korean, Cyrillic, or Arabic without any ASCII `[A-Za-z0-9_]`), the record is written to the database and embedded, but `/v4/search` and `/v4/profile` silently drop it from returned results.
+
+**Root cause:**
+The internal search deduplication pipeline normalizes text with an ASCII-only word regex `replace(/[^\w\s]/g, "")`. For pure non-ASCII content, this strips every character down to an empty string `""`. The deduplication loop checks `if (!key) continue;`, silently dropping the memory from the result set.
+
+**Workaround:**
+Append an ASCII anchor character (such as a trailing underscore `_` or alphanumeric ID like `7`) to the memory content during ingestion. Because the ASCII character survives the regex filter, the comparison key remains non-empty and the item is retained.
+
+**Search limit parameter:**
+`POST /v4/search` validates `limit` with a strict `1 <= limit <= 100` constraint. Supplying `limit > 100` (e.g. `200`) fails schema validation rather than clamping to 100. Always keep `limit` within `1` to `100`.
+</Note>
 
 ## Related
 
 - [Configuration](/self-hosting/configuration) — LLM providers, storage, ingestion limits
 - [Quickstart](/self-hosting/quickstart) — install and first memory
+
