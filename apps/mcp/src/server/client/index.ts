@@ -21,6 +21,9 @@ const MAX_CHARS = 200000
 export const DEFAULT_PROJECT_ID = "sm_project_default"
 const FETCH_TIMEOUT_MS = 30_000
 const MCP_SOURCE = "supermemory-mcp"
+// Analytics matches on this text to tag quota errors, keep them in sync.
+export const OUT_OF_CREDITS_MESSAGE =
+	"Out of credits. Top up or upgrade at https://console.supermemory.ai/billing"
 
 export type {
 	ContainerTag,
@@ -457,7 +460,7 @@ export class SupermemoryClient {
 				case 401:
 					throw new Error("Authentication failed. Please re-authenticate.")
 				case 402:
-					throw new Error("Memory limit reached. Upgrade at supermemory.ai")
+					throw new Error(OUT_OF_CREDITS_MESSAGE)
 				case 403:
 					throw new Error(
 						message ||
