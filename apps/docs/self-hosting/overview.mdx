@@ -17,7 +17,7 @@ npx supermemory local
 ```
 </CodeGroup>
 
-No Docker. No database to provision. No config files. It boots in seconds with everything built in, and it's [open source](https://git.new/memory).
+No Docker. No database to provision. No config files. It boots in seconds with everything built in. The SDKs and other components in the [public repository](https://git.new/memory) are open source; the downloadable self-hosted server binary is built from a separate, non-public codebase.
 
 ## Zero config, actually
 
@@ -41,7 +41,7 @@ OPENAI_MODEL=gpt-oss:20b \
 supermemory-server
 ```
 
-Local graph engine, local embeddings, local LLM. Your data never leaves the building.
+Local graph engine, local embeddings, local LLM. Text-memory processing can stay on your machine after the embedding model's first download when telemetry is disabled. **The currently published v0.0.8 enables content-bearing telemetry by default; set `SUPERMEMORY_DISABLE_TELEMETRY=1` before starting it.** URL ingestion uses a hosted reader service; use local text or file inputs for offline operation.
 
 ## Drop-in with your existing code
 
@@ -58,7 +58,7 @@ Everything in the [Memory API docs](/quickstart) works the same way. The coding 
 
 ## Self-hosted vs. the platform
 
-Self-hosted is free, open source, and great for local development, air-gapped environments, and privacy-sensitive workloads. The hosted platform is where the full product lives:
+Self-hosted is free within its lite license limit and useful for local development and privacy-sensitive workloads. The server binary is not open source; the hosted platform is where the full product lives:
 
 | | Self-hosted | Platform |
 |---|---|---|
