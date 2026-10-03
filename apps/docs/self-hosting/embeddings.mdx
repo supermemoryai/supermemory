@@ -144,25 +144,25 @@ Use the dimension published for your chosen model. A mismatch with vectors alrea
 **Not supported in place.** Embeddings from different models (or different dimensions) are not comparable. Start from a fresh data directory or re-ingest all content so vectors stay in one space. If configured dimensions disagree with stored data, the server **refuses to boot**.
 </Warning>
 
-**Changing embeddings later:** Not supported in place. Start from a fresh data directory or re-ingest all content so vectors stay comparable.
+<Note>
+**Release Binary Env Var Support (v0.0.6 / v0.0.7-rc.2 vs v0.0.7+)**
 
-> [!IMPORTANT]
-> **Release Binary Env Var Support (v0.0.6 / v0.0.7-rc.2 vs v0.0.7+)**
->
-> In release `v0.0.6` and `v0.0.7-rc.2`, the compiled standalone release binaries were built without pluggable embedding configuration hooks (environment variables like `SUPERMEMORY_EMBEDDING_PROVIDER`, `SUPERMEMORY_EMBEDDING_MODEL`, and `SUPERMEMORY_EMBEDDING_DIMENSIONS` were omitted from the binary and defaulted to local English `Xenova/bge-base-en-v1.5`).
->
-> **Resolution & Upgrade Steps:**
-> - Full pluggable embedding configuration via environment variables is active in `v0.0.7` and `v0.0.8+`.
-> - **Existing Data Directory Notice:** If your data directory (`$SUPERMEMORY_DATA_DIR`) was created on `v0.0.6`, it contains pre-existing rows embedded with the 768d local model without an `embedding-plan.json` lock file. When upgrading to `v0.0.8+`, the server automatically assumes and locks to legacy `local · Xenova/bge-base-en-v1.5 · 768d` to preserve vector compatibility.
-> - To switch to a custom provider or multilingual model (`bge-m3`, `openai`, etc.), you **must wipe the data directory** (e.g. `rm -rf "$SUPERMEMORY_DATA_DIR"`) or point `SUPERMEMORY_DATA_DIR` to a fresh directory before starting the server with your new embedding variables.
+In release `v0.0.6` and `v0.0.7-rc.2`, the compiled standalone release binaries were built without pluggable embedding configuration hooks (environment variables like `SUPERMEMORY_EMBEDDING_PROVIDER`, `SUPERMEMORY_EMBEDDING_MODEL`, and `SUPERMEMORY_EMBEDDING_DIMENSIONS` were omitted from the binary and defaulted to local English `Xenova/bge-base-en-v1.5`).
 
-> [!IMPORTANT]
-> **Model Mixing Bug in v0.0.5 (Exact match returns nothing)**
->
-> In version `v0.0.5`, there was a bug where the server could mix different embedding models between write and read paths (e.g., document ingestion using OpenAI but memory queries using local default embeddings). In multilingual contexts like Japanese (which lacks space tokenization for fallback lexical FTS matching), this caused exact-text memory searches through `/v4/search` and `/v4/profile` to silently return `{"results":[],"total":0}`.
->
-> **Resolution:**
-> This was fully resolved in `v0.0.7` by locking the embedding plan uniformly across all document and query embedding paths (enforced via a locked plan in the database store). If you are running `v0.0.5` and experiencing this issue, you should upgrade to `v0.0.7` or later.
+**Resolution & Upgrade Steps:**
+- Full pluggable embedding configuration via environment variables is active in `v0.0.7` and `v0.0.8+`.
+- **Existing Data Directory Notice:** If your data directory (`$SUPERMEMORY_DATA_DIR`) was created on `v0.0.6`, it contains pre-existing rows embedded with the 768d local model without an `embedding-plan.json` lock file. When upgrading to `v0.0.8+`, the server automatically assumes and locks to legacy `local · Xenova/bge-base-en-v1.5 · 768d` to preserve vector compatibility.
+- To switch to a custom provider or multilingual model (`bge-m3`, `openai`, etc.), you **must wipe the data directory** (e.g. `rm -rf "$SUPERMEMORY_DATA_DIR"`) or point `SUPERMEMORY_DATA_DIR` to a fresh directory before starting the server with your new embedding variables.
+</Note>
+
+<Note>
+**Model Mixing Bug in v0.0.5 (Exact match returns nothing)**
+
+In version `v0.0.5`, there was a bug where the server could mix different embedding models between write and read paths (e.g., document ingestion using OpenAI but memory queries using local default embeddings). In multilingual contexts like Japanese (which lacks space tokenization for fallback lexical FTS matching), this caused exact-text memory searches through `/v4/search` and `/v4/profile` to silently return `{"results":[],"total":0}`.
+
+**Resolution:**
+This was fully resolved in `v0.0.7` by locking the embedding plan uniformly across all document and query embedding paths (enforced via a locked plan in the database store). If you are running `v0.0.5` and experiencing this issue, you should upgrade to `v0.0.7` or later.
+</Note>
 
 ## Related
 
