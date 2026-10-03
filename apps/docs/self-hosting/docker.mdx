@@ -1,0 +1,132 @@
+---
+title: "Run with Docker"
+sidebarTitle: "Docker"
+description: "Optional: run the self-hosted server in a container with Docker Compose, with state in a persistent volume."
+icon: "/icons/hugeicons/package.svg"
+---
+
+You don't need Docker to run Supermemory locally: the [quickstart](/self-hosting/quickstart) binary runs on its own. This page is for setups that are already container-based, like a homelab, a NAS, or a VPS running Compose. The Dockerfile below wraps the same release binary. It downloads a pinned version from [GitHub Releases](https://github.com/supermemoryai/supermemory/releases), verifies its checksum, and runs it as a non-root user with its data in a persistent volume.
+
+## Dockerfile
+
+```dockerfile Dockerfile
+FROM debian:bookworm-slim
+
+ARG SUPERMEMORY_VERSION=0.0.8
+ARG TARGETARCH
+
+RUN apt-get update -qq \
+ && apt-get install -y -qq --no-install-recommends ca-certificates curl \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN set -eu; \
+    case "$TARGETARCH" in amd64) ARCH=x64 ;; arm64) ARCH=arm64 ;; *) echo "unsupported arch: $TARGETARCH" >&2; exit 1 ;; esac; \
+    BASE="https://github.com/supermemoryai/supermemory/releases/download/server-v${SUPERMEMORY_VERSION}"; \
+    FILE="supermemory-server-linux-${ARCH}"; \
+    cd /tmp; \
+    curl -fsSLO "$BASE/$FILE"; \
+    curl -fsSLO "$BASE/$FILE.sha256"; \
+    sha256sum -c "$FILE.sha256"; \
+    install -m 0755 "$FILE" /usr/local/bin/supermemory-server; \
+    rm -f "$FILE" "$FILE.sha256"
+
+RUN useradd --system --uid 10001 --home-dir /data supermemory \
+ && mkdir -p /data && chown supermemory /data
+USER supermemory
+
+ENV PORT=6767 \
+    SUPERMEMORY_DATA_DIR=/data
+WORKDIR /data
+VOLUME /data
+EXPOSE 6767
+ENTRYPOINT ["/usr/local/bin/supermemory-server"]
+```
+
+It builds for `linux/amd64` and `linux/arm64`, the two Linux targets published with each release.
+
+## Compose
+
+There's no setup wizard without a TTY, so configuration comes from the environment. Put your LLM key in a `.env` file next to `docker-compose.yml`:
+
+```yaml docker-compose.yml
+services:
+  supermemory:
+    build: .
+    ports:
+      - "${SUPERMEMORY_PORT:-6767}:6767"
+    volumes:
+      - supermemory-data:/data
+    environment:
+      # Set at least one LLM provider key. The server won't start without one.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      # Embeddings default to local CPU (no key needed).
+      SUPERMEMORY_EMBEDDING_PROVIDER: ${SUPERMEMORY_EMBEDDING_PROVIDER:-local}
+    restart: unless-stopped
+
+volumes:
+  supermemory-data:
+```
+
+```bash .env
+OPENAI_API_KEY=sk-...
+```
+
+Any variable from [configuration](/self-hosting/configuration) or [embeddings](/self-hosting/embeddings) can be added under `environment`.
+
+```bash
+docker compose up -d --build
+```
+
+The first boot prints your API key. You can also read it from the volume:
+
+```bash
+docker compose logs supermemory | grep "api key"
+docker compose exec supermemory cat /data/api-key
+```
+
+## Authentication
+
+As with the bare binary, requests from `localhost` on the host get the API key applied automatically, so `curl http://localhost:6767/...` works without a header. Requests from other machines, or from other containers on the same Docker network, need `Authorization: Bearer sm_...`.
+
+## Using a model on the host (Ollama, LM Studio, vLLM)
+
+Inside the container, `localhost` is the container itself. To reach an OpenAI-compatible server on the host, use `host.docker.internal`:
+
+```bash .env
+OPENAI_API_KEY=dummy
+OPENAI_BASE_URL=http://host.docker.internal:11434/v1
+OPENAI_MODEL=llama3.1
+```
+
+On Linux, `host.docker.internal` isn't defined by default. Add it to the service:
+
+```yaml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+```
+
+<Note>
+Podman uses `host.containers.internal` instead.
+</Note>
+
+## Data and upgrades
+
+Everything the server persists (the database, auth secret, API key and embedding model cache) lives in the `supermemory-data` volume at `/data`. Back up that volume the same way you would back up `./.supermemory`.
+
+`supermemory-server upgrade` doesn't apply inside a container. To move to a new release, change `SUPERMEMORY_VERSION` and rebuild:
+
+```bash
+docker compose build --build-arg SUPERMEMORY_VERSION=0.0.9
+docker compose up -d
+```
+
+<Warning>
+Back up the volume before changing versions. An older server may not understand data written by a newer one, so rolling back without a backup can fail.
+</Warning>
+
+To reset to a clean install, remove the volume with `docker compose down -v`.

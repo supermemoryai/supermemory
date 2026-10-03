@@ -38,7 +38,7 @@ Boot order is intentional: LLM keys load first so remote embedding options can r
 
 ## Configuration (env)
 
-For Docker, CI, or any non-interactive deploy, set env vars — there is **no interactive prompt without a TTY**.
+For Docker, CI, or any non-interactive deploy, set env vars — there is **no interactive prompt without a TTY**. For a ready-made Compose setup, see [Run with Docker](/self-hosting/docker).
 
 | Variable | Purpose | Default |
 |---|---|---|
@@ -62,7 +62,7 @@ Local worker tuning (throughput only — does not change model or dimensions):
 Ingestion memory headroom is controlled by `SUPERMEMORY_EMBEDDING_RAM_LIMIT` — see [Memory limits & ingestion queue](/self-hosting/configuration#memory-limits-&-ingestion-queue).
 
 <Tip>
-**Docker / production:** Set at least one LLM key and, if you don’t want local embeddings, set `SUPERMEMORY_EMBEDDING_PROVIDER` / `SUPERMEMORY_EMBEDDING_MODEL` / `SUPERMEMORY_EMBEDDING_DIMENSIONS` (and base URL or API key as needed). There is no interactive prompt without a TTY.
+**Docker / production:** Set at least one LLM key and, if you don’t want local embeddings, set `SUPERMEMORY_EMBEDDING_PROVIDER` / `SUPERMEMORY_EMBEDDING_MODEL` / `SUPERMEMORY_EMBEDDING_DIMENSIONS` (and base URL or API key as needed). There is no interactive prompt without a TTY. See [Run with Docker](/self-hosting/docker) for a ready-made Compose setup.
 </Tip>
 
 ## Multilingual
