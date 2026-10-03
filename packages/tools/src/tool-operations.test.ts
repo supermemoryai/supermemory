@@ -426,11 +426,11 @@ describe("openai executeToolCall argument parsing", () => {
 
 		expect(result.success).toBe(false)
 		expect(result.error).toMatch(/Invalid JSON arguments for searchMemories/)
-		expect(searchExecute).not.toHaveBeenCalled()
+		expect(clientSearch).not.toHaveBeenCalled()
 	})
 
 	it("still passes well-formed arguments through", async () => {
-		searchExecute.mockResolvedValue({ results: [{ id: "mem_1" }] })
+		clientSearch.mockResolvedValue({ results: [{ id: "mem_1" }] })
 		const execute = openAi.createToolCallExecutor(API_KEY, {
 			containerTags: ["user_1"],
 		})
@@ -445,7 +445,7 @@ describe("openai executeToolCall argument parsing", () => {
 		)
 
 		expect(result.success).toBe(true)
-		expect(searchExecute).toHaveBeenCalledWith(
+		expect(clientSearch).toHaveBeenCalledWith(
 			expect.objectContaining({ q: "tea", limit: 3 }),
 		)
 	})

@@ -186,7 +186,8 @@ describe("ClaudeMemoryTool insert line semantics", () => {
 	let tool: ClaudeMemoryTool
 
 	beforeEach(() => {
-		searchExecute.mockReset()
+		documentsListMock.mockReset()
+		documentsGetMock.mockReset()
 		addMock.mockReset()
 		mockDocument(FILE_CONTENT)
 		tool = new ClaudeMemoryTool("test-api-key")
@@ -298,19 +299,20 @@ describe("ClaudeMemoryTool path traversal", () => {
 		tool = new ClaudeMemoryTool("test-api-key")
 	})
 
-	it.each(["/memories/..", "/memories/foo/..", "/memories/../secrets.txt"])(
-		"rejects parent-directory path %s",
-		async (path) => {
-			const result = await tool.handleCommand({
-				command: "view",
-				path,
-			})
+	it.each([
+		"/memories/..",
+		"/memories/foo/..",
+		"/memories/../secrets.txt",
+	])("rejects parent-directory path %s", async (path) => {
+		const result = await tool.handleCommand({
+			command: "view",
+			path,
+		})
 
-			expect(result.success).toBe(false)
-			expect(result.error).toContain("Invalid path")
-			expect(documentsListMock).not.toHaveBeenCalled()
-		},
-	)
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("Invalid path")
+		expect(documentsListMock).not.toHaveBeenCalled()
+	})
 })
 
 describe("ClaudeMemoryTool path normalization collision resistance", () => {

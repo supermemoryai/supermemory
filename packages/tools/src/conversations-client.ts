@@ -54,16 +54,6 @@ export const toConversationImageUrl = (
 			: `data:${mediaType};base64,${trimmed}`
 	}
 
-	if (typeof value === "object" && value !== null && "url" in value) {
-		const rawUrl = (value as { url: unknown }).url
-		if (
-			typeof rawUrl === "string" ||
-			(typeof URL !== "undefined" && rawUrl instanceof URL)
-		) {
-			return toConversationImageUrl(rawUrl, mediaType)
-		}
-	}
-
 	const bytes =
 		value instanceof Uint8Array
 			? value

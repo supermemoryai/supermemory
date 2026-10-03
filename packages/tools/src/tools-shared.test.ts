@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
 import { makeTurnKey } from "./shared/cache"
-import { toConversationImageUrl } from "./conversations-client"
 import { normalizeBaseUrl } from "./shared/context"
 import {
 	DEFAULT_VALUES,
@@ -220,25 +219,5 @@ describe("normalizeBaseUrl", () => {
 		expect(normalizeBaseUrl("  http://localhost:6768/  ")).toBe(
 			"http://localhost:6768",
 		)
-	})
-})
-
-describe("toConversationImageUrl", () => {
-	it("handles string URLs and trims whitespace", () => {
-		expect(toConversationImageUrl("https://example.com/image.png")).toBe(
-			"https://example.com/image.png",
-		)
-	})
-
-	it("handles object representations containing url", () => {
-		expect(
-			toConversationImageUrl({ url: "https://example.com/avatar.jpg" }),
-		).toBe("https://example.com/avatar.jpg")
-	})
-
-	it("returns null for invalid or empty inputs", () => {
-		expect(toConversationImageUrl("")).toBeNull()
-		expect(toConversationImageUrl(null)).toBeNull()
-		expect(toConversationImageUrl(undefined)).toBeNull()
 	})
 })

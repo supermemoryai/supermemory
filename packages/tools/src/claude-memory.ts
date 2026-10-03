@@ -126,20 +126,14 @@ export class ClaudeMemoryTool {
 					}
 					return await this.create(path, command.file_text)
 				case "str_replace":
-					// new_str may be omitted or "" — both mean "delete old_str".
-					// old_str must be non-empty — replacing the empty string would
-					// prepend instead of replacing.
-					if (!command.old_str) {
+					// new_str may be "" (deleting text) but must be present.
+					if (!command.old_str || command.new_str === undefined) {
 						return {
 							success: false,
-							error: "old_str is required for str_replace command",
+							error: "old_str and new_str are required for str_replace command",
 						}
 					}
-					return await this.strReplace(
-						path,
-						command.old_str,
-						command.new_str ?? "",
-					)
+					return await this.strReplace(path, command.old_str, command.new_str)
 				case "insert":
 					// insert_text may be "" (inserting a blank line).
 					if (
@@ -798,7 +792,7 @@ export class ClaudeMemoryTool {
 				success: true,
 				document: {
 					documentId: candidate.id,
-					customId: document.customId ?? candidate.customId,
+					customId: document.customId ?? candidate.customId ?? undefined,
 					content,
 					metadata,
 				},
