@@ -6,6 +6,8 @@
  * diffing and append detection on the backend.
  */
 
+import { normalizeBaseUrl } from "./shared/context"
+
 export interface ConversationMessage {
 	role: "user" | "assistant" | "system" | "tool"
 	content: string | ContentPart[]
@@ -117,7 +119,7 @@ const CONVERSATION_REQUEST_TIMEOUT_MS = 30_000
 export async function addConversation(
 	params: AddConversationParams,
 ): Promise<AddConversationResponse> {
-	const baseUrl = params.baseUrl || "https://api.supermemory.ai"
+	const baseUrl = normalizeBaseUrl(params.baseUrl)
 	const url = `${baseUrl}/v4/conversations`
 
 	const response = await fetch(url, {

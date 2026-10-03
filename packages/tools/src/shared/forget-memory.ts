@@ -33,7 +33,11 @@ export async function forgetMemoryRequest(
 			Authorization: `Bearer ${apiKey}`,
 		},
 		body: JSON.stringify(params),
-		signal: options?.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS),
+		// Compose rather than choose: a caller-supplied signal must add cancellation
+		// on top of the timeout, not replace it, or the request becomes unbounded.
+		signal: options?.signal
+			? AbortSignal.any([options.signal, AbortSignal.timeout(FETCH_TIMEOUT_MS)])
+			: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 	})
 
 	if (!response.ok) {

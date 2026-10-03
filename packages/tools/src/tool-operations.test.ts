@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const documentsDeleteBulk = vi.fn()
 const documentsGet = vi.fn()
 const documentsList = vi.fn()
+const profileRequest = vi.fn()
 const clientAdd = vi.fn()
 const clientSearch = vi.fn()
 const clientOptions: unknown[] = []
@@ -15,6 +16,7 @@ vi.mock("supermemory", () => {
 			constructor(options: unknown) {
 				clientOptions.push(options)
 			}
+			profile = profileRequest
 			add = clientAdd
 			search = clientSearch
 			documents = {
@@ -34,9 +36,15 @@ import * as openAi from "./openai/tools"
 
 const API_KEY = "sm_test_key"
 
-type ToolWithExecute = { execute: (args: Record<string, unknown>) => unknown }
+type ToolExecutionResult = { success: boolean; error?: string }
+type ToolWithExecute = {
+	execute: (args: Record<string, unknown>) => Promise<ToolExecutionResult>
+}
 
-function executeTool(tool: unknown, args: Record<string, unknown>) {
+function executeTool(
+	tool: unknown,
+	args: Record<string, unknown>,
+): Promise<ToolExecutionResult> {
 	return (tool as ToolWithExecute).execute(args)
 }
 
@@ -54,6 +62,10 @@ beforeEach(() => {
 	documentsList.mockReset().mockResolvedValue({
 		memories: [{ id: "doc_1", title: "Doc one" }],
 		pagination: { currentPage: 1, totalItems: 1, totalPages: 1 },
+	})
+	profileRequest.mockReset().mockResolvedValue({
+		profile: { static: [], dynamic: [] },
+		searchResults: { results: [] },
 	})
 	clientAdd.mockReset().mockResolvedValue({ id: "doc_new" })
 	clientSearch.mockReset().mockResolvedValue({ results: [] })
@@ -112,12 +124,96 @@ describe("searchMemories", () => {
 	})
 })
 
+describe("configured container scope", () => {
+	it("rejects out-of-scope tags across both tool surfaces before I/O", async () => {
+		const config = { containerTags: ["tenant-a"] }
+		const fetchMock = vi.fn()
+		vi.stubGlobal("fetch", fetchMock)
+
+		const results: ToolExecutionResult[] = await Promise.all([
+			executeTool(aiSdk.getProfileTool(API_KEY, config), {
+				containerTag: "tenant-b",
+			}),
+			openAi.createGetProfileFunction(
+				API_KEY,
+				config,
+			)({
+				containerTag: "tenant-b",
+			}),
+			executeTool(aiSdk.documentListTool(API_KEY, config), {
+				containerTag: "tenant-b",
+			}),
+			openAi.createDocumentListFunction(
+				API_KEY,
+				config,
+			)({
+				containerTag: "tenant-b",
+			}),
+			executeTool(aiSdk.memoryForgetTool(API_KEY, config), {
+				containerTag: "tenant-b",
+				memoryId: "mem_1",
+			}),
+			openAi.createMemoryForgetFunction(
+				API_KEY,
+				config,
+			)({
+				containerTag: "tenant-b",
+				memoryId: "mem_1",
+			}),
+		])
+
+		expect(results).toHaveLength(6)
+		for (const result of results) {
+			expect(result.success).toBe(false)
+			expect(result.error).toContain("outside the configured scope")
+		}
+		expect(profileRequest).not.toHaveBeenCalled()
+		expect(documentsList).not.toHaveBeenCalled()
+		expect(fetchMock).not.toHaveBeenCalled()
+	})
+
+	it("allows selecting another explicitly configured tag", async () => {
+		const getProfile = openAi.createGetProfileFunction(API_KEY, {
+			containerTags: ["tenant-a", "tenant-b"],
+		})
+
+		const result = await getProfile({ containerTag: "tenant-b" })
+
+		expect(result.success).toBe(true)
+		expect(profileRequest).toHaveBeenCalledWith({
+			containerTag: "tenant-b",
+		})
+	})
+
+	it("does not let model input override implicit or project scopes", async () => {
+		const implicitResult = await openAi.createDocumentListFunction(API_KEY)({
+			containerTag: "tenant-b",
+		})
+		const projectResult = await executeTool(
+			aiSdk.getProfileTool(API_KEY, { projectId: "alpha" }),
+			{ containerTag: "tenant-b" },
+		)
+
+		expect(implicitResult.success).toBe(false)
+		expect(implicitResult.error).toContain("outside the configured scope")
+		expect(projectResult.success).toBe(false)
+		expect(projectResult.error).toContain("outside the configured scope")
+		expect(documentsList).not.toHaveBeenCalled()
+		expect(profileRequest).not.toHaveBeenCalled()
+	})
+
+	it("fails closed when the configured scope is empty", () => {
+		expect(() =>
+			openAi.createGetProfileFunction(API_KEY, { containerTags: [] }),
+		).toThrow("at least one non-empty containerTag")
+		expect(profileRequest).not.toHaveBeenCalled()
+	})
+})
+
 describe("documentDelete", () => {
 	it("ai-sdk variant passes the document id string to the SDK", async () => {
 		const tool = aiSdk.documentDeleteTool(API_KEY)
-		const result = (await executeTool(tool, { documentId: "doc_123" })) as {
-			success: boolean
-		}
+		const result = await executeTool(tool, { documentId: "doc_123" })
 
 		expect(result.success).toBe(true)
 		expect(documentsGet).toHaveBeenCalledWith("doc_123")
@@ -180,7 +276,7 @@ describe("memoryForget", () => {
 		expect(init.signal).toBeInstanceOf(AbortSignal)
 	})
 
-	it("uses a caller-provided signal instead of creating a timeout", async () => {
+	it("cancels through a caller-provided signal", async () => {
 		const fetchMock = stubFetch()
 		const controller = new AbortController()
 
@@ -192,7 +288,39 @@ describe("memoryForget", () => {
 		)
 
 		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-		expect(init.signal).toBe(controller.signal)
+		// The request signal is a composite, not the caller's own, but aborting
+		// the caller still aborts the request.
+		expect(init.signal).not.toBe(controller.signal)
+		controller.abort()
+		expect(init.signal?.aborted).toBe(true)
+	})
+
+	it("keeps the timeout when a caller-provided signal is present", async () => {
+		const timeoutController = new AbortController()
+		const timeoutSpy = vi
+			.spyOn(AbortSignal, "timeout")
+			.mockReturnValue(timeoutController.signal)
+		const fetchMock = stubFetch()
+		const controller = new AbortController()
+
+		try {
+			await forgetMemoryRequest(
+				API_KEY,
+				{ containerTag: "user_1", id: "mem_1" },
+				undefined,
+				{ signal: controller.signal },
+			)
+
+			expect(timeoutSpy).toHaveBeenCalledWith(30_000)
+
+			const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+			// Firing only the timeout leg aborts the request: a caller signal adds
+			// cancellation, it does not remove the 30s bound.
+			timeoutController.abort()
+			expect(init.signal?.aborted).toBe(true)
+		} finally {
+			timeoutSpy.mockRestore()
+		}
 	})
 
 	it("throws a descriptive error on non-2xx responses", async () => {
@@ -209,9 +337,9 @@ describe("memoryForget", () => {
 			containerTags: ["user_2"],
 		})
 
-		const result = (await executeTool(tool, {
+		const result = await executeTool(tool, {
 			memoryContent: "stale fact",
-		})) as { success: boolean }
+		})
 
 		expect(result.success).toBe(true)
 		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
@@ -239,6 +367,87 @@ describe("memoryForget", () => {
 
 		expect(result.success).toBe(false)
 		expect(fetchMock).not.toHaveBeenCalled()
+	})
+})
+
+describe("openai executeToolCall argument parsing", () => {
+	type ExecutorToolCall = Parameters<
+		ReturnType<typeof openAi.createToolCallExecutor>
+	>[0]
+
+	function toolCall(name: string, args: string) {
+		return {
+			id: "call_1",
+			type: "function",
+			function: { name, arguments: args },
+		} as ExecutorToolCall
+	}
+
+	// getProfile, documentList and memoryForget declare `required: []`, so the model
+	// is allowed to call them with no arguments. OpenAI serialises that as "".
+	it.each([
+		"",
+		"   ",
+	])("runs a zero-argument tool when arguments are %p", async (args) => {
+		const execute = openAi.createToolCallExecutor(API_KEY, {
+			containerTags: ["user_1"],
+		})
+
+		const result = JSON.parse(await execute(toolCall("getProfile", args)))
+
+		expect(result.success).toBe(true)
+		expect(profileRequest).toHaveBeenCalledTimes(1)
+		expect(profileRequest).toHaveBeenCalledWith({ containerTag: "user_1" })
+	})
+
+	// These parse cleanly, so the JSON guard lets them through to a destructuring
+	// parameter that rejects — the throw the guard exists to contain.
+	it.each([
+		"null",
+		"5",
+		"[]",
+		'"text"',
+	])("rejects non-object arguments %p as a tool result rather than throwing", async (args) => {
+		const execute = openAi.createToolCallExecutor(API_KEY)
+
+		const result = JSON.parse(await execute(toolCall("getProfile", args)))
+
+		expect(result.success).toBe(false)
+		expect(result.error).toMatch(/Invalid JSON arguments for getProfile/)
+		expect(profileRequest).not.toHaveBeenCalled()
+	})
+
+	it("still reports malformed JSON as a tool error", async () => {
+		const execute = openAi.createToolCallExecutor(API_KEY)
+
+		const result = JSON.parse(
+			await execute(toolCall("searchMemories", "{not json")),
+		)
+
+		expect(result.success).toBe(false)
+		expect(result.error).toMatch(/Invalid JSON arguments for searchMemories/)
+		expect(clientSearch).not.toHaveBeenCalled()
+	})
+
+	it("still passes well-formed arguments through", async () => {
+		clientSearch.mockResolvedValue({ results: [{ id: "mem_1" }] })
+		const execute = openAi.createToolCallExecutor(API_KEY, {
+			containerTags: ["user_1"],
+		})
+
+		const result = JSON.parse(
+			await execute(
+				toolCall(
+					"searchMemories",
+					JSON.stringify({ informationToGet: "tea", limit: 3 }),
+				),
+			),
+		)
+
+		expect(result.success).toBe(true)
+		expect(clientSearch).toHaveBeenCalledWith(
+			expect.objectContaining({ q: "tea", limit: 3 }),
+		)
 	})
 })
 
@@ -309,7 +518,7 @@ describe("ClaudeMemoryTool", () => {
 		const result = await tool.handleCommand({
 			command: "insert",
 			path: FILE_PATH,
-			insert_line: 2,
+			insert_line: 1,
 			insert_text: "",
 		})
 
@@ -344,7 +553,9 @@ describe("ClaudeMemoryTool", () => {
 
 		expect(result.success).toBe(true)
 		expect(clientAdd).toHaveBeenCalledWith(
-			expect.objectContaining({ customId: "memories_renamed_txt" }),
+			expect.objectContaining({
+				customId: tool.normalizePathToCustomId("/memories/renamed.txt"),
+			}),
 		)
 		expect(documentsDeleteBulk).toHaveBeenCalledWith({ ids: [DOCUMENT_ID] })
 	})

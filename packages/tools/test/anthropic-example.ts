@@ -5,8 +5,32 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk"
-import { createClaudeMemoryTool } from "./claude-memory"
+import {
+	createClaudeMemoryTool,
+	type MemoryCommand,
+} from "../src/claude-memory"
 import "dotenv/config"
+
+const MEMORY_COMMANDS: readonly string[] = [
+	"view",
+	"create",
+	"str_replace",
+	"insert",
+	"delete",
+	"rename",
+]
+
+function isMemoryCommand(input: unknown): input is MemoryCommand {
+	return (
+		typeof input === "object" &&
+		input !== null &&
+		"command" in input &&
+		"path" in input &&
+		typeof input.command === "string" &&
+		MEMORY_COMMANDS.includes(input.command) &&
+		typeof input.path === "string"
+	)
+}
 
 /**
  * Handle Claude's memory tool calls using the Anthropic SDK
@@ -37,7 +61,7 @@ async function chatWithMemoryTool() {
 	})
 
 	// Conversation messages
-	const messages: Anthropic.Messages.MessageParam[] = [
+	const messages: Anthropic.Beta.Messages.BetaMessageParam[] = [
 		{
 			role: "user",
 			content:
@@ -45,7 +69,7 @@ async function chatWithMemoryTool() {
 		},
 	]
 
-	console.log("💬 User:", messages[0].content)
+	console.log("💬 User:", messages[0]?.content)
 	console.log("\n🔄 Sending to Claude with memory tool...")
 
 	try {
@@ -66,20 +90,25 @@ async function chatWithMemoryTool() {
 		console.log("📥 Claude responded:")
 
 		// Process the response
-		const toolResults: Anthropic.Messages.ToolResultBlockParam[] = []
+		const toolResults: Anthropic.Beta.Messages.BetaToolResultBlockParam[] = []
 
 		for (const block of response.content) {
 			if (block.type === "text") {
 				console.log("💭", block.text)
 			} else if (block.type === "tool_use" && block.name === "memory") {
+				const command = block.input
+				if (!isMemoryCommand(command)) {
+					console.log("Skipping unrecognized memory tool input:", command)
+					continue
+				}
 				console.log("🔧 Claude is using memory tool:")
-				console.log("   Command:", block.input.command)
-				console.log("   Path:", block.input.path)
+				console.log("   Command:", command.command)
+				console.log("   Path:", command.path)
 
 				// Handle the memory tool call
-				const memoryResult = await memoryTool.handleCommand(block.input as any)
+				const memoryResult = await memoryTool.handleCommand(command)
 
-				const toolResult: Anthropic.Messages.ToolResultBlockParam = {
+				const toolResult: Anthropic.Beta.Messages.BetaToolResultBlockParam = {
 					type: "tool_result",
 					tool_use_id: block.id,
 					content: memoryResult.success
@@ -138,14 +167,17 @@ async function chatWithMemoryTool() {
 				if (block.type === "text") {
 					console.log("💭", block.text)
 				} else if (block.type === "tool_use" && block.name === "memory") {
+					const command = block.input
+					if (!isMemoryCommand(command)) {
+						console.log("Skipping unrecognized memory tool input:", command)
+						continue
+					}
 					console.log("🔧 Claude is using memory tool again:")
-					console.log("   Command:", block.input.command)
-					console.log("   Path:", block.input.path)
+					console.log("   Command:", command.command)
+					console.log("   Path:", command.path)
 
 					// Handle additional memory tool calls
-					const memoryResult = await memoryTool.handleCommand(
-						block.input as any,
-					)
+					const memoryResult = await memoryTool.handleCommand(command)
 					console.log(
 						"📊 Memory operation result:",
 						memoryResult.success ? "✅ Success" : "❌ Failed",
@@ -239,7 +271,7 @@ async function testMemoryOperations() {
 			command: {
 				command: "view" as const,
 				path: "/memories/project-notes.txt",
-				view_range: [4, 8],
+				view_range: [4, 8] as [number, number],
 			},
 		},
 	]

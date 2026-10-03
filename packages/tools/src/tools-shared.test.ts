@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest"
+import { makeTurnKey } from "./shared/cache"
+import { normalizeBaseUrl } from "./shared/context"
 import {
 	DEFAULT_VALUES,
 	SEARCH_LIMIT_BOUNDS,
 	clampSearchLimit,
 	deduplicateMemoriesForMode,
 	getContainerTags,
+	resolveConfiguredContainerTag,
 } from "./tools-shared"
 
 describe("clampSearchLimit", () => {
@@ -55,6 +58,32 @@ describe("getContainerTags", () => {
 				containerTags: ["tag-a"],
 			}),
 		).toThrow("either projectId or containerTags")
+	})
+})
+
+describe("resolveConfiguredContainerTag", () => {
+	it("defaults to the first configured tag", () => {
+		expect(resolveConfiguredContainerTag(["tenant-a", "tenant-b"])).toBe(
+			"tenant-a",
+		)
+	})
+
+	it("allows selection within a multi-tag scope", () => {
+		expect(
+			resolveConfiguredContainerTag(["tenant-a", "tenant-b"], "tenant-b"),
+		).toBe("tenant-b")
+	})
+
+	it("rejects tags outside the configured scope", () => {
+		expect(() =>
+			resolveConfiguredContainerTag(["tenant-a"], "tenant-b"),
+		).toThrow('Container tag "tenant-b" is outside the configured scope')
+	})
+
+	it("rejects an empty configured scope", () => {
+		expect(() => resolveConfiguredContainerTag([])).toThrow(
+			"require at least one configured container tag",
+		)
 	})
 })
 
@@ -128,5 +157,67 @@ describe("deduplicateMemoriesForMode", () => {
 
 		expect(deduplicated.static).toEqual(["User is allergic to peanuts"])
 		expect(deduplicated.searchResults).toEqual([])
+	})
+})
+
+describe("makeTurnKey", () => {
+	it("generates predictable turn key for standard inputs", () => {
+		expect(makeTurnKey("user-123", "thread-456", "full", "hello world")).toBe(
+			"user-123:thread-456:full:hello world",
+		)
+	})
+
+	it("normalizes and collapses whitespace in message", () => {
+		expect(
+			makeTurnKey("user-123", "thread-456", "full", "  hello   world  \n "),
+		).toBe("user-123:thread-456:full:hello world")
+	})
+
+	it("handles undefined threadId cleanly", () => {
+		expect(makeTurnKey("user-123", undefined, "profile", "test")).toBe(
+			"user-123::profile:test",
+		)
+	})
+
+	it("escapes colons to prevent cache key collisions between tag and threadId", () => {
+		const keyA = makeTurnKey("user:123", "456", "profile", "hi")
+		const keyB = makeTurnKey("user", "123:456", "profile", "hi")
+		expect(keyA).toBe("user%3A123:456:profile:hi")
+		expect(keyB).toBe("user:123%3A456:profile:hi")
+		expect(keyA).not.toBe(keyB)
+	})
+
+	it("escapes percent signs to avoid ambiguity with encoded sequences", () => {
+		const keyA = makeTurnKey("user%3A123", "456", "profile", "hi")
+		const keyB = makeTurnKey("user:123", "456", "profile", "hi")
+		expect(keyA).toBe("user%253A123:456:profile:hi")
+		expect(keyB).toBe("user%3A123:456:profile:hi")
+		expect(keyA).not.toBe(keyB)
+	})
+})
+
+describe("normalizeBaseUrl", () => {
+	it("returns default URL when input is missing or empty", () => {
+		expect(normalizeBaseUrl()).toBe("https://api.supermemory.ai")
+		expect(normalizeBaseUrl("")).toBe("https://api.supermemory.ai")
+		expect(normalizeBaseUrl("   ")).toBe("https://api.supermemory.ai")
+	})
+
+	it("collapses single and multiple trailing slashes", () => {
+		expect(normalizeBaseUrl("http://localhost:6768/")).toBe(
+			"http://localhost:6768",
+		)
+		expect(normalizeBaseUrl("http://localhost:6768///")).toBe(
+			"http://localhost:6768",
+		)
+		expect(normalizeBaseUrl("https://api.supermemory.ai/")).toBe(
+			"https://api.supermemory.ai",
+		)
+	})
+
+	it("trims whitespace around URLs", () => {
+		expect(normalizeBaseUrl("  http://localhost:6768/  ")).toBe(
+			"http://localhost:6768",
+		)
 	})
 })

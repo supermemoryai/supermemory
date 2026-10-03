@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 // operations can be exercised deterministically without any network access.
 const documentsListMock = vi.fn()
 const documentsGetMock = vi.fn()
-const documentsDeleteBulkMock = vi.fn()
+const documentsDeleteBulkMock = vi
+	.fn()
+	.mockResolvedValue({ success: true, deletedCount: 1 })
 const addMock = vi.fn()
 
 vi.mock("supermemory", () => {
@@ -180,6 +182,81 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 	})
 })
 
+describe("ClaudeMemoryTool insert line semantics", () => {
+	let tool: ClaudeMemoryTool
+
+	beforeEach(() => {
+		documentsListMock.mockReset()
+		documentsGetMock.mockReset()
+		addMock.mockReset()
+		mockDocument(FILE_CONTENT)
+		tool = new ClaudeMemoryTool("test-api-key")
+	})
+
+	// The memory_20250818 spec: insert_text is inserted AFTER line insert_line,
+	// 0 inserts at the beginning of the file, and the valid range is [0, n_lines].
+
+	it("insert_line: 0 inserts at the beginning of the file", async () => {
+		const result = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: 0,
+			insert_text: "header",
+		})
+
+		expect(result.success).toBe(true)
+		const stored = addMock.mock.calls[0]?.[0]?.content as string
+		expect(stored).toBe("header\nline1\nline2\nline3\nline4\nline5")
+	})
+
+	it("inserts AFTER the given line, not before it", async () => {
+		const result = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: 2,
+			insert_text: "after2",
+		})
+
+		expect(result.success).toBe(true)
+		const stored = addMock.mock.calls[0]?.[0]?.content as string
+		// Regression guard: the old 1-based insert-BEFORE landed this one line early.
+		expect(stored).toBe("line1\nline2\nafter2\nline3\nline4\nline5")
+	})
+
+	it("insert_line: n_lines appends at the end of the file", async () => {
+		const result = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: 5,
+			insert_text: "tail",
+		})
+
+		expect(result.success).toBe(true)
+		const stored = addMock.mock.calls[0]?.[0]?.content as string
+		expect(stored).toBe("line1\nline2\nline3\nline4\nline5\ntail")
+	})
+
+	it("rejects insert_line outside [0, n_lines] without writing", async () => {
+		const below = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: -1,
+			insert_text: "x",
+		})
+		expect(below.success).toBe(false)
+		expect(below.error).toContain("[0, 5]")
+
+		const above = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: 6,
+			insert_text: "x",
+		})
+		expect(above.success).toBe(false)
+		expect(addMock).not.toHaveBeenCalled()
+	})
+})
+
 describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 	let tool: ClaudeMemoryTool
 
@@ -208,5 +285,167 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 		expect(addMock).toHaveBeenCalledTimes(1)
 		const stored = addMock.mock.calls[0]?.[0]?.content as string
 		expect(stored).toContain(`price is ${dollarSequence} today`)
+	})
+})
+
+describe("ClaudeMemoryTool path traversal", () => {
+	let tool: ClaudeMemoryTool
+
+	beforeEach(() => {
+		documentsListMock.mockReset()
+		documentsGetMock.mockReset()
+		addMock.mockReset()
+		mockDocument(FILE_CONTENT)
+		tool = new ClaudeMemoryTool("test-api-key")
+	})
+
+	it.each([
+		"/memories/..",
+		"/memories/foo/..",
+		"/memories/../secrets.txt",
+	])("rejects parent-directory path %s", async (path) => {
+		const result = await tool.handleCommand({
+			command: "view",
+			path,
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("Invalid path")
+		expect(documentsListMock).not.toHaveBeenCalled()
+	})
+})
+
+describe("ClaudeMemoryTool path normalization collision resistance", () => {
+	beforeEach(() => {
+		documentsListMock.mockReset()
+		documentsGetMock.mockReset()
+		addMock.mockReset()
+		documentsDeleteBulkMock.mockReset()
+	})
+
+	it("produces distinct customIds for paths that previously collided", () => {
+		const tool = new ClaudeMemoryTool("test-api-key")
+		const paths = [
+			"/memories/notes.txt",
+			"/memories/notes_txt",
+			"/memories/notes/txt",
+			"/memories/project/a.md",
+			"/memories/project_a.md",
+		]
+
+		const ids = paths.map((path) => tool.normalizePathToCustomId(path))
+		const uniqueIds = new Set(ids)
+
+		expect(uniqueIds.size).toBe(paths.length)
+	})
+
+	it("resolves documents stored under legacy customId format", async () => {
+		// Mock a document saved with legacy normalization (memories_notes_txt)
+		mockDocuments([
+			{
+				id: "legacy-doc",
+				customId: "memories_notes_txt",
+				filePath: "/memories/notes.txt",
+				content: "legacy content",
+			},
+		])
+
+		const tool = new ClaudeMemoryTool("test-api-key")
+		const result = await tool.handleCommand({
+			command: "view",
+			path: "/memories/notes.txt",
+		})
+
+		expect(result.success).toBe(true)
+		expect(result.content).toContain("legacy content")
+	})
+
+	it("cleans up legacy-customId document when str_replace updates the file", async () => {
+		mockDocuments([
+			{
+				id: "legacy-doc",
+				customId: "memories_notes_txt",
+				filePath: "/memories/notes.txt",
+				content: "legacy content hello",
+			},
+		])
+		documentsDeleteBulkMock.mockResolvedValue({
+			success: true,
+			deletedCount: 1,
+		})
+
+		const tool = new ClaudeMemoryTool("test-api-key")
+		const result = await tool.handleCommand({
+			command: "str_replace",
+			path: "/memories/notes.txt",
+			old_str: "hello",
+			new_str: "world",
+		})
+
+		expect(result.success).toBe(true)
+		expect(addMock).toHaveBeenCalledTimes(1)
+		expect(addMock.mock.calls[0]?.[0]?.customId).toBe("memories_s_notes_d_txt")
+		expect(documentsDeleteBulkMock).toHaveBeenCalledWith({
+			ids: ["legacy-doc"],
+		})
+	})
+
+	it("cleans up legacy-customId document when insert updates the file", async () => {
+		mockDocuments([
+			{
+				id: "legacy-doc",
+				customId: "memories_notes_txt",
+				filePath: "/memories/notes.txt",
+				content: "line1\nline2",
+			},
+		])
+		documentsDeleteBulkMock.mockResolvedValue({
+			success: true,
+			deletedCount: 1,
+		})
+
+		const tool = new ClaudeMemoryTool("test-api-key")
+		const result = await tool.handleCommand({
+			command: "insert",
+			path: "/memories/notes.txt",
+			insert_line: 2,
+			insert_text: "inserted line",
+		})
+
+		expect(result.success).toBe(true)
+		expect(addMock).toHaveBeenCalledTimes(1)
+		expect(addMock.mock.calls[0]?.[0]?.customId).toBe("memories_s_notes_d_txt")
+		expect(documentsDeleteBulkMock).toHaveBeenCalledWith({
+			ids: ["legacy-doc"],
+		})
+	})
+
+	it("cleans up legacy-customId document when create overwrites an existing file", async () => {
+		mockDocuments([
+			{
+				id: "legacy-doc",
+				customId: "memories_notes_txt",
+				filePath: "/memories/notes.txt",
+				content: "legacy content",
+			},
+		])
+		documentsDeleteBulkMock.mockResolvedValue({
+			success: true,
+			deletedCount: 1,
+		})
+
+		const tool = new ClaudeMemoryTool("test-api-key")
+		const result = await tool.handleCommand({
+			command: "create",
+			path: "/memories/notes.txt",
+			file_text: "brand new content",
+		})
+
+		expect(result.success).toBe(true)
+		expect(addMock).toHaveBeenCalledTimes(1)
+		expect(addMock.mock.calls[0]?.[0]?.customId).toBe("memories_s_notes_d_txt")
+		expect(documentsDeleteBulkMock).toHaveBeenCalledWith({
+			ids: ["legacy-doc"],
+		})
 	})
 })

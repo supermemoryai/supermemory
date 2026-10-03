@@ -8,8 +8,8 @@ import Supermemory from "supermemory"
  */
 export const normalizeBaseUrl = (url?: string): string => {
 	const defaultUrl = "https://api.supermemory.ai"
-	if (!url) return defaultUrl
-	return url.endsWith("/") ? url.slice(0, -1) : url
+	const trimmed = url?.trim().replace(/\/+$/, "")
+	return trimmed || defaultUrl
 }
 
 /**

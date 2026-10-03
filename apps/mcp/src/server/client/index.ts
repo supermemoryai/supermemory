@@ -339,7 +339,14 @@ export class SupermemoryClient {
 		options?: { signal?: AbortSignal },
 	): Promise<DocumentsApiResponse> {
 		try {
-			const signal = options?.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS)
+			// Compose rather than choose: a caller-supplied signal must add
+			// cancellation on top of the timeout, not replace it.
+			const signal = options?.signal
+				? AbortSignal.any([
+						options.signal,
+						AbortSignal.timeout(FETCH_TIMEOUT_MS),
+					])
+				: AbortSignal.timeout(FETCH_TIMEOUT_MS)
 			const response = await fetch(`${this.apiUrl}/v3/documents/documents`, {
 				method: "POST",
 				headers: {
