@@ -414,6 +414,15 @@ export function createDocumentDeleteFunction(
 		containerTag?: string
 	}): Promise<DocumentDeleteResult> {
 		try {
+			// A model-supplied tag may only select one of the tags the developer
+			// configured. Accepting an arbitrary value would let the model delete
+			// documents outside the configured scope.
+			if (containerTag && !containerTags.includes(containerTag)) {
+				throw new Error(
+					`Container tag "${containerTag}" is outside the configured scope.`,
+				)
+			}
+
 			const scopeTags: [string, ...string[]] = containerTag
 				? [containerTag]
 				: containerTags
