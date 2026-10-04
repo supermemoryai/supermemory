@@ -41,7 +41,7 @@ OPENAI_MODEL=gpt-oss:20b \
 supermemory-server
 ```
 
-Local graph engine, local embeddings, local LLM. Text-memory processing can stay on your machine after the embedding model's first download. Supermemory sends telemetry to improve the experience; turn it off with `SUPERMEMORY_DISABLE_TELEMETRY=1` before starting the server. URL ingestion uses a hosted reader service; use local text or file inputs for offline operation.
+Local graph engine, local embeddings, local LLM. Text-memory processing can stay on your machine after the embedding model's first download. Supermemory collects telemetry; you can disable it with `SUPERMEMORY_DISABLE_TELEMETRY=1`. URL ingestion uses a hosted reader service; use local text or file inputs for offline operation.
 
 ## Drop-in with your existing code
 
