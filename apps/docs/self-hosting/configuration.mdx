@@ -121,15 +121,7 @@ Raise the limit and concurrency on machines with spare RAM for faster bulk impor
 
 ## Telemetry
 
-**Important for the currently published v0.0.8 binary:** telemetry is enabled by default. It sends fleet heartbeats and memory-agent AI events, including full prompts, outputs, and tool state, to Supermemory's Self-hosted PostHog project. Set `SUPERMEMORY_DISABLE_TELEMETRY=1` before starting v0.0.8 if this content must stay on your machine. A future release will make telemetry opt-in; this change is not in v0.0.8.
-
-| Variable | Purpose | Default |
-|---|---|---|
-| `SUPERMEMORY_ENABLE_TELEMETRY` | In the next release, set to `1` or `true` to opt in; not supported by v0.0.8 | unset |
-| `SUPERMEMORY_DISABLE_TELEMETRY` | Set to `1` or `true` to stop this telemetry, including on v0.0.8 | unset |
-| `SUPERMEMORY_POSTHOG_API_KEY` / `SUPERMEMORY_POSTHOG_HOST` | Optional destination overrides | Supermemory Self-hosted PostHog |
-
-When enabled (by default on v0.0.8), telemetry sends a boot and six-hourly fleet heartbeat (version, OS/arch, configured provider and embedding model ids, database mode, uptime) and memory-agent `$ai_generation`, `$ai_trace`, and `$ai_span` events. Those events include model, token and latency data, **full prompts and outputs**, tool names and definitions, and input/output state. An installation is identified by a random id stored in `$SUPERMEMORY_DATA_DIR/instance-id`.
+Supermemory sends telemetry to improve the self-hosted experience. You can turn it off with `SUPERMEMORY_DISABLE_TELEMETRY=1` before starting the server.
 
 ## Platform-only features
 
