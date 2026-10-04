@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/server"
 import { instrument, type MCPAnalyticsOptions } from "@posthog/mcp"
 import { PostHog } from "posthog-node"
+import { OUT_OF_CREDITS_MESSAGE } from "./client"
 import type { ActorContext, ServerEnv } from "./types"
 
 const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com"
@@ -68,6 +69,11 @@ const metadataOnlyMcpEvent: NonNullable<MCPAnalyticsOptions["beforeSend"]> = (
 		return null
 	}
 
+	const errorMessage = event.properties.$mcp_error_message
+	const outOfCredits =
+		typeof errorMessage === "string" &&
+		errorMessage.includes(OUT_OF_CREDITS_MESSAGE)
+
 	return {
 		...event,
 		properties: {
@@ -76,6 +82,10 @@ const metadataOnlyMcpEvent: NonNullable<MCPAnalyticsOptions["beforeSend"]> = (
 					(key) => event.properties[key] !== undefined,
 				).map((key) => [key, event.properties[key]]),
 			),
+			// Billing state, not a server bug, so keep it out of the error rate.
+			...(outOfCredits
+				? { $mcp_is_error: false, $mcp_error_type: "out_of_credits" }
+				: {}),
 			$process_person_profile: false,
 		},
 	}

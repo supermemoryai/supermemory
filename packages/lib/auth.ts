@@ -1,9 +1,8 @@
+import { apiKeyClient } from "@better-auth/api-key/client"
 import {
 	adminClient,
 	anonymousClient,
-	apiKeyClient,
 	emailOTPClient,
-	genericOAuthClient,
 	magicLinkClient,
 	organizationClient,
 	usernameClient,
@@ -20,7 +19,6 @@ export const authClient = createAuthClient({
 		usernameClient(),
 		magicLinkClient(),
 		emailOTPClient(),
-		genericOAuthClient(),
 		apiKeyClient(),
 		adminClient(),
 		organizationClient(),
