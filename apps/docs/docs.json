@@ -68,7 +68,7 @@
 		"light": "/logo/light.svg"
 	},
 	"name": "supermemory | Memory API for the AI era",
-	"description": "Memory API, user profiles, connectors, and retrieval for AI agents.",
+	"description": "Frontier agent memory and context platform",
 	"navbar": {
 		"links": [
 			{
