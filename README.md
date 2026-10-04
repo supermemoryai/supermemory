@@ -336,7 +336,7 @@ const client = new Supermemory({
 
 - **Bring any model** — OpenAI, Anthropic, Gemini, Groq, or any OpenAI-compatible endpoint. An interactive wizard walks you through it on first boot.
 - **Embeddings** — local `Xenova/bge-base-en-v1.5` by default (no API key); optionally OpenAI, Gemini, or Ollama. Same provider stack as cloud.
-- **Fully offline if you want** — point it at Ollama (`gpt-oss:20b` works great) and nothing leaves your machine.
+- **Offline text memories if you want** — point it at Ollama (`gpt-oss:20b` works great), disable telemetry with `SUPERMEMORY_DISABLE_TELEMETRY=1`, and use local text or file inputs after the first embedding-model download. URL ingestion uses a hosted reader service.
 - **Your data, one directory** — everything lives in `./.supermemory`, easy to back up or move.
 - **Same API as the platform** — prototype locally, ship on the hosted platform by changing `baseURL`.
 
