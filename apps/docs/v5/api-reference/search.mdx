@@ -5,8 +5,8 @@ description: "Recall the most relevant memories and source context"
 icon: "book-open"
 ---
 
-`POST /ns/{namespace}/search` recalls the most useful memories and source chunks for a query. Hybrid search combines both by default; use `searchMode=memories` or `searchMode=chunks` when your experience needs one result type.
+`POST /ns/{namespace}/search` recalls the most useful memories and source chunks for a query. Hybrid search combines both by default; set `searchMode` to `memories` or `chunks` when your experience needs one result type.
 
-Tune relevance with threshold, reranking, query rewriting, filters, and related context in the request body. Result controls `limit` and `searchMode` belong in the query string.
+Every option goes in the JSON request body: `query`, `searchMode`, `limit`, `threshold`, `filter`, `include`, `rerank`, and `rewriteQuery`.
 
 See [search migration](/migration/api-v5-recall) and [typed filter migration](/migration/api-v5-filters).

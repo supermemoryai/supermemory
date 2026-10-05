@@ -1,4 +1,4 @@
-v5 searches one namespace, defaults to hybrid recall, and moves ranking controls into a typed request body.
+v5 searches one namespace, defaults to hybrid recall, and takes every option in one typed JSON body. Search has no query-string parameters.
 
 ### Request mapping
 
@@ -6,13 +6,13 @@ v5 searches one namespace, defaults to hybrid recall, and moves ranking controls
 | --- | --- |
 | `containerTag` | `/ns/{namespace}` |
 | body `q` | body `query` |
-| body `limit` | query `limit` |
-| `searchMode: "documents"` | `searchMode=chunks` |
-| omitted search mode | `searchMode=hybrid` |
+| body `limit` | body `limit` |
+| `searchMode: "documents"` | `searchMode: "chunks"` |
+| omitted search mode | `searchMode: "hybrid"` |
 | `filters` | singular `filter` |
-| `include.documents` or `.summaries` | `attach.documents` |
-| `include.relatedMemories` | `attach.related` |
-| `include.forgottenMemories` | `attach.forgotten` |
+| `include.documents` or `.summaries` | `include.documents` |
+| `include.relatedMemories` | `include.related` |
+| `include.forgottenMemories` | `include.forgotten` |
 | `rerank: true` / `aggregate: true` | `rerank: "order"` / `"aggregate"` |
 
 <CodeGroup>
@@ -22,8 +22,8 @@ POST /v4/search
 ```
 
 ```bash v5
-POST /ns/user_1/search?limit=10&searchMode=memories
-{"query":"What did the user decide?","threshold":0.6,"rewriteQuery":false}
+POST /ns/user_1/search
+{"query":"What did the user decide?","limit":10,"searchMode":"memories","threshold":0.6,"rewriteQuery":false}
 ```
 </CodeGroup>
 
@@ -48,11 +48,13 @@ Set mode and threshold explicitly while comparing versions. After parity testing
 
 Legacy `include.chunks` has no v5 equivalent. Choose `chunks` or `hybrid` instead.
 
-### Attachments and ranking
+### Included context and ranking
 
-- `attach.documents` adds the most relevant source document to each result.
-- `attach.related` adds parent, child, and sibling memories.
-- `attach.forgotten` allows forgotten memories in related context; it does not make them primary results.
+`include` is an object of booleans in the body, e.g. `"include": {"documents": true, "related": true}`. Each flag defaults to `false`.
+
+- `include.documents` adds the most relevant source document to each result.
+- `include.related` adds parent, child, and sibling memories.
+- `include.forgotten` lets forgotten and expired memories appear in results, including as primary results.
 - `rerank` accepts `none`, `order`, or `aggregate`; `rewriteQuery` controls retrieval-oriented query rewriting.
 
 ### Response mapping
@@ -71,5 +73,5 @@ Each primary result contains either `memory`, `chunk`, or both only if the contr
 
 - Compare IDs using explicit v4-equivalent defaults, then test v5 hybrid behavior separately.
 - Cover all three modes, thresholds at `0` and `1`, each rerank option, and query rewriting.
-- Cover every attachment alone and in combination, including empty attachments.
+- Cover every include alone and in combination, including empty results.
 - Verify filters, namespace isolation, result limits, and invalid body/query placement.

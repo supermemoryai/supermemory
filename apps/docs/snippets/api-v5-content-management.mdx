@@ -9,11 +9,11 @@ GET /v3/documents/{id}/chunks
 ```
 
 ```bash v5
-GET /ns/{namespace}/document/{id}?attach=chunks&attach=memories
+GET /ns/{namespace}/document/{id}?include=chunks,memories
 ```
 </CodeGroup>
 
-Repeat `attach` to include chunks, memories, or both. Omitted attachment keys are absent; requested attachments with no results are empty arrays. Lifecycle fields move under `system`:
+Pass `include` as a comma-separated list to return chunks, memories, or both. Keys you omit are absent; requested keys with no results are empty arrays. Lifecycle fields move under `system`:
 
 ```json
 {"system":{"status":"done","createdAt":"...","updatedAt":"..."}}
@@ -66,7 +66,7 @@ See [memory forgetting](./api-v5-memory-forgetting) for the complete dry-run, ap
 
 ### Verification
 
-- Assert requested empty attachments are `[]`, while omitted attachments are absent.
+- Assert requested empty includes are `[]`, while omitted includes are absent.
 - Paginate each resource type until `currentPage >= totalPages`; unselected arrays stay empty.
 - Verify chunk rows contain their parent `documentId`.
 - Exercise partial document-delete failures and semantic dry runs.
