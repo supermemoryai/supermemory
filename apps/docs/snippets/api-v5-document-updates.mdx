@@ -59,7 +59,7 @@ The path `id` may be the Supermemory document ID or your caller-defined ID. It i
 
 ### Processing and conflicts
 
-Content or file replacement is accepted before downstream processing completes. A document still processing, a namespace conflict, or a conflicting internal file path can return `409`; retry only after the conflicting operation reaches a terminal state.
+Content or file replacement returns `202 Accepted` before downstream processing completes. A document still processing, a namespace conflict, or a conflicting internal file path can return `409`; retry only after the conflicting operation reaches a terminal state.
 
 ### Verification
 

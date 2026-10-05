@@ -25,7 +25,7 @@ POST /ns/user_1/document?dreaming=dynamic
 ```
 </CodeGroup>
 
-The response remains an acceptance result with `id` and `status`. Repeating the v5 request with `id: "conv_1"` adds or diffs the new content into that document; it does not silently replace the canonical source.
+The response remains an acceptance result with `id` and `status`, now returned as `202 Accepted` instead of `200`. Repeating the v5 request with `id: "conv_1"` adds or diffs the new content into that document; it does not silently replace the canonical source.
 
 ### Batch ingestion
 
