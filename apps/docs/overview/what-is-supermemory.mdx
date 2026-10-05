@@ -5,13 +5,11 @@ sidebarTitle: "What is Supermemory?"
 icon: "/icons/hugeicons/book-open-01.svg"
 ---
 
-export const ArtTile = ({ title, href, art, pos = "center", flip, children }) => {
+export const ArtTile = ({ title, href, children }) => {
   return (
     <a className="sm-card sm-art-card group" href={href}>
       <div className="sm-card-media sm-art-media">
-        <img src={art} alt="" style={{ objectPosition: pos, "--flip": flip ? -1 : 1 }} />
-        <div className="sm-art-wash" />
-        <div className="sm-scene" aria-hidden="true">{children}</div>
+        {children}
       </div>
       <div className="sm-card-body">
         <div className="sm-card-title">
@@ -27,9 +25,9 @@ export const At = ({ x, y, w, className, children }) => (
   <div className={className} style={{ left: x, top: y, width: w }}>{children}</div>
 )
 
-export const Tile = ({ x, y, size = 36, src, icon, logo, on, faded, badge }) => (
-  <div className={"m m-tile" + (src ? (logo ? " is-logo" : " is-app") : "") + (on ? " is-on" : "") + (faded ? " is-faded" : "")} style={{ left: x, top: y, width: size, height: size, padding: logo ? Math.round(size * 0.22) : 0 }}>
-    {src ? <img src={src} alt="" /> : <Icon icon={icon} size={Math.round(size * 0.45)} />}
+export const Tile = ({ x, y, size = 36, logo, on, badge, children }) => (
+  <div className={"m m-tile" + (logo ? " is-logo" : " is-app") + (on ? " is-on" : "")} style={{ left: x, top: y, width: size, height: size, padding: logo ? Math.round(size * 0.22) : 0 }}>
+    {children}
     {badge ? <span className="m-badge"><Icon icon="/icons/hugeicons/tick-02.svg" size={9} /></span> : null}
   </div>
 )
@@ -45,64 +43,96 @@ Supermemory is **context infrastructure for AI agents**. It gives your agent mem
 These are the building blocks it ships with:
 
 <div className="not-prose sm-art-grid">
-  <ArtTile title="Memory & continual learning" href="/concepts/graph-memory" art="/images/art/bg-branch.jpg" pos="center">
-    <At x={48} y={8} w={168} className="m m-card m-row is-faded is-back"><span className="m-ic"><Icon icon="/icons/hugeicons/source-code.svg" size={12} /></span><s>Prefers Python</s></At>
-    <At x={32} y={38} w={200} className="m m-card m-row is-front"><span className="m-ic is-on"><Icon icon="/icons/hugeicons/refresh.svg" size={12} /></span><span className="m-grow">Uses TypeScript</span><span className="m-tag">Updates</span></At>
-    <Lines d={["M132 82 L 132 104"]} />
-    <At x={76} y={104} className="m m-chip"><Icon icon="/icons/hugeicons/plus-sign.svg" size={11} />Bun for scripts</At>
+  <ArtTile title="Memory & continual learning" href="/concepts/graph-memory">
+    <img src="/images/art/bg-branch.jpg" alt="" noZoom style={{ objectPosition: "center", "--flip": 1 }} />
+    <div className="sm-art-wash" />
+    <div className="sm-scene" aria-hidden="true">
+      <At x={48} y={8} w={168} className="m m-card m-row is-faded is-back"><span className="m-ic"><Icon icon="/icons/hugeicons/source-code.svg" size={12} /></span><s>Prefers Python</s></At>
+      <At x={32} y={38} w={200} className="m m-card m-row is-front"><span className="m-ic is-on"><Icon icon="/icons/hugeicons/refresh.svg" size={12} /></span><span className="m-grow">Uses TypeScript</span><span className="m-tag">Updates</span></At>
+      <Lines d={["M132 82 L 132 104"]} />
+      <At x={76} y={104} className="m m-chip"><Icon icon="/icons/hugeicons/plus-sign.svg" size={11} />Bun for scripts</At>
+    </div>
   </ArtTile>
-  <ArtTile title="SuperRAG (retrieval)" href="/concepts/super-rag" art="/images/art/bg-meadow.jpg" pos="center">
-    <At x={24} y={14} w={216} className="m m-card m-row m-search"><Icon icon="/icons/hugeicons/search-01.svg" size={13} /><span className="m-grow">refund policy for annual plans</span></At>
-    <At x={56} y={94} w={152} className="m m-card m-ghost is-faded" />
-    <At x={44} y={82} w={176} className="m m-card m-ghost is-faded" />
-    <At x={32} y={66} w={200} className="m m-card m-row is-front"><span className="m-ic is-on"><Icon icon="/icons/hugeicons/file-02.svg" size={12} /></span><span className="m-grow"><span className="m-skel" style={{ width: "88%" }} /><span className="m-skel" style={{ width: "56%" }} /></span><span className="m-score">0.92</span></At>
+  <ArtTile title="SuperRAG (retrieval)" href="/concepts/super-rag">
+    <img src="/images/art/bg-meadow.jpg" alt="" noZoom style={{ objectPosition: "center", "--flip": 1 }} />
+    <div className="sm-art-wash" />
+    <div className="sm-scene" aria-hidden="true">
+      <At x={24} y={14} w={216} className="m m-card m-row m-search"><Icon icon="/icons/hugeicons/search-01.svg" size={13} /><span className="m-grow">refund policy for annual plans</span></At>
+      <At x={56} y={94} w={152} className="m m-card m-ghost is-faded" />
+      <At x={44} y={82} w={176} className="m m-card m-ghost is-faded" />
+      <At x={32} y={66} w={200} className="m m-card m-row is-front"><span className="m-ic is-on"><Icon icon="/icons/hugeicons/file-02.svg" size={12} /></span><span className="m-grow"><span className="m-skel" style={{ width: "88%" }} /><span className="m-skel" style={{ width: "56%" }} /></span><span className="m-score">0.92</span></At>
+    </div>
   </ArtTile>
-  <ArtTile title="Filesystems" href="/smfs/overview" art="/images/art/bg-stream.jpg" pos="center">
-    <At x={21} y={38} className="m-folder"><span className="m-folder-front"><img src="/images/art/mark-white.svg" alt="" /></span></At>
-    <Lines d={["M111 74 L 131 74"]} />
-    <At x={135} y={26} w={108} className="m m-card m-files">
-      <div className="m-file is-on"><Icon icon="/icons/hugeicons/file-02.svg" size={12} /><span>profile.md</span></div>
-      <div className="m-file"><Icon icon="/icons/hugeicons/file-01.svg" size={12} /><span>notes.md</span></div>
-      <div className="m-file"><Icon icon="/icons/hugeicons/folder-01.svg" size={12} /><span>meetings</span></div>
-    </At>
+  <ArtTile title="Filesystems" href="/smfs/overview">
+    <img src="/images/art/bg-stream.jpg" alt="" noZoom style={{ objectPosition: "center", "--flip": 1 }} />
+    <div className="sm-art-wash" />
+    <div className="sm-scene" aria-hidden="true">
+      <At x={21} y={38} className="m-folder"><span className="m-folder-front"><img src="/images/art/mark-white.svg" alt="" /></span></At>
+      <Lines d={["M111 74 L 131 74"]} />
+      <At x={135} y={26} w={108} className="m m-card m-files">
+        <div className="m-file is-on"><Icon icon="/icons/hugeicons/file-02.svg" size={12} /><span>profile.md</span></div>
+        <div className="m-file"><Icon icon="/icons/hugeicons/file-01.svg" size={12} /><span>notes.md</span></div>
+        <div className="m-file"><Icon icon="/icons/hugeicons/folder-01.svg" size={12} /><span>meetings</span></div>
+      </At>
+    </div>
   </ArtTile>
-  <ArtTile title="Profiles" href="/concepts/user-profiles" art="/images/art/bg-grass.jpg" pos="center">
-    <At x={24} y={30} w={216} className="m m-card m-profile">
-      <div className="m-profile-head">
-        <span className="m-avatar"><img src="/images/art/maya.jpg" alt="" /></span>
-        <span className="m-grow"><b>Maya Kapoor</b><span>Payments engineer</span></span>
-      </div>
-      <div className="m-fact"><span className="m-ic"><Icon icon="/icons/hugeicons/location-01.svg" size={11} /></span><span className="m-grow">Based in Berlin</span><span className="m-fact-kind">Static</span></div>
-      <div className="m-fact"><span className="m-ic is-on"><Icon icon="/icons/hugeicons/flash.svg" size={11} /></span><span className="m-grow">Fixing webhooks</span><span className="m-tag">Dynamic</span></div>
-    </At>
+  <ArtTile title="Profiles" href="/concepts/user-profiles">
+    <img src="/images/art/bg-grass.jpg" alt="" noZoom style={{ objectPosition: "center", "--flip": 1 }} />
+    <div className="sm-art-wash" />
+    <div className="sm-scene" aria-hidden="true">
+      <At x={24} y={30} w={216} className="m m-card m-profile">
+        <div className="m-profile-head">
+          <span className="m-avatar"><img src="/images/art/maya.jpg" alt="" /></span>
+          <span className="m-grow"><b>Maya Kapoor</b><span>Payments engineer</span></span>
+        </div>
+        <div className="m-fact"><span className="m-ic"><Icon icon="/icons/hugeicons/location-01.svg" size={11} /></span><span className="m-grow">Based in Berlin</span><span className="m-fact-kind">Static</span></div>
+        <div className="m-fact"><span className="m-ic is-on"><Icon icon="/icons/hugeicons/flash.svg" size={11} /></span><span className="m-grow">Fixing webhooks</span><span className="m-tag">Dynamic</span></div>
+      </At>
+    </div>
   </ArtTile>
-  <ArtTile title="Connectors" href="/connectors/overview" art="/images/art/bg-lakeshore.jpg" pos="center">
-    <Lines d={["M78 30 C 130 30, 140 76, 176 76", "M78 76 L 176 76", "M78 122 C 130 122, 140 76, 176 76"]} />
-    <Tile x={36} y={10} size={40} src="/images/notion-icon.svg" logo />
-    <Tile x={36} y={56} size={40} src="/images/google-drive-icon.svg" logo />
-    <Tile x={36} y={102} size={40} src="/images/github-icon.svg" logo />
-    <At x={176} y={50} className="m-orb is-hub"><img src="/images/art/mark-white.svg" alt="" /></At>
+  <ArtTile title="Connectors" href="/connectors/overview">
+    <img src="/images/art/bg-lakeshore.jpg" alt="" noZoom style={{ objectPosition: "center", "--flip": 1 }} />
+    <div className="sm-art-wash" />
+    <div className="sm-scene" aria-hidden="true">
+      <Lines d={["M78 30 C 130 30, 140 76, 176 76", "M78 76 L 176 76", "M78 122 C 130 122, 140 76, 176 76"]} />
+      <Tile x={36} y={10} size={40} logo><img src="/images/notion-icon.svg" alt="" /></Tile>
+      <Tile x={36} y={56} size={40} logo><img src="/images/google-drive-icon.svg" alt="" /></Tile>
+      <Tile x={36} y={102} size={40} logo><img src="/images/github-icon.svg" alt="" /></Tile>
+      <At x={176} y={50} className="m-orb is-hub"><img src="/images/art/mark-white.svg" alt="" /></At>
+    </div>
   </ArtTile>
-  <ArtTile title="Extractors" href="/concepts/content-types" art="/images/art/bg-islands.jpg" pos="center">
-    <At x={22} y={36} className="m m-card m-pdf"><Icon icon="/icons/hugeicons/file-02.svg" size={20} /><span className="m-pdf-tag">PDF</span></At>
-    <Lines d={["M90 76 L 136 76"]} />
-    <At x={142} y={30} w={100} className="m m-card m-chunk is-faded"><span className="m-skel" style={{ width: "70%" }} /></At>
-    <At x={142} y={62} w={100} className="m m-card m-chunk is-on"><span className="m-skel" style={{ width: "84%" }} /></At>
-    <At x={142} y={94} w={100} className="m m-card m-chunk is-faded"><span className="m-skel" style={{ width: "58%" }} /></At>
+  <ArtTile title="Extractors" href="/concepts/content-types">
+    <img src="/images/art/bg-islands.jpg" alt="" noZoom style={{ objectPosition: "center", "--flip": 1 }} />
+    <div className="sm-art-wash" />
+    <div className="sm-scene" aria-hidden="true">
+      <At x={22} y={36} className="m m-card m-pdf"><Icon icon="/icons/hugeicons/file-02.svg" size={20} /><span className="m-pdf-tag">PDF</span></At>
+      <Lines d={["M90 76 L 136 76"]} />
+      <At x={142} y={30} w={100} className="m m-card m-chunk is-faded"><span className="m-skel" style={{ width: "70%" }} /></At>
+      <At x={142} y={62} w={100} className="m m-card m-chunk is-on"><span className="m-skel" style={{ width: "84%" }} /></At>
+      <At x={142} y={94} w={100} className="m m-card m-chunk is-faded"><span className="m-skel" style={{ width: "58%" }} /></At>
+    </div>
   </ArtTile>
-  <ArtTile title="Qualitative analysis" href="https://supermemory.ai/research" art="/images/art/bg-meadow.jpg" pos="30% 60%" flip>
-    <At x={42} y={10} w={180} className="m m-card m-board">
-      <div className="m-board-head">LongMemEval</div>
-      <div className="m-board-row is-on"><span className="m-ic is-on"><Icon icon="/icons/hugeicons/award-01.svg" size={12} /></span><span className="m-grow">Supermemory</span><span>1st</span></div>
-      <div className="m-board-row is-faded"><span className="m-ic" /><span className="m-grow"><span className="m-skel" style={{ width: "64%" }} /></span></div>
-      <div className="m-board-row is-faded"><span className="m-ic" /><span className="m-grow"><span className="m-skel" style={{ width: "48%" }} /></span></div>
-    </At>
+  <ArtTile title="Qualitative analysis" href="https://supermemory.ai/research">
+    <img src="/images/art/bg-meadow.jpg" alt="" noZoom style={{ objectPosition: "30% 60%", "--flip": -1 }} />
+    <div className="sm-art-wash" />
+    <div className="sm-scene" aria-hidden="true">
+      <At x={42} y={10} w={180} className="m m-card m-board">
+        <div className="m-board-head">LongMemEval</div>
+        <div className="m-board-row is-on"><span className="m-ic is-on"><Icon icon="/icons/hugeicons/award-01.svg" size={12} /></span><span className="m-grow">Supermemory</span><span>1st</span></div>
+        <div className="m-board-row is-faded"><span className="m-ic" /><span className="m-grow"><span className="m-skel" style={{ width: "64%" }} /></span></div>
+        <div className="m-board-row is-faded"><span className="m-ic" /><span className="m-grow"><span className="m-skel" style={{ width: "48%" }} /></span></div>
+      </At>
+    </div>
   </ArtTile>
-  <ArtTile title="Plugins" href="/supermemory-mcp/mcp" art="/images/art/bg-lakeshore.jpg" pos="70% 40%" flip>
-    <Tile x={20} y={52} size={48} src="/images/claude-code-icon.svg" logo on badge />
-    <Tile x={82} y={52} size={48} src="/images/cursor-logo.svg" badge />
-    <Tile x={144} y={52} size={48} src="/images/codex.svg" badge />
-    <Tile x={206} y={52} size={48} src="/images/openclaw-logo.jpg" badge />
+  <ArtTile title="Plugins" href="/supermemory-mcp/mcp">
+    <img src="/images/art/bg-lakeshore.jpg" alt="" noZoom style={{ objectPosition: "70% 40%", "--flip": -1 }} />
+    <div className="sm-art-wash" />
+    <div className="sm-scene" aria-hidden="true">
+      <Tile x={20} y={52} size={48} logo on badge><img src="/images/claude-code-icon.svg" alt="" /></Tile>
+      <Tile x={82} y={52} size={48} badge><img src="/images/cursor-logo.svg" alt="" /></Tile>
+      <Tile x={144} y={52} size={48} badge><img src="/images/codex.svg" alt="" /></Tile>
+      <Tile x={206} y={52} size={48} badge><img src="/images/openclaw-logo.jpg" alt="" /></Tile>
+    </div>
   </ArtTile>
 </div>
 
