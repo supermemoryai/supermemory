@@ -17,6 +17,7 @@ Record each legacy request, v5 request, expected semantic result, and intentiona
 
 - Document includes are absent when omitted and empty arrays when requested without results.
 - Unified list responses populate only the selected resource array.
+- `metadata` is always an object, `{}` when empty; it is never `null`.
 - Search parity uses explicit v4-equivalent mode and threshold before testing v5 defaults.
 - Profiles always contain static, dynamic, and bucket sections.
 
