@@ -33,7 +33,7 @@ POST /ns/{namespace}/list/{type}?page=1&limit=100&sort=createdAt&order=desc
 ```
 </CodeGroup>
 
-Set `type` to `documents`, `chunks`, or `memories`. Pagination and sorting move to the query string; the body contains only optional `filter`.
+Set `type` to `documents`, `chunks`, or `memories`. Pagination and sorting move to the query string; the body contains only optional `filter`. Defaults are `page=1`, `limit=10` (maximum 1100), `sort=createdAt`, and `order=desc`.
 
 Every response contains `documents`, `chunks`, `memories`, and `pagination`. Only the selected resource array is populated. Replace legacy `memories` assumptions in document-list callers with `documents`.
 
