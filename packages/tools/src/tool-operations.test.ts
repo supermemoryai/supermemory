@@ -180,7 +180,7 @@ describe("memoryForget", () => {
 		expect(init.signal).toBeInstanceOf(AbortSignal)
 	})
 
-	it("uses a caller-provided signal instead of creating a timeout", async () => {
+	it("cancels through a caller-provided signal", async () => {
 		const fetchMock = stubFetch()
 		const controller = new AbortController()
 
@@ -192,7 +192,39 @@ describe("memoryForget", () => {
 		)
 
 		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-		expect(init.signal).toBe(controller.signal)
+		// The request signal is a composite, not the caller's own, but aborting
+		// the caller still aborts the request.
+		expect(init.signal).not.toBe(controller.signal)
+		controller.abort()
+		expect(init.signal?.aborted).toBe(true)
+	})
+
+	it("keeps the timeout when a caller-provided signal is present", async () => {
+		const timeoutController = new AbortController()
+		const timeoutSpy = vi
+			.spyOn(AbortSignal, "timeout")
+			.mockReturnValue(timeoutController.signal)
+		const fetchMock = stubFetch()
+		const controller = new AbortController()
+
+		try {
+			await forgetMemoryRequest(
+				API_KEY,
+				{ containerTag: "user_1", id: "mem_1" },
+				undefined,
+				{ signal: controller.signal },
+			)
+
+			expect(timeoutSpy).toHaveBeenCalledWith(30_000)
+
+			const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+			// Firing only the timeout leg aborts the request: a caller signal adds
+			// cancellation, it does not remove the 30s bound.
+			timeoutController.abort()
+			expect(init.signal?.aborted).toBe(true)
+		} finally {
+			timeoutSpy.mockRestore()
+		}
 	})
 
 	it("throws a descriptive error on non-2xx responses", async () => {
