@@ -11,7 +11,7 @@ Record each legacy request, v5 request, expected semantic result, and intentiona
 - Repeated POST appends or diffs; PATCH replaces canonical content.
 - Batch outcomes preserve input order and surface partial failures.
 - Metadata-only updates leave source content unchanged.
-- Accepted writes are polled until processing reaches a terminal state.
+- Accepted writes return `202` and are polled until processing reaches a terminal state.
 
 ### Compare reads and recall
 
