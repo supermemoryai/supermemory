@@ -20,13 +20,13 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
 
 <Tabs>
   <Tab title="TypeScript">
-    ## Installation
+    ## Install the TypeScript SDK
 
     ```bash
     npm install supermemory
     ```
 
-    ## Quick start
+    ## Start a TypeScript client
 
     ```typescript
     import Supermemory from 'supermemory';
@@ -52,7 +52,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     console.log(profile.profile.dynamic);
     ```
 
-    ## Common operations
+    ## Run common TypeScript operations
 
     ```typescript
     // Add with metadata
@@ -81,7 +81,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     await client.documents.delete({ docId: "doc_123" });
     ```
 
-    ## Error handling & retries
+    ## Handle TypeScript SDK errors
 
     | Status | Error |
     |--------|-------|
@@ -100,13 +100,13 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
   </Tab>
 
   <Tab title="Python">
-    ## Installation
+    ## Install the Python SDK
 
     ```bash
     pip install supermemory
     ```
 
-    ## Quick start
+    ## Start a Python client
 
     ```python
     import os
@@ -133,7 +133,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     print(profile.profile.dynamic)
     ```
 
-    ## Common operations
+    ## Run common Python operations
 
     ```python
     # Add with metadata
@@ -162,7 +162,7 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     client.documents.delete(doc_id="doc_123")
     ```
 
-    ## Error handling & retries
+    ## Handle Python SDK errors
 
     Same error classes as the TypeScript SDK (`BadRequestError`, `AuthenticationError`, `PermissionDeniedError`, `NotFoundError`, `ConflictError`, `UnprocessableEntityError`, `RateLimitError`, `InternalServerError`), all inheriting from `supermemory.APIError`. Connection errors, 408, 409, 429, and >=500 responses are retried automatically (`max_retries`, default 2). Requests time out after 1 minute by default (`timeout` option). Set `SUPERMEMORY_LOG=info` (or `debug`) to enable logging.
 

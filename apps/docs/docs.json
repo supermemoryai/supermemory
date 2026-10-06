@@ -68,6 +68,7 @@
 		"light": "/logo/light.svg"
 	},
 	"name": "supermemory | Memory API for the AI era",
+	"description": "Frontier agent memory and context platform",
 	"navbar": {
 		"links": [
 			{
