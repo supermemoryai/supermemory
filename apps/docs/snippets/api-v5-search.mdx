@@ -53,7 +53,7 @@ Legacy `include.chunks` has no v5 equivalent. Choose `chunks` or `hybrid` instea
 `include` is an object of booleans in the body, e.g. `"include": {"documents": true, "related": true}`. Each flag defaults to `false`.
 
 - `include.documents` adds the most relevant source document to each result.
-- `include.related` adds parent, child, and sibling memories.
+- `include.related` adds parent, child, and sibling memories. Related memories come only from the same namespace and must match the request's `filter`, so they never surface content the search itself would exclude.
 - `include.forgotten` lets forgotten and expired memories appear in results, including as primary results.
 - `rerank` accepts `none`, `order`, or `aggregate`; `rewriteQuery` controls retrieval-oriented query rewriting.
 
@@ -64,7 +64,7 @@ Legacy `include.chunks` has no v5 equivalent. Choose `chunks` or `hybrid` instea
 | Result array | `results` |
 | Timing | `searchTime` |
 | Source expansion | `result.included.document`, with timestamps under its `system` |
-| Related context | `result.included.related.{parents,children,siblings}` |
+| Related context | `result.included.related.{parents,children,siblings}`, each with its memory `id` |
 | Lifecycle fields | `result.system` |
 | Version and inference flags | `result.isLatest`, `result.isInference` |
 
