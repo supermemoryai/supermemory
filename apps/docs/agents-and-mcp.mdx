@@ -178,8 +178,8 @@ You are integrating Supermemory into my app.
 - Prefer `npx supermemory setup` / the supermemory skill for correct auth, namespace, and SDK usage.
 - Canonical writes: POST /ns/{namespace}/document · search: POST /ns/{namespace}/search · profile: POST /ns/{namespace}/profile
 - Auth: Authorization: Bearer $SUPERMEMORY_API_KEY only
-- Always scope with one namespace in the URL path on write and search (never containerTag in the body)
-- SDK: import { Supermemory } from "supermemory"; every call takes { namespace, ...queryParams, body }
+- Always scope with one namespace in the URL path on write and search; there is no namespace field in the body
+- SDK: import { Supermemory } from "supermemory"; version 5 or later; the namespace is the first argument: client.add(namespace, { content }), client.search(namespace, { query })
 - For demos use dreaming: "instant" when memories must be ready right after status done
 ```
 

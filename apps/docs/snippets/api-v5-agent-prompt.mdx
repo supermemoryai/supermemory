@@ -1,6 +1,14 @@
 ## Migrate with an agent
 
-Paste this into Claude Code, Cursor, or Codex. It fetches this guide as markdown and rewrites every legacy call.
+The quickest path is one command in your project root. It scans the repo for v3/v4 usage, reads your Supermemory packages and AI SDK, builds a migration prompt for this project, and launches your coding agent with it:
+
+```bash
+npx supermemory@latest migrate            # pick your agent interactively
+npx supermemory@latest migrate --agent codex
+npx supermemory@latest migrate --prompt   # print the prompt instead
+```
+
+Prefer to paste a prompt yourself? This one fetches the guide as markdown and rewrites every legacy call:
 
 ```text
 Migrate this repository from Supermemory v3/v4 to v5. Fetch https://supermemory.ai/docs/migration/api-v5.md and follow it. First write a checklist in your reply, not as a file in the repository, of every legacy call site and of every Supermemory-specific name in this codebase: containerTag, containerTags, customId, entityContext, filterByMetadata, filters, including option names, config keys, environment variables and tests. Migrate them one by one and tick each off. Rename those names to the v5 ones (namespace, id, supportingContext, group, filter) with no aliases. A document belongs to exactly one namespace in v5, so a containerTags array becomes one namespace. If an operation has no v5 replacement, do not invent one: keep going, and list it at the end with the alternative the guide suggests.

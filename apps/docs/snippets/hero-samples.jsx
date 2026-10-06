@@ -1,8 +1,54 @@
-export const HERO_TS =
-	'import Supermemory from "supermemory";\n\nconst client = new Supermemory();\n\n// March\nawait client.add({\n  content: "I work at Google on the Maps team.",\n  containerTag: "user_4f8a",\n});\n\n// June\nawait client.add({\n  content: "Big news: I just started at Stripe!",\n  containerTag: "user_4f8a",\n});\n\n// Later: what does your agent know about this user?\nconst { profile } = await client.profile({ containerTag: "user_4f8a" });\n\nconsole.log(profile.static);\n// \u2192 ["Now works at Stripe."]'
+export const HERO_TS = `import { Supermemory } from "supermemory";
 
-export const HERO_PY =
-	'from supermemory import Supermemory\n\nclient = Supermemory()\n\n# March\nclient.add(\n    content="I work at Google on the Maps team.",\n    container_tag="user_4f8a",\n)\n\n# June\nclient.add(\n    content="Big news: I just started at Stripe!",\n    container_tag="user_4f8a",\n)\n\n# Later: what does your agent know about this user?\nprofile = client.profile(container_tag="user_4f8a").profile\n\nprint(profile.static)\n# \u2192 ["Now works at Stripe."]'
+const client = new Supermemory();
 
-export const HERO_CURL =
-	'# March\ncurl https://api.supermemory.ai/v3/documents \\\n  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"content": "I work at Google on the Maps team.", "containerTag": "user_4f8a"}\'\n\n# June\ncurl https://api.supermemory.ai/v3/documents \\\n  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"content": "Big news: I just started at Stripe!", "containerTag": "user_4f8a"}\'\n\n# Later: what does your agent know about this user?\ncurl https://api.supermemory.ai/v4/profile \\\n  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"containerTag": "user_4f8a"}\'\n# \u2192 {"profile": {"static": ["Now works at Stripe."], "dynamic": []}}'
+// March
+await client.add("user_4f8a", {
+  content: "I work at Google on the Maps team.",
+});
+
+// June
+await client.add("user_4f8a", {
+  content: "Big news: I just started at Stripe!",
+});
+
+// Later: what does your agent know about this user?
+const { profile } = await client.profile("user_4f8a");
+
+console.log(profile.static.map((m) => m.memory));
+// \u2192 ["Now works at Stripe."]`
+
+export const HERO_PY = `from supermemory import Supermemory
+
+client = Supermemory()
+
+# March
+client.add("user_4f8a", content="I work at Google on the Maps team.")
+
+# June
+client.add("user_4f8a", content="Big news: I just started at Stripe!")
+
+# Later: what does your agent know about this user?
+profile = client.profile("user_4f8a").profile
+
+print([m.memory for m in profile.static])
+# \u2192 ["Now works at Stripe."]`
+
+export const HERO_CURL = `# March
+curl https://api.supermemory.ai/ns/user_4f8a/document \\
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"content": "I work at Google on the Maps team."}'
+
+# June
+curl https://api.supermemory.ai/ns/user_4f8a/document \\
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"content": "Big news: I just started at Stripe!"}'
+
+# Later: what does your agent know about this user?
+curl -X POST https://api.supermemory.ai/ns/user_4f8a/profile \\
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{}'
+# \u2192 {"profile": {"static": [{"id": "mem_1", "memory": "Now works at Stripe."}], "dynamic": []}}`
