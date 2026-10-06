@@ -46,25 +46,23 @@ const client = new Supermemory({
   apiKey: process.env.SUPERMEMORY_API_KEY
 });
 
-// 1. Retrieve personalized context
-const context = await client.profile({
-  containerTag: "user_123",
-  q: "What are my preferences?"
-});
+// 1. Retrieve personalized context (profile takes no query; search separately)
+const [{ profile }, { results }] = await Promise.all([
+  client.profile("user_123"),
+  client.search("user_123", { query: "What are my preferences?", searchMode: "memories" }),
+]);
 
 // 2. Enrich your prompt with context
-const profileText = [
-  ...context.profile.static,
-  ...context.profile.dynamic,
-].join('\n');
-const relevantMemories = JSON.stringify(context.searchResults?.results ?? []);
+const profileText = [...profile.static, ...profile.dynamic]
+  .map((m) => m.memory)
+  .join('\n');
+const relevantMemories = results.map((r) => r.memory ?? r.chunk).join('\n');
 const systemMessage = `User Profile:\n${profileText}\n\nRelevant Memories:\n${relevantMemories}`;
 
 // 3. Store new memories after conversation
 const conversationText = "User: I prefer dark mode.\nAssistant: I'll remember that.";
-await client.add({
+await client.add("user_123", {
   content: conversationText,
-  containerTag: "user_123",
   metadata: { type: "conversation" }
 });
 ```
@@ -77,26 +75,20 @@ from supermemory import Supermemory
 
 client = Supermemory(api_key=os.environ["SUPERMEMORY_API_KEY"])
 
-# Retrieve context
-context = client.profile(
-    container_tag="user_123",
-    q="What are my preferences?"
-)
+# Retrieve context: the namespace comes first, then keyword arguments
+context = client.profile("user_123")
+search = client.search("user_123", query="What are my preferences?", search_mode="memories")
 
 profile_text = "\n".join(
-    (context.profile.static or []) + (context.profile.dynamic or [])
+    m.memory for m in context.profile.static + context.profile.dynamic
 )
-relevant_memories = "\n".join(
-    result.memory
-    for result in (context.search_results.results if context.search_results else [])
-    if result.memory
-)
+relevant_memories = "\n".join(r.memory for r in search.results if r.memory)
 
 # Add memories
 conversation_text = "User: I prefer dark mode.\nAssistant: I'll remember that."
 client.add(
+    "user_123",
     content=conversation_text,
-    container_tag="user_123",
     metadata={"type": "conversation"}
 )
 ```
@@ -125,7 +117,6 @@ Supermemory builds a **living knowledge graph** rather than static document stor
    - **TypeScript/JavaScript**: `npm install supermemory` ([npm](https://www.npmjs.com/package/supermemory))
    - **Python**: `pip install supermemory` ([PyPI](https://pypi.org/project/supermemory/))
    - **TypeScript agent tools/middleware**: `npm install @supermemory/tools`
-   - **Python OpenAI tools/middleware**: `pip install supermemory-openai-sdk`
 
    Discover all available SDKs and community integrations at [supermemory.ai/docs](https://supermemory.ai/docs)
 3. **Set Environment Variable**: `export SUPERMEMORY_API_KEY="your_key"`
@@ -140,20 +131,22 @@ Supermemory supports two complementary integration styles:
 
 | Path | When to use | Packages |
 |------|-------------|----------|
-| **Tools** | Model explicitly decides when to search, add, list, or forget | `@supermemory/tools/ai-sdk` (TypeScript), `supermemory-openai-sdk` (Python) |
-| **Middleware** | Auto-inject profile context before each request and save conversations after | `@supermemory/tools/ai-sdk` (Vercel AI SDK), `@supermemory/tools/openai` (OpenAI), `supermemory-openai-sdk` (Python) |
+| **Tools** | Model explicitly decides when to search, add, list, or forget | `@supermemory/tools/ai-sdk` (Vercel AI SDK), `@supermemory/tools/openai` (OpenAI) |
+| **Middleware** | Auto-inject profile context before each request and save conversations after | `@supermemory/tools/ai-sdk` (Vercel AI SDK), `@supermemory/tools/openai` (OpenAI) |
+
+Both read and write one `namespace` (usually one per end user). Middleware also takes an `id` that keeps one conversation in one document.
 
 **Tools (7 canonical operations):**
 
 | Tool | Use when |
 |------|----------|
-| `searchMemories` / `search_memories` | Proactive hybrid recall before answering when user-specific context could help — not only when explicitly asked. Hybrid returns both memory entries and source-document chunks. |
-| `addMemory` / `add_memory` | Store a single generalizable fact the user stated |
-| `getProfile` / `get_profile` | Load static + dynamic profile; pass `query` to scope search results to the current topic |
-| `documentList` / `document_list` | Browse stored **source documents** (conversations, URLs, files); returns **document IDs** |
-| `documentAdd` / `document_add` | Ingest raw content (text blob, conversation transcript, URL, notes) for **background processing** — memories are extracted automatically; use for substantial content, not single facts (`addMemory`) |
-| `documentDelete` / `document_delete` | Permanently delete a source document and soft-forget memories extracted from it |
-| `memoryForget` / `memory_forget` | **Soft delete** one learned profile fact by memory ID or exact content match |
+| `searchMemories` | Proactive hybrid recall before answering when user-specific context could help — not only when explicitly asked. Hybrid returns both memory entries and source-document chunks. |
+| `addMemory` | Store a single generalizable fact the user stated |
+| `getProfile` | Load static + dynamic profile; pass `query` to also get `searchResults` for the current topic |
+| `documentList` | Browse stored **source documents** (conversations, URLs, files); returns **document IDs** |
+| `documentAdd` | Ingest raw content (text blob, conversation transcript, URL, notes) for **background processing** — memories are extracted automatically; use for substantial content, not single facts (`addMemory`) |
+| `documentDelete` | Permanently delete a source document and soft-forget memories extracted from it |
+| `memoryForget` | **Soft delete** one learned profile fact by memory ID or exact content match |
 
 ### Removing information — three different mechanisms
 
@@ -161,11 +154,11 @@ Agents must pick the right removal path:
 
 | User intent | Tool | What it removes | ID source |
 |-------------|------|-----------------|-----------|
-| "Forget that I like tea" / correct a wrong fact | `memoryForget` | One extracted profile memory (soft delete) | Memory ID from a search result that contains `memory`, or query-backed `getProfile.searchResults` / `get_profile.search_results` |
+| "Forget that I like tea" / correct a wrong fact | `memoryForget` | One extracted profile memory (soft delete) | Memory ID from a `getProfile` entry, or from a search result that contains `memory` |
 | "Delete that conversation" / remove a whole file or URL | `documentDelete` | Source document permanently; extracted memories are soft-forgotten | `documentId` from `documentList` |
 | User is vague ("forget what you know about my job") | `searchMemories` first → then `memoryForget` | Same as memoryForget | Search first, then use `memoryId` |
 
-**Do not confuse IDs:** `memoryId` ≠ `documentId`. In hybrid results, only an item containing `memory` has a forgettable memory ID; an item containing `chunk` has a chunk ID. Static/dynamic profile entries are plain text, so use query-backed profile search results when you need an ID.
+**Do not confuse IDs:** `memoryId` ≠ `documentId`. In hybrid results, only an item containing `memory` has a forgettable memory ID; an item containing `chunk` has a chunk ID. Static/dynamic profile entries are `{ id, memory }`, so their `id` is a forgettable memory ID.
 
 **Soft vs hard delete:** `memoryForget` hides a fact from profile/search but leaves source documents. `documentDelete` permanently removes the underlying source and soft-forgets its extracted memories.
 
@@ -174,35 +167,22 @@ Agents must pick the right removal path:
 - **`search()` / `searchMemories`**: Targeted recall — use proactively before answering when memory could improve the response, not only when the user says "search" or "what do you remember". Hybrid mode returns both extracted memories and source-document chunks.
 - **`documents.*`**: Source management — list, add, or delete documents throughout their lifecycle.
 
-With multiple configured container tags, `searchMemories`, `getProfile`, and `memoryForget` use the first tag because v4 memory operations are single-space. Add, list, and delete operations use the broader configured scope where supported.
+Every tool reads and writes only the one configured `namespace`. A v5 document lives in exactly one namespace, so there is no multi-namespace tool config; create one tool set per namespace if an agent needs several.
 
 **TypeScript (Vercel AI SDK):**
 ```typescript
 import { supermemoryTools } from "@supermemory/tools/ai-sdk"
 
 const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
-  containerTags: ["user_123"],
+  namespace: "user_123",
 })
 ```
 
 The aggregate includes destructive tools. Select only the operations the agent needs, and expose `documentDelete` or `memoryForget` only when the agent is authorized to remove data.
 
-**Python (OpenAI function calling):**
-```python
-import os
+**Python:** there is no v5 Python tools package yet. Call the Python SDK (`pip install supermemory`) from your own function-calling handlers.
 
-from supermemory_openai import SupermemoryTools
-
-tools = SupermemoryTools(
-    os.environ["SUPERMEMORY_API_KEY"],
-    {"container_tags": ["user_123"]},
-)
-definitions = tools.get_tool_definitions()  # all 7 tools
-```
-
-Filter `definitions` before passing them to a model if it should not be able to call `document_delete` or `memory_forget`.
-
-**For Chatbots**: Use middleware (`withSupermemory` / `with_supermemory`) for automatic context injection, or pass tools to the model for explicit memory control
+**For Chatbots**: Use middleware (`withSupermemory`) for automatic context injection, or pass tools to the model for explicit memory control
 
 **For Knowledge Bases (RAG)**: Use `add()` / `documentAdd` for text or URL ingestion, the SDK file-upload method for local files, then `searchMemories` with hybrid mode for retrieval
 
@@ -220,9 +200,9 @@ Filter `definitions` before passing them to a model if it should not be able to 
 
 ## Best Practices
 
-1. **Container Tags**: Use consistent user/project IDs as containerTags for proper isolation
+1. **Namespaces**: Use one consistent user/project ID as the namespace for proper isolation; each document belongs to exactly one namespace
 2. **Metadata**: Add custom metadata for advanced filtering (source, type, timestamp)
-3. **Thresholds**: The v4 search default is `0.6`; tune it only after checking retrieval quality
+3. **Search defaults**: v5 search defaults to `searchMode: "hybrid"` and `threshold: 0.3`; set both explicitly when you need memories-only or stricter results
 4. **Batch Operations**: Use bulk endpoints for multiple documents
 
 ## Integration Ecosystem
