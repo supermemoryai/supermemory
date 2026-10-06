@@ -35,7 +35,9 @@ POST /ns/{namespace}/list/{type}?page=1&limit=100&sort=createdAt&order=desc
 ```
 </CodeGroup>
 
-Set `type` to `documents`, `chunks`, or `memories`. Pagination and sorting move to the query string; the body contains only optional `filter`.
+Set `type` to `documents`, `chunks`, or `memories`. Pagination and sorting move to the query string as plain integers and values; the body takes an optional `filter` and, for memories, `include`. Defaults are `page=1`, `limit=10` (maximum 100), `sort=createdAt`, and `order=desc`.
+
+Memory lists hide forgotten memories and memories past their `forget_after`. Send `"include": {"forgotten": true}` to list them too; they come back with `isForgotten: true`. Document memories (`include=memories` on `GET /ns/{namespace}/document/{id}`) report the same flag.
 
 Every response contains `documents`, `chunks`, `memories`, and `pagination`. Only the selected resource array is populated. Replace legacy `memories` assumptions in document-list callers with `documents`.
 
