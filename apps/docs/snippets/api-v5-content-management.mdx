@@ -21,6 +21,17 @@ Pass `include` as a comma-separated list to return chunks, memories, or both. Ke
 
 `system.status` is one of `unknown`, `queued`, `extracting`, `chunking`, `embedding`, `indexing`, `done`, or `failed`.
 
+### Retrieve a memory and its history
+
+```bash v5
+GET /ns/{namespace}/memories/{id}?include=related,documents&relatedLimit=10
+```
+
+Returns one memory in the same shape as list memories. A memory from another namespace returns `404`; a forgotten memory, or one past its `forget_after`, is still returned with `isForgotten: true`.
+
+- `include=related` adds `included.related.parents` (earlier versions), `children` (newer versions), and `siblings` (memories connected by `extends` or `derives`). Each list walks outward from the memory until it holds `relatedLimit` items (default `10`, maximum `100`). Forgotten memories and memories in other namespaces are left out.
+- `include=documents` adds `included.document`, the most recently updated source document. With both values, every related memory also carries its own `document`.
+
 ### List documents, chunks, or memories
 
 <CodeGroup>
