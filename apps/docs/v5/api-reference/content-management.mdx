@@ -1,0 +1,18 @@
+---
+title: "Content management"
+sidebarTitle: "Overview"
+description: "Retrieve, list, and remove documents, chunks, and memories"
+icon: "file-text"
+---
+
+Inspect the context stored in a namespace and remove information that should no longer be used. Retrieve a document with its derived context, page through any resource type, or forget documents and memories precisely.
+
+| Operation | Purpose |
+| --- | --- |
+| `GET /ns/{namespace}/document/{id}` | Retrieve source content with its chunks or memories |
+| `POST /ns/{namespace}/list/{type}` | Page through documents, chunks, or memories |
+| `DELETE /ns/{namespace}/document` | Remove one or many documents |
+| `DELETE /ns/{namespace}/memories` | Forget reviewed memories by exact ID |
+| `DELETE /ns/{namespace}/memories/semantic` | Find and forget memories by meaning |
+
+Semantic forgetting supports `dryRun: true`, so you can review matches before deleting them. See [document read migration](/migration/api-v5-document-reads) and [memory migration](/migration/api-v5-recall).

@@ -1,0 +1,12 @@
+---
+title: "Search"
+sidebarTitle: "Overview"
+description: "Recall the most relevant memories and source context"
+icon: "search"
+---
+
+`POST /ns/{namespace}/search` recalls the most useful memories and source chunks for a query. Hybrid search combines both by default; use `searchMode=memories` or `searchMode=chunks` when your experience needs one result type.
+
+Tune relevance with threshold, reranking, query rewriting, filters, and related context in the request body. Result controls `limit` and `searchMode` belong in the query string.
+
+See [search migration](/migration/api-v5-recall) and [typed filter migration](/migration/api-v5-filters).

@@ -1,0 +1,30 @@
+---
+title: "API reference"
+sidebarTitle: "Overview"
+description: "Documents, search, profiles, lists, memories, namespaces, and organization settings in the latest Supermemory API"
+icon: "book-open"
+---
+
+V5 makes namespace scope explicit in the URL and consolidates overlapping legacy operations.
+
+```text
+https://api.supermemory.ai
+  /ns/{namespace}/document
+  /ns/{namespace}/search
+  /ns/{namespace}/profile
+  /ns/{namespace}/list/{type}
+  /ns/{namespace}/memories
+  /namespaces
+  /organization
+```
+
+Use `/v5/reference` for the stable V5 reference. `/reference` always points to the latest public version.
+
+<CardGroup cols={2}>
+  <Card title="Migrate to V5" icon="arrow-up-right" href="/migration/api-v5">
+    Translate every V3/V4 request and response deterministically.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Authenticate with the same bearer API keys used by legacy endpoints.
+  </Card>
+</CardGroup>

@@ -1,0 +1,17 @@
+---
+title: "Namespaces"
+sidebarTitle: "Overview"
+description: "Keep memory isolated, understandable, and easy to reorganize"
+icon: "layers"
+---
+
+| Operation | Purpose |
+| --- | --- |
+| `GET /namespaces` | Discover namespaces and see their memory footprint |
+| `GET /ns/{namespace}` | See the context guiding one namespace |
+| `PATCH /ns/{namespace}` | Give Supermemory better context for future memories |
+| `DELETE /ns/{namespace}` | Retire a namespace or preserve its content elsewhere |
+
+`GET /ns` is an alias for `GET /namespaces`. Profile buckets are managed through `/ns/{namespace}/profile/buckets`, not namespace settings.
+
+See [namespace and settings migration](/migration/api-v5-settings).

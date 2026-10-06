@@ -1,0 +1,17 @@
+---
+title: "Profiles"
+sidebarTitle: "Overview"
+description: "Turn accumulated memory into a ready-to-use understanding of a user"
+icon: "id-card"
+---
+
+| Operation | Purpose |
+| --- | --- |
+| `POST /ns/{namespace}/profile` | Retrieve durable facts, recent context, and custom insights |
+| `GET /ns/{namespace}/profile/buckets` | See the profile categories available here |
+| `PUT /ns/{namespace}/profile/buckets` | Shape the profile with namespace-specific categories |
+| `DELETE /ns/{namespace}/profile/buckets` | Remove namespace-specific categories |
+
+Profiles always contain static and dynamic sections, giving applications both durable knowledge and fresh context without composing them manually. Organization-owned buckets may be inherited but cannot be changed through namespace bucket endpoints.
+
+See [profile migration](/migration/api-v5-recall).
