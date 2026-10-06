@@ -43,8 +43,8 @@ import type {
  * Internal context shared between input and output processors.
  */
 interface ProcessorContext {
-	containerTag: string
-	customId: string
+	namespace: string
+	id: string
 	apiKey: string
 	baseUrl: string
 	mode: MemoryMode
@@ -65,8 +65,8 @@ function createProcessorContext(
 	const logger = createLogger(options.verbose ?? false)
 
 	return {
-		containerTag: options.containerTag,
-		customId: options.customId,
+		namespace: options.namespace,
+		id: options.id,
 		apiKey,
 		baseUrl,
 		mode: options.mode ?? "profile",
@@ -78,14 +78,14 @@ function createProcessorContext(
 }
 
 /**
- * Gets the effective customId from RequestContext (if provided) or falls back to context.
+ * Gets the effective id from RequestContext (if provided) or falls back to context.
  * Per-request thread ID takes precedence to support dynamic per-conversation IDs in server setups.
  */
-function getEffectiveCustomId(
+function getEffectiveId(
 	ctx: ProcessorContext,
 	requestContext?: RequestContext,
 ): string {
-	// Per-request thread ID takes precedence over construction-time customId
+	// Per-request thread ID takes precedence over construction-time id
 	if (requestContext) {
 		const threadId = requestContext.get(MASTRA_THREAD_ID_KEY) as
 			| string
@@ -94,8 +94,8 @@ function getEffectiveCustomId(
 			return threadId
 		}
 	}
-	// Fall back to construction-time customId
-	return ctx.customId
+	// Fall back to construction-time id
+	return ctx.id
 }
 
 /**
@@ -117,8 +117,8 @@ function getEffectiveCustomId(
  *   model: openai("gpt-4o"),
  *   inputProcessors: [
  *     new SupermemoryInputProcessor({
- *       containerTag: "user-123",
- *       customId: "conv-456",
+ *       namespace: "user-123",
+ *       id: "conv-456",
  *       mode: "full",
  *       verbose: true,
  *     }),
@@ -158,9 +158,9 @@ export class SupermemoryInputProcessor implements Processor {
 				return messageList
 			}
 
-			const effectiveThreadId = getEffectiveCustomId(this.ctx, requestContext)
+			const effectiveThreadId = getEffectiveId(this.ctx, requestContext)
 			const turnKey = MemoryCache.makeTurnKey(
-				this.ctx.containerTag,
+				this.ctx.namespace,
 				effectiveThreadId,
 				this.ctx.mode,
 				queryText || "",
@@ -174,13 +174,13 @@ export class SupermemoryInputProcessor implements Processor {
 			}
 
 			this.ctx.logger.info("Starting memory search", {
-				containerTag: this.ctx.containerTag,
+				namespace: this.ctx.namespace,
 				threadId: effectiveThreadId,
 				mode: this.ctx.mode,
 			})
 
 			const memories = await buildMemoriesText({
-				containerTag: this.ctx.containerTag,
+				namespace: this.ctx.namespace,
 				queryText: queryText || "",
 				mode: this.ctx.mode,
 				baseUrl: this.ctx.baseUrl,
@@ -212,7 +212,7 @@ export class SupermemoryInputProcessor implements Processor {
  *
  * This processor runs once after generation completes (processOutputResult).
  * When addMemory is set to "always", it saves the conversation to Supermemory
- * using the /v4/conversations API for thread-based storage.
+ * as one document per conversation.
  *
  * @example
  * ```typescript
@@ -226,8 +226,8 @@ export class SupermemoryInputProcessor implements Processor {
  *   model: openai("gpt-4o"),
  *   outputProcessors: [
  *     new SupermemoryOutputProcessor({
- *       containerTag: "user-123",
- *       customId: "conv-456",
+ *       namespace: "user-123",
+ *       id: "conv-456",
  *       addMemory: "always",
  *     }),
  *   ],
@@ -253,7 +253,7 @@ export class SupermemoryOutputProcessor implements Processor {
 			return messages
 		}
 
-		const effectiveCustomId = getEffectiveCustomId(this.ctx, requestContext)
+		const effectiveId = getEffectiveId(this.ctx, requestContext)
 
 		try {
 			const conversationMessages = this.convertToConversationMessages(messages)
@@ -264,16 +264,16 @@ export class SupermemoryOutputProcessor implements Processor {
 			}
 
 			const response = await addConversation({
-				conversationId: effectiveCustomId,
+				id: effectiveId,
 				messages: conversationMessages,
-				containerTags: [this.ctx.containerTag],
+				namespace: this.ctx.namespace,
 				apiKey: this.ctx.apiKey,
 				baseUrl: this.ctx.baseUrl,
 			})
 
 			this.ctx.logger.info("Conversation saved successfully", {
-				containerTag: this.ctx.containerTag,
-				customId: effectiveCustomId,
+				namespace: this.ctx.namespace,
+				id: effectiveId,
 				messageCount: conversationMessages.length,
 				responseId: response.id,
 			})
@@ -330,7 +330,7 @@ export class SupermemoryOutputProcessor implements Processor {
 /**
  * Creates a Supermemory input processor for memory injection.
  *
- * @param options - Configuration options including required containerTag and customId
+ * @param options - Configuration options including required namespace and id
  * @returns Configured SupermemoryInputProcessor instance
  *
  * @example
@@ -340,8 +340,8 @@ export class SupermemoryOutputProcessor implements Processor {
  * import { openai } from "@ai-sdk/openai"
  *
  * const processor = createSupermemoryProcessor({
- *   containerTag: "user-123",
- *   customId: "conv-456",
+ *   namespace: "user-123",
+ *   id: "conv-456",
  *   mode: "full",
  *   verbose: true,
  * })
@@ -363,7 +363,7 @@ export function createSupermemoryProcessor(
 /**
  * Creates a Supermemory output processor for saving conversations.
  *
- * @param options - Configuration options including required containerTag and customId
+ * @param options - Configuration options including required namespace and id
  * @returns Configured SupermemoryOutputProcessor instance
  *
  * @example
@@ -373,8 +373,8 @@ export function createSupermemoryProcessor(
  * import { openai } from "@ai-sdk/openai"
  *
  * const processor = createSupermemoryOutputProcessor({
- *   containerTag: "user-123",
- *   customId: "conv-456",
+ *   namespace: "user-123",
+ *   id: "conv-456",
  *   addMemory: "always",
  * })
  *
@@ -408,8 +408,8 @@ export function createSupermemoryOutputProcessor(
  * import { openai } from "@ai-sdk/openai"
  *
  * const { input, output } = createSupermemoryProcessors({
- *   containerTag: "user-123",
- *   customId: "conv-456",
+ *   namespace: "user-123",
+ *   id: "conv-456",
  *   mode: "full",
  *   addMemory: "always",
  * })

@@ -14,12 +14,18 @@ import type {
 	LanguageModelV2Message,
 } from "@ai-sdk/provider"
 import "dotenv/config"
+import {
+	errorResponse,
+	jsonResponse,
+	profileBody,
+	requestPath,
+} from "../v5-fetch"
 
 // Test configuration
 const TEST_CONFIG = {
 	apiKey: process.env.SUPERMEMORY_API_KEY || "test-api-key",
-	baseURL: process.env.SUPERMEMORY_BASE_URL || "https://api.supermemory.ai",
-	containerTag: "test-vercel-wrapper",
+	baseUrl: process.env.SUPERMEMORY_BASE_URL || "https://api.supermemory.ai",
+	namespace: "test-vercel-wrapper",
 }
 
 // Mock language model for testing
@@ -32,20 +38,7 @@ const createMockLanguageModel = (): LanguageModelV2 => ({
 	doStream: vi.fn(),
 })
 
-// Mock profile API response
-const createMockProfileResponse = (
-	staticMemories: string[] = [],
-	dynamicMemories: string[] = [],
-	searchResults: string[] = [],
-) => ({
-	profile: {
-		static: staticMemories.map((memory) => ({ memory })),
-		dynamic: dynamicMemories.map((memory) => ({ memory })),
-	},
-	searchResults: {
-		results: searchResults.map((memory) => ({ memory })),
-	},
-})
+const createMockProfileResponse = profileBody
 
 describe("Unit: withSupermemory", () => {
 	let originalEnv: string | undefined
@@ -74,31 +67,31 @@ describe("Unit: withSupermemory", () => {
 
 			expect(() => {
 				withSupermemory(mockModel, {
-					containerTag: TEST_CONFIG.containerTag,
-					customId: "test-id",
+					namespace: TEST_CONFIG.namespace,
+					id: "test-id",
 				})
 			}).toThrow("SUPERMEMORY_API_KEY is not set")
 		})
 
-		it("should throw error if customId is missing or empty", () => {
+		it("should throw error if id is missing or empty", () => {
 			process.env.SUPERMEMORY_API_KEY = "test-key"
 
 			const mockModel = createMockLanguageModel()
 
-			// omitted customId (plain JS caller)
+			// omitted id (plain JS caller)
 			expect(() => {
 				withSupermemory(mockModel, {
-					containerTag: TEST_CONFIG.containerTag,
+					namespace: TEST_CONFIG.namespace,
 				} as any)
-			}).toThrow("customId is required")
+			}).toThrow("id is required")
 
 			// empty string
 			expect(() => {
 				withSupermemory(mockModel, {
-					containerTag: TEST_CONFIG.containerTag,
-					customId: "",
+					namespace: TEST_CONFIG.namespace,
+					id: "",
 				})
-			}).toThrow("customId is required")
+			}).toThrow("id is required")
 		})
 
 		it("should successfully create wrapped model with valid API key", () => {
@@ -106,8 +99,8 @@ describe("Unit: withSupermemory", () => {
 
 			const mockModel = createMockLanguageModel()
 			const wrappedModel = withSupermemory(mockModel, {
-				containerTag: TEST_CONFIG.containerTag,
-				customId: "test-id",
+				namespace: TEST_CONFIG.namespace,
+				id: "test-id",
 			})
 
 			expect(wrappedModel).toBeDefined()
@@ -127,8 +120,8 @@ describe("Unit: withSupermemory", () => {
 			}
 			const inner = Object.create(proto) as LanguageModelV2
 			const wrappedModel = withSupermemory(inner, {
-				containerTag: TEST_CONFIG.containerTag,
-				customId: "test-id",
+				namespace: TEST_CONFIG.namespace,
+				id: "test-id",
 			})
 
 			expect(wrappedModel.specificationVersion).toBe("v2")
@@ -146,16 +139,14 @@ describe("Unit: withSupermemory", () => {
 		})
 
 		it("should cache memories on first call (new turn)", async () => {
-			fetchMock.mockResolvedValue({
-				ok: true,
-				json: () =>
-					Promise.resolve(createMockProfileResponse(["Cached memory"])),
-			})
+			fetchMock.mockImplementation(async () =>
+				jsonResponse(createMockProfileResponse(["Cached memory"])),
+			)
 
 			const ctx = createSupermemoryContext({
-				containerTag: TEST_CONFIG.containerTag,
+				namespace: TEST_CONFIG.namespace,
 				apiKey: TEST_CONFIG.apiKey,
-				customId: "test-id",
+				id: "test-id",
 				mode: "profile",
 			})
 
@@ -171,7 +162,7 @@ describe("Unit: withSupermemory", () => {
 			await transformParamsWithMemory(params, ctx)
 
 			expect(ctx.memoryCache).toBeDefined()
-			const turnKey = `${TEST_CONFIG.containerTag}:test-id:profile:Hello`
+			const turnKey = `${TEST_CONFIG.namespace}:test-id:profile:Hello`
 			const cachedMemories = ctx.memoryCache.get(turnKey)
 			expect(cachedMemories).toBeDefined()
 			expect(cachedMemories).toContain("Cached memory")
@@ -179,16 +170,14 @@ describe("Unit: withSupermemory", () => {
 		})
 
 		it("should use cached memories on continuation step (no new fetch)", async () => {
-			fetchMock.mockResolvedValue({
-				ok: true,
-				json: () =>
-					Promise.resolve(createMockProfileResponse(["Cached memory"])),
-			})
+			fetchMock.mockImplementation(async () =>
+				jsonResponse(createMockProfileResponse(["Cached memory"])),
+			)
 
 			const ctx = createSupermemoryContext({
-				containerTag: TEST_CONFIG.containerTag,
+				namespace: TEST_CONFIG.namespace,
 				apiKey: TEST_CONFIG.apiKey,
-				customId: "test-id",
+				id: "test-id",
 				mode: "profile",
 			})
 
@@ -249,19 +238,17 @@ describe("Unit: withSupermemory", () => {
 			let callCount = 0
 			fetchMock.mockImplementation(() => {
 				callCount++
-				return Promise.resolve({
-					ok: true,
-					json: () =>
-						Promise.resolve(
-							createMockProfileResponse([`Memory from call ${callCount}`]),
-						),
-				})
+				return Promise.resolve(
+					jsonResponse(
+						createMockProfileResponse([`Memory from call ${callCount}`]),
+					),
+				)
 			})
 
 			const ctx = createSupermemoryContext({
-				containerTag: TEST_CONFIG.containerTag,
+				namespace: TEST_CONFIG.namespace,
 				apiKey: TEST_CONFIG.apiKey,
-				customId: "test-id",
+				id: "test-id",
 				mode: "profile",
 			})
 
@@ -303,11 +290,9 @@ describe("Unit: withSupermemory", () => {
 		})
 
 		it("replaces the prior SDK memory block instead of accumulating context", async () => {
-			fetchMock.mockResolvedValue({
-				ok: true,
-				json: () =>
-					Promise.resolve(createMockProfileResponse(["Fresh profile fact"])),
-			})
+			fetchMock.mockImplementation(async () =>
+				jsonResponse(createMockProfileResponse(["Fresh profile fact"])),
+			)
 
 			const inner = createMockLanguageModel()
 			vi.mocked(inner.doGenerate).mockResolvedValue({
@@ -317,8 +302,8 @@ describe("Unit: withSupermemory", () => {
 				warnings: [],
 			})
 			const wrapped = withSupermemory(inner, {
-				containerTag: TEST_CONFIG.containerTag,
-				customId: "conversation-a",
+				namespace: TEST_CONFIG.namespace,
+				id: "conversation-a",
 				mode: "profile",
 				addMemory: "never",
 				apiKey: TEST_CONFIG.apiKey,
@@ -353,18 +338,15 @@ describe("Unit: withSupermemory", () => {
 		})
 
 		it("keeps concurrent user contexts isolated", async () => {
-			fetchMock.mockImplementation(async (_url, init) => {
-				const body = JSON.parse(String(init?.body ?? "{}"))
-				return {
-					ok: true,
-					json: async () =>
-						createMockProfileResponse([
-							body.containerTag === "user-a"
-								? "Fact for Alice"
-								: "Fact for Bob",
-						]),
-				}
-			})
+			fetchMock.mockImplementation(async (url) =>
+				jsonResponse(
+					createMockProfileResponse([
+						requestPath(url).includes("/ns/user-a/")
+							? "Fact for Alice"
+							: "Fact for Bob",
+					]),
+				),
+			)
 			const innerA = createMockLanguageModel()
 			const innerB = createMockLanguageModel()
 			vi.mocked(innerA.doGenerate).mockResolvedValue({
@@ -380,14 +362,14 @@ describe("Unit: withSupermemory", () => {
 				warnings: [],
 			})
 			const wrappedA = withSupermemory(innerA, {
-				containerTag: "user-a",
-				customId: "conversation-a",
+				namespace: "user-a",
+				id: "conversation-a",
 				apiKey: TEST_CONFIG.apiKey,
 				addMemory: "never",
 			})
 			const wrappedB = withSupermemory(innerB, {
-				containerTag: "user-b",
-				customId: "conversation-b",
+				namespace: "user-b",
+				id: "conversation-b",
 				apiKey: TEST_CONFIG.apiKey,
 				addMemory: "never",
 			})
@@ -427,17 +409,12 @@ describe("Unit: withSupermemory", () => {
 		})
 
 		it("should handle API errors gracefully", async () => {
-			fetchMock.mockResolvedValue({
-				ok: false,
-				status: 500,
-				statusText: "Internal Server Error",
-				text: () => Promise.resolve("Server error"),
-			})
+			fetchMock.mockImplementation(async () => errorResponse(500))
 
 			const ctx = createSupermemoryContext({
-				containerTag: TEST_CONFIG.containerTag,
+				namespace: TEST_CONFIG.namespace,
 				apiKey: TEST_CONFIG.apiKey,
-				customId: "test-id",
+				id: "test-id",
 				mode: "profile",
 			})
 
@@ -457,9 +434,9 @@ describe("Unit: withSupermemory", () => {
 
 		it("should handle empty prompt array", async () => {
 			const ctx = createSupermemoryContext({
-				containerTag: TEST_CONFIG.containerTag,
+				namespace: TEST_CONFIG.namespace,
 				apiKey: TEST_CONFIG.apiKey,
-				customId: "test-id",
+				id: "test-id",
 				mode: "query",
 			})
 
@@ -475,9 +452,9 @@ describe("Unit: withSupermemory", () => {
 
 		it("should handle user message with empty content array in query mode", async () => {
 			const ctx = createSupermemoryContext({
-				containerTag: TEST_CONFIG.containerTag,
+				namespace: TEST_CONFIG.namespace,
 				apiKey: TEST_CONFIG.apiKey,
-				customId: "test-id",
+				id: "test-id",
 				mode: "query",
 			})
 
@@ -497,15 +474,14 @@ describe("Unit: withSupermemory", () => {
 		})
 
 		it("should not mutate the original params.prompt array", async () => {
-			fetchMock.mockResolvedValue({
-				ok: true,
-				json: () => Promise.resolve(createMockProfileResponse(["Memory"])),
-			})
+			fetchMock.mockImplementation(async () =>
+				jsonResponse(createMockProfileResponse(["Memory"])),
+			)
 
 			const ctx = createSupermemoryContext({
-				containerTag: TEST_CONFIG.containerTag,
+				namespace: TEST_CONFIG.namespace,
 				apiKey: TEST_CONFIG.apiKey,
-				customId: "test-id",
+				id: "test-id",
 				mode: "profile",
 			})
 
@@ -547,12 +523,7 @@ describe("Unit: withSupermemory", () => {
 		})
 
 		it("continues without memories when profile fetch fails (default skip)", async () => {
-			fetchMock.mockResolvedValue({
-				ok: false,
-				status: 500,
-				statusText: "Internal Server Error",
-				text: () => Promise.resolve("err"),
-			})
+			fetchMock.mockImplementation(async () => errorResponse(500))
 
 			const inner = createMockLanguageModel()
 			vi.mocked(inner.doGenerate).mockResolvedValue({
@@ -567,8 +538,8 @@ describe("Unit: withSupermemory", () => {
 			})
 
 			const wrapped = withSupermemory(inner, {
-				containerTag: TEST_CONFIG.containerTag,
-				customId: "test-id",
+				namespace: TEST_CONFIG.namespace,
+				id: "test-id",
 				apiKey: "k",
 			})
 
@@ -582,17 +553,12 @@ describe("Unit: withSupermemory", () => {
 		})
 
 		it("throws when skipMemoryOnError is false and profile fetch fails", async () => {
-			fetchMock.mockResolvedValue({
-				ok: false,
-				status: 500,
-				statusText: "Internal Server Error",
-				text: () => Promise.resolve("err"),
-			})
+			fetchMock.mockImplementation(async () => errorResponse(500))
 
 			const inner = createMockLanguageModel()
 			const wrapped = withSupermemory(inner, {
-				containerTag: TEST_CONFIG.containerTag,
-				customId: "test-id",
+				namespace: TEST_CONFIG.namespace,
+				id: "test-id",
 				apiKey: "k",
 				skipMemoryOnError: false,
 			})
@@ -632,8 +598,8 @@ describe("Unit: withSupermemory", () => {
 			})
 
 			const wrapped = withSupermemory(inner, {
-				containerTag: TEST_CONFIG.containerTag,
-				customId: "test-id",
+				namespace: TEST_CONFIG.namespace,
+				id: "test-id",
 				apiKey: "k",
 			})
 

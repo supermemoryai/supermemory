@@ -13,7 +13,7 @@ import "dotenv/config"
 const INTEGRATION_CONFIG = {
 	apiKey: process.env.SUPERMEMORY_API_KEY || "",
 	baseUrl: process.env.SUPERMEMORY_BASE_URL || "https://api.supermemory.ai",
-	containerTag: "integration-test-vercel-wrapper",
+	namespace: "integration-test-vercel-wrapper",
 }
 
 const shouldRunIntegration = !!process.env.SUPERMEMORY_API_KEY
@@ -97,8 +97,8 @@ describe.skipIf(!shouldRunIntegration)(
 					createIntegrationMockModel()
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId: "test-generate",
+					namespace: INTEGRATION_CONFIG.namespace,
+					id: "test-generate",
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "profile",
 				})
@@ -123,11 +123,11 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const customId = `test-generate-${Date.now()}`
+				const id = `test-generate-${Date.now()}`
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId,
+					namespace: INTEGRATION_CONFIG.namespace,
+					id,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "profile",
 					addMemory: "always",
@@ -150,26 +150,25 @@ describe.skipIf(!shouldRunIntegration)(
 				// Wait for background save to complete
 				await new Promise((resolve) => setTimeout(resolve, 2000))
 
-				// Verify /v4/conversations was called for saving
+				// Verify the conversation was saved as a document
 				const conversationCalls = fetchSpy.mock.calls.filter(
 					(call) =>
-						typeof call[0] === "string" &&
-						call[0].includes("/v4/conversations"),
+						typeof call[0] === "string" && call[0].includes("/document"),
 				)
 				expect(conversationCalls.length).toBeGreaterThan(0)
 
 				fetchSpy.mockRestore()
 			})
 
-			it("should work with customId for grouped memories", async () => {
+			it("should work with id for grouped memories", async () => {
 				const { model, getCapturedGenerateParams } =
 					createIntegrationMockModel()
 
-				const customId = `test-conversation-${Date.now()}`
+				const id = `test-conversation-${Date.now()}`
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId,
+					namespace: INTEGRATION_CONFIG.namespace,
+					id,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "profile",
 				})
@@ -196,8 +195,8 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model, getCapturedStreamParams } = createIntegrationMockModel()
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId: "test-stream",
+					namespace: INTEGRATION_CONFIG.namespace,
+					id: "test-stream",
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "profile",
 				})
@@ -230,11 +229,11 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const customId = `test-stream-${Date.now()}`
+				const id = `test-stream-${Date.now()}`
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId,
+					namespace: INTEGRATION_CONFIG.namespace,
+					id,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "profile",
 					addMemory: "always",
@@ -262,8 +261,7 @@ describe.skipIf(!shouldRunIntegration)(
 				// Verify save was attempted
 				const conversationCalls = fetchSpy.mock.calls.filter(
 					(call) =>
-						typeof call[0] === "string" &&
-						call[0].includes("/v4/conversations"),
+						typeof call[0] === "string" && call[0].includes("/document"),
 				)
 				expect(conversationCalls.length).toBeGreaterThan(0)
 
@@ -274,8 +272,8 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId: "test-chunks",
+					namespace: INTEGRATION_CONFIG.namespace,
+					id: "test-chunks",
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "profile",
 				})
@@ -313,8 +311,8 @@ describe.skipIf(!shouldRunIntegration)(
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId: "test-profile",
+					namespace: INTEGRATION_CONFIG.namespace,
+					id: "test-profile",
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "profile",
 				})
@@ -328,20 +326,19 @@ describe.skipIf(!shouldRunIntegration)(
 					],
 				})
 
-				// Verify /v4/profile was called
+				// Verify the profile was fetched
 				const profileCalls = fetchSpy.mock.calls.filter(
-					(call) =>
-						typeof call[0] === "string" && call[0].includes("/v4/profile"),
+					(call) => typeof call[0] === "string" && call[0].includes("/profile"),
 				)
 				expect(profileCalls.length).toBeGreaterThan(0)
 
-				// Verify the request body does NOT contain 'q' for profile mode
+				// Verify the profile request has no query
 				const profileCall = profileCalls[0]
 				if (profileCall?.[1]) {
 					const body = JSON.parse(
 						(profileCall[1] as RequestInit).body as string,
 					)
-					expect(body.q).toBeUndefined()
+					expect(body.query).toBeUndefined()
 				}
 
 				fetchSpy.mockRestore()
@@ -352,8 +349,8 @@ describe.skipIf(!shouldRunIntegration)(
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId: "test-query",
+					namespace: INTEGRATION_CONFIG.namespace,
+					id: "test-query",
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "query",
 				})
@@ -367,20 +364,19 @@ describe.skipIf(!shouldRunIntegration)(
 					],
 				})
 
-				// Verify /v4/profile was called with query
+				// Verify the search ran with the query
 				const profileCalls = fetchSpy.mock.calls.filter(
-					(call) =>
-						typeof call[0] === "string" && call[0].includes("/v4/profile"),
+					(call) => typeof call[0] === "string" && call[0].includes("/search"),
 				)
 				expect(profileCalls.length).toBeGreaterThan(0)
 
-				// Verify the request body contains 'q'
+				// Verify the request body contains the query
 				const profileCall = profileCalls[0]
 				if (profileCall?.[1]) {
 					const body = JSON.parse(
 						(profileCall[1] as RequestInit).body as string,
 					)
-					expect(body.q).toBe("What are my favorite foods?")
+					expect(body.query).toBe("What are my favorite foods?")
 				}
 
 				fetchSpy.mockRestore()
@@ -391,8 +387,8 @@ describe.skipIf(!shouldRunIntegration)(
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId: "test-full",
+					namespace: INTEGRATION_CONFIG.namespace,
+					id: "test-full",
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "full",
 				})
@@ -406,10 +402,9 @@ describe.skipIf(!shouldRunIntegration)(
 					],
 				})
 
-				// Verify /v4/profile was called with query
+				// Verify the search ran with the query
 				const profileCalls = fetchSpy.mock.calls.filter(
-					(call) =>
-						typeof call[0] === "string" && call[0].includes("/v4/profile"),
+					(call) => typeof call[0] === "string" && call[0].includes("/search"),
 				)
 				expect(profileCalls.length).toBeGreaterThan(0)
 
@@ -418,7 +413,7 @@ describe.skipIf(!shouldRunIntegration)(
 					const body = JSON.parse(
 						(profileCall[1] as RequestInit).body as string,
 					)
-					expect(body.q).toBe("Full mode query test")
+					expect(body.query).toBe("Full mode query test")
 				}
 
 				fetchSpy.mockRestore()
@@ -436,8 +431,8 @@ describe.skipIf(!shouldRunIntegration)(
 				}) => `<custom-memories>${data.userMemories}</custom-memories>`
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId: "test-template",
+					namespace: INTEGRATION_CONFIG.namespace,
+					id: "test-template",
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "profile",
 					promptTemplate: customTemplate,
@@ -463,8 +458,8 @@ describe.skipIf(!shouldRunIntegration)(
 					createIntegrationMockModel()
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId: "test-verbose",
+					namespace: INTEGRATION_CONFIG.namespace,
+					id: "test-verbose",
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "profile",
 					verbose: true,
@@ -490,8 +485,8 @@ describe.skipIf(!shouldRunIntegration)(
 
 				// Use the configured base URL (or default)
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId: "test-baseurl",
+					namespace: INTEGRATION_CONFIG.namespace,
+					id: "test-baseurl",
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "profile",
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
@@ -508,8 +503,7 @@ describe.skipIf(!shouldRunIntegration)(
 
 				// Verify the correct base URL was used
 				const profileCalls = fetchSpy.mock.calls.filter(
-					(call) =>
-						typeof call[0] === "string" && call[0].includes("/v4/profile"),
+					(call) => typeof call[0] === "string" && call[0].includes("/profile"),
 				)
 				expect(profileCalls.length).toBeGreaterThan(0)
 
@@ -530,8 +524,8 @@ describe.skipIf(!shouldRunIntegration)(
 				)
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId: "test-error",
+					namespace: INTEGRATION_CONFIG.namespace,
+					id: "test-error",
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					mode: "profile",
 				})
@@ -553,8 +547,8 @@ describe.skipIf(!shouldRunIntegration)(
 					createIntegrationMockModel()
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId: "test-invalid-key",
+					namespace: INTEGRATION_CONFIG.namespace,
+					id: "test-invalid-key",
 					apiKey: "invalid-api-key-12345",
 					mode: "profile",
 				})
@@ -576,8 +570,8 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 
 				const wrapped = withSupermemory(model, {
-					containerTag: INTEGRATION_CONFIG.containerTag,
-					customId: "test-invalid-strict",
+					namespace: INTEGRATION_CONFIG.namespace,
+					id: "test-invalid-strict",
 					apiKey: "invalid-api-key-12345",
 					mode: "profile",
 					skipMemoryOnError: false,

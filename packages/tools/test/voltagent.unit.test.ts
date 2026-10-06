@@ -1,3 +1,4 @@
+import { jsonResponse, profileBody } from "./v5-fetch"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createSupermemoryHooks } from "../src/voltagent"
 
@@ -7,16 +8,10 @@ describe("VoltAgent memory context", () => {
 	it("replaces prior SDK context in the prepared system message", async () => {
 		vi.stubGlobal(
 			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				json: async () => ({
-					profile: { static: [{ memory: "Fresh profile fact" }], dynamic: [] },
-					searchResults: { results: [] },
-				}),
-			}),
+			vi.fn(async () => jsonResponse(profileBody(["Fresh profile fact"]))),
 		)
 		const hooks = createSupermemoryHooks("user-a", {
-			customId: "conversation-a",
+			id: "conversation-a",
 			apiKey: "sm_test_key",
 			mode: "profile",
 			addMemory: "never",

@@ -4,7 +4,7 @@
  * Provides memory retrieval, injection, and storage functionality.
  */
 
-import Supermemory from "supermemory"
+import { type SearchRequest, Supermemory } from "supermemory"
 import {
 	addConversation,
 	type ContentPart as ConversationContentPart,
@@ -21,6 +21,7 @@ import {
 	extractQueryText,
 	replaceMemoryContext,
 	stripMemoryContext,
+	PROFILE_SEARCH_THRESHOLD,
 	supermemoryProfileSearch,
 	wrapMemoryContext,
 	type Logger,
@@ -33,7 +34,7 @@ import {
 	normalizeMemoryFact,
 } from "../tools-shared"
 import type {
-	SearchFilters,
+	SearchFilter,
 	SupermemoryVoltAgent,
 	VoltAgentMessage,
 } from "./types"
@@ -44,8 +45,8 @@ import type {
 export interface SupermemoryMiddlewareContext {
 	client: Supermemory
 	logger: Logger
-	containerTag: string
-	customId: string
+	namespace: string
+	id: string
 	mode: MemoryMode
 	addMemory: "always" | "never"
 	normalizedBaseUrl: string
@@ -56,29 +57,22 @@ export interface SupermemoryMiddlewareContext {
 	 * user turn (keyed by turnKey) to avoid redundant API calls.
 	 */
 	memoryCache: MemoryCache<string>
-	// New search parameters
 	threshold?: number
 	limit?: number
-	rerank?: boolean
+	rerank?: SupermemoryVoltAgent["rerank"]
 	rewriteQuery?: boolean
-	filters?: SearchFilters
-	include?: {
-		chunks?: boolean
-		documents?: boolean
-		forgottenMemories?: boolean
-		relatedMemories?: boolean
-		summaries?: boolean
-	}
-	// Storage parameters
+	filter?: SearchFilter
+	include?: SupermemoryVoltAgent["include"]
 	metadata?: Record<string, string | number | boolean>
-	searchMode?: "memories" | "documents" | "hybrid"
+	supportingContext?: string
+	searchMode?: SupermemoryVoltAgent["searchMode"]
 }
 
 /**
  * Creates a Supermemory middleware context.
  */
 export const createSupermemoryContext = (
-	containerTag: string,
+	namespace: string,
 	options: SupermemoryVoltAgent,
 ): SupermemoryMiddlewareContext => {
 	const apiKey = options.apiKey ?? process.env.SUPERMEMORY_API_KEY
@@ -89,7 +83,7 @@ export const createSupermemoryContext = (
 	}
 
 	const {
-		customId,
+		id,
 		mode = "profile",
 		addMemory = "always", // VoltAgent default: save conversations by default for chat apps
 		baseUrl,
@@ -98,17 +92,18 @@ export const createSupermemoryContext = (
 		limit,
 		rerank,
 		rewriteQuery,
-		filters,
+		filter,
 		include,
 		metadata,
+		supportingContext,
 		searchMode,
 		verbose = false,
 	} = options
 
-	// Runtime validation: customId is required
-	if (!customId || typeof customId !== "string" || customId.trim() === "") {
+	// Runtime validation: id is required
+	if (!id || typeof id !== "string" || id.trim() === "") {
 		throw new Error(
-			"customId is required and must be a non-empty string — provide it via `options.customId`",
+			"id is required and must be a non-empty string — provide it via `options.id`",
 		)
 	}
 	if (
@@ -125,25 +120,20 @@ export const createSupermemoryContext = (
 	}
 
 	const logger = createLogger(verbose)
-	if (options.entityContext !== undefined) {
-		logger.warn(
-			"entityContext is not supported by /v4/conversations and will be ignored; configure it on the container tag instead.",
-		)
-	}
 	const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
 
 	const client = new Supermemory({
 		apiKey,
 		...(normalizedBaseUrl !== "https://api.supermemory.ai"
-			? { baseURL: normalizedBaseUrl }
+			? { baseUrl: normalizedBaseUrl }
 			: {}),
 	})
 
 	return {
 		client,
 		logger,
-		containerTag,
-		customId,
+		namespace,
+		id,
 		mode,
 		addMemory,
 		normalizedBaseUrl,
@@ -154,9 +144,10 @@ export const createSupermemoryContext = (
 		limit,
 		rerank,
 		rewriteQuery,
-		filters,
+		filter,
 		include,
 		metadata,
+		supportingContext,
 		searchMode,
 	}
 }
@@ -168,12 +159,7 @@ const makeTurnKey = (
 	ctx: SupermemoryMiddlewareContext,
 	userMessage: string,
 ): string => {
-	return MemoryCache.makeTurnKey(
-		ctx.containerTag,
-		ctx.customId,
-		ctx.mode,
-		userMessage,
-	)
+	return MemoryCache.makeTurnKey(ctx.namespace, ctx.id, ctx.mode, userMessage)
 }
 
 /**
@@ -259,8 +245,8 @@ export const enhanceMessagesWithMemories = async (
 	}
 
 	ctx.logger.info("Starting memory search", {
-		containerTag: ctx.containerTag,
-		customId: ctx.customId,
+		namespace: ctx.namespace,
+		id: ctx.id,
 		mode: ctx.mode,
 		isNewTurn,
 	})
@@ -277,7 +263,7 @@ export const enhanceMessagesWithMemories = async (
 		ctx.limit !== undefined ||
 		ctx.rerank !== undefined ||
 		ctx.rewriteQuery !== undefined ||
-		ctx.filters !== undefined ||
+		ctx.filter !== undefined ||
 		ctx.include !== undefined ||
 		ctx.searchMode !== undefined
 
@@ -285,7 +271,7 @@ export const enhanceMessagesWithMemories = async (
 	// Profile mode only fetches static/dynamic user data, not query-based search
 	if (useAdvancedSearch && ctx.mode === "profile") {
 		ctx.logger.warn(
-			"Advanced search parameters (threshold, limit, rerank, rewriteQuery, filters, include, searchMode) " +
+			"Advanced search parameters (threshold, limit, rerank, rewriteQuery, filter, include, searchMode) " +
 				'are ignored when mode is "profile". Use mode "query" or "full" to enable advanced search.',
 		)
 	}
@@ -294,25 +280,25 @@ export const enhanceMessagesWithMemories = async (
 		if (useAdvancedSearch && ctx.mode !== "profile") {
 			ctx.logger.info("Using advanced search with custom parameters")
 
-			const searchParams: Supermemory.SearchParams = {
-				q: queryText,
-				containerTag: ctx.containerTag,
+			// v5 defaults are hybrid/0.3; keep the v4 defaults unless the caller overrides them.
+			const searchParams: SearchRequest = {
+				query: queryText,
+				searchMode: ctx.searchMode ?? "memories",
+				threshold: ctx.threshold ?? PROFILE_SEARCH_THRESHOLD,
 			}
 
-			if (ctx.threshold !== undefined) searchParams.threshold = ctx.threshold
 			if (ctx.limit !== undefined) searchParams.limit = ctx.limit
 			if (ctx.rerank !== undefined) searchParams.rerank = ctx.rerank
 			if (ctx.rewriteQuery !== undefined)
 				searchParams.rewriteQuery = ctx.rewriteQuery
-			if (ctx.filters !== undefined) searchParams.filters = ctx.filters
+			if (ctx.filter !== undefined) searchParams.filter = ctx.filter
 			if (ctx.include !== undefined) searchParams.include = ctx.include
-			if (ctx.searchMode !== undefined) searchParams.searchMode = ctx.searchMode
 
 			const [response, profileResponse] = await Promise.all([
-				ctx.client.search(searchParams),
+				ctx.client.search(ctx.namespace, searchParams),
 				ctx.mode === "full"
 					? supermemoryProfileSearch(
-							ctx.containerTag,
+							ctx.namespace,
 							"",
 							ctx.normalizedBaseUrl,
 							ctx.apiKey,
@@ -379,7 +365,7 @@ export const enhanceMessagesWithMemories = async (
 		}
 
 		return await buildMemoriesText({
-			containerTag: ctx.containerTag,
+			namespace: ctx.namespace,
 			queryText,
 			mode: ctx.mode,
 			baseUrl: ctx.normalizedBaseUrl,
@@ -622,17 +608,18 @@ export const saveConversation = async (
 		}
 
 		const response = await addConversation({
-			conversationId: ctx.customId,
+			id: ctx.id,
 			messages: conversationMessages,
-			containerTags: [ctx.containerTag],
+			namespace: ctx.namespace,
 			metadata: ctx.metadata,
+			supportingContext: ctx.supportingContext,
 			apiKey: ctx.apiKey,
 			baseUrl: ctx.normalizedBaseUrl,
 		})
 
-		ctx.logger.info("Conversation saved successfully via /v4/conversations", {
-			containerTag: ctx.containerTag,
-			customId: ctx.customId,
+		ctx.logger.info("Conversation saved successfully", {
+			namespace: ctx.namespace,
+			id: ctx.id,
 			messageCount: conversationMessages.length,
 			responseId: response.id,
 			metadata: ctx.metadata,

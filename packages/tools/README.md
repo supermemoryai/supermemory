@@ -1,8 +1,18 @@
 # @supermemory/tools
 
-Memory tools for AI SDK, OpenAI, and Mastra with supermemory
+Memory tools and middleware for Vercel AI SDK, OpenAI, Mastra, VoltAgent and Claude, backed by the [Supermemory](https://supermemory.ai) v5 API.
 
-This package provides supermemory tools for AI SDK, OpenAI, and Mastra through dedicated submodule exports, each with function-based architectures optimized for their respective use cases.
+Pick the entry point for your stack:
+
+| Import | Use it for |
+| --- | --- |
+| `@supermemory/tools/ai-sdk` | Vercel AI SDK: 7 memory tools for `generateText`/`streamText`, plus `withSupermemory` model middleware |
+| `@supermemory/tools/openai` | OpenAI SDK: function-calling tool definitions and executor, plus `withSupermemory` client middleware |
+| `@supermemory/tools/mastra` | Mastra agents: input/output processors or the `withSupermemory` config wrapper |
+| `@supermemory/tools/voltagent` | VoltAgent agents: `withSupermemory` config wrapper built on hooks |
+| `@supermemory/tools/claude-memory` | Claude's native memory tool (`memory_20250818`), stored as Supermemory documents |
+
+Every entry point reads and writes one **namespace**: the Supermemory v5 name for an isolated memory space, usually one per end user. Middleware also takes an **`id`** that groups a conversation's messages into one document.
 
 ## Installation
 
@@ -10,12 +20,25 @@ This package provides supermemory tools for AI SDK, OpenAI, and Mastra through d
 npm install @supermemory/tools
 ```
 
+Requires Node 18 or later and a `SUPERMEMORY_API_KEY` from [console.supermemory.ai](https://console.supermemory.ai). The `supermemory@5` SDK comes along as a dependency. Against a self-hosted server, pass `baseUrl` and run `supermemory-server` v0.0.9 or later, which is the first version that serves the v5 routes.
+
+## Migrating from 2.x
+
+3.0 moves every call to the Supermemory v5 API (`supermemory@5`). The full guide is at [supermemory.ai/docs/migration/tools-v3-upgrade](https://supermemory.ai/docs/migration/tools-v3-upgrade).
+
+- **One namespace per config.** `containerTags` and `projectId` are gone. Pass `namespace: string`; every tool reads and writes only that namespace. To keep using data from `projectId: "x"`, pass `namespace: "sm_project_x"`. With no config, tools use `sm_project_default` as before.
+- **v5 option names everywhere.** `withSupermemory` (AI SDK, OpenAI, Mastra, VoltAgent) takes `namespace` instead of `containerTag` and `id` instead of `customId`.
+- **No per-call scope overrides.** `getProfile`, `documentList`, `documentDelete`, and `memoryForget` no longer accept a `containerTag` argument.
+- **`memoryForget`** no longer takes `reason`. Forgetting by `memoryContent` previews matching memories and forgets only the ones whose text matches exactly.
+- **`getProfile`** returns v5 profile entries (`{ id, memory }`), so profile IDs can be passed to `memoryForget`. With a `query`, `searchResults` is the v5 search `results` array.
+- **`documentList`** returns v5 documents; status is under `system.status`.
+- **Conversations** saved by the middlewares are stored as one document per conversation (document `id` = the `id` you pass), instead of through `/v4/conversations`.
+- **Claude memory tool** drops `memoryContainerTag`. Its files live in the configured namespace and are marked with `metadata.source = "claude-memory"`. Files written by 2.x are not migrated.
+- **VoltAgent** search options use v5 shapes: `filters` → typed `filter`, `rerank` is `"none" | "order" | "aggregate"`, `searchMode: "documents"` → `"chunks"`, `include` keys are `documents`, `related`, `forgotten`, and `entityContext` → `supportingContext`.
+
 ## Usage
 
-The package provides three submodule imports:
-- `@supermemory/tools/ai-sdk` - For use with the AI SDK framework (includes `withSupermemory` middleware)
-- `@supermemory/tools/openai` - For use with OpenAI SDK (includes `withSupermemory` middleware and function calling tools)
-- `@supermemory/tools/mastra` - For use with Mastra AI agents (includes `withSupermemory` wrapper and processors)
+Each section below covers one entry point: AI SDK, OpenAI, Mastra, VoltAgent, then the Claude memory tool. The `withSupermemory` middleware takes the same options everywhere; see [withSupermemory Middleware Options](#withsupermemory-middleware-options).
 
 ### AI SDK Usage
 
@@ -30,7 +53,7 @@ const openai = createOpenAI({
 
 // Create all tools
 const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
-  containerTags: ["your-user-id"],
+  namespace: "your-user-id",
 })
 
 // Use with AI SDK
@@ -48,17 +71,17 @@ const result = await generateText({
 
 // Or create individual tools
 const searchTool = searchMemoriesTool(process.env.SUPERMEMORY_API_KEY!, {
-  projectId: "your-project-id",
+  namespace: "your-user-id",
 })
 
 const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
-  projectId: "your-project-id",
+  namespace: "your-user-id",
 })
 ```
 
 #### AI SDK Middleware with Supermemory
 
-- `withSupermemory` will take advantage supermemory profile v4 endpoint personalized based on container tag
+- `withSupermemory` injects the Supermemory v5 profile for the given `namespace`, plus a memories search on the latest user message in `query` and `full` modes
 - You can provide the Supermemory API key via the `apiKey` option to `withSupermemory` (recommended for browser usage), or fall back to `SUPERMEMORY_API_KEY` in the environment for server usage.
 - **Per-turn caching**: Memory injection is cached for tool-call continuations within the same user turn. The middleware detects when the AI SDK is continuing a multi-step flow (e.g., after a tool call) and reuses the cached memories instead of making redundant API calls. A fresh fetch occurs on each new user message turn.
 
@@ -68,8 +91,8 @@ import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
 const modelWithMemory = withSupermemory(openai("gpt-5"), {
-	containerTag: "user_id_life",
-	customId: "conversation-456",
+	namespace: "user_id_life",
+	id: "conversation-456",
 })
 
 const result = await generateText({
@@ -90,8 +113,8 @@ import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
 const modelWithMemory = withSupermemory(openai("gpt-5"), {
-	containerTag: "user_id_life",
-	customId: "conversation-456",
+	namespace: "user_id_life",
+	id: "conversation-456",
 	verbose: true,
 })
 
@@ -105,7 +128,7 @@ console.log(result.text)
 
 When verbose mode is enabled, you'll see console output like:
 ```
-[supermemory] Searching memories for container: user_id_life
+[supermemory] Searching memories for namespace: user_id_life
 [supermemory] User message: where do i live?
 [supermemory] System prompt exists: false
 [supermemory] Found 3 memories
@@ -125,14 +148,14 @@ import { openai } from "@ai-sdk/openai"
 
 // Uses profile mode by default - gets all user profile memories
 const modelWithMemory = withSupermemory(openai("gpt-4"), {
-  containerTag: "user-123",
-  customId: "conversation-456",
+  namespace: "user-123",
+  id: "conversation-456",
 })
 
 // Explicitly specify profile mode
 const modelWithProfile = withSupermemory(openai("gpt-4"), {
-  containerTag: "user-123",
-  customId: "conversation-456",
+  namespace: "user-123",
+  id: "conversation-456",
   mode: "profile",
 })
 
@@ -149,8 +172,8 @@ import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
 const modelWithQuery = withSupermemory(openai("gpt-4"), {
-  containerTag: "user-123",
-  customId: "conversation-456",
+  namespace: "user-123",
+  id: "conversation-456",
   mode: "query",
 })
 
@@ -167,8 +190,8 @@ import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
 const modelWithFull = withSupermemory(openai("gpt-4"), {
-  containerTag: "user-123",
-  customId: "conversation-456",
+  namespace: "user-123",
+  id: "conversation-456",
   mode: "full",
 })
 
@@ -189,8 +212,8 @@ import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
 const modelWithAutoSave = withSupermemory(openai("gpt-4"), {
-  containerTag: "user-123",
-  customId: "conversation-456",
+  namespace: "user-123",
+  id: "conversation-456",
   addMemory: "always",
 })
 
@@ -204,8 +227,8 @@ const result = await generateText({
 **Never Save Memories** - Only retrieves memories without storing new ones:
 ```typescript
 const modelWithNoSave = withSupermemory(openai("gpt-4"), {
-  containerTag: "user-123",
-  customId: "conversation-456",
+  namespace: "user-123",
+  id: "conversation-456",
   addMemory: "never",  // explicit since default is now "always"
 })
 ```
@@ -213,8 +236,8 @@ const modelWithNoSave = withSupermemory(openai("gpt-4"), {
 **Combined Options** - Use verbose logging with specific modes and memory storage:
 ```typescript
 const modelWithOptions = withSupermemory(openai("gpt-4"), {
-  containerTag: "user-123",
-  customId: "conversation-456",
+  namespace: "user-123",
+  id: "conversation-456",
   mode: "profile",
   addMemory: "always",
   verbose: true,
@@ -242,8 +265,8 @@ ${data.generalSearchMemories}
 `.trim()
 
 const modelWithCustomPrompt = withSupermemory(openai("gpt-4"), {
-  containerTag: "user-123",
-  customId: "conversation-456",
+  namespace: "user-123",
+  id: "conversation-456",
   mode: "full",
   promptTemplate: customPrompt,
 })
@@ -270,8 +293,8 @@ import { withSupermemory } from "@supermemory/tools/openai"
 
 // Create OpenAI client with supermemory middleware
 const openaiWithSupermemory = withSupermemory(openai, {
-  containerTag: "user-123",      // Required: identifies the user/container
-  customId: "conversation-456",  // Required: groups messages into the same document 
+  namespace: "user-123",      // Required: identifies the user or project
+  id: "conversation-456",  // Required: groups messages into the same document
   apiKey: process.env.SUPERMEMORY_API_KEY, // Optional env fallback
   baseUrl: process.env.SUPERMEMORY_BASE_URL,
   mode: "full",
@@ -296,8 +319,8 @@ The middleware supports the same configuration options as the AI SDK version:
 
 ```typescript
 const openaiWithSupermemory = withSupermemory(openai, {
-  containerTag: "user-123",      // Required: identifies the user/container
-  customId: "conversation-456",  // Required: groups messages for contextual memory
+  namespace: "user-123",      // Required: identifies the user or project
+  id: "conversation-456",  // Required: groups messages for contextual memory
   apiKey: process.env.SUPERMEMORY_API_KEY, // Optional; captured per client
   baseUrl: process.env.SUPERMEMORY_BASE_URL,
   mode: "full",                  // "profile" | "query" | "full"
@@ -322,8 +345,8 @@ export async function POST(req: Request) {
   }
 
   const openaiWithSupermemory = withSupermemory(openai, {
-    containerTag: "user-123",
-    customId: conversationId,
+    namespace: "user-123",
+    id: conversationId,
     apiKey: process.env.SUPERMEMORY_API_KEY,
     baseUrl: process.env.SUPERMEMORY_BASE_URL,
     mode: "full",
@@ -356,7 +379,7 @@ const toolDefinitions = getToolDefinitions()
 
 // Create tool executor
 const executeToolCall = createToolCallExecutor(process.env.SUPERMEMORY_API_KEY!, {
-  projectId: "your-project-id",
+  namespace: "your-user-id",
 })
 
 // Use with OpenAI Chat Completions
@@ -381,7 +404,7 @@ if (completion.choices[0]?.message.tool_calls) {
 
 // Or create individual function-based tools
 const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
-  containerTags: ["your-user-id"],
+  namespace: "your-user-id",
 })
 
 const searchResult = await tools.searchMemories({
@@ -418,8 +441,8 @@ const agent = new Agent(withSupermemory(
     instructions: "You are a helpful assistant.",
   },
   {
-    containerTag: "user-123",  // Required: scopes memories to this user
-    customId: "conv-456",      // Required: groups messages for contextual memory
+    namespace: "user-123",  // Required: scopes memories to this user
+    id: "conv-456",      // Required: groups messages for contextual memory
     mode: "full",
   }
 ))
@@ -438,8 +461,8 @@ import { createSupermemoryProcessors } from "@supermemory/tools/mastra"
 import { openai } from "@ai-sdk/openai"
 
 const { input, output } = createSupermemoryProcessors({
-  containerTag: "user-123",
-  customId: "conv-456",
+  namespace: "user-123",
+  id: "conv-456",
   mode: "full",
   verbose: true, // Enable logging
 })
@@ -467,11 +490,11 @@ import { openai } from "@ai-sdk/openai"
 
 async function main() {
   const userId = "user-alex-123"
-  const customId = `thread-${Date.now()}`
+  const id = `thread-${Date.now()}`
 
   const { input, output } = createSupermemoryProcessors({
-    containerTag: userId,
-    customId,
+    namespace: userId,
+    id,
     mode: "profile",      // Fetch user profile memories
     verbose: true,
   })
@@ -509,22 +532,22 @@ main()
 ```typescript
 // Profile mode - good for general personalization
 const { input } = createSupermemoryProcessors({
-  containerTag: "user-123",
-  customId: "conv-456",
+  namespace: "user-123",
+  id: "conv-456",
   mode: "profile",
 })
 
 // Query mode - good for specific lookups
 const { input } = createSupermemoryProcessors({
-  containerTag: "user-123",
-  customId: "conv-456",
+  namespace: "user-123",
+  id: "conv-456",
   mode: "query",
 })
 
 // Full mode - comprehensive context
 const { input } = createSupermemoryProcessors({
-  containerTag: "user-123",
-  customId: "conv-456",
+  namespace: "user-123",
+  id: "conv-456",
   mode: "full",
 })
 ```
@@ -544,8 +567,8 @@ ${data.generalSearchMemories}
 `.trim()
 
 const { input, output } = createSupermemoryProcessors({
-  containerTag: "user-123",
-  customId: "conv-456",
+  namespace: "user-123",
+  id: "conv-456",
   mode: "full",
   promptTemplate: customTemplate,
 })
@@ -553,7 +576,7 @@ const { input, output } = createSupermemoryProcessors({
 
 #### Using RequestContext for Dynamic Thread IDs
 
-For server setups where one agent instance handles multiple concurrent conversations, use Mastra's `RequestContext` to provide per-request thread IDs. **RequestContext takes precedence** over the construction-time `customId`:
+For server setups where one agent instance handles multiple concurrent conversations, use Mastra's `RequestContext` to provide per-request thread IDs. **RequestContext takes precedence** over the construction-time `id`:
 
 ```typescript
 import { Agent } from "@mastra/core/agent"
@@ -561,8 +584,8 @@ import { RequestContext, MASTRA_THREAD_ID_KEY } from "@mastra/core/request-conte
 import { createSupermemoryProcessors } from "@supermemory/tools/mastra"
 
 const { input, output } = createSupermemoryProcessors({
-  containerTag: "user-123",
-  customId: "fallback-conv",  // Used only when RequestContext doesn't provide a threadId
+  namespace: "user-123",
+  id: "fallback-conv",  // Used only when RequestContext doesn't provide a threadId
   mode: "profile",
 })
 
@@ -574,7 +597,7 @@ const agent = new Agent({
   outputProcessors: [output],
 })
 
-// Per-request threadId takes precedence over customId
+// Per-request threadId takes precedence over id
 const ctx = new RequestContext()
 ctx.set(MASTRA_THREAD_ID_KEY, "user-456-session-789")
 
@@ -582,14 +605,14 @@ const response = await agent.generate("Hello!", { requestContext: ctx })
 // This conversation is stored under "user-456-session-789", not "fallback-conv"
 ```
 
-> **Server-side usage**: Always use `RequestContext` to pass unique conversation IDs per request. Using a fixed `customId` for all requests will merge conversations from different users.
+> **Server-side usage**: Always use `RequestContext` to pass unique conversation IDs per request. Using a fixed `id` for all requests will merge conversations from different users.
 
 #### Mastra Configuration Options
 
 ```typescript
 interface SupermemoryMastraOptions {
-  containerTag: string         // Required: User/container tag for scoping memories
-  customId: string             // Required: Groups messages into a single document for contextual memory
+  namespace: string         // Required: Namespace (e.g. user ID) for scoping memories
+  id: string             // Required: Groups messages into a single document for contextual memory
   apiKey?: string              // Supermemory API key (or use SUPERMEMORY_API_KEY env var)
   baseUrl?: string             // Custom API endpoint
   mode?: "profile" | "query" | "full"  // Memory search mode (default: "profile")
@@ -599,22 +622,69 @@ interface SupermemoryMastraOptions {
 }
 ```
 
+### VoltAgent Usage
+
+Add memory to a [VoltAgent](https://voltagent.dev) agent by wrapping its config. `withSupermemory` installs hooks that inject memories before each run and save the conversation after it.
+
+```typescript
+import { Agent } from "@voltagent/core"
+import { withSupermemory } from "@supermemory/tools/voltagent"
+import { openai } from "@ai-sdk/openai"
+
+const agent = new Agent(
+  withSupermemory({
+    agentConfig: {
+      name: "my-agent",
+      instructions: "You are a helpful assistant.",
+      model: openai("gpt-4o"),
+    },
+    namespace: "user-123",   // Required: the namespace to read and write
+    id: "conversation-456",  // Required: groups this conversation into one document
+    mode: "full",
+  }),
+)
+
+const result = await agent.generateText("What's my favorite programming language?")
+```
+
+`@voltagent/core` is a peer dependency; install it yourself.
+
+#### VoltAgent Options
+
+On top of the shared middleware options (`mode`, `addMemory`, `verbose`, `apiKey`, `baseUrl`, `promptTemplate`), VoltAgent exposes the v5 search controls. They apply in `query` and `full` mode and are ignored in `profile` mode:
+
+```typescript
+withSupermemory({
+  agentConfig,
+  namespace: "user-123",
+  id: "conversation-456",
+  mode: "query",
+  searchMode: "hybrid",          // "hybrid" (recommended) | "memories" | "chunks"
+  limit: 10,                     // 1-100
+  threshold: 0.3,                // 0-1, higher is stricter
+  rerank: "order",               // "none" (default) | "order" | "aggregate"
+  rewriteQuery: true,            // adds ~400ms
+  filter: { field: "type", operator: "eq", value: "note" },   // typed v5 filter expression
+  include: { documents: true, related: false, forgotten: false },
+  metadata: { app: "support-bot" },          // stamped on saved conversations
+  supportingContext: "Support chats for Acme customers",  // guides memory extraction, max 1500 chars
+})
+```
+
 ## Configuration
 
-Both modules accept the same configuration interface:
+The tool entry points (`ai-sdk` and `openai`) accept the same configuration:
 
 ```typescript
 interface SupermemoryToolsConfig {
   baseUrl?: string
-  containerTags?: string[]
-  projectId?: string
+  namespace?: string
   strict?: boolean
 }
 ```
 
 - **baseUrl**: Custom base URL for the supermemory API
-- **containerTags**: Non-empty array of custom container tags (mutually exclusive with `projectId`). `searchMemories`, `getProfile`, and `memoryForget` use the first tag because v4 memory APIs are single-space. Add operations attach every configured tag, while `documentList` and `documentDelete` use the configured tags as their supported union scope. `documentDelete` still refuses a document with any tag outside that scope or a nonterminal processing status.
-- **projectId**: Project ID which gets converted to container tag format (mutually exclusive with containerTags)
+- **namespace**: The one namespace every tool reads and writes (default: `sm_project_default`). `documentDelete` refuses a document that is still processing.
 - **strict**: Enable strict schema mode for OpenAI strict validation. When `true`, all schema properties are required (satisfies OpenAI strict mode). When `false` (default), optional fields remain optional for maximum compatibility with all models.
 
 ### OpenAI Strict Mode Compatibility
@@ -630,11 +700,11 @@ const openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY })
 
 const tools = {
   searchMemories: searchMemoriesTool(apiKey, { 
-    containerTags: [userId],
+    namespace: userId,
     strict: true  // ✅ Required for OpenAI strict mode
   }),
   addMemory: addMemoryTool(apiKey, { 
-    containerTags: [userId],
+    namespace: userId,
     strict: true
   }),
 }
@@ -654,8 +724,8 @@ The `withSupermemory` middleware accepts a configuration object as the second ar
 
 ```typescript
 interface WithSupermemoryOptions {
-  containerTag: string  // Required: identifies the user/container
-  customId: string      // Required: groups messages into the same document 
+  namespace: string  // Required: identifies the user or project
+  id: string      // Required: groups messages into the same document
   verbose?: boolean
   mode?: "profile" | "query" | "full"
   addMemory?: "always" | "never"  // Default: "always"
@@ -667,8 +737,8 @@ interface WithSupermemoryOptions {
 }
 ```
 
-- **containerTag**: Required. The container tag/identifier for memory search (e.g., user ID, project ID)
-- **customId**: Required. Custom ID to group messages into a single document for contextual memory generation
+- **namespace**: Required. The namespace to read and write (e.g., user ID, project ID)
+- **id**: Required. ID that groups messages into a single document for contextual memory generation
 - **verbose**: Enable detailed logging of memory search and injection process (default: false)
 - **mode**: Memory search mode - "profile" (default), "query", or "full"
 - **addMemory**: Automatic memory storage mode - "always" (default) or "never"
@@ -677,18 +747,27 @@ interface WithSupermemoryOptions {
 ## Available Tools
 
 ### Search Memories
-Runs v4 hybrid search in the primary (first) configured container tag. Results can contain learned memories (`memory`) and source chunks (`chunk`). Only IDs on results containing `memory` can be passed to `memoryForget`; chunk-result IDs cannot.
+Runs v5 hybrid search in the configured namespace (threshold 0.6). Results can contain learned memories (`memory`) and source chunks (`chunk`). Only IDs on results containing `memory` can be passed to `memoryForget`; chunk-result IDs cannot.
 
 **Parameters:**
 - `informationToGet` (string): Terms to search for
-- `includeFullDocs` (boolean, optional): Deprecated compatibility input; ignored by v4 hybrid search
+- `includeFullDocs` (boolean, optional): Deprecated compatibility input; ignored by hybrid search
 - `limit` (number, optional): Maximum number of results (default: 10)
 
 ### Add Memory
-Adds a new memory to the system.
+Adds a short fact as a document processed with `dreaming: "instant"`, so the memory is available quickly.
 
 **Parameters:**
 - `memory` (string): The content to remember
+
+### Get Profile
+Returns the v5 profile (`static`, `dynamic`, `buckets`; each entry is `{ id, memory }`). With `query`, also runs a memories search and returns its results as `searchResults`.
+
+### Document List / Add / Delete
+`documentList` pages through documents in the namespace. `documentAdd` stores raw content for processing. `documentDelete` takes a Supermemory ID or your own document ID and refuses while the document is still processing.
+
+### Memory Forget
+Forgets one memory by `memoryId`, or by `memoryContent`: a dry-run preview finds candidates, and only memories whose text matches exactly are forgotten.
 
 
 
@@ -713,7 +792,7 @@ const anthropic = new Anthropic({
 })
 
 const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
-  projectId: 'my-app',
+  namespace: 'my-app',
 })
 
 async function chatWithMemory(userMessage: string) {
@@ -758,12 +837,13 @@ Claude can perform these memory operations automatically:
 - **`delete`** - Delete memory files
 - **`rename`** - Rename or move memory files
 
-All memory files are stored in supermemory with normalized paths and can be searched and retrieved across conversations.
+All memory files are stored as documents in the configured namespace, keyed by their normalized path and marked with `metadata.source = "claude-memory"`.
 
 ## Environment Variables
 
 ```env
-SUPERMEMORY_API_KEY=your_supermemory_api_key
-ANTHROPIC_API_KEY=your_anthropic_api_key  # for Claude Memory Tool
-SUPERMEMORY_BASE_URL=https://your-custom-url  # optional
+SUPERMEMORY_API_KEY=your_supermemory_api_key   # read by every entry point when apiKey is not passed
+ANTHROPIC_API_KEY=your_anthropic_api_key       # for the Claude memory tool
 ```
+
+A custom API URL (self-hosted or enterprise) is not read from the environment. Pass it as `baseUrl` in the config, for example `baseUrl: process.env.SUPERMEMORY_BASE_URL`.

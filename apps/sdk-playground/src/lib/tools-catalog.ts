@@ -1,7 +1,7 @@
 import {
 	PARAMETER_DESCRIPTIONS,
 	TOOL_DESCRIPTIONS,
-} from "../../../../packages/tools/src/tools-shared"
+} from "../../../../packages/tools/src/tools-descriptions"
 
 export interface CatalogParameter {
 	name: string
@@ -60,10 +60,6 @@ export const TOOL_CATALOG: CatalogTool[] = [
 		description: TOOL_DESCRIPTIONS.getProfile,
 		parameters: [
 			{
-				name: "containerTag",
-				description: PARAMETER_DESCRIPTIONS.containerTag,
-			},
-			{
 				name: "query",
 				pythonName: "query",
 				description: PARAMETER_DESCRIPTIONS.query,
@@ -75,10 +71,6 @@ export const TOOL_CATALOG: CatalogTool[] = [
 		pythonName: "document_list",
 		description: TOOL_DESCRIPTIONS.documentList,
 		parameters: [
-			{
-				name: "containerTag",
-				description: PARAMETER_DESCRIPTIONS.containerTag,
-			},
 			{
 				name: "limit",
 				pythonName: "limit",
@@ -101,10 +93,6 @@ export const TOOL_CATALOG: CatalogTool[] = [
 				pythonName: "document_id",
 				description: PARAMETER_DESCRIPTIONS.documentId,
 				required: true,
-			},
-			{
-				name: "containerTag",
-				description: PARAMETER_DESCRIPTIONS.documentContainerTag,
 			},
 		],
 	},
@@ -137,10 +125,6 @@ export const TOOL_CATALOG: CatalogTool[] = [
 		description: TOOL_DESCRIPTIONS.memoryForget,
 		parameters: [
 			{
-				name: "containerTag",
-				description: PARAMETER_DESCRIPTIONS.containerTag,
-			},
-			{
 				name: "memoryId",
 				pythonName: "memory_id",
 				description: PARAMETER_DESCRIPTIONS.memoryId,
@@ -149,11 +133,6 @@ export const TOOL_CATALOG: CatalogTool[] = [
 				name: "memoryContent",
 				pythonName: "memory_content",
 				description: PARAMETER_DESCRIPTIONS.memoryContent,
-			},
-			{
-				name: "reason",
-				pythonName: "reason",
-				description: PARAMETER_DESCRIPTIONS.reason,
 			},
 		],
 	},

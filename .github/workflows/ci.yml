@@ -41,12 +41,6 @@ jobs:
             echo "tools=true" >> "$GITHUB_OUTPUT"
           fi
 
-          if git diff --quiet "${{ github.event.pull_request.base.sha }}" HEAD -- packages/ai-sdk; then
-            echo "ai_sdk=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ai_sdk=true" >> "$GITHUB_OUTPUT"
-          fi
-
           if git diff --quiet "${{ github.event.pull_request.base.sha }}" HEAD -- apps/sdk-playground; then
             echo "sdk_playground=false" >> "$GITHUB_OUTPUT"
           else
@@ -81,20 +75,8 @@ jobs:
         run: bun run --cwd packages/tools test:unit
 
       - name: Build Tools package
-        if: steps.sdk-changes.outputs.tools == 'true' || steps.sdk-changes.outputs.ai_sdk == 'true' || steps.sdk-changes.outputs.sdk_playground == 'true'
+        if: steps.sdk-changes.outputs.tools == 'true' || steps.sdk-changes.outputs.sdk_playground == 'true'
         run: bun run --cwd packages/tools build
-
-      - name: Run AI SDK type checking
-        if: steps.sdk-changes.outputs.tools == 'true' || steps.sdk-changes.outputs.ai_sdk == 'true' || steps.sdk-changes.outputs.sdk_playground == 'true'
-        run: bun run --cwd packages/ai-sdk check-types
-
-      - name: Run AI SDK unit tests
-        if: steps.sdk-changes.outputs.ai_sdk == 'true'
-        run: bun run --cwd packages/ai-sdk test:unit
-
-      - name: Build AI SDK package
-        if: steps.sdk-changes.outputs.ai_sdk == 'true' || steps.sdk-changes.outputs.sdk_playground == 'true'
-        run: bun run --cwd packages/ai-sdk build
 
       - name: Run SDK Playground type checking
         if: steps.sdk-changes.outputs.sdk_playground == 'true'

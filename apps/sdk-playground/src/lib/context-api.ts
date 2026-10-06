@@ -1,4 +1,5 @@
-import Supermemory from "supermemory"
+import { Supermemory } from "supermemory"
+import { supermemoryProfileSearch } from "../../../../packages/tools/src/shared/memory-client"
 import {
 	type MiddlewareRuntimeConfig,
 	normalizeMiddlewareConfig,
@@ -28,8 +29,8 @@ export interface MemoryDebugEntry {
 	preview?: string
 }
 
-export interface ContainerContext {
-	containerTag: string
+export interface NamespaceContext {
+	namespace: string
 	query?: string
 	profile: {
 		static: unknown[]
@@ -40,7 +41,6 @@ export interface ContainerContext {
 		id?: string
 		title?: string
 		status?: string
-		customId?: string
 		createdAt?: string
 		updatedAt?: string
 		summary?: string
@@ -49,29 +49,19 @@ export interface ContainerContext {
 	pagination?: unknown
 }
 
+const REQUEST_TIMEOUT_SECONDS = 10
+const DOCUMENT_LIST_LIMIT = 25
+
 function getSupermemoryClient(apiKey: string) {
 	if (!apiKey) throw new Error("Supermemory API key is required")
 	return new Supermemory({
 		apiKey,
-		timeout: 10_000,
+		timeoutInSeconds: REQUEST_TIMEOUT_SECONDS,
 		maxRetries: 1,
 		...(process.env.SUPERMEMORY_BASE_URL
-			? { baseURL: process.env.SUPERMEMORY_BASE_URL }
+			? { baseUrl: process.env.SUPERMEMORY_BASE_URL }
 			: {}),
 	})
-}
-
-function normalizeMemoryEntries(record: Record<string, unknown>): unknown[] {
-	const raw =
-		record.memoryEntries ??
-		record.memory_entries ??
-		(Array.isArray(record.memories) &&
-		record.memories.length > 0 &&
-		typeof (record.memories[0] as Record<string, unknown>)?.memory === "string"
-			? record.memories
-			: undefined)
-
-	return Array.isArray(raw) ? raw : []
 }
 
 function memoryText(item: unknown): string {
@@ -85,7 +75,7 @@ function memoryText(item: unknown): string {
 	return JSON.stringify(item)
 }
 
-function summarizeProfile(profile: ContainerContext["profile"]) {
+function summarizeProfile(profile: NamespaceContext["profile"]) {
 	return {
 		staticCount: profile.static.length,
 		dynamicCount: profile.dynamic.length,
@@ -96,16 +86,6 @@ function summarizeProfile(profile: ContainerContext["profile"]) {
 	}
 }
 
-function normalizeSearchResults(searchResults: unknown): unknown[] {
-	if (!searchResults) return []
-	if (Array.isArray(searchResults)) return searchResults
-	if (typeof searchResults === "object") {
-		const record = searchResults as Record<string, unknown>
-		if (Array.isArray(record.results)) return record.results
-	}
-	return []
-}
-
 export function resolveProfileQuery(
 	lastUserMessage: string,
 	mode: "profile" | "query" | "full",
@@ -114,82 +94,77 @@ export function resolveProfileQuery(
 	return lastUserMessage || undefined
 }
 
+// Same profile + memories search the middlewares run before the model call.
 async function fetchProfileContext(
-	client: ReturnType<typeof getSupermemoryClient>,
-	containerTag: string,
+	apiKey: string,
+	namespace: string,
 	query?: string,
 	signal?: AbortSignal,
-): Promise<ContainerContext["profile"]> {
-	const profileResponse = await client.post<{
-		profile?: { static?: unknown[]; dynamic?: unknown[] }
-		searchResults?: unknown
-	}>("/v4/profile", {
-		body: {
-			containerTag,
-			include: ["static", "dynamic"],
-			...(query ? { q: query } : {}),
-		},
-		...(signal ? { signal } : {}),
-	})
-	const profileRaw = profileResponse.profile
+): Promise<NamespaceContext["profile"]> {
+	const response = await supermemoryProfileSearch(
+		namespace,
+		query ?? "",
+		process.env.SUPERMEMORY_BASE_URL ?? "",
+		apiKey,
+		signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_SECONDS * 1_000),
+	)
 
 	return {
-		static: profileRaw?.static ?? [],
-		dynamic: profileRaw?.dynamic ?? [],
-		searchResults: normalizeSearchResults(profileResponse.searchResults),
+		static: response.profile.static ?? [],
+		dynamic: response.profile.dynamic ?? [],
+		searchResults: response.searchResults?.results ?? [],
 	}
 }
 
-export async function fetchContainerContext(
-	containerTag: string,
+export async function fetchNamespaceContext(
+	namespace: string,
 	query?: string,
 	supermemoryApiKey?: string,
-): Promise<ContainerContext> {
+): Promise<NamespaceContext> {
 	const apiKey =
 		supermemoryApiKey?.trim() || process.env.SUPERMEMORY_API_KEY?.trim()
 	if (!apiKey) throw new Error("Supermemory API key is required")
 
 	const client = getSupermemoryClient(apiKey)
-	const profile = await fetchProfileContext(client, containerTag, query)
-
-	const docsResponse = await client.post<{
-		documents?: unknown[]
-		pagination?: unknown
-	}>("/v3/documents/documents", {
-		body: {
-			containerTags: [containerTag],
-			limit: 25,
+	const [profile, listResponse] = await Promise.all([
+		fetchProfileContext(apiKey, namespace, query),
+		client.list(namespace, "documents", {
+			limit: DOCUMENT_LIST_LIMIT,
 			sort: "createdAt",
 			order: "desc",
-		},
-	})
+		}),
+	])
 
-	const rawDocuments = docsResponse.documents ?? []
-	const documents = rawDocuments.map((doc) => {
-		const record = doc as Record<string, unknown>
-		return {
-			id: record.id as string | undefined,
-			title: record.title as string | undefined,
-			status: record.status as string | undefined,
-			customId: record.customId as string | undefined,
-			createdAt: record.createdAt as string | undefined,
-			updatedAt: record.updatedAt as string | undefined,
-			summary: record.summary as string | undefined,
-			memoryEntries: normalizeMemoryEntries(record),
-		}
-	})
+	// v5 lists omit memories, so each document is fetched with include=memories.
+	const documents = await Promise.all(
+		listResponse.documents.map(async (doc) => {
+			const memories = await client.documents
+				.get(namespace, doc.id, { include: ["memories"] })
+				.then((full) => full.memories ?? [])
+				.catch(() => [])
+			return {
+				id: doc.id,
+				title: doc.title ?? undefined,
+				status: doc.system.status,
+				createdAt: doc.system.createdAt,
+				updatedAt: doc.system.updatedAt,
+				summary: doc.summary ?? undefined,
+				memoryEntries: memories,
+			}
+		}),
+	)
 
 	return {
-		containerTag,
+		namespace,
 		query,
 		profile,
 		documents,
-		pagination: docsResponse.pagination,
+		pagination: listResponse.pagination,
 	}
 }
 
 export async function buildMiddlewareMemoryDebug(
-	containerTag: string,
+	namespace: string,
 	conversationId: string,
 	memoryMode: MemoryMode,
 	lastUserMessage: string,
@@ -209,12 +184,7 @@ export async function buildMiddlewareMemoryDebug(
 		const apiKey =
 			supermemoryApiKey?.trim() || process.env.SUPERMEMORY_API_KEY?.trim()
 		if (!apiKey) throw new Error("Supermemory API key is required")
-		const profile = await fetchProfileContext(
-			getSupermemoryClient(apiKey),
-			containerTag,
-			query,
-			signal,
-		)
+		const profile = await fetchProfileContext(apiKey, namespace, query, signal)
 		const reconstructed = reconstructSdkMemoryBlock(
 			memoryMode,
 			profile,
@@ -230,9 +200,10 @@ export async function buildMiddlewareMemoryDebug(
 				detail: {
 					authoritativeMiddlewareCapture: false,
 					timing: "after model response",
-					endpoint: "POST /v4/profile",
-					containerTag,
-					customId: conversationId,
+					endpoint:
+						"POST /ns/{namespace}/profile + POST /ns/{namespace}/search",
+					namespace,
+					id: conversationId,
 					memoryMode,
 					addMemory: config.addMemory,
 					verbose: config.verbose,
@@ -264,8 +235,8 @@ export async function buildMiddlewareMemoryDebug(
 						label: "Conversation save requested by middleware",
 						detail: {
 							confirmed: false,
-							containerTag,
-							customId: conversationId,
+							namespace,
+							id: conversationId,
 							addMemory: config.addMemory,
 							verbose: config.verbose,
 							...(sdk.includeToolCalls !== undefined

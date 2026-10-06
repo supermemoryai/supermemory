@@ -52,7 +52,7 @@ export default function AgentPlaygroundPage() {
 	const keysReady = supermemoryKeyReady && openAiKeyReady
 
 	const [sdkId, setSdkId] = useState("ts-ai-sdk-middleware")
-	const [containerTag, setContainerTag] = useState("sdk-playground")
+	const [namespace, setNamespace] = useState("sdk-playground")
 	const [memoryMode, setMemoryMode] = useState<"profile" | "query" | "full">(
 		"full",
 	)
@@ -134,7 +134,7 @@ export default function AgentPlaygroundPage() {
 						...chatHistory,
 						{ role: "user", content: userMessage.content },
 					],
-					containerTag,
+					namespace,
 					conversationId: activeConversationId,
 					memoryMode:
 						selectedSdk.mode === "middleware" ? memoryMode : undefined,
@@ -301,16 +301,16 @@ export default function AgentPlaygroundPage() {
 
 					<div className="flex flex-wrap gap-3">
 						<label className="space-y-1">
-							<span className="text-xs text-zinc-500">Container tag</span>
+							<span className="text-xs text-zinc-500">Namespace</span>
 							<input
-								value={containerTag}
-								onChange={(e) => setContainerTag(e.target.value)}
+								value={namespace}
+								onChange={(e) => setNamespace(e.target.value)}
 								maxLength={100}
 								className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm w-40"
 							/>
 						</label>
 						<label className="space-y-1">
-							<span className="text-xs text-zinc-500">customId (session)</span>
+							<span className="text-xs text-zinc-500">id (session)</span>
 							<input
 								value={conversationId}
 								onChange={(e) => setConversationId(e.target.value)}
@@ -521,7 +521,7 @@ export default function AgentPlaygroundPage() {
 
 				<aside className="hidden w-80 shrink-0 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/20 p-3 xl:flex xl:w-96 xl:flex-col min-h-0">
 					<ContextPanel
-						containerTag={containerTag}
+						namespace={namespace}
 						lastUserMessage={lastUserMessage}
 						refreshKey={contextRefreshKey}
 						supermemoryApiKey={supermemoryApiKey}

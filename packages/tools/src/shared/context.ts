@@ -1,4 +1,4 @@
-import Supermemory from "supermemory"
+import { Supermemory } from "supermemory"
 
 /**
  * Normalizes a base URL by removing trailing slashes.
@@ -36,7 +36,7 @@ export function createSupermemoryClient(
 	return new Supermemory({
 		apiKey: options.apiKey,
 		...(normalizedBaseUrl !== "https://api.supermemory.ai"
-			? { baseURL: normalizedBaseUrl }
+			? { baseUrl: normalizedBaseUrl }
 			: {}),
 	})
 }

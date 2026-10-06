@@ -5,7 +5,12 @@
  * @supermemory/tools declarations remain usable when the optional peer is absent.
  */
 
-import type Supermemory from "supermemory"
+import type {
+	FilterExpression,
+	SearchRequestInclude,
+	SearchRequestRerank,
+	SearchRequestSearchMode,
+} from "supermemory"
 import type { SupermemoryBaseOptions } from "../shared"
 
 /**
@@ -14,10 +19,10 @@ import type { SupermemoryBaseOptions } from "../shared"
  */
 export interface SupermemoryVoltAgent extends SupermemoryBaseOptions {
 	/**
-	 * Custom ID to group messages into a single document.
+	 * ID that groups messages into a single document.
 	 * Ensures related messages are added to the same document for that conversation.
 	 */
-	customId: string
+	id: string
 
 	/**
 	 * Threshold / sensitivity for memory selection. 0 is least sensitive (returns
@@ -38,12 +43,11 @@ export interface SupermemoryVoltAgent extends SupermemoryBaseOptions {
 	limit?: number
 
 	/**
-	 * If true, rerank the results based on the query. This helps ensure the most
-	 * relevant results are returned. Default: false
+	 * Post-retrieval ranking: "none", "order", or "aggregate". Default: "none"
 	 *
 	 * Note: Only effective when mode is "query" or "full". Ignored in "profile" mode.
 	 */
-	rerank?: boolean
+	rerank?: SearchRequestRerank
 
 	/**
 	 * If true, rewrites the query to make it easier to find memories. This increases
@@ -54,12 +58,12 @@ export interface SupermemoryVoltAgent extends SupermemoryBaseOptions {
 	rewriteQuery?: boolean
 
 	/**
-	 * Advanced filters to apply to the search using AND/OR logic.
-	 * Example: { OR: [{ key: "type", value: "note" }, { key: "type", value: "conversation" }] }
+	 * Typed metadata filter applied before ranking.
+	 * Example: { operator: "or", operands: [{ field: "type", operator: "eq", value: "note" }, { field: "type", operator: "eq", value: "conversation" }] }
 	 *
 	 * Note: Only effective when mode is "query" or "full". Ignored in "profile" mode.
 	 */
-	filters?: SearchFilters
+	filter?: SearchFilter
 
 	/**
 	 * Control what additional data to include in search results.
@@ -77,33 +81,19 @@ export interface SupermemoryVoltAgent extends SupermemoryBaseOptions {
 	/**
 	 * Search mode controlling what type of results to search.
 	 * - "memories": Search only memory entries (atomic facts)
-	 * - "documents": Search only document chunks
+	 * - "chunks": Search only document chunks
 	 * - "hybrid": Search both memories AND document chunks (recommended)
 	 *
 	 * Note: Only effective when mode is "query" or "full". Ignored in "profile" mode.
 	 */
-	searchMode?: "memories" | "documents" | "hybrid"
+	searchMode?: SearchRequestSearchMode
 
-	/**
-	 * @deprecated The conversations API does not accept per-request entity context.
-	 * Configure entity context on the container tag instead.
-	 */
-	entityContext?: string
+	/** Context that guides memory extraction for saved conversations. Max 1500 characters. */
+	supportingContext?: string
 }
 
-/** Advanced search filters using AND/OR logic. */
-export type SearchFilters = NonNullable<Supermemory.SearchParams["filters"]>
+/** Typed v5 metadata filter expression. */
+export type SearchFilter = FilterExpression
 
 /** Options for including additional data in search results. */
-export interface IncludeOptions {
-	/** Fetch chunks from documents associated with found memories. */
-	chunks?: boolean
-	/** Include full document information in results. */
-	documents?: boolean
-	/** Include explicitly forgotten or expired memories. */
-	forgottenMemories?: boolean
-	/** Include parent/child memories from the memory graph. */
-	relatedMemories?: boolean
-	/** Include document summaries in results. */
-	summaries?: boolean
-}
+export type IncludeOptions = SearchRequestInclude

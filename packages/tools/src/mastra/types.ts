@@ -35,10 +35,10 @@ export type { RequestContext } from "@mastra/core/request-context"
  * Configuration options for the Supermemory Mastra processor.
  */
 export interface SupermemoryMastraOptions {
-	/** Container tag/user ID for scoping memories. Required. */
-	containerTag: string
-	/** Custom ID to group messages into a single document for contextual memory generation. Required. */
-	customId: string
+	/** Namespace (e.g. user ID) for scoping memories. Required. */
+	namespace: string
+	/** ID that groups messages into a single document for contextual memory generation. Required. */
+	id: string
 	/** Supermemory API key (falls back to SUPERMEMORY_API_KEY env var) */
 	apiKey?: string
 	/** Custom Supermemory API base URL */

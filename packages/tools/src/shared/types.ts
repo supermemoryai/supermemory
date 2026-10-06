@@ -1,3 +1,5 @@
+import type { SearchResponseResultsItem } from "supermemory"
+
 /**
  * Data provided to the prompt template function for customizing memory injection.
  */
@@ -22,14 +24,13 @@ export interface MemoryPromptData {
 	searchResults: MemorySearchResult[]
 }
 
-/** A raw query result returned inside `/v4/profile.searchResults.results`. */
-export interface ProfileSearchResult {
+/** A raw v5 search result, as returned by `search(namespace)`. */
+export type ProfileSearchResult = SearchResponseResultsItem
+
+/** One profile memory, as returned by `profile(namespace)`. */
+export interface ProfileEntry {
 	id: string
-	memory?: string
-	chunk?: string
-	metadata: Record<string, unknown> | null
-	updatedAt: string
-	similarity: number
+	memory: string
 }
 
 /** A visible, deduplicated query result provided to prompt templates. */
@@ -81,31 +82,19 @@ export interface Logger {
 	error: (message: string, data?: unknown) => void
 }
 
-/**
- * Response structure from the Supermemory profile API.
- */
+/** v5 profile plus an optional memories search for the current query. */
 export interface ProfileStructure {
 	profile: {
-		/**
-		 * Core, stable facts about the user that rarely change.
-		 * Examples: name, profession, long-term preferences, goals.
-		 */
-		static?: string[]
-		/**
-		 * Recently learned or frequently updated information about the user.
-		 * Examples: current projects, recent interests, ongoing topics.
-		 */
-		dynamic?: string[]
+		/** Core, stable facts (name, profession, long-term preferences). */
+		static?: ProfileEntry[]
+		/** Recently learned or frequently updated context. */
+		dynamic?: ProfileEntry[]
 		/** Memories grouped by custom profile bucket. */
-		buckets?: Record<string, string[]>
+		buckets?: Record<string, ProfileEntry[]>
 	}
 	searchResults?: {
-		/**
-		 * Memories retrieved based on semantic similarity to the current query.
-		 * Most relevant to the immediate conversation context.
-		 */
 		results: ProfileSearchResult[]
-		total: number
+		/** Server-side search duration in milliseconds. */
 		timing: number
 	}
 }

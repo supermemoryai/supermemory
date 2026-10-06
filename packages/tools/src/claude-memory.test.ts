@@ -1,24 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-// Mock the Supermemory SDK so the Claude memory tool's document-backed file
-// operations can be exercised deterministically without any network access.
-const documentsListMock = vi.fn()
-const documentsGetMock = vi.fn()
-const documentsDeleteBulkMock = vi.fn()
-const addMock = vi.fn()
+// Mock the v5 SDK so document-backed file operations run without network access.
+const sdk = vi.hoisted(() => {
+	class NotFoundError extends Error {
+		statusCode = 404
+	}
+	return {
+		NotFoundError,
+		list: vi.fn(),
+		get: vi.fn(),
+		update: vi.fn(),
+		delete: vi.fn(),
+		add: vi.fn(),
+	}
+})
+const documentsGetMock = sdk.get
+const updateMock = sdk.update
 
 vi.mock("supermemory", () => {
-	return {
-		default: class MockSupermemory {
-			add = addMock
-			memories = { forget: vi.fn() }
-			documents = {
-				list: documentsListMock,
-				get: documentsGetMock,
-				deleteBulk: documentsDeleteBulkMock,
-			}
-		},
+	class Supermemory {
+		add = sdk.add
+		list = sdk.list
+		documents = { get: sdk.get, update: sdk.update, delete: sdk.delete }
 	}
+	return { default: Supermemory, Supermemory, NotFoundError: sdk.NotFoundError }
 })
 
 import { ClaudeMemoryTool } from "./claude-memory"
@@ -27,45 +32,34 @@ const FILE_PATH = "/memories/notes.txt"
 // 5 distinct lines so an off-by-one at either end is observable.
 const FILE_CONTENT = "line1\nline2\nline3\nline4\nline5"
 const FILE_DOCUMENT = {
-	id: "document-notes",
-	customId: "memories_notes_txt",
+	id: "memories_notes_txt",
 	filePath: FILE_PATH,
 	content: FILE_CONTENT,
 }
 const NEIGHBOUR_DOCUMENT = {
-	id: "document-notes-backup",
-	customId: "memories_notes_backup_txt",
+	id: "memories_notes_backup_txt",
 	filePath: "/memories/notes.backup.txt",
 	content: "backup stuff",
 }
 
+// v5 resolves caller-defined IDs inside the namespace.
 function mockDocuments(documents: (typeof FILE_DOCUMENT)[]) {
-	documentsListMock.mockResolvedValue({
-		memories: documents.map((document) => ({
-			id: document.id,
-			customId: document.customId,
-			containerTags: ["claude_memory"],
-			metadata: {
-				claude_memory_type: "file",
-				file_path: document.filePath,
-			},
-		})),
-		pagination: { totalPages: 1 },
-	})
-	documentsGetMock.mockImplementation(async (id: string) => {
-		const document = documents.find((candidate) => candidate.id === id)
-		if (!document) throw new Error(`Document not found: ${id}`)
-		return {
-			id: document.id,
-			customId: document.customId,
-			containerTags: ["sm_project_default", "claude_memory"],
-			metadata: {
-				claude_memory_type: "file",
-				file_path: document.filePath,
-			},
-			content: document.content,
-		}
-	})
+	documentsGetMock.mockImplementation(
+		async (_namespace: string, id: string) => {
+			const document = documents.find((candidate) => candidate.id === id)
+			if (!document) throw new sdk.NotFoundError(`Document not found: ${id}`)
+			return {
+				id: document.id,
+				metadata: {
+					source: "claude-memory",
+					claude_memory_type: "file",
+					file_path: document.filePath,
+				},
+				content: document.content,
+				system: { status: "done" },
+			}
+		},
+	)
 }
 
 function mockDocument(content: string) {
@@ -76,7 +70,6 @@ describe("ClaudeMemoryTool view_range", () => {
 	let tool: ClaudeMemoryTool
 
 	beforeEach(() => {
-		documentsListMock.mockReset()
 		documentsGetMock.mockReset()
 		mockDocument(FILE_CONTENT)
 		tool = new ClaudeMemoryTool("test-api-key")
@@ -132,9 +125,8 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 	let tool: ClaudeMemoryTool
 
 	beforeEach(() => {
-		documentsListMock.mockReset()
 		documentsGetMock.mockReset()
-		addMock.mockReset()
+		updateMock.mockReset().mockResolvedValue({ id: "doc", status: "queued" })
 		tool = new ClaudeMemoryTool("test-api-key")
 	})
 
@@ -176,7 +168,23 @@ describe("ClaudeMemoryTool exact-file matching", () => {
 		})
 
 		expect(result.success).toBe(false)
-		expect(addMock).not.toHaveBeenCalled()
+		expect(updateMock).not.toHaveBeenCalled()
+	})
+})
+
+describe("ClaudeMemoryTool path collisions", () => {
+	it("does not serve a file whose path only normalizes to the same ID", async () => {
+		documentsGetMock.mockReset()
+		mockDocuments([{ ...FILE_DOCUMENT, filePath: "/memories/notes_txt" }])
+		const tool = new ClaudeMemoryTool("test-api-key")
+
+		const result = await tool.handleCommand({
+			command: "view",
+			path: FILE_PATH,
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("File not found")
 	})
 })
 
@@ -184,9 +192,8 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 	let tool: ClaudeMemoryTool
 
 	beforeEach(() => {
-		documentsListMock.mockReset()
 		documentsGetMock.mockReset()
-		addMock.mockReset()
+		updateMock.mockReset().mockResolvedValue({ id: "doc", status: "queued" })
 		mockDocument(FILE_CONTENT)
 		tool = new ClaudeMemoryTool("test-api-key")
 	})
@@ -205,8 +212,8 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 		})
 
 		expect(result.success).toBe(true)
-		expect(addMock).toHaveBeenCalledTimes(1)
-		const stored = addMock.mock.calls[0]?.[0]?.content as string
+		expect(updateMock).toHaveBeenCalledTimes(1)
+		const stored = updateMock.mock.calls[0]?.[2]?.content as string
 		expect(stored).toContain(`price is ${dollarSequence} today`)
 	})
 })

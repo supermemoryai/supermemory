@@ -76,7 +76,7 @@ export const getLastUserMessage = (
 		.join(" ")
 }
 
-/** Whether the prompt contains user content that `/v4/conversations` can store. */
+/** Whether the prompt contains user content that a saved conversation can store. */
 export const hasPersistableUserContent = (
 	params: LanguageModelCallOptions,
 ): boolean => {

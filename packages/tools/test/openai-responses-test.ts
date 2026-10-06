@@ -6,8 +6,8 @@ const openai = new OpenAI({
 })
 
 const openaiWithSupermemory = withSupermemory(openai, {
-	containerTag: "user_id_life",
-	customId: "test-conversation",
+	namespace: "user_id_life",
+	id: "test-conversation",
 	verbose: true,
 	mode: "full",
 	addMemory: "always",

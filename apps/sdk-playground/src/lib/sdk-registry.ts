@@ -59,15 +59,6 @@ export const CHAT_SDK_REGISTRY: ChatSdkDefinition[] = [
 		available: true,
 	},
 	{
-		id: "ts-ai-sdk-package",
-		label: "@supermemory/ai-sdk",
-		language: "typescript",
-		mode: "tools",
-		package: "@supermemory/ai-sdk",
-		description: "Re-export of tools/ai-sdk — same 7-tool agent",
-		available: true,
-	},
-	{
 		id: "py-openai-middleware",
 		label: "OpenAI + middleware",
 		language: "python",

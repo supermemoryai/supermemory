@@ -8,6 +8,7 @@ export type {
 	AddMemoryMode,
 	Logger,
 	ProfileStructure,
+	ProfileEntry,
 	ProfileMarkdownData,
 	SupermemoryBaseOptions,
 } from "./types"
@@ -35,6 +36,7 @@ export {
 
 // Memory client
 export {
+	PROFILE_SEARCH_THRESHOLD,
 	supermemoryProfileSearch,
 	buildMemoriesText,
 	extractQueryText,

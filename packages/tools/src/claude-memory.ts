@@ -1,11 +1,14 @@
-import Supermemory from "supermemory"
-import { deleteDocumentById, getContainerTags } from "./tools-shared"
+import type { Supermemory } from "supermemory"
+import {
+	createToolsClient,
+	getNamespace,
+	isNotFoundError,
+} from "./tools-shared"
 import type { SupermemoryToolsConfig } from "./types"
 
-// Claude Memory Tool Types
-export interface ClaudeMemoryConfig extends SupermemoryToolsConfig {
-	memoryContainerTag?: string
-}
+export type ClaudeMemoryConfig = SupermemoryToolsConfig
+
+export const CLAUDE_MEMORY_SOURCE = "claude-memory"
 
 export interface MemoryCommand {
 	command: "view" | "create" | "str_replace" | "insert" | "delete" | "rename"
@@ -45,40 +48,19 @@ interface ClaudeFileDocument {
 	metadata: ClaudeFileMetadata
 }
 
-/**
- * Claude Memory Tool - Client-side implementation
- * Maps Claude's memory tool commands to supermemory document operations
- */
+/** Maps Claude's memory tool commands to Supermemory documents in one namespace. */
 export class ClaudeMemoryTool {
 	private client: Supermemory
-	private containerTags: string[]
-	private scopeContainerTags: [string, ...string[]]
-	private memoryContainerPrefix: string
+	private namespace: string
 
-	/**
-	 * Normalize file path to be used as customId
-	 * Converts /memories/file.txt -> memories_file_txt
-	 */
-	private normalizePathToCustomId(path: string): string {
-		return path
-			.replace(/^\//, "") // Remove leading slash
-			.replace(/\//g, "_") // Replace / with _
-			.replace(/\./g, "_") // Replace . with _
+	/** Converts /memories/file.txt -> memories_file_txt */
+	private normalizePathToId(path: string): string {
+		return path.replace(/^\//, "").replace(/\//g, "_").replace(/\./g, "_")
 	}
 
 	constructor(apiKey: string, config?: ClaudeMemoryConfig) {
-		this.client = new Supermemory({
-			apiKey,
-			...(config?.baseUrl && { baseURL: config.baseUrl }),
-		})
-
-		// Use custom memory container tag or default
-		this.memoryContainerPrefix = config?.memoryContainerTag || "claude_memory"
-
-		// Get base container tags and add memory-specific tag
-		const baseContainerTags = getContainerTags(config)
-		this.scopeContainerTags = baseContainerTags
-		this.containerTags = [...baseContainerTags, this.memoryContainerPrefix]
+		this.client = createToolsClient(apiKey, config)
+		this.namespace = getNamespace(config)
 	}
 
 	/**
@@ -203,93 +185,48 @@ export class ClaudeMemoryTool {
 	 */
 	private async listDirectory(dirPath: string): Promise<MemoryResponse> {
 		try {
-			// Document search returns ranked chunks, not a complete inventory. Walk
-			// every page of the document-list endpoint so files cannot disappear
-			// from a directory merely because they did not rank in a search page.
-			const documents: Supermemory.DocumentListResponse.Memory[] = []
+			// Walk every page so files cannot disappear from a listing.
+			const filePaths: string[] = []
 			let page = 1
 
 			while (true) {
-				const response = await this.client.documents.list({
-					containerTags: this.scopeContainerTags,
-					filters: {
-						AND: [
-							{ key: "claude_memory_type", value: "file" },
-							{
-								key: "file_path",
-								value: dirPath,
-								filterType: "string_contains",
-							},
+				const response = await this.client.list(this.namespace, "documents", {
+					filter: {
+						operator: "and",
+						operands: [
+							{ field: "source", operator: "eq", value: CLAUDE_MEMORY_SOURCE },
+							{ field: "claude_memory_type", operator: "eq", value: "file" },
+							{ field: "file_path", operator: "contains", value: dirPath },
 						],
 					},
-					includeContent: false,
 					limit: 100,
 					page,
 				})
 
-				documents.push(...response.memories)
+				for (const document of response.documents) {
+					const filePath = this.getDocumentFilePath(document)
+					if (filePath?.startsWith(dirPath)) filePaths.push(filePath)
+				}
 
 				if (page >= response.pagination.totalPages) break
 				page += 1
 			}
 
-			// Filter files that match the directory path and extract relative paths
 			const files: string[] = []
 			const dirs = new Set<string>()
-			const candidates: Array<{
-				document: Supermemory.DocumentListResponse.Memory
-				filePath: string
-			}> = []
 
-			for (const document of documents) {
-				if (!this.isDocumentInConfiguredScope(document)) continue
+			for (const filePath of filePaths) {
+				const relativePath = filePath.substring(dirPath.length)
+				if (!relativePath) continue
 
-				const filePath = this.getDocumentFilePath(document)
-				if (!filePath || !filePath.startsWith(dirPath)) {
-					continue
-				}
-				candidates.push({ document, filePath })
-			}
-
-			// Full GETs are required to verify hidden project tags. Keep them bounded
-			// so large directories do not become a long serial chain or a burst of
-			// unbounded requests.
-			const verificationBatchSize = 8
-			for (
-				let index = 0;
-				index < candidates.length;
-				index += verificationBatchSize
-			) {
-				const batch = candidates.slice(index, index + verificationBatchSize)
-				const verified = await Promise.all(
-					batch.map(async (candidate) =>
-						(await this.isDirectoryDocumentInExactScope(candidate.document))
-							? candidate
-							: undefined,
-					),
-				)
-
-				for (const candidate of verified) {
-					if (!candidate) continue
-					const { filePath } = candidate
-
-					// Get relative path from directory
-					const relativePath = filePath.substring(dirPath.length)
-					if (!relativePath) continue
-
-					// If path contains /, it's in a subdirectory
-					const slashIndex = relativePath.indexOf("/")
-					if (slashIndex > 0) {
-						// It's a subdirectory
-						dirs.add(`${relativePath.substring(0, slashIndex)}/`)
-					} else if (relativePath !== "") {
-						// It's a file in this directory
-						files.push(relativePath)
-					}
+				const slashIndex = relativePath.indexOf("/")
+				if (slashIndex > 0) {
+					dirs.add(`${relativePath.substring(0, slashIndex)}/`)
+				} else {
+					files.push(relativePath)
 				}
 			}
 
-			// Format directory listing
 			const entries = [...Array.from(dirs).sort(), ...files.sort()]
 
 			if (entries.length === 0) {
@@ -384,19 +321,13 @@ export class ClaudeMemoryTool {
 		fileText: string,
 	): Promise<MemoryResponse> {
 		try {
-			const normalizedId = this.normalizePathToCustomId(filePath)
-
-			const _response = await this.client.add({
-				content: fileText,
-				customId: normalizedId,
-				containerTags: this.containerTags,
-				metadata: {
-					claude_memory_type: "file",
-					file_path: filePath,
-					line_count: fileText.split("\n").length,
-					created_by: "claude_memory_tool",
-					last_modified: new Date().toISOString(),
-				},
+			await this.writeFile(this.normalizePathToId(filePath), fileText, {
+				source: CLAUDE_MEMORY_SOURCE,
+				claude_memory_type: "file",
+				file_path: filePath,
+				line_count: fileText.split("\n").length,
+				created_by: "claude_memory_tool",
+				last_modified: new Date().toISOString(),
 			})
 
 			return {
@@ -444,17 +375,10 @@ export class ClaudeMemoryTool {
 			// patterns like $&, $', and $` and silently corrupt the file.
 			const newContent = originalContent.replace(oldStr, () => newStr)
 
-			// Update the document
-			const normalizedId = this.normalizePathToCustomId(filePath)
-			const _updateResponse = await this.client.add({
-				content: newContent,
-				customId: normalizedId,
-				containerTags: this.containerTags,
-				metadata: {
-					...readResult.document.metadata,
-					line_count: newContent.split("\n").length,
-					last_modified: new Date().toISOString(),
-				},
+			await this.writeFile(readResult.document.documentId, newContent, {
+				...readResult.document.metadata,
+				line_count: newContent.split("\n").length,
+				last_modified: new Date().toISOString(),
 			})
 
 			return {
@@ -502,17 +426,10 @@ export class ClaudeMemoryTool {
 			lines.splice(insertLine - 1, 0, insertText)
 			const newContent = lines.join("\n")
 
-			// Update the document
-			const normalizedId = this.normalizePathToCustomId(filePath)
-			await this.client.add({
-				content: newContent,
-				customId: normalizedId,
-				containerTags: this.containerTags,
-				metadata: {
-					...readResult.document.metadata,
-					line_count: newContent.split("\n").length,
-					last_modified: new Date().toISOString(),
-				},
+			await this.writeFile(readResult.document.documentId, newContent, {
+				...readResult.document.metadata,
+				line_count: newContent.split("\n").length,
+				last_modified: new Date().toISOString(),
 			})
 
 			return {
@@ -541,7 +458,7 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			await deleteDocumentById(this.client, readResult.document.documentId)
+			await this.deleteFile(readResult.document.documentId)
 
 			return {
 				success: true,
@@ -581,26 +498,17 @@ export class ClaudeMemoryTool {
 			}
 
 			const originalContent = readResult.document.content
-			const newNormalizedId = this.normalizePathToCustomId(newPath)
+			const newNormalizedId = this.normalizePathToId(newPath)
 
-			// Create new document with new path
-			await this.client.add({
-				content: originalContent,
-				customId: newNormalizedId,
-				containerTags: this.containerTags,
-				metadata: {
-					...readResult.document.metadata,
-					file_path: newPath,
-					last_modified: new Date().toISOString(),
-				},
+			await this.writeFile(newNormalizedId, originalContent, {
+				...readResult.document.metadata,
+				file_path: newPath,
+				last_modified: new Date().toISOString(),
 			})
 
-			// Remove the old document so the previous path stops showing up in
-			// listings and search. Skip when both paths normalize to the same
-			// customId — the add above already replaced the content.
-			const oldNormalizedId = this.normalizePathToCustomId(oldPath)
-			if (oldNormalizedId !== newNormalizedId) {
-				await deleteDocumentById(this.client, readResult.document.documentId)
+			// Same normalized ID means the write above already replaced the file in place.
+			if (readResult.document.documentId !== newNormalizedId) {
+				await this.deleteFile(readResult.document.documentId)
 			}
 
 			return {
@@ -615,129 +523,74 @@ export class ClaudeMemoryTool {
 		}
 	}
 
-	/**
-	 * Helper: Get document by file path
-	 */
+	// v5 `add` with an existing id appends; `update` replaces, so writes try update first.
+	private async writeFile(
+		id: string,
+		content: string,
+		metadata: ClaudeFileMetadata,
+	): Promise<void> {
+		try {
+			await this.client.documents.update(this.namespace, id, {
+				content,
+				metadata,
+			})
+		} catch (error) {
+			if (!isNotFoundError(error)) throw error
+			await this.client.add(this.namespace, { content, id, metadata })
+		}
+	}
+
+	private async deleteFile(id: string): Promise<void> {
+		const response = await this.client.documents.delete(this.namespace, {
+			ids: [id],
+		})
+		if (response.count === 1) return
+		const detail = response.errors?.find((error) => error.id === id)?.error
+		throw new Error(
+			detail
+				? `Failed to delete document ${id}: ${detail}`
+				: `Failed to delete document ${id}: expected one deletion, received ${response.count}`,
+		)
+	}
+
 	private async getFileDocument(filePath: string): Promise<{
 		success: boolean
 		document?: ClaudeFileDocument
 		error?: string
 	}> {
 		try {
-			const normalizedId = this.normalizePathToCustomId(filePath)
-			let page = 1
-			const candidates = new Map<
-				string,
-				Supermemory.DocumentListResponse.Memory
-			>()
-
-			// customId values are only unique within an exact container-tag set in
-			// Mono. Resolve the matching document inside this tool's configured
-			// scope before fetching by internal ID; a direct get(customId) can pick
-			// another project/user's same-named file.
-			while (true) {
-				const response = await this.client.documents.list({
-					containerTags: this.scopeContainerTags,
-					filters: {
-						AND: [
-							{ key: "claude_memory_type", value: "file" },
-							{ key: "file_path", value: filePath },
-						],
-					},
-					includeContent: false,
-					limit: 100,
-					page,
-				})
-
-				for (const document of response.memories) {
-					if (
-						document.customId === normalizedId &&
-						this.getDocumentFilePath(document) === filePath &&
-						this.isDocumentInConfiguredScope(document)
-					) {
-						candidates.set(document.id, document)
-					}
+			const id = this.normalizePathToId(filePath)
+			let document: Awaited<ReturnType<Supermemory["documents"]["get"]>>
+			try {
+				document = await this.client.documents.get(this.namespace, id)
+			} catch (error) {
+				if (isNotFoundError(error)) {
+					return { success: false, error: `File not found: ${filePath}` }
 				}
-
-				if (page >= response.pagination.totalPages) break
-				page += 1
+				throw error
 			}
 
-			const exactMatches: Array<{
-				candidate: Supermemory.DocumentListResponse.Memory
-				document: Supermemory.DocumentGetResponse
-			}> = []
-			let hasUnverifiedCandidate = false
-			for (const candidate of candidates.values()) {
-				let document: Supermemory.DocumentGetResponse
-				try {
-					document = await this.client.documents.get(candidate.id)
-				} catch (error) {
-					if (error instanceof Supermemory.NotFoundError) continue
-					throw error
-				}
-
-				if (document.id !== candidate.id) {
-					hasUnverifiedCandidate = true
-					continue
-				}
-				if (
-					document.customId !== normalizedId ||
-					this.getDocumentFilePath(document) !== filePath ||
-					!this.hasExactContainerTags(document.containerTags)
-				) {
-					continue
-				}
-
-				exactMatches.push({ candidate, document })
-			}
-
-			if (exactMatches.length === 0) {
-				return {
-					success: false,
-					error: `File not found: ${filePath}`,
-				}
-			}
-			if (exactMatches.length > 1) {
-				return {
-					success: false,
-					error: `File path is ambiguous in the configured container scope: ${filePath}`,
-				}
-			}
-			if (hasUnverifiedCandidate) {
-				return {
-					success: false,
-					error: `File path could not be resolved unambiguously in the configured container scope: ${filePath}`,
-				}
-			}
-
-			const match = exactMatches[0]
-			if (!match) {
+			// Different paths can normalize to the same ID; only the exact file counts.
+			if (
+				document.metadata?.source !== CLAUDE_MEMORY_SOURCE ||
+				this.getDocumentFilePath(document) !== filePath
+			) {
 				return { success: false, error: `File not found: ${filePath}` }
 			}
-			const { candidate, document } = match
-			const content =
-				typeof document.content === "string"
-					? document.content
-					: typeof document.raw === "string"
-						? document.raw
-						: undefined
-			if (content === undefined) {
+			if (typeof document.content !== "string") {
 				return {
 					success: false,
 					error: `File content unavailable: ${filePath}`,
 				}
 			}
-			const metadata =
-				document.metadata &&
-				typeof document.metadata === "object" &&
-				!Array.isArray(document.metadata)
-					? (document.metadata as ClaudeFileMetadata)
-					: {}
 
 			return {
 				success: true,
-				document: { documentId: candidate.id, content, metadata },
+				document: {
+					documentId: id,
+					content: document.content,
+					metadata: document.metadata as ClaudeFileMetadata,
+				},
 			}
 		} catch (error) {
 			return {
@@ -759,46 +612,6 @@ export class ClaudeMemoryTool {
 		return typeof metadataRecord.file_path === "string"
 			? metadataRecord.file_path
 			: undefined
-	}
-
-	private isDocumentInConfiguredScope(
-		document: Supermemory.DocumentListResponse.Memory,
-	): boolean {
-		const documentTags = document.containerTags ?? []
-		const expectedTags = this.containerTags.filter(
-			(tag) => !tag.startsWith("sm_project_"),
-		)
-
-		return (
-			documentTags.length === expectedTags.length &&
-			documentTags.every((tag, index) => tag === expectedTags[index])
-		)
-	}
-
-	private async isDirectoryDocumentInExactScope(
-		document: Supermemory.DocumentListResponse.Memory,
-	): Promise<boolean> {
-		try {
-			// Mono strips internal project tags from every list response, so only a
-			// full get can prove that no hidden tags change this document's scope.
-			const fullDocument = await this.client.documents.get(document.id)
-			return (
-				fullDocument.id === document.id &&
-				this.hasExactContainerTags(fullDocument.containerTags)
-			)
-		} catch (error) {
-			if (!(error instanceof Supermemory.NotFoundError)) throw error
-			// A document can disappear between list and get. Skip stale entries
-			// instead of failing the entire directory view.
-			return false
-		}
-	}
-
-	private hasExactContainerTags(containerTags?: string[]): boolean {
-		return (
-			containerTags?.length === this.containerTags.length &&
-			containerTags.every((tag, index) => tag === this.containerTags[index])
-		)
 	}
 
 	/**

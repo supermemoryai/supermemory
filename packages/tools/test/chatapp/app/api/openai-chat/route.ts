@@ -14,8 +14,8 @@ export async function POST(req: Request) {
 	})
 
 	const openaiWithSupermemory = withSupermemory(openai, {
-		containerTag: "user-123",
-		customId: conversationId,
+		namespace: "user-123",
+		id: conversationId,
 		mode: "full",
 		addMemory: "always",
 		verbose: true,

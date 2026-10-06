@@ -16,8 +16,8 @@ import {
  *
  * @param openaiClient - The OpenAI client to wrap with SuperMemory middleware
  * @param options - Configuration options for the middleware
- * @param options.containerTag - Required. The container tag/identifier for memory search (e.g., user ID, project ID)
- * @param options.customId - Required. Custom ID to group messages into a single document for contextual memory generation
+ * @param options.namespace - Required. The namespace for memory search (e.g., user ID, project ID)
+ * @param options.id - Required. ID that groups messages into a single document for contextual memory generation
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile" (default), "query", or "full"
  * @param options.addMemory - Optional mode for memory addition: "always" (default), "never"
@@ -35,8 +35,8 @@ import {
  *   apiKey: process.env.OPENAI_API_KEY,
  * })
  * const openaiWithSupermemory = withSupermemory(openai, {
- *   containerTag: "user-123",
- *   customId: "conversation-456",
+ *   namespace: "user-123",
+ *   id: "conversation-456",
  *   mode: "full",
  *   addMemory: "always"
  * })
@@ -70,26 +70,26 @@ export function withSupermemory(
 		)
 	}
 
-	if (!options.containerTag) {
+	if (!options.namespace) {
 		throw new Error(
-			"containerTag is required — provide a non-empty string to identify the user/container",
+			"namespace is required — provide a non-empty string to identify the user or project",
 		)
 	}
 
-	if (!options.customId) {
+	if (!options.id) {
 		throw new Error(
-			"customId is required — provide a non-empty string to group messages into a single document",
+			"id is required — provide a non-empty string to group messages into a single document",
 		)
 	}
 
-	const { containerTag } = options
+	const { namespace } = options
 	const verbose = options.verbose ?? false
 	const mode = options.mode ?? "profile"
 	const addMemory = options.addMemory ?? "always"
 
 	const openaiWithSupermemory = createOpenAIMiddleware(
 		openaiClient,
-		containerTag,
+		namespace,
 		{
 			...options,
 			verbose,

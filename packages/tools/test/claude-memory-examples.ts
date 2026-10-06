@@ -21,8 +21,7 @@ export async function directFetchExample() {
 
 	// Initialize the memory tool
 	const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
-		projectId: "claude-memory-demo",
-		memoryContainerTag: "claude_memory_demo",
+		namespace: "claude-memory-demo",
 	})
 
 	// Example memory commands that Claude might send
@@ -106,8 +105,7 @@ export async function anthropicSdkExample() {
 
 	// Initialize memory tool
 	const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
-		projectId: "claude-chat-session",
-		memoryContainerTag: "claude_memory_chat",
+		namespace: "claude-chat-session",
 	})
 
 	// Simulate Claude's memory tool usage in a conversation
@@ -197,8 +195,7 @@ const anthropic = new Anthropic({
 });
 
 const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
-  projectId: 'my-chat-app',
-  memoryContainerTag: 'claude_memory'
+  namespace: 'my-chat-app',
 });
 
 // Memory tool definition for Claude
@@ -243,16 +240,15 @@ async function chatWithMemory(userMessage: string) {
 
 export const curlExamples = `
 # Test the memory tool using cURL commands against your supermemory API
-
 # 1. Create a memory file
-curl -X POST "https://api.supermemory.ai/v3/documents" \\
+curl -X POST "https://api.supermemory.ai/ns/my-app/document" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "content": "# My Notes\\n\\nThis is a test note for Claude memory tool.",
-    "customId": "/memories/test-note.md",
-    "containerTags": ["claude_memory", "sm_project_test"],
+    "id": "memories_test-note_md",
     "metadata": {
+      "source": "claude-memory",
       "claude_memory_type": "file",
       "file_path": "/memories/test-note.md",
       "line_count": 3,
@@ -260,35 +256,24 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \\
     }
   }'
 
-# 2. Search/read the memory file
-curl -X POST "https://api.supermemory.ai/v3/search" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "q": "/memories/test-note.md",
-    "containerTags": ["claude_memory", "sm_project_test"],
-    "limit": 1,
-    "includeFullDocs": true
-  }'
+# 2. Read the memory file
+curl "https://api.supermemory.ai/ns/my-app/document/memories_test-note_md" \\
+  -H "Authorization: Bearer YOUR_API_KEY"
 
 # 3. List all memory files (directory listing)
-curl -X POST "https://api.supermemory.ai/v3/search" \\
+curl -X POST "https://api.supermemory.ai/ns/my-app/list/documents?limit=100" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{
-    "q": "*",
-    "containerTags": ["claude_memory", "sm_project_test"],
-    "limit": 100,
-    "includeFullDocs": false
-  }'
+  -d '{"filter": {"field": "source", "operator": "eq", "value": "claude-memory"}}'
 
-# 4. Update a memory file (str_replace operation)
-curl -X PATCH "https://api.supermemory.ai/v3/documents/DOCUMENT_ID" \\
+# 4. Replace a memory file (str_replace operation)
+curl -X PATCH "https://api.supermemory.ai/ns/my-app/document/memories_test-note_md" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "content": "# My Updated Notes\\n\\nThis note has been updated using str_replace.",
     "metadata": {
+      "source": "claude-memory",
       "claude_memory_type": "file",
       "file_path": "/memories/test-note.md",
       "line_count": 3,
@@ -297,8 +282,10 @@ curl -X PATCH "https://api.supermemory.ai/v3/documents/DOCUMENT_ID" \\
   }'
 
 # 5. Delete a memory file
-curl -X DELETE "https://api.supermemory.ai/v3/documents/DOCUMENT_ID" \\
-  -H "Authorization: Bearer YOUR_API_KEY"
+curl -X DELETE "https://api.supermemory.ai/ns/my-app/document" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"ids": ["memories_test-note_md"]}'
 `
 
 // =====================================================

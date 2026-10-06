@@ -17,8 +17,7 @@ async function testMemoryTool() {
 	}
 
 	const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY, {
-		projectId: "memory-tool-test",
-		memoryContainerTag: "claude_memory_test",
+		namespace: "memory-tool-test",
 		baseUrl: process.env.SUPERMEMORY_BASE_URL,
 	})
 

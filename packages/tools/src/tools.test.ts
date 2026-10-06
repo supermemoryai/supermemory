@@ -59,25 +59,25 @@ describe("@supermemory/tools", () => {
 
 			it("should create individual tools", () => {
 				const searchTool = aiSdk.searchMemoriesTool(testApiKey, {
-					projectId: "test-project-123",
+					namespace: "test-project-123",
 				})
 				const addTool = aiSdk.addMemoryTool(testApiKey, {
-					projectId: "test-project-123",
+					namespace: "test-project-123",
 				})
 				const profileTool = aiSdk.getProfileTool(testApiKey, {
-					projectId: "test-project-123",
+					namespace: "test-project-123",
 				})
 				const listTool = aiSdk.documentListTool(testApiKey, {
-					projectId: "test-project-123",
+					namespace: "test-project-123",
 				})
 				const deleteTool = aiSdk.documentDeleteTool(testApiKey, {
-					projectId: "test-project-123",
+					namespace: "test-project-123",
 				})
 				const addDocTool = aiSdk.documentAddTool(testApiKey, {
-					projectId: "test-project-123",
+					namespace: "test-project-123",
 				})
 				const forgetTool = aiSdk.memoryForgetTool(testApiKey, {
-					projectId: "test-project-123",
+					namespace: "test-project-123",
 				})
 
 				expect(searchTool).toBeDefined()
@@ -111,7 +111,7 @@ describe("@supermemory/tools", () => {
 					],
 					tools: {
 						...aiSdk.supermemoryTools(testApiKey, {
-							projectId: "test-ai-integration",
+							namespace: "test-ai-integration",
 							baseUrl: testBaseUrl,
 						}),
 					},
@@ -128,7 +128,7 @@ describe("@supermemory/tools", () => {
 				})
 
 				const tools = aiSdk.supermemoryTools(testApiKey, {
-					projectId: "test-tool-usage",
+					namespace: "test-tool-usage",
 					baseUrl: testBaseUrl,
 				})
 
@@ -160,7 +160,7 @@ describe("@supermemory/tools", () => {
 				})
 
 				const tools = aiSdk.supermemoryTools(testApiKey, {
-					projectId: "test-profile-tool",
+					namespace: "test-profile-tool",
 					baseUrl: testBaseUrl,
 				})
 
@@ -192,7 +192,7 @@ describe("@supermemory/tools", () => {
 				})
 
 				const tools = aiSdk.supermemoryTools(testApiKey, {
-					projectId: "test-document-tools",
+					namespace: "test-document-tools",
 					baseUrl: testBaseUrl,
 				})
 
@@ -222,7 +222,7 @@ describe("@supermemory/tools", () => {
 		describe("new tool operations", () => {
 			it("should get profile with getProfileTool", async () => {
 				const profileTool = aiSdk.getProfileTool(testApiKey, {
-					projectId: "test-profile",
+					namespace: "test-profile",
 					baseUrl: testBaseUrl,
 				})
 
@@ -234,7 +234,7 @@ describe("@supermemory/tools", () => {
 
 			it("should list documents with documentListTool", async () => {
 				const listTool = aiSdk.documentListTool(testApiKey, {
-					projectId: "test-list",
+					namespace: "test-list",
 					baseUrl: testBaseUrl,
 				})
 
@@ -245,7 +245,7 @@ describe("@supermemory/tools", () => {
 
 			it("should create documentDeleteTool", async () => {
 				const deleteTool = aiSdk.documentDeleteTool(testApiKey, {
-					projectId: "test-delete",
+					namespace: "test-delete",
 					baseUrl: testBaseUrl,
 				})
 
@@ -256,7 +256,7 @@ describe("@supermemory/tools", () => {
 
 			it("should create documentAddTool", async () => {
 				const addDocTool = aiSdk.documentAddTool(testApiKey, {
-					projectId: "test-add-doc",
+					namespace: "test-add-doc",
 					baseUrl: testBaseUrl,
 				})
 
@@ -267,7 +267,7 @@ describe("@supermemory/tools", () => {
 
 			it("should create memoryForgetTool", async () => {
 				const forgetTool = aiSdk.memoryForgetTool(testApiKey, {
-					projectId: "test-forget",
+					namespace: "test-forget",
 					baseUrl: testBaseUrl,
 				})
 
@@ -282,7 +282,7 @@ describe("@supermemory/tools", () => {
 		describe("function-based tools", () => {
 			it("should create function-based tools", () => {
 				const tools = openAi.supermemoryTools(testApiKey, {
-					projectId: "test-openai-functions",
+					namespace: "test-openai-functions",
 				})
 
 				expect(tools).toBeDefined()
@@ -292,10 +292,10 @@ describe("@supermemory/tools", () => {
 
 			it("should create individual tool functions", () => {
 				const searchFunction = openAi.createSearchMemoriesFunction(testApiKey, {
-					projectId: "test-individual",
+					namespace: "test-individual",
 				})
 				const addFunction = openAi.createAddMemoryFunction(testApiKey, {
-					projectId: "test-individual",
+					namespace: "test-individual",
 				})
 
 				expect(searchFunction).toBeDefined()
@@ -333,7 +333,7 @@ describe("@supermemory/tools", () => {
 		describe("tool execution", () => {
 			it("should create tool call executor", () => {
 				const executor = openAi.createToolCallExecutor(testApiKey, {
-					containerTags: ["test-executor"],
+					namespace: "test-executor",
 					baseUrl: testBaseUrl,
 				})
 
@@ -343,7 +343,7 @@ describe("@supermemory/tools", () => {
 
 			it("should create tool calls executor", () => {
 				const executor = openAi.createToolCallsExecutor(testApiKey, {
-					containerTags: ["test-executors"],
+					namespace: "test-executors",
 					baseUrl: testBaseUrl,
 				})
 
@@ -355,7 +355,7 @@ describe("@supermemory/tools", () => {
 		describe("individual tool creators", () => {
 			it("should create individual search tool", () => {
 				const searchTool = openAi.createSearchMemoriesTool(testApiKey, {
-					projectId: "test-individual",
+					namespace: "test-individual",
 				})
 
 				expect(searchTool).toBeDefined()
@@ -366,7 +366,7 @@ describe("@supermemory/tools", () => {
 
 			it("should create individual add tool", () => {
 				const addTool = openAi.createAddMemoryTool(testApiKey, {
-					projectId: "test-individual",
+					namespace: "test-individual",
 				})
 
 				expect(addTool).toBeDefined()
@@ -379,7 +379,7 @@ describe("@supermemory/tools", () => {
 		describe("memory operations", () => {
 			it("should search memories", async () => {
 				const searchFunction = openAi.createSearchMemoriesFunction(testApiKey, {
-					projectId: "test-search",
+					namespace: "test-search",
 					baseUrl: testBaseUrl,
 				})
 
@@ -403,7 +403,7 @@ describe("@supermemory/tools", () => {
 
 			it("should add memory", async () => {
 				const addFunction = openAi.createAddMemoryFunction(testApiKey, {
-					containerTags: ["test-add-memory"],
+					namespace: "test-add-memory",
 					baseUrl: testBaseUrl,
 				})
 

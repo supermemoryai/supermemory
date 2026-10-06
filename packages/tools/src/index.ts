@@ -8,5 +8,5 @@ export {
 	TOOL_DESCRIPTIONS,
 	PARAMETER_DESCRIPTIONS,
 	DEFAULT_VALUES,
-	getContainerTags,
+	getNamespace,
 } from "./tools-shared"

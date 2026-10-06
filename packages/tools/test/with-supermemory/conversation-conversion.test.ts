@@ -1,42 +1,35 @@
-import type Supermemory from "supermemory"
+import type { Supermemory } from "supermemory"
 import type {
 	LanguageModelV2CallOptions,
 	LanguageModelV2Message,
 } from "@ai-sdk/provider"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import {
+	type AddConversationParams,
+	formatConversationText,
+} from "../../src/conversations-client"
 import { createLogger } from "../../src/shared"
 import { saveMemoryAfterResponse } from "../../src/vercel/middleware"
 
-const originalFetch = globalThis.fetch
+const addConversationMock = vi.hoisted(() => vi.fn())
+
+vi.mock("../../src/conversations-client", async (importOriginal) => ({
+	...(await importOriginal<typeof import("../../src/conversations-client")>()),
+	addConversation: addConversationMock,
+}))
 
 const persistMessages = async (
 	params: LanguageModelV2CallOptions,
 	assistantResponseText: string,
 	includeToolCalls = true,
 ) => {
-	let messages: unknown[] | undefined
-
-	const fetchStub: typeof fetch = Object.assign(
-		async (input: RequestInfo | URL, init?: RequestInit) => {
-			const url = typeof input === "string" ? input : input.toString()
-			expect(url).toContain("/v4/conversations")
-
-			const body = typeof init?.body === "string" ? init.body : ""
-			messages = (JSON.parse(body) as { messages: unknown[] }).messages
-
-			return new Response(
-				JSON.stringify({
-					id: "document-id",
-					conversationId: "conversation-id",
-					status: "done",
-				}),
-				{ status: 200 },
-			)
+	let captured: AddConversationParams | undefined
+	addConversationMock.mockImplementation(
+		async (conversation: AddConversationParams) => {
+			captured = conversation
+			return { id: "conversation-id", status: "queued" }
 		},
-		{ preconnect: originalFetch.preconnect },
 	)
-
-	globalThis.fetch = fetchStub
 
 	await saveMemoryAfterResponse(
 		{} as Supermemory,
@@ -50,11 +43,47 @@ const persistMessages = async (
 		includeToolCalls,
 	)
 
-	return messages
+	expect(captured?.namespace).toBe("user-id")
+	expect(captured?.id).toBe("conversation-id")
+	return captured?.messages
 }
 
 afterEach(() => {
-	globalThis.fetch = originalFetch
+	addConversationMock.mockReset()
+})
+
+describe("formatConversationText", () => {
+	it("renders roles, tool calls, and images as plain text", () => {
+		expect(
+			formatConversationText([
+				{ role: "user", content: "Hi" },
+				{
+					role: "assistant",
+					content: "",
+					tool_calls: [
+						{
+							id: "call-1",
+							type: "function",
+							function: { name: "search", arguments: '{"q":"x"}' },
+						},
+					],
+				},
+				{
+					role: "user",
+					content: [
+						{ type: "text", text: "Look" },
+						{ type: "image_url", imageUrl: { url: "https://x.test/a.png" } },
+						{
+							type: "image_url",
+							imageUrl: { url: "data:image/png;base64,AA" },
+						},
+					],
+				},
+			]),
+		).toBe(
+			'User: Hi\n\nAssistant: [tool call: search({"q":"x"})]\n\nUser: Look [image: https://x.test/a.png] [image]',
+		)
+	})
 })
 
 describe("convertToConversationMessages", () => {

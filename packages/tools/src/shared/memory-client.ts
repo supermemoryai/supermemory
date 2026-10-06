@@ -10,63 +10,67 @@ import type {
 	ProfileStructure,
 	PromptTemplate,
 } from "./types"
+import { SupermemoryError } from "supermemory"
+import { createSupermemoryClient } from "./context"
 import {
 	convertProfileToMarkdown,
 	defaultPromptTemplate,
 } from "./prompt-builder"
 
-/**
- * Fetches profile and search results from the Supermemory API.
- *
- * @param containerTag - The container tag/user ID for scoping memories
- * @param queryText - Optional query text for semantic search
- * @param baseUrl - The API base URL
- * @param apiKey - The API key for authentication
- * @param signal - Optional AbortSignal to cancel the request (e.g. retrieval timeout)
- * @returns The profile structure with static, dynamic, and search results
- */
+function describeSupermemoryError(error: unknown): string {
+	if (error instanceof SupermemoryError && error.statusCode !== undefined) {
+		return `${error.statusCode}. ${error.message}`
+	}
+	return error instanceof Error ? error.message : String(error)
+}
+
+// Matches the v4 profile search defaults (memories mode, 0.6 threshold).
+export const PROFILE_SEARCH_THRESHOLD = 0.6
+
 export const supermemoryProfileSearch = async (
-	containerTag: string,
+	namespace: string,
 	queryText: string,
 	baseUrl: string,
 	apiKey: string,
 	signal?: AbortSignal,
+	includeProfile = true,
 ): Promise<ProfileStructure> => {
-	const payload = queryText
-		? JSON.stringify({
-				q: queryText,
-				containerTag: containerTag,
-				include: ["static", "dynamic"],
-			})
-		: JSON.stringify({
-				containerTag: containerTag,
-				include: ["static", "dynamic"],
-			})
+	const client = createSupermemoryClient({ apiKey, baseUrl })
+	// No retries: this runs before the LLM call, and the raw v4 fetch never retried.
+	const requestOptions = {
+		maxRetries: 0,
+		...(signal && { abortSignal: signal }),
+	}
 
-	try {
-		const response = await fetch(`${baseUrl}/v4/profile`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${apiKey}`,
+	const [profileResponse, searchResponse] = await Promise.all([
+		includeProfile
+			? client.profile(namespace, undefined, requestOptions)
+			: undefined,
+		queryText
+			? client.search(
+					namespace,
+					{
+						query: queryText,
+						searchMode: "memories",
+						threshold: PROFILE_SEARCH_THRESHOLD,
+					},
+					requestOptions,
+				)
+			: undefined,
+	]).catch((error: unknown) => {
+		throw new Error(
+			`Supermemory profile search failed: ${describeSupermemoryError(error)}`,
+		)
+	})
+
+	return {
+		profile: profileResponse?.profile ?? { static: [], dynamic: [] },
+		...(searchResponse && {
+			searchResults: {
+				results: searchResponse.results,
+				timing: searchResponse.searchTime,
 			},
-			body: payload,
-			...(signal ? { signal } : {}),
-		})
-
-		if (!response.ok) {
-			const errorText = await response.text().catch(() => "Unknown error")
-			throw new Error(
-				`Supermemory profile search failed: ${response.status} ${response.statusText}. ${errorText}`,
-			)
-		}
-
-		return await response.json()
-	} catch (error) {
-		if (error instanceof Error) {
-			throw error
-		}
-		throw new Error(`Supermemory API request failed: ${error}`)
+		}),
 	}
 }
 
@@ -74,7 +78,7 @@ export const supermemoryProfileSearch = async (
  * Options for building memories text.
  */
 export interface BuildMemoriesTextOptions {
-	containerTag: string
+	namespace: string
 	queryText: string
 	mode: MemoryMode
 	baseUrl: string
@@ -95,7 +99,7 @@ export const buildMemoriesText = async (
 	options: BuildMemoriesTextOptions,
 ): Promise<string> => {
 	const {
-		containerTag,
+		namespace,
 		queryText,
 		mode,
 		baseUrl,
@@ -106,18 +110,19 @@ export const buildMemoriesText = async (
 	} = options
 
 	const memoriesResponse = await supermemoryProfileSearch(
-		containerTag,
+		namespace,
 		queryText,
 		baseUrl,
 		apiKey,
 		signal,
+		mode !== "query",
 	)
 
 	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
 	const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0
 
 	logger.info("Memory search completed", {
-		containerTag,
+		namespace,
 		memoryCountStatic,
 		memoryCountDynamic,
 		queryText:

@@ -12,7 +12,7 @@ const anthropic = new Anthropic({
 })
 
 const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
-	projectId: "my-app",
+	namespace: "my-app",
 })
 
 async function chatWithMemory(userMessage: string) {

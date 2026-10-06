@@ -458,7 +458,7 @@ await client.add({
 
 ### Vercel AI SDK
 
-#### Agent tools (`@supermemory/tools/ai-sdk` / `@supermemory/ai-sdk`)
+#### Agent tools (`@supermemory/tools/ai-sdk`)
 
 For models that call memory operations explicitly, use the 7-tool set instead of hand-rolling SDK calls:
 

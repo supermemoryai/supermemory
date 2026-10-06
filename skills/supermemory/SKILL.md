@@ -140,7 +140,7 @@ Supermemory supports two complementary integration styles:
 
 | Path | When to use | Packages |
 |------|-------------|----------|
-| **Tools** | Model explicitly decides when to search, add, list, or forget | `@supermemory/tools/ai-sdk` or `@supermemory/ai-sdk` (TypeScript), `supermemory-openai-sdk` (Python) |
+| **Tools** | Model explicitly decides when to search, add, list, or forget | `@supermemory/tools/ai-sdk` (TypeScript), `supermemory-openai-sdk` (Python) |
 | **Middleware** | Auto-inject profile context before each request and save conversations after | `@supermemory/tools/ai-sdk` (Vercel AI SDK), `@supermemory/tools/openai` (OpenAI), `supermemory-openai-sdk` (Python) |
 
 **Tools (7 canonical operations):**
@@ -179,7 +179,6 @@ With multiple configured container tags, `searchMemories`, `getProfile`, and `me
 **TypeScript (Vercel AI SDK):**
 ```typescript
 import { supermemoryTools } from "@supermemory/tools/ai-sdk"
-// or re-exported from "@supermemory/ai-sdk"
 
 const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
   containerTags: ["user_123"],

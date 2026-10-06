@@ -22,8 +22,7 @@ export async function handleClaudeMemoryToolCall(
 	},
 	supermemoryApiKey: string,
 	config?: {
-		projectId?: string
-		memoryContainerTag?: string
+		namespace?: string
 		baseUrl?: string
 	},
 ) {
@@ -34,8 +33,7 @@ export async function handleClaudeMemoryToolCall(
 
 	// Initialize memory tool
 	const memoryTool = createClaudeMemoryTool(supermemoryApiKey, {
-		projectId: config?.projectId || "claude-chat",
-		memoryContainerTag: config?.memoryContainerTag || "claude_memory",
+		namespace: config?.namespace || "claude-chat",
 		baseUrl: config?.baseUrl,
 	})
 
@@ -137,8 +135,7 @@ export async function realClaudeMemoryExample() {
 				console.log(`Path: ${block.input.path}`)
 
 				return handleClaudeMemoryToolCall(block, SUPERMEMORY_API_KEY, {
-					projectId: "python-scraper-help",
-					memoryContainerTag: "claude_memory_debug",
+					namespace: "python-scraper-help",
 				})
 			}),
 		)
@@ -194,8 +191,7 @@ export async function processClaudeResponse(
 	claudeResponseData: any,
 	supermemoryApiKey: string,
 	config?: {
-		projectId?: string
-		memoryContainerTag?: string
+		namespace?: string
 		baseUrl?: string
 	},
 ): Promise<any[]> {
@@ -266,8 +262,7 @@ app.post('/chat-with-memory', async (req, res) => {
       claudeData,
       process.env.SUPERMEMORY_API_KEY!,
       {
-        projectId: conversationId || 'default-chat',
-        memoryContainerTag: 'claude_memory_chat'
+        namespace: conversationId || 'default-chat',
       }
     );
 
@@ -320,8 +315,7 @@ export async function testWithRealToolCall() {
 		realToolCall,
 		process.env.SUPERMEMORY_API_KEY,
 		{
-			projectId: "python-scraper-debug",
-			memoryContainerTag: "claude_memory_test",
+			namespace: "python-scraper-debug",
 		},
 	)
 

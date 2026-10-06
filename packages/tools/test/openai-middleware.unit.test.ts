@@ -1,4 +1,5 @@
 import type OpenAI from "openai"
+import { jsonResponse, profileBody } from "./v5-fetch"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { withSupermemory } from "../src/openai"
 
@@ -18,13 +19,7 @@ describe("OpenAI middleware memory context", () => {
 	it("replaces prior SDK context in chat system messages", async () => {
 		vi.stubGlobal(
 			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				json: async () => ({
-					profile: { static: [{ memory: "Fresh profile fact" }], dynamic: [] },
-					searchResults: { results: [] },
-				}),
-			}),
+			vi.fn(async () => jsonResponse(profileBody(["Fresh profile fact"]))),
 		)
 		const originalCreate = vi.fn(() =>
 			Object.assign(Promise.resolve({ choices: [] }), {
@@ -35,8 +30,8 @@ describe("OpenAI middleware memory context", () => {
 			chat: { completions: { create: originalCreate } },
 		} as unknown as OpenAI
 		const wrapped = withSupermemory(client, {
-			containerTag: "user-a",
-			customId: "conversation-a",
+			namespace: "user-a",
+			id: "conversation-a",
 			mode: "profile",
 			addMemory: "never",
 		})

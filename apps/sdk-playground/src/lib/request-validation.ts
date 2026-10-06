@@ -8,9 +8,9 @@ const MAX_MESSAGE_LENGTH = 20_000
 const MAX_TOTAL_MESSAGE_LENGTH = 100_000
 const MAX_IDENTIFIER_LENGTH = 256
 const MAX_API_KEY_LENGTH = 1_024
-const MAX_CONTAINER_TAG_LENGTH = 100
+const MAX_NAMESPACE_LENGTH = 100
 const MAX_CONVERSATION_ID_LENGTH = 242
-const CONTAINER_TAG_PATTERN = /^[a-zA-Z0-9_:-]+$/
+const NAMESPACE_PATTERN = /^[a-zA-Z0-9_:-]+$/
 
 export class PlaygroundRequestError extends Error {
 	constructor(
@@ -224,24 +224,24 @@ export function parseIdentifier(
 	return resolved
 }
 
-export function parseContainerTag(
+export function parseNamespace(
 	value: unknown,
 	fallback = "sdk-playground",
 ): string {
-	const containerTag = parseIdentifier(value, "containerTag", fallback)
-	if (containerTag.length > MAX_CONTAINER_TAG_LENGTH) {
+	const namespace = parseIdentifier(value, "namespace", fallback)
+	if (namespace.length > MAX_NAMESPACE_LENGTH) {
 		throw new PlaygroundRequestError(
-			`containerTag must be ${MAX_CONTAINER_TAG_LENGTH} characters or fewer`,
+			`namespace must be ${MAX_NAMESPACE_LENGTH} characters or fewer`,
 			400,
 		)
 	}
-	if (!CONTAINER_TAG_PATTERN.test(containerTag)) {
+	if (!NAMESPACE_PATTERN.test(namespace)) {
 		throw new PlaygroundRequestError(
-			"containerTag may only contain letters, numbers, hyphens, underscores, and colons",
+			"namespace may only contain letters, numbers, hyphens, underscores, and colons",
 			400,
 		)
 	}
-	return containerTag
+	return namespace
 }
 
 export function parseConversationId(value: unknown): string {

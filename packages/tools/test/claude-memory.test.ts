@@ -6,8 +6,7 @@ import "dotenv/config"
 const TEST_CONFIG = {
 	apiKey: process.env.SUPERMEMORY_API_KEY || "test-api-key",
 	baseUrl: process.env.SUPERMEMORY_BASE_URL,
-	projectId: "test-claude-memory",
-	memoryContainerTag: "claude_memory_test",
+	namespace: "test-claude-memory",
 }
 
 describe("Claude Memory Tool", () => {
@@ -15,8 +14,7 @@ describe("Claude Memory Tool", () => {
 
 	beforeEach(() => {
 		memoryTool = createClaudeMemoryTool(TEST_CONFIG.apiKey, {
-			projectId: TEST_CONFIG.projectId,
-			memoryContainerTag: TEST_CONFIG.memoryContainerTag,
+			namespace: TEST_CONFIG.namespace,
 			baseUrl: TEST_CONFIG.baseUrl,
 		})
 	})
@@ -346,8 +344,7 @@ async function runManualTests() {
 	}
 
 	const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY, {
-		projectId: "manual-test-project",
-		memoryContainerTag: "claude_memory_manual_test",
+		namespace: "manual-test-project",
 		baseUrl: process.env.SUPERMEMORY_BASE_URL,
 	})
 

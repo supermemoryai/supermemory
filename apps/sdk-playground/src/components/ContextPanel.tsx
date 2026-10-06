@@ -1,24 +1,24 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import type { ContainerContext } from "@/lib/context-api"
+import type { NamespaceContext } from "@/lib/context-api"
 
-type ContextDocument = ContainerContext["documents"][number]
+type ContextDocument = NamespaceContext["documents"][number]
 
 export function ContextPanel({
-	containerTag,
+	namespace,
 	lastUserMessage,
 	refreshKey,
 	supermemoryApiKey,
 	supermemoryKeyReady,
 }: {
-	containerTag: string
+	namespace: string
 	lastUserMessage?: string
 	refreshKey: number
 	supermemoryApiKey: string
 	supermemoryKeyReady: boolean
 }) {
-	const [context, setContext] = useState<ContainerContext | null>(null)
+	const [context, setContext] = useState<NamespaceContext | null>(null)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [useQuery, setUseQuery] = useState(false)
@@ -31,9 +31,9 @@ export function ContextPanel({
 			setContext(null)
 			return
 		}
-		const normalizedContainerTag = containerTag.trim()
-		if (!normalizedContainerTag) {
-			setError("Enter a container tag to load context")
+		const normalizedNamespace = namespace.trim()
+		if (!normalizedNamespace) {
+			setError("Enter a namespace to load context")
 			setContext(null)
 			return
 		}
@@ -49,7 +49,7 @@ export function ContextPanel({
 				headers: { "Content-Type": "application/json" },
 				signal: controller.signal,
 				body: JSON.stringify({
-					containerTag: normalizedContainerTag,
+					namespace: normalizedNamespace,
 					...(useQuery && lastUserMessage ? { query: lastUserMessage } : {}),
 					...(supermemoryApiKey.trim()
 						? {
@@ -75,7 +75,7 @@ export function ContextPanel({
 			}
 		}
 	}, [
-		containerTag,
+		namespace,
 		lastUserMessage,
 		useQuery,
 		supermemoryApiKey,
@@ -85,7 +85,7 @@ export function ContextPanel({
 	useEffect(() => {
 		// The counter changes after a successful chat and explicitly refreshes context.
 		void refreshKey
-		if (!supermemoryKeyReady || !containerTag.trim()) {
+		if (!supermemoryKeyReady || !namespace.trim()) {
 			activeRequest.current?.abort()
 			activeRequest.current = null
 			setLoading(false)
@@ -102,13 +102,13 @@ export function ContextPanel({
 			window.clearTimeout(timeout)
 			activeRequest.current?.abort()
 		}
-	}, [load, refreshKey, supermemoryKeyReady, containerTag])
+	}, [load, refreshKey, supermemoryKeyReady, namespace])
 
 	useEffect(() => {
-		// A different container must not retain the previous document selection.
-		void containerTag
+		// A different namespace must not retain the previous document selection.
+		void namespace
 		setSelectedDocKey(null)
-	}, [containerTag])
+	}, [namespace])
 
 	const selectedDoc =
 		context?.documents.find((doc) => documentKey(doc) === selectedDocKey) ??
@@ -118,12 +118,12 @@ export function ContextPanel({
 		<div className="flex min-h-0 flex-col gap-3 text-sm">
 			<div className="flex items-center justify-between gap-2">
 				<h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-					Container context
+					Namespace context
 				</h2>
 				<button
 					type="button"
 					onClick={() => void load()}
-					disabled={!supermemoryKeyReady || !containerTag.trim()}
+					disabled={!supermemoryKeyReady || !namespace.trim()}
 					className="text-xs text-zinc-400 hover:text-zinc-200 disabled:cursor-not-allowed disabled:text-zinc-700"
 				>
 					Refresh
@@ -210,12 +210,9 @@ export function ContextPanel({
 													<div className="text-zinc-500 truncate">
 														{doc.title ?? "untitled"}
 													</div>
-													<div className="text-zinc-600">
-														{doc.customId
-															? `session: ${doc.customId}`
-															: "no customId"}
-														{doc.status ? ` · ${doc.status}` : ""}
-													</div>
+													{doc.status && (
+														<div className="text-zinc-600">{doc.status}</div>
+													)}
 												</button>
 											</li>
 										)
@@ -307,7 +304,7 @@ function MemoryEntryCard({ entry }: { entry: unknown }) {
 }
 
 function documentKey(doc: ContextDocument): string {
-	return doc.id ?? doc.customId ?? doc.title ?? "unknown"
+	return doc.id ?? doc.title ?? "unknown"
 }
 
 function memoryEntryKey(entry: unknown, index: number): string {

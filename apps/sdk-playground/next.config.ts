@@ -1,7 +1,7 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-	transpilePackages: ["@supermemory/tools", "@supermemory/ai-sdk"],
+	transpilePackages: ["@supermemory/tools"],
 }
 
 export default nextConfig

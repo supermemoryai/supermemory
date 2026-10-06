@@ -45,7 +45,7 @@ export type HookEndArgs = OnEndHookArgs
 
 export type {
 	IncludeOptions,
-	SearchFilters,
+	SearchFilter,
 	SupermemoryVoltAgent,
 } from "./options"
 

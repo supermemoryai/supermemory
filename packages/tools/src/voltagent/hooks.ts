@@ -50,7 +50,7 @@ const getOutputText = (output: unknown): string => {
  * These hooks intercept the agent lifecycle to inject memories
  * before LLM calls and save conversations after completion.
  *
- * @param containerTag - The container tag/user ID for scoping memories
+ * @param namespace - The namespace (e.g. user ID) for scoping memories
  * @param options - Configuration options for memory behavior
  * @returns VoltAgent hooks object with onPrepareMessages and onEnd
  *
@@ -61,7 +61,7 @@ const getOutputText = (output: unknown): string => {
  * const hooks = createSupermemoryHooks("user-123", {
  *   mode: "full",
  *   addMemory: "always",
- *   customId: "conv-456",
+ *   id: "conv-456",
  * })
  *
  * const agent = new Agent({
@@ -73,10 +73,10 @@ const getOutputText = (output: unknown): string => {
  * ```
  */
 export function createSupermemoryHooks(
-	containerTag: string,
+	namespace: string,
 	options: SupermemoryVoltAgent,
 ): VoltAgentHooks {
-	const ctx = createSupermemoryContext(containerTag, options)
+	const ctx = createSupermemoryContext(namespace, options)
 
 	return {
 		onPrepareMessages: async (args: HookPrepareMessagesArgs) => {

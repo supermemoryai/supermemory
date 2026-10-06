@@ -1,4 +1,4 @@
-import Supermemory from "supermemory"
+import { Supermemory } from "supermemory"
 import {
 	addConversation,
 	type ContentPart,
@@ -150,8 +150,8 @@ export const convertToConversationMessages = (
 
 export const saveMemoryAfterResponse = async (
 	_client: Supermemory,
-	containerTag: string,
-	customId: string,
+	namespace: string,
+	id: string,
 	assistantResponseText: string,
 	params: LanguageModelCallOptions,
 	logger: Logger,
@@ -167,16 +167,16 @@ export const saveMemoryAfterResponse = async (
 		)
 
 		const response = await addConversation({
-			conversationId: customId,
+			id,
 			messages: conversationMessages,
-			containerTags: [containerTag],
+			namespace,
 			apiKey,
 			baseUrl,
 		})
 
-		logger.info("Conversation saved successfully via /v4/conversations", {
-			containerTag,
-			customId,
+		logger.info("Conversation saved successfully", {
+			namespace,
+			id,
 			messageCount: conversationMessages.length,
 			responseId: response.id,
 		})
@@ -191,12 +191,12 @@ export const saveMemoryAfterResponse = async (
  * Configuration options for the Supermemory middleware.
  */
 interface SupermemoryMiddlewareOptions {
-	/** Container tag/identifier for memory search (e.g., user ID, project ID) */
-	containerTag: string
+	/** Namespace for memory search (e.g., user ID, project ID) */
+	namespace: string
 	/** Supermemory API key */
 	apiKey: string
-	/** Custom ID to group messages into a single document. Required. */
-	customId: string
+	/** ID that groups messages into a single document. Required. */
+	id: string
 	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
 	/**
@@ -222,15 +222,15 @@ interface SupermemoryMiddlewareOptions {
 	includeToolCalls?: boolean
 	/** Custom function to format memory data into the system prompt */
 	promptTemplate?: PromptTemplate
-	/** Max wait (ms) for the pre-LLM `/v4/profile` retrieval. Omit for no limit (e.g. tests). `withSupermemory` sets this internally. */
+	/** Max wait (ms) for the pre-LLM profile retrieval. Omit for no limit (e.g. tests). `withSupermemory` sets this internally. */
 	memoryRetrievalTimeoutMs?: number
 }
 
 interface SupermemoryMiddlewareContext {
 	client: Supermemory
 	logger: Logger
-	containerTag: string
-	customId: string
+	namespace: string
+	id: string
 	mode: MemoryMode
 	addMemory: "always" | "never"
 	includeToolCalls: boolean
@@ -249,9 +249,9 @@ export const createSupermemoryContext = (
 	options: SupermemoryMiddlewareOptions,
 ): SupermemoryMiddlewareContext => {
 	const {
-		containerTag,
+		namespace,
 		apiKey,
-		customId,
+		id,
 		verbose = false,
 		mode = "profile",
 		addMemory = "always",
@@ -267,15 +267,15 @@ export const createSupermemoryContext = (
 	const client = new Supermemory({
 		apiKey,
 		...(normalizedBaseUrl !== "https://api.supermemory.ai"
-			? { baseURL: normalizedBaseUrl }
+			? { baseUrl: normalizedBaseUrl }
 			: {}),
 	})
 
 	return {
 		client,
 		logger,
-		containerTag,
-		customId,
+		namespace,
+		id,
 		mode,
 		addMemory,
 		includeToolCalls,
@@ -297,12 +297,7 @@ const makeTurnKey = (
 	ctx: SupermemoryMiddlewareContext,
 	userMessage: string,
 ): string => {
-	return MemoryCache.makeTurnKey(
-		ctx.containerTag,
-		ctx.customId,
-		ctx.mode,
-		userMessage,
-	)
+	return MemoryCache.makeTurnKey(ctx.namespace, ctx.id, ctx.mode, userMessage)
 }
 
 /**
@@ -341,8 +336,8 @@ export const transformParamsWithMemory = async (
 	}
 
 	ctx.logger.info("Starting memory search", {
-		containerTag: ctx.containerTag,
-		customId: ctx.customId,
+		namespace: ctx.namespace,
+		id: ctx.id,
 		mode: ctx.mode,
 		isNewTurn,
 		cacheHit: false,
@@ -362,7 +357,7 @@ export const transformParamsWithMemory = async (
 	let memories: string
 	try {
 		memories = await buildMemoriesText({
-			containerTag: ctx.containerTag,
+			namespace: ctx.namespace,
 			queryText,
 			mode: ctx.mode,
 			baseUrl: ctx.normalizedBaseUrl,

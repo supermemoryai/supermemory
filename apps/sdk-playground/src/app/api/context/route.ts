@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
 import { resolveSupermemoryApiKey } from "@/lib/api-keys"
-import { fetchContainerContext } from "@/lib/context-api"
+import { fetchNamespaceContext } from "@/lib/context-api"
 import {
 	PlaygroundRequestError,
 	assertTrustedBrowserRequest,
 	mayUseEnvironmentKeys,
 	parseApiKeys,
-	parseContainerTag,
+	parseNamespace,
 	parseOptionalText,
 	readJsonObject,
 } from "@/lib/request-validation"
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 	try {
 		assertTrustedBrowserRequest(req)
 		const { searchParams } = new URL(req.url)
-		const containerTag = parseContainerTag(searchParams.get("containerTag"))
+		const namespace = parseNamespace(searchParams.get("namespace"))
 		const query = parseOptionalText(searchParams.get("query"), "query")
 		const supermemoryApiKey = resolveSupermemoryApiKey(null, {
 			allowEnvironment: mayUseEnvironmentKeys(req),
@@ -32,8 +32,8 @@ export async function GET(req: Request) {
 			)
 		}
 
-		const context = await fetchContainerContext(
-			containerTag,
+		const context = await fetchNamespaceContext(
+			namespace,
 			query,
 			supermemoryApiKey,
 		)
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 	try {
 		assertTrustedBrowserRequest(req)
 		const body = await readJsonObject(req)
-		const containerTag = parseContainerTag(body.containerTag)
+		const namespace = parseNamespace(body.namespace)
 		const query = parseOptionalText(body.query, "query")
 		const supermemoryApiKey = resolveSupermemoryApiKey(
 			parseApiKeys(body.apiKeys),
@@ -71,8 +71,8 @@ export async function POST(req: Request) {
 			)
 		}
 
-		const context = await fetchContainerContext(
-			containerTag,
+		const context = await fetchNamespaceContext(
+			namespace,
 			query,
 			supermemoryApiKey,
 		)

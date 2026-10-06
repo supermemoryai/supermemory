@@ -1,7 +1,6 @@
 import { createOpenAI } from "@ai-sdk/openai"
 import { generateText, stepCountIs, type ModelMessage } from "ai"
 import OpenAI from "openai"
-import { supermemoryTools as aiSdkPackageTools } from "@supermemory/ai-sdk"
 import { withSupermemory as withSupermemoryAiSdk } from "@supermemory/tools/ai-sdk"
 import {
 	createToolCallsExecutor,
@@ -39,13 +38,11 @@ export interface ChatResult {
 export interface ChatRequest {
 	sdkId: string
 	messages: ChatMessage[]
-	containerTag: string
+	namespace: string
 	conversationId: string
 	memoryMode?: "profile" | "query" | "full"
 	middlewareConfig?: Partial<MiddlewareRuntimeConfig>
 	apiKeys?: Partial<PlaygroundApiKeys>
-	containerTags?: string[]
-	projectId?: string
 }
 
 export class PlaygroundChatTimeoutError extends Error {
@@ -118,15 +115,8 @@ function getModelName(): string {
 	return process.env.MODEL_NAME ?? "gpt-4o-mini"
 }
 
-function getToolsConfig(
-	containerTags?: string[],
-	projectId?: string,
-): SupermemoryToolsConfig {
-	return {
-		baseUrl: process.env.SUPERMEMORY_BASE_URL,
-		...(containerTags?.length ? { containerTags } : {}),
-		...(projectId ? { projectId } : {}),
-	}
+function getToolsConfig(namespace: string): SupermemoryToolsConfig {
+	return { baseUrl: process.env.SUPERMEMORY_BASE_URL, namespace }
 }
 
 function toModelMessages(messages: ChatMessage[]): ModelMessage[] {
@@ -168,7 +158,7 @@ function lastUserMessage(messages: ChatMessage[]): string {
 async function chatAiSdkMiddleware(
 	keys: PlaygroundApiKeys,
 	messages: ChatMessage[],
-	containerTag: string,
+	namespace: string,
 	conversationId: string,
 	memoryMode: "profile" | "query" | "full",
 	middlewareConfig: MiddlewareRuntimeConfig,
@@ -176,8 +166,8 @@ async function chatAiSdkMiddleware(
 ): Promise<ChatResult> {
 	const openai = createOpenAI({ apiKey: keys.openaiApiKey })
 	const model = withSupermemoryAiSdk(openai(getModelName()), {
-		containerTag,
-		customId: conversationId,
+		namespace,
+		id: conversationId,
 		apiKey: keys.supermemoryApiKey,
 		mode: memoryMode,
 		addMemory: middlewareConfig.addMemory,
@@ -201,7 +191,7 @@ async function chatAiSdkMiddleware(
 async function chatOpenAiMiddleware(
 	keys: PlaygroundApiKeys,
 	messages: ChatMessage[],
-	containerTag: string,
+	namespace: string,
 	conversationId: string,
 	memoryMode: "profile" | "query" | "full",
 	middlewareConfig: MiddlewareRuntimeConfig,
@@ -213,8 +203,8 @@ async function chatOpenAiMiddleware(
 		maxRetries: 1,
 	})
 	const client = withSupermemoryOpenAi(openai, {
-		containerTag,
-		customId: conversationId,
+		namespace,
+		id: conversationId,
 		apiKey: keys.supermemoryApiKey,
 		mode: memoryMode,
 		addMemory: middlewareConfig.addMemory,
@@ -242,15 +232,11 @@ async function chatAiSdkTools(
 	keys: PlaygroundApiKeys,
 	toolsFactory: typeof aiSdkTools,
 	messages: ChatMessage[],
-	containerTags?: string[],
-	projectId?: string,
+	namespace: string,
 	signal?: AbortSignal,
 ): Promise<ChatResult> {
 	const openai = createOpenAI({ apiKey: keys.openaiApiKey })
-	const tools = toolsFactory(
-		keys.supermemoryApiKey,
-		getToolsConfig(containerTags, projectId),
-	)
+	const tools = toolsFactory(keys.supermemoryApiKey, getToolsConfig(namespace))
 
 	const result = await generateText({
 		model: openai(getModelName()),
@@ -272,8 +258,7 @@ async function chatAiSdkTools(
 async function chatOpenAiTools(
 	keys: PlaygroundApiKeys,
 	messages: ChatMessage[],
-	containerTags?: string[],
-	projectId?: string,
+	namespace: string,
 	signal?: AbortSignal,
 ): Promise<ChatResult> {
 	const openai = new OpenAI({
@@ -281,7 +266,7 @@ async function chatOpenAiTools(
 		timeout: MODEL_REQUEST_TIMEOUT_MS,
 		maxRetries: 1,
 	})
-	const config = getToolsConfig(containerTags, projectId)
+	const config = getToolsConfig(namespace)
 	const executeToolCalls = createToolCallsExecutor(
 		keys.supermemoryApiKey,
 		config,
@@ -351,7 +336,6 @@ export async function runTypeScriptChat(
 		throw new Error(`Invalid TypeScript chat SDK: ${request.sdkId}`)
 	}
 
-	const containerTags = request.containerTags ?? [request.containerTag]
 	const memoryMode = request.memoryMode ?? "full"
 	const middlewareConfig = normalizeMiddlewareConfig(request.middlewareConfig)
 
@@ -361,7 +345,7 @@ export async function runTypeScriptChat(
 				return await chatAiSdkMiddleware(
 					keys,
 					request.messages,
-					request.containerTag,
+					request.namespace,
 					request.conversationId,
 					memoryMode,
 					middlewareConfig,
@@ -371,7 +355,7 @@ export async function runTypeScriptChat(
 				return await chatOpenAiMiddleware(
 					keys,
 					request.messages,
-					request.containerTag,
+					request.namespace,
 					request.conversationId,
 					memoryMode,
 					middlewareConfig,
@@ -382,25 +366,14 @@ export async function runTypeScriptChat(
 					keys,
 					aiSdkTools,
 					request.messages,
-					containerTags,
-					request.projectId,
+					request.namespace,
 					signal,
 				)
 			case "ts-openai-tools":
 				return await chatOpenAiTools(
 					keys,
 					request.messages,
-					containerTags,
-					request.projectId,
-					signal,
-				)
-			case "ts-ai-sdk-package":
-				return await chatAiSdkTools(
-					keys,
-					aiSdkPackageTools,
-					request.messages,
-					containerTags,
-					request.projectId,
+					request.namespace,
 					signal,
 				)
 			default:
@@ -417,7 +390,7 @@ export async function runTypeScriptChat(
 
 	const memoryDebug = await buildBestEffortDebug((signal) =>
 		buildMiddlewareMemoryDebug(
-			request.containerTag,
+			request.namespace,
 			request.conversationId,
 			memoryMode,
 			lastUserMessage(request.messages),

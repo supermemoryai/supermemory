@@ -16,10 +16,10 @@ import { injectMemoriesIntoParams } from "./memory-prompt"
 const DEFAULT_MEMORY_RETRIEVAL_TIMEOUT_MS = 5000
 
 interface WrapVercelLanguageModelOptions {
-	/** The container tag/identifier for memory search (e.g., user ID, project ID) */
-	containerTag: string
-	/** Custom ID to group messages into a single document. Required. */
-	customId: string
+	/** The namespace for memory search (e.g., user ID, project ID) */
+	namespace: string
+	/** ID that groups messages into a single document. Required. */
+	id: string
 	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
 	/**
@@ -73,7 +73,7 @@ interface WrapVercelLanguageModelOptions {
  * Wraps a language model with supermemory middleware to automatically inject relevant memories
  * into the system prompt based on the user's message content.
  *
- * This wrapper searches the supermemory API for relevant memories using the container tag
+ * This wrapper searches the supermemory API for relevant memories in the namespace
  * and user message, then either appends memories to an existing system prompt or creates
  * a new system prompt with the memories. Pre-LLM profile retrieval uses a fixed internal
  * time budget and cannot be configured via options.
@@ -83,8 +83,8 @@ interface WrapVercelLanguageModelOptions {
  *
  * @param model - The language model to wrap with supermemory capabilities (V2 or V3)
  * @param options - Configuration options for Supermemory integration
- * @param options.containerTag - Required. The container tag/identifier for memory search (e.g., user ID, project ID)
- * @param options.customId - Required. Custom ID to group messages into a single document for contextual memory generation
+ * @param options.namespace - Required. The namespace for memory search (e.g., user ID, project ID)
+ * @param options.id - Required. ID that groups messages into a single document for contextual memory generation
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile", "query", or "full" (default: "profile")
  * @param options.addMemory - Optional mode for memory search: "always", "never" (default: "always")
@@ -100,8 +100,8 @@ interface WrapVercelLanguageModelOptions {
  * import { openai } from "@ai-sdk/openai"
  *
  * const modelWithMemory = withSupermemory(openai("gpt-4"), {
- *   containerTag: "user-123",
- *   customId: "conversation-456",
+ *   namespace: "user-123",
+ *   id: "conversation-456",
  *   mode: "full",
  *   addMemory: "always"
  * })
@@ -127,16 +127,16 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 		)
 	}
 
-	if (!options.customId) {
+	if (!options.id) {
 		throw new Error(
-			"customId is required — provide a non-empty string to group messages into a single document",
+			"id is required — provide a non-empty string to group messages into a single document",
 		)
 	}
 
 	const ctx = createSupermemoryContext({
-		containerTag: options.containerTag,
+		namespace: options.namespace,
 		apiKey: providedApiKey,
-		customId: options.customId,
+		id: options.id,
 		verbose: options.verbose ?? false,
 		mode: options.mode ?? "profile",
 		addMemory: options.addMemory ?? "always",
@@ -192,8 +192,8 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 							)
 							saveMemoryAfterResponse(
 								ctx.client,
-								ctx.containerTag,
-								ctx.customId,
+								ctx.namespace,
+								ctx.id,
 								assistantResponseText,
 								params,
 								ctx.logger,
@@ -266,8 +266,8 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 								) {
 									saveMemoryAfterResponse(
 										ctx.client,
-										ctx.containerTag,
-										ctx.customId,
+										ctx.namespace,
+										ctx.id,
 										generatedText,
 										params,
 										ctx.logger,

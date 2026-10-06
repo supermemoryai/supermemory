@@ -12,20 +12,20 @@ export class MemoryCache<T = string> {
 	 * Generates a cache key for the current turn based on context parameters.
 	 * Normalizes the message by trimming and collapsing whitespace.
 	 *
-	 * @param containerTag - The container tag/user ID
+	 * @param namespace - The namespace (e.g. user ID)
 	 * @param threadId - Optional thread/conversation ID
 	 * @param mode - The memory retrieval mode
 	 * @param message - The user message content
 	 * @returns A unique cache key for this turn
 	 */
 	static makeTurnKey(
-		containerTag: string,
+		namespace: string,
 		threadId: string | undefined,
 		mode: MemoryMode,
 		message: string,
 	): string {
 		const normalizedMessage = message.trim().replace(/\s+/g, " ")
-		return `${containerTag}:${threadId || ""}:${mode}:${normalizedMessage}`
+		return `${namespace}:${threadId || ""}:${mode}:${normalizedMessage}`
 	}
 
 	/**

@@ -8,7 +8,7 @@ import re
 import time
 from pathlib import Path
 from typing import Annotated, Any, Literal, Optional
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, Query
@@ -27,13 +27,16 @@ CHAT_TIMEOUT_SECONDS = 115.0
 CONTEXT_DEBUG_TIMEOUT_SECONDS = 10.0
 DIRECT_SAVE_TIMEOUT_SECONDS = 10.0
 MAX_OUTPUT_TOKENS = 2_048
+DOCUMENT_LIST_LIMIT = 25
+# Matches the v4 profile search defaults the TS middlewares keep (memories mode, 0.6).
+PROFILE_SEARCH_THRESHOLD = 0.6
 MAX_MESSAGE_LENGTH = 20_000
 MAX_MESSAGES = 64
 MAX_TOTAL_MESSAGE_LENGTH = 100_000
 MAX_API_KEY_LENGTH = 1_024
-MAX_CONTAINER_TAG_LENGTH = 100
+MAX_NAMESPACE_LENGTH = 100
 MAX_CONVERSATION_ID_LENGTH = 242
-CONTAINER_TAG_PATTERN = r"^[a-zA-Z0-9_:-]+$"
+NAMESPACE_PATTERN = r"^[a-zA-Z0-9_:-]+$"
 
 TOOLS_SYSTEM_PROMPT = """You are a helpful assistant with Supermemory long-term memory.
 
@@ -82,11 +85,11 @@ class ChatRequest(BaseModel):
         "py-supermemory-direct",
     ]
     messages: list[ChatMessage] = Field(min_length=1, max_length=MAX_MESSAGES)
-    containerTag: str = Field(
+    namespace: str = Field(
         default="sdk-playground",
         min_length=1,
-        max_length=MAX_CONTAINER_TAG_LENGTH,
-        pattern=CONTAINER_TAG_PATTERN,
+        max_length=MAX_NAMESPACE_LENGTH,
+        pattern=NAMESPACE_PATTERN,
     )
     conversationId: str = Field(
         min_length=1,
@@ -114,11 +117,11 @@ class ChatRequest(BaseModel):
 
 
 class ContextRequest(BaseModel):
-    containerTag: str = Field(
+    namespace: str = Field(
         default="sdk-playground",
         min_length=1,
-        max_length=MAX_CONTAINER_TAG_LENGTH,
-        pattern=CONTAINER_TAG_PATTERN,
+        max_length=MAX_NAMESPACE_LENGTH,
+        pattern=NAMESPACE_PATTERN,
     )
     query: Optional[str] = Field(default=None, max_length=MAX_MESSAGE_LENGTH)
     apiKeys: Optional[SupermemoryApiKeys] = None
@@ -172,7 +175,7 @@ def public_error(error: Exception, *secrets: str) -> str:
 
 async def chat_openai_middleware(
     messages: list[ChatMessage],
-    container_tag: str,
+    namespace: str,
     conversation_id: str,
     memory_mode: str,
     middleware_config: MiddlewareConfig,
@@ -189,7 +192,7 @@ async def chat_openai_middleware(
             max_retries=1,
         ),
         OpenAIMiddlewareOptions(
-            container_tag=container_tag,
+            container_tag=namespace,
             custom_id=conversation_id,
             mode=memory_mode,
             add_memory=middleware_config.addMemory,
@@ -221,7 +224,7 @@ async def chat_openai_middleware(
 
 async def chat_openai_tools(
     messages: list[ChatMessage],
-    container_tag: str,
+    namespace: str,
     sm_key: str,
     oai_key: str,
 ) -> tuple[str, list[dict[str, Any]]]:
@@ -235,7 +238,7 @@ async def chat_openai_tools(
     )
     config: dict[str, Any] = {
         "base_url": supermemory_base_url(),
-        "container_tags": [container_tag],
+        "container_tags": [namespace],
     }
 
     tools = SupermemoryTools(sm_key, config)
@@ -296,24 +299,6 @@ def list_field(value: Any, name: str) -> list[Any]:
     return result if isinstance(result, list) else []
 
 
-def extract_profile_context(profile_response: Any) -> dict[str, list[Any]]:
-    profile = object_field(profile_response, "profile", {}) or {}
-    search_results = object_field(profile_response, "search_results", None)
-    if search_results is None and isinstance(profile_response, dict):
-        search_results = profile_response.get("searchResults")
-
-    if isinstance(search_results, list):
-        search_list = search_results
-    else:
-        search_list = list_field(search_results, "results")
-
-    return {
-        "static": list_field(profile, "static"),
-        "dynamic": list_field(profile, "dynamic"),
-        "searchResults": search_list,
-    }
-
-
 def display_context_item(item: Any) -> str:
     if hasattr(item, "model_dump"):
         return json.dumps(item.model_dump(mode="json"), ensure_ascii=False)
@@ -322,7 +307,7 @@ def display_context_item(item: Any) -> str:
     return str(item)
 
 
-def direct_conversation_custom_id(conversation_id: str) -> str:
+def direct_conversation_id(conversation_id: str) -> str:
     readable = re.sub(r"[^A-Za-z0-9._-]+", "-", conversation_id).strip("-._")
     readable = readable[:40] or "session"
     digest = hashlib.sha256(conversation_id.encode("utf-8")).hexdigest()[:12]
@@ -339,45 +324,65 @@ def conversation_transcript(messages: list[ChatMessage], assistant_text: str) ->
     return "\n\n".join(transcript)
 
 
+def supermemory_http(sm_key: str, timeout: float = HTTP_TIMEOUT_SECONDS):
+    import httpx
+
+    return httpx.AsyncClient(
+        base_url=supermemory_base_url(),
+        headers={"Authorization": f"Bearer {sm_key}"},
+        timeout=timeout,
+        follow_redirects=False,
+    )
+
+
+def namespace_path(namespace: str, suffix: str) -> str:
+    return f"/ns/{quote(namespace, safe='')}{suffix}"
+
+
 async def fetch_profile_context(
-    container_tag: str,
+    namespace: str,
     sm_key: str,
     query: Optional[str] = None,
-    *,
-    include: Optional[list[str]] = None,
 ) -> dict[str, list[Any]]:
-    from supermemory import AsyncSupermemory
+    async with supermemory_http(sm_key) as http:
+        profile_request = http.post(namespace_path(namespace, "/profile"), json={})
+        search_request = (
+            http.post(
+                namespace_path(namespace, "/search"),
+                json={
+                    "query": query,
+                    "searchMode": "memories",
+                    "threshold": PROFILE_SEARCH_THRESHOLD,
+                },
+            )
+            if query
+            else None
+        )
+        responses = await asyncio.gather(
+            profile_request, *([search_request] if search_request else [])
+        )
+        for response in responses:
+            response.raise_for_status()
 
-    client = AsyncSupermemory(
-        api_key=sm_key,
-        base_url=supermemory_base_url(),
-        timeout=HTTP_TIMEOUT_SECONDS,
-    )
-    request: dict[str, Any] = {"container_tag": container_tag}
-    if query:
-        request["q"] = query
-    if include is not None:
-        request["include"] = include
-    profile_response = await client.profile(**request)
-    return extract_profile_context(profile_response)
+    profile = responses[0].json().get("profile") or {}
+    search = responses[1].json() if len(responses) > 1 else {}
+    return {
+        "static": profile.get("static") or [],
+        "dynamic": profile.get("dynamic") or [],
+        "searchResults": search.get("results") or [],
+    }
 
 
 async def chat_supermemory_direct(
     messages: list[ChatMessage],
-    container_tag: str,
+    namespace: str,
     conversation_id: str,
     sm_key: str,
     oai_key: str,
 ) -> tuple[str, str, dict[str, list[Any]]]:
-    """Manual pattern: profile() for context, then OpenAI, then add() conversation."""
+    """Manual pattern: profile + search for context, then OpenAI, then add the conversation."""
     from openai import AsyncOpenAI
-    from supermemory import AsyncSupermemory
 
-    sm_client = AsyncSupermemory(
-        api_key=sm_key,
-        base_url=supermemory_base_url(),
-        timeout=HTTP_TIMEOUT_SECONDS,
-    )
     openai_client = AsyncOpenAI(
         api_key=oai_key,
         timeout=HTTP_TIMEOUT_SECONDS,
@@ -387,11 +392,7 @@ async def chat_supermemory_direct(
     user_messages = [m for m in messages if m.role == "user"]
     last_user = user_messages[-1].content if user_messages else ""
 
-    profile_response = await sm_client.profile(
-        container_tag=container_tag,
-        **({"q": last_user} if last_user else {}),
-    )
-    profile_context = extract_profile_context(profile_response)
+    profile_context = await fetch_profile_context(namespace, sm_key, last_user)
     context = "\n".join(
         (
             "Profile static: "
@@ -418,40 +419,39 @@ async def chat_supermemory_direct(
     )
     assistant_text = response.choices[0].message.content or ""
 
-    custom_id = direct_conversation_custom_id(conversation_id)
-    return assistant_text, custom_id, profile_context
+    document_id = direct_conversation_id(conversation_id)
+    return assistant_text, document_id, profile_context
 
 
 async def save_direct_conversation(
     messages: list[ChatMessage],
     assistant_text: str,
-    container_tag: str,
-    custom_id: str,
+    namespace: str,
+    document_id: str,
     sm_key: str,
 ) -> dict[str, Any]:
-    from supermemory import AsyncSupermemory
-
     try:
-        client = AsyncSupermemory(
-            api_key=sm_key,
-            base_url=supermemory_base_url(),
-            timeout=DIRECT_SAVE_TIMEOUT_SECONDS,
-        )
         async with asyncio.timeout(DIRECT_SAVE_TIMEOUT_SECONDS):
-            response = await client.add(
-                content=conversation_transcript(messages, assistant_text),
-                container_tag=container_tag,
-                custom_id=custom_id,
-            )
+            async with supermemory_http(sm_key, DIRECT_SAVE_TIMEOUT_SECONDS) as http:
+                response = await http.post(
+                    namespace_path(namespace, "/document"),
+                    json={
+                        "content": conversation_transcript(messages, assistant_text),
+                        "id": document_id,
+                        "dreaming": "instant",
+                    },
+                )
+                response.raise_for_status()
+                accepted = response.json()
         return {
             "type": "conversation_save_accepted",
             "label": "Full conversation accepted for processing",
             "detail": {
                 "nonFatal": True,
-                "containerTag": container_tag,
-                "customId": custom_id,
-                "documentId": object_field(response, "id"),
-                "status": object_field(response, "status"),
+                "namespace": namespace,
+                "id": document_id,
+                "documentId": accepted.get("id"),
+                "status": accepted.get("status"),
             },
         }
     except Exception as error:
@@ -460,77 +460,74 @@ async def save_direct_conversation(
             "label": "Conversation save unavailable",
             "detail": {
                 "nonFatal": True,
-                "containerTag": container_tag,
-                "customId": custom_id,
+                "namespace": namespace,
+                "id": document_id,
                 "error": public_error(error, sm_key),
             },
         }
 
 
-async def fetch_container_context(
-    container_tag: str,
+async def fetch_document_memories(http: Any, namespace: str, document_id: str) -> list[Any]:
+    try:
+        response = await http.get(
+            namespace_path(namespace, f"/document/{quote(document_id, safe='')}"),
+            params={"include": "memories"},
+        )
+        response.raise_for_status()
+        return response.json().get("memories") or []
+    except Exception:
+        return []
+
+
+async def fetch_namespace_context(
+    namespace: str,
     sm_key: str,
     query: Optional[str] = None,
 ) -> dict[str, Any]:
     if not sm_key:
         raise RuntimeError("Supermemory API key must be supplied")
 
-    profile_context = await fetch_profile_context(container_tag, sm_key, query)
-    base_url = supermemory_base_url()
+    profile_context = await fetch_profile_context(namespace, sm_key, query)
 
-    import httpx
-
-    async with httpx.AsyncClient(
-        timeout=HTTP_TIMEOUT_SECONDS,
-        follow_redirects=False,
-    ) as http:
+    async with supermemory_http(sm_key) as http:
         docs_response = await http.post(
-            f"{base_url}/v3/documents/documents",
-            headers={
-                "Authorization": f"Bearer {sm_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "containerTags": [container_tag],
-                "limit": 25,
+            namespace_path(namespace, "/list/documents"),
+            params={
+                "limit": DOCUMENT_LIST_LIMIT,
                 "sort": "createdAt",
                 "order": "desc",
             },
+            json={},
         )
         docs_response.raise_for_status()
         docs = docs_response.json()
-
-    raw_documents = docs.get("documents", []) if isinstance(docs, dict) else []
+        raw_documents = docs.get("documents") or []
+        # v5 lists omit memories, so each document is fetched with include=memories.
+        memories = await asyncio.gather(
+            *(fetch_document_memories(http, namespace, doc["id"]) for doc in raw_documents)
+        )
 
     documents = []
-    for doc in raw_documents:
-        record = doc if isinstance(doc, dict) else getattr(doc, "__dict__", {})
-        memory_entries = (
-            record.get("memoryEntries") or record.get("memory_entries") or []
-        )
-        if not memory_entries and isinstance(record.get("memories"), list):
-            nested = record.get("memories") or []
-            if nested and isinstance(nested[0], dict) and nested[0].get("memory"):
-                memory_entries = nested
+    for doc, memory_entries in zip(raw_documents, memories):
+        system = doc.get("system") or {}
         documents.append(
             {
-                "id": record.get("id"),
-                "title": record.get("title"),
-                "status": record.get("status"),
-                "customId": record.get("customId") or record.get("custom_id"),
-                "createdAt": record.get("createdAt") or record.get("created_at"),
-                "updatedAt": record.get("updatedAt") or record.get("updated_at"),
-                "summary": record.get("summary"),
+                "id": doc.get("id"),
+                "title": doc.get("title"),
+                "status": system.get("status"),
+                "createdAt": system.get("createdAt"),
+                "updatedAt": system.get("updatedAt"),
+                "summary": doc.get("summary"),
                 "memoryEntries": memory_entries,
             }
         )
 
     return {
-        "containerTag": container_tag,
+        "namespace": namespace,
         "query": query,
         "profile": profile_context,
         "documents": documents,
-        "pagination": docs.get("pagination") if isinstance(docs, dict) else None,
+        "pagination": docs.get("pagination"),
     }
 
 
@@ -578,7 +575,7 @@ def reconstruct_python_sdk_memory_block(
 
 
 def build_middleware_memory_debug(
-    container_tag: str,
+    namespace: str,
     conversation_id: str,
     memory_mode: str,
     last_user_message: str,
@@ -610,9 +607,11 @@ def build_middleware_memory_debug(
                     "detail": {
                         "authoritativeMiddlewareCapture": False,
                         "timing": "after model response",
-                        "endpoint": "POST /v4/profile",
-                        "containerTag": container_tag,
-                        "customId": conversation_id,
+                        "endpoint": (
+                            "POST /ns/{namespace}/profile + POST /ns/{namespace}/search"
+                        ),
+                        "namespace": namespace,
+                        "id": conversation_id,
                         "memoryMode": memory_mode,
                         "query": context.get("query"),
                         "staticCount": len(profile.get("static", [])),
@@ -640,8 +639,8 @@ def build_middleware_memory_debug(
         )
 
     save_detail = {
-        "containerTag": container_tag,
-        "customId": f"conversation:{conversation_id}",
+        "namespace": namespace,
+        "id": f"conversation:{conversation_id}",
         "addMemory": middleware_config.addMemory,
         "verbose": middleware_config.verbose,
     }
@@ -665,21 +664,16 @@ def build_middleware_memory_debug(
 
 
 async def fetch_context_for_debug(
-    container_tag: str,
+    namespace: str,
     query: Optional[str],
     sm_key: str,
 ) -> tuple[Optional[dict[str, Any]], Optional[str]]:
     try:
         async with asyncio.timeout(CONTEXT_DEBUG_TIMEOUT_SECONDS):
-            profile = await fetch_profile_context(
-                container_tag,
-                sm_key,
-                query,
-                include=["static", "dynamic"],
-            )
+            profile = await fetch_profile_context(namespace, sm_key, query)
             return (
                 {
-                    "containerTag": container_tag,
+                    "namespace": namespace,
                     "query": query,
                     "profile": profile,
                 },
@@ -691,12 +685,12 @@ async def fetch_context_for_debug(
 
 @app.get("/context")
 async def context_get(
-    containerTag: Annotated[
+    namespace: Annotated[
         str,
         Query(
             min_length=1,
-            max_length=MAX_CONTAINER_TAG_LENGTH,
-            pattern=CONTAINER_TAG_PATTERN,
+            max_length=MAX_NAMESPACE_LENGTH,
+            pattern=NAMESPACE_PATTERN,
         ),
     ] = "sdk-playground",
     query: Annotated[Optional[str], Query(max_length=MAX_MESSAGE_LENGTH)] = None,
@@ -712,7 +706,7 @@ async def context_get(
             "X-Supermemory-API-Key header",
         )
         async with asyncio.timeout(HTTP_TIMEOUT_SECONDS):
-            ctx = await fetch_container_context(containerTag, sm_key, query)
+            ctx = await fetch_namespace_context(namespace, sm_key, query)
         return {"ok": True, "context": ctx}
     except Exception as error:
         return JSONResponse(
@@ -731,7 +725,7 @@ async def context_post(req: ContextRequest):
     try:
         sm_key = resolve_supermemory_key(req.apiKeys)
         async with asyncio.timeout(HTTP_TIMEOUT_SECONDS):
-            ctx = await fetch_container_context(req.containerTag, sm_key, req.query)
+            ctx = await fetch_namespace_context(req.namespace, sm_key, req.query)
         return {"ok": True, "context": ctx}
     except Exception as error:
         return JSONResponse(
@@ -775,7 +769,7 @@ async def chat(req: ChatRequest):
                 middleware_config = req.middlewareConfig or MiddlewareConfig()
                 text = await chat_openai_middleware(
                     req.messages,
-                    req.containerTag,
+                    req.namespace,
                     req.conversationId,
                     req.memoryMode or "full",
                     middleware_config,
@@ -790,12 +784,12 @@ async def chat(req: ChatRequest):
                 middleware_debug = (middleware_config, last_user, query)
             elif req.sdkId == "py-openai-tools":
                 text, tool_trace = await chat_openai_tools(
-                    req.messages, req.containerTag, sm_key, oai_key
+                    req.messages, req.namespace, sm_key, oai_key
                 )
             elif req.sdkId == "py-supermemory-direct":
-                text, custom_id, profile_context = await chat_supermemory_direct(
+                text, document_id, profile_context = await chat_supermemory_direct(
                     req.messages,
-                    req.containerTag,
+                    req.namespace,
                     req.conversationId,
                     sm_key,
                     oai_key,
@@ -804,19 +798,19 @@ async def chat(req: ChatRequest):
                     (m.content for m in reversed(req.messages) if m.role == "user"),
                     "",
                 )
-                direct_debug = (custom_id, profile_context, last_user)
+                direct_debug = (document_id, profile_context, last_user)
             else:
                 raise RuntimeError(f"Unsupported Python SDK: {req.sdkId}")
 
         if middleware_debug is not None:
             middleware_config, last_user, query = middleware_debug
             ctx, context_error = await fetch_context_for_debug(
-                req.containerTag,
+                req.namespace,
                 query,
                 sm_key,
             )
             memory_debug = build_middleware_memory_debug(
-                req.containerTag,
+                req.namespace,
                 req.conversationId,
                 req.memoryMode or "full",
                 last_user,
@@ -825,12 +819,12 @@ async def chat(req: ChatRequest):
                 middleware_config,
             )
         elif direct_debug is not None:
-            custom_id, profile_context, last_user = direct_debug
+            document_id, profile_context, last_user = direct_debug
             save_debug = await save_direct_conversation(
                 req.messages,
                 text,
-                req.containerTag,
-                custom_id,
+                req.namespace,
+                document_id,
                 sm_key,
             )
             memory_debug = [
@@ -838,7 +832,7 @@ async def chat(req: ChatRequest):
                     "type": "manual_profile",
                     "label": "Profile context used for this response",
                     "detail": {
-                        "containerTag": req.containerTag,
+                        "namespace": req.namespace,
                         "query": last_user,
                         "staticCount": len(profile_context["static"]),
                         "dynamicCount": len(profile_context["dynamic"]),

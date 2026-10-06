@@ -32,8 +32,7 @@ async function chatWithMemoryTool() {
 
 	// Initialize memory tool
 	const memoryTool = createClaudeMemoryTool(SUPERMEMORY_API_KEY, {
-		projectId: "anthropic-sdk-demo",
-		memoryContainerTag: "claude_memory_anthropic",
+		namespace: "anthropic-sdk-demo",
 	})
 
 	// Conversation messages
@@ -177,8 +176,7 @@ async function testMemoryOperations() {
 	}
 
 	const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY, {
-		projectId: "direct-test",
-		memoryContainerTag: "claude_memory_direct",
+		namespace: "direct-test",
 	})
 
 	const testCases = [

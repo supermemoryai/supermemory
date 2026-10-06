@@ -1,35 +1,32 @@
-import Supermemory from "supermemory"
 import { tool } from "ai"
 import { z } from "zod"
 import {
-	CLIENT_OPTIONS,
 	DEFAULT_VALUES,
 	PARAMETER_DESCRIPTIONS,
 	SEARCH_LIMIT_BOUNDS,
 	TOOL_DESCRIPTIONS,
 	clampSearchLimit,
-	deleteDocumentByIdentifier,
-	getContainerTags,
+	createToolsClient,
+	deleteDocument,
+	forgetMemory,
+	getNamespace,
+	getProfileWithSearch,
 } from "./tools-shared"
-import { forgetMemoryRequest } from "./shared/forget-memory"
 import type { SupermemoryToolsConfig } from "./types"
 
-function createClient(apiKey: string, config?: SupermemoryToolsConfig) {
-	return new Supermemory({
-		apiKey,
-		...CLIENT_OPTIONS,
-		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
-	})
+function toolError(error: unknown) {
+	return {
+		success: false as const,
+		error: error instanceof Error ? error.message : "Unknown error",
+	}
 }
 
-// Export individual tool creators
 export const searchMemoriesTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createClient(apiKey, config)
-
-	const containerTags = getContainerTags(config)
+	const client = createToolsClient(apiKey, config)
+	const namespace = getNamespace(config)
 	const strict = config?.strict ?? false
 
 	return tool({
@@ -67,9 +64,8 @@ export const searchMemoriesTool = (
 		}),
 		execute: async ({ informationToGet, limit = DEFAULT_VALUES.limit }) => {
 			try {
-				const response = await client.search({
-					q: informationToGet,
-					containerTag: containerTags[0],
+				const response = await client.search(namespace, {
+					query: informationToGet,
 					limit: clampSearchLimit(limit),
 					threshold: DEFAULT_VALUES.searchThreshold,
 					searchMode: "hybrid",
@@ -81,10 +77,7 @@ export const searchMemoriesTool = (
 					count: response.results?.length || 0,
 				}
 			} catch (error) {
-				return {
-					success: false,
-					error: error instanceof Error ? error.message : "Unknown error",
-				}
+				return toolError(error)
 			}
 		},
 	})
@@ -94,9 +87,8 @@ export const addMemoryTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createClient(apiKey, config)
-
-	const containerTags = getContainerTags(config)
+	const client = createToolsClient(apiKey, config)
+	const namespace = getNamespace(config)
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.addMemory,
@@ -105,12 +97,9 @@ export const addMemoryTool = (
 		}),
 		execute: async ({ memory }) => {
 			try {
-				const metadata: Record<string, string | number | boolean> = {}
-
-				const response = await client.add({
+				const response = await client.add(namespace, {
 					content: memory,
-					containerTags,
-					...(Object.keys(metadata).length > 0 && { metadata }),
+					dreaming: "instant",
 				})
 
 				return {
@@ -118,10 +107,7 @@ export const addMemoryTool = (
 					memory: response,
 				}
 			} catch (error) {
-				return {
-					success: false,
-					error: error instanceof Error ? error.message : "Unknown error",
-				}
+				return toolError(error)
 			}
 		},
 	})
@@ -131,38 +117,22 @@ export const getProfileTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createClient(apiKey, config)
-
-	const containerTags = getContainerTags(config)
-	const strict = config?.strict ?? false
+	const client = createToolsClient(apiKey, config)
+	const namespace = getNamespace(config)
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.getProfile,
 		inputSchema: z.object({
-			containerTag: strict
-				? z.string().describe(PARAMETER_DESCRIPTIONS.containerTag)
-				: z.string().optional().describe(PARAMETER_DESCRIPTIONS.containerTag),
 			query: z.string().optional().describe(PARAMETER_DESCRIPTIONS.query),
 		}),
-		execute: async ({ containerTag, query }) => {
+		execute: async ({ query }) => {
 			try {
-				const tag = containerTag || containerTags[0]
-
-				const response = await client.profile({
-					containerTag: tag,
-					...(query && { q: query }),
-				})
-
 				return {
 					success: true,
-					profile: response.profile,
-					searchResults: response.searchResults,
+					...(await getProfileWithSearch(client, namespace, query)),
 				}
 			} catch (error) {
-				return {
-					success: false,
-					error: error instanceof Error ? error.message : "Unknown error",
-				}
+				return toolError(error)
 			}
 		},
 	})
@@ -172,18 +142,13 @@ export const documentListTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createClient(apiKey, config)
-
-	const containerTags = getContainerTags(config)
+	const client = createToolsClient(apiKey, config)
+	const namespace = getNamespace(config)
 	const strict = config?.strict ?? false
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.documentList,
 		inputSchema: z.object({
-			containerTag: z
-				.string()
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.containerTag),
 			limit: strict
 				? z.coerce
 						.number()
@@ -196,28 +161,20 @@ export const documentListTool = (
 						.describe(PARAMETER_DESCRIPTIONS.limit),
 			page: z.coerce.number().optional().describe(PARAMETER_DESCRIPTIONS.page),
 		}),
-		execute: async ({ containerTag, limit, page }) => {
+		execute: async ({ limit, page }) => {
 			try {
-				const scopeTags: [string, ...string[]] = containerTag
-					? [containerTag]
-					: containerTags
-
-				const response = await client.documents.list({
-					containerTags: scopeTags,
+				const response = await client.list(namespace, "documents", {
 					limit: limit || DEFAULT_VALUES.limit,
 					...(page !== undefined && { page }),
 				})
 
 				return {
 					success: true,
-					documents: response.memories,
+					documents: response.documents,
 					pagination: response.pagination,
 				}
 			} catch (error) {
-				return {
-					success: false,
-					error: error instanceof Error ? error.message : "Unknown error",
-				}
+				return toolError(error)
 			}
 		},
 	})
@@ -227,40 +184,24 @@ export const documentDeleteTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createClient(apiKey, config)
-	const containerTags = getContainerTags(config)
-	const strict = config?.strict ?? false
+	const client = createToolsClient(apiKey, config)
+	const namespace = getNamespace(config)
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.documentDelete,
 		inputSchema: z.object({
 			documentId: z.string().describe(PARAMETER_DESCRIPTIONS.documentId),
-			containerTag: strict
-				? z
-						.string()
-						.nullable()
-						.describe(PARAMETER_DESCRIPTIONS.documentContainerTag)
-				: z
-						.string()
-						.optional()
-						.describe(PARAMETER_DESCRIPTIONS.documentContainerTag),
 		}),
-		execute: async ({ documentId, containerTag }) => {
+		execute: async ({ documentId }) => {
 			try {
-				const scopeTags: [string, ...string[]] = containerTag
-					? [containerTag]
-					: containerTags
-				await deleteDocumentByIdentifier(client, documentId, scopeTags)
+				await deleteDocument(client, namespace, documentId)
 
 				return {
 					success: true,
 					message: `Document ${documentId} deleted successfully`,
 				}
 			} catch (error) {
-				return {
-					success: false,
-					error: error instanceof Error ? error.message : "Unknown error",
-				}
+				return toolError(error)
 			}
 		},
 	})
@@ -270,9 +211,8 @@ export const documentAddTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createClient(apiKey, config)
-
-	const containerTags = getContainerTags(config)
+	const client = createToolsClient(apiKey, config)
+	const namespace = getNamespace(config)
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.documentAdd,
@@ -290,9 +230,8 @@ export const documentAddTool = (
 				if (title) metadata.title = title
 				if (description) metadata.description = description
 
-				const response = await client.documents.add({
+				const response = await client.add(namespace, {
 					content,
-					containerTags,
 					...(Object.keys(metadata).length > 0 && { metadata }),
 				})
 
@@ -301,10 +240,7 @@ export const documentAddTool = (
 					document: response,
 				}
 			} catch (error) {
-				return {
-					success: false,
-					error: error instanceof Error ? error.message : "Unknown error",
-				}
+				return toolError(error)
 			}
 		},
 	})
@@ -314,23 +250,19 @@ export const memoryForgetTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const containerTags = getContainerTags(config)
+	const client = createToolsClient(apiKey, config)
+	const namespace = getNamespace(config)
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.memoryForget,
 		inputSchema: z.object({
-			containerTag: z
-				.string()
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.containerTag),
 			memoryId: z.string().optional().describe(PARAMETER_DESCRIPTIONS.memoryId),
 			memoryContent: z
 				.string()
 				.optional()
 				.describe(PARAMETER_DESCRIPTIONS.memoryContent),
-			reason: z.string().optional().describe(PARAMETER_DESCRIPTIONS.reason),
 		}),
-		execute: async ({ containerTag, memoryId, memoryContent, reason }) => {
+		execute: async ({ memoryId, memoryContent }) => {
 			try {
 				if (!memoryId && !memoryContent) {
 					return {
@@ -339,36 +271,22 @@ export const memoryForgetTool = (
 					}
 				}
 
-				const tag = containerTag || containerTags[0]
-
-				await forgetMemoryRequest(
-					apiKey,
-					{
-						containerTag: tag as string,
-						...(memoryId && { id: memoryId }),
-						...(memoryContent && { content: memoryContent }),
-						...(reason && { reason }),
-					},
-					config?.baseUrl,
-				)
+				await forgetMemory(client, namespace, {
+					...(memoryId && { id: memoryId }),
+					...(memoryContent && { content: memoryContent }),
+				})
 
 				return {
 					success: true,
 					message: "Memory forgotten successfully",
 				}
 			} catch (error) {
-				return {
-					success: false,
-					error: error instanceof Error ? error.message : "Unknown error",
-				}
+				return toolError(error)
 			}
 		},
 	})
 }
 
-/**
- * Create Supermemory tools for AI SDK
- */
 export function supermemoryTools(
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
@@ -391,4 +309,4 @@ export {
 	type PromptTemplate,
 	type MemoryPromptData,
 } from "./vercel"
-export { getContainerTags } from "./tools-shared"
+export { getNamespace } from "./tools-shared"

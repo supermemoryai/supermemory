@@ -108,7 +108,7 @@ export const injectMemoriesIntoParams = (
  */
 export const addSystemPrompt = async (
 	params: LanguageModelCallOptions,
-	containerTag: string,
+	namespace: string,
 	logger: Logger,
 	mode: "profile" | "query" | "full",
 	baseUrl: string,
@@ -120,7 +120,7 @@ export const addSystemPrompt = async (
 	const queryText = extractQueryText(params, mode)
 
 	const memories = await buildMemoriesText({
-		containerTag,
+		namespace,
 		queryText,
 		mode,
 		baseUrl,

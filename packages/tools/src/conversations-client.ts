@@ -1,10 +1,5 @@
-/**
- * Client for the Supermemory Conversations API
- *
- * This module provides a helper function to ingest conversations using the
- * /v4/conversations endpoint, which supports structured messages with smart
- * diffing and append detection on the backend.
- */
+import type { AddResponse } from "supermemory"
+import { createSupermemoryClient } from "./shared/context"
 
 export interface ConversationMessage {
 	role: "user" | "assistant" | "system" | "tool"
@@ -36,7 +31,7 @@ const encodeBase64 = (bytes: Uint8Array): string => {
 	return encoded
 }
 
-/** Normalize supported SDK image representations for `/v4/conversations`. */
+/** Normalize supported SDK image representations to a URL or data URL. */
 export const toConversationImageUrl = (
 	value: unknown,
 	mediaType = "image/jpeg",
@@ -73,75 +68,73 @@ export interface ToolCall {
 }
 
 export interface AddConversationParams {
-	conversationId: string
+	id: string
 	messages: ConversationMessage[]
-	containerTags?: string[]
+	namespace: string
 	metadata?: Record<string, string | number | boolean>
+	supportingContext?: string
 	apiKey: string
 	baseUrl?: string
 }
 
-export interface AddConversationResponse {
-	id: string
-	conversationId: string
-	status: string
+const CONVERSATION_REQUEST_TIMEOUT_SECONDS = 30
+
+const ROLE_LABELS: Record<ConversationMessage["role"], string> = {
+	user: "User",
+	assistant: "Assistant",
+	system: "System",
+	tool: "Tool",
 }
 
-const CONVERSATION_REQUEST_TIMEOUT_MS = 30_000
+// Data URLs are dropped: inlining base64 would bloat the document text.
+const formatContentPart = (part: ContentPart): string => {
+	if (part.type === "text") return part.text
+	const url = part.imageUrl.url
+	return url.startsWith("data:") ? "[image]" : `[image: ${url}]`
+}
 
-/**
- * Adds a conversation to Supermemory using the /v4/conversations endpoint
- *
- * This endpoint supports:
- * - Structured messages with roles (user, assistant, system, tool)
- * - Multi-modal content (text, images)
- * - Tool calls and responses
- *
- * @param params - Configuration for adding the conversation
- * @returns Promise resolving to the conversation response
- * @throws Error if the API request fails
- *
- * @example
- * ```typescript
- * const response = await addConversation({
- *   conversationId: "conv-123",
- *   messages: [
- *     { role: "user", content: "Hello!" },
- *     { role: "assistant", content: "Hi there!" }
- *   ],
- *   containerTags: ["user-456"],
- *   apiKey: process.env.SUPERMEMORY_API_KEY,
- * })
- * ```
- */
+export function formatConversationText(
+	messages: ConversationMessage[],
+): string {
+	return messages
+		.map((message) => {
+			const content =
+				typeof message.content === "string"
+					? message.content
+					: message.content.map(formatContentPart).join(" ")
+			const toolCalls = (message.tool_calls ?? [])
+				.map(
+					(call) =>
+						`[tool call: ${call.function.name}(${call.function.arguments})]`,
+				)
+				.join(" ")
+			const label = message.name
+				? `${ROLE_LABELS[message.role]} (${message.name})`
+				: ROLE_LABELS[message.role]
+			return `${label}: ${[content, toolCalls].filter(Boolean).join(" ")}`
+		})
+		.join("\n\n")
+}
+
+// Same id → same document, so one conversation stays one document.
 export async function addConversation(
 	params: AddConversationParams,
-): Promise<AddConversationResponse> {
-	const baseUrl = params.baseUrl || "https://api.supermemory.ai"
-	const url = `${baseUrl}/v4/conversations`
-
-	const response = await fetch(url, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${params.apiKey}`,
-		},
-		body: JSON.stringify({
-			conversationId: params.conversationId,
-			messages: params.messages,
-			containerTags: params.containerTags,
-			metadata: params.metadata,
-		}),
-		redirect: "error",
-		signal: AbortSignal.timeout(CONVERSATION_REQUEST_TIMEOUT_MS),
+): Promise<AddResponse> {
+	const client = createSupermemoryClient({
+		apiKey: params.apiKey,
+		baseUrl: params.baseUrl,
 	})
-
-	if (!response.ok) {
-		const errorText = await response.text().catch(() => "Unknown error")
-		throw new Error(
-			`Failed to add conversation: ${response.status} ${response.statusText}. ${errorText}`,
-		)
-	}
-
-	return await response.json()
+	return await client.add(
+		params.namespace,
+		{
+			content: formatConversationText(params.messages),
+			id: params.id,
+			dreaming: "instant",
+			...(params.metadata && { metadata: params.metadata }),
+			...(params.supportingContext && {
+				supportingContext: params.supportingContext,
+			}),
+		},
+		{ timeoutInSeconds: CONVERSATION_REQUEST_TIMEOUT_SECONDS, maxRetries: 0 },
+	)
 }

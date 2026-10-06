@@ -14,7 +14,7 @@ import {
 	assertTrustedBrowserRequest,
 	mayUseEnvironmentKeys,
 	parseApiKeys,
-	parseContainerTag,
+	parseNamespace,
 	parseConversationId,
 	parseIdentifier,
 	parseMemoryMode,
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
 		const body = await readJsonObject(req)
 		const sdkId = parseIdentifier(body.sdkId, "sdkId")
 		const messages = parseMessages(body.messages)
-		const containerTag = parseContainerTag(body.containerTag)
+		const namespace = parseNamespace(body.namespace)
 		const conversationId = parseConversationId(body.conversationId)
 		const memoryMode = parseMemoryMode(body.memoryMode)
 		const middlewareConfig = parseMiddlewareConfig(body.middlewareConfig)
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
 				body: JSON.stringify({
 					sdkId,
 					messages,
-					containerTag,
+					namespace,
 					conversationId,
 					memoryMode,
 					middlewareConfig,
@@ -129,12 +129,11 @@ export async function POST(req: Request) {
 			{
 				sdkId,
 				messages,
-				containerTag,
+				namespace,
 				conversationId,
 				memoryMode,
 				middlewareConfig,
 				apiKeys,
-				containerTags: [containerTag],
 			},
 			apiKeys,
 		)

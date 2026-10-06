@@ -6,7 +6,7 @@ Chat with a **real agent** and switch which Supermemory SDK integration powers i
 > This is a local, single-user development tool. It makes real API calls, stores
 > browser-entered keys only in memory unless you opt into tab-scoped
 > `sessionStorage`, and exposes tools that can permanently delete documents. Use
-> disposable development credentials and a test container; do not deploy it or
+> disposable development credentials and a test namespace; do not deploy it or
 > point it at production data.
 
 ## Integrations
@@ -17,7 +17,6 @@ Chat with a **real agent** and switch which Supermemory SDK integration powers i
 | OpenAI + middleware | automatic | same, via OpenAI client wrapper |
 | AI SDK + tools | explicit | model calls 7 memory tools via `generateText` |
 | OpenAI + tools | explicit | OpenAI function-calling loop |
-| `@supermemory/ai-sdk` | explicit | re-export of tools/ai-sdk |
 | Python OpenAI middleware | automatic | `with_supermemory` |
 | Python OpenAI tools | explicit | `SupermemoryTools` loop |
 | Python supermemory direct | manual | `profile()` + OpenAI + `add()` |
@@ -39,9 +38,8 @@ cp apps/sdk-playground/.env.example apps/sdk-playground/.env.local
 # OPENAI_API_KEY=...
 ```
 
-The playground scripts build `@supermemory/tools` first and
-`@supermemory/ai-sdk` second before starting, type-checking, or building the
-Next.js app. Development mode also watches both workspace packages.
+The playground scripts build `@supermemory/tools` before starting, type-checking, or building the
+Next.js app. Development mode also watches the workspace package.
 
 ## Run
 

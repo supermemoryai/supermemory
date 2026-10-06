@@ -1,38 +1,55 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-// Mock the Supermemory SDK (same pattern as claude-memory.test.ts) so tool
-// executions can be verified deterministically without network access.
-const documentsDeleteBulk = vi.fn()
-const documentsGet = vi.fn()
-const documentsList = vi.fn()
-const clientAdd = vi.fn()
-const clientSearch = vi.fn()
-const clientOptions: unknown[] = []
+// Mock the v5 SDK so tool executions are verified without network access.
+const sdk = vi.hoisted(() => {
+	class NotFoundError extends Error {
+		statusCode = 404
+	}
+	return {
+		NotFoundError,
+		add: vi.fn(),
+		search: vi.fn(),
+		profile: vi.fn(),
+		list: vi.fn(),
+		documentsGet: vi.fn(),
+		documentsUpdate: vi.fn(),
+		documentsDelete: vi.fn(),
+		forget: vi.fn(),
+		forgetMatching: vi.fn(),
+		clientOptions: [] as unknown[],
+	}
+})
 
 vi.mock("supermemory", () => {
+	class Supermemory {
+		constructor(options: unknown) {
+			sdk.clientOptions.push(options)
+		}
+		add = sdk.add
+		search = sdk.search
+		profile = sdk.profile
+		list = sdk.list
+		documents = {
+			get: sdk.documentsGet,
+			update: sdk.documentsUpdate,
+			delete: sdk.documentsDelete,
+		}
+		memories = { forget: sdk.forget, forgetMatching: sdk.forgetMatching }
+	}
 	return {
-		default: class MockSupermemory {
-			constructor(options: unknown) {
-				clientOptions.push(options)
-			}
-			add = clientAdd
-			search = clientSearch
-			documents = {
-				deleteBulk: documentsDeleteBulk,
-				get: documentsGet,
-				list: documentsList,
-				add: vi.fn(),
-			}
-		},
+		default: Supermemory,
+		Supermemory,
+		NotFoundError: sdk.NotFoundError,
+		SupermemoryError: Error,
 	}
 })
 
 import * as aiSdk from "./ai-sdk"
 import { ClaudeMemoryTool } from "./claude-memory"
-import { forgetMemoryRequest } from "./shared/forget-memory"
 import * as openAi from "./openai/tools"
 
 const API_KEY = "sm_test_key"
+const DEFAULT_NS = "sm_project_default"
 
 type ToolWithExecute = { execute: (args: Record<string, unknown>) => unknown }
 
@@ -41,28 +58,39 @@ function executeTool(tool: unknown, args: Record<string, unknown>) {
 }
 
 beforeEach(() => {
-	documentsDeleteBulk.mockReset().mockResolvedValue({
-		success: true,
-		deletedCount: 1,
-		errors: [],
+	sdk.add.mockReset().mockResolvedValue({ id: "doc_new", status: "queued" })
+	sdk.search.mockReset().mockResolvedValue({ results: [], searchTime: 1 })
+	sdk.profile.mockReset().mockResolvedValue({
+		profile: {
+			static: [{ id: "mem_s", memory: "Likes tea" }],
+			dynamic: [],
+			buckets: {},
+		},
 	})
-	documentsGet.mockReset().mockResolvedValue({
-		id: "doc_123",
-		customId: "doc_123",
-		containerTags: ["sm_project_default"],
-	})
-	documentsList.mockReset().mockResolvedValue({
-		memories: [{ id: "doc_1", title: "Doc one" }],
+	sdk.list.mockReset().mockResolvedValue({
+		documents: [{ id: "doc_1", title: "Doc one" }],
+		chunks: [],
+		memories: [],
 		pagination: { currentPage: 1, totalItems: 1, totalPages: 1 },
 	})
-	clientAdd.mockReset().mockResolvedValue({ id: "doc_new" })
-	clientSearch.mockReset().mockResolvedValue({ results: [] })
-	clientOptions.length = 0
-	vi.unstubAllGlobals()
+	sdk.documentsGet.mockReset().mockResolvedValue({
+		id: "doc_123",
+		metadata: {},
+		system: { status: "done" },
+	})
+	sdk.documentsUpdate
+		.mockReset()
+		.mockResolvedValue({ id: "doc", status: "queued" })
+	sdk.documentsDelete.mockReset().mockResolvedValue({ count: 1, errors: [] })
+	sdk.forget
+		.mockReset()
+		.mockResolvedValue({ count: 1, matches: [], errors: [] })
+	sdk.forgetMatching.mockReset()
+	sdk.clientOptions.length = 0
 })
 
 describe("searchMemories", () => {
-	it("ai-sdk variant clamps an oversized limit before calling the SDK", async () => {
+	it("ai-sdk variant clamps an oversized limit and keeps v4 search defaults", async () => {
 		const tool = aiSdk.searchMemoriesTool(API_KEY)
 		const result = (await executeTool(tool, {
 			informationToGet: "coffee order",
@@ -70,9 +98,12 @@ describe("searchMemories", () => {
 		})) as { success: boolean }
 
 		expect(result.success).toBe(true)
-		expect(clientSearch).toHaveBeenCalledWith(
-			expect.objectContaining({ q: "coffee order", limit: 50 }),
-		)
+		expect(sdk.search).toHaveBeenCalledWith(DEFAULT_NS, {
+			query: "coffee order",
+			limit: 50,
+			threshold: 0.6,
+			searchMode: "hybrid",
+		})
 	})
 
 	it("ai-sdk schema rejects out-of-range limits", () => {
@@ -90,43 +121,135 @@ describe("searchMemories", () => {
 		).toBe(true)
 	})
 
-	it("openai variant clamps a non-positive limit before calling the SDK", async () => {
-		const search = openAi.createSearchMemoriesFunction(API_KEY)
+	it("openai variant clamps a non-positive limit and uses the configured namespace", async () => {
+		const search = openAi.createSearchMemoriesFunction(API_KEY, {
+			namespace: "user_1",
+		})
 		await search({ informationToGet: "coffee order", limit: 0 })
 
-		expect(clientSearch).toHaveBeenCalledWith(
+		expect(sdk.search).toHaveBeenCalledWith(
+			"user_1",
 			expect.objectContaining({ limit: 1 }),
 		)
 	})
 
 	it("creates SDK clients with a bounded timeout and retry budget", () => {
-		aiSdk.searchMemoriesTool(API_KEY)
+		aiSdk.searchMemoriesTool(API_KEY, { baseUrl: "https://example.test" })
 		openAi.createSearchMemoriesFunction(API_KEY)
 
-		expect(clientOptions).toHaveLength(2)
-		for (const options of clientOptions) {
-			expect(options).toEqual(
-				expect.objectContaining({ timeout: 30_000, maxRetries: 2 }),
-			)
-		}
+		expect(sdk.clientOptions).toHaveLength(2)
+		expect(sdk.clientOptions[0]).toEqual(
+			expect.objectContaining({
+				timeoutInSeconds: 30,
+				maxRetries: 2,
+				baseUrl: "https://example.test",
+			}),
+		)
+		expect(sdk.clientOptions[1]).toEqual(
+			expect.objectContaining({ timeoutInSeconds: 30, maxRetries: 2 }),
+		)
+	})
+})
+
+describe("addMemory and documentAdd", () => {
+	it("addMemory writes one instant document to the namespace", async () => {
+		const tool = aiSdk.addMemoryTool(API_KEY, { namespace: "user_1" })
+		await executeTool(tool, { memory: "Prefers tea" })
+
+		expect(sdk.add).toHaveBeenCalledWith("user_1", {
+			content: "Prefers tea",
+			dreaming: "instant",
+		})
+	})
+
+	it("documentAdd forwards title and description as metadata", async () => {
+		const documentAdd = openAi.createDocumentAddFunction(API_KEY)
+		await documentAdd({ content: "notes", title: "T", description: "D" })
+
+		expect(sdk.add).toHaveBeenCalledWith(DEFAULT_NS, {
+			content: "notes",
+			metadata: { title: "T", description: "D" },
+		})
+	})
+})
+
+describe("getProfile", () => {
+	it("returns the profile without searching when no query is given", async () => {
+		const tool = aiSdk.getProfileTool(API_KEY)
+		const result = (await executeTool(tool, {})) as Record<string, unknown>
+
+		expect(result.success).toBe(true)
+		expect(result.searchResults).toBeUndefined()
+		expect(sdk.profile).toHaveBeenCalledWith(DEFAULT_NS)
+		expect(sdk.search).not.toHaveBeenCalled()
+	})
+
+	it("runs a separate memories search for a query", async () => {
+		const getProfile = openAi.createGetProfileFunction(API_KEY)
+		const result = await getProfile({ query: "drinks" })
+
+		expect(result.success).toBe(true)
+		expect(result.searchResults).toEqual([])
+		expect(sdk.search).toHaveBeenCalledWith(DEFAULT_NS, {
+			query: "drinks",
+			searchMode: "memories",
+			threshold: 0.6,
+		})
 	})
 })
 
 describe("documentDelete", () => {
-	it("ai-sdk variant passes the document id string to the SDK", async () => {
+	it("checks the document in the namespace, then deletes it", async () => {
 		const tool = aiSdk.documentDeleteTool(API_KEY)
 		const result = (await executeTool(tool, { documentId: "doc_123" })) as {
 			success: boolean
 		}
 
 		expect(result.success).toBe(true)
-		expect(documentsGet).toHaveBeenCalledWith("doc_123")
-		expect(documentsDeleteBulk).toHaveBeenCalledWith({ ids: ["doc_123"] })
+		expect(sdk.documentsGet).toHaveBeenCalledWith(DEFAULT_NS, "doc_123")
+		expect(sdk.documentsDelete).toHaveBeenCalledWith(DEFAULT_NS, {
+			ids: ["doc_123"],
+		})
+	})
+
+	it("refuses to delete a document that is still processing", async () => {
+		sdk.documentsGet.mockResolvedValue({
+			id: "doc_123",
+			metadata: {},
+			system: { status: "embedding" },
+		})
+		const documentDelete = openAi.createDocumentDeleteFunction(API_KEY)
+		const result = await documentDelete({ documentId: "doc_123" })
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("embedding")
+		expect(sdk.documentsDelete).not.toHaveBeenCalled()
+	})
+
+	it("reports not-found documents", async () => {
+		sdk.documentsGet.mockRejectedValue(new sdk.NotFoundError("missing"))
+		const documentDelete = openAi.createDocumentDeleteFunction(API_KEY)
+		const result = await documentDelete({ documentId: "nope" })
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("not found")
+	})
+
+	it("surfaces per-document delete errors", async () => {
+		sdk.documentsDelete.mockResolvedValue({
+			count: 0,
+			errors: [{ id: "doc_123", error: "locked" }],
+		})
+		const documentDelete = openAi.createDocumentDeleteFunction(API_KEY)
+		const result = await documentDelete({ documentId: "doc_123" })
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("locked")
 	})
 })
 
 describe("documentList", () => {
-	it("ai-sdk variant returns the SDK's memories array as documents", async () => {
+	it("ai-sdk variant returns the v5 documents array", async () => {
 		const tool = aiSdk.documentListTool(API_KEY)
 		const result = (await executeTool(tool, {})) as {
 			success: boolean
@@ -142,135 +265,139 @@ describe("documentList", () => {
 		const result = await documentList({ limit: 5, page: 3 })
 
 		expect(result.success).toBe(true)
-		expect(result.documents).toEqual([{ id: "doc_1", title: "Doc one" }])
-		expect(documentsList).toHaveBeenCalledWith(
-			expect.objectContaining({ limit: 5, page: 3 }),
-		)
+		expect(sdk.list).toHaveBeenCalledWith(DEFAULT_NS, "documents", {
+			limit: 5,
+			page: 3,
+		})
 	})
 })
 
 describe("memoryForget", () => {
-	function stubFetch(response = new Response(null, { status: 200 })) {
-		const fetchMock = vi.fn().mockResolvedValue(response)
-		vi.stubGlobal("fetch", fetchMock)
-		return fetchMock
-	}
-
-	it("issues DELETE /v4/memories with the forget payload", async () => {
-		const fetchMock = stubFetch()
-
-		await forgetMemoryRequest(API_KEY, {
-			containerTag: "user_1",
-			id: "mem_1",
-			reason: "outdated",
+	it("forgets an exact memory ID", async () => {
+		const memoryForget = openAi.createMemoryForgetFunction(API_KEY, {
+			namespace: "user_1",
 		})
+		const result = await memoryForget({ memoryId: "mem_1" })
 
-		expect(fetchMock).toHaveBeenCalledTimes(1)
-		const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-		expect(url).toBe("https://api.supermemory.ai/v4/memories")
-		expect(init.method).toBe("DELETE")
-		expect(init.headers).toMatchObject({
-			Authorization: `Bearer ${API_KEY}`,
-		})
-		expect(JSON.parse(init.body as string)).toEqual({
-			containerTag: "user_1",
-			id: "mem_1",
-			reason: "outdated",
-		})
-		expect(init.signal).toBeInstanceOf(AbortSignal)
+		expect(result.success).toBe(true)
+		expect(sdk.forget).toHaveBeenCalledWith("user_1", { ids: ["mem_1"] })
+		expect(sdk.forgetMatching).not.toHaveBeenCalled()
 	})
 
-	it("uses a caller-provided signal instead of creating a timeout", async () => {
-		const fetchMock = stubFetch()
-		const controller = new AbortController()
-
-		await forgetMemoryRequest(
-			API_KEY,
-			{ containerTag: "user_1", id: "mem_1" },
-			undefined,
-			{ signal: controller.signal },
-		)
-
-		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-		expect(init.signal).toBe(controller.signal)
-	})
-
-	it("throws a descriptive error on non-2xx responses", async () => {
-		stubFetch(new Response("nope", { status: 401, statusText: "Unauthorized" }))
-
-		await expect(
-			forgetMemoryRequest(API_KEY, { containerTag: "user_1", id: "mem_1" }),
-		).rejects.toThrow(/401/)
-	})
-
-	it("ai-sdk tool forgets by content through the endpoint", async () => {
-		const fetchMock = stubFetch()
-		const tool = aiSdk.memoryForgetTool(API_KEY, {
-			containerTags: ["user_2"],
+	it("forgets by content via a dry-run preview, keeping only exact matches", async () => {
+		sdk.forgetMatching.mockResolvedValue({
+			count: 2,
+			matches: [
+				{ id: "mem_exact", memory: "Stale  fact" },
+				{ id: "mem_close", memory: "Stale fact about tea" },
+			],
+			errors: [],
 		})
-
+		const tool = aiSdk.memoryForgetTool(API_KEY, { namespace: "user_2" })
 		const result = (await executeTool(tool, {
 			memoryContent: "stale fact",
 		})) as { success: boolean }
 
 		expect(result.success).toBe(true)
-		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-		expect(JSON.parse(init.body as string)).toEqual({
-			containerTag: "user_2",
-			content: "stale fact",
+		expect(sdk.forgetMatching).toHaveBeenCalledWith("user_2", {
+			query: "stale fact",
+			dryRun: true,
 		})
+		expect(sdk.forget).toHaveBeenCalledWith("user_2", { ids: ["mem_exact"] })
 	})
 
-	it("openai tool surfaces endpoint failures as tool errors", async () => {
-		stubFetch(new Response("boom", { status: 500, statusText: "Server Error" }))
+	it("does not forget anything when no preview match is exact", async () => {
+		sdk.forgetMatching.mockResolvedValue({
+			count: 1,
+			matches: [{ id: "mem_close", memory: "Something else" }],
+			errors: [],
+		})
 		const memoryForget = openAi.createMemoryForgetFunction(API_KEY)
+		const result = await memoryForget({ memoryContent: "stale fact" })
 
+		expect(result.success).toBe(false)
+		expect(sdk.forget).not.toHaveBeenCalled()
+	})
+
+	it("surfaces forget errors as tool errors", async () => {
+		sdk.forget.mockResolvedValue({
+			count: 0,
+			matches: [],
+			errors: [{ id: "mem_9", error: "Memory not found" }],
+		})
+		const memoryForget = openAi.createMemoryForgetFunction(API_KEY)
 		const result = await memoryForget({ memoryId: "mem_9" })
 
 		expect(result.success).toBe(false)
-		expect(result.error).toMatch(/500/)
+		expect(result.error).toContain("Memory not found")
 	})
 
 	it("still requires an id or content", async () => {
-		const fetchMock = stubFetch()
 		const memoryForget = openAi.createMemoryForgetFunction(API_KEY)
-
 		const result = await memoryForget({})
 
 		expect(result.success).toBe(false)
-		expect(fetchMock).not.toHaveBeenCalled()
+		expect(sdk.forget).not.toHaveBeenCalled()
 	})
 })
 
 describe("ClaudeMemoryTool", () => {
 	const FILE_PATH = "/memories/prefs.txt"
-	const CUSTOM_ID = "memories_prefs_txt"
-	const DOCUMENT_ID = "doc_file_1"
+	const FILE_ID = "memories_prefs_txt"
 
 	function mockFileDocument(content: string) {
-		const metadata = {
-			claude_memory_type: "file",
-			file_path: FILE_PATH,
-		}
-		documentsList.mockResolvedValue({
-			memories: [
-				{
-					id: DOCUMENT_ID,
-					customId: CUSTOM_ID,
-					containerTags: ["claude_memory"],
-					metadata,
-				},
-			],
-			pagination: { currentPage: 1, totalItems: 1, totalPages: 1 },
-		})
-		documentsGet.mockResolvedValue({
-			id: DOCUMENT_ID,
-			customId: CUSTOM_ID,
-			containerTags: ["sm_project_default", "claude_memory"],
+		sdk.documentsGet.mockResolvedValue({
+			id: "doc_file_1",
 			content,
-			metadata,
+			metadata: {
+				source: "claude-memory",
+				claude_memory_type: "file",
+				file_path: FILE_PATH,
+			},
+			system: { status: "done" },
 		})
 	}
+
+	it("create writes a new file tagged with source claude-memory", async () => {
+		sdk.documentsUpdate.mockRejectedValue(new sdk.NotFoundError("missing"))
+		const tool = new ClaudeMemoryTool(API_KEY, { namespace: "user_1" })
+
+		const result = await tool.handleCommand({
+			command: "create",
+			path: FILE_PATH,
+			file_text: "hello",
+		})
+
+		expect(result.success).toBe(true)
+		expect(sdk.add).toHaveBeenCalledWith(
+			"user_1",
+			expect.objectContaining({
+				id: FILE_ID,
+				content: "hello",
+				metadata: expect.objectContaining({
+					source: "claude-memory",
+					file_path: FILE_PATH,
+				}),
+			}),
+		)
+	})
+
+	it("create overwrites an existing file via update, not append", async () => {
+		const tool = new ClaudeMemoryTool(API_KEY)
+
+		await tool.handleCommand({
+			command: "create",
+			path: FILE_PATH,
+			file_text: "replaced",
+		})
+
+		expect(sdk.documentsUpdate).toHaveBeenCalledWith(
+			DEFAULT_NS,
+			FILE_ID,
+			expect.objectContaining({ content: "replaced" }),
+		)
+		expect(sdk.add).not.toHaveBeenCalled()
+	})
 
 	it("str_replace accepts an empty new_str to delete text", async () => {
 		mockFileDocument("keep this\nremove this\n")
@@ -284,7 +411,9 @@ describe("ClaudeMemoryTool", () => {
 		})
 
 		expect(result.success).toBe(true)
-		expect(clientAdd).toHaveBeenCalledWith(
+		expect(sdk.documentsUpdate).toHaveBeenCalledWith(
+			DEFAULT_NS,
+			FILE_ID,
 			expect.objectContaining({ content: "keep this\n" }),
 		)
 	})
@@ -314,9 +443,29 @@ describe("ClaudeMemoryTool", () => {
 		})
 
 		expect(result.success).toBe(true)
-		expect(clientAdd).toHaveBeenCalledWith(
+		expect(sdk.documentsUpdate).toHaveBeenCalledWith(
+			DEFAULT_NS,
+			FILE_ID,
 			expect.objectContaining({ content: "line1\n\nline2" }),
 		)
+	})
+
+	it("ignores documents not written by claude-memory", async () => {
+		sdk.documentsGet.mockResolvedValue({
+			id: "doc_other",
+			content: "secret",
+			metadata: { file_path: FILE_PATH },
+			system: { status: "done" },
+		})
+		const tool = new ClaudeMemoryTool(API_KEY)
+
+		const result = await tool.handleCommand({
+			command: "view",
+			path: FILE_PATH,
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("File not found")
 	})
 
 	it("delete actually deletes the backing document", async () => {
@@ -329,11 +478,14 @@ describe("ClaudeMemoryTool", () => {
 		})
 
 		expect(result.success).toBe(true)
-		expect(documentsDeleteBulk).toHaveBeenCalledWith({ ids: [DOCUMENT_ID] })
+		expect(sdk.documentsDelete).toHaveBeenCalledWith(DEFAULT_NS, {
+			ids: [FILE_ID],
+		})
 	})
 
 	it("rename removes the old document after creating the new one", async () => {
 		mockFileDocument("contents")
+		sdk.documentsUpdate.mockRejectedValue(new sdk.NotFoundError("missing"))
 		const tool = new ClaudeMemoryTool(API_KEY)
 
 		const result = await tool.handleCommand({
@@ -343,9 +495,39 @@ describe("ClaudeMemoryTool", () => {
 		})
 
 		expect(result.success).toBe(true)
-		expect(clientAdd).toHaveBeenCalledWith(
-			expect.objectContaining({ customId: "memories_renamed_txt" }),
+		expect(sdk.add).toHaveBeenCalledWith(
+			DEFAULT_NS,
+			expect.objectContaining({ id: "memories_renamed_txt" }),
 		)
-		expect(documentsDeleteBulk).toHaveBeenCalledWith({ ids: [DOCUMENT_ID] })
+		expect(sdk.documentsDelete).toHaveBeenCalledWith(DEFAULT_NS, {
+			ids: [FILE_ID],
+		})
+	})
+
+	it("lists a directory with a typed v5 filter", async () => {
+		sdk.list.mockResolvedValue({
+			documents: [
+				{ id: "a", metadata: { file_path: "/memories/a.txt" } },
+				{ id: "b", metadata: { file_path: "/memories/sub/b.txt" } },
+			],
+			chunks: [],
+			memories: [],
+			pagination: { currentPage: 1, totalItems: 2, totalPages: 1 },
+		})
+		const tool = new ClaudeMemoryTool(API_KEY)
+
+		const result = await tool.handleCommand({
+			command: "view",
+			path: "/memories",
+		})
+
+		expect(result.content).toBe("Directory: /memories/\n- sub/\n- a.txt")
+		expect(sdk.list).toHaveBeenCalledWith(
+			DEFAULT_NS,
+			"documents",
+			expect.objectContaining({
+				filter: expect.objectContaining({ operator: "and" }),
+			}),
+		)
 	})
 })
