@@ -19,7 +19,7 @@ The API base URL and bearer keys do not change. v5 application routes are unvers
     Apply [ingestion](./api-v5-document-writes), [updates](./api-v5-document-updates), [content management](./api-v5-document-reads), [search](./api-v5-recall), [profiles](./api-v5-profiles), [forgetting](./api-v5-memory-forgetting), [namespaces](./api-v5-settings), [organization](./api-v5-organization), and [filter](./api-v5-filters) changes independently.
   </Step>
   <Step title="Update response readers">
-    Migrate envelopes, attachments, pagination, profile buckets, system fields, and partial-error handling before switching traffic.
+    Migrate envelopes, includes, pagination, profile buckets, system fields, and partial-error handling before switching traffic.
   </Step>
   <Step title="Verify legacy and v5 side by side">
     Follow the [verification and rollout guide](./api-v5-rollout). Compare identity and behavior—not raw JSON ordering—and set changed defaults explicitly during rollout.
