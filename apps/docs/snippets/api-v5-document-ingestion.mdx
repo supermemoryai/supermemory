@@ -25,7 +25,7 @@ POST /ns/user_1/document?dreaming=dynamic
 ```
 </CodeGroup>
 
-The response remains an acceptance result with `id` and `status`. Repeating the v5 request with `id: "conv_1"` adds or diffs the new content into that document; it does not silently replace the canonical source.
+The response remains an acceptance result with `id` and `status`. Its `status` is the document's processing state after the request: `queued` when new work was queued, otherwise the document's current state (for example `done` for an unchanged duplicate, or `failed` for a metadata-only update to a failed document). Possible values: `unknown`, `queued`, `extracting`, `chunking`, `embedding`, `indexing`, `done`, `failed`. Repeating the v5 request with `id: "conv_1"` adds or diffs the new content into that document; it does not silently replace the canonical source.
 
 ### Batch ingestion
 
@@ -41,7 +41,7 @@ The response remains an acceptance result with `id` and `status`. Repeating the 
 
 Send the v5 body to `POST /ns/user_1/document/batch`. The array accepts 1–600 document objects. Namespace, `taskType`, and processing mode apply to the request; document content, ID, context, metadata, grouping, and date stay per item.
 
-Batch results preserve input order. Inspect `success`, `failed`, and every item in `results`; a batch can contain successful and failed items together.
+`results` lists accepted documents first, in request order, then failed ones; match each result by `id`, or by `url` for a failed item with no ID. Inspect `count` (accepted), `failed`, and every item in `results`; each item's `status` is a processing state as above, or `error` when that item failed, and a batch can contain successful and failed items together.
 
 ### File ingestion
 
@@ -54,7 +54,7 @@ Replace `POST /v3/documents/file` with `POST /ns/{namespace}/document/file`. Con
 | `metadata`, `group` | JSON-encoded strings |
 | `fileType`, `mimeType` | Query parameters when inference is insufficient |
 
-The API acknowledges the file after durable acceptance. Extraction, indexing, and memory formation continue asynchronously; poll the document rather than assuming the first response means processing is complete.
+The API acknowledges the file after durable acceptance, with `status` set as for a JSON add. Extraction, indexing, and memory formation continue asynchronously; poll the document rather than assuming the first response means processing is complete.
 
 ### Processing choices
 
@@ -66,5 +66,5 @@ The API acknowledges the file after durable acceptance. Extraction, indexing, an
 
 - Ingest text, a public URL, and a file, then wait for each document to finish processing.
 - Repeat a caller-defined ID and confirm append/diff behavior instead of replacement.
-- Submit a mixed-success batch and verify result order and per-item errors.
+- Submit a mixed-success batch and verify each result matches its document by ID, with per-item errors.
 - Confirm metadata and grouping remain filterable after processing.
