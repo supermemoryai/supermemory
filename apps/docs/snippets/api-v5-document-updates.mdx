@@ -19,21 +19,22 @@ PATCH /v3/documents/doc_1
 ```
 
 ```bash v5
-PATCH /ns/user_1/document/doc_1?dreaming=dynamic
-{"content":"corrected source","metadata":{"revision":2}}
+PATCH /ns/user_1/document/doc_1
+{"content":"corrected source","metadata":{"revision":2},"dreaming":"dynamic"}
 ```
 </CodeGroup>
 
-The v5 body accepts any non-empty subset of `content`, `supportingContext`, `metadata`, `group`, or `date`. Supplying `content` makes it the new canonical source; facts supported only by the previous source can disappear after reprocessing.
+The v5 body accepts any non-empty subset of `content`, `supportingContext`, `metadata`, `group`, or `date`, plus optional `taskType` and `dreaming` (which alone do not count as a change). Supplying `content` makes it the new canonical source; facts supported only by the previous source can disappear after reprocessing.
 
 ### Replace a file-backed document
 
 ```bash
-POST /ns/user_1/document/file/doc_1?dreaming=dynamic
+POST /ns/user_1/document/file/doc_1
 Content-Type: multipart/form-data
 
 file=@corrected.pdf
 metadata={"revision":2}
+dreaming=dynamic
 ```
 
 POST requires `file` and replaces the canonical source plus user-controlled metadata, grouping, context, and date. Omitted supporting fields are cleared. Use it when the submitted request is the complete new representation of the file-backed document.
@@ -41,10 +42,11 @@ POST requires `file` and replaces the canonical source plus user-controlled meta
 ### Partially update a file-backed document
 
 ```bash
-PATCH /ns/user_1/document/file/doc_1?dreaming=dynamic
+PATCH /ns/user_1/document/file/doc_1
 Content-Type: multipart/form-data
 
 metadata={"reviewed":true}
+dreaming=dynamic
 ```
 
 PATCH changes only supplied fields. Include `file` to replace the source while retaining omitted supporting fields, or omit `file` for metadata-, group-, context-, or date-only changes. `metadata` and `group` are JSON-encoded strings; `supportingContext` and `date` are plain strings.

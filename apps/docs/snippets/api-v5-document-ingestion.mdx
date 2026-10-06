@@ -9,7 +9,7 @@ v5 moves document scope into the URL and keeps repeated caller IDs attached to o
 | `entityContext` | `supportingContext` | JSON/form body |
 | `filterByMetadata` | `group` | JSON/form body |
 | `documentDate` | `date` | JSON/form body |
-| `taskType`, `dreaming` | unchanged | Query string |
+| `taskType`, `dreaming` | unchanged | JSON/form body |
 
 ### Add or append one document
 
@@ -20,8 +20,8 @@ POST /v3/documents
 ```
 
 ```bash v5
-POST /ns/user_1/document?dreaming=dynamic
-{"content":"new turn","id":"conv_1"}
+POST /ns/user_1/document
+{"content":"new turn","id":"conv_1","dreaming":"dynamic"}
 ```
 </CodeGroup>
 
@@ -39,7 +39,7 @@ The response remains an acceptance result with `id` and `status`. Its `status` i
 ```
 </CodeGroup>
 
-Send the v5 body to `POST /ns/user_1/document/batch`. The array accepts 1–600 document objects. Namespace, `taskType`, and processing mode apply to the request; document content, ID, context, metadata, grouping, and date stay per item.
+Send the v5 body to `POST /ns/user_1/document/batch`. The array accepts 1–600 document objects. `taskType` and `dreaming` sit at the top level of the body, next to `documents`, and apply to every item; document content, ID, context, metadata, grouping, and date stay per item.
 
 `results` lists accepted documents first, in request order, then failed ones; match each result by `id`, or by `url` for a failed item with no ID. Inspect `count` (accepted), `failed`, and every item in `results`; each item's `status` is a processing state as above, or `error` when that item failed, and a batch can contain successful and failed items together.
 
@@ -52,15 +52,18 @@ Replace `POST /v3/documents/file` with `POST /ns/{namespace}/document/file`. Con
 | `file` | Binary file |
 | `supportingContext`, `date` | Plain strings |
 | `metadata`, `group` | JSON-encoded strings |
-| `fileType`, `mimeType` | Query parameters when inference is insufficient |
+| `taskType`, `dreaming` | Plain strings |
+| `fileType`, `mimeType` | Plain strings, only when inference is insufficient |
 
 The API acknowledges the file after durable acceptance, with `status` set as for a JSON add. Extraction, indexing, and memory formation continue asynchronously; poll the document rather than assuming the first response means processing is complete.
 
 ### Processing choices
 
-- `taskType=memory` extracts long-term memories; `taskType=superrag` indexes source context without memory generation.
-- `dreaming=dynamic` (default) groups related documents into coherent memory units.
-- `dreaming=instant` processes each document independently and bills one extra operation per document.
+- `taskType: "memory"` extracts long-term memories; `taskType: "superrag"` indexes source context without memory generation.
+- `dreaming: "dynamic"` (default) groups related documents into coherent memory units.
+- `dreaming: "instant"` processes each document independently and bills one extra operation per document.
+
+These options go in the JSON body (or as form fields for file routes). Ingest routes take no query parameters; sending one returns `400`.
 
 ### Verification
 

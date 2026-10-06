@@ -8,7 +8,7 @@ v5 renames the public isolation boundary from container tag to namespace. Existi
 | `GET /v3/container-tags/{tag}` | `GET /ns/{namespace}` |
 | `PATCH /v3/container-tags/{tag}` | `PATCH /ns/{namespace}` |
 | `DELETE /v3/container-tags/{tag}` | `DELETE /ns/{namespace}` |
-| Merge container tags | `DELETE /ns/{source}` with `{ "moveTo": "target" }` |
+| Merge container tags | `DELETE /ns/{source}?moveTo=target` |
 
 `GET /ns` is an alias for `GET /namespaces`. Prefer `/namespaces` in new integrations.
 
@@ -38,19 +38,17 @@ Send `supportingContext: null` to remove existing context. Omitting the field en
 
 ```bash
 DELETE /ns/project_alpha
-{}
 ```
 
-With no `moveTo`, deletion is synchronous and returns `200` with `deletedDocumentsCount` and `deletedMemoriesCount`. This removes the namespace and its content.
+With no `moveTo`, deletion is synchronous and returns `200` with `status: "deleted"`, `deletedDocumentsCount`, and `deletedMemoriesCount`. Branch on `status` (`deleted` or `queued`) to tell the two outcomes apart. This removes the namespace and its content.
 
 ### Move then remove a namespace
 
 ```bash
-DELETE /ns/project_alpha
-{"moveTo":"project_archive"}
+DELETE /ns/project_alpha?moveTo=project_archive
 ```
 
-This returns `202` with `status: "queued"` and `operationId`. The destination must differ from the source. Do not treat acceptance as completed migration.
+`moveTo` is a query parameter. This returns `202` with `status: "queued"` and `operationId`. The destination must differ from the source. Do not treat acceptance as completed migration.
 
 Legacy merge can accept multiple sources; v5 moves one source per request. Run multi-source migrations sequentially and record each operation independently.
 
