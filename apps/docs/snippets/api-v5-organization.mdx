@@ -69,6 +69,6 @@ await supermemory.organization.update({
 
 - Compare the v5 context with the legacy `filterPrompt` before cutover.
 - Set, replace, and clear organizational context.
-- Confirm `namespaceCount` agrees with `GET /namespaces` for the same credentials.
+- Confirm `namespaceCount` agrees with `pagination.totalItems` from `GET /namespaces` for the same credentials.
 - Verify non-admin callers receive `403` on PATCH.
 - Confirm removed fields are not required by downstream configuration code.

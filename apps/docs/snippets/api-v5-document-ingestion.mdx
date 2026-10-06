@@ -41,7 +41,7 @@ The response remains an acceptance result with `id` and `status`. Its `status` i
 
 Send the v5 body to `POST /ns/user_1/document/batch`. The array accepts 1–600 document objects. `taskType` and `dreaming` sit at the top level of the body, next to `documents`, and apply to every item; document content, ID, context, metadata, grouping, and date stay per item.
 
-`results` lists accepted documents first, in request order, then failed ones; match each result by `id`, or by `url` for a failed item with no ID. Inspect `count` (accepted), `failed`, and every item in `results`; each item's `status` is a processing state as above, or `error` when that item failed, and a batch can contain successful and failed items together.
+`results` lists accepted documents first, in request order, then failed ones; match each result by `id`, or by `url` for a failed item with no ID. Inspect `count` (accepted), `failed`, and every item in `results`; each item's `status` is the document's processing state (`unknown`, `queued`, `extracting`, `chunking`, `embedding`, `indexing`, `done`, or `failed`), or `error` when that item failed, and a batch can contain successful and failed items together.
 
 ### File ingestion
 

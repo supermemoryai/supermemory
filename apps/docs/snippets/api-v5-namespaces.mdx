@@ -14,7 +14,7 @@ v5 renames the public isolation boundary from container tag to namespace. Existi
 
 ### List namespaces
 
-Each entry now exposes `id`, `namespace`, `documentCount`, `memoryCount`, nullable `description`, and `system.createdAt/updatedAt`. Update readers that still expect `containerTag`, flat timestamps, or unbounded internal settings.
+The list is paginated: `GET /namespaces?page=1&limit=10` returns `{namespaces, pagination}`, newest first, with `limit` up to 100. Each entry now exposes `id`, `namespace`, `documentCount`, `memoryCount`, nullable `description`, and `system.createdAt/updatedAt`. Update readers that still expect `containerTag`, flat timestamps, or unbounded internal settings.
 
 ### Read and update settings
 
@@ -79,7 +79,7 @@ await supermemory.namespaces.delete("project_alpha", {
 ```
 </CodeGroup>
 
-`namespaces.list()` returns an array of `{ id, namespace, documentCount, memoryCount, description, system }`. A delete without `moveTo` returns final counts; with `moveTo` it returns `{ success, status: "queued", operationId, namespace, moveTo }`.
+`namespaces.list()` returns `{ namespaces, pagination }`, where each namespace is `{ id, namespace, documentCount, memoryCount, description, system }`. A delete without `moveTo` returns `{ status: "deleted", namespace, deletedDocumentsCount, deletedMemoriesCount }`; with `moveTo` it returns `{ status: "queued", operationId, namespace, moveTo }`.
 
 ### Verification
 
