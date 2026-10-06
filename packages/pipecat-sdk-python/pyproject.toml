@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "supermemory-pipecat"
-version = "0.1.3"
+version = "0.1.4"
 description = "Supermemory integration for Pipecat - memory-enhanced conversational AI pipelines"
 readme = "README.md"
 license = "MIT"
@@ -13,7 +13,7 @@ authors = [
     { name = "Supermemory", email = "support@supermemory.ai" }
 ]
 keywords = [
-    "supermemory",
+    "supermemory>=3.16.0,<5",
     "pipecat",
     "memory",
     "conversational-ai",
