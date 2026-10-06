@@ -5,6 +5,8 @@ description: "Documents, search, profiles, lists, memories, namespaces, and orga
 icon: "/icons/hugeicons/plug-socket.svg"
 ---
 
+import MigrateCli from "/snippets/migrate-cli.mdx";
+
 v5 makes namespace scope explicit in the URL and consolidates overlapping legacy operations.
 
 ```text
@@ -17,6 +19,8 @@ https://api.supermemory.ai
   /namespaces
   /organization
 ```
+
+<MigrateCli legacy="v3 or v4" guideHref="/migration/api-v5" guideLabel="v5 migration guide" />
 
 Use the [v5 reference](https://api.supermemory.ai/v5/reference) for the stable v5 API. [`/reference`](https://api.supermemory.ai/reference) always points to the latest public version.
 

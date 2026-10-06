@@ -5,6 +5,10 @@ sidebarTitle: "Tools: 2.x → 3.0"
 keywords: ["containerTags", "projectId", "customId", "namespace", "tools"]
 ---
 
+import MigrateCli from "/snippets/migrate-cli.mdx";
+
+<MigrateCli legacy="@supermemory/tools 2.x" guideHref="/migration/api-v5" guideLabel="v5 migration guide" />
+
 `@supermemory/tools` 3.0 moves every integration (Vercel AI SDK, OpenAI, Mastra, VoltAgent, Claude memory) to the [v5 API](/migration/api-v5) through `supermemory@5`. The names changed to match: a **namespace** is what 2.x called a container tag.
 
 ```bash

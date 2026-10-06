@@ -31,9 +31,10 @@ npx supermemory setup --prompt     # print integration prompt only
 npx supermemory setup --json       # machine-readable output
 npx supermemory help --json        # agent-readable command catalog
 npx supermemory help --all
+npx supermemory migrate            # move a v3/v4 project to v5 with your agent
 ```
 
-Also available for smoke tests against your key: `add`, `search`, `profile`, `docs`, `tags`, `config`, `whoami`. Auth via first-run credentials or `SUPERMEMORY_API_KEY`.
+Also available for smoke tests against your key: `add`, `search`, `profile`, `docs`, `namespaces`, `config`, `whoami`. Auth via first-run credentials or `SUPERMEMORY_API_KEY`.
 
 ```bash
 npx supermemory add "User prefers TypeScript" --namespace user_123
@@ -181,6 +182,7 @@ You are integrating Supermemory into my app.
 - Always scope with one namespace in the URL path on write and search; there is no namespace field in the body
 - SDK: import { Supermemory } from "supermemory"; version 5 or later; the namespace is the first argument: client.add(namespace, { content }), client.search(namespace, { query })
 - For demos use dreaming: "instant" when memories must be ready right after status done
+- Already on Supermemory v3/v4? Run `npx supermemory@latest migrate` instead of rewriting calls by hand
 ```
 
 ### Integrate prompt (optional)

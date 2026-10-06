@@ -5,11 +5,11 @@ description: "Add persistent memory to Mastra AI agents with Supermemory process
 icon: "/images/mastra-icon.svg"
 ---
 
+import MigrateCli from "/snippets/migrate-cli.mdx";
+
 Integrate Supermemory with [Mastra](https://mastra.ai) to give your AI agents persistent memory. Use the `withSupermemory` wrapper for zero-config setup or processors for fine-grained control.
 
-<Note>
-  Upgrading from 2.x? 3.0 moves to the v5 API and one `namespace` per config. See the [3.0 upgrade guide](/migration/tools-v3-upgrade).
-</Note>
+<MigrateCli legacy="@supermemory/tools 2.x" guideHref="/migration/tools-v3-upgrade" guideLabel="3.0 upgrade guide" />
 
 <Card title="@supermemory/tools on npm" icon="/icons/hugeicons/package.svg" href="https://www.npmjs.com/package/@supermemory/tools">
     Check out the NPM page for more details

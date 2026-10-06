@@ -5,14 +5,14 @@ description: "Memory tools for OpenAI function calling with Supermemory integrat
 icon: "/images/openai.svg"
 ---
 
+import MigrateCli from "/snippets/migrate-cli.mdx";
+
 Add memory capabilities to the official OpenAI SDKs using Supermemory. Two approaches available:
 
 1. **`withSupermemory` wrapper** - Automatic memory injection into system prompts (zero-config)
 2. **Function calling tools** - Explicit tool calls for search/add memory operations
 
-<Note>
-  Upgrading from 2.x? 3.0 moves to the v5 API and one `namespace` per config. See the [3.0 upgrade guide](/migration/tools-v3-upgrade).
-</Note>
+<MigrateCli legacy="@supermemory/tools 2.x" guideHref="/migration/tools-v3-upgrade" guideLabel="3.0 upgrade guide" />
 
 <Tip>
 **New to Supermemory?** Start with `withSupermemory` for the simplest integration. It automatically injects relevant memories into your prompts.
