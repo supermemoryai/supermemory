@@ -18,19 +18,19 @@ This page is the **model**: what a memory is, how edges form, and why agents uti
 Get a key from the [developer console](https://console.supermemory.ai) — **API Keys → Create API Key** — then add a memory and pull it back with related edges:
 
 ```typescript
-import Supermemory from "supermemory";
+import { Supermemory } from "supermemory";
 
-const client = new Supermemory({ apiKey: "sm_..." }); // from console.supermemory.ai → API Keys
+const supermemory = new Supermemory({ apiKey: "sm_..." }); // from console.supermemory.ai → API Keys
 
-await client.add({
+await supermemory.add("user_123", {
   content: "Alex mentioned he just started at Stripe",
-  containerTag: "user_123",
+  dreaming: "instant", // memories land in the graph right away
 });
 
-const results = await client.search({
-  q: "where does Alex work?",
-  containerTag: "user_123",
-  include: { relatedMemories: true },
+const results = await supermemory.search("user_123", {
+  query: "where does Alex work?",
+  include: { related: true },
+  searchMode: "memories",
 });
 ```
 
@@ -98,7 +98,7 @@ Memory 2: "Alex frequently discusses payment APIs and fraud detection"
          → Derived: "Alex likely works on Stripe's core payments product"
 ```
 
-That is the same class of “entity chain” you see in the [quickstart](/quickstart) (gift → VP of Product → Sarah → Tokyo offsite). Search can expose edges via `include.relatedMemories` — see [Search API](/recall/search).
+That is the same class of “entity chain” you see in the [quickstart](/quickstart) (gift → VP of Product → Sarah → Tokyo offsite). Search can expose edges via `include: { related: true }`; they come back under `included.related` — see [Search API](/recall/search).
 
 ## Automatic extraction (one input → many facts)
 
@@ -119,7 +119,7 @@ You do not define schema or draw edges. You [add content](/ingestion/add-memorie
 
 Ingest is not a one-shot snapshot. After (and alongside) indexing, **dreaming** continues building the graph: extracting facts, linking related memories, resolving updates, and producing derives you never stated in one place.
 
-By default Supermemory uses **`dreaming: "dynamic"`** — related documents are grouped so memories form from **coherent units** (e.g. a real multi-turn session), not each isolated write in isolation. That is why production quality is higher when you keep a stable `customId` on conversations and let dynamic dreaming do its job.
+By default Supermemory uses **`dreaming: "dynamic"`** — related documents are grouped so memories form from **coherent units** (e.g. a real multi-turn session), not each isolated write in isolation. That is why production quality is higher when you keep a stable `id` on conversations and let dynamic dreaming do its job.
 
 Use **`dreaming: "instant"`** when this document must hit the graph immediately (demos, “search right after add”). That path processes the document alone and costs an extra operation.
 
@@ -145,22 +145,22 @@ For explicit product controls (forget, review low-confidence derives), see [Forg
 
 You do **not** hand-maintain the graph. You:
 
-1. Ingest under a [container tag](/concepts/container-tags)
+1. Ingest under a [namespace](/concepts/container-tags)
 2. Wait for the [pipeline](/concepts/how-it-works) when needed
 3. [Search](/recall/search) or load a [profile](/recall/user-profiles)
 
 ```typescript
-await client.add({
+await supermemory.add("user_123", {
   content: "Alex mentioned he just started at Stripe",
-  containerTag: "user_123",
 });
 
-const results = await client.search({
-  q: "where does Alex work?",
-  containerTag: "user_123",
-  include: { relatedMemories: true },
+const results = await supermemory.search("user_123", {
+  query: "where does Alex work?",
+  include: { related: true },
+  searchMode: "memories",
 });
-// Prefer latest work fact (Stripe); history remains in the graph
+// Prefer latest work fact (Stripe); history remains in the graph.
+// Related edges come back under results[i].included.related
 ```
 
 ## Related in the docs

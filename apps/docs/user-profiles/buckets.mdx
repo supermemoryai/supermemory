@@ -11,7 +11,7 @@ Buckets are **custom topical categories** for a profile — an axis that sits al
 New to buckets? Read the [conceptual overview](/concepts/user-profiles#buckets) first — this page is the API reference for reading, creating, and managing them.
 </Tip>
 
-Every org starts with a built-in `preferences` bucket. You can define your own at the organization level, add more at the space (container tag) level, or get AI-generated suggestions — all covered below.
+Every org starts with a built-in `preferences` bucket. You can define your own at the organization level, and add more per namespace (what v3/v4 called a container tag) — all covered below.
 
 ---
 
@@ -19,39 +19,25 @@ Every org starts with a built-in `preferences` bucket. You can define your own a
 
 ### Requesting bucketed profiles
 
-Pass `include: ["buckets"]` to `/v4/profile` to return bucket-organized memories, and optionally `buckets` to limit the response to specific keys. `include` also lets you skip sections you don't need — `["buckets"]` alone omits `static` and `dynamic`.
+`supermemory.profile` returns `buckets` next to `static` and `dynamic`. Omit `buckets` in the request to get every effective bucket, or pass up to 50 names to narrow only the bucket section.
 
 <Tabs>
-  <Tab title="fetch">
+  <Tab title="TypeScript">
     ```typescript
-    const res = await fetch("https://api.supermemory.ai/v4/profile", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        containerTag: "user_123",
-        include: ["buckets"],
-        buckets: ["preferences", "goals"]   // optional — omit for all buckets
-      })
+    const { profile } = await supermemory.profile("user_123", { // optional — omit for all buckets
+      buckets: ["preferences", "goals"],
     });
 
-    const { profile } = await res.json();
-    console.log(profile.buckets.preferences);
-    console.log(profile.buckets.goals);
+    console.log(profile.buckets.preferences.map((m) => m.memory));
+    console.log(profile.buckets.goals.map((m) => m.memory));
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v4/profile" \
+    curl -X POST "https://api.supermemory.ai/ns/user_123/profile" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{
-        "containerTag": "user_123",
-        "include": ["buckets"],
-        "buckets": ["preferences", "goals"]
-      }'
+      -d '{ "buckets": ["preferences", "goals"] }'
     ```
   </Tab>
 </Tabs>
@@ -60,13 +46,15 @@ Pass `include: ["buckets"]` to `/v4/profile` to return bucket-organized memories
 ```json
 {
   "profile": {
+    "static": [],
+    "dynamic": [],
     "buckets": {
       "preferences": [
-        "[Summary] Prefers concise, technical answers and dark-mode tooling",
-        "[Recent] Switched their editor to Zed"
+        { "id": "mem_1", "memory": "[Summary] Prefers concise, technical answers and dark-mode tooling" },
+        { "id": "mem_2", "memory": "[Recent] Switched their editor to Zed" }
       ],
       "goals": [
-        "[Recent] Wants to ship the billing revamp this quarter"
+        { "id": "mem_3", "memory": "[Recent] Wants to ship the billing revamp this quarter" }
       ]
     }
   }
@@ -79,205 +67,102 @@ Pass `include: ["buckets"]` to `/v4/profile` to return bucket-organized memories
 
 ### List bucket definitions
 
-To see which buckets are configured for a container tag (org buckets merged with any space-level additions), call `/v4/profile/buckets`:
+To see which buckets are configured for a namespace (org buckets merged with any namespace-level additions), call `profiles.getBuckets`:
 
 <Tabs>
-  <Tab title="fetch">
+  <Tab title="TypeScript">
     ```typescript
-    const res = await fetch("https://api.supermemory.ai/v4/profile/buckets", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ containerTag: "user_123" })
-    });
-
-    const { buckets } = await res.json();
-    // [{ key: "preferences", description: "..." }, ...]
+    const { buckets } = await supermemory.profiles.getBuckets("user_123");
+    // { preferences: "Explicit first-person preferences...", work: "..." }
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v4/profile/buckets" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{"containerTag": "user_123"}'
-    ```
-  </Tab>
-</Tabs>
-
-**Response:**
-```json
-{
-  "buckets": [
-    {
-      "key": "preferences",
-      "description": "Explicit first-person preferences the person directly stated."
-    }
-  ]
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `buckets[].key` | string | Stable slug, also stored on each memory. Lowercase alphanumeric with `-`/`_`, 1–64 chars |
-| `buckets[].description` | string | What belongs in the bucket — guides the ingestion classifier |
-
-This endpoint requires only that the caller belongs to the org — any role, and any API key (scoped keys included) can read bucket definitions.
-
----
-
-## Creating and configuring buckets
-
-Bucket definitions live at two levels: **organization** (the default set every container tag gets) and **space** (per-container-tag additions). Both are configured through the settings API — there's no console-only path; these are regular authenticated endpoints.
-
-<Warning>
-Writing buckets requires an **admin or owner** role in the org, and a **full-access API key** — project/container-tag-**scoped** keys cannot call these endpoints and will get a `403`. Reading buckets (the endpoints above) has no such restriction.
-</Warning>
-
-### Organization-level buckets
-
-`PATCH /v3/settings` sets the org's bucket list. The `profileBuckets` array **replaces the entire stored list** — it's not a merge, so always send the full set you want.
-
-<Tabs>
-  <Tab title="fetch">
-    ```typescript
-    const res = await fetch("https://api.supermemory.ai/v3/settings", {
-      method: "PATCH",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        profileBuckets: [
-          { key: "work", description: "Professional role, employer, projects, and work-related decisions." },
-          { key: "health", description: "Physical and mental wellbeing, habits, and health-related goals." }
-        ]
-      })
-    });
-
-    const { updated } = await res.json();
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    curl -X PATCH "https://api.supermemory.ai/v3/settings" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "profileBuckets": [
-          { "key": "work", "description": "Professional role, employer, projects, and work-related decisions." },
-          { "key": "health", "description": "Physical and mental wellbeing, habits, and health-related goals." }
-        ]
-      }'
-    ```
-  </Tab>
-</Tabs>
-
-**Response:**
-```json
-{
-  "orgId": "org_abc123xyz",
-  "orgSlug": "acme-inc",
-  "updated": {
-    "profileBuckets": [
-      { "key": "work", "description": "Professional role, employer, projects, and work-related decisions." },
-      { "key": "health", "description": "Physical and mental wellbeing, habits, and health-related goals." }
-    ]
-    // ...other org settings fields
-  }
-}
-```
-
-`GET /v3/settings` returns the current org settings, including `profileBuckets`, without changing anything.
-
-### Space (container tag) buckets
-
-`PATCH /v3/container-tags/{containerTag}` sets a container tag's own bucket list. These are **add-only** on top of org buckets — a tag always keeps every org bucket, and if a space bucket's key collides with an org bucket, the org's definition wins in the merged, effective set used at ingestion and read time.
-
-<Tabs>
-  <Tab title="fetch">
-    ```typescript
-    const res = await fetch("https://api.supermemory.ai/v3/container-tags/user_alex", {
-      method: "PATCH",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        profileBuckets: [
-          { key: "trip_planning", description: "Upcoming trip details specific to this user." }
-        ]
-      })
-    });
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    curl -X PATCH "https://api.supermemory.ai/v3/container-tags/user_alex" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "profileBuckets": [
-          { "key": "trip_planning", "description": "Upcoming trip details specific to this user." }
-        ]
-      }'
-    ```
-  </Tab>
-</Tabs>
-
-**Response:**
-```json
-{
-  "containerTag": "user_alex",
-  "name": "user_alex",
-  "entityContext": null,
-  "memoryFilesystemPaths": null,
-  "profileBuckets": [
-    { "key": "trip_planning", "description": "Upcoming trip details specific to this user." }
-  ],
-  "updatedAt": "2026-07-18T00:00:00.000Z"
-}
-```
-
-<Note>
-Like the org endpoint, this **replaces the tag's own bucket list**, not the merged/effective set — `profileBuckets` in the response is only what this space added, not the org buckets it inherits. Call `/v4/profile/buckets` to see the merged, effective list for a tag.
-</Note>
-
-### AI-generated suggestions
-
-`POST /v3/settings/suggest-buckets` returns 3–6 bucket suggestions tailored to your org, generated from the `filterPrompt` already configured in your org settings. It doesn't save anything — pass the results into the `PATCH /v3/settings` call above to apply them.
-
-<Tabs>
-  <Tab title="fetch">
-    ```typescript
-    const res = await fetch("https://api.supermemory.ai/v3/settings/suggest-buckets", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${API_KEY}` }
-    });
-
-    const { suggestions } = await res.json();
-    // [{ key: "customer_support", description: "..." }, ...]
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    curl -X POST "https://api.supermemory.ai/v3/settings/suggest-buckets" \
+    curl "https://api.supermemory.ai/ns/user_123/profile/buckets" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
     ```
   </Tab>
 </Tabs>
 
-<Warning>
-Requires a `filterPrompt` already set on your org (via `PATCH /v3/settings`) — without one, this returns `400 { "error": "No organization context configured..." }`, since suggestions are tailored from it.
-</Warning>
+**Response:**
+```json
+{
+  "buckets": {
+    "preferences": "Explicit first-person preferences the person directly stated."
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `buckets` | object | Map of bucket name to description. The name is a stable slug, also stored on each memory. Lowercase alphanumeric with `-`/`_`, 1–64 chars |
+| `buckets[name]` | string | What belongs in the bucket — guides the ingestion classifier |
+
+---
+
+## Creating and configuring buckets
+
+Bucket definitions live at two levels: **organization** (the default set every namespace gets) and **namespace** (per-namespace additions). Namespace buckets are managed through `profiles.setBuckets` and `profiles.deleteBuckets`.
+
+### Namespace buckets
+
+`setBuckets` sends 1 to 50 name-to-description entries. Existing namespace names are updated, new names are added, and omitted namespace buckets remain unchanged. These are **add-only** on top of org buckets — a namespace always keeps every org bucket, and if a namespace bucket's name collides with an org bucket, the org's definition wins in the merged, effective set used at ingestion and read time.
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    await supermemory.profiles.setBuckets("user_alex", {
+      buckets: {
+        work: "Professional role, employer, projects, and work-related decisions.",
+        trip_planning: "Upcoming trip details specific to this user.",
+      },
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X PUT "https://api.supermemory.ai/ns/user_alex/profile/buckets" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "buckets": {
+          "work": "Professional role, employer, projects, and work-related decisions.",
+          "trip_planning": "Upcoming trip details specific to this user."
+        }
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### Delete namespace buckets
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    await supermemory.profiles.deleteBuckets("user_alex", {
+      buckets: ["trip_planning"],
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X DELETE "https://api.supermemory.ai/ns/user_alex/profile/buckets" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "buckets": ["trip_planning"] }'
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+Organization-owned buckets appear in the effective `getBuckets` response but cannot be changed or removed through namespace `setBuckets` or `deleteBuckets` calls. Organization-level buckets are managed in the [console](https://console.supermemory.ai), not through the v5 API.
+</Note>
 
 ### Starter presets
 
 If you'd rather start from a template than write descriptions from scratch, these are the same presets available in the console UI:
 
-| Key | Description |
+| Name | Description |
 |-----|-------------|
 | `preferences` | Stated likes, dislikes, and personal settings choices — food, media, tools, aesthetics, and other expressed tastes. |
 | `interests` | Topics, hobbies, and domains the person is curious about or actively follows, even if not yet a firm preference. |
@@ -294,7 +179,7 @@ If you'd rather start from a template than write descriptions from scratch, thes
 
 ### Default bucket
 
-If neither the org nor the space has configured any buckets, ingestion falls back to a single built-in `preferences` bucket, scoped tightly to explicit first-person statements ("prefers X over Y", "always uses W") — not inferred traits or general observations. Configuring your own buckets replaces this default.
+If neither the org nor the namespace has configured any buckets, ingestion falls back to a single built-in `preferences` bucket, scoped tightly to explicit first-person statements ("prefers X over Y", "always uses W") — not inferred traits or general observations. Configuring your own buckets replaces this default.
 
 ---
 
@@ -302,11 +187,11 @@ If neither the org nor the space has configured any buckets, ingestion falls bac
 
 | Rule | Detail |
 |------|--------|
-| Key format | Lowercase alphanumeric, starting with a letter/digit, may contain `-`/`_`. 1–64 chars |
-| Reserved keys | `static` and `dynamic` can't be used as bucket keys |
-| Max buckets | 50 per array — applies separately to an org's list and to each space's list |
-| Duplicate keys | Rejected within a single request's array |
-| Description | Optional, up to 2,000 chars. Defaults to empty if omitted |
+| Name format | Lowercase alphanumeric, starting with a letter/digit, may contain `-`/`_`. 1–64 chars |
+| Reserved names | `static` and `dynamic` can't be used as bucket names |
+| Max buckets | 50 per request — applies separately to an org's list and to each namespace's list |
+| Duplicate names | Rejected within a single request |
+| Description | Up to 2,000 chars |
 
 <Tip>
 Bucket descriptions steer classification. A precise description ("Explicit first-person preferences only — exclude inferred traits") yields cleaner buckets than a vague one.
@@ -318,32 +203,23 @@ Bucket descriptions steer classification. A precise description ("Explicit first
 
 ### Instructions
 
-Bucket `description`s only steer classification *within* a bucket — they don't tell the model anything about the space itself. For that, set [`entityContext`](/concepts/customization#entity-context) on the container tag: a free-text field that's appended alongside `filterPrompt` into the same prompt the extraction/classification step uses, so it shapes bucket assignment too, not just fact extraction.
-
-`PATCH /v3/container-tags/{containerTag}`:
+Bucket descriptions only steer classification *within* a bucket — they don't tell the model anything about the namespace itself. For that, set [`supportingContext`](/concepts/customization#entity-context) on the namespace: a free-text field that's appended alongside the org-level `organizationalContext` into the same prompt the extraction/classification step uses, so it shapes bucket assignment too, not just fact extraction.
 
 <Tabs>
-  <Tab title="fetch">
+  <Tab title="TypeScript">
     ```typescript
-    await fetch("https://api.supermemory.ai/v3/container-tags/user_alex", {
-      method: "PATCH",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        entityContext: "This tag belongs to a solo founder juggling sales, hiring, and product."
-      })
+    await supermemory.namespaces.update("user_alex", {
+      supportingContext: "This namespace belongs to a solo founder juggling sales, hiring, and product.",
     });
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X PATCH "https://api.supermemory.ai/v3/container-tags/user_alex" \
+    curl -X PATCH "https://api.supermemory.ai/ns/user_alex" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "entityContext": "This tag belongs to a solo founder juggling sales, hiring, and product."
+        "supportingContext": "This namespace belongs to a solo founder juggling sales, hiring, and product."
       }'
     ```
   </Tab>
@@ -351,13 +227,13 @@ Bucket `description`s only steer classification *within* a bucket — they don't
 
 | Field | Type | Limit |
 |-------|------|-------|
-| `entityContext` | string \| null | Up to 1,500 characters. Pass `null` to clear |
+| `supportingContext` | string \| null | Up to 1,500 characters. Pass `null` to clear |
 
 <Tip>
-`entityContext` is per-container-tag, so use it for context specific to that user/space (who they are, what the space is for) — use org-level [`filterPrompt`](/concepts/customization) for guidance that should apply everywhere. Both are combined into the same prompt, so keep them complementary rather than redundant.
+`supportingContext` is per-namespace, so use it for context specific to that user/namespace (who they are, what the namespace is for) — use org-level [`organizationalContext`](/concepts/customization) for guidance that should apply everywhere. Both are combined into the same prompt, so keep them complementary rather than redundant.
 </Tip>
 
-You can also set `entityContext` inline when adding content, via `entityContext` on [`POST /v4/memories`](/ingestion/add-memories) — useful if you don't want a separate settings call.
+You can also set `supportingContext` inline when adding content, via `supportingContext` in the body of [`supermemory.add`](/ingestion/add-memories#parameters) — useful if you don't want a separate namespace call.
 
 ### Model selection
 
@@ -369,4 +245,4 @@ The model behind extraction and bucket classification isn't configurable through
 
 - [User Profiles](/recall/user-profiles) — Fetch and use profiles via the API
 - [User Profiles Concept](/concepts/user-profiles) — Static vs dynamic vs buckets
-- [Container Tags](/concepts/container-tags) — How spaces and container tags work
+- [Namespaces](/concepts/container-tags) — How namespaces work

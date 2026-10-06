@@ -47,11 +47,11 @@ memory = Supermemory()
 
 def get_user_context(user_id: str, query: str) -> str:
     """Fetch profile and relevant memories for a user."""
-    result = memory.profile(container_tag=user_id, q=query)
+    profile = memory.profile(user_id).profile
+    memories = memory.search(user_id, query=query, limit=5).results
 
-    static = result.profile.static or []
-    dynamic = result.profile.dynamic or []
-    memories = result.search_results.results if result.search_results else []
+    static = [m.memory for m in profile.static]
+    dynamic = [m.memory for m in profile.dynamic]
 
     return f"""
 User background:
@@ -86,8 +86,9 @@ async def run_with_memory(user_id: str, message: str) -> str:
 
     # Save for next time
     memory.add(
+        user_id,
         content=f"User asked: {message}\nResponse: {result.final_output}",
-        container_tag=user_id
+        dreaming="instant"
     )
 
     return result.final_output
@@ -105,13 +106,10 @@ Supermemory keeps two buckets of user info:
 - **Dynamic context**: What they're working on right now
 
 ```python
-result = memory.profile(
-    container_tag="user_123",
-    q="travel planning"  # Also searches for relevant memories
-)
+result = memory.profile("user_123")
 
-print(result.profile.static)   # ["Prefers window seats", "Vegetarian"]
-print(result.profile.dynamic)  # ["Planning trip to Japan", "Traveling in March"]
+print([m.memory for m in result.profile.static])   # ["Prefers window seats", "Vegetarian"]
+print([m.memory for m in result.profile.dynamic])  # ["Planning trip to Japan", "Traveling in March"]
 ```
 
 ### Storing memories
@@ -121,9 +119,10 @@ Save agent interactions so future sessions have context:
 ```python
 def store_interaction(user_id: str, task: str, result: str):
     memory.add(
+        user_id,
         content=f"Task: {task}\nOutcome: {result}",
-        container_tag=user_id,
-        metadata={"type": "agent_run"}
+        metadata={"type": "agent_run"},
+        dreaming="instant"
     )
 ```
 
@@ -132,10 +131,10 @@ def store_interaction(user_id: str, task: str, result: str):
 Look up past interactions before running an agent:
 
 ```python
-results = memory.search.memories(
-    q="previous travel recommendations",
-    container_tag="user_123",
-    search_mode="hybrid",
+results = memory.search(
+    "user_123",
+    query="previous travel recommendations",
+    search_mode="hybrid",  # Searches memories + document chunks
     limit=5
 )
 
@@ -163,11 +162,7 @@ def search_memories(query: str, user_id: str) -> str:
         query: What to search for
         user_id: The user's identifier
     """
-    results = memory.search.memories(
-        q=query,
-        container_tag=user_id,
-        limit=5
-    )
+    results = memory.search(user_id, query=query, limit=5)
 
     if not results.results:
         return "No relevant memories found."
@@ -185,10 +180,7 @@ def save_memory(content: str, user_id: str) -> str:
         content: The information to remember
         user_id: The user's identifier
     """
-    memory.add(
-        content=content,
-        container_tag=user_id
-    )
+    memory.add(user_id, content=content, dreaming="instant")
     return f"Saved: {content}"
 
 agent = Agent(
@@ -222,16 +214,13 @@ class SupportAgent:
 
     def get_customer_context(self, customer_id: str, issue: str) -> dict:
         """Pull customer profile and past support interactions."""
-        result = self.memory.profile(
-            container_tag=customer_id,
-            q=issue,
-            threshold=0.5
-        )
+        profile = self.memory.profile(customer_id).profile
+        memories = self.memory.search(customer_id, query=issue, threshold=0.5).results
 
         return {
-            "profile": result.profile.static or [],
-            "recent": result.profile.dynamic or [],
-            "history": [m.memory for m in (result.search_results.results or [])[:3]]
+            "profile": [m.memory for m in profile.static],
+            "recent": [m.memory for m in profile.dynamic],
+            "history": [m.memory or m.chunk for m in memories[:3]]
         }
 
     def build_instructions(self, context: dict) -> str:
@@ -287,9 +276,10 @@ class SupportAgent:
 
         # Store the interaction
         self.memory.add(
+            customer_id,
             content=f"Support request: {message}\nResolution: {result.final_output}",
-            container_tag=customer_id,
-            metadata={"type": "support", "resolved": True}
+            metadata={"type": "support", "resolved": True},
+            dreaming="instant"
         )
 
         return result.final_output
@@ -300,8 +290,9 @@ async def main():
 
     # Add some customer context
     support.memory.add(
+        "customer_456",
         content="Premium customer since 2021. Prefers email communication.",
-        container_tag="customer_456"
+        dreaming="instant"
     )
 
     response = await support.handle(
@@ -331,13 +322,8 @@ class AgentTeam:
 
     def get_shared_context(self, topic: str) -> str:
         """Get context that all agents can use."""
-        result = self.memory.profile(
-            container_tag=self.user_id,
-            q=topic
-        )
-
-        memories = result.search_results.results if result.search_results else []
-        return "\n".join([m.memory or m.chunk for m in memories[:5]])
+        result = self.memory.search(self.user_id, query=topic, limit=5)
+        return "\n".join([m.memory or m.chunk for m in result.results])
 
     def create_researcher(self) -> Agent:
         context = self.get_shared_context("research preferences")
@@ -367,9 +353,10 @@ User context: {context}""",
 
         # Store research for the writer
         self.memory.add(
+            self.user_id,
             content=f"Research on {topic}: {research.final_output[:500]}",
-            container_tag=self.user_id,
-            metadata={"type": "research", "topic": topic}
+            metadata={"type": "research", "topic": topic},
+            dreaming="instant"
         )
 
         # Writing phase
@@ -391,8 +378,9 @@ Tags let you narrow down searches later:
 ```python
 # Store with metadata
 memory.add(
+    "user_123",
     content="User prefers detailed technical explanations",
-    container_tag="user_123",
+    dreaming="instant",
     metadata={
         "type": "preference",
         "category": "communication_style",
@@ -401,13 +389,14 @@ memory.add(
 )
 
 # Search with filters
-results = memory.search.memories(
-    q="communication preferences",
-    container_tag="user_123",
-    filters={
-        "AND": [
-            {"key": "type", "value": "preference"},
-            {"key": "category", "value": "communication_style"}
+results = memory.search(
+    "user_123",
+    query="communication preferences",
+    filter={
+        "operator": "and",
+        "operands": [
+            {"field": "type", "operator": "eq", "value": "preference"},
+            {"field": "category", "operator": "eq", "value": "communication_style"}
         ]
     }
 )

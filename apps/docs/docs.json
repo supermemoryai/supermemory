@@ -305,7 +305,10 @@
 							{
 								"group": "Migration guides",
 								"icon": "/icons/hugeicons/arrow-up-right-01.svg",
-								"pages": ["migration/tools-v2-upgrade"]
+								"pages": [
+									"migration/tools-v3-upgrade",
+									"migration/tools-v2-upgrade"
+								]
 							}
 						]
 					},
@@ -423,7 +426,7 @@
 									"authentication",
 									{
 										"group": "Ingest",
-										"icon": "download",
+										"icon": "/icons/hugeicons/download-01.svg",
 										"pages": [
 											"v5/api-reference/ingest",
 											"POST /ns/{namespace}/document",
@@ -436,7 +439,7 @@
 									},
 									{
 										"group": "Content Management",
-										"icon": "file-text",
+										"icon": "/icons/hugeicons/file-02.svg",
 										"pages": [
 											"v5/api-reference/content-management",
 											"GET /ns/{namespace}/document/{id}",
@@ -448,7 +451,7 @@
 									},
 									{
 										"group": "Search",
-										"icon": "search",
+										"icon": "/icons/hugeicons/search-01.svg",
 										"pages": [
 											"v5/api-reference/search",
 											"POST /ns/{namespace}/search"
@@ -456,7 +459,7 @@
 									},
 									{
 										"group": "Profiles",
-										"icon": "id-card",
+										"icon": "/icons/hugeicons/id.svg",
 										"pages": [
 											"v5/api-reference/profiles",
 											"POST /ns/{namespace}/profile",
@@ -467,7 +470,7 @@
 									},
 									{
 										"group": "Namespaces",
-										"icon": "layers",
+										"icon": "/icons/hugeicons/layers-01.svg",
 										"pages": [
 											"v5/api-reference/namespaces",
 											"GET /namespaces",
@@ -477,8 +480,22 @@
 										]
 									},
 									{
+										"group": "Connectors",
+										"icon": "/icons/hugeicons/plug-01.svg",
+										"pages": [
+											"v5/api-reference/connectors",
+											"POST /ns/{namespace}/connectors",
+											"GET /ns/{namespace}/connectors",
+											"GET /ns/{namespace}/connectors/{id}",
+											"PATCH /ns/{namespace}/connectors/{id}",
+											"POST /ns/{namespace}/connectors/{id}/sync",
+											"DELETE /ns/{namespace}/connectors/{id}",
+											"GET /connectors"
+										]
+									},
+									{
 										"group": "Organization",
-										"icon": "building",
+										"icon": "/icons/hugeicons/building-03.svg",
 										"pages": [
 											"v5/api-reference/organization",
 											"GET /organization",

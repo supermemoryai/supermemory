@@ -29,7 +29,7 @@ USD CREDIT BALANCE  ──draw──►  METERS
 1. You hold a **USD credit balance** (`usd_credits`).
 2. Product activity increments **meters** (tokens, queries, operations).
 3. Each meter unit multiplies by a **USD-per-unit** rate and debits the balance.
-4. **Re-ingesting the same document under the same `customId` only bills the net-new token delta** — already-seen content is effectively **fully discounted**.
+4. **Re-ingesting the same document under the same `id` only bills the net-new token delta** — already-seen content is effectively **fully discounted**.
 
 ---
 
@@ -81,8 +81,8 @@ Search is primarily metered as **`sm_search_queries`** (one unit per gated searc
 
 | Call | Typical meter |
 |---|---|
-| `POST /v3/search`, `POST /v4/search`, `client.search.*` | `sm_search_queries` (+1) |
-| `POST /v4/profile` when it runs retrieval | `sm_search_queries` (+1) |
+| `POST /ns/{namespace}/search`, `supermemory.search()` | `sm_search_queries` (+1) |
+| `POST /ns/{namespace}/profile`, `supermemory.profile()` when it runs retrieval | `sm_search_queries` (+1) |
 
 If the org is out of balance, search/profile can return **402** (payment required) depending on gate configuration.
 
@@ -94,7 +94,7 @@ This is the most important cost control in production agents.
 
 ### How it works
 
-When you re-add content under the **same `customId`** (same org / document identity), the pipeline:
+When you re-add content under the **same `id`** (same org / document identity), the pipeline:
 
 1. Loads the **previous extracted content** for that document
 2. Computes **full** token count of the merged/updated document
@@ -106,24 +106,23 @@ billableTokens = max(0, fullTokenCount - previousTokenCount)
 
 So **tokens Supermemory has already processed are not billed again**. Unchanged content costs nothing on the token meters; only the net-new delta, and any new extraction on it, draws credits.
 
-This is why long-lived agent loops stay cheap: re-sync the same conversation `customId`, re-upload the same policy doc, or connector re-sync with stable IDs — you pay for **new** material, not the whole history every time.
+This is why long-lived agent loops stay cheap: re-sync the same conversation `id`, re-upload the same policy doc, or connector re-sync with stable IDs — you pay for **new** material, not the whole history every time.
 
 ### Requirements
 
 | Requirement | Why |
 |---|---|
-| **Stable `customId`** | Identity for “this is the same document.” Max length 255. |
+| **Stable `id`** | Identity for “this is the same document.” Max length 255. |
 | **Same org / key** | Documents are org-scoped. |
-| **Update path, not full replace** | Full replace clears previous content for billing purposes (`isFullReplace` treats previous tokens as 0). Prefer append/update with the same `customId` for chat. |
+| **Update path, not full replace** | Full replace clears previous content for billing purposes (`isFullReplace` treats previous tokens as 0). Prefer append/update with the same `id` for chat. |
 
 ### Practical patterns
 
 ```typescript
 // Session stays one document — only new turns bill tokens
-await client.add({
+await supermemory.add(userId, {
   content: "user: " + msg + "\nassistant: " + reply,
-  containerTag: userId,
-  customId: "chat_" + sessionId, // stable for the session
+  id: "chat_" + sessionId, // stable for the session
   dreaming: "instant", // optional: +1 operation, faster memory
 });
 ```
@@ -135,7 +134,7 @@ Connectors already use stable IDs (e.g. Drive file id, Gmail thread id, `s3://bu
 - **First** ingest of content still bills full token count
 - **Search / profile** still bill query meters every call
 - **Instant dreaming** still bills the **operation** surcharge when used
-- **Brand-new `customId`** = brand-new document = full tokens
+- **Brand-new `id`** = brand-new document = full tokens
 
 ---
 
@@ -324,11 +323,11 @@ console.log({
 
 ## Cost control checklist (production)
 
-1. **Always set stable `customId`** on conversations and docs so re-sync is free on old tokens.
+1. **Always set a stable `id`** on conversations and docs so re-sync is free on old tokens.
 2. Prefer **session-level** conversation documents over one-line micro-adds (better memory **and** less wasted processing).
 3. Use **`dreaming: "instant"`** only when you need immediate memory (extra operation); default `"dynamic"` batches extraction.
 4. Cache **profiles** short-TTL in your app if you call them every turn.
-5. Scope with **`containerTag`** so you can delete/export a tenant without scanning the org.
+5. Scope with a **`namespace`** so you can delete/export a tenant without scanning the org.
 6. Configure **auto top-up purchase limits** on paid plans and monitor usage separately. These limits do not cap the entire invoice.
 7. Pull **`/v3/auth/billing/usage-events`** into your own FinOps dashboard for per-day Memory vs SuperRAG spend.
 
@@ -338,6 +337,6 @@ console.log({
 
 - [Pricing page](https://supermemory.ai/pricing) — live plan marketing rates
 - [Console billing](https://console.supermemory.ai) — plan, invoices, top-ups
-- [Add context](/ingestion/add-memories) — `customId`, `dreaming`
+- [Add context](/ingestion/add-memories) — `id`, `dreaming`
 - [Analytics](/overview/analytics) — request-level observability
 - [Security & compliance](/overview/security) — trust posture for enterprise review

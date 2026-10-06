@@ -47,11 +47,11 @@ memory = Supermemory()
 
 def get_user_context(user_id: str, query: str) -> str:
     """Pull user profile and relevant memories."""
-    result = memory.profile(container_tag=user_id, q=query)
+    profile = memory.profile(user_id).profile
+    memories = memory.search(user_id, query=query, limit=5).results
 
-    static = result.profile.static or []
-    dynamic = result.profile.dynamic or []
-    memories = result.search_results.results if result.search_results else []
+    static = [m.memory for m in profile.static]
+    dynamic = [m.memory for m in profile.dynamic]
 
     return f"""
 User background:
@@ -87,8 +87,9 @@ def chat(user_id: str, message: str) -> str:
 
     # Save for next time
     memory.add(
+        user_id,
         content=f"User: {message}\nAssistant: {response.content}",
-        container_tag=user_id
+        dreaming="instant"
     )
 
     return response.content
@@ -106,13 +107,10 @@ Supermemory keeps two buckets of user info:
 - **Dynamic context**: What they're focused on lately
 
 ```python
-result = memory.profile(
-    container_tag="user_123",
-    q="cooking help"  # Also returns relevant memories
-)
+result = memory.profile("user_123")
 
-print(result.profile.static)   # ["Vegetarian", "Allergic to nuts"]
-print(result.profile.dynamic)  # ["Learning Italian cuisine", "Meal prepping"]
+print([m.memory for m in result.profile.static])   # ["Vegetarian", "Allergic to nuts"]
+print([m.memory for m in result.profile.dynamic])  # ["Learning Italian cuisine", "Meal prepping"]
 ```
 
 ### Storing memories
@@ -122,9 +120,10 @@ Save interactions so future sessions have context:
 ```python
 def store_chat(user_id: str, user_msg: str, agent_response: str):
     memory.add(
+        user_id,
         content=f"User asked: {user_msg}\nAgent said: {agent_response}",
-        container_tag=user_id,
-        metadata={"type": "conversation"}
+        metadata={"type": "conversation"},
+        dreaming="instant"
     )
 ```
 
@@ -133,10 +132,10 @@ def store_chat(user_id: str, user_msg: str, agent_response: str):
 Look up past interactions:
 
 ```python
-results = memory.search.memories(
-    q="pasta recipes we discussed",
-    container_tag="user_123",
-    search_mode="hybrid",
+results = memory.search(
+    "user_123",
+    query="pasta recipes we discussed",
+    search_mode="hybrid",  # Searches memories + document chunks
     limit=5
 )
 
@@ -164,16 +163,13 @@ class PersonalAssistant:
 
     def get_context(self, user_id: str, query: str) -> dict:
         """Fetch user profile and relevant history."""
-        result = self.memory.profile(
-            container_tag=user_id,
-            q=query,
-            threshold=0.5
-        )
+        profile = self.memory.profile(user_id).profile
+        memories = self.memory.search(user_id, query=query, threshold=0.5).results
 
         return {
-            "profile": result.profile.static or [],
-            "recent": result.profile.dynamic or [],
-            "history": [m.memory for m in (result.search_results.results or [])[:3]]
+            "profile": [m.memory for m in profile.static],
+            "recent": [m.memory for m in profile.dynamic],
+            "history": [m.memory or m.chunk for m in memories[:3]]
         }
 
     def build_description(self, context: dict) -> str:
@@ -210,9 +206,10 @@ class PersonalAssistant:
 
         # Store for future sessions
         self.memory.add(
+            user_id,
             content=f"User: {message}\nAssistant: {response.content}",
-            container_tag=user_id,
-            metadata={"type": "chat"}
+            metadata={"type": "chat"},
+            dreaming="instant"
         )
 
         return response.content
@@ -220,9 +217,10 @@ class PersonalAssistant:
     def teach(self, user_id: str, fact: str):
         """Store a preference or fact about the user."""
         self.memory.add(
+            user_id,
             content=fact,
-            container_tag=user_id,
-            metadata={"type": "preference"}
+            metadata={"type": "preference"},
+            dreaming="instant"
         )
 
 
@@ -260,11 +258,7 @@ def search_memory(query: str, user_id: str) -> str:
         query: What to look for
         user_id: The user's ID
     """
-    results = memory.search.memories(
-        q=query,
-        container_tag=user_id,
-        limit=5
-    )
+    results = memory.search(user_id, query=query, limit=5)
 
     if not results.results:
         return "Nothing relevant found in memory."
@@ -279,7 +273,7 @@ def remember(content: str, user_id: str) -> str:
         content: What to remember
         user_id: The user's ID
     """
-    memory.add(content=content, container_tag=user_id)
+    memory.add(user_id, content=content, dreaming="instant")
     return f"Remembered: {content}"
 
 agent = Agent(
@@ -324,9 +318,10 @@ def analyze_and_remember(user_id: str, image_path: str, question: str) -> str:
 
     # Store the interaction with image context
     memory.add(
+        user_id,
         content=f"User shared an image and asked: {question}\nAnalysis: {response.content}",
-        container_tag=user_id,
-        metadata={"type": "image_analysis", "image": image_path}
+        metadata={"type": "image_analysis", "image": image_path},
+        dreaming="instant"
     )
 
     return response.content
@@ -341,8 +336,9 @@ Tags let you narrow down searches:
 ```python
 # Store with metadata
 memory.add(
+    "user_123",
     content="User prefers dark mode interfaces",
-    container_tag="user_123",
+    dreaming="instant",
     metadata={
         "type": "preference",
         "category": "ui",
@@ -351,13 +347,14 @@ memory.add(
 )
 
 # Search with filters
-results = memory.search.memories(
-    q="interface preferences",
-    container_tag="user_123",
-    filters={
-        "AND": [
-            {"key": "type", "value": "preference"},
-            {"key": "category", "value": "ui"}
+results = memory.search(
+    "user_123",
+    query="interface preferences",
+    filter={
+        "operator": "and",
+        "operands": [
+            {"field": "type", "operator": "eq", "value": "preference"},
+            {"field": "category", "operator": "eq", "value": "ui"}
         ]
     }
 )

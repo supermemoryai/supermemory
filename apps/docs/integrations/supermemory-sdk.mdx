@@ -15,7 +15,7 @@ icon: "/images/supermemory.svg"
 </CardGroup>
 
 <Tip>
-Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€” pass `baseURL: "http://localhost:6767"` (TypeScript) or `base_url="http://localhost:6767"` (Python) when creating the client.
+Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) running `supermemory-server` v0.0.9 or later. Pass `baseUrl: "http://localhost:6767"` (TypeScript) or `base_url="http://localhost:6767"` (Python) when creating the client.
 </Tip>
 
 <Tabs>
@@ -23,81 +23,241 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
     ## Install the TypeScript SDK
 
     ```bash
-    npm install supermemory
+    npm i supermemory
     ```
 
     ## Start a TypeScript client
 
     ```typescript
-    import Supermemory from 'supermemory';
+    import { Supermemory } from "supermemory";
 
-    const client = new Supermemory({
-      apiKey: process.env.SUPERMEMORY_API_KEY,  // Default, can be omitted
-    });
-
-    // Add a memory
-    await client.add({ content: "Meeting notes from Q1 planning", containerTag: "user_123" });
-
-    // Search memories
-    const response = await client.search({
-      q: "planning notes",
-      searchMode: "documents",
-      containerTag: "user_123"
-    });
-    console.log(response.results);
-
-    // Get user profile
-    const profile = await client.profile({ containerTag: "user_123" });
-    console.log(profile.profile.static);
-    console.log(profile.profile.dynamic);
+    const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
     ```
 
-    ## Run common TypeScript operations
+    One rule for every call: URL values first as positional arguments (`namespace`, then `id` where there is one), then a single object with everything else. A namespace scopes memories to one user, workspace, or tenant, and you pass it on every call.
+
+    ## Add
 
     ```typescript
-    // Add with metadata
-    await client.add({
-      content: "Technical design doc",
-      containerTag: "user_123",
-      metadata: { category: "engineering", priority: "high" }
+    const { id, status } = await supermemory.add("user_123", {
+      content: "Meeting notes from Q1 planning",
+      id: "meeting-q1", // optional, your own id; the response echoes it
+      metadata: { category: "engineering", priority: "high" },
+      dreaming: "instant",
     });
-
-    // Search with filters
-    const results = await client.search({
-      q: "design document",
-      searchMode: "documents",
-      containerTag: "user_123",
-      filters: {
-        AND: [
-          { key: "category", value: "engineering" }
-        ]
-      }
-    });
-
-    // List documents
-    const docs = await client.documents.list({ containerTags: ["user_123"], limit: 10 });
-
-    // Delete a document
-    await client.documents.delete({ docId: "doc_123" });
     ```
 
-    ## Handle TypeScript SDK errors
+    `dreaming` defaults to `"dynamic"`, which batches memory extraction. A fresh namespace can show zero memories and an empty profile for minutes. Pass `dreaming: "instant"` in quick-start flows and anywhere the next step is a memory search or a profile read.
 
-    | Status | Error |
-    |--------|-------|
-    | 400 | `BadRequestError` |
-    | 401 | `AuthenticationError` |
-    | 403 | `PermissionDeniedError` |
-    | 404 | `NotFoundError` |
-    | 409 | `ConflictError` |
-    | 422 | `UnprocessableEntityError` |
-    | 429 | `RateLimitError` |
-    | >=500 | `InternalServerError` |
+    ## Search
 
-    Connection errors, 408, 409, 429, and >=500 responses are retried automatically (`maxRetries`, default 2, exponential backoff). Requests time out after 1 minute by default (`timeout` option). Set the `SUPERMEMORY_LOG` env var (or `logLevel` client option) to `debug`/`info`/`warn`/`error`/`off` â€” defaults to `warn`.
+    ```typescript
+    const { results, searchTime } = await supermemory.search("user_123", {
+      query: "planning notes",
+      limit: 10,
+    });
 
-    Requires TypeScript >= 4.9, Node 20+, Deno 1.28+, or Bun 1.0+.
-  </Tab>
+    for (const result of results) {
+      console.log(result.memory ?? result.chunk, result.similarity);
+    }
+    ```
+
+    `searchMode` is `"hybrid"` (default), `"memories"`, or `"chunks"`. Filter on metadata with a typed expression:
+
+    ```typescript
+    const { results } = await supermemory.search("user_123", {
+      query: "design document",
+      filter: { field: "category", operator: "eq", value: "engineering" },
+      searchMode: "chunks",
+    });
+    ```
+
+    Two defaults changed from the legacy SDK: `threshold` is now `0.3` (was `0.6`) and `searchMode` is now `hybrid` (was `memories`). Set both explicitly if you compare results against old code.
+
+    ## Profile
+
+    ```typescript
+    const { profile } = await supermemory.profile("user_123");
+    console.log(profile.static);
+    console.log(profile.dynamic);
+    console.log(profile.buckets);
+    ```
+
+    Buckets group profile facts under names you define:
+
+    ```typescript
+    await supermemory.profiles.setBuckets("user_123", {
+      buckets: { work: "Job, team, and current projects" },
+    });
+
+    const buckets = await supermemory.profiles.getBuckets("user_123");
+
+    await supermemory.profiles.deleteBuckets("user_123", {
+      buckets: ["work"],
+    });
+    ```
+
+    ## List
+
+    ```typescript
+    const { documents, pagination } = await supermemory.list("user_123", "documents", {
+      page: 1,
+      limit: 20,
+      sort: "createdAt",
+      order: "desc",
+    });
+
+    console.log(documents[0]?.system.status, pagination.totalPages);
+    ```
+
+    `type` is required: `"documents"`, `"chunks"`, or `"memories"`. The response always has `documents`, `chunks`, `memories`, and `pagination`, and only the requested array is filled. Pass `{ filter }` to narrow the list.
+
+    ## Documents
+
+    ```typescript
+    const doc = await supermemory.documents.get("user_123", "meeting-q1", {
+      include: ["chunks", "memories"],
+    });
+    console.log(doc.title, doc.summary, doc.system.status);
+
+    await supermemory.documents.update("user_123", "meeting-q1", {
+      metadata: { priority: "low" },
+    });
+
+    await supermemory.documents.batchAdd("user_123", {
+      documents: [{ content: "First note" }, { content: "Second note" }],
+    });
+
+    await supermemory.documents.uploadFile("user_123", { // file is a File or Blob
+      file,
+      metadata: JSON.stringify({ source: "upload" }),
+    });
+
+    const { count, errors } = await supermemory.documents.delete("user_123", {
+      ids: ["meeting-q1"],
+    });
+    ```
+
+    `uploadFile` is multipart, so `metadata` is a JSON string there. `delete` can return partial failures, so check `errors` as well as `count`.
+
+    ## Memories
+
+    ```typescript
+    const preview = await supermemory.memories.forgetMatching("user_123", {
+      query: "old office address",
+      dryRun: true,
+    });
+
+    const { count } = await supermemory.memories.forget("user_123", {
+      ids: preview.matches.map((match) => match.id),
+    });
+    ```
+
+    `dryRun` is required on `forgetMatching`. Preview with `dryRun: true`, review `matches`, then forget by id. There is no direct memory create or update: ingest or update the source document instead.
+
+    ## Namespaces
+
+    ```typescript
+    const { namespaces, pagination } = await supermemory.namespaces.list({ limit: 50 });
+
+    const ns = await supermemory.namespaces.get("user_123");
+    console.log(ns.supportingContext, namespaces[0]?.documentCount, pagination.totalPages);
+
+    await supermemory.namespaces.update("user_123", {
+      supportingContext: "A paying customer on the Pro plan",
+    });
+
+    await supermemory.namespaces.delete("user_123", { // optional, moves content instead of deleting it
+      moveTo: "archive",
+    });
+    ```
+
+    ## Organization
+
+    ```typescript
+    const { organizationalContext, namespaceCount } = await supermemory.organization.get();
+
+    await supermemory.organization.update({
+      organizationalContext: "Acme sells billing software to dental clinics",
+    });
+    ```
+
+    ## Connectors
+
+    ```typescript
+    const { id, authorization } = await supermemory.connectors.create("user_123", {
+      provider: "notion",
+      redirectUrl: "https://app.example.com/connected",
+    });
+    // send the user to authorization.url before authorization.expiresAt
+
+    const connectors = await supermemory.connectors.list("user_123");
+    const everyConnector = await supermemory.connectors.listAll();
+
+    const connector = await supermemory.connectors.get("user_123", id, {
+      include: ["syncs", "picker"],
+    });
+    console.log(connector.latestRun?.system.status, connector.documentCount);
+
+    await supermemory.connectors.update("user_123", id, {
+      documentLimit: 500,
+    });
+
+    await supermemory.connectors.sync("user_123", id);
+
+    await supermemory.connectors.delete("user_123", id, { deleteDocuments: true });
+    ```
+
+    OAuth providers (`notion`, `google-drive`, `onedrive`, `gmail`, `github`) return an `authorization` link. Config providers start syncing right away and return `authorization: null`:
+
+    ```typescript
+    await supermemory.connectors.create("user_123", {
+      provider: "web-crawler",
+      config: { startUrl: "https://docs.example.com", crawlDepth: 2 },
+    });
+    ```
+
+    `sync` returns `{ id, status: "queued" }` and responds with 409 if a sync is already running.
+  
+### Error handling
+
+Every HTTP error throws a `SupermemoryError` with `statusCode`, `body`, and `rawResponse`. Common statuses have their own subclasses, all exported from the package root: `BadRequestError` (400), `UnauthorizedError` (401), `PaymentRequiredError` (402), `ForbiddenError` (403), `NotFoundError` (404), `ConflictError` (409), `InternalServerError` (500), and `ServiceUnavailableError` (503). A timeout throws `SupermemoryTimeoutError`; a network failure is a `SupermemoryError` without a `statusCode`.
+
+```typescript
+import { Supermemory, NotFoundError, SupermemoryError } from "supermemory";
+
+try {
+  await supermemory.documents.get("user_123", "missing");
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.log("gone");
+  } else if (error instanceof SupermemoryError) {
+    console.error(error.statusCode, error.body);
+  } else {
+    throw error;
+  }
+}
+```
+
+### Timeouts and retries
+
+The client retries connection errors, 408, 429, and 5xx responses twice with backoff. Tune it on the client or per call; the per-call options object is always the optional last argument.
+
+```typescript
+const supermemory = new Supermemory({
+  apiKey: process.env.SUPERMEMORY_API_KEY,
+  timeoutInSeconds: 30, // default 60
+  maxRetries: 0, // default 2
+});
+
+await supermemory.search("user_123", { query: "planning notes" }, {
+  timeoutInSeconds: 5,
+  maxRetries: 3,
+  abortSignal: controller.signal,
+});
+```
+
+</Tab>
 
   <Tab title="Python">
     ## Install the Python SDK
@@ -116,56 +276,89 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) â€
         api_key=os.environ.get("SUPERMEMORY_API_KEY"),  # Default, can be omitted
     )
 
-    # Add a memory
-    client.add(content="Meeting notes from Q1 planning", container_tag="user_123")
-
-    # Search memories
-    response = client.search.memories(
-        q="planning notes",
-        search_mode="documents",
-        container_tag="user_123"
+    # Add a document
+    result = client.add(
+        "user_123",
+        content="Meeting notes from Q1 planning",
+        id="meeting-q1",  # optional, your own id; the response echoes it
+        metadata={"category": "engineering", "priority": "high"},
+        dreaming="instant",
     )
-    print(response.results)
+    print(result.id, result.status)
+
+    # Search (hybrid by default: memories plus document chunks)
+    response = client.search("user_123", query="planning notes", limit=10)
+    for hit in response.results:
+        print(hit.memory or hit.chunk, hit.similarity)
 
     # Get user profile
-    profile = client.profile(container_tag="user_123")
-    print(profile.profile.static)
-    print(profile.profile.dynamic)
+    profile = client.profile("user_123").profile
+    print(profile.static)
+    print(profile.dynamic)
+    print(profile.buckets)
     ```
 
     ## Run common Python operations
 
     ```python
-    # Add with metadata
-    client.add(
-        content="Technical design doc",
-        container_tag="user_123",
-        metadata={"category": "engineering", "priority": "high"}
+    import json
+
+    # Search document chunks with a filter
+    results = client.search(
+        "user_123",
+        query="design document",
+        search_mode="chunks",
+        filter={"field": "category", "operator": "eq", "value": "engineering"},
     )
 
-    # Search with filters
-    results = client.search.memories(
-        q="design document",
-        search_mode="documents",
-        container_tag="user_123",
-        filters={
-            "AND": [
-                {"key": "category", "value": "engineering"}
-            ]
-        }
-    )
+    # Profile buckets
+    client.profiles.set_buckets("user_123", buckets={"work": "Job, team, and current projects"})
+    buckets = client.profiles.get_buckets("user_123")
+    client.profiles.delete_buckets("user_123", buckets=["work"])
 
     # List documents
-    docs = client.documents.list(container_tags=["user_123"], limit=10)
+    page = client.list("user_123", "documents", page=1, limit=20, sort="createdAt", order="desc")
+    print(page.pagination.total_pages)
 
-    # Delete a document
-    client.documents.delete(doc_id="doc_123")
+    # Get, update, batch add, upload
+    doc = client.documents.get("user_123", "meeting-q1", include=["chunks", "memories"])
+    client.documents.update("user_123", "meeting-q1", metadata={"priority": "low"})
+    client.documents.batch_add(
+        "user_123",
+        documents=[{"content": "First note"}, {"content": "Second note"}],
+    )
+    with open("notes.pdf", "rb") as f:
+        client.documents.upload_file("user_123", file=f, metadata=json.dumps({"source": "upload"}))
+
+    # Delete documents
+    result = client.documents.delete("user_123", ids=["meeting-q1"])
+
+    # Forget memories: preview, then apply
+    preview = client.memories.forget_matching("user_123", query="old office address", dry_run=True)
+    client.memories.forget("user_123", ids=[m.id for m in preview.matches])
+
+    # Namespaces and organization
+    page = client.namespaces.list()  # page.namespaces, page.pagination
+    ns = client.namespaces.get("user_123")
+    client.namespaces.update("user_123", supporting_context="A paying customer on the Pro plan")
+    client.namespaces.delete("user_123", move_to="archive")  # optional, moves content instead of deleting it
+    client.organization.update(organizational_context="Acme sells billing software to dental clinics")
+
+    # Connectors
+    setup = client.connectors.create(
+        "user_123",
+        request={"provider": "notion", "redirectUrl": "https://app.example.com/connected"},
+    )
+    # send the user to setup.authorization.url before setup.authorization.expires_at
+    connector = client.connectors.get("user_123", setup.id, include=["syncs", "picker"])
+    client.connectors.sync("user_123", setup.id)
+    client.connectors.delete("user_123", setup.id, delete_documents=True)
     ```
 
     ## Handle Python SDK errors
 
-    Same error classes as the TypeScript SDK (`BadRequestError`, `AuthenticationError`, `PermissionDeniedError`, `NotFoundError`, `ConflictError`, `UnprocessableEntityError`, `RateLimitError`, `InternalServerError`), all inheriting from `supermemory.APIError`. Connection errors, 408, 409, 429, and >=500 responses are retried automatically (`max_retries`, default 2). Requests time out after 1 minute by default (`timeout` option). Set `SUPERMEMORY_LOG=info` (or `debug`) to enable logging.
+    Failed requests raise `supermemory.APIStatusError` (`.status_code`, `.body`) or a subclass such as `NotFoundError` or `RateLimitError`. Network failures raise `supermemory.APIConnectionError`. Set `max_retries=` and `timeout=` on the client, or per call. `AsyncSupermemory` has the same methods, awaited.
 
-    Requires Python 3.9+.
+    Requires Python 3.10+.
   </Tab>
 </Tabs>

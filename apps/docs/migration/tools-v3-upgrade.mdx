@@ -1,0 +1,64 @@
+---
+title: "Upgrading @supermemory/tools to 3.0"
+description: "Migrate from @supermemory/tools 2.x to 3.0: one namespace per config, v5 option names, conversations stored as documents."
+sidebarTitle: "Tools: 2.x → 3.0"
+keywords: ["containerTags", "projectId", "customId", "namespace", "tools"]
+---
+
+`@supermemory/tools` 3.0 moves every integration (Vercel AI SDK, OpenAI, Mastra, VoltAgent, Claude memory) to the [v5 API](/migration/api-v5) through `supermemory@5`. The names changed to match: a **namespace** is what 2.x called a container tag.
+
+```bash
+npm install @supermemory/tools@3 supermemory@5
+```
+
+## One namespace per config
+
+`containerTags` and `projectId` are gone. Pass one `namespace`, and every tool reads and writes only that namespace.
+
+```ts
+// 2.x
+supermemoryTools(apiKey, { containerTags: ["user_123"] })
+supermemoryTools(apiKey, { projectId: "personal" })
+
+// 3.0
+supermemoryTools(apiKey, { namespace: "user_123" })
+supermemoryTools(apiKey, { namespace: "sm_project_personal" }) // projectId "x" lived at sm_project_x
+```
+
+With no config, tools still use `sm_project_default`, so existing data is where it was. If you passed several tags, pick one: a v5 document lives in exactly one namespace.
+
+## v5 option names in `withSupermemory`
+
+| 2.x | 3.0 |
+| --- | --- |
+| `containerTag` | `namespace` |
+| `customId` | `id` |
+| `memoryContainerTag` (Claude memory) | removed; files are marked with `metadata.source = "claude-memory"` |
+
+```ts
+// 2.x
+withSupermemory(model, { containerTag: "user_123", customId: "conv_456" })
+
+// 3.0
+withSupermemory(model, { namespace: "user_123", id: "conv_456" })
+```
+
+Mastra, VoltAgent and the OpenAI middleware take the same two names. There are no aliases for the old ones.
+
+## Behaviour changes
+
+- **Conversations are documents.** The middlewares no longer call `/v4/conversations`. Each conversation is one document whose `id` is the `id` you pass, so the same conversation keeps updating the same document.
+- **`memoryForget`** drops `reason`. Forgetting by `memoryContent` previews matching memories with a dry run, then forgets only exact text matches.
+- **`getProfile`** returns v5 entries, `{ id, memory }` instead of strings. Those ids work with `memoryForget`.
+- **`documentList`** returns v5 documents; the status is `system.status`.
+- **No per-call scope.** `getProfile`, `documentList`, `documentDelete` and `memoryForget` no longer accept a `containerTag` argument.
+- **VoltAgent** search options use v5 shapes: `filters` becomes typed `filter`, `rerank` is `"none" | "order" | "aggregate"`, `searchMode: "documents"` is `"chunks"`, and `entityContext` is `supportingContext`.
+- **Claude memory** files written by 2.x under two tags are not migrated.
+
+## `@supermemory/ai-sdk` is retired
+
+It was a re-export of `@supermemory/tools/ai-sdk`. Import from there instead.
+
+```ts
+import { supermemoryTools } from "@supermemory/tools/ai-sdk"
+```

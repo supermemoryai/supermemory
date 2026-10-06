@@ -2,11 +2,33 @@
 title: "Search"
 sidebarTitle: "Overview"
 description: "Recall the most relevant memories and source context"
-icon: "book-open"
+icon: "/icons/hugeicons/book-open-01.svg"
 ---
 
 `POST /ns/{namespace}/search` recalls the most useful memories and source chunks for a query. Hybrid search combines both by default; set `searchMode` to `memories` or `chunks` when your experience needs one result type.
 
 Every option goes in the JSON request body: `query`, `searchMode`, `limit`, `threshold`, `filter`, `include`, `rerank`, and `rewriteQuery`.
+
+<CodeGroup>
+```ts TypeScript
+const { results, searchTime } = await client.search("user_1", {
+  query: "What did the user decide about the launch?",
+  limit: 10,
+})
+```
+
+```python Python
+response = client.search("user_1", query="What did the user decide about the launch?", limit=10)
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/ns/user_1/search" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"What did the user decide about the launch?","limit":10}'
+```
+</CodeGroup>
+
+Two defaults differ from the legacy API: `searchMode` defaults to `hybrid` (legacy `memories`) and `threshold` defaults to `0.3` (legacy `0.6`). Pass both explicitly if you need legacy-equivalent results.
 
 See [search migration](/migration/api-v5-recall) and [typed filter migration](/migration/api-v5-filters).

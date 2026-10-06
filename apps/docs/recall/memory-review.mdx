@@ -14,8 +14,10 @@ These two endpoints let you build a review flow on top of that queue: list the
 inferred memories awaiting review, then approve, decline or undo a decision on each one.
 
 <Info>
-These endpoints are scoped to a single [container tag](/concepts/container-tags)
-(space), under `/v3/container-tags/{containerTag}`.
+These endpoints are scoped to a single [namespace](/concepts/container-tags)
+(what v3/v4 called a container tag). The review routes are still served under
+`/v3/container-tags/{containerTag}`; pass your namespace as the `containerTag`
+path parameter.
 </Info>
 
 ## How review affects ranking
@@ -38,7 +40,7 @@ clears that stamp — and un-forgets a declined memory — bringing it back.
 
 ## List inferred memories
 
-Return the inferred memories for a container tag that are still awaiting review (the
+Return the inferred memories for a namespace that are still awaiting review (the
 review queue). Reviewed memories are excluded.
 
 ```
@@ -68,7 +70,7 @@ GET /v3/container-tags/{containerTag}/inferred
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `containerTag` | string | The container tag / space to read the review queue for |
+| `containerTag` | string | The namespace to read the review queue for |
 
 ### Response
 
@@ -101,7 +103,7 @@ GET /v3/container-tags/{containerTag}/inferred
 <Note>
 The queue returns up to **50** memories, ordered by `parentCount` descending (most
 strongly supported first), then by `createdAt` descending. It excludes anything that
-is forgotten, expired, or already reviewed. An unknown or empty container tag returns
+is forgotten, expired, or already reviewed. An unknown or empty namespace returns
 `{ "memories": [], "total": 0 }`.
 </Note>
 
@@ -149,7 +151,7 @@ POST /v3/container-tags/{containerTag}/inferred/{memoryId}/review
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `containerTag` | string | The container tag / space the memory belongs to |
+| `containerTag` | string | The namespace the memory belongs to |
 | `memoryId` | string | The memory entry ID from the list endpoint |
 
 ### Body parameters
@@ -196,7 +198,7 @@ The reject action is named **`decline`**. There is no `reject` value.
 | Status | When |
 |--------|------|
 | `401` | Missing or invalid authentication |
-| `404` | The container tag or memory was not found in your organization |
+| `404` | The namespace or memory was not found in your organization |
 | `409` | The memory isn't reviewable for this action — it's not an inferred memory, or there's no prior review to undo |
 
 ---
@@ -225,11 +227,11 @@ export type InferredMemory = {
 
 export type ReviewAction = "approve" | "decline" | "undo";
 
-export function useInferredMemories(containerTag: string) {
+export function useInferredMemories(namespace: string) {
   return useQuery({
-    queryKey: key(containerTag),
+    queryKey: key(namespace),
     queryFn: async (): Promise<InferredMemory[]> => {
-      const res = await fetch(`${BASE}/container-tags/${containerTag}/inferred`, {
+      const res = await fetch(`${BASE}/container-tags/${namespace}/inferred`, {
         headers: { Authorization: `Bearer ${API_KEY}` },
       });
       if (!res.ok) throw new Error("Failed to load review queue");
@@ -240,12 +242,12 @@ export function useInferredMemories(containerTag: string) {
   });
 }
 
-export function useReviewInferredMemory(containerTag: string) {
+export function useReviewInferredMemory(namespace: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (vars: { memoryId: string; action: ReviewAction }) => {
       const res = await fetch(
-        `${BASE}/container-tags/${containerTag}/inferred/${vars.memoryId}/review`,
+        `${BASE}/container-tags/${namespace}/inferred/${vars.memoryId}/review`,
         {
           method: "POST",
           headers: {
@@ -261,10 +263,10 @@ export function useReviewInferredMemory(containerTag: string) {
     onSuccess: (_data, { memoryId, action }) => {
       // approve/decline remove the card; undo brings it back, so refetch.
       if (action === "undo") {
-        queryClient.invalidateQueries({ queryKey: key(containerTag) });
+        queryClient.invalidateQueries({ queryKey: key(namespace) });
         return;
       }
-      queryClient.setQueryData<InferredMemory[]>(key(containerTag), (prev) =>
+      queryClient.setQueryData<InferredMemory[]>(key(namespace), (prev) =>
         prev?.filter((m) => m.id !== memoryId),
       );
     },
@@ -283,5 +285,5 @@ a request and the memory simply stays in the queue for a later session.
 ## Next steps
 
 - [Graph Memory](/concepts/graph-memory) — How inferred (`derive`) memories are created
-- [Memory Operations](/recall/memory-operations) — Create, forget, and update memories
+- [Memory Operations](/recall/memory-operations) — Forget memories
 - [Search](/recall/search) — How inferred memories are ranked in results

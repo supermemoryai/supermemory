@@ -5,16 +5,15 @@ description: "All the content formats Supermemory can ingest and process"
 icon: "/icons/hugeicons/files-01.svg"
 ---
 
-Supermemory automatically extracts and indexes content from various formats. There are two entry points: `client.add()` for text and URLs, `client.documents.uploadFile()` for actual files. See [Add Memories](/ingestion/add-memories) to learn how to ingest content via the API.
+Supermemory automatically extracts and indexes content from various formats. There are two entry points: `supermemory.add()` for text and URLs, `supermemory.documents.uploadFile()` for actual files. Both take the target `namespace` as a top-level key. See [Add Memories](/ingestion/add-memories) to learn how to ingest content via the API.
 
 ## Text content
 
 Raw text, conversations, notes, or any string content.
 
 ```typescript
-await client.add({
+await supermemory.add("user_123", {
   content: "User prefers dark mode and uses vim keybindings",
-  containerTag: "user_123"
 });
 ```
 
@@ -27,9 +26,8 @@ await client.add({
 Send a URL and Supermemory fetches, extracts, and indexes the content.
 
 ```typescript
-await client.add({
-  content: "https://docs.example.com/api-reference",
-  containerTag: "documentation"
+await supermemory.add("documentation", {
+  content: "https://docs.example.com/api-reference"
 });
 ```
 
@@ -41,15 +39,14 @@ await client.add({
 
 ### PDF
 
-Files are binary, so they go through `uploadFile`, not `add` — pass a stream, not base64:
+Files are binary, so they go through `uploadFile`, not `add` — pass a stream, not base64. The upload is multipart, so `metadata` is a JSON string here:
 
 ```typescript
 import fs from 'fs';
 
-await client.documents.uploadFile({
+await supermemory.documents.uploadFile("user_123", {
   file: fs.createReadStream('report.pdf'),
-  containerTag: "user_123",
-  metadata: JSON.stringify({ title: "Q4 Financial Report" })
+  metadata: JSON.stringify({ title: "Q4 Financial Report" }),
 });
 ```
 
@@ -70,10 +67,9 @@ See [Billing & usage](/overview/billing#feature-availability) for plan availabil
 Word, Excel, and PowerPoint files upload the same way — Supermemory detects the type from the file itself:
 
 ```typescript
-await client.documents.uploadFile({
+await supermemory.documents.uploadFile("user_123", {
   file: fs.createReadStream('roadmap.docx'),
-  containerTag: "user_123",
-  metadata: JSON.stringify({ title: "Product Roadmap" })
+  metadata: JSON.stringify({ title: "Product Roadmap" }),
 });
 ```
 
@@ -92,17 +88,15 @@ Both are plain text, so they go through `add` like any other string content — 
 
 ```typescript
 // Markdown
-await client.add({
+await supermemory.add("user_123", {
   content: markdownContent,
-  containerTag: "user_123",
-  metadata: { title: "README.md" }
+  metadata: { title: "README.md" },
 });
 
 // Code (language auto-detected)
-await client.add({
+await supermemory.add("user_123", {
   content: codeContent,
-  containerTag: "user_123",
-  metadata: { language: "typescript" }
+  metadata: { language: "typescript" },
 });
 ```
 
@@ -114,15 +108,14 @@ Code is chunked using [code-chunk](https://github.com/supermemoryai/code-chunk),
 
 ## Images
 
-`fileType: "image"` and `mimeType` are both required so Supermemory knows exactly how to process it:
+Set `fileType: "image"` and `mimeType` so Supermemory knows exactly how to process it. Both are query parameters, so they sit next to `namespace` rather than inside `body`:
 
 ```typescript
-await client.documents.uploadFile({
+await supermemory.documents.uploadFile("user_123", {
   file: fs.createReadStream('diagram.png'),
+  metadata: JSON.stringify({ title: "Architecture Diagram" }),
   fileType: "image",
   mimeType: "image/png",
-  containerTag: "user_123",
-  metadata: JSON.stringify({ title: "Architecture Diagram" })
 });
 ```
 
@@ -138,20 +131,18 @@ Video has a dedicated `fileType`; audio is uploaded the same way and detected fr
 
 ```typescript
 // Video
-await client.documents.uploadFile({
+await supermemory.documents.uploadFile("user_123", {
   file: fs.createReadStream('demo.mp4'),
+  metadata: JSON.stringify({ title: "Product Demo" }),
   fileType: "video",
   mimeType: "video/mp4",
-  containerTag: "user_123",
-  metadata: JSON.stringify({ title: "Product Demo" })
 });
 
 // Audio
-await client.documents.uploadFile({
+await supermemory.documents.uploadFile("user_123", {
   file: fs.createReadStream('call-recording.mp3'),
+  metadata: JSON.stringify({ title: "Customer Call Recording" }),
   mimeType: "audio/mpeg",
-  containerTag: "user_123",
-  metadata: JSON.stringify({ title: "Customer Call Recording" })
 });
 ```
 
@@ -168,20 +159,18 @@ JSON and CSV are text — stringify and send them through `add()`, no file uploa
 ### JSON
 
 ```typescript
-await client.add({
+await supermemory.add("user_123", {
   content: JSON.stringify(userData),
-  containerTag: "user_123",
-  metadata: { title: "User Profile Data", format: "json" }
+  metadata: { title: "User Profile Data", format: "json" },
 });
 ```
 
 ### CSV
 
 ```typescript
-await client.add({
+await supermemory.add("user_123", {
   content: csvContent,
-  containerTag: "user_123",
-  metadata: { title: "Sales Data Q4", format: "csv" }
+  metadata: { title: "Sales Data Q4", format: "csv" },
 });
 ```
 
@@ -194,21 +183,22 @@ For any binary file, use `uploadFile` — it accepts a stream, not base64:
 ```typescript
 import fs from 'fs';
 
-await client.documents.uploadFile({
+await supermemory.documents.uploadFile("user_123", {
   file: fs.createReadStream('./document.pdf'),
-  containerTag: "user_123",
-  metadata: JSON.stringify({ title: "document.pdf" })
+  metadata: JSON.stringify({ title: "document.pdf" }),
 });
 ```
 
-No Node `fs` access? `uploadFile` also accepts a web `File`, a `fetch` `Response`, or the SDK's `toFile` helper:
+No Node `fs` access? `uploadFile` also accepts a web `File` or `Blob`:
 
 ```typescript
-import Supermemory, { toFile } from 'supermemory';
+await supermemory.documents.uploadFile("user_123", {
+  file: new File(['my bytes'], 'file.txt'),
+});
 
-await client.documents.uploadFile({ file: new File(['my bytes'], 'file') });
-await client.documents.uploadFile({ file: await fetch('https://somesite/file') });
-await client.documents.uploadFile({ file: await toFile(Buffer.from('my bytes'), 'file') });
+await supermemory.documents.uploadFile("user_123", {
+  file: await fetch('https://somesite/file').then((r) => r.blob())
+});
 ```
 
 ---
@@ -219,13 +209,13 @@ await client.documents.uploadFile({ file: await toFile(Buffer.from('my bytes'), 
 
 ```typescript
 // URL detected automatically
-await client.add({ content: "https://example.com/page" });
+await supermemory.add("user_123", { content: "https://example.com/page" });
 
 // Plain text detected automatically
-await client.add({ content: "User said they prefer email contact" });
+await supermemory.add("user_123", { content: "User said they prefer email contact" });
 ```
 
-For files, `uploadFile` detects type from the file itself in most cases. `fileType` only exists to force specific processing — and it's required (along with `mimeType`) for images and video.
+For files, `uploadFile` detects type from the file itself in most cases. `fileType` and `mimeType` only exist to force specific processing when inference is not enough — set them for images and video.
 
 ---
 

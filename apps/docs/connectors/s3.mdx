@@ -8,7 +8,7 @@ icon: "/icons/hugeicons/database-01.svg"
 Connect Amazon S3 buckets or S3-compatible storage services (MinIO, DigitalOcean Spaces, Cloudflare R2, Tigris) to sync files into your Supermemory knowledge base.
 
 <Note>
-The S3 connector requires a **Scale Plan** or higher. You can also create S3 connections directly from the [Supermemory Console](https://console.supermemory.ai).
+The S3 connector requires a **Scale Plan** or higher. You can also create S3 connectors directly from the [Supermemory Console](https://console.supermemory.ai).
 </Note>
 
 ## Quick setup
@@ -16,21 +16,22 @@ The S3 connector requires a **Scale Plan** or higher. You can also create S3 con
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    import Supermemory from 'supermemory';
+    import { Supermemory } from "supermemory"
 
-    const client = new Supermemory({
-      apiKey: process.env.SUPERMEMORY_API_KEY!
-    });
+    const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
 
-    const connection = await client.connections.create('s3', {
-      metadata: {
+    const connector = await supermemory.connectors.create("org-123", {
+      provider: "s3",
+      config: {
+        bucket: "my-documents-bucket",
+        region: "us-east-1",
         accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-        bucket: 'my-documents-bucket',
-        region: 'us-east-1'
       },
-      containerTag: 'org-123'
-    });
+    })
+
+    // S3 doesn't require OAuth; authorization is null and the first sync starts now
+    console.log("Connector ID:", connector.id)
     ```
   </Tab>
   <Tab title="Python">
@@ -40,78 +41,83 @@ The S3 connector requires a **Scale Plan** or higher. You can also create S3 con
 
     client = Supermemory(api_key=os.environ["SUPERMEMORY_API_KEY"])
 
-    connection = client.connections.create(
-        's3',
-        metadata={
-            'accessKeyId': os.environ["AWS_ACCESS_KEY_ID"],
-            'secretAccessKey': os.environ["AWS_SECRET_ACCESS_KEY"],
-            'bucket': 'my-documents-bucket',
-            'region': 'us-east-1'
+    connector = client.connectors.create(
+        "org-123",
+        request={
+            "provider": "s3",
+            "config": {
+                "bucket": "my-documents-bucket",
+                "region": "us-east-1",
+                "accessKeyId": os.environ["AWS_ACCESS_KEY_ID"],
+                "secretAccessKey": os.environ["AWS_SECRET_ACCESS_KEY"],
+            },
         },
-        container_tag='org-123'
     )
+
+    # S3 doesn't require OAuth; authorization is None and the first sync starts now
+    print(f"Connector ID: {connector.id}")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v3/connections/s3" \
+    curl -X POST "https://api.supermemory.ai/ns/org-123/connectors" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "metadata": {
-          "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
-          "secretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+        "provider": "s3",
+        "config": {
           "bucket": "my-documents-bucket",
-          "region": "us-east-1"
-        },
-        "containerTag": "org-123"
+          "region": "us-east-1",
+          "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
+          "secretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+        }
       }'
+
+    # Response: {"id": "PTzGiUYei7pgzg5buzZHgA", "authorization": null}
     ```
   </Tab>
 </Tabs>
 
 ## Configuration options
 
-For S3, provider-specific connection fields are passed inside the top-level `metadata` object. General connection options stay top-level.
+For S3, provider-specific fields go inside the `config` object. The namespace is in the URL, and `documentLimit` stays top-level in the body.
 
 | Parameter | Location | Required | Description |
 |-----------|----------|----------|-------------|
-| `accessKeyId` | `metadata.accessKeyId` | Yes | AWS access key ID or S3-compatible service key |
-| `secretAccessKey` | `metadata.secretAccessKey` | Yes | AWS secret access key |
-| `bucket` | `metadata.bucket` | Yes | S3 bucket name |
-| `region` | `metadata.region` | Yes | AWS region (e.g., `us-east-1`). Use `auto` for S3-compatible providers that don't expose AWS-style regions (MinIO, R2, Tigris). |
-| `endpoint` | `metadata.endpoint` | No | Custom endpoint for S3-compatible services |
-| `prefix` | `metadata.prefix` | No | Key prefix filter (e.g., `documents/`) |
-| `containerTagRegex` | `metadata.containerTagRegex` | No | Regex to extract container tags from file paths |
-| `containerTag` | top-level | No | Tag for organizing this connection |
+| `bucket` | `config.bucket` | Yes | S3 bucket name |
+| `region` | `config.region` | Yes | AWS region (e.g., `us-east-1`). Use `auto` for S3-compatible providers that don't expose AWS-style regions (MinIO, R2, Tigris). |
+| `accessKeyId` | `config.accessKeyId` | Yes | AWS access key ID or S3-compatible service key |
+| `secretAccessKey` | `config.secretAccessKey` | Yes | AWS secret access key |
+| `endpoint` | `config.endpoint` | No | Custom endpoint for S3-compatible services |
+| `prefix` | `config.prefix` | No | Key prefix filter (e.g., `documents/`) |
 | `documentLimit` | top-level | No | Maximum documents to sync (default: 10,000) |
 
 <Note>
-In the Python SDK, use `container_tags` for the top-level option, but keep S3 metadata keys in camelCase: `accessKeyId`, `secretAccessKey`, and `containerTagRegex`.
+Credentials are stored encrypted and are never returned by `connectors.get` or `connectors.list`. The `config` in responses contains only non-secret fields such as `bucket`, `region`, `endpoint` and `prefix`.
 </Note>
 
 ## S3-compatible services
 
-Use `metadata.endpoint` to connect to S3-compatible storage. These services don't use AWS-style regions, so set `metadata.region` to `auto` — the value is still required for request signing but the service ignores it.
+Use `config.endpoint` to connect to S3-compatible storage. These services don't use AWS-style regions, so set `config.region` to `auto`. The value is still required for request signing but the service ignores it.
 
 ```typescript
 // MinIO
-const connection = await client.connections.create('s3', {
-  metadata: {
-    accessKeyId: 'minio-key',
-    secretAccessKey: 'minio-secret',
-    bucket: 'my-bucket',
-    region: 'auto',
-    endpoint: 'https://minio.example.com'
+const connector = await supermemory.connectors.create("minio-sync", {
+  provider: "s3",
+  config: {
+    bucket: "my-bucket",
+    region: "auto",
+    accessKeyId: "minio-key",
+    secretAccessKey: "minio-secret",
+    endpoint: "https://minio.example.com",
   },
-  containerTag: 'minio-sync'
-});
+})
 ```
 
 Common S3-compatible endpoint values:
 
-| Service | `metadata.endpoint` | `metadata.region` |
-|---------|----------------------|-------------------|
+| Service | `config.endpoint` | `config.region` |
+|---------|-------------------|-----------------|
 | DigitalOcean Spaces | `https://nyc3.digitaloceanspaces.com` | `nyc3` |
 | Cloudflare R2 | `https://<account-id>.r2.cloudflarestorage.com` | `auto` |
 | Tigris | `https://t3.storage.dev` | `auto` |
@@ -119,20 +125,20 @@ Common S3-compatible endpoint values:
 Cloudflare R2 example:
 
 ```typescript
-const connection = await client.connections.create('s3', {
-  metadata: {
+const connector = await supermemory.connectors.create("r2-sync", {
+  provider: "s3",
+  config: {
+    bucket: "my-bucket",
+    region: "auto",
     accessKeyId: process.env.R2_ACCESS_KEY_ID!,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-    bucket: 'my-bucket',
-    region: 'auto',
-    endpoint: 'https://<account-id>.r2.cloudflarestorage.com'
+    endpoint: "https://<account-id>.r2.cloudflarestorage.com",
   },
-  containerTag: 'r2-sync'
-});
+})
 ```
 
 <Note>
-For S3-compatible services, `metadata.endpoint` is the base S3 endpoint. Do not include the bucket name in the endpoint URL; pass the bucket separately as `metadata.bucket`.
+For S3-compatible services, `config.endpoint` is the base S3 endpoint. Do not include the bucket name in the endpoint URL; pass the bucket separately as `config.bucket`.
 </Note>
 
 ## Prefix filtering
@@ -140,80 +146,95 @@ For S3-compatible services, `metadata.endpoint` is the base S3 endpoint. Do not 
 Sync only files within a specific path:
 
 ```typescript
-const connection = await client.connections.create('s3', {
-  metadata: {
+const connector = await supermemory.connectors.create("engineering-docs", {
+  provider: "s3",
+  config: {
+    bucket: "company-data",
+    region: "us-east-1",
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    bucket: 'company-data',
-    region: 'us-east-1',
-    prefix: 'documents/engineering/' // Only syncs files under this path
+    prefix: "documents/engineering/", // Only syncs files under this path
   },
-  containerTag: 'engineering-docs'
-});
+})
 ```
 
-## Dynamic container tags
+## Multi-Tenant Buckets
 
-Extract container tags from S3 key paths for multi-tenant setups:
+A connector syncs into exactly one namespace. For a bucket shared by many tenants, create one connector per tenant namespace and point each at that tenant's path with `config.prefix`:
 
 ```typescript
-const connection = await client.connections.create('s3', {
-  metadata: {
+await supermemory.connectors.create("user-123", {
+  provider: "s3",
+  config: {
+    bucket: "user-files",
+    region: "us-east-1",
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    bucket: 'user-files',
-    region: 'us-east-1',
-    containerTagRegex: 'users/(?<userId>[^/]+)/'
+    prefix: "users/user-123/",
   },
-  containerTag: 'user-files'
-});
-
-// File: users/user-123/documents/notes.md → container tag: user-123
-// File: users/user-456/reports/q4.pdf → container tag: user-456
+})
 ```
 
-<Warning>
-The regex must contain a named capture group `(?<userId>...)` and be less than 200 characters.
-</Warning>
+## Connector Management
 
-## Connection management
-
-### Delete connection
+### Check Sync Status
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    await client.connections.deleteByID('conn_s3_abc123');
+    const connector = await supermemory.connectors.get("org-123", "PTzGiUYei7pgzg5buzZHgA", {
+      include: "syncs",
+    })
+
+    console.log("Bucket:", connector.config?.bucket)
+    console.log("Last sync:", connector.latestRun?.system.status, connector.latestRun?.error)
+    console.log("Files synced:", connector.documentCount)
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X DELETE "https://api.supermemory.ai/v3/connections/conn_s3_abc123" \
+    curl "https://api.supermemory.ai/ns/org-123/connectors/PTzGiUYei7pgzg5buzZHgA?include=syncs" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Connector
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    await supermemory.connectors.delete("org-123", "PTzGiUYei7pgzg5buzZHgA")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X DELETE "https://api.supermemory.ai/ns/org-123/connectors/PTzGiUYei7pgzg5buzZHgA" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
     ```
   </Tab>
 </Tabs>
 
 <Warning>
-By default, deleting a connection removes all synced documents from Supermemory. To keep documents, pass `deleteDocuments=false` as a query parameter: `DELETE /v3/connections/:id?deleteDocuments=false`
+By default, deleting a connector removes all synced documents from Supermemory. To keep documents, pass `deleteDocuments: false` (`DELETE /ns/{namespace}/connectors/{id}?deleteDocuments=false`).
 </Warning>
 
 ### Manual sync
 
+The call returns `409` while a sync for that connector is already running.
+
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    await client.connections.import('s3', {
-      containerTags: ['org-123']
-    });
+    await supermemory.connectors.sync("org-123", "PTzGiUYei7pgzg5buzZHgA")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v3/connections/s3/import" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{"containerTags": ["org-123"]}'
+    curl -X POST "https://api.supermemory.ai/ns/org-123/connectors/PTzGiUYei7pgzg5buzZHgA/sync" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+    # Response: {"id": "PTzGiUYei7pgzg5buzZHgA", "status": "queued"}
     ```
   </Tab>
 </Tabs>
@@ -225,7 +246,7 @@ By default, deleting a connection removes all synced documents from Supermemory.
 | **Initial sync** | Fetches all files matching prefix filter |
 | **Incremental sync** | Only files modified since last sync |
 | **Sync schedule** | Every 4 hours + manual triggers |
-| **Document limit** | 10,000 files per connection (default) |
+| **Document limit** | 10,000 files per connector (default) |
 
 ## IAM permissions
 

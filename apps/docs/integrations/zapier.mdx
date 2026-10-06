@@ -31,16 +31,16 @@ For this tutorial, we're building a simple flow that adds incoming emails in Gma
         ![](/images/map-content-to-gmail.png)
     </Step>
     <Step title="Integrate Supermemory">
-        Since we're ingesting data here, we'll use the add documents endpoint.
+        Since we're ingesting data here, we'll use the add document endpoint. The namespace (`gmail` here) is part of the URL.
 
         Add the following code block:
         
         ```python 
             import requests
 
-            url = "https://api.supermemory.ai/v3/documents"
+            url = "https://api.supermemory.ai/ns/gmail/document"
 
-            payload = { "content": inputData['content'], "containerTag": "gmail" }
+            payload = { "content": inputData['content'] }
             headers = {
                 "Authorization": "Bearer YOUR_SM_API_KEY",
                 "Content-Type": "application/json"

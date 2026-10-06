@@ -94,7 +94,7 @@ Local embeddings are prewarmed at startup with conservative defaults — one wor
 The server manages memory for you and separates the two kinds of work you send it:
 
 - **Searches are always served immediately.** They never wait behind ingestion, regardless of how much is queued.
-- **Adds are accepted instantly but processed through a queue.** A `POST /v3/documents` call returns in milliseconds with status `queued`; extraction, embedding, and indexing happen in the background at a controlled pace.
+- **Adds are accepted instantly but processed through a queue.** A `POST /ns/{namespace}/document` call returns in milliseconds with status `queued`; extraction, embedding, and indexing happen in the background at a controlled pace.
 
 Ingestion may grow the server's memory usage by at most `SUPERMEMORY_EMBEDDING_RAM_LIMIT` (default **1 GB**) above its post-boot baseline. Past that, new documents simply wait in the queue until memory drops back under the limit — nothing is dropped, ingestion just slows down. The limit is measured above the boot baseline because the built-in local embeddings and storage engine have a fixed footprint that exists before any document is processed.
 

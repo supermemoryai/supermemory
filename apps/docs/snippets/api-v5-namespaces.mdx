@@ -52,6 +52,35 @@ DELETE /ns/project_alpha?moveTo=project_archive
 
 Legacy merge can accept multiple sources; v5 moves one source per request. Run multi-source migrations sequentially and record each operation independently.
 
+### With the SDK
+
+Replace calls to `/v3/container-tags/*` with `supermemory.namespaces`:
+
+<CodeGroup>
+```bash Legacy
+GET /v3/container-tags/list
+PATCH /v3/container-tags/project_alpha
+DELETE /v3/container-tags/project_alpha
+```
+
+```ts v5
+const { namespaces } = await supermemory.namespaces.list()
+const one = await supermemory.namespaces.get("project_alpha")
+
+await supermemory.namespaces.update("project_alpha", {
+  supportingContext: "Research project for distributed systems",
+})
+
+await supermemory.namespaces.delete("project_alpha")
+
+await supermemory.namespaces.delete("project_alpha", {
+  moveTo: "project_archive",
+})
+```
+</CodeGroup>
+
+`namespaces.list()` returns an array of `{ id, namespace, documentCount, memoryCount, description, system }`. A delete without `moveTo` returns final counts; with `moveTo` it returns `{ success, status: "queued", operationId, namespace, moveTo }`.
+
 ### Verification
 
 - Confirm existing container-tag values resolve unchanged as namespace paths.

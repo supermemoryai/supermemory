@@ -1,18 +1,19 @@
-Check which client you call the API through before you translate requests. Not every client supports v5 yet.
+Check which client you call the API through before you translate requests. Both official SDKs speak v5; the integration packages do not yet.
 
 | Client | v5 support | What to do |
 | --- | --- | --- |
-| TypeScript SDK (`supermemory` on npm) | `5.0.0-rc.5` and later | Install `supermemory@rc` and follow the SDK changes below. Release candidates before `rc.5` still use the v3/v4 surface. |
-| Python SDK (`supermemory` on PyPI) | Not yet | The 3.x SDK calls v3/v4. Call v5 over HTTP as shown in this guide, or keep the SDK on v3/v4 until a v5 release ships. |
-| `@supermemory/tools` (AI SDK, OpenAI and agent integrations) | Not yet | These call v3/v4 (`/v4/profile`, `/v4/conversations`). No change needed today. |
-| CLI (`npx supermemory`) and `supermemory local` | Unchanged | The CLI calls v3/v4 directly and keeps working. No change needed. |
+| TypeScript SDK (`supermemory` on npm) | `5.0.0` and later | Run `npm i supermemory` and follow the SDK changes below. Versions before 5.0.0 use the v3/v4 surface. |
+| Python SDK (`supermemory` on PyPI) | `5.0.0` and later | Run `pip install -U supermemory`. Calls take the namespace first, then keyword arguments: `client.add("user_alex", content="...")`. Versions before 5.0.0 use the v3/v4 surface. |
+| `@supermemory/tools` (AI SDK, OpenAI, Mastra, VoltAgent, Claude memory) | `3.0.0` and later | Calls v5 and uses the v5 names. The config takes one `namespace` instead of `containerTags` or `projectId`, and `withSupermemory` takes `namespace` and `id` instead of `containerTag` and `customId`. See [Upgrading tools to 3.0](/migration/tools-v3-upgrade). `@supermemory/ai-sdk` is retired; import from `@supermemory/tools/ai-sdk`. |
+| CLI (`npx supermemory`) | `supermemory` 5.x | The CLI ships inside the npm package and now calls v5. `--tag` is `--namespace`, `SUPERMEMORY_TAG` is `SUPERMEMORY_NAMESPACE`, `supermemory tags` is `supermemory namespaces`, and `remember`, `update` and `tags merge` are gone (use `namespaces delete --move-to`). |
+| `supermemory local` | Server v0.0.9 and later | Older local servers only serve v3/v4. Run `supermemory-server upgrade` before using the 5.x SDKs or CLI against it. |
 
 ### TypeScript SDK changes
 
-The v5 SDK scopes every content call to one `namespace` and moves the payload under `body`:
+The v5 SDK scopes every content call to one `namespace`, passed first. URL values (`namespace`, then `id` where there is one) are positional; everything else goes in one object:
 
 ```ts
-import Supermemory from "supermemory";
+import { Supermemory } from "supermemory";
 
 const client = new Supermemory(); // reads SUPERMEMORY_API_KEY, as before
 
@@ -20,23 +21,39 @@ const client = new Supermemory(); // reads SUPERMEMORY_API_KEY, as before
 await client.add({ content: "Alex prefers morning meetings.", containerTag: "user_alex" });
 
 // v5
-await client.add({
-  namespace: "user_alex",
-  body: { content: "Alex prefers morning meetings." },
-});
+await client.add("user_alex", { content: "Alex prefers morning meetings." });
+await client.documents.get("user_alex", "doc-1", { include: ["chunks"] });
 ```
+
+<Note>
+If your code passes a `containerTags` array, pick one namespace. A v5 document lives in exactly one namespace, so there is no multi-tag write to translate. Code that read across several tags runs one call per namespace and merges the results.
+</Note>
 
 | v4 | v5 |
 | --- | --- |
-| `client.search.memories({ q, containerTag })` | `client.search({ namespace, body: { query } })` |
-| `client.profile({ containerTag, q })` | `client.profile({ namespace })`, plus `client.search` in parallel if you need results |
-| `client.documents.list(...)`, `client.memories.list(...)` | `client.list({ namespace, type })` |
+| `client.search.memories({ q, containerTag })` | `client.search(namespace, { query })` |
+| `client.profile({ containerTag, q })` | `client.profile(namespace)`; profile no longer takes a query, call `client.search` separately if you need results |
+| `client.documents.list(...)`, `client.memories.list(...)` | `client.list(namespace, "documents" \| "chunks" \| "memories", { filter? })` |
 | `client.containerTags.*` | `client.namespaces.*` |
+| `client.connections.*` | `client.connectors.*` (`create`, `list`, `listAll`, `get`, `update`, `delete`, `sync`) |
 | `client.settings.{get, update}` | `client.organization.{get, update}` |
-| Errors per status (`RateLimitError`, …) | One `SupermemoryError`; branch on `statusCode` |
-| Retries on by default | Retries are opt-in through `retryConfig` |
-| `timeout` | `timeoutMs` |
+| `containerTag`, `customId`, `q`, `filters` | `namespace` argument, `id`, `query`, typed `filter` |
+| `APIError`, `NotFoundError`, `RateLimitError`, … | `SupermemoryError` (`statusCode`, `body`); `NotFoundError`, `UnauthorizedError`, `ConflictError`, … for common statuses; `SupermemoryTimeoutError` |
+| `timeout` (ms), `baseURL`, `defaultHeaders` | `timeoutInSeconds`, `baseUrl`, `headers`; `maxRetries` still defaults to 2 |
 
-The v5 SDK drops methods that have no v5 endpoint: `connections`, `conversations.add`, `settings.{reset, suggestBuckets}`, `containerTags.{merge, mergeStatus}`, `memories.{add, updateMemory}`, and `documents.{listProcessing, chunks, fileUrl, search}`. Stay on `supermemory@4` for those calls.
+Some v4 methods are gone from the v5 SDK. Most have a v5 way to do the same thing:
+
+| v4 method | v5 |
+| --- | --- |
+| `conversations.add({ containerTag, messages })` | `client.add(namespace, { content, id })`. Pass the conversation text as `content` and a stable `id` per conversation (for example the session id). Repeating the same `id` updates that document, so one conversation stays one document. |
+| `memories.add(...)` | `client.add(namespace, { content, dreaming: "instant" })`. Memories come from documents; there is no direct memory write. |
+| `memories.updateMemory(...)` | Update the source document with `client.documents.update(namespace, id, { content })`. |
+| `documents.search(...)` | `client.search(namespace, { query, searchMode: "chunks" })` |
+| `documents.chunks(id)` | `client.documents.get(namespace, id, { include: ["chunks"] })` |
+| `documents.listProcessing()` | `client.list(namespace, "documents")` and read `system.status` on each item |
+| `containerTags.merge(...)`, `mergeStatus(...)` | `client.namespaces.delete(source, { moveTo: target })`. One source per call; the response carries an `operationId`. |
+| `memories.forget({ content })` | `client.memories.forgetMatching(namespace, { query, dryRun: true })` to preview, then `memories.forget(namespace, { ids })` |
+
+Gone with no replacement: `settings.reset`, `settings.suggestBuckets`, `documents.fileUrl`, and the `reason` field on forget.
 
 The full method map is in the SDK's [migration guide](https://github.com/supermemoryai/sdk-ts/blob/main/MIGRATION.md).

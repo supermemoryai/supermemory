@@ -7,15 +7,14 @@ icon: "/icons/hugeicons/settings-02.svg"
 
 Configure how Supermemory processes and retrieves content for your specific use case.
 
-## Filter prompts
+## Organizational Context
 
-Tell Supermemory what content matters during ingestion. This helps filter and prioritize what gets indexed.
+Tell Supermemory what your organization does and what content matters during ingestion. This steers what gets extracted into memories across every namespace. In v3/v4 this field was called `filterPrompt`.
 
 ```typescript
 // Example: Brand guidelines assistant
-await client.settings.update({
-  shouldLLMFilter: true,
-  filterPrompt: `You are ingesting content for Brand.ai's brand guidelines system.
+await supermemory.organization.update({
+  organizationalContext: `You are ingesting content for Brand.ai's brand guidelines system.
 
     Index:
     - Official brand values and mission statements
@@ -27,87 +26,79 @@ await client.settings.update({
     - Draft documents and work-in-progress
     - Outdated brand materials (pre-2024)
     - Internal discussions about brand changes
-    - Competitor analysis docs`
+    - Competitor analysis docs`,
+  },
 });
 ```
 
 <AccordionGroup>
   <Accordion title="Personal assistant">
     ```typescript
-    filterPrompt: `Personal AI assistant. Prioritize recent content, action items,
+    organizationalContext: `Personal AI assistant. Prioritize recent content, action items,
     and personal context. Exclude spam and duplicates.`
     ```
   </Accordion>
   <Accordion title="Customer support">
     ```typescript
-    filterPrompt: `Customer support agent. Prioritize verified solutions, official docs,
+    organizationalContext: `Customer support agent. Prioritize verified solutions, official docs,
     and resolved tickets. Exclude internal discussions and PII.`
     ```
   </Accordion>
   <Accordion title="Legal assistant">
     ```typescript
-    filterPrompt: `Legal research assistant. Prioritize precedents, current regulations,
+    organizationalContext: `Legal research assistant. Prioritize precedents, current regulations,
     and approved contract language. Exclude privileged communications.`
     ```
   </Accordion>
   <Accordion title="Finance agent">
     ```typescript
-    filterPrompt: `Financial analysis assistant. Prioritize latest reports, verified data,
+    organizationalContext: `Financial analysis assistant. Prioritize latest reports, verified data,
     and regulatory filings. Exclude speculative data and MNPI.`
     ```
   </Accordion>
   <Accordion title="Healthcare">
     ```typescript
-    filterPrompt: `Healthcare information assistant. Prioritize evidence-based guidelines
+    organizationalContext: `Healthcare information assistant. Prioritize evidence-based guidelines
     and FDA-approved info. Exclude PHI and outdated recommendations.`
     ```
   </Accordion>
   <Accordion title="Developer docs">
     ```typescript
-    filterPrompt: `Developer documentation assistant. Prioritize current APIs, working
+    organizationalContext: `Developer documentation assistant. Prioritize current APIs, working
     examples, and best practices. Exclude deprecated APIs and test fixtures.`
     ```
   </Accordion>
 </AccordionGroup>
 
-### Related settings
-
-`shouldLLMFilter` must be `true` for any of these to take effect — using them without it returns a 400 error.
-
-| Setting | Type | Limits |
-|---------|------|--------|
-| `categories` | `string[]` | 1-50 chars each. If omitted, 3-5 categories are auto-generated |
-| `includeItems` / `excludeItems` | `string[]` | 1-20 chars each item |
-| `filterPrompt` | `string` | 1-750 characters |
+The value replaces the existing context in full. Send `null` to clear it. The legacy `shouldLLMFilter`, `categories`, `includeItems`, and `excludeItems` settings are not part of the v5 organization resource.
 
 ---
 
-## Entity context
+## Supporting Context
 
-Guide memory extraction for a specific container tag. Filter prompts are org-wide; entity context is per container.
+Guide memory extraction for a specific namespace. Organizational context is org-wide; supporting context is per namespace. In v3/v4 this field was called `entityContext`.
 
 ```typescript
-await client.add({
+await supermemory.add("session_abc123", {
   content: "User asked about logo variations for dark backgrounds...",
-  containerTag: "session_abc123",
-  entityContext: `Design exploration conversation between john@acme.com and Brand.ai assistant.
-    Focus on John's design preferences and brand requirements.`
+  supportingContext: `Design exploration conversation between john@acme.com and Brand.ai assistant.
+    Focus on John's design preferences and brand requirements.`,
 });
 ```
 
-<Accordion title="Update entity context only">
-  Update entity context for a container tag without uploading content.
+<Accordion title="Update supporting context only">
+  Set the supporting context for a namespace without uploading content.
 
   ```typescript
-  await client.containerTags.update("session_abc123", {
-    entityContext: `Design exploration conversation between john@acme.com and Brand.ai assistant.
-      Focus on John's design preferences and brand requirements.`
+  await supermemory.namespaces.update("session_abc123", {
+    supportingContext: `Design exploration conversation between john@acme.com and Brand.ai assistant.
+      Focus on John's design preferences and brand requirements.`,
   });
   ```
 </Accordion>
 
 <Note>
-Entity context persists on the container tag and combines with org-level filter prompts.
+Supporting context persists on the namespace and combines with the org-level organizational context.
 </Note>
 
 ---
@@ -183,19 +174,21 @@ Show "Log in to **YourApp**" instead of "Log in to Supermemory" when users conne
 ## API reference
 
 ```typescript
-// Get current settings
-const settings = await client.settings.get();
+// Read organization settings
+const { organizationalContext, namespaceCount } = await supermemory.organization.get();
 
-// Update settings
-await client.settings.update({
-  shouldLLMFilter: true,
-  filterPrompt: "...",
-  chunkSize: 512
+// Update organization context
+await supermemory.organization.update({ organizationalContext: "..." });
+
+// Read and update one namespace
+const ns = await supermemory.namespaces.get("session_abc123");
+await supermemory.namespaces.update("session_abc123", {
+  supportingContext: "...",
 });
 ```
 
 <Note>
-Settings are organization-wide. Changes apply to new content only—existing memories aren't reprocessed.
+Organization settings are organization-wide and require an organization administrator. Changes apply to new content only—existing memories aren't reprocessed.
 </Note>
 
 ---

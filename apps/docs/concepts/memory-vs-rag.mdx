@@ -195,8 +195,9 @@ Supermemory provides a unified platform that correctly handles both patterns:
 ```python
 # Add a document for RAG-style retrieval
 client.add(
+    "product_knowledge",  # Shared namespace, not tied to a user
     content="iPhone 15 has a 48MP camera and A17 Pro chip",
-    # No user association - universal knowledge
+    dreaming="instant"
 )
 ```
 
@@ -204,8 +205,9 @@ client.add(
 ```python
 # Add a user-specific memory
 client.add(
+    "user_123",  # User-specific namespace
     content="User prefers Android over iOS",
-    container_tags=["user_123"],  # User-specific
+    dreaming="instant",
     metadata={
         "type": "preference",
         "confidence": "high"
@@ -215,16 +217,16 @@ client.add(
 
 ### 3. Hybrid retrieval
 ```python
-# Search combines both approaches
-results = client.search.memories(
-    q="What phone should I recommend?",
-    container_tag="user_123",  # Gets user memories
-    search_mode="hybrid",  # Also searches general knowledge
+# Search is scoped to one namespace, so query each side on its own
+user = client.profile("user_123")  # User's Android preference (memory)
+
+specs = client.search(
+    "product_knowledge",  # Latest Android phone specs (document chunks)
+    query="What phone should I recommend?",
+    search_mode="chunks",
 )
 
-# Results include:
-# - User's Android preference (memory)
-# - Latest Android phone specs (documents)
+# Hand both to the model: user.profile + specs.results
 ```
 
 ## The bottom line

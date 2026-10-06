@@ -52,6 +52,39 @@ Fields may contain letters, numbers, `_`, `.`, and `-`. Expressions allow up to 
 ```
 </CodeGroup>
 
+### With the SDK
+
+<CodeGroup>
+```ts Legacy
+await client.search.execute({
+  q: "research notes",
+  containerTags: ["user_1"],
+  filters: JSON.stringify({
+    AND: [
+      { key: "category", value: "research" },
+      { key: "score", value: 0.8, filterType: "numeric", numericOperator: ">=" },
+    ],
+  }),
+})
+```
+
+```ts v5
+await supermemory.search("user_1", {
+  query: "research notes",
+  filter: {
+    operator: "and",
+    operands: [
+      { field: "category", operator: "eq", value: "research" },
+      { field: "score", operator: "gte", value: 0.8 },
+    ],
+  },
+  searchMode: "chunks",
+})
+```
+</CodeGroup>
+
+`filter` is a typed object under `body`, not a JSON string. The same shape works in `supermemory.list` and `supermemory.profile`. Keys are literal: `customer.plan` is one field name, not a nested path.
+
 ### Deterministic conversion
 
 1. Rename outer `filters` to `filter`.

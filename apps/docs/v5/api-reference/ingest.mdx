@@ -2,7 +2,7 @@
 title: "Ingest"
 sidebarTitle: "Overview"
 description: "Turn source content into searchable memory and keep it current"
-icon: "book-open"
+icon: "/icons/hugeicons/book-open-01.svg"
 ---
 
 Ingestion gives Supermemory the source material it uses to build searchable context and memories. Add new content or update an existing source without creating a disconnected copy.
@@ -16,6 +16,26 @@ Ingestion gives Supermemory the source material it uses to build searchable cont
 | `POST /ns/{namespace}/document/file/{id}` | Completely replace a file-backed document |
 | `PATCH /ns/{namespace}/document/file/{id}` | Refresh selected file details or its source |
 
+<CodeGroup>
+```ts TypeScript
+const { id, status } = await supermemory.add("user_1", {
+  content: "The user prefers concise project updates",
+  id: "conv_1",
+  metadata: { source: "chat" },
+  dreaming: "instant",
+})
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/ns/user_1/document?dreaming=instant" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"The user prefers concise project updates","id":"conv_1","metadata":{"source":"chat"}}'
+```
+</CodeGroup>
+
 The `dynamic` processing mode (default) groups related documents together so memories form from coherent, logical units rather than one isolated entry at a time. Use `instant` to process each document on its own right away; it bills one extra operation per document.
+
+Memories appear quickly only with `dreaming: "instant"`. With the default `dynamic` mode, a fresh namespace can show zero memories and an empty profile for several minutes while extraction is batched. Use `instant` in quickstarts and tests.
 
 Every request is scoped to a namespace, keeping each user, project, or tenant isolated. See [document write migration](/migration/api-v5-document-writes).

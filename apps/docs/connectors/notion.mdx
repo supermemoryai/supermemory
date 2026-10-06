@@ -8,30 +8,23 @@ Connect Notion workspaces to automatically sync pages, databases, and content bl
 
 ## Quick setup
 
-### 1. Create Notion connection
+### 1. Create Notion Connector
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    import Supermemory from 'supermemory';
+    import { Supermemory } from "supermemory"
 
-    const client = new Supermemory({
-      apiKey: process.env.SUPERMEMORY_API_KEY!
-    });
+    const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
 
-    const connection = await client.connections.create('notion', {
-      redirectUrl: 'https://yourapp.com/auth/notion/callback',
-      containerTag: 'user-123',
+    const connector = await supermemory.connectors.create("user-123", {
+      provider: "notion",
+      redirectUrl: "https://yourapp.com/auth/notion/callback"
       documentLimit: 2000,
-      metadata: {
-        source: 'notion',
-        workspaceType: 'team',
-        department: 'product'
-      }
-    });
+    })
 
-    // Redirect user to Notion OAuth
-    window.location.href = connection.authLink;
+    // Send the user to Notion to authorize
+    if (connector.authorization) window.location.href = connector.authorization.url
     ```
   </Tab>
   <Tab title="Python">
@@ -41,123 +34,142 @@ Connect Notion workspaces to automatically sync pages, databases, and content bl
 
     client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 
-    connection = client.connections.create(
-        'notion',
-        redirect_url='https://yourapp.com/auth/notion/callback',
-        container_tag='user-123',
-        document_limit=2000,
-        metadata={
-            'source': 'notion',
-            'workspaceType': 'team',
-            'department': 'product'
-        }
+    connector = client.connectors.create(
+        "user-123",
+        request={
+            "provider": "notion",
+            "redirectUrl": "https://yourapp.com/auth/notion/callback",
+            "documentLimit": 2000,
+        },
     )
 
-    # Redirect user to Notion OAuth
-    print(f'Redirect to: {connection.auth_link}')
+    # Send the user to Notion to authorize
+    print(f"Redirect to: {connector.authorization.url}")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v3/connections/notion" \
+    curl -X POST "https://api.supermemory.ai/ns/user-123/connectors" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
+        "provider": "notion",
         "redirectUrl": "https://yourapp.com/auth/notion/callback",
-        "containerTag": "user-123",
-        "documentLimit": 2000,
-        "metadata": {
-          "source": "notion",
-          "workspaceType": "team",
-          "department": "product"
-        }
+        "documentLimit": 2000
       }'
+
+    # Response: {
+    #   "id": "PTzGiUYei7pgzg5buzZHgA",
+    #   "authorization": {
+    #     "url": "https://api.notion.com/v1/oauth/authorize?...",
+    #     "expiresAt": "2024-01-15T11:30:00.000Z"
+    #   }
+    # }
     ```
   </Tab>
 </Tabs>
 
 ### 2. Handle OAuth flow
 
-After user grants workspace access, Notion redirects to your callback URL. The connection is automatically established.
+Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants workspace access, Notion redirects to your `redirectUrl` and the first sync starts. A pending OAuth connector is not visible in list or get until the user finishes authorization.
 
 ### 3. Monitor sync progress
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    // Check connection details
-    const connection = await client.connections.getByTags('notion', {
-      containerTags: ['user-123']
-    });
+    // Check connector details and recent sync runs
+    const connector = await supermemory.connectors.get("user-123", "PTzGiUYei7pgzg5buzZHgA", {
+      include: "syncs",
+    })
 
-    console.log('Connected workspace:', connection.email);
-    console.log('Connection created:', connection.createdAt);
+    console.log("Connected workspace:", connector.account)
+    console.log("Last sync:", connector.latestRun?.system.status)
+    console.log("Documents synced:", connector.documentCount)
 
     // List synced pages and databases
-    const documents = await client.connections.listDocuments('notion', {
-      containerTags: ['user-123']
-    });
+    const { documents } = await supermemory.list("user-123", "documents")
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # Check connection details
-    connection = client.connections.get_by_tags(
-        'notion',
-        container_tags=['user-123']
-    )
+    # Check connector details and recent sync runs
+    connector = client.connectors.get("user-123", "PTzGiUYei7pgzg5buzZHgA", include=["syncs"])
 
-    print(f'Connected workspace: {connection.email}')
-    print(f'Connection created: {connection.created_at}')
+    print(f"Connected workspace: {connector.account}")
+    print(f"Last sync: {connector.latest_run.system.status}")
+    print(f"Documents synced: {connector.document_count}")
 
     # List synced pages and databases
-    documents = client.connections.list_documents(
-        'notion',
-        container_tags=['user-123']
-    )
+    documents = client.list("user-123", "documents").documents
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # Get connection details by provider and tags
-    curl -X POST "https://api.supermemory.ai/v3/connections/notion/connection" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{"containerTags": ["user-123"]}'
+    # Get connector details with recent sync runs
+    curl "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA?include=syncs" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
-    # Response includes connection details:
+    # Response includes connector details:
     # {
-    #   "id": "conn_abc123",
+    #   "id": "PTzGiUYei7pgzg5buzZHgA",
     #   "provider": "notion",
-    #   "email": "workspace@example.com",
-    #   "createdAt": "2024-01-15T10:00:00Z",
+    #   "namespace": "user-123",
+    #   "account": "workspace@example.com",
     #   "documentLimit": 2000,
-    #   "metadata": {...}
+    #   "documentCount": 120,
+    #   "latestRun": { "system": { "status": "completed", ... }, "error": null },
+    #   "system": { "status": "active", "createdAt": "2024-01-15T10:00:00Z", "lastSuccessfulSyncAt": "2024-01-15T10:30:00Z" },
+    #   "syncs": [...]
     # }
 
-    # List synced documents
-    curl -X POST "https://api.supermemory.ai/v3/connections/notion/documents" \
+    # List synced documents in the namespace
+    curl -X POST "https://api.supermemory.ai/ns/user-123/list/documents" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"containerTags": ["user-123"]}'
+      -d '{}'
 
-    # Response: Array of document objects with sync status
-    # [
-    #   {"title": "Product Roadmap", "type": "notion_database", "status": "done"},
-    #   {"title": "Meeting Notes", "type": "notion_page", "status": "done"}
-    # ]
+    # Response: {"documents": [{"title": "Product Roadmap", "system": {"status": "done", ...}, ...}], "pagination": {...}}
     ```
   </Tab>
 </Tabs>
 
+<Note>
+There is no per-connector document list in v5. `supermemory.list(namespace, "documents")` returns every document in the namespace.
+</Note>
+
 ## Document limit
 
-Each connection has an optional `documentLimit` between 1 and 10,000. For Notion, each sync asks the Notion Search API for pages shared with the integration, newest edits first, and **stops after that many pages** or when Search runs out of results.
+Each connector has a **`documentLimit`** (optional when creating the connector; allowed range **1–10,000**). For Notion, each sync run asks the Notion Search API for **pages** shared with the integration, ordered by **last edited time, newest first**, and **stops after that many pages** (or when Search has no more results).
 
 - **Full sync:** If your workspace has more shareable pages than `documentLimit`, the rest are **not** included in that run. Pages that look “missing” are often older or less recently edited relative to that ordering. Increase `documentLimit` or trigger another sync after pages change if you need broader coverage.
 - **Incremental sync:** Only pages edited **after** the previous sync are candidates; each one still counts toward the same `documentLimit`. If more pages changed than the limit since last sync, only the first batch in that newest-first order is returned for that run.
 
 Nested and child pages still count as normal pages in Search if the integration can access them—they are not skipped *because* they are nested. The limit applies to **how many pages** are fetched per sync, not to depth.
+
+Change the limit later with `supermemory.connectors.update(namespace, id, { documentLimit })`.
+
+## Manual Sync
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const run = await supermemory.connectors.sync("user-123", "PTzGiUYei7pgzg5buzZHgA")
+
+    console.log(run.status)
+    // Output: queued
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA/sync" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+    # Response: {"id": "PTzGiUYei7pgzg5buzZHgA", "status": "queued"}
+    # 409 if a sync is already running
+    ```
+  </Tab>
+</Tabs>
 
 ## Supported content types
 
@@ -189,186 +201,56 @@ Nested and child pages still count as normal pages in Search if the integration 
 | **Image** | Referenced with metadata | `![alt text](url)` |
 | **Embed** | Link with context | `[Embedded Content](url)` |
 
-## Delete connection
+## Delete Connector
 
-Remove a Notion connection when no longer needed:
+Remove a Notion connector when no longer needed:
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    // Delete by connection ID
-    const result = await client.connections.delete('connection_id_123');
-    console.log('Deleted connection:', result.id);
+    // Delete the connector and its imported documents (default)
+    await supermemory.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA")
 
-    // Delete by provider and container tags
-    const providerResult = await client.connections.deleteByProvider('notion', {
-      containerTags: ['user-123']
-    });
-    console.log('Deleted Notion connection for user');
+    // Delete the connector but keep the imported documents
+    await supermemory.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA", {
+      deleteDocuments: false,
+    })
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # Delete by connection ID
-    result = client.connections.delete('connection_id_123')
-    print(f'Deleted connection: {result.id}')
+    # Delete the connector and its imported documents (default)
+    client.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA")
 
-    # Delete by provider and container tags
-    provider_result = client.connections.delete_by_provider(
-        'notion',
-        container_tags=['user-123']
-    )
-    print('Deleted Notion connection for user')
+    # Delete the connector but keep the imported documents
+    client.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA", delete_documents=False)
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # Delete by connection ID
-    curl -X DELETE "https://api.supermemory.ai/v3/connections/connection_id_123" \
+    # Delete the connector and its imported documents (default)
+    curl -X DELETE "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
-    # Delete by provider and container tags
-    curl -X DELETE "https://api.supermemory.ai/v3/connections/notion" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{"containerTags": ["user-123"]}'
+    # Delete the connector but keep the imported documents
+    curl -X DELETE "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA?deleteDocuments=false" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
     ```
   </Tab>
 </Tabs>
 
 <Note>
-Deleting a connection will:
+Deleting a connector will:
 - Stop all future syncs from Notion
 - Remove the OAuth authorization
-- Keep existing synced documents in Supermemory (they won't be deleted)
+- Delete the synced documents unless you pass `deleteDocuments: false`
 </Note>
 
 ## Advanced configuration
 
 ### Custom Notion integration
 
-For production deployments, create your own Notion integration:
-
-<Tabs>
-  <Tab title="TypeScript">
-    ```typescript
-    // First, update organization settings with your Notion app credentials
-    await client.settings.update({
-      notionCustomKeyEnabled: true,
-      notionClientId: 'your-notion-client-id',
-      notionClientSecret: 'your-notion-client-secret'
-    });
-
-    // Then create connections using your custom integration
-    const connection = await client.connections.create('notion', {
-      redirectUrl: 'https://yourapp.com/callback',
-      containerTag: 'user-789',
-      metadata: { customIntegration: true }
-    });
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    # First, update organization settings with your Notion app credentials
-    client.settings.update(
-        notion_custom_key_enabled=True,
-        notion_client_id='your-notion-client-id',
-        notion_client_secret='your-notion-client-secret'
-    )
-
-    # Then create connections using your custom integration
-    connection = client.connections.create(
-        'notion',
-        redirect_url='https://yourapp.com/callback',
-        container_tag='user-789',
-        metadata={'customIntegration': True}
-    )
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    # Update organization settings
-    curl -X PATCH "https://api.supermemory.ai/v3/settings" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "notionCustomKeyEnabled": true,
-        "notionClientId": "your-notion-client-id",
-        "notionClientSecret": "your-notion-client-secret"
-      }'
-    ```
-  </Tab>
-</Tabs>
-
-### Content filtering
-
-Control which Notion content gets synced:
-
-<Tabs>
-  <Tab title="TypeScript">
-    ```typescript
-    // Configure intelligent filtering for Notion content
-    await client.settings.update({
-      shouldLLMFilter: true,
-      includeItems: {
-        pageTypes: ['page', 'database'],
-        titlePatterns: ['*Spec*', '*Documentation*', '*Meeting Notes*'],
-        databases: ['Project Tracker', 'Knowledge Base', 'Team Wiki']
-      },
-      excludeItems: {
-        titlePatterns: ['*Draft*', '*Personal*', '*Archive*'],
-        databases: ['Personal Tasks', 'Scratchpad']
-      },
-      filterPrompt: "Sync professional documentation, project specs, meeting notes, and team knowledge. Skip personal notes, drafts, and archived content."
-    });
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    # Configure intelligent filtering for Notion content
-    client.settings.update(
-        should_llm_filter=True,
-        include_items={
-            'pageTypes': ['page', 'database'],
-            'titlePatterns': ['*Spec*', '*Documentation*', '*Meeting Notes*'],
-            'databases': ['Project Tracker', 'Knowledge Base', 'Team Wiki']
-        },
-        exclude_items={
-            'titlePatterns': ['*Draft*', '*Personal*', '*Archive*'],
-            'databases': ['Personal Tasks', 'Scratchpad']
-        },
-        filter_prompt="Sync professional documentation, project specs, meeting notes, and team knowledge. Skip personal notes, drafts, and archived content."
-    )
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    # Configure intelligent filtering for Notion content
-    curl -X PATCH "https://api.supermemory.ai/v3/settings" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "shouldLLMFilter": true,
-        "includeItems": {
-          "pageTypes": ["page", "database"],
-          "titlePatterns": ["*Spec*", "*Documentation*", "*Meeting Notes*"],
-          "databases": ["Project Tracker", "Knowledge Base", "Team Wiki"]
-        },
-        "excludeItems": {
-          "titlePatterns": ["*Draft*", "*Personal*", "*Archive*"],
-          "databases": ["Personal Tasks", "Scratchpad"]
-        },
-        "filterPrompt": "Sync professional documentation, project specs, meeting notes, and team knowledge. Skip personal notes, drafts, and archived content."
-      }'
-
-    # Response:
-    # {
-    #   "success": true,
-    #   "message": "Settings updated successfully"
-    # }
-    ```
-  </Tab>
-</Tabs>
+For production deployments you can connect with your own Notion integration. Custom OAuth credentials are an organization setting and are not part of the v5 connector routes. See [Custom OAuth Applications](/connectors/overview#custom-oauth-applications) for the setup steps and callback URL.
 
 ## Workspace permissions
 
@@ -389,36 +271,34 @@ Notion connector respects workspace permissions:
 Notion database properties are mapped to metadata:
 
 ```typescript
-// Example: Project database with properties
-const documents = await client.connections.listDocuments('notion', {
-  containerTags: ['user-123']
-});
+// List documents in the namespace (there is no per-connector document list in v5)
+const { documents } = await supermemory.list("user-123", "documents")
 
 // Find database entries
 const projectEntries = documents.filter(doc =>
-  doc.metadata?.database === 'Projects'
-);
+  doc.metadata?.database === "Projects"
+)
 
 // Database properties become searchable metadata
-const projectWithStatus = await client.search({
-  q: "machine learning project",
-  containerTag: 'user-123',
-  searchMode: "documents",
-  filters: JSON.stringify({
-    AND: [
-      { key: "status", value: "In Progress", negate: false },
-      { key: "priority", value: "High", negate: false }
-    ]
-  })
-});
+const projectWithStatus = await supermemory.search("user-123", {
+  query: "machine learning project",
+  filter: {
+    operator: "and",
+    operands: [
+      { field: "status", operator: "eq", value: "In Progress" },
+      { field: "priority", operator: "eq", value: "High" },
+    ],
+  },
+  searchMode: "chunks",
+})
 ```
 
 ### Optimization strategies
 
 1. **Set `documentLimit` high enough** for your workspace size (see [Document limit](#document-limit))
-2. **Use targeted container tags** for efficient organization
+2. **Use one namespace per user or tenant** for efficient organization
 3. **Monitor database sync performance** for large datasets
-4. **Implement content filtering** to sync only relevant pages
+4. **Share only the pages you need** with the integration so each sync stays small
 5. **Handle webhook delays** gracefully in your application
 
 <Callout type="info">

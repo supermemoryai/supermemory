@@ -19,9 +19,9 @@ When you add content, Supermemory:
 
 ```typescript
 // Just upload — Supermemory handles the rest
-await client.documents.uploadFile({
+await supermemory.documents.uploadFile("docs_kb", {
   file: fs.createReadStream('technical-documentation.pdf'),
-  metadata: JSON.stringify({ title: "Technical Documentation" })
+  metadata: JSON.stringify({ title: "Technical Documentation" }),
 });
 ```
 
@@ -31,44 +31,39 @@ No chunking strategies to configure. No embedding models to choose. It just work
 
 ## Ingesting as pure SuperRAG (`taskType: "superrag"`)
 
-By default, every `client.add()` call runs on the **memory** path (`taskType: "memory"`): Supermemory chunks and embeds the content for retrieval, *and* runs it through the memory pipeline — extracting facts, updating the profile, and linking it into the knowledge graph.
+By default, every `supermemory.add()` call runs on the **memory** path (`taskType: "memory"`): Supermemory chunks and embeds the content for retrieval, *and* runs it through the memory pipeline — extracting facts, updating the profile, and linking it into the knowledge graph.
 
-If you're ingesting content that's purely reference material — documentation, a large PDF, a knowledge base article — and you don't need Supermemory to derive personal facts or update a profile from it, set `taskType: "superrag"`. It skips the memory pipeline entirely and only does the chunk → embed → index work needed to make the content searchable.
+If you're ingesting content that's purely reference material — documentation, a large PDF, a knowledge base article — and you don't need Supermemory to derive personal facts or update a profile from it, set `taskType: "superrag"` (a query parameter, so a top-level key in the SDK). It skips the memory pipeline entirely and only does the chunk → embed → index work needed to make the content searchable.
 
 <CodeGroup>
 
 ```typescript TypeScript
-await client.add({
-  content: "...", // e.g. a long internal wiki page
-  containerTag: "docs_kb",
+await supermemory.add("docs_kb", { // e.g. a long internal wiki page
+  content: "...",
   taskType: "superrag",
 });
 ```
 
 ```python Python
 client.add(
-    content="...",
-    container_tag="docs_kb",
+    "docs_kb",
+    content="...",  # e.g. a long internal wiki page
     task_type="superrag",
 )
 ```
 
 ```bash cURL
-curl -X POST "https://api.supermemory.ai/v3/documents" \
+curl -X POST "https://api.supermemory.ai/ns/docs_kb/document?taskType=superrag" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "content": "...",
-    "containerTag": "docs_kb",
-    "taskType": "superrag"
-  }'
+  -d '{ "content": "..." }'
 ```
 
 </CodeGroup>
 
 | | `taskType: "memory"` (default) | `taskType: "superrag"` |
 |---|---|---|
-| Chunking, embedding, indexing | ✅ | ✅ — searchable immediately via `searchMode: "documents"` |
+| Chunking, embedding, indexing | ✅ | ✅ — searchable immediately via `searchMode: "chunks"` |
 | Fact extraction into memories | ✅ | ❌ skipped |
 | Profile (`static`/`dynamic`/buckets) updates | ✅ | ❌ skipped |
 | Graph linking (updates/extends/derives) | ✅ | ❌ skipped |
@@ -79,7 +74,7 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 </Tip>
 
 <Warning>
-Content ingested as `superrag` is retrievable via document search (`searchMode: "documents"`), but it will **never** surface as a memory, contribute to a user's profile, or connect into the knowledge graph. Use it for reference material you want searchable, not for anything that should shape what Supermemory knows about a user — that still needs the default `taskType: "memory"`.
+Content ingested as `superrag` is retrievable via chunk search (`searchMode: "chunks"`), but it will **never** surface as a memory, contribute to a user's profile, or connect into the knowledge graph. Use it for reference material you want searchable, not for anything that should shape what Supermemory knows about a user — that still needs the default `taskType: "memory"`.
 </Warning>
 
 When you're searching over a mix of both, `searchMode: "hybrid"` (below) is what pulls memory-path facts and superrag-path document chunks into one result set. More ingestion guidance: [Rules of supermemory → Ingest with SuperRag when you just need search](/concepts/rules#ingest-with-superrag-when-you-just-need-search).
@@ -154,10 +149,9 @@ Supermemory combines the best of both approaches in every search:
 With `searchMode: "hybrid"` (the default), you get both:
 
 ```typescript
-const results = await client.search({
-  q: "how do I deploy the app?",
-  containerTag: "user_123",
-  searchMode: "hybrid"
+const results = await supermemory.search("user_123", {
+  query: "how do I deploy the app?",
+  searchMode: "hybrid",
 });
 
 // Returns:
@@ -174,12 +168,12 @@ Two flags give you fine-grained control over result quality:
 
 ### Reranking
 
-Re-scores results using a cross-encoder model for better relevance:
+Re-scores results using a cross-encoder model for better relevance. `rerank` takes `"none"` (default), `"order"`, or `"aggregate"`:
 
 ```typescript
-const results = await client.search({
-  q: "complex technical question",
-  rerank: true  // +~100ms, significantly better ranking
+const results = await supermemory.search("user_123", {
+  query: "complex technical question",
+  rerank: "order", // +~100ms, significantly better ranking
 });
 ```
 
@@ -190,9 +184,9 @@ const results = await client.search({
 Expands your query to capture more relevant results:
 
 ```typescript
-const results = await client.search({
-  q: "how to auth",
-  rewriteQuery: true  // Expands to "authentication login oauth jwt..."
+const results = await supermemory.search("user_123", {
+  query: "how to auth",
+  rewriteQuery: true, // Expands to "authentication login oauth jwt..."
 });
 ```
 

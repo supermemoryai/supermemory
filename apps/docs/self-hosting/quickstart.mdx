@@ -78,19 +78,23 @@ In production, Supermemory runs proprietary models tuned for long-horizon data u
 
 ## Add your first memory
 
+<Note>
+The v5 SDKs (`supermemory` 5.x on npm and PyPI) need `supermemory-server` v0.0.9 or later. Older servers only speak v3/v4; run `supermemory-server upgrade` first.
+</Note>
+
 <Tabs>
 <Tab title="TypeScript">
 ```typescript
-import Supermemory from "supermemory"
+import { Supermemory } from "supermemory"
 
 const client = new Supermemory({
   apiKey: "sm_...",
-  baseURL: "http://localhost:6767",
+  baseUrl: "http://localhost:6767",
 })
 
-await client.memories.add({
+await client.add("user_dhravya", {
   content: "I'm Dhravya. I love building dev tools and I'm allergic to peanuts.",
-  containerTag: "user_dhravya",
+  dreaming: "instant",
 })
 ```
 </Tab>
@@ -103,20 +107,20 @@ client = Supermemory(
     base_url="http://localhost:6767",
 )
 
-client.memories.add(
+client.add(
+    "user_dhravya",
     content="I'm Dhravya. I love building dev tools and I'm allergic to peanuts.",
-    container_tag="user_dhravya",
+    dreaming="instant",
 )
 ```
 </Tab>
 <Tab title="curl">
 ```bash
-curl http://localhost:6767/v3/documents \
+curl "http://localhost:6767/ns/user_dhravya/document?dreaming=instant" \
   -H "Authorization: Bearer sm_..." \
   -H "Content-Type: application/json" \
   -d '{
-    "content": "I am Dhravya. I love building dev tools and I am allergic to peanuts.",
-    "containerTag": "user_dhravya"
+    "content": "I am Dhravya. I love building dev tools and I am allergic to peanuts."
   }'
 ```
 </Tab>
@@ -127,28 +131,23 @@ curl http://localhost:6767/v3/documents \
 <Tabs>
 <Tab title="TypeScript">
 ```typescript
-const results = await client.search({
-  q: "what food should I avoid?",
-  containerTag: "user_dhravya",
+const { results } = await client.search("user_dhravya", {
+  query: "what food should I avoid?",
 })
 ```
 </Tab>
 <Tab title="Python">
 ```python
-results = client.search(
-    q="what food should I avoid?",
-    container_tag="user_dhravya",
-)
+results = client.search("user_dhravya", query="what food should I avoid?")
 ```
 </Tab>
 <Tab title="curl">
 ```bash
-curl http://localhost:6767/v3/search \
+curl http://localhost:6767/ns/user_dhravya/search \
   -H "Authorization: Bearer sm_..." \
   -H "Content-Type: application/json" \
   -d '{
-    "q": "what food should I avoid?",
-    "containerTag": "user_dhravya"
+    "query": "what food should I avoid?"
   }'
 ```
 </Tab>

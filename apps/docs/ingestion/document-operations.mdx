@@ -5,42 +5,38 @@ description: "List, get, update, and delete your ingested documents"
 icon: "/icons/hugeicons/files-02.svg"
 ---
 
-Manage documents after ingestion using the SDK.
+Manage documents after ingestion using the SDK. Every call is scoped to one `namespace` (what v3/v4 called a container tag).
 
 ## List documents
 
-Retrieve paginated documents with filtering.
+Retrieve paginated documents with filtering. One `list` call serves documents, chunks, and memories; pick with `type`.
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    const documents = await client.documents.list({
+    const { documents } = await supermemory.list("user_123", "documents", {
       limit: 10,
-      containerTags: ["user_123"]
     });
 
-    documents.memories.forEach(d => {
-      console.log(d.id, d.title, d.status);
+    documents.forEach(d => {
+      console.log(d.id, d.title, d.system.status);
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    documents = client.documents.list(
-        limit=10,
-        container_tags=["user_123"]
-    )
+    page = client.list("user_123", "documents", limit=10)
 
-    for doc in documents.memories:
-        print(doc.id, doc.title, doc.status)
+    for doc in page.documents:
+        print(doc.id, doc.title, doc.system.status)
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v3/documents/list" \
+    curl -X POST "https://api.supermemory.ai/ns/user_123/list/documents?limit=10" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"limit": 10, "containerTags": ["user_123"]}'
+      -d '{}'
     ```
   </Tab>
 </Tabs>
@@ -48,49 +44,58 @@ Retrieve paginated documents with filtering.
 **Response:**
 ```json
 {
-  "memories": [
+  "documents": [
     {
       "id": "doc_abc123",
       "title": "Meeting notes",
-      "status": "done",
       "type": "text",
-      "createdAt": "2024-01-15T10:30:00Z",
-      "containerTags": ["user_123"],
-      "metadata": { "source": "slack" }
+      "metadata": { "source": "slack" },
+      "system": {
+        "status": "done",
+        "createdAt": "2024-01-15T10:30:00Z",
+        "updatedAt": "2024-01-15T10:30:00Z"
+      }
     }
   ],
+  "chunks": [],
+  "memories": [],
   "pagination": {
     "currentPage": 1,
-    "totalPages": 3,
-    "totalItems": 25
+    "limit": 10,
+    "totalItems": 25,
+    "totalPages": 3
   }
 }
 ```
 
+Every response contains `documents`, `chunks`, `memories`, and `pagination`. Only the array for the requested `type` is filled.
+
 ### Parameters
+
+`namespace` and `type` are required. Pagination and sorting are query parameters (top-level keys in the SDK); `filter` goes in `body`.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `limit` | number | 50 | Items per page (max 200) |
+| `type` | string | required | `documents`, `chunks`, or `memories` |
+| `limit` | number | 10 | Items per page |
 | `page` | number | 1 | Page number |
-| `containerTags` | string[] | — | Filter by tags |
-| `sort` | string | `createdAt` | Sort by `createdAt` or `updatedAt` |
+| `sort` | string | `createdAt` | Sort by `createdAt`, `updatedAt`, or `position` |
 | `order` | string | `desc` | `desc` (newest) or `asc` (oldest) |
+| `body.filter` | object | — | Metadata filter. See [Organizing & Filtering](/concepts/filtering) |
 
 <Accordion title="Pagination example">
   ```typescript
-  async function getAllDocuments(containerTag: string) {
+  async function getAllDocuments(namespace: string) {
     const all = [];
     let page = 1;
 
     while (true) {
-      const { memories, pagination } = await client.documents.list({
-        containerTags: [containerTag],
+      const { documents, pagination } = await supermemory.list(namespace, "documents", {
         limit: 100,
-        page
+        page,
       });
 
-      all.push(...memories);
+      all.push(...documents);
       if (page >= pagination.totalPages) break;
       page++;
     }
@@ -102,14 +107,14 @@ Retrieve paginated documents with filtering.
 
 <Accordion title="Filter by metadata">
   ```typescript
-  const documents = await client.documents.list({
-    containerTags: ["user_123"],
-    filters: {
-      AND: [
-        { key: "status", value: "reviewed", negate: false },
-        { key: "priority", value: "high", negate: false }
-      ]
-    }
+  const { documents } = await supermemory.list("user_123", "documents", {
+    filter: {
+      operator: "and",
+      operands: [
+        { field: "status", operator: "eq", value: "reviewed" },
+        { field: "priority", operator: "eq", value: "high" },
+      ],
+    },
   });
   ```
 </Accordion>
@@ -118,32 +123,40 @@ Retrieve paginated documents with filtering.
 
 ## Get document
 
-Get a specific document with its processing status.
+Get a specific document with its processing status. Pass `include` to include its chunks and memories.
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    const doc = await client.documents.get("doc_abc123");
+    const doc = await supermemory.documents.get("user_123", "doc_abc123", {
+      include: ["chunks", "memories"], // optional
+    });
 
-    console.log(doc.status);  // "queued" | "processing" | "done" | "failed"
+    console.log(doc.system.status);  // "queued" | "processing" | "done" | "failed"
     console.log(doc.content);
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    doc = client.documents.get("doc_abc123")
+    doc = client.documents.get(
+        "user_123",
+        "doc_abc123",
+        include=["chunks", "memories"],  # optional
+    )
 
-    print(doc.status)
+    print(doc.system.status)  # "queued" | "processing" | "done" | "failed"
     print(doc.content)
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl "https://api.supermemory.ai/v3/documents/doc_abc123" \
+    curl "https://api.supermemory.ai/ns/user_123/document/doc_abc123?include=chunks&include=memories" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
     ```
   </Tab>
 </Tabs>
+
+The `id` may be the Supermemory document ID or the `id` you supplied at ingestion. It resolves only inside the namespace in the path.
 
 ### Processing status
 
@@ -158,12 +171,12 @@ Get a specific document with its processing status.
 
 <Accordion title="Poll for completion">
   ```typescript
-  async function waitForProcessing(docId: string) {
+  async function waitForProcessing(namespace: string, id: string) {
     while (true) {
-      const doc = await client.documents.get(docId);
+      const doc = await supermemory.documents.get(namespace, id);
 
-      if (doc.status === "done") return doc;
-      if (doc.status === "failed") throw new Error("Processing failed");
+      if (doc.system.status === "done") return doc;
+      if (doc.system.status === "failed") throw new Error("Processing failed");
 
       await new Promise(r => setTimeout(r, 2000));
     }
@@ -175,29 +188,30 @@ Get a specific document with its processing status.
 
 ## Update document
 
-Update a document's content or metadata. **Content changes** trigger full reprocessing; **metadata-only changes** (e.g. updating `accepted`, `version`) do not reindex.
+Update a document's content or metadata. **Content changes** trigger full reprocessing; **metadata-only changes** (e.g. updating `accepted`, `version`) do not reindex. The body accepts any non-empty subset of `content`, `metadata`, `supportingContext`, `group`, or `date`.
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    await client.documents.update("doc_abc123", {
+    await supermemory.documents.update("user_123", "doc_abc123", {
       content: "Updated content here",
-      metadata: { version: 2, reviewed: true }
+      metadata: { version: 2, reviewed: true },
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
     client.documents.update(
+        "user_123",
         "doc_abc123",
         content="Updated content here",
-        metadata={"version": 2, "reviewed": True}
+        metadata={"version": 2, "reviewed": True},
     )
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X PATCH "https://api.supermemory.ai/v3/documents/doc_abc123" \
+    curl -X PATCH "https://api.supermemory.ai/ns/user_123/document/doc_abc123" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{"content": "Updated content here", "metadata": {"version": 2}}'
@@ -205,55 +219,65 @@ Update a document's content or metadata. **Content changes** trigger full reproc
   </Tab>
 </Tabs>
 
+For file-backed documents use `documents.updateFile` (PATCH: partial, `file` optional, metadata merges key by key) or `documents.replaceWithFile` (POST: full replace, `file` required, omitted metadata keys are cleared).
+
+```typescript
+await supermemory.documents.updateFile("user_123", "doc_abc123", {
+  metadata: JSON.stringify({ reviewed: true }),
+});
+
+await supermemory.documents.replaceWithFile("user_123", "doc_abc123", {
+  file,
+  metadata: JSON.stringify({ revision: 2 }),
+});
+```
+
 ---
 
 ## Delete documents
 
-Permanently remove documents.
+Permanently remove documents. One call deletes 1 to 100 documents by Supermemory or caller-defined ID.
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    // Single delete
-    await client.documents.delete("doc_abc123");
-
-    // Bulk delete by IDs
-    await client.documents.deleteBulk({
-      ids: ["doc_1", "doc_2", "doc_3"]
+    // One or many
+    const { count, errors } = await supermemory.documents.delete("user_123", {
+      ids: ["doc_1", "doc_2", "doc_3"],
     });
 
-    // Bulk delete by container tag (delete all for a user)
-    await client.documents.deleteBulk({
-      containerTags: ["user_123"]
-    });
+    // Delete a whole namespace (all content for a user)
+    await supermemory.namespaces.delete("user_123");
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # Single delete
-    client.documents.delete("doc_abc123")
+    # One or many
+    result = client.documents.delete("user_123", ids=["doc_1", "doc_2", "doc_3"])
+    print(result.count, result.errors)
 
-    # Bulk delete by IDs
-    client.documents.delete_bulk(ids=["doc_1", "doc_2", "doc_3"])
-
-    # Bulk delete by container tag
-    client.documents.delete_bulk(container_tags=["user_123"])
+    # Delete a whole namespace (all content for a user)
+    client.namespaces.delete("user_123")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # Single delete
-    curl -X DELETE "https://api.supermemory.ai/v3/documents/doc_abc123" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
-
-    # Bulk delete by IDs
-    curl -X DELETE "https://api.supermemory.ai/v3/documents/bulk" \
+    # One or many
+    curl -X DELETE "https://api.supermemory.ai/ns/user_123/document" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{"ids": ["doc_1", "doc_2", "doc_3"]}'
+
+    # Delete a whole namespace
+    curl -X DELETE "https://api.supermemory.ai/ns/user_123" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{}'
     ```
   </Tab>
 </Tabs>
+
+Inspect both `count` and per-ID `errors`; HTTP success can include partial failures.
 
 <Warning>
 Deletes are permanent — no recovery.
@@ -263,25 +287,31 @@ Deletes are permanent — no recovery.
 
 ## Processing queue
 
-Check documents currently being processed.
+There is no separate processing endpoint. List documents and read `system.status` on each item.
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    const response = await client.documents.listProcessing();
-    console.log(`${response.documents.length} documents processing`);
+    const { documents } = await supermemory.list("user_123", "documents", {
+      limit: 100,
+    });
+    const processing = documents.filter(d => d.system.status !== "done" && d.system.status !== "failed");
+    console.log(`${processing.length} documents processing`);
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    response = client.documents.list_processing()
-    print(f"{len(response.documents)} documents processing")
+    page = client.list("user_123", "documents", limit=100)
+    processing = [d for d in page.documents if d.system.status not in ("done", "failed")]
+    print(f"{len(processing)} documents processing")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl "https://api.supermemory.ai/v3/documents/processing" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+    curl -X POST "https://api.supermemory.ai/ns/user_123/list/documents?limit=100" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{}'
     ```
   </Tab>
 </Tabs>
@@ -290,6 +320,6 @@ Check documents currently being processed.
 
 ## Next steps
 
-- [Memory Operations](/recall/memory-operations) — Advanced v4 memory operations
+- [Memory Operations](/recall/memory-operations) — Forget memories
 - [Search](/recall/search) — Query your memories
 - [Ingesting Content](/ingestion/add-memories) — Add new content

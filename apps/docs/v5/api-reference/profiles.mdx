@@ -2,7 +2,7 @@
 title: "Profiles"
 sidebarTitle: "Overview"
 description: "Turn accumulated memory into a ready-to-use understanding of a user"
-icon: "id-card"
+icon: "/icons/hugeicons/id.svg"
 ---
 
 | Operation | Purpose |
@@ -11,6 +11,28 @@ icon: "id-card"
 | `GET /ns/{namespace}/profile/buckets` | See the profile categories available here |
 | `PUT /ns/{namespace}/profile/buckets` | Shape the profile with namespace-specific categories |
 | `DELETE /ns/{namespace}/profile/buckets` | Remove namespace-specific categories |
+
+<CodeGroup>
+```ts TypeScript
+const { profile } = await supermemory.profile("user_1")
+
+await supermemory.profiles.setBuckets("user_1", {
+  buckets: { work: "Professional preferences and ongoing work" },
+})
+```
+
+```bash curl
+curl -X POST "https://api.supermemory.ai/ns/user_1/profile" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+curl -X PUT "https://api.supermemory.ai/ns/user_1/profile/buckets" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"buckets":{"work":"Professional preferences and ongoing work"}}'
+```
+</CodeGroup>
 
 Profiles always contain static and dynamic sections, giving applications both durable knowledge and fresh context without composing them manually. Organization-owned buckets may be inherited but cannot be changed through namespace bucket endpoints.
 

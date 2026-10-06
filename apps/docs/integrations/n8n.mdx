@@ -23,8 +23,10 @@ The Supermemory integration in n8n uses the HTTP Request node to interact with t
 ![](/images/core-http-req.png)
 2. Set the **Method** to `POST`
 3. Set the **URL** to the appropriate Supermemory API endpoint:
-   - Add memory: `https://api.supermemory.ai/v3/documents`
-   - Search memories: `https://api.supermemory.ai/v4/search`
+   - Add memory: `https://api.supermemory.ai/ns/{namespace}/document`
+   - Search memories: `https://api.supermemory.ai/ns/{namespace}/search`
+
+   Replace `{namespace}` with the namespace that scopes these memories, for example a user id or `gmail`.
 4. For authentication, select **Generic Credential Type** and then **Bearer Auth**
 5. Click on **Create New Credential** and paste the Supermemory API Key in the Bearer Token field.
 ![](/images/bearer-auth-add-n8n.png)
@@ -51,17 +53,16 @@ Follow these steps to build a workflow that captures and stores your Gmail messa
 
 1. **Add an HTTP Request node** after the Gmail Trigger
 2. **Method**: `POST`
-3. **URL**: `https://api.supermemory.ai/v3/documents`
+3. **URL**: `https://api.supermemory.ai/ns/gmail/document` (the namespace `gmail` is part of the URL)
 4. Select your auth credentials you created with the Supermemory API Key.
 
 #### Step 3: Format email data for Supermemory
 
 In the HTTP Request node's **Body**, select **JSON** and **Using Fields Below**
 
-And create 2 fields:
+And create 1 field:
 
 1. name: `content`, value: `{{ $json.snippet }}`
-2. name: `containerTag`, value: gmail
 
 
 ![](/images/gmail-content.png)

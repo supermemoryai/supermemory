@@ -2,8 +2,6 @@
 
 - Direct memory creation and version updates: ingest or replace a source document instead.
 - Organization bucket suggestion and organization reset: not part of the v5 public surface.
-- Connector routes that still use `/v3`: unchanged; do not rewrite them.
-- Conversation ingestion (`/v4/conversations`): not part of the v5 public surface. Send the transcript as a document instead.
-- Container-tag merges: not part of the v5 public surface.
+- Connector resource listing and hosted pickers from `/v3/connections`: use `supermemory.connectors.get` with `include: ["syncs", "picker"]` instead. Connector create, list, get, update, delete, and sync all have v5 routes under `/ns/{namespace}/connectors`.
 
 Use the [v5 reference](https://api.supermemory.ai/v5/reference) for the stable v5 API. [`/reference`](https://api.supermemory.ai/reference) always points to the latest public version.

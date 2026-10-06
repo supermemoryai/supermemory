@@ -55,9 +55,31 @@ Use this workflow when a human or policy must approve the exact set. Re-running 
 
 `count` always equals `matches.length`. Both dry-run and applied semantic requests use this shape; the payload alone does not replace your record of which mode was sent.
 
+### With the SDK
+
+<CodeGroup>
+```ts Legacy
+await client.memories.forget({ id: "mem_1" })
+await client.memories.forgetMatching({ query: "outdated home address" })
+```
+
+```ts v5
+const preview = await supermemory.memories.forgetMatching("user_1", {
+  query: "outdated home address",
+  dryRun: true,
+})
+
+await supermemory.memories.forget("user_1", {
+  ids: preview.matches.map((m) => m.id),
+})
+```
+</CodeGroup>
+
+`dryRun` is required on `forgetMatching`. Both calls return `{ count, matches, errors }`.
+
 ### Removed memory-write routes
 
-Direct v4 memory creation and version updates have no v5 replacement. Ingest source material through document routes and update the canonical document when facts change.
+Direct v4 memory creation and version updates (`client.memories.add`, `client.memories.updateMemory`) have no v5 replacement. Ingest source material through document routes and update the canonical document when facts change.
 
 ### Verification
 

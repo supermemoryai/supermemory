@@ -61,13 +61,14 @@ def agent(state: State):
     messages = state["messages"]
     user_query = messages[-1].content
 
-    # Fetch user profile with relevant memories
-    profile_result = memory.profile(container_tag=user_id, q=user_query)
+    # Fetch user profile and relevant memories
+    profile_result = memory.profile(user_id)
+    search_result = memory.search(user_id, query=user_query)
 
     # Build context from profile
-    static_facts = profile_result.profile.static or []
-    dynamic_context = profile_result.profile.dynamic or []
-    search_results = profile_result.search_results.results if profile_result.search_results else []
+    static_facts = [m.memory for m in profile_result.profile.static]
+    dynamic_context = [m.memory for m in profile_result.profile.dynamic]
+    search_results = search_result.results
 
     context = f"""
 User Background:
@@ -85,8 +86,9 @@ Relevant Memories:
 
     # Store the interaction
     memory.add(
+        user_id,
         content=f"User: {user_query}\nAssistant: {response.content}",
-        container_tag=user_id
+        dreaming="instant"
     )
 
     return {"messages": [response]}
@@ -118,13 +120,10 @@ Supermemory automatically builds user profiles from stored memories:
 - **Dynamic context**: Recent activity and current focus
 
 ```python
-result = memory.profile(
-    container_tag="user_123",
-    q="optional search query"  # Also returns relevant memories
-)
+result = memory.profile("user_123")
 
-print(result.profile.static)   # ["User is a Python developer", "Prefers functional style"]
-print(result.profile.dynamic)  # ["Working on async patterns", "Debugging rate limiting"]
+print([m.memory for m in result.profile.static])   # ["User is a Python developer", "Prefers functional style"]
+print([m.memory for m in result.profile.dynamic])  # ["Working on async patterns", "Debugging rate limiting"]
 ```
 
 ### Memory storage
@@ -134,15 +133,17 @@ Content you add gets processed into searchable memories:
 ```python
 # Store a conversation
 memory.add(
+    "user_123",
     content="User asked about graph traversal. Explained BFS vs DFS.",
-    container_tag="user_123",
-    metadata={"topic": "algorithms", "type": "conversation"}
+    metadata={"topic": "algorithms", "type": "conversation"},
+    dreaming="instant"
 )
 
 # Store a document
 memory.add(
+    "user_123",
     content="https://langchain-ai.github.io/langgraph/",
-    container_tag="user_123"
+    dreaming="instant"
 )
 ```
 
@@ -151,10 +152,10 @@ memory.add(
 Search returns both extracted memories and document chunks:
 
 ```python
-results = memory.search.memories(
-    q="graph algorithms",
-    container_tag="user_123",
-    search_mode="hybrid",
+results = memory.search(
+    "user_123",
+    query="graph algorithms",
+    search_mode="hybrid",  # Searches memories + document chunks
     limit=5
 )
 
@@ -198,15 +199,11 @@ class SupportAgent:
             user_id = state["user_id"]
             query = state["messages"][-1].content
 
-            result = self.memory.profile(
-                container_tag=user_id,
-                q=query,
-                threshold=0.5
-            )
+            profile = self.memory.profile(user_id).profile
+            memories = self.memory.search(user_id, query=query, threshold=0.5).results
 
-            static = result.profile.static or []
-            dynamic = result.profile.dynamic or []
-            memories = result.search_results.results if result.search_results else []
+            static = [m.memory for m in profile.static]
+            dynamic = [m.memory for m in profile.dynamic]
 
             context = f"""
 ## User Profile
@@ -216,7 +213,7 @@ class SupportAgent:
 {chr(10).join(f"- {ctx}" for ctx in dynamic) if dynamic else "No recent activity."}
 
 ## Related Past Tickets
-{chr(10).join(f"- {m.memory}" for m in memories[:3]) if memories else "No similar issues found."}
+{chr(10).join(f"- {m.memory or m.chunk}" for m in memories[:3]) if memories else "No similar issues found."}
 """
             return {"context": context}
 
@@ -257,9 +254,10 @@ Guidelines:
             category = state.get("category", "general")
 
             self.memory.add(
+                state["user_id"],
                 content=f"Support ticket ({category}): {user_msg}\nResolution: {ai_msg[:300]}",
-                container_tag=state["user_id"],
-                metadata={"type": "support_ticket", "category": category}
+                metadata={"type": "support_ticket", "category": category},
+                dreaming="instant"
             )
 
             return {}
@@ -366,8 +364,9 @@ Organize memories by project, topic, or any custom field:
 ```python
 # Store with metadata
 memory.add(
+    "user_123",
     content="User prefers detailed error messages with stack traces",
-    container_tag="user_123",
+    dreaming="instant",
     metadata={
         "type": "preference",
         "project": "api-v2",
@@ -376,13 +375,14 @@ memory.add(
 )
 
 # Search with filters
-results = memory.search.memories(
-    q="error handling preferences",
-    container_tag="user_123",
-    filters={
-        "AND": [
-            {"key": "type", "value": "preference"},
-            {"key": "project", "value": "api-v2"}
+results = memory.search(
+    "user_123",
+    query="error handling preferences",
+    filter={
+        "operator": "and",
+        "operands": [
+            {"field": "type", "operator": "eq", "value": "preference"},
+            {"field": "project", "operator": "eq", "value": "api-v2"}
         ]
     }
 )

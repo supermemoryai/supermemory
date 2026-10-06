@@ -13,30 +13,27 @@ The web crawler connector requires a **Scale Plan** or **Enterprise Plan**.
 
 ## Quick setup
 
-### 1. Create Web Crawler connection
+### 1. Create Web Crawler Connector
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    import Supermemory from 'supermemory';
+    import { Supermemory } from "supermemory"
 
-    const client = new Supermemory({
-      apiKey: process.env.SUPERMEMORY_API_KEY!
-    });
+    const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
 
-    const connection = await client.connections.create('web-crawler', {
-      redirectUrl: 'https://yourapp.com/callback',
-      containerTag: 'user-123',
+    const connector = await supermemory.connectors.create("user-123", {
+      provider: "web-crawler",
+      config: {
+        startUrl: "https://docs.example.com",
+        crawlDepth: 3,
+      },
       documentLimit: 5000,
-      metadata: {
-        startUrl: 'https://docs.example.com'
-      }
-    });
+    })
 
-    // Web crawler doesn't require OAuth - connection is ready immediately
-    console.log('Connection ID:', connection.id);
-    console.log('Connection created:', connection.createdAt);
-    // Note: connection.authLink is undefined for web-crawler
+    // Web crawler doesn't require OAuth; crawling starts immediately
+    console.log("Connector ID:", connector.id)
+    // Note: connector.authorization is null for web-crawler
     ```
   </Tab>
   <Tab title="Python">
@@ -46,122 +43,124 @@ The web crawler connector requires a **Scale Plan** or **Enterprise Plan**.
 
     client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 
-    connection = client.connections.create(
-        'web-crawler',
-        redirect_url='https://yourapp.com/callback',
-        container_tag='user-123',
-        document_limit=5000,
-        metadata={
-            'startUrl': 'https://docs.example.com'
-        }
+    connector = client.connectors.create(
+        "user-123",
+        request={
+            "provider": "web-crawler",
+            "config": {
+                "startUrl": "https://docs.example.com",
+                "crawlDepth": 3,
+            },
+            "documentLimit": 5000,
+        },
     )
 
-    # Web crawler doesn't require OAuth - connection is ready immediately
-    print(f'Connection ID: {connection.id}')
-    print(f'Connection created: {connection.created_at}')
-    # Note: connection.auth_link is None for web-crawler
+    # Web crawler doesn't require OAuth; crawling starts immediately
+    print(f"Connector ID: {connector.id}")
+    # Note: connector.authorization.url is None for web-crawler
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v3/connections/web-crawler" \
+    curl -X POST "https://api.supermemory.ai/ns/user-123/connectors" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "redirectUrl": "https://yourapp.com/callback",
-        "containerTag": "user-123",
-        "documentLimit": 5000,
-        "metadata": {
-          "startUrl": "https://docs.example.com"
-        }
+        "provider": "web-crawler",
+        "config": {
+          "startUrl": "https://docs.example.com",
+          "crawlDepth": 3
+        },
+        "documentLimit": 5000
       }'
 
     # Response: {
-    #   "id": "conn_wc123",
-    #   "redirectsTo": "https://yourapp.com/callback",
-    #   "authLink": null,
-    #   "expiresIn": null
+    #   "id": "PTzGiUYei7pgzg5buzZHgA",
+    #   "authorization": null
     # }
     ```
   </Tab>
 </Tabs>
 
-### 2. Connection established
+### Configuration options
 
-Unlike other connectors, the web crawler doesn't require OAuth authentication. The connection is established immediately upon creation, and crawling begins automatically.
+| Parameter | Location | Required | Description |
+|-----------|----------|----------|-------------|
+| `startUrl` | `config.startUrl` | Yes | Public URL where the crawl starts |
+| `crawlDepth` | `config.crawlDepth` | No | How many links deep to follow (1 to 5, default 3) |
+| `documentLimit` | top-level | No | Maximum pages to sync (1 to 10,000) |
+
+### 2. Connector Established
+
+Unlike OAuth connectors, the web crawler doesn't require user authorization. `authorization` is `null`, the connector is visible immediately, and crawling begins automatically.
 
 ### 3. Monitor sync progress
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    // Check connection details
-    const connection = await client.connections.getByTags('web-crawler', {
-      containerTags: ['user-123']
-    });
+    // Check connector details with recent sync runs
+    const connector = await supermemory.connectors.get("user-123", "PTzGiUYei7pgzg5buzZHgA", {
+      include: "syncs",
+    })
 
-    console.log('Start URL:', connection.metadata?.startUrl);
-    console.log('Connection created:', connection.createdAt);
+    console.log("Start URL:", connector.config?.startUrl)
+    console.log("Last sync:", connector.latestRun?.system.status)
+    console.log("Pages synced:", connector.documentCount)
 
-    // List synced web pages
-    const documents = await client.connections.listDocuments('web-crawler', {
-      containerTags: ['user-123']
-    });
+    // List synced web pages in the namespace
+    const docs = await supermemory.list("user-123", "documents")
 
-    console.log(`Synced ${documents.length} web pages`);
+    console.log(`Synced ${docs.pagination.totalItems} documents`)
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # Check connection details
-    connection = client.connections.get_by_tags(
-        'web-crawler',
-        container_tags=['user-123']
-    )
+    # Check connector details with recent sync runs
+    connector = client.connectors.get("user-123", "PTzGiUYei7pgzg5buzZHgA", include=["syncs"])
 
-    print(f'Start URL: {connection.metadata.get("startUrl")}')
-    print(f'Connection created: {connection.created_at}')
+    print(f"Start URL: {(connector.config or {}).get('startUrl')}")
+    print(f"Last sync: {connector.latest_run.system.status}")
+    print(f"Pages synced: {connector.document_count}")
 
-    # List synced web pages
-    documents = client.connections.list_documents(
-        'web-crawler',
-        container_tags=['user-123']
-    )
+    # List synced web pages in the namespace
+    docs = client.list("user-123", "documents")
 
-    print(f'Synced {len(documents)} web pages')
+    print(f"Synced {docs.pagination.total_items} documents")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # Get connection details by provider and tags
-    curl -X POST "https://api.supermemory.ai/v3/connections/web-crawler/connection" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{"containerTags": ["user-123"]}'
+    # Get connector details with recent sync runs
+    curl "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA?include=syncs" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
-    # Response includes connection details:
+    # Response includes connector details:
     # {
-    #   "id": "conn_wc123",
+    #   "id": "PTzGiUYei7pgzg5buzZHgA",
     #   "provider": "web-crawler",
-    #   "createdAt": "2024-01-15T10:00:00Z",
+    #   "namespace": "user-123",
+    #   "config": {"startUrl": "https://docs.example.com", "crawlDepth": 3},
     #   "documentLimit": 5000,
-    #   "metadata": {"startUrl": "https://docs.example.com", ...}
+    #   "documentCount": 240,
+    #   "latestRun": { "system": { "status": "completed", ... }, "error": null },
+    #   "system": { "status": "active", "createdAt": "2024-01-15T10:00:00Z", "lastSuccessfulSyncAt": "..." }
     # }
 
-    # List synced documents
-    curl -X POST "https://api.supermemory.ai/v3/connections/web-crawler/documents" \
+    # List synced documents in the namespace
+    curl -X POST "https://api.supermemory.ai/ns/user-123/list/documents" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"containerTags": ["user-123"]}'
+      -d '{}'
 
-    # Response: Array of document objects
-    # [
-    #   {"title": "Home Page", "type": "webpage", "status": "done", "url": "https://docs.example.com"},
-    #   {"title": "Getting Started", "type": "webpage", "status": "done", "url": "https://docs.example.com/getting-started"}
-    # ]
+    # Response: {"documents": [{"title": "Getting Started", "system": {"status": "done", ...}, ...}], "pagination": {...}}
     ```
   </Tab>
 </Tabs>
+
+<Note>
+There is no per-connector document list in v5. `supermemory.list(namespace, "documents")` returns every document in the namespace.
+</Note>
 
 ## Supported content types
 
@@ -182,189 +181,136 @@ The web crawler only processes valid public URLs:
 
 The web crawler uses **scheduled recrawling** rather than real-time webhooks:
 
-- **Initial Crawl**: Begins immediately after connection creation
+- **Initial Crawl**: Begins immediately after connector creation
 - **Scheduled Recrawling**: Automatically recrawls sites that haven't been synced in 7+ days
 - **No Real-time Updates**: Unlike other connectors, web crawler doesn't support webhook-based real-time sync
 
 <Note>
-The recrawl schedule is automatically assigned when the connection is created. Sites are recrawled periodically to keep content up to date, but updates are not instantaneous.
+The recrawl schedule is automatically assigned when the connector is created. Sites are recrawled periodically to keep content up to date, but updates are not instantaneous.
 </Note>
 
-## Connection management
+### Manual Recrawl
 
-### List all connections
+Start a crawl now. The call returns `409` while a sync for that connector is already running.
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    // List all web crawler connections
-    const connections = await client.connections.list({
-      containerTags: ['user-123']
-    });
+    const run = await supermemory.connectors.sync("user-123", "PTzGiUYei7pgzg5buzZHgA")
 
-    const webCrawlerConnections = connections.filter(
-      conn => conn.provider === 'web-crawler'
-    );
-
-    webCrawlerConnections.forEach(conn => {
-      console.log(`Start URL: ${conn.metadata?.startUrl}`);
-      console.log(`Connection ID: ${conn.id}`);
-      console.log(`Created: ${conn.createdAt}`);
-    });
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    # List all web crawler connections
-    connections = client.connections.list(container_tags=['user-123'])
-
-    web_crawler_connections = [
-        conn for conn in connections if conn.provider == 'web-crawler'
-    ]
-
-    for conn in web_crawler_connections:
-        print(f'Start URL: {conn.metadata.get("startUrl")}')
-        print(f'Connection ID: {conn.id}')
-        print(f'Created: {conn.created_at}')
+    console.log(run.status)
+    // Output: queued
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # List all connections
-    curl -X POST "https://api.supermemory.ai/v3/connections/list" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{"containerTags": ["user-123"]}'
+    curl -X POST "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA/sync" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
-    # Response: [
-    #   {
-    #     "id": "conn_wc123",
-    #     "provider": "web-crawler",
-    #     "createdAt": "2024-01-15T10:30:00.000Z",
-    #     "documentLimit": 5000,
-    #     "metadata": {"startUrl": "https://docs.example.com", ...}
-    #   }
-    # ]
+    # Response: {"id": "PTzGiUYei7pgzg5buzZHgA", "status": "queued"}
     ```
   </Tab>
 </Tabs>
 
-### Delete connection
+## Connector Management
 
-Remove a web crawler connection when no longer needed:
+### List All Connectors
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    // Delete by connection ID
-    const result = await client.connections.delete('connection_id_123');
-    console.log('Deleted connection:', result.id);
+    // List all web crawler connectors in a namespace
+    const { connectors } = await supermemory.connectors.list("user-123")
 
-    // Delete by provider and container tags
-    const providerResult = await client.connections.deleteByProvider('web-crawler', {
-      containerTags: ['user-123']
-    });
-    console.log('Deleted web crawler connection for user');
+    const webCrawlerConnectors = connectors.filter(
+      connector => connector.provider === "web-crawler"
+    )
+
+    webCrawlerConnectors.forEach(connector => {
+      console.log(`Start URL: ${connector.config?.startUrl}`)
+      console.log(`Connector ID: ${connector.id}`)
+      console.log(`Created: ${connector.createdAt}`)
+    })
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # Delete by connection ID
-    result = client.connections.delete('connection_id_123')
-    print(f'Deleted connection: {result.id}')
+    # List all web crawler connectors in a namespace
+    connectors = client.connectors.list("user-123", provider="web-crawler").connectors
 
-    # Delete by provider and container tags
-    provider_result = client.connections.delete_by_provider(
-        'web-crawler',
-        container_tags=['user-123']
-    )
-    print('Deleted web crawler connection for user')
+    for connector in connectors:
+        print(f"Start URL: {(connector.config or {}).get('startUrl')}")
+        print(f"Connector ID: {connector.id}")
+        print(f"Created: {connector.created_at}")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # Delete by connection ID
-    curl -X DELETE "https://api.supermemory.ai/v3/connections/connection_id_123" \
+    # List all connectors in a namespace
+    curl "https://api.supermemory.ai/ns/user-123/connectors" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
-    # Delete by provider and container tags
-    curl -X DELETE "https://api.supermemory.ai/v3/connections/web-crawler" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{"containerTags": ["user-123"]}'
+    # Response: {
+    #   "connectors": [
+    #     {
+    #       "id": "PTzGiUYei7pgzg5buzZHgA",
+    #       "provider": "web-crawler",
+    #       "namespace": "user-123",
+    #       "createdAt": "2024-01-15T10:30:00.000Z",
+    #       "documentLimit": 5000,
+    #       "config": {"startUrl": "https://docs.example.com", "crawlDepth": 3}
+    #     }
+    #   ],
+    #   "pagination": { "currentPage": 1, "limit": 50, "totalItems": 1, "totalPages": 1 }
+    # }
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Connector
+
+Remove a web crawler connector when no longer needed:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // Delete the connector and its crawled pages (default)
+    await supermemory.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA")
+
+    // Delete the connector but keep the crawled pages
+    await supermemory.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA", {
+      deleteDocuments: false,
+    })
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Delete the connector and its crawled pages (default)
+    client.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA")
+
+    # Delete the connector but keep the crawled pages
+    client.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA", delete_documents=False)
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Delete the connector and its crawled pages (default)
+    curl -X DELETE "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+    # Delete the connector but keep the crawled pages
+    curl -X DELETE "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA?deleteDocuments=false" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
     ```
   </Tab>
 </Tabs>
 
 <Note>
-Deleting a connection will:
-- Stop all future crawls from the website
-- Keep existing synced documents in Supermemory (they won't be deleted)
-- Remove the connection configuration
+Deleting a connector will:
+- Stop all future crawls of the website
+- Remove the connector configuration
+- Delete the crawled pages unless you pass `deleteDocuments: false`
 </Note>
-
-## Advanced configuration
-
-### Content filtering
-
-Control which web pages get synced using the settings API:
-
-<Tabs>
-  <Tab title="TypeScript">
-    ```typescript
-    // Configure intelligent filtering for web content
-    await client.settings.update({
-      shouldLLMFilter: true,
-      includeItems: {
-        urlPatterns: ['*docs*', '*documentation*', '*guide*'],
-        titlePatterns: ['*Getting Started*', '*API Reference*', '*Tutorial*']
-      },
-      excludeItems: {
-        urlPatterns: ['*admin*', '*private*', '*test*'],
-        titlePatterns: ['*Draft*', '*Archive*', '*Old*']
-      },
-      filterPrompt: "Sync documentation pages, guides, and API references. Skip admin pages, private content, drafts, and archived pages."
-    });
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    # Configure intelligent filtering for web content
-    client.settings.update(
-        should_llm_filter=True,
-        include_items={
-            'urlPatterns': ['*docs*', '*documentation*', '*guide*'],
-            'titlePatterns': ['*Getting Started*', '*API Reference*', '*Tutorial*']
-        },
-        exclude_items={
-            'urlPatterns': ['*admin*', '*private*', '*test*'],
-            'titlePatterns': ['*Draft*', '*Archive*', '*Old*']
-        },
-        filter_prompt="Sync documentation pages, guides, and API references. Skip admin pages, private content, drafts, and archived pages."
-    )
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    # Configure intelligent filtering for web content
-    curl -X PATCH "https://api.supermemory.ai/v3/settings" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "shouldLLMFilter": true,
-        "includeItems": {
-          "urlPatterns": ["*docs*", "*documentation*", "*guide*"],
-          "titlePatterns": ["*Getting Started*", "*API Reference*", "*Tutorial*"]
-        },
-        "excludeItems": {
-          "urlPatterns": ["*admin*", "*private*", "*test*"],
-          "titlePatterns": ["*Draft*", "*Archive*", "*Old*"]
-        },
-        "filterPrompt": "Sync documentation pages, guides, and API references. Skip admin pages, private content, drafts, and archived pages."
-      }'
-    ```
-  </Tab>
-</Tabs>
 
 ## Security & compliance
 
@@ -394,4 +340,3 @@ All URLs are validated before crawling:
 - Robots.txt restrictions may prevent crawling some pages
 - URLs must be publicly accessible (no authentication required)
 </Warning>
-

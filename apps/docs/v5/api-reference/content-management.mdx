@@ -2,7 +2,7 @@
 title: "Content management"
 sidebarTitle: "Overview"
 description: "Retrieve, list, and remove documents, chunks, and memories"
-icon: "book-open"
+icon: "/icons/hugeicons/book-open-01.svg"
 ---
 
 Inspect the context stored in a namespace and remove information that should no longer be used. Retrieve a document with its derived context, page through any resource type, or forget documents and memories precisely.
@@ -15,5 +15,30 @@ Inspect the context stored in a namespace and remove information that should no 
 | `DELETE /ns/{namespace}/document` | Remove one or many documents |
 | `DELETE /ns/{namespace}/memories` | Forget reviewed memories by exact ID |
 | `DELETE /ns/{namespace}/memories/semantic` | Find and forget memories by meaning |
+
+<CodeGroup>
+```ts TypeScript
+const doc = await supermemory.documents.get("user_1", "conv_1", {
+  include: ["chunks", "memories"],
+})
+
+const { documents, pagination } = await supermemory.list("user_1", "documents", {
+  page: 1,
+  limit: 50,
+  sort: "createdAt",
+  order: "desc",
+})
+```
+
+```bash curl
+curl "https://api.supermemory.ai/ns/user_1/document/conv_1?include=chunks&include=memories" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+curl -X POST "https://api.supermemory.ai/ns/user_1/list/documents?page=1&limit=50&sort=createdAt&order=desc" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+</CodeGroup>
 
 Semantic forgetting supports `dryRun: true`, so you can review matches before deleting them. See [document read migration](/migration/api-v5-document-reads) and [memory migration](/migration/api-v5-recall).

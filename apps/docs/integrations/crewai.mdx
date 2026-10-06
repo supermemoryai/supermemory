@@ -47,11 +47,11 @@ memory = Supermemory()
 
 def build_context(user_id: str, query: str) -> str:
     """Fetch user profile and relevant memories."""
-    result = memory.profile(container_tag=user_id, q=query)
+    profile = memory.profile(user_id).profile
+    memories = memory.search(user_id, query=query, limit=5).results
 
-    static = result.profile.static or []
-    dynamic = result.profile.dynamic or []
-    memories = result.search_results.results if result.search_results else []
+    static = [m.memory for m in profile.static]
+    dynamic = [m.memory for m in profile.dynamic]
 
     return f"""
 User Profile:
@@ -91,13 +91,10 @@ Supermemory tracks two kinds of user data:
 - **Dynamic context**: What the user is working on right now
 
 ```python
-result = memory.profile(
-    container_tag="user_abc",
-    q="project planning"  # Optional: also returns relevant memories
-)
+result = memory.profile("user_abc")
 
-print(result.profile.static)   # ["Prefers Agile methodology", "Senior engineer"]
-print(result.profile.dynamic)  # ["Working on Q2 roadmap", "Focused on API design"]
+print([m.memory for m in result.profile.static])   # ["Prefers Agile methodology", "Senior engineer"]
+print([m.memory for m in result.profile.dynamic])  # ["Working on Q2 roadmap", "Focused on API design"]
 ```
 
 ### Storing memories
@@ -108,9 +105,10 @@ Save crew outputs so future runs can reference them:
 def store_crew_result(user_id: str, task_description: str, result: str):
     """Save crew output as a memory."""
     memory.add(
+        user_id,
         content=f"Task: {task_description}\nResult: {result}",
-        container_tag=user_id,
-        metadata={"type": "crew_execution"}
+        metadata={"type": "crew_execution"},
+        dreaming="instant"
     )
 ```
 
@@ -119,10 +117,10 @@ def store_crew_result(user_id: str, task_description: str, result: str):
 Pull up past interactions before running a crew:
 
 ```python
-results = memory.search.memories(
-    q="previous project recommendations",
-    container_tag="user_abc",
-    search_mode="hybrid",
+results = memory.search(
+    "user_abc",
+    query="previous project recommendations",
+    search_mode="hybrid",  # Searches memories + document chunks
     limit=10
 )
 
@@ -152,16 +150,13 @@ class ResearchCrew:
 
     def get_user_context(self, user_id: str, topic: str) -> dict:
         """Retrieve user profile and related research history."""
-        result = self.memory.profile(
-            container_tag=user_id,
-            q=topic,
-            threshold=0.5
-        )
+        profile = self.memory.profile(user_id).profile
+        memories = self.memory.search(user_id, query=topic, threshold=0.5).results
 
         return {
-            "expertise": result.profile.static or [],
-            "focus": result.profile.dynamic or [],
-            "history": [m.memory for m in (result.search_results.results or [])[:3]]
+            "expertise": [m.memory for m in profile.static],
+            "focus": [m.memory for m in profile.dynamic],
+            "history": [m.memory or m.chunk for m in memories[:3]]
         }
 
     def create_researcher(self, context: dict) -> Agent:
@@ -229,9 +224,10 @@ class ResearchCrew:
 
         # Store for future sessions
         self.memory.add(
+            user_id,
             content=f"Research on '{topic}': {str(result)[:500]}",
-            container_tag=user_id,
-            metadata={"type": "research", "topic": topic}
+            metadata={"type": "research", "topic": topic},
+            dreaming="instant"
         )
 
         return str(result)
@@ -242,8 +238,9 @@ if __name__ == "__main__":
 
     # Teach preferences
     crew.memory.add(
+        "researcher_1",
         content="User prefers concise summaries with bullet points",
-        container_tag="researcher_1"
+        dreaming="instant"
     )
 
     # Run research
@@ -265,9 +262,9 @@ def create_collaborative_context(user_ids: list[str], topic: str) -> str:
     combined = []
 
     for user_id in user_ids:
-        result = memory.profile(container_tag=user_id, q=topic)
-        if result.profile.static:
-            combined.append(f"{user_id}: {', '.join(result.profile.static[:3])}")
+        static = [m.memory for m in memory.profile(user_id).profile.static]
+        if static:
+            combined.append(f"{user_id}: {', '.join(static[:3])}")
 
     return "\n".join(combined) if combined else "No shared context available."
 ```
@@ -283,9 +280,10 @@ def store_if_successful(user_id: str, task: str, result: str, success: bool):
         return
 
     memory.add(
+        user_id,
         content=f"Completed: {task}\nOutcome: {result}",
-        container_tag=user_id,
-        metadata={"type": "success", "task": task}
+        metadata={"type": "success", "task": task},
+        dreaming="instant"
     )
 ```
 
@@ -296,8 +294,9 @@ Metadata lets you filter memories by project, agent, or whatever else makes sens
 ```python
 # Store with metadata
 memory.add(
+    "user_123",
     content="Research findings on distributed systems",
-    container_tag="user_123",
+    dreaming="instant",
     metadata={
         "project": "infrastructure-review",
         "agents": ["researcher", "writer"],
@@ -306,13 +305,14 @@ memory.add(
 )
 
 # Search with filters
-results = memory.search.memories(
-    q="distributed systems",
-    container_tag="user_123",
-    filters={
-        "AND": [
-            {"key": "project", "value": "infrastructure-review"},
-            {"key": "confidence", "value": "high"}
+results = memory.search(
+    "user_123",
+    query="distributed systems",
+    filter={
+        "operator": "and",
+        "operands": [
+            {"field": "project", "operator": "eq", "value": "infrastructure-review"},
+            {"field": "confidence", "operator": "eq", "value": "high"}
         ]
     }
 )

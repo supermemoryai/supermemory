@@ -54,7 +54,7 @@ Do not normalize away an undocumented difference. Capture the request pair, name
 ### Completion checklist
 
 - No application API call accidentally uses a `/v5` prefix.
-- Unchanged connector routes retain their documented `/v3` paths.
+- Connector calls use `/ns/{namespace}/connectors` or `supermemory.connectors.*`, not `/v3/connections`.
 - No legacy field aliases or response readers remain.
 - Every changed default is either accepted intentionally or passed explicitly.
 - Rollback restores the previous caller without requiring data repair.

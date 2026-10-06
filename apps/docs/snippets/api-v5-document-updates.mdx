@@ -55,6 +55,35 @@ PATCH changes only supplied fields. Include `file` to replace the source while r
   There is no public v5 `PUT /ns/{namespace}/document/file/{id}` operation. Use POST for a complete replacement and PATCH for a partial update.
 </Warning>
 
+### With the SDK
+
+<CodeGroup>
+```ts Legacy
+await client.documents.update("doc_1", {
+  content: "corrected source",
+  metadata: { revision: 2 },
+})
+```
+
+```ts v5
+await supermemory.documents.update("user_1", "doc_1", {
+  content: "corrected source",
+  metadata: { revision: 2 },
+})
+
+await supermemory.documents.replaceWithFile("user_1", "doc_1", {
+  file,
+  metadata: JSON.stringify({ revision: 2 }),
+})
+
+await supermemory.documents.updateFile("user_1", "doc_1", {
+  metadata: JSON.stringify({ reviewed: true }),
+})
+```
+</CodeGroup>
+
+`replaceWithFile` is the POST full replacement and requires `file`. `updateFile` is the PATCH partial update; `file` is optional and metadata merges key by key.
+
 ### IDs and scope
 
 The path `id` may be the Supermemory document ID or your caller-defined ID. It is resolved only inside `{namespace}`; an ID from another namespace is not a cross-namespace update mechanism.

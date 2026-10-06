@@ -68,6 +68,38 @@ DELETE /ns/{namespace}/document
 
 The v5 array accepts 1–100 Supermemory or caller-defined IDs. Inspect both `count` and per-ID `errors`; HTTP success can include partial failures.
 
+### With the SDK
+
+<CodeGroup>
+```ts Legacy
+const doc = await client.documents.get("doc_1")
+const page = await client.documents.list({ containerTags: ["user_1"] })
+const processing = await client.documents.listProcessing()
+await client.documents.delete("doc_1")
+```
+
+```ts v5
+const doc = await supermemory.documents.get("user_1", "doc_1", {
+  include: ["chunks", "memories"],
+})
+
+const { documents, pagination } = await supermemory.list("user_1", "documents", {
+  page: 1,
+  limit: 100,
+  sort: "createdAt",
+  order: "desc",
+})
+
+const { memories } = await supermemory.list("user_1", "memories")
+
+const { count, errors } = await supermemory.documents.delete("user_1", {
+  ids: ["doc_1", "external_id_2"],
+})
+```
+</CodeGroup>
+
+There is no separate processing list. Read `system.status` on each item returned by `supermemory.list(namespace, "documents")`. Chunks come from `supermemory.list(namespace, "chunks")` or `documents.get` with `include: ["chunks"]`.
+
 ### Forget memories
 
 | Legacy intent | v5 operation |

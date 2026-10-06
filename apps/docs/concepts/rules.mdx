@@ -30,7 +30,7 @@ Agents benefit most from having a _general_ idea of the topic alongside tools to
 
 Two things about this table that trip people up.
 
-**"Remember" and "look up" are both supermemory, but different reads.** You [ingest documents](/ingestion/add-memories); the pipeline derives memories from them and maintains a profile per container tag. `client.search({ searchMode: "memories" })` recalls the derived facts. `client.search({ searchMode: "documents" })` recalls the source material itself. A support agent usually needs both: memories for "this customer runs self-hosted and already tried reinstalling", documents for the actual troubleshooting guide.
+**"Remember" and "look up" are both supermemory, but different reads.** You [ingest documents](/ingestion/add-memories); the pipeline derives memories from them and maintains a profile per [namespace](/concepts/container-tags). `supermemory.search({ searchMode: "memories" })` recalls the derived facts. `supermemory.search({ searchMode: "chunks" })` recalls the source material itself. A support agent usually needs both: memories for "this customer runs self-hosted and already tried reinstalling", documents for the actual troubleshooting guide.
 
 **Supermemory is not your system of record.** There's no SQL over memories, no joins, no aggregates, no querying by primary key. Keep transactional data in your database, and ingest the narrative *around* it ("the customer disputed invoice #4821 and churned over it") so your AI understands what the rows mean.
 
@@ -41,70 +41,63 @@ When you know you only want search, you can cut costs by 5x. Just set `taskType`
 <CodeGroup>
 
 ```typescript TypeScript
-await client.add({
+await supermemory.add("test", {
   content: "testing",
-  containerTag: "test",
-  taskType: "superrag"
+  taskType: "superrag",
 });
 ```
 
 ```python Python
 client.add(
+    "test",
     content="testing",
-    container_tag="test",
-    task_type="superrag"
+    task_type="superrag",
 )
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/v3/documents" \
+curl -X POST "https://api.supermemory.ai/ns/test/document?taskType=superrag" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "content": "testing",
-    "containerTag": "test",
-    "taskType": "superrag"
-  }'
+  -d '{ "content": "testing" }'
 ```
 
 </CodeGroup>
 
 #### Use hybrid mode when searching over SuperRag content
 
-`hybrid` mode makes it much easier to get complete results from supermemory when you have both memories and documents.
+`hybrid` mode (the v5 default) makes it much easier to get complete results from supermemory when you have both memories and documents.
 
 <CodeGroup>
 
 ```typescript TypeScript
-const results = await client.search({
-  q: "test",
-  searchMode: "hybrid"
+const { results } = await supermemory.search("test", {
+  query: "test",
+  searchMode: "hybrid",
 });
 ```
 
 ```python Python
-results = client.search.memories(
-    q="test",
-    search_mode="hybrid"
+results = client.search(
+    "test",
+    query="test",
+    search_mode="hybrid",
 )
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/v4/search" \
+curl -X POST "https://api.supermemory.ai/ns/test/search?searchMode=hybrid" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "q": "test",
-    "searchMode": "hybrid"
-  }'
+  -d '{ "query": "test" }'
 ```
 
 </CodeGroup>
 
-The response comes back in this shape:
+Each entry in `results` carries either `memory` or `chunk`:
 
 ```ts
-({ memory: string } | { chunk: string })[]
+{ results: ({ memory: string } | { chunk: string })[], searchTime: number }
 ```
 
 Use `item.memory || item.chunk` when reading results.
@@ -113,15 +106,15 @@ Use `item.memory || item.chunk` when reading results.
 
 While supermemory can handle documents with 400k+ tokens, sending smaller, self-contained documents produces better-quality learnings. The internal learning agent and "dreaming" jobs reflect on memories to build relations between them. If documents are too long, fewer memories get generated and fewer relations get made.
 
-We also recommend ingesting documents sequentially within a single `containerTag` where possible, since that's how supermemory determines what came first (used for `updates` relations and temporal reasoning).
+We also recommend ingesting documents sequentially within a single namespace where possible, since that's how supermemory determines what came first (used for `updates` relations and temporal reasoning).
 
 #### Handling single-threaded chatbots
 
 Many agent harnesses, like `openclaw`, `hermes`, and other single-threaded custom agents, run one long conversation with compaction. Some tips for managing single-threaded (and other long-running) conversations:
 
-1. **Send a `customId` when you can**: a sessionId, conversationId, document ID, or any representation of a "session" in your application.
-2. **Generate one if you don't have one**, e.g. the current 4-hour window: `${new Date().toISOString().slice(0,10)}-${new Date().getHours()>>2}`. Adjust the window size based on traffic per container.
-3. **Send the same prefix**: keep the start of the document identical across ingests under the same `customId` so supermemory can diff cleanly. You can either resend the full growing transcript each time, or send only the new turns since your last ingest. Just don't mix the two for the same `customId`.
+1. **Send an `id` when you can**: a sessionId, conversationId, document ID, or any representation of a "session" in your application.
+2. **Generate one if you don't have one**, e.g. the current 4-hour window: `${new Date().toISOString().slice(0,10)}-${new Date().getHours()>>2}`. Adjust the window size based on traffic per namespace.
+3. **Send the same prefix**: keep the start of the document identical across ingests under the same `id` so supermemory can diff cleanly. You can either resend the full growing transcript each time, or send only the new turns since your last ingest. Just don't mix the two for the same `id`.
 
 ```
 Ingestion 1:
@@ -147,136 +140,124 @@ Don't pass content through an additional LLM before sending it to supermemory. S
 
 #### Configure what you want it to learn
 
-Ground it with `entityContext` to prevent drift over time. Picture a third person watching a conversation between two people: what do they remember, and about whom? Giving supermemory context about the entity itself helps ground its learnings and prevents drift and decay over time.
+Ground it with `supportingContext` (called `entityContext` in v3/v4) to prevent drift over time. Picture a third person watching a conversation between two people: what do they remember, and about whom? Giving supermemory context about the entity itself helps ground its learnings and prevents drift and decay over time.
 
 <CodeGroup>
 
 ```typescript TypeScript
 const user = auth.user.name;
-await client.add({
+await supermemory.add(user, {
   content: "Hey, I'm doing great!",
-  containerTag: user,
-  entityContext: `User is ${user}, talking to assistant Kira`
+  supportingContext: `User is ${user}, talking to assistant Kira`,
 }); // -> supermemory learns "Dhravya is doing great"
 ```
 
 ```python Python
 user = auth.user.name
 client.add(
+    user,
     content="Hey, I'm doing great!",
-    container_tag=user,
-    entity_context=f"User is {user}, talking to assistant Kira"
+    supporting_context=f"User is {user}, talking to assistant Kira",
 )  # -> supermemory learns "Dhravya is doing great"
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/v3/documents" \
+curl -X POST "https://api.supermemory.ai/ns/dhravya/document" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "content": "Hey, I'\''m doing great!",
-    "containerTag": "dhravya",
-    "entityContext": "User is dhravya, talking to assistant Kira"
+    "supportingContext": "User is dhravya, talking to assistant Kira"
   }'
 ```
 
 </CodeGroup>
 
-#### Use containerTags, don't over-stuff a single one
+#### Use namespaces, don't over-stuff a single one
 
-Use a containerTag wherever there's a hard permission boundary.
+Use a namespace wherever there's a hard permission boundary.
 
-- **Don't**: ingest everything into one container and filter through it with metadata.
-- **Do**: give each user their own container, and still filter by metadata inside it if needed.
+- **Don't**: ingest everything into one namespace and filter through it with metadata.
+- **Do**: give each user their own namespace (`namespace: userId`), and still filter by metadata inside it if needed.
 
-There's little correlation between the number of items in a container and its quality or latency. Supermemory is built for multi-tenant workloads and supports up to 1M documents and 10M memories per container.
+There's little correlation between the number of items in a namespace and its quality or latency. Supermemory is built for multi-tenant workloads and supports up to 1M documents and 10M memories per namespace.
 
-#### Use metadata filtering for detailed scoping inside containers
+#### Use metadata filtering for detailed scoping inside namespaces
 
-You'll often want to ingest and search with filtering inside a single container. Say the engineering team ingests this:
+You'll often want to ingest and search with filtering inside a single namespace. Say the engineering team ingests this:
 
 <CodeGroup>
 
 ```typescript TypeScript
-await client.add({
+await supermemory.add("org-supermemory", {
   content: "The team prefers TypeScript",
   metadata: { team: "Engineering" },
-  containerTag: "org-supermemory",
-  filterByMetadata: { team: "Engineering" }
+  group: { team: "Engineering" },
 });
 ```
 
 ```python Python
 client.add(
+    "org-supermemory",
     content="The team prefers TypeScript",
     metadata={"team": "Engineering"},
-    container_tag="org-supermemory",
-    filter_by_metadata={"team": "Engineering"}
+    group={"team": "Engineering"},
 )
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/v3/documents" \
+curl -X POST "https://api.supermemory.ai/ns/org-supermemory/document" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "content": "The team prefers TypeScript",
     "metadata": { "team": "Engineering" },
-    "containerTag": "org-supermemory",
-    "filterByMetadata": { "team": "Engineering" }
+    "group": { "team": "Engineering" }
   }'
 ```
 
 </CodeGroup>
 
-> Tip: `filterByMetadata` ensures a fact like "the team prefers TypeScript" is only built on top of the engineering team's knowledge.
+> Tip: `group` (called `filterByMetadata` in v3/v4) ensures a fact like "the team prefers TypeScript" is only built on top of the engineering team's knowledge.
 
-Later, the research team ingests this, with the same `containerTag` but different `metadata`:
+Later, the research team ingests this into the same namespace (`POST /ns/org-supermemory/document`) but with different `metadata`:
 
 ```json
 {
   "content": "The team prefers Python",
   "metadata": { "team": "Research" },
-  "containerTag": "org-supermemory",
-  "filterByMetadata": { "team": "Research" }
+  "group": { "team": "Research" }
 }
 ```
 
-This keeps research's and engineering's memories from mixing, even though they share a `containerTag`. When searching:
+This keeps research's and engineering's memories from mixing, even though they share a namespace. When searching:
 
 <CodeGroup>
 
 ```typescript TypeScript
-const results = await client.search({
-  q: "preferred language",
-  containerTag: "org-supermemory",
-  searchMode: "documents",
-  filters: {
-    AND: [{ key: "team", value: "research" }]
-  }
+const results = await supermemory.search("org-supermemory", {
+  query: "preferred language",
+  filter: { field: "team", operator: "eq", value: "Research" },
+  searchMode: "chunks",
 }); // -> "python"
 ```
 
 ```python Python
-results = client.search.documents(
-    q="preferred language",
-    container_tag="org-supermemory",
-    filters={
-        "AND": [{"key": "team", "value": "research"}]
-    }
+results = client.search(
+    "org-supermemory",
+    query="preferred language",
+    search_mode="chunks",
+    filter={"field": "team", "operator": "eq", "value": "Research"},
 )  # -> "python"
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/v3/search" \
+curl -X POST "https://api.supermemory.ai/ns/org-supermemory/search?searchMode=chunks" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "q": "preferred language",
-    "containerTag": "org-supermemory",
-    "filters": {
-      "AND": [{ "key": "team", "value": "research" }]
-    }
+    "query": "preferred language",
+    "filter": { "field": "team", "operator": "eq", "value": "Research" }
   }'
 ```
 

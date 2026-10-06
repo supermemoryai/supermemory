@@ -14,7 +14,7 @@ Supermemory is one context engine. These are the shapes teams ship on top of it.
     Preferences, people, projects, and decisions across sessions — without replaying the entire chat history into every prompt.
   </Card>
   <Card title="Customer support agents" icon="/icons/hugeicons/headphones.svg">
-    Account history, past tickets, and product facts at answer time. Isolate each customer with a container tag.
+    Account history, past tickets, and product facts at answer time. Isolate each customer with a namespace.
   </Card>
   <Card title="Sales & success copilots" icon="/icons/hugeicons/agreement-01.svg">
     Remember the account, stakeholders, and last commitments. Profiles keep “always know” context warm.
@@ -45,13 +45,13 @@ Supermemory is one context engine. These are the shapes teams ship on top of it.
 
 If you are building a SaaS that needs memory **per end user** (or per workspace):
 
-1. Map each user/workspace to a **container tag**
+1. Map each user/workspace to a **namespace**
 2. Ingest conversations and files into that tag
 3. Search / load **profiles** only inside that tag
 4. Issue **scoped keys** when the client must not cross tenants
-5. On account deletion, erase that container’s data
+5. On account deletion, erase that namespace’s data
 
-Deep dive lives in Developer Platform concepts ([container tags](/concepts/container-tags), [user profiles](/concepts/user-profiles)).
+Deep dive lives in Developer Platform concepts ([namespaces](/concepts/container-tags), [user profiles](/concepts/user-profiles)).
 
 ## Surfaces (same engine)
 

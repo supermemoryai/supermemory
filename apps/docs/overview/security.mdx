@@ -7,7 +7,7 @@ icon: "/icons/hugeicons/shield-01.svg"
 
 Supermemory stores long-horizon context about people and organizations. Security and compliance are part of the product surface, not a footer claim.
 
-This page is the product-level trust overview. For multi-tenant design details, see [Container tags](/concepts/container-tags) and authentication docs in the Developer Platform.
+This page is the product-level trust overview. For multi-tenant design details, see [Namespaces](/concepts/container-tags) and authentication docs in the Developer Platform.
 
 ## Compliance posture
 
@@ -28,11 +28,11 @@ Need a report, DPA, or BAA? Contact [support@supermemory.com](mailto:support@sup
 
 ### Isolation and access
 
-- **Container tags** enforce hard boundaries between users, tenants, or projects — the primary multi-tenancy primitive.
-- **API keys** authenticate every request. Prefer **scoped keys** when a client or session must only touch one container.
+- **Namespaces** (what v3/v4 called container tags) enforce hard boundaries between users, tenants, or projects — the primary multi-tenancy primitive.
+- **API keys** authenticate every request. Prefer **scoped keys** when a client or session must only touch one namespace.
 - **Organizations** in the console manage members, keys, and billing separation.
 
-A malicious or buggy client with a correctly scoped key cannot read another container’s memories.
+A malicious or buggy client with a correctly scoped key cannot read another namespace’s memories.
 
 ### Data use
 
@@ -50,8 +50,8 @@ Supermemory is infrastructure for *your* agents. Your customer content is never 
 
 The practical GDPR-style path for app builders:
 
-1. Scope each end-user (or tenant) to a **container tag**.
-2. When the user requests deletion, delete that container’s content via the API / console workflows for documents and memories under that tag.
+1. Scope each end-user (or tenant) to a **namespace**.
+2. When the user requests deletion, delete that namespace’s content via the API / console workflows for documents and memories under that namespace.
 3. Revoke any **scoped keys** issued for that user.
 
 Designing isolation up front makes erasure a single boundary operation instead of a forensic search.
@@ -76,7 +76,7 @@ If policy requires data never leave your network, run the [self-hosted engine](/
   <Card title="Billing & plans" icon="/icons/hugeicons/credit-card.svg" href="/overview/billing">
     Which tiers include BAAs, seats, and self-host options.
   </Card>
-  <Card title="Container tags" icon="/icons/hugeicons/tag-01.svg" href="/concepts/container-tags">
+  <Card title="Namespaces" icon="/icons/hugeicons/tag-01.svg" href="/concepts/container-tags">
     How isolation works in the data model.
   </Card>
   <Card title="Authentication" icon="/icons/hugeicons/key-01.svg" href="/authentication">

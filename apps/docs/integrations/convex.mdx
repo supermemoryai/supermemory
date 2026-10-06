@@ -44,18 +44,15 @@ Create simple helper functions for each Supermemory operation:
 // convex/memory.ts
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import Supermemory from "supermemory";
+import { Supermemory } from "supermemory";
 
 const memory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
-// Get user profile and relevant memories
+// Get user profile
 export const getProfile = action({
-  args: { userId: v.string(), query: v.optional(v.string()) },
-  handler: async (ctx, { userId, query }) => {
-    return await memory.profile({
-      containerTag: userId,
-      q: query,
-    });
+  args: { userId: v.string() },
+  handler: async (ctx, { userId }) => {
+    return await memory.profile(userId);
   },
 });
 
@@ -63,9 +60,9 @@ export const getProfile = action({
 export const addMemory = action({
   args: { userId: v.string(), content: v.string() },
   handler: async (ctx, { userId, content }) => {
-    return await memory.add({
+    return await memory.add(userId, {
       content,
-      containerTag: userId,
+      dreaming: "instant", // memories are ready as soon as status is done
     });
   },
 });
@@ -74,9 +71,8 @@ export const addMemory = action({
 export const searchMemories = action({
   args: { userId: v.string(), query: v.string(), limit: v.optional(v.number()) },
   handler: async (ctx, { userId, query, limit }) => {
-    return await memory.search({
-      q: query,
-      containerTag: userId,
+    return await memory.search(userId, {
+      query,
       searchMode: "hybrid",
       limit: limit ?? 10,
     });
@@ -103,8 +99,8 @@ export const chat = action({
   handler: async (ctx, { userId, message }) => {
     // Wrap the model - automatically injects context and saves memories
     const model = withSupermemory(openai("gpt-4o-mini"), {
-      containerTag: userId,
-      customId: `convex-chat-${userId}`,
+      namespace: userId,
+      id: `convex-chat-${userId}`,
       mode: "full",
       addMemory: "always",
     });
@@ -145,7 +141,7 @@ export default defineSchema({
 import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 import { v } from "convex/values";
-import Supermemory from "supermemory";
+import { Supermemory } from "supermemory";
 
 const memory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
@@ -166,7 +162,7 @@ export const addMemory = action({
   args: { userId: v.string(), content: v.string() },
   handler: async (ctx, { userId, content }) => {
     // Add to Supermemory
-    await memory.add({ content, containerTag: userId });
+    await memory.add(userId, { content });
     
     // Store in Convex
     // Note: in production, handle partial failures — if the Convex mutation

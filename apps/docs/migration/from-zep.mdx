@@ -8,10 +8,10 @@ sidebarTitle: "From Zep"
 
 | Zep AI | Supermemory |
 |--------|-------------|
-| Sessions & Messages | Documents & Container Tags |
-| `session.create()` | Use `containerTag` parameter |
-| `memory.add(session_id, ...)` | `add({containerTag: "..."})` |
-| `memory.search(session_id, {text: ...})` | `search.execute({q: ..., containerTag: "..."})` |
+| Sessions & Messages | Documents & Namespaces |
+| `session.create()` | Use the `namespace` parameter |
+| `memory.add(session_id, ...)` | `client.add(namespace, { content })` |
+| `memory.search(session_id, {text: ...})` | `client.search(namespace, { query })` |
 
 ## Installation
 
@@ -54,9 +54,9 @@ session = client.session.create(
 )
 ```
 
-```python Supermemory
-# No explicit session creation - use containerTag
-containerTag = "user_123"
+```typescript Supermemory
+// No explicit session creation, use a namespace
+const namespace = "user_123";
 ```
 
 </CodeGroup>
@@ -72,11 +72,10 @@ client.memory.add(
 )
 ```
 
-```python Supermemory
-client.add({
-    "content": "User prefers dark mode",
-    "containerTag": "user_123"
-})
+```typescript Supermemory
+await client.add("user_123", {
+  content: "User prefers dark mode",
+});
 ```
 
 </CodeGroup>
@@ -92,12 +91,11 @@ results = client.memory.search(
 )
 ```
 
-```python Supermemory
-results = client.search.execute({
-    "q": "preferences",
-    "containerTag": "user_123",
-    "limit": 5
-})
+```typescript Supermemory
+const { results } = await client.search("user_123", {
+  query: "preferences",
+  limit: 5,
+});
 ```
 
 </CodeGroup>
@@ -110,11 +108,10 @@ results = client.search.execute({
 memories = client.memory.get(session_id="user_123")
 ```
 
-```python Supermemory
-documents = client.documents.list({
-    "containerTags": ["user_123"],
-    "limit": 100
-})
+```typescript Supermemory
+const { documents } = await client.list("user_123", "documents", {
+  limit: 100,
+});
 ```
 
 </CodeGroup>
@@ -122,9 +119,9 @@ documents = client.documents.list({
 ## Migration steps
 
 1. **Replace client initialization** - Use Supermemory client instead of Zep
-2. **Map sessions to container tags** - Replace `session_id="user_123"` with `containerTag: "user_123"`
-3. **Update method calls** - Use `add()` and `search.execute()` instead of `memory.add()` and `memory.search()`
-4. **Change search parameter** - Use `q` instead of `text`
+2. **Map sessions to namespaces** - Replace `session_id="user_123"` with `namespace: "user_123"`
+3. **Update method calls** - Use `add()` and `search()` instead of `memory.add()` and `memory.search()`
+4. **Change search parameter** - Use `query` instead of `text`
 5. **Handle async processing** - Documents process asynchronously (status: `queued` → `done`)
 
 ## Complete example
@@ -148,33 +145,31 @@ results = client.memory.search("user_123", {
 })
 ```
 
-```python Supermemory
-from supermemory import Supermemory
+```typescript Supermemory
+import { Supermemory } from "supermemory";
 
-client = Supermemory(api_key="...")
-containerTag = "user_123"
+const client = new Supermemory({ apiKey: "..." });
+const namespace = "user_123";
 
-client.add({
-    "content": "I love Python",
-    "containerTag": containerTag,
-    "metadata": {"role": "user"}
-})
+await client.add(namespace, {
+  content: "I love Python",
+  metadata: { role: "user" },
+});
 
-results = client.search.execute({
-    "q": "programming",
-    "containerTag": containerTag,
-    "limit": 3
-})
+const { results } = await client.search(namespace, {
+  query: "programming",
+  limit: 3,
+});
 ```
 
 </CodeGroup>
 
 ## Important notes
 
-- **No session creation needed** - Just use `containerTag` in requests
+- **No session creation needed** - Just pass `namespace` on each call
 - **Messages are documents** - Store with `metadata.role` and `metadata.type`
-- **Async processing** - Documents may take a moment to be searchable
-- **Response structure** - Supermemory returns chunks with scores, not direct memory content
+- **Async processing** - Documents may take a moment to be searchable. Pass `dreaming: "instant"` on `add` when you need memories right away
+- **Response structure** - `search` returns `results`, each with a `memory` or `chunk` and a `similarity` score
 
 ## Migrating existing data
 
@@ -201,15 +196,14 @@ for (const sessionId of sessionIds) {
 
   for (const mem of memories) {
     if (mem.content) {
-      await supermemory.add({
+      await supermemory.add(`session:${sessionId}:user:${memory.user_id || "unknown"}`, {
         content: mem.content,
-        containerTag: `session:${sessionId}:user:${memory.user_id || "unknown"}`,
         metadata: {
           role: mem.role,
           type: "message",
           original_uuid: mem.uuid,
           ...mem.metadata
-        }
+        },
       });
       console.log(`✅ Imported: ${mem.content.substring(0, 50)}...`);
     }
@@ -236,16 +230,16 @@ for session_id in session_ids:
 
     for mem in memories:
         if mem.content:
-            supermemory.add({
-                "content": mem.content,
-                "containerTag": f"session:{session_id}:user:{memory.user_id or 'unknown'}",
-                "metadata": {
+            supermemory.add(
+                f"session:{session_id}:user:{memory.user_id or 'unknown'}",
+                content=mem.content,
+                metadata={
                     "role": mem.role,
                     "type": "message",
                     "original_uuid": mem.uuid,
-                    **(mem.metadata or {})
-                }
-            })
+                    **(mem.metadata or {}),
+                },
+            )
             print(f"✅ Imported: {mem.content[:50]}...")
 
 print("Migration complete!")
@@ -315,9 +309,9 @@ async function migrateFromZep(
   // Import to Supermemory
   let totalMemories = 0;
   for (const [sessionId, data] of Object.entries(exportedData) as any) {
-    let containerTag = `imported_from_zep:session:${sessionId}`;
+    let namespace = `imported_from_zep:session:${sessionId}`;
     if (data.session.user_id) {
-      containerTag += `:user:${data.session.user_id}`;
+      namespace += `:user:${data.session.user_id}`;
     }
 
     for (const memory of data.memories) {
@@ -328,9 +322,8 @@ async function migrateFromZep(
           continue;
         }
 
-        await supermemory.add({
+        await supermemory.add(namespace, {
           content: memory.content,
-          containerTag: containerTag,
           metadata: {
             source: "zep_migration",
             role: memory.role,

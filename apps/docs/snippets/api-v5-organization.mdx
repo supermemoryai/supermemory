@@ -41,6 +41,23 @@ The field is exhaustive: the supplied value replaces the existing context. Send 
 
 Organization updates require an organization administrator. Do not silently fall back to namespace context when the caller receives `403`.
 
+### With the SDK
+
+<CodeGroup>
+```ts Legacy
+const settings = await client.settings.get()
+await client.settings.update({ filterPrompt: "Acme builds security tools for enterprises" })
+```
+
+```ts v5
+const { organizationalContext, namespaceCount } = await supermemory.organization.get()
+
+await supermemory.organization.update({
+  organizationalContext: "Acme builds security tools for enterprises",
+})
+```
+</CodeGroup>
+
 ### Removed public operations
 
 - Organization profile-bucket mutation is not exposed through organization settings.

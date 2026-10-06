@@ -2,7 +2,7 @@
 title: "API reference"
 sidebarTitle: "Overview"
 description: "Documents, search, profiles, lists, memories, namespaces, and organization settings in the latest Supermemory API"
-icon: "unplug"
+icon: "/icons/hugeicons/plug-socket.svg"
 ---
 
 v5 makes namespace scope explicit in the URL and consolidates overlapping legacy operations.
@@ -19,6 +19,20 @@ https://api.supermemory.ai
 ```
 
 Use the [v5 reference](https://api.supermemory.ai/v5/reference) for the stable v5 API. [`/reference`](https://api.supermemory.ai/reference) always points to the latest public version.
+
+## Install the TypeScript SDK
+
+```bash
+npm i supermemory
+```
+
+```ts
+import { Supermemory } from "supermemory"
+
+const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
+```
+
+Every SDK call takes one object. `namespace`, path IDs, and query parameters are top-level keys; the JSON body goes under `body`. Each reference page below shows the SDK call next to the equivalent `curl`. There is no v5 Python SDK yet.
 
 <CardGroup cols={2}>
   <Card title="Migrate to v5" icon="arrow-up-right" href="/migration/api-v5">

@@ -31,16 +31,17 @@ But, you don't have to think about the above. The interface for users is as simp
 
 <CodeGroup>
 ```typescript TypeScript
-// npm install supermemory
-import Supermemory from "supermemory";
+import { Supermemory } from "supermemory";
 
-const client = new Supermemory({ apiKey: "sm_..." }); // from console.supermemory.ai → API Keys
+const supermemory = new Supermemory({ apiKey: "sm_..." }); // from console.supermemory.ai → API Keys
 
-await client.add({ content: "The user loves Paris.", containerTag: "user_123" });
+await supermemory.add("user_123", {
+  content: "The user loves Paris.",
+  dreaming: "instant", // memories available right after processing
+});
 
-const { results } = await client.search({
-  q: "where does the user want to travel?",
-  containerTag: "user_123",
+const { results } = await supermemory.search("user_123", {
+  query: "where does the user want to travel?",
 });
 ```
 
@@ -50,22 +51,25 @@ from supermemory import Supermemory
 
 client = Supermemory(api_key="sm_...")  # from console.supermemory.ai → API Keys
 
-client.add(content="The user loves Paris.", container_tag="user_123")
-
-results = client.search(
-    q="where does the user want to travel?",
-    container_tag="user_123",
+client.add(
+    "user_123",
+    content="The user loves Paris.",
+    dreaming="instant",  # memories available right after processing
 )
+
+results = client.search("user_123", query="where does the user want to travel?")
 ```
 
 ```bash curl
-curl -X POST https://api.supermemory.ai/v3/documents \
+curl -X POST "https://api.supermemory.ai/ns/user_123/document?dreaming=instant" \
   -H "Authorization: Bearer sm_..." \
   -H "Content-Type: application/json" \
-  -d '{
-    "content": "The user loves Paris.",
-    "containerTag": "user_123"
-  }'
+  -d '{ "content": "The user loves Paris." }'
+
+curl -X POST "https://api.supermemory.ai/ns/user_123/search" \
+  -H "Authorization: Bearer sm_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "query": "where does the user want to travel?" }'
 ```
 </CodeGroup>
 
@@ -82,7 +86,7 @@ You do not pre-chunk or pick an embedding model. See [Multi-modal ingestion](/co
 
 Supermemory handles the ingestion and extraction for you. This also gives us a big advantage for quality - The engine extracts it in an optimized way with Contextual Chunking and other features for better quality search and memory generation.
 
-> Use a stable **`customId`** when the same conversation or file will be updated later (sessions, connector syncs). That identity also drives [diff billing](/overview/billing#full-discount-on-already-seen-tokens-diff-billing) on re-ingest.
+> Use a stable **`id`** when the same conversation or file will be updated later (sessions, connector syncs). That identity also drives [diff billing](/overview/billing#full-discount-on-already-seen-tokens-diff-billing) on re-ingest.
 
 ## What the pipeline does
 
@@ -96,15 +100,14 @@ Supermemory handles the ingestion and extraction for you. This also gives us a b
 | **Done** | Document path is ready for search |
 
 ```typescript
-const doc = await client.add({
+const doc = await supermemory.add("user_123", {
   content: conversationText,
-  containerTag: "user_123",
-  customId: "chat_session_1",
+  id: "chat_session_1",
 });
 
 // Poll until ready
-const status = await client.documents.get(doc.id);
-// status.status → "queued" | "extracting" | ... | "done" | "failed"
+const { system } = await supermemory.documents.get("user_123", doc.id);
+// system.status → "queued" | "extracting" | ... | "done" | "failed"
 ```
 
 Larger PDFs and long video take longer. Short chat turns usually finish in seconds.
@@ -115,7 +118,7 @@ A document with status `done` has its chunks indexed for search. Memories (the g
 
 This is when the content is passed through the memory model and merged, arranged and organized for the future.
 
-Pass `dreaming` on [add](/ingestion/add-memories):
+Pass `dreaming` on [add](/ingestion/add-memories) (a query parameter, so a top-level key in the SDK):
 
 | Mode | Default? | Behavior | When to use |
 | --- | --- | --- | --- |
@@ -124,18 +127,16 @@ Pass `dreaming` on [add](/ingestion/add-memories):
 
 ```typescript
 // Production default — omit or set explicitly
-await client.add({
+await supermemory.add("user_123", {
   content: conversationText,
-  containerTag: "user_123",
-  customId: "chat_session_1",
+  id: "chat_session_1",
   dreaming: "dynamic",
 });
 
 // Need memories immediately (e.g. tutorial)
-await client.add({
+await supermemory.add("user_123", {
   content: conversationText,
-  containerTag: "user_123",
-  customId: "chat_session_1",
+  id: "chat_session_1",
   dreaming: "instant",
 });
 ```
@@ -146,7 +147,7 @@ How those memories connect and stay true over time is [Graph memory](/concepts/g
 
 ## What you get out
 
-After the pipeline runs, the same document leads to three things -> Chunks, Memories and Profile. (in the same `containerTag`):
+After the pipeline runs, the same document leads to three things -> Chunks, Memories and Profile. (in the same `namespace`):
 
 | Output | Role | Go deeper |
 | --- | --- | --- |
@@ -158,9 +159,9 @@ Supermemory does more than store the file. It derives memories (what it understo
 
 ## Isolation and identity
 
-- **`containerTag`** — hard isolation boundary (user, tenant, project). See [Container tags](/concepts/container-tags).
-- **Metadata**: extra dimensions inside a tag that you can filter on. See [metadata filtering](/concepts/filtering).
-- **Scoped API keys** — credentials that cannot cross a container. See [API keys](/authentication#scoped-api-keys).
+- **`namespace`** — hard isolation boundary (user, tenant, project), carried in the URL. See [Namespaces](/concepts/container-tags).
+- **Metadata** — soft dimensions *inside* a namespace for filtering. See [Metadata filtering](/concepts/filtering).
+- **Scoped API keys** — credentials that cannot cross a namespace. See [API keys](/authentication#scoped-api-keys).
 
 ## Next steps
 
@@ -172,7 +173,7 @@ Supermemory does more than store the file. It derives memories (what it understo
     Formats, extractors, and what you can send.
   </Card>
   <Card title="Add context" icon="/icons/hugeicons/plus-sign.svg" href="/ingestion/add-memories">
-    API: add, customId, files, dreaming, status.
+    API: add, id, files, dreaming, status.
   </Card>
   <Card title="Search API" icon="/icons/hugeicons/search-01.svg" href="/recall/search">
     Query documents and memories after the pipeline finishes.

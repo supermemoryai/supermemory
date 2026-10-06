@@ -27,7 +27,7 @@ Non-detailed reasons to pick supermemory over the alternatives. If you're migrat
 
 ## vs pure RAG / document search products
 
-- **Both layers, one engine.** SuperRAG for corpus grounding, memory and profiles for people, sharing the same container tags.
+- **Both layers, one engine.** SuperRAG for corpus grounding, memory and profiles for people, sharing the same namespaces.
 - **Personal state isn't just another document.** "What the policy says" and "what this customer decided last quarter" stay distinct but connected.
 - **No second vendor for personalization.** You're not stitching a memory product onto your RAG stack.
 
@@ -111,7 +111,7 @@ If you are migrating from a specific tool, use the [migration guides](/migration
 - You still have to build in the contextualization and bear the cost of it. Also need to sign up for many vendors for the same.
 - Treating user state as another document collection
 
-**Supermemory instead:** both layers in one engine. SuperRAG grounds answers in your documents, and memory plus profiles cover people and entities. They share container tags, so isolation stays consistent. Read [Memory vs RAG](/concepts/memory-vs-rag).
+**Supermemory instead:** **both** layers in one engine, SuperRAG for corpus grounding, memory + profiles for people and entities. They share namespaces so isolation stays coherent. Deep dive: [Memory vs RAG](/concepts/memory-vs-rag).
 
 <h2 noAnchor>vs Building a full context engine in-house</h2>
 
@@ -128,7 +128,7 @@ If you are migrating from a specific tool, use the [migration guides](/migration
 - Extraction quality and eval harnesses
 - Temporal updates, conflict resolution, forgetting
 - Multimodal pipelines and connector maintenance
-- Authz (scoped keys, container boundaries), billing metering, SOC 2 / GDPR / HIPAA paths
+- Authz (scoped keys, namespace boundaries), billing metering, SOC 2 / GDPR / HIPAA paths
 - Sub-300ms retrieval under agent-loop load, deployability, maintaining it forever as the industry changes
 
 **Supermemory instead:** that platform as a product, managed cloud or
@@ -140,7 +140,7 @@ self-hosted binary, so your team ships agents and apps, not a second infrastruct
 |---|---|
 | Q&A over a mostly static doc set | RAG product or SuperRAG-only usage |
 | Remember users across sessions with updates over time | Supermemory memory + profiles |
-| Both personalization *and* company docs | Supermemory (memory + SuperRAG, same containers) |
+| Both personalization *and* company docs | Supermemory (memory + SuperRAG, same namespaces) |
 | Full control, data never leaves your network | Supermemory [self-host](/self-hosting/overview) / Enterprise |
 | Maximum control of every model weight and storage engine | Build in-house (or fork open pieces and accept the ops) |
 

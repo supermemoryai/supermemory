@@ -1,14 +1,14 @@
 ---
 title: "Organizing & filtering memories"
 sidebarTitle: "Metadata filtering"
-description: "Use container tags and metadata to organize and retrieve memories"
+description: "Use namespaces and metadata to organize and retrieve memories"
 icon: "/icons/hugeicons/filter.svg"
 ---
 
 Supermemory provides two ways to organize your memories:
 
 <CardGroup cols={2}>
-  <Card title="Container tags" icon="/icons/hugeicons/folder-01.svg">
+  <Card title="Namespaces" icon="/icons/hugeicons/folder-01.svg">
     **Organize memories** into isolated spaces by user, project, or workspace
   </Card>
   <Card title="Metadata filtering" icon="/icons/hugeicons/database-01.svg">
@@ -20,31 +20,29 @@ Both can be used independently or together for precise filtering.
 
 ---
 
-## Container tags
+## Namespaces
 
-Container tags create isolated memory spaces. Use them to separate memories by user, project, or any logical boundary.
+Namespaces create isolated memory spaces. Use them to separate memories by user, project, or any logical boundary. The namespace is part of the URL (`/ns/{namespace}/...`), so every SDK call takes it as a top-level key.
 
-### Adding memories with tags
+### Adding Memories to a Namespace
 
 ```typescript
-await client.add({
+await supermemory.add("user_123", {
   content: "Meeting notes from Q1 planning",
-  containerTag: "user_123"
 });
 ```
 
-### Searching with tags
+### Searching a Namespace
 
 ```typescript
-const results = await client.search({
-  q: "planning notes",
-  containerTag: "user_123",
-  searchMode: "documents"
+const results = await supermemory.search("user_123", {
+  query: "planning notes",
+  searchMode: "chunks",
 });
 ```
 
 <Note>
-Each search is scoped to a single container tag. Passing `containerTag: "user_123"` restricts results to memories stored in that container.
+Each search is scoped to a single namespace. Passing `namespace: "user_123"` restricts results to memories stored in that namespace.
 </Note>
 
 ### Recommended patterns
@@ -56,39 +54,31 @@ Each search is scoped to a single container tag. Passing `containerTag: "user_12
 | Hierarchical | `org_{orgId}_team_{teamId}` | Multi-level organization |
 
 <AccordionGroup>
-  <Accordion title="More container tag examples">
+  <Accordion title="More Namespace Examples">
     ```typescript
     // Multi-tenant SaaS - isolate by organization and user
-    await client.add({
+    await supermemory.add("org_acme_user_john", {
       content: "Company policy document",
-      containerTag: "org_acme_user_john"
     });
 
     // Search only within that user's org context
-    const results = await client.search({
-      q: "vacation policy",
-      containerTag: "org_acme_user_john",
-      searchMode: "documents"
+    const results = await supermemory.search("org_acme_user_john", {
+      query: "vacation policy",
+      searchMode: "chunks",
     });
 
     // Project-based isolation
-    await client.add({
+    await supermemory.add("project_mobile_app", {
       content: "Sprint 5 retrospective notes",
-      containerTag: "project_mobile_app"
     });
 
     // Time-based segmentation
-    await client.add({
+    await supermemory.add("user_cfo_2024_q1", {
       content: "Q1 2024 financial report",
-      containerTag: "user_cfo_2024_q1"
     });
     ```
 
-    **API field differences:**
-    | Operation | Field | Type |
-    |-----------|-------|------|
-    | Search | `containerTag` | String |
-    | Documents list | `containerTags` | Array |
+    The namespace is a path parameter on every v5 call (`add`, `search`, `list`, `profile`, `documents.*`). There is no array form; one request touches one namespace.
   </Accordion>
 </AccordionGroup>
 
@@ -101,228 +91,224 @@ Metadata lets you attach custom properties to memories and filter by them later.
 ### Adding memories with metadata
 
 ```typescript
-await client.add({
+await supermemory.add("user_123", {
   content: "Technical design document for auth system",
-  containerTag: "user_123",
   metadata: {
     category: "engineering",
     priority: "high",
-    year: 2024
-  }
+    year: 2024,
+  },
 });
 ```
 
-### Searching with metadata filters
+### Searching with a Filter
 
-Filters must be wrapped in `AND` or `OR` arrays:
+A filter is a typed expression. One condition is an object with `field`, `operator`, and `value`. Several conditions are combined with an `and` or `or` node that lists them in `operands`:
 
 ```typescript
-const results = await client.search({
-  q: "design document",
-  containerTag: "user_123",
-  searchMode: "documents",
-  filters: {
-    AND: [
-      { key: "category", value: "engineering" },
-      { key: "priority", value: "high" }
-    ]
-  }
+const results = await supermemory.search("user_123", {
+  query: "design document",
+  filter: {
+    operator: "and",
+    operands: [
+      { field: "category", operator: "eq", value: "engineering" },
+      { field: "priority", operator: "eq", value: "high" },
+    ],
+  },
+  searchMode: "chunks",
 });
 ```
 
-### Filter types
+A single condition needs no wrapper:
 
-| Type | Example | Description |
-|------|---------|-------------|
-| String equality | `{ key: "status", value: "published" }` | Exact match |
-| String contains | `{ filterType: "string_contains", key: "title", value: "react" }` | Substring match |
-| Numeric | `{ filterType: "numeric", key: "priority", value: "5", numericOperator: ">=" }` | Number comparison |
-| Array contains | `{ filterType: "array_contains", key: "tags", value: "important" }` | Check array membership |
+```typescript
+filter: { field: "status", operator: "eq", value: "published" }
+```
+
+### Operators
+
+| Operator | Value type | Example |
+|----------|------------|---------|
+| `eq`, `neq` | string, number, boolean | `{ field: "status", operator: "eq", value: "published" }` |
+| `gt`, `gte`, `lt`, `lte` | number | `{ field: "priority", operator: "gte", value: 5 }` |
+| `contains`, `notContains` | string | `{ field: "title", operator: "contains", value: "react" }` |
+| `arrayContains`, `arrayNotContains` | string | `{ field: "tags", operator: "arrayContains", value: "important" }` |
+
+String conditions accept an optional `caseSensitive` boolean. Numeric values are JSON numbers, not numeric strings.
 
 ### Combining filters
 
-Use `AND` and `OR` for complex queries:
+Nest `and` and `or` nodes for complex queries:
 
 ```typescript
-const results = await client.search({
-  q: "meeting notes",
-  searchMode: "documents",
-  filters: {
-    AND: [
-      { key: "type", value: "meeting" },
+const results = await supermemory.search("user_123", {
+  query: "meeting notes",
+  filter: {
+    operator: "and",
+    operands: [
+      { field: "type", operator: "eq", value: "meeting" },
       {
-        OR: [
-          { key: "team", value: "engineering" },
-          { key: "team", value: "product" }
-        ]
-      }
-    ]
-  }
+        operator: "or",
+        operands: [
+          { field: "team", operator: "eq", value: "engineering" },
+          { field: "team", operator: "eq", value: "product" },
+        ],
+      },
+    ],
+  },
+  searchMode: "chunks",
 });
 ```
 
 ### Excluding results
 
-Use `negate: true` to exclude matches:
+Use the negative operators (`neq`, `notContains`, `arrayNotContains`) to exclude matches:
 
 ```typescript
-const results = await client.search({
-  q: "documentation",
-  searchMode: "documents",
-  filters: {
-    AND: [
-      { key: "status", value: "draft", negate: true }
-    ]
-  }
+const results = await supermemory.search("user_123", {
+  query: "documentation",
+  filter: { field: "status", operator: "neq", value: "draft" },
+  searchMode: "chunks",
 });
 ```
 
 <AccordionGroup>
-  <Accordion title="More metadata filter examples">
-    **String contains (substring search):**
+  <Accordion title="More Metadata Filter Examples">
+    **Substring match, case-insensitive:**
     ```typescript
     // Find documents with "machine learning" in the description
-    const results = await client.search({
-      q: "AI research",
-      searchMode: "documents",
-      filters: {
-        AND: [
-          {
-            filterType: "string_contains",
-            key: "description",
-            value: "machine learning",
-            ignoreCase: true
-          }
-        ]
-      }
+    const results = await supermemory.search("user_123", {
+      query: "AI research",
+      filter: {
+        field: "description",
+        operator: "contains",
+        value: "machine learning",
+        caseSensitive: false,
+      },
+      searchMode: "chunks",
     });
     ```
 
     **Numeric comparisons:**
     ```typescript
     // Find high-priority items created after a specific date
-    const results = await client.search({
-      q: "tasks",
-      searchMode: "documents",
-      filters: {
-        AND: [
-          {
-            filterType: "numeric",
-            key: "priority",
-            value: "7",
-            numericOperator: ">="
-          },
-          {
-            filterType: "numeric",
-            key: "created_timestamp",
-            value: "1704067200",  // Unix timestamp
-            numericOperator: ">="
-          }
-        ]
-      }
+    const results = await supermemory.search("user_123", {
+      query: "tasks",
+      filter: {
+        operator: "and",
+        operands: [
+          { field: "priority", operator: "gte", value: 7 },
+          { field: "created_timestamp", operator: "gte", value: 1704067200 }, // Unix timestamp
+        ],
+      },
+      searchMode: "chunks",
     });
     ```
 
-    **Array contains (check array membership):**
+    **Array membership:**
     ```typescript
     // Find documents where a specific user is a participant
-    const results = await client.search({
-      q: "meeting notes",
-      searchMode: "documents",
-      filters: {
-        AND: [
-          {
-            filterType: "array_contains",
-            key: "participants",
-            value: "alice@company.com"
-          }
-        ]
-      }
+    const results = await supermemory.search("user_123", {
+      query: "meeting notes",
+      filter: { field: "participants", operator: "arrayContains", value: "alice@company.com" },
+      searchMode: "chunks",
     });
     ```
 
     **Complex nested filters:**
     ```typescript
     // (category = "tech" OR category = "science") AND status != "archived"
-    const results = await client.search({
-      q: "research papers",
-      searchMode: "documents",
-      filters: {
-        AND: [
+    const results = await supermemory.search("user_123", {
+      query: "research papers",
+      filter: {
+        operator: "and",
+        operands: [
           {
-            OR: [
-              { key: "category", value: "tech" },
-              { key: "category", value: "science" }
-            ]
+            operator: "or",
+            operands: [
+              { field: "category", operator: "eq", value: "tech" },
+              { field: "category", operator: "eq", value: "science" },
+            ],
           },
-          { key: "status", value: "archived", negate: true }
-        ]
-      }
+          { field: "status", operator: "neq", value: "archived" },
+        ],
+      },
+      searchMode: "chunks",
     });
     ```
-
-    **Numeric operator negation mapping:**
-    When using `negate: true`, operators flip:
-    - `<` becomes `>=`
-    - `<=` becomes `>`
-    - `>` becomes `<=`
-    - `>=` becomes `<`
-    - `=` becomes `!=`
   </Accordion>
 
   <Accordion title="Real-world patterns">
     **User's work documents from 2024:**
     ```typescript
-    const results = await client.search({
-      q: "quarterly report",
-      containerTag: "user_123",
-      searchMode: "documents",
-      filters: {
-        AND: [
-          { key: "category", value: "work" },
-          { key: "type", value: "report" },
-          { filterType: "numeric", key: "year", value: "2024", numericOperator: "=" }
-        ]
-      }
+    const results = await supermemory.search("user_123", {
+      query: "quarterly report",
+      filter: {
+        operator: "and",
+        operands: [
+          { field: "category", operator: "eq", value: "work" },
+          { field: "type", operator: "eq", value: "report" },
+          { field: "year", operator: "eq", value: 2024 },
+        ],
+      },
+      searchMode: "chunks",
     });
     ```
 
     **Team meeting notes with specific participants:**
     ```typescript
-    const results = await client.search({
-      q: "sprint planning",
-      containerTag: "project_alpha",
-      searchMode: "documents",
-      filters: {
-        AND: [
-          { key: "type", value: "meeting" },
+    const results = await supermemory.search("project_alpha", {
+      query: "sprint planning",
+      filter: {
+        operator: "and",
+        operands: [
+          { field: "type", operator: "eq", value: "meeting" },
           {
-            OR: [
-              { filterType: "array_contains", key: "participants", value: "alice" },
-              { filterType: "array_contains", key: "participants", value: "bob" }
-            ]
-          }
-        ]
-      }
+            operator: "or",
+            operands: [
+              { field: "participants", operator: "arrayContains", value: "alice" },
+              { field: "participants", operator: "arrayContains", value: "bob" },
+            ],
+          },
+        ],
+      },
+      searchMode: "chunks",
     });
     ```
 
     **Exclude drafts and deprecated content:**
     ```typescript
-    const results = await client.search({
-      q: "documentation",
-      searchMode: "documents",
-      filters: {
-        AND: [
-          { key: "status", value: "draft", negate: true },
-          { filterType: "string_contains", key: "content", value: "deprecated", negate: true },
-          { filterType: "array_contains", key: "tags", value: "archived", negate: true }
-        ]
-      }
+    const results = await supermemory.search("user_123", {
+      query: "documentation",
+      filter: {
+        operator: "and",
+        operands: [
+          { field: "status", operator: "neq", value: "draft" },
+          { field: "content", operator: "notContains", value: "deprecated" },
+          { field: "tags", operator: "arrayNotContains", value: "archived" },
+        ],
+      },
+      searchMode: "chunks",
     });
     ```
   </Accordion>
 </AccordionGroup>
+
+### Filters Beyond Search
+
+The same `filter` expression works on list and profile calls:
+
+```typescript
+// Page through matching documents
+const { documents, pagination } = await supermemory.list("user_123", "documents", {
+  filter: { field: "category", operator: "eq", value: "engineering" },
+});
+
+// Build the profile only from matching memories
+const { profile } = await supermemory.profile("user_123", {
+  filter: { field: "source", operator: "eq", value: "onboarding" },
+});
+```
 
 ---
 
@@ -331,23 +317,19 @@ const results = await client.search({
 ### When adding memories
 
 ```typescript
-await client.add({
+await supermemory.add("user_123", { // Isolation
   content: "Your content here",
-  containerTag: "user_123",           // Isolation
-  metadata: { key: "value" }          // Custom properties
+  metadata: { key: "value" },         // Custom properties
 });
 ```
 
 ### When searching
 
 ```typescript
-const results = await client.search({
-  q: "search query",
-  containerTag: "user_123",           // Scopes results to this container
-  searchMode: "documents",
-  filters: {                          // Optional metadata filters
-    AND: [{ key: "status", value: "published" }]
-  }
+const results = await supermemory.search("user_123", { // Scopes results to this namespace
+  query: "search query",
+  filter: { field: "status", operator: "eq", value: "published" }, // Optional
+  searchMode: "chunks",
 });
 ```
 
@@ -356,24 +338,24 @@ const results = await client.search({
 - Allowed characters: `a-z`, `A-Z`, `0-9`, `_`, `-`, `.`
 - Max length: 64 characters
 - No spaces or special characters
+- Keys are literal: `customer.plan` is one key named `customer.plan`, not a nested path
 
 ### Query complexity limits
 
-- Maximum 200 conditions per query
-- Maximum 8 levels of nested `AND`/`OR` expressions
+- Maximum 5 levels of nested `and`/`or` expressions
+- Maximum 200 operands per logical group
 
 <Note>
 If you need more conditions than these limits allow, break your query into multiple requests or use broader search terms with post-processing.
 </Note>
 
-### Searching within a document
+### Reading One Document's Chunks
 
-Use `docId` to scope a search to chunks within one large document — useful for books, podcasts, or other long-form content:
+Scoping a search to a single document (`docId`) is not part of v5. To work with the chunks of one long document, fetch the document with its chunks attached:
 
 ```typescript
-const results = await client.search({
-  q: "machine learning",
-  docId: "doc_123"
+const doc = await supermemory.documents.get("user_123", "doc_123", {
+  include: ["chunks"],
 });
 ```
 
@@ -385,7 +367,7 @@ const results = await client.search({
   <Card title="Search" icon="/icons/hugeicons/search-01.svg" href="/recall/search">
     Apply filters in search queries
   </Card>
-  <Card title="Add memories" icon="/icons/hugeicons/plus-sign.svg" href="/ingestion/add-memories">
-    Add content with container tags and metadata
+  <Card title="Add Memories" icon="/icons/hugeicons/plus-sign.svg" href="/ingestion/add-memories">
+    Add content with namespaces and metadata
   </Card>
 </CardGroup>

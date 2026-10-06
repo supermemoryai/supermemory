@@ -51,13 +51,14 @@ llm = ChatOpenAI(model="gpt-4o")
 memory = Supermemory()
 
 def chat(user_id: str, message: str) -> str:
-    # 1. Get user profile for context
-    profile_result = memory.profile(container_tag=user_id, q=message)
+    # 1. Get user profile and relevant memories
+    profile_result = memory.profile(user_id)
+    search_result = memory.search(user_id, query=message)
 
     # 2. Build context from profile
-    static_facts = profile_result.profile.static or []
-    dynamic_context = profile_result.profile.dynamic or []
-    search_results = profile_result.search_results.results if profile_result.search_results else []
+    static_facts = [m.memory for m in profile_result.profile.static]
+    dynamic_context = [m.memory for m in profile_result.profile.dynamic]
+    search_results = search_result.results
 
     context = f"""
 User Background:
@@ -81,8 +82,9 @@ Relevant Memories:
 
     # 4. Store the interaction as memory
     memory.add(
+        user_id,
         content=f"User: {message}\nAssistant: {response.content}",
-        container_tag=user_id
+        dreaming="instant"
     )
 
     return response.content
@@ -100,14 +102,11 @@ Supermemory automatically maintains user profiles with two types of information:
 - **Dynamic context**: Recent activity and current focus areas
 
 ```python
-# Fetch profile with optional search
-result = memory.profile(
-    container_tag="user_123",
-    q="optional search query"  # Also returns relevant memories
-)
+# Fetch the profile for a namespace
+result = memory.profile("user_123")
 
-print(result.profile.static)   # ["User is a Python developer", "Prefers dark mode"]
-print(result.profile.dynamic)  # ["Currently working on API integration", "Debugging auth issues"]
+print([m.memory for m in result.profile.static])   # ["User is a Python developer", "Prefers dark mode"]
+print([m.memory for m in result.profile.dynamic])  # ["Currently working on API integration", "Debugging auth issues"]
 ```
 
 ### Memory storage
@@ -117,15 +116,17 @@ Content you add is automatically processed into searchable memories:
 ```python
 # Store a conversation
 memory.add(
+    "user_123",
     content="User asked about async Python patterns. Explained asyncio basics.",
-    container_tag="user_123",
-    metadata={"topic": "python", "type": "conversation"}
+    metadata={"topic": "python", "type": "conversation"},
+    dreaming="instant"
 )
 
 # Store a document
 memory.add(
+    "user_123",
     content="https://docs.python.org/3/library/asyncio.html",
-    container_tag="user_123"
+    dreaming="instant"
 )
 ```
 
@@ -134,9 +135,9 @@ memory.add(
 Search returns both extracted memories and document chunks:
 
 ```python
-results = memory.search.memories(
-    q="async programming",
-    container_tag="user_123",
+results = memory.search(
+    "user_123",
+    query="async programming",
     search_mode="hybrid",  # Searches memories + document chunks
     limit=5
 )
@@ -169,16 +170,16 @@ class CodeReviewAssistant:
 
     def get_context(self, user_id: str, code: str) -> str:
         """Retrieve user profile and relevant past reviews."""
-        # Get profile with search for similar code patterns
-        result = self.memory.profile(
-            container_tag=user_id,
-            q=code[:500],  # Use code snippet for semantic search
+        # Get profile, then search for similar code patterns
+        profile = self.memory.profile(user_id).profile
+        memories = self.memory.search(
+            user_id,
+            query=code[:500],  # Use code snippet for semantic search
             threshold=0.6
-        )
+        ).results
 
-        static = result.profile.static or []
-        dynamic = result.profile.dynamic or []
-        memories = result.search_results.results if result.search_results else []
+        static = [m.memory for m in profile.static]
+        dynamic = [m.memory for m in profile.dynamic]
 
         return f"""
 ## Developer Profile
@@ -188,7 +189,7 @@ class CodeReviewAssistant:
 {chr(10).join(f"- {ctx}" for ctx in dynamic) if dynamic else "No recent context."}
 
 ## Relevant Past Reviews
-{chr(10).join(f"- {m.memory}" for m in memories[:3]) if memories else "No similar reviews found."}
+{chr(10).join(f"- {m.memory or m.chunk}" for m in memories[:3]) if memories else "No similar reviews found."}
 """
 
     def review(self, user_id: str, code: str, language: Optional[str] = None) -> str:
@@ -213,9 +214,10 @@ Guidelines:
 
         # Store the review for future context
         self.memory.add(
+            user_id,
             content=f"Code review feedback: {response.content[:500]}",
-            container_tag=user_id,
-            metadata={"type": "code_review", "language": language}
+            metadata={"type": "code_review", "language": language},
+            dreaming="instant"
         )
 
         return response.content
@@ -223,9 +225,10 @@ Guidelines:
     def learn_preference(self, user_id: str, preference: str):
         """Store a coding preference or style guideline."""
         self.memory.add(
+            user_id,
             content=f"Developer preference: {preference}",
-            container_tag=user_id,
-            metadata={"type": "preference"}
+            metadata={"type": "preference"},
+            dreaming="instant"
         )
 
 
@@ -272,22 +275,16 @@ class ConversationalAgent:
 
     def _build_system_prompt(self, query: str) -> str:
         """Build system prompt with user context."""
-        result = self.memory.profile(
-            container_tag=self.user_id,
-            q=query,
-            threshold=0.5
-        )
-
-        profile = result.profile
-        memories = result.search_results.results if result.search_results else []
+        profile = self.memory.profile(self.user_id).profile
+        memories = self.memory.search(self.user_id, query=query, threshold=0.5).results
 
         return f"""You are a helpful assistant with memory of past conversations.
 
 About this user:
-{chr(10).join(profile.static) if profile.static else 'No profile yet.'}
+{chr(10).join(m.memory for m in profile.static) if profile.static else 'No profile yet.'}
 
 Current context:
-{chr(10).join(profile.dynamic) if profile.dynamic else 'No recent context.'}
+{chr(10).join(m.memory for m in profile.dynamic) if profile.dynamic else 'No recent context.'}
 
 Relevant memories:
 {chr(10).join(m.memory or m.chunk for m in memories[:5]) if memories else 'None.'}
@@ -308,8 +305,9 @@ Use this context to provide personalized, contextual responses."""
 
         # Store interaction for long-term memory
         self.memory.add(
+            self.user_id,
             content=f"User: {message}\nAssistant: {response.content}",
-            container_tag=self.user_id
+            dreaming="instant"
         )
 
         return response.content
@@ -326,8 +324,9 @@ Use metadata to organize and filter memories:
 ```python
 # Store with metadata
 memory.add(
+    "user_123",
     content="Discussed React hooks and state management",
-    container_tag="user_123",
+    dreaming="instant",
     metadata={
         "topic": "react",
         "type": "discussion",
@@ -336,13 +335,14 @@ memory.add(
 )
 
 # Search with filters
-results = memory.search.memories(
-    q="state management",
-    container_tag="user_123",
-    filters={
-        "AND": [
-            {"key": "topic", "value": "react"},
-            {"key": "project", "value": "frontend-redesign"}
+results = memory.search(
+    "user_123",
+    query="state management",
+    filter={
+        "operator": "and",
+        "operands": [
+            {"field": "topic", "operator": "eq", "value": "react"},
+            {"field": "project", "operator": "eq", "value": "frontend-redesign"}
         ]
     }
 )
@@ -362,9 +362,10 @@ notes = [
 
 for note in notes:
     memory.add(
+        "team_standup",
         content=note,
-        container_tag="team_standup",
-        metadata={"date": "2024-01-15", "type": "decision"}
+        metadata={"date": "2024-01-15", "type": "decision"},
+        dreaming="instant"
     )
 ```
 

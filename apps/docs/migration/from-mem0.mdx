@@ -36,10 +36,7 @@ data = mem0.get_memory_export(memory_export_id=export["id"])
 supermemory = Supermemory(api_key="your_supermemory_api_key")
 for memory in data["memories"]:
     if memory.get("content"):
-        supermemory.memories.add(
-            content=memory["content"],
-            container_tags=["imported_from_mem0"]
-        )
+        supermemory.add("imported_from_mem0", content=memory["content"])
         print(f"✅ {memory['content'][:50]}...")
 
 print("Migration complete!")
@@ -141,8 +138,8 @@ print("Migration complete!")
         # Import to Supermemory
         try:
             result = client.add(
+                "imported_from_mem0",
                 content=content,
-                container_tags=["imported_from_mem0"],
                 metadata={
                     "source": "mem0",
                     "created_at": memory.get("created_at"),
@@ -176,14 +173,13 @@ client.add(
 )
 ```
 
-```python Supermemory
-from supermemory import Supermemory
+```typescript Supermemory
+import { Supermemory } from "supermemory";
 
-client = Supermemory(api_key="...")
-client.add(
-    content="User prefers dark mode",
-    container_tags=["user_alice"]
-)
+const client = new Supermemory({ apiKey: "..." });
+await client.add("user_alice", {
+  content: "User prefers dark mode",
+});
 ```
 
 </CodeGroup>
@@ -199,11 +195,11 @@ results = client.search(
 )
 ```
 
-```python Supermemory
-results = client.search.memories(
-    q="user preferences",
-    container_tag="user_alice"
-)
+```typescript Supermemory
+const { results } = await client.search("user_alice", {
+  query: "user preferences",
+  searchMode: "memories",
+});
 ```
 
 </CodeGroup>
@@ -218,11 +214,10 @@ memories = client.get_all(
 )
 ```
 
-```python Supermemory
-memories = client.documents.list(
-    container_tags=["user_alice"],
-    limit=100
-)
+```typescript Supermemory
+const { memories } = await client.list("user_alice", "memories", {
+  limit: 100,
+});
 ```
 
 </CodeGroup>
@@ -235,8 +230,10 @@ memories = client.documents.list(
 client.delete(memory_id="mem_123")
 ```
 
-```python Supermemory
-client.documents.delete("mem_123")
+```typescript Supermemory
+await client.documents.delete("user_alice", {
+  ids: ["mem_123"],
+});
 ```
 
 </CodeGroup>

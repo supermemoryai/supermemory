@@ -26,7 +26,7 @@ import { createClaudeMemoryTool } from "@supermemory/tools/claude-memory"
 const anthropic = new Anthropic()
 
 const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
-  projectId: "my-app",
+  namespace: "my-app",
 })
 
 async function chatWithMemory(userMessage: string) {
@@ -85,14 +85,13 @@ import { createClaudeMemoryTool } from "@supermemory/tools/claude-memory"
 
 const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
   // Scope memories to a project or user
-  projectId: "my-app",
+  namespace: "my-app",
 
   // Or use container tags for more flexibility
-  containerTags: ["user-123", "project-alpha"],
+  namespace: "user-123",
 
   // Custom memory container prefix (default: "claude_memory")
-  memoryContainerTag: "my_memory_prefix",
-
+  
   // Custom API endpoint
   baseUrl: "https://custom.api.com",
 })
@@ -196,7 +195,7 @@ import { createClaudeMemoryTool } from "@supermemory/tools/claude-memory"
 
 const anthropic = new Anthropic()
 const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
-  projectId: "assistant",
+  namespace: "assistant",
 })
 
 async function runConversation() {

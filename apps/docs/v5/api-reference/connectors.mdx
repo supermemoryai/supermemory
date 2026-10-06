@@ -1,0 +1,54 @@
+---
+title: "Connectors"
+sidebarTitle: "Overview"
+description: "Sync Notion, Google Drive, Gmail, GitHub, websites, S3 buckets, and Granola into a namespace"
+icon: "/icons/hugeicons/book-open-01.svg"
+---
+
+| Operation | Purpose |
+| --- | --- |
+| `POST /ns/{namespace}/connectors` | Connect a source to this namespace. OAuth providers return an `authorization` link to send the user to; config providers start syncing right away |
+| `GET /ns/{namespace}/connectors` | List the connectors feeding this namespace |
+| `GET /ns/{namespace}/connectors/{id}` | Read one connector, with `include=syncs` for recent sync runs or `include=picker` for a hosted picker link |
+| `PATCH /ns/{namespace}/connectors/{id}` | Change what it syncs: `selection` and `documentLimit` |
+| `POST /ns/{namespace}/connectors/{id}/sync` | Trigger a sync now. Returns 409 while one is already running |
+| `DELETE /ns/{namespace}/connectors/{id}` | Disconnect, optionally deleting the documents it imported |
+| `GET /connectors` | List every connector in the organization, across namespaces |
+
+Providers: `notion`, `google-drive`, `onedrive`, `gmail`, `github` authenticate with OAuth. `web-crawler`, `s3`, and `granola` take their configuration in the create body and need no login.
+
+<CodeGroup>
+```typescript TypeScript
+import { Supermemory } from "supermemory"
+
+const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
+
+// OAuth provider: send the user to authorization.url, the connector appears once they finish
+const { id, authorization } = await supermemory.connectors.create("user_123", {
+  provider: "notion",
+  redirectUrl: "https://yourapp.com/connected"
+})
+
+// Config provider: starts syncing immediately, authorization is null
+const crawler = await supermemory.connectors.create("user_123", {
+  provider: "web-crawler",
+  config: { startUrl: "https://docs.example.com" }
+  documentLimit: 200,
+})
+
+const status = await supermemory.connectors.get("user_123", crawler.id, { include: "syncs" })
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/ns/user_123/connectors" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "provider": "notion", "redirectUrl": "https://yourapp.com/connected" }'
+```
+</CodeGroup>
+
+<Note>
+A pending OAuth connector is not returned by list or get until the user completes authorization. The `authorization.url` expires after one hour (see `authorization.expiresAt`).
+</Note>
+
+See the [connector guides](/connectors/overview) for per-provider setup, selection rules, and troubleshooting.

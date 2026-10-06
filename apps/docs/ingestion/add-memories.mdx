@@ -5,28 +5,28 @@ description: "Add text, files, and URLs to Supermemory"
 icon: "/icons/hugeicons/plus-sign.svg"
 ---
 
-Send any raw content to Supermemory — conversations, documents, files, URLs. We extract the memories automatically. Pass `customId` to identify content and avoid duplicates, and `taskType: "superrag"` if you just need it searchable, not remembered — that's [5x cheaper](#memory-vs-superrag-ingestion) per token.
+Send any raw content to Supermemory — conversations, documents, files, URLs. We extract the memories automatically. Pass `id` to identify content and avoid duplicates, and `taskType: "superrag"` if you just need it searchable, not remembered — that's [5x cheaper](#memory-vs-superrag-ingestion) per token.
+
+Every write goes to one `namespace` (what v3/v4 called a container tag). The namespace sits in the URL path, never in the body.
 
 ## Quick start
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    import Supermemory from 'supermemory';
+    import { Supermemory } from "supermemory";
 
-    const client = new Supermemory();
+    const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
     // Add text content
-    await client.add({
+    await supermemory.add("user_123", {
       content: "Machine learning enables computers to learn from data",
-      containerTag: "user_123",
-      metadata: { category: "ai" }
+      metadata: { category: "ai" },
     });
 
     // Add a URL (auto-extracted)
-    await client.add({
-      content: "https://youtube.com/watch?v=dQw4w9WgXcQ",
-      containerTag: "user_123"
+    await supermemory.add("user_123", {
+      content: "https://youtube.com/watch?v=dQw4w9WgXcQ"
     });
     ```
   </Tab>
@@ -38,26 +38,22 @@ Send any raw content to Supermemory — conversations, documents, files, URLs. W
 
     # Add text content
     client.add(
+        "user_123",
         content="Machine learning enables computers to learn from data",
-        container_tag="user_123",
-        metadata={"category": "ai"}
+        metadata={"category": "ai"},
     )
 
     # Add a URL (auto-extracted)
-    client.add(
-        content="https://youtube.com/watch?v=dQw4w9WgXcQ",
-        container_tag="user_123"
-    )
+    client.add("user_123", content="https://youtube.com/watch?v=dQw4w9WgXcQ")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v3/documents" \
+    curl -X POST "https://api.supermemory.ai/ns/user_123/document" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
         "content": "Machine learning enables computers to learn from data",
-        "containerTag": "user_123",
         "metadata": {"category": "ai"}
       }'
     ```
@@ -77,34 +73,31 @@ If an irrecoverable processing error occurs, the document is automatically delet
 
 ## Updating content
 
-Use `customId` to update existing documents or conversations. When you send content with the same `customId`, Supermemory intelligently processes only what's new.
+Use `id` to update existing documents or conversations. When you send content with the same `id`, Supermemory intelligently processes only what's new.
 
 ### Two ways to update:
 
 **Option 1: Send only the new content**
 ```typescript
 // First request
-await client.add({
+await supermemory.add("user_sarah", {
   content: "user: Hi, I'm Sarah.\nassistant: Nice to meet you!",
-  customId: "conv_123",
-  containerTag: "user_sarah"
+  id: "conv_123",
 });
 
 // Later: send only new messages
-await client.add({
+await supermemory.add("user_sarah", {
   content: "user: What's the weather?\nassistant: It's sunny today.",
-  customId: "conv_123",  // Same ID — Supermemory links them
-  containerTag: "user_sarah"
+  id: "conv_123", // Same ID — Supermemory links them
 });
 ```
 
 **Option 2: Send the full updated content**
 ```typescript
 // Supermemory detects the diff and only processes new parts
-await client.add({
+await supermemory.add("user_sarah", {
   content: "user: Hi, I'm Sarah.\nassistant: Nice to meet you!\nuser: What's the weather?\nassistant: It's sunny today.",
-  customId: "conv_123",
-  containerTag: "user_sarah"
+  id: "conv_123",
 });
 ```
 
@@ -112,13 +105,13 @@ Both work — choose what fits your architecture.
 
 ### Replace entire document
 
-To completely replace a document's content (not append), use `memories.update()`:
+To completely replace a document's content (not append), use `documents.update()`:
 
 ```typescript
 // Replace the entire document content
-await client.documents.update("doc_id_123", {
+await supermemory.documents.update("user_sarah", "doc_id_123", {
   content: "Completely new content replacing everything",
-  metadata: { version: 2 }
+  metadata: { version: 2 },
 });
 ```
 
@@ -146,34 +139,37 @@ content: formatConversation(messages)
 
 ## Upload files
 
-Upload PDFs, images, and documents directly.
+Upload PDFs, images, and documents directly. This is a multipart request, so `metadata` is a JSON string here, not an object.
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    import fs from 'fs';
+    import { openAsBlob } from "node:fs";
 
-    await client.documents.uploadFile({
-      file: fs.createReadStream('document.pdf'),
-      containerTag: 'user_123'
+    await supermemory.documents.uploadFile("user_123", {
+      file: await openAsBlob("document.pdf"),
+      metadata: JSON.stringify({ source: "upload" }),
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    with open('document.pdf', 'rb') as file:
+    import json
+
+    with open("document.pdf", "rb") as file:
         client.documents.upload_file(
+            "user_123",
             file=file,
-            container_tag='user_123'
+            metadata=json.dumps({"source": "upload"}),
         )
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v3/documents/file" \
+    curl -X POST "https://api.supermemory.ai/ns/user_123/document/file" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -F "file=@document.pdf" \
-      -F "containerTag=user_123"
+      -F 'metadata={"source":"upload"}'
     ```
   </Tab>
 </Tabs>
@@ -197,14 +193,17 @@ Scale and Enterprise include [advanced document extraction for PDFs](/concepts/c
 
 ## Parameters
 
+`namespace`, `taskType`, and `dreaming` are top-level keys on the SDK call (`taskType` and `dreaming` are query parameters on the HTTP route). Everything else goes in `body`.
+
 | Parameter | Type | Description |
 |-----------|------|-------------|
+| `namespace` | string | **Required.** Group by user/project. Goes in the URL path. Required for user profiles |
 | `content` | string | **Required.** Any raw content — text, conversations, URLs, HTML |
-| `customId` | string | **Recommended.** Your ID for the content (conversation ID, doc ID). Enables updates and deduplication |
-| `containerTag` | string | Group by user/project. Required for user profiles |
+| `id` | string | **Recommended.** Your ID for the content (conversation ID, doc ID). Enables updates and deduplication. The response `id` echoes it back |
 | `metadata` | object | Key-value pairs for filtering (strings, numbers, booleans) |
-| `filterByMetadata` | object | Filter which existing memories are used as context during ingestion. See [Filtered Writes](#filtered-writes) |
-| `entityContext` | string | Context for memory extraction on this container tag. Max 1500 chars. See [Customization](/concepts/customization#entity-context) |
+| `group` | object | Filter which existing memories are used as context during ingestion. See [Filtered Writes](#filtered-writes) |
+| `supportingContext` | string | Context for memory extraction on this namespace. Max 1500 chars. See [Customization](/concepts/customization#entity-context) |
+| `date` | string | ISO 8601 date the content was originally created. Use when backfilling. See [Backfill historical data](/ingestion/batch-ingest-historical-data) |
 | `dreaming` | `"dynamic" \| "instant"` | Processing mode. Default `"dynamic"`. `"instant"` processes each document on its own and bills one extra operation. See [Processing Modes](#processing-modes) |
 | `taskType` | `"memory" \| "superrag"` | Pipeline to run. Default `"memory"`. `"superrag"` skips fact extraction and profile updates, doing only chunk/embed/index — at 5x cheaper per token. See [SuperRAG ingestion](/concepts/super-rag#ingesting-as-pure-superrag-tasktype-superrag) |
 
@@ -224,31 +223,31 @@ Scale and Enterprise include [advanced document extraction for PDFs](/concepts/c
     { content: "# Project Docs\n\n## Features\n- Real-time sync" }
     ```
 
-    **Container Tags:**
+    **Namespaces:**
     ```typescript
     // By user
-    { containerTag: "user_123" }
+    { namespace: "user_123" }
 
     // By project
-    { containerTag: "project_alpha" }
+    { namespace: "project_alpha" }
 
     // Hierarchical
-    { containerTag: "org_456_team_backend" }
+    { namespace: "org_456_team_backend" }
     ```
 
-    **Custom IDs (Recommended):**
+    **IDs (Recommended):**
     ```typescript
     // Use IDs from your system
-    { customId: "conv_abc123" }        // Conversation ID
-    { customId: "doc_456" }            // Document ID
-    { customId: "thread_789" }         // Thread ID
-    { customId: "meeting_2024_01_15" } // Meeting ID
+    { id: "conv_abc123" }        // Conversation ID
+    { id: "doc_456" }            // Document ID
+    { id: "thread_789" }         // Thread ID
+    { id: "meeting_2024_01_15" } // Meeting ID
 
-    // Updates: same customId = same document
+    // Updates: same id = same document
     // Supermemory only processes new/changed content
-    await client.add({
+    await supermemory.add("user_123", {
       content: "Updated content...",
-      customId: "doc_456"  // Links to existing document
+      id: "doc_456", // Links to existing document
     });
     ```
 
@@ -266,18 +265,18 @@ Scale and Enterprise include [advanced document extraction for PDFs](/concepts/c
     - No nested objects or arrays
     - Values: string, number, or boolean only
 
-    **Entity Context:**
+    **Supporting Context:**
     ```typescript
-    // Guide memory extraction for this container tag
-    {
-      containerTag: "session_abc123",
-      entityContext: `Design exploration conversation between john@acme.com and Brand.ai assistant.
-        Focus on John's design preferences and brand requirements.`
-    }
+    // Guide memory extraction for this namespace
+    await supermemory.add("session_abc123", {
+      content: "...",
+      supportingContext: `Design exploration conversation between john@acme.com and Brand.ai assistant.
+        Focus on John's design preferences and brand requirements.`,
+    });
     ```
     - Max 1500 characters
-    - Persists on the container tag
-    - Combines with org-level filter prompts
+    - Persists on the namespace
+    - Combines with org-level organizational context
   </Accordion>
 </AccordionGroup>
 
@@ -289,14 +288,14 @@ Scale and Enterprise include [advanced document extraction for PDFs](/concepts/c
 
 The `dreaming` parameter controls how Supermemory turns a document into memories.
 
-- `"dynamic"` (default) — groups related documents together so memories form from coherent, logical units rather than one isolated entry at a time.
-- `"instant"` — processes each document on its own right away, and bills one extra operation per document.
+- `"dynamic"` (default) — groups related documents together so memories form from coherent, logical units rather than one isolated entry at a time. A fresh namespace can show zero memories and an empty profile for several minutes.
+- `"instant"` — processes each document on its own right away, and bills one extra operation per document. Use it for quickstarts, tests, and any flow that reads memories or a profile right after `add`.
 
-```json
-{
-  "content": "...",
-  "dreaming": "instant"
-}
+```typescript
+await supermemory.add("user_123", {
+  content: "...",
+  dreaming: "instant",
+});
 ```
 
 ### Memory vs SuperRAG ingestion
@@ -306,11 +305,11 @@ The `taskType` parameter controls whether that content also feeds the memory pip
 - `"memory"` (default) — chunks/embeds for search **and** extracts facts, updates the user's profile, and links into the graph.
 - `"superrag"` — chunks/embeds for search only. No fact extraction, no profile updates. Priced at **5x cheaper per token** than `"memory"`.
 
-```json
-{
-  "content": "...",
-  "taskType": "superrag"
-}
+```typescript
+await supermemory.add("user_123", {
+  content: "...",
+  taskType: "superrag",
+});
 ```
 
 Use `"superrag"` for reference material you want searchable but that shouldn't shape what Supermemory knows about a user. Full explanation: [SuperRAG → Ingesting as pure SuperRAG](/concepts/super-rag#ingesting-as-pure-superrag-tasktype-superrag).
@@ -319,9 +318,9 @@ Use `"superrag"` for reference material you want searchable but that shouldn't s
 
 ## Filtered writes
 
-By default, when you add content, Supermemory uses **all** existing memories in the space as context for generating new memories. With **filtered writes**, you can scope this context to only memories from documents matching specific metadata.
+By default, when you add content, Supermemory uses **all** existing memories in the namespace as context for generating new memories. With **filtered writes**, you can scope this context to only memories from documents matching specific metadata.
 
-This is useful when you have many documents in a space but want new memories to build on top of a specific subset — for example, only memories from a particular source, category, or user.
+This is useful when you have many documents in a namespace but want new memories to build on top of a specific subset — for example, only memories from a particular source, category, or user.
 
 <Note>
 The metadata itself is still written to the document, but the memories will only be built on top of what's already there matching the filter.
@@ -330,34 +329,32 @@ The metadata itself is still written to the document, but the memories will only
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    await client.add({
+    await supermemory.add("user_123", {
       content: "New research findings on transformer architectures...",
-      containerTag: "user_123",
       metadata: { category: "ml", source: "arxiv" },
-      filterByMetadata: { category: "ml" }
+      group: { category: "ml" },
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
     client.add(
+        "user_123",
         content="New research findings on transformer architectures...",
-        container_tag="user_123",
         metadata={"category": "ml", "source": "arxiv"},
-        filter_by_metadata={"category": "ml"}
+        group={"category": "ml"},
     )
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v3/documents" \
+    curl -X POST "https://api.supermemory.ai/ns/user_123/document" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
         "content": "New research findings on transformer architectures...",
-        "containerTag": "user_123",
         "metadata": {"category": "ml", "source": "arxiv"},
-        "filterByMetadata": {"category": "ml"}
+        "group": {"category": "ml"}
       }'
     ```
   </Tab>
@@ -365,16 +362,16 @@ The metadata itself is still written to the document, but the memories will only
 
 ### How it works
 
-When `filterByMetadata` is provided:
+When `group` is provided:
 - **Profile memories** (static context) are filtered to only those from documents matching the metadata
 - **Similar memories** used as context during ingestion are filtered the same way
 - The new document's own metadata is written normally — the filter only affects which **existing** memories are used as context
 
-### `filterByMetadata` parameter
+### `group` parameter
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `filterByMetadata` | `Record<string, string \| number \| boolean \| string[]>` | Key-value pairs to filter existing memories by their source document metadata |
+| `group` | `Record<string, string \| number \| boolean \| string[]>` | Key-value pairs to filter existing memories by their source document metadata |
 
 - **Scalar values** (string, number, boolean) match exactly
 - **Array values** match if **any** value in the array matches (OR logic)
@@ -382,13 +379,12 @@ When `filterByMetadata` is provided:
 
 ```typescript
 // Match documents where category is "ml" AND source is either "arxiv" or "pubmed"
-await client.add({
+await supermemory.add("user_123", {
   content: "...",
-  containerTag: "user_123",
-  filterByMetadata: {
+  group: {
     category: "ml",
-    source: ["arxiv", "pubmed"]
-  }
+    source: ["arxiv", "pubmed"],
+  },
 });
 ```
 
@@ -405,10 +401,10 @@ When you add content, Supermemory:
 5. **Embeds** for vector search
 6. **Indexes** for retrieval
 
-Track progress with `GET /v3/documents/{id}`:
+Track progress with `GET /ns/{namespace}/document/{id}`:
 ```typescript
-const doc = await client.documents.get("abc123");
-console.log(doc.status); // "queued" | "processing" | "done"
+const doc = await supermemory.documents.get("user_123", "abc123");
+console.log(doc.system.status); // "queued" | "processing" | "done"
 ```
 
 <AccordionGroup>
@@ -421,10 +417,9 @@ console.log(doc.status); // "queued" | "processing" | "done"
 
       for (const doc of documents) {
         try {
-          const result = await client.add({
+          const result = await supermemory.add("batch_import", {
             content: doc.content,
-            customId: doc.id,
-            containerTag: "batch_import"
+            id: doc.id,
           });
           results.push({ id: doc.id, success: true, docId: result.id });
         } catch (error) {
@@ -442,54 +437,41 @@ console.log(doc.status); // "queued" | "processing" | "done"
     **Tips:**
     - Batch size: 3-5 documents at once
     - Delay: 1-2 seconds between requests
-    - Use `customId` to track and deduplicate
+    - Use `id` to track and deduplicate
+    - For large backfills use `documents.batchAdd` instead. See [Backfill historical data](/ingestion/batch-ingest-historical-data)
   </Accordion>
 
   <Accordion title="Error handling">
     | Status | Error | Cause |
     |--------|-------|-------|
-    | 400 | BadRequestError | Missing required fields, invalid parameters |
-    | 401 | AuthenticationError | Invalid or missing API key |
-    | 403 | PermissionDeniedError | Insufficient permissions |
-    | 429 | RateLimitError | Too many requests or quota exceeded |
-    | 500 | InternalServerError | Processing failure |
+    | 400 | Bad request | Missing required fields, invalid parameters |
+    | 401 | Unauthorized | Invalid or missing API key |
+    | 403 | Forbidden | Insufficient permissions |
+    | 429 | Rate limited | Too many requests or quota exceeded |
+    | 500 | Internal error | Processing failure |
 
     ```typescript
-    import { BadRequestError, RateLimitError } from 'supermemory';
-
     try {
-      await client.add({ content: "..." });
+      await supermemory.add("user_123", { content: "..." });
     } catch (error) {
-      if (error instanceof RateLimitError) {
-        // Wait and retry
-        await new Promise(r => setTimeout(r, 60000));
-      } else if (error instanceof BadRequestError) {
-        // Fix request parameters
-        console.error("Invalid request:", error.message);
-      }
+      // Back off on 429, fix the request on 400, retry later on 5xx
+      console.error("add failed:", error);
     }
     ```
   </Accordion>
 
-  <Accordion title="Delete content">
-    **Single delete:**
+  <Accordion title="Delete Content">
+    **Delete by IDs (one or many, Supermemory or your own ids):**
     ```typescript
-    await client.documents.delete("doc_id_123");
-    ```
-
-    **Bulk delete by IDs:**
-    ```typescript
-    await client.documents.deleteBulk({
-      ids: ["doc_1", "doc_2", "doc_3"]
+    const { count, errors } = await supermemory.documents.delete("user_123", {
+      ids: ["doc_1", "doc_2", "doc_3"],
     });
     ```
 
-    **Bulk delete by container tag:**
+    **Delete everything in a namespace:**
     ```typescript
     // Delete all content for a user
-    await client.documents.deleteBulk({
-      containerTags: ["user_123"]
-    });
+    await supermemory.namespaces.delete("user_123");
     ```
 
     Deletes are permanent — no recovery.
@@ -503,4 +485,4 @@ console.log(doc.status); // "queued" | "processing" | "done"
 - [How to backfill historical data](/ingestion/batch-ingest-historical-data) — Import dated content with the batch API
 - [Search Memories](/recall/search) — Query your content
 - [User Profiles](/recall/user-profiles) — Get user context
-- [Organizing & Filtering](/concepts/filtering) — Container tags and metadata
+- [Organizing & Filtering](/concepts/filtering) — Namespaces and metadata

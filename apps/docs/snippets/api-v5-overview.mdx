@@ -12,7 +12,7 @@ The API base URL and bearer keys do not change.
 
 <Steps>
   <Step title="Inventory every legacy call">
-    Search for `/v3/`, `/v4/`, `containerTag`, `containerTags`, `customId`, `entityContext`, `filterByMetadata`, `filters`, and legacy SDK methods.
+    Search for `/v3/`, `/v4/`, `containerTag`, `containerTags`, `customId`, `entityContext`, `filterByMetadata`, `filters`, and legacy SDK methods such as `client.search.execute`, `client.profile`, and `client.connections.*`.
   </Step>
   <Step title="Resolve one namespace per request">
     Move the legacy `containerTag` into `/ns/{namespace}`. Never infer scope from a document or memory ID, and never send multiple namespaces to one v5 request.
@@ -31,19 +31,77 @@ The API base URL and bearer keys do not change.
   </Step>
 </Steps>
 
+## Upgrade the SDK
+
+The v5 TypeScript SDK ships as the same `supermemory` package. Install it, then replace the legacy client:
+
+```bash
+npm i supermemory
+```
+
+<CodeGroup>
+```ts Legacy
+import Supermemory from "supermemory"
+
+const client = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
+await client.add({ content: "new turn", containerTag: "user_1" })
+```
+
+```ts v5
+import { Supermemory } from "supermemory"
+
+const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
+await supermemory.add("user_1", { content: "new turn" })
+```
+</CodeGroup>
+
+Every v5 call takes one object. `namespace`, path IDs, and query parameters are top-level keys; the JSON body goes under `body`. Legacy `containerTag` never appears in a body again. There is no v5 Python SDK yet.
+
 ## Endpoint map
 
-| Legacy | v5 |
-| --- | --- |
-| `POST /v3/documents` | `POST /ns/{namespace}/document` |
-| `POST /v3/documents/batch` | `POST /ns/{namespace}/document/batch` |
-| `POST /v3/documents/file` | `POST /ns/{namespace}/document/file` |
-| `GET/PATCH /v3/documents/{id}` | `GET/PATCH /ns/{namespace}/document/{id}` |
-| Single or bulk document delete | `DELETE /ns/{namespace}/document` |
-| Legacy document or memory lists | `POST /ns/{namespace}/list/{type}` |
-| `POST /v3/search` or `/v4/search` | `POST /ns/{namespace}/search` |
-| `POST /v4/profile` | `POST /ns/{namespace}/profile` |
-| `POST /v4/profile/buckets` | `GET /ns/{namespace}/profile/buckets` |
-| Legacy memory forget routes | `DELETE /ns/{namespace}/memories...` |
-| Container-tag settings and lifecycle | `/namespaces` and `/ns/{namespace}` |
-| `GET/PATCH /v3/settings` | `GET/PATCH /organization` |
+| Legacy | v5 | SDK method |
+| --- | --- | --- |
+| `POST /v3/documents` | `POST /ns/{namespace}/document` | `supermemory.add` |
+| `POST /v3/documents/batch` | `POST /ns/{namespace}/document/batch` | `supermemory.documents.batchAdd` |
+| `POST /v3/documents/file` | `POST /ns/{namespace}/document/file` | `supermemory.documents.uploadFile` |
+| `GET/PATCH /v3/documents/{id}` | `GET/PATCH /ns/{namespace}/document/{id}` | `supermemory.documents.get` / `supermemory.documents.update` |
+| File replace or partial file update | `POST/PATCH /ns/{namespace}/document/file/{id}` | `supermemory.documents.replaceWithFile` / `supermemory.documents.updateFile` |
+| Single or bulk document delete | `DELETE /ns/{namespace}/document` | `supermemory.documents.delete` |
+| Legacy document or memory lists | `POST /ns/{namespace}/list/{type}` | `supermemory.list` |
+| `POST /v3/search` or `/v4/search` | `POST /ns/{namespace}/search` | `supermemory.search` |
+| `POST /v4/profile` | `POST /ns/{namespace}/profile` | `supermemory.profile` |
+| `POST /v4/profile/buckets` | `GET/PUT/DELETE /ns/{namespace}/profile/buckets` | `supermemory.profiles.getBuckets` / `setBuckets` / `deleteBuckets` |
+| Legacy memory forget routes | `DELETE /ns/{namespace}/memories...` | `supermemory.memories.forget` / `supermemory.memories.forgetMatching` |
+| Container-tag settings and lifecycle | `/namespaces` and `/ns/{namespace}` | `supermemory.namespaces.list` / `get` / `update` / `delete` |
+| `GET/PATCH /v3/settings` | `GET/PATCH /organization` | `supermemory.organization.get` / `update` |
+
+### Connectors
+
+Connector routes also move under the namespace. Legacy `containerTags` arrays become one namespace per connector.
+
+| Legacy | v5 | SDK method |
+| --- | --- | --- |
+| `POST /v3/connections/list` | `GET /ns/{namespace}/connectors` or `GET /connectors` | `supermemory.connectors.list` / `supermemory.connectors.listAll` |
+| `POST /v3/connections/{provider}` | `POST /ns/{namespace}/connectors` | `supermemory.connectors.create` |
+| `GET /v3/connections/{connectionId}` | `GET /ns/{namespace}/connectors/{id}` | `supermemory.connectors.get` |
+| `POST /v3/connections/{connectionId}/configure` | `PATCH /ns/{namespace}/connectors/{id}` | `supermemory.connectors.update` |
+| `DELETE /v3/connections/{connectionId}` | `DELETE /ns/{namespace}/connectors/{id}` | `supermemory.connectors.delete` |
+| `POST /v3/connections/{provider}/import` | `POST /ns/{namespace}/connectors/{id}/sync` | `supermemory.connectors.sync` |
+
+<CodeGroup>
+```ts Legacy
+const connection = await client.connections.create("notion", {
+  containerTags: ["user_1"],
+  redirectUrl: "https://app.example.com/connected",
+})
+```
+
+```ts v5
+const { id, authorization } = await supermemory.connectors.create("user_1", {
+  provider: "notion",
+  redirectUrl: "https://app.example.com/connected"
+})
+```
+</CodeGroup>
+
+`authorization` is `null` for config providers (`web-crawler`, `s3`, `granola`), which start syncing immediately. `connectors.sync` returns `{ id, status: "queued" }` and `409` when a sync is already running.

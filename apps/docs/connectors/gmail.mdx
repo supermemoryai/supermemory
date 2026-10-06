@@ -13,30 +13,24 @@ Connect Gmail to automatically sync email threads into your supermemory knowledg
 
 ## Quick setup
 
-### 1. Create Gmail connection
+### 1. Create Gmail Connector
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    import Supermemory from 'supermemory';
+    import { Supermemory } from "supermemory"
 
-    const client = new Supermemory({
-      apiKey: process.env.SUPERMEMORY_API_KEY!
-    });
+    const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
 
-    const connection = await client.connections.create('gmail', {
-      redirectUrl: 'https://yourapp.com/auth/gmail/callback',
-      containerTag: 'user-123',
+    const connector = await supermemory.connectors.create("user-123", {
+      provider: "gmail",
+      redirectUrl: "https://yourapp.com/auth/gmail/callback"
       documentLimit: 5000,
-      metadata: {
-        source: 'gmail',
-        department: 'support'
-      }
-    });
+    })
 
-    // Redirect user to Google OAuth
-    window.location.href = connection.authLink;
-    console.log('Auth expires in:', connection.expiresIn);
+    // Send the user to Google to authorize
+    if (connector.authorization) window.location.href = connector.authorization.url
+    console.log("Auth URL expires at:", connector.authorization?.expiresAt)
     ```
   </Tab>
   <Tab title="Python">
@@ -46,106 +40,99 @@ Connect Gmail to automatically sync email threads into your supermemory knowledg
 
     client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 
-    connection = client.connections.create(
-        'gmail',
-        redirect_url='https://yourapp.com/auth/gmail/callback',
-        container_tag='user-123',
-        document_limit=5000,
-        metadata={
-            'source': 'gmail',
-            'department': 'support'
-        }
+    connector = client.connectors.create(
+        "user-123",
+        request={
+            "provider": "gmail",
+            "redirectUrl": "https://yourapp.com/auth/gmail/callback",
+            "documentLimit": 5000,
+        },
     )
 
-    # Redirect user to Google OAuth
-    print(f'Redirect to: {connection.auth_link}')
-    print(f'Expires in: {connection.expires_in}')
+    # Send the user to Google to authorize
+    print(f"Redirect to: {connector.authorization.url}")
+    print(f"Auth URL expires at: {connector.authorization.expires_at}")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v3/connections/gmail" \
+    curl -X POST "https://api.supermemory.ai/ns/user-123/connectors" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
+        "provider": "gmail",
         "redirectUrl": "https://yourapp.com/auth/gmail/callback",
-        "containerTag": "user-123",
-        "documentLimit": 5000,
-        "metadata": {
-          "source": "gmail",
-          "department": "support"
-        }
+        "documentLimit": 5000
       }'
+
+    # Response: {
+    #   "id": "PTzGiUYei7pgzg5buzZHgA",
+    #   "authorization": {
+    #     "url": "https://accounts.google.com/o/oauth2/v2/auth?...",
+    #     "expiresAt": "2024-01-15T11:30:00.000Z"
+    #   }
+    # }
     ```
   </Tab>
 </Tabs>
 
 ### 2. Handle OAuth callback
 
-After user grants permissions, Google redirects to your callback URL. The connection is automatically established and the initial sync begins.
+Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants permissions, Google redirects to your `redirectUrl` and the initial sync begins. A pending OAuth connector is not visible in list or get until the user finishes authorization.
 
-### 3. Check connection status
+### 3. Check Connector Status
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    // Get connection details
-    const connection = await client.connections.getByTags('gmail', {
-      containerTags: ['user-123']
-    });
+    // Get connector details with recent sync runs
+    const connector = await supermemory.connectors.get("user-123", "PTzGiUYei7pgzg5buzZHgA", {
+      include: "syncs",
+    })
 
-    console.log('Connected email:', connection.email);
-    console.log('Connection created:', connection.createdAt);
+    console.log("Connected email:", connector.account)
+    console.log("Last sync:", connector.latestRun?.system.status)
+    console.log("Threads synced:", connector.documentCount)
 
-    // List synced email threads
-    const documents = await client.documents.list({
-      containerTags: ['user-123']
-    });
+    // List synced email threads in the namespace
+    const docs = await supermemory.list("user-123", "documents")
 
-    console.log(`Synced ${documents.memories.length} email threads`);
+    console.log(`Synced ${docs.pagination.totalItems} email threads`)
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # Get connection details
-    connection = client.connections.get_by_tags(
-        'gmail',
-        container_tags=['user-123']
-    )
+    # Get connector details with recent sync runs
+    connector = client.connectors.get("user-123", "PTzGiUYei7pgzg5buzZHgA", include=["syncs"])
 
-    print(f'Connected email: {connection.email}')
-    print(f'Connection created: {connection.created_at}')
+    print(f"Connected email: {connector.account}")
+    print(f"Last sync: {connector.latest_run.system.status}")
+    print(f"Threads synced: {connector.document_count}")
 
-    # List synced email threads
-    documents = client.documents.list(
-        container_tags=['user-123']
-    )
+    # List synced email threads in the namespace
+    docs = client.list("user-123", "documents")
 
-    print(f'Synced {len(documents.memories)} email threads')
+    print(f"Synced {docs.pagination.total_items} email threads")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # Get connections by provider and tags
-    curl -X POST "https://api.supermemory.ai/v3/connections/list" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "containerTags": ["user-123"],
-        "provider": "gmail"
-      }'
+    # Get connector details with recent sync runs
+    curl "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA?include=syncs" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
-    # List synced email threads
-    curl -X POST "https://api.supermemory.ai/v3/documents/list" \
+    # List synced email threads in the namespace
+    curl -X POST "https://api.supermemory.ai/ns/user-123/list/documents" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{
-        "containerTags": ["user-123"],
-        "source": "gmail"
-      }'
+      -d '{}'
     ```
   </Tab>
 </Tabs>
+
+<Note>
+There is no per-connector document list in v5. `supermemory.list(namespace, "documents")` returns every document in the namespace.
+</Note>
 
 ## What gets synced
 
@@ -178,169 +165,132 @@ Each synced thread includes searchable metadata:
 You can filter searches using these metadata fields:
 
 ```typescript
-const results = await client.search({
-  q: "project update",
-  containerTag: 'user-123',
-  searchMode: "documents",
-  filters: JSON.stringify({
-    AND: [
-      { key: "type", value: "gmail_thread", negate: false },
-      { key: "from", value: "team@company.com", negate: false }
-    ]
-  })
-});
+const results = await supermemory.search("user-123", {
+  query: "project update",
+  filter: {
+    operator: "and",
+    operands: [
+      { field: "type", operator: "eq", value: "gmail_thread" },
+      { field: "from", operator: "eq", value: "team@company.com" },
+    ],
+  },
+  searchMode: "chunks",
+})
 ```
 
-## Connection management
+## Connector Management
 
-### List all connections
+### List All Connectors
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    // List all connections for specific container tags
-    const connections = await client.connections.list({
-      containerTags: ['user-123']
-    });
+    // List all connectors in a namespace
+    const { connectors } = await supermemory.connectors.list("user-123")
 
-    connections.forEach(conn => {
-      console.log(`Provider: ${conn.provider}`);
-      console.log(`ID: ${conn.id}`);
-      console.log(`Email: ${conn.email}`);
-      console.log(`Created: ${conn.createdAt}`);
-      console.log(`Document limit: ${conn.documentLimit}`);
-      console.log('---');
-    });
+    connectors.forEach(connector => {
+      console.log(`Provider: ${connector.provider}`)
+      console.log(`ID: ${connector.id}`)
+      console.log(`Account: ${connector.account}`)
+      console.log(`Created: ${connector.createdAt}`)
+      console.log(`Document limit: ${connector.documentLimit}`)
+      console.log("---")
+    })
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # List all connections for specific container tags
-    connections = client.connections.list(
-        container_tags=['user-123']
-    )
+    # List all connectors in a namespace
+    connectors = client.connectors.list("user-123").connectors
 
-    for conn in connections:
-        print(f'Provider: {conn.provider}')
-        print(f'ID: {conn.id}')
-        print(f'Email: {conn.email}')
-        print(f'Created: {conn.created_at}')
-        print(f'Document limit: {conn.document_limit}')
-        print('---')
+    for connector in connectors:
+        print(f"Provider: {connector.provider}")
+        print(f"ID: {connector.id}")
+        print(f"Account: {connector.account}")
+        print(f"Created: {connector.created_at}")
+        print(f"Document limit: {connector.document_limit}")
+        print("---")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # List all connections for specific container tags
-    curl -X POST "https://api.supermemory.ai/v3/connections/list" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "containerTags": ["user-123"]
-      }'
+    # List all connectors in a namespace
+    curl "https://api.supermemory.ai/ns/user-123/connectors" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
     ```
   </Tab>
 </Tabs>
 
-### Delete connection
+### Delete Connector
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    // Delete by connection ID
-    const result = await client.connections.deleteByID('connection_id_123');
-    console.log('Deleted connection:', result.id);
+    // Delete the connector and its imported documents (default)
+    await supermemory.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA")
 
-    // Delete by provider and container tags
-    const providerResult = await client.connections.deleteByProvider('gmail', {
-      containerTags: ['user-123']
-    });
-    console.log('Deleted Gmail connection:', providerResult.id);
+    // Delete the connector but keep the imported documents
+    await supermemory.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA", {
+      deleteDocuments: false,
+    })
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # Delete by connection ID
-    result = client.connections.delete_by_id('connection_id_123')
-    print(f'Deleted connection: {result.id}')
+    # Delete the connector and its imported documents (default)
+    client.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA")
 
-    # Delete by provider and container tags
-    provider_result = client.connections.delete_by_provider(
-        'gmail',
-        container_tags=['user-123']
-    )
-    print(f'Deleted Gmail connection: {provider_result.id}')
+    # Delete the connector but keep the imported documents
+    client.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA", delete_documents=False)
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # Delete by connection ID
-    curl -X DELETE "https://api.supermemory.ai/v3/connections/connection_id_123" \
+    # Delete the connector and its imported documents (default)
+    curl -X DELETE "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
-    # Delete by provider and container tags
-    curl -X DELETE "https://api.supermemory.ai/v3/connections/gmail" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "containerTags": ["user-123"]
-      }'
+    # Delete the connector but keep the imported documents
+    curl -X DELETE "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA?deleteDocuments=false" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
     ```
   </Tab>
 </Tabs>
 
 <Note>
-Deleting a connection will:
+Deleting a connector will:
 - Stop all future syncs from Gmail
 - Remove the OAuth authorization
-- Keep existing synced documents in supermemory (they won't be deleted)
+- Delete the synced documents unless you pass `deleteDocuments: false`
 </Note>
 
 ### Manual sync
 
-Trigger a manual synchronization:
+Trigger a manual synchronization. The call returns `409` while a sync for that connector is already running.
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    // Trigger sync for Gmail connections
-    await client.connections.import('gmail');
+    const run = await supermemory.connectors.sync("user-123", "PTzGiUYei7pgzg5buzZHgA")
 
-    // Trigger sync for specific container tags
-    await client.connections.import('gmail', {
-      containerTags: ['user-123']
-    });
-
-    console.log('Manual sync initiated');
+    console.log(run.status)
+    // Output: queued
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # Trigger sync for Gmail connections
-    client.connections.import_('gmail')
+    run = client.connectors.sync("user-123", "PTzGiUYei7pgzg5buzZHgA")
 
-    # Trigger sync for specific container tags
-    client.connections.import_(
-        'gmail',
-        container_tags=['user-123']
-    )
-
-    print('Manual sync initiated')
+    print(run.status)
+    # Output: queued
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # Trigger sync for all Gmail connections
-    curl -X POST "https://api.supermemory.ai/v3/connections/gmail/import" \
+    curl -X POST "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA/sync" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
-    # Trigger sync for specific container tags
-    curl -X POST "https://api.supermemory.ai/v3/connections/gmail/import" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "containerTags": ["user-123"]
-      }'
+    # Response: {"id": "PTzGiUYei7pgzg5buzZHgA", "status": "queued"}
     ```
   </Tab>
 </Tabs>
@@ -358,7 +308,7 @@ Gmail connector supports multiple sync methods:
 
 ### How real-time sync works
 
-1. When a connection is created, supermemory registers a Gmail API "watch" subscription
+1. When a connector is created, supermemory registers a Gmail API "watch" subscription
 2. Gmail sends notifications to a Google Cloud Pub/Sub topic when emails change
 3. supermemory receives these notifications and fetches updated threads
 4. Watch subscriptions expire after 7 days and are automatically renewed
@@ -374,7 +324,7 @@ The Gmail connector requests the following OAuth scopes:
 | Scope | Purpose |
 |-------|---------|
 | `gmail.readonly` | Read-only access to Gmail messages and threads |
-| `userinfo.email` | Access to user's email address for connection identification |
+| `userinfo.email` | Access to user's email address for connector identification |
 
 <Warning>
 **Read-only Access:** The Gmail connector only reads emails. It cannot send, delete, or modify any emails in the user's account.
@@ -387,7 +337,7 @@ The Gmail connector requests the following OAuth scopes:
 - **Plan requirement**: Requires Max Plan or above
 - **INBOX only** for real-time sync: Only INBOX label triggers real-time updates; other labels sync via scheduled sync
 - **Watch expiration**: Gmail watch subscriptions expire after 7 days (automatically renewed by supermemory)
-- **Document limit**: Default limit is 10,000 threads per connection (configurable via `documentLimit` parameter)
+- **Document limit**: Default limit is 10,000 threads per connector (configurable via `documentLimit` parameter)
 - **Attachments**: Attachment metadata is stored, but attachment content is not downloaded
 - **Rate limits**: Gmail API rate limits may affect sync speed for accounts with many emails
 </Warning>
@@ -396,25 +346,25 @@ The Gmail connector requests the following OAuth scopes:
 
 ### OAuth fails or missing refresh token
 
-If OAuth fails or the connection stops syncing:
+If OAuth fails or the connector stops syncing:
 
-1. Delete the existing connection
-2. Create a new connection
+1. Delete the existing connector
+2. Create a new connector
 3. Ensure the user completes the full OAuth flow with consent
 
 ```typescript
-// Re-create connection to get fresh tokens
-await client.connections.deleteByProvider('gmail', {
-  containerTags: ['user-123']
-});
+// Re-create the connector to get fresh tokens
+await supermemory.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA", {
+  deleteDocuments: false,
+})
 
-const newConnection = await client.connections.create('gmail', {
-  redirectUrl: 'https://yourapp.com/auth/gmail/callback',
-  containerTag: 'user-123'
-});
+const next = await supermemory.connectors.create("user-123", {
+  provider: "gmail",
+  redirectUrl: "https://yourapp.com/auth/gmail/callback"
+})
 
 // User must re-authenticate
-window.location.href = newConnection.authLink;
+if (next.authorization) window.location.href = next.authorization.url
 ```
 
 ### Emails not syncing in real-time
@@ -423,8 +373,8 @@ If real-time sync isn't working:
 
 - Scheduled sync (every 4 hours) and manual sync still work
 - Real-time sync requires supermemory's Pub/Sub infrastructure
-- Check if the connection was created recently (watch registration happens on creation)
-- Trigger a manual sync to verify the connection is working
+- Check if the connector was created recently (watch registration happens on creation)
+- Trigger a manual sync to verify the connector is working
 
 ### Permission denied errors
 

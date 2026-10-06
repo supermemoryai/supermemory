@@ -27,6 +27,44 @@ POST /ns/user_1/search
 ```
 </CodeGroup>
 
+### With the SDK
+
+<CodeGroup>
+```ts Legacy
+const memories = await client.search.memories({
+  q: "What did the user decide?",
+  containerTag: "user_1",
+  limit: 10,
+})
+
+const docs = await client.search.execute({
+  q: "launch plan",
+  containerTags: ["user_1"],
+})
+```
+
+```ts v5
+const memories = await supermemory.search("user_1", {
+  query: "What did the user decide?",
+  threshold: 0.6,
+  rewriteQuery: false,
+  searchMode: "memories",
+  limit: 10,
+})
+
+const chunks = await supermemory.search("user_1", {
+  query: "launch plan",
+  searchMode: "chunks",
+})
+
+const hybrid = await supermemory.search("user_1", {
+  query: "launch plan",
+})
+```
+</CodeGroup>
+
+`query`, `searchMode`, `limit`, `threshold`, `filter`, `include`, `rerank`, and `rewriteQuery` all go in one object (the JSON body over HTTP). Omitting `searchMode` gives `hybrid`.
+
 ### Changed defaults
 
 | Setting | v4 | v5 |

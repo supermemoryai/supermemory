@@ -62,8 +62,52 @@ The API acknowledges the file after durable acceptance, with `status` set as for
 - `taskType: "memory"` extracts long-term memories; `taskType: "superrag"` indexes source context without memory generation.
 - `dreaming: "dynamic"` (default) groups related documents into coherent memory units.
 - `dreaming: "instant"` processes each document independently and bills one extra operation per document.
+- Memories appear quickly only with `dreaming: "instant"`. Under `dynamic`, a fresh namespace can show zero memories and an empty profile for several minutes. Use `instant` for quickstarts and parity tests.
 
 These options go in the JSON body (or as form fields for file routes). Ingest routes take no query parameters; sending one returns `400`.
+
+### With the SDK
+
+<CodeGroup>
+```ts Legacy
+await client.add({
+  content: "new turn",
+  customId: "conv_1",
+  containerTag: "user_1",
+  metadata: { source: "chat" },
+})
+
+await client.documents.batchAdd({
+  documents: [{ content: "first" }, { content: "second" }],
+  containerTag: "user_1",
+})
+
+await client.documents.uploadFile({ file, containerTag: "user_1" })
+```
+
+```ts v5
+await client.add("user_1", {
+  content: "new turn",
+  id: "conv_1",
+  metadata: { source: "chat" },
+  dreaming: "instant",
+})
+
+await client.documents.batchAdd("user_1", {
+  documents: [
+    { content: "first", id: "doc_1" },
+    { content: "second", id: "doc_2" },
+  ],
+})
+
+await client.documents.uploadFile("user_1", {
+  file,
+  metadata: JSON.stringify({ source: "upload" }),
+})
+```
+</CodeGroup>
+
+The namespace is the first argument on every call. `taskType` and `dreaming` sit next to `content` in the same object. `uploadFile` is multipart, so `metadata` is a JSON string there, not an object.
 
 ### Verification
 

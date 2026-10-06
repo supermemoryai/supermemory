@@ -26,7 +26,7 @@ Run the binary with nothing set and you get a complete memory system:
 - **The Supermemory graph engine, embedded** — created automatically on first boot. No database to stand up, no connection strings.
 - **Built-in local embeddings** — default `Xenova/bge-base-en-v1.5` (768d) on your machine, no API key. Same provider stack as cloud if you opt into OpenAI, Gemini, or Ollama — see [Embeddings](/self-hosting/embeddings).
 - **An API key, generated for you** — printed on first boot, ready to paste into any SDK.
-- **The full Memory API** — `/v3/documents`, `/v4/search`, `/v4/profile`, spaces, the works.
+- **The full Memory API** — `/ns/{namespace}/document`, `/ns/{namespace}/search`, `/ns/{namespace}/profile`, namespaces, the works.
 
 The only thing you bring is a model. In production, Supermemory runs its own proprietary models, purpose-tuned for long-horizon data understanding and memory extraction. Self-hosted, the same pipeline runs on whatever model you point it at — OpenAI, Anthropic, Gemini, Groq, or any OpenAI-compatible endpoint. Bring a key and go. Or don't bring one at all:
 
@@ -45,12 +45,16 @@ Local graph engine, local embeddings, local LLM. Text-memory processing can stay
 
 ## Drop-in with your existing code
 
+<Note>
+The v5 SDKs (`supermemory` 5.x on npm and PyPI) need `supermemory-server` v0.0.9 or later. Older servers only speak v3/v4; run `supermemory-server upgrade` first.
+</Note>
+
 The self-hosted server speaks the same API as the hosted platform. Point any Supermemory SDK at it with a one-line change:
 
 ```typescript
 const client = new Supermemory({
   apiKey: "sm_...", // printed on first boot
-  baseURL: "http://localhost:6767",
+  baseUrl: "http://localhost:6767",
 })
 ```
 
@@ -71,7 +75,7 @@ Self-hosted is free within its lite license limit and useful for local developme
 | Memory extraction | Your model, your key | Proprietary long-horizon models — higher quality, cheaper at scale |
 | Infrastructure | Your machine | Globally distributed, scales with you |
 
-If you outgrow a single machine — or want connectors, MCP, and the best-tuned extraction pipeline — [the platform](https://console.supermemory.ai) is one `baseURL` change away. Running this for a team or organization? See [Local vs. Enterprise](/self-hosting/local-vs-enterprise).
+If you outgrow a single machine — or want connectors, MCP, and the best-tuned extraction pipeline — [the platform](https://console.supermemory.ai) is one `serverURL` change away. Running this for a team or organization? See [Local vs. Enterprise](/self-hosting/local-vs-enterprise).
 
 ## Next steps
 

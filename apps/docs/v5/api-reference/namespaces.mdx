@@ -2,8 +2,13 @@
 title: "Namespaces"
 sidebarTitle: "Overview"
 description: "Keep memory isolated, understandable, and easy to reorganize"
-icon: "book-open"
+icon: "/icons/hugeicons/book-open-01.svg"
+keywords: ["container tag", "container tags", "containerTag", "namespace"]
 ---
+
+<Note>
+Namespaces were called **container tags** (`containerTag`) in v3 and v4. Same values, nothing moved.
+</Note>
 
 | Operation | Purpose |
 | --- | --- |
@@ -11,6 +16,26 @@ icon: "book-open"
 | `GET /ns/{namespace}` | See the context guiding one namespace |
 | `PATCH /ns/{namespace}` | Give Supermemory better context for future memories |
 | `DELETE /ns/{namespace}` | Retire a namespace or preserve its content elsewhere |
+
+<CodeGroup>
+```ts TypeScript
+const { namespaces } = await supermemory.namespaces.list()
+
+await supermemory.namespaces.update("project_alpha", {
+  supportingContext: "Research project for distributed systems",
+})
+```
+
+```bash curl
+curl "https://api.supermemory.ai/namespaces" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+curl -X PATCH "https://api.supermemory.ai/ns/project_alpha" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"supportingContext":"Research project for distributed systems"}'
+```
+</CodeGroup>
 
 `GET /ns` is an alias for `GET /namespaces`. Profile buckets are managed through `/ns/{namespace}/profile/buckets`, not namespace settings.
 

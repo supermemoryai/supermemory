@@ -7,7 +7,7 @@ icon: "/icons/hugeicons/user-circle.svg"
 
 User profiles are **automatically maintained collections of facts about your users** that Supermemory builds from all their interactions. Think of it as a persistent "about me" document that's always up-to-date.
 
-Each `containerTag` gets it's own profile.
+Each namespace gets its own profile.
 
 > Note: It's called "user" profile, but in reality it can be anything - an agent, organization, etc.
 
@@ -48,22 +48,20 @@ The clearest example is the user's own name. If someone tells your agent "call m
 
 ```typescript
 // Weeks earlier, during onboarding
-await client.add({
+await supermemory.add("user_123", {
   content: "Call me Dhravya, not my full first name",
-  containerTag: "user_123",
 });
 
 // Later — an unrelated query
-const results = await client.search({
-  q: "help me plan a trip to Japan",
-  containerTag: "user_123",
+const { results } = await supermemory.search("user_123", {
+  query: "help me plan a trip to Japan",
 });
 // The name preference won't be in `results` — it's not semantically
 // related to trip planning, so search correctly leaves it out.
 
 // But it's always in the profile, independent of the query:
-const { profile } = await client.profile({ containerTag: "user_123" });
-console.log(profile.static); // ["User goes by Dhravya, not their full name", ...]
+const { profile } = await supermemory.profile("user_123");
+console.log(profile.static.map((m) => m.memory)); // ["User goes by Dhravya, not their full name", ...]
 ```
 
 This is the general pattern: names, pronouns, timezone, tone/format preferences, role, and other facts that should color *every* response — not just responses to a matching query — belong in the profile, not left to be caught by search. If your agent needs to "just know" something at all times, that's a strong signal it belongs in the profile rather than relying on a lucky semantic match.
@@ -96,23 +94,26 @@ Recent context and temporary states:
 
 Static and dynamic split facts by how long-lived they are. **Buckets** split them by *topic* — a third, independent axis you define, like `preferences`, `goals`, or `work`. As content is ingested, a classifier sorts each fact into the buckets it matches.
 
-Every org starts with a default `preferences` bucket. Add your own in console settings at the organization level, or per space — space buckets are add-only, so a container tag always keeps every org-level bucket.
+Every org starts with a default `preferences` bucket. Add your own in console settings at the organization level, or per namespace with `supermemory.profiles.setBuckets()` — namespace buckets are add-only, so a namespace always keeps every org-level bucket.
 
 ```typescript
-const { profile } = await client.profile({
-  containerTag: "user_123",
-  include: ["buckets"],
-  buckets: ["preferences", "goals"], // optional — omit for all configured buckets
+// Define a namespace-level bucket (name → description)
+await supermemory.profiles.setBuckets("user_123", {
+  buckets: { goals: "Goals and targets the user is actively working toward" },
 });
 
-console.log(profile.buckets.preferences);
+const { profile } = await supermemory.profile("user_123", { // optional — omit for all configured buckets
+  buckets: ["preferences", "goals"],
+});
+
+console.log(profile.buckets.preferences); // [{ id, memory }, ...]
 console.log(profile.buckets.goals);
 ```
 
 Bucket descriptions steer the classifier, so a precise description ("explicit first-person preferences only, exclude inferred traits") produces cleaner buckets than a vague one. Buckets are separate from [`filterPrompt`](/concepts/customization), which controls what gets ingested at all — buckets only organize facts that already made it into the profile.
 
-<Card title="Profile buckets reference" icon="/icons/hugeicons/tag-01.svg" href="/user-profiles/buckets">
-  Request bucketed profiles, create buckets at the org or space level, get AI-generated suggestions, and see validation limits.
+<Card title="Profile Buckets reference" icon="/icons/hugeicons/tag-01.svg" href="/user-profiles/buckets">
+  Request bucketed profiles, create buckets at the org or namespace level, and see validation limits.
 </Card>
 
 ---
@@ -155,31 +156,24 @@ User asks: **"Can you help me debug this?"**
 
 ## Filtering profiles
 
-Not many people realize this, but profiles support the same [metadata filtering](/concepts/filtering) as memory and document search. A profile is synthesized from the underlying memories in a container tag, so any `AND`/`OR` metadata filter you'd pass to `search` also narrows which memories are eligible to contribute to `static`, `dynamic`, and `buckets`.
+Not many people realize this, but profiles support the same [metadata filtering](/concepts/filtering) as memory and document search. A profile is synthesized from the underlying memories in a namespace, so any `filter` expression you'd pass to `search` also narrows which memories are eligible to contribute to `static`, `dynamic`, and `buckets`.
 
 ```typescript
 // Only build the profile from memories tagged as onboarding data
-const { profile } = await client.profile({
-  containerTag: "user_123",
-  filters: {
-    AND: [{ key: "source", value: "onboarding" }],
-  },
+const { profile } = await supermemory.profile("user_123", {
+  filter: { field: "source", operator: "eq", value: "onboarding" },
 });
 ```
 
-This is useful when a container tag mixes memories from several sources or contexts and you only want one of them reflected in the profile — for example, a support agent that should only see profile facts derived from support tickets, not from an internal wiki synced into the same container:
+This is useful when a namespace mixes memories from several sources or contexts and you only want one of them reflected in the profile — for example, a support agent that should only see profile facts derived from support tickets, not from an internal wiki synced into the same namespace:
 
 ```typescript
-const { profile } = await client.profile({
-  containerTag: "org_customer_442",
-  filters: {
-    AND: [{ key: "channel", value: "support_ticket" }],
-  },
-  include: ["static", "dynamic"],
+const { profile } = await supermemory.profile("org_customer_442", {
+  filter: { field: "channel", operator: "eq", value: "support_ticket" },
 });
 ```
 
-Filters apply on top of the search query too — combine `q` and `filters` to scope both the profile synthesis and the accompanying search results in one call. See [Filtering Profiles](/recall/user-profiles#filtering-profiles) for the full parameter reference.
+A v5 profile call takes no search query. If you also need query-ranked memories, make a separate `supermemory.search()` call with the same `filter`. See [Filtering Profiles](/recall/user-profiles#filtering-profiles) for the full parameter reference.
 
 ---
 
@@ -192,8 +186,8 @@ Profiles provide: expertise level, communication preferences, tools used, curren
 ```typescript
 const systemPrompt = `You are assisting ${userName}.
 
-Background: ${profile.static.join('\n')}
-Current focus: ${profile.dynamic.join('\n')}
+Background: ${profile.static.map((m) => m.memory).join('\n')}
+Current focus: ${profile.dynamic.map((m) => m.memory).join('\n')}
 
 Adjust responses to their expertise and preferences.`;
 ```

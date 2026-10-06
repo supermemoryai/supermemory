@@ -1,201 +1,137 @@
 ---
-title: 'Managing connection resources'
-sidebarTitle: 'Managing resources'
-description: 'Get and configure resources for connections that support resource management'
+title: 'Managing Connector Selection'
+sidebarTitle: 'Managing Resources'
+description: 'Choose what a connector syncs with the hosted picker or a direct selection update'
 icon: 'folder-sync'
 ---
 
 <Note>
-**Currently Available for GitHub:** Resource management endpoints are currently only available for the GitHub connector. These endpoints allow you to select which repositories to sync before syncing begins.
+**Selectable connectors:** GitHub (repositories), Gmail (labels) and Google Drive (files and folders) let you choose what to sync. Other connectors sync everything and return `selection: null`.
 </Note>
 
-Some connectors require you to select which resources (e.g., repositories) to sync before syncing begins. Use these generic endpoints to list and configure resources for connections that support resource management.
+Some connectors let you select which resources to sync. v5 exposes this through two calls on the connector itself: read it with `include: "picker"` to get a hosted picker URL, or send the ids directly with `connectors.update`.
 
-## Get resources
+## Open the Hosted Picker
 
-`GET /v3/connections/:connectionId/resources`
+`GET /ns/{namespace}/connectors/{id}?include=picker`
 
-Get available resources (e.g., repositories, folders) for a connection using stored credentials.
+Returns a one-time picker URL. Send the user there; Supermemory lists their resources, saves the selection and starts a sync. Pass `returnUrl` to choose where the picker sends the user when they finish.
 
 <CodeGroup>
 ```typescript Typescript
-import Supermemory from 'supermemory';
+import { Supermemory } from "supermemory"
 
-const client = new Supermemory({
-  apiKey: process.env['SUPERMEMORY_API_KEY'],
-});
+const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
 
-// Get resources with pagination
-const response = await fetch(
-  `https://api.supermemory.ai/v3/connections/${connectionId}/resources?page=1&per_page=30`,
-  {
-    headers: {
-      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
-    },
-  }
-);
+const connector = await supermemory.connectors.get("user-123", connectorId, {
+  include: "picker",
+  returnUrl: "https://yourapp.com/settings/integrations"
+})
 
-const data = await response.json();
-console.log('Resources:', data.resources);
-console.log('Total count:', data.total_count);
+console.log("Picker URL:", connector.picker?.url)
+console.log("Expires at:", connector.picker?.expiresAt)
+console.log("Selectable:", connector.capabilities.selectable)
 ```
 
 ```python Python
-import requests
+from supermemory import Supermemory
+import os
 
-url = f"https://api.supermemory.ai/v3/connections/{connection_id}/resources"
-params = {
-    "page": 1,
-    "per_page": 30
-}
-headers = {
-    "Authorization": f"Bearer {api_key}",
-}
+client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 
-response = requests.get(url, params=params, headers=headers)
-data = response.json()
+connector = client.connectors.get(
+    "user-123",
+    connector_id,
+    include=["picker"],
+    return_url="https://yourapp.com/settings/integrations",
+)
 
-print(f"Resources: {data['resources']}")
-print(f"Total count: {data.get('total_count')}")
+print(f"Picker URL: {connector.picker.url if connector.picker else None}")
+print(f"Expires at: {connector.picker.expires_at if connector.picker else None}")
+print(f"Selectable: {connector.capabilities.selectable}")
 ```
 
 ```bash cURL
-curl -X GET \
-  "https://api.supermemory.ai/v3/connections/{connectionId}/resources?page=1&per_page=30" \
-  -H "Authorization: Bearer <token>"
+curl "https://api.supermemory.ai/ns/user-123/connectors/{connectorId}?include=picker&returnUrl=https%3A%2F%2Fyourapp.com%2Fsettings%2Fintegrations" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 ```
 </CodeGroup>
 
 ### Query parameters
 
-- `page`: Optional. Page number for pagination. Default: `1`
-- `per_page`: Optional. Number of resources per page. Default: `30`
+- `include`: `picker` for the hosted picker URL, `syncs` for recent sync runs, or `syncs,picker` for both
+- `returnUrl`: Optional. Where the hosted picker sends the user when they finish
 
 ### Response
 
 ```json
 {
-  "resources": [
-    {
-      "id": 123456789,
-      "name": "your-org/documentation",
-      "full_name": "your-org/documentation",
-      "description": "Documentation repository",
-      "private": false,
-      "default_branch": "main",
-      "updated_at": "2024-01-15T10:00:00Z"
-    }
-  ],
-  "total_count": 45
+  "id": "PTzGiUYei7pgzg5buzZHgA",
+  "provider": "github",
+  "namespace": "user-123",
+  "capabilities": { "selectable": true, "webhooks": true },
+  "selection": {
+    "repos": [
+      { "id": "123456789", "name": "your-org/documentation" }
+    ]
+  },
+  "picker": {
+    "url": "https://...",
+    "expiresAt": "2024-01-15T11:30:00.000Z"
+  }
 }
 ```
 
-### Error Responses
-
-- `400`: Connection missing refresh token
-- `401`: Unauthorized
-- `404`: Connection not found
-- `501`: Provider does not support resource fetching
-
 <Note>
-**Provider Support:** Not all providers support resource fetching. This endpoint is only available for providers that implement the `fetchResources()` method (e.g., GitHub). For providers that don't support this, you'll receive a `501 Not Implemented` response.
+The picker link works once, in any browser. `picker` is `null` for connectors that sync everything.
 </Note>
 
-## Configure connection
+## Set the Selection Directly
 
-`POST /v3/connections/:connectionId/configure`
+`PATCH /ns/{namespace}/connectors/{id}`
 
-Configure selected resources (e.g., repositories) for a connection and set up webhooks/subscriptions.
+Send the ids to sync, grouped by kind. The new selection replaces the current one and starts a sync. Webhooks are registered for the selected resources.
 
 <CodeGroup>
 ```typescript Typescript
-import Supermemory from 'supermemory';
+import { Supermemory } from "supermemory"
 
-const client = new Supermemory({
-  apiKey: process.env['SUPERMEMORY_API_KEY'],
-});
+const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
 
-// Configure connection
-const response = await fetch(
-  `https://api.supermemory.ai/v3/connections/${connectionId}/configure`,
-  {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      resources: [
-        {
-          id: 123456789,
-          name: 'your-org/documentation',
-          defaultBranch: 'main',
-        },
-        {
-          id: 987654321,
-          name: 'your-org/api-docs',
-          defaultBranch: 'main',
-        },
-      ],
-    }),
-  }
-);
+const connector = await supermemory.connectors.update("user-123", connectorId, {
+  selection: {
+    repos: ["123456789", "987654321"],
+  },
+})
 
-const data = await response.json();
-console.log('Success:', data.success);
-console.log('Message:', data.message);
-console.log('Webhooks registered:', data.webhooksRegistered);
+console.log("Selection:", connector.selection)
+console.log("Last sync:", connector.latestRun?.system.status)
 ```
 
 ```python Python
-import requests
+from supermemory import Supermemory
+import os
 
-url = f"https://api.supermemory.ai/v3/connections/{connection_id}/configure"
-headers = {
-    "Authorization": f"Bearer {api_key}",
-    "Content-Type": "application/json",
-}
-payload = {
-    "resources": [
-        {
-            "id": 123456789,
-            "name": "your-org/documentation",
-            "defaultBranch": "main",
-        },
-        {
-            "id": 987654321,
-            "name": "your-org/api-docs",
-            "defaultBranch": "main",
-        },
-    ]
-}
+client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 
-response = requests.post(url, json=payload, headers=headers)
-data = response.json()
+connector = client.connectors.update(
+    "user-123",
+    connector_id,
+    selection={"repos": ["123456789", "987654321"]},
+)
 
-print(f"Success: {data['success']}")
-print(f"Message: {data['message']}")
-print(f"Webhooks registered: {data.get('webhooksRegistered')}")
+print(f"Selection: {connector.selection}")
+print(f"Last sync: {connector.latest_run.system.status}")
 ```
 
 ```bash cURL
-curl -X POST \
-  "https://api.supermemory.ai/v3/connections/{connectionId}/configure" \
-  -H "Authorization: Bearer <token>" \
+curl -X PATCH "https://api.supermemory.ai/ns/user-123/connectors/{connectorId}" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "resources": [
-      {
-        "id": 123456789,
-        "name": "your-org/documentation",
-        "defaultBranch": "main"
-      },
-      {
-        "id": 987654321,
-        "name": "your-org/api-docs",
-        "defaultBranch": "main"
-      }
-    ]
+    "selection": {
+      "repos": ["123456789", "987654321"]
+    }
   }'
 ```
 </CodeGroup>
@@ -204,45 +140,46 @@ curl -X POST \
 
 ```json
 {
-  "resources": [
-    {
-      "id": 123456789,
-      "name": "your-org/documentation",
-      "defaultBranch": "main"
-    }
-  ]
+  "selection": {
+    "repos": ["123456789"]
+  }
 }
 ```
 
-The structure of each resource object depends on the provider. For GitHub, resources include:
-- `id`: Repository ID (number)
-- `name`: Repository full name (string)
-- `defaultBranch`: Default branch name (string)
+The selection key depends on the provider:
+- GitHub: `repos` (repository ids)
+- Gmail: `labels` (label ids, for example `INBOX`)
+- Google Drive: `files` and `folders` (Drive ids)
+
+You can send `documentLimit` in the same body. Each call must include `selection`, `documentLimit`, or both.
 
 ### Response
 
+The updated connector object, including the saved `selection` as `{ id, name }` pairs.
+
 ```json
 {
-  "success": true,
-  "message": "Resources configured successfully",
-  "webhooksRegistered": 2
+  "id": "PTzGiUYei7pgzg5buzZHgA",
+  "provider": "github",
+  "selection": {
+    "repos": [
+      { "id": "123456789", "name": "your-org/documentation" },
+      { "id": "987654321", "name": "your-org/api-docs" }
+    ]
+  },
+  "latestRun": { "errorCode": null, "error": null, "system": { "status": "running", "startedAt": "...", "completedAt": null } }
 }
 ```
 
 ### Error Responses
 
-- `400`: Connection missing refresh token
+- `400`: Connector does not support selection
 - `401`: Unauthorized
-- `404`: Connection not found
-- `501`: Provider does not support resource configuration
+- `404`: Connector not found
 
 <Note>
-**Automatic Sync:** After successfully configuring resources, an initial sync is automatically triggered for the connection. You don't need to manually trigger a sync after configuration.
+**Automatic Sync:** After a selection is saved, a sync starts for the connector. You don't need to call `connectors.sync` afterwards.
 </Note>
-
-<Warning>
-**Provider Support:** Not all providers support resource configuration. This endpoint is only available for providers that implement the `configureConnection()` method (e.g., GitHub). For providers that don't support this, you'll receive a `501 Not Implemented` response.
-</Warning>
 
 ## Example: GitHub repository selection
 
@@ -250,94 +187,80 @@ Here's a complete example for GitHub:
 
 <CodeGroup>
 ```typescript Typescript
-// 1. Create connection (see creating-connection.mdx)
-const connection = await client.connections.create('github', {
-  redirectUrl: 'https://yourapp.com/callback',
-});
+// 1. Create the connector
+const created = await supermemory.connectors.create("user-123", {
+  provider: "github",
+  redirectUrl: "https://yourapp.com/callback"
+})
 
-// 2. After OAuth callback, fetch available repositories
-const resourcesResponse = await fetch(
-  `https://api.supermemory.ai/v3/connections/${connection.id}/resources?page=1&per_page=100`,
-  {
-    headers: {
-      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
-    },
-  }
-);
-const { resources } = await resourcesResponse.json();
+// 2. Send the user to GitHub; the connector becomes visible once they authorize
+if (created.authorization) window.location.href = created.authorization.url
 
-// 3. Display repositories to user and let them select
-// (Build your UI here)
+// 3. After the callback, open the hosted picker so the user chooses repositories
+const connector = await supermemory.connectors.get("user-123", created.id, {
+  include: "picker",
+  returnUrl: "https://yourapp.com/settings/integrations"
+})
+if (connector.picker) window.location.href = connector.picker.url
 
-// 4. Configure selected repositories
-const configureResponse = await fetch(
-  `https://api.supermemory.ai/v3/connections/${connection.id}/configure`,
-  {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      resources: selectedRepositories, // User's selection
-    }),
-  }
-);
-const result = await configureResponse.json();
-console.log('Sync initiated:', result.success);
+// 4. Or, if you already know the repository ids, set them directly
+await supermemory.connectors.update("user-123", created.id, {
+  selection: { repos: selectedRepositoryIds },
+})
 ```
 
 ```python Python
-# 1. Create connection (see creating-connection.mdx)
-connection = client.connections.create(
-    'github',
-    redirect_url='https://yourapp.com/callback'
+# 1. Create the connector
+created = client.connectors.create(
+    "user-123",
+    request={
+        "provider": "github",
+        "redirectUrl": "https://yourapp.com/callback",
+    },
 )
 
-# 2. After OAuth callback, fetch available repositories
-resources_response = requests.get(
-    f"https://api.supermemory.ai/v3/connections/{connection.id}/resources",
-    params={"page": 1, "per_page": 100},
-    headers={"Authorization": f"Bearer {api_key}"}
-)
-resources = resources_response.json()["resources"]
+# 2. Send the user to GitHub; the connector becomes visible once they authorize
+print(f"Redirect to: {created.authorization.url}")
 
-# 3. Display repositories to user and let them select
-# (Build your UI here)
-
-# 4. Configure selected repositories
-configure_response = requests.post(
-    f"https://api.supermemory.ai/v3/connections/{connection.id}/configure",
-    json={"resources": selected_repositories},  # User's selection
-    headers={"Authorization": f"Bearer {api_key}"}
+# 3. After the callback, open the hosted picker so the user chooses repositories
+connector = client.connectors.get(
+    "user-123",
+    created.id,
+    include=["picker"],
+    return_url="https://yourapp.com/settings/integrations",
 )
-result = configure_response.json()
-print(f"Sync initiated: {result['success']}")
+if connector.picker:
+    print(f"Redirect to: {connector.picker.url}")
+
+# 4. Or, if you already know the repository ids, set them directly
+client.connectors.update(
+    "user-123",
+    created.id,
+    selection={"repos": selected_repository_ids},
+)
 ```
 
 ```bash cURL
-# 1. Create connection (see creating-connection.mdx)
-# ... (OAuth flow) ...
+# 1. Create the connector
+curl -X POST "https://api.supermemory.ai/ns/user-123/connectors" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"provider": "github", "redirectUrl": "https://yourapp.com/callback"}'
 
-# 2. Fetch available repositories
-curl -X GET \
-  "https://api.supermemory.ai/v3/connections/{connectionId}/resources?page=1&per_page=100" \
+# 2. ... (user authorizes at authorization.url) ...
+
+# 3. Get a one-time hosted picker URL
+curl "https://api.supermemory.ai/ns/user-123/connectors/{connectorId}?include=picker" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
-# 3. Configure selected repositories
-curl -X POST \
-  "https://api.supermemory.ai/v3/connections/{connectionId}/configure" \
+# 4. Or set the repositories directly
+curl -X PATCH "https://api.supermemory.ai/ns/user-123/connectors/{connectorId}" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "resources": [
-      {
-        "id": 123456789,
-        "name": "your-org/documentation",
-        "defaultBranch": "main"
-      }
-    ]
+    "selection": {
+      "repos": ["123456789"]
+    }
   }'
 ```
 </CodeGroup>
-

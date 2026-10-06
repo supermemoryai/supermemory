@@ -14,59 +14,80 @@ Check if your connectors are working properly:
 <CodeGroup>
 
 ```typescript TypeScript
-const connections = await client.connections.list({
-  containerTags: ['user-123']
-});
+const { connectors } = await supermemory.connectors.list("user-123")
 
-connections.forEach(conn => {
-  console.log(`${conn.provider}: ${conn.email} - Connected ${conn.createdAt}`);
-});
+connectors.forEach(connector => {
+  console.log(`${connector.provider}: ${connector.account} - last sync ${connector.latestRun?.system.status ?? "never"}`)
+})
 
-// Check for stuck documents
-const documents = await client.connections.listDocuments('notion', {
-  containerTags: ['user-123']
-});
+// Inspect a failing connector's recent runs and the items that failed
+const failing = connectors.filter(connector => connector.latestRun?.system.status === "failed")
+for (const connector of failing) {
+  const detail = await supermemory.connectors.get("user-123", connector.id, {
+    include: "syncs",
+  })
+  console.log(`⚠️ ${connector.provider}: ${detail.latestRun?.error}`)
+  console.log(detail.syncs)
+}
 
-const failed = documents.filter(doc => doc.status === 'failed');
-if (failed.length > 0) {
-  console.log(`⚠️ ${failed.length} documents failed to sync`);
+// Check for stuck documents in the namespace
+const { documents } = await supermemory.list("user-123", "documents")
+const stuck = documents.filter(doc => doc.system.status === "failed")
+if (stuck.length > 0) {
+  console.log(`⚠️ ${stuck.length} documents failed to process`)
 }
 ```
 
 ```python Python
-connections = client.connections.list(container_tags=['user-123'])
+connectors = client.connectors.list("user-123").connectors
 
-for conn in connections:
-    print(f"{conn.provider}: {conn.email} - Connected {conn.created_at}")
+for connector in connectors:
+    status = connector.latest_run.system.status if connector.latest_run else "never"
+    print(f"{connector.provider}: {connector.account} - last sync {status}")
 
-# Check for stuck documents
-documents = client.connections.list_documents(
-    'notion',
-    container_tags=['user-123']
-)
+# Inspect a failing connector's recent runs and the items that failed
+failing = [c for c in connectors if c.latest_run and c.latest_run.system.status == "failed"]
+for connector in failing:
+    detail = client.connectors.get("user-123", connector.id, include=["syncs"])
+    print(f"⚠️ {connector.provider}: {detail.latest_run.error}")
+    print(detail.syncs)
 
-failed = [doc for doc in documents if doc.status == 'failed']
-if failed:
-    print(f"⚠️ {len(failed)} documents failed to sync")
+# Check for stuck documents in the namespace
+documents = client.list("user-123", "documents").documents
+stuck = [doc for doc in documents if doc.system.status == "failed"]
+if stuck:
+    print(f"⚠️ {len(stuck)} documents failed to process")
 ```
 
 ```bash cURL
-# List all connections
-curl -X POST "https://api.supermemory.ai/v3/connections/list" \
-  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"containerTags": ["user-123"]}'
+# List connectors in the namespace
+curl "https://api.supermemory.ai/ns/user-123/connectors" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
-# Check document status
-curl -X POST "https://api.supermemory.ai/v3/documents/list" \
+# Read one connector with its recent sync runs
+curl "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA?include=syncs" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+# Check document status in the namespace
+curl -X POST "https://api.supermemory.ai/ns/user-123/list/documents" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"containerTags": ["user-123"], "source": "notion"}'
+  -d '{"filter": {"field": "source", "operator": "eq", "value": "notion"}}'
 ```
 
 </CodeGroup>
 
+<Note>
+There is no per-connector document list in v5. `supermemory.list(namespace, "documents")` returns every document in the namespace; read each document's `system.status`.
+</Note>
+
 ## Common issues
+
+### Connector Missing From List
+
+**Problem:** `connectors.create` returned an `id`, but `connectors.list` and `connectors.get` do not show it
+
+**Solution:** A pending OAuth connector is not visible in list or get until the user finishes authorization. Send the user to `authorization.url` before `authorization.expiresAt`. If the link expired, create the connector again.
 
 ### OAuth callback fails
 
@@ -76,13 +97,13 @@ curl -X POST "https://api.supermemory.ai/v3/documents/list" \
 
 ```typescript
 // correct - exact match with OAuth app settings
-const connection = await client.connections.create('notion', {
-  redirectUrl: 'https://yourapp.com/auth/notion/callback',
-  containerTag: 'user-123'
-});
+const connector = await supermemory.connectors.create("user-123", {
+  provider: "notion",
+  redirectUrl: "https://yourapp.com/auth/notion/callback"
+})
 
 // Wrong - URL doesn't match
-// redirectUrl: 'https://yourapp.com/callback'
+// redirectUrl: "https://yourapp.com/callback"
 ```
 
 **Prevention:**
@@ -97,13 +118,13 @@ const connection = await client.connections.create('notion', {
 **Solution:** Trigger a manual sync:
 
 ```typescript
-// Force sync for stuck documents
-await client.connections.import('notion', {
-  containerTags: ['user-123']
-});
+// Force a sync for the connector
+await supermemory.connectors.sync("user-123", "PTzGiUYei7pgzg5buzZHgA")
+// 409 means a sync is already running; wait for latestRun.system.status to change
 ```
 
 If documents consistently fail:
+- Read `latestRun.error` and `include: "syncs"` for the failed items
 - Check if files are over 50MB (may timeout)
 - Verify you have permission to access the documents
 - Ensure the document type is supported
@@ -115,18 +136,18 @@ If documents consistently fail:
 **Solution:** Re-authenticate with proper permissions:
 
 ```typescript
-// Delete and recreate connection
-await client.connections.deleteByProvider('google-drive', {
-  containerTags: ['user-123']
-});
+// Delete and recreate the connector
+await supermemory.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA", {
+  deleteDocuments: false,
+})
 
-const newConnection = await client.connections.create('google-drive', {
-  redirectUrl: 'https://yourapp.com/callback',
-  containerTag: 'user-123'
-});
+const next = await supermemory.connectors.create("user-123", {
+  provider: "google-drive",
+  redirectUrl: "https://yourapp.com/callback"
+})
 
 // User must re-authenticate
-window.location.href = newConnection.authLink;
+if (next.authorization) window.location.href = next.authorization.url
 ```
 
 ### Sync takes too long
@@ -136,11 +157,16 @@ window.location.href = newConnection.authLink;
 **Solution:** Set reasonable document limits:
 
 ```typescript
-const connection = await client.connections.create('onedrive', {
-  redirectUrl: 'https://yourapp.com/callback',
-  containerTag: 'user-123',
-  documentLimit: 500  // Start with fewer documents
-});
+const connector = await supermemory.connectors.create("user-123", {
+  provider: "onedrive",
+  redirectUrl: "https://yourapp.com/callback"
+  documentLimit: 500, // Start with fewer documents
+})
+
+// Raise it later without reconnecting
+await supermemory.connectors.update("user-123", connector.id, {
+  documentLimit: 2000,
+})
 ```
 
 ## Provider-specific issues
@@ -153,6 +179,10 @@ Shared drives require special permissions. Make sure:
 - User has access to the shared drive
 - OAuth app has drive.readonly scope
 - User is a member of the shared drive
+
+**Picker Not Completed**
+
+With the default scoped sync, syncs may skip the connector until the user finishes the file picker. Read the connector with `include: "picker"` and send the user to `picker.url`.
 
 ### Notion
 
@@ -191,12 +221,10 @@ If emails aren't syncing in real-time but scheduled/manual sync works:
 1. Real-time sync uses Google Cloud Pub/Sub webhooks
 2. Watch subscriptions expire after 7 days (supermemory auto-renews)
 3. Only INBOX label triggers real-time updates
-4. Trigger a manual sync to verify the connection is healthy:
+4. Trigger a manual sync to verify the connector is healthy:
 
 ```typescript
-await client.connections.import('gmail', {
-  containerTags: ['user-123']
-});
+await supermemory.connectors.sync("user-123", "PTzGiUYei7pgzg5buzZHgA")
 ```
 
 **Missing Refresh Token**
@@ -204,19 +232,19 @@ await client.connections.import('gmail', {
 If Gmail stops syncing after initial setup:
 
 1. The user may have revoked app access in Google Account settings
-2. Delete and recreate the connection
+2. Delete and recreate the connector
 3. Ensure user completes full OAuth consent flow
 
 ```typescript
 // Re-authenticate to get fresh tokens
-await client.connections.deleteByProvider('gmail', {
-  containerTags: ['user-123']
-});
+await supermemory.connectors.delete("user-123", "PTzGiUYei7pgzg5buzZHgA", {
+  deleteDocuments: false,
+})
 
-const newConnection = await client.connections.create('gmail', {
-  redirectUrl: 'https://yourapp.com/callback',
-  containerTag: 'user-123'
-});
+const next = await supermemory.connectors.create("user-123", {
+  provider: "gmail",
+  redirectUrl: "https://yourapp.com/callback"
+})
 ```
 
 **Scale Plan Required Error**
@@ -229,7 +257,7 @@ Gmail connector requires Scale Plan or Enterprise Plan. If you see access errors
 ## Best practices
 
 1. **Set reasonable document limits** - Start with 500-1000 documents
-2. **Use descriptive container tags** - Makes debugging easier
-3. **Monitor failed documents** - Check weekly for sync issues
+2. **Use one namespace per user or tenant** - Makes debugging easier
+3. **Monitor `latestRun`** - Check weekly for failed syncs
 4. **Handle rate limits gracefully** - Implement exponential backoff
 5. **Test OAuth in development** - Ensure redirect URLs work before production

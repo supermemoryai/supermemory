@@ -1,6 +1,6 @@
 ---
 title: "API keys & auth"
-description: "Org API keys, container-scoped keys, and connector branding."
+description: "Org API keys, namespace-scoped keys, and connector branding."
 sidebarTitle: "API keys"
 icon: "/icons/hugeicons/key-01.svg"
 ---
@@ -16,17 +16,17 @@ Include your key in all requests:
 <CodeGroup>
 
 ```bash cURL
-curl https://api.supermemory.ai/v3/search \
+curl -X POST https://api.supermemory.ai/ns/user_123/search \
   --header 'Authorization: Bearer YOUR_API_KEY' \
   --header 'Content-Type: application/json' \
-  -d '{"q": "hello"}'
+  -d '{"query": "hello"}'
 ```
 
 
 ```typescript TypeScript
-import Supermemory from "supermemory";
+import { Supermemory } from "supermemory";
 
-const client = new Supermemory({ apiKey: "YOUR_API_KEY" });
+const supermemory = new Supermemory({ apiKey: "YOUR_API_KEY" });
 ```
 
 
@@ -42,15 +42,7 @@ client = Supermemory(api_key="YOUR_API_KEY")
 
 ## Connector branding
 
-When users connect external services (Google Drive, Notion, OneDrive), they see a "Log in to **Supermemory**" prompt by default. You can replace this with your own app name by providing your own OAuth credentials via the settings endpoint.
-
-```typescript
-await client.settings.update({
-  googleDriveCustomKeyEnabled: true,
-  googleDriveClientId: "your-client-id.apps.googleusercontent.com",
-  googleDriveClientSecret: "your-client-secret"
-});
-```
+When users connect external services (Google Drive, Notion, OneDrive), they see a "Log in to **Supermemory**" prompt by default. You can replace this with your own app name by providing your own OAuth credentials.
 
 This works for Google Drive, Notion, and OneDrive. See the full setup in [Customization](/concepts/customization).
 
@@ -58,15 +50,17 @@ This works for Google Drive, Notion, and OneDrive. See the full setup in [Custom
 
 ## Scoped API keys
 
-Scoped keys are restricted to one or more `containerTag`s. They can only access documents and search within those containers — use them to give a client, session, or tenant limited access without shipping your org master key.
+Scoped keys are restricted to one namespace (what v3/v4 called a container tag). They can only access documents and search within that namespace — use them to give a client, session, or tenant limited access without shipping your org master key.
 
-Pairs with [container tags](/concepts/container-tags) for multi-tenant isolation.
+Pairs with [namespaces](/concepts/container-tags) for multi-tenant isolation.
 
 **Allowed endpoints:** `/v3/documents`, `/v3/memories`, `/v4/memories`, `/v3/search`, `/v4/search`, `/v4/profile`
 
 Scoped keys **cannot** read billing, manage org settings, or mint further keys.
 
 ### Create a scoped key
+
+The scoped-key endpoint still takes the namespace in a field named `containerTag`.
 
 ```bash
 curl https://api.supermemory.ai/v3/auth/scoped-key \
@@ -84,7 +78,7 @@ curl https://api.supermemory.ai/v3/auth/scoped-key \
 
 | Parameter | Required | Default | Description |
 | --- | --- | --- | --- |
-| `containerTag` | Yes | — | Alphanumeric, hyphens, underscores, colons, dots |
+| `containerTag` | Yes | — | The namespace to scope the key to. Alphanumeric, hyphens, underscores, colons, dots |
 | `name` | No | `scoped_{containerTag}` | Display name for the key |
 | `expiresInDays` | No | — | 1–365 days |
 | `rateLimitMax` | No | `500` | Max requests per window (1–10,000) |
@@ -103,11 +97,11 @@ curl https://api.supermemory.ai/v3/auth/scoped-key \
 }
 ```
 
-Use the returned key like a normal API key — it just will not work outside its container scope.
+Use the returned key like a normal API key — it just will not work outside its namespace.
 
 ### Disable a scoped key
 
-Revoke with the `id` from creation. Subsequent requests get `401`. Memories and container tags are **not** deleted.
+Revoke with the `id` from creation. Subsequent requests get `401`. Memories and namespaces are **not** deleted.
 
 ```bash
 curl https://api.supermemory.ai/v3/auth/scoped-key/KEY_ID \

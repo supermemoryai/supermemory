@@ -7,7 +7,7 @@ icon: "/icons/hugeicons/compass-01.svg"
 
 import { Journey, JourneyStep, JourneyItem } from "/snippets/journey.mdx";
 
-Everything in this section is one of four steps. Same loop whether you're building personal memory, RAG over docs, or both on the same `containerTag`.
+Everything in this section is one of four steps. Same loop whether you're building personal memory, RAG over docs, or both on the same `namespace`.
 
 <Journey>
   <JourneyStep number="1" title="Get started">
@@ -53,8 +53,8 @@ Raw input automatically becomes memories (the knowledge graph) and indexed docum
   <Card title="How it works" icon="/icons/hugeicons/cpu.svg" href="/concepts/how-it-works">
     What happens between `add()` and a memory showing up in search.
   </Card>
-  <Card title="Container tags" icon="/icons/hugeicons/folder-01.svg" href="/concepts/container-tags">
-    The isolation boundary every ingest and retrieve call is scoped to.
+  <Card title="Namespaces" icon="/icons/hugeicons/folder-01.svg" href="/concepts/container-tags">
+    The isolation boundary every ingest and retrieve call is scoped to (v3/v4 called it a container tag).
   </Card>
   <Card title="Memory vs RAG" icon="/icons/hugeicons/balance-scale.svg" href="/concepts/memory-vs-rag">
     When to reach for search, profiles, or both.

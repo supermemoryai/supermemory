@@ -11,10 +11,10 @@ User profiles are extremely short summaries of context about an entity (Usually 
 
 This profile should be injected into the agent context for truly personalized experiences. To read more, visit [User profiles - Concept](/concepts/user-profiles)
 
-Get a user's profile — their static facts and dynamic context — with a single API call.
+Get a user's profile — their static facts and dynamic context — with a single API call. One profile per `namespace` (what v3/v4 called a container tag).
 
 <Tip>
-Profiles are built automatically as you [ingest content](/ingestion/add-memories). No setup required.
+Profiles are built automatically as you [ingest content](/ingestion/add-memories). No setup required. If you read a profile right after ingesting, pass `dreaming: "instant"` on the add; otherwise a fresh namespace can show an empty profile for minutes.
 </Tip>
 
 ## Quick start
@@ -22,16 +22,14 @@ Profiles are built automatically as you [ingest content](/ingestion/add-memories
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    import Supermemory from 'supermemory';
+    import { Supermemory } from "supermemory";
 
-    const client = new Supermemory();
+    const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
-    const { profile } = await client.profile({
-      containerTag: "user_123"
-    });
+    const { profile } = await supermemory.profile("user_123");
 
-    console.log(profile.static);   // Long-term facts
-    console.log(profile.dynamic);  // Recent context
+    console.log(profile.static.map((m) => m.memory));   // Long-term facts
+    console.log(profile.dynamic.map((m) => m.memory));  // Recent context
     ```
   </Tab>
   <Tab title="Python">
@@ -40,18 +38,16 @@ Profiles are built automatically as you [ingest content](/ingestion/add-memories
 
     client = Supermemory()
 
-    result = client.profile(container_tag="user_123")
+    profile = client.profile("user_123").profile
 
-    print(result.profile.static)   # Long-term facts
-    print(result.profile.dynamic)  # Recent context
+    print([m.memory for m in profile.static])   # Long-term facts
+    print([m.memory for m in profile.dynamic])  # Recent context
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v4/profile" \
-      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{"containerTag": "user_123"}'
+    curl -X POST "https://api.supermemory.ai/ns/user_123/profile" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
     ```
   </Tab>
 </Tabs>
@@ -61,53 +57,64 @@ Profiles are built automatically as you [ingest content](/ingestion/add-memories
 {
   "profile": {
     "static": [
-      "User is a software engineer",
-      "User specializes in Python and React",
-      "User prefers dark mode interfaces"
+      { "id": "mem_1", "memory": "User is a software engineer" },
+      { "id": "mem_2", "memory": "User specializes in Python and React" },
+      { "id": "mem_3", "memory": "User prefers dark mode interfaces" }
     ],
     "dynamic": [
-      "User is working on Project Alpha",
-      "User recently started learning Rust",
-      "User is debugging authentication issues"
-    ]
+      { "id": "mem_4", "memory": "User is working on Project Alpha" },
+      { "id": "mem_5", "memory": "User recently started learning Rust" },
+      { "id": "mem_6", "memory": "User is debugging authentication issues" }
+    ],
+    "buckets": {}
   }
 }
 ```
+
+`static` and `dynamic` are always returned. Each entry is `{ id, memory }`; the `id` is the memory ID, so you can [forget](/recall/memory-operations#forget-memories) a profile entry directly.
 
 ---
 
 ## Profile + search
 
-Get profile and search results in one call by adding the `q` parameter:
+The v5 profile call takes no query. When you also need query-ranked memories, run a [search](/recall/search) next to it:
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    const result = await client.profile({
-      containerTag: "user_123",
-      q: "deployment errors"
-    });
+    const [{ profile }, search] = await Promise.all([
+      supermemory.profile("user_123"),
+      supermemory.search("user_123", {
+        query: "deployment errors",
+        searchMode: "memories",
+        limit: 5,
+      }),
+    ]);
 
     // Profile data
-    const { static: facts, dynamic: context } = result.profile;
+    const facts = profile.static.map((m) => m.memory);
+    const context = profile.dynamic.map((m) => m.memory);
 
-    // Search results (only if q was provided)
-    const memories = result.searchResults?.results || [];
+    // Query-specific memories
+    const memories = search.results.map((r) => r.memory).filter(Boolean);
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    result = client.profile(
-        container_tag="user_123",
-        q="deployment errors"
+    profile = client.profile("user_123").profile
+    search = client.search(
+        "user_123",
+        query="deployment errors",
+        search_mode="memories",
+        limit=5,
     )
 
     # Profile data
-    facts = result.profile.static
-    context = result.profile.dynamic
+    facts = [m.memory for m in profile.static]
+    context = [m.memory for m in profile.dynamic]
 
-    # Search results
-    memories = result.search_results.results if result.search_results else []
+    # Query-specific memories
+    memories = [r.memory for r in search.results if r.memory]
     ```
   </Tab>
 </Tabs>
@@ -116,66 +123,58 @@ Get profile and search results in one call by adding the `q` parameter:
 
 ## Parameters
 
+`namespace` is a top-level key (URL path). `body` is optional and accepts only `filter` and `buckets`.
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `containerTag` | string | Yes | User/project identifier |
-| `q` | string | No | Search query (includes search results in response) |
-| `threshold` | 0-1 | No | Filter search results by relevance score |
-| `filters` | object | No | Metadata filters applied to profile and search results |
-| `include` | string[] | No | Sections to return — any of `"static"`, `"dynamic"`, `"buckets"`. Omit to return all |
-| `buckets` | string[] | No | Restrict the `buckets` section to specific keys. Omit for all configured buckets. See [Profile Buckets](/user-profiles/buckets) |
+| `namespace` | string | Yes | User/project identifier |
+| `body.filter` | object | No | Metadata filter applied to the memories that make up the profile |
+| `body.buckets` | string[] | No | Restrict the `buckets` section to specific names (up to 50). Omit for all configured buckets. See [Profile Buckets](/user-profiles/buckets) |
 
 ---
 
 ## Filtering profiles
 
-Profiles support the same [metadata filters](/concepts/filtering) as `/search` and `/documents/list` — `filters` narrows which memories are eligible to contribute to `static`, `dynamic`, and `buckets`, not just which search results come back.
+Profiles support the same [metadata filter](/concepts/filtering) as `search` and `list` — `filter` narrows which memories are eligible to contribute to `static`, `dynamic`, and `buckets`.
 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    const { profile } = await client.profile({
-      containerTag: "user_123",
-      filters: {
-        AND: [{ key: "source", value: "onboarding" }],
-      },
+    const { profile } = await supermemory.profile("user_123", {
+      filter: { field: "source", operator: "eq", value: "onboarding" },
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    result = client.profile(
-        container_tag="user_123",
-        filters={"AND": [{"key": "source", "value": "onboarding"}]},
-    )
+    profile = client.profile(
+        "user_123",
+        filter={"field": "source", "operator": "eq", "value": "onboarding"},
+    ).profile
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v4/profile" \
+    curl -X POST "https://api.supermemory.ai/ns/user_123/profile" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "containerTag": "user_123",
-        "filters": { "AND": [{ "key": "source", "value": "onboarding" }] }
+        "filter": { "field": "source", "operator": "eq", "value": "onboarding" }
       }'
     ```
   </Tab>
 </Tabs>
 
-Combine `filters` with `q` to scope both the profile synthesis and the accompanying search results in one call:
+Combine `filter` with `buckets` to scope both the profile synthesis and the bucket section in one call:
 
 ```typescript
-const result = await client.profile({
-  containerTag: "org_customer_442",
-  q: "billing issue",
-  filters: {
-    AND: [{ key: "channel", value: "support_ticket" }],
-  },
+const { profile } = await supermemory.profile("org_customer_442", {
+  filter: { field: "channel", operator: "eq", value: "support_ticket" },
+  buckets: ["billing"],
 });
 ```
 
-All filter types from [Organizing & Filtering](/concepts/filtering) are supported — string equality, `string_contains`, `numeric`, `array_contains`, nested `AND`/`OR`, and `negate`.
+All filter operators from [Organizing & Filtering](/concepts/filtering) are supported — `eq`/`neq`, `contains`/`notContains`, numeric comparisons, `arrayContains`, and nested `and`/`or`.
 
 ---
 
@@ -185,15 +184,15 @@ The most common pattern — inject profile into your LLM's system prompt:
 
 ```typescript
 async function chat(userId: string, message: string) {
-  const { profile } = await client.profile({ containerTag: userId });
+  const { profile } = await supermemory.profile(userId);
 
   const systemPrompt = `You are assisting a user.
 
 ABOUT THE USER:
-${profile.static?.join('\n') || 'No profile yet.'}
+${profile.static.map((m) => m.memory).join('\n') || 'No profile yet.'}
 
 CURRENT CONTEXT:
-${profile.dynamic?.join('\n') || 'No recent activity.'}
+${profile.dynamic.map((m) => m.memory).join('\n') || 'No recent activity.'}
 
 Personalize responses to their expertise and preferences.`;
 
@@ -210,25 +209,28 @@ Personalize responses to their expertise and preferences.`;
 
 ## Full context pattern
 
-Get profile + query-specific memories in one call:
+Get profile + query-specific memories:
 
 ```typescript
 async function getContext(userId: string, query: string) {
-  const result = await client.profile({
-    containerTag: userId,
-    q: query,
-    threshold: 0.6
-  });
+  const [{ profile }, search] = await Promise.all([
+    supermemory.profile(userId),
+    supermemory.search(userId, {
+      query,
+      threshold: 0.6,
+      searchMode: "memories",
+    }),
+  ]);
 
   return `
 User Background:
-${result.profile.static.join('\n')}
+${profile.static.map((m) => m.memory).join('\n')}
 
 Current Context:
-${result.profile.dynamic.join('\n')}
+${profile.dynamic.map((m) => m.memory).join('\n')}
 
 Relevant Memories:
-${result.searchResults?.results.map(m => m.memory).join('\n') || 'None'}
+${search.results.map((r) => r.memory).filter(Boolean).join('\n') || 'None'}
   `;
 }
 ```
@@ -241,9 +243,9 @@ Buckets are **custom topical categories** for a profile — an axis that sits al
 `static` and `dynamic`, grouping facts by subject (e.g. `preferences`, `goals`,
 `work`) instead of by how long-lived they are.
 
-<Card title="Profile buckets" icon="/icons/hugeicons/tag-01.svg" href="/user-profiles/buckets">
-  Read and configure buckets — request bucketed profiles, create org/space buckets,
-  get AI-generated bucket suggestions, and see validation limits.
+<Card title="Profile Buckets" icon="/icons/hugeicons/tag-01.svg" href="/user-profiles/buckets">
+  Read and configure buckets — request bucketed profiles, create namespace buckets,
+  and see validation limits.
 </Card>
 
 ---
@@ -256,9 +258,7 @@ Buckets are **custom topical categories** for a profile — an axis that sits al
     if (!req.user?.id) return next();
 
     try {
-      const { profile } = await client.profile({
-        containerTag: req.user.id
-      });
+      const { profile } = await supermemory.profile(req.user.id);
       req.userProfile = profile;
     } catch (e) {
       req.userProfile = null;
@@ -280,9 +280,7 @@ Buckets are **custom topical categories** for a profile — an axis that sits al
   export async function POST(req: NextRequest) {
     const { userId, message } = await req.json();
 
-    const { profile } = await client.profile({
-      containerTag: userId
-    });
+    const { profile } = await supermemory.profile(userId);
 
     const response = await generateResponse(message, profile);
     return NextResponse.json({ response });
@@ -297,8 +295,8 @@ Buckets are **custom topical categories** for a profile — an axis that sits al
 
   // Profiles automatically injected
   const model = withSupermemory(openai("gpt-4"), {
-    containerTag: "user-123",
-    customId: "conv-1",
+    namespace: "user-123",
+    id: "conv-1",
   })
 
   const result = await generateText({
@@ -315,16 +313,16 @@ Buckets are **custom topical categories** for a profile — an axis that sits al
 ## Response schema
 
 ```typescript
+interface ProfileEntry {
+  id: string;       // memory ID
+  memory: string;   // the fact
+}
+
 interface ProfileResponse {
   profile: {
-    static?: string[];                    // Long-term facts
-    dynamic?: string[];                   // Recent context
-    buckets?: Record<string, string[]>;   // Topical buckets, keyed by bucket key
-  };
-  searchResults?: {     // Only if q parameter provided
-    results: SearchResult[];
-    total: number;
-    timing: number;
+    static: ProfileEntry[];                      // Long-term facts
+    dynamic: ProfileEntry[];                     // Recent context
+    buckets: Record<string, ProfileEntry[]>;     // Topical buckets, keyed by bucket name
   };
 }
 ```

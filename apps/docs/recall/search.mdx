@@ -5,14 +5,14 @@ description: "Semantic search across your memories and documents"
 icon: "/icons/hugeicons/search-01.svg"
 ---
 
-Search through your memories and documents with a single API call.
+Search through your memories and documents with a single API call. Each search runs inside one `namespace` (what v3/v4 called a container tag).
 
 <Tip>
-**Use `searchMode: "hybrid"`** for best results. It searches both memories and document chunks, returning the most relevant content.
+**`searchMode: "hybrid"`** is the default and gives the best results. It searches both memories and document chunks, returning the most relevant content.
 </Tip>
 
 <Note>
-**TypeScript SDK:** call `client.search({ q, searchMode })` directly — `searchMode` (`"memories"`, `"documents"`, or `"hybrid"`) picks what comes back. `client.search.memories()` and `client.search.documents()` still work but are deprecated; no migration is required, just use `client.search()` going forward. The Python SDK is unaffected — `client.search.memories()` remains the call there.
+**TypeScript SDK:** one call, `supermemory.search(namespace, { query, searchMode })`. `searchMode` (`"memories"`, `"chunks"`, or `"hybrid"`) picks what comes back. There is no v5 Python SDK yet; the Python tab shows the legacy client.
 </Note>
 
 ## Quick start
@@ -20,15 +20,14 @@ Search through your memories and documents with a single API call.
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    import Supermemory from 'supermemory';
+    import { Supermemory } from "supermemory";
 
-    const client = new Supermemory();
+    const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
 
-    const results = await client.search({
-      q: "machine learning",
-      containerTag: "user_123",
+    const results = await supermemory.search("user_123", {
+      query: "machine learning",
       searchMode: "hybrid",
-      limit: 5
+      limit: 5,
     });
 
     results.results.forEach(result => {
@@ -42,11 +41,11 @@ Search through your memories and documents with a single API call.
 
     client = Supermemory()
 
-    results = client.search.memories(
-        q="machine learning",
-        container_tag="user_123",
+    results = client.search(
+        "user_123",
+        query="machine learning",
         search_mode="hybrid",
-        limit=5
+        limit=5,
     )
 
     for result in results.results:
@@ -55,15 +54,10 @@ Search through your memories and documents with a single API call.
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/v4/search" \
+    curl -X POST "https://api.supermemory.ai/ns/user_123/search?searchMode=hybrid&limit=5" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{
-        "q": "machine learning",
-        "containerTag": "user_123",
-        "searchMode": "hybrid",
-        "limit": 5
-      }'
+      -d '{ "query": "machine learning" }'
     ```
   </Tab>
 </Tabs>
@@ -77,62 +71,70 @@ Search through your memories and documents with a single API call.
       "memory": "User is interested in machine learning for product recommendations",
       "similarity": 0.91,
       "metadata": { "topic": "interests" },
-      "updatedAt": "2024-01-15T10:30:00.000Z",
-      "version": 1
+      "isLatest": true,
+      "system": { "createdAt": "2024-01-15T10:30:00.000Z", "updatedAt": "2024-01-15T10:30:00.000Z" }
     },
     {
       "id": "chunk_abc",
       "chunk": "Machine learning enables personalized experiences at scale...",
       "similarity": 0.87,
       "metadata": { "source": "onboarding_doc" },
-      "updatedAt": "2024-01-14T09:15:00.000Z",
-      "version": 1
+      "isLatest": true,
+      "system": { "createdAt": "2024-01-14T09:15:00.000Z", "updatedAt": "2024-01-14T09:15:00.000Z" }
     }
   ],
-  "timing": 92,
-  "total": 5
+  "searchTime": 92
 }
 ```
 
 <Info>
-In hybrid mode, results contain either a `memory` field (extracted facts) or a `chunk` field (document content), depending on the source.
+In hybrid mode, results contain either a `memory` field (extracted facts) or a `chunk` field (document content), depending on the source. Branch on field presence.
 </Info>
 
 ---
 
 ## Parameters
 
+`namespace` is the URL path. Every other option goes in the JSON body (the second argument in the SDKs).
+
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `q` | string | required | Search query |
-| `containerTag` | string | — | Filter by user/project |
-| `searchMode` | string | `"memories"` | `"memories"`, `"hybrid"` (recommended), or `"documents"` |
-| `limit` | number | 10 | Max results |
-| `threshold` | 0-1 | 0.5 | Similarity cutoff (higher = fewer, better results) |
-| `rerank` | boolean | false | Re-score for better relevance (+100ms) |
-| `rewriteQuery` | boolean | false | Generate multiple rewrites, search all of them, and merge results. No extra cost, but adds latency. Composes with filtering, hybrid search, and recency bias |
-| `filters` | object | — | Metadata filters (`AND`/`OR` structure) |
-| `include` | object | — | `{ documents, summaries, relatedMemories, forgottenMemories }` — opt in to extra context per result |
+| `namespace` | string | required | Namespace to search (URL path) |
+| `query` | string | required | Search query |
+| `searchMode` | string | `"hybrid"` | `"hybrid"` (recommended), `"memories"`, or `"chunks"` |
+| `limit` | number | 10 | Max results (max 100) |
+| `threshold` | 0-1 | 0.3 | Similarity cutoff (higher = fewer, better results) |
+| `rerank` | string | `"none"` | `"none"`, `"order"` (re-score for relevance, +100ms), or `"aggregate"` |
+| `rewriteQuery` | boolean | false | Generate multiple rewrites, search all of them, and merge results. No extra cost, but adds latency |
+| `filter` | object | — | Metadata filter expression. See [Filtering](#filtering) |
+| `include` | object | — | `{ documents, related, forgotten }` — opt in to extra context per result |
+
+<Note>
+Defaults changed from v4: `searchMode` was `memories` and is now `hybrid`; `threshold` was `0.6` and is now `0.3`. Set both explicitly if you are comparing against v4 results.
+</Note>
 
 ### Search modes
 
-- **`hybrid`** (recommended) — Searches both memories and document chunks, and returns both in the response
+- **`hybrid`** (default, recommended) — Searches both memories and document chunks, and returns both in the response
 - **`memories`** — Only searches extracted memories
-- **`documents`** — Only searches raw document/chunk content, skipping extracted memories
+- **`chunks`** — Only searches raw document/chunk content, skipping extracted memories
 
 ```typescript
-// Hybrid: memories + document chunks (recommended)
-await client.search({
-  q: "quarterly goals",
-  containerTag: "user_123",
-  searchMode: "hybrid"
+// Hybrid: memories + document chunks (default)
+await supermemory.search("user_123", {
+  query: "quarterly goals",
 });
 
 // Memories only: just extracted facts
-await client.search({
-  q: "user preferences",
-  containerTag: "user_123",
-  searchMode: "memories"
+await supermemory.search("user_123", {
+  query: "user preferences",
+  searchMode: "memories",
+});
+
+// Chunks only: RAG over documents
+await supermemory.search("user_123", {
+  query: "refund policy",
+  searchMode: "chunks",
 });
 ```
 
@@ -140,39 +142,29 @@ await client.search({
 
 ## Filtering
 
-Filter by `containerTag` to scope results to a user or project:
+The `namespace` scopes results to a user or project. Use `filter` for metadata-based filtering inside that namespace:
 
 ```typescript
-const results = await client.search({
-  q: "project updates",
-  containerTag: "user_123",
-  searchMode: "hybrid"
+const results = await supermemory.search("user_123", {
+  query: "meeting notes",
+  filter: {
+    operator: "and",
+    operands: [
+      { field: "type", operator: "eq", value: "meeting" },
+      { field: "year", operator: "eq", value: 2024 },
+    ],
+  },
 });
 ```
 
-Use `filters` for metadata-based filtering:
+<Accordion title="Filter Types">
+  - **Equality:** `{ field: "status", operator: "eq", value: "active" }` (also `neq`; strings, numbers, booleans)
+  - **String contains:** `{ field: "title", operator: "contains", value: "react" }` (also `notContains`; optional `caseSensitive`)
+  - **Numeric:** `{ field: "priority", operator: "gte", value: 5 }` (`gt`, `gte`, `lt`, `lte`)
+  - **Array contains:** `{ field: "tags", operator: "arrayContains", value: "important" }` (also `arrayNotContains`)
+  - **Logic:** `{ operator: "and" | "or", operands: [...] }`, nested up to 5 levels
 
-```typescript
-const results = await client.search({
-  q: "meeting notes",
-  containerTag: "user_123",
-  filters: {
-    AND: [
-      { key: "type", value: "meeting" },
-      { key: "year", value: "2024" }
-    ]
-  }
-});
-```
-
-<Accordion title="Filter types">
-  - **String equality:** `{ key: "status", value: "active" }`
-  - **String contains:** `{ filterType: "string_contains", key: "title", value: "react" }`
-  - **Numeric:** `{ filterType: "numeric", key: "priority", value: "5", numericOperator: ">=" }`
-  - **Array contains:** `{ filterType: "array_contains", key: "tags", value: "important" }`
-  - **Negate:** `{ key: "status", value: "draft", negate: true }`
-
-  See [Organizing & Filtering](/concepts/filtering) for full syntax.
+  Keys are literal: `customer.plan` is one field name, not a nested path. See [Organizing & Filtering](/concepts/filtering) for full syntax.
 </Accordion>
 
 ---
@@ -184,10 +176,9 @@ const results = await client.search({
 Re-scores results for better relevance. Adds ~100ms latency.
 
 ```typescript
-const results = await client.search({
-  q: "complex technical question",
-  containerTag: "user_123",
-  rerank: true
+const results = await supermemory.search("user_123", {
+  query: "complex technical question",
+  rerank: "order",
 });
 ```
 
@@ -197,22 +188,27 @@ Control result quality vs quantity:
 
 ```typescript
 // Broad search — more results
-await client.search({ q: "...", threshold: 0.3 });
+await supermemory.search("user_123", { query: "...", threshold: 0.3 });
 
 // Precise search — fewer, better results
-await client.search({ q: "...", threshold: 0.8 });
+await supermemory.search("user_123", { query: "...", threshold: 0.8 });
 ```
 
-### Including forgotten memories
+### Attachments
 
-By default, search excludes memories that have been forgotten or have passed their `forgetAfter` expiration. Set `include.forgottenMemories` to `true` to recover them:
+- `attach.documents` adds the most relevant source document to each result.
+- `attach.related` adds parent, child, and sibling memories (see [graph memory](/concepts/graph-memory)).
+- `attach.forgotten` allows forgotten memories in related context. By default, search excludes memories that have been forgotten or have passed their `forgetAfter` expiration.
 
 ```typescript
-await client.search({
-  q: "old project notes",
-  include: { forgottenMemories: true }
+await supermemory.search("user_123", {
+  query: "old project notes",
+  include: { related: true, forgotten: true },
+  searchMode: "memories",
 });
 ```
+
+Attached context arrives under `result.included` (`included.document`, `included.related.{parents,children,siblings}`).
 
 ---
 
@@ -222,12 +218,11 @@ Optimal configuration for conversational AI:
 
 ```typescript
 async function getContext(userId: string, message: string) {
-  const results = await client.search({
-    q: message,
-    containerTag: userId,
-    searchMode: "hybrid",
+  const results = await supermemory.search(userId, {
+    query: message,
     threshold: 0.6,
-    limit: 5
+    searchMode: "hybrid",
+    limit: 5,
   });
 
   return results.results
@@ -244,14 +239,17 @@ async function getContext(userId: string, message: string) {
     chunk?: string;         // Present for document chunk results
     similarity: number;     // 0-1
     metadata: object | null;
-    updatedAt: string;
-    version: number;
+    isLatest: boolean;
+    system: { createdAt: string; updatedAt: string };
+    included?: {            // Only when you pass attach
+      document?: object;
+      related?: { parents: object[]; children: object[]; siblings: object[] };
+    };
   }
 
   interface SearchResponse {
     results: SearchResult[];
-    timing: number;         // ms
-    total: number;
+    searchTime: number;     // ms
   }
   ```
 </Accordion>
@@ -261,5 +259,5 @@ async function getContext(userId: string, message: string) {
 ## Next steps
 
 - [Ingesting Content](/ingestion/add-memories) — Add content to search
-- [User Profiles](/recall/user-profiles) — Get user context with search
-- [Organizing & Filtering](/concepts/filtering) — Container tags and metadata
+- [User Profiles](/recall/user-profiles) — Get user context
+- [Organizing & Filtering](/concepts/filtering) — Namespaces and metadata

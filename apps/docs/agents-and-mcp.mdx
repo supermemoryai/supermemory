@@ -36,14 +36,14 @@ npx supermemory help --all
 Also available for smoke tests against your key: `add`, `search`, `profile`, `docs`, `tags`, `config`, `whoami`. Auth via first-run credentials or `SUPERMEMORY_API_KEY`.
 
 ```bash
-npx supermemory add "User prefers TypeScript" --tag user_123
-npx supermemory search "language preference" --tag user_123
-npx supermemory profile --tag user_123
+npx supermemory add "User prefers TypeScript" --namespace user_123
+npx supermemory search "language preference" --namespace user_123
+npx supermemory profile --namespace user_123
 ```
 
 ## Skill
 
-Install the official skill so the agent uses the real endpoints, auth, and `containerTag` rules instead of hallucinating APIs:
+Install the official skill so the agent uses the real endpoints, auth, and `namespace` rules instead of hallucinating APIs:
 
 ```bash
 npx skills add https://github.com/supermemoryai/skills --skill supermemory
@@ -175,10 +175,11 @@ https://supermemory.ai/docs/mcp
 You are integrating Supermemory into my app.
 
 - Use the supermemory-docs MCP (or https://supermemory.ai/docs/llms.txt) before inventing endpoints.
-- Prefer `npx supermemory setup` / the supermemory skill for correct auth, containerTag, and SDK usage.
-- Canonical writes: POST /v3/documents · search: POST /v4/search · profile: POST /v4/profile
+- Prefer `npx supermemory setup` / the supermemory skill for correct auth, namespace, and SDK usage.
+- Canonical writes: POST /ns/{namespace}/document · search: POST /ns/{namespace}/search · profile: POST /ns/{namespace}/profile
 - Auth: Authorization: Bearer $SUPERMEMORY_API_KEY only
-- Always scope with containerTag (singular) on write and search
+- Always scope with one namespace in the URL path on write and search (never containerTag in the body)
+- SDK: import { Supermemory } from "supermemory"; every call takes { namespace, ...queryParams, body }
 - For demos use dreaming: "instant" when memories must be ready right after status done
 ```
 
@@ -195,26 +196,26 @@ Note: You can always reference the documentation by using the **supermemory-docs
 CANONICAL API SURFACE (use these, nothing else):
 
 - Auth header: `Authorization: Bearer $SUPERMEMORY_API_KEY` — the only supported auth header
-- Write content:     POST https://api.supermemory.ai/v3/documents
-- Search:            POST https://api.supermemory.ai/v4/search
-- Profile + search:  POST https://api.supermemory.ai/v4/profile
-- Settings:          PATCH https://api.supermemory.ai/v3/settings
-- Scoping:           `containerTag` (singular string) in the JSON body — never in a header
-- SDK:               `client.add()`, `client.search()`, `client.profile()`
+- Write content:     POST https://api.supermemory.ai/ns/{namespace}/document
+- Search:            POST https://api.supermemory.ai/ns/{namespace}/search
+- Profile:           POST https://api.supermemory.ai/ns/{namespace}/profile
+- Org settings:      PATCH https://api.supermemory.ai/organization
+- Scoping:           one `namespace` in the URL path — never in the body or a header
+- SDK:               `import { Supermemory } from "supermemory"`; `supermemory.add(namespace, { content, id?, metadata? })`, `supermemory.search(namespace, { query })`, `supermemory.profile(namespace)`
 
 DO NOT USE — deprecated, undocumented, or fabricated:
 
-- Endpoints:  /v1/anything, /v3/memories, /v3/search   (use /v3/documents and /v4/search)
+- Endpoints:  /v1/anything, /v3/documents, /v3/search, /v4/search, /v4/profile, /v4/memories   (use /ns/{namespace}/...)
 - Headers:    x-supermemory-api-key, x-api-key, x-sm-user-id (for API auth)
-- Body keys:  containerTags (plural) on writes as the only scope, userId, spaces
-- Mixing:     `rerank` and `rewriteQuery` on /v4/search only — never on /v3/search
+- Body keys:  containerTag, containerTags, customId (use `id`), entityContext (use `supportingContext`), filterByMetadata (use `group`), documentDate (use `date`), q (use `query`), filters (use `filter`), userId, spaces
+- SDK:        `client.add({ containerTag })`, `client.search.execute`, `client.memories.*`, `client.profile({ q })`
 
-SCOPING IS LOAD-BEARING. Every write and every search MUST include `containerTag`.
+SCOPING IS LOAD-BEARING. Every write and every search MUST name one namespace in the path.
 
 Prefer for tutorials:
-- Ingest conversations with customId + dreaming: "instant" when you need memories immediately
-- Wait until document status is done before search
-- search with searchMode: "documents" for RAG, search (+ relatedMemories) for the graph, profile for always-on context
+- Ingest conversations with a stable `id` + dreaming: "instant" when you need memories immediately
+- Wait until document system.status is done before search
+- search with searchMode: "chunks" for RAG, searchMode: "memories" (+ include.related) for the graph, profile for always-on context
 
 STEP 1: Ask what I'm building, integration style (AI SDK / OpenAI / Direct SDK / API), data model (user/org/both), profiles yes/no.
 STEP 2: Install supermemory (npm/pip), set SUPERMEMORY_API_KEY from https://console.supermemory.ai

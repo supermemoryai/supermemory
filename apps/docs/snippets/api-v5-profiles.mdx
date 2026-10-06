@@ -21,9 +21,9 @@ Remove legacy `q`, `threshold`, and `include`. If the caller needs query-ranked 
 ```json
 {
   "profile": {
-    "static": ["The user works in design"],
-    "dynamic": ["The user is preparing a launch"],
-    "buckets": { "work": ["Prefers concise project updates"] }
+    "static": [{ "id": "mem_1", "memory": "The user works in design" }],
+    "dynamic": [{ "id": "mem_2", "memory": "The user is preparing a launch" }],
+    "buckets": { "work": [{ "id": "mem_3", "memory": "Prefers concise project updates" }] }
   }
 }
 ```
@@ -66,6 +66,33 @@ DELETE /ns/user_1/profile/buckets
 ```
 
 Names must be unique. Organization-owned buckets can appear in the effective GET response but cannot be changed or removed through namespace PUT or DELETE calls.
+
+### With the SDK
+
+<CodeGroup>
+```ts Legacy
+const profile = await client.profile({ containerTag: "user_1", q: "work preferences" })
+const buckets = await client.profile.buckets({ containerTag: "user_1" })
+```
+
+```ts v5
+const { profile } = await supermemory.profile("user_1", {
+  buckets: ["work"],
+})
+
+const buckets = await supermemory.profiles.getBuckets("user_1")
+
+await supermemory.profiles.setBuckets("user_1", {
+  buckets: { work: "Professional preferences and ongoing work" },
+})
+
+await supermemory.profiles.deleteBuckets("user_1", {
+  buckets: ["work"],
+})
+```
+</CodeGroup>
+
+`supermemory.profile` takes no query. `body` is optional and accepts only `filter` and `buckets`. Read `profile.static`, `profile.dynamic`, and `profile.buckets[name]` as arrays of `{ id, memory }`.
 
 ### Verification
 

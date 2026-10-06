@@ -49,8 +49,8 @@ const openai = new OpenAI()
 
 // Wrap client with memory - memories auto-injected into system prompts
 const client = withSupermemory(openai, {
-  containerTag: "user-123",     // Required: identifies the user/container
-  customId: "conversation-456", // Required: groups messages into the same document 
+  namespace: "user-123",     // Required: identifies the user/container
+  id: "conversation-456", // Required: groups messages into the same document 
   mode: "full",                 // "profile" | "query" | "full"
   addMemory: "always",          // "always" (default) | "never"
 })
@@ -70,10 +70,10 @@ const response = await client.chat.completions.create({
 ```typescript
 const client = withSupermemory(openai, {
   // Required: identifies the user/container
-  containerTag: "user-123",
+  namespace: "user-123",
 
   // Required: Group messages into the same document
-  customId: "conv-456",
+  id: "conv-456",
 
   // Memory search mode
   mode: "full",  // "profile" (user profile only), "query" (search only), "full" (both)
@@ -100,7 +100,7 @@ const client = withSupermemory(openai, {
 ### Works with Responses API too
 
 ```typescript
-const client = withSupermemory(openai, { containerTag: "user-123", customId: "conv-456", mode: "full" })
+const client = withSupermemory(openai, { namespace: "user-123", id: "conv-456", mode: "full" })
 
 // Memories injected into instructions
 const response = await client.responses.create({
@@ -203,7 +203,7 @@ const toolDefinitions = getToolDefinitions()
 
 // Create tool executor
 const executeToolCall = createToolCallExecutor(process.env.SUPERMEMORY_API_KEY!, {
-  projectId: "your-project-id",
+  namespace: "your-project-id",
 })
 
 // Use with OpenAI Chat Completions
@@ -251,7 +251,7 @@ tools = SupermemoryTools(
 import { supermemoryTools } from "@supermemory/tools/openai"
 
 const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
-  containerTags: ["your-user-id"],
+  namespace: "your-user-id",
   baseUrl: "https://custom-endpoint.com", // optional
 })
 ```
@@ -422,7 +422,7 @@ import readline from 'readline'
 
 const client = new OpenAI()
 const executeToolCall = createToolCallExecutor(process.env.SUPERMEMORY_API_KEY!, {
-  projectId: "chat-example",
+  namespace: "chat-example",
 })
 
 const rl = readline.createInterface({
@@ -588,7 +588,7 @@ execute_memory_tool_calls(
 ```typescript
 supermemoryTools(
   apiKey: string,
-  config?: { projectId?: string; baseUrl?: string }
+  config?: { namespace?: string; baseUrl?: string }
 )
 ```
 
@@ -597,7 +597,7 @@ supermemoryTools(
 ```typescript
 createToolCallExecutor(
   apiKey: string,
-  config?: { projectId?: string; baseUrl?: string }
+  config?: { namespace?: string; baseUrl?: string }
 ) -> (toolCall: OpenAI.Chat.ChatCompletionMessageToolCall) => Promise<any>
 ```
 
