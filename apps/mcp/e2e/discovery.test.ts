@@ -10,9 +10,13 @@ import {
 const EXPECTED_TOOLS = [
 	"add_memory",
 	"fetch-graph-data",
+	"getDocument",
 	"get_document",
 	"get_profile",
 	"guided-save",
+	"listDocuments",
+	"listMemories",
+	"listSpaces",
 	"list_documents",
 	"list_memories",
 	"list_spaces",
@@ -23,6 +27,7 @@ const EXPECTED_TOOLS = [
 	"select-space",
 	"set-active-tag",
 	"upload-file",
+	"whoAmI",
 	"who_am_i",
 ]
 const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
