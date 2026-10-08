@@ -52,7 +52,7 @@ class SupermemoryContextProvider(BaseContextProvider):
             store_conversations=True,
         )
 
-        agent = OpenAIChatClient(model="gpt-4o-mini").as_agent(
+        agent = OpenAIChatClient(model="gpt-5").as_agent(
             name="MemoryAgent",
             instructions="You are a helpful assistant with memory.",
             context_providers=[provider],

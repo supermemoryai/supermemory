@@ -6,26 +6,20 @@ This package provides both **automatic memory injection middleware** and **manua
 
 ## Installation
 
-This source supports the Supermemory Python SDK `>=5.0.0,<6`. The published adapter `1.0.3` still requires the legacy SDK; until a v5-compatible adapter release is published, install from a checkout of this repository:
-
-```bash
-pip install -e packages/agent-framework-python agent-framework-openai
-```
+Adapter version `>=2.0.0,<3` supports the Supermemory Python SDK `>=5.0.0,<6`.
 
 The OpenAI client is a separate Agent Framework package. Include `agent-framework-openai` when using the OpenAI examples below, which target its current `OpenAIChatClient` Responses API client. The adapter also supports older framework cores, but their OpenAI client names and model arguments can differ.
-
-After a v5-compatible adapter release is published, install using the package index:
 
 Install using uv (recommended):
 
 ```bash
-uv add supermemory-agent-framework agent-framework-openai
+uv add "supermemory-agent-framework>=2.0.0,<3" agent-framework-openai
 ```
 
 Or with pip:
 
 ```bash
-pip install supermemory-agent-framework agent-framework-openai
+pip install "supermemory-agent-framework>=2.0.0,<3" agent-framework-openai
 ```
 
 ## Quick Start
@@ -59,7 +53,7 @@ async def main():
     )
 
     # Create agent with middleware
-    agent = OpenAIChatClient(model="gpt-4o-mini").as_agent(
+    agent = OpenAIChatClient(model="gpt-5").as_agent(
         name="MemoryAgent",
         instructions="You are a helpful assistant with memory.",
         middleware=[middleware],
@@ -98,7 +92,7 @@ async def main():
     )
 
     # Create agent with context provider
-    agent = OpenAIChatClient(model="gpt-4o-mini").as_agent(
+    agent = OpenAIChatClient(model="gpt-5").as_agent(
         name="MemoryAgent",
         instructions="You are a helpful assistant with memory.",
         context_providers=[provider],
@@ -132,7 +126,7 @@ async def main():
     tools = SupermemoryTools(connection)
 
     # Create agent
-    agent = OpenAIChatClient(model="gpt-4o-mini").as_agent(
+    agent = OpenAIChatClient(model="gpt-5").as_agent(
         name="MemoryAgent",
         instructions="You are a helpful assistant with access to user memories.",
     )
@@ -175,7 +169,7 @@ async def main():
 
     tools = SupermemoryTools(connection)
 
-    agent = OpenAIChatClient(model="gpt-4o-mini").as_agent(
+    agent = OpenAIChatClient(model="gpt-5").as_agent(
         name="MemoryAgent",
         instructions="You are a helpful assistant with memory.",
         middleware=[middleware],

@@ -237,7 +237,7 @@ class SupermemoryChatMiddleware(ChatMiddleware):
             ),
         )
 
-        agent = OpenAIChatClient(model="gpt-4o-mini").as_agent(
+        agent = OpenAIChatClient(model="gpt-5").as_agent(
             name="MemoryAgent",
             instructions="You are a helpful assistant with memory.",
             middleware=[middleware],

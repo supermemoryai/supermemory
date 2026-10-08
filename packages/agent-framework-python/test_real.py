@@ -29,7 +29,7 @@ async def main():
     tools = SupermemoryTools(conn)
 
     agent = OpenAIChatClient(
-        api_key=os.environ["OPENAI_API_KEY"], model="gpt-4o-mini"
+        api_key=os.environ["OPENAI_API_KEY"], model="gpt-5"
     ).as_agent(
         name="MemoryAgent",
         instructions="You are a helpful assistant with memory.",
