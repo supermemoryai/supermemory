@@ -21,9 +21,7 @@ export function register(deps: ToolDeps) {
 		},
 		async (args) => {
 			try {
-				const namespace = namespaceArg(args)
-				if (!namespace)
-					return deps.errorResult(new Error("namespace is required"))
+				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const preparation = await deps.createUploadSession(namespace)
 
 				return {

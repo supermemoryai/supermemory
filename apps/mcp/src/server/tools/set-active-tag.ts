@@ -26,8 +26,7 @@ export function register(deps: ToolDeps) {
 				return deps.errorResult(new Error("namespace is required"))
 			try {
 				const viewId = args.viewId ?? crypto.randomUUID()
-				const namespaces = await deps.getClient().listNamespaces()
-				if (!namespaces.some((entry) => entry.namespace === namespace)) {
+				if (!(await deps.getClient().getNamespace(namespace))) {
 					return deps.errorResult(
 						new Error(`No access to namespace '${namespace}'.`),
 					)

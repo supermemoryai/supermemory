@@ -22,7 +22,6 @@ export const DEFAULT_NAMESPACE = "sm_project_default"
 const FETCH_TIMEOUT_MS = 30_000
 const MCP_SOURCE = "supermemory-mcp"
 const NAMESPACE_PAGE_LIMIT = 100
-const MAX_NAMESPACE_PAGES = 20
 // v4 defaults; v5 lowered the threshold to 0.3.
 const SEARCH_THRESHOLD = 0.6
 // Analytics matches on this text to tag quota errors, keep them in sync.
@@ -154,6 +153,18 @@ function extractApiErrorMessage(raw: unknown): string | undefined {
 	}
 }
 
+export interface NamespaceSettings {
+	namespace: string
+	supportingContext: string | null
+	createdAt: string
+	updatedAt: string
+}
+
+const isNotFound = (error: unknown): boolean => {
+	const e = error as { statusCode?: number; status?: number }
+	return e?.statusCode === 404 || e?.status === 404
+}
+
 export class SupermemoryClient {
 	private client: Supermemory
 	private namespace: string
@@ -273,30 +284,35 @@ export class SupermemoryClient {
 		}
 	}
 
-	async listNamespaces(): Promise<NamespaceInfo[]> {
+	// v5 get returns settings only (no counts); null means missing or no access
+	async getNamespace(namespace: string): Promise<NamespaceSettings | null> {
 		try {
-			const namespaces: NamespaceInfo[] = []
-			for (let page = 1; page <= MAX_NAMESPACE_PAGES; page++) {
-				const result = await this.client.namespaces.list({
-					page,
-					limit: NAMESPACE_PAGE_LIMIT,
-				})
-				for (const entry of result.namespaces) {
-					namespaces.push({
-						id: entry.id,
-						namespace: entry.namespace,
-						description: entry.description,
-						documentCount: entry.documentCount,
-						memoryCount: entry.memoryCount,
-						createdAt: entry.system.createdAt,
-						updatedAt: entry.system.updatedAt,
-					})
-				}
-				if (result.pagination.currentPage >= result.pagination.totalPages) {
-					break
-				}
+			const entry = await this.client.namespaces.get(namespace)
+			return {
+				namespace: entry.namespace,
+				supportingContext: entry.supportingContext,
+				createdAt: entry.system.createdAt,
+				updatedAt: entry.system.updatedAt,
 			}
-			return namespaces
+		} catch (error) {
+			if (isNotFound(error)) return null
+			this.handleError(error)
+		}
+	}
+
+	// One page is enough for pickers; single-namespace reads use getNamespace
+	async listNamespaces(limit = NAMESPACE_PAGE_LIMIT): Promise<NamespaceInfo[]> {
+		try {
+			const result = await this.client.namespaces.list({ page: 1, limit })
+			return result.namespaces.map((entry) => ({
+				id: entry.id,
+				namespace: entry.namespace,
+				description: entry.description,
+				documentCount: entry.documentCount,
+				memoryCount: entry.memoryCount,
+				createdAt: entry.system.createdAt,
+				updatedAt: entry.system.updatedAt,
+			}))
 		} catch (error) {
 			this.handleError(error)
 		}

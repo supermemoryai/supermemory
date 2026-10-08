@@ -26,6 +26,16 @@ function fakeDeps() {
 			status: "queued",
 			namespace: "legacy_ns",
 		}),
+		getNamespace: vi.fn().mockImplementation(async (ns: string) =>
+			ns === "legacy_ns"
+				? {
+						namespace: ns,
+						supportingContext: null,
+						createdAt: "2026-01-01",
+						updatedAt: "2026-01-02",
+					}
+				: null,
+		),
 		listNamespaces: vi.fn().mockResolvedValue([
 			{
 				id: "1",
