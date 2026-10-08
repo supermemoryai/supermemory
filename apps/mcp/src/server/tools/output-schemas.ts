@@ -71,6 +71,14 @@ export const getDocumentOutputSchema = z.object({
 
 export type GetDocumentOutput = z.infer<typeof getDocumentOutputSchema>
 
+export const deleteDocumentOutputSchema = z.object({
+	success: z.boolean(),
+	documentId: z.string(),
+	message: z.string(),
+})
+
+export type DeleteDocumentOutput = z.infer<typeof deleteDocumentOutputSchema>
+
 export const listDocumentsOutputSchema = z.object({
 	documents: z.array(documentSummarySchema),
 	pagination: paginationSchema,
