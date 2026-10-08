@@ -130,10 +130,12 @@ class SupermemoryTools:
     ) -> str:
         """Add (remember) memories/details/information about the user or other facts or entities. Run when explicitly asked or when the user mentions any information generalizable beyond the context of the current conversation."""
         try:
+            # No custom_id: each remembered fact is its own document. A shared id would
+            # make every call update one document, replacing the previous memory and
+            # colliding with the conversation transcript saved under connection.custom_id.
             response = await self._client.add(
                 content=memory,
                 container_tag=self._connection.container_tag,
-                custom_id=self._connection.custom_id,
             )
             result: MemoryAddResult = {
                 "success": True,
