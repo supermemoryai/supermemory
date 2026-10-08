@@ -1,5 +1,10 @@
 import { z } from "zod"
 import { optionalNamespaceSchema } from "../namespace"
+import {
+	legacyNamespaceInput,
+	namespaceArg,
+	withLegacyNamespace,
+} from "./compat"
 import { formatFactSection } from "../space-presentation"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import { getProfileOutputSchema, type GetProfileOutput } from "./output-schemas"
@@ -8,6 +13,7 @@ import { textContent, type ToolDeps } from "./types"
 export function register(deps: ToolDeps) {
 	const inputSchema = z.object({
 		namespace: optionalNamespaceSchema,
+		...legacyNamespaceInput,
 	})
 
 	deps.server.registerTool(
@@ -22,7 +28,7 @@ export function register(deps: ToolDeps) {
 		},
 		async (args) => {
 			try {
-				const namespace = await deps.resolveNamespace(args.namespace)
+				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const profileResult = await deps.getClient(namespace).getProfile()
 				const profile = {
 					static: profileResult.profile.static,
@@ -46,10 +52,10 @@ export function register(deps: ToolDeps) {
 					parts.push("No profile facts are available for this space yet.")
 				}
 
-				const structuredContent: GetProfileOutput = {
+				const structuredContent: GetProfileOutput = withLegacyNamespace({
 					namespace,
 					profile,
-				}
+				})
 
 				return {
 					content: [textContent(parts.join("\n"))],

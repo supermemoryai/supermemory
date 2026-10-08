@@ -1,6 +1,11 @@
 import { z } from "zod"
 import { formatDocument, getDocumentContent } from "../format"
 import { optionalNamespaceSchema } from "../namespace"
+import {
+	legacyNamespaceInput,
+	namespaceArg,
+	withLegacyNamespace,
+} from "./compat"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import {
 	getDocumentOutputSchema,
@@ -16,6 +21,7 @@ export function register(deps: ToolDeps) {
 			.max(255, "Document ID exceeds maximum length")
 			.describe("Document ID returned by list_documents or a memory result"),
 		namespace: optionalNamespaceSchema,
+		...legacyNamespaceInput,
 	})
 
 	deps.server.registerTool(
@@ -30,11 +36,11 @@ export function register(deps: ToolDeps) {
 		},
 		async (args) => {
 			try {
-				const namespace = await deps.resolveNamespace(args.namespace)
+				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const client = deps.getClient(namespace)
 				const document = await client.getDocument(args.documentId)
 				const { content, truncated } = getDocumentContent(document)
-				const structuredContent: GetDocumentOutput = {
+				const structuredContent: GetDocumentOutput = withLegacyNamespace({
 					namespace,
 					document: {
 						id: document.id,
@@ -47,7 +53,7 @@ export function register(deps: ToolDeps) {
 						content,
 						contentTruncated: truncated,
 					},
-				}
+				})
 
 				return {
 					content: [textContent(formatDocument(document))],

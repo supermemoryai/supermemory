@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { optionalNamespaceSchema } from "../namespace"
+import { legacyNamespaceInput, namespaceArg } from "./compat"
 import { formatDocumentsList } from "../format"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import {
@@ -26,6 +27,7 @@ export function register(deps: ToolDeps) {
 			.default(10)
 			.describe("Documents per page (default 10, max 50)"),
 		namespace: optionalNamespaceSchema,
+		...legacyNamespaceInput,
 	})
 
 	deps.server.registerTool(
@@ -40,7 +42,7 @@ export function register(deps: ToolDeps) {
 		},
 		async (args) => {
 			try {
-				const namespace = await deps.resolveNamespace(args.namespace)
+				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const client = deps.getClient(namespace)
 				const data = await client.listDocuments(
 					args.page ?? 1,

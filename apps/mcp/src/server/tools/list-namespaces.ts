@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { listSpacesOutputSchema } from "../../shared/types"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
+import { withLegacyNamespaces } from "./compat"
 import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -16,13 +17,15 @@ export function register(deps: ToolDeps) {
 		async () => {
 			try {
 				const namespaces = await deps.getClient().listNamespaces()
-				const spaces = namespaces.map((entry) => ({
-					namespace: entry.namespace,
-					description: entry.description,
-					documentCount: entry.documentCount,
-					memoryCount: entry.memoryCount,
-					updatedAt: entry.updatedAt,
-				}))
+				const spaces = withLegacyNamespaces(
+					namespaces.map((entry) => ({
+						namespace: entry.namespace,
+						description: entry.description,
+						documentCount: entry.documentCount,
+						memoryCount: entry.memoryCount,
+						updatedAt: entry.updatedAt,
+					})),
+				)
 
 				if (spaces.length === 0) {
 					return {

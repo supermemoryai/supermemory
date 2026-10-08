@@ -2,12 +2,14 @@ import { z } from "zod"
 import { graphViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { optionalNamespaceSchema } from "../namespace"
+import { legacyNamespaceInput, namespaceArg, withLegacyView } from "./compat"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
 	const inputSchema = z.object({
 		namespace: optionalNamespaceSchema,
+		...legacyNamespaceInput,
 	})
 
 	deps.server.registerTool(
@@ -24,14 +26,14 @@ export function register(deps: ToolDeps) {
 		async (args) => {
 			try {
 				const viewId = crypto.randomUUID()
-				const namespace = await deps.resolveNamespace(args.namespace)
+				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const client = deps.getClient(namespace)
 				const result = await client.getGraphDocuments(1, 200)
 				const memoryCount = result.documents.reduce(
 					(sum, document) => sum + document.memoryEntries.length,
 					0,
 				)
-				const sc: ViewMessage = {
+				const sc: ViewMessage = withLegacyView({
 					view: "graph",
 					viewId,
 					namespace,
@@ -42,7 +44,7 @@ export function register(deps: ToolDeps) {
 					totalDocumentCount: result.pagination.totalItems,
 					truncated: result.documents.length < result.pagination.totalItems,
 					rendered: true,
-				}
+				})
 				return {
 					content: [
 						textContent(

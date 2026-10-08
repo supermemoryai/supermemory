@@ -3,6 +3,7 @@ import { saveViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { effectiveNamespaceAccess } from "../auth/rbac"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
+import { withLegacyView } from "./compat"
 import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -39,13 +40,13 @@ export function register(deps: ToolDeps) {
 					.filter((access) => access.permission === "write")
 					.map((access) => access.namespace)
 
-				const sc: ViewMessage = {
+				const sc: ViewMessage = withLegacyView({
 					view: "save",
 					viewId,
 					activeNamespace,
 					writableNamespaces,
 					prefill,
-				}
+				})
 
 				return {
 					content: [textContent("Opening memory save form...")],

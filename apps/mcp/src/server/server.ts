@@ -99,6 +99,13 @@ export function createSupermemoryServer(
 		errorResult,
 	})
 
+	// Clients that cached the pre-v5 tool list refetch it on this notice
+	server.server.oninitialized = () => {
+		try {
+			server.sendToolListChanged()
+		} catch {}
+	}
+
 	registerProfileResource(server, getClient, resolveSelectedNamespace)
 	registerNamespacesResource(
 		server,

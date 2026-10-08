@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
+import { withLegacyNamespaces } from "./compat"
 import { whoAmIOutputSchema, type WhoAmIOutput } from "./output-schemas"
 import { textContent, type ToolDeps } from "./types"
 
@@ -28,8 +29,8 @@ export function register(deps: ToolDeps) {
 					accessType: session.accessType ?? "full",
 					activeSpace: activeNamespace ?? null,
 					assignedSpaces:
-						session.accessType === "restricted"
-							? (session.namespaces ?? null)
+						session.accessType === "restricted" && session.namespaces
+							? withLegacyNamespaces(session.namespaces)
 							: null,
 					...(session.scope ? { scope: session.scope } : {}),
 					...(client ? { client } : {}),

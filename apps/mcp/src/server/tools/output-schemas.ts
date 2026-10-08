@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { legacyNamespaceOutput } from "./compat"
 import {
 	namespaceAccessSchema,
 	memoriesListSchema,
@@ -20,6 +21,7 @@ export const addMemoryOutputSchema = z.object({
 	action: z.enum(["save", "forget"]),
 	success: z.boolean(),
 	namespace: z.string(),
+	...legacyNamespaceOutput,
 	message: z.string(),
 	id: z.string().optional(),
 	status: z.string().optional(),
@@ -29,6 +31,7 @@ export type AddMemoryOutput = z.infer<typeof addMemoryOutputSchema>
 
 export const getDocumentOutputSchema = z.object({
 	namespace: z.string(),
+	...legacyNamespaceOutput,
 	document: z.object({
 		id: z.string(),
 		title: z.string().nullable(),
@@ -58,6 +61,7 @@ export type ListMemoriesOutput = z.infer<typeof listMemoriesOutputSchema>
 export const searchMemoryOutputSchema = z.object({
 	query: z.string(),
 	namespace: z.string(),
+	...legacyNamespaceOutput,
 	profile: z
 		.object({
 			static: z.array(z.string()),
@@ -80,6 +84,7 @@ export type SearchMemoryOutput = z.infer<typeof searchMemoryOutputSchema>
 
 export const getProfileOutputSchema = z.object({
 	namespace: z.string(),
+	...legacyNamespaceOutput,
 	profile: z.object({
 		static: z.array(z.string()),
 		dynamic: z.array(z.string()),

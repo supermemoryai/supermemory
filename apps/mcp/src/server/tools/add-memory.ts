@@ -1,5 +1,10 @@
 import { z } from "zod"
 import { optionalNamespaceSchema } from "../namespace"
+import {
+	legacyNamespaceInput,
+	namespaceArg,
+	withLegacyNamespace,
+} from "./compat"
 import { MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import { addMemoryOutputSchema, type AddMemoryOutput } from "./output-schemas"
 import { textContent, type ToolDeps } from "./types"
@@ -12,6 +17,7 @@ export function register(deps: ToolDeps) {
 			.describe("The memory content to save or forget"),
 		action: z.enum(["save", "forget"]).optional().default("save"),
 		namespace: optionalNamespaceSchema,
+		...legacyNamespaceInput,
 	})
 
 	deps.server.registerTool(
@@ -25,17 +31,17 @@ export function register(deps: ToolDeps) {
 		},
 		async (args) => {
 			try {
-				const namespace = await deps.resolveNamespace(args.namespace)
+				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const client = deps.getClient(namespace)
 
 				if (args.action === "forget") {
 					const result = await client.forgetMemory(args.content)
-					const structuredContent: AddMemoryOutput = {
+					const structuredContent: AddMemoryOutput = withLegacyNamespace({
 						action: "forget",
 						success: result.success,
 						namespace: result.namespace,
 						message: result.message,
-					}
+					})
 					return {
 						content: [textContent(result.message)],
 						structuredContent,
@@ -44,14 +50,14 @@ export function register(deps: ToolDeps) {
 
 				const result = await client.createMemory(args.content)
 				const message = `Memory saved (ID: ${result.id}, space: ${result.namespace})`
-				const structuredContent: AddMemoryOutput = {
+				const structuredContent: AddMemoryOutput = withLegacyNamespace({
 					action: "save",
 					success: true,
 					namespace: result.namespace,
 					message,
 					id: result.id,
 					status: result.status,
-				}
+				})
 				return {
 					content: [textContent(message)],
 					structuredContent,

@@ -1,6 +1,11 @@
 import { z } from "zod"
 import { getMemoryText } from "../client"
 import { optionalNamespaceSchema } from "../namespace"
+import {
+	legacyNamespaceInput,
+	namespaceArg,
+	withLegacyNamespace,
+} from "./compat"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import {
 	searchMemoryOutputSchema,
@@ -15,6 +20,7 @@ export function register(deps: ToolDeps) {
 			.max(1000, "Query exceeds maximum length")
 			.describe("The search query to find relevant memories"),
 		namespace: optionalNamespaceSchema,
+		...legacyNamespaceInput,
 	})
 
 	deps.server.registerTool(
@@ -28,7 +34,7 @@ export function register(deps: ToolDeps) {
 		},
 		async (args) => {
 			try {
-				const namespace = await deps.resolveNamespace(args.namespace)
+				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const client = deps.getClient(namespace)
 
 				const searchResult = await client.search(args.query)
@@ -50,13 +56,13 @@ export function register(deps: ToolDeps) {
 					parts.push("No matching memories found.")
 				}
 
-				const structuredContent: SearchMemoryOutput = {
+				const structuredContent: SearchMemoryOutput = withLegacyNamespace({
 					query: args.query,
 					namespace,
 					results,
 					total: searchResult.total,
 					timing: searchResult.timing,
-				}
+				})
 
 				return {
 					content: [textContent(parts.join("\n"))],

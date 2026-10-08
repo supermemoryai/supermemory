@@ -3,6 +3,7 @@ import { pickerViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { effectiveNamespaceAccess } from "../auth/rbac"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
+import { withLegacyView } from "./compat"
 import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -31,13 +32,13 @@ export function register(deps: ToolDeps) {
 					session,
 				)
 
-				const sc: ViewMessage = {
+				const sc: ViewMessage = withLegacyView({
 					view: "picker",
 					viewId,
 					namespaces,
 					activeNamespace,
 					assignedNamespaces,
-				}
+				})
 
 				return {
 					content: [

@@ -5,6 +5,7 @@ import { z } from "zod"
 
 export const namespaceAccessSchema = z.object({
 	namespace: z.string(),
+	containerTag: z.string().optional(),
 	permission: z.enum(["read", "write"]),
 })
 
@@ -57,6 +58,7 @@ export type SessionInfo = z.output<typeof sessionInfoSchema>
 export const namespaceInfoSchema = z.object({
 	id: z.string(),
 	namespace: z.string(),
+	containerTag: z.string().optional(),
 	description: z.string().nullish(),
 	documentCount: z.number().int().nonnegative(),
 	memoryCount: z.number().int().nonnegative(),
@@ -68,6 +70,7 @@ export type NamespaceInfo = z.infer<typeof namespaceInfoSchema>
 
 export const spaceSummarySchema = z.object({
 	namespace: z.string(),
+	containerTag: z.string().optional(),
 	description: z.string().nullish(),
 	documentCount: z.number().int().nonnegative(),
 	memoryCount: z.number().int().nonnegative(),
@@ -176,12 +179,16 @@ export const pickerViewSchema = z.object({
 	namespaces: z.array(namespaceInfoSchema),
 	activeNamespace: z.string().nullish(),
 	assignedNamespaces: z.array(namespaceAccessSchema).nullable().optional(),
+	containerTags: z.array(namespaceInfoSchema).optional(),
+	activeTag: z.string().nullish(),
+	assignedTags: z.array(namespaceAccessSchema).nullable().optional(),
 })
 
 export const confirmationViewSchema = z.object({
 	view: z.literal("confirmation"),
 	viewId: viewIdSchema,
 	namespace: z.string(),
+	containerTag: z.string().optional(),
 })
 
 export const saveViewSchema = z.object({
@@ -190,6 +197,8 @@ export const saveViewSchema = z.object({
 	activeNamespace: z.string().nullish(),
 	writableNamespaces: z.array(z.string()),
 	prefill: z.string().optional(),
+	activeTag: z.string().nullish(),
+	writableTags: z.array(z.string()).optional(),
 })
 
 export const saveSuccessViewSchema = z.object({
@@ -197,6 +206,7 @@ export const saveSuccessViewSchema = z.object({
 	viewId: viewIdSchema,
 	id: z.string(),
 	namespace: z.string(),
+	containerTag: z.string().optional(),
 })
 
 export const uploadViewSchema = z.object({
@@ -204,6 +214,8 @@ export const uploadViewSchema = z.object({
 	viewId: viewIdSchema,
 	activeNamespace: z.string().nullish(),
 	writableNamespaces: z.array(z.string()),
+	activeTag: z.string().nullish(),
+	writableTags: z.array(z.string()).optional(),
 })
 
 export const uploadSuccessViewSchema = z.object({
@@ -212,6 +224,7 @@ export const uploadSuccessViewSchema = z.object({
 	id: z.string(),
 	fileName: z.string(),
 	namespace: z.string(),
+	containerTag: z.string().optional(),
 })
 
 export const uploadPreparationSchema = z.object({
@@ -229,6 +242,7 @@ export const graphViewSchema = z.object({
 	view: z.literal("graph"),
 	viewId: viewIdSchema,
 	namespace: z.string().optional(),
+	containerTag: z.string().optional(),
 	documents: z.array(documentWithMemoriesSchema),
 	totalCount: z.number().int().nonnegative(),
 	documentCount: z.number().int().nonnegative(),
