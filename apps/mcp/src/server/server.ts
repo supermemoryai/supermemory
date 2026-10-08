@@ -5,16 +5,16 @@ import {
 } from "@modelcontextprotocol/server"
 import { instrumentPosthogMcp, type WaitUntil } from "./analytics"
 import { fetchSession } from "./auth"
-import { DEFAULT_PROJECT_ID, SupermemoryClient } from "./client"
+import { DEFAULT_NAMESPACE, SupermemoryClient } from "./client"
 import { registerContextPrompt } from "./prompts/context"
-import { registerContainerTagsResource } from "./resources/container-tags"
+import { registerNamespacesResource } from "./resources/namespaces"
 import { registerProfileResource } from "./resources/profile"
 import { registerWidgetResource } from "./resources/widget"
 import { registerAllTools } from "./tools"
 import { errorResult } from "./tools/types"
 import type { ActorContext, ServerEnv } from "./types"
 import {
-	resolveContainerTag as resolveSpaceContainerTag,
+	resolveNamespace as resolveSpaceNamespace,
 	spaceStateName,
 } from "./space"
 import { uploadStateName } from "./space-state"
@@ -59,16 +59,16 @@ export function createSupermemoryServer(
 	const apiUrl = env.API_URL || DEFAULT_API_URL
 	const spaceState = env.SPACE_STATE.getByName(spaceStateName(actor))
 
-	const getClient = (containerTag?: string) =>
-		new SupermemoryClient(actor.bearerToken, containerTag, apiUrl)
-	const getActiveContainerTag = () => spaceState.getActiveContainerTag()
-	const setActiveContainerTag = (containerTag: string) =>
-		spaceState.setActiveContainerTag(containerTag)
-	const resolveSelectedContainerTag = (explicit?: string) =>
-		resolveSpaceContainerTag(explicit, getActiveContainerTag)
-	const resolveContainerTag = async (explicit?: string) =>
-		(await resolveSelectedContainerTag(explicit)) ?? DEFAULT_PROJECT_ID
-	const createUploadSession = async () => {
+	const getClient = (namespace?: string) =>
+		new SupermemoryClient(actor.bearerToken, namespace, apiUrl)
+	const getActiveNamespace = () => spaceState.getActiveNamespace()
+	const setActiveNamespace = (namespace: string) =>
+		spaceState.setActiveNamespace(namespace)
+	const resolveSelectedNamespace = (explicit?: string) =>
+		resolveSpaceNamespace(explicit, getActiveNamespace)
+	const resolveNamespace = async (explicit?: string) =>
+		(await resolveSelectedNamespace(explicit)) ?? DEFAULT_NAMESPACE
+	const createUploadSession = async (namespace: string) => {
 		const uploadId = crypto.randomUUID()
 		const uploadToken = [crypto.randomUUID(), crypto.randomUUID()]
 			.join("")
@@ -77,6 +77,7 @@ export function createSupermemoryServer(
 		const uploadState = env.SPACE_STATE.getByName(uploadStateName(uploadId))
 		await uploadState.createUploadSession(uploadToken, {
 			bearerToken: actor.bearerToken,
+			namespace,
 			expiresAt,
 		})
 		return {
@@ -90,22 +91,22 @@ export function createSupermemoryServer(
 		actor,
 		getClient,
 		getSession: () => fetchSession(actor.bearerToken, apiUrl),
-		resolveContainerTag,
-		getActiveContainerTag,
-		setActiveContainerTag,
+		resolveNamespace,
+		getActiveNamespace,
+		setActiveNamespace,
 		createUploadSession,
 		getClientInfo: clientInfoFromContext,
 		errorResult,
 	})
 
-	registerProfileResource(server, getClient, resolveSelectedContainerTag)
-	registerContainerTagsResource(
+	registerProfileResource(server, getClient, resolveSelectedNamespace)
+	registerNamespacesResource(
 		server,
 		() => getClient(),
-		resolveSelectedContainerTag,
+		resolveSelectedNamespace,
 	)
 	registerWidgetResource(server, mcpOrigin)
-	registerContextPrompt(server, getClient, resolveSelectedContainerTag)
+	registerContextPrompt(server, getClient, resolveSelectedNamespace)
 
 	return server
 }

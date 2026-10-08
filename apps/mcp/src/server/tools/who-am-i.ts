@@ -15,9 +15,9 @@ export function register(deps: ToolDeps) {
 		},
 		async (_args, context) => {
 			try {
-				const [session, activeTag] = await Promise.all([
+				const [session, activeNamespace] = await Promise.all([
 					deps.getSession(),
-					deps.getActiveContainerTag(),
+					deps.getActiveNamespace(),
 				])
 				const client = deps.getClientInfo(context)
 				const structuredContent: WhoAmIOutput = {
@@ -26,10 +26,10 @@ export function register(deps: ToolDeps) {
 					...(session.user.name ? { name: session.user.name } : {}),
 					role: session.role ?? "unknown",
 					accessType: session.accessType ?? "full",
-					activeSpace: activeTag ?? null,
+					activeSpace: activeNamespace ?? null,
 					assignedSpaces:
 						session.accessType === "restricted"
-							? (session.containerTags ?? null)
+							? (session.namespaces ?? null)
 							: null,
 					...(session.scope ? { scope: session.scope } : {}),
 					...(client ? { client } : {}),

@@ -12,7 +12,7 @@ const propsOf = (tools: ToolLike[], name: string): Record<string, unknown> =>
 const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
 
 describeWithAuth("MCP - space scoping", () => {
-	it("keeps per-call containerTag overrides when an obsolete header is sent", async () => {
+	it("keeps per-call namespace overrides when an obsolete header is sent", async () => {
 		const scoped = await connect({
 			headers: { "x-sm-project": "obsolete-root-scope" },
 		})
@@ -21,17 +21,13 @@ describeWithAuth("MCP - space scoping", () => {
 			const scopedTools = (await scoped.client.listTools()).tools
 			const plainTools = (await plain.client.listTools()).tools
 
-			expect(propsOf(plainTools, "add_memory")).toHaveProperty("containerTag")
-			expect(propsOf(plainTools, "search_memory")).toHaveProperty(
-				"containerTag",
-			)
-			expect(propsOf(plainTools, "get_profile")).toHaveProperty("containerTag")
+			expect(propsOf(plainTools, "add_memory")).toHaveProperty("namespace")
+			expect(propsOf(plainTools, "search_memory")).toHaveProperty("namespace")
+			expect(propsOf(plainTools, "get_profile")).toHaveProperty("namespace")
 
-			expect(propsOf(scopedTools, "add_memory")).toHaveProperty("containerTag")
-			expect(propsOf(scopedTools, "search_memory")).toHaveProperty(
-				"containerTag",
-			)
-			expect(propsOf(scopedTools, "get_profile")).toHaveProperty("containerTag")
+			expect(propsOf(scopedTools, "add_memory")).toHaveProperty("namespace")
+			expect(propsOf(scopedTools, "search_memory")).toHaveProperty("namespace")
+			expect(propsOf(scopedTools, "get_profile")).toHaveProperty("namespace")
 		} finally {
 			await scoped.close()
 			await plain.close()

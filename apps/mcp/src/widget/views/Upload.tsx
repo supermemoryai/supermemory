@@ -14,12 +14,12 @@ import {
 	SpaceSelect,
 } from "../design/ui"
 import { useApp } from "../hooks/useApp"
-import { formatTagLabel } from "../lib/formatTag"
+import { formatNamespaceLabel } from "../lib/formatNamespace"
 import { FileText, X } from "../lib/icons"
 
 interface Props {
-	activeTag?: string | null
-	writableTags: string[]
+	activeNamespace?: string | null
+	writableNamespaces: string[]
 	onAdvance: (msg: ViewMessage) => void
 	onError: (message: string) => void
 	viewId?: string
@@ -35,38 +35,38 @@ const ACCEPT =
 	".txt,.md,.pdf,.doc,.docx,.csv,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.m4a,.mp4,.webm"
 
 export function Upload({
-	activeTag,
-	writableTags,
+	activeNamespace,
+	writableNamespaces,
 	onAdvance,
 	onError,
 	viewId,
 }: Props) {
 	const { callTool, handoffToModel } = useApp()
 	const [file, setFile] = useState<File | null>(null)
-	const [selectedTag, setSelectedTag] = useState<string | null>(
-		activeTag ?? writableTags[0] ?? null,
+	const [selectedNamespace, setSelectedNamespace] = useState<string | null>(
+		activeNamespace ?? writableNamespaces[0] ?? null,
 	)
 	const [uploading, setUploading] = useState(false)
 
 	const options = useMemo(
 		() =>
-			writableTags.map((tag) => ({
-				value: tag,
-				label: formatTagLabel(tag),
-				description: tag,
+			writableNamespaces.map((namespace) => ({
+				value: namespace,
+				label: formatNamespaceLabel(namespace),
+				description: namespace,
 			})),
-		[writableTags],
+		[writableNamespaces],
 	)
 
-	const canUpload = !!file && !!selectedTag && !uploading
+	const canUpload = !!file && !!selectedNamespace && !uploading
 
 	const handleUpload = async () => {
-		if (!file || !selectedTag) return
+		if (!file || !selectedNamespace) return
 		setUploading(true)
 		try {
 			const preparation = await callTool(
 				"prepare-file-upload",
-				{},
+				{ namespace: selectedNamespace },
 				uploadPreparationSchema,
 			)
 			if (!preparation.ok || !preparation.data) {
@@ -76,7 +76,6 @@ export function Upload({
 
 			const formData = new FormData()
 			formData.append("file", file, file.name)
-			formData.append("containerTag", selectedTag)
 			formData.append(
 				"metadata",
 				JSON.stringify({ sm_source: "supermemory-mcp" }),
@@ -107,16 +106,16 @@ export function Upload({
 				viewId,
 				id: uploaded.data.id,
 				fileName: file.name,
-				containerTag: selectedTag,
+				namespace: selectedNamespace,
 			}
 			onAdvance(result)
 			await handoffToModel({
-				context: `Supermemory widget action completed. "${file.name}" was uploaded to space "${selectedTag}" with document ID "${uploaded.data.id}". It is already uploaded; do not upload it again.`,
-				message: `I used the Supermemory widget to upload "${file.name}" to space "${selectedTag}" (document ID: ${uploaded.data.id}). The file is already uploaded; do not upload it again.`,
+				context: `Supermemory widget action completed. "${file.name}" was uploaded to space "${selectedNamespace}" with document ID "${uploaded.data.id}". It is already uploaded; do not upload it again.`,
+				message: `I used the Supermemory widget to upload "${file.name}" to space "${selectedNamespace}" (document ID: ${uploaded.data.id}). The file is already uploaded; do not upload it again.`,
 				structuredContent: {
 					supermemory: {
 						action: "file-uploaded",
-						activeSpace: selectedTag,
+						activeSpace: selectedNamespace,
 						documentId: uploaded.data.id,
 						fileName: file.name,
 					},
@@ -167,12 +166,12 @@ export function Upload({
 							/>
 						)}
 
-						{writableTags.length > 0 ? (
+						{writableNamespaces.length > 0 ? (
 							<Field label="Space">
 								<SpaceSelect
-									onValueChange={setSelectedTag}
+									onValueChange={setSelectedNamespace}
 									options={options}
-									value={selectedTag}
+									value={selectedNamespace}
 								/>
 							</Field>
 						) : null}

@@ -1,19 +1,19 @@
-import type { ContainerTag, ContainerTagAccess } from "../../shared/types"
+import type { NamespaceAccess, NamespaceInfo } from "../../shared/types"
 import { cn } from "../design/lib/cn"
-import { formatTagLabel } from "../lib/formatTag"
+import { formatNamespaceLabel } from "../lib/formatNamespace"
 import { PermissionBadge } from "./PermissionBadge"
 
 interface Props {
-	containerTag: ContainerTag
+	namespace: NamespaceInfo
 	active: boolean
-	access?: ContainerTagAccess
-	onClick: (containerTag: string) => void
+	access?: NamespaceAccess
+	onClick: (namespace: string) => void
 }
 
-export function SpaceCard({ containerTag, active, access, onClick }: Props) {
-	const name = containerTag.name || formatTagLabel(containerTag.containerTag)
-	const docs = containerTag.documentCount
-	const mems = containerTag.memoryCount
+export function SpaceCard({ namespace, active, access, onClick }: Props) {
+	const name = formatNamespaceLabel(namespace.namespace)
+	const docs = namespace.documentCount
+	const mems = namespace.memoryCount
 	const meta =
 		docs > 0 || mems > 0
 			? `${docs} doc${docs === 1 ? "" : "s"} · ${mems} ${mems === 1 ? "memory" : "memories"}`
@@ -23,7 +23,7 @@ export function SpaceCard({ containerTag, active, access, onClick }: Props) {
 		<button
 			className="space-card"
 			data-active={active}
-			onClick={() => onClick(containerTag.containerTag)}
+			onClick={() => onClick(namespace.namespace)}
 			type="button"
 		>
 			<span className="space-card-inner">

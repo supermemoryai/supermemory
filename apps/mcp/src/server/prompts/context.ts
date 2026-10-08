@@ -1,11 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/server"
-import { DEFAULT_PROJECT_ID, type SupermemoryClient } from "../client"
+import { DEFAULT_NAMESPACE, type SupermemoryClient } from "../client"
 import {
 	compactDescription,
 	formatFactSection,
 	formatSpaceRow,
 	sortSpaces,
-	spaceDisplayName,
 	spaceMetadata,
 } from "../space-presentation"
 
@@ -14,8 +13,8 @@ const RECENT_SPACE_LIMIT = 3
 
 export function registerContextPrompt(
 	server: McpServer,
-	getClient: (tag?: string) => SupermemoryClient,
-	resolveContainerTag: () => Promise<string | undefined>,
+	getClient: (namespace?: string) => SupermemoryClient,
+	resolveNamespace: () => Promise<string | undefined>,
 ) {
 	server.registerPrompt(
 		"context",
@@ -24,20 +23,19 @@ export function registerContextPrompt(
 		},
 		async () => {
 			try {
-				const selectedTag = await resolveContainerTag()
-				const activeKey = selectedTag ?? DEFAULT_PROJECT_ID
+				const selectedNamespace = await resolveNamespace()
+				const activeKey = selectedNamespace ?? DEFAULT_NAMESPACE
 				const [profileResult, spaces] = await Promise.all([
 					getClient(activeKey).getProfile(),
-					getClient().listContainerTags(),
+					getClient().listNamespaces(),
 				])
 				const activeSpace = spaces.find(
-					(space) => space.containerTag === activeKey,
+					(space) => space.namespace === activeKey,
 				)
-				const activeLabel = spaceDisplayName(activeSpace, activeKey)
-				const fallback = selectedTag ? "" : " (default)"
+				const fallback = selectedNamespace ? "" : " (default)"
 				const parts: string[] = [
 					"# Supermemory Context",
-					`Active space: ${activeLabel} [${activeKey}]${fallback}`,
+					`Active space: ${activeKey}${fallback}`,
 				]
 
 				if (activeSpace) {
@@ -69,7 +67,7 @@ export function registerContextPrompt(
 				}
 
 				const recentSpaces = sortSpaces(spaces, activeKey)
-					.filter((space) => space.containerTag !== activeKey)
+					.filter((space) => space.namespace !== activeKey)
 					.slice(0, RECENT_SPACE_LIMIT)
 				if (recentSpaces.length > 0) {
 					parts.push(

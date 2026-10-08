@@ -132,15 +132,7 @@ export function getDocumentContent(document: DocumentDetails): {
 	content: string | null
 	truncated: boolean
 } {
-	let content: string | null = null
-	if (typeof document.raw === "string" && document.raw.trim()) {
-		content = document.raw
-	} else if (document.raw !== null && document.raw !== undefined) {
-		content = JSON.stringify(document.raw, null, 2)
-	} else if (document.content?.trim()) {
-		content = document.content
-	}
-
+	const content = document.content?.trim() ? document.content : null
 	if (!content) return { content: null, truncated: false }
 	const truncated = content.length > MAX_DOCUMENT_CONTENT_CHARS
 	return {
@@ -155,12 +147,11 @@ export function formatDocument(document: DocumentDetails): string {
 		`# ${title}`,
 		`Document ID: ${document.id}`,
 		`Type: ${document.type}`,
-		`Status: ${document.status}`,
-		`Created: ${document.createdAt}`,
-		`Updated: ${document.updatedAt}`,
+		`Status: ${document.system.status}`,
+		`Created: ${document.system.createdAt}`,
+		`Updated: ${document.system.updatedAt}`,
 	]
 
-	if (document.url) parts.push(`URL: ${document.url}`)
 	if (document.summary?.trim()) {
 		parts.push("", "## Summary", compactText(document.summary, 4_000))
 	}

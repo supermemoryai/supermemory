@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { optionalContainerTagSchema } from "../container-tag"
+import { optionalNamespaceSchema } from "../namespace"
 import { MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import { addMemoryOutputSchema, type AddMemoryOutput } from "./output-schemas"
 import { textContent, type ToolDeps } from "./types"
@@ -11,29 +11,29 @@ export function register(deps: ToolDeps) {
 			.max(200000, "Content exceeds maximum length")
 			.describe("The memory content to save or forget"),
 		action: z.enum(["save", "forget"]).optional().default("save"),
-		containerTag: optionalContainerTagSchema,
+		namespace: optionalNamespaceSchema,
 	})
 
 	deps.server.registerTool(
 		"add_memory",
 		{
 			description:
-				"Add (save) or forget a memory in the user's ACTIVE space. Defaults to 'save'. The target space is the one the user selected via select-space; pass containerTag only to override it. Use 'forget' when information is outdated or the user asks to remove it.",
+				"Add (save) or forget a memory in the user's ACTIVE space. Defaults to 'save'. The target space is the one the user selected via select-space; pass namespace only to override it. Use 'forget' when information is outdated or the user asks to remove it.",
 			inputSchema,
 			outputSchema: addMemoryOutputSchema,
 			annotations: MEMORY_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
 			try {
-				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
-				const client = deps.getClient(effectiveTag)
+				const namespace = await deps.resolveNamespace(args.namespace)
+				const client = deps.getClient(namespace)
 
 				if (args.action === "forget") {
 					const result = await client.forgetMemory(args.content)
 					const structuredContent: AddMemoryOutput = {
 						action: "forget",
 						success: result.success,
-						containerTag: result.containerTag,
+						namespace: result.namespace,
 						message: result.message,
 					}
 					return {
@@ -43,11 +43,11 @@ export function register(deps: ToolDeps) {
 				}
 
 				const result = await client.createMemory(args.content)
-				const message = `Memory saved (ID: ${result.id}, space: ${result.containerTag})`
+				const message = `Memory saved (ID: ${result.id}, space: ${result.namespace})`
 				const structuredContent: AddMemoryOutput = {
 					action: "save",
 					success: true,
-					containerTag: result.containerTag,
+					namespace: result.namespace,
 					message,
 					id: result.id,
 					status: result.status,

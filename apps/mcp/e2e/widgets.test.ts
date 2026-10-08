@@ -25,20 +25,20 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 			expect(result.isError).toBeFalsy()
 			const content = result.structuredContent as {
 				view?: string
-				containerTags?: Array<{ containerTag: string }>
-				assignedTags?: Array<{
-					containerTag: string
+				namespaces?: Array<{ namespace: string }>
+				assignedNamespaces?: Array<{
+					namespace: string
 					permission: "read" | "write"
 				}>
 			}
 			expect(content.view).toBe("picker")
-			expect(Array.isArray(content.containerTags)).toBe(true)
-			expect(content.assignedTags).toHaveLength(
-				content.containerTags?.length ?? 0,
+			expect(Array.isArray(content.namespaces)).toBe(true)
+			expect(content.assignedNamespaces).toHaveLength(
+				content.namespaces?.length ?? 0,
 			)
 			expect(
-				content.assignedTags?.every((tag) =>
-					["read", "write"].includes(tag.permission),
+				content.assignedNamespaces?.every((access) =>
+					["read", "write"].includes(access.permission),
 				),
 			).toBe(true)
 		})
@@ -46,18 +46,18 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 		it("shares the selected space across MCP transport sessions", async () => {
 			const picker = await callTool(session.client, "select-space")
 			const pickerContent = picker.structuredContent as {
-				containerTags?: Array<{ containerTag: string }>
+				namespaces?: Array<{ namespace: string }>
 			}
-			const firstTag = pickerContent.containerTags?.[0]?.containerTag
-			expect(firstTag).toBeTruthy()
+			const firstNamespace = pickerContent.namespaces?.[0]?.namespace
+			expect(firstNamespace).toBeTruthy()
 
 			const result = await callTool(session.client, "set-active-tag", {
-				containerTag: firstTag,
+				namespace: firstNamespace,
 			})
 			expect(result.isError).toBeFalsy()
 			expect(result.structuredContent).toMatchObject({
 				view: "confirmation",
-				containerTag: firstTag,
+				namespace: firstNamespace,
 			})
 
 			const separateSession = await connect()
@@ -65,7 +65,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 				const identity = await callTool(separateSession.client, "who_am_i")
 				expect(identity.isError).toBeFalsy()
 				expect(JSON.parse(textOf(identity))).toMatchObject({
-					activeSpace: firstTag,
+					activeSpace: firstNamespace,
 				})
 			} finally {
 				await separateSession.close()

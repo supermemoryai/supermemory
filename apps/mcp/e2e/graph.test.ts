@@ -64,7 +64,7 @@ describeWithAuth("MCP — graph, resources & prompts", () => {
 		expect(res.contents[0].mimeType).toBe("text/plain")
 		expect(text).toMatch(/# My Spaces/)
 		expect(text).toMatch(/Active:/)
-		expect(text).not.toMatch(/"containerTags":/)
+		expect(text).not.toMatch(/"namespaces":/)
 	})
 
 	it("gets compact active-space context without prompt arguments", async () => {

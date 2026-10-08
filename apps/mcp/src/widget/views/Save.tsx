@@ -10,11 +10,11 @@ import {
 	SpaceSelect,
 } from "../design/ui"
 import { useApp } from "../hooks/useApp"
-import { formatTagLabel } from "../lib/formatTag"
+import { formatNamespaceLabel } from "../lib/formatNamespace"
 
 interface Props {
-	activeTag?: string | null
-	writableTags: string[]
+	activeNamespace?: string | null
+	writableNamespaces: string[]
 	prefill?: string
 	onAdvance: (msg: ViewMessage) => void
 	onError: (message: string) => void
@@ -22,8 +22,8 @@ interface Props {
 }
 
 export function Save({
-	activeTag,
-	writableTags,
+	activeNamespace,
+	writableNamespaces,
 	prefill,
 	onAdvance,
 	onError,
@@ -31,38 +31,38 @@ export function Save({
 }: Props) {
 	const { callTool, handoffToModel } = useApp()
 	const [content, setContent] = useState(prefill ?? "")
-	const [selectedTag, setSelectedTag] = useState<string | null>(
-		activeTag ?? writableTags[0] ?? null,
+	const [selectedNamespace, setSelectedNamespace] = useState<string | null>(
+		activeNamespace ?? writableNamespaces[0] ?? null,
 	)
 	const [saving, setSaving] = useState(false)
 
 	useEffect(() => {
-		if (!selectedTag && writableTags.length > 0) {
-			setSelectedTag(writableTags[0])
+		if (!selectedNamespace && writableNamespaces.length > 0) {
+			setSelectedNamespace(writableNamespaces[0])
 		}
-	}, [selectedTag, writableTags])
+	}, [selectedNamespace, writableNamespaces])
 
 	const options = useMemo(
 		() =>
-			writableTags.map((tag) => ({
-				value: tag,
-				label: formatTagLabel(tag),
-				description: tag,
+			writableNamespaces.map((namespace) => ({
+				value: namespace,
+				label: formatNamespaceLabel(namespace),
+				description: namespace,
 			})),
-		[writableTags],
+		[writableNamespaces],
 	)
 
 	const trimmed = content.trim()
-	const canSave = trimmed.length > 0 && !!selectedTag && !saving
+	const canSave = trimmed.length > 0 && !!selectedNamespace && !saving
 
 	const handleSave = async () => {
-		if (!canSave || !selectedTag) return
+		if (!canSave || !selectedNamespace) return
 		setSaving(true)
 		const result = await callTool(
 			"save-memory",
 			{
 				content: trimmed,
-				containerTag: selectedTag,
+				namespace: selectedNamespace,
 				viewId,
 			},
 			viewMessageSchema,
@@ -76,12 +76,12 @@ export function Save({
 			result.data.view === "save-success" ? result.data.id : undefined
 		onAdvance(result.data)
 		await handoffToModel({
-			context: `Supermemory widget action completed. A memory was saved to space "${selectedTag}"${memoryId ? ` with memory ID "${memoryId}"` : ""}. Saved content:\n\n${trimmed}\n\nIt is already saved; do not save it again.`,
-			message: `I used the Supermemory widget to save a memory to space "${selectedTag}"${memoryId ? ` (memory ID: ${memoryId})` : ""}. The memory is already saved; do not save it again.`,
+			context: `Supermemory widget action completed. A memory was saved to space "${selectedNamespace}"${memoryId ? ` with memory ID "${memoryId}"` : ""}. Saved content:\n\n${trimmed}\n\nIt is already saved; do not save it again.`,
+			message: `I used the Supermemory widget to save a memory to space "${selectedNamespace}"${memoryId ? ` (memory ID: ${memoryId})` : ""}. The memory is already saved; do not save it again.`,
 			structuredContent: {
 				supermemory: {
 					action: "memory-saved",
-					activeSpace: selectedTag,
+					activeSpace: selectedNamespace,
 					memoryId,
 					content: trimmed,
 				},
@@ -107,12 +107,12 @@ export function Save({
 							/>
 						</Field>
 
-						{writableTags.length > 0 ? (
+						{writableNamespaces.length > 0 ? (
 							<Field label="Space">
 								<SpaceSelect
-									onValueChange={setSelectedTag}
+									onValueChange={setSelectedNamespace}
 									options={options}
-									value={selectedTag}
+									value={selectedNamespace}
 								/>
 							</Field>
 						) : null}

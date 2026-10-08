@@ -219,13 +219,13 @@ export async function recallUntil(
 	{
 		tries = 18,
 		delayMs = 5000,
-		containerTag = undefined as string | undefined,
+		namespace = undefined as string | undefined,
 	} = {},
 ): Promise<string | null> {
 	for (let i = 0; i < tries; i++) {
 		const res = await callTool(client, "search_memory", {
 			query,
-			...(containerTag ? { containerTag } : {}),
+			...(namespace ? { namespace } : {}),
 		})
 		const txt = textOf(res)
 		if (txt.includes(needle)) return txt

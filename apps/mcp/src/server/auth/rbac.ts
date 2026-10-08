@@ -1,36 +1,36 @@
-import type { ContainerTagAccess, SessionInfo } from "../../shared/types"
+import type { NamespaceAccess, SessionInfo } from "../../shared/types"
 
-export function effectiveContainerTagAccess(
-	containerTags: string[],
+export function effectiveNamespaceAccess(
+	namespaces: string[],
 	session: SessionInfo,
-): ContainerTagAccess[] {
+): NamespaceAccess[] {
 	const memberAccess = new Map(
-		(session.containerTags ?? []).map((access) => [
-			access.containerTag,
+		(session.namespaces ?? []).map((access) => [
+			access.namespace,
 			access.permission,
 		]),
 	)
-	const scopedTags = new Set(
+	const scopedNamespaces = new Set(
 		session.scope?.tags ?? (session.scope?.tag ? [session.scope.tag] : []),
 	)
 
-	return containerTags.map((containerTag) => {
-		let permission: ContainerTagAccess["permission"] = "write"
+	return namespaces.map((namespace) => {
+		let permission: NamespaceAccess["permission"] = "write"
 
 		if (session.accessType === "restricted") {
-			permission = memberAccess.get(containerTag) ?? "read"
+			permission = memberAccess.get(namespace) ?? "read"
 		}
 
 		if (session.scope?.permission === "read") {
 			permission = "read"
 		} else if (
 			session.scope?.type === "scoped" &&
-			scopedTags.size > 0 &&
-			!scopedTags.has(containerTag)
+			scopedNamespaces.size > 0 &&
+			!scopedNamespaces.has(namespace)
 		) {
 			permission = "read"
 		}
 
-		return { containerTag, permission }
+		return { namespace, permission }
 	})
 }

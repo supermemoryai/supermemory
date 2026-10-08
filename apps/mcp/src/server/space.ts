@@ -6,9 +6,9 @@ export function spaceStateName(
 	return `space:${JSON.stringify([actor.organizationId, actor.userId])}`
 }
 
-export async function resolveContainerTag(
+export async function resolveNamespace(
 	explicit: string | undefined,
-	getActiveContainerTag: () => Promise<string | undefined>,
+	getActiveNamespace: () => Promise<string | undefined>,
 ): Promise<string | undefined> {
-	return explicit ?? (await getActiveContainerTag())
+	return explicit ?? (await getActiveNamespace())
 }

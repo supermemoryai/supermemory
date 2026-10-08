@@ -90,9 +90,9 @@ function renderView(
 		case "picker":
 			return (
 				<Picker
-					activeTag={msg.activeTag}
-					assignedTags={msg.assignedTags}
-					containerTags={msg.containerTags}
+					activeNamespace={msg.activeNamespace}
+					assignedNamespaces={msg.assignedNamespaces}
+					namespaces={msg.namespaces}
 					onAdvance={setView}
 					onError={setError}
 					viewId={msg.viewId}
@@ -101,36 +101,36 @@ function renderView(
 		case "save":
 			return (
 				<Save
-					activeTag={msg.activeTag}
+					activeNamespace={msg.activeNamespace}
 					onAdvance={setView}
 					onError={setError}
 					prefill={msg.prefill}
 					viewId={msg.viewId}
-					writableTags={msg.writableTags}
+					writableNamespaces={msg.writableNamespaces}
 				/>
 			)
 		case "upload":
 			return (
 				<Upload
-					activeTag={msg.activeTag}
+					activeNamespace={msg.activeNamespace}
 					onAdvance={setView}
 					onError={setError}
 					viewId={msg.viewId}
-					writableTags={msg.writableTags}
+					writableNamespaces={msg.writableNamespaces}
 				/>
 			)
 		case "graph":
 			return <Graph documents={msg.documents} totalCount={msg.totalCount} />
 		case "confirmation":
-			return <Confirmation containerTag={msg.containerTag} />
+			return <Confirmation namespace={msg.namespace} />
 		case "save-success":
-			return <Success containerTag={msg.containerTag} kind="save" />
+			return <Success kind="save" namespace={msg.namespace} />
 		case "upload-success":
 			return (
 				<Success
-					containerTag={msg.containerTag}
 					fileName={msg.fileName}
 					kind="upload"
+					namespace={msg.namespace}
 				/>
 			)
 		default: {

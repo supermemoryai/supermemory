@@ -14,17 +14,16 @@ export interface PreparedUpload {
 	expiresAt: number
 }
 
-// Dependencies passed to every tool's register() function.
-// Keep this surface small — tools should read this rather than reach into the agent.
+// Keep this surface small: tools read deps rather than reach into the agent.
 export interface ToolDeps {
 	server: Pick<McpServer, "registerTool">
 	actor: ActorContext
-	getClient: (containerTag?: string) => SupermemoryClient
+	getClient: (namespace?: string) => SupermemoryClient
 	getSession: () => Promise<SessionInfo>
-	resolveContainerTag: (explicit?: string) => Promise<string>
-	getActiveContainerTag: () => Promise<string | undefined>
-	setActiveContainerTag: (containerTag: string) => Promise<void>
-	createUploadSession: () => Promise<PreparedUpload>
+	resolveNamespace: (explicit?: string) => Promise<string>
+	getActiveNamespace: () => Promise<string | undefined>
+	setActiveNamespace: (namespace: string) => Promise<void>
+	createUploadSession: (namespace: string) => Promise<PreparedUpload>
 	getClientInfo: (
 		context: ServerContext,
 	) => { name: string; version?: string } | null

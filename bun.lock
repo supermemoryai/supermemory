@@ -84,7 +84,7 @@
         "posthog-node": "^5.18.0",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
-        "supermemory": "^4.0.0",
+        "supermemory": "^5.0.0",
         "tailwind-merge": "^3.4.0",
         "zod": "^4.4.3",
       },
@@ -4605,7 +4605,7 @@
 
     "supermemory-mcp/@vitejs/plugin-react": ["@vitejs/plugin-react@4.7.0", "", { "dependencies": { "@babel/core": "^7.28.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-beta.27", "@types/babel__core": "^7.20.5", "react-refresh": "^0.17.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA=="],
 
-    "supermemory-mcp/supermemory": ["supermemory@4.25.4", "", { "bin": { "supermemory": "bin/cli" } }, "sha512-97ME3rlmu7OmsXJTb9OgXOD+3VUv4Wej0ZX9xezG+LKkMwrzi4xeeAZaOJFcr0oI/QQjcHG2WOzm+und1e7MFA=="],
+    "supermemory-mcp/supermemory": ["supermemory@5.0.0", "", { "bin": { "supermemory": "bin/cli.mjs" } }, "sha512-qnnGcJ1UHFt8Df/j8U4c1SooMV2axkg03jhrTIDOPnjma32aeXxaao+Z5Q/U7EyorNN7Vn82PY3Rd6lGInEgAA=="],
 
     "supermemory-mcp/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

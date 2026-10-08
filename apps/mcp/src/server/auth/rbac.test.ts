@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import type { SessionInfo } from "../../shared/types"
-import { effectiveContainerTagAccess } from "./rbac"
+import { type SessionInfo, sessionInfoSchema } from "../../shared/types"
+import { effectiveNamespaceAccess } from "./rbac"
 
 const baseSession: SessionInfo = {
 	user: { id: "user_test" },
@@ -8,11 +8,11 @@ const baseSession: SessionInfo = {
 	scope: { type: "full", permission: "write" },
 }
 
-describe("effectiveContainerTagAccess", () => {
-	it("marks every visible tag writable for full access", () => {
-		expect(effectiveContainerTagAccess(["one", "two"], baseSession)).toEqual([
-			{ containerTag: "one", permission: "write" },
-			{ containerTag: "two", permission: "write" },
+describe("effectiveNamespaceAccess", () => {
+	it("marks every visible namespace writable for full access", () => {
+		expect(effectiveNamespaceAccess(["one", "two"], baseSession)).toEqual([
+			{ namespace: "one", permission: "write" },
+			{ namespace: "two", permission: "write" },
 		])
 	})
 
@@ -20,15 +20,15 @@ describe("effectiveContainerTagAccess", () => {
 		const session: SessionInfo = {
 			...baseSession,
 			accessType: "restricted",
-			containerTags: [
-				{ containerTag: "one", permission: "read" },
-				{ containerTag: "two", permission: "write" },
+			namespaces: [
+				{ namespace: "one", permission: "read" },
+				{ namespace: "two", permission: "write" },
 			],
 		}
 
-		expect(effectiveContainerTagAccess(["one", "two"], session)).toEqual([
-			{ containerTag: "one", permission: "read" },
-			{ containerTag: "two", permission: "write" },
+		expect(effectiveNamespaceAccess(["one", "two"], session)).toEqual([
+			{ namespace: "one", permission: "read" },
+			{ namespace: "two", permission: "write" },
 		])
 	})
 
@@ -42,20 +42,33 @@ describe("effectiveContainerTagAccess", () => {
 			},
 		}
 
-		expect(effectiveContainerTagAccess(["one"], session)).toEqual([
-			{ containerTag: "one", permission: "read" },
+		expect(effectiveNamespaceAccess(["one"], session)).toEqual([
+			{ namespace: "one", permission: "read" },
 		])
 	})
 
-	it("treats full-scope read-only grants as read on every tag", () => {
+	it("treats full-scope read-only grants as read on every namespace", () => {
 		const session: SessionInfo = {
 			...baseSession,
 			scope: { type: "full", permission: "read" },
 		}
 
-		expect(effectiveContainerTagAccess(["one", "two"], session)).toEqual([
-			{ containerTag: "one", permission: "read" },
-			{ containerTag: "two", permission: "read" },
+		expect(effectiveNamespaceAccess(["one", "two"], session)).toEqual([
+			{ namespace: "one", permission: "read" },
+			{ namespace: "two", permission: "read" },
 		])
+	})
+
+	it("reads restricted access from the legacy session field", () => {
+		const session = sessionInfoSchema.parse({
+			user: { id: "user_test" },
+			accessType: "restricted",
+			containerTags: [{ containerTag: "one", permission: "write" }],
+		})
+
+		expect(session.namespaces).toEqual([
+			{ namespace: "one", permission: "write" },
+		])
+		expect(session).not.toHaveProperty("containerTags")
 	})
 })

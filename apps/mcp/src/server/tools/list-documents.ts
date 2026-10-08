@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { optionalContainerTagSchema } from "../container-tag"
+import { optionalNamespaceSchema } from "../namespace"
 import { formatDocumentsList } from "../format"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import {
@@ -25,7 +25,7 @@ export function register(deps: ToolDeps) {
 			.optional()
 			.default(10)
 			.describe("Documents per page (default 10, max 50)"),
-		containerTag: optionalContainerTagSchema,
+		namespace: optionalNamespaceSchema,
 	})
 
 	deps.server.registerTool(
@@ -33,15 +33,15 @@ export function register(deps: ToolDeps) {
 		{
 			title: "List Documents",
 			description:
-				"List documents in one space with their IDs, titles, types, processing status, dates, and summaries. This does not return full document content; use get_document with an ID from this result to read one document. When the user names a space, resolve it with list_spaces and pass containerTag; otherwise use the active space.",
+				"List documents in one space with their IDs, titles, types, processing status, dates, and summaries. This does not return full document content; use get_document with an ID from this result to read one document. When the user names a space, resolve it with list_spaces and pass namespace; otherwise use the active space.",
 			inputSchema,
 			outputSchema: listDocumentsOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
 			try {
-				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
-				const client = deps.getClient(effectiveTag)
+				const namespace = await deps.resolveNamespace(args.namespace)
+				const client = deps.getClient(namespace)
 				const data = await client.listDocuments(
 					args.page ?? 1,
 					args.limit ?? 10,

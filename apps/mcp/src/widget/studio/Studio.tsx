@@ -24,11 +24,12 @@ import { Save } from "../views/Save"
 import { Success } from "../views/Success"
 import { Upload } from "../views/Upload"
 import {
-	mockAssignedTags,
-	mockContainerTags,
+	mockAssignedNamespaces,
+	mockNamespaces,
 	mockDocuments,
-	mockWritableTags,
+	mockWritableNamespaces,
 } from "./mocks"
+import { formatNamespaceLabel } from "../lib/formatNamespace"
 
 type Theme = "light" | "dark"
 type Width = "narrow" | "wide" | "cursor"
@@ -289,24 +290,24 @@ export function Studio() {
 					<div className="flex flex-wrap gap-(--space-4)">
 						<div className="w-64">
 							<SpaceCard
-								access={mockAssignedTags[0]}
+								access={mockAssignedNamespaces[0]}
 								active={false}
-								containerTag={mockContainerTags[0]}
+								namespace={mockNamespaces[0]}
 								onClick={() => {}}
 							/>
 						</div>
 						<div className="w-64">
 							<SpaceCard
-								access={mockAssignedTags[1]}
+								access={mockAssignedNamespaces[1]}
 								active
-								containerTag={mockContainerTags[1]}
+								namespace={mockNamespaces[1]}
 								onClick={() => {}}
 							/>
 						</div>
 						<div className="w-64">
 							<SpaceCard
 								active={false}
-								containerTag={mockContainerTags[3]}
+								namespace={mockNamespaces[3]}
 								onClick={() => {}}
 							/>
 						</div>
@@ -336,10 +337,10 @@ export function Studio() {
 						>
 							<SpaceSelect
 								onValueChange={setSelectValue}
-								options={mockContainerTags.map((t) => ({
-									value: t.containerTag,
-									label: t.name,
-									description: t.containerTag,
+								options={mockNamespaces.map((t) => ({
+									value: t.namespace,
+									label: formatNamespaceLabel(t.namespace),
+									description: t.namespace,
 								}))}
 								value={selectValue}
 							/>
@@ -356,9 +357,9 @@ export function Studio() {
 						<Frame label="Picker" width={frameWidth}>
 							<WidgetShell>
 								<Picker
-									activeTag="sm_project_marketing"
-									assignedTags={mockAssignedTags}
-									containerTags={mockContainerTags}
+									activeNamespace="sm_project_marketing"
+									assignedNamespaces={mockAssignedNamespaces}
+									namespaces={mockNamespaces}
 									onAdvance={pickerStub.onAdvance}
 									onError={pickerStub.onError}
 								/>
@@ -368,11 +369,11 @@ export function Studio() {
 						<Frame label="Save" width={frameWidth}>
 							<WidgetShell>
 								<Save
-									activeTag="sm_project_marketing"
+									activeNamespace="sm_project_marketing"
 									onAdvance={saveStub.onAdvance}
 									onError={saveStub.onError}
 									prefill="The Q3 launch will target fintech enterprise buyers."
-									writableTags={mockWritableTags}
+									writableNamespaces={mockWritableNamespaces}
 								/>
 							</WidgetShell>
 						</Frame>
@@ -380,30 +381,30 @@ export function Studio() {
 						<Frame label="Upload" width={frameWidth}>
 							<WidgetShell>
 								<Upload
-									activeTag="sm_project_marketing"
+									activeNamespace="sm_project_marketing"
 									onAdvance={uploadStub.onAdvance}
 									onError={uploadStub.onError}
-									writableTags={mockWritableTags}
+									writableNamespaces={mockWritableNamespaces}
 								/>
 							</WidgetShell>
 						</Frame>
 
 						<Frame label="Confirmation" width={frameWidth}>
 							<WidgetShell>
-								<Confirmation containerTag="sm_project_marketing" />
+								<Confirmation namespace="sm_project_marketing" />
 							</WidgetShell>
 						</Frame>
 
 						<Frame label="Success (save)" width={frameWidth}>
 							<WidgetShell>
-								<Success containerTag="sm_project_marketing" kind="save" />
+								<Success namespace="sm_project_marketing" kind="save" />
 							</WidgetShell>
 						</Frame>
 
 						<Frame label="Success (upload)" width={frameWidth}>
 							<WidgetShell>
 								<Success
-									containerTag="sm_project_marketing"
+									namespace="sm_project_marketing"
 									fileName="q3-brief.pdf"
 									kind="upload"
 								/>
@@ -412,7 +413,7 @@ export function Studio() {
 
 						<Frame label="Error" width={frameWidth}>
 							<WidgetShell>
-								<ErrorView message="No write access to container tag 'sm_project_eng_rfcs'." />
+								<ErrorView message="No write access to namespace 'sm_project_eng_rfcs'." />
 							</WidgetShell>
 						</Frame>
 

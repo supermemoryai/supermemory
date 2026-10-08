@@ -273,13 +273,14 @@ app.post("/upload/:uploadId", async (c) => {
 
 	const uploadState = c.env.SPACE_STATE.getByName(uploadStateName(uploadId))
 	const session = await uploadState.consumeUploadSession(uploadToken)
-	if (!session) {
+	if (!session?.namespace) {
 		return c.json({ error: "Invalid or expired upload session" }, 401)
 	}
 
 	const apiUrl = (c.env.API_URL || DEFAULT_API_URL).replace(/\/+$/, "")
 	try {
-		const response = await fetch(`${apiUrl}/v3/documents/file`, {
+		const namespace = encodeURIComponent(session.namespace)
+		const response = await fetch(`${apiUrl}/ns/${namespace}/document/file`, {
 			method: "POST",
 			headers: {
 				Authorization: `Bearer ${session.bearerToken}`,

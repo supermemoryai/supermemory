@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { optionalContainerTagSchema } from "../container-tag"
+import { optionalNamespaceSchema } from "../namespace"
 import { formatMemoryEntriesList } from "../format"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import {
@@ -25,7 +25,7 @@ export function register(deps: ToolDeps) {
 			.optional()
 			.default(10)
 			.describe("Memory entries per page (default 10, max 50)"),
-		containerTag: optionalContainerTagSchema,
+		namespace: optionalNamespaceSchema,
 	})
 
 	deps.server.registerTool(
@@ -33,15 +33,15 @@ export function register(deps: ToolDeps) {
 		{
 			title: "List Memories",
 			description:
-				"List the latest extracted memory entries in one space, including stable memory IDs, version information, and source document IDs. This lists memories directly, not documents. When the user names a space, resolve it with list_spaces and pass containerTag; otherwise use the active space. Use search_memory instead for semantic recall.",
+				"List the latest extracted memory entries in one space, including stable memory IDs and version information. This lists memories directly, not documents. When the user names a space, resolve it with list_spaces and pass namespace; otherwise use the active space. Use search_memory instead for semantic recall.",
 			inputSchema,
 			outputSchema: listMemoriesOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
 			try {
-				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
-				const client = deps.getClient(effectiveTag)
+				const namespace = await deps.resolveNamespace(args.namespace)
+				const client = deps.getClient(namespace)
 				const data = await client.listMemoryEntries(
 					args.page ?? 1,
 					args.limit ?? 10,

@@ -1,20 +1,20 @@
 import { useMemo, useState } from "react"
 import {
-	type ContainerTag,
-	type ContainerTagAccess,
+	type NamespaceAccess,
+	type NamespaceInfo,
 	viewMessageSchema,
 	type ViewMessage,
 } from "../../shared/types"
 import { SpaceCard } from "../components/SpaceCard"
 import { Input, PageHeader } from "../design/ui"
 import { useApp } from "../hooks/useApp"
-import { formatTagLabel } from "../lib/formatTag"
+import { formatNamespaceLabel } from "../lib/formatNamespace"
 import { Package, Search } from "../lib/icons"
 
 interface Props {
-	containerTags: ContainerTag[]
-	activeTag?: string | null
-	assignedTags?: ContainerTagAccess[] | null
+	namespaces: NamespaceInfo[]
+	activeNamespace?: string | null
+	assignedNamespaces?: NamespaceAccess[] | null
 	onAdvance: (msg: ViewMessage) => void
 	onError: (message: string) => void
 	viewId?: string
@@ -24,9 +24,9 @@ interface Props {
 const SEARCH_THRESHOLD = 8
 
 export function Picker({
-	containerTags,
-	activeTag,
-	assignedTags,
+	namespaces,
+	activeNamespace,
+	assignedNamespaces,
 	onAdvance,
 	onError,
 	viewId,
@@ -36,21 +36,21 @@ export function Picker({
 	const [query, setQuery] = useState("")
 
 	const filtered = useMemo(() => {
-		if (!query.trim()) return containerTags
+		if (!query.trim()) return namespaces
 		const q = query.trim().toLowerCase()
-		return containerTags.filter(
-			(t) =>
-				t.name.toLowerCase().includes(q) ||
-				t.containerTag.toLowerCase().includes(q),
+		return namespaces.filter(
+			(entry) =>
+				formatNamespaceLabel(entry.namespace).toLowerCase().includes(q) ||
+				entry.namespace.toLowerCase().includes(q),
 		)
-	}, [containerTags, query])
+	}, [namespaces, query])
 
-	const handleSelect = async (containerTag: string) => {
-		setPending(containerTag)
+	const handleSelect = async (namespace: string) => {
+		setPending(namespace)
 		const result = await callTool(
 			"set-active-tag",
 			{
-				containerTag,
+				namespace,
 				viewId,
 			},
 			viewMessageSchema,
@@ -62,18 +62,18 @@ export function Picker({
 		}
 		onAdvance(result.data)
 		await handoffToModel({
-			context: `Supermemory space selection changed. Active space: "${containerTag}". Use it for future Supermemory actions until another space is selected.`,
-			message: `I selected "${containerTag}" as my active Supermemory space. Use this space for future Supermemory actions until I select another one.`,
+			context: `Supermemory space selection changed. Active space: "${namespace}". Use it for future Supermemory actions until another space is selected.`,
+			message: `I selected "${namespace}" as my active Supermemory space. Use this space for future Supermemory actions until I select another one.`,
 			structuredContent: {
 				supermemory: {
 					action: "space-selected",
-					activeSpace: containerTag,
+					activeSpace: namespace,
 				},
 			},
 		})
 	}
 
-	const count = containerTags.length
+	const count = namespaces.length
 	const description =
 		count === 0
 			? "Create a space in Supermemory to get started."
@@ -116,16 +116,16 @@ export function Picker({
 							</div>
 						) : (
 							<div className="space-picker-grid">
-								{filtered.map((tag) => {
-									const access = assignedTags?.find(
-										(t) => t.containerTag === tag.containerTag,
+								{filtered.map((entry) => {
+									const access = assignedNamespaces?.find(
+										(a) => a.namespace === entry.namespace,
 									)
 									return (
 										<SpaceCard
 											access={access}
-											active={activeTag === tag.containerTag}
-											containerTag={tag}
-											key={tag.id || tag.containerTag}
+											active={activeNamespace === entry.namespace}
+											key={entry.id || entry.namespace}
+											namespace={entry}
 											onClick={handleSelect}
 										/>
 									)
@@ -137,7 +137,7 @@ export function Picker({
 
 				{pending ? (
 					<p className="text-(length:--text-xs) text-text-muted">
-						Setting space to {formatTagLabel(pending)}…
+						Setting space to {formatNamespaceLabel(pending)}…
 					</p>
 				) : null}
 			</div>

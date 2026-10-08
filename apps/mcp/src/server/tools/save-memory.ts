@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { saveSuccessViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
-import { containerTagSchema } from "../container-tag"
+import { namespaceSchema } from "../namespace"
 import { ADDITIVE_MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import { textContent, type ToolDeps } from "./types"
 
@@ -12,7 +12,7 @@ export function register(deps: ToolDeps) {
 			description: "Save content to memory",
 			inputSchema: z.object({
 				content: z.string().min(1),
-				containerTag: containerTagSchema,
+				namespace: namespaceSchema,
 				viewId: z.string().uuid().optional(),
 			}),
 			outputSchema: saveSuccessViewSchema,
@@ -22,13 +22,13 @@ export function register(deps: ToolDeps) {
 		async (args) => {
 			try {
 				const viewId = args.viewId ?? crypto.randomUUID()
-				const client = deps.getClient(args.containerTag)
+				const client = deps.getClient(args.namespace)
 				const result = await client.createMemory(args.content)
 				const sc: ViewMessage = {
 					view: "save-success",
 					viewId,
 					id: result.id,
-					containerTag: args.containerTag,
+					namespace: args.namespace,
 				}
 				return {
 					content: [textContent(`Memory saved: ${result.id}`)],
