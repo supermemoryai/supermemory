@@ -8,8 +8,10 @@ import warnings
 from typing import Annotated, Any, Optional, TypedDict
 
 from agent_framework import FunctionTool, tool
+from supermemory.types import SearchResponse
 
 from .connection import AgentSupermemory
+from .utils import _fetch_profile_and_search
 
 
 class MemorySearchResult(TypedDict, total=False):
@@ -50,11 +52,28 @@ def _to_jsonable(value: Any) -> Any:
         try:
             return _to_jsonable(model_dump(mode="json"))
         except TypeError:
-            # Compatibility with pydantic-like models whose model_dump does not
-            # accept Pydantic v2's ``mode`` argument.
             return _to_jsonable(model_dump())
 
     return value
+
+
+def _serialize_search_results(response: SearchResponse) -> dict[str, Any]:
+    """Keep the tool's legacy result fields while retaining v5 metadata."""
+    results = [
+        {
+            "chunks": None,
+            "context": None,
+            "documents": None,
+            "filepath": None,
+            "is_aggregated": None,
+            "root_memory_id": None,
+            "version": None,
+            **_to_jsonable(item),
+            "updated_at": item.system.updated_at,
+        }
+        for item in response.results
+    ]
+    return {"results": results, "timing": response.search_time, "total": len(results)}
 
 
 class SupermemoryTools:
@@ -92,28 +111,28 @@ class SupermemoryTools:
         """Search stored memories and source chunks.
 
         ``include_full_docs`` remains a deprecated Python-only argument for
-        source compatibility. V4 search cannot return full source documents.
+        source compatibility. This tool does not return full source documents.
         """
         if include_full_docs is not None:
             warnings.warn(
-                "include_full_docs is deprecated and ignored because v4 search "
-                "does not return full source documents",
+                "include_full_docs is deprecated and ignored; search_memories "
+                "does not request full source documents",
                 DeprecationWarning,
                 stacklevel=2,
             )
 
         try:
-            response = await self._client.search.memories(
-                q=information_to_get,
-                container_tag=self._connection.container_tag,
+            response = await self._client.search(
+                self._connection.container_tag,
+                query=information_to_get,
                 limit=limit,
                 threshold=0.6,
                 search_mode="hybrid",
             )
-            results = response.results or []
+            results = _serialize_search_results(response)["results"]
             result: MemorySearchResult = {
                 "success": True,
-                "results": [_to_jsonable(item) for item in results],
+                "results": results,
                 "count": len(results),
             }
             return json.dumps(result, default=str)
@@ -131,9 +150,9 @@ class SupermemoryTools:
         """Add (remember) memories/details/information about the user or other facts or entities. Run when explicitly asked or when the user mentions any information generalizable beyond the context of the current conversation."""
         try:
             response = await self._client.add(
+                self._connection.container_tag,
                 content=memory,
-                container_tag=self._connection.container_tag,
-                custom_id=self._connection.custom_id,
+                id=self._connection.custom_id,
             )
             result: MemoryAddResult = {
                 "success": True,
@@ -153,23 +172,24 @@ class SupermemoryTools:
     ) -> str:
         """Get user profile containing static memories (permanent facts) and dynamic memories (recent context). Optionally include search results by providing a query."""
         try:
-            kwargs: dict[str, Any] = {"container_tag": self._connection.container_tag}
-            if query:
-                kwargs["q"] = query
-
-            response = await self._client.profile(**kwargs)
+            response, search = await _fetch_profile_and_search(
+                self._client, self._connection.container_tag, query=query
+            )
             result: dict[str, Any] = {
                 "success": True,
                 "profile": (
-                    _to_jsonable(response.profile)
-                    if hasattr(response, "profile")
+                    {
+                        "static": [fact.memory for fact in response.profile.static],
+                        "dynamic": [fact.memory for fact in response.profile.dynamic],
+                        "buckets": {
+                            name: [fact.memory for fact in facts]
+                            for name, facts in response.profile.buckets.items()
+                        },
+                    }
+                    if response
                     else None
                 ),
-                "search_results": (
-                    _to_jsonable(response.search_results)
-                    if hasattr(response, "search_results")
-                    else None
-                ),
+                "search_results": _serialize_search_results(search) if search else None,
             }
             return json.dumps(result, default=str)
         except Exception as error:

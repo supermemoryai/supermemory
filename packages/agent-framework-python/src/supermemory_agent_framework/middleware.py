@@ -15,9 +15,11 @@ from .connection import AgentSupermemory
 from .exceptions import (
     SupermemoryMemoryOperationError,
     SupermemoryNetworkError,
+    SupermemoryTimeoutError,
 )
 from .utils import (
     Logger,
+    _fetch_profile_and_search,
     convert_profile_to_markdown,
     create_logger,
     deduplicate_memories,
@@ -125,20 +127,16 @@ async def _build_memories_text(
     query_text: str = "",
 ) -> str:
     """Build formatted memories text from Supermemory API."""
-    kwargs: dict[str, Any] = {"container_tag": container_tag}
-    if query_text:
-        kwargs["q"] = query_text
-
-    memories_response = await client.profile(**kwargs)
-
-    profile = memories_response.profile if memories_response.profile else None
+    memories_response, search = await _fetch_profile_and_search(
+        client,
+        container_tag,
+        include_profile=mode != "query",
+        query=query_text if mode != "profile" else "",
+    )
+    profile = memories_response.profile if memories_response else None
     static = list(profile.static) if profile and profile.static else []
     dynamic = list(profile.dynamic) if profile and profile.dynamic else []
-    search_results_raw = (
-        list(memories_response.search_results.results)
-        if memories_response.search_results and memories_response.search_results.results
-        else []
-    )
+    search_results_raw = list(search.results) if search else []
 
     logger.info(
         "Memory search completed",
@@ -146,9 +144,7 @@ async def _build_memories_text(
             "container_tag": container_tag,
             "memory_count_static": len(static),
             "memory_count_dynamic": len(dynamic),
-            "query_text": (
-                query_text[:100] + ("..." if len(query_text) > 100 else "")
-            ),
+            "query_text": (query_text[:100] + ("..." if len(query_text) > 100 else "")),
             "mode": mode,
         },
     )
@@ -190,13 +186,7 @@ async def _save_memory(
 ) -> None:
     """Save a memory to Supermemory."""
     try:
-        add_params: dict[str, Any] = {
-            "content": content,
-            "container_tag": container_tag,
-            "custom_id": custom_id,
-        }
-
-        response = await client.add(**add_params)
+        response = await client.add(container_tag, content=content, id=custom_id)
 
         logger.info(
             "Memory saved successfully",
@@ -207,10 +197,11 @@ async def _save_memory(
                 "memory_id": getattr(response, "id", None),
             },
         )
-    except (OSError, ConnectionError) as network_error:
-        logger.error(
-            "Network error while saving memory", {"error": str(network_error)}
-        )
+    except supermemory.APITimeoutError as timeout_error:
+        logger.error("Timeout while saving memory", {"error": str(timeout_error)})
+        raise SupermemoryTimeoutError("Timed out saving memory", timeout_error)
+    except (supermemory.APIConnectionError, OSError, ConnectionError) as network_error:
+        logger.error("Network error while saving memory", {"error": str(network_error)})
         raise SupermemoryNetworkError(
             "Failed to save memory due to network error", network_error
         )
@@ -228,7 +219,7 @@ class SupermemoryChatMiddleware(ChatMiddleware):
 
     Example:
         ```python
-        from agent_framework.openai import OpenAIResponsesClient
+        from agent_framework.openai import OpenAIChatClient
         from supermemory_agent_framework import (
             AgentSupermemory,
             SupermemoryChatMiddleware,
@@ -246,7 +237,7 @@ class SupermemoryChatMiddleware(ChatMiddleware):
             ),
         )
 
-        agent = OpenAIResponsesClient().as_agent(
+        agent = OpenAIChatClient(model="gpt-4o-mini").as_agent(
             name="MemoryAgent",
             instructions="You are a helpful assistant with memory.",
             middleware=[middleware],
@@ -274,12 +265,9 @@ class SupermemoryChatMiddleware(ChatMiddleware):
         call_next: Callable[[], Awaitable[None]],
     ) -> None:
         """Process the chat request by injecting memories and optionally saving conversations."""
-        # Remove stale SDK-owned context before every lifecycle path. A failed,
-        # empty, or skipped lookup must never leak memories from a prior run.
         _inject_memories(context, "")
         messages = context.messages
 
-        # Save conversation memory in background if configured
         if self._options.add_memory == "always":
             user_message = _get_last_user_message(messages)
             if user_message and user_message.strip():
@@ -310,7 +298,6 @@ class SupermemoryChatMiddleware(ChatMiddleware):
 
                 task.add_done_callback(_handle_task_exception)
 
-        # Determine query text based on mode
         query_text = ""
         if self._options.mode != "profile":
             user_message = _get_last_user_message(messages)
@@ -329,7 +316,6 @@ class SupermemoryChatMiddleware(ChatMiddleware):
             },
         )
 
-        # Fetch and build memories text
         try:
             memories = await _build_memories_text(
                 self._container_tag,
@@ -347,7 +333,6 @@ class SupermemoryChatMiddleware(ChatMiddleware):
             return
 
         if memories:
-            # Prepend entity context if available
             if self._connection.entity_context:
                 memories = f"{self._connection.entity_context}\n\n{memories}"
 
@@ -356,14 +341,11 @@ class SupermemoryChatMiddleware(ChatMiddleware):
                 {"content": memories[:200], "full_length": len(memories)},
             )
 
-            # Inject memories into messages
             _inject_memories(context, memories)
 
         await call_next()
 
-    async def wait_for_background_tasks(
-        self, timeout: Optional[float] = 10.0
-    ) -> None:
+    async def wait_for_background_tasks(self, timeout: Optional[float] = 10.0) -> None:
         """Wait for all background memory storage tasks to complete."""
         if not self._background_tasks:
             return

@@ -3,7 +3,6 @@
 import pytest
 
 from supermemory_agent_framework.utils import (
-    DeduplicatedMemories,
     SimpleLogger,
     convert_profile_to_markdown,
     create_logger,
@@ -29,8 +28,14 @@ class TestDeduplicateMemories:
     def test_deduplication_priority(self) -> None:
         result = deduplicate_memories(
             static=[{"memory": "User likes Python"}],
-            dynamic=[{"memory": "User likes Python"}, {"memory": "User works remotely"}],
-            search_results=[{"memory": "User likes Python"}, {"memory": "User prefers async"}],
+            dynamic=[
+                {"memory": "User likes Python"},
+                {"memory": "User works remotely"},
+            ],
+            search_results=[
+                {"memory": "User likes Python"},
+                {"memory": "User prefers async"},
+            ],
         )
         assert result.static == ["User likes Python"]
         assert result.dynamic == ["User works remotely"]

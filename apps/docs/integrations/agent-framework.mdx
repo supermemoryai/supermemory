@@ -16,19 +16,25 @@ Microsoft's [Agent Framework](https://github.com/microsoft/agent-framework) is a
 
 ## Setup
 
-Install the package:
+<Warning>The v5-compatible adapter is currently in this repository's source. Published adapter `1.0.3` still requires the legacy SDK. Until a v5-compatible adapter release is published, install from a checkout of `supermemoryai/supermemory`:</Warning>
 
 ```bash
-pip install --pre supermemory-agent-framework
+pip install -e packages/agent-framework-python agent-framework-openai
+```
+
+After a v5-compatible adapter release is published, install the package:
+
+```bash
+pip install supermemory-agent-framework agent-framework-openai
 ```
 
 Or with uv:
 
 ```bash
-uv add --prerelease=allow supermemory-agent-framework
+uv add supermemory-agent-framework agent-framework-openai
 ```
 
-<Warning>The `--pre` / `--prerelease=allow` flag is required because `agent-framework-core` depends on pre-release versions of Azure packages.</Warning>
+The adapter requires `supermemory>=5.0.0,<6`. The OpenAI examples also require the separate `agent-framework-openai` package and use its current `OpenAIChatClient` Responses API client. Older supported framework cores can have different OpenAI client names and model arguments.
 
 Set up your environment:
 
@@ -74,6 +80,12 @@ tools = SupermemoryTools(conn)
 provider = SupermemoryContextProvider(conn, mode="full")
 ```
 
+### Existing callers and data
+
+Keep the existing `container_tag` and `conversation_id` arguments. The adapter sends the container tag as the v5 namespace and the unchanged `conversation_<conversation_id>` as the document `id`. Choose a distinct container tag per user or tenant: the default `msft_agent_chat` scope is shared. Repeated writes append/diff into the same conversation document; they do not replace previous turns. `entity_context` remains context prepended to retrieved memories, not an ingestion setting.
+
+Existing Agent Framework session exports remain loadable because the provider does not change its scoped state. Reconstruct the connection with the same identifiers after loading a session; connections and API credentials are not part of provider state. This adapter migration does not move existing server-side data. Confirm old data is available in the corresponding v5 namespace using the [v5 migration guide](/migration/api-v5); the adapter does not delete or rewrite legacy data.
+
 ---
 
 ## Context provider (recommended)
@@ -83,7 +95,7 @@ The most idiomatic integration. Follows the same pattern as Agent Framework's bu
 ```python
 import asyncio
 from agent_framework import AgentSession
-from agent_framework.openai import OpenAIResponsesClient
+from agent_framework.openai import OpenAIChatClient
 from supermemory_agent_framework import AgentSupermemory, SupermemoryContextProvider
 
 async def main():
@@ -91,7 +103,7 @@ async def main():
 
     provider = SupermemoryContextProvider(conn, mode="full")
 
-    agent = OpenAIResponsesClient().as_agent(
+    agent = OpenAIChatClient(model="gpt-4o-mini").as_agent(
         name="MemoryAgent",
         instructions="You are a helpful assistant with memory.",
         context_providers=[provider],
@@ -130,14 +142,14 @@ Give agents explicit control over memory operations. The agent decides when to s
 
 ```python
 import asyncio
-from agent_framework.openai import OpenAIResponsesClient
+from agent_framework.openai import OpenAIChatClient
 from supermemory_agent_framework import AgentSupermemory, SupermemoryTools
 
 async def main():
     conn = AgentSupermemory(container_tag="user-123")
     tools = SupermemoryTools(conn)
 
-    agent = OpenAIResponsesClient().as_agent(
+    agent = OpenAIChatClient(model="gpt-4o-mini").as_agent(
         name="MemoryAgent",
         instructions="""You are a helpful assistant with memory.
 When users share preferences, save them. When they ask questions, search memories first.""",
@@ -160,6 +172,8 @@ The agent gets three tools:
 - **`add_memory`** — Store new information for later recall
 - **`get_profile`** — Fetch the user's full profile (static + dynamic facts)
 
+Tool JSON envelopes are preserved. Profiles still expose string arrays for static, dynamic, and bucket facts. A query passed to `get_profile` triggers a separate v5 search, returned under `search_results` with `results`, `timing`, and `total` (the number returned). Search results keep their top-level `updated_at` timestamp and include v5 metadata; legacy optional fields not returned by v5 remain present as `null` because their values cannot be reconstructed. The deprecated Python-only `include_full_docs` argument remains ignored and is not exposed to the model.
+
 ---
 
 ## Chat middleware
@@ -168,7 +182,7 @@ Intercept chat requests to automatically inject memory context. Useful when you 
 
 ```python
 import asyncio
-from agent_framework.openai import OpenAIResponsesClient
+from agent_framework.openai import OpenAIChatClient
 from supermemory_agent_framework import (
     AgentSupermemory,
     SupermemoryChatMiddleware,
@@ -186,13 +200,14 @@ async def main():
         ),
     )
 
-    agent = OpenAIResponsesClient().as_agent(
+    agent = OpenAIChatClient(model="gpt-4o-mini").as_agent(
         name="MemoryAgent",
         instructions="You are a helpful assistant.",
         middleware=[middleware],
     )
 
     response = await agent.run("What's my favorite programming language?")
+    await middleware.wait_for_background_tasks()
     print(response.text)
 
 asyncio.run(main())
@@ -212,6 +227,8 @@ SupermemoryContextProvider(conn, mode="full")  # or "profile" / "query"
 | `"query"` | Memories relevant to the current message only | Targeted recall, no profile data |
 | `"full"` (default) | Profile + query search combined | Maximum context |
 
+V5 profile retrieval does not accept a search query. Full mode makes separate profile and search requests and deduplicates overlapping facts before injection. Profile-associated searches keep the legacy memory-only mode and `0.6` threshold; the explicit search tool keeps hybrid mode and `0.6`. Writes are asynchronous; an accepted document may not be immediately searchable, and this migration does not change the SDK's default processing mode.
+
 ---
 
 ## Example: support agent with memory
@@ -221,7 +238,7 @@ A support agent that remembers customers across sessions:
 ```python
 import asyncio
 from agent_framework import AgentSession
-from agent_framework.openai import OpenAIResponsesClient
+from agent_framework.openai import OpenAIChatClient
 from supermemory_agent_framework import (
     AgentSupermemory,
     SupermemoryChatMiddleware,
@@ -247,13 +264,13 @@ async def main():
         conn,
         options=SupermemoryMiddlewareOptions(
             mode="full",
-            add_memory="always",
+            add_memory="never",
         ),
     )
 
     tools = SupermemoryTools(conn)
 
-    agent = OpenAIResponsesClient().as_agent(
+    agent = OpenAIChatClient(model="gpt-4o-mini").as_agent(
         name="SupportAgent",
         instructions="""You are a customer support agent.
 
@@ -285,11 +302,15 @@ Save important new information about the customer.""",
 asyncio.run(main())
 ```
 
+This example stores conversations through the provider only. Enabling middleware storage as well can submit overlapping content; use both only when intentional.
+
 ---
 
 ## Error handling
 
 The package provides specific exception types:
+
+Tools return operation failures as JSON (`success: false`, `error`). Provider retrieval/storage and middleware retrieval failures are logged and let the agent continue without memories. Middleware background write failures are logged rather than raised by `wait_for_background_tasks()`; a timeout on that wait still raises `asyncio.TimeoutError`.
 
 ```python
 from supermemory_agent_framework import (

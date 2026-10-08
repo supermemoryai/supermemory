@@ -1,7 +1,5 @@
 """Tests for Supermemory tools."""
 
-import pytest
-
 from supermemory_agent_framework import AgentSupermemory, SupermemoryTools
 
 
