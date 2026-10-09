@@ -1,8 +1,12 @@
 """Utility functions for Supermemory Agent Framework integration."""
 
+import asyncio
 import json
 import re
 from typing import Any, Optional, Protocol
+
+import supermemory
+from supermemory.types import ProfileResponse, SearchResponse
 
 DEFAULT_CONTEXT_PROMPT = "The following are retrieved memories about the user."
 MEMORY_CONTEXT_PATTERN = re.compile(
@@ -13,6 +17,31 @@ SUPERMEMORY_TAG_PATTERN = re.compile(
     r"<\s*/?\s*supermemory\b[^>]*>",
     re.IGNORECASE,
 )
+
+
+async def _fetch_profile_and_search(
+    client: supermemory.AsyncSupermemory,
+    container_tag: str,
+    *,
+    include_profile: bool = True,
+    query: str = "",
+) -> tuple[Optional[ProfileResponse], Optional[SearchResponse]]:
+    """Fetch the independent v5 profile and query resources in one namespace."""
+    if include_profile and query:
+        profile, search = await asyncio.gather(
+            client.profile(container_tag),
+            client.search(
+                container_tag, query=query, threshold=0.6, search_mode="memories"
+            ),
+        )
+        return profile, search
+    if include_profile:
+        return await client.profile(container_tag), None
+    if query:
+        return None, await client.search(
+            container_tag, query=query, threshold=0.6, search_mode="memories"
+        )
+    return None, None
 
 
 def _escape_supermemory_tags(content: str) -> str:
@@ -134,7 +163,6 @@ def deduplicate_memories(
                 if isinstance(value, str) and value.strip():
                     return value.strip()
             return None
-        # Stainless SDK returns pydantic models (attribute access, snake_case).
         for field in ("memory", "chunk", "content"):
             value = getattr(item, field, None)
             if isinstance(value, str) and value.strip():

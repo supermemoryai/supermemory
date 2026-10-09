@@ -11,9 +11,9 @@ from supermemory_agent_framework import (
     SupermemoryMiddlewareOptions,
 )
 from supermemory_agent_framework.middleware import (
-    _get_last_user_message,
-    _get_conversation_content,
     _build_memories_text,
+    _get_conversation_content,
+    _get_last_user_message,
     _inject_memories,
 )
 
@@ -141,14 +141,15 @@ class TestMemoryInjection:
         assert "Be helpful." in content
         assert "Fresh profile fact" in content
         assert "Stale profile fact" not in content
-        assert content.count(
-            '<supermemory context="user-memories" readonly>'
-        ) == 1
+        assert content.count('<supermemory context="user-memories" readonly>') == 1
 
     @pytest.mark.asyncio
     async def test_query_mode_keeps_search_fact_also_present_in_profile(self) -> None:
         fact = "User likes machine learning projects"
         client = SimpleNamespace(
+            search=AsyncMock(
+                return_value=SimpleNamespace(results=[SimpleNamespace(memory=fact)])
+            ),
             profile=AsyncMock(
                 return_value=SimpleNamespace(
                     profile=SimpleNamespace(static=[fact], dynamic=[]),
@@ -156,7 +157,7 @@ class TestMemoryInjection:
                         results=[SimpleNamespace(memory=fact)]
                     ),
                 )
-            )
+            ),
         )
         logger = Mock()
 
@@ -165,3 +166,7 @@ class TestMemoryInjection:
         )
 
         assert fact in memories
+        client.profile.assert_not_awaited()
+        client.search.assert_awaited_once_with(
+            "user-123", query="machine learning", threshold=0.6, search_mode="memories"
+        )

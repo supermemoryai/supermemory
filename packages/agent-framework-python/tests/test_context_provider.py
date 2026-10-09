@@ -28,9 +28,7 @@ class TestContextProviderConfiguration:
 
     def test_custom_source_id(self) -> None:
         conn = _make_conn()
-        provider = SupermemoryContextProvider(
-            conn, source_id="custom-source"
-        )
+        provider = SupermemoryContextProvider(conn, source_id="custom-source")
         assert provider.source_id == "custom-source"
 
     def test_default_mode(self) -> None:
@@ -136,13 +134,18 @@ class TestMemoryRetrieval:
         conn.client.profile = AsyncMock(
             return_value=SimpleNamespace(
                 profile=SimpleNamespace(static=[fact], dynamic=[]),
-                search_results=SimpleNamespace(
-                    results=[SimpleNamespace(memory=fact)]
-                ),
+                search_results=SimpleNamespace(results=[SimpleNamespace(memory=fact)]),
             )
+        )
+        conn.client.search = AsyncMock(
+            return_value=SimpleNamespace(results=[SimpleNamespace(memory=fact)])
         )
         provider = SupermemoryContextProvider(conn, mode="query")
 
         memories = await provider._fetch_memories("machine learning")
 
         assert fact in memories
+        conn.client.profile.assert_not_awaited()
+        conn.client.search.assert_awaited_once_with(
+            "user-123", query="machine learning", threshold=0.6, search_mode="memories"
+        )

@@ -1,6 +1,8 @@
 import asyncio
 import os
-from agent_framework.openai import OpenAIResponsesClient
+
+from agent_framework.openai import OpenAIChatClient
+
 from supermemory_agent_framework import (
     AgentSupermemory,
     SupermemoryChatMiddleware,
@@ -26,7 +28,9 @@ async def main():
 
     tools = SupermemoryTools(conn)
 
-    agent = OpenAIResponsesClient(api_key=os.environ["OPENAI_API_KEY"], model_id="gpt-4o-mini").as_agent(
+    agent = OpenAIChatClient(
+        api_key=os.environ["OPENAI_API_KEY"], model="gpt-5"
+    ).as_agent(
         name="MemoryAgent",
         instructions="You are a helpful assistant with memory.",
         middleware=[middleware],
@@ -48,6 +52,7 @@ async def main():
             break
 
         response = await agent.run(user_input)
+        await middleware.wait_for_background_tasks()
         print(f"\nAgent: {response.text}")
 
 

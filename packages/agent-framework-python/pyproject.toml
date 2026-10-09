@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "supermemory-agent-framework"
-version = "1.0.3"
+version = "2.0.0"
 description = "Memory tools and middleware for Microsoft Agent Framework with supermemory"
 readme = "README.md"
 license = "MIT"
@@ -25,7 +25,7 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "agent-framework-core>=1.0.0rc3",
-    "supermemory>=3.16.0,<5",
+    "supermemory>=5.0.0,<6",
     "typing-extensions>=4.0.0",
 ]
 
