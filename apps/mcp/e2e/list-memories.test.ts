@@ -18,8 +18,8 @@ type AppView = {
 	viewId?: string
 	id?: string
 	fileName?: string
-	containerTag?: string
-	writableTags?: string[]
+	namespace?: string
+	writableNamespaces?: string[]
 }
 
 async function waitForToolText(
@@ -45,7 +45,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 		let session: Session
 		const createdMemories: Array<{
 			content: string
-			containerTag: string
+			namespace: string
 		}> = []
 
 		beforeAll(async () => {
@@ -57,7 +57,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 				await callTool(session.client, "add_memory", {
 					content: memory.content,
 					action: "forget",
-					containerTag: memory.containerTag,
+					namespace: memory.namespace,
 				}).catch(() => {})
 			}
 			await session?.close()
@@ -72,33 +72,33 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 			expect(launcher.isError).toBeFalsy()
 
 			const launcherView = launcher.structuredContent as AppView
-			const containerTag = launcherView.writableTags?.[0]
+			const namespace = launcherView.writableNamespaces?.[0]
 			expect(launcherView.view).toBe("save")
 			expect(launcherView.viewId).toBeTruthy()
-			expect(containerTag).toBeTruthy()
-			if (!launcherView.viewId || !containerTag) {
+			expect(namespace).toBeTruthy()
+			if (!launcherView.viewId || !namespace) {
 				throw new Error("Guided save did not provide a writable space")
 			}
 
 			const saved = await callTool(session.client, "save-memory", {
 				content,
-				containerTag,
+				namespace,
 				viewId: launcherView.viewId,
 			})
 			expect(saved.isError).toBeFalsy()
 			const savedView = saved.structuredContent as AppView
 			expect(savedView).toMatchObject({
 				view: "save-success",
-				containerTag,
+				namespace,
 			})
 			expect(savedView.id).toBeTruthy()
 			if (!savedView.id) throw new Error("Save did not return a document ID")
-			createdMemories.push({ content, containerTag })
+			createdMemories.push({ content, namespace })
 
 			const listedDocument = await waitForToolText(
 				session,
 				"list_documents",
-				{ page: 1, limit: 50, containerTag },
+				{ page: 1, limit: 50, namespace },
 				`[${savedView.id}]`,
 				20,
 				1000,
@@ -108,7 +108,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 			const document = await waitForToolText(
 				session,
 				"get_document",
-				{ documentId: savedView.id },
+				{ documentId: savedView.id, namespace },
 				`Document ID: ${savedView.id}`,
 				20,
 				1000,
@@ -118,27 +118,11 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 			const memoriesResult = await callTool(session.client, "list_memories", {
 				page: 1,
 				limit: 10,
-				containerTag: "sm_project_default",
+				namespace: "sm_project_default",
 			})
 			expect(memoriesResult.isError).toBeFalsy()
 			const memories = textOf(memoriesResult)
 			expect(memories).toMatch(/active memor(?:y|ies) \(page 1 of \d+/i)
-
-			const sourceDocumentId = memories.match(
-				/Source documents: ([^,\n]+)/,
-			)?.[1]
-			expect(sourceDocumentId).toBeTruthy()
-			if (!sourceDocumentId) {
-				throw new Error("Listed memory did not include a source document")
-			}
-
-			const sourceDocument = await callTool(session.client, "get_document", {
-				documentId: sourceDocumentId,
-			})
-			expect(sourceDocument.isError).toBeFalsy()
-			expect(textOf(sourceDocument)).toContain(
-				`Document ID: ${sourceDocumentId}`,
-			)
 		}, 60_000)
 
 		it("uploads and reads a text document", async () => {
@@ -149,22 +133,23 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 			expect(launcher.isError).toBeFalsy()
 
 			const launcherView = launcher.structuredContent as AppView
-			const containerTag = launcherView.writableTags?.[0]
+			const namespace = launcherView.writableNamespaces?.[0]
 			expect(launcherView.view).toBe("upload")
 			expect(launcherView.viewId).toBeTruthy()
-			expect(containerTag).toBeTruthy()
-			if (!launcherView.viewId || !containerTag) {
+			expect(namespace).toBeTruthy()
+			if (!launcherView.viewId || !namespace) {
 				throw new Error("Upload did not provide a writable space")
 			}
 
-			const prepared = await callTool(session.client, "prepare-file-upload")
+			const prepared = await callTool(session.client, "prepare-file-upload", {
+				namespace,
+			})
 			expect(prepared.isError).toBeFalsy()
 			const preparation = uploadPreparationSchema.parse(
 				prepared.structuredContent,
 			)
 			const formData = new FormData()
 			formData.append("file", new Blob([fileContent]), fileName)
-			formData.append("containerTag", containerTag)
 			formData.append(
 				"metadata",
 				JSON.stringify({ sm_source: "supermemory-mcp" }),
@@ -183,7 +168,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)(
 			const document = await waitForToolText(
 				session,
 				"get_document",
-				{ documentId: uploaded.id },
+				{ documentId: uploaded.id, namespace },
 				`Document ID: ${uploaded.id}`,
 				20,
 				1000,

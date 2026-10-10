@@ -1,8 +1,9 @@
 import { z } from "zod"
 import { uploadViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
-import { effectiveContainerTagAccess } from "../auth/rbac"
+import { effectiveNamespaceAccess } from "../auth/rbac"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
+import { withLegacyView } from "./compat"
 import { textContent, type ToolDeps } from "./types"
 
 export function register(deps: ToolDeps) {
@@ -20,24 +21,24 @@ export function register(deps: ToolDeps) {
 		async () => {
 			try {
 				const viewId = crypto.randomUUID()
-				const [activeTag, tags, session] = await Promise.all([
-					deps.getActiveContainerTag(),
-					deps.getClient().listContainerTags(),
+				const [activeNamespace, namespaces, session] = await Promise.all([
+					deps.getActiveNamespace(),
+					deps.getClient().listNamespaces(),
 					deps.getSession(),
 				])
-				const writableTags = effectiveContainerTagAccess(
-					tags.map((tag) => tag.containerTag),
+				const writableNamespaces = effectiveNamespaceAccess(
+					namespaces.map((entry) => entry.namespace),
 					session,
 				)
 					.filter((access) => access.permission === "write")
-					.map((access) => access.containerTag)
+					.map((access) => access.namespace)
 
-				const sc: ViewMessage = {
+				const sc: ViewMessage = withLegacyView({
 					view: "upload",
 					viewId,
-					activeTag,
-					writableTags,
-				}
+					activeNamespace,
+					writableNamespaces,
+				})
 
 				return {
 					content: [textContent("Opening file upload form...")],

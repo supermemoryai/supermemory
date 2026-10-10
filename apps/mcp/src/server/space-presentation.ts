@@ -1,16 +1,9 @@
-import type { ContainerTag } from "../shared/types"
+import type { NamespaceInfo } from "../shared/types"
 
 const DEFAULT_DESCRIPTION_LIMIT = 160
 
 const plural = (count: number, singular: string, pluralForm: string) =>
 	`${count} ${count === 1 ? singular : pluralForm}`
-
-export function spaceDisplayName(
-	space: ContainerTag | undefined,
-	key: string,
-): string {
-	return space?.name || key
-}
 
 export function compactDescription(
 	description: string | null | undefined,
@@ -39,12 +32,9 @@ export function formatActivityDate(value: string | null): string | undefined {
 	}).format(date)
 }
 
-export function spaceMetadata(space: ContainerTag): string {
-	const lastActivity = formatActivityDate(space.lastActivityAt ?? null)
+export function spaceMetadata(space: NamespaceInfo): string {
+	const lastActivity = formatActivityDate(space.updatedAt)
 	const fields = [
-		space.visibility
-			? `${space.visibility.charAt(0).toUpperCase()}${space.visibility.slice(1)}`
-			: undefined,
 		plural(space.documentCount, "document", "documents"),
 		plural(space.memoryCount, "memory", "memories"),
 		lastActivity ? `Last active ${lastActivity}` : undefined,
@@ -54,35 +44,28 @@ export function spaceMetadata(space: ContainerTag): string {
 }
 
 export function formatSpaceRow(
-	space: ContainerTag,
+	space: NamespaceInfo,
 	activeKey: string,
 	descriptionLimit = DEFAULT_DESCRIPTION_LIMIT,
 ): string {
-	const active = space.containerTag === activeKey ? " · Active" : ""
+	const active = space.namespace === activeKey ? " · Active" : ""
 	const metadata = spaceMetadata(space)
 	const description = compactDescription(space.description, descriptionLimit)
-	const firstLine =
-		`- ${spaceDisplayName(space, space.containerTag)} ` +
-		`[${space.containerTag}]${active}${metadata ? ` · ${metadata}` : ""}`
+	const firstLine = `- ${space.namespace}${active}${metadata ? ` · ${metadata}` : ""}`
 
 	return description ? `${firstLine}\n  ${description}` : firstLine
 }
 
 export function sortSpaces(
-	spaces: ContainerTag[],
+	spaces: NamespaceInfo[],
 	activeKey: string,
-): ContainerTag[] {
+): NamespaceInfo[] {
 	return [...spaces].sort((left, right) => {
-		if (left.containerTag === activeKey) return -1
-		if (right.containerTag === activeKey) return 1
-
-		const leftTime = left.lastActivityAt
-			? new Date(left.lastActivityAt).getTime()
-			: 0
-		const rightTime = right.lastActivityAt
-			? new Date(right.lastActivityAt).getTime()
-			: 0
-		return rightTime - leftTime
+		if (left.namespace === activeKey) return -1
+		if (right.namespace === activeKey) return 1
+		return (
+			new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
+		)
 	})
 }
 

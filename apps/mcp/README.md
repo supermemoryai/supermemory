@@ -14,7 +14,7 @@ memories, profile, spaces, and interactive MCP Apps.
 
 The space used by an operation resolves in this order:
 
-1. An explicit `containerTag` tool or prompt argument
+1. An explicit `namespace` tool or prompt argument
 2. The account's durable active space
 3. The Supermemory client default, `sm_project_default`
 
@@ -137,7 +137,8 @@ discovery and rejection tests still run.
 
 ## Storage And Rollout
 
-`SpaceState` stores only the active space's container tag. It never stores bearer
+`SpaceState` stores only the active space's namespace (under the legacy
+`activeContainerTag` key, so existing selections survive). It never stores bearer
 tokens, MCP client identity, or protocol messages.
 
 The old `SupermemoryMCP` class and binding remain inert for one rollout. This

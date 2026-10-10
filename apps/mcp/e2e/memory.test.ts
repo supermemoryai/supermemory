@@ -11,17 +11,17 @@ import {
 
 describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => {
 	let s: Session
-	const created: Array<{ content: string; containerTag?: string }> = []
+	const created: Array<{ content: string; namespace?: string }> = []
 
 	beforeAll(async () => {
 		s = await connect()
 	})
 	afterAll(async () => {
-		for (const { content, containerTag } of created) {
+		for (const { content, namespace } of created) {
 			await callTool(s.client, "add_memory", {
 				content,
 				action: "forget",
-				...(containerTag ? { containerTag } : {}),
+				...(namespace ? { namespace } : {}),
 			}).catch(() => {})
 		}
 		await s?.close()
@@ -90,32 +90,32 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => 
 		expect(textOf(forgotten)).toMatch(/forgot|No matching memory found/i)
 	}, 120_000)
 
-	it("containerTag scopes memories (isolation)", async () => {
-		// Fixed tags (not per-run UUIDs) so the test doesn't mint a new project each run.
-		const tagA = "sm_e2e_scope_a"
-		const tagB = "sm_e2e_scope_b"
+	it("namespace scopes memories (isolation)", async () => {
+		// Fixed namespaces (not per-run UUIDs) so the test doesn't mint a new one each run.
+		const namespaceA = "sm_e2e_scope_a"
+		const namespaceB = "sm_e2e_scope_b"
 		const marker = `sc-${randomUUID()}`
 		const content = `e2e scoping. token=${marker}. Project color is teal.`
-		created.push({ content, containerTag: tagA })
+		created.push({ content, namespace: namespaceA })
 
 		await callTool(s.client, "add_memory", {
 			content,
 			action: "save",
-			containerTag: tagA,
+			namespace: namespaceA,
 		})
 
 		const inA = await recallUntil(s.client, "project color teal", marker, {
-			containerTag: tagA,
+			namespace: namespaceA,
 		})
-		expect(inA, "marker should be found in its own container").not.toBeNull()
+		expect(inA, "marker should be found in its own namespace").not.toBeNull()
 
-		// Same query scoped to a different container must NOT see it.
+		// Same query scoped to a different namespace must NOT see it.
 		const leaked = await recallUntil(s.client, "project color teal", marker, {
-			containerTag: tagB,
+			namespace: namespaceB,
 			tries: 3,
 			delayMs: 3000,
 		})
-		expect(leaked, "marker leaked across containers").toBeNull()
+		expect(leaked, "marker leaked across namespaces").toBeNull()
 	}, 120_000)
 
 	it("returns an error result for a missing required argument", async () => {

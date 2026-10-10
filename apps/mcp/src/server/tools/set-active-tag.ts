@@ -1,7 +1,8 @@
 import { z } from "zod"
 import { confirmationViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
-import { containerTagSchema } from "../container-tag"
+import { namespaceSchema } from "../namespace"
+import { legacyNamespaceInput, namespaceArg, withLegacyView } from "./compat"
 import { SETTINGS_TOOL_ANNOTATIONS } from "./annotations"
 import { textContent, type ToolDeps } from "./types"
 
@@ -11,7 +12,8 @@ export function register(deps: ToolDeps) {
 		{
 			description: "Set the active Supermemory space for this account",
 			inputSchema: z.object({
-				containerTag: containerTagSchema,
+				namespace: namespaceSchema.optional(),
+				...legacyNamespaceInput,
 				viewId: z.string().uuid().optional(),
 			}),
 			outputSchema: confirmationViewSchema,
@@ -19,23 +21,24 @@ export function register(deps: ToolDeps) {
 			annotations: SETTINGS_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
-			const { containerTag } = args
+			const namespace = namespaceArg(args)
+			if (!namespace)
+				return deps.errorResult(new Error("namespace is required"))
 			try {
 				const viewId = args.viewId ?? crypto.randomUUID()
-				const tags = await deps.getClient().listContainerTags()
-				if (!tags.some((tag) => tag.containerTag === containerTag)) {
+				if (!(await deps.getClient().getNamespace(namespace))) {
 					return deps.errorResult(
-						new Error(`No access to container tag '${containerTag}'.`),
+						new Error(`No access to namespace '${namespace}'.`),
 					)
 				}
-				await deps.setActiveContainerTag(containerTag)
-				const sc: ViewMessage = {
+				await deps.setActiveNamespace(namespace)
+				const sc: ViewMessage = withLegacyView({
 					view: "confirmation",
 					viewId,
-					containerTag,
-				}
+					namespace,
+				})
 				return {
-					content: [textContent(`Active space set to ${containerTag}`)],
+					content: [textContent(`Active space set to ${namespace}`)],
 					structuredContent: sc,
 					_meta: appResultMeta(viewId),
 				}

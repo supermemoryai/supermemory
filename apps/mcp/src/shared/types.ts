@@ -3,12 +3,21 @@ import { z } from "zod"
 // Shared types — imported by both server tools and widget views.
 // Single source of truth for the server↔widget contract.
 
-export const containerTagAccessSchema = z.object({
-	containerTag: z.string(),
+export const namespaceAccessSchema = z.object({
+	namespace: z.string(),
+	containerTag: z.string().optional(),
 	permission: z.enum(["read", "write"]),
 })
 
-export type ContainerTagAccess = z.infer<typeof containerTagAccessSchema>
+export type NamespaceAccess = z.infer<typeof namespaceAccessSchema>
+
+// /v3/session has no v5 replacement and still sends container-tag field names.
+const sessionNamespaceAccessSchema = z
+	.object({ containerTag: z.string(), permission: z.enum(["read", "write"]) })
+	.transform(({ containerTag, permission }) => ({
+		namespace: containerTag,
+		permission,
+	}))
 
 export const sessionScopeSchema = z.looseObject({
 	type: z.enum(["full", "scoped"]),
@@ -21,48 +30,51 @@ export const sessionScopeSchema = z.looseObject({
 
 export type SessionScope = z.infer<typeof sessionScopeSchema>
 
-export const sessionInfoSchema = z.looseObject({
-	user: z.looseObject({
-		id: z.string().min(1),
-		email: z.string().optional(),
-		name: z.string().optional(),
-	}),
-	org: z.looseObject({ id: z.string().min(1) }).optional(),
-	role: z.string().optional(),
-	accessType: z.enum(["full", "restricted"]).optional(),
-	containerTags: z.array(containerTagAccessSchema).nullable().optional(),
-	scope: sessionScopeSchema.optional(),
-})
+export const sessionInfoSchema = z
+	.looseObject({
+		user: z.looseObject({
+			id: z.string().min(1),
+			email: z.string().optional(),
+			name: z.string().optional(),
+		}),
+		org: z.looseObject({ id: z.string().min(1) }).optional(),
+		role: z.string().optional(),
+		accessType: z.enum(["full", "restricted"]).optional(),
+		containerTags: z.array(sessionNamespaceAccessSchema).nullable().optional(),
+		scope: sessionScopeSchema.optional(),
+	})
+	.transform(
+		({
+			containerTags,
+			...session
+		}): typeof session & { namespaces?: NamespaceAccess[] | null } => ({
+			...session,
+			namespaces: containerTags,
+		}),
+	)
 
-export type SessionInfo = z.infer<typeof sessionInfoSchema>
+export type SessionInfo = z.output<typeof sessionInfoSchema>
 
-export const containerTagSchema = z.looseObject({
+export const namespaceInfoSchema = z.object({
 	id: z.string(),
-	name: z.string(),
-	containerTag: z.string(),
+	namespace: z.string(),
+	containerTag: z.string().optional(),
 	description: z.string().nullish(),
-	visibility: z.string().nullish(),
+	documentCount: z.number().int().nonnegative(),
+	memoryCount: z.number().int().nonnegative(),
 	createdAt: z.string(),
 	updatedAt: z.string(),
-	isExperimental: z.boolean(),
-	emoji: z.string().nullish(),
-	isNova: z.boolean(),
-	documentCount: z.number().int().nonnegative(),
-	memoryCount: z.number().int().nonnegative(),
-	lastActivityAt: z.string().nullish(),
 })
 
-export type ContainerTag = z.infer<typeof containerTagSchema>
+export type NamespaceInfo = z.infer<typeof namespaceInfoSchema>
 
 export const spaceSummarySchema = z.object({
-	name: z.string(),
-	containerTag: z.string(),
+	namespace: z.string(),
+	containerTag: z.string().optional(),
 	description: z.string().nullish(),
-	visibility: z.string().nullish(),
-	emoji: z.string().nullish(),
 	documentCount: z.number().int().nonnegative(),
 	memoryCount: z.number().int().nonnegative(),
-	lastActivityAt: z.string().nullish(),
+	updatedAt: z.string(),
 })
 
 export const listSpacesOutputSchema = z.object({
@@ -117,11 +129,7 @@ export const documentsApiResponseSchema = z.object({
 
 export type DocumentsApiResponse = z.infer<typeof documentsApiResponseSchema>
 
-// Extracted memory entries from /v4/memories/list. Single source of truth for
-// both the client parser and the listMemories tool output schema, so the two
-// can't drift (a mismatch previously produced Ajv "must NOT have additional
-// properties"). z.object strips unknown API fields on parse, keeping parsed data
-// matched to the strict MCP output contract while tolerating new API fields.
+// Shared by the client and the list_memories output schema so the two can't drift.
 export const memoryEntryHistorySchema = z.object({
 	id: z.string(),
 	memory: z.string(),
@@ -168,37 +176,46 @@ const viewIdSchema = z.string().uuid().optional()
 export const pickerViewSchema = z.object({
 	view: z.literal("picker"),
 	viewId: viewIdSchema,
-	containerTags: z.array(containerTagSchema),
+	namespaces: z.array(namespaceInfoSchema),
+	activeNamespace: z.string().nullish(),
+	assignedNamespaces: z.array(namespaceAccessSchema).nullable().optional(),
+	containerTags: z.array(namespaceInfoSchema).optional(),
 	activeTag: z.string().nullish(),
-	assignedTags: z.array(containerTagAccessSchema).nullable().optional(),
+	assignedTags: z.array(namespaceAccessSchema).nullable().optional(),
 })
 
 export const confirmationViewSchema = z.object({
 	view: z.literal("confirmation"),
 	viewId: viewIdSchema,
-	containerTag: z.string(),
+	namespace: z.string(),
+	containerTag: z.string().optional(),
 })
 
 export const saveViewSchema = z.object({
 	view: z.literal("save"),
 	viewId: viewIdSchema,
-	activeTag: z.string().nullish(),
-	writableTags: z.array(z.string()),
+	activeNamespace: z.string().nullish(),
+	writableNamespaces: z.array(z.string()),
 	prefill: z.string().optional(),
+	activeTag: z.string().nullish(),
+	writableTags: z.array(z.string()).optional(),
 })
 
 export const saveSuccessViewSchema = z.object({
 	view: z.literal("save-success"),
 	viewId: viewIdSchema,
 	id: z.string(),
-	containerTag: z.string(),
+	namespace: z.string(),
+	containerTag: z.string().optional(),
 })
 
 export const uploadViewSchema = z.object({
 	view: z.literal("upload"),
 	viewId: viewIdSchema,
+	activeNamespace: z.string().nullish(),
+	writableNamespaces: z.array(z.string()),
 	activeTag: z.string().nullish(),
-	writableTags: z.array(z.string()),
+	writableTags: z.array(z.string()).optional(),
 })
 
 export const uploadSuccessViewSchema = z.object({
@@ -206,7 +223,8 @@ export const uploadSuccessViewSchema = z.object({
 	viewId: viewIdSchema,
 	id: z.string(),
 	fileName: z.string(),
-	containerTag: z.string(),
+	namespace: z.string(),
+	containerTag: z.string().optional(),
 })
 
 export const uploadPreparationSchema = z.object({
@@ -223,6 +241,7 @@ export const uploadResponseSchema = z.object({
 export const graphViewSchema = z.object({
 	view: z.literal("graph"),
 	viewId: viewIdSchema,
+	namespace: z.string().optional(),
 	containerTag: z.string().optional(),
 	documents: z.array(documentWithMemoriesSchema),
 	totalCount: z.number().int().nonnegative(),

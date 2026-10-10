@@ -1,11 +1,13 @@
 import { DurableObject } from "cloudflare:workers"
-import { containerTagSchema } from "./container-tag"
+import { namespaceSchema } from "./namespace"
 
-const ACTIVE_CONTAINER_TAG_KEY = "activeContainerTag"
+// Stored key keeps its legacy name so existing users keep their active space.
+const ACTIVE_NAMESPACE_KEY = "activeContainerTag"
 const UPLOAD_SESSION_KEY = "uploadSession"
 
 export interface UploadSession {
 	bearerToken: string
+	namespace: string
 	expiresAt: number
 }
 
@@ -24,13 +26,15 @@ export function uploadStateName(uploadId: string): string {
 }
 
 export class SpaceState extends DurableObject {
-	async getActiveContainerTag(): Promise<string | undefined> {
-		return this.ctx.storage.get<string>(ACTIVE_CONTAINER_TAG_KEY)
+	async getActiveNamespace(): Promise<string | undefined> {
+		return this.ctx.storage.get<string>(ACTIVE_NAMESPACE_KEY)
 	}
 
-	async setActiveContainerTag(containerTag: string): Promise<void> {
-		const validatedTag = containerTagSchema.parse(containerTag)
-		await this.ctx.storage.put(ACTIVE_CONTAINER_TAG_KEY, validatedTag)
+	async setActiveNamespace(namespace: string): Promise<void> {
+		await this.ctx.storage.put(
+			ACTIVE_NAMESPACE_KEY,
+			namespaceSchema.parse(namespace),
+		)
 	}
 
 	async createUploadSession(
@@ -62,6 +66,7 @@ export class SpaceState extends DurableObject {
 			await transaction.delete(UPLOAD_SESSION_KEY)
 			return {
 				bearerToken: session.bearerToken,
+				namespace: session.namespace,
 				expiresAt: session.expiresAt,
 			}
 		})

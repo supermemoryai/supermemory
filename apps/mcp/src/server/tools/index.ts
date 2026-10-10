@@ -3,7 +3,7 @@ import * as fetchGraphData from "./fetch-graph-data"
 import * as getDocument from "./get-document"
 import * as getProfile from "./get-profile"
 import * as guidedSave from "./guided-save"
-import * as listContainerTags from "./list-container-tags"
+import * as listNamespaces from "./list-namespaces"
 import * as listDocuments from "./list-documents"
 import * as listMemories from "./list-memories"
 import * as memoryGraph from "./memory-graph"
@@ -61,7 +61,7 @@ export function registerAllTools(toolDeps: ToolDeps) {
 	listDocuments.register(deps)
 	getDocument.register(deps)
 	listMemories.register(deps)
-	listContainerTags.register(deps)
+	listNamespaces.register(deps)
 	whoAmI.register(deps)
 	selectSpace.register(deps)
 	setActiveTag.register(deps)

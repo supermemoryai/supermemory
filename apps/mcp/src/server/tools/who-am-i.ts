@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
+import { withLegacyNamespaces } from "./compat"
 import { whoAmIOutputSchema, type WhoAmIOutput } from "./output-schemas"
 import { textContent, type ToolDeps } from "./types"
 
@@ -15,9 +16,9 @@ export function register(deps: ToolDeps) {
 		},
 		async (_args, context) => {
 			try {
-				const [session, activeTag] = await Promise.all([
+				const [session, activeNamespace] = await Promise.all([
 					deps.getSession(),
-					deps.getActiveContainerTag(),
+					deps.getActiveNamespace(),
 				])
 				const client = deps.getClientInfo(context)
 				const structuredContent: WhoAmIOutput = {
@@ -26,10 +27,10 @@ export function register(deps: ToolDeps) {
 					...(session.user.name ? { name: session.user.name } : {}),
 					role: session.role ?? "unknown",
 					accessType: session.accessType ?? "full",
-					activeSpace: activeTag ?? null,
+					activeSpace: activeNamespace ?? null,
 					assignedSpaces:
-						session.accessType === "restricted"
-							? (session.containerTags ?? null)
+						session.accessType === "restricted" && session.namespaces
+							? withLegacyNamespaces(session.namespaces)
 							: null,
 					...(session.scope ? { scope: session.scope } : {}),
 					...(client ? { client } : {}),

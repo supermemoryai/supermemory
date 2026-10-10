@@ -3,10 +3,10 @@ import { Stack } from "../design/ui"
 import { Check } from "../lib/icons"
 
 interface Props {
-	containerTag: string
+	namespace: string
 }
 
-export function Confirmation({ containerTag }: Props) {
+export function Confirmation({ namespace }: Props) {
 	return (
 		<Stack
 			align="center"
@@ -20,7 +20,7 @@ export function Confirmation({ containerTag }: Props) {
 				<div className="text-(length:--text-sm) font-semibold text-text-primary">
 					Active space set
 				</div>
-				<SpaceChip containerTag={containerTag} />
+				<SpaceChip namespace={namespace} />
 			</Stack>
 			<p className="max-w-xs text-(length:--text-xs) leading-relaxed text-text-muted">
 				Saves and recalls will use this space until you change it.

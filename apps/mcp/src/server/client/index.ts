@@ -1,65 +1,64 @@
 import Supermemory from "supermemory"
 import type {
-	DocumentGetResponse,
-	DocumentListResponse as SdkDocumentListResponse,
-} from "supermemory/resources/documents"
-import { z } from "zod"
+	GetDocumentsResponse,
+	ListResponseDocumentsItem,
+	ListResponseMemoriesItem,
+	ListResponsePagination,
+	SearchResponseResultsItem,
+} from "supermemory"
 import {
-	containerTagSchema,
 	documentsApiResponseSchema,
-	memoriesListSchema,
-	type ContainerTag,
 	type DocumentMemoryEntry,
 	type DocumentsApiResponse,
 	type DocumentWithMemories,
 	type MemoriesList,
 	type MemoryEntry,
 	type MemoryEntryHistory,
+	type NamespaceInfo,
 } from "../../shared/types"
 
 const MAX_CHARS = 200000
-export const DEFAULT_PROJECT_ID = "sm_project_default"
+export const DEFAULT_NAMESPACE = "sm_project_default"
 const FETCH_TIMEOUT_MS = 30_000
 const MCP_SOURCE = "supermemory-mcp"
+const NAMESPACE_PAGE_LIMIT = 100
+// v4 defaults; v5 lowered the threshold to 0.3.
+const SEARCH_THRESHOLD = 0.6
 // Analytics matches on this text to tag quota errors, keep them in sync.
 export const OUT_OF_CREDITS_MESSAGE =
 	"Out of credits. Top up or upgrade at https://console.supermemory.ai/billing"
 
 export type {
-	ContainerTag,
 	DocumentMemoryEntry,
 	DocumentWithMemories,
 	DocumentsApiResponse,
+	NamespaceInfo,
 }
 
-export type DocumentSummary = SdkDocumentListResponse["memories"][number]
-export type DocumentDetails = DocumentGetResponse
+export interface DocumentSummary {
+	id: string
+	title: string | null
+	type: string
+	status: string
+	createdAt: string
+	updatedAt: string
+	summary: string | null
+	url: string | null
+}
+
+export type DocumentDetails = GetDocumentsResponse
 
 export interface DocumentsListResponse {
 	documents: DocumentSummary[]
-	pagination: SdkDocumentListResponse["pagination"]
+	pagination: ListResponsePagination
 }
 
-// Memory-entry shapes live in shared/types so the client parser and the
-// listMemories output schema share one definition and can't drift.
 export type { MemoryEntry, MemoryEntryHistory }
 export type MemoryEntriesResponse = MemoriesList
 
 export type Memory =
-	| {
-			id: string
-			memory: string
-			similarity: number
-			title?: string
-			content?: string
-	  }
-	| {
-			id: string
-			chunk: string
-			similarity: number
-			title?: string
-			content?: string
-	  }
+	| { id: string; memory: string; similarity: number }
+	| { id: string; chunk: string; similarity: number }
 
 export interface SearchResult {
 	results: Memory[]
@@ -74,7 +73,6 @@ export interface Profile {
 
 export interface ProfileResponse {
 	profile: Profile
-	searchResults?: SearchResult
 }
 
 export function getMemoryText(m: Memory): string {
@@ -85,35 +83,50 @@ function limitByChars(text: string, maxChars = MAX_CHARS): string {
 	return text.length > maxChars ? `${text.slice(0, maxChars)}...` : text
 }
 
-const sdkResultSchema = z.looseObject({
-	id: z.string(),
-	memory: z.string().nullish(),
-	chunk: z.string().nullish(),
-	content: z.string().nullish(),
-	similarity: z.number(),
-	title: z.string().nullish(),
-	context: z.string().nullish(),
-})
-
-function mapSdkResults(value: unknown): Memory[] {
-	return z
-		.array(sdkResultSchema)
-		.parse(value)
-		.map((result) => {
-			const text = limitByChars(
-				result.content || result.memory || result.chunk || result.context || "",
-			)
-			const base = {
+function mapSearchResults(results: SearchResponseResultsItem[]): Memory[] {
+	return results.map((result) => {
+		if (result.chunk && !result.memory) {
+			return {
 				id: result.id,
 				similarity: result.similarity,
-				...(result.title ? { title: result.title } : {}),
-				...(result.content ? { content: result.content } : {}),
+				chunk: limitByChars(result.chunk),
 			}
-			if (result.chunk && !result.memory) {
-				return { ...base, chunk: text }
-			}
-			return { ...base, memory: text }
-		})
+		}
+		return {
+			id: result.id,
+			similarity: result.similarity,
+			memory: limitByChars(result.memory ?? ""),
+		}
+	})
+}
+
+function mapDocumentSummary(
+	document: ListResponseDocumentsItem,
+): DocumentSummary {
+	return {
+		id: document.id,
+		title: document.title,
+		type: document.type,
+		status: document.system.status,
+		createdAt: document.system.createdAt,
+		updatedAt: document.system.updatedAt,
+		summary: document.summary,
+		url: document.url,
+	}
+}
+
+function mapMemoryEntry(memory: ListResponseMemoriesItem): MemoryEntry {
+	return {
+		id: memory.id,
+		memory: memory.memory,
+		version: memory.version,
+		isLatest: memory.isLatest,
+		isForgotten: memory.isForgotten,
+		isStatic: memory.isStatic,
+		isInference: memory.isInference,
+		createdAt: memory.system.createdAt,
+		updatedAt: memory.system.updatedAt,
+	}
 }
 
 function objectProperty(value: unknown, key: string): unknown {
@@ -122,218 +135,191 @@ function objectProperty(value: unknown, key: string): unknown {
 		: undefined
 }
 
-// API error bodies are JSON like {"error": "..."} — unwrap them so users see
-// the real reason instead of raw JSON or a generic fallback.
+// Unwrap {"error": "..."} bodies so users see the real reason, not raw JSON.
 function extractApiErrorMessage(raw: unknown): string | undefined {
-	if (typeof raw !== "string" || !raw) return undefined
+	if (!raw) return undefined
+	if (typeof raw === "object") {
+		const error = objectProperty(raw, "error")
+		if (typeof error === "string" && error) return error
+		const message = objectProperty(raw, "message")
+		if (typeof message === "string" && message) return message
+		return undefined
+	}
+	if (typeof raw !== "string") return undefined
 	try {
-		const parsed = JSON.parse(raw) as { error?: unknown; message?: unknown }
-		if (typeof parsed.error === "string" && parsed.error) return parsed.error
-		if (typeof parsed.message === "string" && parsed.message)
-			return parsed.message
-	} catch {}
-	return raw
+		return extractApiErrorMessage(JSON.parse(raw)) ?? raw
+	} catch {
+		return raw
+	}
+}
+
+export interface NamespaceSettings {
+	namespace: string
+	supportingContext: string | null
+	createdAt: string
+	updatedAt: string
+}
+
+const isNotFound = (error: unknown): boolean => {
+	const e = error as { statusCode?: number; status?: number }
+	return e?.statusCode === 404 || e?.status === 404
 }
 
 export class SupermemoryClient {
 	private client: Supermemory
-	private containerTag: string
-	private hasExplicitContainerTag: boolean
+	private namespace: string
+	private hasExplicitNamespace: boolean
 	private bearerToken: string
 	private apiUrl: string
 
 	constructor(
 		bearerToken: string,
-		containerTag?: string,
+		namespace?: string,
 		apiUrl = "https://api.supermemory.ai",
 	) {
 		this.bearerToken = bearerToken
 		this.apiUrl = apiUrl
 		this.client = new Supermemory({
 			apiKey: bearerToken,
-			baseURL: apiUrl,
-			timeout: FETCH_TIMEOUT_MS,
-			defaultHeaders: { "x-sm-source": MCP_SOURCE },
+			baseUrl: apiUrl,
+			timeoutInSeconds: FETCH_TIMEOUT_MS / 1000,
+			headers: { "x-sm-source": MCP_SOURCE },
 		})
-		this.hasExplicitContainerTag = Boolean(containerTag)
-		this.containerTag = containerTag || DEFAULT_PROJECT_ID
+		this.hasExplicitNamespace = Boolean(namespace)
+		this.namespace = namespace || DEFAULT_NAMESPACE
 	}
 
 	async createMemory(
 		content: string,
-	): Promise<{ id: string; status: string; containerTag: string }> {
+	): Promise<{ id: string; status: string; namespace: string }> {
 		try {
-			const result = await this.client.add({
+			const result = await this.client.add(this.namespace, {
 				content,
-				containerTag: this.containerTag,
 				metadata: { sm_source: MCP_SOURCE },
 			})
 			return {
 				id: result.id,
-				status: "queued",
-				containerTag: this.containerTag,
+				status: result.status,
+				namespace: this.namespace,
 			}
 		} catch (error) {
 			this.handleOperationError("Create memory request", error)
 		}
 	}
 
+	// v5 has no exact-content forget: preview semantic matches, then forget the best one by ID.
 	async forgetMemory(
 		content: string,
-	): Promise<{ success: boolean; message: string; containerTag: string }> {
+	): Promise<{ success: boolean; message: string; namespace: string }> {
 		try {
-			try {
-				const result = await this.client.memories.forget({
-					content,
-					containerTag: this.containerTag,
-				})
-				return {
-					success: true,
-					message: `Successfully forgot memory (exact match) with ID: ${result.id}`,
-					containerTag: this.containerTag,
-				}
-			} catch (error: unknown) {
-				const status = objectProperty(error, "status")
-				if (status !== 404) throw error
-			}
-
-			const SIMILARITY_THRESHOLD = 0.85
-			const searchResult = await this.search(
-				content,
-				5,
-				SIMILARITY_THRESHOLD,
-				this.containerTag,
+			const preview = await this.client.memories.forgetMatching(
+				this.namespace,
+				{ query: content, dryRun: true },
 			)
-
-			if (searchResult.results.length === 0) {
+			const match = preview.matches[0]
+			if (!match) {
 				return {
 					success: false,
 					message: "No matching memory found to forget.",
-					containerTag: this.containerTag,
+					namespace: this.namespace,
 				}
 			}
 
-			const memoryToDelete = searchResult.results.find((r) => "memory" in r)
-			if (!memoryToDelete) {
+			const result = await this.client.memories.forget(this.namespace, {
+				ids: [match.id],
+			})
+			if (result.count === 0) {
+				const reason = result.errors[0]?.error ?? "unknown error"
 				return {
 					success: false,
-					message: "No matching memory found (only chunks matched).",
-					containerTag: this.containerTag,
+					message: `Could not forget memory ${match.id}: ${reason}`,
+					namespace: this.namespace,
 				}
 			}
 
-			await this.client.memories.forget({
-				id: memoryToDelete.id,
-				containerTag: this.containerTag,
-			})
-
-			const memoryText =
-				getMemoryText(memoryToDelete) || memoryToDelete.content || ""
 			return {
 				success: true,
-				message: `Forgot similar memory (similarity: ${memoryToDelete.similarity.toFixed(2)}): "${limitByChars(memoryText, 100)}"`,
-				containerTag: this.containerTag,
+				message: `Forgot memory (ID: ${match.id}): "${limitByChars(match.memory, 100)}"`,
+				namespace: this.namespace,
 			}
 		} catch (error) {
 			this.handleOperationError("Forget memory request", error)
 		}
 	}
 
-	async search(
-		query: string,
-		limit = 10,
-		threshold?: number,
-		containerTagOverride?: string,
-	): Promise<SearchResult> {
+	async search(query: string, limit = 10): Promise<SearchResult> {
 		try {
-			const containerTag =
-				containerTagOverride ??
-				(this.hasExplicitContainerTag ? this.containerTag : undefined)
-			const result = await this.client.search.memories({
-				q: query,
+			const result = await this.client.search(this.namespace, {
+				query,
 				limit,
-				...(containerTag ? { containerTag } : {}),
 				searchMode: "hybrid",
-				threshold,
+				threshold: SEARCH_THRESHOLD,
 			})
-
+			const results = mapSearchResults(result.results)
 			return {
-				results: mapSdkResults(result.results),
-				total: result.total,
-				timing: result.timing,
+				results,
+				total: results.length,
+				timing: result.searchTime,
 			}
 		} catch (error) {
 			this.handleOperationError("Search request", error)
 		}
 	}
 
-	async getProfile(query?: string): Promise<ProfileResponse> {
-		if (!this.hasExplicitContainerTag) {
-			return {
-				profile: {
-					static: [],
-					dynamic: [],
-				},
-			}
+	async getProfile(): Promise<ProfileResponse> {
+		if (!this.hasExplicitNamespace) {
+			return { profile: { static: [], dynamic: [] } }
 		}
 
 		try {
-			const result = await this.client.profile({
-				containerTag: this.containerTag,
-				q: query,
-			})
-
-			const response: ProfileResponse = {
+			const result = await this.client.profile(this.namespace)
+			return {
 				profile: {
-					static: result.profile?.static || [],
-					dynamic: result.profile?.dynamic || [],
+					static: result.profile.static.map((fact) => fact.memory),
+					dynamic: result.profile.dynamic.map((fact) => fact.memory),
 				},
 			}
-
-			if (result.searchResults) {
-				response.searchResults = {
-					results: mapSdkResults(result.searchResults.results),
-					total: result.searchResults.total,
-					timing: result.searchResults.timing,
-				}
-			}
-
-			return response
 		} catch (error) {
 			this.handleOperationError("Profile request", error)
 		}
 	}
 
-	async listContainerTags(): Promise<ContainerTag[]> {
+	// v5 get returns settings only (no counts); null means missing or no access
+	async getNamespace(namespace: string): Promise<NamespaceSettings | null> {
 		try {
-			const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS)
-			const response = await fetch(`${this.apiUrl}/v3/container-tags/list`, {
-				method: "GET",
-				headers: {
-					Authorization: `Bearer ${this.bearerToken}`,
-					"Content-Type": "application/json",
-					"x-sm-source": MCP_SOURCE,
-				},
-				signal,
-			})
-
-			if (!response.ok) {
-				if (response.status === 401) {
-					throw new Error("Authentication failed. Please re-authenticate.")
-				}
-				throw new Error(
-					`Failed to fetch container tags: ${response.statusText}`,
-				)
+			const entry = await this.client.namespaces.get(namespace)
+			return {
+				namespace: entry.namespace,
+				supportingContext: entry.supportingContext,
+				createdAt: entry.system.createdAt,
+				updatedAt: entry.system.updatedAt,
 			}
+		} catch (error) {
+			if (isNotFound(error)) return null
+			this.handleError(error)
+		}
+	}
 
-			return z.array(containerTagSchema).parse(await response.json())
+	// One page is enough for pickers; single-namespace reads use getNamespace
+	async listNamespaces(limit = NAMESPACE_PAGE_LIMIT): Promise<NamespaceInfo[]> {
+		try {
+			const result = await this.client.namespaces.list({ page: 1, limit })
+			return result.namespaces.map((entry) => ({
+				id: entry.id,
+				namespace: entry.namespace,
+				description: entry.description,
+				documentCount: entry.documentCount,
+				memoryCount: entry.memoryCount,
+				createdAt: entry.system.createdAt,
+				updatedAt: entry.system.updatedAt,
+			}))
 		} catch (error) {
 			this.handleError(error)
 		}
 	}
 
-	async getDocuments(
-		containerTags?: string[],
+	// v5 has no graph route; this stays on the legacy endpoint until one ships.
+	async getGraphDocuments(
 		page = 1,
 		limit = 200,
 		options?: { signal?: AbortSignal },
@@ -352,7 +338,7 @@ export class SupermemoryClient {
 					limit,
 					sort: "createdAt",
 					order: "desc",
-					containerTags,
+					containerTags: [this.namespace],
 				}),
 				signal,
 			})
@@ -370,17 +356,14 @@ export class SupermemoryClient {
 
 	async listDocuments(page = 1, limit = 50): Promise<DocumentsListResponse> {
 		try {
-			const result = await this.client.documents.list({
-				containerTags: [this.containerTag],
+			const result = await this.client.list(this.namespace, "documents", {
 				page,
 				limit,
 				sort: "createdAt",
 				order: "desc",
-				includeContent: false,
 			})
-
 			return {
-				documents: result.memories ?? [],
+				documents: result.documents.map(mapDocumentSummary),
 				pagination: result.pagination,
 			}
 		} catch (error) {
@@ -390,7 +373,7 @@ export class SupermemoryClient {
 
 	async getDocument(id: string): Promise<DocumentDetails> {
 		try {
-			return await this.client.documents.get(id)
+			return await this.client.documents.get(this.namespace, id)
 		} catch (error) {
 			this.handleError(error)
 		}
@@ -401,46 +384,36 @@ export class SupermemoryClient {
 		limit = 50,
 	): Promise<MemoryEntriesResponse> {
 		try {
-			const response = await fetch(`${this.apiUrl}/v4/memories/list`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${this.bearerToken}`,
-					"Content-Type": "application/json",
-					"x-sm-source": MCP_SOURCE,
-				},
-				body: JSON.stringify({
-					containerTags: [this.containerTag],
-					page,
-					limit,
-					sort: "createdAt",
-					order: "desc",
-				}),
-				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+			const result = await this.client.list(this.namespace, "memories", {
+				page,
+				limit,
+				sort: "createdAt",
+				order: "desc",
 			})
-
-			if (!response.ok) {
-				const message = extractApiErrorMessage(await response.text())
-				throw Object.assign(new Error(message ?? ""), {
-					status: response.status,
-				})
+			return {
+				memoryEntries: result.memories.map(mapMemoryEntry),
+				pagination: {
+					currentPage: result.pagination.currentPage,
+					limit: result.pagination.limit ?? limit,
+					totalItems: result.pagination.totalItems,
+					totalPages: result.pagination.totalPages,
+				},
 			}
-
-			return memoriesListSchema.parse(await response.json())
 		} catch (error) {
 			this.handleError(error)
 		}
 	}
 
 	private handleError(error: unknown): never {
-		// Handle request timeout (AbortSignal.timeout or explicit abort)
 		if (
 			error instanceof Error &&
-			(error.name === "AbortError" || error.name === "TimeoutError")
+			(error.name === "AbortError" ||
+				error.name === "TimeoutError" ||
+				error.name === "SupermemoryTimeoutError")
 		) {
 			throw new Error("Request to Supermemory API timed out")
 		}
 
-		// Handle network/fetch errors
 		if (error instanceof TypeError) {
 			if (
 				error.message.includes("fetch") ||
@@ -450,9 +423,17 @@ export class SupermemoryClient {
 			}
 		}
 
-		const status = objectProperty(error, "status")
+		// SDK errors carry statusCode and body; raw fetch errors carry status and message.
+		const statusCode = objectProperty(error, "statusCode")
+		const status =
+			typeof statusCode === "number"
+				? statusCode
+				: objectProperty(error, "status")
 		if (typeof status === "number") {
-			const message = extractApiErrorMessage(objectProperty(error, "message"))
+			const message =
+				typeof statusCode === "number"
+					? extractApiErrorMessage(objectProperty(error, "body"))
+					: extractApiErrorMessage(objectProperty(error, "message"))
 			switch (status) {
 				case 400:
 				case 422:

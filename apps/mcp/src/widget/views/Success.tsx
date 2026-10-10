@@ -4,13 +4,13 @@ import { Check } from "../lib/icons"
 
 interface SaveProps {
 	kind: "save"
-	containerTag: string
+	namespace: string
 }
 
 interface UploadProps {
 	kind: "upload"
 	fileName: string
-	containerTag: string
+	namespace: string
 }
 
 type Props = SaveProps | UploadProps
@@ -30,7 +30,7 @@ export function Success(props: Props) {
 				<div className="text-(length:--text-sm) font-semibold text-text-primary">
 					{isUpload ? `Uploaded ${props.fileName}` : "Memory saved"}
 				</div>
-				<SpaceChip containerTag={props.containerTag} />
+				<SpaceChip namespace={props.namespace} />
 			</Stack>
 		</Stack>
 	)

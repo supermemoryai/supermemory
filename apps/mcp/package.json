@@ -39,7 +39,7 @@
 		"posthog-node": "^5.18.0",
 		"react": "^19.2.4",
 		"react-dom": "^19.2.4",
-		"supermemory": "^4.0.0",
+		"supermemory": "^5.0.0",
 		"tailwind-merge": "^3.4.0",
 		"zod": "^4.4.3"
 	},

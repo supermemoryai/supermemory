@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
-import { optionalContainerTagSchema } from "./container-tag"
-import { resolveContainerTag, spaceStateName } from "./space"
+import { optionalNamespaceSchema } from "./namespace"
+import { resolveNamespace, spaceStateName } from "./space"
 
 describe("space application state", () => {
 	it("keys active state by organization and user without collisions", () => {
@@ -20,7 +20,7 @@ describe("space application state", () => {
 	it("uses an explicit tool argument without reading active state", async () => {
 		const getActive = vi.fn().mockResolvedValue("active")
 
-		await expect(resolveContainerTag("explicit", getActive)).resolves.toBe(
+		await expect(resolveNamespace("explicit", getActive)).resolves.toBe(
 			"explicit",
 		)
 		expect(getActive).not.toHaveBeenCalled()
@@ -28,18 +28,18 @@ describe("space application state", () => {
 
 	it("falls back to durable active state and then the client default", async () => {
 		await expect(
-			resolveContainerTag(undefined, vi.fn().mockResolvedValue("active")),
+			resolveNamespace(undefined, vi.fn().mockResolvedValue("active")),
 		).resolves.toBe("active")
 		await expect(
-			resolveContainerTag(undefined, vi.fn().mockResolvedValue(undefined)),
+			resolveNamespace(undefined, vi.fn().mockResolvedValue(undefined)),
 		).resolves.toBeUndefined()
 	})
 
 	it("tells the model how to route explicit space requests", () => {
-		expect(optionalContainerTagSchema.description).toContain(
+		expect(optionalNamespaceSchema.description).toContain(
 			"If the user names a space",
 		)
-		expect(optionalContainerTagSchema.description).toContain("list_spaces")
-		expect(optionalContainerTagSchema.description).toContain("active space")
+		expect(optionalNamespaceSchema.description).toContain("list_spaces")
+		expect(optionalNamespaceSchema.description).toContain("active space")
 	})
 })

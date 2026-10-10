@@ -1,73 +1,55 @@
 import type {
-	ContainerTag,
-	ContainerTagAccess,
 	DocumentWithMemories,
+	NamespaceAccess,
+	NamespaceInfo,
 } from "../../shared/types"
 
 // Mock data for the Studio gallery. Mirrors the shapes the server returns
 // so views render exactly as they would in Claude Desktop.
 
-export const mockContainerTags: ContainerTag[] = [
+export const mockNamespaces: NamespaceInfo[] = [
 	{
-		id: "ct_1",
-		name: "Marketing",
-		containerTag: "sm_project_marketing",
+		id: "ns_1",
+		namespace: "sm_project_marketing",
+		description: "Positioning, launches, and campaign notes.",
 		createdAt: "2026-01-02T10:00:00Z",
 		updatedAt: "2026-05-30T14:20:00Z",
-		isExperimental: false,
-		emoji: "📣",
-		isNova: true,
 		documentCount: 42,
 		memoryCount: 318,
-		lastActivityAt: "2026-05-30T14:20:00Z",
 	},
 	{
-		id: "ct_2",
-		name: "Engineering RFCs",
-		containerTag: "sm_project_eng_rfcs",
+		id: "ns_2",
+		namespace: "sm_project_eng_rfcs",
 		createdAt: "2026-01-04T10:00:00Z",
 		updatedAt: "2026-05-29T09:00:00Z",
-		isExperimental: false,
-		emoji: "🛠️",
-		isNova: true,
 		documentCount: 17,
 		memoryCount: 96,
-		lastActivityAt: "2026-05-29T09:00:00Z",
 	},
 	{
-		id: "ct_3",
-		name: "Design System",
-		containerTag: "sm_project_design",
+		id: "ns_3",
+		namespace: "sm_project_design",
 		createdAt: "2026-02-01T10:00:00Z",
 		updatedAt: "2026-05-12T16:40:00Z",
-		isExperimental: false,
-		isNova: false,
 		documentCount: 8,
 		memoryCount: 1,
-		lastActivityAt: "2026-05-12T16:40:00Z",
 	},
 	{
-		id: "ct_4",
-		name: "Onboarding",
-		containerTag: "sm_project_onboarding",
+		id: "ns_4",
+		namespace: "sm_project_onboarding",
 		createdAt: "2026-03-01T10:00:00Z",
 		updatedAt: "2026-03-01T10:00:00Z",
-		isExperimental: true,
-		emoji: "🚀",
-		isNova: false,
 		documentCount: 0,
 		memoryCount: 0,
-		lastActivityAt: null,
 	},
 ]
 
-export const mockAssignedTags: ContainerTagAccess[] = [
-	{ containerTag: "sm_project_marketing", permission: "write" },
-	{ containerTag: "sm_project_eng_rfcs", permission: "read" },
-	{ containerTag: "sm_project_design", permission: "write" },
+export const mockAssignedNamespaces: NamespaceAccess[] = [
+	{ namespace: "sm_project_marketing", permission: "write" },
+	{ namespace: "sm_project_eng_rfcs", permission: "read" },
+	{ namespace: "sm_project_design", permission: "write" },
 ]
 
-export const mockWritableTags: string[] = [
+export const mockWritableNamespaces: string[] = [
 	"sm_project_marketing",
 	"sm_project_design",
 ]

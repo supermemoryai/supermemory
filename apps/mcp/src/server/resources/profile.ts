@@ -1,9 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/server"
-import { DEFAULT_PROJECT_ID, type SupermemoryClient } from "../client"
+import { DEFAULT_NAMESPACE, type SupermemoryClient } from "../client"
 import {
 	compactDescription,
 	formatFactSection,
-	spaceDisplayName,
 	spaceMetadata,
 } from "../space-presentation"
 
@@ -11,28 +10,25 @@ const PROFILE_FACT_LIMIT = 12
 
 export function registerProfileResource(
 	server: McpServer,
-	getClient: (containerTag?: string) => SupermemoryClient,
-	resolveContainerTag: () => Promise<string | undefined>,
+	getClient: (namespace?: string) => SupermemoryClient,
+	resolveNamespace: () => Promise<string | undefined>,
 ) {
 	server.registerResource(
 		"Active Space Profile",
 		"supermemory://profile",
 		{},
 		async () => {
-			const selectedTag = await resolveContainerTag()
-			const activeKey = selectedTag ?? DEFAULT_PROJECT_ID
+			const selectedNamespace = await resolveNamespace()
+			const activeKey = selectedNamespace ?? DEFAULT_NAMESPACE
 			const [profileResult, spaces] = await Promise.all([
 				getClient(activeKey).getProfile(),
-				getClient().listContainerTags(),
+				getClient().listNamespaces(),
 			])
-			const activeSpace = spaces.find(
-				(space) => space.containerTag === activeKey,
-			)
-			const activeLabel = spaceDisplayName(activeSpace, activeKey)
-			const fallback = selectedTag ? "" : " (default)"
+			const activeSpace = spaces.find((space) => space.namespace === activeKey)
+			const fallback = selectedNamespace ? "" : " (default)"
 			const parts: string[] = [
 				"# Active Space Profile",
-				`Space: ${activeLabel} [${activeKey}]${fallback}`,
+				`Space: ${activeKey}${fallback}`,
 			]
 
 			if (activeSpace) {

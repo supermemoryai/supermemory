@@ -1,43 +1,17 @@
 import { z } from "zod"
+import { legacyNamespaceOutput } from "./compat"
 import {
-	containerTagAccessSchema,
+	namespaceAccessSchema,
 	memoriesListSchema,
 	paginationSchema,
 	sessionScopeSchema,
 } from "../../shared/types"
 
-const documentStatusSchema = z.enum([
-	"unknown",
-	"queued",
-	"extracting",
-	"chunking",
-	"embedding",
-	"indexing",
-	"done",
-	"failed",
-])
-
-const documentTypeSchema = z.enum([
-	"text",
-	"pdf",
-	"tweet",
-	"google_doc",
-	"google_slide",
-	"google_sheet",
-	"image",
-	"video",
-	"audio",
-	"notion_doc",
-	"webpage",
-	"onedrive",
-	"github_markdown",
-])
-
 const documentSummarySchema = z.object({
 	id: z.string(),
 	title: z.string().nullable(),
-	type: documentTypeSchema,
-	status: documentStatusSchema,
+	type: z.string(),
+	status: z.string(),
 	createdAt: z.string(),
 	updatedAt: z.string(),
 	summary: z.string().nullable(),
@@ -46,7 +20,8 @@ const documentSummarySchema = z.object({
 export const addMemoryOutputSchema = z.object({
 	action: z.enum(["save", "forget"]),
 	success: z.boolean(),
-	containerTag: z.string(),
+	namespace: z.string(),
+	...legacyNamespaceOutput,
 	message: z.string(),
 	id: z.string().optional(),
 	status: z.string().optional(),
@@ -55,14 +30,15 @@ export const addMemoryOutputSchema = z.object({
 export type AddMemoryOutput = z.infer<typeof addMemoryOutputSchema>
 
 export const getDocumentOutputSchema = z.object({
+	namespace: z.string(),
+	...legacyNamespaceOutput,
 	document: z.object({
 		id: z.string(),
 		title: z.string().nullable(),
-		type: documentTypeSchema,
-		status: documentStatusSchema,
+		type: z.string(),
+		status: z.string(),
 		createdAt: z.string(),
 		updatedAt: z.string(),
-		url: z.string().nullable(),
 		summary: z.string().nullable(),
 		content: z.string().nullable(),
 		contentTruncated: z.boolean(),
@@ -78,15 +54,14 @@ export const listDocumentsOutputSchema = z.object({
 
 export type ListDocumentsOutput = z.infer<typeof listDocumentsOutputSchema>
 
-// Reuse the shared schema so the tool's output contract stays identical to what
-// the client parses — the two can't drift.
 export const listMemoriesOutputSchema = memoriesListSchema
 
 export type ListMemoriesOutput = z.infer<typeof listMemoriesOutputSchema>
 
 export const searchMemoryOutputSchema = z.object({
 	query: z.string(),
-	containerTag: z.string(),
+	namespace: z.string(),
+	...legacyNamespaceOutput,
 	profile: z
 		.object({
 			static: z.array(z.string()),
@@ -108,7 +83,8 @@ export const searchMemoryOutputSchema = z.object({
 export type SearchMemoryOutput = z.infer<typeof searchMemoryOutputSchema>
 
 export const getProfileOutputSchema = z.object({
-	containerTag: z.string(),
+	namespace: z.string(),
+	...legacyNamespaceOutput,
 	profile: z.object({
 		static: z.array(z.string()),
 		dynamic: z.array(z.string()),
@@ -124,7 +100,7 @@ export const whoAmIOutputSchema = z.object({
 	role: z.string(),
 	accessType: z.enum(["full", "restricted"]),
 	activeSpace: z.string().nullable(),
-	assignedSpaces: z.array(containerTagAccessSchema).nullable(),
+	assignedSpaces: z.array(namespaceAccessSchema).nullable(),
 	scope: sessionScopeSchema.optional(),
 	client: z
 		.object({

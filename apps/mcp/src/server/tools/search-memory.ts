@@ -1,6 +1,11 @@
 import { z } from "zod"
 import { getMemoryText } from "../client"
-import { optionalContainerTagSchema } from "../container-tag"
+import { optionalNamespaceSchema } from "../namespace"
+import {
+	legacyNamespaceInput,
+	namespaceArg,
+	withLegacyNamespace,
+} from "./compat"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import {
 	searchMemoryOutputSchema,
@@ -14,29 +19,29 @@ export function register(deps: ToolDeps) {
 			.string()
 			.max(1000, "Query exceeds maximum length")
 			.describe("The search query to find relevant memories"),
-		containerTag: optionalContainerTagSchema,
+		namespace: optionalNamespaceSchema,
+		...legacyNamespaceInput,
 	})
 
 	deps.server.registerTool(
 		"search_memory",
 		{
 			description:
-				"Search memories in one space with a natural-language query. Returns matching memories only — not the space profile. If you need who-the-user-is, preferences, or recent context after searching, call get_profile. When the user names a space, resolve it with list_spaces and pass containerTag; otherwise use the active space.",
+				"Search memories in one space with a natural-language query. Returns matching memories only — not the space profile. If you need who-the-user-is, preferences, or recent context after searching, call get_profile. When the user names a space, resolve it with list_spaces and pass namespace; otherwise use the active space.",
 			inputSchema,
 			outputSchema: searchMemoryOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
 			try {
-				const effectiveTag = await deps.resolveContainerTag(args.containerTag)
-				const client = deps.getClient(effectiveTag)
+				const namespace = await deps.resolveNamespace(namespaceArg(args))
+				const client = deps.getClient(namespace)
 
 				const searchResult = await client.search(args.query)
 				const results = searchResult.results.map((result) => ({
 					id: result.id,
 					text: getMemoryText(result),
 					similarity: result.similarity,
-					...(result.title ? { title: result.title } : {}),
 				}))
 
 				const parts: string[] = []
@@ -51,13 +56,13 @@ export function register(deps: ToolDeps) {
 					parts.push("No matching memories found.")
 				}
 
-				const structuredContent: SearchMemoryOutput = {
+				const structuredContent: SearchMemoryOutput = withLegacyNamespace({
 					query: args.query,
-					containerTag: effectiveTag,
+					namespace,
 					results,
 					total: searchResult.total,
 					timing: searchResult.timing,
-				}
+				})
 
 				return {
 					content: [textContent(parts.join("\n"))],
