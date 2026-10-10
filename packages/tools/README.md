@@ -33,7 +33,7 @@ Requires Node 18 or later and a `SUPERMEMORY_API_KEY` from [console.supermemory.
 - **`getProfile`** returns v5 profile entries (`{ id, memory }`), so profile IDs can be passed to `memoryForget`. With a `query`, `searchResults` is the v5 search `results` array.
 - **`documentList`** returns v5 documents; status is under `system.status`.
 - **Conversations** saved by the middlewares are stored as one document per conversation (document `id` = the `id` you pass), instead of through `/v4/conversations`.
-- **Claude memory tool** drops `memoryContainerTag`. Its files live in the configured namespace and are marked with `metadata.source = "claude-memory"`. Files written by 2.x are not migrated.
+- **Claude memory tool** drops `memoryContainerTag`. Its files live in the configured namespace. New files are marked with `metadata.source = "claude-memory"`; files written by 2.x are still found, because both versions stamp `claude_memory_type` and `file_path`.
 - **VoltAgent** search options use v5 shapes: `filters` → typed `filter`, `rerank` is `"none" | "order" | "aggregate"`, `searchMode: "documents"` → `"chunks"`, `include` keys are `documents`, `related`, `forgotten`, and `entityContext` → `supportingContext`.
 
 ## Usage

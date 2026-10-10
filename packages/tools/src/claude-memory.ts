@@ -194,7 +194,7 @@ export class ClaudeMemoryTool {
 					filter: {
 						operator: "and",
 						operands: [
-							{ field: "source", operator: "eq", value: CLAUDE_MEMORY_SOURCE },
+							// 2.x files have no `source`; claude_memory_type + file_path identify files in both versions
 							{ field: "claude_memory_type", operator: "eq", value: "file" },
 							{ field: "file_path", operator: "contains", value: dirPath },
 						],
@@ -572,7 +572,7 @@ export class ClaudeMemoryTool {
 
 			// Different paths can normalize to the same ID; only the exact file counts.
 			if (
-				document.metadata?.source !== CLAUDE_MEMORY_SOURCE ||
+				document.metadata?.claude_memory_type !== "file" ||
 				this.getDocumentFilePath(document) !== filePath
 			) {
 				return { success: false, error: `File not found: ${filePath}` }
