@@ -157,10 +157,15 @@ export function computeClusterAssignments(
 
 		const component: string[] = []
 		const queue = [startId]
+		// Index pointer instead of Array.shift(): shift() is O(remaining
+		// length) per call, so draining a wide BFS frontier (e.g. a heavily
+		// cross-referenced "hub" memory with many direct relations) was
+		// O(n^2) for large components.
+		let head = 0
 		visited.add(startId)
 
-		while (queue.length > 0) {
-			const id = queue.shift() as string
+		while (head < queue.length) {
+			const id = queue[head++] as string
 			component.push(id)
 			for (const nextId of adjacency.get(id) ?? []) {
 				if (visited.has(nextId)) continue
