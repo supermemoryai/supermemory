@@ -340,7 +340,7 @@ const client = new Supermemory({
 - **Your data, one directory** — everything lives in `./.supermemory`, easy to back up or move.
 - **Same API as the platform** — prototype locally, ship on the hosted platform by changing `baseURL`.
 
-Read the [self-hosting docs](https://supermemory.ai/docs/self-hosting/overview) — quickstart, [configuration](https://supermemory.ai/docs/self-hosting/configuration), [embeddings](https://supermemory.ai/docs/self-hosting/embeddings), and [local vs. Enterprise](https://supermemory.ai/docs/self-hosting/local-vs-enterprise).
+Read the [self-hosting docs](https://supermemory.ai/docs/self-hosting/overview) — [quickstart](https://supermemory.ai/docs/self-hosting/quickstart), [configuration](https://supermemory.ai/docs/self-hosting/configuration), [embeddings](https://supermemory.ai/docs/self-hosting/embeddings), and [local vs. Enterprise](https://supermemory.ai/docs/self-hosting/local-vs-enterprise).
 
 ---
 
