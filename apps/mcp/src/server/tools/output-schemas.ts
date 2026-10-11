@@ -29,6 +29,10 @@ export const addMemoryOutputSchema = z.object({
 
 export type AddMemoryOutput = z.infer<typeof addMemoryOutputSchema>
 
+export const forgetMemoryOutputSchema = addMemoryOutputSchema.extend({
+	action: z.literal("forget"),
+})
+
 export const getDocumentOutputSchema = z.object({
 	namespace: z.string(),
 	...legacyNamespaceOutput,

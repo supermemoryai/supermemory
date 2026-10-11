@@ -55,7 +55,8 @@ The client discovers the OAuth authorization server through
 | `list_memories` | List extracted memory entries and their source document IDs |
 | `list_spaces` | List spaces visible to the authenticated account |
 | `who_am_i` | Return identity, access, and active-space context |
-| `add_memory` | Save or forget a memory |
+| `add_memory` | Save a memory (legacy `action: "forget"` remains supported) |
+| `forget_memory` | Forget a memory matching the supplied content |
 
 ### MCP App launchers
 
