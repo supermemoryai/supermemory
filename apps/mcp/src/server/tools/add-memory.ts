@@ -6,6 +6,7 @@ import {
 	withLegacyNamespace,
 } from "./compat"
 import { MEMORY_TOOL_ANNOTATIONS } from "./annotations"
+import { forgetMemory } from "./forget-memory"
 import { addMemoryOutputSchema, type AddMemoryOutput } from "./output-schemas"
 import { textContent, type ToolDeps } from "./types"
 
@@ -14,8 +15,14 @@ export function register(deps: ToolDeps) {
 		content: z
 			.string()
 			.max(200000, "Content exceeds maximum length")
-			.describe("The memory content to save or forget"),
-		action: z.enum(["save", "forget"]).optional().default("save"),
+			.describe("The memory content to save"),
+		action: z
+			.enum(["save", "forget"])
+			.optional()
+			.default("save")
+			.describe(
+				"Deprecated compatibility input. Use forget_memory to forget content; omit action to save.",
+			),
 		namespace: optionalNamespaceSchema,
 		...legacyNamespaceInput,
 	})
@@ -24,29 +31,16 @@ export function register(deps: ToolDeps) {
 		"add_memory",
 		{
 			description:
-				"Add (save) or forget a memory in the user's ACTIVE space. Defaults to 'save'. The target space is the one the user selected via select-space; pass namespace only to override it. Use 'forget' when information is outdated or the user asks to remove it.",
+				"Save a memory in the user's ACTIVE space. The target space is the one the user selected via select-space; pass namespace only to override it. To remove outdated information, use the separately exposed forget_memory tool. Legacy action='forget' remains supported for existing clients.",
 			inputSchema,
 			outputSchema: addMemoryOutputSchema,
 			annotations: MEMORY_TOOL_ANNOTATIONS,
 		},
 		async (args) => {
+			if (args.action === "forget") return forgetMemory(deps, args)
 			try {
 				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const client = deps.getClient(namespace)
-
-				if (args.action === "forget") {
-					const result = await client.forgetMemory(args.content)
-					const structuredContent: AddMemoryOutput = withLegacyNamespace({
-						action: "forget",
-						success: result.success,
-						namespace: result.namespace,
-						message: result.message,
-					})
-					return {
-						content: [textContent(result.message)],
-						structuredContent,
-					}
-				}
 
 				const result = await client.createMemory(args.content)
 				const message = `Memory saved (ID: ${result.id}, space: ${result.namespace})`

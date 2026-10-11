@@ -10,6 +10,7 @@ import {
 const EXPECTED_TOOLS = [
 	"add_memory",
 	"fetch-graph-data",
+	"forget_memory",
 	"getDocument",
 	"get_document",
 	"get_profile",

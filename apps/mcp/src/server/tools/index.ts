@@ -1,5 +1,6 @@
 import * as addMemory from "./add-memory"
 import * as fetchGraphData from "./fetch-graph-data"
+import * as forgetMemory from "./forget-memory"
 import * as getDocument from "./get-document"
 import * as getProfile from "./get-profile"
 import * as guidedSave from "./guided-save"
@@ -68,6 +69,7 @@ export function registerAllTools(toolDeps: ToolDeps) {
 	memoryGraph.register(deps)
 	fetchGraphData.register(deps)
 	addMemory.register(deps)
+	forgetMemory.register(deps)
 	guidedSave.register(deps)
 	saveMemory.register(deps)
 	uploadFile.register(deps)
