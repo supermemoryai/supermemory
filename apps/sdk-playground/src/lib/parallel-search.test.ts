@@ -224,5 +224,73 @@ test("connection closes once when the agent fails or is cancelled", async () => 
 			controller.signal.throwIfAborted()
 		}),
 	).rejects.toThrow("Cancelled")
-	expect(requests.filter((entry) => entry.method === "DELETE")).toHaveLength(1)
+	expect(requests.filter((entry) => entry.method === "DELETE")).toHaveLength(0)
+})
+
+function stallRequest(method: string) {
+	const fixtureFetch = globalThis.fetch
+	let started: () => void = () => {}
+	const ready = new Promise<void>((resolve) => {
+		started = resolve
+	})
+	let observedSignal: AbortSignal | null | undefined
+	globalThis.fetch = (async (input, init) => {
+		const requested =
+			init?.method === "POST"
+				? JSON.parse(String(init.body)).method
+				: init?.method
+		if (requested !== method) return fixtureFetch(input, init)
+		observedSignal = init?.signal
+		started()
+		return new Promise<Response>((_resolve, reject) => {
+			init?.signal?.addEventListener(
+				"abort",
+				() => reject(init.signal?.reason),
+				{ once: true },
+			)
+		})
+	}) as typeof fetch
+	return { ready, signal: () => observedSignal }
+}
+
+for (const method of ["initialize", "tools/list"]) {
+	test(`cancellation aborts stalled ${method} requests`, async () => {
+		process.env.SDK_PLAYGROUND_PARALLEL_SEARCH = "true"
+		interceptMcp()
+		const stalled = stallRequest(method)
+		const controller = new AbortController()
+		const pending = withParallelSearch(
+			{},
+			controller.signal,
+			async () => "unused",
+		)
+		void pending.catch(() => {})
+		await stalled.ready
+		controller.abort(new Error("Cancelled"))
+		await expect(pending).rejects.toThrow()
+		expect(stalled.signal()?.aborted).toBe(true)
+	})
+}
+
+test("already cancelled calls never initialize MCP", async () => {
+	process.env.SDK_PLAYGROUND_PARALLEL_SEARCH = "true"
+	interceptMcp()
+	await expect(
+		withParallelSearch(
+			{},
+			AbortSignal.abort(new Error("Cancelled")),
+			async () => "unused",
+		),
+	).rejects.toThrow("Cancelled")
+	expect(requests).toHaveLength(0)
+})
+
+test("stalled session deletion is bounded and does not hide the agent result", async () => {
+	process.env.SDK_PLAYGROUND_PARALLEL_SEARCH = "true"
+	interceptMcp()
+	const stalled = stallRequest("DELETE")
+	const result = withParallelSearch({}, undefined, async () => "Complete")
+	await stalled.ready
+	await expect(result).resolves.toBe("Complete")
+	expect(stalled.signal()?.aborted).toBe(true)
 })
