@@ -25,6 +25,8 @@ export interface NodeHoverPopoverProps {
 	onNavigateDown?: () => void
 	onSelectNode?: (nodeId: string) => void
 	onOpenDocument?: (documentId: string) => void
+	openDocumentShortcut?: string
+	showDocumentTitle?: boolean
 }
 
 function useCopyToClipboard(timeout = 2000) {
@@ -105,11 +107,13 @@ function NavButton({
 	label,
 	onClick,
 	colors,
+	shortcut,
 }: {
 	icon: React.ReactNode
 	label: string
 	onClick?: () => void
 	colors: GraphThemeColors
+	shortcut?: string
 }) {
 	const buttonStyle: React.CSSProperties = {
 		display: "flex",
@@ -130,6 +134,8 @@ function NavButton({
 
 	return (
 		<button
+			aria-label={shortcut ? label : undefined}
+			aria-keyshortcuts={shortcut}
 			onClick={onClick}
 			style={buttonStyle}
 			type="button"
@@ -142,6 +148,20 @@ function NavButton({
 		>
 			<KeyBadge colors={colors}>{icon}</KeyBadge>
 			<span style={labelStyle}>{label}</span>
+			{shortcut && (
+				<kbd
+					style={{
+						fontSize: 10,
+						color: colors.popoverTextMuted,
+						border: `1px solid ${colors.controlBorder}`,
+						borderRadius: 4,
+						padding: "2px 4px",
+						backgroundColor: colors.controlBg,
+					}}
+				>
+					{shortcut}
+				</kbd>
+			)}
 		</button>
 	)
 }
@@ -322,6 +342,8 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 		onNavigateDown,
 		onSelectNode,
 		onOpenDocument,
+		openDocumentShortcut,
+		showDocumentTitle = false,
 	}) {
 		const CARD_W = 280
 		const SHORTCUTS_W = 160
@@ -532,6 +554,18 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 							/>
 						) : (
 							<div style={contentPadStyle}>
+								{showDocumentTitle && docData && (
+									<div
+										style={{
+											fontSize: 12,
+											fontWeight: 600,
+											color: colors.popoverTextPrimary,
+											marginBottom: 6,
+										}}
+									>
+										{docData.title || "Untitled document"}
+									</div>
+								)}
 								<p style={contentTextStyle}>{content || "No content"}</p>
 							</div>
 						)}
@@ -632,7 +666,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 								<CopyableId
 									colors={colors}
 									label={labels.documentIdLabel}
-									value={node.id}
+									value={showDocumentTitle ? (docData?.id ?? node.id) : node.id}
 								/>
 							)}
 						</div>
@@ -644,6 +678,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 								colors={colors}
 								icon={<EyeIcon color={colors.popoverTextMuted} />}
 								label={labels.viewDocument}
+								shortcut={openDocumentShortcut}
 								onClick={() => onOpenDocument(documentId)}
 							/>
 						)}

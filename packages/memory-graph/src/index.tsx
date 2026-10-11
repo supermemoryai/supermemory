@@ -26,6 +26,7 @@ export type {
 	MemoryGraphProps,
 	MemoryGraphLabels,
 	MemoryGraphLayering,
+	GraphAppearance,
 	ResolvedMemoryGraphLabels,
 	GraphNode,
 	GraphEdge,

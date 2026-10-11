@@ -532,7 +532,9 @@ export const Legend = memo(function Legend({
 											<div>
 												<div style={rowStyle}>
 													<div style={rowLeftStyle}>
-														<LineIcon color={colors.edgeDocument} />
+														<LineIcon
+															color={colors.edgeDocument ?? colors.edgeDerives}
+														/>
 														<span style={edgeLabelStyle}>
 															{labels.documentSourceEdge}
 														</span>

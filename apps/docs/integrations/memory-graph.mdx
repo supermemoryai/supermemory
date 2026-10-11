@@ -59,6 +59,23 @@ export default function GraphPage() {
 }
 ```
 
+## Optional rendering and document navigation
+
+Existing icon-based document nodes and connection styling remain the defaults. Opt in to stacked squares and stronger semantic connections with `appearance`:
+
+```tsx
+<MemoryGraph
+  documents={documents}
+  appearance={{ documentNodes: 'stacked', connections: 'emphasized' }}
+  openDocumentOnEnter
+  onOpenDocument={openPersistedDocument}
+/>
+```
+
+`documentNodes` accepts `'icons'` or `'stacked'`; `connections` accepts `'default'` or `'emphasized'`. Both fields are optional and also work on `GraphCanvas`. Stacks stay inside existing node bounds and simplify at low zoom. Use `colors.edgeDocument` to configure document-source ink; older custom `GraphCanvas` palettes without that field use `textSecondary` in emphasized mode.
+
+`openDocumentOnEnter` is off by default. With an `onOpenDocument` callback, `MemoryGraph` exposes a focused Enter action for the selected persisted document or one confirmed memory source. Typing, modifier shortcuts, repeats, composition and keys outside the graph do not open documents. Your callback retains responsibility for routing and access control; consumers without a callback receive no new opening behavior.
+
 ## Backend API route
 
 Create an API route to fetch documents from Supermemory:

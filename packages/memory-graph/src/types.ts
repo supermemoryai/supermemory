@@ -118,7 +118,7 @@ export interface GraphThemeColors {
 	textPrimary: string
 	textSecondary: string
 	textMuted: string
-	edgeDocument: string
+	edgeDocument?: string
 	edgeDerives: string
 	edgeUpdates: string
 	edgeExtends: string
@@ -157,12 +157,18 @@ export interface MemoryGraphLayering {
 	hoverPopoverZIndex?: number
 }
 
+export interface GraphAppearance {
+	documentNodes?: "icons" | "stacked"
+	connections?: "default" | "emphasized"
+}
+
 export interface GraphCanvasProps {
 	nodes: GraphNode[]
 	edges: GraphEdge[]
 	width: number
 	height: number
 	colors: GraphThemeColors
+	appearance?: GraphAppearance
 	highlightDocumentIds?: string[]
 	selectedNodeId?: string | null
 	onNodeHover: (nodeId: string | null) => void
@@ -224,6 +230,8 @@ export interface MemoryGraphProps {
 	labels?: MemoryGraphLabels
 	/** Overlay layering controls */
 	layering?: MemoryGraphLayering
+	appearance?: GraphAppearance
+	openDocumentOnEnter?: boolean
 }
 
 export interface ChainEntry {
