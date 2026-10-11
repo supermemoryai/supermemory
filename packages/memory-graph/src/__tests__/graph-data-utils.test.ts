@@ -142,9 +142,6 @@ describe("cluster assignments", () => {
 	})
 
 	it("merges a wide fan-out of memories relating to one hub into a single cluster", () => {
-		// Regression test for the BFS queue drain: a hub with many direct
-		// relations produces a wide frontier, which previously interacted
-		// badly with an O(n) `Array.shift()` dequeue.
 		const hub = makeDocument("doc-hub", [makeMemory({ id: "hub" })])
 		const spokes = Array.from({ length: 200 }, (_, i) =>
 			makeDocument(`doc-${i}`, [

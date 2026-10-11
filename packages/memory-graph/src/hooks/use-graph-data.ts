@@ -157,10 +157,6 @@ export function computeClusterAssignments(
 
 		const component: string[] = []
 		const queue = [startId]
-		// Index pointer instead of Array.shift(): shift() is O(remaining
-		// length) per call, so draining a wide BFS frontier (e.g. a heavily
-		// cross-referenced "hub" memory with many direct relations) was
-		// O(n^2) for large components.
 		let head = 0
 		visited.add(startId)
 
