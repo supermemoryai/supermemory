@@ -3,6 +3,7 @@ import type {
 	GraphEdge,
 	GraphNode,
 	GraphThemeColors,
+	GraphAppearance,
 	MemoryNodeData,
 } from "../types"
 import type { ViewportState } from "./viewport"
@@ -14,6 +15,7 @@ export interface RenderState {
 	hoveredNodeId: string | null
 	highlightIds: Set<string>
 	dimProgress: number
+	appearance?: GraphAppearance
 }
 
 // Module-level reusable batch map – cleared each frame instead of reallocating
@@ -23,6 +25,8 @@ const RELATION_LOD_MAX_BACKGROUND_EDGES = 260
 const RELATION_LOD_DENSE_COUNT = 180
 const DOCUMENT_LOD_ZOOM = 0.38
 const DOCUMENT_LOD_MAX_BACKGROUND_EDGES = 3200
+const EDGE_OVERVIEW_ZOOM = 0.1
+const EDGE_DETAIL_ZOOM = 0.35
 const DENSE_POINT_THRESHOLD = 25000
 const DENSE_POINT_ZOOM = 0.42
 
@@ -82,9 +86,21 @@ export function renderFrame(
 function edgeStyle(
 	edge: GraphEdge,
 	colors: GraphThemeColors,
+	emphasized = false,
 ): { color: string; width: number; opacity: number } {
+	if (emphasized && edge.edgeType !== "document") {
+		if (edge.edgeType === "derives")
+			return { color: colors.edgeDerives, width: 2, opacity: 0.9 }
+		if (edge.edgeType === "updates")
+			return { color: colors.edgeUpdates, width: 2.2, opacity: 0.94 }
+		return { color: colors.edgeExtends, width: 2, opacity: 0.88 }
+	}
 	if (edge.edgeType === "document")
-		return { color: colors.edgeDocument, width: 1.2, opacity: 0.4 }
+		return {
+			color: colors.edgeDocument ?? colors.edgeDerives,
+			width: 1.2,
+			opacity: 0.4,
+		}
 	if (edge.edgeType === "derives")
 		return { color: colors.edgeDerives, width: 1.2, opacity: 0.4 }
 	if (edge.edgeType === "updates")
@@ -139,7 +155,40 @@ function applyRelationLevelOfDetail(
 	zoom: number,
 	hasFocus: boolean,
 	hasActiveHover: boolean,
+	emphasized = false,
 ) {
+	if (emphasized) {
+		if (edgeType === "document") return { style, glow: false }
+		if (hasFocus || hasActiveHover) {
+			return {
+				style:
+					edgeType === "updates"
+						? {
+								...style,
+								width: Math.max(style.width, hasActiveHover ? 3.2 : 2.8),
+								opacity: Math.max(style.opacity, hasActiveHover ? 1 : 0.98),
+							}
+						: style,
+				glow: edgeType !== "extends",
+			}
+		}
+		const detail = edgeDetailProgress(zoom)
+		const overviewOpacity =
+			edgeType === "updates" ? 0.039 : edgeType === "derives" ? 0.044 : 0.03
+		return {
+			style: {
+				...style,
+				width: 0.45 + (style.width - 0.45) * detail,
+				opacity: overviewOpacity + (style.opacity - overviewOpacity) * detail,
+			},
+			glow:
+				edgeType === "derives"
+					? zoom >= DOCUMENT_LOD_ZOOM
+					: edgeType === "updates" &&
+						(zoom >= RELATION_LOD_ZOOM ||
+							(relationEdgeCount <= RELATION_LOD_DENSE_COUNT && detail === 1)),
+		}
+	}
 	if (edgeType === "document") return { style, glow: true }
 	if (hasFocus || hasActiveHover) {
 		const isUpdate = edgeType === "updates"
@@ -181,6 +230,27 @@ function applyRelationLevelOfDetail(
 	}
 }
 
+function edgeDetailProgress(zoom: number): number {
+	const progress = clampNumber(
+		(zoom - EDGE_OVERVIEW_ZOOM) / (EDGE_DETAIL_ZOOM - EDGE_OVERVIEW_ZOOM),
+		0,
+		1,
+	)
+	return progress * progress * (3 - 2 * progress)
+}
+
+function isDocumentSourceEdge(
+	edge: GraphEdge,
+	nodeMap: Map<string, GraphNode>,
+): boolean {
+	if (edge.edgeType === "document") return true
+	const source =
+		typeof edge.source === "string" ? nodeMap.get(edge.source) : edge.source
+	const target =
+		typeof edge.target === "string" ? nodeMap.get(edge.target) : edge.target
+	return source?.type === "document" || target?.type === "document"
+}
+
 function clampNumber(value: number, min: number, max: number): number {
 	return value < min ? min : value > max ? max : value
 }
@@ -217,8 +287,17 @@ function drawEdges(
 ): void {
 	const margin = 100
 	const hasDim = state.selectedNodeId !== null && state.dimProgress > 0
+	const emphasized = state.appearance?.connections === "emphasized"
 	const relationEdgeCount = edges.reduce(
-		(count, edge) => count + (edge.edgeType === "document" ? 0 : 1),
+		(count, edge) =>
+			count +
+			((
+				emphasized
+					? isDocumentSourceEdge(edge, nodeMap)
+					: edge.edgeType === "document"
+			)
+				? 0
+				: 1),
 		0,
 	)
 	const documentEdgeCount = edges.length - relationEdgeCount
@@ -228,7 +307,10 @@ function drawEdges(
 	const prepared: PreparedEdge[] = []
 
 	for (const edge of edges) {
-		const edgeType = edge.edgeType ?? "document"
+		const edgeType =
+			emphasized && isDocumentSourceEdge(edge, nodeMap)
+				? "document"
+				: (edge.edgeType ?? "document")
 		const srcId = typeof edge.source === "string" ? edge.source : edge.source.id
 		const tgtId = typeof edge.target === "string" ? edge.target : edge.target.id
 		const hoverConnected =
@@ -293,16 +375,29 @@ function drawEdges(
 		}
 
 		const edgeDetail = applyRelationLevelOfDetail(
-			edgeStyle(edge, colors),
+			edgeStyle(edge, colors, emphasized),
 			edgeType,
 			relationEdgeCount,
 			viewport.zoom,
 			hasDim && connected,
 			edgeType === "updates" && hoverConnected,
+			emphasized,
 		)
 		let style = edgeDetail.style
 		let glow = edgeDetail.glow
-		if (edgeType === "document" && documentStride > 1 && !activeConnected) {
+		if (emphasized && edgeType === "document") {
+			const detail = edgeDetailProgress(viewport.zoom)
+			style = {
+				color: colors.edgeDocument ?? colors.textSecondary,
+				width: activeConnected ? 1.8 : 0.35 + 0.85 * detail,
+				opacity: activeConnected ? 0.65 : 0.0112 + (0.45 - 0.0112) * detail,
+			}
+			glow = false
+		} else if (
+			edgeType === "document" &&
+			documentStride > 1 &&
+			!activeConnected
+		) {
 			const zoomFactor = clampNumber(
 				viewport.zoom / DOCUMENT_LOD_ZOOM,
 				0.08,
@@ -534,6 +629,7 @@ function drawNodes(
 				isHovered,
 				isHighlighted,
 				colors,
+				state.appearance?.documentNodes,
 			)
 		} else {
 			drawMemoryNode(
@@ -549,7 +645,11 @@ function drawNodes(
 			)
 		}
 
-		if (isSelected || isHighlighted || isHovered) {
+		if (
+			(node.type === "memory" ||
+				state.appearance?.documentNodes !== "stacked") &&
+			(isSelected || isHighlighted || isHovered)
+		) {
 			drawGlow(
 				ctx,
 				screen.x,
@@ -712,12 +812,26 @@ function drawDocumentNode(
 	isHovered: boolean,
 	isHighlighted: boolean,
 	colors: GraphThemeColors,
+	style: GraphAppearance["documentNodes"] = "icons",
 ): void {
+	if (style === "stacked") {
+		drawStackedDocumentNode(
+			ctx,
+			sx,
+			sy,
+			size,
+			node,
+			isSelected,
+			isHovered,
+			isHighlighted,
+			colors,
+		)
+		return
+	}
 	const half = size * 0.5
 	const cornerR = 8 * (size / 50)
 	const clusterColor = node.clusterColor ?? colors.docStroke
 
-	// Drop shadow for selected/hovered nodes
 	if (isSelected || isHovered) {
 		ctx.save()
 		ctx.shadowColor = isSelected ? colors.accent : clusterColor
@@ -726,7 +840,6 @@ function drawDocumentNode(
 		ctx.shadowOffsetY = 0
 	}
 
-	// Subtle gradient fill for document nodes
 	const grad = ctx.createLinearGradient(
 		sx - half,
 		sy - half,
@@ -782,6 +895,59 @@ function drawDocumentNode(
 		docType || "text",
 		node.clusterColor ? clusterColor : colors.iconColor,
 	)
+}
+
+function drawStackedDocumentNode(
+	ctx: CanvasRenderingContext2D,
+	sx: number,
+	sy: number,
+	size: number,
+	node: GraphNode,
+	isSelected: boolean,
+	isHovered: boolean,
+	isHighlighted: boolean,
+	colors: GraphThemeColors,
+): void {
+	const half = size * 0.5
+	const cornerR = Math.min(8, Math.max(2, size * 0.12))
+	const stackOffset = Math.min(6, Math.max(0, (size - 24) * 0.1))
+	const layerSize = size - stackOffset
+	const focused = isSelected || isHighlighted
+	const borderColor = node.clusterColor ?? node.borderColor ?? colors.docStroke
+	ctx.save()
+	if (stackOffset > 0) {
+		ctx.fillStyle = focused
+			? mixHexColors(colors.docFill, colors.accent, 0.2)
+			: colors.docFill
+		ctx.strokeStyle = colors.textMuted
+		ctx.lineWidth = 1
+		roundRect(
+			ctx,
+			sx - half + stackOffset,
+			sy - half,
+			layerSize,
+			layerSize,
+			cornerR,
+		)
+		ctx.fill()
+		if (!focused) ctx.stroke()
+	}
+	ctx.fillStyle = focused
+		? mixHexColors(colors.textMuted, colors.accent, 0.28)
+		: colors.textMuted
+	ctx.strokeStyle = focused || isHovered ? colors.accent : borderColor
+	ctx.lineWidth = focused ? 2.25 : isHovered ? 1.5 : 1
+	roundRect(
+		ctx,
+		sx - half,
+		sy - half + stackOffset,
+		layerSize,
+		layerSize,
+		cornerR,
+	)
+	ctx.fill()
+	ctx.stroke()
+	ctx.restore()
 }
 
 function drawMemoryNode(

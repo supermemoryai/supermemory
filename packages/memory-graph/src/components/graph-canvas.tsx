@@ -19,6 +19,7 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 	width,
 	height,
 	colors,
+	appearance,
 	highlightDocumentIds,
 	selectedNodeId = null,
 	onNodeHover,
@@ -62,6 +63,7 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 		width,
 		height,
 		colors,
+		appearance,
 		selectedNodeId,
 		hoveredNodeId: null as string | null,
 		highlightIds: new Set(highlightDocumentIds ?? []),
@@ -75,6 +77,7 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 	s.current.width = width
 	s.current.height = height
 	s.current.colors = colors
+	s.current.appearance = appearance
 
 	// Stable callback refs so InputHandler never needs recreation
 	const cb = useRef({
@@ -128,8 +131,18 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 	useEffect(() => {
 		s.current.selectedNodeId = selectedNodeId
 		s.current.dimTarget = selectedNodeId ? 1 : 0
+		s.current.colors = colors
+		s.current.appearance = {
+			documentNodes: appearance?.documentNodes,
+			connections: appearance?.connections,
+		}
 		renderNeeded.current = true
-	}, [selectedNodeId])
+	}, [
+		selectedNodeId,
+		colors,
+		appearance?.documentNodes,
+		appearance?.connections,
+	])
 
 	// Create viewport + input handler (once per variant)
 	// biome-ignore lint/correctness/useExhaustiveDependencies: canvasRef and externalViewportRef are refs — mutations do not trigger re-renders, intentionally omitted
@@ -278,6 +291,7 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 					hoveredNodeId: cur.hoveredNodeId,
 					highlightIds: cur.highlightIds,
 					dimProgress: cur.dimProgress,
+					appearance: cur.appearance,
 				},
 				nodeMapRef.current,
 				cur.colors,

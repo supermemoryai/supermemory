@@ -18,6 +18,8 @@ import { useGraphTheme } from "../hooks/use-graph-theme"
 import { useInitialGraphFit } from "../hooks/use-initial-graph-fit"
 import type {
 	GraphApiDocument,
+	GraphNode,
+	MemoryNodeData,
 	GraphThemeColors,
 	MemoryGraphProps,
 	ResolvedMemoryGraphLabels,
@@ -27,6 +29,31 @@ import { Legend } from "./legend"
 import { LoadingIndicator } from "./loading-indicator"
 import { NavigationControls } from "./navigation-controls"
 import { NodeHoverPopover } from "./node-hover-popover"
+
+function documentIdForNode(
+	node: GraphNode | null,
+	documents: GraphApiDocument[],
+): string | null {
+	if (!node || typeof node.data.id !== "string" || !node.data.id.trim())
+		return null
+	if (node.type === "document") {
+		return documents.some((document) => document.id === node.data.id)
+			? node.data.id
+			: null
+	}
+	const sourceId = (node.data as MemoryNodeData).documentId
+	if (typeof sourceId !== "string" || !sourceId.trim()) return null
+	const ids = new Set(
+		documents
+			.filter(
+				(document) =>
+					document.id.trim() &&
+					document.memories.some((memory) => memory.id === node.data.id),
+			)
+			.map((document) => document.id),
+	)
+	return ids.size === 1 && ids.has(sourceId) ? sourceId : null
+}
 
 export function MemoryGraph({
 	documents = [],
@@ -46,9 +73,11 @@ export function MemoryGraph({
 	canvasRef: externalCanvasRef,
 	colors: colorOverrides,
 	totalCount,
-	onOpenDocument,
+	onOpenDocument: externalOnOpenDocument,
 	labels: labelOverrides,
 	layering,
+	appearance,
+	openDocumentOnEnter = false,
 }: MemoryGraphProps) {
 	const resolvedLabels = useMemo<ResolvedMemoryGraphLabels>(
 		() => ({ ...DEFAULT_LABELS, ...labelOverrides }),
@@ -358,9 +387,38 @@ export function MemoryGraph({
 		vp.zoomTo(vp.zoom / 1.3, containerSize.width / 2, graphFitHeight / 2)
 	}, [containerSize.width, graphFitHeight, stopFollowing])
 
-	// Wrap onOpenDocument to dismiss the popover before opening the modal.
-	// Without this, the popover overlay stays mounted on top of the
-	// document modal, obscuring it and intercepting clicks.
+	const activeDocumentId = useMemo(
+		() =>
+			openDocumentOnEnter
+				? documentIdForNode(
+						nodes.find((node) => node.id === (selectedNode ?? hoveredNode)) ??
+							null,
+						documents,
+					)
+				: null,
+		[openDocumentOnEnter, selectedNode, hoveredNode, nodes, documents],
+	)
+	const onOpenDocument = useMemo(
+		() =>
+			!openDocumentOnEnter
+				? externalOnOpenDocument
+				: externalOnOpenDocument && activeDocumentId
+					? (_documentId: string) => externalOnOpenDocument(activeDocumentId)
+					: undefined,
+		[openDocumentOnEnter, externalOnOpenDocument, activeDocumentId],
+	)
+	const selectedDocumentId = useMemo(
+		() =>
+			openDocumentOnEnter
+				? documentIdForNode(
+						nodes.find((node) => node.id === selectedNode) ?? null,
+						documents,
+					)
+				: null,
+		[openDocumentOnEnter, selectedNode, nodes, documents],
+	)
+	const canOpenOnEnter = openDocumentOnEnter && !!externalOnOpenDocument
+
 	const handleOpenDocument = useCallback(
 		(documentId: string) => {
 			setSelectedNode(null)
@@ -370,11 +428,53 @@ export function MemoryGraph({
 		[onOpenDocument],
 	)
 
-	// Keyboard shortcuts — using useEffect with keydown listener
+	const documentNavigationProps = canOpenOnEnter
+		? {
+				tabIndex: 0,
+				role: "region" as const,
+				"aria-label":
+					"Memory graph. Select a node, then press Enter to open its document.",
+				onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+					if (
+						!selectedDocumentId ||
+						event.key !== "Enter" ||
+						event.defaultPrevented ||
+						event.repeat ||
+						event.nativeEvent.isComposing ||
+						event.ctrlKey ||
+						event.metaKey ||
+						event.altKey ||
+						event.shiftKey
+					)
+						return
+					if (
+						event.target !== event.currentTarget &&
+						!(event.target instanceof HTMLCanvasElement)
+					)
+						return
+					event.preventDefault()
+					event.stopPropagation()
+					handleOpenDocument(selectedDocumentId)
+				},
+			}
+		: {}
+
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
-			// Don't handle if user is typing in an input
 			const target = e.target as HTMLElement
+			if (
+				openDocumentOnEnter &&
+				(e.defaultPrevented ||
+					e.isComposing ||
+					e.ctrlKey ||
+					e.metaKey ||
+					e.altKey ||
+					(target instanceof Element &&
+						target.closest(
+							"input, textarea, select, [contenteditable], [role=textbox]",
+						)))
+			)
+				return
 			if (
 				target.tagName === "INPUT" ||
 				target.tagName === "TEXTAREA" ||
@@ -407,7 +507,13 @@ export function MemoryGraph({
 
 		window.addEventListener("keydown", handler)
 		return () => window.removeEventListener("keydown", handler)
-	}, [handleAutoFit, handleCenter, handleZoomIn, handleZoomOut])
+	}, [
+		handleAutoFit,
+		handleCenter,
+		handleZoomIn,
+		handleZoomOut,
+		openDocumentOnEnter,
+	])
 
 	// Arrow key navigation through nodes
 	const selectAndCenter = useCallback(
@@ -524,6 +630,20 @@ export function MemoryGraph({
 		const handler = (e: KeyboardEvent) => {
 			const target = e.target as HTMLElement
 			if (
+				openDocumentOnEnter &&
+				(e.defaultPrevented ||
+					e.isComposing ||
+					e.ctrlKey ||
+					e.metaKey ||
+					e.altKey ||
+					e.shiftKey ||
+					(target instanceof Element &&
+						target.closest(
+							"input, textarea, select, [contenteditable], [role=textbox]",
+						)))
+			)
+				return
+			if (
 				target.tagName === "INPUT" ||
 				target.tagName === "TEXTAREA" ||
 				target.isContentEditable
@@ -552,7 +672,13 @@ export function MemoryGraph({
 
 		window.addEventListener("keydown", handler)
 		return () => window.removeEventListener("keydown", handler)
-	}, [navigateUp, navigateDown, navigateNext, navigatePrev])
+	}, [
+		navigateUp,
+		navigateDown,
+		navigateNext,
+		navigatePrev,
+		openDocumentOnEnter,
+	])
 
 	// Slideshow — use refs to avoid re-creating the interval on resize or node updates
 	const nodesRef = useRef(nodes)
@@ -728,8 +854,13 @@ export function MemoryGraph({
 			<div
 				style={canvasContainerStyle}
 				ref={containerRef}
+				{...documentNavigationProps}
 				onPointerDownCapture={(event) => {
-					if (event.target instanceof HTMLCanvasElement) stopFollowing()
+					if (event.target instanceof HTMLCanvasElement) {
+						stopFollowing()
+						if (canOpenOnEnter)
+							containerRef.current?.focus({ preventScroll: true })
+					}
 				}}
 				onWheelCapture={(event) => {
 					if (event.target instanceof HTMLCanvasElement) stopFollowing()
@@ -737,6 +868,7 @@ export function MemoryGraph({
 			>
 				{hasContainerSize && (
 					<GraphCanvas
+						appearance={appearance}
 						colors={colors}
 						edges={edges}
 						height={containerSize.height}
@@ -771,6 +903,10 @@ export function MemoryGraph({
 						onNavigateUp={navigateUp}
 						onSelectNode={handleNodeClick}
 						onOpenDocument={onOpenDocument ? handleOpenDocument : undefined}
+						openDocumentShortcut={
+							canOpenOnEnter && selectedDocumentId ? "Enter" : undefined
+						}
+						showDocumentTitle={appearance?.documentNodes === "stacked"}
 						screenX={activePopoverPosition.screenX}
 						screenY={activePopoverPosition.screenY}
 						versionChain={activeVersionChain}

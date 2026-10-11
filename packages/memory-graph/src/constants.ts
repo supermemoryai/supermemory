@@ -61,7 +61,7 @@ export const ANIMATION = {
 	dimDuration: 1500,
 }
 
-export const DEFAULT_COLORS: GraphThemeColors = {
+export const DEFAULT_COLORS: GraphThemeColors & { edgeDocument: string } = {
 	bg: "#0f1419",
 	docFill: "#1B1F24",
 	docStroke: "#2A2F36",
