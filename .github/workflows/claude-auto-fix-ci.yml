@@ -7,10 +7,10 @@ on:
       - completed
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  pull-requests: read
   actions: read
-  issues: write
+  issues: read
   id-token: write
 
 jobs:
@@ -22,26 +22,47 @@ jobs:
       !endsWith(github.event.workflow_run.actor.login, '[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      revision: ${{ steps.revision.outputs.revision }}
+      has_patch: ${{ steps.patch.outputs.has_patch }}
     steps:
-      - name: Checkout code
+      - name: Checkout workflow helpers
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.workflow_run.head_branch }}
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Preserve workflow helpers
+        run: cp .github/scripts/ci-autofix.cjs "$RUNNER_TEMP/ci-autofix.cjs"
+
+      - name: Resolve failed PR source revision
+        id: revision
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { resolveRevision } = require(`${process.env.RUNNER_TEMP}/ci-autofix.cjs`);
+            const revision = await resolveRevision({ github, context, core });
+            core.setOutput('eligible', revision !== null);
+            core.setOutput('revision', JSON.stringify(revision));
+
+      - name: Checkout failed source revision
+        if: steps.revision.outputs.eligible == 'true'
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ fromJSON(steps.revision.outputs.revision).headSha }}
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
 
       - name: Setup Bun
+        if: steps.revision.outputs.eligible == 'true'
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
+        if: steps.revision.outputs.eligible == 'true'
         run: bun install
 
-      - name: Setup git identity
-        run: |
-          git config --global user.email "claude[bot]@users.noreply.github.com"
-          git config --global user.name "claude[bot]"
-
       - name: Get CI failure details
+        if: steps.revision.outputs.eligible == 'true'
         id: failure_details
         uses: actions/github-script@v7
         env:
@@ -69,26 +90,126 @@ jobs:
               failedJobs: failedJobs.map(j => ({ name: j.name, id: j.id }))
             };
 
+      - name: Revalidate PR before editing
+        id: before_fix
+        if: steps.revision.outputs.eligible == 'true'
+        uses: actions/github-script@v7
+        env:
+          REVISION: ${{ steps.revision.outputs.revision }}
+        with:
+          script: |
+            const { revalidate } = require(`${process.env.RUNNER_TEMP}/ci-autofix.cjs`);
+            core.setOutput('eligible', await revalidate({ github, context, core }, JSON.parse(process.env.REVISION)));
+
       - name: Fix CI failures with Claude
+        id: fix
+        if: steps.before_fix.outputs.eligible == 'true'
         uses: anthropics/claude-code-action@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             Failed CI Run: ${{ fromJSON(steps.failure_details.outputs.result).runUrl }}
             Failed Jobs: ${{ join(fromJSON(steps.failure_details.outputs.result).failedJobs.*.name, ', ') }}
-            PR Number: ${{ github.event.workflow_run.pull_requests[0].number }}
-            Branch: ${{ github.event.workflow_run.head_branch }}
+            PR Number: ${{ fromJSON(steps.revision.outputs.revision).prNumber }}
+            Branch: ${{ fromJSON(steps.revision.outputs.revision).branch }}
+            PR Source SHA: ${{ fromJSON(steps.revision.outputs.revision).headSha }}
             Repository: ${{ github.repository }}
+
+            The checkout is pinned to the failed run's PR source revision. The predecessor
+            pull_request CI tests a synthetic merge with the base branch, not this source
+            SHA alone. Consult the failed run's logs for integration context; do not
+            assume a passing source-only check resolves a merge-specific failure.
 
             Fix the CI failures. Common fixes:
             - Biome lint errors: Run `bun run format-lint` or `biome check --fix .`
             - Type errors: Run `bun run check-types` and fix reported issues
             - Test failures: Debug and fix the failing tests
 
-            After fixing, commit the changes and push directly to the branch `${{ github.event.workflow_run.head_branch }}`.
-            Do NOT create a new PR — the fixes should be pushed to the existing PR branch.
+            Make local edits only. Do not push, create a PR, update repository files
+            through GitHub tools, or switch to a newer source revision. A separate job
+            will publish the patch only if the PR and branch still match this source SHA.
 
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: |
             --max-turns 20
             --model claude-opus-4-5-20251101
             --allowedTools "Read,Write,Edit,Glob,Grep,Bash(*),WebSearch,WebFetch,Task,mcp__github"
+
+      - name: Prepare fix patch
+        id: patch
+        if: steps.fix.outcome == 'success'
+        env:
+          SOURCE_SHA: ${{ fromJSON(steps.revision.outputs.revision).headSha }}
+        run: |
+          node <<'NODE'
+          const { appendFileSync } = require('node:fs');
+          const { createPatch } = require(`${process.env.RUNNER_TEMP}/ci-autofix.cjs`);
+          const changed = createPatch({ headSha: process.env.SOURCE_SHA, patchPath: `${process.env.RUNNER_TEMP}/ci-autofix.patch` });
+          appendFileSync(process.env.GITHUB_OUTPUT, `has_patch=${changed}\n`);
+          NODE
+
+      - name: Upload fix patch
+        if: steps.patch.outputs.has_patch == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-autofix-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ci-autofix.patch
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    needs: auto-fix
+    if: needs.auto-fix.outputs.has_patch == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: read
+    steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Preserve workflow helpers
+        run: cp .github/scripts/ci-autofix.cjs "$RUNNER_TEMP/ci-autofix.cjs"
+
+      - name: Revalidate PR before publishing
+        id: before_publish
+        uses: actions/github-script@v7
+        env:
+          REVISION: ${{ needs.auto-fix.outputs.revision }}
+        with:
+          script: |
+            const { revalidate } = require(`${process.env.RUNNER_TEMP}/ci-autofix.cjs`);
+            core.setOutput('eligible', await revalidate({ github, context, core }, JSON.parse(process.env.REVISION)));
+
+      - name: Download fix patch
+        if: steps.before_publish.outputs.eligible == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-autofix-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}
+
+      - name: Checkout failed source revision
+        if: steps.before_publish.outputs.eligible == 'true'
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ fromJSON(needs.auto-fix.outputs.revision).headSha }}
+          fetch-depth: 0
+
+      - name: Publish only to the unchanged PR head
+        if: steps.before_publish.outputs.eligible == 'true'
+        uses: actions/github-script@v7
+        env:
+          REVISION: ${{ needs.auto-fix.outputs.revision }}
+        with:
+          script: |
+            const { revalidate, publish } = require(`${process.env.RUNNER_TEMP}/ci-autofix.cjs`);
+            const revision = JSON.parse(process.env.REVISION);
+            if (await revalidate({ github, context, core }, revision)) {
+              const published = publish({ revision, patchPath: `${process.env.RUNNER_TEMP}/ci-autofix.patch` });
+              if (!published) core.info('Skipping: remote branch advanced or was deleted.');
+            }
