@@ -42,7 +42,14 @@ function apiFixture(runOverrides = {}, prOverrides = {}) {
 	}
 	return {
 		pr,
-		github: { rest: { pulls: { get: async () => ({ data: pr }) } } },
+		github: {
+			rest: {
+				pulls: {
+					get: async () => ({ data: pr }),
+					list: async () => ({ data: [] }),
+				},
+			},
+		},
 		// The workflow's own SHA is unrelated to the failed PR source revision.
 		context: {
 			repo: { owner: "owner", repo: "repository" },
@@ -55,6 +62,31 @@ function apiFixture(runOverrides = {}, prOverrides = {}) {
 
 test("uses immutable run source SHA despite mutable linked PR metadata and merge SHA", async () => {
 	assert.deepEqual(await resolveRevision(apiFixture()), revision)
+})
+
+test("resolves an empty run PR list by branch, still requiring the recorded SHA", async () => {
+	const fixture = apiFixture({ pull_requests: [] })
+	fixture.github.rest.pulls.list = async (params) => {
+		assert.deepEqual(params, {
+			owner: "owner",
+			repo: "repository",
+			state: "open",
+			head: `owner:${revision.branch}`,
+			per_page: 2,
+		})
+		return { data: [{ number: 1 }] }
+	}
+	assert.deepEqual(await resolveRevision(fixture), revision)
+	fixture.pr.head.sha = N
+	assert.equal(await resolveRevision(fixture), null)
+})
+
+test("skips an empty run PR list when the branch has multiple open PRs", async () => {
+	const fixture = apiFixture({ pull_requests: [] })
+	fixture.github.rest.pulls.list = async () => ({
+		data: [{ number: 1 }, { number: 2 }],
+	})
+	assert.equal(await resolveRevision(fixture), null)
 })
 
 for (const [name, changes] of [
@@ -251,8 +283,24 @@ test("explicit lease rejects a push racing after the remote-head check", (t) => 
 		`#!/bin/sh\nexec git -C ${quote(f.writer)} push origin HEAD:refs/heads/feature/fix\n`,
 		{ mode: 0o755 },
 	)
+	assert.equal(
+		publish({ revision: f.revision, patchPath: f.patchPath, cwd: f.publisher }),
+		false,
+	)
+	assert.equal(git(f.remote, "rev-parse", "refs/heads/feature/fix"), next)
+})
+
+test("surfaces push failures when the branch has not advanced", (t) => {
+	const f = gitFixture(t)
+	makeFix(f)
+	writeFileSync(join(f.remote, "hooks/pre-receive"), "#!/bin/sh\nexit 1\n", {
+		mode: 0o755,
+	})
 	assert.throws(() =>
 		publish({ revision: f.revision, patchPath: f.patchPath, cwd: f.publisher }),
 	)
-	assert.equal(git(f.remote, "rev-parse", "refs/heads/feature/fix"), next)
+	assert.equal(
+		git(f.remote, "rev-parse", "refs/heads/feature/fix"),
+		f.revision.headSha,
+	)
 })

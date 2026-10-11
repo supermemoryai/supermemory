@@ -22,19 +22,36 @@ async function resolveRevision({ github, context, core }) {
 		run.event !== "pull_request" ||
 		run.conclusion !== "failure" ||
 		run.head_repository?.full_name !== repository ||
-		run.pull_requests?.length !== 1 ||
-		!Number.isSafeInteger(run.pull_requests[0].number) ||
 		!isSha(run.head_sha) ||
 		!run.head_branch
 	) {
 		core.info("Skipping: no unambiguous same-repository failed PR revision.")
 		return null
 	}
+	// Some same-repository runs have no linked PRs. Resolve only an unambiguous
+	// open PR for the recorded branch; revalidation still requires the run SHA.
+	let pullRequests = run.pull_requests ?? []
+	if (pullRequests.length === 0) {
+		const { data } = await github.rest.pulls.list({
+			...context.repo,
+			state: "open",
+			head: `${context.repo.owner}:${run.head_branch}`,
+			per_page: 2,
+		})
+		pullRequests = data
+	}
+	if (
+		pullRequests.length !== 1 ||
+		!Number.isSafeInteger(pullRequests[0].number)
+	) {
+		core.info("Skipping: no unambiguous PR for the failed run.")
+		return null
+	}
 	// Linked PR objects can reflect a newer head. Only the run's head_sha is
 	// immutable. This is the PR source SHA, not pull_request CI's merge checkout.
 	const revision = {
 		repository,
-		prNumber: run.pull_requests[0].number,
+		prNumber: pullRequests[0].number,
 		branch: run.head_branch,
 		headSha: run.head_sha,
 	}
@@ -99,15 +116,25 @@ function publish({ revision, patchPath, cwd = process.cwd() }) {
 	)
 	// This explicit lease is a compare-and-swap, even if the branch advances
 	// after ls-remote. The new commit is based on headSha, so no history is lost.
-	git(
-		["push", `--force-with-lease=${ref}:${headSha}`, "origin", `HEAD:${ref}`],
-		cwd,
-	)
+	try {
+		git(
+			["push", `--force-with-lease=${ref}:${headSha}`, "origin", `HEAD:${ref}`],
+			cwd,
+		)
+	} catch (error) {
+		// A late branch update is an expected stale result, not a workflow failure.
+		if (
+			git(["ls-remote", "--heads", "origin", ref], cwd).split(/\s+/)[0] !==
+			headSha
+		) {
+			return false
+		}
+		throw error
+	}
 	return true
 }
 
 module.exports = {
-	currentPullRequest,
 	resolveRevision,
 	revalidate,
 	createPatch,
