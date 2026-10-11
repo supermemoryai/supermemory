@@ -46,7 +46,7 @@ export const extractQueryText = (
 		return content
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+	// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility across V2, V3 and V4
 	return (content as any[])
 		.filter((part) => part.type === "text")
 		.map((part) => part.text || "")
@@ -74,7 +74,7 @@ export const injectMemoriesIntoParams = (
 	if (systemPromptExists) {
 		logger.debug("Replaced Supermemory context in existing system prompt")
 		let injected = false
-		// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3 prompt types
+		// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility across V2, V3 and V4 prompt types
 		const newPrompt = params.prompt.map((prompt: any) => {
 			if (prompt.role !== "system") return prompt
 			const content = String(prompt.content ?? "")
@@ -95,7 +95,7 @@ export const injectMemoriesIntoParams = (
 	const newPrompt = [
 		{ role: "system" as const, content: memoryContext },
 		...params.prompt,
-		// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3 prompt types
+		// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility across V2, V3 and V4 prompt types
 	] as any
 	return { ...params, prompt: newPrompt } as LanguageModelCallOptions
 }

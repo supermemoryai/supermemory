@@ -22,6 +22,8 @@ npm install @supermemory/tools
 
 Requires Node 18 or later and a `SUPERMEMORY_API_KEY` from [console.supermemory.ai](https://console.supermemory.ai). The `supermemory@5` SDK comes along as a dependency. Against a self-hosted server, pass `baseUrl` and run `supermemory-server` v0.0.9 or later, which is the first version that serves the v5 routes.
 
+The `ai-sdk` entry point works with AI SDK 5, 6 and 7. It uses the `ai` package your app already installs, so install `ai` yourself if you use that entry point.
+
 ## Migrating from 2.x
 
 3.0 moves every call to the Supermemory v5 API (`supermemory@5`). The full guide is at [supermemory.ai/docs/migration/tools-v3-upgrade](https://supermemory.ai/docs/migration/tools-v3-upgrade).

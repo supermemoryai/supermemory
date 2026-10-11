@@ -12,20 +12,19 @@ export type {
 	ProfileMarkdownData,
 } from "../shared"
 
-// Provider v2 does not export V3 names, so keep the public declaration on the
-// common V2 surface and structurally accept V3 models at the wrapper boundary.
-type LanguageModelV3Compat = Omit<
+// Provider v2 has no V3/V4 names, so newer models (AI SDK 6 = v3, AI SDK 7 = v4) are matched by shape.
+type LanguageModelNextCompat = Omit<
 	LanguageModelV2,
 	"specificationVersion" | "doGenerate" | "doStream"
 > & {
-	readonly specificationVersion: "v3"
+	readonly specificationVersion: "v3" | "v4"
 	// biome-ignore lint/suspicious/noExplicitAny: Bridges mutually exclusive provider major declarations.
 	doGenerate(...args: any[]): PromiseLike<any>
 	// biome-ignore lint/suspicious/noExplicitAny: Bridges mutually exclusive provider major declarations.
 	doStream(...args: any[]): PromiseLike<any>
 }
 
-export type LanguageModel = LanguageModelV2 | LanguageModelV3Compat
+export type LanguageModel = LanguageModelV2 | LanguageModelNextCompat
 export type LanguageModelCallOptions = LanguageModelV2CallOptions
 export type LanguageModelMessage = LanguageModelV2Message
 export type LanguageModelStreamPart = LanguageModelV2StreamPart

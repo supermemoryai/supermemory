@@ -1,7 +1,7 @@
 {
   "name": "@supermemory/tools",
   "type": "module",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Memory tools for AI SDK, OpenAI, Voltagent and Mastra with supermemory",
   "scripts": {
     "build": "tsdown",
@@ -9,35 +9,40 @@
     "check-types": "tsc --noEmit",
     "test": "vitest --testTimeout 100000",
     "test:unit": "vitest run --testTimeout 100000 src/tools-shared.test.ts src/tool-operations.test.ts src/claude-memory.test.ts test/with-supermemory/unit.test.ts test/with-supermemory/conversation-conversion.test.ts test/openai-middleware.unit.test.ts test/mastra/unit.test.ts test/voltagent.unit.test.ts",
-    "test:watch": "vitest --watch --testTimeout 100000"
+    "test:watch": "vitest --watch --testTimeout 100000",
+    "test:compat": "bun test/ai-sdk-compat/run.ts"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.25",
-    "@ai-sdk/openai": "^2.0.23",
-    "ai": "^5.0.29",
     "lru-cache": "^11.2.6",
     "openai": "^4.104.0",
     "supermemory": "^5.0.0",
     "zod": "^4.1.5"
   },
   "devDependencies": {
+    "@ai-sdk/anthropic": "^2.0.25",
+    "@ai-sdk/openai": "^2.0.23",
     "@ai-sdk/provider": "^3.0.0",
     "@anthropic-ai/sdk": "^0.65.0",
     "@voltagent/core": "^2.6.12",
     "@mastra/core": "^1.0.0",
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/bun": "^1.2.21",
+    "ai": "^5.0.29",
     "dotenv": "^16.6.1",
     "tsdown": "^0.14.2",
     "typescript": "^5.9.2",
     "vitest": "3.2.6"
   },
   "peerDependencies": {
-    "@ai-sdk/provider": "^2.0.0 || ^3.0.0",
-    "@voltagent/core": "^2.6.12"
+    "@ai-sdk/provider": "^2.0.0 || ^3.0.0 || ^4.0.0",
+    "@voltagent/core": "^2.6.12",
+    "ai": "^5.0.0 || ^6.0.0 || ^7.0.0"
   },
   "peerDependenciesMeta": {
     "@voltagent/core": {
+      "optional": true
+    },
+    "ai": {
       "optional": true
     }
   },

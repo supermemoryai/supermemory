@@ -58,6 +58,10 @@ jobs:
               if: steps.version-check.outputs.changed == 'true'
               run: bun run build
 
+            - name: Check against AI SDK 5, 6 and 7
+              if: steps.version-check.outputs.changed == 'true'
+              run: bun run test:compat
+
             - name: Publish
               if: steps.version-check.outputs.changed == 'true'
               run: npm publish --access public --provenance
