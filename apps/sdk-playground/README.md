@@ -75,7 +75,23 @@ Try:
 - "What do you know about my drink preferences?"
 - "Forget that I like tea" (tools mode)
 
-## Env
+## Optional web search
+
+Set `SDK_PLAYGROUND_PARALLEL_SEARCH=true` in `.env.local`, restart the Next.js
+server, and select **AI SDK + tools**. That agent gets `web_search` and
+`web_fetch` from [Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp)
+alongside its existing memory tools. Ask it to find current information on the
+web or read a URL; calls and results appear in the tool trace.
+
+The HTTP MCP connection uses `https://search.parallel.ai/mcp` without a Parallel
+account or API key. Free search uses Fast mode and is intended for exploration
+and light use, with server-enforced rate limits. The existing OpenAI and
+Supermemory credentials are still required. This option is off by default and
+does not affect the other SDK modes. With it enabled, web queries and fetched
+URLs are sent to Parallel. A connection failure fails the request; disable the
+option to return to memory-only tools.
+
+## Environment variables
 
 | Variable | Required |
 |----------|----------|
@@ -83,6 +99,7 @@ Try:
 | `OPENAI_API_KEY` | yes |
 | `SUPERMEMORY_BASE_URL` | optional |
 | `MODEL_NAME` | optional (default `gpt-4o-mini`) |
+| `SDK_PLAYGROUND_PARALLEL_SEARCH` | optional; `true` enables Parallel in AI SDK + tools |
 | `SDK_PLAYGROUND_PYTHON_URL` | optional (default `http://127.0.0.1:8792`) |
 | `SDK_PLAYGROUND_PYTHON_PORT` | optional (default `8792`) |
 | `SDK_PLAYGROUND_ALLOW_ENV_KEYS` | optional; set `true` only when a trusted non-local hostname must use server env keys |

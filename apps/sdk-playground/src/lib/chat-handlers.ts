@@ -10,6 +10,7 @@ import {
 import { supermemoryTools as aiSdkTools } from "@supermemory/tools/ai-sdk"
 import type { SupermemoryToolsConfig } from "@supermemory/tools"
 import type { PlaygroundApiKeys } from "./api-keys"
+import { withParallelSearch } from "./parallel-search"
 import {
 	buildMiddlewareMemoryDebug,
 	type MemoryDebugEntry,
@@ -238,15 +239,17 @@ async function chatAiSdkTools(
 	const openai = createOpenAI({ apiKey: keys.openaiApiKey })
 	const tools = toolsFactory(keys.supermemoryApiKey, getToolsConfig(namespace))
 
-	const result = await generateText({
-		model: openai(getModelName()),
-		system: TOOLS_SYSTEM_PROMPT,
-		messages: toModelMessages(messages.filter((m) => m.role !== "system")),
-		tools,
-		stopWhen: stepCountIs(8),
-		maxOutputTokens: MAX_OUTPUT_TOKENS,
-		abortSignal: signal,
-	})
+	const result = await withParallelSearch(tools, signal, (agentTools) =>
+		generateText({
+			model: openai(getModelName()),
+			system: TOOLS_SYSTEM_PROMPT,
+			messages: toModelMessages(messages.filter((m) => m.role !== "system")),
+			tools: agentTools,
+			stopWhen: stepCountIs(8),
+			maxOutputTokens: MAX_OUTPUT_TOKENS,
+			abortSignal: signal,
+		}),
+	)
 
 	return {
 		text: result.text,

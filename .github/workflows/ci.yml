@@ -82,6 +82,10 @@ jobs:
         if: steps.sdk-changes.outputs.sdk_playground == 'true'
         run: bun run --cwd apps/sdk-playground check-types:app
 
+      - name: Test SDK Playground Parallel search
+        if: steps.sdk-changes.outputs.sdk_playground == 'true'
+        run: bun run --cwd apps/sdk-playground test:parallel-search
+
       - name: Build SDK Playground
         if: steps.sdk-changes.outputs.sdk_playground == 'true'
         run: bun run --cwd apps/sdk-playground build:app
