@@ -388,6 +388,22 @@ describe("openai executeToolCall argument parsing", () => {
 		expect(sdk.profile).not.toHaveBeenCalled()
 	})
 
+	it.each([
+		["documentDelete", "documentId"],
+		["searchMemories", "informationToGet"],
+		["addMemory", "memory"],
+	])("rejects blank arguments for %s, which requires %s", async (name, field) => {
+		const execute = openAi.createToolCallExecutor(API_KEY)
+
+		const result = JSON.parse(await execute(toolCall(name, "")))
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain(field)
+		expect(sdk.documentsDelete).not.toHaveBeenCalled()
+		expect(sdk.search).not.toHaveBeenCalled()
+		expect(sdk.add).not.toHaveBeenCalled()
+	})
+
 	it("still reports malformed JSON as a tool error", async () => {
 		const execute = openAi.createToolCallExecutor(API_KEY)
 
@@ -424,18 +440,25 @@ describe("openai executeToolCall argument parsing", () => {
 
 describe("ClaudeMemoryTool", () => {
 	const FILE_PATH = "/memories/prefs.txt"
-	const FILE_ID = "memories_s_prefs_d_txt"
+	const FILE_ID = "cm_memories_s_prefs_d_txt"
+
+	beforeEach(() => {
+		sdk.documentsGet.mockRejectedValue(new sdk.NotFoundError("missing"))
+	})
 
 	function mockFileDocument(content: string) {
-		sdk.documentsGet.mockResolvedValue({
-			id: "doc_file_1",
-			content,
-			metadata: {
-				source: "claude-memory",
-				claude_memory_type: "file",
-				file_path: FILE_PATH,
-			},
-			system: { status: "done" },
+		sdk.documentsGet.mockImplementation(async (_ns: string, id: string) => {
+			if (id !== FILE_ID) throw new sdk.NotFoundError("missing")
+			return {
+				id: "doc_file_1",
+				content,
+				metadata: {
+					source: "claude-memory",
+					claude_memory_type: "file",
+					file_path: FILE_PATH,
+				},
+				system: { status: "done" },
+			}
 		})
 	}
 
@@ -578,7 +601,7 @@ describe("ClaudeMemoryTool", () => {
 		expect(result.success).toBe(true)
 		expect(sdk.add).toHaveBeenCalledWith(
 			DEFAULT_NS,
-			expect.objectContaining({ id: "memories_s_renamed_d_txt" }),
+			expect.objectContaining({ id: "cm_memories_s_renamed_d_txt" }),
 		)
 		expect(sdk.documentsDelete).toHaveBeenCalledWith(DEFAULT_NS, {
 			ids: [FILE_ID],

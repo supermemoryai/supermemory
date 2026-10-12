@@ -25,15 +25,19 @@ vi.mock("supermemory", () => {
 import { createClaudeMemoryTool } from "../src/claude-memory"
 
 function stubFile(path: string, content: string) {
-	sdk.get.mockImplementation(async () => ({
-		id: "doc_src",
-		metadata: {
-			source: "claude-memory",
-			claude_memory_type: "file",
-			file_path: path,
-		},
-		content,
-	}))
+	const fileId = `cm_${path.slice(1).replace(/_/g, "__").replace(/\//g, "_s_").replace(/\./g, "_d_")}`
+	sdk.get.mockImplementation(async (_ns: string, id: string) => {
+		if (id !== fileId) throw new sdk.NotFoundError("missing")
+		return {
+			id: "doc_src",
+			metadata: {
+				source: "claude-memory",
+				claude_memory_type: "file",
+				file_path: path,
+			},
+			content,
+		}
+	})
 }
 
 describe("ClaudeMemoryTool rename", () => {

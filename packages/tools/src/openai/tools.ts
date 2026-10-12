@@ -332,6 +332,9 @@ export function createDocumentDeleteFunction(
 	}: {
 		documentId: string
 	}): Promise<DocumentDeleteResult> {
+		if (!documentId?.trim()) {
+			return { success: false, error: "documentId is required" }
+		}
 		try {
 			await deleteDocument(client, namespace, documentId)
 
@@ -496,6 +499,20 @@ export function createToolCallExecutor(
 			})
 		}
 		const args = parsed.value
+
+		// Blank arguments are only valid for tools with no required fields.
+		const schema =
+			memoryToolSchemas[functionName as keyof typeof memoryToolSchemas]
+		const missing = schema?.parameters.required.filter(
+			(field: string) =>
+				typeof args[field] !== "string" || args[field].trim() === "",
+		)
+		if (missing?.length) {
+			return JSON.stringify({
+				success: false,
+				error: `Missing required arguments for ${functionName}: ${missing.join(", ")}`,
+			})
+		}
 
 		switch (functionName) {
 			case "searchMemories":

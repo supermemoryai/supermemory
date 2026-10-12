@@ -26,7 +26,7 @@ vi.mock("supermemory", () => {
 	return { default: Supermemory, Supermemory, NotFoundError: sdk.NotFoundError }
 })
 
-import { ClaudeMemoryTool } from "./claude-memory"
+import { ClaudeMemoryTool, type MemoryCommand } from "./claude-memory"
 
 const FILE_PATH = "/memories/notes.txt"
 // 5 distinct lines so an off-by-one at either end is observable.
@@ -381,6 +381,97 @@ describe("ClaudeMemoryTool path IDs", () => {
 			"memories_notes_txt",
 			expect.objectContaining({ content: "fresh" }),
 		)
+	})
+
+	it("never writes /memories/a into the legacy ID of /memories/s/a", async () => {
+		mockDocuments([
+			{ id: "memories_s_a", filePath: "/memories/s/a", content: "legacy" },
+		])
+
+		const result = await tool.handleCommand({
+			command: "create",
+			path: "/memories/a",
+			file_text: "new",
+		})
+
+		expect(result.success).toBe(true)
+		expect(updateMock).toHaveBeenCalledTimes(1)
+		expect(updateMock.mock.calls[0]?.[1]).toBe("cm_memories_s_a")
+	})
+
+	it("refuses to overwrite a foreign document holding the file's ID", async () => {
+		mockDocuments([
+			{ id: "cm_memories_s_a", filePath: "/memories/other", content: "x" },
+		])
+
+		const result = await tool.handleCommand({
+			command: "create",
+			path: "/memories/a",
+			file_text: "new",
+		})
+
+		expect(result.success).toBe(false)
+		expect(updateMock).not.toHaveBeenCalled()
+	})
+
+	it("renames onto a legacy destination in place", async () => {
+		mockDocuments([
+			{
+				id: "cm_memories_s_src_d_txt",
+				filePath: "/memories/src.txt",
+				content: "moved",
+			},
+			{
+				id: "memories_dst_txt",
+				filePath: "/memories/dst.txt",
+				content: "stale",
+			},
+		])
+		sdk.delete.mockResolvedValue({ count: 1 })
+
+		const result = await tool.handleCommand({
+			command: "rename",
+			old_path: "/memories/src.txt",
+			new_path: "/memories/dst.txt",
+		})
+
+		expect(result.success).toBe(true)
+		expect(updateMock).toHaveBeenCalledWith(
+			expect.anything(),
+			"memories_dst_txt",
+			expect.objectContaining({ content: "moved" }),
+		)
+		expect(sdk.delete).toHaveBeenCalledWith(expect.anything(), {
+			ids: ["cm_memories_s_src_d_txt"],
+		})
+	})
+
+	it("does not write when the lookup fails with a non-404 error", async () => {
+		documentsGetMock.mockRejectedValue(
+			Object.assign(new Error("upstream down"), { status: 500 }),
+		)
+
+		const result = await tool.handleCommand({
+			command: "create",
+			path: FILE_PATH,
+			file_text: "fresh",
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("upstream down")
+		expect(updateMock).not.toHaveBeenCalled()
+		expect(sdk.add).not.toHaveBeenCalled()
+	})
+
+	it("keeps path required for every command except rename", () => {
+		// @ts-expect-error view needs a path
+		const view: MemoryCommand = { command: "view" }
+		const rename: MemoryCommand = {
+			command: "rename",
+			old_path: "/memories/a",
+			new_path: "/memories/b",
+		}
+		expect([view, rename]).toHaveLength(2)
 	})
 
 	it("ignores a legacy ID that belongs to a different path", async () => {

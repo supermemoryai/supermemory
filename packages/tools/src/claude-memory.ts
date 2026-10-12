@@ -10,10 +10,7 @@ export type ClaudeMemoryConfig = SupermemoryToolsConfig
 
 export const CLAUDE_MEMORY_SOURCE = "claude-memory"
 
-export interface MemoryCommand {
-	command: "view" | "create" | "str_replace" | "insert" | "delete" | "rename"
-	// every command except rename addresses the file via path
-	path?: string
+interface MemoryCommandFields {
 	// view specific
 	view_range?: [number, number]
 	// create specific
@@ -29,6 +26,13 @@ export interface MemoryCommand {
 	old_path?: string
 	new_path?: string
 }
+
+export type MemoryCommand =
+	| (MemoryCommandFields & {
+			command: "view" | "create" | "str_replace" | "insert" | "delete"
+			path: string
+	  })
+	| (MemoryCommandFields & { command: "rename"; path?: string })
 
 export interface MemoryResponse {
 	success: boolean
@@ -56,13 +60,13 @@ export class ClaudeMemoryTool {
 	private client: Supermemory
 	private namespace: string
 
-	/** Reversible encoding so distinct paths never share an ID: /memories/a_b.txt -> memories_s_a__b_d_txt */
+	/** Reversible encoding; the `cm_` prefix keeps it disjoint from legacy IDs, which always start with `memories`: /memories/a_b.txt -> cm_memories_s_a__b_d_txt */
 	private normalizePathToId(path: string): string {
-		return path
+		return `cm_${path
 			.replace(/^\//, "")
 			.replace(/_/g, "__")
 			.replace(/\//g, "_s_")
-			.replace(/\./g, "_d_")
+			.replace(/\./g, "_d_")}`
 	}
 
 	/** Pre-3.1.2 IDs, where / and . both became _ */
@@ -334,13 +338,9 @@ export class ClaudeMemoryTool {
 		fileText: string,
 	): Promise<MemoryResponse> {
 		try {
-			// Overwrite a legacy-ID file in place instead of leaving a stale duplicate.
-			const existing = await this.getFileDocument(filePath)
-			const id =
-				existing.document?.documentId ??
-				existing.documentId ??
-				this.normalizePathToId(filePath)
-			await this.writeFile(id, fileText, {
+			const target = await this.resolveWriteId(filePath)
+			if ("error" in target) return { success: false, error: target.error }
+			await this.writeFile(target.id, fileText, {
 				source: CLAUDE_MEMORY_SOURCE,
 				claude_memory_type: "file",
 				file_path: filePath,
@@ -470,14 +470,16 @@ export class ClaudeMemoryTool {
 		try {
 			// Find the document first
 			const readResult = await this.getFileDocument(filePath)
-			if (!readResult.success || !readResult.document) {
+			const documentId =
+				readResult.document?.documentId ?? readResult.documentId
+			if (!documentId) {
 				return {
 					success: false,
 					error: readResult.error || "File not found",
 				}
 			}
 
-			await this.deleteFile(readResult.document.documentId)
+			await this.deleteFile(documentId)
 
 			return {
 				success: true,
@@ -516,17 +518,17 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			const originalContent = readResult.document.content
-			const newNormalizedId = this.normalizePathToId(newPath)
+			// Overwrite the destination's existing document (possibly a legacy ID) so no stale copy survives.
+			const target = await this.resolveWriteId(newPath)
+			if ("error" in target) return { success: false, error: target.error }
 
-			await this.writeFile(newNormalizedId, originalContent, {
+			await this.writeFile(target.id, readResult.document.content, {
 				...readResult.document.metadata,
 				file_path: newPath,
 				last_modified: new Date().toISOString(),
 			})
 
-			// Same normalized ID means the write above already replaced the file in place.
-			if (readResult.document.documentId !== newNormalizedId) {
+			if (readResult.document.documentId !== target.id) {
 				await this.deleteFile(readResult.document.documentId)
 			}
 
@@ -577,6 +579,10 @@ export class ClaudeMemoryTool {
 		document?: ClaudeFileDocument
 		/** Set when the file exists, even if its content is still processing. */
 		documentId?: string
+		/** Only true for a confirmed 404, never for a failed lookup. */
+		notFound?: boolean
+		/** The file's own ID is held by a document that isn't this file. */
+		occupied?: boolean
 		error?: string
 	}> {
 		try {
@@ -585,6 +591,7 @@ export class ClaudeMemoryTool {
 				this.normalizePathToId(filePath),
 				this.legacyNormalizePathToId(filePath),
 			]
+			let occupied = false
 			for (const id of ids) {
 				let document: Awaited<ReturnType<Supermemory["documents"]["get"]>>
 				try {
@@ -599,6 +606,7 @@ export class ClaudeMemoryTool {
 					document.metadata?.source !== CLAUDE_MEMORY_SOURCE ||
 					this.getDocumentFilePath(document) !== filePath
 				) {
+					if (id === ids[0]) occupied = true
 					continue
 				}
 				if (typeof document.content !== "string") {
@@ -619,13 +627,34 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			return { success: false, error: `File not found: ${filePath}` }
+			return {
+				success: false,
+				notFound: true,
+				occupied,
+				error: `File not found: ${filePath}`,
+			}
 		} catch (error) {
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : "Unknown error",
 			}
 		}
+	}
+
+	/** The ID a write to filePath must use; errors rather than guessing when the lookup fails. */
+	private async resolveWriteId(
+		filePath: string,
+	): Promise<{ id: string } | { error: string }> {
+		const existing = await this.getFileDocument(filePath)
+		const existingId = existing.document?.documentId ?? existing.documentId
+		if (existingId) return { id: existingId }
+		if (!existing.notFound) {
+			return { error: existing.error ?? `Failed to look up ${filePath}` }
+		}
+		if (existing.occupied) {
+			return { error: `Another document already uses the ID for ${filePath}` }
+		}
+		return { id: this.normalizePathToId(filePath) }
 	}
 
 	private getDocumentFilePath(document: {
