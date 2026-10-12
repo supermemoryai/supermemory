@@ -501,8 +501,10 @@ export function createToolCallExecutor(
 		const args = parsed.value
 
 		// Blank arguments are only valid for tools with no required fields.
-		const schema =
-			memoryToolSchemas[functionName as keyof typeof memoryToolSchemas]
+		// hasOwn so names like "constructor" fall through to the unknown-function error.
+		const schema = Object.hasOwn(memoryToolSchemas, functionName)
+			? memoryToolSchemas[functionName as keyof typeof memoryToolSchemas]
+			: undefined
 		const missing = schema?.parameters.required.filter(
 			(field: string) =>
 				typeof args[field] !== "string" || args[field].trim() === "",

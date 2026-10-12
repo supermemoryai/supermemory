@@ -404,6 +404,21 @@ describe("openai executeToolCall argument parsing", () => {
 		expect(sdk.add).not.toHaveBeenCalled()
 	})
 
+	it.each([
+		"constructor",
+		"toString",
+		"__proto__",
+	])("reports inherited name %p as an unknown function", async (name) => {
+		const execute = openAi.createToolCallExecutor(API_KEY)
+
+		const result = JSON.parse(await execute(toolCall(name, "{}")))
+
+		expect(result).toEqual({
+			success: false,
+			error: `Unknown function: ${name}`,
+		})
+	})
+
 	it("still reports malformed JSON as a tool error", async () => {
 		const execute = openAi.createToolCallExecutor(API_KEY)
 
