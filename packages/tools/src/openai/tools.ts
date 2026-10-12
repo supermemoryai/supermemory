@@ -332,6 +332,9 @@ export function createDocumentDeleteFunction(
 	}: {
 		documentId: string
 	}): Promise<DocumentDeleteResult> {
+		if (!documentId?.trim()) {
+			return { success: false, error: "documentId is required" }
+		}
 		try {
 			await deleteDocument(client, namespace, documentId)
 
@@ -458,8 +461,18 @@ export function getToolDefinitions(): OpenAI.Chat.Completions.ChatCompletionTool
 }
 
 function parseToolArguments(argumentsJson: string) {
+	// OpenAI sends "" for tools called with no arguments.
+	const source = argumentsJson?.trim() || "{}"
+
 	try {
-		return { success: true as const, value: JSON.parse(argumentsJson) }
+		const value = JSON.parse(source)
+
+		// "null", "5" and "[]" parse but would throw when destructured.
+		if (typeof value !== "object" || value === null || Array.isArray(value)) {
+			return { success: false as const }
+		}
+
+		return { success: true as const, value }
 	} catch {
 		return { success: false as const }
 	}
@@ -486,6 +499,22 @@ export function createToolCallExecutor(
 			})
 		}
 		const args = parsed.value
+
+		// Blank arguments are only valid for tools with no required fields.
+		// hasOwn so names like "constructor" fall through to the unknown-function error.
+		const schema = Object.hasOwn(memoryToolSchemas, functionName)
+			? memoryToolSchemas[functionName as keyof typeof memoryToolSchemas]
+			: undefined
+		const missing = schema?.parameters.required.filter(
+			(field: string) =>
+				typeof args[field] !== "string" || args[field].trim() === "",
+		)
+		if (missing?.length) {
+			return JSON.stringify({
+				success: false,
+				error: `Missing required arguments for ${functionName}: ${missing.join(", ")}`,
+			})
+		}
 
 		switch (functionName) {
 			case "searchMemories":

@@ -341,20 +341,139 @@ describe("memoryForget", () => {
 	})
 })
 
+describe("openai executeToolCall argument parsing", () => {
+	type ExecutorToolCall = Parameters<
+		ReturnType<typeof openAi.createToolCallExecutor>
+	>[0]
+
+	function toolCall(name: string, args: string) {
+		return {
+			id: "call_1",
+			type: "function",
+			function: { name, arguments: args },
+		} as ExecutorToolCall
+	}
+
+	// getProfile, documentList and memoryForget declare `required: []`, so the model
+	// is allowed to call them with no arguments. OpenAI serialises that as "".
+	it.each([
+		"",
+		"   ",
+	])("runs a zero-argument tool when arguments are %p", async (args) => {
+		const execute = openAi.createToolCallExecutor(API_KEY, {
+			namespace: "user_1",
+		})
+
+		const result = JSON.parse(await execute(toolCall("getProfile", args)))
+
+		expect(result.success).toBe(true)
+		expect(sdk.profile).toHaveBeenCalledTimes(1)
+		expect(sdk.profile.mock.calls[0]?.[0]).toBe("user_1")
+	})
+
+	// These parse cleanly, so the JSON guard lets them through to a destructuring
+	// parameter that rejects — the throw the guard exists to contain.
+	it.each([
+		"null",
+		"5",
+		"[]",
+		'"text"',
+	])("rejects non-object arguments %p as a tool result rather than throwing", async (args) => {
+		const execute = openAi.createToolCallExecutor(API_KEY)
+
+		const result = JSON.parse(await execute(toolCall("getProfile", args)))
+
+		expect(result.success).toBe(false)
+		expect(result.error).toMatch(/Invalid JSON arguments for getProfile/)
+		expect(sdk.profile).not.toHaveBeenCalled()
+	})
+
+	it.each([
+		["documentDelete", "documentId"],
+		["searchMemories", "informationToGet"],
+		["addMemory", "memory"],
+	])("rejects blank arguments for %s, which requires %s", async (name, field) => {
+		const execute = openAi.createToolCallExecutor(API_KEY)
+
+		const result = JSON.parse(await execute(toolCall(name, "")))
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain(field)
+		expect(sdk.documentsDelete).not.toHaveBeenCalled()
+		expect(sdk.search).not.toHaveBeenCalled()
+		expect(sdk.add).not.toHaveBeenCalled()
+	})
+
+	it.each([
+		"constructor",
+		"toString",
+		"__proto__",
+	])("reports inherited name %p as an unknown function", async (name) => {
+		const execute = openAi.createToolCallExecutor(API_KEY)
+
+		const result = JSON.parse(await execute(toolCall(name, "{}")))
+
+		expect(result).toEqual({
+			success: false,
+			error: `Unknown function: ${name}`,
+		})
+	})
+
+	it("still reports malformed JSON as a tool error", async () => {
+		const execute = openAi.createToolCallExecutor(API_KEY)
+
+		const result = JSON.parse(
+			await execute(toolCall("searchMemories", "{not json")),
+		)
+
+		expect(result.success).toBe(false)
+		expect(result.error).toMatch(/Invalid JSON arguments for searchMemories/)
+		expect(sdk.search).not.toHaveBeenCalled()
+	})
+
+	it("still passes well-formed arguments through", async () => {
+		const execute = openAi.createToolCallExecutor(API_KEY, {
+			namespace: "user_1",
+		})
+
+		const result = JSON.parse(
+			await execute(
+				toolCall(
+					"searchMemories",
+					JSON.stringify({ informationToGet: "tea", limit: 3 }),
+				),
+			),
+		)
+
+		expect(result.success).toBe(true)
+		expect(sdk.search).toHaveBeenCalledWith(
+			"user_1",
+			expect.objectContaining({ query: "tea", limit: 3 }),
+		)
+	})
+})
+
 describe("ClaudeMemoryTool", () => {
 	const FILE_PATH = "/memories/prefs.txt"
-	const FILE_ID = "memories_prefs_txt"
+	const FILE_ID = "cm_memories_s_prefs_d_txt"
+
+	beforeEach(() => {
+		sdk.documentsGet.mockRejectedValue(new sdk.NotFoundError("missing"))
+	})
 
 	function mockFileDocument(content: string) {
-		sdk.documentsGet.mockResolvedValue({
-			id: "doc_file_1",
-			content,
-			metadata: {
-				source: "claude-memory",
-				claude_memory_type: "file",
-				file_path: FILE_PATH,
-			},
-			system: { status: "done" },
+		sdk.documentsGet.mockImplementation(async (_ns: string, id: string) => {
+			if (id !== FILE_ID) throw new sdk.NotFoundError("missing")
+			return {
+				id: "doc_file_1",
+				content,
+				metadata: {
+					source: "claude-memory",
+					claude_memory_type: "file",
+					file_path: FILE_PATH,
+				},
+				system: { status: "done" },
+			}
 		})
 	}
 
@@ -438,7 +557,7 @@ describe("ClaudeMemoryTool", () => {
 		const result = await tool.handleCommand({
 			command: "insert",
 			path: FILE_PATH,
-			insert_line: 2,
+			insert_line: 1,
 			insert_text: "",
 		})
 
@@ -497,7 +616,7 @@ describe("ClaudeMemoryTool", () => {
 		expect(result.success).toBe(true)
 		expect(sdk.add).toHaveBeenCalledWith(
 			DEFAULT_NS,
-			expect.objectContaining({ id: "memories_renamed_txt" }),
+			expect.objectContaining({ id: "cm_memories_s_renamed_d_txt" }),
 		)
 		expect(sdk.documentsDelete).toHaveBeenCalledWith(DEFAULT_NS, {
 			ids: [FILE_ID],

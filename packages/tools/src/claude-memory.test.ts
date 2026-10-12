@@ -26,7 +26,7 @@ vi.mock("supermemory", () => {
 	return { default: Supermemory, Supermemory, NotFoundError: sdk.NotFoundError }
 })
 
-import { ClaudeMemoryTool } from "./claude-memory"
+import { ClaudeMemoryTool, type MemoryCommand } from "./claude-memory"
 
 const FILE_PATH = "/memories/notes.txt"
 // 5 distinct lines so an off-by-one at either end is observable.
@@ -188,6 +188,80 @@ describe("ClaudeMemoryTool path collisions", () => {
 	})
 })
 
+describe("ClaudeMemoryTool insert line semantics", () => {
+	let tool: ClaudeMemoryTool
+
+	beforeEach(() => {
+		documentsGetMock.mockReset()
+		updateMock.mockReset().mockResolvedValue({ id: "doc", status: "queued" })
+		mockDocument(FILE_CONTENT)
+		tool = new ClaudeMemoryTool("test-api-key")
+	})
+
+	// The memory_20250818 spec: insert_text is inserted AFTER line insert_line,
+	// 0 inserts at the beginning of the file, and the valid range is [0, n_lines].
+
+	it("insert_line: 0 inserts at the beginning of the file", async () => {
+		const result = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: 0,
+			insert_text: "header",
+		})
+
+		expect(result.success).toBe(true)
+		const stored = updateMock.mock.calls[0]?.[2]?.content as string
+		expect(stored).toBe("header\nline1\nline2\nline3\nline4\nline5")
+	})
+
+	it("inserts AFTER the given line, not before it", async () => {
+		const result = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: 2,
+			insert_text: "after2",
+		})
+
+		expect(result.success).toBe(true)
+		const stored = updateMock.mock.calls[0]?.[2]?.content as string
+		// Regression guard: the old 1-based insert-BEFORE landed this one line early.
+		expect(stored).toBe("line1\nline2\nafter2\nline3\nline4\nline5")
+	})
+
+	it("insert_line: n_lines appends at the end of the file", async () => {
+		const result = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: 5,
+			insert_text: "tail",
+		})
+
+		expect(result.success).toBe(true)
+		const stored = updateMock.mock.calls[0]?.[2]?.content as string
+		expect(stored).toBe("line1\nline2\nline3\nline4\nline5\ntail")
+	})
+
+	it("rejects insert_line outside [0, n_lines] without writing", async () => {
+		const below = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: -1,
+			insert_text: "x",
+		})
+		expect(below.success).toBe(false)
+		expect(below.error).toContain("[0, 5]")
+
+		const above = await tool.handleCommand({
+			command: "insert",
+			path: FILE_PATH,
+			insert_line: 6,
+			insert_text: "x",
+		})
+		expect(above.success).toBe(false)
+		expect(updateMock).not.toHaveBeenCalled()
+	})
+})
+
 describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 	let tool: ClaudeMemoryTool
 
@@ -215,5 +289,200 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 		expect(updateMock).toHaveBeenCalledTimes(1)
 		const stored = updateMock.mock.calls[0]?.[2]?.content as string
 		expect(stored).toContain(`price is ${dollarSequence} today`)
+	})
+})
+
+describe("ClaudeMemoryTool path traversal", () => {
+	let tool: ClaudeMemoryTool
+
+	beforeEach(() => {
+		documentsGetMock.mockReset()
+		mockDocument(FILE_CONTENT)
+		tool = new ClaudeMemoryTool("test-api-key")
+	})
+
+	it.each([
+		"/memories/..",
+		"/memories/foo/..",
+		"/memories/../secrets.txt",
+	])("rejects parent-directory path %s", async (path) => {
+		const result = await tool.handleCommand({
+			command: "view",
+			path,
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("Invalid path")
+		expect(documentsGetMock).not.toHaveBeenCalled()
+	})
+})
+
+describe("ClaudeMemoryTool path IDs", () => {
+	let tool: ClaudeMemoryTool
+
+	beforeEach(() => {
+		documentsGetMock.mockReset()
+		updateMock.mockReset().mockResolvedValue({ id: "doc", status: "queued" })
+		mockDocuments([])
+		tool = new ClaudeMemoryTool("test-api-key")
+	})
+
+	it("gives paths that used to collide distinct IDs", async () => {
+		const paths = [
+			"/memories/notes.txt",
+			"/memories/notes_txt",
+			"/memories/notes/txt",
+		]
+		for (const path of paths) {
+			await tool.handleCommand({ command: "create", path, file_text: "x" })
+		}
+
+		const ids = updateMock.mock.calls.map((call) => call[1])
+		expect(new Set(ids).size).toBe(paths.length)
+	})
+
+	it("reads and overwrites a file stored under its legacy ID", async () => {
+		mockDocuments([
+			{ id: "memories_notes_txt", filePath: FILE_PATH, content: "legacy" },
+		])
+
+		const view = await tool.handleCommand({ command: "view", path: FILE_PATH })
+		expect(view.success).toBe(true)
+		expect(view.content).toContain("legacy")
+
+		await tool.handleCommand({
+			command: "create",
+			path: FILE_PATH,
+			file_text: "fresh",
+		})
+		expect(updateMock).toHaveBeenCalledWith(
+			expect.anything(),
+			"memories_notes_txt",
+			expect.objectContaining({ content: "fresh" }),
+		)
+	})
+
+	it("overwrites a legacy file whose content is still processing", async () => {
+		mockDocuments([
+			{
+				id: "memories_notes_txt",
+				filePath: FILE_PATH,
+				content: null as unknown as string,
+			},
+		])
+
+		await tool.handleCommand({
+			command: "create",
+			path: FILE_PATH,
+			file_text: "fresh",
+		})
+		expect(updateMock).toHaveBeenCalledWith(
+			expect.anything(),
+			"memories_notes_txt",
+			expect.objectContaining({ content: "fresh" }),
+		)
+	})
+
+	it("never writes /memories/a into the legacy ID of /memories/s/a", async () => {
+		mockDocuments([
+			{ id: "memories_s_a", filePath: "/memories/s/a", content: "legacy" },
+		])
+
+		const result = await tool.handleCommand({
+			command: "create",
+			path: "/memories/a",
+			file_text: "new",
+		})
+
+		expect(result.success).toBe(true)
+		expect(updateMock).toHaveBeenCalledTimes(1)
+		expect(updateMock.mock.calls[0]?.[1]).toBe("cm_memories_s_a")
+	})
+
+	it("refuses to overwrite a foreign document holding the file's ID", async () => {
+		mockDocuments([
+			{ id: "cm_memories_s_a", filePath: "/memories/other", content: "x" },
+		])
+
+		const result = await tool.handleCommand({
+			command: "create",
+			path: "/memories/a",
+			file_text: "new",
+		})
+
+		expect(result.success).toBe(false)
+		expect(updateMock).not.toHaveBeenCalled()
+	})
+
+	it("renames onto a legacy destination in place", async () => {
+		mockDocuments([
+			{
+				id: "cm_memories_s_src_d_txt",
+				filePath: "/memories/src.txt",
+				content: "moved",
+			},
+			{
+				id: "memories_dst_txt",
+				filePath: "/memories/dst.txt",
+				content: "stale",
+			},
+		])
+		sdk.delete.mockResolvedValue({ count: 1 })
+
+		const result = await tool.handleCommand({
+			command: "rename",
+			old_path: "/memories/src.txt",
+			new_path: "/memories/dst.txt",
+		})
+
+		expect(result.success).toBe(true)
+		expect(updateMock).toHaveBeenCalledWith(
+			expect.anything(),
+			"memories_dst_txt",
+			expect.objectContaining({ content: "moved" }),
+		)
+		expect(sdk.delete).toHaveBeenCalledWith(expect.anything(), {
+			ids: ["cm_memories_s_src_d_txt"],
+		})
+	})
+
+	it("does not write when the lookup fails with a non-404 error", async () => {
+		documentsGetMock.mockRejectedValue(
+			Object.assign(new Error("upstream down"), { status: 500 }),
+		)
+
+		const result = await tool.handleCommand({
+			command: "create",
+			path: FILE_PATH,
+			file_text: "fresh",
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("upstream down")
+		expect(updateMock).not.toHaveBeenCalled()
+		expect(sdk.add).not.toHaveBeenCalled()
+	})
+
+	it("keeps path required for every command except rename", () => {
+		// @ts-expect-error view needs a path
+		const view: MemoryCommand = { command: "view" }
+		const rename: MemoryCommand = {
+			command: "rename",
+			old_path: "/memories/a",
+			new_path: "/memories/b",
+		}
+		expect([view, rename]).toHaveLength(2)
+	})
+
+	it("ignores a legacy ID that belongs to a different path", async () => {
+		mockDocuments([
+			{ id: "memories_notes_txt", filePath: FILE_PATH, content: "other" },
+		])
+
+		const result = await tool.handleCommand({
+			command: "view",
+			path: "/memories/notes_txt",
+		})
+		expect(result.success).toBe(false)
 	})
 })
