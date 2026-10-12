@@ -48,6 +48,11 @@ export interface DocumentSummary {
 
 export type DocumentDetails = GetDocumentsResponse
 
+export interface ForgetCandidate {
+	id: string
+	memory: string
+}
+
 export interface DocumentsListResponse {
 	documents: DocumentSummary[]
 	pagination: ListResponsePagination
@@ -207,39 +212,51 @@ export class SupermemoryClient {
 		}
 	}
 
-	// v5 has no exact-content forget: preview semantic matches, then forget the best one by ID.
-	async forgetMemory(
-		content: string,
-	): Promise<{ success: boolean; message: string; namespace: string }> {
+	// v5 has no exact-content forget: dry-run a semantic match so the caller can confirm it before forgetting by ID.
+	async findMemoryToForget(content: string): Promise<ForgetCandidate | null> {
 		try {
 			const preview = await this.client.memories.forgetMatching(
 				this.namespace,
 				{ query: content, dryRun: true },
 			)
 			const match = preview.matches[0]
-			if (!match) {
-				return {
-					success: false,
-					message: "No matching memory found to forget.",
-					namespace: this.namespace,
-				}
-			}
+			return match ? { id: match.id, memory: match.memory } : null
+		} catch (error) {
+			this.handleOperationError("Forget memory request", error)
+		}
+	}
 
+	async getMemory(id: string): Promise<ForgetCandidate | null> {
+		try {
+			const memory = await this.client.memories.get(this.namespace, id)
+			return memory.isForgotten
+				? null
+				: { id: memory.id, memory: memory.memory }
+		} catch (error) {
+			if (isNotFound(error)) return null
+			this.handleOperationError("Get memory request", error)
+		}
+	}
+
+	async forgetMemoryById(
+		candidate: ForgetCandidate,
+	): Promise<{ success: boolean; message: string; namespace: string }> {
+		try {
 			const result = await this.client.memories.forget(this.namespace, {
-				ids: [match.id],
+				ids: [candidate.id],
 			})
 			if (result.count === 0) {
 				const reason = result.errors[0]?.error ?? "unknown error"
 				return {
 					success: false,
-					message: `Could not forget memory ${match.id}: ${reason}`,
+					message: `Could not forget memory ${candidate.id}: ${reason}`,
 					namespace: this.namespace,
 				}
 			}
 
 			return {
 				success: true,
-				message: `Forgot memory (ID: ${match.id}): "${limitByChars(match.memory, 100)}"`,
+				message: `Forgot memory (ID: ${candidate.id}): "${limitByChars(candidate.memory, 100)}"`,
 				namespace: this.namespace,
 			}
 		} catch (error) {

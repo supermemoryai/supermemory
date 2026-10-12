@@ -36,8 +36,8 @@ export function register(deps: ToolDeps) {
 			outputSchema: addMemoryOutputSchema,
 			annotations: MEMORY_TOOL_ANNOTATIONS,
 		},
-		async (args) => {
-			if (args.action === "forget") return forgetMemory(deps, args)
+		async (args, context) => {
+			if (args.action === "forget") return forgetMemory(deps, args, context)
 			try {
 				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const client = deps.getClient(namespace)
