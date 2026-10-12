@@ -16,10 +16,12 @@ GET /ns/{namespace}/document/{id}?include=chunks,memories
 Pass `include` as a comma-separated list to return chunks, memories, or both. Keys you omit are absent; requested keys with no results are empty arrays. Lifecycle fields move under `system`:
 
 ```json
-{"system":{"status":"done","createdAt":"...","updatedAt":"..."}}
+{"system":{"status":"done","dreamingStatus":"dreaming","createdAt":"...","updatedAt":"..."}}
 ```
 
 `system.status` is one of `unknown`, `queued`, `extracting`, `chunking`, `embedding`, `indexing`, `done`, or `failed`.
+
+`system.dreamingStatus` tracks memory generation separately. It is `dreaming` while memories for the latest content are queued, being generated, or waiting for a retry, and `done` once they are generated or when the document needed none. Under the default `dreaming: "dynamic"`, `status` can reach `done` minutes before `dreamingStatus` does, so wait on `dreamingStatus` when the next step reads memories or profiles. Legacy `GET /v3/documents/{id}` returned it as a top-level `dreamingStatus`; v5 nests it under `system` on document reads and on document list items.
 
 ### Retrieve a memory and its history
 
@@ -98,7 +100,7 @@ const { count, errors } = await supermemory.documents.delete("user_1", {
 ```
 </CodeGroup>
 
-There is no separate processing list. Read `system.status` on each item returned by `supermemory.list(namespace, "documents")`. Chunks come from `supermemory.list(namespace, "chunks")` or `documents.get` with `include: ["chunks"]`.
+There is no separate processing list. Read `system.status` and `system.dreamingStatus` on each item returned by `supermemory.list(namespace, "documents")`. Chunks come from `supermemory.list(namespace, "chunks")` or `documents.get` with `include: ["chunks"]`.
 
 ### Forget memories
 
@@ -114,6 +116,7 @@ See [memory forgetting](/migration/api-v5-memory-forgetting) for the complete dr
 ### Verification
 
 - Assert requested empty includes are `[]`, while omitted includes are absent.
+- Move readers of the legacy top-level `dreamingStatus` to `system.dreamingStatus`, and gate memory or profile reads on it rather than on `system.status`.
 - Paginate each resource type until `currentPage >= totalPages`; unselected arrays stay empty.
 - Verify chunk rows contain their parent `documentId`.
 - Exercise partial document-delete failures and semantic dry runs.

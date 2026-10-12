@@ -219,7 +219,7 @@ curl "https://api.supermemory.ai/ns/user_4f8a/document/DOC_ID" \
 ```
 </CodeGroup>
 
-Short text with instant dreaming usually finishes in a few seconds. Larger PDFs take longer. If you omit `dreaming` (default `"dynamic"`), document RAG can work after `done` while memory extraction may still be batching — use `"instant"` when the next step is memory search or profiles.
+Short text with instant dreaming usually finishes in a few seconds. Larger PDFs take longer. If you omit `dreaming` (default `"dynamic"`), document RAG can work after `done` while memory extraction may still be batching — use `"instant"` when the next step is memory search or profiles. `system.dreamingStatus` turns `done` once a document's memories are ready.
 
 ## 4. Three ways to get context back
 

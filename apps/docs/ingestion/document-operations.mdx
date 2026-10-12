@@ -52,6 +52,7 @@ Retrieve paginated documents with filtering. One `list` call serves documents, c
       "metadata": { "source": "slack" },
       "system": {
         "status": "done",
+        "dreamingStatus": "done",
         "createdAt": "2024-01-15T10:30:00Z",
         "updatedAt": "2024-01-15T10:30:00Z"
       }
@@ -133,6 +134,7 @@ Get a specific document with its processing status. Pass `include` to include it
     });
 
     console.log(doc.system.status);  // "queued" | "processing" | "done" | "failed"
+    console.log(doc.system.dreamingStatus);  // "dreaming" | "done"
     console.log(doc.content);
     ```
   </Tab>
@@ -145,6 +147,7 @@ Get a specific document with its processing status. Pass `include` to include it
     )
 
     print(doc.system.status)  # "queued" | "processing" | "done" | "failed"
+    print(doc.system.dreaming_status)  # "dreaming" | "done"
     print(doc.content)
     ```
   </Tab>
@@ -168,6 +171,17 @@ The `id` may be the Supermemory document ID or the `id` you supplied at ingestio
 | `embedding` | Creating vector representations |
 | `done` | Ready for search |
 | `failed` | Processing failed |
+
+### Memory generation status
+
+`system.dreamingStatus` tracks memory generation separately from `system.status`.
+
+| Status | Description |
+|--------|-------------|
+| `dreaming` | Memories for the latest content are queued, being generated, or waiting for a retry |
+| `done` | Memories are generated, or the document needed none |
+
+With the default `dreaming: "dynamic"`, Supermemory batches related documents before forming memories, so `status` can be `done` minutes before `dreamingStatus` is. If your next step reads memories or profiles, wait for `dreamingStatus` to be `done` too.
 
 <Accordion title="Poll for completion">
   ```typescript
@@ -287,7 +301,7 @@ Deletes are permanent — no recovery.
 
 ## Processing queue
 
-There is no separate processing endpoint. List documents and read `system.status` on each item.
+There is no separate processing endpoint. List documents and read `system.status` and `system.dreamingStatus` on each item.
 
 <Tabs>
   <Tab title="TypeScript">
@@ -296,14 +310,16 @@ There is no separate processing endpoint. List documents and read `system.status
       limit: 100,
     });
     const processing = documents.filter(d => d.system.status !== "done" && d.system.status !== "failed");
-    console.log(`${processing.length} documents processing`);
+    const dreaming = documents.filter(d => d.system.dreamingStatus === "dreaming");
+    console.log(`${processing.length} documents processing, ${dreaming.length} forming memories`);
     ```
   </Tab>
   <Tab title="Python">
     ```python
     page = client.list("user_123", "documents", limit=100)
     processing = [d for d in page.documents if d.system.status not in ("done", "failed")]
-    print(f"{len(processing)} documents processing")
+    dreaming = [d for d in page.documents if d.system.dreaming_status == "dreaming"]
+    print(f"{len(processing)} documents processing, {len(dreaming)} forming memories")
     ```
   </Tab>
   <Tab title="cURL">

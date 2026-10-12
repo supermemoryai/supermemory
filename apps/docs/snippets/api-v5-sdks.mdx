@@ -50,7 +50,7 @@ Some v4 methods are gone from the v5 SDK. Most have a v5 way to do the same thin
 | `memories.updateMemory(...)` | Update the source document with `client.documents.update(namespace, id, { content })`. |
 | `documents.search(...)` | `client.search(namespace, { query, searchMode: "chunks" })` |
 | `documents.chunks(id)` | `client.documents.get(namespace, id, { include: ["chunks"] })` |
-| `documents.listProcessing()` | `client.list(namespace, "documents")` and read `system.status` on each item |
+| `documents.listProcessing()` | `client.list(namespace, "documents")` and read `system.status` and `system.dreamingStatus` on each item |
 | `containerTags.merge(...)`, `mergeStatus(...)` | `client.namespaces.delete(source, { moveTo: target })`. One source per call; the response carries an `operationId`. |
 | `memories.forget({ content })` | `client.memories.forgetMatching(namespace, { query, dryRun: true })` to preview, then `memories.forget(namespace, { ids })` |
 

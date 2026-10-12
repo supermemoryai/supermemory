@@ -108,7 +108,7 @@ Batch results preserve input order. Inspect `success`, `failed`, and every item 
 
 **Endpoint:** [`GET /ns/{namespace}/document/{id}`](/api-reference/documents/get-document)
 
-The batch endpoint returns after accepting the documents. If a later step depends on the documents being indexed, poll the returned document IDs until `system.status` is `done`. If that later step also needs the extracted memories, send the batch with `dreaming: "instant"`; under the default `dynamic` mode memory extraction is batched and can lag `done` by minutes.
+The batch endpoint returns after accepting the documents. If a later step depends on the documents being indexed, poll the returned document IDs until `system.status` is `done`. If that later step also needs the extracted memories, send the batch with `dreaming: "instant"`; under the default `dynamic` mode memory extraction is batched and can lag `done` by minutes. Each document reports `system.dreamingStatus: "done"` once its memories are ready.
 
 <CodeGroup>
 
