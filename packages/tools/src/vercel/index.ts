@@ -78,10 +78,10 @@ interface WrapVercelLanguageModelOptions {
  * a new system prompt with the memories. Pre-LLM profile retrieval uses a fixed internal
  * time budget and cannot be configured via options.
  *
- * Supports both Vercel AI SDK 5 (LanguageModelV2) and SDK 6 (LanguageModelV3) via runtime
+ * Supports Vercel AI SDK 5 (LanguageModelV2), 6 (LanguageModelV3) and 7 (LanguageModelV4) via runtime
  * detection of `model.specificationVersion`.
  *
- * @param model - The language model to wrap with supermemory capabilities (V2 or V3)
+ * @param model - The language model to wrap with supermemory capabilities (V2, V3 or V4)
  * @param options - Configuration options for Supermemory integration
  * @param options.namespace - Required. The namespace for memory search (e.g., user ID, project ID)
  * @param options.id - Required. ID that groups messages into a single document for contextual memory generation
@@ -180,7 +180,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 					}
 
 					try {
-						// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+						// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility across V2, V3 and V4
 						const result = await target.doGenerate(modelParams as any)
 
 						if (
@@ -245,7 +245,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 
 					try {
 						const { stream, ...rest } = await target.doStream(
-							// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+							// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility across V2, V3 and V4
 							modelParams as any,
 						)
 

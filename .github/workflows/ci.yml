@@ -78,6 +78,10 @@ jobs:
         if: steps.sdk-changes.outputs.tools == 'true' || steps.sdk-changes.outputs.sdk_playground == 'true'
         run: bun run --cwd packages/tools build
 
+      - name: Check Tools against AI SDK 5, 6 and 7
+        if: steps.sdk-changes.outputs.tools == 'true'
+        run: bun run --cwd packages/tools test:compat
+
       - name: Run SDK Playground type checking
         if: steps.sdk-changes.outputs.sdk_playground == 'true'
         run: bun run --cwd apps/sdk-playground check-types:app
