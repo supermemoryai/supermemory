@@ -31,6 +31,7 @@ export type AddMemoryOutput = z.infer<typeof addMemoryOutputSchema>
 
 export const forgetMemoryOutputSchema = addMemoryOutputSchema.extend({
 	action: z.literal("forget"),
+	memory: z.string().optional(),
 })
 
 export const getDocumentOutputSchema = z.object({
