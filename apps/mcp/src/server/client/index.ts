@@ -196,7 +196,7 @@ export class SupermemoryClient {
 
 	async createMemory(
 		content: string,
-		metadata?: Record<string, unknown>,
+		metadata?: Record<string, string | number | boolean | string[]>,
 	): Promise<{ id: string; status: string; namespace: string }> {
 		try {
 			const result = await this.client.add(this.namespace, {

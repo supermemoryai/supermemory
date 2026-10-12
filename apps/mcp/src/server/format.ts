@@ -91,7 +91,7 @@ export function formatMemoryEntriesList(
 		if (pagination.currentPage < pagination.totalPages) {
 			parts.push(
 				"",
-				`More available - call listMemories with page: ${pagination.currentPage + 1}.`,
+				`More available - call list_memories with page: ${pagination.currentPage + 1}.`,
 			)
 		}
 		return parts.join("\n")

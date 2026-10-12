@@ -65,7 +65,7 @@ describe("formatMemoryEntriesList", () => {
 		)
 
 		expect(firstPage).toBe(
-			"No active memories on page 1 (2 pages total).\n\nMore available - call listMemories with page: 2.",
+			"No active memories on page 1 (2 pages total).\n\nMore available - call list_memories with page: 2.",
 		)
 		expect(secondPage).toContain("[still-active] Current fact")
 	})
