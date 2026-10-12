@@ -42,10 +42,12 @@ import { ${v.mock} } from "ai/test"
 import { supermemoryTools, withSupermemory } from "@supermemory/tools/ai-sdk"
 
 let searchCalls = 0
+const saved: string[] = []
 const server = Bun.serve({
 	port: 0,
-	fetch(req) {
+	async fetch(req) {
 		const route = new URL(req.url).pathname
+		if (route.endsWith("/document")) saved.push(String((await req.json()).content))
 		if (route.endsWith("/profile"))
 			return Response.json({ profile: { static: [{ id: "s0", memory: "User prefers dark mode" }], dynamic: [], buckets: {} } })
 		if (route.endsWith("/search")) {
@@ -60,6 +62,7 @@ const baseUrl = \`http://127.0.0.1:\${server.port}\`
 const prompts: string[] = []
 let calls = 0
 const model = new ${v.mock}({
+	supportedUrls: { "image/*": [/^https:/] },
 	doGenerate: async (options) => {
 		prompts.push(JSON.stringify(options.prompt))
 		const callTool = calls++ === 0 && (options.tools?.length ?? 0) > 0
@@ -82,6 +85,17 @@ const wrapped = withSupermemory(model, { apiKey: "sm_test", namespace: "user_1",
 const withMemory = await generateText({ model: wrapped, prompt: "hi" })
 if (withMemory.text !== "ok" || !prompts.at(-1)?.includes("User prefers dark mode"))
 	throw new Error("withSupermemory: memory was not injected into the prompt")
+
+// Saving is fire-and-forget, so wait for the document request to land.
+const savedAfter = async (count: number) => {
+	for (let i = 0; i < 50 && saved.length < count; i++) await Bun.sleep(20)
+	return saved[count - 1] ?? ""
+}
+await savedAfter(1)
+await generateText({ model: wrapped, messages: [{ role: "user", content: [{ type: "image", image: new URL("https://example.com/cat.png") }] }] })
+if (!(await savedAfter(saved.length + 1)).includes("[image")) throw new Error("withSupermemory: image-only turn was not saved")
+await generateText({ model: wrapped, messages: [{ role: "user", content: [{ type: "text", text: "look" }, { type: "image", image: new Uint8Array([137, 80, 78, 71]), mediaType: "image/png" }] }] })
+if (!(await savedAfter(saved.length + 1)).includes("[image")) throw new Error("withSupermemory: image was dropped from a mixed turn")
 
 // Type-only: the wrapped model and tools must also be accepted by streamText.
 const _typecheckStream = () => streamText({ model: wrapped, tools, prompt: "hi" })
@@ -142,6 +156,18 @@ try {
 		if (nested)
 			throw new Error(
 				`ai@${v.ai}: a second copy of ai was installed under @supermemory/tools`,
+			)
+		const aiProvider = (
+			await Bun.file(path.join(app, "node_modules/ai/package.json")).json()
+		).dependencies["@ai-sdk/provider"]
+		const topProvider = (
+			await Bun.file(
+				path.join(app, "node_modules/@ai-sdk/provider/package.json"),
+			).json()
+		).version
+		if (aiProvider.split(".")[0] !== topProvider.split(".")[0])
+			throw new Error(
+				`ai@${installed}: @ai-sdk/provider@${topProvider} was installed, but ai uses ${aiProvider}`,
 			)
 		const tsc = await $`npx tsc -p .`.cwd(app).nothrow().quiet()
 		if (tsc.exitCode !== 0)

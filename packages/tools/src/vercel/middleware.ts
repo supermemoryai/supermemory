@@ -3,7 +3,6 @@ import {
 	addConversation,
 	type ContentPart,
 	type ConversationMessage,
-	toConversationImageUrl,
 } from "../conversations-client"
 import {
 	createLogger,
@@ -14,7 +13,11 @@ import {
 	type PromptTemplate,
 	type MemoryMode,
 } from "../shared"
-import { type LanguageModelCallOptions, getLastUserMessage } from "./util"
+import {
+	type LanguageModelCallOptions,
+	getLastUserMessage,
+	imageFilePartUrl,
+} from "./util"
 import { extractQueryText, injectMemoriesIntoParams } from "./memory-prompt"
 
 const safeJsonStringify = (value: unknown): string => {
@@ -104,11 +107,8 @@ export const convertToConversationMessages = (
 					type: "text",
 					text: content.text,
 				})
-			} else if (
-				content.type === "file" &&
-				content.mediaType.startsWith("image/")
-			) {
-				const url = toConversationImageUrl(content.data, content.mediaType)
+			} else if (content.type === "file") {
+				const url = imageFilePartUrl(content)
 				if (url) {
 					contentParts.push({ type: "image_url", imageUrl: { url } })
 				}

@@ -75,6 +75,31 @@ export const getLastUserMessage = (
 		.join(" ")
 }
 
+// AI SDK 7 tags file data ({ type: "data" | "url" }) and allows a bare "image" media type.
+export const imageFilePartUrl = (part: {
+	mediaType?: unknown
+	data?: unknown
+}): string | null => {
+	const { mediaType, data } = part
+	if (typeof mediaType !== "string") return null
+	if (mediaType !== "image" && !mediaType.startsWith("image/")) return null
+	const tagged =
+		data && typeof data === "object" && "type" in data
+			? (data as { type: unknown; data?: unknown; url?: unknown })
+			: null
+	const value = !tagged
+		? data
+		: tagged.type === "data"
+			? tagged.data
+			: tagged.type === "url"
+				? tagged.url
+				: null
+	return toConversationImageUrl(
+		value,
+		mediaType === "image" ? undefined : mediaType,
+	)
+}
+
 /** Whether the prompt contains user content that a saved conversation can store. */
 export const hasPersistableUserContent = (
 	params: LanguageModelCallOptions,
@@ -97,12 +122,7 @@ export const hasPersistableUserContent = (
 			if (part.type === "text" && typeof part.text === "string") {
 				return Boolean(part.text.trim())
 			}
-			return (
-				part.type === "file" &&
-				typeof part.mediaType === "string" &&
-				part.mediaType.startsWith("image/") &&
-				toConversationImageUrl(part.data, part.mediaType) !== null
-			)
+			return part.type === "file" && imageFilePartUrl(part) !== null
 		})
 	})
 }
