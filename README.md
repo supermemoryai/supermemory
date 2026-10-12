@@ -340,6 +340,24 @@ const client = new Supermemory({
 - **Your data, one directory** — everything lives in `./.supermemory`, easy to back up or move.
 - **Same API as the platform** — prototype locally, ship on the hosted platform by changing `baseURL`.
 
+### Run with Docker
+
+Prebuilt images support Linux amd64 and arm64. You don’t need to build or clone the server source.
+
+For a new installation, run these commands in an empty directory and set your own LLM provider key:
+
+```bash
+release_url=https://github.com/supermemoryai/supermemory/releases
+curl -fL "$release_url/download/server-v0.0.9/compose.yaml" -o compose.yaml
+export OPENAI_API_KEY=your_openai_api_key_here
+export SUPERMEMORY_VERSION=0.0.9
+docker compose up -d --wait --wait-timeout 180
+```
+
+The API listens on `http://localhost:6767`. Data and credentials persist in the `supermemory_supermemory-data` volume. Get your local API key with `docker compose exec supermemory cat /data/api-key`; requests require it even on localhost.
+
+Read the [Docker setup and upgrade instructions](apps/docs/self-hosting/docker.mdx) for persistent provider configuration, backups and upgrades. Keep the existing volume and keys when upgrading; **don’t run `docker compose down -v`**.
+
 Read the [self-hosting docs](https://supermemory.ai/docs/self-hosting/overview) — quickstart, [configuration](https://supermemory.ai/docs/self-hosting/configuration), [embeddings](https://supermemory.ai/docs/self-hosting/embeddings), and [local vs. Enterprise](https://supermemory.ai/docs/self-hosting/local-vs-enterprise).
 
 ---
