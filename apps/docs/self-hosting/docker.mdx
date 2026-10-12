@@ -1,0 +1,109 @@
+---
+title: "Run Supermemory with Docker"
+sidebarTitle: "Docker"
+description: "Start the prebuilt Local image, keep your data, and upgrade an existing Compose installation."
+icon: "docker"
+---
+
+Run Supermemory Local with the prebuilt Docker image. Docker chooses the Linux amd64 or arm64 image for your machine. You don’t need the server source, a local build, or a registry login.
+
+You need Docker with the Compose plugin. Docker Desktop on macOS or Windows must run Linux containers. These shell examples use Bash or a compatible shell.
+
+## Start a new installation
+
+Use an empty directory for this installation. If you already run Supermemory with Compose, follow [Upgrade an existing installation](#upgrade-an-existing-installation) instead of overwriting your configuration.
+
+Download the Compose file from the [0.0.9 release](https://github.com/supermemoryai/supermemory/releases/tag/server-v0.0.9):
+
+```bash
+release_url=https://github.com/supermemoryai/supermemory/releases
+curl -fL "$release_url/download/server-v0.0.9/compose.yaml" -o compose.yaml
+```
+
+Create a `.env` file beside `compose.yaml`, replacing the placeholder with your provider key:
+
+```dotenv
+OPENAI_API_KEY=your_openai_api_key_here
+SUPERMEMORY_VERSION=0.0.9
+```
+
+You can use `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `GROQ_API_KEY` instead of OpenAI. Keep `.env` private and don’t commit it. Docker runs non-interactively, so there’s no first-boot provider wizard.
+
+Protect the file, pull the image, and start the service:
+
+```bash
+chmod 600 .env
+unset SUPERMEMORY_VERSION
+docker compose pull
+docker compose up -d --wait --wait-timeout 180
+docker compose ps
+```
+
+The published image is `docker.io/supermemory/supermemory`. `SUPERMEMORY_VERSION=0.0.9` pins this release; `latest` follows stable releases. The Compose file binds port `6767` to `127.0.0.1`, not the public network. Allow the first startup to finish before checking health:
+
+```bash
+curl --fail http://127.0.0.1:6767/v3/health
+```
+
+Local embeddings are the default. The first model download needs network access, and your chosen LLM provider may make external requests.
+
+## Authenticate API requests
+
+The server creates a local API key, separate from your LLM provider key. The Docker image hides that key from startup logs, so read it from the container:
+
+```bash
+SUPERMEMORY_API_KEY="$(docker compose exec -T supermemory cat /data/api-key)"
+curl --fail -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  http://127.0.0.1:6767/v3/projects
+```
+
+Treat this key as a secret. API requests require it even on localhost. Use the same key with your SDK and set `baseURL` to `http://localhost:6767`.
+
+## Preserve data and configuration
+
+The Compose project name is fixed as `supermemory`. Its named volume, `supermemory_supermemory-data`, mounts at `/data` and contains your store, API key, encryption identity, configuration, and model cache. Container replacement keeps that volume.
+
+<Warning>
+Don’t run `docker compose down -v` or delete the volume: that removes your stored data and credentials. Keep the project name and volume mapping unchanged when upgrading. Changing the provider or embedding settings is a separate operation.
+</Warning>
+
+The Compose file passes through the provider keys listed above and `FIRECRAWL_API_KEY`. To disable telemetry, add `SUPERMEMORY_DISABLE_TELEMETRY=1` to `.env`. Other [configuration variables](/self-hosting/configuration) need entries in the service’s `environment` block; setting them only in the host shell doesn’t pass them into the container.
+
+## Upgrade an existing installation
+
+Back up the complete stopped store before replacing its image. Run these commands from the directory containing your existing Compose file.
+
+### Back up the store
+
+Stop the service, then copy everything under `/data`, including its keys and identity files:
+
+```bash
+docker compose stop
+backup_dir="backups/$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$backup_dir"
+chmod 700 "$backup_dir"
+docker compose cp supermemory:/data/. "$backup_dir/"
+```
+
+Keep this backup and your existing `.env` file private. Confirm the copy completed before upgrading. These steps cover an existing Docker store; moving a native installation into Docker requires preserving that installation’s complete store and keys separately.
+
+### Pull and start the new image
+
+Keep your existing Compose configuration. If it uses an older GHCR image reference, change only its `image` line to the public Docker Hub image:
+
+```yaml
+image: docker.io/supermemory/supermemory:${SUPERMEMORY_VERSION:-latest}
+```
+
+Set `SUPERMEMORY_VERSION=0.0.9` in your existing `.env`, then pull and recreate the service without deleting its volume. Unset a previously exported version so `.env` takes precedence:
+
+```bash
+unset SUPERMEMORY_VERSION
+docker compose pull
+docker compose up -d --wait --wait-timeout 180
+curl --fail http://127.0.0.1:6767/v3/health
+```
+
+Local verifies a complete original backup before migrating an existing store. Existing cleanup can remove older duplicate documents and their source links. Keep your manual backup too; don’t point an older image at a migrated store. To roll back, restore the complete pre-upgrade backup and use its matching previous version.
+
+Native Windows remains on 0.0.8; these Docker images run Linux containers.
