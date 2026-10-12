@@ -65,7 +65,7 @@ export class ClaudeMemoryTool {
 			.replace(/\./g, "_d_")
 	}
 
-	/** Pre-3.0.1 IDs, where / and . both became _ */
+	/** Pre-3.1.2 IDs, where / and . both became _ */
 	private legacyNormalizePathToId(path: string): string {
 		return path.replace(/^\//, "").replace(/\//g, "_").replace(/\./g, "_")
 	}
@@ -107,20 +107,14 @@ export class ClaudeMemoryTool {
 					}
 					return await this.create(path, command.file_text)
 				case "str_replace":
-					// new_str may be omitted or "" — both mean "delete old_str".
-					// old_str must be non-empty — replacing the empty string would
-					// prepend instead of replacing.
-					if (!command.old_str) {
+					// new_str may be "" (deleting text) but must be present.
+					if (!command.old_str || command.new_str === undefined) {
 						return {
 							success: false,
-							error: "old_str is required for str_replace command",
+							error: "old_str and new_str are required for str_replace command",
 						}
 					}
-					return await this.strReplace(
-						path,
-						command.old_str,
-						command.new_str ?? "",
-					)
+					return await this.strReplace(path, command.old_str, command.new_str)
 				case "insert":
 					// insert_text may be "" (inserting a blank line).
 					if (
@@ -340,7 +334,13 @@ export class ClaudeMemoryTool {
 		fileText: string,
 	): Promise<MemoryResponse> {
 		try {
-			await this.writeFile(this.normalizePathToId(filePath), fileText, {
+			// Overwrite a legacy-ID file in place instead of leaving a stale duplicate.
+			const existing = await this.getFileDocument(filePath)
+			const id =
+				existing.document?.documentId ??
+				existing.documentId ??
+				this.normalizePathToId(filePath)
+			await this.writeFile(id, fileText, {
 				source: CLAUDE_MEMORY_SOURCE,
 				claude_memory_type: "file",
 				file_path: filePath,
@@ -575,10 +575,12 @@ export class ClaudeMemoryTool {
 	private async getFileDocument(filePath: string): Promise<{
 		success: boolean
 		document?: ClaudeFileDocument
+		/** Set when the file exists, even if its content is still processing. */
+		documentId?: string
 		error?: string
 	}> {
 		try {
-			// Files written before 3.0.1 still live under the legacy ID.
+			// Files written before 3.1.2 still live under the legacy ID.
 			const ids = [
 				this.normalizePathToId(filePath),
 				this.legacyNormalizePathToId(filePath),
@@ -602,6 +604,7 @@ export class ClaudeMemoryTool {
 				if (typeof document.content !== "string") {
 					return {
 						success: false,
+						documentId: id,
 						error: `File content unavailable: ${filePath}`,
 					}
 				}

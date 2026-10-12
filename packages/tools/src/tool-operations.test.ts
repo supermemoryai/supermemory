@@ -424,7 +424,7 @@ describe("openai executeToolCall argument parsing", () => {
 
 describe("ClaudeMemoryTool", () => {
 	const FILE_PATH = "/memories/prefs.txt"
-	const FILE_ID = "memories_prefs_txt"
+	const FILE_ID = "memories_s_prefs_d_txt"
 
 	function mockFileDocument(content: string) {
 		sdk.documentsGet.mockResolvedValue({
@@ -578,7 +578,7 @@ describe("ClaudeMemoryTool", () => {
 		expect(result.success).toBe(true)
 		expect(sdk.add).toHaveBeenCalledWith(
 			DEFAULT_NS,
-			expect.objectContaining({ id: "memories_renamed_txt" }),
+			expect.objectContaining({ id: "memories_s_renamed_d_txt" }),
 		)
 		expect(sdk.documentsDelete).toHaveBeenCalledWith(DEFAULT_NS, {
 			ids: [FILE_ID],
