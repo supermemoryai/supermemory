@@ -15,11 +15,11 @@ async function testOpenAIWrapper() {
 	const openai = new OpenAI()
 
 	// Basic wrapper
-	const client = withSupermemory(openai, "docs-test-openai")
+	const _client = withSupermemory(openai, "docs-test-openai")
 	console.log("✓ withSupermemory basic")
 
 	// With options
-	const clientWithOptions = withSupermemory(openai, "docs-test-openai", {
+	const _clientWithOptions = withSupermemory(openai, "docs-test-openai", {
 		mode: "full",
 		addMemory: "always",
 		verbose: true,
@@ -83,4 +83,7 @@ async function main() {
 	console.log("✅ All OpenAI SDK tests passed!")
 }
 
-main().catch(console.error)
+main().catch((error) => {
+	console.error(error)
+	process.exitCode = 1
+})

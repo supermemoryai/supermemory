@@ -1,5 +1,5 @@
 import "dotenv/config"
-import fs from "fs"
+import fs from "node:fs"
 import Supermemory, { toFile } from "supermemory"
 
 const client = new Supermemory()
@@ -9,7 +9,7 @@ async function testDocumentsCRUD() {
 
 	// Create
 	const doc = await client.documents.add({
-		content: "Test content for TypeScript SDK - " + Date.now(),
+		content: `Test content for TypeScript SDK - ${Date.now()}`,
 	})
 	console.log("✓ documents.add:", doc.id)
 
@@ -19,7 +19,7 @@ async function testDocumentsCRUD() {
 
 	// Update
 	const updated = await client.documents.update(doc.id, {
-		content: "Updated content - " + Date.now(),
+		content: `Updated content - ${Date.now()}`,
 	})
 	console.log("✓ documents.update:", updated.id)
 
@@ -36,8 +36,8 @@ async function testBatchOperations() {
 
 	const batch = await client.documents.batchAdd({
 		documents: [
-			{ content: "Batch doc 1 - " + Date.now() },
-			{ content: "Batch doc 2 - " + Date.now() },
+			{ content: `Batch doc 1 - ${Date.now()}` },
+			{ content: `Batch doc 2 - ${Date.now()}` },
 		],
 	})
 	console.log("✓ documents.batchAdd:", batch)
@@ -76,16 +76,16 @@ async function testClientConfig() {
 	console.log("\n=== Client Configuration ===")
 
 	// Retries
-	const clientWithRetries = new Supermemory({ maxRetries: 0 })
+	const _clientWithRetries = new Supermemory({ maxRetries: 0 })
 	console.log("✓ maxRetries config")
 
 	// Timeout
-	const clientWithTimeout = new Supermemory({ timeout: 20 * 1000 })
+	const _clientWithTimeout = new Supermemory({ timeout: 20 * 1000 })
 	console.log("✓ timeout config")
 
 	// Per-request options
 	await client.add(
-		{ content: "Test - " + Date.now() },
+		{ content: `Test - ${Date.now()}` },
 		{ maxRetries: 5, timeout: 5000 },
 	)
 	console.log("✓ per-request options")
@@ -95,12 +95,12 @@ async function testRawResponse() {
 	console.log("\n=== Raw Response ===")
 
 	const response = await client.documents
-		.add({ content: "Test - " + Date.now() })
+		.add({ content: `Test - ${Date.now()}` })
 		.asResponse()
 	console.log("✓ .asResponse() status:", response.status)
 
 	const { data, response: raw } = await client.documents
-		.add({ content: "Test - " + Date.now() })
+		.add({ content: `Test - ${Date.now()}` })
 		.withResponse()
 	console.log("✓ .withResponse() data:", data.id, "status:", raw.status)
 }
@@ -119,7 +119,7 @@ async function testErrorHandling() {
 	console.log("\n=== Error Handling ===")
 
 	const response = await client.documents
-		.add({ content: "Test - " + Date.now() })
+		.add({ content: `Test - ${Date.now()}` })
 		.catch(async (err) => {
 			if (err instanceof Supermemory.APIError) {
 				console.log("Caught APIError:", err.status, err.name)
@@ -148,4 +148,7 @@ async function main() {
 	console.log("✅ All TypeScript SDK tests passed!")
 }
 
-main().catch(console.error)
+main().catch((error) => {
+	console.error(error)
+	process.exitCode = 1
+})

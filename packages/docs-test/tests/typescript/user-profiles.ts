@@ -57,7 +57,7 @@ async function testBuildingContext() {
 
 	const profile = await client.profile({
 		containerTag: USER_ID,
-		q: conversation.at(-1)!.content,
+		q: conversation.at(-1)?.content,
 	})
 
 	const context = `User Profile:
@@ -90,4 +90,7 @@ async function main() {
 	console.log("✅ All user profile tests passed!")
 }
 
-main().catch(console.error)
+main().catch((error) => {
+	console.error(error)
+	process.exitCode = 1
+})

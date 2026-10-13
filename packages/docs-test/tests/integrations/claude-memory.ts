@@ -11,7 +11,7 @@ async function testConfiguration() {
 	console.log("✓ Basic config")
 
 	// Full options
-	const toolFull = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
+	const _toolFull = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 		projectId: "my-app",
 		containerTags: ["user-123", "project-alpha"],
 		memoryContainerTag: "my_memory_prefix",
@@ -102,4 +102,7 @@ async function main() {
 	console.log("✅ All Claude Memory tests passed!")
 }
 
-main().catch(console.error)
+main().catch((error) => {
+	console.error(error)
+	process.exitCode = 1
+})

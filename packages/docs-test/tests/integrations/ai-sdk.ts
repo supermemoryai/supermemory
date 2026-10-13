@@ -13,14 +13,14 @@ async function testMiddleware() {
 	console.log("=== Middleware ===")
 
 	// Basic wrapper
-	const model = withSupermemory(openai("gpt-4"), {
+	const _model = withSupermemory(openai("gpt-4"), {
 		containerTag: "user-123",
 		customId: "conv-1",
 	})
 	console.log("✓ withSupermemory basic")
 
 	// With addMemory option
-	const modelWithAdd = withSupermemory(openai("gpt-4"), {
+	const _modelWithAdd = withSupermemory(openai("gpt-4"), {
 		containerTag: "user-123",
 		customId: "conv-1",
 		addMemory: "always",
@@ -28,7 +28,7 @@ async function testMiddleware() {
 	console.log("✓ withSupermemory with addMemory")
 
 	// With verbose logging
-	const modelVerbose = withSupermemory(openai("gpt-4"), {
+	const _modelVerbose = withSupermemory(openai("gpt-4"), {
 		containerTag: "user-123",
 		customId: "conv-1",
 		verbose: true,
@@ -39,21 +39,21 @@ async function testMiddleware() {
 async function testSearchModes() {
 	console.log("\n=== Search Modes ===")
 
-	const profileModel = withSupermemory(openai("gpt-4"), {
+	const _profileModel = withSupermemory(openai("gpt-4"), {
 		containerTag: "user-123",
 		customId: "conv-1",
 		mode: "profile",
 	})
 	console.log("✓ mode: profile")
 
-	const queryModel = withSupermemory(openai("gpt-4"), {
+	const _queryModel = withSupermemory(openai("gpt-4"), {
 		containerTag: "user-123",
 		customId: "conv-1",
 		mode: "query",
 	})
 	console.log("✓ mode: query")
 
-	const fullModel = withSupermemory(openai("gpt-4"), {
+	const _fullModel = withSupermemory(openai("gpt-4"), {
 		containerTag: "user-123",
 		customId: "conv-1",
 		mode: "full",
@@ -74,7 +74,7 @@ async function testCustomPrompt() {
 </context>
 `.trim()
 
-	const model = withSupermemory(anthropic("claude-3-sonnet-20240229"), {
+	const _model = withSupermemory(anthropic("claude-3-sonnet-20240229"), {
 		containerTag: "user-123",
 		customId: "conv-1",
 		mode: "full",
@@ -87,7 +87,7 @@ async function testTools() {
 	console.log("\n=== Memory Tools ===")
 
 	// All tools
-	const tools = supermemoryTools("YOUR_API_KEY")
+	const _tools = supermemoryTools("YOUR_API_KEY")
 	console.log("✓ supermemoryTools")
 
 	// Individual tools
@@ -98,7 +98,7 @@ async function testTools() {
 	console.log("✓ addMemoryTool")
 
 	// Combined
-	const toolsObj = {
+	const _toolsObj = {
 		searchMemories: searchTool,
 		addMemory: addTool,
 	}
@@ -118,4 +118,7 @@ async function main() {
 	console.log("✅ All AI SDK tests passed!")
 }
 
-main().catch(console.error)
+main().catch((error) => {
+	console.error(error)
+	process.exitCode = 1
+})

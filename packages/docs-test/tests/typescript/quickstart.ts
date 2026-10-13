@@ -20,7 +20,7 @@ async function main() {
 	console.log("1. Getting user profile...")
 	const profile = await client.profile({
 		containerTag: USER_ID,
-		q: conversation.at(-1)!.content,
+		q: conversation.at(-1)?.content,
 	})
 
 	console.log("Profile response:", JSON.stringify(profile, null, 2))
@@ -37,7 +37,7 @@ ${profile.searchResults?.results.map((r) => r.content).join("\n")}`
 	console.log("\n2. Built context:", context)
 
 	// Build messages with memory-enriched context
-	const messages = [
+	const _messages = [
 		{ role: "system", content: `User context:\n${context}` },
 		...conversation,
 	]
@@ -54,4 +54,7 @@ ${profile.searchResults?.results.map((r) => r.content).join("\n")}`
 	console.log("\n✅ Quickstart TypeScript test passed!")
 }
 
-main().catch(console.error)
+main().catch((error) => {
+	console.error(error)
+	process.exitCode = 1
+})
