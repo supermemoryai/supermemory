@@ -1,6 +1,7 @@
 import * as d3 from "d3-force"
 import type { DocumentNodeData, GraphEdge, GraphNode } from "../types"
 import { FORCE_CONFIG } from "../constants"
+import { prefersReducedMotion } from "./reduced-motion"
 
 export const DENSE_GRAPH_STATIC_THRESHOLD = 6000
 
@@ -67,7 +68,11 @@ export class ForceSimulation {
 					: FORCE_CONFIG.preSettleTicks
 			for (let i = 0; i < preSettleTicks; i++) this.sim.tick()
 
-			if (nodes.length > DENSE_GRAPH_STATIC_THRESHOLD) {
+			// Dense graphs stay static for perf; reduced-motion reuses that path.
+			if (
+				nodes.length > DENSE_GRAPH_STATIC_THRESHOLD ||
+				prefersReducedMotion()
+			) {
 				this.stop()
 			} else {
 				this.settle()
@@ -87,6 +92,8 @@ export class ForceSimulation {
 	}
 
 	reheat(): void {
+		// Dragged node still moves via InputHandler; neighbours stay put.
+		if (prefersReducedMotion()) return
 		this.holdingHeat = true
 		this.sim?.on("tick.settle", null)
 		this.sim?.alphaTarget(FORCE_CONFIG.alphaTarget).restart()
@@ -94,7 +101,7 @@ export class ForceSimulation {
 
 	settle(): void {
 		const sim = this.sim
-		if (!sim || this.holdingHeat) return
+		if (!sim || this.holdingHeat || prefersReducedMotion()) return
 		let ticks = 0
 		let stableTicks = 0
 		sim

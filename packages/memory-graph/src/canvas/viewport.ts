@@ -21,6 +21,16 @@ export class ViewportState {
 	private static readonly MAX_ZOOM = 5.0
 	private minZoom = ViewportState.DEFAULT_MIN_ZOOM
 
+	// Cached query; `.matches` still tracks live OS changes.
+	private readonly reducedMotionQuery: MediaQueryList | null =
+		typeof globalThis.matchMedia === "function"
+			? globalThis.matchMedia("(prefers-reduced-motion: reduce)")
+			: null
+
+	private get reducedMotion(): boolean {
+		return this.reducedMotionQuery?.matches ?? false
+	}
+
 	constructor(initialPanX = 0, initialPanY = 0, initialZoom = 0.5) {
 		this.panX = initialPanX
 		this.panY = initialPanY
@@ -59,6 +69,7 @@ export class ViewportState {
 	}
 
 	releaseWithVelocity(vx: number, vy: number): void {
+		if (this.reducedMotion) return
 		this.velocityX = vx
 		this.velocityY = vy
 	}
@@ -133,6 +144,7 @@ export class ViewportState {
 	}
 
 	tick(): boolean {
+		const reduced = this.reducedMotion
 		let moving = false
 
 		if (Math.abs(this.velocityX) > 0.5 || Math.abs(this.velocityY) > 0.5) {
@@ -149,7 +161,7 @@ export class ViewportState {
 		const zoomDiff = this.targetZoom - this.zoom
 		if (Math.abs(zoomDiff) > this.zoom * 0.001) {
 			const world = this.screenToWorld(this.zoomAnchorX, this.zoomAnchorY)
-			this.zoom += zoomDiff * this.zoomSpring
+			this.zoom += reduced ? zoomDiff : zoomDiff * this.zoomSpring
 			this.panX = this.zoomAnchorX - world.x * this.zoom
 			this.panY = this.zoomAnchorY - world.y * this.zoom
 			moving = true
@@ -158,11 +170,18 @@ export class ViewportState {
 		if (this.targetPanX !== null && this.targetPanY !== null) {
 			const dx = this.targetPanX - this.panX
 			const dy = this.targetPanY - this.panY
-			if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+			if (!reduced && (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)) {
 				this.panX += dx * this.panLerp
 				this.panY += dy * this.panLerp
 				moving = true
 			} else {
+				// Reduced-motion always snaps here, so report the jump as movement.
+				if (
+					reduced &&
+					(this.panX !== this.targetPanX || this.panY !== this.targetPanY)
+				) {
+					moving = true
+				}
 				this.panX = this.targetPanX
 				this.panY = this.targetPanY
 				this.targetPanX = null
