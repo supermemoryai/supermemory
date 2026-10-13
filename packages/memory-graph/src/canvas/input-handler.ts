@@ -58,6 +58,7 @@ export class InputHandler {
 	private boundTouchStart: (e: TouchEvent) => void
 	private boundTouchMove: (e: TouchEvent) => void
 	private boundTouchEnd: (e: TouchEvent) => void
+	private boundTouchCancel: () => void
 	private boundGesture: (e: Event) => void
 
 	constructor(
@@ -84,6 +85,7 @@ export class InputHandler {
 		this.boundTouchStart = this.onTouchStart.bind(this)
 		this.boundTouchMove = this.onTouchMove.bind(this)
 		this.boundTouchEnd = this.onTouchEnd.bind(this)
+		this.boundTouchCancel = this.onTouchCancel.bind(this)
 		this.boundGesture = (e: Event) => e.preventDefault()
 
 		canvas.addEventListener("mousedown", this.boundMouseDown)
@@ -98,6 +100,7 @@ export class InputHandler {
 			passive: false,
 		})
 		canvas.addEventListener("touchend", this.boundTouchEnd)
+		canvas.addEventListener("touchcancel", this.boundTouchCancel)
 		canvas.addEventListener("gesturestart", this.boundGesture, {
 			passive: false,
 		})
@@ -118,6 +121,7 @@ export class InputHandler {
 		c.removeEventListener("touchstart", this.boundTouchStart)
 		c.removeEventListener("touchmove", this.boundTouchMove)
 		c.removeEventListener("touchend", this.boundTouchEnd)
+		c.removeEventListener("touchcancel", this.boundTouchCancel)
 		c.removeEventListener("gesturestart", this.boundGesture)
 		c.removeEventListener("gesturechange", this.boundGesture)
 		c.removeEventListener("gestureend", this.boundGesture)
@@ -188,9 +192,7 @@ export class InputHandler {
 		}
 
 		if (this.draggingNode) {
-			const world = this.viewport.screenToWorld(x, y)
-			this.draggingNode.x = this.draggingNode.fx = world.x - this.grabOffset.x
-			this.draggingNode.y = this.draggingNode.fy = world.y - this.grabOffset.y
+			this.moveDraggingNode(x, y)
 			this.didDrag = true
 			this.callbacks.onRequestRender()
 			return
@@ -382,9 +384,7 @@ export class InputHandler {
 				this.callbacks.onNodeDragStart(this.draggingNode.id, this.draggingNode)
 			}
 			if (this.draggingNode) {
-				const world = this.viewport.screenToWorld(x, y)
-				this.draggingNode.x = this.draggingNode.fx = world.x - this.grabOffset.x
-				this.draggingNode.y = this.draggingNode.fy = world.y - this.grabOffset.y
+				this.moveDraggingNode(x, y)
 				this.callbacks.onRequestRender()
 			} else if (this.isPanning) {
 				this.viewport.pan(x - this.lastMouseX, y - this.lastMouseY)
@@ -393,6 +393,26 @@ export class InputHandler {
 				this.callbacks.onRequestRender()
 			}
 		}
+	}
+
+	private moveDraggingNode(x: number, y: number): void {
+		const node = this.draggingNode
+		if (!node) return
+		const world = this.viewport.screenToWorld(x, y)
+		const nextX = world.x - this.grabOffset.x
+		const nextY = world.y - this.grabOffset.y
+		if (node.x !== nextX || node.y !== nextY) {
+			this.viewport.nodePositionVersion++
+		}
+		node.x = node.fx = nextX
+		node.y = node.fy = nextY
+	}
+
+	private onTouchCancel(): void {
+		this.tapCandidate = false
+		this.isTouchGesture = false
+		this.isPanning = false
+		this.endTouchDrag()
 	}
 
 	private endTouchDrag(): void {

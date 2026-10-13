@@ -71,6 +71,54 @@ describe("prefersReducedMotion", () => {
 })
 
 describe("ForceSimulation reduced-motion", () => {
+	it.each([
+		false,
+		true,
+	])("stops live motion and cleans up the %s legacy-query listener", (legacy) => {
+		const listeners = new Set<(event: MediaQueryListEvent) => void>()
+		const query = {
+			matches: false,
+			addEventListener: legacy
+				? undefined
+				: (_type: string, listener: (event: MediaQueryListEvent) => void) =>
+						listeners.add(listener),
+			removeEventListener: legacy
+				? undefined
+				: (_type: string, listener: (event: MediaQueryListEvent) => void) =>
+						listeners.delete(listener),
+			addListener: (listener: (event: MediaQueryListEvent) => void) =>
+				listeners.add(listener),
+			removeListener: (listener: (event: MediaQueryListEvent) => void) =>
+				listeners.delete(listener),
+		}
+		vi.stubGlobal("matchMedia", () => query)
+		const sim = new ForceSimulation()
+		sim.init(nodes, edges)
+		sim.reheat()
+		expect(sim.isActive()).toBe(true)
+		expect(listeners.size).toBe(1)
+		query.matches = true
+		for (const listener of listeners)
+			listener({ matches: true } as MediaQueryListEvent)
+		expect(sim.isActive()).toBe(false)
+		sim.reheat()
+		expect(sim.isActive()).toBe(false)
+		sim.init(nodes, edges)
+		expect(listeners.size).toBe(1)
+		sim.destroy()
+		expect(listeners.size).toBe(0)
+	})
+
+	it("preserves allowed-motion layout when matchMedia throws", () => {
+		vi.stubGlobal("matchMedia", () => {
+			throw new Error("unavailable")
+		})
+		const sim = new ForceSimulation()
+		sim.init(nodes, edges)
+		expect(sim.isActive()).toBe(true)
+		sim.destroy()
+	})
+
 	it("leaves the layout static after init and ignores reheat", () => {
 		stubReducedMotion(true)
 		const sim = new ForceSimulation()
@@ -93,6 +141,21 @@ describe("ForceSimulation reduced-motion", () => {
 })
 
 describe("ViewportState reduced-motion", () => {
+	it("discards an existing fling when the live preference changes", () => {
+		const query = { matches: false }
+		vi.stubGlobal("matchMedia", () => query)
+		const vp = new ViewportState(0, 0, 1)
+		vp.releaseWithVelocity(50, 25)
+		vp.tick()
+		expect(vp.panX).toBe(50)
+		query.matches = true
+		vp.tick()
+		expect(vp.panX).toBe(50)
+		expect(vp.panY).toBe(25)
+		query.matches = false
+		expect(vp.tick()).toBe(false)
+	})
+
 	it("drops fling momentum under reduced motion", () => {
 		stubReducedMotion(true)
 		const vp = new ViewportState(0, 0, 1)

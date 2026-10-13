@@ -98,6 +98,41 @@ function getDocumentNode(
 }
 
 describe("shared memory identity", () => {
+	it("retains distinct hyphenated document endpoint pairs and deduplicates exact repeats", () => {
+		const documents = [
+			makeDocument("a-b", [makeMemory({ id: "c" }), makeMemory({ id: "c" })]),
+			makeDocument("a", [makeMemory({ id: "b-c" })]),
+		]
+		expect(
+			computeEdges(documents).map((edge) => [edge.source, edge.target]),
+		).toEqual([
+			["a-b", "c"],
+			["a", "b-c"],
+		])
+	})
+
+	it("retains distinct hyphenated relation endpoint pairs and the first repeated type", () => {
+		const documents = [
+			makeDocument("doc", [
+				makeMemory({ id: "a-b" }),
+				makeMemory({ id: "a" }),
+				makeMemory({ id: "c", memoryRelations: { "a-b": "updates" } }),
+				makeMemory({ id: "b-c", memoryRelations: { a: "extends" } }),
+			]),
+			makeDocument("other", [
+				makeMemory({ id: "c", memoryRelations: { "a-b": "extends" } }),
+			]),
+		]
+		expect(
+			computeEdges(documents)
+				.filter((edge) => edge.edgeType !== "document")
+				.map((edge) => [edge.source, edge.target, edge.edgeType]),
+		).toEqual([
+			["a-b", "c", "updates"],
+			["a", "b-c", "extends"],
+		])
+	})
+
 	it("materializes the first source occurrence once while retaining every document edge", () => {
 		const documents = [
 			makeDocument("doc-a", [

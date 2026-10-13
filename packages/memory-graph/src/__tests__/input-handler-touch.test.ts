@@ -1,18 +1,9 @@
-import { beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { SpatialIndex } from "../canvas/hit-test"
 import { InputHandler } from "../canvas/input-handler"
+import { ForceSimulation } from "../canvas/simulation"
 import { ViewportState } from "../canvas/viewport"
 import type { GraphNode } from "../types"
-
-/**
- * InputHandler tap-to-select on touch devices.
- *
- * onTouchStart calls preventDefault() (required to stop scroll/zoom of the
- * page), which also suppresses the browser's synthesized click event — so
- * node selection must be detected from the raw touch lifecycle. These tests
- * drive the handler through a stub canvas that records the listeners it
- * registers.
- */
 
 type Listener = (e: Event) => void
 
@@ -81,6 +72,8 @@ describe("InputHandler touch tap-to-select", () => {
 	let dragStarts: Array<{ id: string; node: GraphNode }>
 	let dragEnds: number
 	let testNode: GraphNode
+	let handler: InputHandler
+	let simulation: ForceSimulation | null
 
 	const fire = (name: string, e: TouchEvent) => {
 		const fn = listeners.get(name)
@@ -94,26 +87,104 @@ describe("InputHandler touch tap-to-select", () => {
 		clicks = []
 		dragStarts = []
 		dragEnds = 0
+		simulation = null
 
-		// zoom 1 / pan 0 so screen coordinates equal world coordinates
 		viewport = new ViewportState(0, 0, 1)
 		const index = new SpatialIndex()
 		testNode = makeNode("doc-1", 100, 100)
 		index.rebuild([testNode])
 
-		new InputHandler(stub.canvas, viewport, index, {
+		handler = new InputHandler(stub.canvas, viewport, index, {
 			onNodeHover: () => {},
 			onNodeClick: (id) => {
 				clicks.push(id)
 			},
 			onNodeDragStart: (id, node) => {
 				dragStarts.push({ id, node })
+				simulation?.reheat()
 			},
 			onNodeDragEnd: () => {
 				dragEnds++
+				simulation?.coolDown()
 			},
 			onRequestRender: () => {},
 		})
+	})
+
+	afterEach(() => {
+		handler.destroy()
+		simulation?.destroy()
+		vi.unstubAllGlobals()
+	})
+
+	it("cancels a pending tap without selecting and permits a subsequent tap", () => {
+		fire("touchstart", touchEvent([touch(100, 100)]))
+		fire("touchcancel", touchEvent([]))
+		fire("touchend", touchEvent([]))
+		expect(clicks).toEqual([])
+		expect(dragEnds).toBe(0)
+		fire("touchstart", touchEvent([touch(100, 100)]))
+		fire("touchend", touchEvent([]))
+		expect(clicks).toEqual(["doc-1"])
+	})
+
+	it.each([
+		false,
+		true,
+	])("releases cancelled touch drags with reduced motion %s", (reduced) => {
+		vi.stubGlobal("matchMedia", () => ({ matches: reduced }))
+		simulation = new ForceSimulation()
+		simulation.init([testNode], [])
+		simulation.stop()
+		testNode.x = 100
+		testNode.y = 100
+		fire("touchstart", touchEvent([touch(100, 100)]))
+		fire("touchmove", touchEvent([touch(160, 120)]))
+		expect(testNode.fx).toBe(160)
+		expect(simulation.isActive()).toBe(!reduced)
+		fire("touchcancel", touchEvent([]))
+		expect(testNode.fx).toBeNull()
+		expect(testNode.fy).toBeNull()
+		expect(handler.getDraggingNode()).toBeNull()
+		expect(simulation.isActive()).toBe(false)
+		expect(dragEnds).toBe(1)
+		fire("touchcancel", touchEvent([]))
+		fire("touchend", touchEvent([]))
+		expect(dragEnds).toBe(1)
+		expect(clicks).toEqual([])
+	})
+
+	it("clears cancelled pan and pinch state without selecting", () => {
+		fire("touchstart", touchEvent([touch(400, 400)]))
+		fire("touchmove", touchEvent([touch(460, 400)]))
+		fire("touchcancel", touchEvent([]))
+		fire("touchmove", touchEvent([touch(500, 400)]))
+		expect(viewport.panX).toBe(60)
+		fire("touchstart", touchEvent([touch(100, 100), touch(200, 200)]))
+		fire("touchcancel", touchEvent([]))
+		fire("touchend", touchEvent([]))
+		expect(clicks).toEqual([])
+	})
+
+	it("releases a touch drag on pinch and removes cancellation listeners on destroy", () => {
+		fire("touchstart", touchEvent([touch(100, 100)]))
+		fire("touchmove", touchEvent([touch(160, 120)]))
+		fire("touchstart", touchEvent([touch(160, 120), touch(240, 200)]))
+		expect(testNode.fx).toBeNull()
+		expect(dragEnds).toBe(1)
+		handler.destroy()
+		expect(listeners.has("touchcancel")).toBe(false)
+		expect(listeners.size).toBe(0)
+		expect(clicks).toEqual([])
+	})
+
+	it("increments the position revision only when a drag moves the node", () => {
+		fire("touchstart", touchEvent([touch(100, 100)]))
+		fire("touchmove", touchEvent([touch(160, 120)]))
+		expect(viewport.nodePositionVersion).toBe(1)
+		fire("touchmove", touchEvent([touch(160, 120)]))
+		fire("touchend", touchEvent([]))
+		expect(viewport.nodePositionVersion).toBe(1)
 	})
 
 	it("selects a node on a single tap", () => {

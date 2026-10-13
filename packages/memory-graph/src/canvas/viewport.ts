@@ -1,7 +1,10 @@
+import { getReducedMotionQuery } from "./reduced-motion"
+
 export class ViewportState {
 	panX: number
 	panY: number
 	zoom: number
+	nodePositionVersion = 0
 
 	private velocityX = 0
 	private velocityY = 0
@@ -21,10 +24,7 @@ export class ViewportState {
 	private static readonly MAX_ZOOM = 5.0
 	private minZoom = ViewportState.DEFAULT_MIN_ZOOM
 
-	private readonly reducedMotionQuery: MediaQueryList | null =
-		typeof globalThis.matchMedia === "function"
-			? globalThis.matchMedia("(prefers-reduced-motion: reduce)")
-			: null
+	private readonly reducedMotionQuery = getReducedMotionQuery()
 
 	private get reducedMotion(): boolean {
 		return this.reducedMotionQuery?.matches ?? false
@@ -145,6 +145,10 @@ export class ViewportState {
 	tick(): boolean {
 		const reduced = this.reducedMotion
 		let moving = false
+		if (reduced) {
+			this.velocityX = 0
+			this.velocityY = 0
+		}
 
 		if (Math.abs(this.velocityX) > 0.5 || Math.abs(this.velocityY) > 0.5) {
 			this.panX += this.velocityX

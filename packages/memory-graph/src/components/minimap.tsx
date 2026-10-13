@@ -100,6 +100,7 @@ export function Minimap({
 		let lastPanX = Number.NaN
 		let lastPanY = Number.NaN
 		let lastZoom = Number.NaN
+		let lastNodePositionVersion = -1
 		let wasSimActive = true
 		const loop = () => {
 			const vp = viewportRef.current
@@ -107,12 +108,15 @@ export function Minimap({
 			const vpChanged =
 				!!vp &&
 				(vp.panX !== lastPanX || vp.panY !== lastPanY || vp.zoom !== lastZoom)
-			if (vpChanged || simActive || wasSimActive) {
+			const nodesMoved =
+				!!vp && vp.nodePositionVersion !== lastNodePositionVersion
+			if (vpChanged || nodesMoved || simActive || wasSimActive) {
 				draw()
 				if (vp) {
 					lastPanX = vp.panX
 					lastPanY = vp.panY
 					lastZoom = vp.zoom
+					lastNodePositionVersion = vp.nodePositionVersion
 				}
 			}
 			wasSimActive = simActive

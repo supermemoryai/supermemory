@@ -1,18 +1,31 @@
 import * as d3 from "d3-force"
 import type { DocumentNodeData, GraphEdge, GraphNode } from "../types"
 import { FORCE_CONFIG } from "../constants"
-import { prefersReducedMotion } from "./reduced-motion"
+import { getReducedMotionQuery, prefersReducedMotion } from "./reduced-motion"
 
 export const DENSE_GRAPH_STATIC_THRESHOLD = 6000
 
 export class ForceSimulation {
 	private sim: d3.Simulation<GraphNode, GraphEdge> | null = null
 	private holdingHeat = false
+	private reducedMotionQuery: MediaQueryList | null = null
+	private readonly onReducedMotionChange = (event: MediaQueryListEvent) => {
+		if (event.matches) this.stop()
+	}
 
 	init(nodes: GraphNode[], edges: GraphEdge[]): void {
 		this.destroy()
 
 		try {
+			this.reducedMotionQuery = getReducedMotionQuery()
+			if (this.reducedMotionQuery?.addEventListener) {
+				this.reducedMotionQuery.addEventListener(
+					"change",
+					this.onReducedMotionChange,
+				)
+			} else {
+				this.reducedMotionQuery?.addListener?.(this.onReducedMotionChange)
+			}
 			const structuralEdges = edges.filter((e) => e.edgeType !== "extends")
 
 			this.sim = d3
@@ -148,6 +161,15 @@ export class ForceSimulation {
 
 	destroy(): void {
 		this.holdingHeat = false
+		if (this.reducedMotionQuery?.removeEventListener) {
+			this.reducedMotionQuery.removeEventListener(
+				"change",
+				this.onReducedMotionChange,
+			)
+		} else {
+			this.reducedMotionQuery?.removeListener?.(this.onReducedMotionChange)
+		}
+		this.reducedMotionQuery = null
 		if (this.sim) {
 			this.sim.stop()
 			this.sim = null

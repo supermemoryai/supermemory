@@ -411,14 +411,18 @@ export function computeEdges(documents: GraphApiDocument[]): GraphEdge[] {
 		for (const mem of doc.memories) allNodeIds.add(mem.id)
 	}
 
-	const documentEdgeIds = new Set<string>()
+	const documentTargets = new Map<string, Set<string>>()
 	for (const doc of documents) {
+		let targets = documentTargets.get(doc.id)
 		for (const mem of doc.memories) {
-			const edgeId = `dm-${doc.id}-${mem.id}`
-			if (documentEdgeIds.has(edgeId)) continue
-			documentEdgeIds.add(edgeId)
+			if (targets?.has(mem.id)) continue
+			if (!targets) {
+				targets = new Set<string>()
+				documentTargets.set(doc.id, targets)
+			}
+			targets.add(mem.id)
 			result.push({
-				id: edgeId,
+				id: `dm-${doc.id}-${mem.id}`,
 				source: doc.id,
 				target: mem.id,
 				visualProps: getEdgeVisualProps("document"),
@@ -427,19 +431,20 @@ export function computeEdges(documents: GraphApiDocument[]): GraphEdge[] {
 		}
 	}
 
-	// 2. Memory-to-memory relation edges from backend data.
-	//    Uses memoryRelations (Record<targetId, relationType>) as primary source,
-	//    falls back to parentMemoryId for legacy data.
-	const relationEdgeIds = new Set<string>()
+	const relationSources = new Map<string, Set<string>>()
 	for (const doc of documents) {
 		for (const mem of doc.memories) {
 			const relations = getMemoryRelationTargets(mem)
+			let sources = relationSources.get(mem.id)
 
 			for (const [targetId, relationType] of Object.entries(relations)) {
 				if (!allNodeIds.has(targetId)) continue
-				const edgeId = `rel-${targetId}-${mem.id}`
-				if (relationEdgeIds.has(edgeId)) continue
-				relationEdgeIds.add(edgeId)
+				if (sources?.has(targetId)) continue
+				if (!sources) {
+					sources = new Set<string>()
+					relationSources.set(mem.id, sources)
+				}
+				sources.add(targetId)
 				const edgeType =
 					relationType === "updates" ||
 					relationType === "extends" ||
@@ -447,7 +452,7 @@ export function computeEdges(documents: GraphApiDocument[]): GraphEdge[] {
 						? relationType
 						: "updates"
 				result.push({
-					id: edgeId,
+					id: `rel-${targetId}-${mem.id}`,
 					source: targetId,
 					target: mem.id,
 					visualProps: getEdgeVisualProps(edgeType),

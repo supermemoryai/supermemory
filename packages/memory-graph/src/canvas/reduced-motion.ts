@@ -1,9 +1,13 @@
-// SSR-safe; false when matchMedia is unavailable.
-export function prefersReducedMotion(): boolean {
-	if (typeof globalThis.matchMedia !== "function") return false
+// SSR-safe; null when matchMedia is unavailable.
+export function getReducedMotionQuery(): MediaQueryList | null {
+	if (typeof globalThis.matchMedia !== "function") return null
 	try {
-		return globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches
+		return globalThis.matchMedia("(prefers-reduced-motion: reduce)")
 	} catch {
-		return false
+		return null
 	}
+}
+
+export function prefersReducedMotion(): boolean {
+	return getReducedMotionQuery()?.matches ?? false
 }
