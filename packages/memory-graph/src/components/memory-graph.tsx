@@ -20,7 +20,6 @@ import type {
 	GraphApiDocument,
 	GraphNode,
 	MemoryNodeData,
-	GraphThemeColors,
 	MemoryGraphProps,
 	ResolvedMemoryGraphLabels,
 } from "../types"
@@ -85,14 +84,7 @@ export function MemoryGraph({
 	)
 	const hoverPopoverZIndex =
 		layering?.hoverPopoverZIndex ?? DEFAULT_HOVER_POPOVER_Z_INDEX
-	const resolvedColors = useGraphTheme(colorOverrides)
-	const colors = useMemo<GraphThemeColors>(
-		() =>
-			colorOverrides
-				? { ...resolvedColors, ...colorOverrides }
-				: resolvedColors,
-		[resolvedColors, colorOverrides],
-	)
+	const colors = useGraphTheme(colorOverrides)
 
 	const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
 	const [containerBounds, setContainerBounds] = useState<DOMRect | null>(null)
