@@ -214,6 +214,8 @@ export interface MemoryGraphProps {
 	maxNodes?: number
 	/** Show FPS counter overlay */
 	showFps?: boolean
+	/** Show a minimap overview with a draggable viewport indicator */
+	showMinimap?: boolean
 	/** Slideshow mode */
 	isSlideshowActive?: boolean
 	onSlideshowNodeChange?: (nodeId: string | null) => void
