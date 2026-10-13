@@ -157,10 +157,12 @@ export function computeClusterAssignments(
 
 		const component: string[] = []
 		const queue = [startId]
+		// index dequeue: shift() is O(n) per call, O(n^2) on wide components
+		let head = 0
 		visited.add(startId)
 
-		while (queue.length > 0) {
-			const id = queue.shift() as string
+		while (head < queue.length) {
+			const id = queue[head++] as string
 			component.push(id)
 			for (const nextId of adjacency.get(id) ?? []) {
 				if (visited.has(nextId)) continue
