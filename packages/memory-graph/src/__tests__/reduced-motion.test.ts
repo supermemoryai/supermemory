@@ -133,7 +133,6 @@ describe("ViewportState reduced-motion", () => {
 		vp.centerOn(500, 500, 800, 600)
 		const moved = vp.tick()
 		expect(moved).toBe(true)
-		// target = width/2 - worldX*zoom = 400 - 500 = -100, etc.
 		expect(vp.panX).toBe(-100)
 		expect(vp.panY).toBe(-200)
 	})

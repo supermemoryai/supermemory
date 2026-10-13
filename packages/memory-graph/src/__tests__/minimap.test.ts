@@ -15,9 +15,7 @@ describe("computeMinimapLayout", () => {
 			120,
 			10,
 		)
-		// avail = 100, world = 100 => scale 1
 		expect(layout.scale).toBeCloseTo(1)
-		// corners land on the padding edge
 		expect(worldToMinimap(0, 0, layout)).toEqual({ x: 10, y: 10 })
 		expect(worldToMinimap(100, 100, layout)).toEqual({ x: 110, y: 110 })
 	})
@@ -29,11 +27,9 @@ describe("computeMinimapLayout", () => {
 			120,
 			10,
 		)
-		// avail 100 x 100; width is the binding dimension => scale 0.5
 		expect(layout.scale).toBeCloseTo(0.5)
 		const topLeft = worldToMinimap(0, 0, layout)
 		const bottomRight = worldToMinimap(200, 100, layout)
-		// horizontally flush to padding, vertically centered (content height 50)
 		expect(topLeft.x).toBeCloseTo(10)
 		expect(bottomRight.x).toBeCloseTo(110)
 		expect(topLeft.y).toBeCloseTo(35)
@@ -87,7 +83,6 @@ describe("computeViewportRect", () => {
 	)
 
 	it("maps the visible world region to a minimap rectangle", () => {
-		// zoom 1, no pan => the canvas shows world [0..100] x [0..100]
 		const rect = computeViewportRect(
 			{ panX: 0, panY: 0, zoom: 1 },
 			100,
@@ -101,7 +96,6 @@ describe("computeViewportRect", () => {
 	})
 
 	it("shrinks the rectangle as the main view zooms in", () => {
-		// zoom 2 => the canvas shows only half the world span in each axis
 		const rect = computeViewportRect(
 			{ panX: 0, panY: 0, zoom: 2 },
 			100,
@@ -119,7 +113,6 @@ describe("computeViewportRect", () => {
 			100,
 			layout,
 		)
-		// panning the world content left by 20 screen px moves the visible region right
 		const panned = computeViewportRect(
 			{ panX: -20, panY: 0, zoom: 1 },
 			100,

@@ -1,8 +1,3 @@
-/**
- * Mounted-render verification for the Minimap: it should render a canvas and
- * survive an environment where the 2D context is unavailable (happy-dom).
- */
-
 // @vitest-environment happy-dom
 
 import { createRef } from "react"

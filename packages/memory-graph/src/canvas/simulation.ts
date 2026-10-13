@@ -68,7 +68,6 @@ export class ForceSimulation {
 					: FORCE_CONFIG.preSettleTicks
 			for (let i = 0; i < preSettleTicks; i++) this.sim.tick()
 
-			// Dense graphs stay static for perf; reduced-motion reuses that path.
 			if (
 				nodes.length > DENSE_GRAPH_STATIC_THRESHOLD ||
 				prefersReducedMotion()
@@ -92,7 +91,6 @@ export class ForceSimulation {
 	}
 
 	reheat(): void {
-		// Dragged node still moves via InputHandler; neighbours stay put.
 		if (prefersReducedMotion()) return
 		this.holdingHeat = true
 		this.sim?.on("tick.settle", null)

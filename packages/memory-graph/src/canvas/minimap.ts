@@ -1,5 +1,3 @@
-// Pure, canvas-free geometry for the graph minimap.
-
 export interface MinimapBounds {
 	minX: number
 	minY: number

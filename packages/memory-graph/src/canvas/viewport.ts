@@ -21,7 +21,6 @@ export class ViewportState {
 	private static readonly MAX_ZOOM = 5.0
 	private minZoom = ViewportState.DEFAULT_MIN_ZOOM
 
-	// Cached query; `.matches` still tracks live OS changes.
 	private readonly reducedMotionQuery: MediaQueryList | null =
 		typeof globalThis.matchMedia === "function"
 			? globalThis.matchMedia("(prefers-reduced-motion: reduce)")
@@ -175,7 +174,6 @@ export class ViewportState {
 				this.panY += dy * this.panLerp
 				moving = true
 			} else {
-				// Reduced-motion always snaps here, so report the jump as movement.
 				if (
 					reduced &&
 					(this.panX !== this.targetPanX || this.panY !== this.targetPanY)

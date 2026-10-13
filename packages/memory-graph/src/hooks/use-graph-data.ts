@@ -157,7 +157,6 @@ export function computeClusterAssignments(
 
 		const component: string[] = []
 		const queue = [startId]
-		// index dequeue: shift() is O(n) per call, O(n^2) on wide components
 		let head = 0
 		visited.add(startId)
 
@@ -401,8 +400,6 @@ function getAppendSpatialCell(value: number): number {
 function getAppendSpatialKey(x: number, y: number): string {
 	return `${x}:${y}`
 }
-
-// Pure so it can be tested outside the hook.
 
 export function computeEdges(documents: GraphApiDocument[]): GraphEdge[] {
 	if (!documents || documents.length === 0) return []

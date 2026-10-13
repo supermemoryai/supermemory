@@ -155,7 +155,6 @@ describe("InputHandler touch tap-to-select", () => {
 		expect(dragEnds).toBe(1)
 		expect(testNode.fx).toBeNull()
 		expect(testNode.fy).toBeNull()
-		// no tap click should fire after a real drag
 		expect(clicks).toEqual([])
 	})
 
@@ -185,11 +184,9 @@ describe("InputHandler touch tap-to-select", () => {
 		viewport.zoomImmediate(0.25, 0, 0)
 
 		fire("touchstart", touchEvent([touch(25, 25)]))
-		// 8px screen jitter (below the 10px tap threshold)
 		fire("touchmove", touchEvent([touch(33, 25)]))
 		fire("touchend", touchEvent([]))
 
-		// the tap resolves the node under the finger at touchstart
 		expect(clicks).toEqual(["doc-1"])
 	})
 
