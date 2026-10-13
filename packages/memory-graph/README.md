@@ -66,6 +66,7 @@ function App() {
 | `error` | `Error \| null` | Error to display |
 | `loadMoreDocuments` | `() => Promise<void>` | Function to load more data |
 | `highlightDocumentIds` | `string[]` | IDs of documents to highlight |
+| `onNodeSelect` | `(nodeId: string \| null) => void` | Called when the selected node changes (click, keyboard, slideshow, or cleared) |
 
 Console mode uses the supplied theme colors for its surface, 16px dot grid, document icons, and node fills and strokes. Consumer mode keeps its transparent surface and cluster colors.
 

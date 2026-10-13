@@ -73,6 +73,7 @@ export function MemoryGraph({
 	colors: colorOverrides,
 	totalCount,
 	onOpenDocument: externalOnOpenDocument,
+	onNodeSelect,
 	labels: labelOverrides,
 	layering,
 	appearance,
@@ -97,6 +98,15 @@ export function MemoryGraph({
 	// React state only for things that affect DOM
 	const [hoveredNode, setHoveredNode] = useState<string | null>(null)
 	const [selectedNode, setSelectedNode] = useState<string | null>(null)
+	const onNodeSelectRef = useRef(onNodeSelect)
+	onNodeSelectRef.current = onNodeSelect
+	const lastSelectedRef = useRef(selectedNode)
+	// Compares against the last value so mount and StrictMode re-runs do not emit.
+	useEffect(() => {
+		if (lastSelectedRef.current === selectedNode) return
+		lastSelectedRef.current = selectedNode
+		onNodeSelectRef.current?.(selectedNode)
+	}, [selectedNode])
 	const [zoomDisplay, setZoomDisplay] = useState(50)
 	// Monotonic counter that increments on any viewport change (pan or zoom)
 	// Used as a dependency proxy to recalculate popover positions
