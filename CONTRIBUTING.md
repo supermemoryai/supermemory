@@ -26,25 +26,17 @@ Before you begin, ensure you have the following installed:
    bun install
    ```
 
-3. **Set Up Environment Variables**
-
-   ```bash
-   # Copy the example environment file
-   cp .env.example .env.local
-
-   # Edit the file with your configuration
-   # You'll need to add your API keys and database URLs
-   ```
-
-4. **Start the Development Server**
+3. **Start the Development Server**
 
    ```bash
    bun run dev:local
    ```
 
-   This starts each app on plain `localhost` ports (web on 3000, mcp on 8788, docs on 3003, graph on 3004) and points the web app at the public API at `https://api.supermemory.ai` via `NEXT_PUBLIC_BACKEND_URL` in `.env.example`. Sign in with magic-link/email-OTP — Google/GitHub OAuth sign-in won't round-trip back to localhost.
+   This starts each app on plain `localhost` ports (web on 3000, mcp on 8788, docs on 3003, graph playground on 3004, sdk playground on 3005).
 
-   > **Internal team note:** `bun run dev` (without `:local`) routes through [portless](https://github.com/portless/portless) to give every app a stable `*.dev.supermemory.ai` HTTPS URL with shared cookies and a working OAuth proxy. That path requires `bun run setup:dev` once (binds port 443, trusts a local CA). OSS contributors don't need it.
+   > **Note:** `apps/web` only redirects to the console at `https://console.supermemory.ai`, so it needs no env setup.
+
+   > **Internal team note:** `bun run dev` (without `:local`) routes through [portless](https://github.com/portless/portless) to give every app a stable `*.dev.supermemory.ai` HTTPS URL with shared cookies and a working OAuth proxy. That path needs portless set up once (it binds port 443 and trusts a local CA). OSS contributors don't need it.
 
 ## 📁 Project Structure
 
@@ -53,24 +45,29 @@ supermemory is organized as a monorepo using Turbo:
 ```
 supermemory/
 ├── apps/
-│   ├── web/                 # Next.js web application
-│   ├── browser-extension/  # Browser extension (WXT-based)
-│   ├── docs/               # Documentation site
-│   └── raycast-extension/  # Raycast extension
+│   ├── web/                      # Redirects to the console
+│   ├── mcp/                      # Model Context Protocol server
+│   ├── docs/                     # Documentation site
+│   ├── raycast-extension/        # Raycast extension
+│   ├── memory-graph-playground/  # Demo app for the memory graph component
+│   └── sdk-playground/           # Playground for the SDK integrations
 ├── packages/
-│   ├── ui/                  # Shared UI components
-│   ├── lib/                 # Shared utilities and logic
-│   ├── hooks/               # Shared React hooks
-│   ├── validation/          # Zod schemas and validation
-│   ├── ai-sdk/              # AI SDK for memory operations
-│   ├── tools/               # Development tools and utilities
-│   ├── openai-sdk-python/   # Python SDK for OpenAI integration
-│   ├── openai-sdk-ts/       # TypeScript SDK for OpenAI integration
-│   ├── eslint-config/       # ESLint configurations
-│   └── typescript-config/   # TypeScript configurations
-├── turbo.json              # Turbo configuration
-├── biome.json              # Biome configuration
-└── package.json            # Root package configuration
+│   ├── tools/                    # Memory tools for AI SDK, OpenAI, Voltagent and Mastra
+│   ├── memory-graph/             # Interactive memory graph component
+│   ├── openai-sdk-python/        # Memory tools for OpenAI function calling (Python)
+│   ├── agent-framework-python/   # Microsoft Agent Framework integration (Python)
+│   ├── pipecat-sdk-python/       # Pipecat integration (Python)
+│   ├── cartesia-sdk-python/      # Cartesia Line integration (Python)
+│   ├── livekit-sdk-python/       # LiveKit Agents integration (Python)
+│   ├── ui/                       # Shared UI components
+│   ├── lib/                      # Shared utilities and logic
+│   ├── hooks/                    # Shared React hooks
+│   ├── validation/               # Zod schemas and validation
+│   └── docs-test/                # Runs the code samples from the docs
+├── skills/                       # Supermemory agent skill
+├── turbo.json                    # Turbo configuration
+├── biome.json                    # Biome configuration
+└── package.json                  # Root package configuration
 ```
 
 ## 🛠️ Development Workflow
@@ -101,7 +98,7 @@ bun run build
 
 ### Tech Stack
 
-- **Frontend**: Next.js 15, React 19, TypeScript
+- **Frontend**: Next.js 16, React 19, TypeScript
 - **Styling**: Tailwind CSS, Radix UI components
 - **State Management**: Zustand, TanStack Query
 - **Build Tool**: Turbo (monorepo)

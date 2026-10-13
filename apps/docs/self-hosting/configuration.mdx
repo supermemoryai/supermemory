@@ -14,10 +14,12 @@ The installer writes API keys to `~/.supermemory/env`, which is loaded on every 
 | Variable | Purpose | Default |
 |---|---|---|
 | `PORT` (or `SUPERMEMORY_PORT`) | HTTP listen port | `6767` |
-| `SUPERMEMORY_HOST` | In the next release, controls the listen address; not supported by v0.0.8 | `127.0.0.1` in the next release |
-| `SUPERMEMORY_DATA_DIR` | Where the graph engine's data, auth secret, and model cache live | `./.supermemory` |
+| `SUPERMEMORY_HOST` | Listen address (v0.0.9 and later). Set `0.0.0.0` only when you protect the server with TLS and firewall rules | `127.0.0.1` |
+| `SUPERMEMORY_DATA_DIR` | Where the graph engine's data, auth secret, and model cache live | `~/.supermemory` |
 
-**The currently published v0.0.8 binds all interfaces and its implicit local authentication is unsafe when exposed to untrusted networks. Do not expose it; restrict access with a firewall or run it on an isolated machine.** The next release will bind loopback and require the generated key for every API request, including requests from localhost. Its browser welcome page will no longer reveal the key; enter the key printed at first boot in the Memory tab. If you later expose that release through a reverse proxy, protect the endpoint with TLS and access controls.
+From v0.0.9, an unset `SUPERMEMORY_DATA_DIR` uses `~/.supermemory`. An existing `./.supermemory` store in the current directory is still used if `~/.supermemory` has none. If both have a store, the server refuses to start until you set `SUPERMEMORY_DATA_DIR`. v0.0.8 and older always use `./.supermemory`.
+
+From v0.0.9, the server binds `127.0.0.1` and every API request needs the generated key, including requests from localhost. The welcome page does not show the key; enter the key printed at first boot in the Memory tab. If you expose the server through a reverse proxy, protect it with TLS and access controls. **v0.0.8 and older bind all interfaces with implicit local authentication. Do not expose them; upgrade, or restrict access with a firewall.**
 
 ## LLM providers
 
@@ -60,22 +62,26 @@ OPENAI_MODEL=gpt-oss:20b
 | `OPENAI_FAST_MODEL` | Override for fast/light tasks | `OPENAI_MODEL` |
 | `OPENAI_TEXT_MODEL` | Override for heavier text tasks | `OPENAI_MODEL` |
 
-## File storage
+## Storage & persistence
 
-Nothing to configure. Uploaded files (PDFs, images) are stored on local disk inside `$SUPERMEMORY_DATA_DIR` and served by the server at `/files/:key`.
+### File storage
+
+Uploaded files (PDFs, images) are stored on local disk inside `$SUPERMEMORY_DATA_DIR` and served by the server at `/files/:key`.
+
+### Database snapshots & resource usage
+
+The server saves its database and vector indices as one encrypted snapshot file at `$SUPERMEMORY_DATA_DIR/data`.
+
+- **Idle (v0.0.7 and later):** if nothing changed since the last snapshot, the server skips it, so an idle server does no snapshot work.
+- **While writing:** each snapshot is a full dump, taken every 10 seconds while writes continue. The interval is not configurable.
+- **Shutdown:** on `SIGINT` or `SIGTERM`, pending changes are saved before the process exits.
+
 
 ## Embeddings
 
 By default, vectors are computed locally with `Xenova/bge-base-en-v1.5` (768d) — no embedding API key. On interactive first boot you can pick a different provider after the LLM key step; for Docker/CI set env vars instead.
 
-The full provider table, multilingual guidance, remote examples (OpenAI, Gemini, Ollama) and the dimension-lock warning are in [embeddings for self-hosting](/self-hosting/embeddings).
-
-| Variable | Purpose | Default |
-|---|---|---|
-| `SUPERMEMORY_EMBEDDING_PROVIDER` | `local`, `openai`, `gemini`, or OpenAI-compatible remote | `local` |
-| `SUPERMEMORY_EMBEDDING_MODEL` | Model id for the chosen provider | `Xenova/bge-base-en-v1.5` |
-| `SUPERMEMORY_EMBEDDING_DIMENSIONS` | Vector size; must match model and stored data | `768` |
-| `SUPERMEMORY_EMBEDDING_BASE_URL` | Base URL for OpenAI-compatible embedding APIs | unset |
+The `SUPERMEMORY_EMBEDDING_*` env vars, the local model table, remote examples (OpenAI, Gemini, Ollama) and the dimension lock are in [embeddings for self-hosting](/self-hosting/embeddings).
 
 ### Embedding performance
 

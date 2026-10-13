@@ -1781,6 +1781,97 @@ a[class*="-ml-10"] {
 	font-weight: inherit !important;
 }
 
+/* Mintlify paints group-hover:bg-* behind anchor icons; on an <img> that fills the whole box */
+img[src*="/icons/hugeicons/"] {
+	background-color: transparent !important;
+}
+
+/* Icons are black/white <img>s; opacity tones them to the label colour (#3e3f3f light, #9e9f9f dark) */
+#sidebar-content {
+	--sm-nav-icon-rest: 0.76;
+}
+
+.dark #sidebar-content {
+	--sm-nav-icon-rest: 0.62;
+}
+
+#sidebar-content a img[src*="/icons/hugeicons/"] {
+	opacity: var(--sm-nav-icon-rest);
+	transition: opacity var(--sm-dur-hover) var(--sm-ease-out) !important;
+}
+
+#sidebar-content a:hover img[src*="/icons/hugeicons/"],
+#sidebar-content a[aria-current] img[src*="/icons/hugeicons/"] {
+	opacity: 1;
+}
+
+/* Anchors ship as a bare 24px row; give them the page items' 32px box (36px pitch kept via the margin) */
+#sidebar-content a.nav-anchor {
+	column-gap: 12px;
+	padding: 6px 12px 6px 16px !important;
+	margin-bottom: 4px !important;
+	line-height: 20px !important;
+	border-radius: var(--sm-radius-lg) !important;
+	transition:
+		color var(--sm-dur-hover) var(--sm-ease-out),
+		background-color var(--sm-dur-hover) var(--sm-ease-out);
+}
+
+#sidebar-content a.nav-anchor:not([aria-current]):hover {
+	background-color: var(--sm-control-hover) !important;
+	color: var(--sm-text) !important;
+}
+
+/* Mintlify fakes bold on selected items with a 0.2px text-shadow; keep true Geist Medium */
+#navigation-items a[aria-current],
+#navigation-items a[aria-current] *,
+a.nav-tabs-item,
+a.nav-tabs-item * {
+	text-shadow: none !important;
+}
+
+/* Inactive top tabs ship in the active ink, so hover had nothing to change */
+a.nav-tabs-item:not(:has(> div[class*="bg-primary"])) {
+	color: var(--sm-text-2) !important;
+}
+
+a.nav-tabs-item:not(:has(> div[class*="bg-primary"])):hover {
+	color: var(--sm-text) !important;
+}
+
+a.nav-tabs-item:not(:has(> div[class*="bg-primary"])) img {
+	opacity: var(--sm-nav-icon-rest, 0.76);
+	transition: opacity var(--sm-dur-hover) var(--sm-ease-out) !important;
+}
+
+.dark a.nav-tabs-item img {
+	--sm-nav-icon-rest: 0.62;
+}
+
+a.nav-tabs-item:not(:has(> div[class*="bg-primary"])):hover img {
+	opacity: 1;
+}
+
+#search-bar-entry:hover {
+	background-color: rgb(9 17 32 / 0.06) !important;
+}
+
+.dark #search-bar-entry:hover {
+	background-color: rgb(255 255 255 / 0.06) !important;
+}
+
+.dark [class*="text-tooltip-foreground"] {
+	background-color: #262626 !important;
+}
+
+.sm-home-link-icon {
+	transition: background-color var(--sm-dur-hover) var(--sm-ease-out);
+}
+
+.sm-home-link:hover .sm-home-link-icon {
+	background: var(--sm-surface);
+}
+
 .dark img[src*="/icons/hugeicons/"],
 .sm-scene .m-ic.is-on img[src*="/icons/hugeicons/"],
 .sm-scene .m-badge img[src*="/icons/hugeicons/"] {
