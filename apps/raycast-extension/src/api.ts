@@ -1,4 +1,5 @@
 import { getPreferenceValues, showToast, Toast } from "@raycast/api"
+import { extractApiErrorMessage } from "./api-error"
 
 export interface Project {
 	id: string
@@ -101,14 +102,10 @@ async function makeAuthenticatedRequest<T>(
 			}
 
 			let errorMessage = `API request failed: ${response.statusText}`
-			try {
-				const errorBody = (await response.json()) as { message?: string }
-				if (errorBody.message) {
-					errorMessage = errorBody.message
-				}
-			} catch {
-				// Ignore JSON parsing errors, use default message
-			}
+			const responseMessage = extractApiErrorMessage(
+				await response.text().catch(() => ""),
+			)
+			if (responseMessage) errorMessage = responseMessage
 
 			throw new SupermemoryAPIError(errorMessage, response.status)
 		}
