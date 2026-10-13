@@ -1,3 +1,4 @@
+// Skips HTML error pages (proxy 5xx) so the toast falls back to the status text.
 export function extractApiErrorMessage(raw: string): string | undefined {
 	const body = raw.trim()
 	if (!body) return undefined
@@ -12,7 +13,7 @@ export function extractApiErrorMessage(raw: string): string | undefined {
 			if (typeof message === "string" && message.trim()) return message
 		}
 	} catch {
-		return body
+		return body.startsWith("<") ? undefined : body.slice(0, 300)
 	}
 
 	return undefined

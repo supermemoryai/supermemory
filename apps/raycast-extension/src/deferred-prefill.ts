@@ -16,9 +16,7 @@ export function createDeferredPrefillOwner(
 					if (active && prefillOwnsValue && value) {
 						applyValue(value)
 					}
-				} catch {
-					// Selection is unavailable; keep the current value unchanged.
-				}
+				} catch {}
 			})()
 
 			return {

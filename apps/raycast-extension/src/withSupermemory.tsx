@@ -10,7 +10,6 @@ import type { ComponentType } from "react"
 
 export function withSupermemory<P extends object>(Component: ComponentType<P>) {
 	return function SupermemoryWrappedComponent(props: P) {
-		// Let each command enforce its own endpoint-specific permissions and rate limit.
 		const { apiKey } = getPreferenceValues<Preferences>()
 
 		if (!apiKey.trim()) {
