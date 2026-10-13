@@ -11,15 +11,15 @@ import { fetchProjects, addProject } from "./api"
 import {
 	FormValidation,
 	showFailureToast,
-	useCachedPromise,
 	useForm,
+	usePromise,
 } from "@raycast/utils"
 import { withSupermemory } from "./withSupermemory"
 
 export default withSupermemory(Command)
 
 function Command() {
-	const { isLoading, data: projects, mutate } = useCachedPromise(fetchProjects)
+	const { isLoading, data: projects, mutate } = usePromise(fetchProjects)
 
 	return (
 		<List isLoading={isLoading} searchBarPlaceholder="Search your projects">
