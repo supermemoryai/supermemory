@@ -300,6 +300,7 @@ export class InputHandler {
 		if (touches.length >= 2) {
 			this.isTouchGesture = true
 			this.tapCandidate = false
+			this.endTouchDrag()
 			const t0 = touches[0]
 			const t1 = touches[1]
 			if (!t0 || !t1) return
@@ -326,7 +327,13 @@ export class InputHandler {
 			this.touchStartWorldX = startWorld.x
 			this.touchStartWorldY = startWorld.y
 			this.tapCandidate = true
-			this.isPanning = true
+			const node = this.spatialIndex.queryPoint(startWorld.x, startWorld.y)
+			if (node) {
+				this.pressedNode = node
+				this.grabOffset = { x: startWorld.x - node.x, y: startWorld.y - node.y }
+			} else {
+				this.isPanning = true
+			}
 		}
 	}
 
@@ -357,12 +364,7 @@ export class InputHandler {
 			this.lastTouchDistance = dist
 			this.lastTouchCenter = center
 			this.callbacks.onRequestRender()
-		} else if (
-			touches.length === 1 &&
-			this.isPanning &&
-			!this.isTouchGesture &&
-			touches[0]
-		) {
+		} else if (touches.length === 1 && !this.isTouchGesture && touches[0]) {
 			const t = touches[0]
 			const rect = this.canvas.getBoundingClientRect()
 			const x = t.clientX - rect.left
@@ -374,11 +376,33 @@ export class InputHandler {
 			) {
 				this.tapCandidate = false
 			}
-			this.viewport.pan(x - this.lastMouseX, y - this.lastMouseY)
-			this.lastMouseX = x
-			this.lastMouseY = y
-			this.callbacks.onRequestRender()
+			if (this.pressedNode && !this.tapCandidate) {
+				this.draggingNode = this.pressedNode
+				this.pressedNode = null
+				this.callbacks.onNodeDragStart(this.draggingNode.id, this.draggingNode)
+			}
+			if (this.draggingNode) {
+				const world = this.viewport.screenToWorld(x, y)
+				this.draggingNode.x = this.draggingNode.fx = world.x - this.grabOffset.x
+				this.draggingNode.y = this.draggingNode.fy = world.y - this.grabOffset.y
+				this.callbacks.onRequestRender()
+			} else if (this.isPanning) {
+				this.viewport.pan(x - this.lastMouseX, y - this.lastMouseY)
+				this.lastMouseX = x
+				this.lastMouseY = y
+				this.callbacks.onRequestRender()
+			}
 		}
+	}
+
+	private endTouchDrag(): void {
+		this.pressedNode = null
+		if (!this.draggingNode) return
+		this.draggingNode.fx = null
+		this.draggingNode.fy = null
+		this.draggingNode = null
+		this.callbacks.onNodeDragEnd()
+		this.callbacks.onRequestRender()
 	}
 
 	private onTouchEnd(e: TouchEvent): void {
@@ -387,6 +411,7 @@ export class InputHandler {
 		}
 		if (e.touches.length === 0) {
 			this.isPanning = false
+			this.endTouchDrag()
 			if (this.tapCandidate) {
 				this.tapCandidate = false
 				// Use the world point captured at touchstart, not the start screen
