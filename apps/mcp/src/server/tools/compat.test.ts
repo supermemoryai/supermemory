@@ -113,6 +113,20 @@ describe("containerTag compatibility", () => {
 		).not.toThrow()
 	})
 
+	it("passes optional metadata through to client.createMemory", async () => {
+		const { deps, tools, client } = fakeDeps()
+		addMemory.register(deps)
+		const tool = tools.get("add_memory")
+		if (!tool) throw new Error("add_memory not registered")
+		const metadata = { client: "claude", project: "secret-project" }
+		const result = await tool.cb({ content: "save this note", metadata }, {})
+		expect(client.createMemory).toHaveBeenCalledWith("save this note", metadata)
+		expect(result.structuredContent).toMatchObject({
+			action: "save",
+			success: true,
+		})
+	})
+
 	it("treats containerTag as the required namespace for set-active-tag", async () => {
 		const { deps, tools } = fakeDeps()
 		setActiveTag.register(deps)

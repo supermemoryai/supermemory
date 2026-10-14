@@ -23,6 +23,10 @@ export function register(deps: ToolDeps) {
 			.describe(
 				"Deprecated compatibility input. Use forget_memory to forget content; omit action to save.",
 			),
+		metadata: z
+			.record(z.string(), z.unknown())
+			.optional()
+			.describe("Optional key-value metadata to attach to the memory"),
 		namespace: optionalNamespaceSchema,
 		...legacyNamespaceInput,
 	})
@@ -42,7 +46,7 @@ export function register(deps: ToolDeps) {
 				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const client = deps.getClient(namespace)
 
-				const result = await client.createMemory(args.content)
+				const result = await client.createMemory(args.content, args.metadata)
 				const message = `Memory saved (ID: ${result.id}, space: ${result.namespace})`
 				const structuredContent: AddMemoryOutput = withLegacyNamespace({
 					action: "save",
