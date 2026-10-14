@@ -5,7 +5,6 @@ const SEARCH_MEMORY_SHORTCUT_URL =
 	"https://www.icloud.com/shortcuts/b0a132cc3c0d475196bc7014aa702a5c"
 const ADD_MEMORY_SHORTCUT_URL =
 	"https://www.icloud.com/shortcuts/0fd3e855be444845b457f94c78c2c8d9"
-const RAYCAST_EXTENSION_URL = "https://www.raycast.com/supermemory/supermemory"
 const CHROME_EXTENSION_URL =
 	"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc"
 const POKE_RECIPE_URL = "https://supermemory.link/poke"
@@ -16,7 +15,6 @@ export {
 	SHARED_TEAM_BRAIN_TAG,
 	SEARCH_MEMORY_SHORTCUT_URL,
 	ADD_MEMORY_SHORTCUT_URL,
-	RAYCAST_EXTENSION_URL,
 	CHROME_EXTENSION_URL,
 	POKE_RECIPE_URL,
 }
