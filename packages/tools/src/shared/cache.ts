@@ -8,7 +8,7 @@ import type { MemoryMode } from "./types"
 const escapeKeySegment = (segment: string): string =>
 	segment.replace(/%/g, "%25").replace(/:/g, "%3A")
 
-export class MemoryCache<T = string> {
+export class MemoryCache<T extends {} = string> {
 	private cache: LRUCache<string, T> = new LRUCache({ max: 100 })
 
 	/**
