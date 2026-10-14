@@ -28,15 +28,18 @@ export interface ForgetMemoryArgs {
 	containerTag?: string
 }
 
-// Only 2026-era requests carry capabilities per request; stateless legacy requests never saw initialize, so they use the confirm flag instead.
+// Stateless legacy requests cannot receive elicitation, so they use explicit two-call confirmation.
 function canElicit(context: ServerContext | undefined): boolean {
 	const envelope = context?.mcpReq?.envelope
 	if (!envelope) return false
 	const capabilities = Reflect.get(envelope, CLIENT_CAPABILITIES_META_KEY)
+	if (!capabilities || typeof capabilities !== "object") return false
+	const elicitation = Reflect.get(capabilities, "elicitation")
 	return Boolean(
-		capabilities &&
-			typeof capabilities === "object" &&
-			Reflect.get(capabilities, "elicitation"),
+		elicitation &&
+			typeof elicitation === "object" &&
+			(Reflect.get(elicitation, "form") !== undefined ||
+				Reflect.get(elicitation, "url") === undefined),
 	)
 }
 
@@ -60,7 +63,6 @@ function askToConfirm(
 				},
 			}),
 		},
-		// Only compared against the server-resolved ID, so a tampered value can just trigger a re-ask.
 		requestState: candidate.id,
 	})
 }

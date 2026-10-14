@@ -70,7 +70,6 @@ function resourceMetadata(c: Context<{ Bindings: Bindings }>) {
 	const canonicalMetadataUrl = new URL(
 		protectedResourceMetadataUrl(mcpResource),
 	)
-	// MCP clients also try the root well-known location as a compatibility fallback.
 	const isMcpRootFallback =
 		requestUrl.pathname === PROTECTED_RESOURCE_METADATA_PATH &&
 		requestUrl.search === ""

@@ -10,7 +10,6 @@ import { forgetMemory } from "./forget-memory"
 import { addMemoryOutputSchema, type AddMemoryOutput } from "./output-schemas"
 import { textContent, type ToolDeps } from "./types"
 
-// v5 metadata values are flat: string, number, boolean or string list.
 export const memoryMetadataSchema = z
 	.record(
 		z.string(),
