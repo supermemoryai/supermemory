@@ -48,7 +48,6 @@ supermemory/
 │   ├── web/                      # Redirects to the console
 │   ├── mcp/                      # Model Context Protocol server
 │   ├── docs/                     # Documentation site
-│   ├── raycast-extension/        # Raycast extension
 │   ├── memory-graph-playground/  # Demo app for the memory graph component
 │   └── sdk-playground/           # Playground for the SDK integrations
 ├── packages/
