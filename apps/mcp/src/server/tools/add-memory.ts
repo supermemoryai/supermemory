@@ -10,6 +10,15 @@ import { forgetMemory } from "./forget-memory"
 import { addMemoryOutputSchema, type AddMemoryOutput } from "./output-schemas"
 import { textContent, type ToolDeps } from "./types"
 
+// v5 metadata values are flat: string, number, boolean or string list.
+export const memoryMetadataSchema = z
+	.record(
+		z.string(),
+		z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
+	)
+	.optional()
+	.describe("Optional metadata to attach to the saved memory")
+
 export function register(deps: ToolDeps) {
 	const inputSchema = z.object({
 		content: z
@@ -25,14 +34,7 @@ export function register(deps: ToolDeps) {
 			),
 		namespace: optionalNamespaceSchema,
 		...legacyNamespaceInput,
-		// v5 metadata values are flat: string, number, boolean or string list.
-		metadata: z
-			.record(
-				z.string(),
-				z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
-			)
-			.optional()
-			.describe("Optional metadata to attach to the saved memory"),
+		metadata: memoryMetadataSchema,
 	})
 
 	deps.server.registerTool(

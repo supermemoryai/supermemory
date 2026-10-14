@@ -3,6 +3,7 @@ import { saveSuccessViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { namespaceSchema } from "../namespace"
 import { legacyNamespaceInput, namespaceArg, withLegacyView } from "./compat"
+import { memoryMetadataSchema } from "./add-memory"
 import { ADDITIVE_MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import { textContent, type ToolDeps } from "./types"
 
@@ -13,10 +14,7 @@ export function register(deps: ToolDeps) {
 			description: "Save content to memory",
 			inputSchema: z.object({
 				content: z.string().min(1),
-				metadata: z
-					.record(z.string(), z.unknown())
-					.optional()
-					.describe("Optional key-value metadata to attach to the memory"),
+				metadata: memoryMetadataSchema,
 				namespace: namespaceSchema.optional(),
 				...legacyNamespaceInput,
 				viewId: z.string().uuid().optional(),
