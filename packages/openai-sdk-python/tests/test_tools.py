@@ -256,6 +256,23 @@ class TestMemoryOperationsUnit:
         )
 
     @pytest.mark.asyncio
+    async def test_get_profile_handles_user_with_no_memories(self):
+        """A null profile (new user, no memories yet) is an empty profile, not a failure."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+
+        tools = SupermemoryTools("test-key", {"container_tags": ["unit-tag"]})
+        tools.client.profile = AsyncMock(
+            return_value=SimpleNamespace(profile=None, search_results=None)
+        )
+
+        result = await tools.get_profile()
+
+        assert result["success"] is True
+        assert result["profile"] == {"static": [], "dynamic": []}
+        assert result["search_results"] is None
+
+    @pytest.mark.asyncio
     async def test_document_list_uses_client_documents_list(self):
         """document_list must call client.documents.list with container tag."""
         from types import SimpleNamespace

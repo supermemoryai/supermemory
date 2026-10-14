@@ -477,12 +477,12 @@ class SupermemoryCartesiaAgent:
         Yields:
             Output events from the wrapped agent.
         """
-        try:
-            if type(event).__name__ == "UserTurnEnded":
+        if type(event).__name__ == "UserTurnEnded":
+            memory_context = None
+            try:
                 logger.info("[Supermemory] Processing UserTurnEnded event")
                 event, memory_context = await self._enrich_event_with_memories(event)
 
-                # Store conversation in background
                 if hasattr(event, 'history') and event.history:
                     new_messages = self._new_history_messages(event.history)
                     if new_messages:
@@ -505,15 +505,12 @@ class SupermemoryCartesiaAgent:
                         task = asyncio.create_task(self._store_messages(new_messages))
                         self._background_tasks.add(task)
                         task.add_done_callback(self._background_tasks.discard)
+            except Exception as e:
+                logger.error(f"[Supermemory] Failed to enrich or queue the conversation turn: {e}")
 
-                async for output in self._process_agent(env, event, memory_context):
-                    yield output
-            else:
-                async for output in self.agent.process(env, event):
-                    yield output
-
-        except Exception as e:
-            logger.error(f"[Supermemory] Error in process: {e}")
+            async for output in self._process_agent(env, event, memory_context):
+                yield output
+        else:
             async for output in self.agent.process(env, event):
                 yield output
 

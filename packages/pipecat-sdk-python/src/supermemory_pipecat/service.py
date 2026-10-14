@@ -416,7 +416,7 @@ class SupermemoryPipecatService(FrameProcessor):
                 existing_content = messages[system_idx].get("content", "")
                 if MEMORY_TAG_PATTERN.search(existing_content):
                     messages[system_idx]["content"] = MEMORY_TAG_PATTERN.sub(
-                        tagged_memory, existing_content
+                        lambda _match: tagged_memory, existing_content
                     )
                 else:
                     messages[system_idx]["content"] = f"{existing_content}\n\n{tagged_memory}"

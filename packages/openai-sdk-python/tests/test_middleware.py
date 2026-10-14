@@ -1,8 +1,11 @@
 """Tests for middleware module."""
 
 import os
+import sys
 import pytest
+import requests
 import asyncio
+import threading
 from unittest.mock import AsyncMock, Mock, patch, MagicMock
 from typing import Dict, Any
 
@@ -26,9 +29,15 @@ except ImportError:
         SupermemoryOpenAIWrapper,
     )
 
+from supermemory_openai.middleware import supermemory_profile_search
 from openai import OpenAI, AsyncOpenAI
 from openai.types.chat import ChatCompletion, ChatCompletionMessage
 from openai.types import CompletionUsage
+
+from supermemory_openai.exceptions import (
+    SupermemoryAPIError,
+    SupermemoryNetworkError,
+)
 
 
 @pytest.fixture
@@ -555,9 +564,11 @@ class TestErrorHandling:
     async def test_supermemory_api_error_handling(
         self, mock_async_openai_client, mock_openai_response
     ):
-        """Test handling of Supermemory API errors."""
+        """Supermemory API errors fail open with the original messages."""
         original_create = AsyncMock(return_value=mock_openai_response)
         mock_async_openai_client.chat.completions.create = original_create
+
+        messages = [{"role": "user", "content": "Hello"}]
 
         with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
             with patch("supermemory_openai.middleware.supermemory_profile_search") as mock_search:
@@ -569,11 +580,14 @@ class TestErrorHandling:
                 )
 
                 # Should not raise exception, should fall back gracefully
-                with pytest.raises(Exception):
-                    await wrapped_client.chat.completions.create(
-                        model="gpt-4",
-                        messages=[{"role": "user", "content": "Hello"}]
-                    )
+                result = await wrapped_client.chat.completions.create(
+                    model="gpt-4",
+                    messages=messages
+                )
+
+                assert result == mock_openai_response
+                original_create.assert_called_once()
+                assert original_create.call_args[1]["messages"] == messages
 
     @pytest.mark.asyncio
     async def test_no_user_message_handling(
@@ -812,3 +826,325 @@ class TestBackgroundTaskManagement:
                         )
 
                     # Should complete without error
+
+
+class TestMemorySearchFailOpen:
+    """The memory-search path must fail open."""
+
+    ORIGINAL_MESSAGES = [{"role": "user", "content": "What do you know about me?"}]
+    ENHANCED_MESSAGES = [
+        {"role": "system", "content": "memories about the user"},
+        {"role": "user", "content": "What do you know about me?"},
+    ]
+
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "exc, expected_log",
+        [
+            (SupermemoryNetworkError("network down"), "warn"),
+            (SupermemoryAPIError("api boom", status_code=500), "warn"),
+            (ValueError("totally unexpected"), "error"),
+        ],
+    )
+    async def test_async_fail_open(
+        self, mock_async_openai_client, mock_openai_response, exc, expected_log
+    ):
+        original_create = AsyncMock(return_value=mock_openai_response)
+        mock_async_openai_client.chat.completions.create = original_create
+
+        with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
+            with patch(
+                "supermemory_openai.middleware.add_system_prompt",
+                new=AsyncMock(side_effect=exc),
+            ):
+                wrapped_client = with_supermemory(
+                    mock_async_openai_client,
+                    OpenAIMiddlewareOptions(
+                        container_tag="user-123",
+                        custom_id="test-conv",
+                        add_memory="never",
+                    ),
+                )
+                wrapped_client._logger.warn = Mock()
+                wrapped_client._logger.error = Mock()
+
+                result = await wrapped_client.chat.completions.create(
+                    model="gpt-4", messages=self.ORIGINAL_MESSAGES
+                )
+
+                assert result == mock_openai_response
+
+                original_create.assert_called_once()
+                assert (
+                    original_create.call_args[1]["messages"] == self.ORIGINAL_MESSAGES
+                )
+
+                if expected_log == "warn":
+                    wrapped_client._logger.warn.assert_called_once()
+                    wrapped_client._logger.error.assert_not_called()
+                else:
+                    wrapped_client._logger.error.assert_called_once()
+                    wrapped_client._logger.warn.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_async_happy_path_unchanged(
+        self, mock_async_openai_client, mock_openai_response
+    ):
+        """Regression: when search succeeds, enhanced messages are still used."""
+        original_create = AsyncMock(return_value=mock_openai_response)
+        mock_async_openai_client.chat.completions.create = original_create
+
+        with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
+            with patch(
+                "supermemory_openai.middleware.add_system_prompt",
+                new=AsyncMock(return_value=self.ENHANCED_MESSAGES),
+            ):
+                wrapped_client = with_supermemory(
+                    mock_async_openai_client,
+                    OpenAIMiddlewareOptions(
+                        container_tag="user-123",
+                        custom_id="test-conv",
+                        add_memory="never",
+                    ),
+                )
+                wrapped_client._logger.warn = Mock()
+                wrapped_client._logger.error = Mock()
+
+                result = await wrapped_client.chat.completions.create(
+                    model="gpt-4", messages=self.ORIGINAL_MESSAGES
+                )
+
+                assert result == mock_openai_response
+                original_create.assert_called_once()
+                assert (
+                    original_create.call_args[1]["messages"] == self.ENHANCED_MESSAGES
+                )
+                wrapped_client._logger.warn.assert_not_called()
+                wrapped_client._logger.error.assert_not_called()
+
+
+    @pytest.mark.parametrize(
+        "exc, expected_log",
+        [
+            (SupermemoryNetworkError("network down"), "warn"),
+            (SupermemoryAPIError("api boom", status_code=500), "warn"),
+            (ValueError("totally unexpected"), "error"),
+        ],
+    )
+    def test_sync_fail_open(
+        self, mock_openai_client, mock_openai_response, exc, expected_log
+    ):
+        original_create = Mock(return_value=mock_openai_response)
+        mock_openai_client.chat.completions.create = original_create
+
+        with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
+            with patch(
+                "supermemory_openai.middleware.add_system_prompt",
+                new=AsyncMock(side_effect=exc),
+            ):
+                wrapped_client = with_supermemory(
+                    mock_openai_client,
+                    OpenAIMiddlewareOptions(
+                        container_tag="user-123",
+                        custom_id="test-conv",
+                        add_memory="never",
+                    ),
+                )
+                wrapped_client._logger.warn = Mock()
+                wrapped_client._logger.error = Mock()
+
+                result = wrapped_client.chat.completions.create(
+                    model="gpt-4", messages=self.ORIGINAL_MESSAGES
+                )
+
+                assert result == mock_openai_response
+                original_create.assert_called_once()
+                assert (
+                    original_create.call_args[1]["messages"] == self.ORIGINAL_MESSAGES
+                )
+
+                if expected_log == "warn":
+                    wrapped_client._logger.warn.assert_called_once()
+                    wrapped_client._logger.error.assert_not_called()
+                else:
+                    wrapped_client._logger.error.assert_called_once()
+                    wrapped_client._logger.warn.assert_not_called()
+
+    def test_sync_fail_open_in_async_context(
+        self, mock_openai_client, mock_openai_response
+    ):
+        """Fail-open must also cover the ThreadPoolExecutor fallback branch."""
+
+        async def run_in_async():
+            original_create = Mock(return_value=mock_openai_response)
+            mock_openai_client.chat.completions.create = original_create
+
+            with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
+                with patch(
+                    "supermemory_openai.middleware.add_system_prompt",
+                    new=AsyncMock(side_effect=SupermemoryNetworkError("network down")),
+                ):
+                    wrapped_client = with_supermemory(
+                        mock_openai_client,
+                        OpenAIMiddlewareOptions(
+                            container_tag="user-123",
+                            custom_id="test-conv",
+                            add_memory="never",
+                        ),
+                    )
+                    wrapped_client._logger.warn = Mock()
+                    wrapped_client._logger.error = Mock()
+
+                    result = wrapped_client.chat.completions.create(
+                        model="gpt-4", messages=self.ORIGINAL_MESSAGES
+                    )
+
+                    assert result == mock_openai_response
+                    original_create.assert_called_once()
+                    assert (
+                        original_create.call_args[1]["messages"]
+                        == self.ORIGINAL_MESSAGES
+                    )
+                    wrapped_client._logger.warn.assert_called_once()
+                    wrapped_client._logger.error.assert_not_called()
+
+        asyncio.run(run_in_async())
+
+    def test_sync_happy_path_unchanged(self, mock_openai_client, mock_openai_response):
+        """Regression: when search succeeds, enhanced messages are still used."""
+        original_create = Mock(return_value=mock_openai_response)
+        mock_openai_client.chat.completions.create = original_create
+
+        with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
+            with patch(
+                "supermemory_openai.middleware.add_system_prompt",
+                new=AsyncMock(return_value=self.ENHANCED_MESSAGES),
+            ):
+                wrapped_client = with_supermemory(
+                    mock_openai_client,
+                    OpenAIMiddlewareOptions(
+                        container_tag="user-123",
+                        custom_id="test-conv",
+                        add_memory="never",
+                    ),
+                )
+                wrapped_client._logger.warn = Mock()
+                wrapped_client._logger.error = Mock()
+
+                result = wrapped_client.chat.completions.create(
+                    model="gpt-4", messages=self.ORIGINAL_MESSAGES
+                )
+
+                assert result == mock_openai_response
+                original_create.assert_called_once()
+                assert (
+                    original_create.call_args[1]["messages"] == self.ENHANCED_MESSAGES
+                )
+                wrapped_client._logger.warn.assert_not_called()
+                wrapped_client._logger.error.assert_not_called()
+
+
+    @pytest.mark.asyncio
+    async def test_black_box_async_connection_error(
+        self, mock_async_openai_client, mock_openai_response
+    ):
+        """A real aiohttp connection error must not crash create()."""
+        aiohttp = pytest.importorskip("aiohttp")
+
+        original_create = AsyncMock(return_value=mock_openai_response)
+        mock_async_openai_client.chat.completions.create = original_create
+
+        with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
+            with patch(
+                "supermemory_openai.middleware.add_memory_tool",
+                new=AsyncMock(return_value=None),
+            ):
+                with patch(
+                    "aiohttp.ClientSession.post",
+                    side_effect=aiohttp.ClientConnectionError("connection refused"),
+                ):
+                    wrapped_client = with_supermemory(
+                        mock_async_openai_client,
+                        OpenAIMiddlewareOptions(
+                            container_tag="user-123", custom_id="test-conv"
+                        ),
+                    )
+
+                    result = await wrapped_client.chat.completions.create(
+                        model="gpt-4",
+                        messages=[{"role": "user", "content": "Hello"}],
+                    )
+
+                    assert result == mock_openai_response
+                    original_create.assert_called_once()
+
+    def test_black_box_sync_connection_error(
+        self, mock_openai_client, mock_openai_response
+    ):
+        """A real requests connection error must not crash create()."""
+        import sys
+
+        import requests
+
+        original_create = Mock(return_value=mock_openai_response)
+        mock_openai_client.chat.completions.create = original_create
+
+        with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
+            with patch(
+                "supermemory_openai.middleware.add_memory_tool",
+                new=AsyncMock(return_value=None),
+            ):
+                with patch.dict(sys.modules, {"aiohttp": None}):
+                    with patch(
+                        "requests.post",
+                        side_effect=requests.exceptions.ConnectionError(
+                            "connection refused"
+                        ),
+                    ):
+                        wrapped_client = with_supermemory(
+                            mock_openai_client,
+                            OpenAIMiddlewareOptions(
+                                container_tag="user-123", custom_id="test-conv"
+                            ),
+                        )
+
+                        result = wrapped_client.chat.completions.create(
+                            model="gpt-4",
+                            messages=[{"role": "user", "content": "Hello"}],
+                        )
+
+                        assert result == mock_openai_response
+                        original_create.assert_called_once()
+
+
+class TestProfileSearchFallback:
+    """Test the requests fallback used when aiohttp is not installed."""
+
+    @pytest.mark.asyncio
+    async def test_requests_fallback_does_not_block_event_loop(self):
+        """requests.post must run off the event loop so other tasks keep running."""
+        released = threading.Event()
+
+        def slow_post(*args, **kwargs):
+            if not released.wait(timeout=2):
+                raise AssertionError("requests.post blocked the event loop")
+            response = Mock(status_code=200)
+            response.json.return_value = {
+                "profile": {"static": ["Prefers vegetarian food"], "dynamic": []},
+                "searchResults": {"results": []},
+            }
+            return response
+
+        with patch.dict(sys.modules, {"aiohttp": None}):
+            with patch.object(requests, "post", side_effect=slow_post):
+                search = asyncio.create_task(
+                    supermemory_profile_search(
+                        "user-123", "", "test-key", "https://api.supermemory.ai"
+                    )
+                )
+                await asyncio.sleep(0)
+                released.set()
+                result = await search
+
+        assert result.profile["static"] == ["Prefers vegetarian food"]

@@ -528,7 +528,11 @@ class SupermemoryTools:
 
             return ProfileResult(
                 success=True,
-                profile=_model_to_dict(response.profile),
+                profile=(
+                    _model_to_dict(response.profile)
+                    if response.profile is not None
+                    else {"static": [], "dynamic": []}
+                ),
                 search_results=(
                     _model_to_dict(response.search_results)
                     if response.search_results is not None

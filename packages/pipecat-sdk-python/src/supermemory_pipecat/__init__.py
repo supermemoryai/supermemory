@@ -42,15 +42,18 @@ from .utils import (
     get_last_user_message,
 )
 
+InputParams = SupermemoryPipecatService.InputParams
+
 try:
     __version__ = version("supermemory-pipecat")
 except PackageNotFoundError:
     # Source-tree fallback; built wheels always use package metadata above.
-    __version__ = "0.1.3"
+    __version__ = "0.1.5"
 
 __all__ = [
     # Main service
     "SupermemoryPipecatService",
+    "InputParams",
     # Exceptions
     "SupermemoryPipecatError",
     "ConfigurationError",

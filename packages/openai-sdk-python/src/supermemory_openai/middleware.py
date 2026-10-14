@@ -3,6 +3,7 @@
 import asyncio
 import inspect
 import os
+import types
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any, Literal, Optional, Union, cast
@@ -186,13 +187,75 @@ def _update_chat_memory_contexts(
     return enhanced
 
 
+class _ResourceFacade:
+    """Delegate an SDK resource while overriding selected attributes."""
+
+    def __init__(
+        self,
+        resource: Any,
+        lazy_overrides: Optional[dict[str, Any]] = None,
+        **overrides: Any,
+    ) -> None:
+        self._resource = resource
+        self._lazy_overrides = lazy_overrides or {}
+        for name, value in overrides.items():
+            setattr(self, name, value)
+
+    def __getattr__(self, name: str) -> Any:
+        factory = self._lazy_overrides.get(name)
+        if factory is not None:
+            value = factory()
+            setattr(self, name, value)
+            return value
+        return getattr(self._resource, name)
+
+
+class _AsyncMemoryResponseContextManager:
+    """Apply async middleware before entering a streaming response context."""
+
+    def __init__(
+        self,
+        wrapper: "SupermemoryOpenAIWrapper",
+        original_create: Any,
+        kwargs: dict[str, Any],
+    ) -> None:
+        self._wrapper = wrapper
+        self._original_create = original_create
+        self._kwargs = kwargs
+        self._response_context: Any = None
+
+    async def __aenter__(self) -> Any:
+        async def enter_original(**kwargs: Any) -> Any:
+            self._response_context = self._original_create(**kwargs)
+            return await self._response_context.__aenter__()
+
+        return await self._wrapper._create_with_memory_async(
+            enter_original,
+            **self._kwargs,
+        )
+
+    async def __aexit__(
+        self,
+        exc_type: Any,
+        exc_value: Any,
+        traceback: Any,
+    ) -> Any:
+        if self._response_context is None:
+            return None
+        return await self._response_context.__aexit__(
+            exc_type,
+            exc_value,
+            traceback,
+        )
+
+
 async def supermemory_profile_search(
     container_tag: str,
     query_text: str,
     api_key: str,
     base_url: str,
 ) -> SupermemoryProfileSearch:
-    """Search for memories using the SuperMemory profile API."""
+    """Search memories via the profile API; the requests fallback runs on a thread."""
     payload = {
         "containerTag": container_tag,
         "include": ["static", "dynamic"],
@@ -227,10 +290,10 @@ async def supermemory_profile_search(
                 return SupermemoryProfileSearch(data)
 
     except ImportError:
-        # Fallback to requests if aiohttp not available
         import requests
 
-        response = requests.post(
+        response = await asyncio.to_thread(
+            requests.post,
             profile_url,
             headers={
                 "Content-Type": "application/json",
@@ -359,15 +422,12 @@ async def add_memory_tool(
     custom_id: Optional[str],
     logger: Logger,
 ) -> None:
-    """Add a new memory to the SuperMemory system."""
+    """Add a memory without running the sync client call on the event loop."""
     try:
         kwargs = {"content": content, "container_tag": container_tag}
         if custom_id is not None:
             kwargs["custom_id"] = custom_id
 
-        # The wrapper currently constructs the synchronous Supermemory client for
-        # both OpenAI variants. Never execute that network call on an async event
-        # loop; mocks or future async clients can still return an awaitable.
         if inspect.iscoroutinefunction(client.add):
             result = client.add(**kwargs)
         else:
@@ -410,14 +470,22 @@ class SupermemoryOpenAIWrapper:
         openai_client: Union[OpenAI, AsyncOpenAI],
         options: OpenAIMiddlewareOptions,
     ):
-        self._client: Union[OpenAI, AsyncOpenAI] = openai_client
+        self._client: Union[OpenAI, AsyncOpenAI] = getattr(
+            openai_client,
+            "__supermemory_openai_base_client__",
+            openai_client,
+        )
+        self.__supermemory_openai_base_client__ = self._client
         self._container_tag: str = options.container_tag
         self._options: OpenAIMiddlewareOptions = options
         self._logger: Logger = create_logger(self._options.verbose)
         self._api_key = self._resolve_api_key(options.api_key)
         self._base_url = self._resolve_base_url(options.base_url)
+        base_create = self._client.chat.completions.create
+        self._is_async_client = isinstance(
+            self._client, AsyncOpenAI
+        ) or inspect.iscoroutinefunction(inspect.unwrap(base_create))
 
-        # Track background tasks to ensure they complete
         self._background_tasks: set[asyncio.Task] = set()
 
         if not hasattr(supermemory, "Supermemory"):
@@ -436,8 +504,7 @@ class SupermemoryOpenAIWrapper:
                 f"Failed to initialize Supermemory client: {e}", e
             )
 
-        # Wrap the chat completions create method
-        self._wrap_chat_completions()
+        self.chat = self._create_chat_facade()
 
     @staticmethod
     def _resolve_api_key(configured_api_key: Optional[str]) -> str:
@@ -462,35 +529,124 @@ class SupermemoryOpenAIWrapper:
         )
         return base_url.rstrip("/")
 
-    def _wrap_chat_completions(self) -> None:
-        """Wrap the chat completions create method with memory injection."""
-        original_create = self._client.chat.completions.create
+    def _create_chat_facade(self) -> _ResourceFacade:
+        """Create isolated chat facades; stream() is rebound so it calls the wrapped create."""
+        completions_resource = self._client.chat.completions
+        completions = _ResourceFacade(
+            completions_resource,
+            lazy_overrides={
+                "with_raw_response": lambda: self._create_completion_variant_facade(
+                    "with_raw_response"
+                ),
+                "with_streaming_response": lambda: self._create_completion_variant_facade(
+                    "with_streaming_response"
+                ),
+            },
+            create=self._create_completion_method(completions_resource.create),
+        )
+        stream = getattr(type(completions_resource), "stream", None)
+        if stream is not None:
+            completions.stream = types.MethodType(stream, completions)
+        return _ResourceFacade(
+            self._client.chat,
+            lazy_overrides={
+                "with_raw_response": lambda: self._create_chat_variant_facade(
+                    "with_raw_response"
+                ),
+                "with_streaming_response": lambda: self._create_chat_variant_facade(
+                    "with_streaming_response"
+                ),
+            },
+            completions=completions,
+        )
 
-        if asyncio.iscoroutinefunction(original_create):
+    def _create_completion_variant_facade(self, name: str) -> _ResourceFacade:
+        """Preserve raw and streaming response behavior on isolated facades."""
+        resource = getattr(self._client.chat.completions, name)
+        return _ResourceFacade(
+            resource,
+            create=self._create_completion_method(
+                resource.create,
+                streaming_response=name == "with_streaming_response",
+            ),
+        )
 
-            async def create_with_memory(
+    def _create_chat_variant_facade(self, name: str) -> _ResourceFacade:
+        """Wrap completions reached through a chat response variant."""
+        chat_resource = getattr(self._client.chat, name)
+        completions_resource = chat_resource.completions
+        return _ResourceFacade(
+            chat_resource,
+            completions=_ResourceFacade(
+                completions_resource,
+                create=self._create_completion_method(
+                    completions_resource.create,
+                    streaming_response=name == "with_streaming_response",
+                ),
+            ),
+        )
+
+    def _create_client_variant_facade(self, name: str) -> _ResourceFacade:
+        """Wrap completions reached through a client response variant."""
+        client_resource = getattr(self._client, name)
+        chat_resource = client_resource.chat
+        completions_resource = chat_resource.completions
+        return _ResourceFacade(
+            client_resource,
+            chat=_ResourceFacade(
+                chat_resource,
+                completions=_ResourceFacade(
+                    completions_resource,
+                    create=self._create_completion_method(
+                        completions_resource.create,
+                        streaming_response=name == "with_streaming_response",
+                    ),
+                ),
+            ),
+        )
+
+    def _create_completion_method(
+        self,
+        original_create: Any,
+        *,
+        streaming_response: bool = False,
+    ) -> Any:
+        """Wrap one completion create implementation with memory injection."""
+        if self._is_async_client and streaming_response:
+
+            def create_streaming_with_memory(
+                **kwargs: Any,
+            ) -> _AsyncMemoryResponseContextManager:
+                return _AsyncMemoryResponseContextManager(
+                    self,
+                    original_create,
+                    kwargs,
+                )
+
+            return create_streaming_with_memory
+
+        if self._is_async_client:
+
+            async def create_async_with_memory(
                 **kwargs: Any,
             ) -> Any:
                 return await self._create_with_memory_async(original_create, **kwargs)
 
-        else:
+            return create_async_with_memory
 
-            def create_with_memory(
-                **kwargs: Any,
-            ) -> Any:
-                return self._create_with_memory_sync(original_create, **kwargs)
+        def create_sync_with_memory(
+            **kwargs: Any,
+        ) -> Any:
+            return self._create_with_memory_sync(original_create, **kwargs)
 
-        # Replace the create method with our wrapper
-        setattr(self._client.chat.completions, "create", create_with_memory)
+        return create_sync_with_memory
 
     async def _create_with_memory_async(
         self,
         original_create: Any,
         **kwargs: Any,
     ) -> Any:
-        """Async version of create with memory injection."""
-        # OpenAI accepts any Iterable here. Materialize it once because memory
-        # extraction and injection both traverse the messages.
+        """Async create with memory injection; memory failures fail open."""
         messages = list(kwargs.get("messages", []))
         kwargs["messages"] = messages
 
@@ -508,7 +664,6 @@ class SupermemoryOpenAIWrapper:
                     else None
                 )
 
-                # Create background task for memory storage
                 task = asyncio.create_task(
                     add_memory_tool(
                         self._supermemory_client,
@@ -519,11 +674,9 @@ class SupermemoryOpenAIWrapper:
                     )
                 )
 
-                # Track the task and set up cleanup
                 self._background_tasks.add(task)
                 task.add_done_callback(self._background_tasks.discard)
 
-                # Log any exceptions but don't fail the main request
                 def handle_task_exception(task_obj):
                     try:
                         if task_obj.exception() is not None:
@@ -568,14 +721,27 @@ class SupermemoryOpenAIWrapper:
             },
         )
 
-        enhanced_messages = await add_system_prompt(
-            messages,
-            self._container_tag,
-            self._logger,
-            self._options.mode,
-            self._api_key,
-            self._base_url,
-        )
+        try:
+            enhanced_messages = await add_system_prompt(
+                messages,
+                self._container_tag,
+                self._logger,
+                self._options.mode,
+                self._api_key,
+                self._base_url,
+            )
+        except (SupermemoryNetworkError, SupermemoryAPIError) as e:
+            self._logger.warn(
+                "Memory search failed, proceeding without memory injection",
+                {"error": str(e), "type": type(e).__name__},
+            )
+            return await original_create(**kwargs)
+        except Exception as e:
+            self._logger.error(
+                "Unexpected error during memory search, proceeding without memory injection",
+                {"error": str(e), "type": type(e).__name__},
+            )
+            return await original_create(**kwargs)
 
         kwargs["messages"] = enhanced_messages
         return await original_create(**kwargs)
@@ -585,12 +751,10 @@ class SupermemoryOpenAIWrapper:
         original_create: Any,
         **kwargs: Any,
     ) -> Any:
-        """Sync version of create with memory injection."""
-        # For sync clients, we implement a simplified version without background tasks
+        """Sync create with memory injection; memory failures fail open."""
         messages = list(kwargs.get("messages", []))
         kwargs["messages"] = messages
 
-        # Handle memory addition synchronously if needed
         if self._options.add_memory == "always":
             user_message = get_last_user_message(messages)
             if user_message and user_message.strip():
@@ -605,7 +769,6 @@ class SupermemoryOpenAIWrapper:
                     else None
                 )
 
-                # Use asyncio.run() for the memory addition
                 try:
                     asyncio.run(
                         add_memory_tool(
@@ -618,7 +781,6 @@ class SupermemoryOpenAIWrapper:
                     )
                 except RuntimeError as e:
                     if "cannot be called from a running event loop" in str(e):
-                        # We're in an async context, log warning and skip memory saving
                         self._logger.warn(
                             "Cannot save memory in sync client from async context",
                             {"error": str(e)},
@@ -626,19 +788,15 @@ class SupermemoryOpenAIWrapper:
                     else:
                         raise
                 except SupermemoryNetworkError as e:
-                    # Network errors are expected, log as warning
                     self._logger.warn("Network error saving memory", {"error": str(e)})
                 except (SupermemoryAPIError, SupermemoryMemoryOperationError) as e:
-                    # API/memory errors are concerning, log as error
                     self._logger.error("Failed to save memory", {"error": str(e)})
                 except Exception as e:
-                    # Unexpected errors should be investigated
                     self._logger.error(
                         "Unexpected error saving memory",
                         {"error": str(e), "type": type(e).__name__},
                     )
 
-        # Handle memory search and injection
         if self._options.mode != "profile":
             user_message = get_last_user_message(messages)
             if not user_message:
@@ -655,38 +813,51 @@ class SupermemoryOpenAIWrapper:
             },
         )
 
-        # Use asyncio.run() for memory search and injection
         try:
-            enhanced_messages = asyncio.run(
-                add_system_prompt(
-                    messages,
-                    self._container_tag,
-                    self._logger,
-                    self._options.mode,
-                    self._api_key,
-                    self._base_url,
-                )
-            )
-        except RuntimeError as e:
-            if "cannot be called from a running event loop" in str(e):
-                # We're in an async context, run in a separate thread
-                import concurrent.futures
-
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(
-                        asyncio.run,
-                        add_system_prompt(
-                            messages,
-                            self._container_tag,
-                            self._logger,
-                            self._options.mode,
-                            self._api_key,
-                            self._base_url,
-                        ),
+            try:
+                enhanced_messages = asyncio.run(
+                    add_system_prompt(
+                        messages,
+                        self._container_tag,
+                        self._logger,
+                        self._options.mode,
+                        self._api_key,
+                        self._base_url,
                     )
-                    enhanced_messages = future.result()
-            else:
-                raise
+                )
+            except RuntimeError as e:
+                if "cannot be called from a running event loop" in str(e):
+                    import concurrent.futures
+
+                    with concurrent.futures.ThreadPoolExecutor(
+                        max_workers=1
+                    ) as executor:
+                        future = executor.submit(
+                            asyncio.run,
+                            add_system_prompt(
+                                messages,
+                                self._container_tag,
+                                self._logger,
+                                self._options.mode,
+                                self._api_key,
+                                self._base_url,
+                            ),
+                        )
+                        enhanced_messages = future.result()
+                else:
+                    raise
+        except (SupermemoryNetworkError, SupermemoryAPIError) as e:
+            self._logger.warn(
+                "Memory search failed, proceeding without memory injection",
+                {"error": str(e), "type": type(e).__name__},
+            )
+            return original_create(**kwargs)
+        except Exception as e:
+            self._logger.error(
+                "Unexpected error during memory search, proceeding without memory injection",
+                {"error": str(e), "type": type(e).__name__},
+            )
+            return original_create(**kwargs)
 
         kwargs["messages"] = enhanced_messages
         return original_create(**kwargs)
@@ -722,7 +893,6 @@ class SupermemoryOpenAIWrapper:
             self._logger.warn(
                 f"Background tasks did not complete within {timeout}s timeout"
             )
-            # Cancel remaining tasks
             tasks_to_cancel = [
                 task for task in self._background_tasks if not task.done()
             ]
@@ -763,11 +933,9 @@ class SupermemoryOpenAIWrapper:
         """Sync context manager exit - attempt to wait for background tasks."""
         if self._background_tasks:
             try:
-                # Try to wait for background tasks in sync context
                 asyncio.run(self.wait_for_background_tasks(timeout=5.0))
             except RuntimeError as e:
                 if "cannot be called from a running event loop" in str(e):
-                    # In async context, just cancel the tasks
                     self._logger.warn(
                         "Cannot wait for background tasks in sync context from async environment. "
                         "Use async context manager or call wait_for_background_tasks() manually."
@@ -783,6 +951,10 @@ class SupermemoryOpenAIWrapper:
 
     def __getattr__(self, name: str) -> Any:
         """Delegate all other attributes to the wrapped client."""
+        if name in {"with_raw_response", "with_streaming_response"}:
+            value = self._create_client_variant_facade(name)
+            setattr(self, name, value)
+            return value
         return getattr(self._client, name)
 
 
