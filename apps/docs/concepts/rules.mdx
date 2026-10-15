@@ -30,7 +30,7 @@ Agents benefit most from having a _general_ idea of the topic alongside tools to
 
 Two things about this table that trip people up.
 
-**"Remember" and "look up" are both supermemory, but different reads.** You [ingest documents](/ingestion/add-memories); the pipeline derives memories from them and maintains a profile per [namespace](/concepts/container-tags). `supermemory.search({ searchMode: "memories" })` recalls the derived facts. `supermemory.search({ searchMode: "chunks" })` recalls the source material itself. A support agent usually needs both: memories for "this customer runs self-hosted and already tried reinstalling", documents for the actual troubleshooting guide.
+**"Remember" and "look up" are both supermemory, but different reads.** You [ingest documents](/ingestion/add-memories); the pipeline derives memories from them and maintains a profile per [namespace](/concepts/container-tags). `supermemory.search(namespace, { query, searchMode: "memories" })` recalls the derived facts. `supermemory.search(namespace, { query, searchMode: "chunks" })` recalls the source material itself. A support agent usually needs both: memories for "this customer runs self-hosted and already tried reinstalling", documents for the actual troubleshooting guide.
 
 **Supermemory is not your system of record.** There's no SQL over memories, no joins, no aggregates, no querying by primary key. Keep transactional data in your database, and ingest the narrative *around* it ("the customer disputed invoice #4821 and churned over it") so your AI understands what the rows mean.
 
@@ -56,10 +56,10 @@ client.add(
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/ns/test/document?taskType=superrag" \
+curl -X POST "https://api.supermemory.ai/ns/test/document" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{ "content": "testing" }'
+  -d '{ "content": "testing", "taskType": "superrag" }'
 ```
 
 </CodeGroup>
@@ -86,10 +86,10 @@ results = client.search(
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/ns/test/search?searchMode=hybrid" \
+curl -X POST "https://api.supermemory.ai/ns/test/search" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{ "query": "test" }'
+  -d '{ "query": "test", "searchMode": "hybrid" }'
 ```
 
 </CodeGroup>
@@ -252,11 +252,12 @@ results = client.search(
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/ns/org-supermemory/search?searchMode=chunks" \
+curl -X POST "https://api.supermemory.ai/ns/org-supermemory/search" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "preferred language",
+    "searchMode": "chunks",
     "filter": { "field": "team", "operator": "eq", "value": "Research" }
   }'
 ```

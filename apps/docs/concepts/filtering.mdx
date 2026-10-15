@@ -22,7 +22,7 @@ Both can be used independently or together for precise filtering.
 
 ## Namespaces
 
-Namespaces create isolated memory spaces. Use them to separate memories by user, project, or any logical boundary. The namespace is part of the URL (`/ns/{namespace}/...`), so every SDK call takes it as a top-level key.
+Namespaces create isolated memory spaces. Use them to separate memories by user, project, or any logical boundary. The namespace is part of the URL (`/ns/{namespace}/...`), so namespace-scoped SDK calls take it as the first argument.
 
 ### Adding Memories to a Namespace
 
@@ -42,7 +42,7 @@ const results = await supermemory.search("user_123", {
 ```
 
 <Note>
-Each search is scoped to a single namespace. Passing `namespace: "user_123"` restricts results to memories stored in that namespace.
+Each search is scoped to a single namespace. Passing `"user_123"` as the namespace restricts results to memories stored in that namespace.
 </Note>
 
 ### Recommended patterns
@@ -336,7 +336,6 @@ const results = await supermemory.search("user_123", { // Scopes results to this
 ### Metadata key rules
 
 - Allowed characters: `a-z`, `A-Z`, `0-9`, `_`, `-`, `.`
-- Max length: 64 characters
 - No spaces or special characters
 - Keys are literal: `customer.plan` is one key named `customer.plan`, not a nested path
 

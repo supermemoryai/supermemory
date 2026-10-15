@@ -83,7 +83,7 @@ await supermemory.search("user_1", {
 ```
 </CodeGroup>
 
-`filter` is a typed object under `body`, not a JSON string. The same shape works in `supermemory.list` and `supermemory.profile`. Keys are literal: `customer.plan` is one field name, not a nested path.
+`filter` is a typed object in the request body (a field of the options object in the SDKs), not a JSON string. The same shape works in `supermemory.list` and `supermemory.profile`. Keys are literal: `customer.plan` is one field name, not a nested path.
 
 ### Deterministic conversion
 

@@ -12,7 +12,7 @@ Search through your memories and documents with a single API call. Each search r
 </Tip>
 
 <Note>
-**TypeScript SDK:** one call, `supermemory.search(namespace, { query, searchMode })`. `searchMode` (`"memories"`, `"chunks"`, or `"hybrid"`) picks what comes back. There is no v5 Python SDK yet; the Python tab shows the legacy client.
+**SDKs:** one call, `supermemory.search(namespace, { query, searchMode })` in TypeScript or `client.search(namespace, query=..., search_mode=...)` in Python. `searchMode` (`"memories"`, `"chunks"`, or `"hybrid"`) picks what comes back.
 </Note>
 
 ## Quick start
@@ -54,10 +54,10 @@ Search through your memories and documents with a single API call. Each search r
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/ns/user_123/search?searchMode=hybrid&limit=5" \
+    curl -X POST "https://api.supermemory.ai/ns/user_123/search" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{ "query": "machine learning" }'
+      -d '{ "query": "machine learning", "searchMode": "hybrid", "limit": 5 }'
     ```
   </Tab>
 </Tabs>
@@ -72,6 +72,7 @@ Search through your memories and documents with a single API call. Each search r
       "similarity": 0.91,
       "metadata": { "topic": "interests" },
       "isLatest": true,
+      "isInference": false,
       "system": { "createdAt": "2024-01-15T10:30:00.000Z", "updatedAt": "2024-01-15T10:30:00.000Z" }
     },
     {
@@ -80,6 +81,7 @@ Search through your memories and documents with a single API call. Each search r
       "similarity": 0.87,
       "metadata": { "source": "onboarding_doc" },
       "isLatest": true,
+      "isInference": false,
       "system": { "createdAt": "2024-01-14T09:15:00.000Z", "updatedAt": "2024-01-14T09:15:00.000Z" }
     }
   ],
@@ -95,7 +97,7 @@ In hybrid mode, results contain either a `memory` field (extracted facts) or a `
 
 ## Parameters
 
-`namespace` is the URL path. Every other option goes in the JSON body (the second argument in the SDKs).
+`namespace` is the URL path. Every other option goes in the JSON body: the second argument in TypeScript, or keyword arguments in Python. Search takes no query-string parameters; sending any returns `400`.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -104,10 +106,10 @@ In hybrid mode, results contain either a `memory` field (extracted facts) or a `
 | `searchMode` | string | `"hybrid"` | `"hybrid"` (recommended), `"memories"`, or `"chunks"` |
 | `limit` | number | 10 | Max results (max 100) |
 | `threshold` | 0-1 | 0.3 | Similarity cutoff (higher = fewer, better results) |
-| `rerank` | string | `"none"` | `"none"`, `"order"` (re-score for relevance, +100ms), or `"aggregate"` |
-| `rewriteQuery` | boolean | false | Generate multiple rewrites, search all of them, and merge results. No extra cost, but adds latency |
+| `rerank` | string | `"none"` | `"none"`, `"order"` (re-score for relevance, +100ms), or `"aggregate"`. Successful reranking or aggregation can bill one extra [operation](/overview/billing#what-is-an-operation); setting the option alone does not guarantee it runs |
+| `rewriteQuery` | boolean | false | Generate multiple rewrites, search all of them, and merge results. Adds latency and can bill one extra [operation](/overview/billing#what-is-an-operation) when rewriting runs successfully |
 | `filter` | object | — | Metadata filter expression. See [Filtering](#filtering) |
-| `include` | object | — | `{ documents, related, forgotten }` — opt in to extra context per result |
+| `include` | object | all `false` | `{ documents, related, forgotten }` — opt in to extra context per result |
 
 <Note>
 Defaults changed from v4: `searchMode` was `memories` and is now `hybrid`; `threshold` was `0.6` and is now `0.3`. Set both explicitly if you are comparing against v4 results.
@@ -196,9 +198,9 @@ await supermemory.search("user_123", { query: "...", threshold: 0.8 });
 
 ### Attachments
 
-- `attach.documents` adds the most relevant source document to each result.
-- `attach.related` adds parent, child, and sibling memories (see [graph memory](/concepts/graph-memory)).
-- `attach.forgotten` allows forgotten memories in related context. By default, search excludes memories that have been forgotten or have passed their `forgetAfter` expiration.
+- `include.documents` adds the most recently updated source document to each result when one is available.
+- `include.related` adds parent, child, and sibling memories (see [graph memory](/concepts/graph-memory)).
+- `include.forgotten` lets forgotten and expired memories appear in results. By default, search excludes memories that have been forgotten or have passed their `forgetAfter` expiration.
 
 ```typescript
 await supermemory.search("user_123", {
@@ -238,10 +240,11 @@ async function getContext(userId: string, message: string) {
     memory?: string;        // Present for memory results
     chunk?: string;         // Present for document chunk results
     similarity: number;     // 0-1
-    metadata: object | null;
+    metadata: Record<string, unknown>; // {} when none
     isLatest: boolean;
-    system: { createdAt: string; updatedAt: string };
-    included?: {            // Only when you pass attach
+    isInference: boolean;   // false for chunks
+    system: { createdAt?: string; updatedAt: string };
+    included?: {            // Only when you pass include
       document?: object;
       related?: { parents: object[]; children: object[]; siblings: object[] };
     };

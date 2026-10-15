@@ -7,8 +7,8 @@ icon: "/icons/hugeicons/check-list.svg"
 
 Supermemory's graph derives new facts from patterns across your existing memories
 (see [graph memory](/concepts/graph-memory)). Because nobody stated these facts
-directly, they are flagged as inferred (`isInference: true`) and **down-weighted in
-search until someone confirms them**.
+directly, they are flagged as inferred (`isInference: true`) until someone confirms
+them.
 
 These two endpoints let you build a review flow on top of that queue: list the
 inferred memories awaiting review, then approve, decline or undo a decision on each one.
@@ -20,19 +20,17 @@ These endpoints are scoped to a single [namespace](/concepts/container-tags)
 path parameter.
 </Info>
 
-## How review affects ranking
+## What review changes
 
-While a memory is unreviewed and inferred it is down-weighted in search, so the
-engine's guesses rank below facts you stated explicitly. Reviewing it resolves that
-either way:
+Reviewing an inferred memory resolves it either way:
 
 | Action | Result | Effect on search |
 |--------|--------|------------------|
-| **Approve** | `isInference` cleared | Ranks like a stated fact — no longer down-weighted |
+| **Approve** | `isInference` cleared | Stays in search, no longer flagged as inferred |
 | **Decline** | `isForgotten` set | Removed from search entirely — a rejected guess is forgotten |
-| **Undo** | back to unreviewed | Returns to the queue; inferred and down-weighted again |
+| **Undo** | back to unreviewed | Returns to the queue, flagged as inferred again |
 
-A reviewed memory is stamped with `reviewStatus` in its metadata so it drops out of the
+A reviewed memory gets an internal review stamp in its metadata so it drops out of the
 review queue (declined memories also leave search, since they're forgotten). **Undo**
 clears that stamp — and un-forgets a declined memory — bringing it back.
 
@@ -98,7 +96,7 @@ GET /v3/container-tags/{containerTag}/inferred
 | `memories[].createdAt` | string | ISO 8601 timestamp |
 | `memories[].updatedAt` | string | ISO 8601 timestamp |
 | `memories[].metadata` | object \| null | Arbitrary metadata stored on the memory |
-| `total` | number | Count of unreviewed inferred memories returned |
+| `total` | number | Total unreviewed inferred memories in the queue; can exceed the number returned in `memories` |
 
 <Note>
 The queue returns up to **50** memories, ordered by `parentCount` descending (most
@@ -166,8 +164,8 @@ The reject action is named **`decline`**. There is no `reject` value.
 
 **Action semantics:**
 
-- **`approve`** — Promote the memory: clears `isInference`, so it ranks like a stated
-  fact instead of a down-weighted guess. Stamps `reviewStatus: "approved"`.
+- **`approve`** — Promote the memory: clears `isInference`, so it's treated as a
+  confirmed fact. Stamps `reviewStatus: "approved"`.
 - **`decline`** — Reject the suggestion: the memory is **forgotten**
   (`isForgotten: true`) and stamped `reviewStatus: "declined"`, so it leaves both
   search and the review queue.
@@ -198,6 +196,7 @@ The reject action is named **`decline`**. There is no `reject` value.
 | Status | When |
 |--------|------|
 | `401` | Missing or invalid authentication |
+| `403` | Your key can't access this namespace, or lacks write access to it |
 | `404` | The namespace or memory was not found in your organization |
 | `409` | The memory isn't reviewable for this action — it's not an inferred memory, or there's no prior review to undo |
 
@@ -286,4 +285,4 @@ a request and the memory simply stays in the queue for a later session.
 
 - [Graph Memory](/concepts/graph-memory) — How inferred (`derive`) memories are created
 - [Memory Operations](/recall/memory-operations) — Forget memories
-- [Search](/recall/search) — How inferred memories are ranked in results
+- [Search](/recall/search) — Results flag inferred memories with `isInference`

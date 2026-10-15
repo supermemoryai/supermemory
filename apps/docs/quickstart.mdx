@@ -97,13 +97,14 @@ print(conv.id, conv.status)  # e.g. "queued"
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/ns/user_4f8a/document?dreaming=instant" \
+curl -X POST "https://api.supermemory.ai/ns/user_4f8a/document" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "content": "user: Just got back from Tokyo — the team offsite went great.\nassistant: Glad it went well! Anything stand out?\nuser: Sarah presented the Q3 roadmap at the offsite.\nassistant: Sounds like a big moment for her.\nuser: She is being promoted to VP of Product.\nassistant: Congrats to Sarah — that is huge.\nuser: I need a gift idea for my VP of Product.\nassistant: Happy to help brainstorm something personal.",
     "id": "chat_offsite_2026",
-    "metadata": { "type": "conversation" }
+    "metadata": { "type": "conversation" },
+    "dreaming": "instant"
   }'
 ```
 </CodeGroup>
@@ -164,13 +165,14 @@ print(doc.id, doc.status)
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/ns/user_4f8a/document?taskType=superrag" \
+curl -X POST "https://api.supermemory.ai/ns/user_4f8a/document" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "content": "# Team notes — gifts & recognition\n\nWhen someone is promoted to VP or above, the company recommends a thoughtful gift in the $75–$150 range. Experiences tied to recent team milestones land better than generic swag.\n\nFor product leadership, books on platform strategy or a dinner near the last offsite city are common picks. Tokyo offsites often inspire travel-themed gifts.",
     "id": "doc_gift_policy",
-    "metadata": { "type": "document", "source": "handbook" }
+    "metadata": { "type": "document", "source": "handbook" },
+    "taskType": "superrag"
   }'
 ```
 </CodeGroup>
@@ -253,10 +255,14 @@ for hit in rag.results:
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/ns/user_4f8a/search?searchMode=chunks&limit=3" \
+curl -X POST "https://api.supermemory.ai/ns/user_4f8a/search" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{ "query": "gift ideas for a VP promotion after a Tokyo offsite" }'
+  -d '{
+    "query": "gift ideas for a VP promotion after a Tokyo offsite",
+    "searchMode": "chunks",
+    "limit": 3
+  }'
 ```
 </CodeGroup>
 
@@ -300,12 +306,14 @@ print(memories.to_json())
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/ns/user_4f8a/search?searchMode=memories&limit=5" \
+curl -X POST "https://api.supermemory.ai/ns/user_4f8a/search" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "What gift should I get, and why?",
-    "include": { "related": true }
+    "searchMode": "memories",
+    "include": { "related": true },
+    "limit": 5
   }'
 ```
 </CodeGroup>

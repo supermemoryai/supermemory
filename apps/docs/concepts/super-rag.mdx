@@ -33,7 +33,7 @@ No chunking strategies to configure. No embedding models to choose. It just work
 
 By default, every `supermemory.add()` call runs on the **memory** path (`taskType: "memory"`): Supermemory chunks and embeds the content for retrieval, *and* runs it through the memory pipeline — extracting facts, updating the profile, and linking it into the knowledge graph.
 
-If you're ingesting content that's purely reference material — documentation, a large PDF, a knowledge base article — and you don't need Supermemory to derive personal facts or update a profile from it, set `taskType: "superrag"` (a query parameter, so a top-level key in the SDK). It skips the memory pipeline entirely and only does the chunk → embed → index work needed to make the content searchable.
+If you're ingesting content that's purely reference material — documentation, a large PDF, a knowledge base article — and you don't need Supermemory to derive personal facts or update a profile from it, set `taskType: "superrag"` in the request body. It skips the memory pipeline entirely and only does the chunk → embed → index work needed to make the content searchable.
 
 <CodeGroup>
 
@@ -53,10 +53,10 @@ client.add(
 ```
 
 ```bash cURL
-curl -X POST "https://api.supermemory.ai/ns/docs_kb/document?taskType=superrag" \
+curl -X POST "https://api.supermemory.ai/ns/docs_kb/document" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{ "content": "..." }'
+  -d '{ "content": "...", "taskType": "superrag" }'
 ```
 
 </CodeGroup>
@@ -100,21 +100,9 @@ PDFs and documents are chunked by **semantic sections** — headers, paragraphs,
 
 ### Code
 
-Code is chunked using [code-chunk](https://github.com/supermemoryai/code-chunk), our open-source library that understands AST (Abstract Syntax Tree) boundaries:
+When content is recognized as Markdown, fenced code blocks are kept whole when they fit in a chunk. Larger blocks are split and re-wrapped in the original fence, including its language tag. Overlap can contain part of a previous line, so chunks are not guaranteed to be independently valid code.
 
-- Functions and methods stay intact
-- Classes are chunked by method
-- Import statements grouped separately
-- Comments attached to their code blocks
-
-```typescript
-// A 500-line file becomes meaningful chunks:
-// - Imports + type definitions
-// - Each function as a separate chunk
-// - Class methods individually indexed
-```
-
-This means searching for "authentication middleware" finds the actual function, not a random slice of code.
+Raw source files and content not recognized as Markdown use plain-text chunking. A lone fenced block may not be enough for automatic Markdown detection.
 
 ### Web pages
 
