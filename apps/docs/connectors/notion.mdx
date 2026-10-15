@@ -19,7 +19,7 @@ Connect Notion workspaces to automatically sync pages, databases, and content bl
 
     const connector = await supermemory.connectors.create("user-123", {
       provider: "notion",
-      redirectUrl: "https://yourapp.com/auth/notion/callback"
+      redirectUrl: "https://yourapp.com/auth/notion/callback",
       documentLimit: 2000,
     })
 
@@ -38,8 +38,8 @@ Connect Notion workspaces to automatically sync pages, databases, and content bl
         "user-123",
         request={
             "provider": "notion",
-            "redirectUrl": "https://yourapp.com/auth/notion/callback",
-            "documentLimit": 2000,
+            "redirect_url": "https://yourapp.com/auth/notion/callback",
+            "document_limit": 2000,
         },
     )
 
@@ -61,7 +61,7 @@ Connect Notion workspaces to automatically sync pages, databases, and content bl
     # Response: {
     #   "id": "PTzGiUYei7pgzg5buzZHgA",
     #   "authorization": {
-    #     "url": "https://api.notion.com/v1/oauth/authorize?...",
+    #     "url": "https://api.supermemory.ai/v3/connections/auth/redirect?state=...",
     #     "expiresAt": "2024-01-15T11:30:00.000Z"
     #   }
     # }
@@ -71,7 +71,7 @@ Connect Notion workspaces to automatically sync pages, databases, and content bl
 
 ### 2. Handle OAuth flow
 
-Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants workspace access, Notion redirects to your `redirectUrl` and the first sync starts. A pending OAuth connector is not visible in list or get until the user finishes authorization.
+Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants workspace access, Notion redirects to your `redirectUrl` and the first sync starts. A pending OAuth connector is not returned by list until the user finishes authorization; get returns it with `system.status: "pending_authorization"`.
 
 ### 3. Monitor sync progress
 
@@ -97,7 +97,7 @@ Send the user to `authorization.url` before `authorization.expiresAt`. After the
     connector = client.connectors.get("user-123", "PTzGiUYei7pgzg5buzZHgA", include=["syncs"])
 
     print(f"Connected workspace: {connector.account}")
-    print(f"Last sync: {connector.latest_run.system.status}")
+    print(f"Last sync: {connector.latest_run.system.status if connector.latest_run else 'never'}")
     print(f"Documents synced: {connector.document_count}")
 
     # List synced pages and databases
@@ -268,15 +268,15 @@ Notion connector respects workspace permissions:
 
 ### Database properties
 
-Notion database properties are mapped to metadata:
+Notion database properties are mapped to metadata keys named `notion_prop_<property name>`, lowercased with spaces replaced by underscores (a `Status` property becomes `notion_prop_status`). The page title is stored as `title`, and every page has `type: "notion_doc"`.
 
 ```typescript
 // List documents in the namespace (there is no per-connector document list in v5)
 const { documents } = await supermemory.list("user-123", "documents")
 
-// Find database entries
+// Find database entries by a property value
 const projectEntries = documents.filter(doc =>
-  doc.metadata?.database === "Projects"
+  doc.metadata?.notion_prop_status === "In Progress"
 )
 
 // Database properties become searchable metadata
@@ -285,8 +285,8 @@ const projectWithStatus = await supermemory.search("user-123", {
   filter: {
     operator: "and",
     operands: [
-      { field: "status", operator: "eq", value: "In Progress" },
-      { field: "priority", operator: "eq", value: "High" },
+      { field: "notion_prop_status", operator: "eq", value: "In Progress" },
+      { field: "notion_prop_priority", operator: "eq", value: "High" },
     ],
   },
   searchMode: "chunks",

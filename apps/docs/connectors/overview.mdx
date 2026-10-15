@@ -7,7 +7,7 @@ icon: "/icons/hugeicons/layers-01.svg"
 
 Connect external platforms to automatically sync documents into supermemory. Supported connectors include Google Drive, Gmail, Notion, OneDrive, GitHub, Granola and Web Crawler with real-time synchronization and intelligent content processing.
 
-Every connector belongs to one namespace. The namespace goes in the URL (`/ns/{namespace}/connectors`) and is a top-level `namespace` key in every SDK call.
+New v5 connectors belong to one namespace. The namespace goes in the URL (`/ns/{namespace}/connectors`) and is the first argument of namespace-scoped SDK calls. Organization-wide listing uses `connectors.listAll()` in TypeScript or `connectors.list_all()` in Python without a namespace argument. Legacy connectors can span multiple namespaces or have no namespace.
 
 ## Supported connectors
 
@@ -69,7 +69,7 @@ const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
 
 const connector = await supermemory.connectors.create("user-123", {
   provider: "notion",
-  redirectUrl: "https://yourapp.com/callback"
+  redirectUrl: "https://yourapp.com/callback",
   documentLimit: 5000,
 })
 
@@ -77,7 +77,7 @@ const connector = await supermemory.connectors.create("user-123", {
 console.log("Connector:", connector.id)
 console.log("Auth URL:", connector.authorization?.url)
 console.log("Expires at:", connector.authorization?.expiresAt)
-// Output: Auth URL: https://api.notion.com/v1/oauth/authorize?...
+// Output: Auth URL: https://api.supermemory.ai/v3/connections/auth/redirect?state=...
 ```
 
 ```python Python
@@ -90,8 +90,8 @@ connector = client.connectors.create(
     "user-123",
     request={
         "provider": "notion",
-        "redirectUrl": "https://yourapp.com/callback",
-        "documentLimit": 5000,
+        "redirect_url": "https://yourapp.com/callback",
+        "document_limit": 5000,
     },
 )
 
@@ -99,7 +99,7 @@ connector = client.connectors.create(
 print(f"Connector: {connector.id}")
 print(f"Auth URL: {connector.authorization.url}")
 print(f"Expires at: {connector.authorization.expires_at}")
-# Output: Auth URL: https://api.notion.com/v1/oauth/authorize?...
+# Output: Auth URL: https://api.supermemory.ai/v3/connections/auth/redirect?state=...
 ```
 
 ```bash cURL
@@ -115,7 +115,7 @@ curl -X POST "https://api.supermemory.ai/ns/user-123/connectors" \
 # Response: {
 #   "id": "PTzGiUYei7pgzg5buzZHgA",
 #   "authorization": {
-#     "url": "https://api.notion.com/v1/oauth/authorize?...",
+#     "url": "https://api.supermemory.ai/v3/connections/auth/redirect?state=...",
 #     "expiresAt": "2024-01-15T11:30:00.000Z"
 #   }
 # }
@@ -125,7 +125,7 @@ curl -X POST "https://api.supermemory.ai/ns/user-123/connectors" \
 
 ### 2. Handle OAuth callback
 
-Send the user to `authorization.url` before `authorization.expiresAt`. When the user authorizes, the provider returns them to your `redirectUrl` and the first sync starts. A pending OAuth connector is not visible in list or get until the user finishes authorization.
+Send the user to `authorization.url` before `authorization.expiresAt`. When the user authorizes, the provider returns them to your `redirectUrl` and the first sync starts. GitHub, Gmail and Google Drive (with the default `syncScope: "selected"`) first send the user through Supermemory's hosted picker to choose what to sync. A pending OAuth connector is not returned by list until the user finishes authorization; get returns it with `system.status: "pending_authorization"`.
 
 Config providers (Web Crawler, S3, Granola) return `authorization: null` and start syncing immediately.
 
@@ -167,7 +167,9 @@ connector = client.connectors.get("user-123", "PTzGiUYei7pgzg5buzZHgA", include=
 
 print(f"Provider: {connector.provider}")
 print(f"Account: {connector.account}")
-print(f"Last sync: {connector.latest_run.system.status} {connector.latest_run.error}")
+print(f"Last sync: {connector.latest_run.system.status if connector.latest_run else 'never'}")
+if connector.latest_run and connector.latest_run.error:
+    print(connector.latest_run.error)
 print(f"Last synced at: {connector.system.last_successful_sync_at}")
 print(f"Documents: {connector.document_count}")
 print(f"Recent runs: {connector.syncs}")
@@ -210,9 +212,9 @@ curl -X POST "https://api.supermemory.ai/ns/user-123/list/documents" \
 
 ### Authentication flow
 
-1. **Create Connector**: Call `POST /ns/{namespace}/connectors` with a `provider`. OAuth providers return an `authorization` link; config providers (Web Crawler, S3, Granola) take a `config` object and return `authUrl: null`
+1. **Create Connector**: Call `POST /ns/{namespace}/connectors` with a `provider`. OAuth providers return an `authorization` link; config providers (Web Crawler, S3, Granola) take a `config` object and return `authorization: null`
 2. **User Authorization**: Send the user to `authorization.url` when the provider requires it
-3. **Automatic Setup**: Connector established, sync begins immediately
+3. **Automatic Setup**: The connector is established. Save any required label, repository, or file selection before content sync can proceed; providers without a selection step start their initial sync after setup
 4. **Continuous Sync**: Real-time updates via webhooks + scheduled sync every 4 hours (or scheduled recrawling for Web Crawler)
 
 ### Document processing pipeline
@@ -301,7 +303,7 @@ curl "https://api.supermemory.ai/ns/org-123/connectors" \
 #       "system": { "status": "active", "createdAt": "2024-01-15T10:30:00.000Z", "lastSuccessfulSyncAt": "2024-01-15T10:45:00.000Z" }
 #     }
 #   ],
-#   "pagination": { "currentPage": 1, "limit": 50, "totalItems": 1, "totalPages": 1 }
+#   "pagination": { "currentPage": 1, "limit": 10, "totalItems": 1, "totalPages": 1 }
 # }
 
 # Connectors across every namespace in the organization

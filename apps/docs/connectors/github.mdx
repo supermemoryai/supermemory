@@ -24,7 +24,7 @@ The GitHub connector requires a **Scale Plan** or **Enterprise Plan**.
 
     const connector = await supermemory.connectors.create("user-123", {
       provider: "github",
-      redirectUrl: "https://yourapp.com/auth/github/callback"
+      redirectUrl: "https://yourapp.com/auth/github/callback",
       documentLimit: 5000,
     })
 
@@ -44,8 +44,8 @@ The GitHub connector requires a **Scale Plan** or **Enterprise Plan**.
         "user-123",
         request={
             "provider": "github",
-            "redirectUrl": "https://yourapp.com/auth/github/callback",
-            "documentLimit": 5000,
+            "redirect_url": "https://yourapp.com/auth/github/callback",
+            "document_limit": 5000,
         },
     )
 
@@ -68,7 +68,7 @@ The GitHub connector requires a **Scale Plan** or **Enterprise Plan**.
     # Response: {
     #   "id": "PTzGiUYei7pgzg5buzZHgA",
     #   "authorization": {
-    #     "url": "https://github.com/login/oauth/authorize?...",
+    #     "url": "https://api.supermemory.ai/v3/connections/auth/redirect?state=...",
     #     "expiresAt": "2024-01-15T11:30:00.000Z"
     #   }
     # }
@@ -85,7 +85,7 @@ The GitHub connector requires a **Scale Plan** or **Enterprise Plan**.
 
 ### 2. Handle OAuth callback
 
-Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants permissions, GitHub redirects to your `redirectUrl`. A pending OAuth connector is not visible in list or get until the user finishes authorization. Once it is visible, the user can select which repositories to sync.
+Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants permissions, Supermemory sends them to a hosted repository picker; once they choose repositories, they return to your `redirectUrl`. A pending OAuth connector is not returned by list until the user finishes authorization; get returns it with `system.status: "pending_authorization"`.
 
 ### 3. Select Repositories
 
@@ -224,7 +224,9 @@ Webhooks are secured using HMAC-SHA256 signature validation with constant-time c
 
     print(f"Webhooks: {connector.capabilities.webhooks}")
     print(f"Last synced: {connector.system.last_successful_sync_at}")
-    print(f"Last sync: {connector.latest_run.system.status} {connector.latest_run.error}")
+    print(f"Last sync: {connector.latest_run.system.status if connector.latest_run else 'never'}")
+    if connector.latest_run and connector.latest_run.error:
+        print(connector.latest_run.error)
     repos = (connector.selection or {}).get("repos") or []
     print(f"Repositories: {[r.name for r in repos]}")
     print(f"Recent runs: {connector.syncs}")
@@ -255,7 +257,7 @@ Webhooks are secured using HMAC-SHA256 signature validation with constant-time c
         console.log(`Provider: ${connector.provider}`)
         console.log(`ID: ${connector.id}`)
         console.log(`Account: ${connector.account}`)
-        console.log(`Created: ${connector.createdAt}`)
+        console.log(`Created: ${connector.system.createdAt}`)
         console.log(`Document limit: ${connector.documentLimit}`)
         console.log(`Repositories: ${connector.selection?.repos?.length ?? 0}`)
         console.log("---")
@@ -271,7 +273,7 @@ Webhooks are secured using HMAC-SHA256 signature validation with constant-time c
         print(f"Provider: {connector.provider}")
         print(f"ID: {connector.id}")
         print(f"Account: {connector.account}")
-        print(f"Created: {connector.created_at}")
+        print(f"Created: {connector.system.created_at}")
         print(f"Document limit: {connector.document_limit}")
         repos = (connector.selection or {}).get("repos") or []
         print(f"Repositories: {len(repos)}")

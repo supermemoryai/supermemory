@@ -72,7 +72,7 @@ curl "https://api.supermemory.ai/ns/user-123/connectors/PTzGiUYei7pgzg5buzZHgA?i
 curl -X POST "https://api.supermemory.ai/ns/user-123/list/documents" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"filter": {"field": "source", "operator": "eq", "value": "notion"}}'
+  -d '{"filter": {"field": "type", "operator": "eq", "value": "notion_doc"}}'
 ```
 
 </CodeGroup>
@@ -85,30 +85,26 @@ There is no per-connector document list in v5. `supermemory.list(namespace, "doc
 
 ### Connector Missing From List
 
-**Problem:** `connectors.create` returned an `id`, but `connectors.list` and `connectors.get` do not show it
+**Problem:** `connectors.create` returned an `id`, but `connectors.list` does not show it
 
-**Solution:** A pending OAuth connector is not visible in list or get until the user finishes authorization. Send the user to `authorization.url` before `authorization.expiresAt`. If the link expired, create the connector again.
+**Solution:** A pending OAuth connector is not returned by list until the user finishes authorization. `connectors.get` still returns it with `system.status: "pending_authorization"`. Send the user to `authorization.url` before `authorization.expiresAt`. If the link expired, create the connector again.
 
 ### OAuth callback fails
 
 **Problem:** "Invalid redirect URI" error after user grants permissions
 
-**Solution:** Ensure your redirect URL matches EXACTLY what's configured in your OAuth app:
+**Solution:** The provider always redirects to Supermemory's callback, not to your `redirectUrl`. If you use a [custom OAuth application](/connectors/overview#custom-oauth-applications), its redirect URI must be exactly `https://api.supermemory.ai/v3/connections/auth/callback/{provider}`. Your `redirectUrl` is where Supermemory sends the user after it handles that callback, and must be an `http` or `https` URL:
 
 ```typescript
-// correct - exact match with OAuth app settings
 const connector = await supermemory.connectors.create("user-123", {
   provider: "notion",
   redirectUrl: "https://yourapp.com/auth/notion/callback"
 })
-
-// Wrong - URL doesn't match
-// redirectUrl: "https://yourapp.com/callback"
 ```
 
 **Prevention:**
 - Use HTTPS for production URLs
-- Copy the exact URL from your OAuth app settings
+- Register `https://api.supermemory.ai/v3/connections/auth/callback/{provider}` in your custom OAuth app settings
 - Test the flow in development first
 
 ### Documents not syncing
@@ -159,7 +155,7 @@ if (next.authorization) window.location.href = next.authorization.url
 ```typescript
 const connector = await supermemory.connectors.create("user-123", {
   provider: "onedrive",
-  redirectUrl: "https://yourapp.com/callback"
+  redirectUrl: "https://yourapp.com/callback",
   documentLimit: 500, // Start with fewer documents
 })
 
@@ -247,9 +243,9 @@ const next = await supermemory.connectors.create("user-123", {
 })
 ```
 
-**Scale Plan Required Error**
+**Max Plan Required Error**
 
-Gmail connector requires Scale Plan or Enterprise Plan. If you see access errors:
+Gmail connector requires Max Plan or above. If you see access errors:
 - Verify your organization has the required plan
 - Contact support to upgrade your plan
 

@@ -32,7 +32,7 @@ If you use scoped sync and the user has not finished the picker yet, **scheduled
 
     const connector = await supermemory.connectors.create("user-123", {
       provider: "google-drive",
-      redirectUrl: "https://yourapp.com/auth/google-drive/callback"
+      redirectUrl: "https://yourapp.com/auth/google-drive/callback",
       documentLimit: 3000,
       config: { syncScope: "selected" },
     })
@@ -53,9 +53,9 @@ If you use scoped sync and the user has not finished the picker yet, **scheduled
         "user-123",
         request={
             "provider": "google-drive",
-            "redirectUrl": "https://yourapp.com/auth/google-drive/callback",
-            "documentLimit": 3000,
-            "config": {"syncScope": "selected"},
+            "redirect_url": "https://yourapp.com/auth/google-drive/callback",
+            "document_limit": 3000,
+            "config": {"sync_scope": "selected"},
         },
     )
 
@@ -79,7 +79,7 @@ If you use scoped sync and the user has not finished the picker yet, **scheduled
     # Response: {
     #   "id": "PTzGiUYei7pgzg5buzZHgA",
     #   "authorization": {
-    #     "url": "https://accounts.google.com/o/oauth2/v2/auth?...",
+    #     "url": "https://api.supermemory.ai/v3/connections/auth/redirect?state=...",
     #     "expiresAt": "2024-01-15T11:30:00.000Z"
     #   }
     # }
@@ -93,7 +93,7 @@ For **whole Drive** sync, send `"config": { "syncScope": "full" }` on the same `
 
 ### 2. Handle OAuth callback
 
-Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants permissions, Google redirects through Supermemory to finish the connector. A pending OAuth connector is not visible in list or get until the user finishes authorization.
+Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants permissions, Google redirects through Supermemory to finish the connector. A pending OAuth connector is not returned by list until the user finishes authorization; get returns it with `system.status: "pending_authorization"`.
 
 With **scoped** sync (`syncScope` omitted or `"selected"`), the user is sent to Supermemory’s **hosted file and folder picker**; they must complete that step before syncs run. With **`syncScope: "full"`**, Supermemory redirects to your `redirectUrl` **without** the picker.
 
@@ -173,7 +173,7 @@ If you already know the Drive file and folder ids, set them directly. A new sele
 
     print(f"Account: {connector.account}")
     print(f"Selection: {connector.selection}")
-    print(f"Last sync: {connector.latest_run.system.status}")
+    print(f"Last sync: {connector.latest_run.system.status if connector.latest_run else 'never'}")
 
     # List synced documents in the namespace
     documents = client.list("user-123", "documents").documents
@@ -205,6 +205,8 @@ Based on the API type definitions, Google Drive documents are identified with th
 - `google_slide` - Google Slides
 - `google_sheet` - Google Sheets
 
+PDF and Markdown files stored in Drive are synced too.
+
 <Note>
 Drive documents are converted to markdown before ingestion. This conversion is lossy — some formatting may not be preserved.
 </Note>
@@ -223,7 +225,7 @@ Drive documents are converted to markdown before ingestion. This conversion is l
       console.log(`Provider: ${connector.provider}`)
       console.log(`ID: ${connector.id}`)
       console.log(`Account: ${connector.account}`)
-      console.log(`Created: ${connector.createdAt}`)
+      console.log(`Created: ${connector.system.createdAt}`)
       console.log(`Document limit: ${connector.documentLimit}`)
       console.log("---")
     })
@@ -238,7 +240,7 @@ Drive documents are converted to markdown before ingestion. This conversion is l
         print(f"Provider: {connector.provider}")
         print(f"ID: {connector.id}")
         print(f"Account: {connector.account}")
-        print(f"Created: {connector.created_at}")
+        print(f"Created: {connector.system.created_at}")
         print(f"Document limit: {connector.document_limit}")
         print("---")
     ```
@@ -263,7 +265,7 @@ Drive documents are converted to markdown before ingestion. This conversion is l
     #       "system": { "status": "active", "createdAt": "2024-01-15T10:30:00.000Z", "lastSuccessfulSyncAt": "..." }
     #     }
     #   ],
-    #   "pagination": { "currentPage": 1, "limit": 50, "totalItems": 1, "totalPages": 1 }
+    #   "pagination": { "currentPage": 1, "limit": 10, "totalItems": 1, "totalPages": 1 }
     # }
     ```
   </Tab>

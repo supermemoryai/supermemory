@@ -48,8 +48,8 @@ The S3 connector requires a **Scale Plan** or higher. You can also create S3 con
             "config": {
                 "bucket": "my-documents-bucket",
                 "region": "us-east-1",
-                "accessKeyId": os.environ["AWS_ACCESS_KEY_ID"],
-                "secretAccessKey": os.environ["AWS_SECRET_ACCESS_KEY"],
+                "access_key_id": os.environ["AWS_ACCESS_KEY_ID"],
+                "secret_access_key": os.environ["AWS_SECRET_ACCESS_KEY"],
             },
         },
     )
@@ -270,7 +270,9 @@ Minimum required permissions:
 
 ## Error codes
 
-| Code | Message | Solution |
+Supermemory checks the credentials against the bucket before it creates the connector. If that check fails, `POST /ns/{namespace}/connectors` returns `400` with one of these messages. The code column is the status S3 returned.
+
+| S3 status | Message | Solution |
 |------|---------|----------|
 | 401 | Authentication failed | Verify access key and secret |
 | 403 | Access denied | Check IAM permissions and bucket policy |

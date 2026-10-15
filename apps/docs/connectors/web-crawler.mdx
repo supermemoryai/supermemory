@@ -48,16 +48,16 @@ The web crawler connector requires a **Scale Plan** or **Enterprise Plan**.
         request={
             "provider": "web-crawler",
             "config": {
-                "startUrl": "https://docs.example.com",
-                "crawlDepth": 3,
+                "start_url": "https://docs.example.com",
+                "crawl_depth": 3,
             },
-            "documentLimit": 5000,
+            "document_limit": 5000,
         },
     )
 
     # Web crawler doesn't require OAuth; crawling starts immediately
     print(f"Connector ID: {connector.id}")
-    # Note: connector.authorization.url is None for web-crawler
+    # Note: connector.authorization is None for web-crawler
     ```
   </Tab>
   <Tab title="cURL">
@@ -120,7 +120,7 @@ Unlike OAuth connectors, the web crawler doesn't require user authorization. `au
     connector = client.connectors.get("user-123", "PTzGiUYei7pgzg5buzZHgA", include=["syncs"])
 
     print(f"Start URL: {(connector.config or {}).get('startUrl')}")
-    print(f"Last sync: {connector.latest_run.system.status}")
+    print(f"Last sync: {connector.latest_run.system.status if connector.latest_run else 'never'}")
     print(f"Pages synced: {connector.document_count}")
 
     # List synced web pages in the namespace
@@ -229,7 +229,7 @@ Start a crawl now. The call returns `409` while a sync for that connector is alr
     webCrawlerConnectors.forEach(connector => {
       console.log(`Start URL: ${connector.config?.startUrl}`)
       console.log(`Connector ID: ${connector.id}`)
-      console.log(`Created: ${connector.createdAt}`)
+      console.log(`Created: ${connector.system.createdAt}`)
     })
     ```
   </Tab>
@@ -241,7 +241,7 @@ Start a crawl now. The call returns `409` while a sync for that connector is alr
     for connector in connectors:
         print(f"Start URL: {(connector.config or {}).get('startUrl')}")
         print(f"Connector ID: {connector.id}")
-        print(f"Created: {connector.created_at}")
+        print(f"Created: {connector.system.created_at}")
     ```
   </Tab>
   <Tab title="cURL">
@@ -256,12 +256,12 @@ Start a crawl now. The call returns `409` while a sync for that connector is alr
     #       "id": "PTzGiUYei7pgzg5buzZHgA",
     #       "provider": "web-crawler",
     #       "namespace": "user-123",
-    #       "createdAt": "2024-01-15T10:30:00.000Z",
     #       "documentLimit": 5000,
-    #       "config": {"startUrl": "https://docs.example.com", "crawlDepth": 3}
+    #       "config": {"startUrl": "https://docs.example.com", "crawlDepth": 3},
+    #       "system": { "status": "active", "createdAt": "2024-01-15T10:30:00.000Z", "lastSuccessfulSyncAt": "..." }
     #     }
     #   ],
-    #   "pagination": { "currentPage": 1, "limit": 50, "totalItems": 1, "totalPages": 1 }
+    #   "pagination": { "currentPage": 1, "limit": 10, "totalItems": 1, "totalPages": 1 }
     # }
     ```
   </Tab>

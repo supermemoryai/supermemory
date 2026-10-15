@@ -83,7 +83,7 @@ curl "https://api.supermemory.ai/ns/user-123/connectors/{connectorId}?include=pi
 ```
 
 <Note>
-The picker link works once, in any browser. `picker` is `null` for connectors that sync everything.
+The picker link works once, in any browser. `picker` is `null` for providers that do not support selection. A Google Drive connector with full-drive sync can still open the picker; saving a selection switches it to scoped sync. Because the link changes what syncs, `include=picker` needs an admin key with write access to the namespace; otherwise the request returns `403`.
 </Note>
 
 ## Set the Selection Directly
@@ -121,7 +121,7 @@ connector = client.connectors.update(
 )
 
 print(f"Selection: {connector.selection}")
-print(f"Last sync: {connector.latest_run.system.status}")
+print(f"Last sync: {connector.latest_run.system.status if connector.latest_run else 'never'}")
 ```
 
 ```bash cURL
@@ -173,9 +173,11 @@ The updated connector object, including the saved `selection` as `{ id, name }` 
 
 ### Error Responses
 
-- `400`: Connector does not support selection
+- `400`: Connector does not support selection, the selection is empty or has unknown ids, or the connector needs to be reconnected
 - `401`: Unauthorized
+- `403`: The key lacks admin role or write access to the connector's namespaces
 - `404`: Connector not found
+- `409`: Connector is still waiting for the user to finish authorizing
 
 <Note>
 **Automatic Sync:** After a selection is saved, a sync starts for the connector. You don't need to call `connectors.sync` afterwards.
@@ -193,10 +195,11 @@ const created = await supermemory.connectors.create("user-123", {
   redirectUrl: "https://yourapp.com/callback"
 })
 
-// 2. Send the user to GitHub; the connector becomes visible once they authorize
+// 2. Send the user to GitHub. After they authorize, Supermemory shows the hosted
+//    repository picker, then returns them to redirectUrl
 if (created.authorization) window.location.href = created.authorization.url
 
-// 3. After the callback, open the hosted picker so the user chooses repositories
+// 3. To change repositories later, open the hosted picker again
 const connector = await supermemory.connectors.get("user-123", created.id, {
   include: "picker",
   returnUrl: "https://yourapp.com/settings/integrations"
@@ -215,14 +218,15 @@ created = client.connectors.create(
     "user-123",
     request={
         "provider": "github",
-        "redirectUrl": "https://yourapp.com/callback",
+        "redirect_url": "https://yourapp.com/callback",
     },
 )
 
-# 2. Send the user to GitHub; the connector becomes visible once they authorize
+# 2. Send the user to GitHub. After they authorize, Supermemory shows the hosted
+#    repository picker, then returns them to redirect_url
 print(f"Redirect to: {created.authorization.url}")
 
-# 3. After the callback, open the hosted picker so the user chooses repositories
+# 3. To change repositories later, open the hosted picker again
 connector = client.connectors.get(
     "user-123",
     created.id,
@@ -247,9 +251,9 @@ curl -X POST "https://api.supermemory.ai/ns/user-123/connectors" \
   -H "Content-Type: application/json" \
   -d '{"provider": "github", "redirectUrl": "https://yourapp.com/callback"}'
 
-# 2. ... (user authorizes at authorization.url) ...
+# 2. ... (user authorizes at authorization.url and picks repositories in the hosted picker) ...
 
-# 3. Get a one-time hosted picker URL
+# 3. To change repositories later, get a one-time hosted picker URL
 curl "https://api.supermemory.ai/ns/user-123/connectors/{connectorId}?include=picker" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 

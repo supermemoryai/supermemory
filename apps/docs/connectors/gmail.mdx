@@ -24,7 +24,7 @@ Connect Gmail to automatically sync email threads into your supermemory knowledg
 
     const connector = await supermemory.connectors.create("user-123", {
       provider: "gmail",
-      redirectUrl: "https://yourapp.com/auth/gmail/callback"
+      redirectUrl: "https://yourapp.com/auth/gmail/callback",
       documentLimit: 5000,
     })
 
@@ -44,8 +44,8 @@ Connect Gmail to automatically sync email threads into your supermemory knowledg
         "user-123",
         request={
             "provider": "gmail",
-            "redirectUrl": "https://yourapp.com/auth/gmail/callback",
-            "documentLimit": 5000,
+            "redirect_url": "https://yourapp.com/auth/gmail/callback",
+            "document_limit": 5000,
         },
     )
 
@@ -68,7 +68,7 @@ Connect Gmail to automatically sync email threads into your supermemory knowledg
     # Response: {
     #   "id": "PTzGiUYei7pgzg5buzZHgA",
     #   "authorization": {
-    #     "url": "https://accounts.google.com/o/oauth2/v2/auth?...",
+    #     "url": "https://api.supermemory.ai/v3/connections/auth/redirect?state=...",
     #     "expiresAt": "2024-01-15T11:30:00.000Z"
     #   }
     # }
@@ -78,7 +78,9 @@ Connect Gmail to automatically sync email threads into your supermemory knowledg
 
 ### 2. Handle OAuth callback
 
-Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants permissions, Google redirects to your `redirectUrl` and the initial sync begins. A pending OAuth connector is not visible in list or get until the user finishes authorization.
+Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants permissions, Supermemory sends them to a hosted label picker; once they choose labels, they return to your `redirectUrl` and the initial sync begins. Nothing syncs until at least one label is selected. A pending OAuth connector is not returned by list until the user finishes authorization; get returns it with `system.status: "pending_authorization"`.
+
+To change the labels later, read the connector with `include: "picker"` and send the user to `picker.url`, or set label ids directly with `connectors.update(namespace, id, { selection: { labels: ["INBOX"] } })`. See [Managing Connector Selection](/connectors/managing-resources).
 
 ### 3. Check Connector Status
 
@@ -106,7 +108,7 @@ Send the user to `authorization.url` before `authorization.expiresAt`. After the
     connector = client.connectors.get("user-123", "PTzGiUYei7pgzg5buzZHgA", include=["syncs"])
 
     print(f"Connected email: {connector.account}")
-    print(f"Last sync: {connector.latest_run.system.status}")
+    print(f"Last sync: {connector.latest_run.system.status if connector.latest_run else 'never'}")
     print(f"Threads synced: {connector.document_count}")
 
     # List synced email threads in the namespace
@@ -155,8 +157,8 @@ Each synced thread includes searchable metadata:
 | `type` | Always `gmail_thread` |
 | `subject` | Email subject line |
 | `threadId` | Gmail thread ID |
-| `from` | Sender email address |
-| `to` | Recipient email addresses |
+| `from` | Sender, as the raw `From` header (for example `Team <team@company.com>`) |
+| `to` | Recipient addresses, comma-separated |
 | `date` | Date of first message |
 | `messageCount` | Number of messages in thread |
 | `attachmentCount` | Number of attachments (if any) |
@@ -171,7 +173,7 @@ const results = await supermemory.search("user-123", {
     operator: "and",
     operands: [
       { field: "type", operator: "eq", value: "gmail_thread" },
-      { field: "from", operator: "eq", value: "team@company.com" },
+      { field: "from", operator: "contains", value: "team@company.com" },
     ],
   },
   searchMode: "chunks",
@@ -192,7 +194,7 @@ const results = await supermemory.search("user-123", {
       console.log(`Provider: ${connector.provider}`)
       console.log(`ID: ${connector.id}`)
       console.log(`Account: ${connector.account}`)
-      console.log(`Created: ${connector.createdAt}`)
+      console.log(`Created: ${connector.system.createdAt}`)
       console.log(`Document limit: ${connector.documentLimit}`)
       console.log("---")
     })
@@ -207,7 +209,7 @@ const results = await supermemory.search("user-123", {
         print(f"Provider: {connector.provider}")
         print(f"ID: {connector.id}")
         print(f"Account: {connector.account}")
-        print(f"Created: {connector.created_at}")
+        print(f"Created: {connector.system.created_at}")
         print(f"Document limit: {connector.document_limit}")
         print("---")
     ```
@@ -308,13 +310,13 @@ Gmail connector supports multiple sync methods:
 
 ### How real-time sync works
 
-1. When a connector is created, supermemory registers a Gmail API "watch" subscription
+1. After labels are selected, supermemory registers a Gmail API "watch" subscription when Pub/Sub is configured
 2. Gmail sends notifications to a Google Cloud Pub/Sub topic when emails change
 3. supermemory receives these notifications and fetches updated threads
 4. Watch subscriptions expire after 7 days and are automatically renewed
 
 <Note>
-Real-time sync monitors the **INBOX** label. Emails in other labels are synced via scheduled/manual sync.
+Real-time sync monitors the selected labels, including labels outside **INBOX**. If multiple connectors use the same mailbox, its watch covers their combined label selections.
 </Note>
 
 ## Permissions & scopes

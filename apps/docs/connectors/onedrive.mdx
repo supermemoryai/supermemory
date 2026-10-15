@@ -21,13 +21,13 @@ const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
 
 const connector = await supermemory.connectors.create("user-123", {
   provider: "onedrive",
-  redirectUrl: "https://yourapp.com/auth/onedrive/callback"
+  redirectUrl: "https://yourapp.com/auth/onedrive/callback",
   documentLimit: 1500,
 })
 
 // Send the user to Microsoft to authorize
 if (connector.authorization) window.location.href = connector.authorization.url
-// Output: Redirects to https://login.microsoftonline.com/oauth2/authorize?...
+// Output: Redirects to https://api.supermemory.ai/v3/connections/auth/redirect?state=...
 ```
 
 ```python Python
@@ -40,14 +40,14 @@ connector = client.connectors.create(
     "user-123",
     request={
         "provider": "onedrive",
-        "redirectUrl": "https://yourapp.com/auth/onedrive/callback",
-        "documentLimit": 1500,
+        "redirect_url": "https://yourapp.com/auth/onedrive/callback",
+        "document_limit": 1500,
     },
 )
 
 # Send the user to Microsoft to authorize
 print(f"Redirect to: {connector.authorization.url}")
-# Output: Redirect to: https://login.microsoftonline.com/oauth2/authorize?...
+# Output: Redirect to: https://api.supermemory.ai/v3/connections/auth/redirect?state=...
 ```
 
 ```bash cURL
@@ -63,7 +63,7 @@ curl -X POST "https://api.supermemory.ai/ns/user-123/connectors" \
 # Response: {
 #   "id": "PTzGiUYei7pgzg5buzZHgA",
 #   "authorization": {
-#     "url": "https://login.microsoftonline.com/oauth2/authorize?...",
+#     "url": "https://api.supermemory.ai/v3/connections/auth/redirect?state=...",
 #     "expiresAt": "2024-01-15T11:30:00.000Z"
 #   }
 # }
@@ -73,7 +73,7 @@ curl -X POST "https://api.supermemory.ai/ns/user-123/connectors" \
 
 ### 2. Handle Microsoft OAuth
 
-Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants permissions, Microsoft redirects to your `redirectUrl` and the initial sync begins. A pending OAuth connector is not visible in list or get until the user finishes authorization.
+Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants permissions, Microsoft redirects to your `redirectUrl` and the initial sync begins. A pending OAuth connector is not returned by list until the user finishes authorization; get returns it with `system.status: "pending_authorization"`.
 
 ### 3. Monitor sync status
 
@@ -96,7 +96,7 @@ Send the user to `authorization.url` before `authorization.expiresAt`. After the
     connector = client.connectors.get("user-123", "PTzGiUYei7pgzg5buzZHgA", include=["syncs"])
 
     print(f"Account: {connector.account}")
-    print(f"Last sync: {connector.latest_run.system.status}")
+    print(f"Last sync: {connector.latest_run.system.status if connector.latest_run else 'never'}")
     print(f"Documents synced: {connector.document_count}")
 
     # List synced Office documents in the namespace
