@@ -10,6 +10,14 @@ import { forgetMemory } from "./forget-memory"
 import { addMemoryOutputSchema, type AddMemoryOutput } from "./output-schemas"
 import { textContent, type ToolDeps } from "./types"
 
+export const memoryMetadataSchema = z
+	.record(
+		z.string(),
+		z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
+	)
+	.optional()
+	.describe("Optional metadata to attach to the saved memory")
+
 export function register(deps: ToolDeps) {
 	const inputSchema = z.object({
 		content: z
@@ -25,6 +33,7 @@ export function register(deps: ToolDeps) {
 			),
 		namespace: optionalNamespaceSchema,
 		...legacyNamespaceInput,
+		metadata: memoryMetadataSchema,
 	})
 
 	deps.server.registerTool(
@@ -36,13 +45,13 @@ export function register(deps: ToolDeps) {
 			outputSchema: addMemoryOutputSchema,
 			annotations: MEMORY_TOOL_ANNOTATIONS,
 		},
-		async (args) => {
-			if (args.action === "forget") return forgetMemory(deps, args)
+		async (args, context) => {
+			if (args.action === "forget") return forgetMemory(deps, args, context)
 			try {
 				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const client = deps.getClient(namespace)
 
-				const result = await client.createMemory(args.content)
+				const result = await client.createMemory(args.content, args.metadata)
 				const message = `Memory saved (ID: ${result.id}, space: ${result.namespace})`
 				const structuredContent: AddMemoryOutput = withLegacyNamespace({
 					action: "save",

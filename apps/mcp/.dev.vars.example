@@ -3,6 +3,8 @@
 
 API_URL=
 MCP_URL=
+# OAuth metadata is advertised from this, so set it to your local MCP URL + /mcp (defaults to prod).
+MCP_RESOURCE=
 
 #(optional)
 POSTHOG_API_KEY=

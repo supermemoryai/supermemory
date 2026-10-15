@@ -48,7 +48,7 @@ Your assistant chooses these tools automatically. Use this table when you need t
 | --- | --- | --- | --- |
 | `search_memory` | Semantic recall from one space | `query` (required), `containerTag` | Matching memories |
 | `get_profile` | Stable and recent profile context for one space | `containerTag` | Profile facts |
-| `add_memory` | Save information | `content` (required), `namespace` | Save confirmation |
+| `add_memory` | Save information | `content` (required), `namespace`, optional `metadata` | Save confirmation |
 | `forget_memory` | Forget outdated information | `content` (required), `namespace` | Forget confirmation |
 | `list_documents` | Browse stored source documents and their summaries | `page`, `limit`, `containerTag` | Document IDs, titles, types, status, dates, and summaries |
 | `get_document` | Read the available content of one document | `documentId` (required) | Document metadata, summary, and available content |

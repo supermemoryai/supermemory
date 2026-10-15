@@ -3,6 +3,7 @@ import { saveSuccessViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { namespaceSchema } from "../namespace"
 import { legacyNamespaceInput, namespaceArg, withLegacyView } from "./compat"
+import { memoryMetadataSchema } from "./add-memory"
 import { ADDITIVE_MEMORY_TOOL_ANNOTATIONS } from "./annotations"
 import { textContent, type ToolDeps } from "./types"
 
@@ -13,6 +14,7 @@ export function register(deps: ToolDeps) {
 			description: "Save content to memory",
 			inputSchema: z.object({
 				content: z.string().min(1),
+				metadata: memoryMetadataSchema,
 				namespace: namespaceSchema.optional(),
 				...legacyNamespaceInput,
 				viewId: z.string().uuid().optional(),
@@ -28,7 +30,7 @@ export function register(deps: ToolDeps) {
 					return deps.errorResult(new Error("namespace is required"))
 				const viewId = args.viewId ?? crypto.randomUUID()
 				const client = deps.getClient(namespace)
-				const result = await client.createMemory(args.content)
+				const result = await client.createMemory(args.content, args.metadata)
 				const sc: ViewMessage = withLegacyView({
 					view: "save-success",
 					viewId,
