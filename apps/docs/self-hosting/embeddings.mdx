@@ -5,7 +5,7 @@ description: "Local and remote embedding providers for Supermemory local: defaul
 icon: "/icons/hugeicons/route-02.svg"
 ---
 
-Self-hosted Supermemory uses the **same embedding provider stack** as the hosted platform: local ONNX models, OpenAI, Gemini, or any OpenAI-compatible embeddings endpoint (including Ollama). LLM keys power extraction and summarization; embeddings are configured separately.
+Self-hosted Supermemory supports local ONNX models, OpenAI, Gemini, or any OpenAI-compatible embeddings endpoint (including Ollama). LLM keys power extraction and summarization; embeddings are configured separately.
 
 ## Defaults
 
@@ -43,9 +43,9 @@ For Docker, CI, or any non-interactive deploy, set env vars — there is **no in
 | Variable | Purpose | Default |
 |---|---|---|
 | `SUPERMEMORY_EMBEDDING_PROVIDER` | Embedding backend: `local`, `openai`, `gemini`, or `openai-compatible` (Ollama, vLLM, or any custom base URL) | `local` |
-| `SUPERMEMORY_EMBEDDING_MODEL` | Model id for the chosen provider (e.g. `Xenova/bge-m3`, `text-embedding-3-small`) | `Xenova/bge-base-en-v1.5` (local) |
-| `SUPERMEMORY_EMBEDDING_DIMENSIONS` | Vector size; must match the model's output size (native, or a reduced size for `text-embedding-3-*` and Gemini) and any stored data | `768` (local default) |
-| `SUPERMEMORY_EMBEDDING_BASE_URL` | Base URL for OpenAI-compatible embedding APIs (Ollama, vLLM, etc.) | unset |
+| `SUPERMEMORY_EMBEDDING_MODEL` | Model id for the chosen provider (e.g. `Xenova/bge-m3`, `text-embedding-3-small`) | `Xenova/bge-base-en-v1.5` (local), `text-embedding-3-small` (OpenAI and compatible), `gemini-embedding-001` (Gemini) |
+| `SUPERMEMORY_EMBEDDING_DIMENSIONS` | Vector size; must match the model's output size (native, or a reduced size for `text-embedding-3-*` and Gemini) and any stored data. Required for models not in the [table below](#local-models-with-known-dimensions) or the defaults | Inferred for known models (`768` for the local default) |
+| `SUPERMEMORY_EMBEDDING_BASE_URL` | Base URL for OpenAI-compatible embedding APIs (Ollama, vLLM, etc.) | unset (`openai-compatible` falls back to `OPENAI_BASE_URL`) |
 | `SUPERMEMORY_EMBEDDING_API_KEY` | API key for embedding endpoint (falls back to `OPENAI_API_KEY` / `GEMINI_API_KEY`; `openai-compatible` needs this or `OPENAI_API_KEY`; use any non-empty string if the endpoint has no auth) | unset |
 | `OPENAI_API_KEY` | Used when provider is `openai` (or compatible) if not otherwise supplied | unset |
 | `GEMINI_API_KEY` | Used when provider is `gemini` | unset |
@@ -122,7 +122,7 @@ SUPERMEMORY_EMBEDDING_DIMENSIONS=1536
 ```bash
 GEMINI_API_KEY=...
 SUPERMEMORY_EMBEDDING_PROVIDER=gemini
-SUPERMEMORY_EMBEDDING_MODEL=text-embedding-004
+SUPERMEMORY_EMBEDDING_MODEL=gemini-embedding-001
 SUPERMEMORY_EMBEDDING_DIMENSIONS=768
 ```
 

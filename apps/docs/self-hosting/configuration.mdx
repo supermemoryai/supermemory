@@ -7,7 +7,7 @@ icon: "/icons/hugeicons/settings-01.svg"
 
 The self-hosted server aims for **zero configuration** — the only required input is one LLM provider key, which the first-boot wizard collects interactively (or set via env var for non-interactive deployments). Embeddings default to local English; you can pick another provider in the optional wizard step or via env. Everything else below is opt-in.
 
-The installer writes API keys to `~/.supermemory/env`, which is loaded on every launch. You can also set variables in your shell or a process manager.
+The installer writes API keys to `~/.supermemory/env`, and the first-boot wizard saves them encrypted to `env.enc` in the data directory. Saved keys are loaded on every launch. When the data directory is `~/.supermemory`, the server copies the installer's parsed plaintext `env` values into `env.enc` on the next launch before attempting to remove `env`. A failed migration or removal can leave the plaintext file in place. You can also set variables in your shell or a process manager.
 
 ## Core
 
@@ -30,18 +30,20 @@ In production, Supermemory uses its own proprietary models tuned for long-horizo
 | `OPENAI_API_KEY` | OpenAI — or any OpenAI-compatible endpoint, see below |
 | `ANTHROPIC_API_KEY` | Anthropic |
 | `GEMINI_API_KEY` | Google AI Studio (Gemini) |
+| `GOOGLE_VERTEX_PROJECT_ID` + `GOOGLE_VERTEX_LOCATION` | GCP Vertex AI |
 | `GROQ_API_KEY` | Groq |
 | `WORKERS_AI_API_KEY` + `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Workers AI |
-| `GOOGLE_VERTEX_PROJECT_ID` + `GOOGLE_VERTEX_LOCATION` | GCP Vertex AI |
 
 <Tip>
 No key set? The server walks you through it. On first boot, an interactive setup wizard asks which provider you want, securely prompts for the key, and saves it encrypted — including a custom base URL and model name if you pick an OpenAI-compatible endpoint.
 </Tip>
 
-With multiple providers configured, the first one in the order above is used.
+For fast/text LLM tasks, the first configured provider in the order above is used. Image and video tasks use Vertex AI first, then Gemini.
 
 <Note>
-Image, video, and high-fidelity PDF understanding require a Gemini or Vertex AI key. Text ingestion, memory extraction, and search work with any provider.
+Image and video understanding require a Gemini or Vertex AI key. PDF extraction requires `GEMINI_API_KEY`; Vertex AI doesn't cover it. Text ingestion, memory extraction, and search work with any provider.
+
+Webpage ingestion fetches pages through Firecrawl and needs `FIRECRAWL_API_KEY`. Without it, webpage documents fail. URLs pointing to PDFs or media use their corresponding extractors instead.
 </Note>
 
 ### Fully offline with local models
@@ -138,7 +140,7 @@ These exist in the codebase but are exclusive to the [hosted platform](https://c
 - **Optimized memory extraction** — the platform's extraction pipeline is tuned for higher quality at lower cost than bring-your-own-key
 - **Managed scale** — globally distributed infrastructure, no capacity planning
 
-Any other environment variables you may find referenced in the codebase are platform-only: the self-hosted binary ignores them even when set.
+Besides the variables on this page, the binary honors a few operational switches: `SUPERMEMORY_VERBOSE=1` (detailed logs), `SUPERMEMORY_HIDE_API_KEY_IN_LOGS=1` (omit the key from the startup banner), `SUPERMEMORY_NO_OPEN=1` (don't open a browser on boot), and `SUPERMEMORY_NO_UPDATE_CHECK=1` (skip the update notification). The Docker image sets the last three.
 
 ## Example: production-ish `.env`
 

@@ -24,7 +24,7 @@ No Docker. No database to provision. No config files. It boots in seconds with e
 Run the binary with nothing set and you get a complete memory system:
 
 - **The Supermemory graph engine, embedded** — created automatically on first boot. No database to stand up, no connection strings.
-- **Built-in local embeddings** — default `Xenova/bge-base-en-v1.5` (768d) on your machine, no API key. Same provider stack as cloud if you opt into OpenAI, Gemini, or Ollama — see [Embeddings](/self-hosting/embeddings).
+- **Built-in local embeddings** — default `Xenova/bge-base-en-v1.5` (768d) on your machine, no API key. Opt into OpenAI, Gemini, or Ollama instead — see [Embeddings](/self-hosting/embeddings).
 - **An API key, generated for you** — printed on first boot, ready to paste into any SDK.
 - **The full Memory API** — `/ns/{namespace}/document`, `/ns/{namespace}/search`, `/ns/{namespace}/profile`, namespaces, the works.
 
@@ -41,7 +41,7 @@ OPENAI_MODEL=gpt-oss:20b \
 supermemory-server
 ```
 
-Local graph engine, local embeddings, local LLM. Text-memory processing can stay on your machine after the embedding model's first download. Supermemory collects telemetry; you can disable it with `SUPERMEMORY_DISABLE_TELEMETRY=1`. URL ingestion uses a hosted reader service; use local text or file inputs for offline operation.
+Local graph engine, local embeddings, local LLM. Text-memory processing can stay on your machine after the embedding model's first download. Supermemory collects telemetry; you can disable it with `SUPERMEMORY_DISABLE_TELEMETRY=1`. Webpage ingestion sends the URL to Firecrawl and needs `FIRECRAWL_API_KEY`; use local text inputs for offline operation. Also set `SUPERMEMORY_NO_UPDATE_CHECK=1` if the server must not check for releases.
 
 ## Drop-in with your existing code
 
@@ -68,14 +68,14 @@ Self-hosted is free within its lite license limit and useful for local developme
 |---|---|---|
 | Full Memory API | ✅ | ✅ |
 | Hybrid semantic search | ✅ | ✅ |
-| Embeddings | Local default (or OpenAI / Gemini / Ollama) | Same provider stack, managed |
-| File ingestion (PDFs, images) | ✅ | ✅ |
+| Embeddings | Local default (or OpenAI / Gemini / Ollama) | Managed |
+| File ingestion (PDFs, images) | ✅ (PDFs need `GEMINI_API_KEY`; images use Gemini or Vertex AI) | ✅ |
 | [Connectors](/connectors/overview) (Google Drive, Notion, Gmail, OneDrive) | — | ✅ |
 | [Supermemory MCP](/supermemory-mcp/mcp) | — | ✅ |
 | Memory extraction | Your model, your key | Proprietary long-horizon models — higher quality, cheaper at scale |
 | Infrastructure | Your machine | Globally distributed, scales with you |
 
-If you outgrow a single machine — or want connectors, MCP, and the best-tuned extraction pipeline — [the platform](https://console.supermemory.ai) is one `serverURL` change away. Running this for a team or organization? See [Local vs. Enterprise](/self-hosting/local-vs-enterprise).
+If you outgrow a single machine — or want connectors, MCP, and the best-tuned extraction pipeline — switch to [the platform](https://console.supermemory.ai) with its `baseUrl` and a hosted API key. Changing the connection does not transfer your local data. Running this for a team or organization? See [Local vs. Enterprise](/self-hosting/local-vs-enterprise).
 
 ## Next steps
 

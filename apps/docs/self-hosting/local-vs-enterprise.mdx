@@ -5,7 +5,7 @@ description: "Supermemory local is for builders. Supermemory Enterprise is for o
 icon: "/icons/hugeicons/building-03.svg"
 ---
 
-Supermemory local — the self-hosted binary — is free within its lite license limit and built for individual developers: local-first workflows, prototyping, and privacy-sensitive side projects. Its server source is not in the public repository. Text-memory processing can run offline after the first embedding-model download; URL ingestion uses a hosted reader service.
+Supermemory local — the self-hosted binary — is free within its lite license limit and built for individual developers: local-first workflows, prototyping, and privacy-sensitive side projects. Its server source is not in the public repository. Text-memory processing can run offline after the first embedding-model download when the LLM is also local; webpage ingestion goes through Firecrawl and needs `FIRECRAWL_API_KEY`.
 
 **Supermemory Enterprise** is the full platform, run for your organization: the same memory engine with proprietary models, organizational controls, and infrastructure that scales with you — without you operating any of it.
 
@@ -44,7 +44,7 @@ Local is bounded by one machine — which is the point. Enterprise runs on globa
 
 ## Moving between them
 
-The two speak the same API. Code written against your local server moves to Enterprise by changing the `baseUrl` — and vice versa. Prototype locally, ship on Enterprise.
+The two speak the same API. Point your code at the destination's `baseUrl` and use a credential issued there. Changing the connection does not transfer your local data. Prototype locally, ship on Enterprise.
 
 <CardGroup cols={2}>
   <Card title="Talk to us" icon="/icons/hugeicons/mail-01.svg" href="mailto:dhravya@supermemory.com">

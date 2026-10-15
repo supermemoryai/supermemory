@@ -58,12 +58,18 @@ supermemory-server
 First boot sets everything up — the embedded Supermemory graph engine, local embeddings, and your credentials:
 
 ```
-  ┌──────────────────────────────────────────────────┐
-  │  url       http://localhost:6767                 │
-  │  database  ./.supermemory                        │
-  │  api key   sm_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx     │
-  │  org id    xxxxxxxxxxxxxxxxxxxxxx                │
-  └──────────────────────────────────────────────────┘
+╭───────────────────────────────────────────────────────────────╮
+│  → supermemory ready                                          │
+│                                                               │
+│    url         http://localhost:6767                          │
+│    database    encrypted local storage (~/.supermemory)       │
+│    embeddings  local · Xenova/bge-base-en-v1.5 · 768d         │
+│    workflow    rivet                                          │
+│    api key     sm_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx              │
+│    org id      xxxxxxxxxxxxxxxxxxxxxx                         │
+│    boot        4.2s                                           │
+╰───────────────────────────────────────────────────────────────╯
+  every request needs this key: Authorization: Bearer <api key>
 ```
 
 Save that API key — it's your bearer token for every request.
@@ -118,11 +124,12 @@ client.add(
 </Tab>
 <Tab title="curl">
 ```bash
-curl "http://localhost:6767/ns/user_dhravya/document?dreaming=instant" \
+curl http://localhost:6767/ns/user_dhravya/document \
   -H "Authorization: Bearer sm_..." \
   -H "Content-Type: application/json" \
   -d '{
-    "content": "I am Dhravya. I love building dev tools and I am allergic to peanuts."
+    "content": "I am Dhravya. I love building dev tools and I am allergic to peanuts.",
+    "dreaming": "instant"
   }'
 ```
 </Tab>
@@ -163,8 +170,9 @@ By default, all state lives in a single directory you can back up or move:
 
 | Path | Contents |
 |---|---|
-| `~/.supermemory/` (or `$SUPERMEMORY_DATA_DIR`; `./.supermemory/` before v0.0.9) | The Supermemory graph engine's data, auth secret, embedding model cache |
-| `~/.supermemory/env` | API keys saved by the installer, loaded on every launch |
+| `~/.supermemory/` (or `$SUPERMEMORY_DATA_DIR`; `./.supermemory/` before v0.0.9) | The Supermemory graph engine's data, API key, auth secret, embedding model cache |
+| `~/.supermemory/env.enc` | Provider keys and embedding choices saved by the first-boot wizard, encrypted and loaded on every launch |
+| `~/.supermemory/env` | Plaintext API keys written by the installer. On launch, the server copies parsed values into `env.enc` before attempting to remove this file; it can remain if migration or removal fails |
 
 ## Next steps
 
