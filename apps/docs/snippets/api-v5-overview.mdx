@@ -6,7 +6,7 @@
 
 The API base URL and bearer keys do not change.
 
-**Where parameters live:** `GET` options go in the query string. `POST`, `PATCH`, and `PUT` options go in the JSON body, or as form fields on file uploads; the one exception is list pagination (`page`, `limit`, `sort`, `order`), which stays in the query string. `DELETE` options such as `moveTo` go in the query string, while bulk deletes send their `ids` in the JSON body. Routes reject options sent in the wrong place with `400`. v5 application routes are unversioned; [`/v5/reference`](https://api.supermemory.ai/v5/reference) is the interactive v5 reference, not an API path prefix.
+**Where parameters live:** `GET` options go in the query string. `POST`, `PATCH`, and `PUT` options go in the JSON body, or as form fields on file uploads; the one exception is list pagination (`page`, `limit`, `sort`, `order`), which stays in the query string. `DELETE` options such as `moveTo` go in the query string, while bulk deletes send their `ids` in the JSON body. Most routes reject options sent in the wrong place with `400`. `DELETE /ns/{namespace}` does not: it ignores a JSON body, so a `moveTo` sent in the body permanently deletes the namespace instead of moving it. v5 application routes are unversioned; [`/v5/reference`](https://api.supermemory.ai/v5/reference) is the interactive v5 reference, not an API path prefix.
 
 ## Recommended migration process
 
@@ -55,7 +55,7 @@ await supermemory.add("user_1", { content: "new turn" })
 ```
 </CodeGroup>
 
-Every v5 call takes one object. `namespace`, path IDs, and query parameters are top-level keys; the JSON body goes under `body`. Legacy `containerTag` never appears in a body again. There is no v5 Python SDK yet.
+URL values are positional (`namespace` first, then `id` where there is one); everything else goes in one object. Legacy `containerTag` never appears in a body again. The Python SDK speaks v5 from 5.0.0 with the same shape and keyword arguments: `client.add("user_1", content="new turn")`.
 
 ## Endpoint map
 

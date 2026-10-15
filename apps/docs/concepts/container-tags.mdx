@@ -97,7 +97,7 @@ The colon is intentionally allowed so you can build **hierarchical** namespaces 
 
 ## Scope lives in the URL
 
-In v5 the namespace is a path segment, not a body field. Every scoped endpoint starts with `/ns/{namespace}/`, and every SDK call takes `namespace` as a top-level key next to `body`.
+In v5 the namespace is a path segment, not a body field. Every scoped endpoint starts with `/ns/{namespace}/`, and every scoped SDK call takes `namespace` as its first argument.
 
 | Legacy (v3/v4) | v5 |
 |-----------|------|
@@ -138,8 +138,8 @@ await supermemory.list("project_q1", "documents");
 
 Namespaces are also an **authorization boundary**, not just an organizational one. Two mechanisms can restrict which namespaces a given caller may touch:
 
-- **API key scopes** — an API key can be limited to a specific set of namespaces, with read or write permission per namespace.
-- **Member restrictions** — an organization member can be granted access to only certain namespaces.
+- **API key scopes** — an API key can be limited to a specific set of namespaces, and a key can be read-only.
+- **Member restrictions** — an organization member can be granted access to only certain namespaces, with read or write permission per namespace.
 
 When a request is restricted, Supermemory validates the namespace in the URL against the caller's allowed set:
 
@@ -159,10 +159,12 @@ The `namespaces.*` SDK methods read and change a namespace itself, as opposed to
 | `supermemory.namespaces.list()` | Page through namespaces with `documentCount` and `memoryCount`. |
 | `supermemory.namespaces.get(namespace)` | Read one namespace and its `supportingContext`. |
 | `supermemory.namespaces.update(namespace, { supportingContext })` | Set a context prompt applied when processing documents in this namespace. Useful for steering extraction per project or tenant. |
-| `supermemory.namespaces.delete(namespace)` | Delete the namespace and all its documents and memories. |
+| `supermemory.namespaces.delete(namespace)` | Delete the namespace, its namespace-owned memory records, and documents exclusive to it. Shared documents are retained. |
 | `supermemory.namespaces.delete(namespace, { moveTo })` | Move the content into another namespace, then remove this one. Queued; returns an `operationId`. |
 
 `supportingContext` is what v3/v4 called `entityContext`. The legacy "merge" operation is now a delete with `moveTo`, one source namespace per request.
+
+Namespace deletion and moves require an org admin or owner with write access to the source namespace; moves also require write access to the destination. The default `sm_project_default` namespace cannot be permanently deleted. See [deletion scope and erasure limits](/overview/security).
 
 <CodeGroup>
 
@@ -178,7 +180,7 @@ const { namespaces, pagination } = await supermemory.namespaces.list();
 await supermemory.namespaces.delete("project_research_old", {
   moveTo: "project_research",
 });
-// { success, status: "queued", operationId, namespace, moveTo }
+// { status: "queued", operationId, namespace, moveTo }
 ```
 
 ```bash curl
@@ -190,10 +192,8 @@ curl -X PATCH "https://api.supermemory.ai/ns/project_research" \
 curl "https://api.supermemory.ai/namespaces" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
-curl -X DELETE "https://api.supermemory.ai/ns/project_research_old" \
-  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{ "moveTo": "project_research" }'
+curl -X DELETE "https://api.supermemory.ai/ns/project_research_old?moveTo=project_research" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 ```
 
 </CodeGroup>

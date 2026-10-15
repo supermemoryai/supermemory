@@ -28,7 +28,6 @@ Useful for coding agents:
 ```bash
 npx supermemory setup              # detect project, launch/print integration flow
 npx supermemory setup --prompt     # print integration prompt only
-npx supermemory setup --json       # machine-readable output
 npx supermemory help --json        # agent-readable command catalog
 npx supermemory help --all
 npx supermemory migrate            # move a v3/v4 project to v5 with your agent
@@ -210,7 +209,7 @@ DO NOT USE — deprecated, undocumented, or fabricated:
 - Endpoints:  /v1/anything, /v3/documents, /v3/search, /v4/search, /v4/profile, /v4/memories   (use /ns/{namespace}/...)
 - Headers:    x-supermemory-api-key, x-api-key, x-sm-user-id (for API auth)
 - Body keys:  containerTag, containerTags, customId (use `id`), entityContext (use `supportingContext`), filterByMetadata (use `group`), documentDate (use `date`), q (use `query`), filters (use `filter`), userId, spaces
-- SDK:        `client.add({ containerTag })`, `client.search.execute`, `client.memories.*`, `client.profile({ q })`
+- SDK:        `client.add({ containerTag })`, `client.search.execute`, `client.memories.add` / `client.memories.updateMemory`, `client.profile({ q })`
 
 SCOPING IS LOAD-BEARING. Every write and every search MUST name one namespace in the path.
 

@@ -50,11 +50,15 @@ This works for Google Drive, Notion, and OneDrive. See the full setup in [Custom
 
 ## Scoped API keys
 
-Scoped keys are restricted to one namespace (what v3/v4 called a container tag). They can only access documents and search within that namespace — use them to give a client, session, or tenant limited access without shipping your org master key.
+Scoped keys are restricted to one namespace (what v3/v4 called a container tag), or to a fixed list of namespaces. They can read and write content only inside those namespaces, subject to the key's read/write permission and member restrictions — use them to give a client, session, or tenant limited access without shipping your org master key.
+
+<Warning>
+Namespace scoping is not read-only access. Writable scoped keys can update and delete documents and forget memories. Deleting or moving a namespace additionally requires an org admin or owner with write access to the source and, for moves, the destination.
+</Warning>
 
 Pairs with [namespaces](/concepts/container-tags) for multi-tenant isolation.
 
-**Allowed endpoints:** `/v3/documents`, `/v3/memories`, `/v4/memories`, `/v3/search`, `/v4/search`, `/v4/profile`
+**Allowed endpoints:** `/ns/{namespace}/document`, `/ns/{namespace}/list`, `/ns/{namespace}/search`, `/ns/{namespace}/profile`, and `/ns/{namespace}/memories`; `/namespaces` and `/ns/{namespace}`; and the legacy `/v3/documents`, `/v3/memories`, `/v4/memories`, `/v4/conversations`, `/v3/search`, `/v4/search`, `/v4/profile`, `/v3/container-tags/list`, and `/v3/session` routes. Any other route returns `403`.
 
 Scoped keys **cannot** read billing, manage org settings, or mint further keys.
 
@@ -78,7 +82,8 @@ curl https://api.supermemory.ai/v3/auth/scoped-key \
 
 | Parameter | Required | Default | Description |
 | --- | --- | --- | --- |
-| `containerTag` | Yes | — | The namespace to scope the key to. Alphanumeric, hyphens, underscores, colons, dots |
+| `containerTag` | Yes, unless `containerTags` is set | — | The namespace to scope the key to. Up to 100 characters: letters, numbers, hyphens, underscores, colons |
+| `containerTags` | No | — | Scope the key to several namespaces instead of one. Takes precedence over `containerTag` |
 | `name` | No | `scoped_{containerTag}` | Display name for the key |
 | `expiresInDays` | No | — | 1–365 days |
 | `rateLimitMax` | No | `500` | Max requests per window (1–10,000) |
@@ -92,8 +97,9 @@ curl https://api.supermemory.ai/v3/auth/scoped-key \
   "id": "key-id",
   "name": "scoped_my-project",
   "containerTag": "my-project",
+  "containerTags": ["my-project"],
   "expiresAt": "2026-03-08T00:00:00.000Z",
-  "allowedEndpoints": ["/v3/documents", "/v3/memories", "/v4/memories", "/v3/search", "/v4/search", "/v4/profile"]
+  "allowedEndpoints": ["/v3/session", "/v3/documents", "/v3/memories", "/v4/memories", "/v4/conversations", "/ns/*/memories", "/v3/search", "/v4/search", "/v4/profile", "/v3/container-tags/list", "/ns/*/document", "/ns/*/list", "/ns/*/search", "/ns/*/profile", "/namespaces$", "/ns$", "/ns/*$"]
 }
 ```
 

@@ -36,7 +36,7 @@ import { Supermemory } from "supermemory"
 const supermemory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY })
 ```
 
-Every SDK call takes one object. `namespace`, path IDs, and query parameters are top-level keys; the JSON body goes under `body`. Each reference page below shows the SDK call next to the equivalent `curl`. There is no v5 Python SDK yet.
+URL values are positional arguments (`namespace` first, then `id` where there is one), and everything else goes in one object: `supermemory.add("user_123", { content })`. Each reference page below shows the SDK call next to the equivalent `curl`. The Python SDK (`pip install supermemory`, 5.0.0 and later) follows the same shape with keyword arguments: `client.add("user_123", content="...")`.
 
 <CardGroup cols={2}>
   <Card title="Migrate to v5" icon="arrow-up-right" href="/migration/api-v5">
