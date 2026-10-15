@@ -94,7 +94,7 @@ Recent context and temporary states:
 
 Static and dynamic split facts by how long-lived they are. **Buckets** split them by *topic* — a third, independent axis you define, like `preferences`, `goals`, or `work`. As content is ingested, a classifier sorts each fact into the buckets it matches.
 
-Every org starts with a default `preferences` bucket. Add your own in console settings at the organization level, or per namespace with `supermemory.profiles.setBuckets()` — namespace buckets are add-only, so a namespace always keeps every org-level bucket.
+Every org starts with a default `preferences` bucket, which is always present — custom buckets are added alongside it, never in place of it. Add your own in console settings at the organization level, or per namespace with `supermemory.profiles.setBuckets()` — namespace buckets are add-only, so a namespace always keeps every org-level bucket.
 
 ```typescript
 // Define a namespace-level bucket (name → description)
@@ -110,7 +110,7 @@ console.log(profile.buckets.preferences); // [{ id, memory }, ...]
 console.log(profile.buckets.goals);
 ```
 
-Bucket descriptions steer the classifier, so a precise description ("explicit first-person preferences only, exclude inferred traits") produces cleaner buckets than a vague one. Buckets are separate from [`filterPrompt`](/concepts/customization), which controls what gets ingested at all — buckets only organize facts that already made it into the profile.
+Bucket descriptions steer the classifier, so a precise description ("explicit first-person preferences only, exclude inferred traits") produces cleaner buckets than a vague one. Buckets are separate from [`organizationalContext`](/concepts/customization#organizational-context) (called `filterPrompt` in v3/v4), which steers what gets extracted at all — buckets only organize facts that already made it into the profile.
 
 <Card title="Profile Buckets reference" icon="/icons/hugeicons/tag-01.svg" href="/user-profiles/buckets">
   Request bucketed profiles, create buckets at the org or namespace level, and see validation limits.

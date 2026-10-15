@@ -27,7 +27,6 @@ await supermemory.organization.update({
     - Outdated brand materials (pre-2024)
     - Internal discussions about brand changes
     - Competitor analysis docs`,
-  },
 });
 ```
 
@@ -103,6 +102,10 @@ Supporting context persists on the namespace and combines with the org-level org
 
 ---
 
+<Note>
+The Chunk size and Connector branding sections below use the legacy settings resource. Their `client.settings.update(...)` examples require a legacy SDK that exposes `settings`; SDK 5.x users should call `PATCH /v3/settings` directly with an org admin or owner credential. These options are not fields on the v5 organization resource.
+</Note>
+
 ## Chunk size
 
 Control how documents are split into searchable pieces. Smaller chunks = more precise retrieval but less context per result.
@@ -133,7 +136,7 @@ Show "Log in to **YourApp**" instead of "Log in to Supermemory" when users conne
 <AccordionGroup>
   <Accordion title="Google Drive">
     1. Create OAuth credentials in [Google Cloud Console](https://console.cloud.google.com/)
-    2. Redirect URI: `https://api.supermemory.ai/v3/connections/google-drive/callback`
+    2. Redirect URI: `https://api.supermemory.ai/v3/connections/auth/callback/google-drive`
 
     ```typescript
     await client.settings.update({
@@ -145,7 +148,7 @@ Show "Log in to **YourApp**" instead of "Log in to Supermemory" when users conne
   </Accordion>
   <Accordion title="Notion">
     1. Create integration at [Notion Developers](https://developers.notion.com/)
-    2. Redirect URI: `https://api.supermemory.ai/v3/connections/notion/callback`
+    2. Redirect URI: `https://api.supermemory.ai/v3/connections/auth/callback/notion`
 
     ```typescript
     await client.settings.update({
@@ -157,7 +160,7 @@ Show "Log in to **YourApp**" instead of "Log in to Supermemory" when users conne
   </Accordion>
   <Accordion title="OneDrive">
     1. Register app in [Azure Portal](https://portal.azure.com/)
-    2. Redirect URI: `https://api.supermemory.ai/v3/connections/onedrive/callback`
+    2. Redirect URI: `https://api.supermemory.ai/v3/connections/auth/callback/onedrive`
 
     ```typescript
     await client.settings.update({

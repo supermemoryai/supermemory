@@ -62,16 +62,18 @@ Profiles are built automatically as you [ingest content](/ingestion/add-memories
       { "id": "mem_3", "memory": "User prefers dark mode interfaces" }
     ],
     "dynamic": [
-      { "id": "mem_4", "memory": "User is working on Project Alpha" },
-      { "id": "mem_5", "memory": "User recently started learning Rust" },
-      { "id": "mem_6", "memory": "User is debugging authentication issues" }
+      { "id": "mem_4", "memory": "[2026-10-02] User is working on Project Alpha" },
+      { "id": "mem_5", "memory": "[2026-10-05] User recently started learning Rust" },
+      { "id": "mem_6", "memory": "[2026-10-09] User is debugging authentication issues" }
     ],
-    "buckets": {}
+    "buckets": {
+      "preferences": []
+    }
   }
 }
 ```
 
-`static` and `dynamic` are always returned. Each entry is `{ id, memory }`; the `id` is the memory ID, so you can [forget](/recall/memory-operations#forget-memories) a profile entry directly.
+`static`, `dynamic`, and `buckets` are always returned. Omitting the request's `buckets` returns every effective bucket, including the built-in `preferences` bucket; specifying names returns only those buckets, and an empty list returns an empty bucket section. Each entry is `{ id, memory }`; the `id` is the memory ID, so you can [forget](/recall/memory-operations#forget-memories) a profile entry directly. The exception is synthesized summaries of older memories, whose `id` starts with `aggregated_` — they don't map to a single memory. Individual `dynamic` entries start with a `[YYYY-MM-DD]` date.
 
 ---
 
@@ -123,7 +125,7 @@ The v5 profile call takes no query. When you also need query-ranked memories, ru
 
 ## Parameters
 
-`namespace` is a top-level key (URL path). `body` is optional and accepts only `filter` and `buckets`.
+`namespace` is the first argument (URL path). The options object is optional and accepts only `filter` and `buckets`.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|

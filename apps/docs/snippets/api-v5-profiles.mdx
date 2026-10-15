@@ -5,7 +5,7 @@ v5 returns a maintained profile directly and gives profile bucket definitions th
 <CodeGroup>
 ```bash Legacy
 POST /v4/profile
-{"containerTag":"user_1","q":"work preferences","threshold":0.6,"include":{}}
+{"containerTag":"user_1","q":"work preferences","threshold":0.6,"include":["static","dynamic","buckets"]}
 ```
 
 ```bash v5
@@ -22,13 +22,18 @@ Remove legacy `q`, `threshold`, and `include`. If the caller needs query-ranked 
 {
   "profile": {
     "static": [{ "id": "mem_1", "memory": "The user works in design" }],
-    "dynamic": [{ "id": "mem_2", "memory": "The user is preparing a launch" }],
-    "buckets": { "work": [{ "id": "mem_3", "memory": "Prefers concise project updates" }] }
+    "dynamic": [{ "id": "mem_2", "memory": "[2026-10-01] The user is preparing a launch" }],
+    "buckets": {
+      "preferences": [],
+      "work": [{ "id": "mem_3", "memory": "Prefers concise project updates" }]
+    }
   }
 }
 ```
 
-`static` and `dynamic` are always returned and cannot be disabled. Omit `buckets` in the request to return every effective custom bucket; pass up to 50 names to narrow only the bucket section.
+`static` and `dynamic` are always returned and cannot be disabled. Omit `buckets` in the request to return every effective bucket, including the built-in `preferences` bucket; pass up to 50 names to narrow only the bucket section.
+
+Entries change from v4 strings to `{ id, memory }` objects, and the v4 `[Recent]`/`[Summary]` text prefixes are dropped. Synthesized summaries of older memories now carry an `id` starting with `aggregated_`; individual `dynamic` entries keep their `[YYYY-MM-DD]` date prefix.
 
 ### Read bucket definitions
 
@@ -65,7 +70,7 @@ DELETE /ns/user_1/profile/buckets
 {"buckets":["work"]}
 ```
 
-Names must be unique. Organization-owned buckets can appear in the effective GET response but cannot be changed or removed through namespace PUT or DELETE calls.
+Names must be unique. Organization-owned buckets can appear in the effective GET response but cannot be changed or removed through namespace PUT or DELETE calls — naming one returns `409`. The built-in `preferences` bucket always stays in the effective set; DELETE only removes namespace-owned buckets.
 
 ### With the SDK
 
@@ -92,7 +97,7 @@ await supermemory.profiles.deleteBuckets("user_1", {
 ```
 </CodeGroup>
 
-`supermemory.profile` takes no query. `body` is optional and accepts only `filter` and `buckets`. Read `profile.static`, `profile.dynamic`, and `profile.buckets[name]` as arrays of `{ id, memory }`.
+`supermemory.profile(namespace, options?)` takes no query. The options object is optional and accepts only `filter` and `buckets`. Read `profile.static`, `profile.dynamic`, and `profile.buckets[name]` as arrays of `{ id, memory }`.
 
 ### Verification
 

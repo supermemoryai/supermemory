@@ -11,7 +11,7 @@ Buckets are **custom topical categories** for a profile — an axis that sits al
 New to buckets? Read the [conceptual overview](/concepts/user-profiles#buckets) first — this page is the API reference for reading, creating, and managing them.
 </Tip>
 
-Every org starts with a built-in `preferences` bucket. You can define your own at the organization level, and add more per namespace (what v3/v4 called a container tag) — all covered below.
+Every org starts with a built-in `preferences` bucket that is always present — buckets you define at the organization level, or add per namespace (what v3/v4 called a container tag), are added alongside it. All covered below.
 
 ---
 
@@ -50,11 +50,11 @@ Every org starts with a built-in `preferences` bucket. You can define your own a
     "dynamic": [],
     "buckets": {
       "preferences": [
-        { "id": "mem_1", "memory": "[Summary] Prefers concise, technical answers and dark-mode tooling" },
-        { "id": "mem_2", "memory": "[Recent] Switched their editor to Zed" }
+        { "id": "mem_2", "memory": "Switched their editor to Zed" },
+        { "id": "aggregated_0_1760000000000", "memory": "Tooling and style: Prefers concise, technical answers and dark-mode tooling" }
       ],
       "goals": [
-        { "id": "mem_3", "memory": "[Recent] Wants to ship the billing revamp this quarter" }
+        { "id": "mem_3", "memory": "Wants to ship the billing revamp this quarter" }
       ]
     }
   }
@@ -62,7 +62,7 @@ Every org starts with a built-in `preferences` bucket. You can define your own a
 ```
 
 <Note>
-**`[Recent]` and `[Summary]` labels.** To keep profiles dense, an entity's older memories are periodically aggregated into a short synthesis. Entries prefixed `[Summary]` are that aggregated context; entries prefixed `[Recent]` were ingested since the last aggregation and aren't summarized yet. The `dynamic` section uses the same `[Recent]` prefix (plus a `[YYYY-MM-DD]` date). Strip the prefixes if you only want raw text, or keep them to signal recency to your model.
+**Summaries vs. individual memories.** To keep profiles dense, once a bucket grows large enough its older memories are periodically aggregated into a short synthesis. Synthesized entries have an `id` starting with `aggregated_` and don't map to a single memory; entries with a regular memory ID were ingested since the last aggregation and aren't summarized yet. v5 returns plain text — the `[Recent]`/`[Summary]` prefixes from v4 are not included, so use the `aggregated_` ID prefix to tell summaries apart. Individual `dynamic` entries still start with a `[YYYY-MM-DD]` date.
 </Note>
 
 ### List bucket definitions
@@ -106,7 +106,7 @@ Bucket definitions live at two levels: **organization** (the default set every n
 
 ### Namespace buckets
 
-`setBuckets` sends 1 to 50 name-to-description entries. Existing namespace names are updated, new names are added, and omitted namespace buckets remain unchanged. These are **add-only** on top of org buckets — a namespace always keeps every org bucket, and if a namespace bucket's name collides with an org bucket, the org's definition wins in the merged, effective set used at ingestion and read time.
+`setBuckets` sends 1 to 50 name-to-description entries. Existing namespace names are updated, new names are added, and omitted namespace buckets remain unchanged. These are **add-only** on top of org buckets — a namespace always keeps every org bucket. Sending a name the org already defines returns `409`, and if an org bucket is added later with the same name as a namespace bucket, the org's definition wins in the merged, effective set used at ingestion and read time.
 
 <Tabs>
   <Tab title="TypeScript">
@@ -179,7 +179,7 @@ If you'd rather start from a template than write descriptions from scratch, thes
 
 ### Default bucket
 
-If neither the org nor the namespace has configured any buckets, ingestion falls back to a single built-in `preferences` bucket, scoped tightly to explicit first-person statements ("prefers X over Y", "always uses W") — not inferred traits or general observations. Configuring your own buckets replaces this default.
+Every namespace has a built-in `preferences` bucket, scoped tightly to explicit first-person statements ("prefers X over Y", "always uses W") — not inferred traits or general observations. It is always part of the effective set: configuring your own buckets adds to it rather than replacing it, and `deleteBuckets` can't remove it. Defining a bucket named `preferences` only overrides its description; an empty description falls back to the built-in one.
 
 ---
 
@@ -203,7 +203,7 @@ Bucket descriptions steer classification. A precise description ("Explicit first
 
 ### Instructions
 
-Bucket descriptions only steer classification *within* a bucket — they don't tell the model anything about the namespace itself. For that, set [`supportingContext`](/concepts/customization#entity-context) on the namespace: a free-text field that's appended alongside the org-level `organizationalContext` into the same prompt the extraction/classification step uses, so it shapes bucket assignment too, not just fact extraction.
+Bucket descriptions only steer classification *within* a bucket — they don't tell the model anything about the namespace itself. For that, set [`supportingContext`](/concepts/customization#supporting-context) on the namespace: a free-text field that's appended alongside the org-level `organizationalContext` into the same prompt the extraction/classification step uses, so it shapes bucket assignment too, not just fact extraction.
 
 <Tabs>
   <Tab title="TypeScript">
