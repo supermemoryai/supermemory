@@ -207,39 +207,24 @@ export class SupermemoryClient {
 		}
 	}
 
-	// v5 has no exact-content forget: preview semantic matches, then forget the best one by ID.
-	async forgetMemory(
-		content: string,
-	): Promise<{ success: boolean; message: string; namespace: string }> {
+	// Retrying a committed mutation can turn its success into a misleading not-found result.
+	async forgetByIds(ids: string[]): Promise<{
+		forgotten: { id: string; memory: string }[]
+		errors: { id: string; error: string }[]
+		namespace: string
+	}> {
 		try {
-			const preview = await this.client.memories.forgetMatching(
+			const result = await this.client.memories.forget(
 				this.namespace,
-				{ query: content, dryRun: true },
+				{ ids },
+				{ maxRetries: 0 },
 			)
-			const match = preview.matches[0]
-			if (!match) {
-				return {
-					success: false,
-					message: "No matching memory found to forget.",
-					namespace: this.namespace,
-				}
-			}
-
-			const result = await this.client.memories.forget(this.namespace, {
-				ids: [match.id],
-			})
-			if (result.count === 0) {
-				const reason = result.errors[0]?.error ?? "unknown error"
-				return {
-					success: false,
-					message: `Could not forget memory ${match.id}: ${reason}`,
-					namespace: this.namespace,
-				}
-			}
-
 			return {
-				success: true,
-				message: `Forgot memory (ID: ${match.id}): "${limitByChars(match.memory, 100)}"`,
+				forgotten: result.matches.map((m) => ({
+					id: m.id,
+					memory: limitByChars(m.memory, 200),
+				})),
+				errors: result.errors,
 				namespace: this.namespace,
 			}
 		} catch (error) {
@@ -252,7 +237,7 @@ export class SupermemoryClient {
 			const result = await this.client.search(this.namespace, {
 				query,
 				limit,
-				searchMode: "hybrid",
+				searchMode: "memories",
 				threshold: SEARCH_THRESHOLD,
 			})
 			const results = mapSearchResults(result.results)

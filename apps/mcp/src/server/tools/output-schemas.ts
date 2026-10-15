@@ -25,6 +25,15 @@ export const addMemoryOutputSchema = z.object({
 	message: z.string(),
 	id: z.string().optional(),
 	status: z.string().optional(),
+	forgotten: z
+		.array(z.object({ id: z.string(), memory: z.string() }))
+		.optional(),
+	errors: z.array(z.object({ id: z.string(), error: z.string() })).optional(),
+	candidates: z
+		.array(
+			z.object({ id: z.string(), text: z.string(), similarity: z.number() }),
+		)
+		.optional(),
 })
 
 export type AddMemoryOutput = z.infer<typeof addMemoryOutputSchema>

@@ -50,7 +50,7 @@ export function register(deps: ToolDeps) {
 					for (const result of searchResult.results) {
 						const text = getMemoryText(result)
 						const similarity = (result.similarity * 100).toFixed(0)
-						parts.push(`- [${similarity}%] ${text}`)
+						parts.push(`- ${result.id} [${similarity}%] ${text}`)
 					}
 				} else {
 					parts.push("No matching memories found.")
