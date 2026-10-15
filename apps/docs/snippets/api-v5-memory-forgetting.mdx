@@ -16,7 +16,7 @@ Content-Type: application/json
 {"ids":["mem_1","mem_2"]}
 ```
 
-Send 1–500 IDs. The response reports successful IDs in `matches` and missing or ineligible IDs in `errors`, so HTTP success does not imply every requested ID changed.
+Send 1–500 IDs. The response reports successful IDs in `matches` and missing, already forgotten, or out-of-namespace IDs in `errors`, so HTTP success does not imply every requested ID changed.
 
 ### Preview a semantic request
 
@@ -27,7 +27,7 @@ Content-Type: application/json
 {"query":"outdated home address","dryRun":true}
 ```
 
-`dryRun: true` performs selection without changing memory state. `dryRun: false` forgets the memories selected when that request executes.
+`dryRun: true` performs selection without changing memory state. `dryRun: false` forgets the memories selected when that request executes. `query` is 1–2000 characters, and each request selects at most 100 memories. After applying a batch, repeat the preview-and-apply workflow to find more; repeated previews alone do not paginate and may return the same matches.
 
 ### Avoid selection drift
 
@@ -53,7 +53,7 @@ Use this workflow when a human or policy must approve the exact set. Re-running 
 }
 ```
 
-`count` always equals `matches.length`. Both dry-run and applied semantic requests use this shape; the payload alone does not replace your record of which mode was sent.
+`count` always equals `matches.length`. Semantic requests always return an empty `errors` array. Both dry-run and applied semantic requests use this shape; the payload alone does not replace your record of which mode was sent.
 
 ### With the SDK
 

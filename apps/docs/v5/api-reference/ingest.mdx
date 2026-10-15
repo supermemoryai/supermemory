@@ -27,10 +27,10 @@ const { id, status } = await supermemory.add("user_1", {
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/ns/user_1/document?dreaming=instant" \
+curl -X POST "https://api.supermemory.ai/ns/user_1/document" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"content":"The user prefers concise project updates","id":"conv_1","metadata":{"source":"chat"}}'
+  -d '{"content":"The user prefers concise project updates","id":"conv_1","metadata":{"source":"chat"},"dreaming":"instant"}'
 ```
 </CodeGroup>
 

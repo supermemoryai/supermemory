@@ -61,10 +61,10 @@ results = client.search("user_123", query="where does the user want to travel?")
 ```
 
 ```bash curl
-curl -X POST "https://api.supermemory.ai/ns/user_123/document?dreaming=instant" \
+curl -X POST "https://api.supermemory.ai/ns/user_123/document" \
   -H "Authorization: Bearer sm_..." \
   -H "Content-Type: application/json" \
-  -d '{ "content": "The user loves Paris." }'
+  -d '{ "content": "The user loves Paris.", "dreaming": "instant" }'
 
 curl -X POST "https://api.supermemory.ai/ns/user_123/search" \
   -H "Authorization: Bearer sm_..." \
@@ -118,7 +118,7 @@ A document with status `done` has its chunks indexed for search. Memories (the g
 
 This is when the content is passed through the memory model and merged, arranged and organized for the future.
 
-Pass `dreaming` on [add](/ingestion/add-memories) (a query parameter, so a top-level key in the SDK):
+Pass `dreaming` on [add](/ingestion/add-memories) (a field in the JSON body, next to `content` in the SDK):
 
 | Mode | Default? | Behavior | When to use |
 | --- | --- | --- | --- |

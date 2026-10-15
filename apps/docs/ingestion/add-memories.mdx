@@ -66,7 +66,7 @@ Every write goes to one `namespace` (what v3/v4 called a container tag). The nam
 ```
 
 <Warning>
-If an irrecoverable processing error occurs, the document is automatically deleted after 2 minutes.
+If an irrecoverable processing error occurs, the document's status becomes `failed`. Send the content again with the same `id` to reprocess it.
 </Warning>
 
 ---
@@ -193,16 +193,16 @@ Scale and Enterprise include [advanced document extraction for PDFs](/concepts/c
 
 ## Parameters
 
-`namespace`, `taskType`, and `dreaming` are top-level keys on the SDK call (`taskType` and `dreaming` are query parameters on the HTTP route). Everything else goes in `body`.
+`namespace` is the first argument on the SDK call and the URL path on the HTTP route. Every other parameter, including `taskType` and `dreaming`, goes in the request object (the JSON body over HTTP). The route accepts no query parameters; sending one returns `400`.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `namespace` | string | **Required.** Group by user/project. Goes in the URL path. Required for user profiles |
 | `content` | string | **Required.** Any raw content — text, conversations, URLs, HTML |
 | `id` | string | **Recommended.** Your ID for the content (conversation ID, doc ID). Enables updates and deduplication. The response `id` echoes it back |
-| `metadata` | object | Key-value pairs for filtering (strings, numbers, booleans) |
+| `metadata` | object | Key-value pairs for filtering (strings, numbers, booleans, or arrays of strings) |
 | `group` | object | Filter which existing memories are used as context during ingestion. See [Filtered Writes](#filtered-writes) |
-| `supportingContext` | string | Context for memory extraction on this namespace. Max 1500 chars. See [Customization](/concepts/customization#entity-context) |
+| `supportingContext` | string | Context for memory extraction on this namespace. Max 1500 chars. See [Customization](/concepts/customization#supporting-context) |
 | `date` | string | ISO 8601 date the content was originally created. Use when backfilling. See [Backfill historical data](/ingestion/batch-ingest-historical-data) |
 | `dreaming` | `"dynamic" \| "instant"` | Processing mode. Default `"dynamic"`. `"instant"` processes each document on its own and bills one extra operation. See [Processing Modes](#processing-modes) |
 | `taskType` | `"memory" \| "superrag"` | Pipeline to run. Default `"memory"`. `"superrag"` skips fact extraction and profile updates, doing only chunk/embed/index — at 5x cheaper per token. See [SuperRAG ingestion](/concepts/super-rag#ingesting-as-pure-superrag-tasktype-superrag) |
@@ -223,16 +223,16 @@ Scale and Enterprise include [advanced document extraction for PDFs](/concepts/c
     { content: "# Project Docs\n\n## Features\n- Real-time sync" }
     ```
 
-    **Namespaces:**
+    **Namespaces** (first argument; letters, numbers, `-`, `_`, and `:`, up to 100 characters):
     ```typescript
     // By user
-    { namespace: "user_123" }
+    await supermemory.add("user_123", { content: "..." });
 
     // By project
-    { namespace: "project_alpha" }
+    await supermemory.add("project_alpha", { content: "..." });
 
     // Hierarchical
-    { namespace: "org_456_team_backend" }
+    await supermemory.add("org_456_team_backend", { content: "..." });
     ```
 
     **IDs (Recommended):**
@@ -262,8 +262,8 @@ Scale and Enterprise include [advanced document extraction for PDFs](/concepts/c
       }
     }
     ```
-    - No nested objects or arrays
-    - Values: string, number, or boolean only
+    - No nested objects
+    - Values: string, number, boolean, or an array of strings
 
     **Supporting Context:**
     ```typescript
@@ -363,7 +363,7 @@ The metadata itself is still written to the document, but the memories will only
 ### How it works
 
 When `group` is provided:
-- **Profile memories** (static context) are filtered to only those from documents matching the metadata
+- **Profile memories** (static context) are filtered by the existing memories' metadata
 - **Similar memories** used as context during ingestion are filtered the same way
 - The new document's own metadata is written normally — the filter only affects which **existing** memories are used as context
 
@@ -371,7 +371,7 @@ When `group` is provided:
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `group` | `Record<string, string \| number \| boolean \| string[]>` | Key-value pairs to filter existing memories by their source document metadata |
+| `group` | `Record<string, string \| number \| boolean \| string[]>` | Key-value pairs to filter existing memories by their own metadata, rather than a live join to source-document metadata |
 
 - **Scalar values** (string, number, boolean) match exactly
 - **Array values** match if **any** value in the array matches (OR logic)
@@ -404,7 +404,7 @@ When you add content, Supermemory:
 Track progress with `GET /ns/{namespace}/document/{id}`:
 ```typescript
 const doc = await supermemory.documents.get("user_123", "abc123");
-console.log(doc.system.status); // "queued" | "processing" | "done"
+console.log(doc.system.status); // "queued" | "extracting" | "chunking" | "embedding" | "done" | "failed"
 ```
 
 <AccordionGroup>
@@ -444,17 +444,19 @@ console.log(doc.system.status); // "queued" | "processing" | "done"
   <Accordion title="Error handling">
     | Status | Error | Cause |
     |--------|-------|-------|
-    | 400 | Bad request | Missing required fields, invalid parameters |
+    | 400 | Bad request | Missing required fields, invalid parameters, unexpected query parameters |
     | 401 | Unauthorized | Invalid or missing API key |
-    | 403 | Forbidden | Insufficient permissions |
-    | 429 | Rate limited | Too many requests or quota exceeded |
+    | 402 | Payment required | Insufficient balance or document quota |
+    | 403 | Forbidden | No write access to this namespace |
+    | 409 | Conflict | A namespace merge is in progress |
+    | 429 | Rate limited | Too many requests |
     | 500 | Internal error | Processing failure |
 
     ```typescript
     try {
       await supermemory.add("user_123", { content: "..." });
     } catch (error) {
-      // Back off on 429, fix the request on 400, retry later on 5xx
+      // Back off on 429, top up on 402, fix the request on 400, retry later on 5xx
       console.error("add failed:", error);
     }
     ```

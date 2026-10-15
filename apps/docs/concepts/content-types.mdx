@@ -5,7 +5,7 @@ description: "All the content formats Supermemory can ingest and process"
 icon: "/icons/hugeicons/files-01.svg"
 ---
 
-Supermemory automatically extracts and indexes content from various formats. There are two entry points: `supermemory.add()` for text and URLs, `supermemory.documents.uploadFile()` for actual files. Both take the target `namespace` as a top-level key. See [Add Memories](/ingestion/add-memories) to learn how to ingest content via the API.
+Supermemory automatically extracts and indexes content from various formats. There are two entry points: `supermemory.add()` for text and URLs, `supermemory.documents.uploadFile()` for actual files. Both take the target `namespace` as the first argument. See [Add Memories](/ingestion/add-memories) to learn how to ingest content via the API.
 
 ## Text content
 
@@ -31,7 +31,7 @@ await supermemory.add("documentation", {
 });
 ```
 
-**Extracts:** Article text, headings, metadata. Strips navigation, ads, boilerplate. URL extraction is powered by [Markdowner](https://md.dhr.wtf).
+**Extracts:** Article text, headings, metadata. Strips navigation, ads, boilerplate.
 
 ---
 
@@ -102,13 +102,13 @@ await supermemory.add("user_123", {
 
 **Extracts:** Structure, headings, code blocks with syntax awareness.
 
-Code is chunked using [code-chunk](https://github.com/supermemoryai/code-chunk), which understands AST boundaries to keep functions, classes, and logical blocks intact. See [Super RAG](/concepts/super-rag) for how Supermemory optimizes chunking for each content type.
+See [Super RAG](/concepts/super-rag) for how Supermemory optimizes chunking for each content type.
 
 ---
 
 ## Images
 
-Set `fileType: "image"` and `mimeType` so Supermemory knows exactly how to process it. Both are query parameters, so they sit next to `namespace` rather than inside `body`:
+Set `fileType: "image"` and `mimeType` so Supermemory knows exactly how to process it. Both are multipart form fields, sent in the same object as `file` and `metadata`:
 
 ```typescript
 await supermemory.documents.uploadFile("user_123", {
@@ -127,7 +127,7 @@ await supermemory.documents.uploadFile("user_123", {
 
 ## Audio & video
 
-Video has a dedicated `fileType`; audio is uploaded the same way and detected from the file itself:
+Video and audio each have a dedicated `fileType` (`"video"`, `"audio"`); set it with `mimeType` when inference is not enough:
 
 ```typescript
 // Video
@@ -142,6 +142,7 @@ await supermemory.documents.uploadFile("user_123", {
 await supermemory.documents.uploadFile("user_123", {
   file: fs.createReadStream('call-recording.mp3'),
   metadata: JSON.stringify({ title: "Customer Call Recording" }),
+  fileType: "audio",
   mimeType: "audio/mpeg",
 });
 ```
@@ -215,7 +216,7 @@ await supermemory.add("user_123", { content: "https://example.com/page" });
 await supermemory.add("user_123", { content: "User said they prefer email contact" });
 ```
 
-For files, `uploadFile` detects type from the file itself in most cases. `fileType` and `mimeType` only exist to force specific processing when inference is not enough — set them for images and video.
+For files, `uploadFile` detects type from the file itself in most cases. `fileType` and `mimeType` only exist to force specific processing when inference is not enough — set them for images, video, and audio.
 
 ---
 
@@ -227,7 +228,7 @@ For files, `uploadFile` detects type from the file itself in most cases. `fileTy
 | Files | 50MB |
 | URLs | Fetched content up to 10MB |
 
-**Typical processing time:** text is near-instant; PDFs take 1-5s; images 2-10s; video 10s+; webpages 1-3s. Text content is chunked at the sentence level with a 2-sentence overlap between chunks.
+**Typical processing time:** text is near-instant; PDFs take 1-5s; images 2-10s; video 10s+; webpages 1-3s. Text content is split on sentence boundaries, with about 200 characters of overlap carried between chunks.
 
 <Tip>
 For large files, consider chunking or using [connectors](/connectors/overview) for automatic sync.

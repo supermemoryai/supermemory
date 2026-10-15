@@ -49,7 +49,9 @@ Retrieve paginated documents with filtering. One `list` call serves documents, c
       "id": "doc_abc123",
       "title": "Meeting notes",
       "type": "text",
+      "summary": "Team sync covering the Q3 roadmap",
       "metadata": { "source": "slack" },
+      "url": null,
       "system": {
         "status": "done",
         "dreamingStatus": "done",
@@ -73,16 +75,17 @@ Every response contains `documents`, `chunks`, `memories`, and `pagination`. Onl
 
 ### Parameters
 
-`namespace` and `type` are required. Pagination and sorting are query parameters (top-level keys in the SDK); `filter` goes in `body`.
+`namespace` and `type` are required. Over HTTP, pagination and sorting are query parameters and `filter` and `include` go in the JSON body; the SDK takes them all in one options object after `namespace` and `type`. Unknown query or body keys return `400`.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `type` | string | required | `documents`, `chunks`, or `memories` |
-| `limit` | number | 10 | Items per page |
+| `limit` | number | 10 | Items per page (maximum 100) |
 | `page` | number | 1 | Page number |
-| `sort` | string | `createdAt` | Sort by `createdAt`, `updatedAt`, or `position` |
+| `sort` | string | `createdAt` | `createdAt` or `updatedAt` for documents and memories; `createdAt` or `position` for chunks |
 | `order` | string | `desc` | `desc` (newest) or `asc` (oldest) |
 | `body.filter` | object | — | Metadata filter. See [Organizing & Filtering](/concepts/filtering) |
+| `body.include.forgotten` | boolean | `false` | Memories only: include forgotten or expired rows that remain latest, returned with `isForgotten: true`. Normal forgetting makes a memory non-latest, so it still will not appear in this list |
 
 <Accordion title="Pagination example">
   ```typescript
@@ -133,8 +136,7 @@ Get a specific document with its processing status. Pass `include` to include it
       include: ["chunks", "memories"], // optional
     });
 
-    console.log(doc.system.status);  // "queued" | "processing" | "done" | "failed"
-    console.log(doc.system.dreamingStatus);  // "dreaming" | "done"
+    console.log(doc.system.status);  // "queued" | "extracting" | ... | "done" | "failed"
     console.log(doc.content);
     ```
   </Tab>
@@ -146,8 +148,7 @@ Get a specific document with its processing status. Pass `include` to include it
         include=["chunks", "memories"],  # optional
     )
 
-    print(doc.system.status)  # "queued" | "processing" | "done" | "failed"
-    print(doc.system.dreaming_status)  # "dreaming" | "done"
+    print(doc.system.status)  # "queued" | "extracting" | ... | "done" | "failed"
     print(doc.content)
     ```
   </Tab>
@@ -161,6 +162,10 @@ Get a specific document with its processing status. Pass `include` to include it
 
 The `id` may be the Supermemory document ID or the `id` you supplied at ingestion. It resolves only inside the namespace in the path.
 
+<Note>
+The current HTTP response also includes `system.dreamingStatus`. TypeScript SDK 5.0.1 and Python SDK 5.0.0 do not expose that field in their generated models; Python's `system.dreaming_status` is not available. Use the raw HTTP response when monitoring memory generation with these versions, or upgrade the TypeScript SDK to 5.0.2 for typed `system.dreamingStatus`. `system.status: "done"` alone does not mean memories are ready.
+</Note>
+
 ### Processing status
 
 | Status | Description |
@@ -171,6 +176,8 @@ The `id` may be the Supermemory document ID or the `id` you supplied at ingestio
 | `embedding` | Creating vector representations |
 | `done` | Ready for search |
 | `failed` | Processing failed |
+
+Treat any status other than `done` or `failed` as still in progress.
 
 ### Memory generation status
 
@@ -202,7 +209,7 @@ With the default `dreaming: "dynamic"`, Supermemory batches related documents be
 
 ## Update document
 
-Update a document's content or metadata. **Content changes** trigger full reprocessing; **metadata-only changes** (e.g. updating `accepted`, `version`) do not reindex. The body accepts any non-empty subset of `content`, `metadata`, `supportingContext`, `group`, or `date`.
+Update a document's content or metadata. **Content changes** trigger full reprocessing; **metadata-only changes** (e.g. updating `accepted`, `version`) do not reindex. The body accepts any non-empty subset of `content`, `metadata`, `supportingContext`, or `date`. Metadata merges key by key. `group` is an ingestion-side setting: it picks which existing memories serve as context while content is processed, so changing it only takes effect when the document is re-ingested. Send it together with `content`.
 
 <Tabs>
   <Tab title="TypeScript">
@@ -291,7 +298,7 @@ Permanently remove documents. One call deletes 1 to 100 documents by Supermemory
   </Tab>
 </Tabs>
 
-Inspect both `count` and per-ID `errors`; HTTP success can include partial failures.
+Inspect both `count` and per-ID `errors`; HTTP success can include partial failures. Only documents whose `system.status` is `done` or `failed` can be deleted; a document that is still processing is reported in `errors` as `Document is still processing`. Memories derived from a deleted document are forgotten.
 
 <Warning>
 Deletes are permanent — no recovery.
@@ -301,7 +308,7 @@ Deletes are permanent — no recovery.
 
 ## Processing queue
 
-There is no separate processing endpoint. List documents and read `system.status` and `system.dreamingStatus` on each item.
+There is no separate processing endpoint. List documents and read `system.status` and `system.dreamingStatus` on each item in the HTTP response. The SDK examples below count documents still being indexed; use raw HTTP for memory-generation status with the SDK versions noted above.
 
 <Tabs>
   <Tab title="TypeScript">
@@ -310,16 +317,14 @@ There is no separate processing endpoint. List documents and read `system.status
       limit: 100,
     });
     const processing = documents.filter(d => d.system.status !== "done" && d.system.status !== "failed");
-    const dreaming = documents.filter(d => d.system.dreamingStatus === "dreaming");
-    console.log(`${processing.length} documents processing, ${dreaming.length} forming memories`);
+    console.log(`${processing.length} documents processing`);
     ```
   </Tab>
   <Tab title="Python">
     ```python
     page = client.list("user_123", "documents", limit=100)
     processing = [d for d in page.documents if d.system.status not in ("done", "failed")]
-    dreaming = [d for d in page.documents if d.system.dreaming_status == "dreaming"]
-    print(f"{len(processing)} documents processing, {len(dreaming)} forming memories")
+    print(f"{len(processing)} documents processing")
     ```
   </Tab>
   <Tab title="cURL">

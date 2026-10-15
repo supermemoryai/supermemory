@@ -6,7 +6,7 @@ v5 makes the difference between adding new information and replacing the canonic
 | --- | --- | --- |
 | Add information to a stable caller ID | `POST /ns/{namespace}/document` | Append/diff |
 | Replace text or URL content | `PATCH /ns/{namespace}/document/{id}` | Replace and reprocess |
-| Update only supporting fields | Same `PATCH` without `content` | Canonical content unchanged |
+| Update only metadata, context, or date | Same `PATCH` without `content` | Canonical content unchanged |
 | Replace a source file and its user metadata | `POST /ns/{namespace}/document/file/{id}` | Full replacement and reprocess |
 | Partially update a file or its supporting fields | `PATCH /ns/{namespace}/document/file/{id}` | Omitted fields remain unchanged |
 
@@ -24,7 +24,7 @@ PATCH /ns/user_1/document/doc_1
 ```
 </CodeGroup>
 
-The v5 body accepts any non-empty subset of `content`, `supportingContext`, `metadata`, `group`, or `date`, plus optional `taskType` and `dreaming` (which alone do not count as a change). Supplying `content` makes it the new canonical source; facts supported only by the previous source can disappear after reprocessing.
+The v5 body accepts any non-empty subset of `content`, `supportingContext`, `metadata`, or `date`, plus optional `taskType` and `dreaming` (which alone do not count as a change). `group` is an ingestion-side setting: it picks which existing memories serve as context while content is processed, so changing it only takes effect when the document is re-ingested. Send it together with `content`. Supplying `content` makes it the new canonical source; facts supported only by the previous source can disappear after reprocessing.
 
 ### Replace a file-backed document
 
@@ -37,7 +37,7 @@ metadata={"revision":2}
 dreaming=dynamic
 ```
 
-POST requires `file` and replaces the canonical source plus user-controlled metadata, grouping, context, and date. Omitted supporting fields are cleared. Use it when the submitted request is the complete new representation of the file-backed document.
+POST requires `file` and replaces the canonical source plus caller metadata, including `date`. Omitted metadata and date are cleared. `supportingContext` is stored on the namespace, so omitting it leaves the namespace's existing context unchanged. Use it when the submitted request is the complete new representation of the file-backed document.
 
 ### Partially update a file-backed document
 
@@ -49,7 +49,7 @@ metadata={"reviewed":true}
 dreaming=dynamic
 ```
 
-PATCH changes only supplied fields. Include `file` to replace the source while retaining omitted supporting fields, or omit `file` for metadata-, group-, context-, or date-only changes. `metadata` and `group` are JSON-encoded strings; `supportingContext` and `date` are plain strings.
+PATCH changes only supplied fields. Include `file` to replace the source while retaining omitted supporting fields, or omit `file` for metadata-, context-, or date-only changes. Like the JSON update, `group` only takes effect when the file is re-ingested, so send it together with `file`. `metadata` and `group` are JSON-encoded strings; `supportingContext` and `date` are plain strings.
 
 <Warning>
   There is no public v5 `PUT /ns/{namespace}/document/file/{id}` operation. Use POST for a complete replacement and PATCH for a partial update.
@@ -90,7 +90,7 @@ The path `id` may be the Supermemory document ID or your caller-defined ID. It i
 
 ### Processing and conflicts
 
-Content or file replacement is accepted before downstream processing completes. A document still processing, a namespace conflict, or a conflicting internal file path can return `409`; retry only after the conflicting operation reaches a terminal state.
+Content or file replacement is accepted before downstream processing completes. A namespace merge in progress or a conflicting internal file path returns `409`; retry a merge conflict after the merge finishes.
 
 ### Verification
 

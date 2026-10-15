@@ -27,7 +27,7 @@ await supermemory.add("user_123", {
   dreaming: "instant", // memories land in the graph right away
 });
 
-const results = await supermemory.search("user_123", {
+const { results } = await supermemory.search("user_123", {
   query: "where does Alex work?",
   include: { related: true },
   searchMode: "memories",
@@ -154,7 +154,7 @@ await supermemory.add("user_123", {
   content: "Alex mentioned he just started at Stripe",
 });
 
-const results = await supermemory.search("user_123", {
+const { results } = await supermemory.search("user_123", {
   query: "where does Alex work?",
   include: { related: true },
   searchMode: "memories",

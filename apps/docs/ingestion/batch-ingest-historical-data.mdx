@@ -102,7 +102,7 @@ curl -X POST "https://api.supermemory.ai/ns/historical_import/document/batch" \
 
 </CodeGroup>
 
-Batch results preserve input order. Inspect `success`, `failed`, and every item in `results`; a batch can contain successful and failed items together.
+`results` lists accepted documents first, in request order, then failed ones, so match each result by `id`. Inspect `count` (accepted), `failed`, and every item in `results`; a batch can contain successful and failed items together.
 
 ## Optional: wait for processing to finish
 

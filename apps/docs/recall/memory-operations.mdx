@@ -29,13 +29,14 @@ v5 has no direct memory-create route. Ingest a document instead and Supermemory 
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.supermemory.ai/ns/user_123/document?dreaming=instant" \
+    curl -X POST "https://api.supermemory.ai/ns/user_123/document" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
         "content": "John prefers dark mode.\nJohn is from Seattle.",
         "id": "prefs_john",
-        "metadata": { "source": "user_preference" }
+        "metadata": { "source": "user_preference" },
+        "dreaming": "instant"
       }'
     ```
   </Tab>
@@ -88,7 +89,7 @@ Soft-delete memories by ID. Forgotten memories are excluded from search results 
 |-------|------|-------------|
 | `count` | number | Number of memories forgotten; always equals `matches.length` |
 | `matches` | array | The memories that were forgotten (`{ id, memory }`) |
-| `errors` | array | IDs that were missing or not eligible (`{ id, error }`) |
+| `errors` | array | IDs that were missing, already forgotten, or in another namespace (`{ id, error }`) |
 
 HTTP success does not imply every requested ID changed. Check `errors`.
 
@@ -99,7 +100,7 @@ HTTP success does not imply every requested ID changed. Check `errors`.
 Forget by meaning. Give a `query` (a prompt or topic) and the service semantically searches the namespace, decides which memories are genuinely about your target, and soft-deletes those — use this for "forget everything about X".
 
 <Warning>
-This is a bulk, destructive operation. `dryRun` is required. Call with **`dryRun: true`** first to review what would be forgotten, then apply. The match is semantic, so a too-broad query can select more than you intend.
+This is a bulk, destructive operation. `dryRun` is required. Call with **`dryRun: true`** first to review what would be forgotten, then apply. The match is semantic, so a too-broad query can select more than you intend. Each request selects at most 100 memories. After applying a batch, repeat the preview-and-apply workflow to find more; repeated previews alone do not paginate and may return the same matches.
 </Warning>
 
 <Tabs>
@@ -144,7 +145,7 @@ This is a bulk, destructive operation. `dryRun` is required. Call with **`dryRun
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `namespace` | string | yes | Namespace to scope the operation to (URL path) |
-| `query` | string | yes | What to forget — a natural-language instruction ("forget everything about Project Titan") or a bare topic ("Project Titan") |
+| `query` | string | yes | What to forget — a natural-language instruction ("forget everything about Project Titan") or a bare topic ("Project Titan"). 1 to 2000 characters |
 | `dryRun` | boolean | yes | `true` returns what *would* be forgotten without changing anything. `false` forgets the memories selected when that request runs |
 
 ### Response
@@ -161,7 +162,7 @@ Both dry-run and applied requests return the same shape as [Forget Memories](#fo
 }
 ```
 
-The payload does not say which mode was sent, so keep your own record of `dryRun` next to audit logs.
+`errors` is always empty for semantic requests. The payload does not say which mode was sent, so keep your own record of `dryRun` next to audit logs.
 
 <Tip>
 **Exact, bound deletes.** Re-running `forgetMatching` with `dryRun: false` re-runs the semantic match, so the result can drift from the preview if the namespace changed in between. To forget *precisely* what you reviewed, take the `id`s from the `dryRun` preview and send them to `memories.forget` — the delete is then bound to exactly that set.
