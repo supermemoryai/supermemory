@@ -84,6 +84,23 @@ describe("space application state", () => {
 			accessibleDefaultNamespace({
 				user,
 				accessType: "restricted",
+				namespaces: [
+					{ namespace: "readonly", permission: "read" },
+					{ namespace: "team", permission: "write" },
+				],
+			}),
+		).toBe("team")
+		expect(
+			accessibleDefaultNamespace({
+				user,
+				accessType: "restricted",
+				namespaces: [{ namespace: "readonly", permission: "read" }],
+			}),
+		).toBe("readonly")
+		expect(
+			accessibleDefaultNamespace({
+				user,
+				accessType: "restricted",
 				namespaces: [],
 			}),
 		).toBe("sm_project_default")

@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/server"
-import { DEFAULT_NAMESPACE, type SupermemoryClient } from "../client"
+import type { SupermemoryClient } from "../client"
 import {
 	compactDescription,
 	formatFactSection,
@@ -12,6 +12,7 @@ export function registerProfileResource(
 	server: McpServer,
 	getClient: (namespace?: string) => SupermemoryClient,
 	resolveNamespace: () => Promise<string | undefined>,
+	getDefaultNamespace: () => Promise<string>,
 ) {
 	server.registerResource(
 		"Active Space Profile",
@@ -19,7 +20,7 @@ export function registerProfileResource(
 		{},
 		async () => {
 			const selectedNamespace = await resolveNamespace()
-			const activeKey = selectedNamespace ?? DEFAULT_NAMESPACE
+			const activeKey = selectedNamespace ?? (await getDefaultNamespace())
 			const [profileResult, spaces] = await Promise.all([
 				getClient(activeKey).getProfile(),
 				getClient().listNamespaces(),

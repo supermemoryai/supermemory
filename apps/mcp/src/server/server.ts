@@ -98,9 +98,10 @@ export function createSupermemoryServer(
 		spaceState.setActiveNamespace(namespace)
 	const resolveSelectedNamespace = (explicit?: string) =>
 		resolveSpaceNamespace(explicit, getActiveNamespace)
+	const getDefaultNamespace = () =>
+		defaultNamespaceFor(actor.bearerToken, apiUrl)
 	const resolveNamespace = async (explicit?: string) =>
-		(await resolveSelectedNamespace(explicit)) ??
-		(await defaultNamespaceFor(actor.bearerToken, apiUrl))
+		(await resolveSelectedNamespace(explicit)) ?? (await getDefaultNamespace())
 	const createUploadSession = async (namespace: string) => {
 		const uploadId = crypto.randomUUID()
 		const uploadToken = [crypto.randomUUID(), crypto.randomUUID()]
@@ -139,14 +140,25 @@ export function createSupermemoryServer(
 		} catch {}
 	}
 
-	registerProfileResource(server, getClient, resolveSelectedNamespace)
+	registerProfileResource(
+		server,
+		getClient,
+		resolveSelectedNamespace,
+		getDefaultNamespace,
+	)
 	registerNamespacesResource(
 		server,
 		() => getClient(),
 		resolveSelectedNamespace,
+		getDefaultNamespace,
 	)
 	registerWidgetResource(server, mcpOrigin)
-	registerContextPrompt(server, getClient, resolveSelectedNamespace)
+	registerContextPrompt(
+		server,
+		getClient,
+		resolveSelectedNamespace,
+		getDefaultNamespace,
+	)
 
 	return server
 }

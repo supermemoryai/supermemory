@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/server"
-import { DEFAULT_NAMESPACE, type SupermemoryClient } from "../client"
+import type { SupermemoryClient } from "../client"
 import {
 	compactDescription,
 	formatFactSection,
@@ -15,6 +15,7 @@ export function registerContextPrompt(
 	server: McpServer,
 	getClient: (namespace?: string) => SupermemoryClient,
 	resolveNamespace: () => Promise<string | undefined>,
+	getDefaultNamespace: () => Promise<string>,
 ) {
 	server.registerPrompt(
 		"context",
@@ -24,7 +25,7 @@ export function registerContextPrompt(
 		async () => {
 			try {
 				const selectedNamespace = await resolveNamespace()
-				const activeKey = selectedNamespace ?? DEFAULT_NAMESPACE
+				const activeKey = selectedNamespace ?? (await getDefaultNamespace())
 				const [profileResult, spaces] = await Promise.all([
 					getClient(activeKey).getProfile(),
 					getClient().listNamespaces(),
