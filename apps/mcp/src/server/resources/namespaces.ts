@@ -1,11 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/server"
-import { DEFAULT_NAMESPACE, type SupermemoryClient } from "../client"
+import type { SupermemoryClient } from "../client"
 import { formatSpaceRow, sortSpaces } from "../space-presentation"
 
 export function registerNamespacesResource(
 	server: McpServer,
 	getClient: () => SupermemoryClient,
 	resolveNamespace: () => Promise<string | undefined>,
+	getDefaultNamespace: () => Promise<string>,
 ) {
 	server.registerResource("My Spaces", "supermemory://spaces", {}, async () => {
 		const client = getClient()
@@ -13,7 +14,7 @@ export function registerNamespacesResource(
 			client.listNamespaces(),
 			resolveNamespace(),
 		])
-		const activeKey = selectedNamespace ?? DEFAULT_NAMESPACE
+		const activeKey = selectedNamespace ?? (await getDefaultNamespace())
 		const rows = sortSpaces(namespaces, activeKey).map((space) =>
 			formatSpaceRow(space, activeKey),
 		)

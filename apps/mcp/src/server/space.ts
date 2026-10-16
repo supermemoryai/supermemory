@@ -15,7 +15,7 @@ export async function resolveNamespace(
 	return explicit ?? (await getActiveNamespace())
 }
 
-// Mirrors the API's hard allowlist: scoped keys and restricted members can only reach their listed spaces.
+// Mirrors the API's hard allowlist (scoped keys, restricted members), preferring a space writes can reach.
 export function accessibleDefaultNamespace(session: SessionInfo): string {
 	const keyTags =
 		session.scope?.type === "scoped"
@@ -32,5 +32,13 @@ export function accessibleDefaultNamespace(session: SessionInfo): string {
 	if (!allowed?.[0] || allowed.includes(DEFAULT_NAMESPACE)) {
 		return DEFAULT_NAMESPACE
 	}
-	return allowed[0]
+	const writable =
+		session.scope?.permission === "read"
+			? undefined
+			: allowed.find(
+					(tag) =>
+						session.namespaces?.find((access) => access.namespace === tag)
+							?.permission !== "read",
+				)
+	return writable ?? allowed[0]
 }
