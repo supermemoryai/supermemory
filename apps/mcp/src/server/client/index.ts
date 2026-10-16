@@ -57,8 +57,8 @@ export type { MemoryEntry, MemoryEntryHistory }
 export type MemoryEntriesResponse = MemoriesList
 
 export type Memory =
-	| { id: string; memory: string; similarity: number }
-	| { id: string; chunk: string; similarity: number }
+	| { id: string; memory: string; similarity: number; documentId?: string }
+	| { id: string; chunk: string; similarity: number; documentId?: string }
 
 export interface SearchResult {
 	results: Memory[]
@@ -85,17 +85,20 @@ function limitByChars(text: string, maxChars = MAX_CHARS): string {
 
 function mapSearchResults(results: SearchResponseResultsItem[]): Memory[] {
 	return results.map((result) => {
+		const documentId = result.included?.document?.id
 		if (result.chunk && !result.memory) {
 			return {
 				id: result.id,
 				similarity: result.similarity,
 				chunk: limitByChars(result.chunk),
+				...(documentId && { documentId }),
 			}
 		}
 		return {
 			id: result.id,
 			similarity: result.similarity,
 			memory: limitByChars(result.memory ?? ""),
+			...(documentId && { documentId }),
 		}
 	})
 }
@@ -239,6 +242,7 @@ export class SupermemoryClient {
 				limit,
 				searchMode: "memories",
 				threshold: SEARCH_THRESHOLD,
+				include: { documents: true },
 			})
 			const results = mapSearchResults(result.results)
 			return {
@@ -356,9 +360,25 @@ export class SupermemoryClient {
 		}
 	}
 
+	// Older search results handed out memory IDs as document IDs, so resolve those to their source document.
 	async getDocument(id: string): Promise<DocumentDetails> {
 		try {
 			return await this.client.documents.get(this.namespace, id)
+		} catch (error) {
+			if (objectProperty(error, "statusCode") !== 404) this.handleError(error)
+		}
+
+		const documentId = await this.client.memories
+			.get(this.namespace, id, { include: "documents" })
+			.then((memory) => memory.included?.document?.id)
+			.catch(() => undefined)
+		if (!documentId) {
+			throw new Error(
+				`No document with ID "${id}" in space "${this.namespace}". Use a document ID from list_documents, or the document ID shown on a search_memory or list_memories result.`,
+			)
+		}
+		try {
+			return await this.client.documents.get(this.namespace, documentId)
 		} catch (error) {
 			this.handleError(error)
 		}

@@ -1,3 +1,5 @@
+import type { SessionInfo } from "../shared/types"
+import { DEFAULT_NAMESPACE } from "./client"
 import type { ActorContext } from "./types"
 
 export function spaceStateName(
@@ -11,4 +13,24 @@ export async function resolveNamespace(
 	getActiveNamespace: () => Promise<string | undefined>,
 ): Promise<string | undefined> {
 	return explicit ?? (await getActiveNamespace())
+}
+
+// Mirrors the API's hard allowlist: scoped keys and restricted members can only reach their listed spaces.
+export function accessibleDefaultNamespace(session: SessionInfo): string {
+	const keyTags =
+		session.scope?.type === "scoped"
+			? (session.scope.tags ?? (session.scope.tag ? [session.scope.tag] : null))
+			: null
+	const memberTags =
+		session.accessType === "restricted" && session.namespaces
+			? session.namespaces.map((access) => access.namespace)
+			: null
+	const allowed =
+		keyTags && memberTags
+			? keyTags.filter((tag) => memberTags.includes(tag))
+			: (keyTags ?? memberTags)
+	if (!allowed?.[0] || allowed.includes(DEFAULT_NAMESPACE)) {
+		return DEFAULT_NAMESPACE
+	}
+	return allowed[0]
 }
