@@ -125,6 +125,31 @@ export function getContainerTags(config?: {
 	return [...CONTAINER_TAG_CONSTANTS.defaultTags]
 }
 
+// A model-supplied tag may only pick one of the developer-configured tags, never widen the scope.
+export function resolveConfiguredContainerTag(
+	configuredTags: readonly string[],
+	requestedTag?: string,
+): string {
+	const defaultTag = configuredTags[0]
+	if (defaultTag === undefined) {
+		throw new Error(
+			"Supermemory tools require at least one configured container tag.",
+		)
+	}
+
+	if (!requestedTag) {
+		return defaultTag
+	}
+
+	if (!configuredTags.includes(requestedTag)) {
+		throw new Error(
+			`Container tag "${requestedTag}" is outside the configured scope.`,
+		)
+	}
+
+	return requestedTag
+}
+
 /** Delete exactly one document by its internal ID. */
 export async function deleteDocumentById(
 	client: Supermemory,
