@@ -27,7 +27,7 @@ export function register(deps: ToolDeps) {
 		"search_memory",
 		{
 			description:
-				"Search memories in one space with a natural-language query. Returns matching memories only — not the space profile. If you need who-the-user-is, preferences, or recent context after searching, call get_profile. When the user names a space, resolve it with list_spaces and pass namespace; otherwise use the active space.",
+				"Search memories in one space with a natural-language query. Returns matching memories only — not the space profile. Each result has a memory ID (for forget_memory) and, when it has one, the ID of its source document (for get_document). If you need who-the-user-is, preferences, or recent context after searching, call get_profile. When the user names a space, resolve it with list_spaces and pass namespace; otherwise use the active space.",
 			inputSchema,
 			outputSchema: searchMemoryOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
@@ -42,6 +42,7 @@ export function register(deps: ToolDeps) {
 					id: result.id,
 					text: getMemoryText(result),
 					similarity: result.similarity,
+					...(result.documentId && { documentId: result.documentId }),
 				}))
 
 				const parts: string[] = []
@@ -50,7 +51,10 @@ export function register(deps: ToolDeps) {
 					for (const result of searchResult.results) {
 						const text = getMemoryText(result)
 						const similarity = (result.similarity * 100).toFixed(0)
-						parts.push(`- ${result.id} [${similarity}%] ${text}`)
+						const source = result.documentId
+							? ` (document: ${result.documentId})`
+							: ""
+						parts.push(`- ${result.id} [${similarity}%] ${text}${source}`)
 					}
 				} else {
 					parts.push("No matching memories found.")

@@ -19,7 +19,9 @@ export function register(deps: ToolDeps) {
 			.string()
 			.min(1, "Document ID is required")
 			.max(255, "Document ID exceeds maximum length")
-			.describe("Document ID returned by list_documents or a memory result"),
+			.describe(
+				"Document ID from list_documents, or the document ID shown on a search_memory or list_memories result. Memory IDs are not document IDs.",
+			),
 		namespace: optionalNamespaceSchema,
 		...legacyNamespaceInput,
 	})
@@ -29,7 +31,7 @@ export function register(deps: ToolDeps) {
 		{
 			title: "Get Document",
 			description:
-				"Read one stored document by ID from one space, including its summary and available content. Use list_documents to discover document IDs. When the document is in a named space, resolve it with list_spaces and pass namespace; otherwise use the active space.",
+				"Read one stored document by ID from one space, including its summary and available content. Get document IDs from list_documents or from the document shown on a search_memory result. When the document is in a named space, resolve it with list_spaces and pass namespace; otherwise use the active space.",
 			inputSchema,
 			outputSchema: getDocumentOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,

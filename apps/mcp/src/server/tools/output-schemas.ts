@@ -86,6 +86,7 @@ export const searchMemoryOutputSchema = z.object({
 			id: z.string(),
 			text: z.string(),
 			similarity: z.number(),
+			documentId: z.string().optional(),
 			title: z.string().optional(),
 		}),
 	),

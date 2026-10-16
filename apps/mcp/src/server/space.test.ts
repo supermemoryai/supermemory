@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest"
 import { optionalNamespaceSchema } from "./namespace"
-import { resolveNamespace, spaceStateName } from "./space"
+import {
+	accessibleDefaultNamespace,
+	resolveNamespace,
+	spaceStateName,
+} from "./space"
 
 describe("space application state", () => {
 	it("keys active state by organization and user without collisions", () => {
@@ -41,5 +45,47 @@ describe("space application state", () => {
 		)
 		expect(optionalNamespaceSchema.description).toContain("list_spaces")
 		expect(optionalNamespaceSchema.description).toContain("active space")
+	})
+
+	it("keeps the default space unless the caller is limited to other spaces", () => {
+		const user = { id: "user" }
+		expect(accessibleDefaultNamespace({ user })).toBe("sm_project_default")
+		expect(
+			accessibleDefaultNamespace({
+				user,
+				scope: { type: "scoped", tags: ["work", "sm_project_default"] },
+			}),
+		).toBe("sm_project_default")
+		expect(
+			accessibleDefaultNamespace({
+				user,
+				scope: { type: "scoped", tag: "work", tags: ["work", "notes"] },
+			}),
+		).toBe("work")
+		expect(
+			accessibleDefaultNamespace({
+				user,
+				accessType: "restricted",
+				namespaces: [{ namespace: "team", permission: "read" }],
+			}),
+		).toBe("team")
+		expect(
+			accessibleDefaultNamespace({
+				user,
+				accessType: "restricted",
+				namespaces: [
+					{ namespace: "team", permission: "read" },
+					{ namespace: "notes", permission: "write" },
+				],
+				scope: { type: "scoped", tags: ["notes"] },
+			}),
+		).toBe("notes")
+		expect(
+			accessibleDefaultNamespace({
+				user,
+				accessType: "restricted",
+				namespaces: [],
+			}),
+		).toBe("sm_project_default")
 	})
 })
