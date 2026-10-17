@@ -3,9 +3,10 @@ name: Publish Tools
 on:
     push:
         branches:
-            - main
-        paths: 
+            - release/tools-2.x
+        paths:
             - "packages/tools/package.json"
+            - ".github/workflows/publish-tools.yml"
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
@@ -38,26 +39,37 @@ jobs:
               uses: oven-sh/setup-bun@v2
 
             - name: Install dependencies
-              run: bun install
+              run: bun install --frozen-lockfile
 
             - name: Check if version changed
               id: version-check
               run: |
                 PACKAGE_NAME=$(jq -r '.name' package.json)
                 LOCAL_VERSION=$(jq -r '.version' package.json)
-                NPM_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || echo "0.0.0")
-                if [ "$LOCAL_VERSION" = "$NPM_VERSION" ]; then
+                case "$LOCAL_VERSION" in
+                  2.*) ;;
+                  *) echo "::error::release/tools-2.x only publishes 2.x, found $LOCAL_VERSION"; exit 1 ;;
+                esac
+                if PUBLISHED=$(npm view "$PACKAGE_NAME@$LOCAL_VERSION" version 2>"$RUNNER_TEMP/npm-view.err") && [ -n "$PUBLISHED" ]; then
                   echo "Version $LOCAL_VERSION already published, skipping."
                   echo "changed=false" >> "$GITHUB_OUTPUT"
-                else
-                  echo "Publishing $LOCAL_VERSION (npm has $NPM_VERSION)"
+                elif [ -z "$PUBLISHED" ] && { [ ! -s "$RUNNER_TEMP/npm-view.err" ] || grep -q E404 "$RUNNER_TEMP/npm-view.err"; }; then
+                  echo "Publishing $LOCAL_VERSION under the legacy-2 dist-tag"
                   echo "changed=true" >> "$GITHUB_OUTPUT"
+                else
+                  cat "$RUNNER_TEMP/npm-view.err"
+                  echo "::error::Could not check whether $LOCAL_VERSION is already on npm"
+                  exit 1
                 fi
 
             - name: Build
               if: steps.version-check.outputs.changed == 'true'
               run: bun run build
 
+            - name: Unit tests
+              if: steps.version-check.outputs.changed == 'true'
+              run: bun run test:unit
+
             - name: Publish
               if: steps.version-check.outputs.changed == 'true'
-              run: npm publish --access public --provenance
+              run: npm publish --access public --provenance --tag legacy-2
