@@ -8,6 +8,8 @@ Complete REST API documentation for Supermemory.
 https://api.supermemory.ai
 ```
 
+Application routes are unversioned: there is no `/v5` path prefix. [`/v5/reference`](https://api.supermemory.ai/v5/reference) is the interactive v5 reference, not an API path.
+
 ## Authentication
 
 All requests require authentication via Bearer token in the Authorization header:
@@ -18,15 +20,25 @@ Authorization: Bearer YOUR_API_KEY
 
 Get your API key at [console.supermemory.ai](https://console.supermemory.ai).
 
+## Namespaces and Parameter Placement
+
+Every content route is scoped to one namespace in the path: `/ns/{namespace}/...`. A document belongs to exactly one namespace; never send several namespaces in one request.
+
+- `GET` options go in the query string.
+- `POST`, `PATCH`, and `PUT` options go in the JSON body (or as form fields on file uploads). List pagination (`page`, `limit`, `sort`, `order`) is the exception and stays in the query string.
+- `DELETE` options such as `moveTo` go in the query string; bulk deletes send `ids` in the JSON body.
+
+Options sent in the wrong place return `400`.
+
 ## Endpoints
 
-### POST /v3/documents
+### POST /ns/{namespace}/document
 
 Add a document for processing and memory extraction.
 
 **Endpoint:**
 ```
-POST https://api.supermemory.ai/v3/documents
+POST https://api.supermemory.ai/ns/{namespace}/document
 ```
 
 **Headers:**
@@ -39,22 +51,26 @@ Content-Type: application/json
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `content` | string | Yes | The content to process. Can be a URL, text, PDF path, image, or video |
-| `containerTag` | string | No | Identifier for organizing documents (max 100 chars, alphanumeric with hyphens/underscores) |
-| `entityContext` | string | No | Context guidance for memory extraction (max 1500 chars) |
-| `customId` | string | No | Your custom identifier (max 100 chars, alphanumeric with hyphens/underscores) |
+| `content` | string | Yes | The content to process: text or a URL. Upload files with `POST /ns/{namespace}/document/file` |
+| `id` | string | No | Your stable document ID. Repeating it appends or diffs into the same document |
+| `supportingContext` | string | No | Context guidance for memory extraction |
 | `metadata` | object | No | Custom key-value pairs (strings, numbers, booleans, or string arrays) |
+| `group` | object | No | Grouping values for the document |
+| `date` | string | No | Document date |
+| `taskType` | string | No | `"memory"` extracts long-term memories; `"superrag"` indexes without memory generation |
+| `dreaming` | string | No | `"dynamic"` (default) groups related documents; `"instant"` processes each document on its own and bills one extra operation |
+
+Ingest routes take no query parameters.
 
 **Example Request:**
 
 ```bash
-curl -X POST https://api.supermemory.ai/v3/documents \
+curl -X POST https://api.supermemory.ai/ns/user_123/document \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "content": "https://example.com/article",
-    "containerTag": "user_123",
-    "entityContext": "Technical blog post about API design",
+    "supportingContext": "Technical blog post about API design",
     "metadata": {
       "source": "blog",
       "category": "technical",
@@ -72,6 +88,8 @@ curl -X POST https://api.supermemory.ai/v3/documents \
 }
 ```
 
+`status` is the document's processing state after the request: `queued` when new work was queued, otherwise the current state (for example `done` for an unchanged duplicate).
+
 **Response (401 Unauthorized):**
 
 ```json
@@ -81,32 +99,36 @@ curl -X POST https://api.supermemory.ai/v3/documents \
 }
 ```
 
-**Response (500 Internal Server Error):**
-
-```json
-{
-  "error": "Internal Server Error",
-  "details": "Failed to process document"
-}
-```
-
 **Processing Statuses:**
+- `unknown`: State not yet known
 - `queued`: Document awaiting processing
 - `extracting`: Content extraction in progress
 - `chunking`: Breaking into semantic segments
 - `embedding`: Generating vector embeddings
 - `indexing`: Building relationships
 - `done`: Processing complete, searchable
+- `failed`: Processing failed
+
+Related document routes:
+
+| Route | Purpose |
+|-------|---------|
+| `POST /ns/{namespace}/document/batch` | Add 1–600 documents: `{"documents":[{"content":"...","id":"doc_1"}]}` |
+| `POST /ns/{namespace}/document/file` | Upload a file as `multipart/form-data` (`metadata` and `group` are JSON-encoded strings) |
+| `GET /ns/{namespace}/document/{id}?include=chunks,memories` | Read a document; lifecycle fields are under `system` |
+| `PATCH /ns/{namespace}/document/{id}` | Replace content and/or update `supportingContext`, `metadata`, `group`, `date` |
+| `DELETE /ns/{namespace}/document` | Delete 1–100 documents: `{"ids":["doc_1"]}` |
+| `POST /ns/{namespace}/list/{type}` | List `documents`, `chunks`, or `memories` |
 
 ---
 
-### POST /v4/search
+### POST /ns/{namespace}/search
 
-Search memories using semantic understanding with advanced filtering.
+Search one namespace using semantic understanding with typed filtering. Search has no query-string parameters.
 
 **Endpoint:**
 ```
-POST https://api.supermemory.ai/v4/search
+POST https://api.supermemory.ai/ns/{namespace}/search
 ```
 
 **Headers:**
@@ -120,62 +142,45 @@ Content-Type: application/json
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `query` | string | Yes | The search query |
-| `containerTags` | string[] | No | Filter by container tags |
-| `chunkThreshold` | number | No | Threshold for chunk selection (0-1). 0 = least sensitive (more results), 1 = most sensitive (fewer, accurate results). Default: 0 |
-| `searchMode` | string | No | Search mode: "semantic" (default) or "hybrid" (semantic + keyword). Use "hybrid" for RAG applications for better accuracy |
-| `docId` | string | No | Search within specific document (max 255 chars) |
-| `filters` | object | No | Advanced filtering with AND/OR logic (up to 5 nesting levels) |
+| `searchMode` | string | No | `"hybrid"` (default, memories + chunks), `"memories"`, or `"chunks"` |
+| `limit` | number | No | Maximum results |
+| `threshold` | number | No | Similarity threshold (0-1). 0 = more results, 1 = fewer, more accurate results. Default: `0.3` |
+| `filter` | object | No | Typed filter with `and`/`or` groups (up to 5 nesting levels) |
+| `include` | object | No | Booleans: `documents`, `related`, `forgotten` (each default `false`) |
+| `rerank` | string | No | `"none"` (default), `"order"`, or `"aggregate"` |
+| `rewriteQuery` | boolean | No | Retrieval-oriented query rewriting. Default: `false` |
 
-**Filter Types:**
+**Filter Shape:**
 
 ```typescript
-{
-  "filters": {
-    // Metadata filtering
-    "metadata": {
-      "key": "value"
-    },
-
-    // Numeric comparisons
-    "numeric": {
-      "field": { "$gte": 4.0 }  // >, <, >=, <=, =
-    },
-
-    // Array contains
-    "array_contains": {
-      "tags": "value"
-    },
-
-    // String contains
-    "string_contains": {
-      "content": "substring"
-    },
-
-    // Logical operators
-    "$and": [{ /* filters */ }],
-    "$or": [{ /* filters */ }]
-  }
-}
+type Filter =
+  | { field: string; operator: "eq" | "neq"; value: string; caseSensitive?: boolean }
+  | { field: string; operator: "eq" | "neq"; value: number | boolean }
+  | { field: string; operator: "gt" | "gte" | "lt" | "lte"; value: number }
+  | { field: string; operator: "contains" | "notContains"; value: string; caseSensitive?: boolean }
+  | { field: string; operator: "arrayContains" | "arrayNotContains"; value: string }
+  | { operator: "and" | "or"; operands: Filter[] };
 ```
+
+Fields may contain letters, numbers, `_`, `.`, and `-`. Groups allow up to 200 operands. The same `filter` works on profile and list routes.
 
 **Example Request:**
 
 ```bash
-curl -X POST https://api.supermemory.ai/v4/search \
+curl -X POST https://api.supermemory.ai/ns/documentation/search \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "How do I authenticate users?",
     "searchMode": "hybrid",
-    "chunkThreshold": 0.5,
-    "filters": {
-      "metadata": {
-        "type": "documentation",
-        "category": "security"
-      },
-      "numeric": {
-        "rating": { "$gte": 4.0 }
-      }
+    "threshold": 0.5,
+    "filter": {
+      "operator": "and",
+      "operands": [
+        { "field": "type", "operator": "eq", "value": "documentation" },
+        { "field": "category", "operator": "eq", "value": "security" },
+        { "field": "rating", "operator": "gte", "value": 4.0 }
+      ]
     }
   }'
 ```
@@ -186,31 +191,29 @@ curl -X POST https://api.supermemory.ai/v4/search \
 {
   "results": [
     {
-      "content": "Authentication can be done using JWT tokens...",
-      "score": 0.89,
-      "docId": "doc_123",
+      "id": "chunk_456",
+      "chunk": "Authentication can be done using JWT tokens...",
       "metadata": {
         "type": "documentation",
         "category": "security",
         "rating": 4.5
       },
-      "chunkId": "chunk_456"
+      "system": { "createdAt": "...", "updatedAt": "..." }
     },
     {
-      "content": "OAuth 2.0 is a standard protocol for authorization...",
-      "score": 0.82,
-      "docId": "doc_789",
-      "metadata": {
-        "type": "documentation",
-        "category": "security",
-        "rating": 5.0
-      },
-      "chunkId": "chunk_789"
+      "id": "mem_789",
+      "memory": "The API supports OAuth 2.0 for authorization",
+      "metadata": {},
+      "isLatest": true,
+      "isInference": false,
+      "system": { "createdAt": "...", "updatedAt": "..." }
     }
   ],
-  "total": 2
+  "searchTime": 42
 }
 ```
+
+Each result carries `memory`, `chunk`, or both; branch on field presence. With `include.documents`, the source is under `result.included.document`; with `include.related`, related memories are under `result.included.related.{parents,children,siblings}`.
 
 **Response (401 Unauthorized):**
 
@@ -223,99 +226,80 @@ curl -X POST https://api.supermemory.ai/v4/search \
 
 ---
 
-### POST /v4/memories
+### POST /ns/{namespace}/profile
 
-Create memories directly, bypassing document ingestion. Generates embeddings and makes them immediately searchable.
+Get the maintained profile for a namespace. Profile takes no query; call search separately for query-ranked results.
 
 **Endpoint:**
 ```
-POST https://api.supermemory.ai/v4/memories
-```
-
-**Headers:**
-```http
-Authorization: Bearer YOUR_API_KEY
-Content-Type: application/json
+POST https://api.supermemory.ai/ns/{namespace}/profile
 ```
 
 **Request Body:**
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `memories` | array | Yes | Array of 1-100 memory objects |
-| `memories[].content` | string | Yes | Memory text (1-10,000 chars). Preferably entity-centric (e.g., "John prefers dark mode") |
-| `memories[].isStatic` | boolean | No | Marks permanent traits like name or profession. Default: false |
-| `memories[].metadata` | object | No | Custom key-value pairs (strings, numbers, booleans, or string arrays) |
-| `containerTag` | string | Yes | Identifier for the space/container these memories belong to |
+| `filter` | object | No | Typed filter |
+| `buckets` | string[] | No | Narrow the custom bucket section (up to 50 names). Omit to return every bucket |
 
 **Example Request:**
 
 ```bash
-curl -X POST https://api.supermemory.ai/v4/memories \
+curl -X POST https://api.supermemory.ai/ns/user_123/profile \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "containerTag": "user_123",
-    "memories": [
-      {
-        "content": "User prefers dark mode",
-        "isStatic": true,
-        "metadata": {
-          "category": "preferences",
-          "source": "settings"
-        }
-      },
-      {
-        "content": "User mentioned working on a React project yesterday",
-        "isStatic": false,
-        "metadata": {
-          "category": "activity",
-          "timestamp": "2026-02-20T15:30:00Z"
-        }
-      }
-    ]
-  }'
+  -d '{}'
 ```
 
-**Response (201 Created):**
+**Response (200 OK):**
 
 ```json
 {
-  "documentId": "doc_abc123",
-  "memories": [
-    {
-      "id": "mem_xyz789",
-      "memory": "User prefers dark mode",
-      "isStatic": true,
-      "createdAt": "2026-02-21T10:00:00Z"
-    },
-    {
-      "id": "mem_def456",
-      "memory": "User mentioned working on a React project yesterday",
-      "isStatic": false,
-      "createdAt": "2026-02-21T10:00:00Z"
-    }
-  ]
+  "profile": {
+    "static": [{ "id": "mem_1", "memory": "The user works in design" }],
+    "dynamic": [{ "id": "mem_2", "memory": "The user is preparing a launch" }],
+    "buckets": { "work": [{ "id": "mem_3", "memory": "Prefers concise project updates" }] }
+  }
 }
 ```
 
-**Response (400 Bad Request):**
+`static`, `dynamic`, and `buckets` are always returned. Bucket definitions live at `GET/PUT/DELETE /ns/{namespace}/profile/buckets`.
+
+---
+
+### DELETE /ns/{namespace}/memories
+
+Forget memories by exact ID (1–500 IDs).
+
+```bash
+curl -X DELETE https://api.supermemory.ai/ns/user_123/memories \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"ids":["mem_1","mem_2"]}'
+```
+
+To find memories by meaning, call `DELETE /ns/{namespace}/memories/semantic` with `{"query":"...","dryRun":true}`, review the matched IDs, then submit them to the exact-ID route. Both return:
 
 ```json
 {
-  "error": "Bad Request",
-  "details": "Invalid request parameters: memories array must contain 1-100 items"
+  "count": 1,
+  "matches": [{ "id": "mem_1", "memory": "Old address" }],
+  "errors": [{ "id": "mem_2", "error": "Memory not found" }]
 }
 ```
 
-**Response (404 Not Found):**
+---
 
-```json
-{
-  "error": "Not Found",
-  "details": "Space not found for given containerTag"
-}
-```
+### Namespaces and Organization
+
+| Route | Purpose |
+|-------|---------|
+| `GET /namespaces` | List namespaces with `documentCount` and `memoryCount` |
+| `GET /ns/{namespace}` | Read a namespace's `supportingContext` |
+| `PATCH /ns/{namespace}` | Set `supportingContext` (send `null` to clear) |
+| `DELETE /ns/{namespace}` | Permanently delete a namespace and its content |
+| `DELETE /ns/{namespace}?moveTo={target}` | Move content to another namespace, then remove the source (`202`, returns `operationId`) |
+| `GET/PATCH /organization` | Read or set `organizationalContext` (PATCH needs an org admin) |
 
 ---
 
@@ -326,10 +310,12 @@ curl -X POST https://api.supermemory.ai/v4/memories \
 | Code | Meaning | Description |
 |------|---------|-------------|
 | 200 | OK | Request successful |
-| 201 | Created | Resource created successfully |
-| 400 | Bad Request | Invalid request parameters |
+| 202 | Accepted | Async operation queued (for example a namespace move) |
+| 400 | Bad Request | Invalid request parameters, or an option in the wrong place |
 | 401 | Unauthorized | Missing or invalid API key |
-| 404 | Not Found | Resource not found |
+| 403 | Forbidden | Caller lacks permission (for example a non-admin updating `/organization`) |
+| 404 | Not Found | Resource not found in this namespace |
+| 409 | Conflict | Document still processing, or a sync already running |
 | 429 | Too Many Requests | Rate limit exceeded |
 | 500 | Internal Server Error | Server error occurred |
 
@@ -383,18 +369,17 @@ Check your plan details in the [console](https://console.supermemory.ai) for spe
 
 ## Best Practices
 
-### 1. Use Idempotent IDs
+### 1. Use Stable IDs
 
-Use `customId` for idempotency to prevent duplicate processing:
+Send your own `id` so repeated writes land in one document instead of creating duplicates:
 
 ```bash
-curl -X POST https://api.supermemory.ai/v3/documents \
+curl -X POST https://api.supermemory.ai/ns/user_123/document \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "content": "Important document",
-    "customId": "doc_2026_02_21_001",
-    "containerTag": "user_123"
+    "id": "doc_2026_02_21_001"
   }'
 ```
 
@@ -403,13 +388,13 @@ curl -X POST https://api.supermemory.ai/v3/documents \
 Always check status codes and handle errors gracefully:
 
 ```javascript
-const response = await fetch('https://api.supermemory.ai/v3/documents', {
+const response = await fetch('https://api.supermemory.ai/ns/user_123/document', {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${API_KEY}`,
     'Content-Type': 'application/json'
   },
-  body: JSON.stringify({ content: "...", containerTag: "user_123" })
+  body: JSON.stringify({ content: "..." })
 });
 
 if (!response.ok) {
@@ -421,18 +406,18 @@ if (!response.ok) {
 const data = await response.json();
 ```
 
-### 3. Use Container Tags Consistently
+### 3. Use Namespaces Consistently
 
-Maintain consistent naming for container tags:
+Maintain consistent naming for namespaces:
 
 ```bash
 # Good
-containerTag: "user_123"
-containerTag: "user_456"
+/ns/user_123/...
+/ns/user_456/...
 
 # Avoid inconsistency
-containerTag: "user_123"
-containerTag: "123"  # Different format
+/ns/user_123/...
+/ns/123/...  # Different format
 ```
 
 ### 4. Rich Metadata
@@ -442,7 +427,6 @@ Add comprehensive metadata for better filtering:
 ```json
 {
   "content": "Product review",
-  "containerTag": "reviews",
   "metadata": {
     "product": "iPhone 15",
     "rating": 4.5,
@@ -453,14 +437,15 @@ Add comprehensive metadata for better filtering:
 }
 ```
 
-### 5. Optimize Search Thresholds
+### 5. Set Search Defaults Explicitly
 
-Start with default (0) and adjust based on results:
+v5 defaults to `searchMode: "hybrid"` and `threshold: 0.3`. Set them explicitly and adjust based on results:
 
 ```json
 {
   "query": "authentication methods",
-  "chunkThreshold": 0.5  // Balanced precision/recall
+  "searchMode": "memories",
+  "threshold": 0.5
 }
 ```
 
@@ -470,14 +455,15 @@ For large documents, check processing status:
 
 ```bash
 # Add document
-curl -X POST https://api.supermemory.ai/v3/documents \
+curl -X POST https://api.supermemory.ai/ns/docs/document \
   -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{ "content": "large-document.pdf", "containerTag": "docs" }'
+  -H "Content-Type: application/json" \
+  -d '{ "content": "https://example.com/large-report.pdf", "id": "report_2026" }'
 
-# Returns: { "id": "doc_123", "status": "queued" }
+# Returns: { "id": "report_2026", "status": "queued" }
 
-# Later, list documents to check status
-curl -X GET https://api.supermemory.ai/v3/documents?containerTag=docs \
+# Later, read the document and check system.status
+curl https://api.supermemory.ai/ns/docs/document/report_2026 \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -500,12 +486,11 @@ curl -X GET https://api.supermemory.ai/v3/documents?containerTag=docs \
 ### Add Text Content
 
 ```bash
-curl -X POST https://api.supermemory.ai/v3/documents \
+curl -X POST https://api.supermemory.ai/ns/user_123/document \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "content": "User mentioned they prefer TypeScript over JavaScript for type safety",
-    "containerTag": "user_123",
     "metadata": {
       "source": "chat",
       "timestamp": "2026-02-21T10:00:00Z"
@@ -516,13 +501,12 @@ curl -X POST https://api.supermemory.ai/v3/documents \
 ### Add URL
 
 ```bash
-curl -X POST https://api.supermemory.ai/v3/documents \
+curl -X POST https://api.supermemory.ai/ns/knowledge_base/document \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "content": "https://blog.example.com/best-practices",
-    "containerTag": "knowledge_base",
-    "entityContext": "Software development best practices article",
+    "supportingContext": "Software development best practices article",
     "metadata": {
       "type": "article",
       "category": "best-practices"
@@ -533,50 +517,35 @@ curl -X POST https://api.supermemory.ai/v3/documents \
 ### Search with Filters (Hybrid Mode for RAG)
 
 ```bash
-curl -X POST https://api.supermemory.ai/v4/search \
+curl -X POST https://api.supermemory.ai/ns/knowledge_base/search \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "React performance optimization",
     "searchMode": "hybrid",
-    "chunkThreshold": 0.6,
-    "filters": {
-      "$and": [
-        {
-          "metadata": {
-            "type": "tutorial"
-          }
-        },
-        {
-          "numeric": {
-            "rating": { "$gte": 4.0 }
-          }
-        }
+    "threshold": 0.6,
+    "filter": {
+      "operator": "and",
+      "operands": [
+        { "field": "type", "operator": "eq", "value": "tutorial" },
+        { "field": "rating", "operator": "gte", "value": 4.0 }
       ]
     }
   }'
 ```
 
-### Create Direct Memories
+### Add Facts With Fast Memory Formation
+
+There is no direct memory write in v5; memories come from documents. Use `dreaming: "instant"` when facts must appear quickly:
 
 ```bash
-curl -X POST https://api.supermemory.ai/v4/memories \
+curl -X POST https://api.supermemory.ai/ns/user_789/document \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "containerTag": "user_789",
-    "memories": [
-      {
-        "content": "User name is Alice Johnson",
-        "isStatic": true,
-        "metadata": { "type": "profile" }
-      },
-      {
-        "content": "Alice completed the React tutorial today",
-        "isStatic": false,
-        "metadata": { "type": "activity", "date": "2026-02-21" }
-      }
-    ]
+    "content": "User name is Alice Johnson. Alice completed the React tutorial today.",
+    "metadata": { "type": "profile" },
+    "dreaming": "instant"
   }'
 ```
 
@@ -588,4 +557,5 @@ Coming soon: Webhooks for document processing status updates.
 
 - **API Issues**: Check [status.supermemory.ai](https://status.supermemory.ai)
 - **Documentation**: [supermemory.ai/docs](https://supermemory.ai/docs)
+- **API Reference**: [api.supermemory.ai/v5/reference](https://api.supermemory.ai/v5/reference)
 - **Console**: [console.supermemory.ai](https://console.supermemory.ai)

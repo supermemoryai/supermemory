@@ -23,8 +23,6 @@ npm install supermemory
 ### Python
 ```bash
 pip install supermemory
-# Or for async support with aiohttp
-pip install 'supermemory[aiohttp]'
 ```
 
 📦 View on PyPI: [https://pypi.org/project/supermemory/](https://pypi.org/project/supermemory/)
@@ -58,33 +56,33 @@ const client = new Supermemory({
 });
 
 async function main() {
-  // 1. Retrieve context for personalization
-  const response = await client.profile({
-    containerTag: "user_123", // Unique user identifier
-    q: "What does the user prefer?"
-  });
+  // 1. Retrieve context for personalization ("user_123" is the namespace)
+  const { profile } = await client.profile("user_123");
 
-  console.log("Static Profile:", response.profile.static);
-  console.log("Dynamic Profile:", response.profile.dynamic);
-  if (response.searchResults) {
-    console.log("Search Results:", response.searchResults.results);
-  }
+  console.log("Static Profile:", profile.static);
+  console.log("Dynamic Profile:", profile.dynamic);
+
+  // Profile takes no query; search separately for query-ranked results
+  const { results } = await client.search("user_123", {
+    query: "What does the user prefer?",
+    searchMode: "memories"
+  });
+  console.log("Search Results:", results);
 
   // 2. Enrich your LLM prompt
   const systemMessage = `
     Static Profile:
-    ${response.profile.static.map(f => `- ${f}`).join('\n')}
+    ${profile.static.map(m => `- ${m.memory}`).join('\n')}
 
     Recent Context:
-    ${response.profile.dynamic.map(f => `- ${f}`).join('\n')}
+    ${profile.dynamic.map(m => `- ${m.memory}`).join('\n')}
   `;
 
   // Send systemMessage to your LLM...
 
   // 3. Store new memories from the conversation
-  await client.add({
+  await client.add("user_123", {
     content: "User mentioned they prefer dark mode and TypeScript",
-    containerTag: "user_123",
     metadata: {
       source: "chat",
       timestamp: new Date().toISOString()
@@ -99,6 +97,8 @@ main();
 
 ### Python Example
 
+The Python SDK takes the namespace first, then keyword arguments.
+
 ```python
 import os
 from supermemory import Supermemory
@@ -107,19 +107,14 @@ client = Supermemory(api_key=os.environ["SUPERMEMORY_API_KEY"])
 
 def main():
     # 1. Retrieve context
-    response = client.profile(
-        container_tag="user_123",
-        q="What does the user prefer?"
-    )
+    response = client.profile("user_123")
 
-    print("Static Profile:", response["profile"]["static"])
-    print("Dynamic Profile:", response["profile"]["dynamic"])
-    if "searchResults" in response:
-        print("Search Results:", response["searchResults"]["results"])
+    print("Static Profile:", response.profile.static)
+    print("Dynamic Profile:", response.profile.dynamic)
 
     # 2. Enrich your LLM prompt
-    static_facts = "\n".join(f"- {fact}" for fact in response["profile"]["static"])
-    dynamic_facts = "\n".join(f"- {fact}" for fact in response["profile"]["dynamic"])
+    static_facts = "\n".join(f"- {m.memory}" for m in response.profile.static)
+    dynamic_facts = "\n".join(f"- {m.memory}" for m in response.profile.dynamic)
 
     system_message = f"""
     Static Profile:
@@ -133,8 +128,8 @@ def main():
 
     # 3. Store new memories
     client.add(
+        "user_123",
         content="User mentioned they prefer dark mode and TypeScript",
-        container_tag="user_123",
         metadata={
             "source": "chat",
             "timestamp": "2026-02-21T10:00:00Z"
@@ -147,37 +142,6 @@ if __name__ == "__main__":
     main()
 ```
 
-### Python Async Example
-
-```python
-import os
-import asyncio
-from supermemory import AsyncSupermemory
-
-async def main():
-    client = AsyncSupermemory(api_key=os.environ["SUPERMEMORY_API_KEY"])
-
-    # 1. Retrieve context
-    response = await client.profile(
-        container_tag="user_123",
-        q="What does the user prefer?"
-    )
-
-    print("User facts:", response["profile"]["static"])
-
-    # 2. Store new memories
-    await client.add(
-        content="User mentioned they prefer dark mode and TypeScript",
-        container_tag="user_123",
-        metadata={"source": "chat"}
-    )
-
-    print("Memory stored successfully!")
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
 ## Core Workflow Pattern
 
 The standard Supermemory workflow follows three steps:
@@ -188,24 +152,23 @@ The standard Supermemory workflow follows three steps:
 
 This pattern ensures your AI agent has perfect recall and becomes more personalized over time.
 
-## Understanding Container Tags
+## Understanding Namespaces
 
-Container tags are identifiers that isolate memories:
+A namespace is the identifier that isolates memories. It goes first in every SDK call and in the URL (`/ns/{namespace}/...`):
 
 - Use **user IDs** for per-user personalization: `"user_123"`
 - Use **project IDs** for project-specific context: `"project_abc"`
 - Use **session IDs** for temporary context: `"session_xyz"`
 - Use **organization IDs** for shared knowledge: `"org_acme"`
 
-Memories with the same containerTag are grouped together and can be searched independently.
+A document belongs to exactly one namespace, and each request reads or writes one namespace. To read across several, run one call per namespace and merge the results.
 
 ## Advanced: Threshold Filtering
 
-Control relevance strictness with the `threshold` parameter:
+Control relevance strictness with the `threshold` search option (v5 default `0.3`):
 
 ```typescript
-const context = await client.profile({
-  containerTag: "user_123",
+const { results } = await client.search("user_123", {
   query: "user preferences",
   threshold: 0.7  // 0-1: higher = stricter matching
 });
@@ -227,31 +190,29 @@ const context = await client.profile({
 ### Chatbot with Memory
 ```typescript
 // Before generating response
-const context = await client.profile({
-  containerTag: userId,
-  query: userMessage
-});
+const [{ profile }, { results }] = await Promise.all([
+  client.profile(userId),
+  client.search(userId, { query: userMessage, searchMode: "memories" })
+]);
 
-// After receiving LLM response
-await client.add({
+// After receiving LLM response; a stable id keeps one conversation in one document
+await client.add(userId, {
   content: `User: ${userMessage}\nAssistant: ${llmResponse}`,
-  containerTag: userId
+  id: conversationId
 });
 ```
 
 ### Document Knowledge Base
 ```typescript
 // Add documents
-await client.add({
+await client.add("knowledge_base", {
   content: "https://example.com/documentation",
-  containerTag: "knowledge_base",
   metadata: { type: "documentation" }
 });
 
-// Search documents (use hybrid mode for RAG)
-const response = await client.search({
-  q: "How do I authenticate?",
-  containerTag: "knowledge_base",
+// Search documents (hybrid is the v5 default: memories + source chunks)
+const response = await client.search("knowledge_base", {
+  query: "How do I authenticate?",
   searchMode: "hybrid",
   limit: 10
 });
@@ -260,10 +221,7 @@ const response = await client.search({
 ### Personalized Recommendations
 ```typescript
 // Get user profile
-const profile = await client.profile({
-  containerTag: userId,
-  query: "user interests and preferences"
-});
+const { profile } = await client.profile(userId);
 
 // Use profile to personalize recommendations
 const recommendations = generateRecommendations(profile);
@@ -277,14 +235,14 @@ const recommendations = generateRecommendations(profile);
 - Verify you're using the correct key (not accidentally using a test key)
 
 **No Results from Search**
-- Try lowering the `threshold` parameter
-- Ensure the containerTag matches what you used during `add()`
-- Wait 1-2 minutes after adding content for processing to complete
+- Try lowering the `threshold` option
+- Ensure the namespace matches what you used during `add()`
+- Wait for processing to finish. With the default `dreaming: "dynamic"`, a fresh namespace can show zero memories and an empty profile for several minutes; pass `dreaming: "instant"` to `add()` for quickstarts and tests
 
 **Slow Processing**
 - Large PDFs (100 pages) take 1-2 minutes
 - Videos take 5-10 minutes
-- Check document status with `documents.list()`
+- Check document status with `client.list(namespace, "documents")` and read `system.status` on each item
 
 ## Support
 

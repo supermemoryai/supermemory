@@ -28,17 +28,13 @@ import { generateText } from 'ai';
 
 const memory = new Supermemory();
 
-async function chat(userId: string, message: string) {
+async function chat(userId: string, conversationId: string, message: string) {
   // 1. Retrieve user context
-  const response = await memory.profile({
-    containerTag: userId,
-    q: message,
-    threshold: 0.6
-  });
+  const { profile } = await memory.profile(userId);
 
   // 2. Build system prompt with personalization
-  const staticFacts = response.profile.static.map(f => `- ${f}`).join('\n');
-  const dynamicFacts = response.profile.dynamic.map(f => `- ${f}`).join('\n');
+  const staticFacts = profile.static.map(m => `- ${m.memory}`).join('\n');
+  const dynamicFacts = profile.dynamic.map(m => `- ${m.memory}`).join('\n');
 
   const systemPrompt = `
 You are a helpful assistant with perfect memory.
@@ -59,13 +55,12 @@ Use this context to provide personalized, contextually aware responses.
     prompt: message
   });
 
-  // 4. Store the interaction
-  await memory.add({
+  // 4. Store the interaction; the same id keeps the conversation in one document
+  await memory.add(userId, {
     content: `User: ${message}\nAssistant: ${text}`,
-    containerTag: userId,
+    id: conversationId,
     metadata: {
       timestamp: new Date().toISOString(),
-      messageId: crypto.randomUUID(),
       type: 'conversation'
     }
   });
@@ -74,7 +69,7 @@ Use this context to provide personalized, contextually aware responses.
 }
 
 // Usage
-const response = await chat('user_123', 'What did I tell you about my preferences?');
+const response = await chat('user_123', 'conv_1', 'What did I tell you about my preferences?');
 console.log(response); // Uses stored context to answer accurately
 ```
 
@@ -90,15 +85,11 @@ openai_client = OpenAI()
 
 def chat(user_id: str, message: str) -> str:
     # 1. Retrieve context
-    response = memory.profile(
-        container_tag=user_id,
-        q=message,
-        threshold=0.6
-    )
+    profile = memory.profile(user_id).profile
 
     # 2. Build system prompt
-    static_facts = "\n".join(f"- {fact}" for fact in response['profile']['static'])
-    dynamic_facts = "\n".join(f"- {fact}" for fact in response['profile']['dynamic'])
+    static_facts = "\n".join(f"- {m.memory}" for m in profile.static)
+    dynamic_facts = "\n".join(f"- {m.memory}" for m in profile.dynamic)
 
     system_prompt = f"""
 You are a helpful assistant with perfect memory.
@@ -124,8 +115,8 @@ Use this context to provide personalized responses.
 
     # 4. Store interaction
     memory.add(
+        user_id,
         content=f"User: {message}\nAssistant: {text}",
-        container_tag=user_id,
         metadata={
             "timestamp": datetime.datetime.now().isoformat(),
             "type": "conversation"
@@ -165,14 +156,10 @@ interface Task {
 
 async function taskAssistant(userId: string, query: string) {
   // Get task-related context
-  const response = await memory.profile({
-    containerTag: `${userId}_tasks`,
-    q: query,
-    threshold: 0.5
-  });
+  const { profile } = await memory.profile(`${userId}_tasks`);
 
   // Build context from profile
-  const tasks = response.profile.dynamic.map(f => `- ${f}`).join('\n');
+  const tasks = profile.dynamic.map(m => `- ${m.memory}`).join('\n');
 
   // Generate intelligent response
   const { text } = await generateText({
@@ -192,10 +179,9 @@ Help the user track, prioritize, and complete their tasks.
 }
 
 async function addTask(userId: string, task: Task) {
-  await memory.add({
+  await memory.add(`${userId}_tasks`, {
     content: `Task: ${task.title} (Status: ${task.status}, Priority: ${task.priority})`,
-    containerTag: `${userId}_tasks`,
-    customId: task.id,
+    id: task.id,
     metadata: {
       status: task.status,
       priority: task.priority,
@@ -205,15 +191,13 @@ async function addTask(userId: string, task: Task) {
 }
 
 async function updateTask(userId: string, taskId: string, status: Task['status']) {
-  // Add update (Supermemory will create relationship)
-  await memory.add({
+  // Same id appends the update to the task's document (Supermemory will create relationship)
+  await memory.add(`${userId}_tasks`, {
     content: `Task ${taskId} updated to status: ${status}`,
-    containerTag: `${userId}_tasks`,
+    id: taskId,
     metadata: {
-      taskId,
       status,
-      updatedAt: new Date().toISOString(),
-      type: 'update'
+      updatedAt: new Date().toISOString()
     }
   });
 }
@@ -262,9 +246,8 @@ async function indexDocumentation() {
   ];
 
   for (const doc of docs) {
-    await memory.add({
+    await memory.add('documentation', {
       content: doc.url,
-      containerTag: 'documentation',
       metadata: {
         category: doc.category,
         type: 'documentation',
@@ -276,22 +259,18 @@ async function indexDocumentation() {
 
 // 2. Search documentation
 async function searchDocs(query: string, category?: string) {
-  const filters = category ? {
-    metadata: { category }
-  } : undefined;
-
-  const results = await memory.search.memories({
-    q: query,
-    containerTag: 'documentation',
+  const { results } = await memory.search('documentation', {
+    query,
     searchMode: 'hybrid',  // Use hybrid search for better RAG accuracy
     threshold: 0.3,
     limit: 10,
-    filters
+    filter: category
+      ? { field: 'category', operator: 'eq', value: category }
+      : undefined
   });
 
   return results.map(r => ({
-    content: r.content,
-    relevance: r.score,
+    content: r.memory ?? r.chunk,
     metadata: r.metadata
   }));
 }
@@ -368,9 +347,8 @@ interface Ticket {
 
 // 1. Store customer profile
 async function createCustomer(customer: Customer) {
-  await memory.add({
+  await memory.add(customer.id, {
     content: `Customer: ${customer.name} (${customer.email}), Plan: ${customer.plan}`,
-    containerTag: customer.id,
     metadata: {
       type: 'profile',
       plan: customer.plan,
@@ -381,10 +359,9 @@ async function createCustomer(customer: Customer) {
 
 // 2. Log support ticket
 async function createTicket(ticket: Ticket) {
-  await memory.add({
+  await memory.add(ticket.customerId, {
     content: `Ticket ${ticket.id}: ${ticket.subject}\n${ticket.description}`,
-    containerTag: ticket.customerId,
-    customId: ticket.id,
+    id: ticket.id,
     metadata: {
       type: 'ticket',
       status: ticket.status,
@@ -396,12 +373,13 @@ async function createTicket(ticket: Ticket) {
 
 // 3. Resolve ticket
 async function resolveTicket(customerId: string, ticketId: string, resolution: string) {
-  await memory.add({
+  // Same id appends the resolution to the ticket's document
+  await memory.add(customerId, {
     content: `Ticket ${ticketId} resolved: ${resolution}`,
-    containerTag: customerId,
+    id: ticketId,
     metadata: {
-      type: 'resolution',
-      ticketId,
+      type: 'ticket',
+      status: 'resolved',
       resolvedAt: new Date().toISOString()
     }
   });
@@ -409,14 +387,10 @@ async function resolveTicket(customerId: string, ticketId: string, resolution: s
 
 // 4. Support agent assistant
 async function supportAssistant(customerId: string, query: string) {
-  const response = await memory.profile({
-    containerTag: customerId,
-    q: query,
-    threshold: 0.5
-  });
+  const { profile } = await memory.profile(customerId);
 
-  const staticInfo = response.profile.static.map(f => `- ${f}`).join('\n');
-  const recentTickets = response.profile.dynamic.map(f => `- ${f}`).join('\n');
+  const staticInfo = profile.static.map(m => `- ${m.memory}`).join('\n');
+  const recentTickets = profile.dynamic.map(m => `- ${m.memory}`).join('\n');
 
   const { text } = await generateText({
     model: openai('gpt-4'),
@@ -493,10 +467,10 @@ async function indexCodebase(projectId: string, directory: string) {
     const content = fs.readFileSync(file, 'utf-8');
     const relativePath = path.relative(directory, file);
 
-    await memory.add({
+    // Re-indexing a changed file: use documents.update() to replace its content
+    await memory.add(`${projectId}_codebase`, {
       content: `File: ${relativePath}\n\n${content}`,
-      containerTag: `${projectId}_codebase`,
-      customId: relativePath,
+      id: relativePath.replace(/[^A-Za-z0-9_-]/g, '_'),
       metadata: {
         type: 'source_file',
         language: path.extname(file).slice(1),
@@ -509,10 +483,9 @@ async function indexCodebase(projectId: string, directory: string) {
 
 // 2. Index pull requests and reviews
 async function indexPR(projectId: string, prNumber: number, diff: string, comments: string[]) {
-  await memory.add({
+  await memory.add(`${projectId}_reviews`, {
     content: `PR #${prNumber}\n\nDiff:\n${diff}\n\nComments:\n${comments.join('\n')}`,
-    containerTag: `${projectId}_reviews`,
-    customId: `pr_${prNumber}`,
+    id: `pr_${prNumber}`,
     metadata: {
       type: 'pull_request',
       number: prNumber,
@@ -524,17 +497,16 @@ async function indexPR(projectId: string, prNumber: number, diff: string, commen
 // 3. Review code with context
 async function reviewCode(projectId: string, code: string, fileName: string) {
   // Search for similar code patterns
-  const similarCode = await memory.search.memories({
-    q: code,
-    containerTag: `${projectId}_codebase`,
+  const { results: similarCode } = await memory.search(`${projectId}_codebase`, {
+    query: code,
+    searchMode: 'chunks',
     threshold: 0.3,
     limit: 5
   });
 
   // Get past review comments
-  const pastReviews = await memory.search.memories({
-    q: `code review comments for ${fileName}`,
-    containerTag: `${projectId}_reviews`,
+  const { results: pastReviews } = await memory.search(`${projectId}_reviews`, {
+    query: `code review comments for ${fileName}`,
     threshold: 0.3,
     limit: 5
   });
@@ -545,10 +517,10 @@ async function reviewCode(projectId: string, code: string, fileName: string) {
 You are a code review assistant familiar with this codebase.
 
 Similar Code Patterns:
-${similarCode.map(c => c.content).slice(0, 3).join('\n\n---\n\n')}
+${similarCode.map(c => c.chunk).slice(0, 3).join('\n\n---\n\n')}
 
 Past Review Patterns:
-${pastReviews.map(p => p.content).slice(0, 3).join('\n\n---\n\n')}
+${pastReviews.map(p => p.memory ?? p.chunk).slice(0, 3).join('\n\n---\n\n')}
 
 Provide a thoughtful code review, considering existing patterns and past feedback.
     `,
@@ -608,14 +580,13 @@ interface LearningSession {
 }
 
 async function recordLearningSession(session: LearningSession) {
-  await memory.add({
+  await memory.add(session.studentId, {
     content: `
 Topic: ${session.topic}
 Understanding: ${session.understanding}
 Content covered: ${session.content}
 Questions asked: ${session.questions.join(', ')}
     `,
-    containerTag: session.studentId,
     metadata: {
       type: 'learning_session',
       topic: session.topic,
@@ -626,14 +597,10 @@ Questions asked: ${session.questions.join(', ')}
 }
 
 async function adaptiveTutor(studentId: string, question: string) {
-  const response = await memory.profile({
-    containerTag: studentId,
-    q: question,
-    threshold: 0.5
-  });
-
-  // Get learning history from search results (if available)
-  const searchResults = response.searchResults?.results || [];
+  const [{ profile }, { results: searchResults }] = await Promise.all([
+    memory.profile(studentId),
+    memory.search(studentId, { query: question, searchMode: 'chunks', threshold: 0.5 })
+  ]);
 
   // Analyze learning patterns from metadata
   const weakTopics = searchResults
@@ -644,8 +611,8 @@ async function adaptiveTutor(studentId: string, question: string) {
     .filter(r => r.metadata?.understanding === 'high')
     .map(r => r.metadata?.topic);
 
-  const staticInfo = response.profile.static.map(f => `- ${f}`).join('\n');
-  const recentLearning = response.profile.dynamic.slice(0, 5).map(f => f).join('\n\n');
+  const staticInfo = profile.static.map(m => `- ${m.memory}`).join('\n');
+  const recentLearning = profile.dynamic.slice(0, 5).map(m => m.memory).join('\n\n');
 
   const { text } = await generateText({
     model: openai('gpt-4'),
@@ -724,8 +691,8 @@ interface User {
   name: string;
 }
 
-// Container tag strategy
-function getContainerTags(orgId: string, userId: string) {
+// Namespace strategy: one namespace per isolation boundary
+function getNamespaces(orgId: string, userId: string) {
   return {
     org: `org_${orgId}`,
     user: `org_${orgId}_user_${userId}`,
@@ -735,11 +702,10 @@ function getContainerTags(orgId: string, userId: string) {
 
 // 1. Store organization-wide knowledge
 async function addOrgKnowledge(orgId: string, content: string) {
-  const tags = getContainerTags(orgId, '');
+  const namespaces = getNamespaces(orgId, '');
 
-  await memory.add({
+  await memory.add(namespaces.shared, {
     content,
-    containerTag: tags.shared,
     metadata: {
       type: 'org_knowledge',
       visibility: 'organization'
@@ -749,11 +715,10 @@ async function addOrgKnowledge(orgId: string, content: string) {
 
 // 2. Store user-specific data
 async function addUserData(orgId: string, userId: string, content: string) {
-  const tags = getContainerTags(orgId, userId);
+  const namespaces = getNamespaces(orgId, userId);
 
-  await memory.add({
+  await memory.add(namespaces.user, {
     content,
-    containerTag: tags.user,
     metadata: {
       type: 'user_data',
       visibility: 'private'
@@ -763,20 +728,20 @@ async function addUserData(orgId: string, userId: string, content: string) {
 
 // 3. Search with proper isolation
 async function search(orgId: string, userId: string, query: string, includeShared: boolean = true) {
-  const tags = getContainerTags(orgId, userId);
+  const namespaces = getNamespaces(orgId, userId);
 
-  const containerTags = includeShared
-    ? [tags.user, tags.shared]  // User + org shared
-    : [tags.user];              // User only
+  const targets = includeShared
+    ? [namespaces.user, namespaces.shared]  // User + org shared
+    : [namespaces.user];                    // User only
 
-  const results = await memory.search.memories({
-    q: query,
-    containerTag: containerTags[0],  // Use first tag
-    threshold: 0.3,
-    limit: 10
-  });
+  // One search per namespace, then merge
+  const responses = await Promise.all(
+    targets.map(namespace =>
+      memory.search(namespace, { query, threshold: 0.3, limit: 10 })
+    )
+  );
 
-  return results;
+  return responses.flatMap(r => r.results);
 }
 
 // Usage
@@ -833,7 +798,7 @@ interface Paper {
 }
 
 async function addPaper(userId: string, paper: Paper) {
-  await memory.add({
+  await memory.add(`${userId}_research`, {
     content: `
 Title: ${paper.title}
 Authors: ${paper.authors.join(', ')}
@@ -841,8 +806,7 @@ Year: ${paper.year}
 Abstract: ${paper.abstract}
 URL: ${paper.url}
     `,
-    containerTag: `${userId}_research`,
-    customId: paper.url,
+    id: paper.url.replace(/[^A-Za-z0-9_-]/g, '_'),
     metadata: {
       type: 'paper',
       year: paper.year,
@@ -853,9 +817,8 @@ URL: ${paper.url}
 }
 
 async function addResearchNote(userId: string, note: string, relatedPapers: string[]) {
-  await memory.add({
+  await memory.add(`${userId}_research`, {
     content: note,
-    containerTag: `${userId}_research`,
     metadata: {
       type: 'note',
       relatedPapers,
@@ -865,9 +828,9 @@ async function addResearchNote(userId: string, note: string, relatedPapers: stri
 }
 
 async function findRelatedResearch(userId: string, topic: string) {
-  const results = await memory.search.memories({
-    q: topic,
-    containerTag: `${userId}_research`,
+  const { results } = await memory.search(`${userId}_research`, {
+    query: topic,
+    searchMode: 'chunks',
     threshold: 0.3,
     limit: 20
   });
@@ -884,9 +847,9 @@ async function synthesizeInsights(userId: string, research_question: string) {
 
   const context = [
     '=== Related Papers ===',
-    ...related.papers.map(p => p.content),
+    ...related.papers.map(p => p.chunk),
     '\n=== Your Notes ===',
-    ...related.notes.map(n => n.content)
+    ...related.notes.map(n => n.chunk)
   ].join('\n\n');
 
   const { text } = await generateText({
@@ -951,14 +914,11 @@ const synthesis = await synthesizeInsights(
 
 ```typescript
 // Always retrieve context first
-const response = await memory.profile({
-  containerTag: userId,
-  q: userMessage
-});
+const { profile } = await memory.profile(userId);
 
 // Then use in generation
-const staticFacts = response.profile.static.join('\n');
-const dynamicFacts = response.profile.dynamic.join('\n');
+const staticFacts = profile.static.map(m => m.memory).join('\n');
+const dynamicFacts = profile.dynamic.map(m => m.memory).join('\n');
 
 const llmResponse = await generateText({
   system: `User Profile:\n${staticFacts}\n\nRecent Context:\n${dynamicFacts}`,
@@ -970,9 +930,8 @@ const llmResponse = await generateText({
 
 ```typescript
 // Always store the result
-await memory.add({
+await memory.add(userId, {
   content: `Input: ${input}\nOutput: ${output}`,
-  containerTag: userId,
   metadata: { timestamp: new Date().toISOString() }
 });
 ```
@@ -980,9 +939,8 @@ await memory.add({
 ### Pattern 3: Rich Metadata for Filtering
 
 ```typescript
-await memory.add({
+await memory.add(userId, {
   content: data,
-  containerTag: userId,
   metadata: {
     type: 'conversation',
     category: 'support',
@@ -993,35 +951,36 @@ await memory.add({
 });
 
 // Later filter by metadata
-const results = await memory.search.memories({
-  q: 'billing issues',
-  containerTag: 'user_123',
-  filters: {
-    metadata: { priority: 'high', type: 'conversation' }
+const { results } = await memory.search('user_123', {
+  query: 'billing issues',
+  filter: {
+    operator: 'and',
+    operands: [
+      { field: 'priority', operator: 'eq', value: 'high' },
+      { field: 'type', operator: 'eq', value: 'conversation' }
+    ]
   }
 });
 ```
 
-### Pattern 4: Hierarchical Container Tags
+### Pattern 4: Hierarchical Namespaces
 
 ```typescript
-// Organization → Team → User hierarchy
-const tags = {
+// Organization → Team → User hierarchy; each level is its own namespace
+const namespaces = {
   org: `org_${orgId}`,
   team: `org_${orgId}_team_${teamId}`,
   user: `org_${orgId}_team_${teamId}_user_${userId}`
 };
 
 // Search at appropriate level
-const orgWide = await memory.search.memories({
-  q: 'company policies',
-  containerTag: tags.org,
+const orgWide = await memory.search(namespaces.org, {
+  query: 'company policies',
   limit: 10
 });
 
-const teamSpecific = await memory.search.memories({
-  q: 'team resources',
-  containerTag: tags.team,
+const teamSpecific = await memory.search(namespaces.team, {
+  query: 'team resources',
   limit: 10
 });
 ```
