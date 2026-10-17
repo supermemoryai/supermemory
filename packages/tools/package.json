@@ -2,13 +2,13 @@
   "name": "@supermemory/tools",
   "type": "module",
   "version": "3.1.2",
-  "description": "Memory tools for AI SDK, OpenAI, Voltagent and Mastra with supermemory",
+  "description": "Memory tools for AI SDK, OpenAI, LangChain, LangGraph, VoltAgent and Mastra with supermemory",
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch --ignore-watch .turbo",
     "check-types": "tsc --noEmit",
     "test": "vitest --testTimeout 100000",
-    "test:unit": "vitest run --testTimeout 100000 src/tools-shared.test.ts src/tool-operations.test.ts src/claude-memory.test.ts test/with-supermemory/unit.test.ts test/with-supermemory/conversation-conversion.test.ts test/openai-middleware.unit.test.ts test/mastra/unit.test.ts test/voltagent.unit.test.ts",
+    "test:unit": "vitest run --testTimeout 100000 src/tools-shared.test.ts src/tool-operations.test.ts src/claude-memory.test.ts src/langchain/*.test.ts test/with-supermemory/unit.test.ts test/with-supermemory/conversation-conversion.test.ts test/openai-middleware.unit.test.ts test/mastra/unit.test.ts test/voltagent.unit.test.ts",
     "test:watch": "vitest --watch --testTimeout 100000",
     "test:compat": "bun test/ai-sdk-compat/run.ts"
   },
@@ -23,10 +23,12 @@
     "@ai-sdk/openai": "^2.0.23",
     "@ai-sdk/provider": "^3.0.0",
     "@anthropic-ai/sdk": "^0.65.0",
-    "@voltagent/core": "^2.6.12",
+    "@langchain/core": "^1.2.14",
+    "@langchain/langgraph": "^1.4.18",
     "@mastra/core": "^1.0.0",
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/bun": "^1.2.21",
+    "@voltagent/core": "^2.6.12",
     "ai": "^5.0.29",
     "dotenv": "^16.6.1",
     "tsdown": "^0.14.2",
@@ -35,11 +37,19 @@
   },
   "peerDependencies": {
     "@ai-sdk/provider": "^2.0.0 || ^3.0.0 || ^4.0.0",
+    "@langchain/core": "^1.2.14",
+    "@langchain/langgraph": "^1.4.18",
     "@voltagent/core": "^2.6.12",
     "ai": "^5.0.0 || ^6.0.0 || ^7.0.0"
   },
   "peerDependenciesMeta": {
     "@ai-sdk/provider": {
+      "optional": true
+    },
+    "@langchain/core": {
+      "optional": true
+    },
+    "@langchain/langgraph": {
       "optional": true
     },
     "@voltagent/core": {
@@ -59,6 +69,7 @@
     ".": "./dist/index.js",
     "./ai-sdk": "./dist/ai-sdk.js",
     "./claude-memory": "./dist/claude-memory.js",
+    "./langchain": "./dist/langchain/index.js",
     "./mastra": "./dist/mastra.js",
     "./openai": "./dist/openai/index.js",
     "./voltagent": "./dist/voltagent/index.js",
