@@ -132,9 +132,17 @@ export async function validateApiKey(
 		})
 		return user
 	} catch (error) {
-		console.error("API key validation error:", error)
 		const transient = transientAuthErrorFor(error)
-		if (transient) throw transient
+		if (transient) {
+			console.error(
+				`Auth backend unavailable during API key validation: ${transient.message}`,
+				error,
+			)
+			throw transient
+		}
+		console.warn(
+			`API key rejected: ${error instanceof Error ? error.message : String(error)}`,
+		)
 		return null
 	}
 }
@@ -183,9 +191,17 @@ export async function validateOAuthToken(
 			expiresAt: payload.exp,
 		}
 	} catch (error) {
-		console.error("OAuth token validation error:", error)
 		const transient = transientAuthErrorFor(error)
-		if (transient) throw transient
+		if (transient) {
+			console.error(
+				`Auth backend unavailable during OAuth token validation: ${transient.message}`,
+				error,
+			)
+			throw transient
+		}
+		console.warn(
+			`OAuth token rejected: ${error instanceof Error ? error.message : String(error)}`,
+		)
 		return null
 	}
 }

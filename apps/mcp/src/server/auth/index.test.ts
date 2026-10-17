@@ -83,16 +83,21 @@ describe("MCP authentication", () => {
 	})
 
 	it("rejects a token issued for a different audience", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => {})
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+		const error = vi.spyOn(console, "error").mockImplementation(() => {})
 		const token = await signToken({ audience: "https://api.example.com" })
 
 		await expect(
 			validateOAuthToken(token, API_URL, MCP_RESOURCE, keySet),
 		).resolves.toBeNull()
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(warn.mock.calls[0]?.[0]).toMatch(/^OAuth token rejected: /)
+		expect(error).not.toHaveBeenCalled()
 	})
 
 	it("rejects expired tokens and tokens without a subject", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => {})
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+		const error = vi.spyOn(console, "error").mockImplementation(() => {})
 		const expired = await signToken({ expiresIn: "-1s" })
 		const noSubject = await signToken({ subject: "" })
 
@@ -102,10 +107,34 @@ describe("MCP authentication", () => {
 		await expect(
 			validateOAuthToken(noSubject, API_URL, MCP_RESOURCE, keySet),
 		).resolves.toBeNull()
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(warn.mock.calls[0]?.[0]).toMatch(/^OAuth token rejected: .*exp/)
+		expect(error).not.toHaveBeenCalled()
+	})
+
+	it("logs a JWKS failure as an auth backend outage and surfaces TransientAuthError", async () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+		const error = vi.spyOn(console, "error").mockImplementation(() => {})
+		const token = await signToken()
+		const failingKeySet = () =>
+			Promise.reject(
+				Object.assign(new Error("JWKS endpoint unavailable"), {
+					code: "ERR_JWKS_TIMEOUT",
+				}),
+			)
+
+		await expect(
+			validateOAuthToken(token, API_URL, MCP_RESOURCE, failingKeySet),
+		).rejects.toThrow(TransientAuthError)
+		expect(error).toHaveBeenCalledTimes(1)
+		expect(error.mock.calls[0]?.[0]).toBe(
+			"Auth backend unavailable during OAuth token validation: JWKS fetch failed: JWKS endpoint unavailable",
+		)
+		expect(warn).not.toHaveBeenCalled()
 	})
 
 	it("rejects opaque API keys without an API request", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => {})
+		vi.spyOn(console, "warn").mockImplementation(() => {})
 		const fetchSpy = vi.fn()
 		vi.stubGlobal("fetch", fetchSpy)
 
@@ -166,7 +195,8 @@ describe("MCP authentication", () => {
 	})
 
 	it("rejects an API key the session endpoint refuses", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => {})
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+		const error = vi.spyOn(console, "error").mockImplementation(() => {})
 		vi.stubGlobal(
 			"fetch",
 			vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
@@ -175,6 +205,11 @@ describe("MCP authentication", () => {
 		await expect(
 			validateApiKey("sm_revoked_key_0123456789abcdef", API_URL),
 		).resolves.toBeNull()
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(warn).toHaveBeenCalledWith(
+			"API key rejected: Session request failed with status 401",
+		)
+		expect(error).not.toHaveBeenCalled()
 	})
 
 	it("rejects malformed API keys without an API request", async () => {
@@ -187,7 +222,8 @@ describe("MCP authentication", () => {
 	})
 
 	it("surfaces a 500 from the session endpoint as TransientAuthError, not invalid token", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => {})
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+		const error = vi.spyOn(console, "error").mockImplementation(() => {})
 		vi.stubGlobal(
 			"fetch",
 			vi.fn().mockResolvedValue(new Response(null, { status: 500 })),
@@ -196,10 +232,16 @@ describe("MCP authentication", () => {
 		await expect(
 			validateApiKey("sm_outage_key_0123456789abcdef", API_URL),
 		).rejects.toThrow(TransientAuthError)
+		expect(error).toHaveBeenCalledTimes(1)
+		expect(error.mock.calls[0]?.[0]).toBe(
+			"Auth backend unavailable during API key validation: Session endpoint returned 500",
+		)
+		expect(warn).not.toHaveBeenCalled()
 	})
 
 	it("surfaces a session-endpoint timeout as TransientAuthError", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => {})
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+		const error = vi.spyOn(console, "error").mockImplementation(() => {})
 		vi.stubGlobal(
 			"fetch",
 			vi.fn().mockRejectedValue(
@@ -212,5 +254,7 @@ describe("MCP authentication", () => {
 		await expect(
 			validateApiKey("sm_timeout_key_0123456789abcd", API_URL),
 		).rejects.toThrow(TransientAuthError)
+		expect(error).toHaveBeenCalledTimes(1)
+		expect(warn).not.toHaveBeenCalled()
 	})
 })
