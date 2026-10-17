@@ -97,13 +97,13 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 		simulation,
 	}
 
-	// Rebuild nodeMap + spatial index when nodes change
+	// Force the spatial rebuild: a new node generation can keep the same ids/positions
 	useEffect(() => {
 		const map = nodeMapRef.current
 		map.clear()
 		for (const n of nodes) map.set(n.id, n)
 		inputRef.current?.syncNodes(map)
-		spatialRef.current.rebuild(nodes)
+		spatialRef.current.rebuild(nodes, true)
 		renderNeeded.current = true
 	}, [nodes])
 

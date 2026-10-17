@@ -176,7 +176,9 @@ export const NavigationControls = memo<NavigationControlsProps>(
 								e.currentTarget.style.opacity = "1"
 							}}
 						>
-							<span style={{ fontSize: 12 }}>−</span>
+							<span aria-hidden="true" style={{ fontSize: 12 }}>
+								−
+							</span>
 						</button>
 						<button
 							aria-label="Zoom in"
@@ -190,7 +192,9 @@ export const NavigationControls = memo<NavigationControlsProps>(
 								e.currentTarget.style.opacity = "1"
 							}}
 						>
-							<span style={{ fontSize: 12 }}>+</span>
+							<span aria-hidden="true" style={{ fontSize: 12 }}>
+								+
+							</span>
 						</button>
 					</div>
 				</div>
