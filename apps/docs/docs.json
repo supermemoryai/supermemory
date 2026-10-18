@@ -979,6 +979,11 @@
 			"source": "/supermemory-mcp/technology"
 		},
 		{
+			"destination": "/supermemory-mcp/mcp",
+			"permanent": true,
+			"source": "/supermemory-mcp"
+		},
+		{
 			"destination": "/",
 			"permanent": true,
 			"source": "/cookbook/overview"
@@ -1213,6 +1218,11 @@
 		{
 			"source": "/self-hosting/embed",
 			"destination": "/self-hosting/configuration"
+		},
+		{
+			"source": "/self-hosting",
+			"destination": "/self-hosting/overview",
+			"permanent": true
 		},
 		{
 			"source": "/concepts/memory",
