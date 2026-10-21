@@ -85,7 +85,21 @@ Every response contains `documents`, `chunks`, `memories`, and `pagination`. Onl
 | `sort` | string | `createdAt` | `createdAt` or `updatedAt` for documents and memories; `createdAt` or `position` for chunks |
 | `order` | string | `desc` | `desc` (newest) or `asc` (oldest) |
 | `body.filter` | object | — | Metadata filter. See [Organizing & Filtering](/concepts/filtering) |
+| `body.include.content` | boolean | `false` | Documents only: include last published extracted text as `content` |
 | `body.include.forgotten` | boolean | `false` | Memories only: include forgotten or expired rows that remain latest, returned with `isForgotten: true`. Normal forgetting makes a memory non-latest, so it still will not appear in this list |
+
+### Include extracted content
+
+Document lists omit `content` by default. To include the last published extracted text, including text from uploaded files, set `include.content` in the JSON body:
+
+```bash
+curl -X POST "https://api.supermemory.ai/ns/user_123/list/documents?limit=10" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"include":{"content":true}}'
+```
+
+`content` is `null` until the first extraction publishes. When you replace a file, the previous text remains until the new extraction publishes. It also remains if the replacement fails. Including content can make pages large.
 
 <Accordion title="Pagination example">
   ```typescript

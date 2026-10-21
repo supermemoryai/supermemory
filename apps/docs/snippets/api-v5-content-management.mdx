@@ -48,7 +48,9 @@ POST /ns/{namespace}/list/{type}?page=1&limit=100&sort=createdAt&order=desc
 ```
 </CodeGroup>
 
-Set `type` to `documents`, `chunks`, or `memories`. Pagination and sorting move to the query string as plain integers and values; the body takes an optional `filter` and, for memories, `include`. Defaults are `page=1`, `limit=10` (maximum 100), `sort=createdAt`, and `order=desc`. `sort` accepts `createdAt` or `updatedAt` for documents and memories, and `createdAt` or `position` for chunks; any other combination returns `400`.
+Set `type` to `documents`, `chunks`, or `memories`. Pagination and sorting move to the query string as plain integers and values; the body takes an optional `filter` and `include` object. Defaults are `page=1`, `limit=10` (maximum 100), `sort=createdAt`, and `order=desc`. `sort` accepts `createdAt` or `updatedAt` for documents and memories, and `createdAt` or `position` for chunks; any other combination returns `400`.
+
+Document lists omit `content` by default. Send `{"include":{"content":true}}` to return the last published extracted text, including text from uploaded files. `content` is `null` before the first extraction publishes. During a replacement, previous text remains until new text publishes and also remains if extraction fails. Including content can make responses large.
 
 Memory lists return only the latest version of each memory and hide forgotten memories and memories past their `forget_after`. Sending `"include": {"forgotten": true}` admits forgotten or expired rows only if they remain latest; they come back with `isForgotten: true`. Normal forgetting makes a memory non-latest, so this list does not recover it even with that flag. To search such memories, use search with `include.forgotten`. Document memories (`include=memories` on `GET /ns/{namespace}/document/{id}`) report the same forgotten flag.
 

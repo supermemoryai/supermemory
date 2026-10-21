@@ -41,4 +41,6 @@ curl -X POST "https://api.supermemory.ai/ns/user_1/list/documents?page=1&limit=5
 ```
 </CodeGroup>
 
+Document lists omit `content` by default. Send `{"include":{"content":true}}` to return published extracted text, including text from uploaded files. See [Document operations](/ingestion/document-operations) for response and processing details.
+
 Semantic forgetting supports `dryRun: true`, so you can review matches before deleting them. See [document read migration](/migration/api-v5-document-reads) and [memory forgetting migration](/migration/api-v5-memory-forgetting).
