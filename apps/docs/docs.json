@@ -536,7 +536,8 @@
 										"icon": "/icons/hugeicons/layers-01.svg",
 										"pages": [
 											"supermemory-mcp/chatgpt-web",
-											"supermemory-mcp/claude-desktop"
+											"supermemory-mcp/claude-desktop",
+											"supermemory-mcp/atomic-agent"
 										]
 									}
 								]
