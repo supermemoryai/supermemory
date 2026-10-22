@@ -5,6 +5,7 @@ export default defineConfig({
 		"src/index.ts",
 		"src/ai-sdk.ts",
 		"src/claude-memory.ts",
+		"src/langchain/index.ts",
 		"src/openai/index.ts",
 		"src/mastra.ts",
 		"src/voltagent/index.ts",
