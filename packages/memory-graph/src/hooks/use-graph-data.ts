@@ -157,10 +157,11 @@ export function computeClusterAssignments(
 
 		const component: string[] = []
 		const queue = [startId]
+		let head = 0
 		visited.add(startId)
 
-		while (queue.length > 0) {
-			const id = queue.shift() as string
+		while (head < queue.length) {
+			const id = queue[head++] as string
 			component.push(id)
 			for (const nextId of adjacency.get(id) ?? []) {
 				if (visited.has(nextId)) continue
@@ -400,10 +401,6 @@ function getAppendSpatialKey(x: number, y: number): string {
 	return `${x}:${y}`
 }
 
-/**
- * Pure function that computes graph edges from documents.
- * Extracted from the hook for testability.
- */
 export function computeEdges(documents: GraphApiDocument[]): GraphEdge[] {
 	if (!documents || documents.length === 0) return []
 
@@ -414,8 +411,16 @@ export function computeEdges(documents: GraphApiDocument[]): GraphEdge[] {
 		for (const mem of doc.memories) allNodeIds.add(mem.id)
 	}
 
+	const documentTargets = new Map<string, Set<string>>()
 	for (const doc of documents) {
+		let targets = documentTargets.get(doc.id)
 		for (const mem of doc.memories) {
+			if (targets?.has(mem.id)) continue
+			if (!targets) {
+				targets = new Set<string>()
+				documentTargets.set(doc.id, targets)
+			}
+			targets.add(mem.id)
 			result.push({
 				id: `dm-${doc.id}-${mem.id}`,
 				source: doc.id,
@@ -426,15 +431,20 @@ export function computeEdges(documents: GraphApiDocument[]): GraphEdge[] {
 		}
 	}
 
-	// 2. Memory-to-memory relation edges from backend data.
-	//    Uses memoryRelations (Record<targetId, relationType>) as primary source,
-	//    falls back to parentMemoryId for legacy data.
+	const relationSources = new Map<string, Set<string>>()
 	for (const doc of documents) {
 		for (const mem of doc.memories) {
 			const relations = getMemoryRelationTargets(mem)
+			let sources = relationSources.get(mem.id)
 
 			for (const [targetId, relationType] of Object.entries(relations)) {
 				if (!allNodeIds.has(targetId)) continue
+				if (sources?.has(targetId)) continue
+				if (!sources) {
+					sources = new Set<string>()
+					relationSources.set(mem.id, sources)
+				}
+				sources.add(targetId)
 				const edgeType =
 					relationType === "updates" ||
 					relationType === "extends" ||
@@ -496,6 +506,7 @@ export function useGraphData(
 		const clusterAssignments = computeClusterAssignments(documents)
 
 		const result: GraphNode[] = []
+		const seenMemoryIds = new Set<string>()
 		// Spiral layout: documents form a compact spiral core, memories orbit
 		// around their parent documents. The force simulation then gently
 		// pushes memories outward to create the constellation/starburst effect.
@@ -576,6 +587,8 @@ export function useGraphData(
 			for (let i = 0; i < memCount; i++) {
 				const mem = doc.memories[i]
 				if (!mem) continue
+				if (seenMemoryIds.has(mem.id)) continue
+				seenMemoryIds.add(mem.id)
 				const previousMemNode = previousCache.get(mem.id)
 				const memData: MemoryNodeData = {
 					...mem,

@@ -214,6 +214,8 @@ export interface MemoryGraphProps {
 	maxNodes?: number
 	/** Show FPS counter overlay */
 	showFps?: boolean
+	/** Show a minimap overview with a draggable viewport indicator */
+	showMinimap?: boolean
 	/** Slideshow mode */
 	isSlideshowActive?: boolean
 	onSlideshowNodeChange?: (nodeId: string | null) => void
@@ -226,6 +228,8 @@ export interface MemoryGraphProps {
 	totalCount?: number
 	/** Callback when user wants to view full document content */
 	onOpenDocument?: (documentId: string) => void
+	/** Called when the selected node changes; null when cleared */
+	onNodeSelect?: (nodeId: string | null) => void
 	/** Custom user-facing labels (partial) - merged with defaults */
 	labels?: MemoryGraphLabels
 	/** Overlay layering controls */
