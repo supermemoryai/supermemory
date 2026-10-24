@@ -212,6 +212,34 @@ describe("MCP authentication", () => {
 		expect(error).not.toHaveBeenCalled()
 	})
 
+	it("rejects an API key whose session has no organization", async () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+		const error = vi.spyOn(console, "error").mockImplementation(() => {})
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(
+				Response.json({
+					user: { id: "user_test", email: "test@example.com", name: "Test" },
+					org: null,
+					session: null,
+					role: null,
+					accessType: "full",
+					containerTags: null,
+					scope: { type: "full", permission: "write" },
+				}),
+			),
+		)
+
+		await expect(
+			validateApiKey("sm_noorg_key_0123456789abcdef", API_URL),
+		).resolves.toBeNull()
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(warn).toHaveBeenCalledWith(
+			"API key rejected: session has no organization",
+		)
+		expect(error).not.toHaveBeenCalled()
+	})
+
 	it("rejects malformed API keys without an API request", async () => {
 		const fetchSpy = vi.fn()
 		vi.stubGlobal("fetch", fetchSpy)
