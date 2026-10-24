@@ -158,7 +158,7 @@ Agents must pick the right removal path:
 | "Delete that conversation" / remove a whole file or URL | `documentDelete` | Source document permanently; extracted memories are soft-forgotten | `documentId` from `documentList` |
 | User is vague ("forget what you know about my job") | `searchMemories` first → then `memoryForget` | Same as memoryForget | Search first, then use `memoryId` |
 
-**Do not confuse IDs:** `memoryId` ≠ `documentId`. In hybrid results, only an item containing `memory` has a forgettable memory ID; an item containing `chunk` has a chunk ID. Static/dynamic profile entries are `{ id, memory }`, so their `id` is a forgettable memory ID.
+**Do not confuse IDs:** `memoryId` ≠ `documentId`. In hybrid results, only an item containing `memory` has a forgettable memory ID; an item containing `chunk` has a chunk ID. Static/dynamic profile entries are `{ id, memory }`; their `id` is a forgettable memory ID unless it starts with `aggregated_`, which marks a summary synthesized from several memories.
 
 **Soft vs hard delete:** `memoryForget` hides a fact from profile/search but leaves source documents. `documentDelete` permanently removes the underlying source and soft-forgets its extracted memories.
 
@@ -180,7 +180,7 @@ const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
 
 The aggregate includes destructive tools. Select only the operations the agent needs, and expose `documentDelete` or `memoryForget` only when the agent is authorized to remove data.
 
-**Python:** there is no v5 Python tools package yet. Call the Python SDK (`pip install supermemory`) from your own function-calling handlers.
+**Python:** the v5 Python integration is `supermemory-agent-framework` 2.x (tools and middleware for Microsoft Agent Framework). `supermemory-openai-sdk`, `supermemory-pipecat`, and `supermemory-cartesia` still require `supermemory<5`, so for other frameworks call the Python SDK (`pip install supermemory`) from your own function-calling handlers.
 
 **For Chatbots**: Use middleware (`withSupermemory`) for automatic context injection, or pass tools to the model for explicit memory control
 

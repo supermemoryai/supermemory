@@ -28,7 +28,7 @@ Every content route is scoped to one namespace in the path: `/ns/{namespace}/...
 - `POST`, `PATCH`, and `PUT` options go in the JSON body (or as form fields on file uploads). List pagination (`page`, `limit`, `sort`, `order`) is the exception and stays in the query string.
 - `DELETE` options such as `moveTo` go in the query string; bulk deletes send `ids` in the JSON body.
 
-Options sent in the wrong place return `400`.
+Most routes reject options sent in the wrong place with `400`. `DELETE /ns/{namespace}` does not: it ignores a JSON body, so a `moveTo` sent in the body permanently deletes the namespace instead of moving it. Always send `moveTo` in the query string.
 
 ## Endpoints
 
@@ -198,12 +198,16 @@ curl -X POST https://api.supermemory.ai/ns/documentation/search \
         "category": "security",
         "rating": 4.5
       },
+      "similarity": 0.87,
+      "isLatest": true,
+      "isInference": false,
       "system": { "createdAt": "...", "updatedAt": "..." }
     },
     {
       "id": "mem_789",
       "memory": "The API supports OAuth 2.0 for authorization",
       "metadata": {},
+      "similarity": 0.82,
       "isLatest": true,
       "isInference": false,
       "system": { "createdAt": "...", "updatedAt": "..." }
@@ -298,7 +302,7 @@ To find memories by meaning, call `DELETE /ns/{namespace}/memories/semantic` wit
 | `GET /ns/{namespace}` | Read a namespace's `supportingContext` |
 | `PATCH /ns/{namespace}` | Set `supportingContext` (send `null` to clear) |
 | `DELETE /ns/{namespace}` | Permanently delete a namespace and its content |
-| `DELETE /ns/{namespace}?moveTo={target}` | Move content to another namespace, then remove the source (`202`, returns `operationId`) |
+| `DELETE /ns/{namespace}?moveTo={target}` | Move content to another namespace, then remove the source (`202`, returns `operationId`). `moveTo` must be in the query string; in a JSON body it is ignored and the namespace is deleted |
 | `GET/PATCH /organization` | Read or set `organizationalContext` (PATCH needs an org admin) |
 
 ---
@@ -313,9 +317,10 @@ To find memories by meaning, call `DELETE /ns/{namespace}/memories/semantic` wit
 | 202 | Accepted | Async operation queued (for example a namespace move) |
 | 400 | Bad Request | Invalid request parameters, or an option in the wrong place |
 | 401 | Unauthorized | Missing or invalid API key |
+| 402 | Payment Required | Processing credits, search quota, or plan limits exhausted |
 | 403 | Forbidden | Caller lacks permission (for example a non-admin updating `/organization`) |
 | 404 | Not Found | Resource not found in this namespace |
-| 409 | Conflict | Document still processing, or a sync already running |
+| 409 | Conflict | Namespace busy or being merged, file-path conflict on ingest, organization-level profile bucket change, or a connector sync already running |
 | 429 | Too Many Requests | Rate limit exceeded |
 | 500 | Internal Server Error | Server error occurred |
 
@@ -462,7 +467,7 @@ curl -X POST https://api.supermemory.ai/ns/docs/document \
 
 # Returns: { "id": "report_2026", "status": "queued" }
 
-# Later, read the document and check system.status
+# Later, read the document: system.status tracks indexing, system.dreamingStatus tracks memory generation
 curl https://api.supermemory.ai/ns/docs/document/report_2026 \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```

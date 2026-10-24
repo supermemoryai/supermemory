@@ -242,7 +242,7 @@ const recommendations = generateRecommendations(profile);
 **Slow Processing**
 - Large PDFs (100 pages) take 1-2 minutes
 - Videos take 5-10 minutes
-- Check document status with `client.list(namespace, "documents")` and read `system.status` on each item
+- Check document status with `client.list(namespace, "documents")`: `system.status` tracks indexing and `system.dreamingStatus` tracks memory generation, which can finish minutes later under the default `dreaming: "dynamic"`
 
 ## Support
 

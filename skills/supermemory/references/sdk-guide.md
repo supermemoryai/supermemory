@@ -197,7 +197,7 @@ const [{ profile }, { results }] = await Promise.all([
 ]);
 ```
 
-Every profile entry carries an `id`, so it can be passed to `memories.forget()`.
+Every profile entry carries an `id`. Pass it to `memories.forget()` unless it starts with `aggregated_`: those entries are summaries synthesized from several memories and don't map to one memory.
 
 ### `search()` - Semantic Search
 
@@ -223,8 +223,9 @@ const response = await client.search(namespace, {
 //     memory?: string,     // Present on memory results
 //     chunk?: string,      // Present on chunk results
 //     metadata: object,
-//     isLatest?: boolean,
-//     isInference?: boolean,
+//     similarity: number,  // 0-1 relevance score
+//     isLatest: boolean,
+//     isInference: boolean, // false for chunks
 //     system: { ... },     // Lifecycle fields
 //     included?: { document?, related?: { parents, children, siblings } }
 //   }>,
@@ -299,7 +300,7 @@ Retrieve stored items in one namespace with optional filtering and pagination.
 const response = await client.list(namespace, "documents" | "chunks" | "memories", {
   page?: number,                    // Optional: 1-based page number (default 1)
   limit?: number,                   // Optional: items per page (default 10, max 100)
-  sort?: "createdAt" | "updatedAt", // Optional: default "createdAt"
+  sort?: "createdAt" | "updatedAt" | "position", // Optional: default "createdAt"; chunks accept "createdAt" or "position"
   order?: "asc" | "desc",           // Optional: default "desc"
   filter?: Filter                   // Optional: typed filter
 });
@@ -325,7 +326,7 @@ documents.forEach(doc => {
 });
 ```
 
-There is no separate processing list: read `system.status` on each document (`queued`, `extracting`, `chunking`, `embedding`, `indexing`, `done`, `failed`).
+There is no separate processing list: read `system.status` on each document (`queued`, `extracting`, `chunking`, `embedding`, `indexing`, `done`, `failed`). Memory generation is tracked separately in `system.dreamingStatus` (`dreaming`, then `done`). Under the default `dreaming: "dynamic"`, `status` can reach `done` minutes before `dreamingStatus` does, so wait on `dreamingStatus` before reading memories or profiles. TypeScript types it from `supermemory` 5.0.2; the Python 5.0.0 models don't expose it yet, so read it from the raw HTTP response there.
 
 **Paginated listing:**
 ```typescript
