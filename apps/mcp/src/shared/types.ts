@@ -11,7 +11,7 @@ export const namespaceAccessSchema = z.object({
 
 export type NamespaceAccess = z.infer<typeof namespaceAccessSchema>
 
-// /v3/session has no v5 replacement and still sends container-tag field names.
+// /session still sends container-tag field names.
 const sessionNamespaceAccessSchema = z
 	.object({ containerTag: z.string(), permission: z.enum(["read", "write"]) })
 	.transform(({ containerTag, permission }) => ({
