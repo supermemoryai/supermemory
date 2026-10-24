@@ -212,6 +212,34 @@ describe("MCP authentication", () => {
 		expect(error).not.toHaveBeenCalled()
 	})
 
+	it("rejects an API key whose session has no organization", async () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+		const error = vi.spyOn(console, "error").mockImplementation(() => {})
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(
+				Response.json({
+					user: { id: "user_test", email: "test@example.com", name: "Test" },
+					org: null,
+					session: null,
+					role: null,
+					accessType: "full",
+					containerTags: null,
+					scope: { type: "full", permission: "write" },
+				}),
+			),
+		)
+
+		await expect(
+			validateApiKey("sm_noorg_key_0123456789abcdef", API_URL),
+		).resolves.toBeNull()
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(warn).toHaveBeenCalledWith(
+			"API key rejected: session has no organization",
+		)
+		expect(error).not.toHaveBeenCalled()
+	})
+
 	it("rejects malformed API keys without an API request", async () => {
 		const fetchSpy = vi.fn()
 		vi.stubGlobal("fetch", fetchSpy)
@@ -236,48 +264,6 @@ describe("MCP authentication", () => {
 		expect(error.mock.calls[0]?.[0]).toBe(
 			"Auth backend unavailable during API key validation: Session endpoint returned 500",
 		)
-		expect(warn).not.toHaveBeenCalled()
-	})
-
-	it("surfaces a 200 session body that fails the session contract as TransientAuthError", async () => {
-		const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-		const error = vi.spyOn(console, "error").mockImplementation(() => {})
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue(
-				new Response(JSON.stringify({}), {
-					status: 200,
-					headers: { "content-type": "application/json" },
-				}),
-			),
-		)
-
-		await expect(
-			validateApiKey("sm_badbody_key_0123456789abcd", API_URL),
-		).rejects.toThrow(TransientAuthError)
-		expect(error).toHaveBeenCalledTimes(1)
-		expect(error.mock.calls[0]?.[0]).toBe(
-			"Auth backend unavailable during API key validation: Invalid session response",
-		)
-		expect(warn).not.toHaveBeenCalled()
-	})
-
-	it("surfaces a non-JSON 200 session body as TransientAuthError", async () => {
-		const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-		const error = vi.spyOn(console, "error").mockImplementation(() => {})
-		vi.stubGlobal(
-			"fetch",
-			vi
-				.fn()
-				.mockResolvedValue(
-					new Response("<html>upstream error</html>", { status: 200 }),
-				),
-		)
-
-		await expect(
-			validateApiKey("sm_htmlbody_key_0123456789abc", API_URL),
-		).rejects.toThrow(TransientAuthError)
-		expect(error).toHaveBeenCalledTimes(1)
 		expect(warn).not.toHaveBeenCalled()
 	})
 

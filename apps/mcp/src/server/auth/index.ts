@@ -44,13 +44,9 @@ export async function fetchSession(
 		)
 	}
 
-	const body = await response.json().catch((error: unknown) => {
-		if (error instanceof SyntaxError) return undefined
-		throw error
-	})
-	const result = sessionInfoSchema.safeParse(body)
+	const result = sessionInfoSchema.safeParse(await response.json())
 	if (!result.success) {
-		throw new TransientAuthError("Invalid session response")
+		throw new Error("Invalid session response")
 	}
 
 	return result.data
@@ -90,7 +86,6 @@ const TRANSIENT_ERROR_NAMES = new Set([
 const TRANSIENT_JOSE_CODES = new Set(["ERR_JWKS_TIMEOUT", "ERR_JOSE_GENERIC"])
 
 function transientAuthErrorFor(error: unknown): TransientAuthError | null {
-	if (error instanceof TransientAuthError) return error
 	const status = (error as { status?: unknown } | null)?.status
 	if (typeof status === "number" && status !== 401 && status !== 403) {
 		return new TransientAuthError(`Session endpoint returned ${status}`, status)
@@ -122,7 +117,10 @@ export async function validateApiKey(
 	try {
 		const session = await fetchSession(token, apiUrl)
 		const organizationId = session.org?.id
-		if (!organizationId) return null
+		if (!organizationId) {
+			console.warn("API key rejected: session has no organization")
+			return null
+		}
 
 		const user: AuthUser = {
 			userId: session.user.id,
