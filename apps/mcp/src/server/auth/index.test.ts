@@ -177,7 +177,7 @@ describe("MCP authentication", () => {
 			scopes: [],
 		})
 		expect(fetchSpy).toHaveBeenCalledWith(
-			`${API_URL}/v3/session`,
+			`${API_URL}/session`,
 			expect.objectContaining({
 				headers: { Authorization: `Bearer ${key}` },
 			}),
@@ -197,14 +197,16 @@ describe("MCP authentication", () => {
 	it("rejects an API key the session endpoint refuses", async () => {
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
 		const error = vi.spyOn(console, "error").mockImplementation(() => {})
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
-		)
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(null, { status: 401 }))
+		vi.stubGlobal("fetch", fetchSpy)
 
 		await expect(
 			validateApiKey("sm_revoked_key_0123456789abcdef", API_URL),
 		).resolves.toBeNull()
+		expect(fetchSpy).toHaveBeenCalledTimes(1)
+		expect(fetchSpy.mock.calls[0]?.[0]).toBe(`${API_URL}/session`)
 		expect(warn).toHaveBeenCalledTimes(1)
 		expect(warn).toHaveBeenCalledWith(
 			"API key rejected: Session request failed with status 401",

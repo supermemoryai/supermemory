@@ -31,7 +31,7 @@ export async function fetchSession(
 	bearerToken: string,
 	apiUrl: string,
 ): Promise<SessionInfo> {
-	const response = await fetch(`${apiUrl.replace(/\/+$/, "")}/v3/session`, {
+	const response = await fetch(`${apiUrl.replace(/\/+$/, "")}/session`, {
 		method: "GET",
 		headers: { Authorization: `Bearer ${bearerToken}` },
 		signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
