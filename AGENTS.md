@@ -2,7 +2,8 @@
 
 Context for AI coding agents (Claude Code, Cursor, Codex, OpenCode, Copilot and others) working with supermemory.
 
-**supermemory** is context infrastructure for AI agents: memory, retrieval and user profiles through one API.
+**supermemory** is a memory engine for AI agents: a memory graph that updates and forgets facts, user profiles, and
+retrieval over your documents, through one API.
 [Documentation](https://supermemory.ai/docs) · [Docs index for agents](https://supermemory.ai/docs/llms.txt) ·
 [Console and API keys](https://console.supermemory.ai)
 
@@ -31,8 +32,8 @@ Set `SUPERMEMORY_API_KEY` (create a key in the [console](https://console.superme
 or later:
 
 ```bash
-npm i supermemory        # TypeScript / JavaScript
-pip install supermemory  # Python (3.10 or later)
+npm i supermemory           # TypeScript / JavaScript
+pip install -U supermemory  # Python (3.10 or later)
 ```
 
 Every memory call (add, search, profile, list, documents) takes a **namespace** first: one user, workspace or tenant.
@@ -73,7 +74,8 @@ profile = client.profile("user_123").profile
 - **Search modes:** `"chunks"` for RAG, `"memories"` for extracted memories, `"hybrid"` (default) for both. The option is
   `searchMode` in the API and TypeScript, `search_mode` in Python.
 - **Readiness:** processing is async. Wait until `system.status` is `done` before searching chunks, and until
-  `system.dreamingStatus` is `done` before reading memories or the profile.
+  `system.dreamingStatus` is `done` before reading memories or the profile. These are the API and TypeScript field
+  names.
 
 ### Do NOT use
 
@@ -120,8 +122,8 @@ This is not the memory MCP. The docs MCP only searches documentation.
 | OpenClaw | `openclaw plugins install @supermemory/openclaw-supermemory` | [docs](https://supermemory.ai/docs/integrations/openclaw) |
 | Any MCP client | Remote server `https://mcp.supermemory.ai/mcp` (OAuth sign-in, no API key) | [docs](https://supermemory.ai/docs/supermemory-mcp/mcp) |
 
-Each plugin handles its own sign-in (browser login or its own key variable), so follow its guide rather than assuming
-`SUPERMEMORY_API_KEY`.
+Each plugin handles its own sign-in (a browser login or an API key, not always `SUPERMEMORY_API_KEY`), so follow its
+guide.
 
 Framework guides (Vercel AI SDK, OpenAI SDK, OpenAI Agents SDK, LangChain, LangGraph, Mastra, CrewAI, Agno, Microsoft
 Agent Framework, VoltAgent, Convex, Pipecat, LiveKit and more) are listed in the
@@ -141,7 +143,8 @@ A Bun + Turbo monorepo. The `supermemory` SDKs on npm and PyPI are built in sepa
 
 - Bun 1.3.6 (the `packageManager` field). Use Bun only; the lockfile is `bun.lock`.
 - Node 20 or later.
-- Python 3.10 or later, plus `uv` for `packages/openai-sdk-python` and `apps/sdk-playground`.
+- Python 3.10 or later for the `packages/*-python` packages and 3.11 or later for `apps/sdk-playground`, plus `uv` for
+  `packages/openai-sdk-python` and `apps/sdk-playground`.
 
 ### Do NOT
 
@@ -149,8 +152,10 @@ A Bun + Turbo monorepo. The `supermemory` SDKs on npm and PyPI are built in sepa
 - Bump versions in `packages/tools/package.json`, `packages/memory-graph/package.json` or
   `packages/*-python/pyproject.toml` unless asked. The `publish-*.yml` workflows publish when those change on `main`.
 - Edit the workflows in `.github/workflows/` unless asked.
-- Migrate the Python packages to the v5 SDK unless asked. Most of them still target supermemory 3.x/4.x and use
-  `container_tag` on purpose.
+- Migrate the Python packages to the v5 SDK unless asked. `openai-sdk-python`, `pipecat-sdk-python` and
+  `cartesia-sdk-python` pin `supermemory<5` (the 3.x SDK) on purpose, and `livekit-sdk-python` still makes uncapped 3.x
+  SDK calls; all of them use `container_tag`. `agent-framework-python` 2.0 is already on v5 (`supermemory>=5.0.0,<6`)
+  and passes its `container_tag` as the namespace.
 - Commit `.env` files, API keys or credentials.
 
 ### Repository map
@@ -162,13 +167,13 @@ A Bun + Turbo monorepo. The `supermemory` SDKs on npm and PyPI are built in sepa
 | `apps/docs/` | Documentation site |
 | `apps/memory-graph-playground/` | Demo app for the memory graph component |
 | `apps/sdk-playground/` | Playground for the SDK integrations |
-| `packages/tools/` | `@supermemory/tools`: memory tools for the AI SDK, OpenAI, VoltAgent and Mastra |
+| `packages/tools/` | `@supermemory/tools` (3.x, v5 API): memory tools and middleware for the AI SDK, OpenAI, Mastra, VoltAgent and Claude's memory tool |
 | `packages/memory-graph/` | `@supermemory/memory-graph`: interactive memory graph component |
 | `packages/openai-sdk-python/` | `supermemory-openai-sdk`: memory tools for OpenAI function calling |
 | `packages/agent-framework-python/` | `supermemory-agent-framework`: Microsoft Agent Framework integration |
 | `packages/pipecat-sdk-python/` | `supermemory-pipecat`: Pipecat integration |
 | `packages/cartesia-sdk-python/` | `supermemory-cartesia`: Cartesia Line integration |
-| `packages/livekit-sdk-python/` | LiveKit Agents integration |
+| `packages/livekit-sdk-python/` | `supermemory-livekit` (not on PyPI yet): LiveKit Agents integration |
 | `packages/ui/` | Shared UI components |
 | `packages/lib/` | Shared utilities and logic |
 | `packages/hooks/` | Shared React hooks |
@@ -187,24 +192,30 @@ bun run check-types    # TypeScript across the monorepo
 bunx turbo run build   # build everything
 ```
 
-`dev:local` also needs Python and `uv` (the sdk playground runs `uv run server.py`) and network access (the docs run
+Use `dev:local`, not `bun run dev`: `dev` runs through portless, which binds port 443 and trusts a local CA. `dev:local`
+also needs Python and `uv` (the sdk playground runs `uv run server.py`) and network access (the docs run
 Mintlify). Use `bunx turbo run build` rather than `bun run build`: the root `postbuild` step uploads Sentry sourcemaps.
 
 Checks that CI runs:
 
 ```bash
+bun install --frozen-lockfile                                          # fails if bun.lock is out of date
 bunx biome ci --changed --since=origin/main --no-errors-on-unmatched   # lint and format, changed files only
 bun run --cwd packages/tools test:unit
 bun run --cwd packages/tools build
 bun run --cwd packages/tools test:compat
 bun run --cwd apps/sdk-playground check-types:app
 bun run --cwd apps/sdk-playground build:app
+(cd apps/sdk-playground/python && uv sync --locked --python 3.12 \
+  && .venv/bin/python -m py_compile server.py && .venv/bin/python -c "import server")
 bun run --cwd packages/memory-graph check-types
 bun run --cwd packages/memory-graph test
 ```
 
-`bun run format-lint` rewrites the whole repo with Biome and already reports errors on a clean `main`, so prefer the
-changed-files check above.
+The tools steps run when `packages/tools` changes and the sdk-playground steps when `apps/sdk-playground` changes (the
+tools build runs for either); memory-graph and Biome run on every pull request.
+
+`bun run format-lint` rewrites files across the whole repo with Biome, so prefer the changed-files check above.
 
 Python packages: CI builds each package's wheel, installs it with a pinned `supermemory` version and runs its pytest
 suite from the package folder (`packages/openai-sdk-python` uses `uv` and its `uv.lock`).
@@ -214,4 +225,8 @@ suite from the package folder (`packages/openai-sdk-python` uses `uv` and its `u
 - Branch from `main` (`feature/...` or `fix/...`) and keep it up to date with `main`.
 - Run the CI checks above for the areas you touched, plus `bun run check-types`.
 - Add tests if applicable, and update the docs if needed.
+- CONTRIBUTING.md suggests `bun run format-lint` and `bun run build`; use the changed-files Biome check and
+  `bunx turbo run build` above instead.
+- If CI fails on a branch in this repo, the Auto Fix CI Failures workflow (`claude-auto-fix-ci.yml`) can push fixes to
+  it, so pull before you push again.
 - More in [CONTRIBUTING.md](CONTRIBUTING.md).
