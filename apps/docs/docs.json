@@ -10,7 +10,7 @@
 			"languages": ["typescript", "python", "bash"],
 			"prefill": true
 		},
-		"openapi": "https://api.supermemory.ai/v4/openapi"
+		"openapi": "https://api.supermemory.ai/v5/openapi"
 	},
 	"background": {
 		"color": {
