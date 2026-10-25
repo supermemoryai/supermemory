@@ -1,6 +1,6 @@
 # @supermemory/tools
 
-Memory tools and middleware for Vercel AI SDK, OpenAI, Mastra, VoltAgent and Claude, backed by the [Supermemory](https://supermemory.ai) v5 API.
+Memory tools and middleware for Vercel AI SDK, OpenAI, LangChain, LangGraph, Mastra, VoltAgent and Claude, backed by the [Supermemory](https://supermemory.ai) v5 API.
 
 Pick the entry point for your stack:
 
@@ -8,6 +8,7 @@ Pick the entry point for your stack:
 | --- | --- |
 | `@supermemory/tools/ai-sdk` | Vercel AI SDK: 7 memory tools for `generateText`/`streamText`, plus `withSupermemory` model middleware |
 | `@supermemory/tools/openai` | OpenAI SDK: function-calling tool definitions and executor, plus `withSupermemory` client middleware |
+| `@supermemory/tools/langchain` | LangGraph: persistent `BaseStore`; LangChain: hybrid-search `BaseRetriever` |
 | `@supermemory/tools/mastra` | Mastra agents: input/output processors or the `withSupermemory` config wrapper |
 | `@supermemory/tools/voltagent` | VoltAgent agents: `withSupermemory` config wrapper built on hooks |
 | `@supermemory/tools/claude-memory` | Claude's native memory tool (`memory_20250818`), stored as Supermemory documents |
@@ -40,7 +41,32 @@ The `ai-sdk` entry point works with AI SDK 5, 6 and 7. It uses the `ai` package 
 
 ## Usage
 
-Each section below covers one entry point: AI SDK, OpenAI, Mastra, VoltAgent, then the Claude memory tool. The `withSupermemory` middleware takes the same options everywhere; see [withSupermemory Middleware Options](#withsupermemory-middleware-options).
+Each section below covers one entry point: AI SDK, OpenAI, LangChain/LangGraph, Mastra, VoltAgent, then the Claude memory tool. The `withSupermemory` middleware takes the same options everywhere; see [withSupermemory Middleware Options](#withsupermemory-middleware-options).
+
+### LangChain and LangGraph
+
+Install the optional peer dependencies, then use Supermemory as a persistent LangGraph store or a LangChain retriever:
+
+```bash
+npm install @supermemory/tools @langchain/core @langchain/langgraph
+```
+
+```typescript
+import {
+  SupermemoryRetriever,
+  SupermemoryStore,
+} from "@supermemory/tools/langchain"
+
+const store = new SupermemoryStore(process.env.SUPERMEMORY_API_KEY!)
+await store.put(["users", "ada"], "preferences", { theme: "dark" })
+const preferences = await store.get(["users", "ada"], "preferences")
+
+const retriever = new SupermemoryRetriever(
+  process.env.SUPERMEMORY_API_KEY!,
+  { namespace: "user_ada", limit: 5 },
+)
+const context = await retriever.invoke("What editor does Ada use?")
+```
 
 ### AI SDK Usage
 
