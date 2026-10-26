@@ -40,6 +40,7 @@ export interface DocumentSummary {
 	title: string | null
 	type: string
 	status: string
+	dreamingStatus?: ListResponseDocumentsItem["system"]["dreamingStatus"]
 	createdAt: string
 	updatedAt: string
 	summary: string | null
@@ -111,6 +112,7 @@ function mapDocumentSummary(
 		title: document.title,
 		type: document.type,
 		status: document.system.status,
+		dreamingStatus: document.system.dreamingStatus,
 		createdAt: document.system.createdAt,
 		updatedAt: document.system.updatedAt,
 		summary: document.summary,

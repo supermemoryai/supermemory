@@ -7,11 +7,25 @@ import {
 	sessionScopeSchema,
 } from "../../shared/types"
 
+const documentStatusSchema = z
+	.string()
+	.describe(
+		"Document processing state. done means content processing completed, not that memory extraction or memory-vector writes completed.",
+	)
+
+const dreamingStatusSchema = z
+	.enum(["dreaming", "done"])
+	.optional()
+	.describe(
+		"Memory-generation signal from the API, when available. dreaming means pending, running, or awaiting recovery, including after a failure. done means generation settled or no memories were needed; it does not guarantee a nonzero memory count or search readiness.",
+	)
+
 const documentSummarySchema = z.object({
 	id: z.string(),
 	title: z.string().nullable(),
 	type: z.string(),
-	status: z.string(),
+	status: documentStatusSchema,
+	dreamingStatus: dreamingStatusSchema,
 	createdAt: z.string(),
 	updatedAt: z.string(),
 	summary: z.string().nullable(),
@@ -23,8 +37,8 @@ export const addMemoryOutputSchema = z.object({
 	namespace: z.string(),
 	...legacyNamespaceOutput,
 	message: z.string(),
-	id: z.string().optional(),
-	status: z.string().optional(),
+	id: z.string().optional().describe("Accepted document ID, not a memory ID"),
+	status: documentStatusSchema.optional(),
 	forgotten: z
 		.array(z.object({ id: z.string(), memory: z.string() }))
 		.optional(),
@@ -49,7 +63,8 @@ export const getDocumentOutputSchema = z.object({
 		id: z.string(),
 		title: z.string().nullable(),
 		type: z.string(),
-		status: z.string(),
+		status: documentStatusSchema,
+		dreamingStatus: dreamingStatusSchema,
 		createdAt: z.string(),
 		updatedAt: z.string(),
 		summary: z.string().nullable(),

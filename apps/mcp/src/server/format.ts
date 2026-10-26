@@ -43,6 +43,9 @@ export function formatDocumentsList(response: DocumentsListResponse): string {
 		const lines = [
 			`- [${document.id}] "${title}" (${document.type}, ${document.status}, ${day(document.createdAt)})`,
 		]
+		if (document.dreamingStatus) {
+			lines.push(`  dreamingStatus: ${document.dreamingStatus}`)
+		}
 		if (document.summary?.trim()) {
 			lines.push(`  Summary: ${compactText(document.summary)}`)
 		}
@@ -148,6 +151,9 @@ export function formatDocument(document: DocumentDetails): string {
 		`Document ID: ${document.id}`,
 		`Type: ${document.type}`,
 		`Status: ${document.system.status}`,
+		...(document.system.dreamingStatus
+			? [`dreamingStatus: ${document.system.dreamingStatus}`]
+			: []),
 		`Created: ${document.system.createdAt}`,
 		`Updated: ${document.system.updatedAt}`,
 	]

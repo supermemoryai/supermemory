@@ -31,7 +31,7 @@ export function register(deps: ToolDeps) {
 		"add_memory",
 		{
 			description:
-				"Save a memory in the user's ACTIVE space. The target space is the one the user selected via select-space; pass namespace only to override it. To remove outdated information, use the separately exposed forget_memory tool. Legacy action='forget' remains supported for existing clients.",
+				"Accept a document for asynchronous memory extraction in the user's ACTIVE space. A successful response confirms document acceptance, not extracted or searchable memories. Use get_document or list_documents to check dreamingStatus; status=done refers to content processing only. The target space is the one the user selected via select-space; pass namespace only to override it. To remove outdated information, use the separately exposed forget_memory tool. Legacy action='forget' remains supported for existing clients.",
 			inputSchema,
 			outputSchema: addMemoryOutputSchema,
 			annotations: MEMORY_TOOL_ANNOTATIONS,
@@ -43,7 +43,7 @@ export function register(deps: ToolDeps) {
 				const client = deps.getClient(namespace)
 
 				const result = await client.createMemory(args.content)
-				const message = `Memory saved (ID: ${result.id}, space: ${result.namespace})`
+					const message = `Document accepted (ID: ${result.id}, space: ${result.namespace}). Memory extraction is asynchronous and may still be queued or pending. Check dreamingStatus with get_document or list_documents; completion does not guarantee extracted or searchable memories.`
 				const structuredContent: AddMemoryOutput = withLegacyNamespace({
 					action: "save",
 					success: true,
