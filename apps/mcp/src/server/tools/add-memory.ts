@@ -43,7 +43,7 @@ export function register(deps: ToolDeps) {
 				const client = deps.getClient(namespace)
 
 				const result = await client.createMemory(args.content)
-					const message = `Document accepted (ID: ${result.id}, space: ${result.namespace}). Memory extraction is asynchronous and may still be queued or pending. Check dreamingStatus with get_document or list_documents; completion does not guarantee extracted or searchable memories.`
+				const message = `Document accepted (ID: ${result.id}, space: ${result.namespace}). Memory extraction is asynchronous and may still be queued or pending. Check dreamingStatus with get_document or list_documents; completion does not guarantee extracted or searchable memories.`
 				const structuredContent: AddMemoryOutput = withLegacyNamespace({
 					action: "save",
 					success: true,
