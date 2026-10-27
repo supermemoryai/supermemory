@@ -20,7 +20,6 @@ import type {
 	GraphApiDocument,
 	GraphNode,
 	MemoryNodeData,
-	GraphThemeColors,
 	MemoryGraphProps,
 	ResolvedMemoryGraphLabels,
 } from "../types"
@@ -29,6 +28,7 @@ import { Legend } from "./legend"
 import { LoadingIndicator } from "./loading-indicator"
 import { NavigationControls } from "./navigation-controls"
 import { NodeHoverPopover } from "./node-hover-popover"
+import { Minimap } from "./minimap"
 
 function documentIdForNode(
 	node: GraphNode | null,
@@ -67,6 +67,7 @@ export function MemoryGraph({
 	highlightDocumentIds = [],
 	highlightsVisible = true,
 	showFps = false,
+	showMinimap = false,
 	maxNodes,
 	isSlideshowActive = false,
 	onSlideshowNodeChange,
@@ -74,6 +75,7 @@ export function MemoryGraph({
 	colors: colorOverrides,
 	totalCount,
 	onOpenDocument: externalOnOpenDocument,
+	onNodeSelect,
 	labels: labelOverrides,
 	layering,
 	appearance,
@@ -85,14 +87,7 @@ export function MemoryGraph({
 	)
 	const hoverPopoverZIndex =
 		layering?.hoverPopoverZIndex ?? DEFAULT_HOVER_POPOVER_Z_INDEX
-	const resolvedColors = useGraphTheme(colorOverrides)
-	const colors = useMemo<GraphThemeColors>(
-		() =>
-			colorOverrides
-				? { ...resolvedColors, ...colorOverrides }
-				: resolvedColors,
-		[resolvedColors, colorOverrides],
-	)
+	const colors = useGraphTheme(colorOverrides)
 
 	const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
 	const [containerBounds, setContainerBounds] = useState<DOMRect | null>(null)
@@ -105,42 +100,51 @@ export function MemoryGraph({
 	// React state only for things that affect DOM
 	const [hoveredNode, setHoveredNode] = useState<string | null>(null)
 	const [selectedNode, setSelectedNode] = useState<string | null>(null)
+	const onNodeSelectRef = useRef(onNodeSelect)
+	onNodeSelectRef.current = onNodeSelect
+	const lastSelectedRef = useRef(selectedNode)
+	// Compares against the last value so mount and StrictMode re-runs do not emit.
+	useEffect(() => {
+		if (lastSelectedRef.current === selectedNode) return
+		lastSelectedRef.current = selectedNode
+		onNodeSelectRef.current?.(selectedNode)
+	}, [selectedNode])
 	const [zoomDisplay, setZoomDisplay] = useState(50)
 	// Monotonic counter that increments on any viewport change (pan or zoom)
 	// Used as a dependency proxy to recalculate popover positions
 	const [viewportVersion, setViewportVersion] = useState(0)
 
-	// Limit documents so total node count (documents + their memories) stays under maxNodes
+	// Cap documents + unique memories at maxNodes; shared memories count once.
 	const limitedDocuments = useMemo(() => {
 		if (!maxNodes || documents.length === 0) return documents
 		let totalNodes = 0
+		const seenMemoryIds = new Set<string>()
 		const limited: GraphApiDocument[] = []
-		for (let i = 0; i < documents.length; i++) {
-			const doc = documents[i]
-			if (!doc) continue
+		for (const doc of documents) {
 			if (totalNodes >= maxNodes) break
 
-			const remainingNodes = maxNodes - totalNodes
 			const memories = doc.memories ?? []
-			const docNodes = 1 + memories.length
-
-			if (docNodes <= remainingNodes) {
-				limited.push(doc)
-				totalNodes += docNodes
-				continue
-			}
-
-			if (remainingNodes > 1) {
-				limited.push({
-					...doc,
-					memories: memories.slice(0, remainingNodes - 1),
-				})
-				totalNodes = maxNodes
-				break
-			}
-
-			limited.push({ ...doc, memories: [] })
+			const includedMemories: GraphApiDocument["memories"] = []
 			totalNodes += 1
+
+			for (const memory of memories) {
+				if (seenMemoryIds.has(memory.id)) {
+					includedMemories.push(memory)
+					continue
+				}
+
+				if (totalNodes >= maxNodes) continue
+
+				seenMemoryIds.add(memory.id)
+				includedMemories.push(memory)
+				totalNodes += 1
+			}
+
+			limited.push(
+				includedMemories.length === memories.length
+					? doc
+					: { ...doc, memories: includedMemories },
+			)
 		}
 		return limited
 	}, [documents, maxNodes])
@@ -937,6 +941,30 @@ export function MemoryGraph({
 						/>
 					</div>
 				)}
+
+				{showMinimap &&
+					!isCompactViewport &&
+					containerSize.width > 0 &&
+					nodes.length > 0 && (
+						<div
+							aria-hidden="true"
+							style={{
+								position: "absolute",
+								bottom: 16,
+								right: 16,
+								zIndex: 20,
+							}}
+						>
+							<Minimap
+								nodes={nodes}
+								colors={colors}
+								viewportRef={viewportRef}
+								canvasWidth={containerSize.width}
+								canvasHeight={containerSize.height}
+								simulation={simulation}
+							/>
+						</div>
+					)}
 			</div>
 		</div>
 	)

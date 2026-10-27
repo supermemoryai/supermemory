@@ -5,9 +5,10 @@ export class SpatialIndex {
 	private cellSize = 200
 	private lastHash = 0
 
-	rebuild(nodes: GraphNode[]): boolean {
+	// Hash only covers ids/positions, so pass force when the node array identity changes.
+	rebuild(nodes: GraphNode[], force = false): boolean {
 		const hash = this.computeHash(nodes)
-		if (hash === this.lastHash) return false
+		if (!force && hash === this.lastHash) return false
 		this.lastHash = hash
 		this.grid.clear()
 
