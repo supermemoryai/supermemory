@@ -79,6 +79,8 @@ If the content is already final, the assistant should use `add_memory`. If you w
 
 `who_am_i` returns the current identity, role, access type, granted scope, and active space. `list_spaces` returns only spaces the authenticated account can access, with names, keys, document and memory counts, and recent activity.
 
+Reconnecting a client does not show the authorization page again. To change a connected app's permission or scope, open the [Agents page](https://console.supermemory.ai/agents) in the console and choose **Edit access** from the app's row. Choose **Disconnect memory** to revoke its access; the next connection asks for approval again.
+
 ## Interactive widgets
 
 Clients that support [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) can open these Supermemory widgets directly inside the conversation.
