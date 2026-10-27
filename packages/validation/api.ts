@@ -138,6 +138,12 @@ export const MemorySchema = z
 		example: exampleMemory,
 	})
 
+export const DreamingSchema = z.enum(["dynamic", "instant"]).openapi({
+	description:
+		'Processing mode. "dynamic" (default) groups related documents together before extracting memories; "instant" processes each document on its own right away.',
+	example: "instant",
+})
+
 export const MemoryUpdateSchema = z.object({
 	containerTags: z
 		.array(z.string())
@@ -157,6 +163,7 @@ export const MemoryUpdateSchema = z.object({
 			"Optional custom ID of the memory. This could be an ID from your database that will uniquely identify this memory.",
 		example: "mem_abc123",
 	}),
+	dreaming: DreamingSchema.optional(),
 	entityContext: z.string().max(1500).optional().openapi({
 		description:
 			"Context for memory extraction on this container tag. Helps guide how memories are extracted and understood.",
@@ -170,15 +177,7 @@ export const MemoryUpdateSchema = z.object({
 	}),
 })
 
-export const DreamingSchema = z.enum(["dynamic", "instant"]).openapi({
-	description:
-		'Processing mode. "dynamic" (default) groups related documents together before extracting memories; "instant" processes each document on its own right away.',
-	example: "instant",
-})
-
-export const MemoryAddSchema = MemoryUpdateSchema.extend({
-	dreaming: DreamingSchema.optional(),
-})
+export const MemoryAddSchema = MemoryUpdateSchema
 
 export const PaginationSchema = z
 	.object({

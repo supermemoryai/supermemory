@@ -5,7 +5,6 @@ import {
 	DocumentsWithMemoriesQuerySchema,
 	ListMemoriesQuerySchema,
 	MemoryAddSchema,
-	MemoryUpdateSchema,
 	SearchRequestSchema,
 	Searchv4RequestSchema,
 } from "./api"
@@ -190,11 +189,5 @@ describe("document add schemas", () => {
 			MemoryAddSchema.safeParse({ content: "probe", dreaming: "eager" })
 				.success,
 		).toBe(false)
-	})
-
-	it("does not add dreaming to update requests", () => {
-		expect(
-			MemoryUpdateSchema.parse({ content: "probe", dreaming: "instant" }),
-		).toEqual({ content: "probe" })
 	})
 })
