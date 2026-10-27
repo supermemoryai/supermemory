@@ -170,7 +170,34 @@ export const MemoryUpdateSchema = z.object({
 	}),
 })
 
-export const MemoryAddSchema = MemoryUpdateSchema
+export const DreamingModeSchema = z.enum(["dynamic", "instant"]).openapi({
+	description:
+		'Processing mode. "dynamic" (default) groups related documents together so memories form from coherent units. "instant" processes each document on its own right away and bills one extra operation per document.',
+	example: "instant",
+})
+
+export const MemoryAddSchema = MemoryUpdateSchema.extend({
+	dreaming: DreamingModeSchema.optional(),
+})
+
+export const BatchAddDocumentsRequestSchema = z.object({
+	documents: z
+		.array(
+			z.object({
+				content: z.string(),
+				containerTags: z.array(z.string()).optional(),
+				containerTag: z.string().optional(),
+				entityContext: z.string().max(1500).optional(),
+				metadata: z.record(z.unknown()).optional(),
+			}),
+		)
+		.min(1)
+		.max(600),
+	containerTag: z.string().optional(),
+	entityContext: z.string().max(1500).optional(),
+	metadata: z.record(z.unknown()).optional(),
+	dreaming: DreamingModeSchema.optional(),
+})
 
 export const PaginationSchema = z
 	.object({
