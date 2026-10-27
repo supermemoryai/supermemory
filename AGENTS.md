@@ -112,6 +112,25 @@ This is not the memory MCP. The docs MCP only searches documentation.
 
 ### Memory for the coding agent itself
 
+One command installs the supermemory plugin for every coding agent it finds on this machine (Claude Code, Cursor,
+OpenCode and Codex), then signs in through the browser:
+
+```bash
+npx supermemory plugin --all
+```
+
+For one agent or a few, name them with `--only` (`claude`, `cursor`, `opencode`, `codex`):
+
+```bash
+npx supermemory plugin --only claude
+```
+
+- Plain `npx supermemory plugin` asks which agents to install for.
+- `--dry-run` shows what would run without installing anything.
+- `--no-auth` skips the browser sign-in; run `npx supermemory plugin login` later.
+
+To install a single plugin by hand, or for an agent the CLI doesn't cover (Hermes, OpenClaw, any MCP client):
+
 | Agent | Install | Guide |
 | --- | --- | --- |
 | Claude Code | `/plugin marketplace add supermemoryai/claude-supermemory`, then `/plugin install supermemory` | [docs](https://supermemory.ai/docs/integrations/claude-code) |
