@@ -18,6 +18,10 @@ function day(value: string | null | undefined): string {
 	return value?.slice(0, 10) ?? ""
 }
 
+function memoryExtractionLabel(status: "dreaming" | "done"): string {
+	return status === "dreaming" ? "in progress" : "done"
+}
+
 function paginationSummary(
 	currentPage: number,
 	totalPages: number,
@@ -44,7 +48,9 @@ export function formatDocumentsList(response: DocumentsListResponse): string {
 			`- [${document.id}] "${title}" (${document.type}, ${document.status}, ${day(document.createdAt)})`,
 		]
 		if (document.dreamingStatus) {
-			lines.push(`  dreamingStatus: ${document.dreamingStatus}`)
+			lines.push(
+				`  Memory extraction: ${memoryExtractionLabel(document.dreamingStatus)}`,
+			)
 		}
 		if (document.summary?.trim()) {
 			lines.push(`  Summary: ${compactText(document.summary)}`)
@@ -152,7 +158,9 @@ export function formatDocument(document: DocumentDetails): string {
 		`Type: ${document.type}`,
 		`Status: ${document.system.status}`,
 		...(document.system.dreamingStatus
-			? [`dreamingStatus: ${document.system.dreamingStatus}`]
+			? [
+					`Memory extraction: ${memoryExtractionLabel(document.system.dreamingStatus)}`,
+				]
 			: []),
 		`Created: ${document.system.createdAt}`,
 		`Updated: ${document.system.updatedAt}`,

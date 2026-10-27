@@ -10,14 +10,14 @@ import {
 const documentStatusSchema = z
 	.string()
 	.describe(
-		"Document processing state. done means content processing completed, not that memory extraction or memory-vector writes completed.",
+		"Document processing state. done means the content is processed; memories may still be pending, see dreamingStatus.",
 	)
 
 const dreamingStatusSchema = z
 	.enum(["dreaming", "done"])
 	.optional()
 	.describe(
-		"Memory-generation signal from the API, when available. dreaming means pending, running, or awaiting recovery, including after a failure. done means generation settled or no memories were needed; it does not guarantee a nonzero memory count or search readiness.",
+		"Memory extraction status, present when the API returns it. dreaming: pending, running, or retrying after a failure. done: settled, possibly with no memories. Neither done means memories are searchable yet.",
 	)
 
 const documentSummarySchema = z.object({

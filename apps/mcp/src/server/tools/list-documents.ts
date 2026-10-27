@@ -35,7 +35,7 @@ export function register(deps: ToolDeps) {
 		{
 			title: "List Documents",
 			description:
-				"List documents in one space with their IDs, titles, types, processing status, dreamingStatus when available, dates, and summaries. status=done means content processing completed, not memory readiness. dreamingStatus=dreaming means memory generation is pending, running, or awaiting recovery after failure; done means generation settled or none was needed, not guaranteed search readiness or nonzero memories. This does not return full document content; use get_document with an ID from this result to read one document. When the user names a space, resolve it with list_spaces and pass namespace; otherwise use the active space.",
+				"List documents in one space with their IDs, titles, types, processing status, memory extraction status (dreamingStatus) when available, dates, and summaries. This does not return full document content; use get_document with an ID from this result to read one document. When the user names a space, resolve it with list_spaces and pass namespace; otherwise use the active space.",
 			inputSchema,
 			outputSchema: listDocumentsOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
