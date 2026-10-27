@@ -166,6 +166,7 @@ Container tags allow you to organize memories across multiple dimensions:
 memory_agent = SupermemoryCartesiaAgent(
     agent=base_agent,
     container_tag="user-alice",           # Primary: user ID
+    custom_id=call_request.call_id,       # Required: groups all messages
     container_tags=["org-acme", "prod"],  # Additional: organization, environment
 )
 ```

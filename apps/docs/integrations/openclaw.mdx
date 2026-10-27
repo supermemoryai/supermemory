@@ -61,10 +61,12 @@ The AI can use these tools autonomously during conversations. With custom contai
 
 | Tool | Description |
 |------|-------------|
-| `supermemory_store` | Save information to long-term memory. |
-| `supermemory_search` | Search memories by query with similarity scores. |
-| `supermemory_forget` | Delete a memory by query or ID. |
-| `supermemory_profile` | View the user profile — persistent facts and recent context. |
+| `supermemory-save` | Save information to long-term memory. |
+| `supermemory-search` | Search memories by query with similarity scores. |
+| `supermemory-forget` | Delete a memory by query or ID. |
+| `supermemory-profile` | View the user profile — persistent facts and recent context. |
+
+The older `supermemory_store`, `supermemory_search`, `supermemory_forget`, and `supermemory_profile` names still work but are deprecated. Update tool allowlists to the hyphenated names.
 
 ### Slash commands
 
@@ -74,6 +76,9 @@ Users can interact with memory directly in chat.
 |---------|-------------|
 | `/remember [text]` | Manually save something to memory. |
 | `/recall [query]` | Search memories and see results with similarity scores. |
+| `/memory-usage` | Toggle showing how many memories were loaded and used in responses. |
+
+The bundled `supermemory-index` skill indexes the current project: ask the agent to index or memorize the codebase, and it explores the workspace and saves focused memories.
 
 ### CLI commands
 
@@ -107,13 +112,16 @@ openclaw supermemory wipe               # Delete all memories (requires confirma
     |-----|------|---------|-------------|
     | `apiKey` | `string` | — | Supermemory API key. |
     | `baseUrl` | `string` | `https://api.supermemory.ai` | API endpoint (self-hosted / local). |
+    | `apiVersion` | `string` | auto | `"v5"` or `"legacy"`. The hosted API uses v5; custom endpoints default to legacy. Set `"v5"` to use v5 with a self-hosted server 0.0.9 or newer. |
     | `containerTag` | `string` | `openclaw_{hostname}` | Root memory namespace. |
     | `autoRecall` | `boolean` | `true` | Inject relevant memories before every AI turn. |
     | `autoCapture` | `boolean` | `true` | Store conversation content after every turn. |
     | `maxRecallResults` | `number` | `10` | Max memories injected into context per turn. |
     | `profileFrequency` | `number` | `50` | Inject full user profile every N turns. |
     | `captureMode` | `string` | `"all"` | `"all"` filters noise. `"everything"` captures all messages. |
+    | `entityContext` | `string` | built-in | Instructions that guide what memories are extracted from conversations (max 1,500 characters). |
     | `debug` | `boolean` | `false` | Verbose debug logs. |
+    | `showMemoryUsage` | `boolean` | `true` | Show how many memories were loaded and used in AI responses. |
     | `enableCustomContainerTags` | `boolean` | `false` | Enable custom container routing. |
     | `customContainers` | `array` | `[]` | Custom containers with `tag` and `description`. |
     | `customContainerInstructions` | `string` | `""` | Instructions for AI on container routing. |
@@ -123,9 +131,16 @@ openclaw supermemory wipe               # Delete all memories (requires confirma
     ```json
     {
       "plugins": {
+        "slots": {
+          "memory": "openclaw-supermemory"
+        },
         "entries": {
           "openclaw-supermemory": {
             "enabled": true,
+            "hooks": {
+              "allowPromptInjection": true,
+              "allowConversationAccess": true
+            },
             "config": {
               "apiKey": "${SUPERMEMORY_OPENCLAW_API_KEY}",
               "containerTag": "my_memory",

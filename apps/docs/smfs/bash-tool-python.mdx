@@ -226,9 +226,9 @@ print(r.stdout)
 
 ## Commands the agent can run
 
-The Python tool exposes the same command surface as the TypeScript version: standard Unix builtins (`pwd`, `cd`, `ls`, `cat`, `stat`, `mkdir`, `rm`, `mv`, `cp`, `echo`), search and text utilities (`grep`, `find`, `head`, `tail`, `wc`, `sort`, `sed`, `awk`), plus the custom `sgrep <query> [path]` for semantic search across the container. Pipes, redirects, conditionals, loops, and file tests all work.
+The Python tool runs its own built-in commands: filesystem builtins (`pwd`, `cd`, `ls`, `cat`, `stat`, `mkdir`, `rm`, `rmdir`, `mv`, `cp`, `touch`, `echo`, `printf`, `tee`, `basename`, `dirname`), search and text utilities (`grep`, `find`, `head`, `tail`, `wc`, `sort`, `uniq`, `sed`, `cut`, `tr`, `seq`, `date`), file tests (`test`, `[`), plus the custom `sgrep <query> [path]` for semantic search across the container.
 
-See the [TypeScript Bash Tool reference](/smfs/bash-tool#commands-the-agent-can-run) for the full list.
+Pipes (`|`), redirects (`>`, `>>`, `<`), and `&&` / `||` chains work. Only simple commands run: loops (`for`, `while`), `if` blocks, and `awk` are not supported in the Python tool. Use the [TypeScript Bash Tool](/smfs/bash-tool#commands-the-agent-can-run) if your agent needs them.
 
 ## Configuration
 
@@ -239,7 +239,7 @@ See the [TypeScript Bash Tool reference](/smfs/bash-tool#commands-the-agent-can-
 | `base_url` | `None` | Override the API endpoint |
 | `eager_load` | `True` | Warm the path index when the instance starts |
 | `eager_content` | `True` | Also warm the content cache during eager load |
-| `cwd` | `"/home/user"` | Initial working directory |
+| `cwd` | `"/"` | Initial working directory |
 | `env` | `None` | Extra environment variables |
 | `cache_ttl_ms` | `150_000` | Content cache TTL in ms. `None` = never expires (single-writer). `0` = no cache. |
 
@@ -247,6 +247,6 @@ The container is what defines the filesystem; setting `cwd` or extra `env` from 
 
 ## Limitations
 
-- `chmod`, `utimes`, and symlinks (`ln -s`, `readlink`) raise `ENOSYS`.
-- `/dev/null` as a redirect target isn't supported. Write to `/tmp/discard.log` instead.
+- `chmod`, `ln`, and `readlink` aren't available; the shell returns `command not found`.
+- Redirecting to `/dev/null` discards the output; nothing is written to the container.
 - Binary uploads aren't supported. Text is extracted server-side.

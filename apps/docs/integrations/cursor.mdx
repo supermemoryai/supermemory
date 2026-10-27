@@ -81,7 +81,7 @@ Credentials are stored in `~/.supermemory-cursor/credentials.json`.
 | Session profile | Loads your persistent profile when a Cursor conversation starts |
 | Automatic recall | Searches on substantive prompts, deduplicates results, and injects them after the first supported tool result |
 | Incremental capture | Saves each completed turn, and retries unsaved transcript deltas at session end |
-| MCP tools | Explicit memory control from any Cursor AI session |
+| MCP tools | The hosted Supermemory MCP tools, proxied over stdio with the same credentials as the hooks |
 | Context gatherer | Fans out targeted searches before substantial work |
 | Always-on rule | Makes the agent recall relevant history proactively |
 
@@ -93,6 +93,7 @@ Credentials are stored in `~/.supermemory-cursor/credentials.json`.
 | `memory-save` | Skill | Save an insight, decision, or solution worth keeping |
 | `memory-search` | Skill | Search memory for past work, bugs, and decisions |
 | `supermemory-context-gatherer` | Agent | Gather deep background before substantial work |
+| `supermemory-index` | Command | Index codebase architecture and patterns into Supermemory |
 | `supermemory-setup` | Command | Connect Supermemory to Cursor |
 | `supermemory-status` | Command | Check authentication and live connectivity |
 | `supermemory-config` | Command | Create or edit the project config file |
@@ -100,25 +101,18 @@ Credentials are stored in `~/.supermemory-cursor/credentials.json`.
 
 ## MCP tools
 
+The plugin proxies the hosted [Supermemory MCP](/supermemory-mcp/mcp) server (`https://mcp.supermemory.ai/mcp`) over stdio, using the same credentials as the hooks. Claude Code and Codex use the same server, so all three agents see one tool set. The bundled rule, skills, and agent mainly use these:
+
 | Tool | Description |
 |------|-------------|
-| `supermemory_get_config` | Show current config, resolved container tags, and config file paths |
-| `supermemory_set_config` | Update config at project or global scope |
-| `supermemory_containers` | Show what `user` and `project` container tags resolve to |
-| `supermemory_search` | Search memories by query |
-| `supermemory_add` | Save new information to memory |
-| `supermemory_list` | List stored memories |
-| `supermemory_forget` | Delete a memory by id or content |
-| `supermemory_profile` | Get your user profile summary |
+| `search_memory` | Search memories in one space |
+| `add_memory` | Save a memory |
+| `forget_memory` | Forget outdated memories |
+| `list_memories` | List recent memories with their IDs |
+| `list_documents` / `get_document` | Browse and read stored documents |
+| `list_spaces` / `who_am_i` | Resolve a named space, or report the active account and space |
 
-Every tool that takes a `container` argument accepts:
-
-- `"user"` (default): personal memories for the current repository
-- `"project"`: project knowledge for the current repository
-- `"both"`: both scopes plus compatible legacy memories
-- any custom string: used as a raw container tag
-
-`user` and `project` write to the same repository container. The `sm_scope` metadata field is what keeps personal and session memories separate from explicit project knowledge when an agent asks for one scope.
+Pass `containerTag` on every call, using the tag from the `<supermemory-context>` block the session-start hook injects. Without it, the hosted server uses the account's active space, and this project's hook recall will not find the memory. Config lives in files rather than tools: see [Configuration](#configuration) or run `/supermemory-config`.
 
 ## Container tags
 
@@ -144,6 +138,9 @@ The plugin still reads the former `cursor_user_*` and `cursor_project_*` tags, a
 |----------|-------------|
 | `SUPERMEMORY_API_KEY` | API key (overrides all other sources) |
 | `SUPERMEMORY_API_URL` | Override the Supermemory API base URL |
+| `SUPERMEMORY_BASE_URL` | API base URL fallback when `SUPERMEMORY_API_URL` is unset |
+| `SUPERMEMORY_API_VERSION` | `v5` or `legacy` REST contract; overrides config `apiVersion` |
+| `SUPERMEMORY_MCP_URL` | Override the hosted MCP endpoint the proxy connects to |
 | `SUPERMEMORY_REPO_TAG` | Override the unified repository container tag |
 | `SUPERMEMORY_USER_TAG` | Legacy Cursor personal container to continue reading |
 | `SUPERMEMORY_PROJECT_TAG` | Legacy Cursor project container to continue reading |
@@ -183,6 +180,7 @@ The plugin still reads the former `cursor_user_*` and `cursor_project_*` tags, a
 |--------|---------|-------------|
 | `apiKey` | — | Project-specific API key |
 | `baseUrl` | Supermemory API | Override the Supermemory API base URL |
+| `apiVersion` | v5 for the hosted API, `legacy` for custom URLs | Set `v5` to use v5 with a self-hosted server 0.0.9 or newer |
 | `repoContainerTag` | derived from normalized Git remote or project path | Override the unified repository container |
 | `userContainerTag` | — | Legacy Cursor personal container to continue reading |
 | `projectContainerTag` | — | Legacy Cursor project container to continue reading |
@@ -193,7 +191,7 @@ The plugin still reads the former `cursor_user_*` and `cursor_project_*` tags, a
 | `signalKeywords` | `remember`, `architecture`, `decision`, `bug`, `fix` | Keywords that trigger signal-based capture |
 | `signalTurnsBefore` | `3` | Number of nearby turns retained around a signal |
 
-You can also set these from the agent with `supermemory_set_config`, or edit the file by hand.
+Edit the file by hand, or run the `/supermemory-config` command.
 
 ## Log out
 

@@ -42,7 +42,9 @@ icon: "/images/claude-code-icon.svg"
 
 ## Authenticate
 
-Create a Supermemory API key from the [API Keys](https://console.supermemory.ai/keys) page in the console, then add it to your shell profile:
+Start a Claude Code session and the plugin opens a browser login, then saves the key to `~/.supermemory-claude/credentials.json`.
+
+Or create a Supermemory API key from the [API Keys](https://console.supermemory.ai/keys) page in the console and add it to your shell profile:
 
 <Tabs>
   <Tab title="macOS / Linux (zsh)">
@@ -69,28 +71,29 @@ Create a Supermemory API key from the [API Keys](https://console.supermemory.ai/
 
 Once installed, the plugin runs automatically:
 
-- **Reasoned recall** — Before each turn, Claude decides whether recalling memory would help the current message, and only searches when it is worth it.
-- **Auto-capture** — Conversations and important tool usage are saved for later sessions.
-- **Team memory** — Project knowledge is shared separately from personal memories.
-- **Explicit skills** — Ask Claude to search or save memories when you need control.
+- **Session context** — At session start, profile facts for this project are loaded into context.
+- **Direct recall** — Before Claude sees each substantive prompt, the hook searches Supermemory and injects fresh matches. Set `recallDirective` to switch to advisory mode, where Claude decides when to search.
+- **Auto-capture** — When a session ends, new conversation content is saved in the background.
+- **Shared repo memory** — Captures go to one repository container shared with the Codex, OpenCode, and Cursor plugins, tagged with `sm_scope: personal` metadata.
+- **MCP tools** — The hosted Supermemory MCP tools (`search_memory`, `add_memory`, and more) use the same credentials. Read-only tools are approved automatically. For deeper history, Claude can also use the `context-gatherer` agent.
 
 ## Commands
 
 | Command | Description |
 | --- | --- |
-| `/supermemory:index` | Index codebase architecture and patterns |
-| `/supermemory:project-config` | Configure project-level settings |
-| `/supermemory:logout` | Clear saved credentials |
-| `/supermemory:session` | Show a clickable URL for the current session document |
-| `/supermemory:status` | Show authentication status |
+| `/supermemory:index` | Index codebase architecture, conventions, and how to run it into the project container |
+| `/supermemory:status` | Show authentication status, API and MCP reachability, and the active project container |
 
 ## Configuration
 
 ### Environment variables
 
 ```bash
-SUPERMEMORY_CC_API_KEY=sm_...    # Required
-SUPERMEMORY_DEBUG=true           # Optional: enable debug logging
+SUPERMEMORY_CC_API_KEY=sm_...        # Optional: browser login is used when unset
+SUPERMEMORY_API_URL=...              # Optional: override the REST API base URL
+SUPERMEMORY_REPO_TAG=...             # Optional: override the project container
+SUPERMEMORY_ISOLATE_WORKTREES=true   # Optional: key the container on the worktree path
+SUPERMEMORY_DEBUG=true               # Optional: enable debug logging
 ```
 
 ### Global settings
@@ -118,13 +121,13 @@ Create `~/.supermemory-claude/settings.json`:
 
 ### Project config
 
-Per-repo overrides in `.claude/.supermemory-claude/config.json`. Run `/supermemory:project-config` or create manually:
+Per-repo overrides in `.claude/.supermemory-claude/config.json`. Create the file manually:
 
 ```json
 {
   "apiKey": "sm_...",
   "baseUrl": "https://api.supermemory.ai",
-  "repoContainerTag": "my-team-project",
+  "namespace": "my-team-project",
   "signalExtraction": true
 }
 ```
@@ -133,8 +136,11 @@ Per-repo overrides in `.claude/.supermemory-claude/config.json`. Run `/supermemo
 | --- | --- |
 | `apiKey` | Project-specific API key |
 | `baseUrl` | Supermemory API URL (use for self-hosted) |
-| `personalContainerTag` | Override personal container |
-| `repoContainerTag` | Override team container tag |
+| `apiVersion` | `v5` or `legacy`. The hosted API uses v5; custom `baseUrl` values default to `legacy`. Set `v5` to use v5 with a self-hosted server 0.0.9 or newer |
+| `namespace` | Override the project container. Takes precedence over `repoContainerTag` |
+| `repoContainerTag` | Override the project container (checked before `SUPERMEMORY_REPO_TAG`) |
+
+API key precedence is `SUPERMEMORY_CC_API_KEY`, project `apiKey`, then `~/.supermemory-claude/credentials.json`.
 
 ## Next steps
 

@@ -56,16 +56,14 @@ Full walkthrough with conversation + document examples: [Quickstart](/quickstart
 
 ## SDKs
 
-Official clients wrap this API:
+The current `supermemory` SDKs (5.x) call the [v5 API](/v5/api-reference/overview), not these endpoints. To call v3/v4 through an SDK, pin a release from before 5.0.0:
 
-- TypeScript: `npm install supermemory`
-- Python: `pip install supermemory`
+- TypeScript: `npm install supermemory@4`
+- Python: `pip install "supermemory<5"`
 
 See [Supermemory SDK](/integrations/supermemory-sdk).
 
-The API's OpenAPI generator supplies official **TypeScript / Python SDK** samples via `x-codeSamples`, plus cURL. Playground snippets use the deployed spec, so their availability depends on the API version serving it.
-
-SDK generation is migrating off Stainless SaaS to **stlc** soon; documented OpenAPI samples will then be produced by the SDK build instead of a hand-maintained map.
+The API's OpenAPI generator supplies **TypeScript / Python SDK** samples via `x-codeSamples`, plus cURL. On this legacy reference they use the pre-5 SDK methods. Playground snippets use the deployed spec, so their availability depends on the API version serving it.
 
 ## OpenAPI
 

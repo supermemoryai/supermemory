@@ -25,11 +25,11 @@ npm install @supermemory/memory-graph
 'use client'; // For Next.js App Router
 
 import { MemoryGraph } from '@supermemory/memory-graph';
-import type { DocumentWithMemories } from '@supermemory/memory-graph';
+import type { GraphApiDocument } from '@supermemory/memory-graph';
 import { useEffect, useState } from 'react';
 
 export default function GraphPage() {
-  const [documents, setDocuments] = useState<DocumentWithMemories[]>([]);
+  const [documents, setDocuments] = useState<GraphApiDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -78,7 +78,7 @@ Existing icon-based document nodes and connection styling remain the defaults. O
 
 ## Backend API route
 
-Create an API route to fetch documents from Supermemory:
+Create an API route to fetch documents from Supermemory. The endpoint returns each document's memories as `memoryEntries` and its type as `type`; `MemoryGraph` reads `memories` and `documentType`, so map each document before returning it:
 
 <CodeGroup>
 
@@ -102,7 +102,14 @@ export async function GET() {
   });
 
   const data = await response.json();
-  return NextResponse.json(data);
+  return NextResponse.json({
+    ...data,
+    documents: data.documents.map((doc) => ({
+      ...doc,
+      documentType: doc.type,
+      memories: doc.memoryEntries,
+    })),
+  });
 }
 ```
 
@@ -121,7 +128,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
 
   const data = await response.json();
-  res.json(data);
+  res.json({
+    ...data,
+    documents: data.documents.map((doc) => ({
+      ...doc,
+      documentType: doc.type,
+      memories: doc.memoryEntries,
+    })),
+  });
 }
 ```
 
@@ -137,7 +151,14 @@ app.get('/api/graph', async (req, res) => {
   });
 
   const data = await response.json();
-  res.json(data);
+  res.json({
+    ...data,
+    documents: data.documents.map((doc) => ({
+      ...doc,
+      documentType: doc.type,
+      memories: doc.memoryEntries,
+    })),
+  });
 });
 ```
 
@@ -151,13 +172,13 @@ app.get('/api/graph', async (req, res) => {
 
 ## Variants
 
-**Console Variant** - Full-featured dashboard view (0.8x zoom, space selector visible):
+**Console Variant** - Full dashboard view: themed surface with a dot grid, nodes colored by theme:
 
 ```tsx
 <MemoryGraph documents={documents} variant="console" />
 ```
 
-**Consumer Variant** - Embedded widget view (0.5x zoom, space selector hidden):
+**Consumer Variant** - Embedded widget view: transparent surface, nodes colored by cluster:
 
 ```tsx
 <MemoryGraph documents={documents} variant="consumer" />
@@ -210,8 +231,7 @@ export default function PaginatedGraph() {
       isLoading={isLoading}
       isLoadingMore={isLoadingMore}
       hasMore={hasMore}
-      totalLoaded={documents.length}
-      loadMoreDocuments={loadMore}
+      onLoadMore={loadMore}
     />
   );
 }
@@ -224,17 +244,6 @@ export default function PaginatedGraph() {
   documents={documents}
   highlightDocumentIds={searchResults}
   highlightsVisible={searchResults.length > 0}
-/>
-```
-
-### Controlled space selection
-
-```tsx
-<MemoryGraph
-  documents={documents}
-  selectedSpace={selectedSpace}
-  onSpaceChange={setSelectedSpace}
-  showSpacesSelector={false}
 />
 ```
 
@@ -257,7 +266,7 @@ export default function PaginatedGraph() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `documents` | `DocumentWithMemories[]` | required | Array of documents to display |
+| `documents` | `GraphApiDocument[]` | `[]` | Array of documents to display |
 | `isLoading` | `boolean` | `false` | Shows loading indicator |
 | `error` | `Error \| null` | `null` | Error to display |
 | `variant` | `"console" \| "consumer"` | `"console"` | Visual variant |
@@ -269,70 +278,67 @@ export default function PaginatedGraph() {
 |------|------|---------|-------------|
 | `isLoadingMore` | `boolean` | `false` | Shows indicator when loading more |
 | `hasMore` | `boolean` | `false` | Whether more documents available |
-| `totalLoaded` | `number` | - | Total documents currently loaded |
-| `loadMoreDocuments` | `() => Promise<void>` | - | Callback to load more |
-| `autoLoadOnViewport` | `boolean` | `true` | Auto-load when 80% visible |
+| `onLoadMore` | `() => void` | - | Called to load more, for example when the user zooms out past the loaded nodes |
+| `totalCount` | `number` | - | Total document count shown by the loading indicator |
 
 ### Display props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `showSpacesSelector` | `boolean` | variant-based | Show space filter dropdown |
 | `highlightDocumentIds` | `string[]` | `[]` | Document IDs to highlight |
 | `highlightsVisible` | `boolean` | `true` | Whether highlights shown |
-| `occludedRightPx` | `number` | `0` | Pixels occluded on right |
-
-### Controlled state props
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `selectedSpace` | `string` | Currently selected space (use `"all"` for all) |
-| `onSpaceChange` | `(spaceId: string) => void` | Callback when space changes |
-| `memoryLimit` | `number` | Max memories per document when space selected |
+| `maxNodes` | `number` | - | Maximum number of nodes to display |
+| `colors` | `Partial<GraphThemeColors>` | - | Theme color overrides |
+| `labels` | `MemoryGraphLabels` | - | User-facing label overrides |
+| `appearance` | `GraphAppearance` | - | Opt-in document node and connection styles (see above) |
+| `openDocumentOnEnter` | `boolean` | `false` | Enable the Enter action that calls `onOpenDocument` |
+| `onOpenDocument` | `(documentId: string) => void` | - | Called when the user opens a document |
 
 ---
 
 ## Data types
 
-### DocumentWithMemories
+### GraphApiDocument
 
 ```typescript
-interface DocumentWithMemories {
+interface GraphApiDocument {
   id: string;
-  customId?: string | null;
-  title?: string | null;
+  title: string | null;
+  summary: string | null;
+  documentType: string;
+  createdAt: string;
+  updatedAt: string;
+  memories: GraphApiMemory[];
+}
+```
+
+### GraphApiMemory
+
+```typescript
+interface GraphApiMemory {
+  id: string;
+  memory: string;
   content?: string | null;
-  summary?: string | null;
-  url?: string | null;
-  source?: string | null;
-  type?: string | null;
-  status: 'pending' | 'processing' | 'done' | 'failed';
-  metadata?: Record<string, string | number | boolean> | null;
-  createdAt: string | Date;
-  updatedAt: string | Date;
-  memoryEntries: MemoryEntry[];
-}
-```
-
-### MemoryEntry
-
-```typescript
-interface MemoryEntry {
-  id: string;
-  documentId: string;
-  content: string | null;
-  summary?: string | null;
-  title?: string | null;
-  type?: string | null;
-  metadata?: Record<string, string | number | boolean> | null;
-  createdAt: string | Date;
-  updatedAt: string | Date;
-  spaceContainerTag?: string | null;
+  isStatic: boolean;
+  spaceId: string;
+  isLatest: boolean;
+  isForgotten: boolean;
+  forgetAfter: string | null;
+  forgetReason: string | null;
+  version: number;
+  parentMemoryId: string | null;
+  rootMemoryId: string | null;
+  createdAt: string;
+  updatedAt: string;
   relation?: 'updates' | 'extends' | 'derives' | null;
-  isLatest?: boolean;
-  spaceId?: string | null;
+  updatesMemoryId?: string | null;
+  nextVersionId?: string | null;
+  memoryRelations?: Record<string, 'updates' | 'extends' | 'derives'> | null;
+  spaceContainerTag?: string | null;
 }
 ```
+
+`DocumentWithMemories` and `MemoryEntry` are still exported as backward-compatible types.
 
 ---
 
@@ -341,26 +347,36 @@ interface MemoryEntry {
 ### Components
 
 ```typescript
-import {
-  MemoryGraph,
-  GraphCanvas,
-  Legend,
-  LoadingIndicator,
-  NodeDetailPanel,
-  SpacesDropdown
-} from '@supermemory/memory-graph';
+import { MemoryGraph, GraphCanvas } from '@supermemory/memory-graph';
 ```
 
 ### Hooks
 
 ```typescript
-import { useGraphData, useGraphInteractions } from '@supermemory/memory-graph';
+import { useGraphData, useGraphTheme } from '@supermemory/memory-graph';
+```
+
+### Engine classes
+
+```typescript
+import {
+  ForceSimulation,
+  ViewportState,
+  SpatialIndex,
+  VersionChainIndex
+} from '@supermemory/memory-graph';
 ```
 
 ### Constants
 
 ```typescript
-import { colors, GRAPH_SETTINGS, LAYOUT_CONSTANTS } from '@supermemory/memory-graph';
+import {
+  DEFAULT_COLORS,
+  DEFAULT_HOVER_POPOVER_Z_INDEX,
+  DEFAULT_LABELS,
+  FORCE_CONFIG,
+  GRAPH_SETTINGS
+} from '@supermemory/memory-graph';
 ```
 
 ---

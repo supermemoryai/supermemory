@@ -212,11 +212,11 @@ Business accounts may have additional restrictions:
 
 **Real-time Sync Not Working**
 
-If emails aren't syncing in real-time but scheduled/manual sync works:
+If emails aren't syncing in real-time but manual sync works:
 
 1. Real-time sync uses Google Cloud Pub/Sub webhooks
 2. Watch subscriptions expire after 7 days (supermemory auto-renews)
-3. Only INBOX label triggers real-time updates
+3. Real-time updates cover only the labels selected for the connector
 4. Trigger a manual sync to verify the connector is healthy:
 
 ```typescript
@@ -247,7 +247,7 @@ const next = await supermemory.connectors.create("user-123", {
 
 Gmail connector requires Max Plan or above. If you see access errors:
 - Verify your organization has the required plan
-- Contact support to upgrade your plan
+- Upgrade from **Billing** in the [console](https://console.supermemory.ai/billing)
 
 
 ## Best practices

@@ -53,7 +53,7 @@ const response = await agent.generate("What do you know about me?")
 
   ```typescript
   const agent = new Agent(withSupermemory(
-    { id: "my-assistant", model: openai("gpt-4o"), ... },
+    { id: "my-assistant", name: "My Assistant", model: openai("gpt-4o"), ... },
     {
       namespace: "user-123",
       id: "conv-456",
@@ -140,6 +140,7 @@ const agent = new Agent(withSupermemory(config, {
   id: "conv-456",
   mode: "full",
 }))
+```
 
 ### Mode Comparison
 
@@ -157,7 +158,7 @@ Conversation saving is enabled by default (`addMemory: "always"`). Messages are 
 
 ```typescript
 const agent = new Agent(withSupermemory(
-  { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
+  { id: "my-assistant", name: "My Assistant", model: openai("gpt-4o"), instructions: "..." },
   {
     namespace: "user-123",
     id: "conv-456",  // Required: groups messages for contextual memory
@@ -173,7 +174,7 @@ To disable automatic saving:
 
 ```typescript
 const agent = new Agent(withSupermemory(
-  { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
+  { id: "my-assistant", name: "My Assistant", model: openai("gpt-4o"), instructions: "..." },
   {
     namespace: "user-123",
     id: "conv-456",
@@ -192,6 +193,7 @@ Customize how memories are formatted and injected. The template receives `userMe
 import { Agent } from "@mastra/core/agent"
 import { withSupermemory } from "@supermemory/tools/mastra"
 import type { MemoryPromptData } from "@supermemory/tools/mastra"
+import { openai } from "@ai-sdk/openai"
 
 const claudePrompt = (data: MemoryPromptData) => `
 <context>
@@ -205,7 +207,7 @@ const claudePrompt = (data: MemoryPromptData) => `
 `.trim()
 
 const agent = new Agent(withSupermemory(
-  { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
+  { id: "my-assistant", name: "My Assistant", model: openai("gpt-4o"), instructions: "..." },
   {
     namespace: "user-123",
     id: "conv-456",
@@ -306,7 +308,7 @@ import { withSupermemory } from "@supermemory/tools/mastra"
 import { openai } from "@ai-sdk/openai"
 
 const agent = new Agent(withSupermemory(
-  { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
+  { id: "my-assistant", name: "My Assistant", model: openai("gpt-4o"), instructions: "..." },
   {
     namespace: "user-123",
     id: "fallback-conv",  // Used only when RequestContext doesn't provide a threadId
@@ -334,7 +336,7 @@ Enable detailed logging for debugging:
 
 ```typescript
 const agent = new Agent(withSupermemory(
-  { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
+  { id: "my-assistant", name: "My Assistant", model: openai("gpt-4o"), instructions: "..." },
   {
     namespace: "user-123",
     id: "conv-456",
@@ -361,6 +363,7 @@ The wrapper correctly merges with existing processors in the config:
 const agent = new Agent(withSupermemory(
   {
     id: "my-assistant",
+    name: "My Assistant",
     model: openai("gpt-4o"),
     inputProcessors: [myLoggingProcessor],
     outputProcessors: [myAnalyticsProcessor],
@@ -461,7 +464,7 @@ Processors gracefully handle errors without breaking the agent:
 ```typescript
 // Missing API key throws immediately
 const agent = new Agent(withSupermemory(
-  { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
+  { id: "my-assistant", name: "My Assistant", model: openai("gpt-4o"), instructions: "..." },
   {
     namespace: "user-123",
     id: "conv-456",

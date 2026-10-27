@@ -271,9 +271,8 @@ Search through user memories using semantic search:
 result = await tools.search_memories(
     information_to_get="user preferences",
     limit=10,
-    include_full_docs=True
 )
-print(f"Found {len(result.memories)} memories")
+print(f"Found {result['count']} memories")
 ```
 
 ```typescript JavaScript
@@ -282,7 +281,7 @@ const searchResult = await tools.searchMemories({
   informationToGet: "user preferences",
   limit: 10,
 })
-console.log(`Found ${searchResult.memories.length} memories`)
+console.log(`Found ${searchResult.count} memories`)
 ```
 
 </CodeGroup>
@@ -298,7 +297,7 @@ Store new information in memory:
 result = await tools.add_memory(
     memory="User prefers tea over coffee"
 )
-print(f"Added memory with ID: {result.memory.id}")
+print(f"Added memory with ID: {result['memory']['id']}")
 ```
 
 ```typescript JavaScript
@@ -306,7 +305,7 @@ print(f"Added memory with ID: {result.memory.id}")
 const addResult = await tools.addMemory({
   memory: "User prefers dark roast coffee",
 })
-console.log(`Added memory with ID: ${addResult.memory.id}`)
+console.log(`Added memory with ID: ${addResult.memory?.id}`)
 ```
 
 </CodeGroup>
@@ -466,7 +465,7 @@ async function chatWithMemory() {
           messages.push({
             role: "tool",
             tool_call_id: toolCall.id,
-            content: JSON.stringify(result),
+            content: result,
           })
         }
 
@@ -567,7 +566,7 @@ SupermemoryTools(
 
 **Methods**
 - `get_tool_definitions()` - Get OpenAI function definitions
-- `search_memories(information_to_get, limit, include_full_docs)` - Search user memories
+- `search_memories(information_to_get, limit)` - Search user memories (`include_full_docs` is deprecated and ignored)
 - `add_memory(memory)` - Add new memory
 - `execute_tool_call(tool_call)` - Execute individual tool call
 
@@ -598,7 +597,7 @@ supermemoryTools(
 createToolCallExecutor(
   apiKey: string,
   config?: { namespace?: string; baseUrl?: string }
-) -> (toolCall: OpenAI.Chat.ChatCompletionMessageToolCall) => Promise<any>
+) -> (toolCall: OpenAI.Chat.ChatCompletionMessageToolCall) => Promise<string> // JSON-encoded result
 ```
 
 ## Environment variables
@@ -608,7 +607,7 @@ Set these environment variables:
 ```bash
 SUPERMEMORY_API_KEY=your_supermemory_key
 OPENAI_API_KEY=your_openai_key
-SUPERMEMORY_BASE_URL=https://custom-endpoint.com  # optional
+SUPERMEMORY_BASE_URL=https://custom-endpoint.com  # optional, Python only; in TypeScript pass baseUrl
 ```
 
 ## Development
@@ -645,10 +644,7 @@ npm install
 npm test
 
 # Type checking
-npm run type-check
-
-# Linting
-npm run lint
+npm run check-types
 ```
 
 ## Next steps

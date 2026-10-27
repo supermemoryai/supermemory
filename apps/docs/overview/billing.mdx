@@ -74,7 +74,7 @@ Text-like document types bill on the **text** meters; everything else bills as *
 
 - `dreaming: "instant"` extracts a document's memories immediately instead of waiting for the next dynamic batch. It costs **one extra operation per document** on top of normal token metering. See [processing modes](/ingestion/add-memories#processing-modes).
 - Search add-ons: query rewriting (`rewriteQuery`), reranking and aggregation (v5 `rerank: "order"` / `"aggregate"`, v3/v4 `rerank`, v4 `aggregate`) each add **one operation** when they run successfully. Failed or skipped add-ons do not necessarily charge an operation.
-- Query-based `POST /v4/memories/forget-matching` adds **one operation per search round**, up to five, including `dryRun` previews. Applying an explicit `ids` list bypasses that query-operation charge.
+- Query-based forgetting (`DELETE /ns/{namespace}/memories/semantic`, legacy `POST /v4/memories/forget-matching`) adds **one operation per search round**, up to five, including `dryRun` previews. Forgetting an explicit `ids` list bypasses that query-operation charge.
 
 Search is primarily metered as **`sm_search_queries`** (one unit per gated search/profile request). Prefer thinking of operations as **extra platform work**, not as a synonym for “API call.”
 
@@ -186,7 +186,7 @@ Usage meters are shared; **feature gates** differ by tier.
 | Standard PDF extraction, including OCR for scans | Yes | Yes | Yes | Yes | Yes |
 | [Advanced document extraction for PDFs](/concepts/content-types#advanced-document-extraction) (figure and diagram descriptions) | — | — | — | Yes | Yes |
 | Diff / delta token billing | Yes | Yes | Yes | Yes | Yes |
-| Coding plugins (Claude Code, Codex, Cursor, OpenCode, OpenClaw, Hermes) | Yes | Yes | Yes | Yes | Yes |
+| Coding plugins (Claude Code, Codex, Cursor, OpenCode, OpenClaw, Hermes, Muse Code) | Yes | Yes | Yes | Yes | Yes |
 | Team management | — | Yes | Yes | Yes | Yes |
 | Google Drive, OneDrive, Notion, Granola connectors | — | Yes | Yes | Yes | Yes |
 | Gmail connector | — | — | Yes | Yes | Yes |
@@ -194,6 +194,7 @@ Usage meters are shared; **feature gates** differ by tier.
 | User Insights | — | — | — | Yes | Yes |
 | Two-factor authentication | — | — | — | Yes | Yes |
 | Org seat limit (members) | 1 | 3 | 3 | Unlimited | Unlimited |
+| Restricted members (per-tag access) | — | — | — | Yes | Yes |
 | Auto top-up in the console | — | Yes | Yes | Yes | Contract |
 | Auto top-up purchase limits | — | Yes | Yes | Yes | Contract |
 | Custom metering / SSO / dedicated deploy | — | — | — | — | Yes |
@@ -206,8 +207,17 @@ Overrides can be applied per org in metadata (`featureOverrides`) for enterprise
 
 ### HTTP behavior when gated
 
-- **403** — plan too low for a **feature** (e.g. connector not on Free)
-- **402** — **quota / credits** exhausted for a metered call (search, tokens, etc.)
+- **403** — plan too low for a **feature** (e.g. connector not on Free). The `error` message names the minimum plan, for example `This feature requires Max plan or higher`.
+- **402** — **quota / credits** exhausted for a metered call (search, tokens, etc.). The body names the meter:
+
+```json
+{
+  "error": "Search query limit reached",
+  "details": "You've run out of credits. Top up to continue."
+}
+```
+
+- **429** — the API key's own request rate limit (500 requests per minute by default), not a plan quota. The response carries a `Retry-After` header and `{ "code": "RATE_LIMITED", "retryAfterSeconds": … }`.
 
 ---
 

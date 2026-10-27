@@ -60,11 +60,15 @@ Or set an API key manually from the [API Keys](https://console.supermemory.ai/ke
   </Tab>
 </Tabs>
 
-Ensure your `~/.config/opencode/opencode.jsonc` contains:
+The installer registers the plugin for both OpenCode V1 (`plugin`) and OpenCode 2 (`plugins`). Ensure your `~/.config/opencode/opencode.jsonc` contains:
 
-```json
+```jsonc
 {
-  "plugin": ["opencode-supermemory"]
+  "plugin": ["opencode-supermemory@latest"],
+  "plugins": ["opencode-supermemory"],
+  "permissions": [
+    { "action": "supermemory_recall", "resource": "*", "effect": "allow" }
+  ]
 }
 ```
 
@@ -72,17 +76,21 @@ Ensure your `~/.config/opencode/opencode.jsonc` contains:
 
 Once installed, the plugin runs automatically:
 
-- **Context Injection** — On session start, relevant memories are fetched and injected into the agent's context (user profile, project knowledge, semantic matches).
-- **Keyword Detection** — Phrases like "remember" or "save this" trigger automatic storage.
-- **Smart Compaction** — At 80% context capacity, sessions are summarized and saved as memories.
+- **Context Injection** — On a session's first message, your profile and project knowledge are injected into the agent's context.
+- **Direct Recall** — On every substantive prompt, the plugin searches the current project and injects up to five fresh matches. Set `recallMode` to `"advisory"` to let the agent decide when to search, or `"off"` to disable it.
+- **Automatic Capture** — Completed turns are saved every `captureEveryNTurns` turns (fresh installs use `0`, which saves only at the end), and any remainder is flushed when the session ends or OpenCode shuts down.
+- **Keyword Detection** — Phrases like "remember" or "save this" nudge the agent to save to memory.
+- **Smart Compaction** — On OpenCode V1, sessions are summarized at 80% context capacity; on OpenCode 2, the plugin enriches native compaction. Both save the summary as a memory.
 - **Privacy Protection** — Content within `<private>` tags never persists.
 
 ### Memory scopes
 
+Both scopes write to one repository container, `repo_{project-name}__{repository-hash}`, shared with the Claude Code, Codex, and Cursor plugins. `sm_scope` metadata keeps them apart.
+
 | Scope | Description |
 |-------|-------------|
-| `user` | Memories that persist across all projects |
-| `project` | Memories isolated to the current project (default) |
+| `user` | Personal memories for the current project |
+| `project` | Project knowledge for the current project (default) |
 
 ### Memory types
 
@@ -97,13 +105,14 @@ Once installed, the plugin runs automatically:
 
 ## Commands
 
-### /supermemory-init
+The installer adds these in-chat commands:
 
-Explore and index your codebase structure into memory:
-
-```
-/supermemory-init
-```
+| Command | Description |
+|---------|-------------|
+| `/supermemory-index` | Explore and index your codebase structure into memory (`/supermemory-init` is an alias) |
+| `/supermemory-login` | Authenticate with Supermemory in the browser |
+| `/supermemory-logout` | Clear stored credentials |
+| `/supermemory-status` | Show the Supermemory connection status |
 
 ## Tools
 
@@ -116,6 +125,7 @@ The agent has access to a `supermemory` tool with these modes:
 | `profile` | query? | View user preferences |
 | `list` | scope?, limit? | Display stored items |
 | `forget` | memoryId, scope? | Remove memory |
+| `help` | none | List available modes |
 
 ## Configuration
 
@@ -124,16 +134,18 @@ Create `~/.config/opencode/supermemory.jsonc`:
 ```jsonc
 {
   "apiKey": "sm_...",              // Or use SUPERMEMORY_API_KEY / browser login
-  "similarityThreshold": 0.6,      // Minimum match score (0-1)
+  "baseUrl": "https://api.supermemory.ai", // Or SUPERMEMORY_API_URL (self-hosted)
+  "similarityThreshold": 0.55,     // Minimum match score (0-1)
   "maxMemories": 5,                // Memories per injection
   "maxProjectMemories": 10,        // Project memory listings
   "maxProfileItems": 5,            // Profile facts injected
   "injectProfile": true,           // Include user preferences in context
-  "containerTagPrefix": "opencode", // Tag prefix for scoping
-  "userContainerTag": "my-user-tag",       // Optional override
-  "projectContainerTag": "my-project-tag", // Optional override
+  "projectContainerTag": "my-project-tag", // Optional: override the repository container
   "keywordPatterns": ["log\\s+this"],      // Extra auto-save triggers
-  "compactionThreshold": 0.80      // Context usage ratio for summarization
+  "recallMode": "direct",          // "direct", "advisory", or "off"
+  "captureEveryNTurns": 3,         // Save completed turns every N turns (0 = session end only)
+  "compactionThreshold": 0.80,     // OpenCode V1: context usage ratio for summarization
+  "compactionEnabled": true        // OpenCode 2: enrich native compaction and save summaries
 }
 ```
 

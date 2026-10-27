@@ -81,6 +81,8 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) ru
     console.log(profile.static);
     console.log(profile.dynamic);
     console.log(profile.buckets);
+
+    const markdown = await supermemory.profileMarkdown("user_123");
     ```
 
     Buckets group profile facts under names you define:
@@ -143,6 +145,10 @@ Both SDKs also work against [self-hosted Supermemory](/self-hosting/overview) ru
     ## Memories
 
     ```typescript
+    const memory = await supermemory.memories.get("user_123", "mem_123", {
+      include: ["related", "documents"],
+    });
+
     const preview = await supermemory.memories.forgetMatching("user_123", {
       query: "old office address",
       dryRun: true,
@@ -333,6 +339,9 @@ await supermemory.search("user_123", { query: "planning notes" }, {
     # Delete documents
     result = client.documents.delete("user_123", ids=["meeting-q1"])
 
+    # Get one memory with its related memories and source document
+    memory = client.memories.get("user_123", "mem_123", include=["related", "documents"])
+
     # Forget memories: preview, then apply
     preview = client.memories.forget_matching("user_123", query="old office address", dry_run=True)
     client.memories.forget("user_123", ids=[m.id for m in preview.matches])
@@ -347,7 +356,7 @@ await supermemory.search("user_123", { query: "planning notes" }, {
     # Connectors
     setup = client.connectors.create(
         "user_123",
-        request={"provider": "notion", "redirectUrl": "https://app.example.com/connected"},
+        request={"provider": "notion", "redirect_url": "https://app.example.com/connected"},
     )
     # send the user to setup.authorization.url before setup.authorization.expires_at
     connector = client.connectors.get("user_123", setup.id, include=["syncs", "picker"])

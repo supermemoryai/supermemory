@@ -33,7 +33,7 @@ New v5 connectors belong to one namespace. The namespace goes in the URL (`/ns/{
   <Card title="OneDrive" icon="/images/microsoft-icon.svg" href="/connectors/onedrive">
     **Word, Excel, PowerPoint**
 
-    Scheduled sync every 4 hours. Supports personal and business accounts with file versioning.
+    Real-time updates via webhooks. Supports personal and business accounts with file versioning.
   </Card>
   
   
@@ -125,7 +125,7 @@ curl -X POST "https://api.supermemory.ai/ns/user-123/connectors" \
 
 ### 2. Handle OAuth callback
 
-Send the user to `authorization.url` before `authorization.expiresAt`. When the user authorizes, the provider returns them to your `redirectUrl` and the first sync starts. GitHub, Gmail and Google Drive (with the default `syncScope: "selected"`) first send the user through Supermemory's hosted picker to choose what to sync. A pending OAuth connector is not returned by list until the user finishes authorization; get returns it with `system.status: "pending_authorization"`.
+Send the user to `authorization.url` before `authorization.expiresAt`. When the user authorizes, the provider returns them to your `redirectUrl` and the first sync starts. GitHub and Gmail, and Google Drive and OneDrive with the default `syncScope: "selected"`, first send the user through Supermemory's hosted picker to choose what to sync. A pending OAuth connector is not returned by list until the user finishes authorization; get returns it with `system.status: "pending_authorization"`.
 
 Config providers (Web Crawler, S3, Granola) return `authorization: null` and start syncing immediately.
 
@@ -215,7 +215,7 @@ curl -X POST "https://api.supermemory.ai/ns/user-123/list/documents" \
 1. **Create Connector**: Call `POST /ns/{namespace}/connectors` with a `provider`. OAuth providers return an `authorization` link; config providers (Web Crawler, S3, Granola) take a `config` object and return `authorization: null`
 2. **User Authorization**: Send the user to `authorization.url` when the provider requires it
 3. **Automatic Setup**: The connector is established. Save any required label, repository, or file selection before content sync can proceed; providers without a selection step start their initial sync after setup
-4. **Continuous Sync**: Real-time updates via webhooks + scheduled sync every 4 hours (or scheduled recrawling for Web Crawler)
+4. **Continuous Sync**: Real-time updates via webhooks (or scheduled recrawling for Web Crawler), plus manual sync on demand
 
 ### Document processing pipeline
 
@@ -234,11 +234,11 @@ graph TD
 
 | Provider | Real-time Sync | Scheduled Sync | Manual Sync |
 |----------|---------------|----------------|-------------|
-| **Google Drive** | ✅ Webhooks (7-day expiry) | ✅ Every 4 hours | ✅ On-demand |
-| **Gmail** | ✅ Pub/Sub (7-day expiry) | ✅ Every 4 hours | ✅ On-demand |
-| **Notion** | ✅ Webhooks | ✅ Every 4 hours | ✅ On-demand |
-| **OneDrive** | ✅ Webhooks (30-day expiry) | ✅ Every 4 hours | ✅ On-demand |
-| **GitHub** | ✅ Webhooks | ✅ Every 4 hours | ✅ On-demand |
+| **Google Drive** | ✅ Webhooks (7-day expiry) | ❌ Not supported | ✅ On-demand |
+| **Gmail** | ✅ Pub/Sub (7-day expiry) | ❌ Not supported | ✅ On-demand |
+| **Notion** | ✅ Webhooks | ❌ Not supported | ✅ On-demand |
+| **OneDrive** | ✅ Webhooks (30-day expiry) | ❌ Not supported | ✅ On-demand |
+| **GitHub** | ✅ Webhooks | ❌ Not supported | ✅ On-demand |
 | **Granola** | ❌ Not supported | ❌ Not supported | ✅ On-demand |
 | **Web Crawler** | ❌ Not supported | ✅ Scheduled recrawling (7+ days) | ✅ On-demand |
 

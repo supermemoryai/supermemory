@@ -58,7 +58,7 @@ Namespace scoping is not read-only access. Writable scoped keys can update and d
 
 Pairs with [namespaces](/concepts/container-tags) for multi-tenant isolation.
 
-**Allowed endpoints:** `/ns/{namespace}/document`, `/ns/{namespace}/list`, `/ns/{namespace}/search`, `/ns/{namespace}/profile`, and `/ns/{namespace}/memories`; `/namespaces` and `/ns/{namespace}`; and the legacy `/v3/documents`, `/v3/memories`, `/v4/memories`, `/v4/conversations`, `/v3/search`, `/v4/search`, `/v4/profile`, `/v3/container-tags/list`, and `/v3/session` routes. Any other route returns `403`.
+**Allowed endpoints:** `/ns/{namespace}/document`, `/ns/{namespace}/list`, `/ns/{namespace}/search`, `/ns/{namespace}/profile`, and `/ns/{namespace}/memories`; `/namespaces` and `/ns/{namespace}`; `/session`; and the legacy `/v3/documents`, `/v3/memories`, `/v4/memories`, `/v4/conversations`, `/v3/search`, `/v4/search`, `/v4/profile`, `/v3/container-tags/list`, and `/v3/session` routes. Any other route returns `403`.
 
 Scoped keys **cannot** read billing, manage org settings, or mint further keys.
 
@@ -67,7 +67,7 @@ Scoped keys **cannot** read billing, manage org settings, or mint further keys.
 The scoped-key endpoint still takes the namespace in a field named `containerTag`.
 
 ```bash
-curl https://api.supermemory.ai/v3/auth/scoped-key \
+curl https://api.supermemory.ai/auth/scoped-key \
   --request POST \
   --header 'Content-Type: application/json' \
   --header 'Authorization: Bearer YOUR_API_KEY' \
@@ -86,8 +86,9 @@ curl https://api.supermemory.ai/v3/auth/scoped-key \
 | `containerTags` | No | — | Scope the key to several namespaces instead of one. Takes precedence over `containerTag` |
 | `name` | No | `scoped_{containerTag}` | Display name for the key |
 | `expiresInDays` | No | — | 1–365 days |
-| `rateLimitMax` | No | `500` | Max requests per window (1–10,000) |
-| `rateLimitTimeWindow` | No | `60000` | Window in milliseconds (1–3,600,000) |
+| `rateLimitMax` | No | `500` | Max requests per minute (1–10,000), rounded up to the next tier: 500, 1,000, 2,000, 5,000, or 10,000 |
+
+Requests over the limit return `429` with a `Retry-After` header.
 
 ### Response
 
@@ -99,7 +100,8 @@ curl https://api.supermemory.ai/v3/auth/scoped-key \
   "containerTag": "my-project",
   "containerTags": ["my-project"],
   "expiresAt": "2026-03-08T00:00:00.000Z",
-  "allowedEndpoints": ["/v3/session", "/v3/documents", "/v3/memories", "/v4/memories", "/v4/conversations", "/ns/*/memories", "/v3/search", "/v4/search", "/v4/profile", "/v3/container-tags/list", "/ns/*/document", "/ns/*/list", "/ns/*/search", "/ns/*/profile", "/namespaces$", "/ns$", "/ns/*$"]
+  "allowedEndpoints": ["/v3/session", "/session", "/v3/documents", "/v3/memories", "/v4/memories", "/v4/conversations", "/ns/*/memories", "/v3/search", "/v4/search", "/v4/profile", "/v3/container-tags/list", "/ns/*/document", "/ns/*/list", "/ns/*/search", "/ns/*/profile", "/namespaces$", "/ns$", "/ns/*$"],
+  "rateLimitMax": 500
 }
 ```
 
@@ -110,7 +112,7 @@ Use the returned key like a normal API key — it just will not work outside its
 Revoke with the `id` from creation. Subsequent requests get `401`. Memories and namespaces are **not** deleted.
 
 ```bash
-curl https://api.supermemory.ai/v3/auth/scoped-key/KEY_ID \
+curl https://api.supermemory.ai/auth/scoped-key/KEY_ID \
   --request DELETE \
   --header 'Authorization: Bearer YOUR_API_KEY'
 ```

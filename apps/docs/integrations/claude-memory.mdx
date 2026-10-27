@@ -84,14 +84,9 @@ console.log(response.content[0])
 import { createClaudeMemoryTool } from "@supermemory/tools/claude-memory"
 
 const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
-  // Scope memories to a project or user
-  namespace: "my-app",
-
-  // Or use container tags for more flexibility
+  // Scope memories to a project or user (default: "sm_project_default")
   namespace: "user-123",
 
-  // Custom memory container prefix (default: "claude_memory")
-  
   // Custom API endpoint
   baseUrl: "https://custom.api.com",
 })
@@ -121,7 +116,7 @@ All memory paths must start with `/memories/`:
 ```
 
 <Note>
-Paths are normalized for storage: `/memories/preferences` is stored as `--memories--preferences`.
+Each file is stored as one document in the namespace, tagged with `metadata.source = "claude-memory"`. Its document ID is a reversible encoding of the path: `/memories/preferences.txt` is stored as `cm_memories_s_preferences_d_txt`.
 </Note>
 
 ## Commands reference
@@ -199,7 +194,7 @@ const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 })
 
 async function runConversation() {
-  const messages: Anthropic.MessageParam[] = []
+  const messages: Anthropic.Beta.BetaMessageParam[] = []
 
   // Helper to chat with memory
   async function chat(userMessage: string) {

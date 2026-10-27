@@ -446,7 +446,7 @@ console.log(doc.system.status); // "queued" | "extracting" | "chunking" | "embed
     |--------|-------|-------|
     | 400 | Bad request | Missing required fields, invalid parameters, unexpected query parameters |
     | 401 | Unauthorized | Invalid or missing API key |
-    | 402 | Payment required | Insufficient balance or document quota |
+    | 402 | Payment required | Not enough credit balance for this ingest |
     | 403 | Forbidden | No write access to this namespace |
     | 409 | Conflict | A namespace merge is in progress |
     | 429 | Rate limited | Too many requests |
