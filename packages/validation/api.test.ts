@@ -4,6 +4,8 @@ import {
 	BulkDeleteMemoriesSchema,
 	DocumentsWithMemoriesQuerySchema,
 	ListMemoriesQuerySchema,
+	MemoryAddSchema,
+	MemoryUpdateSchema,
 	SearchRequestSchema,
 	Searchv4RequestSchema,
 } from "./api"
@@ -173,5 +175,26 @@ describe("pagination query schemas", () => {
 
 		const ok = { containerTags: ["tag_a", "tag_b"] }
 		expect(BulkDeleteMemoriesSchema.safeParse(ok).success).toBe(true)
+	})
+})
+
+describe("document add schemas", () => {
+	it("keeps dreaming on add requests", () => {
+		expect(
+			MemoryAddSchema.parse({ content: "probe", dreaming: "instant" }),
+		).toEqual({ content: "probe", dreaming: "instant" })
+	})
+
+	it("rejects unknown dreaming modes", () => {
+		expect(
+			MemoryAddSchema.safeParse({ content: "probe", dreaming: "eager" })
+				.success,
+		).toBe(false)
+	})
+
+	it("does not add dreaming to update requests", () => {
+		expect(
+			MemoryUpdateSchema.parse({ content: "probe", dreaming: "instant" }),
+		).toEqual({ content: "probe" })
 	})
 })

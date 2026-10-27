@@ -170,7 +170,15 @@ export const MemoryUpdateSchema = z.object({
 	}),
 })
 
-export const MemoryAddSchema = MemoryUpdateSchema
+export const DreamingSchema = z.enum(["dynamic", "instant"]).openapi({
+	description:
+		'Processing mode. "dynamic" (default) groups related documents together before extracting memories; "instant" processes each document on its own right away.',
+	example: "instant",
+})
+
+export const MemoryAddSchema = MemoryUpdateSchema.extend({
+	dreaming: DreamingSchema.optional(),
+})
 
 export const PaginationSchema = z
 	.object({
