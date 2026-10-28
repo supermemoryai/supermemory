@@ -60,17 +60,33 @@ Or set an API key manually from the [API Keys](https://console.supermemory.ai/ke
   </Tab>
 </Tabs>
 
-The installer registers the plugin for both OpenCode V1 (`plugin`) and OpenCode 2 (`plugins`). Ensure your `~/.config/opencode/opencode.jsonc` contains:
+OpenCode V1 and OpenCode 2 read different keys from `~/.config/opencode/opencode.jsonc`. Use the config for the version you run:
 
-```jsonc
-{
-  "plugin": ["opencode-supermemory@latest"],
-  "plugins": ["opencode-supermemory"],
-  "permissions": [
-    { "action": "supermemory_recall", "resource": "*", "effect": "allow" }
-  ]
-}
-```
+<Tabs>
+  <Tab title="OpenCode V1">
+    ```jsonc
+    {
+      "plugin": ["opencode-supermemory@latest"]
+    }
+    ```
+  </Tab>
+  <Tab title="OpenCode 2">
+    ```jsonc
+    {
+      "plugins": ["opencode-supermemory"],
+      "permissions": [
+        { "action": "supermemory_recall", "resource": "*", "effect": "allow" }
+      ]
+    }
+    ```
+
+    The `permissions` rule lets the read-only `supermemory_recall` tool run without prompting.
+  </Tab>
+</Tabs>
+
+<Warning>
+  The installer writes all three keys (`plugin`, `plugins`, and `permissions`) so that one file covers both versions. OpenCode V1 refuses to start when the file has a top-level `permissions` field ("V2 permissions are not supported by OpenCode V1"), so V1 users must remove `permissions` after installing. V1 ignores `plugins` with a warning, so you can remove it too.
+</Warning>
 
 ## How it works
 
