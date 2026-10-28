@@ -104,7 +104,7 @@ export async function GET() {
   const data = await response.json();
   return NextResponse.json({
     ...data,
-    documents: data.documents.map((doc) => ({
+    documents: data.documents.map((doc: { type: string; memoryEntries: unknown[] }) => ({
       ...doc,
       documentType: doc.type,
       memories: doc.memoryEntries,
@@ -130,7 +130,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const data = await response.json();
   res.json({
     ...data,
-    documents: data.documents.map((doc) => ({
+    documents: data.documents.map((doc: { type: string; memoryEntries: unknown[] }) => ({
       ...doc,
       documentType: doc.type,
       memories: doc.memoryEntries,
@@ -194,10 +194,11 @@ app.get('/api/graph', async (req, res) => {
 'use client';
 
 import { MemoryGraph } from '@supermemory/memory-graph';
+import type { GraphApiDocument } from '@supermemory/memory-graph';
 import { useCallback, useEffect, useState } from 'react';
 
 export default function PaginatedGraph() {
-  const [documents, setDocuments] = useState([]);
+  const [documents, setDocuments] = useState<GraphApiDocument[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -205,7 +206,7 @@ export default function PaginatedGraph() {
 
   useEffect(() => { fetchPage(1, false); }, []);
 
-  const fetchPage = async (pageNum, append) => {
+  const fetchPage = async (pageNum: number, append: boolean) => {
     pageNum === 1 ? setIsLoading(true) : setIsLoadingMore(true);
 
     const res = await fetch(`/api/graph?page=${pageNum}&limit=100`);

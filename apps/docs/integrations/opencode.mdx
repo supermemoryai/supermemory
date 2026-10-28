@@ -76,7 +76,7 @@ The installer registers the plugin for both OpenCode V1 (`plugin`) and OpenCode 
 
 Once installed, the plugin runs automatically:
 
-- **Context Injection** — On a session's first message, your profile and project knowledge are injected into the agent's context.
+- **Context Injection** — On a session's first message, your profile facts are injected into the agent's context.
 - **Direct Recall** — On every substantive prompt, the plugin searches the current project and injects up to five fresh matches. Set `recallMode` to `"advisory"` to let the agent decide when to search, or `"off"` to disable it.
 - **Automatic Capture** — Completed turns are saved every `captureEveryNTurns` turns (fresh installs use `0`, which saves only at the end), and any remainder is flushed when the session ends or OpenCode shuts down.
 - **Keyword Detection** — Phrases like "remember" or "save this" nudge the agent to save to memory.

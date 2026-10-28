@@ -364,6 +364,7 @@ const agent = new Agent(withSupermemory(
   {
     id: "my-assistant",
     name: "My Assistant",
+    instructions: "You are a helpful assistant.",
     model: openai("gpt-4o"),
     inputProcessors: [myLoggingProcessor],
     outputProcessors: [myAnalyticsProcessor],

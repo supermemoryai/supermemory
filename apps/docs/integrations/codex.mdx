@@ -64,7 +64,7 @@ Once installed, the plugin runs on every Codex session:
 |------|-------|--------------|
 | `session-start` | `SessionStart` | Loads persistent and recent profile context for the session |
 | `recall` | `UserPromptSubmit` | Searches Supermemory directly for substantive prompts and injects fresh relevant memories |
-| `recall-approve` | `PreToolUse` | Auto-allows read-only Supermemory MCP tools |
+| `recall-approve` | `PreToolUse` | Auto-allows `search_memory` and the legacy camelCase read tools (`listMemories`, `listDocuments`, `getDocument`, `listSpaces`, `whoAmI`); other Supermemory MCP tools still ask |
 | `flush` | `Stop` | Captures completed turns in the background |
 
 - **Recall modes** — Set `recallMode` to `"advisory"` to let the model decide when to search, or `"off"` to disable prompt recall.
@@ -78,7 +78,7 @@ Codex, Claude Code, and OpenCode use one container per repository:
 repo_<project-name>__<remote-hash>
 ```
 
-Automatic captures and explicit saves both go to this container; `sm_scope` metadata keeps personal and project memories distinguishable. The hash comes from the normalized Git remote, so clones and linked worktrees share memory while same-named repositories do not collide. Codex still reads the older `codex_user_*`, `codex_project_*`, and other per-tool containers, so existing memories stay searchable.
+Automatic captures go to this container with `sm_scope: personal` metadata. Explicit saves through the MCP tools are passed to the hosted server unchanged, so they land in your account's active space, not the repository container. The hash comes from the normalized Git remote, so clones and linked worktrees share memory while same-named repositories do not collide. Codex still reads the older `codex_user_*`, `codex_project_*`, and other per-tool containers, so existing memories stay searchable.
 
 Override the container in `~/.codex/supermemory.json` if needed:
 

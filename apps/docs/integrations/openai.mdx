@@ -272,7 +272,7 @@ result = await tools.search_memories(
     information_to_get="user preferences",
     limit=10,
 )
-print(f"Found {result['count']} memories")
+print(f"Found {result.get('count', 0)} memories")
 ```
 
 ```typescript JavaScript
@@ -297,7 +297,8 @@ Store new information in memory:
 result = await tools.add_memory(
     memory="User prefers tea over coffee"
 )
-print(f"Added memory with ID: {result['memory']['id']}")
+memory = result.get("memory") or {}
+print(f"Added memory with ID: {memory.get('id')}")
 ```
 
 ```typescript JavaScript
@@ -566,7 +567,7 @@ SupermemoryTools(
 
 **Methods**
 - `get_tool_definitions()` - Get OpenAI function definitions
-- `search_memories(information_to_get, limit)` - Search user memories (`include_full_docs` is deprecated and ignored)
+- `search_memories(information_to_get, limit=10)` - Search user memories. Pass `limit` by keyword: the second positional parameter is the deprecated, ignored `include_full_docs`
 - `add_memory(memory)` - Add new memory
 - `execute_tool_call(tool_call)` - Execute individual tool call
 

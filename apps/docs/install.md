@@ -44,7 +44,7 @@ export SUPERMEMORY_API_KEY="sm_..."
 
 ## STEP 3: CANONICAL API SURFACE (use these, nothing else)
 
-- Auth header: `Authorization: Bearer $SUPERMEMORY_API_KEY` — the only supported auth header
+- Auth header: `Authorization: Bearer $SUPERMEMORY_API_KEY` (recommended; `x-api-key` and `x-supermemory-api-key` still work but are deprecated)
 - Write content: `POST https://api.supermemory.ai/ns/{namespace}/document`
 - Upload a file: `POST https://api.supermemory.ai/ns/{namespace}/document/file`
 - Search: `POST https://api.supermemory.ai/ns/{namespace}/search`
@@ -312,7 +312,7 @@ await client.search(userId, {
 4. Search modes: 'hybrid' (default), 'memories', or 'chunks'
 5. File extraction is automatic - no config needed
 6. Store conversations after each interaction under a stable `id` per conversation
-7. Processing is async; pass `dreaming: "instant"` only when memories must be ready right after `system.status` is `done` (it bills one extra operation per document)
+7. Processing is async: `system.status` tracks extraction, and memories are ready when `system.dreamingStatus` is `done` (it reads `dreaming` while they are generated). Pass `dreaming: "instant"` only when memories must be generated right away (it bills one extra operation per document)
 
 ## TESTING:
 

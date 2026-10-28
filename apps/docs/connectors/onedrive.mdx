@@ -60,7 +60,8 @@ connector = client.connectors.create(
 )
 
 # Send the user to Microsoft to authorize
-print(f"Redirect to: {connector.authorization.url}")
+if connector.authorization:
+    print(f"Redirect to: {connector.authorization.url}")
 # Output: Redirect to: https://api.supermemory.ai/v3/connections/auth/redirect?state=...
 ```
 

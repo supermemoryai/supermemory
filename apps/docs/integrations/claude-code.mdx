@@ -73,9 +73,9 @@ Once installed, the plugin runs automatically:
 
 - **Session context** — At session start, profile facts for this project are loaded into context.
 - **Direct recall** — Before Claude sees each substantive prompt, the hook searches Supermemory and injects fresh matches. Set `recallDirective` to switch to advisory mode, where Claude decides when to search.
-- **Auto-capture** — When a session ends, new conversation content is saved in the background.
+- **Auto-capture** — After each Claude response (the Stop hook), conversation content added since the last save is captured in the background.
 - **Shared repo memory** — Captures go to one repository container shared with the Codex, OpenCode, and Cursor plugins, tagged with `sm_scope: personal` metadata.
-- **MCP tools** — The hosted Supermemory MCP tools (`search_memory`, `add_memory`, and more) use the same credentials. Read-only tools are approved automatically. For deeper history, Claude can also use the `context-gatherer` agent.
+- **MCP tools** — The hosted Supermemory MCP tools (`search_memory`, `add_memory`, and more) use the same credentials. `search_memory` and the legacy camelCase read tools (`listMemories`, `listDocuments`, `getDocument`, `listSpaces`, `whoAmI`) are approved automatically; other tools, including `list_memories`, `list_documents`, `get_document` and `get_profile`, still ask for approval. For deeper history, Claude can also use the `context-gatherer` agent.
 
 ## Commands
 
