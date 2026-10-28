@@ -272,8 +272,8 @@ await fetch(`https://api.supermemory.ai/ns/${userId}/document/file`, {
   body: formData,
 })
 
-// Processing is async - check status before assuming searchable
-// client.documents.get(userId, documentId) → wait for system.status === "done"
+// Processing is async: client.documents.get(userId, documentId)
+// wait for system.status === "done" for chunks (searchable content), and system.dreamingStatus === "done" for memories
 ```
 
 ## STEP 8: SEARCH MODES

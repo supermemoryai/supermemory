@@ -48,7 +48,7 @@ Same `containerTag` scopes ingest, search, and profiles — one engine, multiple
 ## Suggested order
 
 1. **Ingest** — `POST /v3/documents` (SDK: `client.add`)
-2. **Documents** — `GET /v3/documents/{id}` until `status: "done"`
+2. **Documents** — `GET /v3/documents/{id}` until `status: "done"` for searchable content, and `dreamingStatus: "done"` before you read memories or profiles
 3. **Search** — `POST /v4/search`
 4. **Profiles** — `POST /v4/profile`
 

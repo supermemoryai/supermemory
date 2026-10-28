@@ -179,7 +179,7 @@ curl -X POST "https://api.supermemory.ai/ns/user_4f8a/document" \
 
 ## 3. Wait until both are `done`
 
-Poll document status. With **`dreaming: "instant"`**, once `system.status` is `done` the document is indexed **and** memories for that document should be available for search and profiles (`queued → extracting → … → done`).
+Poll each document. `system.status` reaches `done` once the content is indexed and searchable (`queued → extracting → … → done`). Memories are ready when `system.dreamingStatus` is also `done`; it reads `dreaming` while they are generated. **`dreaming: "instant"`** starts memory generation right away instead of waiting for the next batch.
 
 > Note that the preferred way is to have `dreaming: dynamic`. supermemory charges one extra operation for instant dreaming. Instant is good for one off tests, setup, debugging and benchmarking.
 
@@ -188,7 +188,8 @@ Poll document status. With **`dreaming: "instant"`**, once `system.status` is `d
 async function waitUntilDone(id: string) {
   for (;;) {
     const d = await supermemory.documents.get(user, id);
-    if (d.system.status === "done" || d.system.status === "failed") return d;
+    if (d.system.status === "failed") return d;
+    if (d.system.status === "done" && d.system.dreamingStatus === "done") return d;
     await new Promise((r) => setTimeout(r, 1500));
   }
 }
@@ -204,7 +205,9 @@ import time
 def wait_until_done(doc_id: str):
     while True:
         d = client.documents.get(user, doc_id)
-        if d.system.status in ("done", "failed"):
+        if d.system.status == "failed":
+            return d
+        if d.system.status == "done" and d.system.dreaming_status == "done":
             return d
         time.sleep(1.5)
 
@@ -217,7 +220,7 @@ print("ready to search")
 # replace DOC_ID with each document id from the add responses
 curl "https://api.supermemory.ai/ns/user_4f8a/document/DOC_ID" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
-# repeat until "system": { "status": "done" }
+# repeat until "system": { "status": "done", "dreamingStatus": "done" }
 ```
 </CodeGroup>
 
