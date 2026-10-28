@@ -55,8 +55,21 @@ The client discovers the OAuth authorization server through
 | `list_memories` | List extracted memory entries and their source document IDs |
 | `list_spaces` | List spaces visible to the authenticated account |
 | `who_am_i` | Return identity, access, and active-space context |
-| `add_memory` | Save a memory (legacy `action: "forget"` remains supported) |
+| `add_memory` | Accept a document for asynchronous memory extraction (legacy `action: "forget"` remains supported) |
 | `forget_memory` | Forget a memory matching the supplied content |
+
+### Document status
+
+`list_documents` and `get_document` return two status fields:
+
+| Field | Value | Meaning |
+| --- | --- | --- |
+| `status` | `done` | Content is processed and readable |
+| `dreamingStatus` | `dreaming` | Memory extraction is pending, running, or retrying |
+| `dreamingStatus` | `done` | Memory extraction settled, possibly with no memories |
+
+`dreamingStatus` appears only when the API returns it. Neither `done` means
+memories are searchable yet.
 
 ### MCP App launchers
 

@@ -31,7 +31,7 @@ export function register(deps: ToolDeps) {
 		{
 			title: "Get Document",
 			description:
-				"Read one stored document by ID from one space, including its summary and available content. Get document IDs from list_documents or from the document shown on a search_memory result. When the document is in a named space, resolve it with list_spaces and pass namespace; otherwise use the active space.",
+				"Read one stored document by ID from one space, including its summary, available content, and memory extraction status (dreamingStatus) when available. Get document IDs from list_documents or from the document shown on a search_memory result. When the document is in a named space, resolve it with list_spaces and pass namespace; otherwise use the active space.",
 			inputSchema,
 			outputSchema: getDocumentOutputSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
@@ -49,6 +49,7 @@ export function register(deps: ToolDeps) {
 						title: document.title,
 						type: document.type,
 						status: document.system.status,
+						dreamingStatus: document.system.dreamingStatus,
 						createdAt: document.system.createdAt,
 						updatedAt: document.system.updatedAt,
 						summary: document.summary,

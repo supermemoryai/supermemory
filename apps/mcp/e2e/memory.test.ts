@@ -37,7 +37,7 @@ describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)("MCP — memory behaviors", () => 
 			action: "save",
 		})
 		expect(save.isError).toBeFalsy()
-		expect(textOf(save)).toMatch(/Memory saved/i)
+		expect(textOf(save)).toMatch(/Document accepted/i)
 
 		const found = await recallUntil(s.client, "test fruit dragonfruit", marker)
 		expect(found, `recall never returned marker ${marker}`).not.toBeNull()

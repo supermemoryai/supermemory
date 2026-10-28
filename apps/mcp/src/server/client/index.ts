@@ -35,18 +35,23 @@ export type {
 	NamespaceInfo,
 }
 
+type DreamingStatus = "dreaming" | "done"
+
 export interface DocumentSummary {
 	id: string
 	title: string | null
 	type: string
 	status: string
+	dreamingStatus?: DreamingStatus
 	createdAt: string
 	updatedAt: string
 	summary: string | null
 	url: string | null
 }
 
-export type DocumentDetails = GetDocumentsResponse
+export type DocumentDetails = GetDocumentsResponse & {
+	system: { dreamingStatus?: DreamingStatus }
+}
 
 export interface DocumentsListResponse {
 	documents: DocumentSummary[]
@@ -104,13 +109,16 @@ function mapSearchResults(results: SearchResponseResultsItem[]): Memory[] {
 }
 
 function mapDocumentSummary(
-	document: ListResponseDocumentsItem,
+	document: ListResponseDocumentsItem & {
+		system: { dreamingStatus?: DreamingStatus }
+	},
 ): DocumentSummary {
 	return {
 		id: document.id,
 		title: document.title,
 		type: document.type,
 		status: document.system.status,
+		dreamingStatus: document.system.dreamingStatus,
 		createdAt: document.system.createdAt,
 		updatedAt: document.system.updatedAt,
 		summary: document.summary,

@@ -31,7 +31,7 @@ export function register(deps: ToolDeps) {
 		"add_memory",
 		{
 			description:
-				"Save a memory in the user's ACTIVE space. The target space is the one the user selected via select-space; pass namespace only to override it. To remove outdated information, use the separately exposed forget_memory tool. Legacy action='forget' remains supported for existing clients.",
+				"Save content as a document in the user's ACTIVE space. Memories are extracted from it in the background, so they may not be searchable right away. The target space is the one the user selected via select-space; pass namespace only to override it. To remove outdated information, use the separately exposed forget_memory tool. Legacy action='forget' remains supported for existing clients.",
 			inputSchema,
 			outputSchema: addMemoryOutputSchema,
 			annotations: MEMORY_TOOL_ANNOTATIONS,
@@ -43,7 +43,7 @@ export function register(deps: ToolDeps) {
 				const client = deps.getClient(namespace)
 
 				const result = await client.createMemory(args.content)
-				const message = `Memory saved (ID: ${result.id}, space: ${result.namespace})`
+				const message = `Document accepted (ID: ${result.id}, space: ${result.namespace}). Memories are extracted in the background and can take a moment to show up in search.`
 				const structuredContent: AddMemoryOutput = withLegacyNamespace({
 					action: "save",
 					success: true,
