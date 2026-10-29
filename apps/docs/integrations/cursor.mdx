@@ -31,7 +31,7 @@ Open a new chat in Cursor and run:
 /supermemory-setup
 ```
 
-A browser window opens. Sign in to Supermemory and you are done.
+Supermemory's authorization page opens in your browser. Sign in, choose the access to grant, and approve. The plugin signs in with OAuth and refreshes its tokens automatically. You can change its access or disconnect it from the [Agents page](https://console.supermemory.ai/agents) in the console.
 
 As a fallback, set an API key from [API Keys](https://console.supermemory.ai/keys):
 
@@ -71,7 +71,7 @@ node "${CURSOR_PLUGIN_ROOT}/dist/cli.js" logout
 
 `CURSOR_PLUGIN_ROOT` is set for plugin hooks. If it is empty in your shell, run `node dist/cli.js <command>` from the installed plugin directory.
 
-Credentials are stored in `~/.supermemory-cursor/credentials.json`.
+Credentials are stored in `~/.supermemory-cursor/credentials.json`. `logout` revokes the browser login and removes them. An API key from `SUPERMEMORY_API_KEY` or a config `apiKey` takes precedence over the browser login.
 </Accordion>
 
 ## How it works

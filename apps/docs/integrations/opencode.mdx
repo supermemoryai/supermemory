@@ -31,6 +31,8 @@ Browser login (recommended):
 bunx opencode-supermemory@latest login
 ```
 
+This opens Supermemory's authorization page. Sign in, choose the access to grant, and approve. The plugin signs in with OAuth, saves its tokens to `~/.supermemory-opencode/credentials.json`, and refreshes them automatically. Running OpenCode sessions pick up a login or logout without a restart. You can change the plugin's access or disconnect it from the [Agents page](https://console.supermemory.ai/agents) in the console.
+
 Check the connection any time:
 
 ```bash
@@ -59,6 +61,8 @@ Or set an API key manually from the [API Keys](https://console.supermemory.ai/ke
     Restart your terminal after running this.
   </Tab>
 </Tabs>
+
+`SUPERMEMORY_API_KEY` or `apiKey` in `~/.config/opencode/supermemory.jsonc` takes precedence over the browser login.
 
 OpenCode V1 and OpenCode 2 read different keys from `~/.config/opencode/opencode.jsonc`. Use the config for the version you run:
 
@@ -127,7 +131,7 @@ The installer adds these in-chat commands:
 |---------|-------------|
 | `/supermemory-index` | Explore and index your codebase structure into memory (`/supermemory-init` is an alias) |
 | `/supermemory-login` | Authenticate with Supermemory in the browser |
-| `/supermemory-logout` | Clear stored credentials |
+| `/supermemory-logout` | Revoke the browser login and clear stored credentials |
 | `/supermemory-status` | Show the Supermemory connection status |
 
 ## Tools
