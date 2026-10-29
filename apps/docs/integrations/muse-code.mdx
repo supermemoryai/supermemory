@@ -38,7 +38,7 @@ muse plugins approve supermemory
 
 Muse runs hooks with a **cleared environment**, so an exported API key in your shell does not reach them. Auth is file-based.
 
-The first session opens Supermemory's authorization page in your browser. Sign in, choose the access to grant, and approve. The plugin signs in with OAuth, writes its tokens to `~/.supermemory-muse/credentials.json`, and refreshes them automatically.
+The first session opens Supermemory's authorization page in your browser. Sign in, choose the access to grant, and approve. The plugin signs in with OAuth. You can manage the plugin, change its access, or disconnect it from the [Agents page](https://console.supermemory.ai/agents) in the console.
 
 If `~/.supermemory-claude/credentials.json` holds an API key from the [Claude Code plugin](/integrations/claude-code), Muse Code reuses that key instead. A Claude Code browser login is not shared, so Muse Code asks you to sign in on its own.
 
