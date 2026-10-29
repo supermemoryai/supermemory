@@ -6,7 +6,7 @@ icon: "/images/hermes.svg"
 ---
 
 
-[Hermes agent](https://github.com/NousResearch/hermes-agent) ships a native **supermemory** memory provider: semantic long-term memory, profile recall, search, explicit memory tools, and session-aware ingest — not a bolt-on script the model might skip. Hermes runs across Telegram, Discord, Slack, WhatsApp, Signal, and the CLI from one gateway.
+The [hermes-supermemory](https://github.com/supermemoryai/hermes-supermemory) plugin is the **supermemory** memory provider for [Hermes agent](https://github.com/NousResearch/hermes-agent): semantic long-term memory, profile recall, search, explicit memory tools, and per-turn conversation capture — not a bolt-on script the model might skip. It previously shipped inside Hermes core and is now maintained by Supermemory as a Hermes plugin. Hermes runs across Telegram, Discord, Slack, WhatsApp, Signal, and the CLI from one gateway.
 
 Hermes also ships with built-in `MEMORY.md` and `USER.md` files. Supermemory adds structure and isolation (profile-scoped and optional multi-container tags), plus retrieval that goes beyond a single flat file.
 
@@ -18,12 +18,12 @@ Create a supermemory API key from the [API Keys](https://console.supermemory.ai/
 ## Install the memory provider
 
 ```bash
-pip install supermemory
-```
-
-```bash
+hermes plugins install supermemoryai/hermes-supermemory
+hermes plugins enable supermemory
 hermes memory setup
 ```
+
+Hermes installs the plugin's dependency, the `supermemory` Python SDK (`>=5.0.0,<6`), into its own environment.
 
 Select **supermemory** when prompted and paste your API key.
 
@@ -41,9 +41,8 @@ echo 'SUPERMEMORY_API_KEY=sm_...' >> ~/.hermes/.env
 Once configured, the provider runs through Hermes’s normal memory lifecycle:
 
 - **Prefetch** — Relevant memory context can be loaded before each turn.
-- **Turn capture** — Cleaned user/assistant turns can be stored after each completed response.
-- **Session ingest** — The full session can be ingested at session end for richer graph updates.
-- **Explicit tools** — Search, store, forget, and profile tools are available to the model when appropriate.
+- **Turn capture** — After each completed turn, the conversation is saved as one document per conversation, rewritten in full, so edits and context compaction never store it twice. Remaining turns are flushed at session end.
+- **Explicit tools** — Search, store, forget, profile, and read-document tools are available to the model when appropriate.
 - **Built-in file memory** — This does not replace `MEMORY.md` / `USER.md`; mirroring behavior depends on Hermes version and config (see upstream README).
 
 ## Tools
@@ -56,6 +55,7 @@ Kebab-case names are registered for the agent; snake_case aliases remain support
 | `supermemory-search` | `supermemory_search` | Search by semantic similarity. |
 | `supermemory-forget` | `supermemory_forget` | Forget a memory by ID or best-match query. |
 | `supermemory-profile` | `supermemory_profile` | Retrieve persistent profile and recent context. |
+| `supermemory-read-document` | `supermemory_read_document` | Read a stored document, such as a past conversation, by the `document_id` from search results. |
 
 ## Commands
 
@@ -70,8 +70,9 @@ hermes memory setup
 These variables configure the supermemory provider (for example in your shell or Hermes env file):
 
 ```bash
-SUPERMEMORY_API_KEY=sm_...              # Required
-SUPERMEMORY_CONTAINER_TAG=hermes-work # Optional: overrides container tag from config
+SUPERMEMORY_API_KEY=sm_...                   # Required
+SUPERMEMORY_CONTAINER_TAG=hermes-work        # Optional: overrides container tag from config
+SUPERMEMORY_BASE_URL=http://localhost:6767   # Optional: API endpoint when base_url is not set in config
 ```
 
 ## Multi-container tags
@@ -103,7 +104,7 @@ Example:
 }
 ```
 
-See the [upstream plugin README](https://github.com/NousResearch/hermes-agent/tree/main/plugins/memory/supermemory) for the exact schema and any newer options.
+See the [plugin README](https://github.com/supermemoryai/hermes-supermemory) for the exact schema and any newer options.
 
 ## Config file
 
@@ -111,13 +112,16 @@ Create or edit `$HERMES_HOME/supermemory.json`. Common keys:
 
 | Key | Default | Description |
 |-----|---------|-------------|
+| `base_url` | `https://api.supermemory.ai` | API endpoint for hosted or self-hosted Supermemory. Takes priority over `SUPERMEMORY_BASE_URL`. |
 | `container_tag` | `hermes` | Tag for search/writes; use `{identity}` for profile-scoped tags (e.g. `hermes-{identity}` → `hermes-coder`). |
 | `auto_recall` | `true` | Inject memory context before turns. |
 | `auto_capture` | `true` | Store turns after each response. |
 | `max_recall_results` | `10` | Max items merged into context. |
 | `profile_frequency` | `50` | Profile on first turn and every N turns. |
 | `capture_mode` | `all` | How aggressively turns are captured. |
-| `search_mode` | `hybrid` | `hybrid`, `memories`, or `documents`. |
+| `search_mode` | `hybrid` | `hybrid`, `memories`, or `chunks` (`documents` is still accepted as an alias for `chunks`). |
+| `entity_context` | built-in | Extraction guidance passed to Supermemory. |
+| `dreaming` | `dynamic` | `dynamic` groups related conversations before forming memories; `instant` processes each one right away (billed as one extra operation). |
 | `api_timeout` | `5.0` | SDK / ingest timeout (seconds). |
 | `enable_custom_container_tags` | `false` | Set `true` to allow extra namespaces; see [Multi-container tags](#multi-container-tags) above. |
 | `custom_containers` | — | Allowlisted tags beyond the primary `container_tag`. |
@@ -136,12 +140,20 @@ Example profile-scoped container:
 
 ## Self-hosted API
 
-If you run your own supermemory API, set **`base_url`** (and any other host-specific options) in `supermemory.json` or via env as documented in the [upstream plugin README](https://github.com/NousResearch/hermes-agent/tree/main/plugins/memory/supermemory) — alongside your key and container settings.
+If you run your own supermemory API, start it with `npx supermemory local` and note the API key it prints on first boot. Before running `hermes memory setup`, set **`base_url`** in `$HERMES_HOME/supermemory.json` so the setup connection probe also stays local:
+
+```json
+{
+  "base_url": "http://localhost:6767"
+}
+```
+
+Then run `hermes memory setup` and enter the local server's API key.
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Hermes + plugin README" icon="/images/github-icon.svg" href="https://github.com/NousResearch/hermes-agent/tree/main/plugins/memory/supermemory">
+  <Card title="Hermes plugin README" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/hermes-supermemory">
     Full config table, env vars, and multi-container details.
   </Card>
 

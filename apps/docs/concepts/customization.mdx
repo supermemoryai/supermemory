@@ -172,6 +172,10 @@ Show "Log in to **YourApp**" instead of "Log in to Supermemory" when users conne
   </Accordion>
 </AccordionGroup>
 
+<Note>
+Client secrets are write-only. `GET /v3/settings` and the `PATCH /v3/settings` response return each connector's client ID and `*CustomKeyEnabled` flag, but never its client secret.
+</Note>
+
 ---
 
 ## API reference

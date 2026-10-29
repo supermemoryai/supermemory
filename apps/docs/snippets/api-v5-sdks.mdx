@@ -31,7 +31,7 @@ If your code passes a `containerTags` array, pick one namespace. A v5 document l
 
 | v4 | v5 |
 | --- | --- |
-| `client.search.memories({ q, containerTag })` | `client.search(namespace, { query })` |
+| `client.search.memories({ q, containerTag })` | `client.search(namespace, { query, searchMode: "memories" })` |
 | `client.profile({ containerTag, q })` | `client.profile(namespace)`; profile no longer takes a query, call `client.search` separately if you need results |
 | `client.documents.list(...)`, `client.memories.list(...)` | `client.list(namespace, "documents" \| "chunks" \| "memories", { filter? })` |
 | `client.containerTags.*` | `client.namespaces.*` |

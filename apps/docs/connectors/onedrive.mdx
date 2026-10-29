@@ -1,12 +1,24 @@
 ---
 title: "OneDrive connector"
 sidebarTitle: "OneDrive"
-description: "Sync Microsoft Office documents from OneDrive with scheduled synchronization and business account support"
+description: "Sync Microsoft Office documents from OneDrive with real-time webhook updates and business account support"
 icon: "/images/microsoft-icon.svg"
 ---
 
 
-Connect OneDrive to automatically sync Word documents, Excel spreadsheets, and PowerPoint presentations into your Supermemory knowledge base. Supports both personal and business accounts with scheduled synchronization.
+Connect OneDrive to automatically sync Word documents, Excel spreadsheets, and PowerPoint presentations into your Supermemory knowledge base. Supports both personal and business accounts with real-time updates via webhooks.
+
+## Sync scope
+
+**Default for new connectors:** after OAuth, the user picks **folders** in Supermemory's hosted folder picker. Only files in the selected folders are synced, and nothing syncs until at least one folder is saved.
+
+**Whole OneDrive:** set `config.syncScope` to `"full"` when creating the connector so the entire drive syncs without the picker.
+
+**Explicit scoped mode:** set `config.syncScope` to `"selected"` for the picker flow, or rely on the default for new connects.
+
+<Note>
+Connectors created before folder selection was available keep syncing the whole drive. They can narrow to folders by opening the picker and saving a selection.
+</Note>
 
 ## Quick setup
 
@@ -23,6 +35,7 @@ const connector = await supermemory.connectors.create("user-123", {
   provider: "onedrive",
   redirectUrl: "https://yourapp.com/auth/onedrive/callback",
   documentLimit: 1500,
+  config: { syncScope: "selected" },
 })
 
 // Send the user to Microsoft to authorize
@@ -42,11 +55,13 @@ connector = client.connectors.create(
         "provider": "onedrive",
         "redirect_url": "https://yourapp.com/auth/onedrive/callback",
         "document_limit": 1500,
+        "config": {"sync_scope": "selected"},
     },
 )
 
 # Send the user to Microsoft to authorize
-print(f"Redirect to: {connector.authorization.url}")
+if connector.authorization:
+    print(f"Redirect to: {connector.authorization.url}")
 # Output: Redirect to: https://api.supermemory.ai/v3/connections/auth/redirect?state=...
 ```
 
@@ -57,7 +72,8 @@ curl -X POST "https://api.supermemory.ai/ns/user-123/connectors" \
   -d '{
     "provider": "onedrive",
     "redirectUrl": "https://yourapp.com/auth/onedrive/callback",
-    "documentLimit": 1500
+    "documentLimit": 1500,
+    "config": { "syncScope": "selected" }
   }'
 
 # Response: {
@@ -73,7 +89,7 @@ curl -X POST "https://api.supermemory.ai/ns/user-123/connectors" \
 
 ### 2. Handle Microsoft OAuth
 
-Send the user to `authorization.url` before `authorization.expiresAt`. After the user grants permissions, Microsoft redirects to your `redirectUrl` and the initial sync begins. A pending OAuth connector is not returned by list until the user finishes authorization; get returns it with `system.status: "pending_authorization"`.
+Send the user to `authorization.url` before `authorization.expiresAt`. With **scoped** sync (`syncScope` omitted or `"selected"`), Supermemory then sends the user to its hosted folder picker; once they save a selection, they return to your `redirectUrl` and the initial sync begins. With `syncScope: "full"`, Microsoft redirects through Supermemory to your `redirectUrl` and the initial sync begins right away. A pending OAuth connector is not returned by list until the user finishes authorization; get returns it with `system.status: "pending_authorization"`.
 
 ### 3. Monitor sync status
 
@@ -119,7 +135,11 @@ Send the user to `authorization.url` before `authorization.expiresAt`. After the
 There is no per-connector document list in v5. `supermemory.list(namespace, "documents")` returns every document in the namespace.
 </Note>
 
+To change the folders later, read the connector with `include: "picker"` and send the user to `picker.url`, or set folder ids directly with `connectors.update(namespace, id, { selection: { folders: ["<folder-id>"] } })`. A new selection replaces the old one and starts a sync. See [Managing Connector Selection](/connectors/managing-resources).
+
 ## Supported document types
+
+Word, Excel, and PowerPoint files are converted to PDF by Microsoft Graph before extraction. Markdown, PDF, JSON, and plain-text files are downloaded as-is and go through the same extraction pipeline as uploads.
 
 ### Microsoft Word documents
 - **Rich text formatting** converted to markdown

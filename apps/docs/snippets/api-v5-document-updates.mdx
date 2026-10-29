@@ -24,7 +24,7 @@ PATCH /ns/user_1/document/doc_1
 ```
 </CodeGroup>
 
-The v5 body accepts any non-empty subset of `content`, `supportingContext`, `metadata`, or `date`, plus optional `taskType` and `dreaming` (which alone do not count as a change). `group` is an ingestion-side setting: it picks which existing memories serve as context while content is processed, so changing it only takes effect when the document is re-ingested. Send it together with `content`. Supplying `content` makes it the new canonical source; facts supported only by the previous source can disappear after reprocessing.
+The v5 body accepts any non-empty subset of `content`, `supportingContext`, `metadata`, or `date`, plus optional `taskType` and `dreaming` (which alone do not count as a change). `group` is an ingestion-side setting: it picks which existing memories serve as context while content is processed, so changing it only takes effect when the document is re-ingested. Send it together with `content`; a `group` without `content` returns `400`. Supplying `content` makes it the new canonical source; facts supported only by the previous source can disappear after reprocessing.
 
 ### Replace a file-backed document
 
@@ -49,7 +49,7 @@ metadata={"reviewed":true}
 dreaming=dynamic
 ```
 
-PATCH changes only supplied fields. Include `file` to replace the source while retaining omitted supporting fields, or omit `file` for metadata-, context-, or date-only changes. Like the JSON update, `group` only takes effect when the file is re-ingested, so send it together with `file`. `metadata` and `group` are JSON-encoded strings; `supportingContext` and `date` are plain strings.
+PATCH changes only supplied fields. Include `file` to replace the source while retaining omitted supporting fields, or omit `file` for metadata-, context-, or date-only changes. Like the JSON update, `group` only takes effect when the file is re-ingested, so send it together with `file`; without one the request returns `400`. `metadata` and `group` are JSON-encoded strings; `supportingContext` and `date` are plain strings.
 
 <Warning>
   There is no public v5 `PUT /ns/{namespace}/document/file/{id}` operation. Use POST for a complete replacement and PATCH for a partial update.

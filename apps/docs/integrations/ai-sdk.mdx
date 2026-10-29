@@ -156,7 +156,7 @@ const model = withSupermemory(openai("gpt-5"), {
 
 ## Memory tools
 
-Add memory capabilities to AI agents with search, add, and fetch operations.
+Add memory capabilities to AI agents. `supermemoryTools` returns seven tools: `searchMemories`, `addMemory`, `getProfile`, `documentList`, `documentAdd`, `documentDelete`, and `memoryForget`.
 
 ```typescript
 import { streamText } from "ai"
@@ -223,6 +223,6 @@ const result = await streamText({
 { success: true, results: [...], count: 5 }
 
 // addMemory result
-{ success: true, memory: { id: "mem_123", ... } }
+{ success: true, memory: { id: "doc_123", status: "queued" } }
 ```
 

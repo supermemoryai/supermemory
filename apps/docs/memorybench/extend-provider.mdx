@@ -44,9 +44,14 @@ If you'd rather write the adapter yourself, every provider implements the same i
 interface Provider {
   name: string
   prompts?: ProviderPrompts
+  concurrency?: ConcurrencyConfig
   initialize(config: ProviderConfig): Promise<void>
   ingest(sessions: UnifiedSession[], options: IngestOptions): Promise<IngestResult>
-  awaitIndexing(result: IngestResult, containerTag: string): Promise<void>
+  awaitIndexing(
+    result: IngestResult,
+    containerTag: string,
+    onProgress?: IndexingProgressCallback
+  ): Promise<void>
   search(query: string, options: SearchOptions): Promise<unknown[]>
   clear(containerTag: string): Promise<void>
 }

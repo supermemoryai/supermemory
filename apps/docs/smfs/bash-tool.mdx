@@ -193,8 +193,9 @@ Standard Unix surface, plus one custom command. Each does what you'd expect.
 | `eagerLoad` | `true` | Warm the path index when the instance starts |
 | `eagerContent` | `true` | Also warm the content cache during eager load |
 | `cacheTtlMs` | `150_000` | Content cache TTL in ms. `null` = never expires (single-writer). `0` = no cache. |
+| `includeDocIds` | `false` | Append a `[doc:<id>]` annotation to each `sgrep` result so you can extract source document IDs from stdout |
 
-Other options (`customCommands`, `logger`, plus `just-bash` pass-throughs like `executionLimits`, `network`, `python`, `javascript`, `cwd`, `env`) exist but aren't part of the supported surface for the SMFS use case. The container is what defines the filesystem; setting `cwd` or extra `env` from the host doesn't change that.
+Other options (`logger`, plus the `just-bash` pass-throughs `executionLimits` and `env`) exist but aren't part of the supported surface for the SMFS use case. The container is what defines the filesystem; setting extra `env` from the host doesn't change that.
 
 ## Limitations
 

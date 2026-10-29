@@ -304,7 +304,6 @@ Gmail connector supports multiple sync methods:
 | Feature | Behavior |
 |---------|----------|
 | **Real-time sync** | Via Google Cloud Pub/Sub webhooks (7-day expiry, auto-renewed) |
-| **Scheduled sync** | Every 4 hours |
 | **Manual sync** | On-demand via API |
 | **Incremental sync** | Uses Gmail `historyId` to fetch only changed threads |
 
@@ -337,7 +336,7 @@ The Gmail connector requests the following OAuth scopes:
 <Warning>
 **Important Limitations:**
 - **Plan requirement**: Requires Max Plan or above
-- **INBOX only** for real-time sync: Only INBOX label triggers real-time updates; other labels sync via scheduled sync
+- **Selected labels only**: Syncs and real-time updates cover the labels chosen in the picker. Nothing syncs until at least one label is selected
 - **Watch expiration**: Gmail watch subscriptions expire after 7 days (automatically renewed by supermemory)
 - **Document limit**: Default limit is 10,000 threads per connector (configurable via `documentLimit` parameter)
 - **Attachments**: Attachment metadata is stored, but attachment content is not downloaded
@@ -373,7 +372,7 @@ if (next.authorization) window.location.href = next.authorization.url
 
 If real-time sync isn't working:
 
-- Scheduled sync (every 4 hours) and manual sync still work
+- Manual sync still works
 - Real-time sync requires supermemory's Pub/Sub infrastructure
 - Check if the connector was created recently (watch registration happens on creation)
 - Trigger a manual sync to verify the connector is working

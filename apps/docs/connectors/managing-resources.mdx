@@ -6,7 +6,7 @@ icon: 'folder-sync'
 ---
 
 <Note>
-**Selectable connectors:** GitHub (repositories), Gmail (labels) and Google Drive (files and folders) let you choose what to sync. Other connectors sync everything and return `selection: null`.
+**Selectable connectors:** GitHub (repositories), Gmail (labels), Google Drive (files and folders) and OneDrive (folders) let you choose what to sync. Other connectors sync everything and return `selection: null`, as does a OneDrive connector set to sync the whole drive.
 </Note>
 
 Some connectors let you select which resources to sync. v5 exposes this through two calls on the connector itself: read it with `include: "picker"` to get a hosted picker URL, or send the ids directly with `connectors.update`.
@@ -83,7 +83,7 @@ curl "https://api.supermemory.ai/ns/user-123/connectors/{connectorId}?include=pi
 ```
 
 <Note>
-The picker link works once, in any browser. `picker` is `null` for providers that do not support selection. A Google Drive connector with full-drive sync can still open the picker; saving a selection switches it to scoped sync. Because the link changes what syncs, `include=picker` needs an admin key with write access to the namespace; otherwise the request returns `403`.
+The picker link works once, in any browser. `picker` is `null` for providers that do not support selection. A Google Drive or OneDrive connector with whole-drive sync can still open the picker; saving a selection switches it to scoped sync. Because the link changes what syncs, `include=picker` needs an admin key with write access to the namespace; otherwise the request returns `403`.
 </Note>
 
 ## Set the Selection Directly
@@ -150,6 +150,7 @@ The selection key depends on the provider:
 - GitHub: `repos` (repository ids)
 - Gmail: `labels` (label ids, for example `INBOX`)
 - Google Drive: `files` and `folders` (Drive ids)
+- OneDrive: `folders` (OneDrive folder ids)
 
 You can send `documentLimit` in the same body. Each call must include `selection`, `documentLimit`, or both.
 

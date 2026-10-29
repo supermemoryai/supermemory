@@ -128,10 +128,10 @@ const configWithMemory = withSupermemory({
   id: "conv-456",            // Groups messages into a conversation
 
   // Search tuning
-  searchMode: "hybrid",            // "memories" | "documents" | "hybrid"
+  searchMode: "hybrid",            // "memories" | "chunks" | "hybrid"
   threshold: 0.6,                  // 0.0-1.0 (higher = more accurate)
   limit: 10,                       // Integer from 1 to 100
-  rerank: true,                    // Rerank for best relevance
+  rerank: "order",                 // "none" | "order" | "aggregate"
   rewriteQuery: false,             // AI-rewrite query (+400ms latency)
 
   // Context
@@ -150,12 +150,14 @@ const configWithMemory = withSupermemory({
 | `mode`            | string   | `"profile"`  | Memory retrieval mode                                    |
 | `addMemory`       | string   | `"always"`   | Whether to save conversations after each response        |
 | `id`        | string   | **required** | Custom ID to group messages into a conversation          |
-| `searchMode`      | string   | —            | `"memories"`, `"documents"`, or `"hybrid"`               |
+| `searchMode`      | string   | —            | `"memories"`, `"chunks"`, or `"hybrid"`                  |
 | `threshold`       | number   | —            | Similarity threshold (0 = more results, 1 = more accurate) |
 | `limit`           | number   | —            | Maximum number of memory results (integer from 1 to 100) |
-| `rerank`          | boolean  | `false`      | Rerank results for relevance                             |
+| `rerank`          | string   | `"none"`     | Post-retrieval ranking: `"none"`, `"order"`, or `"aggregate"` |
 | `rewriteQuery`    | boolean  | `false`      | AI-rewrite query for better results (+400ms)             |
-| `entityContext`   | string   | —            | Deprecated and ignored. [Configure it on the container tag instead](/concepts/customization#entity-context). |
+| `filter`          | object   | —            | Typed metadata filter applied before ranking             |
+| `include`         | object   | —            | Extra data per search result (`documents`, `related`, `forgotten`) |
+| `supportingContext` | string | —            | Context that guides memory extraction for saved conversations (max 1500 characters) |
 | `metadata`        | object   | —            | Custom metadata attached to saved conversations          |
 | `promptTemplate`  | function | —            | Custom function to format memory data into prompt        |
 
@@ -168,5 +170,5 @@ The `searchMode` option controls what type of results are searched:
 | Mode          | Description                                            |
 | ------------- | ------------------------------------------------------ |
 | `"memories"`  | Search only memory entries (atomic facts about the user) |
-| `"documents"` | Search only document chunks                            |
+| `"chunks"`    | Search only document chunks                            |
 | `"hybrid"`    | Search both memories AND document chunks (recommended) |

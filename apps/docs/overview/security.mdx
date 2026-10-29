@@ -58,7 +58,7 @@ Designing isolation up front still makes identifying the user's content easier.
 
 ### Connectors and third-party sources
 
-OAuth connectors (Drive, Notion, Gmail, and others) pull content your users authorize. Disconnecting a connector stops future sync; you still control whether already-ingested documents remain in the memory store. Treat connector scope and retention as part of your product privacy policy.
+OAuth connectors (Drive, Notion, Gmail, and others) pull content your users authorize. Disconnecting a connector stops future sync and, by default, deletes the documents it imported; pass `deleteDocuments=false` to keep them. Treat connector scope and retention as part of your product privacy policy.
 
 ### Self-host when cloud is not enough
 

@@ -378,6 +378,7 @@
 										"icon": "/icons/hugeicons/tag-01.svg",
 										"pages": [
 											"api-reference/container-tags",
+											"GET /v3/container-tags/list",
 											"GET /v3/container-tags/{containerTag}",
 											"PATCH /v3/container-tags/{containerTag}",
 											"DELETE /v3/container-tags/{containerTag}",
@@ -448,6 +449,7 @@
 										"pages": [
 											"v5/api-reference/content-management",
 											"GET /ns/{namespace}/document/{id}",
+											"GET /ns/{namespace}/memories/{id}",
 											"POST /ns/{namespace}/list/{type}",
 											"DELETE /ns/{namespace}/document",
 											"DELETE /ns/{namespace}/memories",
