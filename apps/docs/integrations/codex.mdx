@@ -31,13 +31,7 @@ Restart Codex CLI after installing.
 
 ## Authenticate
 
-**Browser auth is preferred.** Start Codex CLI and Supermemory's authorization page opens in your browser. Sign in, choose the access to grant, and approve. To sign in from a terminal instead:
-
-```bash
-npx codex-supermemory@latest login
-```
-
-The plugin signs in with OAuth. `npx codex-supermemory@latest status` shows how it is authenticated. `npx codex-supermemory@latest logout` revokes the login and pauses automatic browser login until you run `login` again. You can manage the plugin, change its access, or disconnect it from the [Agents page](https://console.supermemory.ai/agents) in the console.
+**Browser auth is preferred.** Start Codex CLI — a browser window opens to authenticate with Supermemory.
 
 Alternatively, set an API key from [API Keys](https://console.supermemory.ai/keys):
 
@@ -61,8 +55,6 @@ Alternatively, set an API key from [API Keys](https://console.supermemory.ai/key
     Restart your terminal after running this.
   </Tab>
 </Tabs>
-
-An API key from `SUPERMEMORY_CODEX_API_KEY` or `apiKey` in `~/.codex/supermemory.json` takes precedence over the browser login.
 
 ## How it works
 
