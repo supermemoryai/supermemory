@@ -42,7 +42,7 @@ export function McpAppProvider({ children }: { children: ReactNode }) {
 	const [hostContext, setHostContext] = useState<McpUiHostContext | null>(null)
 
 	const { app, isConnected, error } = useMcpApp({
-		appInfo: { name: "Supermemory MCP", version: "1.0.0" },
+		appInfo: { name: "Supermemory MCP", version: "1.0.1" },
 		capabilities: {},
 		strict: true,
 		onAppCreated: (createdApp) => {

@@ -63,7 +63,7 @@
     },
     "apps/mcp": {
       "name": "supermemory-mcp",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "dependencies": {
         "@cloudflare/workers-oauth-provider": "^0.2.2",
         "@modelcontextprotocol/client": "2.0.0",
