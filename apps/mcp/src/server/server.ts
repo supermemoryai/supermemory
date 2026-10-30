@@ -83,7 +83,7 @@ export function createSupermemoryServer(
 	const server = new McpServer(
 		{
 			name: "supermemory",
-			version: "1.0.0",
+			version: "1.0.1",
 		},
 		{ instructions: SERVER_INSTRUCTIONS },
 	)

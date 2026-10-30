@@ -55,7 +55,7 @@ app.use(
 app.get("/", (c) => {
 	return c.json({
 		name: "supermemory-mcp",
-		version: "1.0.0",
+		version: "1.0.1",
 		description: "Supermemory MCP - AI memory for teams",
 		docs: "https://supermemory.ai/docs/supermemory-mcp/mcp",
 	})
