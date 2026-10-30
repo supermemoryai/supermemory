@@ -117,7 +117,10 @@ export async function validateApiKey(
 	try {
 		const session = await fetchSession(token, apiUrl)
 		const organizationId = session.org?.id
-		if (!organizationId) return null
+		if (!organizationId) {
+			console.warn("API key rejected: session has no organization")
+			return null
+		}
 
 		const user: AuthUser = {
 			userId: session.user.id,
