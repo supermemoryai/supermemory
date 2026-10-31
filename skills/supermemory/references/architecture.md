@@ -43,7 +43,7 @@ Document enters the processing queue. The system validates the content type and 
 
 **What happens:**
 - Content type detection (PDF, image, video, URL, text)
-- Validation of metadata and container tags
+- Validation of metadata and the namespace
 - Assignment to processing queue
 
 ### 2. Extracting
@@ -171,13 +171,13 @@ Processing complete. Content is now fully searchable and integrated into the kno
 
 ### Static vs. Dynamic Memories
 
-**Static Memories** (`isStatic: true`):
+**Static Memories** (`profile.static`):
 - Permanent facts that don't change
 - Examples: name, profession, birthday
 - Not subject to temporal updates
 - High priority in retrieval
 
-**Dynamic Memories** (`isStatic: false`):
+**Dynamic Memories** (`profile.dynamic`):
 - Contextual, episodic information
 - Examples: recent conversations, activities
 - Can be updated or superseded
@@ -195,10 +195,7 @@ Memory v2: "User prefers React" (isLatest: false)
 Memory v3: "User prefers React with TypeScript" (isLatest: true)
 ```
 
-When querying, you can choose:
-- Latest version only (default)
-- Full version history
-- Specific version
+Each search result reports `isLatest`. To see version history, read the memory with `GET /ns/{namespace}/memories/{id}?include=related`: `parents` are earlier versions and `children` are newer ones.
 
 ## Retrieval Mechanism
 
@@ -223,7 +220,7 @@ Chunk 4: similarity = 0.12  // "Database schemas"
 
 **3. Threshold Filtering**
 ```javascript
-chunkThreshold: 0.5
+threshold: 0.5
 Results: [Chunk 1, Chunk 2]  // Only >= 0.5
 ```
 
@@ -258,9 +255,9 @@ Metadata:
 Results: Semantically similar + metadata match
 ```
 
-## Container Tag Isolation
+## Namespace Isolation
 
-Container tags create isolated "spaces" within Supermemory:
+Namespaces create isolated spaces within Supermemory. Every request names one namespace in its path (`/ns/{namespace}/...`), and a document belongs to exactly one namespace:
 
 ```
 ┌─────────────────────────────────┐
@@ -292,7 +289,7 @@ Container tags create isolated "spaces" within Supermemory:
 
 User profiles are dynamically generated from memories:
 
-**Static Profile** (from `isStatic: true` memories):
+**Static Profile** (`profile.static`):
 ```
 Name: John Doe
 Role: Senior Software Engineer
@@ -300,7 +297,7 @@ Preferences: Dark mode, TypeScript, Vim keybindings
 Timezone: UTC-8 (PST)
 ```
 
-**Dynamic Context** (from recent memories):
+**Dynamic Context** (`profile.dynamic`):
 ```
 Recent Activity:
 - Working on React project (last 3 days)
@@ -312,19 +309,17 @@ Recent Activity:
 **Combined Profile:**
 ```javascript
 {
-  "profile": "John Doe, Senior Software Engineer who prefers TypeScript and dark mode",
-  "memories": [
-    {
-      "content": "Currently working on React authentication",
-      "score": 0.95,
-      "timestamp": "2 hours ago"
-    },
-    {
-      "content": "Completed advanced TypeScript course",
-      "score": 0.87,
-      "timestamp": "yesterday"
-    }
-  ]
+  "profile": {
+    "static": [
+      { "id": "mem_1", "memory": "John Doe is a Senior Software Engineer" },
+      { "id": "mem_2", "memory": "Prefers TypeScript and dark mode" }
+    ],
+    "dynamic": [
+      { "id": "mem_3", "memory": "Currently working on React authentication" },
+      { "id": "mem_4", "memory": "Completed advanced TypeScript course" }
+    ],
+    "buckets": {}
+  }
 }
 ```
 
@@ -463,8 +458,8 @@ messages = [
 ┌──────────────────────────────────┐
 │     Supermemory API Layer        │
 │  ┌──────────┐  ┌──────────────┐ │
-│  │ /documents│  │   /search    │ │
-│  │ /memories │  │   /profile   │ │
+│  │ /document │  │   /search    │ │
+│  │ /list     │  │   /profile   │ │
 │  └──────────┘  └──────────────┘ │
 └──────────┬───────────────────────┘
            ↓
@@ -488,7 +483,7 @@ messages = [
 ```
 [PDF Document]
     ↓
-[API: POST /v3/documents]
+[API: POST /ns/{namespace}/document]
     ↓
 [Queue: Document ID returned, status: "queued"]
     ↓
@@ -510,11 +505,11 @@ messages = [
 ```
 [User Query: "authentication methods"]
     ↓
-[API: POST /v4/search]
+[API: POST /ns/{namespace}/search]
     ↓
 [Embed: Query → Vector]
     ↓
-[Search: Vector similarity in container]
+[Search: Vector similarity in namespace]
     ↓
 [Filter: Apply metadata filters]
     ↓
@@ -538,7 +533,7 @@ Supermemory is designed for scale:
 ## Security & Privacy
 
 - **Encryption**: AES-256 at rest, TLS 1.3 in transit
-- **Isolation**: Container tags enforce strict boundaries
+- **Isolation**: Namespaces enforce strict boundaries
 - **Access Control**: API key-based authentication
 - **Compliance**: SOC 2, GDPR compliant
 - **Data Residency**: Regional storage options
