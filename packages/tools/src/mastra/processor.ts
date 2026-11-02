@@ -16,7 +16,6 @@ import {
 	createLogger,
 	normalizeBaseUrl,
 	validateApiKey,
-	MemoryCache,
 	buildMemoriesText,
 	extractQueryText,
 	wrapMemoryContext,
@@ -51,7 +50,6 @@ interface ProcessorContext {
 	addMemory: "always" | "never"
 	logger: Logger
 	promptTemplate?: PromptTemplate
-	memoryCache: MemoryCache<string>
 }
 
 /**
@@ -73,7 +71,6 @@ function createProcessorContext(
 		addMemory: options.addMemory ?? "always",
 		logger,
 		promptTemplate: options.promptTemplate,
-		memoryCache: new MemoryCache<string>(),
 	}
 }
 
@@ -140,8 +137,8 @@ export class SupermemoryInputProcessor implements Processor {
 		const { messages, messageList, requestContext } = args
 
 		// Mastra owns tagged system messages by tag. Clear the previous value on
-		// every invocation so empty, skipped, cached, fresh, and error paths cannot
-		// leave stale Supermemory context behind.
+		// every invocation so empty, skipped, fresh, and error paths cannot leave
+		// stale Supermemory context behind.
 		messageList.clearSystemMessages("supermemory")
 
 		try {
@@ -159,19 +156,6 @@ export class SupermemoryInputProcessor implements Processor {
 			}
 
 			const effectiveThreadId = getEffectiveId(this.ctx, requestContext)
-			const turnKey = MemoryCache.makeTurnKey(
-				this.ctx.namespace,
-				effectiveThreadId,
-				this.ctx.mode,
-				queryText || "",
-			)
-
-			const cachedMemories = this.ctx.memoryCache.get(turnKey)
-			if (cachedMemories) {
-				this.ctx.logger.debug("Using cached memories", { turnKey })
-				messageList.addSystem(wrapMemoryContext(cachedMemories), "supermemory")
-				return messageList
-			}
 
 			this.ctx.logger.info("Starting memory search", {
 				namespace: this.ctx.namespace,
@@ -190,7 +174,6 @@ export class SupermemoryInputProcessor implements Processor {
 			})
 
 			if (memories) {
-				this.ctx.memoryCache.set(turnKey, memories)
 				messageList.addSystem(wrapMemoryContext(memories), "supermemory")
 				this.ctx.logger.debug("Injected memories into system prompt", {
 					length: memories.length,
