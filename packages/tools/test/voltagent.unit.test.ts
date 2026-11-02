@@ -1,6 +1,11 @@
 import { jsonResponse, profileBody } from "./v5-fetch"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createSupermemoryHooks } from "../src/voltagent"
+import {
+	createSupermemoryContext,
+	enhanceMessagesWithMemories,
+} from "../src/voltagent/middleware"
+import type { VoltAgentMessage } from "../src/voltagent/types"
 
 describe("VoltAgent memory context", () => {
 	afterEach(() => vi.unstubAllGlobals())
@@ -41,5 +46,31 @@ describe("VoltAgent memory context", () => {
 		expect(
 			content.match(/<supermemory context="user-memories" readonly>/g),
 		).toHaveLength(1)
+	})
+
+	it("reuses an empty cached result on continuation steps (no new fetch)", async () => {
+		// A new user has nothing in their profile, so the turn caches ""
+		const fetchMock = vi.fn(async () => jsonResponse(profileBody()))
+		vi.stubGlobal("fetch", fetchMock)
+		const ctx = createSupermemoryContext("user-a", {
+			id: "conversation-a",
+			apiKey: "sm_test_key",
+			mode: "profile",
+			addMemory: "never",
+		})
+
+		const userMessage: VoltAgentMessage = { role: "user", content: "Hello" }
+		await enhanceMessagesWithMemories([userMessage], ctx)
+		expect(fetchMock).toHaveBeenCalledTimes(1)
+
+		// Same turn, continuing after an assistant step
+		const continuation: VoltAgentMessage[] = [
+			userMessage,
+			{ role: "assistant", content: "Looking that up" },
+		]
+		await enhanceMessagesWithMemories(continuation, ctx)
+		await enhanceMessagesWithMemories(continuation, ctx)
+
+		expect(fetchMock).toHaveBeenCalledTimes(1)
 	})
 })
