@@ -80,10 +80,20 @@ export class ForceSimulation {
 
 	update(nodes: GraphNode[], edges: GraphEdge[]): void {
 		if (!this.sim) return
+		const structuralEdges = edges.filter((e) => e.edgeType !== "extends")
+		// d3 resolves string endpoints to node objects once and leaves object
+		// endpoints untouched. The nodes passed here are usually fresh copies
+		// (useGraphData rebuilds them on resize, color and drag changes), so an
+		// edge resolved earlier would keep pulling node objects that are no
+		// longer in the simulation. Reset to ids so every endpoint is matched
+		// against the current nodes.
+		for (const edge of structuralEdges) {
+			if (typeof edge.source !== "string") edge.source = edge.source.id
+			if (typeof edge.target !== "string") edge.target = edge.target.id
+		}
 		this.sim.nodes(nodes)
 		const linkForce = this.sim.force<d3.ForceLink<GraphNode, GraphEdge>>("link")
-		if (linkForce)
-			linkForce.links(edges.filter((e) => e.edgeType !== "extends"))
+		if (linkForce) linkForce.links(structuralEdges)
 	}
 
 	reheat(): void {
