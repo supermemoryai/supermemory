@@ -8,6 +8,7 @@ import {
 	BulkDeleteMemoriesSchema,
 	ConnectionResponseSchema,
 	ContainerTagSettingsUpdateSchema,
+	DreamingSchema,
 	CreateProjectSchema,
 	DeleteProjectResponseSchema,
 	DeleteProjectSchema,
@@ -231,6 +232,7 @@ export const apiSchema = createSchema({
 			containerTag: z.string().optional(),
 			entityContext: z.string().max(1500).optional(),
 			metadata: z.record(z.unknown()).optional(),
+			dreaming: DreamingSchema.optional(),
 		}),
 		output: z.object({
 			results: z.array(
