@@ -1,10 +1,16 @@
 import { z } from "zod"
-import { graphViewSchema, type ViewMessage } from "../../shared/types"
+import {
+	type DocumentWithMemories,
+	graphViewSchema,
+	type ViewMessage,
+} from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { optionalNamespaceSchema } from "../namespace"
 import { legacyNamespaceInput, namespaceArg, withLegacyView } from "./compat"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import { textContent, type ToolDeps } from "./types"
+
+const GRAPH_DOCUMENT_LIMIT = 200
 
 export function register(deps: ToolDeps) {
 	const inputSchema = z.object({
@@ -28,8 +34,14 @@ export function register(deps: ToolDeps) {
 				const viewId = crypto.randomUUID()
 				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const client = deps.getClient(namespace)
-				const result = await client.getGraphDocuments(1, 200)
-				const memoryCount = result.documents.reduce(
+				const documents: DocumentWithMemories[] = []
+				let cursor: string | undefined
+				do {
+					const page = await client.getGraphDocuments(cursor)
+					documents.push(...page.documents)
+					cursor = page.nextCursor ?? undefined
+				} while (cursor && documents.length < GRAPH_DOCUMENT_LIMIT)
+				const memoryCount = documents.reduce(
 					(sum, document) => sum + document.memoryEntries.length,
 					0,
 				)
@@ -37,18 +49,18 @@ export function register(deps: ToolDeps) {
 					view: "graph",
 					viewId,
 					namespace,
-					documents: result.documents,
-					totalCount: result.pagination.totalItems,
-					documentCount: result.documents.length,
+					documents,
+					totalCount: documents.length,
+					documentCount: documents.length,
 					memoryCount,
-					totalDocumentCount: result.pagination.totalItems,
-					truncated: result.documents.length < result.pagination.totalItems,
+					totalDocumentCount: documents.length,
+					truncated: Boolean(cursor),
 					rendered: true,
 				})
 				return {
 					content: [
 						textContent(
-							`Rendered the interactive Memory Graph MCP App: ${result.documents.length} documents, ${memoryCount} memories. Space: ${namespace}. Do not create a duplicate graph or artifact unless the user explicitly requests one.`,
+							`Rendered the interactive Memory Graph MCP App: ${documents.length} documents, ${memoryCount} memories. Space: ${namespace}. Do not create a duplicate graph or artifact unless the user explicitly requests one.`,
 						),
 					],
 					structuredContent: sc,
