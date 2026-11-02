@@ -1182,6 +1182,10 @@
 			"destination": "/api-reference/container-tags/delete-container-tag"
 		},
 		{
+			"source": "/api-reference/spaces/update-container-tag-settings",
+			"destination": "/api-reference/container-tags/update-container-tag-settings"
+		},
+		{
 			"source": "/api-reference/graph/get-graph-bounds",
 			"destination": "/concepts/graph-memory"
 		},
