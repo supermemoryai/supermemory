@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next"
-import { DM_Sans } from "next/font/google"
+import localFont from "next/font/local"
 import "./globals.css"
 
-const font = DM_Sans({
-	subsets: ["latin"],
+const font = localFont({
+	src: "./fonts/dm-sans-latin.woff2",
 	variable: "--font-sans",
-	weight: ["400", "500", "600"],
+	weight: "400 600",
 })
 
 export const metadata: Metadata = {
