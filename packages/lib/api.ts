@@ -7,6 +7,7 @@ import {
 	BulkDeleteMemoriesResponseSchema,
 	BulkDeleteMemoriesSchema,
 	ConnectionResponseSchema,
+	ContainerTagProfileResponseSchema,
 	ContainerTagSettingsUpdateSchema,
 	CreateProjectSchema,
 	DeleteProjectResponseSchema,
@@ -312,12 +313,7 @@ export const apiSchema = createSchema({
 		output: ListContainerTagsResponseSchema,
 	},
 	"@get/container-tags/:containerTag/profile": {
-		output: z.object({
-			profile: z.object({
-				static: z.array(z.string()).optional(),
-				dynamic: z.array(z.string()).optional(),
-			}),
-		}),
+		output: ContainerTagProfileResponseSchema,
 		params: z.object({
 			containerTag: z.string(),
 		}),
