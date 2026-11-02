@@ -996,7 +996,7 @@
 			"source": "/cookbook/document-qa"
 		},
 		{
-			"destination": "/",
+			"destination": "/integrations/ai-sdk",
 			"permanent": true,
 			"source": "/cookbook/ai-sdk-integration"
 		},
