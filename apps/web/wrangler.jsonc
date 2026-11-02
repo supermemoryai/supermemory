@@ -21,11 +21,5 @@
 			// The service should match the "name" of your worker
 			"service": "supermemory-app"
 		}
-	],
-	"r2_buckets": [
-		{
-			"binding": "NEXT_INC_CACHE_R2_BUCKET",
-			"bucket_name": "supermemory-console-cache"
-		}
 	]
 }
