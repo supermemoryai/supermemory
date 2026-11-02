@@ -1,12 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import localFont from "next/font/local"
 import "./globals.css"
-
-const font = localFont({
-	src: "./fonts/dm-sans-latin.woff2",
-	variable: "--font-sans",
-	weight: "400 600",
-})
 
 export const metadata: Metadata = {
 	metadataBase: new URL("https://app.supermemory.ai"),
@@ -43,7 +36,7 @@ export default function RootLayout({
 	children,
 }: Readonly<{ children: React.ReactNode }>) {
 	return (
-		<html className={font.variable} lang="en">
+		<html lang="en">
 			<body>{children}</body>
 		</html>
 	)
