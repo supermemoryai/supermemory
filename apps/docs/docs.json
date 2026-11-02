@@ -1,7 +1,7 @@
 {
 	"$schema": "https://mintlify.com/docs.json",
 	"banner": {
-		"content": "**v3 and v4 are deprecated and will be shut down on December 31, 2026.** Move to v5 before then. [Read the migration guide](/migration/api-v5).",
+		"content": "**v3 and v4 are deprecated and will be shut down on December 31, 2026.** Move to v5 before then. [Read the migration guide](https://supermemory.ai/docs/migration/api-v5).",
 		"dismissible": true
 	},
 	"api": {
@@ -10,7 +10,7 @@
 			"languages": ["typescript", "python", "bash"],
 			"prefill": true
 		},
-		"openapi": "https://api.supermemory.ai/v4/openapi"
+		"openapi": "https://api.supermemory.ai/v5/openapi"
 	},
 	"background": {
 		"color": {
@@ -76,7 +76,7 @@
 	"navbar": {
 		"links": [
 			{
-				"href": "https://supermemory.ai/changelog",
+				"href": "https://supermemory.ai/changelog/",
 				"label": "Changelog"
 			},
 			{
@@ -565,6 +565,11 @@
 		]
 	},
 	"redirects": [
+		{
+			"destination": "/connectors/overview",
+			"permanent": true,
+			"source": "/connectors"
+		},
 		{
 			"destination": "/agents-and-mcp",
 			"permanent": true,
