@@ -42,6 +42,28 @@ describe("MCP — transport & auth (raw HTTP)", () => {
 		expect(body.authorization_servers?.length).toBeGreaterThan(0)
 	})
 
+	it("serves an MCP Server Card at the reserved location", async () => {
+		const res = await fetch(`${MCP_URL}/server-card`, {
+			headers: { Accept: "application/mcp-server-card+json" },
+		})
+		expect(res.status).toBe(200)
+		expect(res.headers.get("content-type")).toBe(
+			"application/mcp-server-card+json",
+		)
+		expect(res.headers.get("access-control-allow-origin")).toBe("*")
+		const card = (await res.json()) as {
+			$schema?: string
+			name?: string
+			remotes?: { type?: string; url?: string }[]
+		}
+		expect(card.$schema).toBe(
+			"https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
+		)
+		expect(card.name).toMatch(/^[a-zA-Z0-9.-]+\/[a-zA-Z0-9._-]+$/)
+		expect(card.remotes?.[0]).toMatchObject({ type: "streamable-http" })
+		expect(card.remotes?.[0]?.url).toMatch(/\/mcp$/)
+	})
+
 	it("rejects a request with no token (401 + WWW-Authenticate)", async () => {
 		const res = await fetch(MCP_URL, {
 			method: "POST",
