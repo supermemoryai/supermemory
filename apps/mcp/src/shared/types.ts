@@ -122,12 +122,53 @@ export const paginationSchema = z.object({
 	totalPages: z.number().int().nonnegative(),
 })
 
-export const documentsApiResponseSchema = z.object({
+export const graphDocumentsPageSchema = z.object({
 	documents: z.array(documentWithMemoriesSchema),
-	pagination: paginationSchema,
+	nextCursor: z.string().nullable(),
 })
 
-export type DocumentsApiResponse = z.infer<typeof documentsApiResponseSchema>
+export type GraphDocumentsPage = z.infer<typeof graphDocumentsPageSchema>
+
+const graphApiNodeSchema = z.discriminatedUnion("kind", [
+	z.looseObject({
+		kind: z.literal("document"),
+		id: z.string(),
+		title: z.string().nullable(),
+		summary: z.string().nullable(),
+		type: z.string(),
+		createdAt: z.string(),
+		updatedAt: z.string(),
+	}),
+	z.looseObject({
+		kind: z.literal("memory"),
+		id: z.string(),
+		memory: z.string(),
+		isStatic: z.boolean(),
+		isLatest: z.boolean(),
+		isForgotten: z.boolean(),
+		forgetAfter: z.string().nullable(),
+		forgetReason: z.string().nullable(),
+		version: z.number(),
+		parentMemoryId: z.string().nullable(),
+		rootMemoryId: z.string().nullable(),
+		createdAt: z.string(),
+		updatedAt: z.string(),
+	}),
+])
+
+export const graphApiPageSchema = z.object({
+	nodes: z.array(graphApiNodeSchema),
+	edges: z.array(
+		z.looseObject({
+			type: z.union([z.literal("source"), memoryRelationSchema]),
+			source: z.string(),
+			target: z.string(),
+		}),
+	),
+	nextCursor: z.string().nullable(),
+})
+
+export type GraphApiPage = z.infer<typeof graphApiPageSchema>
 
 // Shared by the client and the list_memories output schema so the two can't drift.
 export const memoryEntryHistorySchema = z.object({
