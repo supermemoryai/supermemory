@@ -234,6 +234,50 @@ describe("Unit: withSupermemory", () => {
 			expect(result.prompt[0]?.content).toContain("Cached memory")
 		})
 
+		it("should reuse an empty cached result on continuation steps (no new fetch)", async () => {
+			// A new user has nothing in their profile, so the turn caches ""
+			fetchMock.mockImplementation(async () =>
+				jsonResponse(createMockProfileResponse()),
+			)
+
+			const ctx = createSupermemoryContext({
+				namespace: TEST_CONFIG.namespace,
+				apiKey: TEST_CONFIG.apiKey,
+				id: "test-id",
+				mode: "profile",
+			})
+
+			const userMessage: LanguageModelV2Message = {
+				role: "user",
+				content: [{ type: "text", text: "Hello" }],
+			}
+			await transformParamsWithMemory({ prompt: [userMessage] }, ctx)
+			expect(fetchMock).toHaveBeenCalledTimes(1)
+
+			// Two tool-call continuation steps in the same turn
+			const continuationParams: LanguageModelV2CallOptions = {
+				prompt: [
+					userMessage,
+					{
+						role: "assistant",
+						content: [
+							{
+								type: "tool-call",
+								toolCallId: "call-1",
+								toolName: "search",
+								input: {},
+							},
+						],
+					} as unknown as LanguageModelV2Message,
+				],
+			}
+			await transformParamsWithMemory(continuationParams, ctx)
+			await transformParamsWithMemory(continuationParams, ctx)
+
+			// Nothing to inject, but the turn was already looked up
+			expect(fetchMock).toHaveBeenCalledTimes(1)
+		})
+
 		it("should refetch memories on new user turn", async () => {
 			let callCount = 0
 			fetchMock.mockImplementation(() => {
