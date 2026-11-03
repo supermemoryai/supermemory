@@ -1,0 +1,126 @@
+---
+title: "Keenable"
+sidebarTitle: "Keenable"
+description: "Search the web and fetch pages as markdown, then remember what matters in Supermemory"
+icon: "/icons/hugeicons/globe-02.svg"
+---
+
+Agents need two things from the web: **find sources**, then **read them**. Firecrawl only does the second. [Keenable](https://keenable.ai) does both in one API — ranked search snippets in well under a second, and the page as clean markdown — so you do not pair a crawler with a separate search vendor.
+
+Use Keenable when the question is not already in memory. Store the pages that should persist with `documentAdd` or `supermemory.add`.
+
+## Why Keenable instead of Firecrawl
+
+| | Firecrawl | Keenable |
+|---|---|---|
+| Web search | No | Ranked titles, URLs, snippets, site and date filters |
+| Page fetch | Live crawl | Indexed copy (fast) or `live=true` (any public URL) |
+| Self-host key | Required (`FIRECRAWL_API_KEY`) or URL ingest fails | Optional — keyless public endpoints work without a signup |
+| Agent output | HTML / markdown scrape | Markdown, optional extraction `prompt` |
+
+That is the replacement: one vendor for the two things agents actually do with the web, and local webpage ingestion that does not depend on a crawler account.
+
+## Setup
+
+```bash
+npm install @supermemory/tools
+```
+
+```bash
+# .env
+SUPERMEMORY_API_KEY=your-supermemory-api-key
+# Optional. Without it, tools call Keenable's public endpoints
+# (rate-limited per IP; identify the app with KEENABLE_TITLE).
+KEENABLE_API_KEY=keen_your_key
+```
+
+Get a Supermemory key from [console.supermemory.ai](https://console.supermemory.ai). Get a Keenable key from [keenable.ai](https://keenable.ai), or skip it for the public path. API reference: [docs.keenable.ai](https://docs.keenable.ai).
+
+## AI SDK
+
+Compose memory tools with `webSearch` and `fetchPage`:
+
+```typescript
+import { generateText, stepCountIs } from "ai"
+import { openai } from "@ai-sdk/openai"
+import { supermemoryTools, keenableTools } from "@supermemory/tools/ai-sdk"
+
+const tools = {
+  ...supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
+    namespace: "user-123",
+  }),
+  ...keenableTools(),
+}
+
+const result = await generateText({
+  model: openai("gpt-5"),
+  messages: [
+    {
+      role: "user",
+      content: "What shipped in the latest Bun release? Remember the highlights.",
+    },
+  ],
+  tools,
+  stopWhen: stepCountIs(8),
+})
+```
+
+Typical loop:
+
+1. `searchMemories` — already stored?
+2. `webSearch` — find sources on the open web
+3. `fetchPage` — read the pages you will cite (`live` defaults to `true`)
+4. `documentAdd` / `addMemory` — keep what should persist
+
+## OpenAI function calling
+
+```typescript
+import OpenAI from "openai"
+import {
+  getToolDefinitions,
+  getKeenableToolDefinitions,
+  createToolCallExecutor,
+  createKeenableToolCallExecutor,
+} from "@supermemory/tools/openai"
+
+const client = new OpenAI()
+const executeMemory = createToolCallExecutor(process.env.SUPERMEMORY_API_KEY!, {
+  namespace: "user-123",
+})
+const executeWeb = createKeenableToolCallExecutor()
+
+const completion = await client.chat.completions.create({
+  model: "gpt-5",
+  messages: [{ role: "user", content: "Summarize the latest Bun release notes." }],
+  tools: [...getToolDefinitions(), ...getKeenableToolDefinitions()],
+})
+```
+
+## Programmatic client
+
+```typescript
+import { createKeenableClient } from "@supermemory/tools/keenable"
+
+const keenable = createKeenableClient()
+
+const { results } = await keenable.search({
+  query: "blog post comparing React and Vue performance",
+  maxResults: 5,
+})
+
+const page = await keenable.fetchPage({
+  url: results[0].url,
+  live: true,
+  prompt: "List the headline performance claims only.",
+})
+
+await supermemory.add("user-123", { content: page.content })
+```
+
+## MCP
+
+Keep the [Supermemory MCP](/supermemory-mcp/mcp) for memory. Add [Keenable's MCP](https://docs.keenable.ai) at `https://api.keenable.ai/mcp` when the same assistant also needs the open web. Two servers, two jobs — memory vs search/fetch — without mixing them into one tool list.
+
+## Self-hosted URL ingestion
+
+The self-hosted server fetches webpage documents through Keenable instead of Firecrawl. Set `KEENABLE_API_KEY` for production; omit it to use the public fetch endpoint. See [Self-hosting configuration](/self-hosting/configuration).

@@ -6,8 +6,9 @@ Pick the entry point for your stack:
 
 | Import | Use it for |
 | --- | --- |
-| `@supermemory/tools/ai-sdk` | Vercel AI SDK: 7 memory tools for `generateText`/`streamText`, plus `withSupermemory` model middleware |
-| `@supermemory/tools/openai` | OpenAI SDK: function-calling tool definitions and executor, plus `withSupermemory` client middleware |
+| `@supermemory/tools/ai-sdk` | Vercel AI SDK: 7 memory tools for `generateText`/`streamText`, plus `withSupermemory` model middleware, plus optional Keenable `webSearch` / `fetchPage` |
+| `@supermemory/tools/openai` | OpenAI SDK: function-calling tool definitions and executor, plus `withSupermemory` client middleware, plus optional Keenable tools |
+| `@supermemory/tools/keenable` | Shared Keenable client (`search` + `fetchPage`) used by the AI SDK and OpenAI tools |
 | `@supermemory/tools/mastra` | Mastra agents: input/output processors or the `withSupermemory` config wrapper |
 | `@supermemory/tools/voltagent` | VoltAgent agents: `withSupermemory` config wrapper built on hooks |
 | `@supermemory/tools/claude-memory` | Claude's native memory tool (`memory_20250818`), stored as Supermemory documents |
@@ -78,6 +79,34 @@ const searchTool = searchMemoriesTool(process.env.SUPERMEMORY_API_KEY!, {
 
 const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
   namespace: "your-user-id",
+})
+```
+
+#### Web search and page fetch (Keenable)
+
+Memory tools recall what you stored. When the agent needs the open web, add Keenable's `webSearch` and `fetchPage` next to them. One provider covers both jobs: ranked search snippets, then the page as markdown. `fetchPage` defaults to a live fetch so it replaces Firecrawl-style scraping of arbitrary public URLs, including pages Keenable has not indexed. A `KEENABLE_API_KEY` is optional; without one the tools use Keenable's keyless public endpoints.
+
+```typescript
+import { supermemoryTools, keenableTools } from "@supermemory/tools/ai-sdk"
+import { generateText, stepCountIs } from "ai"
+
+const tools = {
+  ...supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
+    namespace: "your-user-id",
+  }),
+  ...keenableTools(),
+}
+
+const result = await generateText({
+  model: openai("gpt-5"),
+  messages: [
+    {
+      role: "user",
+      content: "What shipped in the latest Bun release? Remember the highlights.",
+    },
+  ],
+  tools,
+  stopWhen: stepCountIs(8),
 })
 ```
 
@@ -417,6 +446,23 @@ const searchResult = await tools.searchMemories({
 const addResult = await tools.addMemory({
   memory: "User prefers dark roast coffee",
 })
+```
+
+Web search and page fetch are a separate bundle so memory tools stay memory-only:
+
+```typescript
+import {
+  getToolDefinitions,
+  getKeenableToolDefinitions,
+  createToolCallExecutor,
+  createKeenableToolCallExecutor,
+} from "@supermemory/tools/openai"
+
+const tools = [...getToolDefinitions(), ...getKeenableToolDefinitions()]
+const executeMemory = createToolCallExecutor(process.env.SUPERMEMORY_API_KEY!, {
+  namespace: "your-user-id",
+})
+const executeWeb = createKeenableToolCallExecutor()
 ```
 
 ### Mastra Usage

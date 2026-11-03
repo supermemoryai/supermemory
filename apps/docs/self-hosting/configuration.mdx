@@ -42,9 +42,17 @@ For fast/text LLM tasks, the first configured provider in the order above is use
 
 <Note>
 Image and video understanding require a Gemini or Vertex AI key. PDF extraction requires `GEMINI_API_KEY`; Vertex AI doesn't cover it. Text ingestion, memory extraction, and search work with any provider.
-
-Webpage ingestion fetches pages through Firecrawl and needs `FIRECRAWL_API_KEY`. Without it, webpage documents fail. URLs pointing to PDFs or media use their corresponding extractors instead.
 </Note>
+
+### Webpage fetch (Keenable)
+
+Webpage documents are fetched through [Keenable](https://keenable.ai), not Firecrawl. Keenable is a search engine for agents that also returns pages as markdown, so URL ingest and agent web search share one vendor. A key is optional: without `KEENABLE_API_KEY` the server uses the public fetch endpoint (rate-limited per IP). URLs pointing to PDFs or media use their corresponding extractors instead.
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `KEENABLE_API_KEY` | Authenticated Keenable search and fetch | unset (public endpoints) |
+| `KEENABLE_TITLE` | App name on keyless Keenable calls (`X-Keenable-Title`) | `supermemory-local` |
+| `KEENABLE_BASE_URL` | Override the Keenable API origin | `https://api.keenable.ai` |
 
 ### Fully offline with local models
 
@@ -155,6 +163,9 @@ OPENAI_API_KEY=sk-...
 # SUPERMEMORY_EMBEDDING_PROVIDER=openai
 # SUPERMEMORY_EMBEDDING_MODEL=text-embedding-3-small
 # SUPERMEMORY_EMBEDDING_DIMENSIONS=1536
+
+# Optional — webpage fetch via Keenable (public endpoint if unset)
+# KEENABLE_API_KEY=keen_...
 ```
 
 That's enough for full ingestion, memory extraction, and hybrid search with the default local embeddings.

@@ -13,6 +13,10 @@ export const TOOL_DESCRIPTIONS = {
 		"Store a source document for asynchronous processing and automatic memory extraction. Use when the user gives you raw content to ingest — a pasted text blob, conversation transcript, chat history, notes, URL, article link, or other substantial text — rather than a single atomic fact (use addMemory for one short generalizable sentence). The document is queued immediately; Supermemory post-processes it in the background (chunking, embedding, indexing) and extracts profile memories automatically — you do not need to call addMemory for facts buried inside the document. Good for saving full conversations, long-form notes, knowledge-base articles, meeting transcripts, or any large body of text the user wants remembered beyond this chat turn. Processing may take a moment; extracted memories appear in profile/search after indexing completes.",
 	memoryForget:
 		"Soft-forget a single extracted memory (a learned fact) in the configured namespace so it no longer appears in profile or search. Does NOT delete source documents. Provide memoryId from getProfile or from a searchMemories result containing a memory field, or provide memoryContent for an exact text match. Chunk-result IDs from searchMemories are not valid. Use when the user retracts or corrects a specific fact. To remove an entire source, use documentDelete instead.",
+	webSearch:
+		"Search the open web through Keenable. Use for current events, documentation, prices, people, or any fact that is not already in stored memories. Returns ranked titles, URLs, and snippets. Follow with fetchPage to read a source you will cite. This is not searchMemories.",
+	fetchPage:
+		"Fetch a public URL as clean markdown through Keenable. Use after webSearch or when the user names a URL. live defaults to true so unindexed pages still resolve — that is the Firecrawl-style scrape path, without a second vendor. Pass a prompt to extract only the part you need. Call documentAdd with the markdown if it should be remembered.",
 } as const
 
 export const PARAMETER_DESCRIPTIONS = {
@@ -36,4 +40,22 @@ export const PARAMETER_DESCRIPTIONS = {
 		"Memory ID from getProfile or a searchMemories result containing a memory field. Soft-forgets one learned fact; chunk-result and document IDs are not valid.",
 	memoryContent:
 		"Exact text of the memory to forget (alternative to memoryId). Must match precisely; if unsure, call getProfile and use a memory ID.",
+	webSearchQuery:
+		"Natural-language description of the ideal page, not just keywords. Example: 'blog post comparing React and Vue performance'.",
+	webSearchSite: 'Restrict results to one site, e.g. "docs.keenable.ai".',
+	webSearchPublishedAfter:
+		"Only pages published on or after this date (YYYY-MM-DD). Use this for recency, not queryTime.",
+	webSearchPublishedBefore:
+		"Only pages published on or before this date (YYYY-MM-DD).",
+	webSearchMaxResults:
+		"Maximum number of results to return (1-50, default 10).",
+	webSearchMode:
+		"pro (default) for higher-quality results; realtime for the lowest latency.",
+	fetchPageUrl: "Public HTTP or HTTPS URL to read.",
+	fetchPageMaxChars:
+		"Maximum characters of page content to return (default 50000).",
+	fetchPageLive:
+		"When true (default), fetch the live page so URLs Keenable has not indexed still work. Set false to use the indexed copy only.",
+	fetchPagePrompt:
+		"Optional extraction instruction. When set, content is only the answer to this instruction instead of the full page.",
 } as const

@@ -8,7 +8,7 @@
     "dev": "tsdown --watch --ignore-watch .turbo",
     "check-types": "tsc --noEmit",
     "test": "vitest --testTimeout 100000",
-    "test:unit": "vitest run --testTimeout 100000 src/tools-shared.test.ts src/tool-operations.test.ts src/claude-memory.test.ts test/with-supermemory/unit.test.ts test/with-supermemory/conversation-conversion.test.ts test/openai-middleware.unit.test.ts test/mastra/unit.test.ts test/voltagent.unit.test.ts",
+    "test:unit": "vitest run --testTimeout 100000 src/tools-shared.test.ts src/tool-operations.test.ts src/claude-memory.test.ts src/keenable/client.test.ts src/keenable/tools.test.ts test/with-supermemory/unit.test.ts test/with-supermemory/conversation-conversion.test.ts test/openai-middleware.unit.test.ts test/mastra/unit.test.ts test/voltagent.unit.test.ts",
     "test:watch": "vitest --watch --testTimeout 100000",
     "test:compat": "bun test/ai-sdk-compat/run.ts"
   },
@@ -59,6 +59,7 @@
     ".": "./dist/index.js",
     "./ai-sdk": "./dist/ai-sdk.js",
     "./claude-memory": "./dist/claude-memory.js",
+    "./keenable": "./dist/keenable/index.js",
     "./mastra": "./dist/mastra.js",
     "./openai": "./dist/openai/index.js",
     "./voltagent": "./dist/voltagent/index.js",

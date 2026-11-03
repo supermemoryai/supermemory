@@ -25,6 +25,8 @@ Create a `.env` file beside `compose.yaml`, replacing the placeholder with your 
 ```dotenv
 OPENAI_API_KEY=your_openai_api_key_here
 SUPERMEMORY_VERSION=0.0.9
+# Optional — webpage fetch. Public Keenable endpoint is used if unset.
+# KEENABLE_API_KEY=keen_your_key
 ```
 
 You can use `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `GROQ_API_KEY` instead of OpenAI. Keep `.env` private and don’t commit it. Docker runs non-interactively, so there’s no first-boot provider wizard.
@@ -67,7 +69,7 @@ The Compose project name is fixed as `supermemory`. Its named volume, `supermemo
 Don’t run `docker compose down -v` or delete the volume: that removes your stored data and credentials. Keep the project name and volume mapping unchanged when upgrading. Changing the provider or embedding settings is a separate operation.
 </Warning>
 
-The Compose file passes through the provider keys listed above and `FIRECRAWL_API_KEY`. To disable telemetry, add `SUPERMEMORY_DISABLE_TELEMETRY=1` to `.env`. Other [configuration variables](/self-hosting/configuration) need entries in the service’s `environment` block; setting them only in the host shell doesn’t pass them into the container.
+The Compose file passes through the provider keys listed above and `KEENABLE_API_KEY`. To disable telemetry, add `SUPERMEMORY_DISABLE_TELEMETRY=1` to `.env`. Other [configuration variables](/self-hosting/configuration) need entries in the service’s `environment` block; setting them only in the host shell doesn’t pass them into the container.
 
 ## Upgrade an existing installation
 
