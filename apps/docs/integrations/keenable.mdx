@@ -1,15 +1,15 @@
 ---
 title: "Keenable"
 sidebarTitle: "Keenable"
-description: "Search the web and fetch pages as markdown, then remember what matters in Supermemory"
+description: "Compose official Keenable SDKs with Supermemory for web search, page fetch, and memory"
 icon: "/icons/hugeicons/globe-02.svg"
 ---
 
 Agents need two things from the web: **find sources**, then **read them**. Firecrawl only does the second. [Keenable](https://keenable.ai) does both in one API — ranked search snippets in well under a second, and the page as clean markdown — so you do not pair a crawler with a separate search vendor.
 
-**Fetch replaces Firecrawl.** `fetchPage` returns markdown from Keenable's index when the URL is already crawled, or live from the source when it is not (`live=true`, the default). Same job as a scrape, on a 100B+ document index, with a much larger free allowance.
+**Fetch replaces Firecrawl.** Keenable returns markdown from a 100B+ document index, or live from the source when the URL is not indexed (`live=true` on the [fetch API](https://docs.keenable.ai/api-reference/fetch)). Same job as a scrape, with a much larger free allowance.
 
-Use Keenable when the question is not already in memory. Store the pages that should persist with `documentAdd` or `supermemory.add`.
+Use the official Keenable packages next to Supermemory. Memory stays in `@supermemory/tools` / `supermemory`; search and fetch stay in `keenable` / `@keenable/ai-sdk`. Store the pages that should persist with `documentAdd` or `supermemory.add`.
 
 ## Why Keenable instead of Firecrawl
 
@@ -31,15 +31,17 @@ Prices from each vendor's public pricing page. Search and fetch each cost one Ke
 
 ## Setup
 
+Install both official packages. Do not pull web search from `@supermemory/tools` — that package is memory only.
+
 ```bash
-npm install @supermemory/tools
+npm install @supermemory/tools @keenable/ai-sdk keenable
 ```
 
 ```bash
 # .env
 SUPERMEMORY_API_KEY=your-supermemory-api-key
-# Optional. Without it, tools call Keenable's public endpoints
-# (rate-limited per IP; identify the app with KEENABLE_TITLE).
+# Optional. Without it, Keenable uses public endpoints
+# (rate-limited per IP). A key lifts the hourly cap.
 KEENABLE_API_KEY=keen_your_key
 ```
 
@@ -47,18 +49,19 @@ Get a Supermemory key from [console.supermemory.ai](https://console.supermemory.
 
 ## AI SDK
 
-Compose memory tools with `webSearch` and `fetchPage`:
+Compose `supermemoryTools` with [`keenableTools`](https://www.npmjs.com/package/@keenable/ai-sdk) from `@keenable/ai-sdk`. The model sees `keenable_search` and `keenable_fetch`.
 
 ```typescript
 import { generateText, stepCountIs } from "ai"
 import { openai } from "@ai-sdk/openai"
-import { supermemoryTools, keenableTools } from "@supermemory/tools/ai-sdk"
+import { supermemoryTools } from "@supermemory/tools/ai-sdk"
+import { keenableTools } from "@keenable/ai-sdk"
 
 const tools = {
   ...supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
     namespace: "user-123",
   }),
-  ...keenableTools(),
+  ...keenableTools(), // or keenableTools({ apiKey: process.env.KEENABLE_API_KEY })
 }
 
 const result = await generateText({
@@ -77,58 +80,111 @@ const result = await generateText({
 Typical loop:
 
 1. `searchMemories` — already stored?
-2. `webSearch` — find sources on the open web
-3. `fetchPage` — read the pages you will cite (`live` defaults to `true`)
+2. `keenable_search` — find sources on the open web
+3. `keenable_fetch` — read the pages you will cite
 4. `documentAdd` / `addMemory` — keep what should persist
+
+To add only one Keenable tool, import `keenableSearch` or `keenableFetch` instead of the pair.
 
 ## OpenAI function calling
 
+Compose Supermemory's executor with the official [`keenable`](https://www.npmjs.com/package/keenable) `TOOLS` and `runToolCall`.
+
 ```typescript
 import OpenAI from "openai"
+import { Keenable, TOOLS, runToolCall } from "keenable"
 import {
   getToolDefinitions,
-  getKeenableToolDefinitions,
   createToolCallExecutor,
-  createKeenableToolCallExecutor,
 } from "@supermemory/tools/openai"
 
 const client = new OpenAI()
+const keenable = new Keenable() // reads KEENABLE_API_KEY, or new Keenable({ apiKey })
 const executeMemory = createToolCallExecutor(process.env.SUPERMEMORY_API_KEY!, {
   namespace: "user-123",
 })
-const executeWeb = createKeenableToolCallExecutor()
+
+const messages = [
+  { role: "user" as const, content: "Summarize the latest Bun release notes." },
+]
 
 const completion = await client.chat.completions.create({
   model: "gpt-5",
-  messages: [{ role: "user", content: "Summarize the latest Bun release notes." }],
-  tools: [...getToolDefinitions(), ...getKeenableToolDefinitions()],
+  messages,
+  tools: [...getToolDefinitions(), ...TOOLS],
 })
+
+for (const toolCall of completion.choices[0]?.message.tool_calls ?? []) {
+  if (toolCall.type !== "function") continue
+  const content =
+    toolCall.function.name.startsWith("keenable_")
+      ? await runToolCall(
+          keenable,
+          toolCall.function.name,
+          toolCall.function.arguments,
+        )
+      : await executeMemory(toolCall)
+  messages.push({
+    role: "tool",
+    tool_call_id: toolCall.id,
+    content,
+  })
+}
 ```
+
+`TOOLS` exposes `keenable_search` and `keenable_fetch`. Both return a numbered, citable block.
 
 ## Programmatic client
 
+Use the official SDK when you are not going through tool calling. Search results already carry extracted page text in `snippet`; call `fetch` when you need the full page as markdown.
+
 ```typescript
-import { createKeenableClient } from "@supermemory/tools/keenable"
+import { Keenable } from "keenable"
+import { Supermemory } from "supermemory"
 
-const keenable = createKeenableClient()
-
-const { results } = await keenable.search({
-  query: "blog post comparing React and Vue performance",
-  maxResults: 5,
+const keenable = new Keenable()
+const supermemory = new Supermemory({
+  apiKey: process.env.SUPERMEMORY_API_KEY,
 })
 
-const page = await keenable.fetchPage({
-  url: results[0].url,
-  live: true,
-  prompt: "List the headline performance claims only.",
-})
+const results = await keenable.search(
+  "blog post comparing React and Vue performance",
+  { maxResults: 5 },
+)
+
+const page = await keenable.fetch(results.results[0].url)
 
 await supermemory.add("user-123", { content: page.content })
 ```
 
+For a URL Keenable has not indexed, the [REST fetch](https://docs.keenable.ai/api-reference/fetch) takes `live=true` so the live page still resolves — that is the Firecrawl-style scrape path, without a second vendor.
+
+```python
+from keenable import Keenable
+from supermemory import Supermemory
+
+keenable = Keenable()  # or Keenable("keen_...") / set KEENABLE_API_KEY
+supermemory = Supermemory()
+
+results = keenable.search("blog post comparing React and Vue performance")
+page = keenable.fetch(next(iter(results)).url)
+supermemory.add("user-123", content=page.content)
+```
+
+## Mastra
+
+Compose `@supermemory/tools/mastra` memory with [`@keenable/mastra`](https://www.npmjs.com/package/@keenable/mastra) search and fetch:
+
+```typescript
+import { createKeenableTools } from "@keenable/mastra"
+
+const tools = createKeenableTools() // reads KEENABLE_API_KEY; or { apiKey: "keen_..." }
+// exposes keenable-search and keenable-fetch
+```
+
 ## MCP
 
-Keep the [Supermemory MCP](/supermemory-mcp/mcp) for memory. Add [Keenable's MCP](https://docs.keenable.ai) at `https://api.keenable.ai/mcp` when the same assistant also needs the open web. Two servers, two jobs — memory vs search/fetch — without mixing them into one tool list.
+Keep the [Supermemory MCP](/supermemory-mcp/mcp) for memory. Add [Keenable's MCP](https://docs.keenable.ai/mcp-server) at `https://api.keenable.ai/mcp` when the same assistant also needs the open web. Two servers, two jobs — memory vs search/fetch — without mixing them into one tool list.
 
 ## Self-hosted URL ingestion
 

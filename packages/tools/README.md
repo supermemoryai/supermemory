@@ -6,9 +6,8 @@ Pick the entry point for your stack:
 
 | Import | Use it for |
 | --- | --- |
-| `@supermemory/tools/ai-sdk` | Vercel AI SDK: 7 memory tools for `generateText`/`streamText`, plus `withSupermemory` model middleware, plus optional Keenable `webSearch` / `fetchPage` |
-| `@supermemory/tools/openai` | OpenAI SDK: function-calling tool definitions and executor, plus `withSupermemory` client middleware, plus optional Keenable tools |
-| `@supermemory/tools/keenable` | Shared Keenable client (`search` + `fetchPage`) used by the AI SDK and OpenAI tools |
+| `@supermemory/tools/ai-sdk` | Vercel AI SDK: 7 memory tools for `generateText`/`streamText`, plus `withSupermemory` model middleware |
+| `@supermemory/tools/openai` | OpenAI SDK: function-calling tool definitions and executor, plus `withSupermemory` client middleware |
 | `@supermemory/tools/mastra` | Mastra agents: input/output processors or the `withSupermemory` config wrapper |
 | `@supermemory/tools/voltagent` | VoltAgent agents: `withSupermemory` config wrapper built on hooks |
 | `@supermemory/tools/claude-memory` | Claude's native memory tool (`memory_20250818`), stored as Supermemory documents |
@@ -84,17 +83,18 @@ const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 
 #### Web search and page fetch (Keenable)
 
-Memory tools recall what you stored. When the agent needs the open web, add Keenable's `webSearch` and `fetchPage` next to them. One provider covers both jobs: ranked search over a 100B+ document index, then the page as markdown. `fetchPage` defaults to a live fetch so it replaces Firecrawl-style scraping of arbitrary public URLs, including pages Keenable has not indexed. Authenticated usage includes 100,000 free requests a month, then $4 / 1,000 ($1 / 1,000 at dedicated 100+ RPS). A `KEENABLE_API_KEY` is optional; without one the tools use Keenable's keyless public endpoints.
+Memory tools recall what you stored. When the agent needs the open web, compose the official [`@keenable/ai-sdk`](https://www.npmjs.com/package/@keenable/ai-sdk) tools next to them — do not import search or fetch from this package. One provider covers both jobs: ranked search over a 100B+ document index, then the page as markdown. Authenticated usage includes 100,000 free requests a month, then $4 / 1,000 ($1 / 1,000 at dedicated 100+ RPS). A `KEENABLE_API_KEY` is optional; without one the tools use Keenable's keyless public endpoints.
 
 ```typescript
-import { supermemoryTools, keenableTools } from "@supermemory/tools/ai-sdk"
+import { supermemoryTools } from "@supermemory/tools/ai-sdk"
+import { keenableTools } from "@keenable/ai-sdk"
 import { generateText, stepCountIs } from "ai"
 
 const tools = {
   ...supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
     namespace: "your-user-id",
   }),
-  ...keenableTools(),
+  ...keenableTools(), // or keenableTools({ apiKey: process.env.KEENABLE_API_KEY })
 }
 
 const result = await generateText({
@@ -109,6 +109,8 @@ const result = await generateText({
   stopWhen: stepCountIs(8),
 })
 ```
+
+For OpenAI function calling, compose `getToolDefinitions()` with `TOOLS` and `runToolCall` from [`keenable`](https://www.npmjs.com/package/keenable). Docs: [supermemory.ai/docs/integrations/keenable](https://supermemory.ai/docs/integrations/keenable).
 
 #### AI SDK Middleware with Supermemory
 
@@ -446,23 +448,6 @@ const searchResult = await tools.searchMemories({
 const addResult = await tools.addMemory({
   memory: "User prefers dark roast coffee",
 })
-```
-
-Web search and page fetch are a separate bundle so memory tools stay memory-only:
-
-```typescript
-import {
-  getToolDefinitions,
-  getKeenableToolDefinitions,
-  createToolCallExecutor,
-  createKeenableToolCallExecutor,
-} from "@supermemory/tools/openai"
-
-const tools = [...getToolDefinitions(), ...getKeenableToolDefinitions()]
-const executeMemory = createToolCallExecutor(process.env.SUPERMEMORY_API_KEY!, {
-  namespace: "your-user-id",
-})
-const executeWeb = createKeenableToolCallExecutor()
 ```
 
 ### Mastra Usage

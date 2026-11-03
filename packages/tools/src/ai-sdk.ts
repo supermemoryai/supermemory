@@ -1,7 +1,5 @@
 import { tool } from "ai"
 import { z } from "zod"
-import { createKeenableClient } from "./keenable/client"
-import type { KeenableToolsConfig } from "./keenable/types"
 import {
 	DEFAULT_VALUES,
 	PARAMETER_DESCRIPTIONS,
@@ -304,117 +302,6 @@ export function supermemoryTools(
 	}
 }
 
-export const webSearchTool = (config?: KeenableToolsConfig) => {
-	const client = createKeenableClient(config)
-
-	return tool({
-		description: TOOL_DESCRIPTIONS.webSearch,
-		inputSchema: z.object({
-			query: z.string().describe(PARAMETER_DESCRIPTIONS.webSearchQuery),
-			site: z
-				.string()
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.webSearchSite),
-			publishedAfter: z
-				.string()
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.webSearchPublishedAfter),
-			publishedBefore: z
-				.string()
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.webSearchPublishedBefore),
-			maxResults: z.coerce
-				.number()
-				.int()
-				.min(SEARCH_LIMIT_BOUNDS.min)
-				.max(SEARCH_LIMIT_BOUNDS.max)
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.webSearchMaxResults),
-			mode: z
-				.enum(["pro", "realtime"])
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.webSearchMode),
-		}),
-		execute: async ({
-			query,
-			site,
-			publishedAfter,
-			publishedBefore,
-			maxResults,
-			mode,
-		}) => {
-			try {
-				const response = await client.search({
-					query,
-					site,
-					publishedAfter,
-					publishedBefore,
-					maxResults,
-					mode,
-				})
-				return {
-					success: true,
-					query: response.query,
-					mode: response.mode,
-					results: response.results,
-					count: response.results?.length || 0,
-				}
-			} catch (error) {
-				return toolError(error)
-			}
-		},
-	})
-}
-
-export const fetchPageTool = (config?: KeenableToolsConfig) => {
-	const client = createKeenableClient(config)
-
-	return tool({
-		description: TOOL_DESCRIPTIONS.fetchPage,
-		inputSchema: z.object({
-			url: z.string().describe(PARAMETER_DESCRIPTIONS.fetchPageUrl),
-			maxChars: z.coerce
-				.number()
-				.int()
-				.min(1)
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.fetchPageMaxChars),
-			live: z
-				.boolean()
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.fetchPageLive),
-			prompt: z
-				.string()
-				.max(2000)
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.fetchPagePrompt),
-		}),
-		execute: async ({ url, maxChars, live, prompt }) => {
-			try {
-				const page = await client.fetchPage({ url, maxChars, live, prompt })
-				return {
-					success: true,
-					url: page.url,
-					title: page.title,
-					description: page.description,
-					author: page.author,
-					content: page.content,
-					publishedAt: page.published_at,
-				}
-			} catch (error) {
-				return toolError(error)
-			}
-		},
-	})
-}
-
-export function keenableTools(config?: KeenableToolsConfig) {
-	return {
-		webSearch: webSearchTool(config),
-		fetchPage: fetchPageTool(config),
-	}
-}
-
 // `./vercel` is not a published subpath, so this is the only way consumers reach the middleware types.
 export {
 	withSupermemory,
@@ -423,4 +310,3 @@ export {
 	type MemoryPromptData,
 } from "./vercel"
 export { getNamespace } from "./tools-shared"
-export type { KeenableToolsConfig } from "./keenable/types"

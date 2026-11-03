@@ -156,7 +156,7 @@ const model = withSupermemory(openai("gpt-5"), {
 
 ## Memory tools
 
-Add memory capabilities to AI agents. `supermemoryTools` returns seven tools: `searchMemories`, `addMemory`, `getProfile`, `documentList`, `documentAdd`, `documentDelete`, and `memoryForget`. Spread `keenableTools()` next to them when the agent also needs the open web — see [Keenable](/integrations/keenable).
+Add memory capabilities to AI agents. `supermemoryTools` returns seven tools: `searchMemories`, `addMemory`, `getProfile`, `documentList`, `documentAdd`, `documentDelete`, and `memoryForget`. Spread `keenableTools()` from [`@keenable/ai-sdk`](https://www.npmjs.com/package/@keenable/ai-sdk) next to them when the agent also needs the open web — see [Keenable](/integrations/keenable).
 
 ```typescript
 import { streamText } from "ai"
