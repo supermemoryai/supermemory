@@ -8,6 +8,10 @@ Memory-enhanced conversational AI pipelines with [Supermemory](https://supermemo
 pip install supermemory-pipecat
 ```
 
+Version 0.2.0 requires the Supermemory Python SDK v5. When upgrading from
+0.1.x, pass `namespace=` instead of `user_id=`. Use the same namespace for
+all memory operations belonging to one user, project, or tenant.
+
 ## Quick Start
 
 ```python
@@ -19,7 +23,7 @@ from supermemory_pipecat import SupermemoryPipecatService
 # Create memory service
 memory = SupermemoryPipecatService(
     api_key=os.getenv("SUPERMEMORY_API_KEY"),
-    user_id="user-123",  # Required: used as container_tag
+    namespace="user-123",  # Required: scopes all memory calls
     session_id="conversation-456",  # Optional: groups memories by session
 )
 
@@ -45,7 +49,7 @@ pipeline = Pipeline([
 
 | Parameter    | Type        | Required | Description                                                |
 | ------------ | ----------- | -------- | ---------------------------------------------------------- |
-| `user_id`    | str         | **Yes**  | User identifier - used as container_tag for memory scoping |
+| `namespace`  | str         | **Yes**  | Namespace for memory scoping (for example, a user ID)       |
 | `session_id` | str         | No       | Session/conversation ID for grouping memories              |
 | `api_key`    | str         | No       | Supermemory API key (or set `SUPERMEMORY_API_KEY` env var) |
 | `params`     | InputParams | No       | Advanced configuration                                     |
@@ -57,7 +61,7 @@ pipeline = Pipeline([
 from supermemory_pipecat import SupermemoryPipecatService
 
 memory = SupermemoryPipecatService(
-    user_id="user-123",
+    namespace="user-123",
     session_id="conv-456",
     params=SupermemoryPipecatService.InputParams(
         search_limit=10,           # Max memories to retrieve
@@ -81,7 +85,7 @@ memory = SupermemoryPipecatService(
 
 1. **Intercepts context frames** - Listens for Pipecat's universal `LLMContextFrame` (and legacy 0.x frames)
 2. **Tracks conversation** - Separates real conversation messages from tagged memory context
-3. **Retrieves memories** - Queries `/v4/profile` API with user's message
+3. **Retrieves memories** - Reads the v5 profile and, in `query` or `full` mode, searches the same namespace for the user's message
 4. **Injects memories** - Uses a system message for audio/system mode and a tagged user message otherwise
 5. **Stores messages** - Serializes newly observed user and assistant messages through a background queue that drains during cleanup
 
@@ -98,13 +102,12 @@ User: What's the weather like today?
 Assistant: It's sunny today.
 ```
 
-is sent to Supermemory as:
+is added to the `user-123` namespace as:
 
 ```json
 {
   "content": "[{\"role\": \"user\", \"content\": \"What's the weather like today?\"}, {\"role\": \"assistant\", \"content\": \"It's sunny today.\"}]",
-  "container_tags": ["user-123"],
-  "custom_id": "conversation-456",
+  "id": "conversation-456",
   "metadata": { "platform": "pipecat" }
 }
 ```
@@ -148,7 +151,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
     # Supermemory memory service
     memory = SupermemoryPipecatService(
-        user_id="alice",
+        namespace="alice",
         session_id="session-123",
     )
 

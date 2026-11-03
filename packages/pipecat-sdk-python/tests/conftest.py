@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import sys
 import types
+from importlib.util import find_spec
 
 
 def _install_test_stubs() -> None:
-    if "loguru" not in sys.modules:
+    if "loguru" not in sys.modules and find_spec("loguru") is None:
         loguru_module = types.ModuleType("loguru")
 
         class _Logger:
@@ -20,7 +21,7 @@ def _install_test_stubs() -> None:
         loguru_module.logger = _Logger()
         sys.modules["loguru"] = loguru_module
 
-    if "pydantic" not in sys.modules:
+    if "pydantic" not in sys.modules and find_spec("pydantic") is None:
         pydantic_module = types.ModuleType("pydantic")
 
         class BaseModel:
@@ -35,7 +36,7 @@ def _install_test_stubs() -> None:
         pydantic_module.Field = Field
         sys.modules["pydantic"] = pydantic_module
 
-    if "pipecat" not in sys.modules:
+    if "pipecat" not in sys.modules and find_spec("pipecat") is None:
         pipecat_module = types.ModuleType("pipecat")
         sys.modules["pipecat"] = pipecat_module
 
@@ -88,9 +89,7 @@ def _install_test_stubs() -> None:
 
         sys.modules["pipecat.frames.frames"] = frames_module
         sys.modules["pipecat.processors.aggregators.llm_context"] = llm_context_module
-        sys.modules[
-            "pipecat.processors.aggregators.openai_llm_context"
-        ] = openai_context_module
+        sys.modules["pipecat.processors.aggregators.openai_llm_context"] = openai_context_module
         sys.modules["pipecat.processors.frame_processor"] = frame_processor_module
 
 

@@ -10,7 +10,7 @@ Example:
     # Create memory service
     memory = SupermemoryPipecatService(
         api_key=os.getenv("SUPERMEMORY_API_KEY"),
-        user_id="user-123",
+        namespace="user-123",
     )
 
     # Add to Pipecat pipeline
@@ -48,7 +48,7 @@ try:
     __version__ = version("supermemory-pipecat")
 except PackageNotFoundError:
     # Source-tree fallback; built wheels always use package metadata above.
-    __version__ = "0.1.5"
+    __version__ = "0.2.0"
 
 __all__ = [
     # Main service

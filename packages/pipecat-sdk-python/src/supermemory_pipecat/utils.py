@@ -4,7 +4,6 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Union
 
-
 _DYNAMIC_DATE_PREFIX = re.compile(
     r"^\s*(?:\[recent\]\s*)?(?:\[\d{4}-\d{2}-\d{2}\]\s*)?",
     re.IGNORECASE,
@@ -74,7 +73,7 @@ def _field(item: Any, *names: str, default: Any = None) -> Any:
     """Read a field from a dict or pydantic/SDK model.
 
     Accepts camelCase and snake_case names so helpers work with both raw JSON
-    dicts and Stainless-generated response models.
+    dicts and generated SDK response models.
     """
     if item is None:
         return default
@@ -135,7 +134,7 @@ def deduplicate_memories(
     def unique_search(results: List[Any]) -> List[Any]:
         out: List[Any] = []
         for r in results:
-            # v4 search.memories/hybrid uses `memory` or `chunk`.
+            # v5 search results can contain a memory or a source chunk.
             memory = _memory_text(r)
             key = comparison_key(memory)
             if key and key not in seen:
