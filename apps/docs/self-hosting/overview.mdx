@@ -41,7 +41,7 @@ OPENAI_MODEL=gpt-oss:20b \
 supermemory-server
 ```
 
-Local graph engine, local embeddings, local LLM. Text-memory processing can stay on your machine after the embedding model's first download. Supermemory collects telemetry; you can disable it with `SUPERMEMORY_DISABLE_TELEMETRY=1`. Webpage ingestion sends the URL to Firecrawl and needs `FIRECRAWL_API_KEY`; use local text inputs for offline operation. Also set `SUPERMEMORY_NO_UPDATE_CHECK=1` if the server must not check for releases.
+Local graph engine, local embeddings, local LLM. Text-memory processing can stay on your machine after the embedding model's first download. Supermemory collects telemetry; you can disable it with `SUPERMEMORY_DISABLE_TELEMETRY=1`. Webpage ingestion sends the URL to [Keenable](https://keenable.ai) (`KEENABLE_API_KEY`, or Keenable's public fetch endpoint if unset); use local text inputs for offline operation. Also set `SUPERMEMORY_NO_UPDATE_CHECK=1` if the server must not check for releases.
 
 ## Drop-in with your existing code
 
