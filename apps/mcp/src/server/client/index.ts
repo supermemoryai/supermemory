@@ -7,10 +7,11 @@ import type {
 	SearchResponseResultsItem,
 } from "supermemory"
 import {
-	documentsApiResponseSchema,
 	type DocumentMemoryEntry,
-	type DocumentsApiResponse,
 	type DocumentWithMemories,
+	type GraphApiPage,
+	type GraphDocumentsPage,
+	graphApiPageSchema,
 	type MemoriesList,
 	type MemoryEntry,
 	type MemoryEntryHistory,
@@ -22,6 +23,7 @@ export const DEFAULT_NAMESPACE = "sm_project_default"
 const FETCH_TIMEOUT_MS = 30_000
 const MCP_SOURCE = "supermemory-mcp"
 const NAMESPACE_PAGE_LIMIT = 100
+export const GRAPH_PAGE_LIMIT = 100
 // v4 defaults; v5 lowered the threshold to 0.3.
 const SEARCH_THRESHOLD = 0.6
 // Analytics matches on this text to tag quota errors, keep them in sync.
@@ -31,7 +33,7 @@ export const OUT_OF_CREDITS_MESSAGE =
 export type {
 	DocumentMemoryEntry,
 	DocumentWithMemories,
-	DocumentsApiResponse,
+	GraphDocumentsPage,
 	NamespaceInfo,
 }
 
@@ -169,6 +171,66 @@ export interface NamespaceSettings {
 	supportingContext: string | null
 	createdAt: string
 	updatedAt: string
+}
+
+// Folds the v5 node/edge graph back into documents with nested memories, mirroring console-v2's use-graph-api.
+function toGraphDocuments(page: GraphApiPage): DocumentWithMemories[] {
+	const memories = new Map<
+		string,
+		Extract<GraphApiPage["nodes"][number], { kind: "memory" }>
+	>()
+	for (const node of page.nodes) {
+		if (node.kind === "memory") memories.set(node.id, node)
+	}
+	const sources = new Map<string, string[]>()
+	const relations = new Map<
+		string,
+		NonNullable<DocumentMemoryEntry["memoryRelations"]>
+	>()
+	for (const edge of page.edges) {
+		if (edge.type === "source") {
+			sources.set(edge.source, [
+				...(sources.get(edge.source) ?? []),
+				edge.target,
+			])
+			continue
+		}
+		relations.set(edge.target, {
+			...relations.get(edge.target),
+			[edge.source]: edge.type,
+		})
+	}
+	return page.nodes.flatMap((node) => {
+		if (node.kind !== "document") return []
+		return {
+			id: node.id,
+			title: node.title,
+			summary: node.summary,
+			type: node.type,
+			createdAt: node.createdAt,
+			updatedAt: node.updatedAt,
+			memoryEntries: (sources.get(node.id) ?? []).flatMap((memoryId) => {
+				const mem = memories.get(memoryId)
+				if (!mem) return []
+				return {
+					id: mem.id,
+					memory: mem.memory,
+					spaceId: "",
+					isStatic: mem.isStatic,
+					isLatest: mem.isLatest,
+					isForgotten: mem.isForgotten,
+					forgetAfter: mem.forgetAfter,
+					forgetReason: mem.forgetReason,
+					version: mem.version,
+					parentMemoryId: mem.parentMemoryId,
+					rootMemoryId: mem.rootMemoryId,
+					memoryRelations: relations.get(mem.id) ?? {},
+					createdAt: mem.createdAt,
+					updatedAt: mem.updatedAt,
+				}
+			}),
+		}
+	})
 }
 
 const isNotFound = (error: unknown): boolean => {
@@ -315,28 +377,27 @@ export class SupermemoryClient {
 		}
 	}
 
-	// v5 has no graph route; this stays on the legacy endpoint until one ships.
+	// The namespace graph feed is a hidden v5 route, so it isn't in the SDK.
 	async getGraphDocuments(
-		page = 1,
-		limit = 200,
+		cursor?: string,
+		limit = GRAPH_PAGE_LIMIT,
 		options?: { signal?: AbortSignal },
-	): Promise<DocumentsApiResponse> {
+	): Promise<GraphDocumentsPage> {
 		try {
 			const signal = options?.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS)
-			const response = await fetch(`${this.apiUrl}/v3/documents/documents`, {
+			const url = new URL(
+				`${this.apiUrl}/ns/${encodeURIComponent(this.namespace)}/graph`,
+			)
+			url.searchParams.set("limit", String(limit))
+			if (cursor) url.searchParams.set("cursor", cursor)
+			const response = await fetch(url, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${this.bearerToken}`,
 					"Content-Type": "application/json",
 					"x-sm-source": MCP_SOURCE,
 				},
-				body: JSON.stringify({
-					page,
-					limit,
-					sort: "createdAt",
-					order: "desc",
-					containerTags: [this.namespace],
-				}),
+				body: "{}",
 				signal,
 			})
 			if (!response.ok) {
@@ -345,7 +406,8 @@ export class SupermemoryClient {
 					status: response.status,
 				})
 			}
-			return documentsApiResponseSchema.parse(await response.json())
+			const page = graphApiPageSchema.parse(await response.json())
+			return { documents: toGraphDocuments(page), nextCursor: page.nextCursor }
 		} catch (error) {
 			this.handleError(error)
 		}

@@ -1,5 +1,6 @@
 import { z } from "zod"
-import { documentsApiResponseSchema } from "../../shared/types"
+import { graphDocumentsPageSchema } from "../../shared/types"
+import { GRAPH_PAGE_LIMIT } from "../client"
 import { appToolMeta } from "../app-metadata"
 import { optionalNamespaceSchema } from "../namespace"
 import { legacyNamespaceInput, namespaceArg } from "./compat"
@@ -14,10 +15,16 @@ export function register(deps: ToolDeps) {
 			inputSchema: z.object({
 				namespace: optionalNamespaceSchema,
 				...legacyNamespaceInput,
-				page: z.number().int().min(1).max(10_000).optional().default(1),
-				limit: z.number().int().min(1).max(1_000).optional().default(200),
+				cursor: z.string().min(1).max(2048).optional(),
+				limit: z
+					.number()
+					.int()
+					.min(1)
+					.max(GRAPH_PAGE_LIMIT)
+					.optional()
+					.default(GRAPH_PAGE_LIMIT),
 			}),
-			outputSchema: documentsApiResponseSchema,
+			outputSchema: graphDocumentsPageSchema,
 			annotations: READ_ONLY_TOOL_ANNOTATIONS,
 			_meta: appToolMeta(["app"]),
 		},
@@ -25,7 +32,7 @@ export function register(deps: ToolDeps) {
 			try {
 				const namespace = await deps.resolveNamespace(namespaceArg(args))
 				const client = deps.getClient(namespace)
-				const data = await client.getGraphDocuments(args.page, args.limit)
+				const data = await client.getGraphDocuments(args.cursor, args.limit)
 
 				return {
 					content: [

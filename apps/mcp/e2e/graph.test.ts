@@ -31,18 +31,16 @@ describeWithAuth("MCP — graph, resources & prompts", () => {
 		expect(result.data.documentCount).toBe(result.data.documents.length)
 	})
 
-	it("fetch-graph-data returns paginated documents", async () => {
-		const res = await callTool(s.client, "fetch-graph-data", {
-			page: 1,
-			limit: 5,
-		})
+	it("fetch-graph-data returns cursor-paginated documents", async () => {
+		const res = await callTool(s.client, "fetch-graph-data", { limit: 5 })
 		expect(res.isError).toBeFalsy()
 		const sc = res.structuredContent as {
 			documents?: unknown[]
-			pagination?: { limit?: number }
+			nextCursor?: string | null
 		}
 		expect(Array.isArray(sc?.documents)).toBe(true)
-		expect(sc?.pagination?.limit).toBe(5)
+		expect(sc?.documents?.length).toBeLessThanOrEqual(5)
+		expect(sc).toHaveProperty("nextCursor")
 	})
 
 	it("reads the profile resource", async () => {

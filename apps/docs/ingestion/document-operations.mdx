@@ -66,7 +66,9 @@ Retrieve paginated documents with filtering. One `list` call serves documents, c
     "currentPage": 1,
     "limit": 10,
     "totalItems": 25,
-    "totalPages": 3
+    "totalPages": 3,
+    "hasMore": true,
+    "nextCursor": "eyJ2IjoxLCJrIjpb..."
   }
 }
 ```
@@ -82,6 +84,7 @@ Every response contains `documents`, `chunks`, `memories`, and `pagination`. Onl
 | `type` | string | required | `documents`, `chunks`, or `memories` |
 | `limit` | number | 10 | Items per page (maximum 100) |
 | `page` | number | 1 | Page number |
+| `cursor` | string | — | `pagination.nextCursor` from the previous response. Takes precedence over `page`. Keep `filter`, `sort`, `order`, and `limit` the same as the request that returned it |
 | `sort` | string | `createdAt` | `createdAt` or `updatedAt` for documents and memories; `createdAt` or `position` for chunks |
 | `order` | string | `desc` | `desc` (newest) or `asc` (oldest) |
 | `body.filter` | object | — | Metadata filter. See [Organizing & Filtering](/concepts/filtering) |
@@ -102,20 +105,22 @@ curl -X POST "https://api.supermemory.ai/ns/user_123/list/documents?limit=10" \
 `content` is `null` until the first extraction publishes. When you replace a file, the previous text remains until the new extraction publishes. It also remains if the replacement fails. Including content can make pages large.
 
 <Accordion title="Pagination example">
+  Follow `pagination.nextCursor` to walk a long list. Cursor pages skip the total count and stay fast deep into the list. `cursor` needs the TypeScript SDK 5.1.1 or newer.
+
   ```typescript
   async function getAllDocuments(namespace: string) {
     const all = [];
-    let page = 1;
+    let cursor: string | undefined;
 
     while (true) {
       const { documents, pagination } = await supermemory.list(namespace, "documents", {
         limit: 100,
-        page,
+        cursor,
       });
 
       all.push(...documents);
-      if (page >= pagination.totalPages) break;
-      page++;
+      if (!pagination.nextCursor) break;
+      cursor = pagination.nextCursor;
     }
 
     return all;
