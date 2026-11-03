@@ -227,35 +227,21 @@ class SupermemoryPipecatService(FrameProcessor):
             )
 
         try:
-            include_profile = self.params.mode != "query"
-            include_search = self.params.mode != "profile" and bool(query)
-            profile_response = None
-            search_response = None
-
-            if include_profile and include_search:
-                profile_response, search_response = await asyncio.gather(
-                    self._supermemory_client.profile(self.container_tag),
-                    self._supermemory_client.search(
-                        self.container_tag,
-                        query=query,
-                        search_mode="memories",
-                        limit=self.params.search_limit,
-                        threshold=self.params.search_threshold,
-                    ),
-                )
-            elif include_profile:
-                profile_response = await self._supermemory_client.profile(self.container_tag)
-            elif include_search:
-                search_response = await self._supermemory_client.search(
-                    self.container_tag,
+            calls: Dict[str, Any] = {}
+            if self.params.mode != "query":
+                calls["profile"] = self._supermemory_client.profile(self.user_id)
+            if self.params.mode != "profile" and query:
+                calls["search"] = self._supermemory_client.search(
+                    self.user_id,
                     query=query,
                     search_mode="memories",
                     limit=self.params.search_limit,
                     threshold=self.params.search_threshold,
                 )
+            responses = dict(zip(calls, await asyncio.gather(*calls.values())))
 
-            profile = _field(profile_response, "profile")
-            search_results = list(_field(search_response, "results", default=[]) or [])
+            profile = _field(responses.get("profile"), "profile")
+            search_results = list(_field(responses.get("search"), "results", default=[]) or [])
 
             return {
                 "profile": {
@@ -293,7 +279,7 @@ class SupermemoryPipecatService(FrameProcessor):
             if self.session_id:
                 add_params["id"] = self.session_id
 
-            await self._supermemory_client.add(self.container_tag, **add_params)
+            await self._supermemory_client.add(self.user_id, **add_params)
 
         except Exception as e:
             raise MemoryStorageError("Failed to store messages", e) from e

@@ -4,10 +4,6 @@ from __future__ import annotations
 
 import unittest
 
-from .test_empty_profile import _install_test_stubs
-
-_install_test_stubs()
-
 import supermemory_pipecat
 from supermemory_pipecat import InputParams, SupermemoryPipecatService
 
