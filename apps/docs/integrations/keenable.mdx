@@ -7,18 +7,27 @@ icon: "/icons/hugeicons/globe-02.svg"
 
 Agents need two things from the web: **find sources**, then **read them**. Firecrawl only does the second. [Keenable](https://keenable.ai) does both in one API — ranked search snippets in well under a second, and the page as clean markdown — so you do not pair a crawler with a separate search vendor.
 
+**Fetch replaces Firecrawl.** `fetchPage` returns markdown from Keenable's index when the URL is already crawled, or live from the source when it is not (`live=true`, the default). Same job as a scrape, on a 100B+ document index, with a much larger free allowance.
+
 Use Keenable when the question is not already in memory. Store the pages that should persist with `documentAdd` or `supermemory.add`.
 
 ## Why Keenable instead of Firecrawl
 
-| | Firecrawl | Keenable |
-|---|---|---|
-| Web search | No | Ranked titles, URLs, snippets, site and date filters |
-| Page fetch | Live crawl | Indexed copy (fast) or `live=true` (any public URL) |
-| Self-host key | Required (`FIRECRAWL_API_KEY`) or URL ingest fails | Optional — keyless public endpoints work without a signup |
-| Agent output | HTML / markdown scrape | Markdown, optional extraction `prompt` |
+Keenable is a search engine that also fetches. Firecrawl is a live crawler with no web index of its own. Replacing Firecrawl with Keenable gives URL ingest a pre-built index **and** a live fallback, plus search on the same key.
 
-That is the replacement: one vendor for the two things agents actually do with the web, and local webpage ingestion that does not depend on a crawler account.
+| | [Firecrawl](https://www.firecrawl.dev/pricing) | [Keenable](https://keenable.ai/pricing) |
+|---|---|---|
+| Web index | None — every scrape hits the live page | **100B+ documents**, p95 under 250ms (US East) |
+| Page fetch | Live scrape only | Indexed copy, or `live=true` for any public URL |
+| Web search | Add-on (2 credits / 10 results) | First-class; same credit as a fetch |
+| Free monthly quota | **1,000** scrape credits | **100,000** requests (search or fetch) |
+| After the free quota | Paid plan: Hobby $19 / 5k, Standard $99 / 100k. Hobby overage **$5 / 1,000** | No seat — **$4 / 1,000** requests |
+| High volume (100+ RPS) | Scale $749/mo, overage $1 / 1,000 | Dedicated **$1 / 1,000** |
+| Self-host without a key | URL ingest fails | Public fetch endpoint (rate-limited per IP) |
+
+A self-host or product user who ingests 100,000 pages a month pays **$99** on Firecrawl Standard and **$0** on Keenable's recurring free allowance. After that, pay-as-you-go is $4 / 1,000 instead of buying a seat; at 100+ RPS the dedicated rate is $1 / 1,000 — Firecrawl's Scale overage, without the $749 plan. Search and fetch share the same credit, so agent research does not need a second vendor.
+
+Prices from each vendor's public pricing page. Search and fetch each cost one Keenable credit; see [Keenable credits](https://docs.keenable.ai/credits).
 
 ## Setup
 

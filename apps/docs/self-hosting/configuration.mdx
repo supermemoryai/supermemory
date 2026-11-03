@@ -46,7 +46,7 @@ Image and video understanding require a Gemini or Vertex AI key. PDF extraction 
 
 ### Webpage fetch (Keenable)
 
-Webpage documents are fetched through [Keenable](https://keenable.ai), not Firecrawl. Keenable is a search engine for agents that also returns pages as markdown, so URL ingest and agent web search share one vendor. A key is optional: without `KEENABLE_API_KEY` the server uses the public fetch endpoint (rate-limited per IP). URLs pointing to PDFs or media use their corresponding extractors instead.
+Webpage documents are fetched through [Keenable](https://keenable.ai), not Firecrawl. Keenable serves pages from a 100B+ document index (or live with `live=true`), so URL ingest does not need a separate crawler. Authenticated keys include **100,000 free requests a month**, then $4 / 1,000 — or $1 / 1,000 at dedicated 100+ RPS. Firecrawl's free plan is 1,000 scrape credits; matching 100k pages there is the $99 Standard plan. A key is optional: without `KEENABLE_API_KEY` the server uses the public fetch endpoint (rate-limited per IP). URLs pointing to PDFs or media use their corresponding extractors instead. See [Keenable](/integrations/keenable).
 
 | Variable | Purpose | Default |
 |---|---|---|

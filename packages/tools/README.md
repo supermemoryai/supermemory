@@ -84,7 +84,7 @@ const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 
 #### Web search and page fetch (Keenable)
 
-Memory tools recall what you stored. When the agent needs the open web, add Keenable's `webSearch` and `fetchPage` next to them. One provider covers both jobs: ranked search snippets, then the page as markdown. `fetchPage` defaults to a live fetch so it replaces Firecrawl-style scraping of arbitrary public URLs, including pages Keenable has not indexed. A `KEENABLE_API_KEY` is optional; without one the tools use Keenable's keyless public endpoints.
+Memory tools recall what you stored. When the agent needs the open web, add Keenable's `webSearch` and `fetchPage` next to them. One provider covers both jobs: ranked search over a 100B+ document index, then the page as markdown. `fetchPage` defaults to a live fetch so it replaces Firecrawl-style scraping of arbitrary public URLs, including pages Keenable has not indexed. Authenticated usage includes 100,000 free requests a month, then $4 / 1,000 ($1 / 1,000 at dedicated 100+ RPS). A `KEENABLE_API_KEY` is optional; without one the tools use Keenable's keyless public endpoints.
 
 ```typescript
 import { supermemoryTools, keenableTools } from "@supermemory/tools/ai-sdk"
