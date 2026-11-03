@@ -133,7 +133,7 @@ class SupermemoryPipecatService(FrameProcessor):
 
         memory = SupermemoryPipecatService(
             api_key=os.getenv("SUPERMEMORY_API_KEY"),
-            namespace="user-123",
+            user_id="user-123",
         )
         ```
     """
@@ -159,7 +159,7 @@ class SupermemoryPipecatService(FrameProcessor):
         self,
         *,
         api_key: Optional[str] = None,
-        namespace: str,
+        user_id: str,
         session_id: Optional[str] = None,
         params: Optional[InputParams] = None,
         base_url: Optional[str] = None,
@@ -168,13 +168,13 @@ class SupermemoryPipecatService(FrameProcessor):
 
         Args:
             api_key: Supermemory API key. Falls back to SUPERMEMORY_API_KEY env var.
-            namespace: The user, project, or tenant namespace for memory scoping.
+            user_id: User identifier passed as the v5 namespace for memory scoping.
             session_id: Session/conversation ID for grouping memories.
             params: Configuration parameters for memory retrieval.
             base_url: Optional custom base URL for Supermemory API.
 
         Raises:
-            ConfigurationError: If API key or namespace is missing.
+            ConfigurationError: If API key or user_id is missing.
         """
         super().__init__()
 
@@ -184,10 +184,11 @@ class SupermemoryPipecatService(FrameProcessor):
                 "API key is required. Provide api_key parameter or set SUPERMEMORY_API_KEY environment variable."
             )
 
-        if not namespace:
-            raise ConfigurationError("namespace is required")
+        if not user_id:
+            raise ConfigurationError("user_id is required")
 
-        self.namespace = namespace
+        self.user_id = user_id
+        self.container_tag = user_id
         self.session_id = session_id
         self.params = params or SupermemoryPipecatService.InputParams()
 
@@ -233,9 +234,9 @@ class SupermemoryPipecatService(FrameProcessor):
 
             if include_profile and include_search:
                 profile_response, search_response = await asyncio.gather(
-                    self._supermemory_client.profile(self.namespace),
+                    self._supermemory_client.profile(self.container_tag),
                     self._supermemory_client.search(
-                        self.namespace,
+                        self.container_tag,
                         query=query,
                         search_mode="memories",
                         limit=self.params.search_limit,
@@ -243,10 +244,10 @@ class SupermemoryPipecatService(FrameProcessor):
                     ),
                 )
             elif include_profile:
-                profile_response = await self._supermemory_client.profile(self.namespace)
+                profile_response = await self._supermemory_client.profile(self.container_tag)
             elif include_search:
                 search_response = await self._supermemory_client.search(
-                    self.namespace,
+                    self.container_tag,
                     query=query,
                     search_mode="memories",
                     limit=self.params.search_limit,
@@ -292,7 +293,7 @@ class SupermemoryPipecatService(FrameProcessor):
             if self.session_id:
                 add_params["id"] = self.session_id
 
-            await self._supermemory_client.add(self.namespace, **add_params)
+            await self._supermemory_client.add(self.container_tag, **add_params)
 
         except Exception as e:
             raise MemoryStorageError("Failed to store messages", e) from e

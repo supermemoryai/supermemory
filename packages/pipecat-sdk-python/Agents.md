@@ -20,7 +20,7 @@ Place `SupermemoryPipecatService` between context aggregator and LLM in the pipe
 from supermemory_pipecat import SupermemoryPipecatService
 
 memory = SupermemoryPipecatService(
-    namespace="user-123",     # Required: scopes all memory calls
+    user_id="user-123",     # Required: scopes all memory calls
     session_id="session-456", # Optional: groups conversations
 )
 
@@ -41,7 +41,7 @@ pipeline = Pipeline([
 ```python
 memory = SupermemoryPipecatService(
     api_key="...",             # Or use SUPERMEMORY_API_KEY env var
-    namespace="user-123",
+    user_id="user-123",
     session_id="session-456",
     params=SupermemoryPipecatService.InputParams(
         search_limit=10,       # Max memories to retrieve
@@ -68,5 +68,5 @@ memory = SupermemoryPipecatService(
 ## Boundaries
 
 - Always place memory service after `context_aggregator.user()` and before `llm`
-- Always provide `namespace` - it's required
+- Always provide `user_id` - it's required
 - Never hardcode API keys in code - use environment variables

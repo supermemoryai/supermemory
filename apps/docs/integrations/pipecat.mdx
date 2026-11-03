@@ -15,8 +15,9 @@ To use Supermemory with Pipecat, install the required dependencies:
 pip install supermemory-pipecat
 ```
 
-Version 0.2.0 uses the Supermemory Python SDK v5. If upgrading from 0.1.x,
-replace `user_id=` with `namespace=` when constructing the service.
+Version 0.2.0 uses the Supermemory Python SDK v5. Keep using `user_id=`;
+the service passes that value as the namespace for profile, search, and writes.
+`session_id` is passed as the v5 document `id` (previously `custom_id`).
 
 Set up your API key as an environment variable:
 
@@ -35,7 +36,7 @@ from supermemory_pipecat import InputParams, SupermemoryPipecatService
 
 memory = SupermemoryPipecatService(
     api_key=os.getenv("SUPERMEMORY_API_KEY"),
-    namespace="unique_user_id",
+    user_id="unique_user_id",
     session_id="session_123",
     params=InputParams(
         mode="full",            # "profile" | "query" | "full"
@@ -132,7 +133,7 @@ from supermemory_pipecat import SupermemoryPipecatService
 # Auto-detection works out of the box
 memory = SupermemoryPipecatService(
     api_key=os.getenv("SUPERMEMORY_API_KEY"),
-    namespace="unique_user_id",
+    user_id="unique_user_id",
 )
 ```
 
@@ -169,7 +170,7 @@ You remember information from past conversations and use it to provide personali
 Keep responses brief and conversational."""
 
 
-async def run_bot(websocket_client, namespace: str, session_id: str):
+async def run_bot(websocket_client, user_id: str, session_id: str):
     transport = FastAPIWebsocketTransport(
         websocket=websocket_client,
         params=FastAPIWebsocketParams(
@@ -188,7 +189,7 @@ async def run_bot(websocket_client, namespace: str, session_id: str):
 
     # Supermemory memory service
     memory = SupermemoryPipecatService(
-        namespace=namespace,
+        user_id=user_id,
         session_id=session_id,
         params=InputParams(
             mode="full",
@@ -224,7 +225,7 @@ async def run_bot(websocket_client, namespace: str, session_id: str):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    await run_bot(websocket, namespace="alice", session_id="session-123")
+    await run_bot(websocket, user_id="alice", session_id="session-123")
 
 
 if __name__ == "__main__":

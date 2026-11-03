@@ -8,9 +8,9 @@ Memory-enhanced conversational AI pipelines with [Supermemory](https://supermemo
 pip install supermemory-pipecat
 ```
 
-Version 0.2.0 requires the Supermemory Python SDK v5. When upgrading from
-0.1.x, pass `namespace=` instead of `user_id=`. Use the same namespace for
-all memory operations belonging to one user, project, or tenant.
+Version 0.2.0 requires the Supermemory Python SDK v5. Keep using `user_id=`;
+the service passes that value as the namespace for profile, search, and writes.
+`session_id` is passed as the v5 document `id` (previously `custom_id`).
 
 ## Quick Start
 
@@ -23,7 +23,7 @@ from supermemory_pipecat import SupermemoryPipecatService
 # Create memory service
 memory = SupermemoryPipecatService(
     api_key=os.getenv("SUPERMEMORY_API_KEY"),
-    namespace="user-123",  # Required: scopes all memory calls
+    user_id="user-123",  # Required: scopes all memory calls
     session_id="conversation-456",  # Optional: groups memories by session
 )
 
@@ -49,7 +49,7 @@ pipeline = Pipeline([
 
 | Parameter    | Type        | Required | Description                                                |
 | ------------ | ----------- | -------- | ---------------------------------------------------------- |
-| `namespace`  | str         | **Yes**  | Namespace for memory scoping (for example, a user ID)       |
+| `user_id`    | str         | **Yes**  | User identifier passed as the v5 namespace for memory scoping |
 | `session_id` | str         | No       | Session/conversation ID for grouping memories              |
 | `api_key`    | str         | No       | Supermemory API key (or set `SUPERMEMORY_API_KEY` env var) |
 | `params`     | InputParams | No       | Advanced configuration                                     |
@@ -61,7 +61,7 @@ pipeline = Pipeline([
 from supermemory_pipecat import SupermemoryPipecatService
 
 memory = SupermemoryPipecatService(
-    namespace="user-123",
+    user_id="user-123",
     session_id="conv-456",
     params=SupermemoryPipecatService.InputParams(
         search_limit=10,           # Max memories to retrieve
@@ -151,7 +151,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
     # Supermemory memory service
     memory = SupermemoryPipecatService(
-        namespace="alice",
+        user_id="alice",
         session_id="session-123",
     )
 

@@ -10,7 +10,7 @@ Example:
     # Create memory service
     memory = SupermemoryPipecatService(
         api_key=os.getenv("SUPERMEMORY_API_KEY"),
-        namespace="user-123",
+        user_id="user-123",
     )
 
     # Add to Pipecat pipeline

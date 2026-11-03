@@ -70,11 +70,7 @@ def format_relative_time(iso_timestamp: str) -> str:
 
 
 def _field(item: Any, *names: str, default: Any = None) -> Any:
-    """Read a field from a dict or pydantic/SDK model.
-
-    Accepts camelCase and snake_case names so helpers work with both raw JSON
-    dicts and generated SDK response models.
-    """
+    """Accept alternative field names across raw JSON and SDK response models."""
     if item is None:
         return default
     if isinstance(item, dict):
@@ -134,7 +130,6 @@ def deduplicate_memories(
     def unique_search(results: List[Any]) -> List[Any]:
         out: List[Any] = []
         for r in results:
-            # v5 search results can contain a memory or a source chunk.
             memory = _memory_text(r)
             key = comparison_key(memory)
             if key and key not in seen:

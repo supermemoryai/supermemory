@@ -97,6 +97,7 @@ def _install_test_stubs() -> None:
 _install_test_stubs()
 
 from supermemory_pipecat.service import SupermemoryPipecatService
+from supermemory_pipecat.exceptions import ConfigurationError
 
 
 class _MockSupermemoryClient:
@@ -107,8 +108,69 @@ class _MockSupermemoryClient:
 
 
 class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
+    def test_user_id_and_legacy_attribute_are_preserved(self) -> None:
+        service = SupermemoryPipecatService(api_key="mock_key", user_id="user-123")
+
+        self.assertEqual(service.user_id, "user-123")
+        self.assertEqual(service.container_tag, "user-123")
+
+    def test_empty_user_id_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ConfigurationError, "^user_id is required$"):
+            SupermemoryPipecatService(api_key="mock_key", user_id="")
+
+    async def test_real_v5_client_serializes_user_id_as_namespace(self) -> None:
+        import json
+
+        import httpx
+        from supermemory import AsyncSupermemory
+
+        requests = {}
+
+        def respond(request):
+            requests[request.url.path] = json.loads(request.content)
+            if request.url.path.endswith("/profile"):
+                payload = {"profile": {"static": [{"memory": "Likes tea"}], "dynamic": []}}
+            elif request.url.path.endswith("/search"):
+                payload = {"results": [{"memory": "Plans a trip"}]}
+            else:
+                payload = {"id": "conversation-456"}
+            return httpx.Response(200, json=payload)
+
+        async with AsyncSupermemory(
+            api_key="mock_key",
+            base_url="https://example.test",
+            http_client=httpx.AsyncClient(transport=httpx.MockTransport(respond)),
+        ) as client:
+            service = SupermemoryPipecatService(
+                api_key="mock_key", user_id="user-123", session_id="conversation-456"
+            )
+            service._supermemory_client = client
+
+            result = await service._retrieve_memories("Where am I going?")
+            await service._store_messages([{"role": "user", "content": "Hello"}])
+
+        self.assertEqual(result["profile"], {"static": ["Likes tea"], "dynamic": []})
+        self.assertEqual(result["search_results"][0].memory, "Plans a trip")
+        self.assertEqual(
+            requests,
+            {
+                "/ns/user-123/profile": {},
+                "/ns/user-123/search": {
+                    "query": "Where am I going?",
+                    "searchMode": "memories",
+                    "limit": 10,
+                    "threshold": 0.1,
+                },
+                "/ns/user-123/document": {
+                    "content": '[{"role": "user", "content": "Hello"}]',
+                    "metadata": {"platform": "pipecat"},
+                    "id": "conversation-456",
+                },
+            },
+        )
+
     async def test_retrieve_memories_handles_null_profile(self) -> None:
-        service = SupermemoryPipecatService(api_key="mock_key", namespace="new_user_123")
+        service = SupermemoryPipecatService(api_key="mock_key", user_id="new_user_123")
 
         client = _MockSupermemoryClient(
             profile_response=SimpleNamespace(profile=None),
@@ -135,7 +197,7 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_full_mode_reads_v5_profile_objects_and_search_results(self) -> None:
-        service = SupermemoryPipecatService(api_key="mock_key", namespace="user-123")
+        service = SupermemoryPipecatService(api_key="mock_key", user_id="user-123")
         client = _MockSupermemoryClient(
             profile_response=SimpleNamespace(
                 profile=SimpleNamespace(
@@ -171,7 +233,7 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
     async def test_query_mode_only_searches(self) -> None:
         service = SupermemoryPipecatService(
             api_key="mock_key",
-            namespace="user-123",
+            user_id="user-123",
             params=SupermemoryPipecatService.InputParams(
                 mode="query", search_limit=3, search_threshold=0.5
             ),
@@ -194,7 +256,7 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
     async def test_profile_mode_only_reads_profile(self) -> None:
         service = SupermemoryPipecatService(
             api_key="mock_key",
-            namespace="user-123",
+            user_id="user-123",
             params=SupermemoryPipecatService.InputParams(mode="profile"),
         )
         client = _MockSupermemoryClient(
@@ -213,7 +275,7 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
 
     async def test_store_uses_namespace_and_document_id(self) -> None:
         service = SupermemoryPipecatService(
-            api_key="mock_key", namespace="user-123", session_id="conversation-456"
+            api_key="mock_key", user_id="user-123", session_id="conversation-456"
         )
         client = _MockSupermemoryClient()
         service._supermemory_client = client
@@ -231,7 +293,7 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
         fact = "User likes machine learning projects"
         service = SupermemoryPipecatService(
             api_key="mock_key",
-            namespace="user-123",
+            user_id="user-123",
             session_id="conversation-456",
             params=SupermemoryPipecatService.InputParams(mode="query"),
         )
@@ -264,7 +326,7 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
         fact = "User's repo is at C:" + backslash + "Users" + backslash + "alice"
         service = SupermemoryPipecatService(
             api_key="mock_key",
-            namespace="user-123",
+            user_id="user-123",
             session_id="conversation-456",
             params=SupermemoryPipecatService.InputParams(inject_mode="system"),
         )
