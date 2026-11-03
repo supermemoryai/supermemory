@@ -5,7 +5,10 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk"
-import { createClaudeMemoryTool } from "./claude-memory"
+import {
+	createClaudeMemoryTool,
+	type MemoryCommand,
+} from "../src/claude-memory"
 import "dotenv/config"
 
 /**
@@ -44,7 +47,7 @@ async function chatWithMemoryTool() {
 		},
 	]
 
-	console.log("💬 User:", messages[0].content)
+	console.log("💬 User:", messages[0]?.content)
 	console.log("\n🔄 Sending to Claude with memory tool...")
 
 	try {
@@ -71,9 +74,10 @@ async function chatWithMemoryTool() {
 			if (block.type === "text") {
 				console.log("💭", block.text)
 			} else if (block.type === "tool_use" && block.name === "memory") {
+				const input = block.input as { command?: unknown; path?: unknown }
 				console.log("🔧 Claude is using memory tool:")
-				console.log("   Command:", block.input.command)
-				console.log("   Path:", block.input.path)
+				console.log("   Command:", input.command)
+				console.log("   Path:", input.path)
 
 				// Handle the memory tool call
 				const memoryResult = await memoryTool.handleCommand(block.input as any)
@@ -109,7 +113,8 @@ async function chatWithMemoryTool() {
 			// Add Claude's response to conversation
 			messages.push({
 				role: "assistant",
-				content: response.content,
+				content:
+					response.content as unknown as Anthropic.Messages.ContentBlockParam[],
 			})
 
 			// Add tool results
@@ -137,9 +142,10 @@ async function chatWithMemoryTool() {
 				if (block.type === "text") {
 					console.log("💭", block.text)
 				} else if (block.type === "tool_use" && block.name === "memory") {
+					const input = block.input as { command?: unknown; path?: unknown }
 					console.log("🔧 Claude is using memory tool again:")
-					console.log("   Command:", block.input.command)
-					console.log("   Path:", block.input.path)
+					console.log("   Command:", input.command)
+					console.log("   Path:", input.path)
 
 					// Handle additional memory tool calls
 					const memoryResult = await memoryTool.handleCommand(
@@ -179,7 +185,7 @@ async function testMemoryOperations() {
 		namespace: "direct-test",
 	})
 
-	const testCases = [
+	const testCases: { name: string; command: MemoryCommand }[] = [
 		{
 			name: "View empty memory directory",
 			command: { command: "view" as const, path: "/memories" },

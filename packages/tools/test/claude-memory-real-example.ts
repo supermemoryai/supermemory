@@ -4,7 +4,10 @@
  * This shows actual tool call handling based on real Claude API responses
  */
 
-import { createClaudeMemoryTool, type MemoryCommand } from "./claude-memory"
+import {
+	createClaudeMemoryTool,
+	type MemoryCommand,
+} from "../src/claude-memory"
 
 // =====================================================
 // Real Claude API Integration

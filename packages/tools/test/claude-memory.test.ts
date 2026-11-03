@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest"
-import { createClaudeMemoryTool, type MemoryCommand } from "./claude-memory"
+import {
+	createClaudeMemoryTool,
+	type MemoryCommand,
+} from "../src/claude-memory"
 import "dotenv/config"
 
 // Test configuration
