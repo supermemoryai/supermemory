@@ -84,6 +84,24 @@ describe("ForceSimulation", () => {
 		sim.destroy()
 	})
 
+	it("update re-resolves link endpoints against the new node objects", () => {
+		const sim = new ForceSimulation()
+		const nodes = [makeNode("a", 0, 0), makeNode("b", 300, 0)]
+		const edges = [makeEdge("a", "b")]
+		sim.init(nodes, edges)
+		sim.stop()
+
+		// useGraphData hands the simulation fresh copies of every node whenever
+		// the canvas size, colors or dragging state change, with the same edges
+		const next = nodes.map((n) => ({ ...n }))
+		sim.update(next, edges)
+
+		const [edge] = edges
+		expect(edge?.source).toBe(next[0])
+		expect(edge?.target).toBe(next[1])
+		sim.destroy()
+	})
+
 	it("reheat increases simulation energy", () => {
 		const sim = new ForceSimulation()
 		const nodes = [makeNode("a", 0, 0)]
