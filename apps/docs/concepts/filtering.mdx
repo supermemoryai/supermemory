@@ -136,6 +136,8 @@ filter: { field: "status", operator: "eq", value: "published" }
 
 String conditions accept an optional `caseSensitive` boolean. Numeric values are JSON numbers, not numeric strings.
 
+When a metadata field holds a list, `eq` matches if any item equals the value and `neq` excludes the memory if any item equals it. With `tags: ["work", "q4"]`, `{ field: "tags", operator: "eq", value: "work" }` matches and `{ field: "tags", operator: "neq", value: "work" }` does not. `arrayContains` and `arrayNotContains` ask the same question explicitly and only apply to list fields; use them when you want a filter that reads as list membership.
+
 ### Combining filters
 
 Nest `and` and `or` nodes for complex queries:
@@ -162,7 +164,7 @@ const results = await supermemory.search("user_123", {
 
 ### Excluding results
 
-Use the negative operators (`neq`, `notContains`, `arrayNotContains`) to exclude matches:
+Use the negative operators (`neq`, `notContains`, `arrayNotContains`) to exclude matches. On a list field, `neq` excludes a memory when any item equals the value:
 
 ```typescript
 const results = await supermemory.search("user_123", {

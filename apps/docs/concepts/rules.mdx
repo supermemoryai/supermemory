@@ -218,7 +218,7 @@ curl -X POST "https://api.supermemory.ai/ns/org-supermemory/document" \
 
 </CodeGroup>
 
-> Tip: `group` (called `filterByMetadata` in v3/v4) ensures a fact like "the team prefers TypeScript" is only built on top of the engineering team's knowledge.
+> Tip: `group` (called `filterByMetadata` in v3/v4) ensures a fact like "the team prefers TypeScript" is only built on top of the engineering team's knowledge. A group value matches memories that hold it as a scalar or as an item in a list, so `group: { team: "Engineering" }` also builds on memories tagged `team: ["Engineering", "Platform"]`.
 
 Later, the research team ingests this into the same namespace (`POST /ns/org-supermemory/document`) but with different `metadata`:
 
