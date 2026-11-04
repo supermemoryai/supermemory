@@ -23,6 +23,7 @@ from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 from .exceptions import ConfigurationError, MemoryRetrievalError, MemoryStorageError
 from .utils import (
     _field,
+    _memory_text,
     deduplicate_memories,
     escape_memory_delimiters,
     format_memories_to_text,
@@ -167,13 +168,13 @@ class SupermemoryPipecatService(FrameProcessor):
 
         Args:
             api_key: Supermemory API key. Falls back to SUPERMEMORY_API_KEY env var.
-            user_id: The user ID - used as container_tag for memory scoping.
+            user_id: User identifier passed as the v5 namespace for memory scoping.
             session_id: Session/conversation ID for grouping memories.
             params: Configuration parameters for memory retrieval.
             base_url: Optional custom base URL for Supermemory API.
 
         Raises:
-            ConfigurationError: If API key is missing or user_id not provided.
+            ConfigurationError: If API key or user_id is missing.
         """
         super().__init__()
 
@@ -226,25 +227,44 @@ class SupermemoryPipecatService(FrameProcessor):
             )
 
         try:
-            # One profile call: static + dynamic, and (when mode/query allow)
-            # search_results via `q`. This is the intended profile API shape.
-            kwargs: Dict[str, Any] = {"container_tag": self.container_tag}
+            calls: Dict[str, Any] = {}
+            if self.params.mode != "query":
+                calls["profile"] = self._supermemory_client.profile(self.user_id)
             if self.params.mode != "profile" and query:
-                kwargs["q"] = query
-                kwargs["threshold"] = self.params.search_threshold
+                calls["search"] = self._supermemory_client.search(
+                    self.user_id,
+                    query=query,
+                    search_mode="memories",
+                    limit=min(self.params.search_limit, 100),
+                    threshold=self.params.search_threshold,
+                )
+            results = await asyncio.gather(*calls.values(), return_exceptions=True)
+            responses = {}
+            for name, result in zip(calls, results):
+                if isinstance(result, asyncio.CancelledError):
+                    raise result
+                if isinstance(result, Exception):
+                    logger.warning(f"Supermemory {name} failed: {result}")
+                else:
+                    responses[name] = result
+            if calls and not responses:
+                raise results[0]
 
-            response = await self._supermemory_client.profile(**kwargs)
-
-            profile = _field(response, "profile")
-            search_results_response = _field(response, "search_results", "searchResults")
-
-            raw_search_results = _field(search_results_response, "results", default=[]) or []
-            search_results = list(raw_search_results)[: self.params.search_limit]
+            profile = _field(responses.get("profile"), "profile")
+            search_results = list(_field(responses.get("search"), "results", default=[]) or [])
 
             return {
                 "profile": {
-                    "static": list(_field(profile, "static", default=[]) or []),
-                    "dynamic": list(_field(profile, "dynamic", default=[]) or []),
+                    "static": [
+                        text
+                        for item in _field(profile, "static", default=[]) or []
+                        if (text := _memory_text(item))
+                    ],
+                    "dynamic": [
+                        text
+                        for item in _field(profile, "dynamic", default=[]) or []
+                        if (text := _memory_text(item))
+                    ],
                 },
                 "search_results": search_results,
             }
@@ -264,13 +284,12 @@ class SupermemoryPipecatService(FrameProcessor):
         try:
             add_params: Dict[str, Any] = {
                 "content": json.dumps(messages),
-                "container_tags": [self.container_tag],
                 "metadata": {"platform": "pipecat"},
             }
             if self.session_id:
-                add_params["custom_id"] = self.session_id
+                add_params["id"] = self.session_id
 
-            await self._supermemory_client.add(**add_params)
+            await self._supermemory_client.add(self.user_id, **add_params)
 
         except Exception as e:
             raise MemoryStorageError("Failed to store messages", e) from e

@@ -4,7 +4,6 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Union
 
-
 _DYNAMIC_DATE_PREFIX = re.compile(
     r"^\s*(?:\[recent\]\s*)?(?:\[\d{4}-\d{2}-\d{2}\]\s*)?",
     re.IGNORECASE,
@@ -71,11 +70,7 @@ def format_relative_time(iso_timestamp: str) -> str:
 
 
 def _field(item: Any, *names: str, default: Any = None) -> Any:
-    """Read a field from a dict or pydantic/SDK model.
-
-    Accepts camelCase and snake_case names so helpers work with both raw JSON
-    dicts and Stainless-generated response models.
-    """
+    """Accept alternative field names across raw JSON and SDK response models."""
     if item is None:
         return default
     if isinstance(item, dict):
@@ -135,7 +130,6 @@ def deduplicate_memories(
     def unique_search(results: List[Any]) -> List[Any]:
         out: List[Any] = []
         for r in results:
-            # v4 search.memories/hybrid uses `memory` or `chunk`.
             memory = _memory_text(r)
             key = comparison_key(memory)
             if key and key not in seen:
@@ -184,7 +178,9 @@ def format_memories_to_text(
                 continue
 
             memory = _memory_text(item)
-            updated_at = _field(item, "updatedAt", "updated_at", default="")
+            updated_at = _field(item, "updatedAt", "updated_at") or _field(
+                _field(item, "system"), "updatedAt", "updated_at", default=""
+            )
             time_str = format_relative_time(updated_at) if updated_at else ""
             if time_str:
                 lines.append(f"- [{time_str}] {memory}")

@@ -10,7 +10,7 @@ from supermemory_pipecat.utils import (
 
 
 class TestSearchResultExtraction(unittest.TestCase):
-    """v4 hybrid search returns chunk hits whose `memory` field is empty."""
+    """Search can return chunk hits whose `memory` field is empty."""
 
     def test_falls_through_to_chunk_when_memory_is_empty(self) -> None:
         result = deduplicate_memories(
