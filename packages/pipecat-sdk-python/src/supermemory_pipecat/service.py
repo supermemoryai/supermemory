@@ -235,10 +235,20 @@ class SupermemoryPipecatService(FrameProcessor):
                     self.user_id,
                     query=query,
                     search_mode="memories",
-                    limit=self.params.search_limit,
+                    limit=min(self.params.search_limit, 100),
                     threshold=self.params.search_threshold,
                 )
-            responses = dict(zip(calls, await asyncio.gather(*calls.values())))
+            results = await asyncio.gather(*calls.values(), return_exceptions=True)
+            responses = {}
+            for name, result in zip(calls, results):
+                if isinstance(result, asyncio.CancelledError):
+                    raise result
+                if isinstance(result, Exception):
+                    logger.warning(f"Supermemory {name} failed: {result}")
+                else:
+                    responses[name] = result
+            if calls and not responses:
+                raise results[0]
 
             profile = _field(responses.get("profile"), "profile")
             search_results = list(_field(responses.get("search"), "results", default=[]) or [])

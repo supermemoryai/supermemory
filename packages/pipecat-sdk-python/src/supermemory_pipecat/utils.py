@@ -178,7 +178,9 @@ def format_memories_to_text(
                 continue
 
             memory = _memory_text(item)
-            updated_at = _field(item, "updatedAt", "updated_at", default="")
+            updated_at = _field(item, "updatedAt", "updated_at") or _field(
+                _field(item, "system"), "updatedAt", "updated_at", default=""
+            )
             time_str = format_relative_time(updated_at) if updated_at else ""
             if time_str:
                 lines.append(f"- [{time_str}] {memory}")
