@@ -136,6 +136,8 @@ filter: { field: "status", operator: "eq", value: "published" }
 
 String conditions accept an optional `caseSensitive` boolean. Numeric values are JSON numbers, not numeric strings.
 
+On a list-valued field, `eq` and `neq` test whether any item equals the value, so `{ field: "tags", operator: "eq", value: "work" }` matches `tags: ["work", "q4"]`. `arrayContains` and `arrayNotContains` say the same thing explicitly.
+
 ### Combining filters
 
 Nest `and` and `or` nodes for complex queries:
