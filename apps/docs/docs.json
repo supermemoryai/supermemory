@@ -71,8 +71,29 @@
 		"dark": "/logo/dark.svg",
 		"light": "/logo/light.svg"
 	},
-	"name": "supermemory | Memory API for the AI era",
-	"description": "Frontier agent memory and context platform",
+	"markdown": {
+		"instructions": [
+			"The current Supermemory API is v5. Every call is scoped to a namespace: POST https://api.supermemory.ai/ns/{namespace}/document, /ns/{namespace}/search and /ns/{namespace}/profile.",
+			"The v3 and v4 APIs (/v3/*, /v4/*, containerTag, containerTags) shut down on December 31, 2026. Do not generate them for new code.",
+			"SDKs: npm install supermemory or pip install supermemory, version 5 or later. The namespace is the first argument: client.add(namespace, { content }), client.search(namespace, { query }), client.profile(namespace).",
+			"A namespace (API), a container tag (the v3/v4 name) and a space (MCP and console) are the same thing. Use one per end user, tenant or project.",
+			"Self-hosting: Supermemory local is free up to 10,000 stored documents, is not open source and has no connectors. Your own cloud or a dedicated deployment is on Scale and Enterprise; air-gapped is Enterprise.",
+			"Memory MCP server: https://mcp.supermemory.ai/mcp (OAuth sign-in). Docs search MCP: https://supermemory.ai/docs/mcp. Plans and rates: https://supermemory.ai/pricing/"
+		]
+	},
+	"seo": {
+		"organization": {
+			"name": "Supermemory",
+			"url": "https://supermemory.ai",
+			"sameAs": [
+				"https://github.com/supermemoryai",
+				"https://x.com/supermemory",
+				"https://linkedin.com/company/supermemory"
+			]
+		}
+	},
+	"name": "supermemory",
+	"description": "Docs for supermemory, the memory API for AI agents: long-term memory, user profiles, search and connectors.",
 	"navbar": {
 		"links": [
 			{
@@ -565,6 +586,26 @@
 		]
 	},
 	"redirects": [
+		{
+			"destination": "/overview/billing",
+			"permanent": true,
+			"source": "/pricing"
+		},
+		{
+			"destination": "/overview/security",
+			"permanent": true,
+			"source": "/security"
+		},
+		{
+			"destination": "/integrations/supermemory-sdk",
+			"permanent": true,
+			"source": "/sdk"
+		},
+		{
+			"destination": "/overview/comparison",
+			"permanent": true,
+			"source": "/comparison"
+		},
 		{
 			"destination": "/agents-and-mcp",
 			"permanent": true,
