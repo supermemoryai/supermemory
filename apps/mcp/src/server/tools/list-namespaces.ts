@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { listSpacesOutputSchema } from "../../shared/types"
+import { emptySpacesMessage } from "../space"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import { withLegacyNamespaces } from "./compat"
 import { textContent, type ToolDeps } from "./types"
@@ -29,7 +30,7 @@ export function register(deps: ToolDeps) {
 
 				if (spaces.length === 0) {
 					return {
-						content: [textContent("No spaces found.")],
+						content: [textContent(emptySpacesMessage(await deps.getSession()))],
 						structuredContent: { spaces, count: 0 },
 					}
 				}

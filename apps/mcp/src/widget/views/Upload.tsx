@@ -44,7 +44,9 @@ export function Upload({
 	const { callTool, handoffToModel } = useApp()
 	const [file, setFile] = useState<File | null>(null)
 	const [selectedNamespace, setSelectedNamespace] = useState<string | null>(
-		activeNamespace ?? writableNamespaces[0] ?? null,
+		activeNamespace && writableNamespaces.includes(activeNamespace)
+			? activeNamespace
+			: (writableNamespaces[0] ?? null),
 	)
 	const [uploading, setUploading] = useState(false)
 
@@ -174,7 +176,13 @@ export function Upload({
 									value={selectedNamespace}
 								/>
 							</Field>
-						) : null}
+						) : (
+							<p className="text-(length:--text-xs) leading-relaxed text-text-muted">
+								This connection is read-only. To upload, switch it to Read and
+								write on the Agents page of the Supermemory console, or ask an
+								admin for write access to a space.
+							</p>
+						)}
 
 						<div className="flex justify-end pt-(--space-1)">
 							<ActionGroup>

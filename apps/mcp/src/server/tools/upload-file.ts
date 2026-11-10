@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { uploadViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
-import { effectiveNamespaceAccess } from "../auth/rbac"
+import { listWritableNamespaces, READ_ONLY_MESSAGE } from "../space"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import { withLegacyView } from "./compat"
 import { textContent, type ToolDeps } from "./types"
@@ -26,12 +26,10 @@ export function register(deps: ToolDeps) {
 					deps.getClient().listNamespaces(),
 					deps.getSession(),
 				])
-				const writableNamespaces = effectiveNamespaceAccess(
+				const writableNamespaces = listWritableNamespaces(
 					namespaces.map((entry) => entry.namespace),
 					session,
 				)
-					.filter((access) => access.permission === "write")
-					.map((access) => access.namespace)
 
 				const sc: ViewMessage = withLegacyView({
 					view: "upload",
@@ -41,7 +39,13 @@ export function register(deps: ToolDeps) {
 				})
 
 				return {
-					content: [textContent("Opening file upload form...")],
+					content: [
+						textContent(
+							writableNamespaces.length > 0
+								? "Opening file upload form..."
+								: READ_ONLY_MESSAGE,
+						),
+					],
 					structuredContent: sc,
 					_meta: appResultMeta(viewId),
 				}

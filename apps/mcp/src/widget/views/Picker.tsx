@@ -76,7 +76,7 @@ export function Picker({
 	const count = namespaces.length
 	const description =
 		count === 0
-			? "Create a space in Supermemory to get started."
+			? "Your first save creates your default space."
 			: "Pick the space to save and recall from."
 
 	return (
@@ -90,8 +90,8 @@ export function Picker({
 							No spaces yet
 						</p>
 						<p className="max-w-xs text-(length:--text-xs) leading-relaxed text-text-muted">
-							Spaces you create in Supermemory show up here, ready to save and
-							recall from.
+							Save a memory and your default space appears here. Spaces you
+							create in Supermemory show up here too.
 						</p>
 					</div>
 				) : (

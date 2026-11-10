@@ -32,7 +32,9 @@ export function Save({
 	const { callTool, handoffToModel } = useApp()
 	const [content, setContent] = useState(prefill ?? "")
 	const [selectedNamespace, setSelectedNamespace] = useState<string | null>(
-		activeNamespace ?? writableNamespaces[0] ?? null,
+		activeNamespace && writableNamespaces.includes(activeNamespace)
+			? activeNamespace
+			: (writableNamespaces[0] ?? null),
 	)
 	const [saving, setSaving] = useState(false)
 
@@ -115,7 +117,13 @@ export function Save({
 									value={selectedNamespace}
 								/>
 							</Field>
-						) : null}
+						) : (
+							<p className="text-(length:--text-xs) leading-relaxed text-text-muted">
+								This connection is read-only. To save, switch it to Read and
+								write on the Agents page of the Supermemory console, or ask an
+								admin for write access to a space.
+							</p>
+						)}
 
 						<div className="flex justify-end pt-(--space-1)">
 							<ActionGroup>
