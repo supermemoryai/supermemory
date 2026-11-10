@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { saveViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
-import { listWritableNamespaces, writeBlockedReason } from "../space"
+import { spaceWriteTargets } from "../space"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import { withLegacyView } from "./compat"
 import { textContent, type ToolDeps } from "./types"
@@ -33,30 +33,27 @@ export function register(deps: ToolDeps) {
 					deps.getClient().listNamespaces(),
 					deps.getSession(),
 				])
-				const writableNamespaces = listWritableNamespaces(
+				const targets = spaceWriteTargets(
 					[
 						...namespaces.map((entry) => entry.namespace),
 						...(activeNamespace ? [activeNamespace] : []),
 					],
 					session,
 				)
-				const blockedReason =
-					writableNamespaces.length > 0
-						? undefined
-						: writeBlockedReason(session)
 
 				const sc: ViewMessage = withLegacyView({
 					view: "save",
 					viewId,
 					activeNamespace,
-					writableNamespaces,
-					writeBlockedReason: blockedReason,
+					...targets,
 					prefill,
 				})
 
 				return {
 					content: [
-						textContent(blockedReason ?? "Opening memory save form..."),
+						textContent(
+							targets.writeBlockedReason ?? "Opening memory save form...",
+						),
 					],
 					structuredContent: sc,
 					_meta: appResultMeta(viewId),

@@ -4,6 +4,7 @@ import {
 	accessibleDefaultNamespace,
 	resolveNamespace,
 	spaceStateName,
+	spaceWriteTargets,
 } from "./space"
 
 describe("space application state", () => {
@@ -104,5 +105,41 @@ describe("space application state", () => {
 				namespaces: [],
 			}),
 		).toBe("sm_project_default")
+	})
+
+	it("lets only unrestricted read-write callers create a space", () => {
+		const user = { id: "user" }
+		expect(spaceWriteTargets([], { user })).toEqual({
+			writableNamespaces: [],
+			canCreateNamespace: true,
+			writeBlockedReason: undefined,
+		})
+		expect(spaceWriteTargets(["work", "work"], { user })).toMatchObject({
+			writableNamespaces: ["work"],
+			canCreateNamespace: true,
+		})
+		expect(
+			spaceWriteTargets([], {
+				user,
+				scope: { type: "full", permission: "read" },
+			}),
+		).toMatchObject({
+			writableNamespaces: [],
+			canCreateNamespace: false,
+			writeBlockedReason: expect.stringContaining("read-only"),
+		})
+		expect(
+			spaceWriteTargets([], {
+				user,
+				scope: { type: "scoped", permission: "write", tags: ["work"] },
+			}),
+		).toMatchObject({ writableNamespaces: ["work"], canCreateNamespace: false })
+		expect(
+			spaceWriteTargets(["team"], {
+				user,
+				accessType: "restricted",
+				namespaces: [{ namespace: "team", permission: "write" }],
+			}),
+		).toMatchObject({ writableNamespaces: ["team"], canCreateNamespace: false })
 	})
 })

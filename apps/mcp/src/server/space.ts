@@ -16,12 +16,15 @@ export async function resolveNamespace(
 	return explicit ?? (await getActiveNamespace())
 }
 
+function scopedKeyTags(session: SessionInfo): string[] | null {
+	return session.scope?.type === "scoped"
+		? (session.scope.tags ?? (session.scope.tag ? [session.scope.tag] : null))
+		: null
+}
+
 // Mirrors the API's hard allowlist (scoped keys, restricted members), preferring a space writes can reach.
 export function accessibleDefaultNamespace(session: SessionInfo): string {
-	const keyTags =
-		session.scope?.type === "scoped"
-			? (session.scope.tags ?? (session.scope.tag ? [session.scope.tag] : null))
-			: null
+	const keyTags = scopedKeyTags(session)
 	const memberTags =
 		session.accessType === "restricted" && session.namespaces
 			? session.namespaces.map((access) => access.namespace)
@@ -43,6 +46,31 @@ export function accessibleDefaultNamespace(session: SessionInfo): string {
 		return DEFAULT_NAMESPACE
 	}
 	return writable ?? allowed[0]
+}
+
+// Mirrors the API write guard: a new tag is writable only without a read-only grant or a hard allowlist.
+export function canCreateNamespace(session: SessionInfo): boolean {
+	return (
+		session.scope?.permission !== "read" &&
+		session.accessType !== "restricted" &&
+		!scopedKeyTags(session)
+	)
+}
+
+// Callers who can create spaces get no default fallback, so the widget asks them to name their first space.
+export function spaceWriteTargets(listed: string[], session: SessionInfo) {
+	const canCreate = canCreateNamespace(session)
+	const writableNamespaces = canCreate
+		? [...new Set(listed)]
+		: listWritableNamespaces(listed, session)
+	return {
+		writableNamespaces,
+		canCreateNamespace: canCreate,
+		writeBlockedReason:
+			canCreate || writableNamespaces.length > 0
+				? undefined
+				: writeBlockedReason(session),
+	}
 }
 
 export function writeBlockedReason(session: SessionInfo): string {
