@@ -62,7 +62,7 @@ Or set an API key manually from the [API Keys](https://console.supermemory.ai/ke
   </Tab>
 </Tabs>
 
-The installer adds Supermemory to `~/.config/opencode/opencode.jsonc`. This one config works on both OpenCode V1 and OpenCode 2:
+The installer adds Supermemory to `~/.config/opencode/opencode.jsonc`. This one config works on both OpenCode v1 and v2:
 
 ```jsonc
 {
@@ -82,7 +82,7 @@ Once installed, the plugin runs automatically:
 - **Direct Recall** — On every substantive prompt, the plugin searches the current project and injects up to five fresh matches. Set `recallMode` to `"advisory"` to let the agent decide when to search, or `"off"` to disable it.
 - **Automatic Capture** — Completed turns are saved every `captureEveryNTurns` turns (fresh installs use `0`, which saves only at the end), and any remainder is flushed when the session ends or OpenCode shuts down.
 - **Keyword Detection** — Phrases like "remember" or "save this" nudge the agent to save to memory.
-- **Smart Compaction** — On OpenCode V1, sessions are summarized at 80% context capacity; on OpenCode 2, the plugin enriches native compaction. Both save the summary as a memory.
+- **Smart Compaction** — On OpenCode v1, sessions are summarized at 80% context capacity; on OpenCode v2, the plugin enriches native compaction. Both save the summary as a memory.
 - **Privacy Protection** — Content within `<private>` tags never persists.
 
 ### Memory scopes
@@ -146,8 +146,8 @@ Create `~/.config/opencode/supermemory.jsonc`:
   "keywordPatterns": ["log\\s+this"],      // Extra auto-save triggers
   "recallMode": "direct",          // "direct", "advisory", or "off"
   "captureEveryNTurns": 3,         // Save completed turns every N turns (0 = session end only)
-  "compactionThreshold": 0.80,     // OpenCode V1: context usage ratio for summarization
-  "compactionEnabled": true        // OpenCode 2: enrich native compaction and save summaries
+  "compactionThreshold": 0.80,     // OpenCode v1: context usage ratio for summarization
+  "compactionEnabled": true        // OpenCode v2: enrich native compaction and save summaries
 }
 ```
 
