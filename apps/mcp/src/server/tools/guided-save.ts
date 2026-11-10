@@ -34,10 +34,8 @@ export function register(deps: ToolDeps) {
 					deps.getSession(),
 				])
 				const targets = spaceWriteTargets(
-					[
-						...namespaces.map((entry) => entry.namespace),
-						...(activeNamespace ? [activeNamespace] : []),
-					],
+					namespaces.map((entry) => entry.namespace),
+					activeNamespace,
 					session,
 				)
 

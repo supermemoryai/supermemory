@@ -109,17 +109,19 @@ describe("space application state", () => {
 
 	it("lets only unrestricted read-write callers create a space", () => {
 		const user = { id: "user" }
-		expect(spaceWriteTargets([], { user })).toEqual({
+		expect(spaceWriteTargets([], "deleted", { user })).toEqual({
 			writableNamespaces: [],
 			canCreateNamespace: true,
 			writeBlockedReason: undefined,
 		})
-		expect(spaceWriteTargets(["work", "work"], { user })).toMatchObject({
+		expect(
+			spaceWriteTargets(["work", "work"], undefined, { user }),
+		).toMatchObject({
 			writableNamespaces: ["work"],
 			canCreateNamespace: true,
 		})
 		expect(
-			spaceWriteTargets([], {
+			spaceWriteTargets([], undefined, {
 				user,
 				scope: { type: "full", permission: "read" },
 			}),
@@ -129,13 +131,13 @@ describe("space application state", () => {
 			writeBlockedReason: expect.stringContaining("read-only"),
 		})
 		expect(
-			spaceWriteTargets([], {
+			spaceWriteTargets([], "work", {
 				user,
 				scope: { type: "scoped", permission: "write", tags: ["work"] },
 			}),
 		).toMatchObject({ writableNamespaces: ["work"], canCreateNamespace: false })
 		expect(
-			spaceWriteTargets(["team"], {
+			spaceWriteTargets(["team"], undefined, {
 				user,
 				accessType: "restricted",
 				namespaces: [{ namespace: "team", permission: "write" }],

@@ -57,12 +57,19 @@ export function canCreateNamespace(session: SessionInfo): boolean {
 	)
 }
 
-// Callers who can create spaces get no default fallback, so the widget asks them to name their first space.
-export function spaceWriteTargets(listed: string[], session: SessionInfo) {
+// Creators see only existing spaces (no stale active or default fallback), so with none the widget asks them to name one.
+export function spaceWriteTargets(
+	listed: string[],
+	activeNamespace: string | undefined,
+	session: SessionInfo,
+) {
 	const canCreate = canCreateNamespace(session)
 	const writableNamespaces = canCreate
 		? [...new Set(listed)]
-		: listWritableNamespaces(listed, session)
+		: listWritableNamespaces(
+				[...listed, ...(activeNamespace ? [activeNamespace] : [])],
+				session,
+			)
 	return {
 		writableNamespaces,
 		canCreateNamespace: canCreate,
