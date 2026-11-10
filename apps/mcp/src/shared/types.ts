@@ -237,6 +237,7 @@ export const saveViewSchema = z.object({
 	viewId: viewIdSchema,
 	activeNamespace: z.string().nullish(),
 	writableNamespaces: z.array(z.string()),
+	writeBlockedReason: z.string().optional(),
 	prefill: z.string().optional(),
 	activeTag: z.string().nullish(),
 	writableTags: z.array(z.string()).optional(),
@@ -255,6 +256,7 @@ export const uploadViewSchema = z.object({
 	viewId: viewIdSchema,
 	activeNamespace: z.string().nullish(),
 	writableNamespaces: z.array(z.string()),
+	writeBlockedReason: z.string().optional(),
 	activeTag: z.string().nullish(),
 	writableTags: z.array(z.string()).optional(),
 })

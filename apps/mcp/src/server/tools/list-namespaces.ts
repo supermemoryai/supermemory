@@ -30,7 +30,13 @@ export function register(deps: ToolDeps) {
 
 				if (spaces.length === 0) {
 					return {
-						content: [textContent(emptySpacesMessage(await deps.getSession()))],
+						content: [
+							textContent(
+								await deps
+									.getSession()
+									.then(emptySpacesMessage, () => "No spaces found."),
+							),
+						],
 						structuredContent: { spaces, count: 0 },
 					}
 				}

@@ -20,6 +20,7 @@ import { FileText, X } from "../lib/icons"
 interface Props {
 	activeNamespace?: string | null
 	writableNamespaces: string[]
+	writeBlockedReason?: string
 	onAdvance: (msg: ViewMessage) => void
 	onError: (message: string) => void
 	viewId?: string
@@ -37,6 +38,7 @@ const ACCEPT =
 export function Upload({
 	activeNamespace,
 	writableNamespaces,
+	writeBlockedReason,
 	onAdvance,
 	onError,
 	viewId,
@@ -178,9 +180,7 @@ export function Upload({
 							</Field>
 						) : (
 							<p className="text-(length:--text-xs) leading-relaxed text-text-muted">
-								This connection is read-only. To upload, switch it to Read and
-								write on the Agents page of the Supermemory console, or ask an
-								admin for write access to a space.
+								{writeBlockedReason}
 							</p>
 						)}
 

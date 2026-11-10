@@ -107,6 +107,7 @@ function renderView(
 					prefill={msg.prefill}
 					viewId={msg.viewId}
 					writableNamespaces={msg.writableNamespaces}
+					writeBlockedReason={msg.writeBlockedReason}
 				/>
 			)
 		case "upload":
@@ -117,6 +118,7 @@ function renderView(
 					onError={setError}
 					viewId={msg.viewId}
 					writableNamespaces={msg.writableNamespaces}
+					writeBlockedReason={msg.writeBlockedReason}
 				/>
 			)
 		case "graph":

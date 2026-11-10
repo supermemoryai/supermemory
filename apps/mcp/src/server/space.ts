@@ -30,28 +30,32 @@ export function accessibleDefaultNamespace(session: SessionInfo): string {
 		keyTags && memberTags
 			? keyTags.filter((tag) => memberTags.includes(tag))
 			: (keyTags ?? memberTags)
-	if (!allowed?.[0] || allowed.includes(DEFAULT_NAMESPACE)) {
+	if (!allowed?.[0]) return DEFAULT_NAMESPACE
+	const canWrite = (tag: string) =>
+		session.scope?.permission !== "read" &&
+		session.namespaces?.find((access) => access.namespace === tag)
+			?.permission !== "read"
+	const writable = allowed.find(canWrite)
+	if (
+		allowed.includes(DEFAULT_NAMESPACE) &&
+		(!writable || canWrite(DEFAULT_NAMESPACE))
+	) {
 		return DEFAULT_NAMESPACE
 	}
-	const writable =
-		session.scope?.permission === "read"
-			? undefined
-			: allowed.find(
-					(tag) =>
-						session.namespaces?.find((access) => access.namespace === tag)
-							?.permission !== "read",
-				)
 	return writable ?? allowed[0]
 }
 
-export const READ_ONLY_MESSAGE =
-	"This connection is read-only, so nothing can be saved. The user can switch it to Read and write on the Agents page of the Supermemory console, or ask an admin for write access to a space."
+export function writeBlockedReason(session: SessionInfo): string {
+	return session.scope?.permission === "read"
+		? "This connection is read-only. To add memories, switch it to Read and write on the Agents page of the Supermemory console, or reconnect with a key that has write access."
+		: "This account has no write access to any space. Ask an admin of this Supermemory organization to grant write access to a space."
+}
 
 export function emptySpacesMessage(session: SessionInfo): string {
 	const [target] = listWritableNamespaces([], session)
 	return target
 		? `No spaces yet. New memories go to "${target}", which is created on the first save.`
-		: `No spaces yet. ${READ_ONLY_MESSAGE}`
+		: `No spaces yet. ${writeBlockedReason(session)}`
 }
 
 // The default space is created on first write, so offer it even before it exists.
@@ -59,8 +63,9 @@ export function listWritableNamespaces(
 	listed: string[],
 	session: SessionInfo,
 ): string[] {
-	const fallback = accessibleDefaultNamespace(session)
-	const candidates = listed.includes(fallback) ? listed : [...listed, fallback]
+	const candidates = [
+		...new Set([...listed, accessibleDefaultNamespace(session)]),
+	]
 	return effectiveNamespaceAccess(candidates, session)
 		.filter((access) => access.permission === "write")
 		.map((access) => access.namespace)

@@ -15,6 +15,7 @@ import { formatNamespaceLabel } from "../lib/formatNamespace"
 interface Props {
 	activeNamespace?: string | null
 	writableNamespaces: string[]
+	writeBlockedReason?: string
 	prefill?: string
 	onAdvance: (msg: ViewMessage) => void
 	onError: (message: string) => void
@@ -24,6 +25,7 @@ interface Props {
 export function Save({
 	activeNamespace,
 	writableNamespaces,
+	writeBlockedReason,
 	prefill,
 	onAdvance,
 	onError,
@@ -119,9 +121,7 @@ export function Save({
 							</Field>
 						) : (
 							<p className="text-(length:--text-xs) leading-relaxed text-text-muted">
-								This connection is read-only. To save, switch it to Read and
-								write on the Agents page of the Supermemory console, or ask an
-								admin for write access to a space.
+								{writeBlockedReason}
 							</p>
 						)}
 
