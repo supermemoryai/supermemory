@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "supermemory-openai-sdk"
-version = "1.0.10"
+version = "1.0.11"
 description = "Memory tools for OpenAI function calling with supermemory"
 readme = "README.md"
 license = "MIT"
@@ -30,17 +30,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-async = ["aiohttp>=3.14.3"]
+async = ["aiohttp>=3.14.4"]
 
 [dependency-groups]
 dev = [
-    "black>=26.3.1",
+    "black>=26.10.1",
     "flake8>=7.1.2",
     "isort>=5.13.2",
     "mypy>=1.14.1",
-    "pytest>=8.3.5",
+    "pytest>=9.0.3",
     "pytest-asyncio>=0.24.0",
-    "python-dotenv>=1.0.1",
+    "python-dotenv>=1.2.2",
 ]
 
 [project.urls]
