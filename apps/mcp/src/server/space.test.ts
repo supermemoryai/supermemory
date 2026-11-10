@@ -115,9 +115,9 @@ describe("space application state", () => {
 			writeBlockedReason: undefined,
 		})
 		expect(
-			spaceWriteTargets(["work", "work"], undefined, { user }),
+			spaceWriteTargets(["work", "work"], "older", { user }),
 		).toMatchObject({
-			writableNamespaces: ["work"],
+			writableNamespaces: ["work", "older"],
 			canCreateNamespace: true,
 		})
 		expect(
