@@ -159,3 +159,20 @@ The old `SupermemoryMCP` class and binding remain inert for one rollout. This
 keeps the migration non-destructive and rollback-safe. A later deployment can
 delete the old protocol class after production traffic and rollback windows
 have been checked.
+
+## MCP Registry
+
+`server.json` describes this server for the official MCP Registry
+(https://registry.modelcontextprotocol.io) under the name `ai.supermemory/memory`.
+The namespace is verified through `https://supermemory.ai/.well-known/mcp-registry-auth`,
+which carries the registry signing public key; the matching private key is held by the
+person who publishes.
+
+To publish a new version:
+
+```bash
+# bump "version" in server.json to match package.json (the registry rejects reused versions)
+mcp-publisher validate apps/mcp/server.json
+mcp-publisher login http --domain supermemory.ai --private-key "$MCP_REGISTRY_PRIVATE_KEY"
+mcp-publisher publish apps/mcp/server.json
+```
