@@ -6,6 +6,7 @@ import { isValidNamespace, sanitizeNamespace } from "../lib/namespaceTag"
 export interface SpaceTarget {
 	namespace: string
 	isNew: boolean
+	input?: string
 }
 
 const FIRST_SPACE_NAME = "Personal"
@@ -37,11 +38,13 @@ interface Props {
 	onChange: (target: SpaceTarget | null) => void
 }
 
-const savedAs = (namespace: string, prefix = "Saved as") => (
-	<>
-		{prefix} <span className="font-mono">{namespace}</span>
-	</>
-)
+// Only worth showing when sanitizing changed what the user typed.
+const savedAsHint = (input: string, namespace: string) =>
+	input.trim() === namespace ? undefined : (
+		<>
+			Saved as <span className="font-mono">{namespace}</span>
+		</>
+	)
 
 export function SpaceField({
 	writableNamespaces,
@@ -90,7 +93,7 @@ export function SpaceField({
 							? null
 							: "Use letters, numbers, dashes, or underscores."
 					}
-					hint={savedAs(namespace)}
+					hint={savedAsHint(firstSpaceName, namespace)}
 					label="Space name"
 				>
 					<Input
@@ -115,8 +118,8 @@ export function SpaceField({
 	return (
 		<Field
 			hint={
-				value?.isNew
-					? savedAs(value.namespace, "New space, saved as")
+				value?.isNew && value.input !== undefined
+					? savedAsHint(value.input, value.namespace)
 					: undefined
 			}
 			label="Space"
@@ -124,14 +127,15 @@ export function SpaceField({
 			<SpaceSelect
 				onCreate={
 					canCreateNamespace
-						? (namespace) => onChange({ namespace, isNew: true })
+						? (namespace, input) => onChange({ namespace, isNew: true, input })
 						: undefined
 				}
 				onValueChange={(namespace) =>
-					onChange({
-						namespace,
-						isNew: !writableNamespaces.includes(namespace),
-					})
+					onChange(
+						namespace === value?.namespace
+							? value
+							: { namespace, isNew: !writableNamespaces.includes(namespace) },
+					)
 				}
 				options={options}
 				value={value?.namespace ?? null}

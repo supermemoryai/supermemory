@@ -16,7 +16,7 @@ export interface SpaceOption {
 interface SpaceSelectProps {
 	value: string | null
 	onValueChange: (value: string) => void
-	onCreate?: (value: string) => void
+	onCreate?: (value: string, input: string) => void
 	options: SpaceOption[]
 	placeholder?: string
 	emptyText?: string
@@ -65,7 +65,7 @@ export function SpaceSelect({
 		!options.some((o) => o.value.toLowerCase() === candidate.toLowerCase())
 
 	const create = () => {
-		onCreate?.(candidate)
+		onCreate?.(candidate, query)
 		setOpen(false)
 	}
 
