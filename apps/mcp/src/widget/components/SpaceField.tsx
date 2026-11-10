@@ -1,7 +1,6 @@
-import { useMemo, useState } from "react"
-import { Field, Input, SpaceSelect } from "../design/ui"
+import { useMemo } from "react"
+import { Field, SpaceSelect } from "../design/ui"
 import { formatNamespaceLabel } from "../lib/formatNamespace"
-import { isValidNamespace, sanitizeNamespace } from "../lib/namespaceTag"
 
 export interface SpaceTarget {
 	namespace: string
@@ -9,18 +8,11 @@ export interface SpaceTarget {
 	input?: string
 }
 
-const FIRST_SPACE_NAME = "Personal"
-
 export function initialSpaceTarget(
 	activeNamespace: string | null | undefined,
 	writableNamespaces: string[],
-	canCreateNamespace: boolean,
 ): SpaceTarget | null {
-	if (writableNamespaces.length === 0) {
-		return canCreateNamespace
-			? { namespace: sanitizeNamespace(FIRST_SPACE_NAME), isNew: true }
-			: null
-	}
+	if (writableNamespaces.length === 0) return null
 	return {
 		namespace:
 			activeNamespace && writableNamespaces.includes(activeNamespace)
@@ -38,13 +30,19 @@ interface Props {
 	onChange: (target: SpaceTarget | null) => void
 }
 
-// Only worth showing when sanitizing changed what the user typed.
-const savedAsHint = (input: string, namespace: string) =>
-	input.trim() === namespace ? undefined : (
+// Shows the space hint: a first-space prompt, or the cleaned tag when sanitizing changed the input.
+function spaceHint(value: SpaceTarget | null, hasSpaces: boolean) {
+	if (!value) {
+		return hasSpaces ? undefined : "Type a name to create your first space"
+	}
+	if (!value.isNew || value.input === undefined) return undefined
+	if (value.input.trim() === value.namespace) return undefined
+	return (
 		<>
-			Saved as <span className="font-mono">{namespace}</span>
+			Saved as <span className="font-mono">{value.namespace}</span>
 		</>
 	)
+}
 
 export function SpaceField({
 	writableNamespaces,
@@ -53,8 +51,6 @@ export function SpaceField({
 	value,
 	onChange,
 }: Props) {
-	const [firstSpaceName, setFirstSpaceName] = useState(FIRST_SPACE_NAME)
-
 	const options = useMemo(
 		() =>
 			[...writableNamespaces, ...(value?.isNew ? [value.namespace] : [])].map(
@@ -75,55 +71,8 @@ export function SpaceField({
 		)
 	}
 
-	if (writableNamespaces.length === 0) {
-		const namespace = sanitizeNamespace(firstSpaceName)
-		return (
-			<div className="flex flex-col gap-(--space-3) rounded-(--radius-lg) border border-dashed border-border p-(--space-3)">
-				<div className="flex flex-col gap-(--space-1)">
-					<p className="text-(length:--text-sm) font-medium text-text-primary">
-						Create your first space
-					</p>
-					<p className="text-(length:--text-xs) leading-relaxed text-text-muted">
-						Spaces keep related memories together. You can add more later.
-					</p>
-				</div>
-				<Field
-					error={
-						isValidNamespace(namespace)
-							? null
-							: "Use letters, numbers, dashes, or underscores."
-					}
-					hint={savedAsHint(firstSpaceName, namespace)}
-					label="Space name"
-				>
-					<Input
-						aria-label="Space name"
-						onChange={(e) => {
-							const next = sanitizeNamespace(e.target.value)
-							setFirstSpaceName(e.target.value)
-							onChange(
-								isValidNamespace(next)
-									? { namespace: next, isNew: true }
-									: null,
-							)
-						}}
-						placeholder={FIRST_SPACE_NAME}
-						value={firstSpaceName}
-					/>
-				</Field>
-			</div>
-		)
-	}
-
 	return (
-		<Field
-			hint={
-				value?.isNew && value.input !== undefined
-					? savedAsHint(value.input, value.namespace)
-					: undefined
-			}
-			label="Space"
-		>
+		<Field hint={spaceHint(value, writableNamespaces.length > 0)} label="Space">
 			<SpaceSelect
 				onCreate={
 					canCreateNamespace
@@ -138,6 +87,7 @@ export function SpaceField({
 					)
 				}
 				options={options}
+				placeholder={canCreateNamespace ? "Search or create tags…" : undefined}
 				value={value?.namespace ?? null}
 			/>
 		</Field>

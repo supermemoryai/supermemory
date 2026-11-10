@@ -46,7 +46,7 @@ export function Upload({
 	const { callTool, handoffToModel } = useApp()
 	const [file, setFile] = useState<File | null>(null)
 	const [target, setTarget] = useState(() =>
-		initialSpaceTarget(activeNamespace, writableNamespaces, canCreateNamespace),
+		initialSpaceTarget(activeNamespace, writableNamespaces),
 	)
 	const [uploading, setUploading] = useState(false)
 	const selectedNamespace = target?.namespace

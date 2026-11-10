@@ -35,7 +35,7 @@ export function Save({
 	const { callTool, handoffToModel } = useApp()
 	const [content, setContent] = useState(prefill ?? "")
 	const [target, setTarget] = useState(() =>
-		initialSpaceTarget(activeNamespace, writableNamespaces, canCreateNamespace),
+		initialSpaceTarget(activeNamespace, writableNamespaces),
 	)
 	const [saving, setSaving] = useState(false)
 	const selectedNamespace = target?.namespace

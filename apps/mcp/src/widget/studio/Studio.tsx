@@ -379,7 +379,7 @@ export function Studio() {
 							</WidgetShell>
 						</Frame>
 
-						<Frame label="Save · first space" width={frameWidth}>
+						<Frame label="Save · no spaces" width={frameWidth}>
 							<WidgetShell>
 								<Save
 									canCreateNamespace
@@ -411,6 +411,17 @@ export function Studio() {
 									onAdvance={uploadStub.onAdvance}
 									onError={uploadStub.onError}
 									writableNamespaces={mockWritableNamespaces}
+								/>
+							</WidgetShell>
+						</Frame>
+
+						<Frame label="Upload · no spaces" width={frameWidth}>
+							<WidgetShell>
+								<Upload
+									canCreateNamespace
+									onAdvance={uploadStub.onAdvance}
+									onError={uploadStub.onError}
+									writableNamespaces={[]}
 								/>
 							</WidgetShell>
 						</Frame>

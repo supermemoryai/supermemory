@@ -34,7 +34,7 @@ export function SpaceSelect({
 	options,
 	placeholder = "Select space",
 	emptyText = "No spaces",
-	searchPlaceholder = onCreate ? "Search or create…" : "Search spaces…",
+	searchPlaceholder = onCreate ? "Search or create tags…" : "Search spaces…",
 	disabled = false,
 	className,
 }: SpaceSelectProps) {
