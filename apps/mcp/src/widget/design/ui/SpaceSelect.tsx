@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react"
-import { ChevronDown, Search } from "../../lib/icons"
+import { ChevronDown, Plus, Search } from "../../lib/icons"
+import { isValidNamespace, sanitizeNamespace } from "../../lib/namespaceTag"
 import { cn } from "../lib/cn"
 import { Button } from "./Button"
 import { Popover, PopoverContent, PopoverTrigger } from "./Popover"
@@ -15,6 +16,7 @@ export interface SpaceOption {
 interface SpaceSelectProps {
 	value: string | null
 	onValueChange: (value: string) => void
+	onCreate?: (value: string, input: string) => void
 	options: SpaceOption[]
 	placeholder?: string
 	emptyText?: string
@@ -28,10 +30,11 @@ interface SpaceSelectProps {
 export function SpaceSelect({
 	value,
 	onValueChange,
+	onCreate,
 	options,
 	placeholder = "Select space",
 	emptyText = "No spaces",
-	searchPlaceholder = "Search spaces…",
+	searchPlaceholder = onCreate ? "Search or create tags…" : "Search spaces…",
 	disabled = false,
 	className,
 }: SpaceSelectProps) {
@@ -54,6 +57,17 @@ export function SpaceSelect({
 				(o.description?.toLowerCase().includes(q) ?? false),
 		)
 	}, [options, query])
+
+	const candidate = sanitizeNamespace(query)
+	const canCreate =
+		!!onCreate &&
+		isValidNamespace(candidate) &&
+		!options.some((o) => o.value.toLowerCase() === candidate.toLowerCase())
+
+	const create = () => {
+		onCreate?.(candidate, query)
+		setOpen(false)
+	}
 
 	return (
 		<Tooltip>
@@ -98,13 +112,19 @@ export function SpaceSelect({
 						<input
 							className="w-full bg-transparent text-(length:--text-sm) text-text-primary placeholder:text-text-muted focus:outline-none"
 							onChange={(e) => setQuery(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && canCreate) {
+									e.preventDefault()
+									create()
+								}
+							}}
 							placeholder={searchPlaceholder}
 							value={query}
 						/>
 					</div>
 
 					<div className="flex min-h-0 max-h-[300px] flex-1 flex-col overflow-y-auto">
-						{filtered.length === 0 ? (
+						{filtered.length === 0 && !canCreate ? (
 							<div className="px-(--space-3) py-(--space-3) text-(length:--text-xs) text-text-muted italic">
 								{query ? "No matches" : emptyText}
 							</div>
@@ -153,6 +173,33 @@ export function SpaceSelect({
 								)
 							})
 						)}
+						{canCreate ? (
+							<button
+								className={cn(
+									"flex items-center gap-(--space-2)",
+									"px-(--space-3) py-(--space-2)",
+									"rounded-(--radius-md)",
+									"text-left cursor-pointer transition-colors",
+									"hover:bg-bg-muted",
+									"focus-visible:outline-none focus-visible:bg-bg-muted",
+								)}
+								onClick={create}
+								type="button"
+							>
+								<span className="flex size-4 shrink-0 items-center justify-center rounded-(--radius-sm) bg-accent-muted text-accent">
+									<Plus className="size-3" />
+								</span>
+								<span className="min-w-0 flex-1 truncate text-(length:--text-sm) font-medium text-accent">
+									Create{" "}
+									<span className="font-mono text-(length:--text-xs)">
+										{candidate}
+									</span>
+								</span>
+								<kbd className="shrink-0 rounded-(--radius-sm) border border-border px-1 font-mono text-[10px] text-text-muted">
+									↵
+								</kbd>
+							</button>
+						) : null}
 					</div>
 				</PopoverContent>
 			</Popover>
