@@ -57,7 +57,9 @@ Both patterns below run the same snippets inside the machine. `SMFS_INSTALL`
 installs SMFS and allows FUSE mounts for other users, once. `SMFS_MOUNT` signs in and
 starts the mount as a `systemd` unit, so it keeps running after the command
 returns. `systemd-run` returns once SMFS reports the mount is ready. Then
-`SMFS_OWN` gives the `boxd` user write access to the mount.
+`SMFS_OWN` gives the `boxd` user write access to the mount. SMFS pushes writes
+in the background, so `SMFS_SYNC` pushes anything still pending before you
+delete the machine.
 
 <Tabs>
   <Tab title="Python">
@@ -76,6 +78,8 @@ returns. `systemd-run` returns once SMFS reports the mount is ready. Then
     )
 
     SMFS_OWN = "sudo chown boxd:boxd /home/boxd/memory"
+
+    SMFS_SYNC = "/home/boxd/.local/bin/smfs sync my_agent"
     ```
   </Tab>
   <Tab title="TypeScript">
@@ -92,6 +96,8 @@ returns. `systemd-run` returns once SMFS reports the mount is ready. Then
       "--ephemeral --path /home/boxd/memory";
 
     const SMFS_OWN = "sudo chown boxd:boxd /home/boxd/memory";
+
+    const SMFS_SYNC = "/home/boxd/.local/bin/smfs sync my_agent";
     ```
   </Tab>
 </Tabs>
@@ -164,6 +170,9 @@ asyncio.run(main())
             timeout=300,
         )
         print(result.stdout)
+
+        # Push pending writes before the machine is deleted
+        client.machines.exec(machine.id, SMFS_SYNC, timeout=60)
     finally:
         client.machines.delete(machine.id)
     ```
@@ -209,6 +218,9 @@ asyncio.run(main())
         timeout: 300_000,
       });
       console.log(result.stdout);
+
+      // Push pending writes before the machine is deleted
+      await boxd.machines.exec(machine.id, { command: SMFS_SYNC, timeout: 60_000 });
     } finally {
       await boxd.machines.delete(machine.id);
     }
@@ -258,6 +270,9 @@ machine; the agent never touches the filesystem directly.
 
         files = client.machines.exec(machine.id, "ls /home/boxd/memory")
         print("Files:", files.stdout)
+
+        # Push pending writes before the machine is deleted
+        client.machines.exec(machine.id, SMFS_SYNC, timeout=60)
     finally:
         client.machines.delete(machine.id)
     ```
@@ -300,6 +315,9 @@ machine; the agent never touches the filesystem directly.
         command: "ls /home/boxd/memory",
       });
       console.log("Files:", files.stdout);
+
+      // Push pending writes before the machine is deleted
+      await boxd.machines.exec(machine.id, { command: SMFS_SYNC, timeout: 60_000 });
     } finally {
       await boxd.machines.delete(machine.id);
     }
