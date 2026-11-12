@@ -21,7 +21,7 @@ the agent.
 
 ```mermaid
 graph LR
-    subgraph boxd Machine
+    subgraph boxd machine
         Agent["Claude Agent"] -->|"cat, ls, echo"| Mount["/home/boxd/memory<br/>(SMFS mount)"]
     end
     Mount -->|sync| SM["Supermemory"]
@@ -35,7 +35,7 @@ machine remotely.
 ```mermaid
 graph LR
     Agent["Claude Agent<br/>(your server)"] -->|"machines.exec()"| Machine
-    subgraph Machine ["boxd Machine"]
+    subgraph Machine ["boxd machine"]
         Mount["/home/boxd/memory<br/>(SMFS mount)"]
     end
     Mount -->|sync| SM["Supermemory"]
@@ -54,7 +54,7 @@ graph LR
 ## Install and mount SMFS in a boxd machine
 
 Both patterns below run the same snippets inside the machine. `SMFS_INSTALL`
-installs SMFS and allows FUSE mounts for other users. `SMFS_MOUNT` signs in and
+installs SMFS and allows FUSE mounts for other users, once. `SMFS_MOUNT` signs in and
 starts the mount as a `systemd` unit, so it keeps running after the command
 returns. `systemd-run` returns once SMFS reports the mount is ready. Then
 `SMFS_OWN` gives the `boxd` user write access to the mount.
@@ -64,7 +64,8 @@ returns. `systemd-run` returns once SMFS reports the mount is ready. Then
     ```python
     SMFS_INSTALL = (
         "curl -fsSL https://smfs.ai/install | bash -s -- 0.0.5 && "
-        "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null"
+        "(grep -q '^user_allow_other' /etc/fuse.conf || "
+        "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null)"
     )
 
     SMFS_MOUNT = (
@@ -81,7 +82,8 @@ returns. `systemd-run` returns once SMFS reports the mount is ready. Then
     ```typescript
     const SMFS_INSTALL =
       "curl -fsSL https://smfs.ai/install | bash -s -- 0.0.5 && " +
-      "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null";
+      "(grep -q '^user_allow_other' /etc/fuse.conf || " +
+      "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null)";
 
     const SMFS_MOUNT =
       '/home/boxd/.local/bin/smfs login --key "$SUPERMEMORY_API_KEY" && ' +
@@ -131,33 +133,39 @@ asyncio.run(main())
     from boxd import Boxd
 
     client = Boxd(api_key=os.environ["BOXD_API_KEY"])
-    machine = client.machines.create(isolated=True)
-    client.machines.wait_until_ready(machine.id)
+    # delete_after removes the machine after 30 minutes, even if this script dies
+    machine = client.machines.create(isolated=True, delete_after=1800)
+    try:
+        client.machines.wait_until_ready(machine.id)
 
-    # Pass keys per command with env
-    env = {
-        "SUPERMEMORY_API_KEY": os.environ["SUPERMEMORY_API_KEY"],
-        "ANTHROPIC_API_KEY": os.environ["ANTHROPIC_API_KEY"],
-    }
+        # Pass keys per command with env
+        env = {
+            "SUPERMEMORY_API_KEY": os.environ["SUPERMEMORY_API_KEY"],
+            "ANTHROPIC_API_KEY": os.environ["ANTHROPIC_API_KEY"],
+        }
 
-    # See "Install and mount SMFS in a boxd machine" above
-    client.machines.exec(machine.id, SMFS_INSTALL, timeout=120)
-    client.machines.exec(machine.id, ["sh", "-c", SMFS_MOUNT], env=env, timeout=60)
-    client.machines.exec(machine.id, SMFS_OWN)
+        # See "Install and mount SMFS in a boxd machine" above
+        client.machines.exec(machine.id, SMFS_INSTALL, timeout=120)
+        mount = client.machines.exec(
+            machine.id, ["sh", "-c", SMFS_MOUNT], env=env, timeout=60
+        )
+        if mount.exit_code != 0:
+            raise RuntimeError(f"SMFS mount failed: {mount.stderr}")
+        client.machines.exec(machine.id, SMFS_OWN)
 
-    # Upload and run the agent
-    client.machines.files.upload(
-        machine.id, "/home/boxd/agent.py", Path("agent.py").read_bytes()
-    )
-    result = client.machines.exec(
-        machine.id,
-        ["uv", "run", "--with", "claude-agent-sdk", "python3", "/home/boxd/agent.py"],
-        env=env,
-        timeout=300,
-    )
-    print(result.stdout)
-
-    client.machines.delete(machine.id)
+        # Upload and run the agent
+        client.machines.files.upload(
+            machine.id, "/home/boxd/agent.py", Path("agent.py").read_bytes()
+        )
+        result = client.machines.exec(
+            machine.id,
+            ["uv", "run", "--with", "claude-agent-sdk", "python3", "/home/boxd/agent.py"],
+            env=env,
+            timeout=300,
+        )
+        print(result.stdout)
+    finally:
+        client.machines.delete(machine.id)
     ```
   </Tab>
   <Tab title="TypeScript">
@@ -166,38 +174,44 @@ asyncio.run(main())
     import { readFileSync } from "fs";
 
     const boxd = new Boxd({ apiKey: process.env.BOXD_API_KEY! });
-    const machine = await boxd.machines.create({ isolated: true });
-    await boxd.machines.waitUntilReady(machine.id);
+    // deleteAfter removes the machine after 30 minutes, even if this script dies
+    const machine = await boxd.machines.create({ isolated: true, deleteAfter: 1800 });
+    try {
+      await boxd.machines.waitUntilReady(machine.id);
 
-    // Pass keys per command with env
-    const env = {
-      SUPERMEMORY_API_KEY: process.env.SUPERMEMORY_API_KEY!,
-      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY!,
-    };
+      // Pass keys per command with env
+      const env = {
+        SUPERMEMORY_API_KEY: process.env.SUPERMEMORY_API_KEY!,
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY!,
+      };
 
-    // See "Install and mount SMFS in a boxd machine" above
-    await boxd.machines.exec(machine.id, { command: SMFS_INSTALL, timeout: 120_000 });
-    await boxd.machines.exec(machine.id, {
-      command: ["sh", "-c", SMFS_MOUNT],
-      env,
-      timeout: 60_000,
-    });
-    await boxd.machines.exec(machine.id, { command: SMFS_OWN });
+      // See "Install and mount SMFS in a boxd machine" above
+      await boxd.machines.exec(machine.id, { command: SMFS_INSTALL, timeout: 120_000 });
+      const mount = await boxd.machines.exec(machine.id, {
+        command: ["sh", "-c", SMFS_MOUNT],
+        env,
+        timeout: 60_000,
+      });
+      if (mount.exitCode !== 0) {
+        throw new Error(`SMFS mount failed: ${mount.stderr}`);
+      }
+      await boxd.machines.exec(machine.id, { command: SMFS_OWN });
 
-    // Upload and run the agent
-    await boxd.machines.files.upload(
-      machine.id,
-      "/home/boxd/agent.py",
-      readFileSync("agent.py"),
-    );
-    const result = await boxd.machines.exec(machine.id, {
-      command: ["uv", "run", "--with", "claude-agent-sdk", "python3", "/home/boxd/agent.py"],
-      env,
-      timeout: 300_000,
-    });
-    console.log(result.stdout);
-
-    await boxd.machines.delete(machine.id);
+      // Upload and run the agent
+      await boxd.machines.files.upload(
+        machine.id,
+        "/home/boxd/agent.py",
+        readFileSync("agent.py"),
+      );
+      const result = await boxd.machines.exec(machine.id, {
+        command: ["uv", "run", "--with", "claude-agent-sdk", "python3", "/home/boxd/agent.py"],
+        env,
+        timeout: 300_000,
+      });
+      console.log(result.stdout);
+    } finally {
+      await boxd.machines.delete(machine.id);
+    }
     ```
   </Tab>
 </Tabs>
@@ -217,29 +231,35 @@ machine; the agent never touches the filesystem directly.
     from boxd import Boxd
 
     client = Boxd(api_key=os.environ["BOXD_API_KEY"])
-    machine = client.machines.create(isolated=True)
-    client.machines.wait_until_ready(machine.id)
+    # delete_after removes the machine after 30 minutes, even if this script dies
+    machine = client.machines.create(isolated=True, delete_after=1800)
+    try:
+        client.machines.wait_until_ready(machine.id)
 
-    env = {"SUPERMEMORY_API_KEY": os.environ["SUPERMEMORY_API_KEY"]}
+        env = {"SUPERMEMORY_API_KEY": os.environ["SUPERMEMORY_API_KEY"]}
 
-    # See "Install and mount SMFS in a boxd machine" above
-    client.machines.exec(machine.id, SMFS_INSTALL, timeout=120)
-    client.machines.exec(machine.id, ["sh", "-c", SMFS_MOUNT], env=env, timeout=60)
-    client.machines.exec(machine.id, SMFS_OWN)
+        # See "Install and mount SMFS in a boxd machine" above
+        client.machines.exec(machine.id, SMFS_INSTALL, timeout=120)
+        mount = client.machines.exec(
+            machine.id, ["sh", "-c", SMFS_MOUNT], env=env, timeout=60
+        )
+        if mount.exit_code != 0:
+            raise RuntimeError(f"SMFS mount failed: {mount.stderr}")
+        client.machines.exec(machine.id, SMFS_OWN)
 
-    # Agent runs here and executes commands in the machine
-    profile = client.machines.exec(machine.id, "cat /home/boxd/memory/profile.md")
-    print("Profile:", profile.stdout)
+        # Agent runs here and executes commands in the machine
+        profile = client.machines.exec(machine.id, "cat /home/boxd/memory/profile.md")
+        print("Profile:", profile.stdout)
 
-    client.machines.exec(
-        machine.id,
-        'echo "Session started at $(date)" > /home/boxd/memory/session_notes.md',
-    )
+        client.machines.exec(
+            machine.id,
+            'echo "Session started at $(date)" > /home/boxd/memory/session_notes.md',
+        )
 
-    files = client.machines.exec(machine.id, "ls /home/boxd/memory")
-    print("Files:", files.stdout)
-
-    client.machines.delete(machine.id)
+        files = client.machines.exec(machine.id, "ls /home/boxd/memory")
+        print("Files:", files.stdout)
+    finally:
+        client.machines.delete(machine.id)
     ```
   </Tab>
   <Tab title="TypeScript">
@@ -247,36 +267,42 @@ machine; the agent never touches the filesystem directly.
     import { Boxd } from "@boxd-sh/sdk";
 
     const boxd = new Boxd({ apiKey: process.env.BOXD_API_KEY! });
-    const machine = await boxd.machines.create({ isolated: true });
-    await boxd.machines.waitUntilReady(machine.id);
+    // deleteAfter removes the machine after 30 minutes, even if this script dies
+    const machine = await boxd.machines.create({ isolated: true, deleteAfter: 1800 });
+    try {
+      await boxd.machines.waitUntilReady(machine.id);
 
-    const env = { SUPERMEMORY_API_KEY: process.env.SUPERMEMORY_API_KEY! };
+      const env = { SUPERMEMORY_API_KEY: process.env.SUPERMEMORY_API_KEY! };
 
-    // See "Install and mount SMFS in a boxd machine" above
-    await boxd.machines.exec(machine.id, { command: SMFS_INSTALL, timeout: 120_000 });
-    await boxd.machines.exec(machine.id, {
-      command: ["sh", "-c", SMFS_MOUNT],
-      env,
-      timeout: 60_000,
-    });
-    await boxd.machines.exec(machine.id, { command: SMFS_OWN });
+      // See "Install and mount SMFS in a boxd machine" above
+      await boxd.machines.exec(machine.id, { command: SMFS_INSTALL, timeout: 120_000 });
+      const mount = await boxd.machines.exec(machine.id, {
+        command: ["sh", "-c", SMFS_MOUNT],
+        env,
+        timeout: 60_000,
+      });
+      if (mount.exitCode !== 0) {
+        throw new Error(`SMFS mount failed: ${mount.stderr}`);
+      }
+      await boxd.machines.exec(machine.id, { command: SMFS_OWN });
 
-    // Agent runs here and executes commands in the machine
-    const profile = await boxd.machines.exec(machine.id, {
-      command: "cat /home/boxd/memory/profile.md",
-    });
-    console.log("Profile:", profile.stdout);
+      // Agent runs here and executes commands in the machine
+      const profile = await boxd.machines.exec(machine.id, {
+        command: "cat /home/boxd/memory/profile.md",
+      });
+      console.log("Profile:", profile.stdout);
 
-    await boxd.machines.exec(machine.id, {
-      command: `echo "Session started at $(date)" > /home/boxd/memory/session_notes.md`,
-    });
+      await boxd.machines.exec(machine.id, {
+        command: `echo "Session started at $(date)" > /home/boxd/memory/session_notes.md`,
+      });
 
-    const files = await boxd.machines.exec(machine.id, {
-      command: "ls /home/boxd/memory",
-    });
-    console.log("Files:", files.stdout);
-
-    await boxd.machines.delete(machine.id);
+      const files = await boxd.machines.exec(machine.id, {
+        command: "ls /home/boxd/memory",
+      });
+      console.log("Files:", files.stdout);
+    } finally {
+      await boxd.machines.delete(machine.id);
+    }
     ```
   </Tab>
 </Tabs>
@@ -293,6 +319,10 @@ machine; the agent never touches the filesystem directly.
   container
 - Check the mount with `systemctl status smfs-my_agent`, and stop it with
   `sudo systemctl stop smfs-my_agent`
-- To keep a machine between sessions, call `machines.hibernate()` instead of
-  `machines.delete()` and `machines.wake()` when you need it again. The mount
-  is still there after the wake, so you don't run the setup again
+- The examples delete the machine in a `finally` block, and `delete_after`
+  (`deleteAfter` in TypeScript, in seconds) deletes it after 30 minutes if the
+  script dies before that. Raise it for longer sessions
+- To keep a machine between sessions, create it without `delete_after`, then
+  call `machines.hibernate()` instead of `machines.delete()` and
+  `machines.wake()` when you need it again. The mount is still there after
+  the wake, so you don't run the setup again
