@@ -292,6 +292,57 @@ describe("ClaudeMemoryTool str_replace replacement literalness", () => {
 	})
 })
 
+describe("ClaudeMemoryTool str_replace uniqueness", () => {
+	let tool: ClaudeMemoryTool
+
+	beforeEach(() => {
+		documentsGetMock.mockReset()
+		updateMock.mockReset().mockResolvedValue({ id: "doc", status: "queued" })
+		mockDocument("status: todo\nnotes\nstatus: todo")
+		tool = new ClaudeMemoryTool("test-api-key")
+	})
+
+	it("refuses to replace an old_str that occurs more than once", async () => {
+		const result = await tool.handleCommand({
+			command: "str_replace",
+			path: FILE_PATH,
+			old_str: "status: todo",
+			new_str: "status: done",
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("Multiple occurrences")
+		expect(result.error).toContain("lines: 1, 3")
+		expect(updateMock).not.toHaveBeenCalled()
+	})
+
+	it("counts overlapping occurrences", async () => {
+		mockDocument("aaa")
+		const result = await tool.handleCommand({
+			command: "str_replace",
+			path: FILE_PATH,
+			old_str: "aa",
+			new_str: "b",
+		})
+
+		expect(result.success).toBe(false)
+		expect(updateMock).not.toHaveBeenCalled()
+	})
+
+	it("still replaces a unique old_str", async () => {
+		const result = await tool.handleCommand({
+			command: "str_replace",
+			path: FILE_PATH,
+			old_str: "notes",
+			new_str: "updated notes",
+		})
+
+		expect(result.success).toBe(true)
+		const stored = updateMock.mock.calls[0]?.[2]?.content as string
+		expect(stored).toBe("status: todo\nupdated notes\nstatus: todo")
+	})
+})
+
 describe("ClaudeMemoryTool path traversal", () => {
 	let tool: ClaudeMemoryTool
 
