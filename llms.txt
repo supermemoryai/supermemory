@@ -1,0 +1,29 @@
+# supermemory
+
+> supermemory is a memory API for AI agents and apps: it extracts memories from conversations, documents and files, keeps a profile for each user, and returns the right context through search. This repository holds the docs, the MCP server, the web app and agent skills.
+
+The current API is v5. Every call is scoped to a namespace (a user, a tenant or a project):
+
+- Add content: POST https://api.supermemory.ai/ns/{namespace}/document
+- Search memories and documents: POST https://api.supermemory.ai/ns/{namespace}/search
+- Read the profile: POST https://api.supermemory.ai/ns/{namespace}/profile
+
+SDKs (version 5 or later): `npm install supermemory` or `pip install supermemory`. The namespace is the first argument: `client.add(namespace, { content })`, `client.search(namespace, { query })`, `client.profile(namespace)`.
+
+Do not use `containerTag`, `containerTags`, `/v3` or `/v4` in new code. Those API versions shut down on December 31, 2026.
+
+## Docs
+
+- [Documentation index for agents](https://supermemory.ai/docs/llms.txt): every docs page, each with a Markdown copy at `<url>.md`
+- [Quickstart](https://supermemory.ai/docs/quickstart.md)
+- [TypeScript and Python SDKs](https://supermemory.ai/docs/integrations/supermemory-sdk.md)
+- [v5 API reference](https://supermemory.ai/docs/v5/api-reference/overview.md)
+- [Moving from v3/v4 to v5](https://supermemory.ai/docs/migration/api-v5.md)
+- [Memory MCP server](https://supermemory.ai/docs/supermemory-mcp/mcp.md): https://mcp.supermemory.ai/mcp
+- [Self-hosting](https://supermemory.ai/docs/self-hosting/overview.md)
+
+## In this repository
+
+- `apps/docs`: the documentation source (Mintlify)
+- `apps/mcp`: the Supermemory MCP server
+- `skills/supermemory`: the agent skill for building with Supermemory
