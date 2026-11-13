@@ -288,6 +288,14 @@ export function MemoryGraph({
 
 	// Load more when user zooms out enough that visible area dwarfs the node extent
 	const loadMoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+	useEffect(() => {
+		return () => {
+			if (loadMoreTimerRef.current) {
+				clearTimeout(loadMoreTimerRef.current)
+				loadMoreTimerRef.current = null
+			}
+		}
+	}, [])
 	const loadMoreRef = useRef({ hasMore, isLoadingMore, onLoadMore })
 	loadMoreRef.current = { hasMore, isLoadingMore, onLoadMore }
 	const handleViewportChange = useCallback(
@@ -302,11 +310,23 @@ export function MemoryGraph({
 				isLoadingMore: loading,
 				onLoadMore: load,
 			} = loadMoreRef.current
-			if (!more || loading || !load || !viewportRef.current) return
+			if (!more || loading || !load || !viewportRef.current) {
+				if (loadMoreTimerRef.current) {
+					clearTimeout(loadMoreTimerRef.current)
+					loadMoreTimerRef.current = null
+				}
+				return
+			}
 
 			const vp = viewportRef.current
 			const currentNodes = nodes
-			if (currentNodes.length === 0) return
+			if (currentNodes.length === 0) {
+				if (loadMoreTimerRef.current) {
+					clearTimeout(loadMoreTimerRef.current)
+					loadMoreTimerRef.current = null
+				}
+				return
+			}
 
 			const topLeft = vp.screenToWorld(0, 0)
 			const bottomRight = vp.screenToWorld(
@@ -334,11 +354,21 @@ export function MemoryGraph({
 			// (i.e. user has zoomed out significantly past the data)
 			const zoomedOut = viewW > nodeW * 3 || viewH > nodeH * 3
 
-			if (zoomedOut && !loadMoreTimerRef.current) {
+			if (zoomedOut) {
+				if (loadMoreTimerRef.current) {
+					clearTimeout(loadMoreTimerRef.current)
+				}
+
 				loadMoreTimerRef.current = setTimeout(() => {
 					loadMoreTimerRef.current = null
-					loadMoreRef.current.onLoadMore?.()
+					const latest = loadMoreRef.current
+					if (latest.hasMore && !latest.isLoadingMore) {
+						latest.onLoadMore?.()
+					}
 				}, 500)
+			} else if (loadMoreTimerRef.current) {
+				clearTimeout(loadMoreTimerRef.current)
+				loadMoreTimerRef.current = null
 			}
 		},
 		[nodes, containerSize.width, containerSize.height],
