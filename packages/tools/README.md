@@ -81,6 +81,37 @@ const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 })
 ```
 
+#### Web search and page fetch (Keenable)
+
+Memory tools recall what you stored. When the agent needs the open web, compose the official [`@keenable/ai-sdk`](https://www.npmjs.com/package/@keenable/ai-sdk) tools next to them — do not import search or fetch from this package. One provider covers both jobs: ranked search over a 100B+ document index, then the page as markdown. Authenticated usage includes 100,000 free requests a month, then $4 / 1,000 ($1 / 1,000 at dedicated 100+ RPS). A `KEENABLE_API_KEY` is optional; without one the tools use Keenable's keyless public endpoints.
+
+```typescript
+import { supermemoryTools } from "@supermemory/tools/ai-sdk"
+import { keenableTools } from "@keenable/ai-sdk"
+import { generateText, stepCountIs } from "ai"
+
+const tools = {
+  ...supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
+    namespace: "your-user-id",
+  }),
+  ...keenableTools(), // or keenableTools({ apiKey: process.env.KEENABLE_API_KEY })
+}
+
+const result = await generateText({
+  model: openai("gpt-5"),
+  messages: [
+    {
+      role: "user",
+      content: "What shipped in the latest Bun release? Remember the highlights.",
+    },
+  ],
+  tools,
+  stopWhen: stepCountIs(8),
+})
+```
+
+For OpenAI function calling, compose `getToolDefinitions()` with `TOOLS` and `runToolCall` from [`keenable`](https://www.npmjs.com/package/keenable). Docs: [supermemory.ai/docs/integrations/keenable](https://supermemory.ai/docs/integrations/keenable).
+
 #### AI SDK Middleware with Supermemory
 
 - `withSupermemory` injects the Supermemory v5 profile for the given `namespace`, plus a memories search on the latest user message in `query` and `full` modes
