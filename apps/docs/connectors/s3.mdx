@@ -5,7 +5,7 @@ description: "Connect Amazon S3 or S3-compatible storage to sync files into your
 icon: "/icons/hugeicons/database-01.svg"
 ---
 
-Connect Amazon S3 buckets or S3-compatible storage services (MinIO, DigitalOcean Spaces, Cloudflare R2, Tigris) to sync files into your Supermemory knowledge base.
+Connect Amazon S3 buckets or S3-compatible storage services (MinIO, DigitalOcean Spaces, Cloudflare R2, Tigris, Neon Object Storage) to sync files into your Supermemory knowledge base.
 
 <Note>
 The S3 connector requires a **Scale Plan** or higher. You can also create S3 connectors directly from the [Supermemory Console](https://console.supermemory.ai).
@@ -121,6 +121,7 @@ Common S3-compatible endpoint values:
 | DigitalOcean Spaces | `https://nyc3.digitaloceanspaces.com` | `nyc3` |
 | Cloudflare R2 | `https://<account-id>.r2.cloudflarestorage.com` | `auto` |
 | Tigris | `https://t3.storage.dev` | `auto` |
+| Neon Object Storage | `https://<branch-id>.storage.<cell>.<region>.aws.neon.tech` | Your project's region, such as `us-east-2` |
 
 Cloudflare R2 example:
 
@@ -139,6 +140,27 @@ const connector = await supermemory.connectors.create("r2-sync", {
 
 <Note>
 For S3-compatible services, `config.endpoint` is the base S3 endpoint. Do not include the bucket name in the endpoint URL; pass the bucket separately as `config.bucket`.
+</Note>
+
+### Neon Object Storage
+
+[Neon Object Storage](https://neon.com/docs/storage/overview) works with the `s3` provider. Set `config.endpoint` to your branch's S3 endpoint and `config.region` to your project's region, both shown under **Connect** > **Storage** in the Neon Console. The connector only reads, so a [credential](https://neon.com/docs/storage/authentication) with the `storage:read` scope is enough: its `token_id` is the access key ID and its `s3_secret_access_key` is the secret.
+
+```typescript
+const connector = await supermemory.connectors.create("neon-sync", {
+  provider: "s3",
+  config: {
+    bucket: "my-bucket",
+    region: "us-east-2",
+    accessKeyId: process.env.NEON_STORAGE_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.NEON_STORAGE_SECRET_ACCESS_KEY!,
+    endpoint: "https://br-cool-darkness-a1b2c3d4.storage.c-1.us-east-2.aws.neon.tech",
+  },
+})
+```
+
+<Note>
+Each Neon branch has its own endpoint, so a connector syncs one branch. Neon returns `403` for a wrong key or secret, so expect **Access denied** rather than **Authentication failed**.
 </Note>
 
 ## Prefix filtering
