@@ -1,9 +1,11 @@
 import { describe, expect, it } from "bun:test"
 import { readFileSync } from "node:fs"
 import {
+	BatchAddDocumentsRequestSchema,
 	BulkDeleteMemoriesSchema,
 	DocumentsWithMemoriesQuerySchema,
 	ListMemoriesQuerySchema,
+	MemoryAddSchema,
 	SearchRequestSchema,
 	Searchv4RequestSchema,
 } from "./api"
@@ -173,5 +175,34 @@ describe("pagination query schemas", () => {
 
 		const ok = { containerTags: ["tag_a", "tag_b"] }
 		expect(BulkDeleteMemoriesSchema.safeParse(ok).success).toBe(true)
+	})
+})
+
+describe("document add input schemas", () => {
+	it("preserves dreaming on a single document add", () => {
+		const parsed = MemoryAddSchema.parse({
+			content: "probe",
+			dreaming: "instant",
+		})
+
+		expect(parsed).toEqual({ content: "probe", dreaming: "instant" })
+	})
+
+	it("preserves dreaming on a batch document add", () => {
+		const parsed = BatchAddDocumentsRequestSchema.parse({
+			documents: [{ content: "probe" }],
+			dreaming: "dynamic",
+		})
+
+		expect(parsed).toEqual({
+			documents: [{ content: "probe" }],
+			dreaming: "dynamic",
+		})
+	})
+
+	it("rejects an invalid dreaming mode", () => {
+		expect(() =>
+			MemoryAddSchema.parse({ content: "probe", dreaming: "later" }),
+		).toThrow()
 	})
 })
