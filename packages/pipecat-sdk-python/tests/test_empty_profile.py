@@ -1,125 +1,106 @@
 from __future__ import annotations
 
-import sys
-import types
+import json
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-
-def _install_test_stubs() -> None:
-    if "loguru" not in sys.modules:
-        loguru_module = types.ModuleType("loguru")
-
-        class _Logger:
-            def warning(self, *_args, **_kwargs):
-                return None
-
-            def error(self, *_args, **_kwargs):
-                return None
-
-        loguru_module.logger = _Logger()
-        sys.modules["loguru"] = loguru_module
-
-    if "pydantic" not in sys.modules:
-        pydantic_module = types.ModuleType("pydantic")
-
-        class BaseModel:
-            def __init__(self, **kwargs):
-                for key, value in kwargs.items():
-                    setattr(self, key, value)
-
-        def Field(*, default=None, **_kwargs):
-            return default
-
-        pydantic_module.BaseModel = BaseModel
-        pydantic_module.Field = Field
-        sys.modules["pydantic"] = pydantic_module
-
-    if "pipecat" not in sys.modules:
-        pipecat_module = types.ModuleType("pipecat")
-        sys.modules["pipecat"] = pipecat_module
-
-        frames_module = types.ModuleType("pipecat.frames.frames")
-
-        class Frame:  # pragma: no cover - import stub
-            pass
-
-        class InputAudioRawFrame:  # pragma: no cover - import stub
-            pass
-
-        class LLMContextFrame:  # pragma: no cover - import stub
-            pass
-
-        class LLMMessagesFrame:  # pragma: no cover - import stub
-            pass
-
-        frames_module.Frame = Frame
-        frames_module.InputAudioRawFrame = InputAudioRawFrame
-        frames_module.LLMContextFrame = LLMContextFrame
-        frames_module.LLMMessagesFrame = LLMMessagesFrame
-
-        llm_context_module = types.ModuleType("pipecat.processors.aggregators.llm_context")
-
-        class LLMContext:  # pragma: no cover - import stub
-            pass
-
-        llm_context_module.LLMContext = LLMContext
-
-        openai_context_module = types.ModuleType(
-            "pipecat.processors.aggregators.openai_llm_context"
-        )
-
-        class OpenAILLMContextFrame:  # pragma: no cover - import stub
-            pass
-
-        openai_context_module.OpenAILLMContextFrame = OpenAILLMContextFrame
-
-        frame_processor_module = types.ModuleType("pipecat.processors.frame_processor")
-
-        class FrameDirection:  # pragma: no cover - import stub
-            pass
-
-        class FrameProcessor:
-            def __init__(self, *args, **kwargs):
-                return None
-
-        frame_processor_module.FrameDirection = FrameDirection
-        frame_processor_module.FrameProcessor = FrameProcessor
-
-        sys.modules["pipecat.frames.frames"] = frames_module
-        sys.modules["pipecat.processors.aggregators.llm_context"] = llm_context_module
-        sys.modules[
-            "pipecat.processors.aggregators.openai_llm_context"
-        ] = openai_context_module
-        sys.modules["pipecat.processors.frame_processor"] = frame_processor_module
-
-
-_install_test_stubs()
+import httpx
+from supermemory import AsyncSupermemory
 
 from supermemory_pipecat.service import SupermemoryPipecatService
+from supermemory_pipecat.utils import format_memories_to_text
 
 
-class _MockSupermemoryClient:
-    def __init__(self, response):
-        self.profile = AsyncMock(return_value=response)
+class _Context:
+    def __init__(self, messages):
+        self.messages = messages
+
+    def get_messages(self):
+        return self.messages
+
+    def add_message(self, message):
+        self.messages.append(message)
 
 
-class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
+class TestSupermemoryPipecatService(unittest.IsolatedAsyncioTestCase):
+    async def test_v5_reads_and_writes_use_user_id_as_namespace(self) -> None:
+        requests = {}
+        failed = set()
+
+        def respond(request):
+            requests[request.url.path] = json.loads(request.content)
+            if request.url.path.rsplit("/", 1)[-1] in failed:
+                return httpx.Response(500)
+            if request.url.path.endswith("/profile"):
+                payload = {"profile": {"static": [{"memory": "Likes tea"}], "dynamic": []}}
+            elif request.url.path.endswith("/search"):
+                payload = {
+                    "results": [
+                        {
+                            "id": "mem_123",
+                            "memory": "Plans a trip",
+                            "metadata": {},
+                            "similarity": 0.9,
+                            "isLatest": True,
+                            "isInference": False,
+                            "system": {"updatedAt": "2020-01-01T00:00:00Z"},
+                        }
+                    ]
+                }
+            else:
+                payload = {"id": "conversation-456"}
+            return httpx.Response(200, json=payload)
+
+        async with AsyncSupermemory(
+            api_key="mock_key",
+            base_url="https://example.test",
+            http_client=httpx.AsyncClient(transport=httpx.MockTransport(respond)),
+        ) as client:
+            service = SupermemoryPipecatService(
+                api_key="mock_key",
+                user_id="user-123",
+                session_id="conversation-456",
+                params=SupermemoryPipecatService.InputParams(search_limit=500),
+            )
+            service._supermemory_client = client
+            result = await service._retrieve_memories("Where am I going?")
+            await service._store_messages([{"role": "user", "content": "Hello"}])
+            failed.add("search")
+            partial_result = await service._retrieve_memories("Where am I going?")
+            failed.clear()
+            failed.add("profile")
+            search_only_result = await service._retrieve_memories("Where am I going?")
+
+        self.assertEqual(result["profile"]["static"], ["Likes tea"])
+        self.assertEqual(result["search_results"][0].memory, "Plans a trip")
+        self.assertEqual(
+            set(requests), {"/ns/user-123/profile", "/ns/user-123/search", "/ns/user-123/document"}
+        )
+        self.assertEqual(requests["/ns/user-123/search"]["query"], "Where am I going?")
+        self.assertEqual(requests["/ns/user-123/search"]["limit"], 100)
+        self.assertEqual(requests["/ns/user-123/document"]["id"], "conversation-456")
+        self.assertEqual(partial_result["profile"]["static"], ["Likes tea"])
+        self.assertEqual(partial_result["search_results"], [])
+        self.assertEqual(search_only_result["profile"]["static"], [])
+        self.assertEqual(search_only_result["search_results"][0].memory, "Plans a trip")
+        self.assertIn(
+            "[1 Jan, 2020] Plans a trip",
+            format_memories_to_text(
+                {"static": [], "dynamic": [], "search_results": result["search_results"]}
+            ),
+        )
+
     async def test_retrieve_memories_handles_null_profile(self) -> None:
         service = SupermemoryPipecatService(api_key="mock_key", user_id="new_user_123")
-
-        response = SimpleNamespace(profile=None, search_results=None)
-        service._supermemory_client = _MockSupermemoryClient(response)
-
-        result = await service._retrieve_memories("Hello world")
+        service._supermemory_client = SimpleNamespace(
+            profile=AsyncMock(return_value=SimpleNamespace(profile=None)),
+            search=AsyncMock(return_value=SimpleNamespace(results=[])),
+        )
 
         self.assertEqual(
-            result,
-            {
-                "profile": {"static": [], "dynamic": []},
-                "search_results": [],
-            },
+            await service._retrieve_memories("Hello world"),
+            {"profile": {"static": [], "dynamic": []}, "search_results": []},
         )
 
     def test_query_mode_keeps_search_fact_also_present_in_profile(self) -> None:
@@ -130,18 +111,7 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
             session_id="conversation-456",
             params=SupermemoryPipecatService.InputParams(mode="query"),
         )
-
-        class Context:
-            def __init__(self):
-                self.messages = [{"role": "user", "content": "What do I like?"}]
-
-            def get_messages(self):
-                return self.messages
-
-            def add_message(self, message):
-                self.messages.append(message)
-
-        context = Context()
+        context = _Context([{"role": "user", "content": "What do I like?"}])
         service._enhance_context_with_memories(
             context,
             "What do I like?",
@@ -151,12 +121,9 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
             },
         )
 
-        self.assertTrue(
-            any(fact in message.get("content", "") for message in context.messages)
-        )
+        self.assertTrue(any(fact in message.get("content", "") for message in context.messages))
 
     def test_system_injection_replaces_stale_block_with_backslash_memory(self) -> None:
-        """A memory containing backslashes must not be read as a regex template."""
         backslash = chr(92)
         fact = "User's repo is at C:" + backslash + "Users" + backslash + "alice"
         service = SupermemoryPipecatService(
@@ -165,33 +132,17 @@ class TestSupermemoryPipecatNullProfile(unittest.IsolatedAsyncioTestCase):
             session_id="conversation-456",
             params=SupermemoryPipecatService.InputParams(inject_mode="system"),
         )
-        newline = chr(10)
-        stale = newline.join(["<user_memories>", "Stale fact", "</user_memories>"])
-
-        class Context:
-            def __init__(self):
-                self.messages = [
-                    {
-                        "role": "system",
-                        "content": "You are helpful." + newline + newline + stale,
-                    },
-                    {"role": "user", "content": "Where is my repo?"},
-                ]
-
-            def get_messages(self):
-                return self.messages
-
-            def add_message(self, message):
-                self.messages.append(message)
-
-        context = Context()
+        stale = "<user_memories>\nStale fact\n</user_memories>"
+        context = _Context(
+            [
+                {"role": "system", "content": "You are helpful.\n\n" + stale},
+                {"role": "user", "content": "Where is my repo?"},
+            ]
+        )
         service._enhance_context_with_memories(
             context,
             "Where is my repo?",
-            {
-                "profile": {"static": [fact], "dynamic": []},
-                "search_results": [],
-            },
+            {"profile": {"static": [fact], "dynamic": []}, "search_results": []},
         )
 
         system_content = context.messages[0]["content"]

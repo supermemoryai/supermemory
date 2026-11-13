@@ -15,6 +15,10 @@ To use Supermemory with Pipecat, install the required dependencies:
 pip install supermemory-pipecat
 ```
 
+Version 0.2.0 uses the Supermemory Python SDK v5. Keep using `user_id=`;
+the service passes that value as the namespace for profile, search, and writes.
+`session_id` is passed as the v5 document `id` (previously `custom_id`).
+
 Set up your API key as an environment variable:
 
 ```bash
@@ -66,7 +70,8 @@ When integrated with Pipecat, Supermemory provides two key functionalities:
 
 ### 1. Memory retrieval
 
-When a user message is detected, Supermemory retrieves relevant memories:
+When a user message is detected, Supermemory reads the v5 profile and searches
+the same namespace when query results are enabled:
 
 - **Static Profile**: Persistent facts about the user
 - **Dynamic Profile**: Recent context and preferences
@@ -142,11 +147,11 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from pipecat.audio.vad.silero import SileroVADAnalyzer
-from pipecat.frames.frames import LLMMessagesFrame
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
-from pipecat.pipeline.task import PipelineParams, PipelineTask
-from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
+from pipecat.pipeline.task import PipelineTask
+from pipecat.processors.aggregators.llm_context import LLMContext
+from pipecat.processors.aggregators.llm_response_universal import LLMContextAggregatorPair
 from pipecat.serializers.protobuf import ProtobufFrameSerializer
 from pipecat.services.openai.llm import OpenAILLMService
 from pipecat.services.openai.tts import OpenAITTSService
@@ -193,8 +198,8 @@ async def run_bot(websocket_client, user_id: str, session_id: str):
         ),
     )
 
-    context = OpenAILLMContext([{"role": "system", "content": SYSTEM_PROMPT}])
-    context_aggregator = llm.create_context_aggregator(context)
+    context = LLMContext([{"role": "system", "content": SYSTEM_PROMPT}])
+    context_aggregator = LLMContextAggregatorPair(context)
 
     pipeline = Pipeline([
         transport.input(),
@@ -207,7 +212,7 @@ async def run_bot(websocket_client, user_id: str, session_id: str):
         context_aggregator.assistant(),
     ])
 
-    task = PipelineTask(pipeline, params=PipelineParams(allow_interruptions=True))
+    task = PipelineTask(pipeline)
 
     @transport.event_handler("on_client_disconnected")
     async def on_client_disconnected(transport, client):
