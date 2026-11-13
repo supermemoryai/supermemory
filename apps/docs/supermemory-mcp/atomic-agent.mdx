@@ -1,0 +1,53 @@
+---
+title: "Atomic Agent"
+description: "Connect Supermemory MCP to Atomic Agent with an API key"
+icon: "/icons/hugeicons/robotic.svg"
+sidebarTitle: "Atomic Agent"
+---
+
+[Atomic Agent](https://github.com/AtomicBot-ai/atomic-agent) is an open source agent that runs on your own machine, with local or cloud models. This guide adds Supermemory to it as a remote MCP server. Atomic Agent doesn't support OAuth for MCP servers, so it connects with an API key. For other clients, see [setup and usage](/supermemory-mcp/setup).
+
+Atomic Agent keeps its own built-in memory on your machine. Anything the agent saves through Supermemory is stored in your Supermemory account, so the same memory is available in every other client you connect.
+
+## Step 1: Create an API key
+
+Open the [console](https://console.supermemory.ai/keys) and create an API key. It starts with `sm_`.
+
+## Step 2: Add the server
+
+Paste the server config below in either app:
+
+- **Terminal app:** run `/mcp`, press `n` to add a server, and paste the config.
+- **Desktop app:** open **Settings › Connections › MCP servers** and add the server.
+
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer sm_your_api_key"
+      }
+    }
+  }
+}
+```
+
+Both apps add the server live, with no restart.
+
+## Step 3: Check the connection
+
+Supermemory tools show up in the agent as `mcp.supermemory.<tool>`, for example `mcp.supermemory.search_memory`. Ask the agent:
+
+- "What is my active Supermemory space?"
+- "Search my Supermemory for the launch plan."
+
+Read-only tools such as `search_memory` run right away. Tools that change your memory, such as `add_memory`, ask for your approval first.
+
+## Done
+
+Supermemory is connected to Atomic Agent. To disconnect, remove the server in `/mcp` or in **Settings › Connections › MCP servers**, then delete the key in the console.
+
+---
+
+**See also:** [Overview](/supermemory-mcp/mcp) · [Setup and Usage](/supermemory-mcp/setup)
