@@ -1471,6 +1471,35 @@ export const BulkDeleteMemoriesResponseSchema = z
 		description: "Response for bulk memory deletion",
 	})
 
+// GET /v3/container-tags/:containerTag/profile returns memory objects, not
+// strings. Each entry is a subset of a MemoryEntry.
+export const ProfileEntrySchema = MemoryEntrySchema.pick({
+	id: true,
+	memory: true,
+	isStatic: true,
+	isInference: true,
+	version: true,
+	sourceCount: true,
+	rootMemoryId: true,
+	parentMemoryId: true,
+	metadata: true,
+	createdAt: true,
+	updatedAt: true,
+}).openapi({
+	description: "A memory that is part of a container tag profile",
+})
+
+export const ContainerTagProfileResponseSchema = z
+	.object({
+		profile: z.object({
+			static: z.array(ProfileEntrySchema).optional(),
+			dynamic: z.array(ProfileEntrySchema).optional(),
+		}),
+	})
+	.openapi({
+		description: "Static and dynamic profile memories of a container tag",
+	})
+
 export const ContainerTagListTypeSchema = z
 	.object({
 		id: z.string().openapi({
