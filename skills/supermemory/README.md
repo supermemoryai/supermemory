@@ -115,17 +115,17 @@ Ready-to-use code snippets for TypeScript and Python showing the basic workflow:
 
 ### 2. Complete SDK Documentation
 Full reference for all SDK methods:
-- `add()` - Store memories
-- `profile()` - Retrieve user context
-- `search.memories()` - Semantic search
-- `documents.list()` - List documents
-- `documents.delete()` - Delete documents
+- `add(namespace, …)` - Store memories
+- `profile(namespace)` - Retrieve user context
+- `search(namespace, …)` - Semantic search
+- `list(namespace, "documents", …)` - List documents
+- `documents.delete(namespace, { ids })` - Delete documents
 
 ### 3. REST API Reference
 Complete endpoint documentation with cURL examples:
-- `POST /v3/documents` - Add documents
-- `POST /v3/search` - Search memories
-- `POST /v4/memories` - Create direct memories
+- `POST /ns/{namespace}/document` - Add documents
+- `POST /ns/{namespace}/search` - Search memories
+- `POST /ns/{namespace}/profile` - Get a user profile
 
 ### 4. Architecture Deep Dive
 Understand how Supermemory works:
@@ -149,10 +149,10 @@ Understand how Supermemory works:
 
 The skill emphasizes:
 
-- **Container Tags**: Proper isolation and organization
+- **Namespaces**: Proper isolation and organization
 - **Metadata**: Rich metadata for advanced filtering
 - **Thresholds**: Balancing precision and recall
-- **Static vs Dynamic Memories**: When to mark memories as permanent
+- **Static vs Dynamic Memories**: How profiles split long-lived facts from recent context
 - **Error Handling**: Graceful handling of API errors
 - **Integration Patterns**: Works with Vercel AI SDK, LangChain, CrewAI, etc.
 
