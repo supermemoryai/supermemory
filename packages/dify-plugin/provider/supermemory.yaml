@@ -1,0 +1,32 @@
+identity:
+  author: supermemoryai
+  name: supermemory
+  label:
+    en_US: Supermemory
+  description:
+    en_US: Long-term memory for Dify agents and workflows. Store content, search memories and read user profiles with the Supermemory API.
+  icon: icon.svg
+  tags:
+    - rag
+    - search
+
+credentials_for_provider:
+  supermemory_api_key:
+    type: secret-input
+    required: true
+    label:
+      en_US: Supermemory API key
+    placeholder:
+      en_US: Enter your Supermemory API key (starts with sm_)
+    help:
+      en_US: Get your API key from the Supermemory console
+    url: https://console.supermemory.ai
+
+tools:
+  - tools/add_memory.yaml
+  - tools/search_memories.yaml
+  - tools/get_profile.yaml
+  - tools/forget_memories.yaml
+extra:
+  python:
+    source: provider/supermemory.py
