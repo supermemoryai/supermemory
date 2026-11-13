@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test"
 import { readFileSync } from "node:fs"
 import {
 	BulkDeleteMemoriesSchema,
+	ContainerTagProfileResponseSchema,
 	DocumentsWithMemoriesQuerySchema,
 	ListMemoriesQuerySchema,
 	SearchRequestSchema,
@@ -173,5 +174,63 @@ describe("pagination query schemas", () => {
 
 		const ok = { containerTags: ["tag_a", "tag_b"] }
 		expect(BulkDeleteMemoriesSchema.safeParse(ok).success).toBe(true)
+	})
+})
+
+describe("ContainerTagProfileResponseSchema", () => {
+	const entry = {
+		id: "mem_123",
+		memory: "Nora owns the billing pipeline.",
+		isStatic: true,
+		isInference: false,
+		version: 1,
+		sourceCount: 2,
+		rootMemoryId: "mem_root",
+		parentMemoryId: null,
+		createdAt: "2026-10-27T06:52:34.160Z",
+		updatedAt: "2026-10-27T06:52:34.160Z",
+		metadata: { temporalContext: { documentDate: "2026-10-27" } },
+	}
+
+	it("parses the object-shaped entries returned by the API", () => {
+		const parsed = ContainerTagProfileResponseSchema.parse({
+			profile: {
+				static: [entry],
+				dynamic: [{ ...entry, isStatic: false, id: "mem_456" }],
+			},
+		})
+
+		expect(parsed.profile.static?.[0]).toMatchObject({
+			id: "mem_123",
+			memory: "Nora owns the billing pipeline.",
+			isStatic: true,
+			sourceCount: 2,
+		})
+		expect(parsed.profile.dynamic?.[0]?.id).toBe("mem_456")
+	})
+
+	it("preserves unknown entry and profile fields", () => {
+		const parsed = ContainerTagProfileResponseSchema.parse({
+			profile: {
+				static: [{ ...entry, futureEntryField: "kept" }],
+				buckets: { work: [entry] },
+			},
+		})
+
+		expect(
+			(parsed.profile.static?.[0] as Record<string, unknown>).futureEntryField,
+		).toBe("kept")
+		expect((parsed.profile as Record<string, unknown>).buckets).toEqual({
+			work: [entry],
+		})
+	})
+
+	it("accepts an empty profile", () => {
+		const parsed = ContainerTagProfileResponseSchema.parse({
+			profile: { static: [], dynamic: [] },
+		})
+
+		expect(parsed.profile.static).toEqual([])
+		expect(parsed.profile.dynamic).toEqual([])
 	})
 })
