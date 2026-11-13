@@ -1,0 +1,66 @@
+identity:
+  name: add_memory
+  author: supermemoryai
+  label:
+    en_US: Add Memory
+description:
+  human:
+    en_US: Store text or a URL in a Supermemory namespace. Supermemory extracts memories from it in the background.
+  llm: Store content in Supermemory so it can be recalled later. Use it to save facts, preferences or conversation turns for a user or project. Memories are extracted asynchronously and may take a few minutes to become searchable.
+parameters:
+  - name: namespace
+    type: string
+    required: true
+    label:
+      en_US: Namespace
+    human_description:
+      en_US: A user ID, project ID or any string that isolates this set of memories.
+    llm_description: The namespace that scopes the memory, for example a user ID or project ID. Use the same value when searching.
+    form: llm
+  - name: content
+    type: string
+    required: true
+    label:
+      en_US: Content
+    human_description:
+      en_US: The text to remember, or a URL to supported content.
+    llm_description: The text to store, or a URL to supported content. Write complete sentences so facts can be extracted.
+    form: llm
+  - name: document_id
+    type: string
+    required: false
+    label:
+      en_US: Document ID
+    human_description:
+      en_US: Optional stable ID. Reusing the same ID appends to that document, so use one ID per conversation or session.
+    llm_description: Optional caller-defined document ID. Reuse the same ID to append new information to an existing document, for example one ID per conversation.
+    form: llm
+  - name: metadata
+    type: string
+    required: false
+    label:
+      en_US: Metadata (JSON)
+    human_description:
+      en_US: Optional JSON object with string, number or boolean values, for example {"source":"dify","priority":2}.
+    llm_description: Optional JSON object string of flat metadata. Values must be strings, numbers, booleans or lists of strings.
+    form: llm
+  - name: dreaming
+    type: select
+    required: false
+    default: dynamic
+    label:
+      en_US: Processing Mode
+    human_description:
+      en_US: Dynamic groups related documents before extracting memories. Instant skips the batching, so memories are usually searchable within about a minute, and bills one extra operation.
+    llm_description: Processing mode. Use "dynamic" by default. Use "instant" only when the memories must be searchable within about a minute.
+    form: form
+    options:
+      - value: dynamic
+        label:
+          en_US: Dynamic
+      - value: instant
+        label:
+          en_US: Instant
+extra:
+  python:
+    source: tools/add_memory.py
