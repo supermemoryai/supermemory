@@ -164,6 +164,19 @@ describe("InputHandler touch tap-to-select", () => {
 		expect(clicks).toEqual(["doc-1"])
 	})
 
+	it("does not jump when one finger keeps panning after a pinch", () => {
+		fire("touchstart", touchEvent([touch(100, 100)]))
+		// second finger lands -> pinch gesture
+		fire("touchstart", touchEvent([touch(100, 100), touch(200, 200)]))
+		// one finger lifts; the remaining finger is now at (300, 300)
+		fire("touchend", touchEvent([touch(300, 300)]))
+		const panBefore = viewport.panX
+		// the remaining finger moves 10px; only that delta should pan
+		fire("touchmove", touchEvent([touch(310, 300)]))
+
+		expect(viewport.panX - panBefore).toBe(10)
+	})
+
 	it("hit-tests the tap through the current viewport transform", () => {
 		// zoom 2x, pan (50, 50): world (100, 100) renders at screen (250, 250)
 		viewport.pan(50, 50)
