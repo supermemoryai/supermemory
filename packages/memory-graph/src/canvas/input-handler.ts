@@ -385,6 +385,14 @@ export class InputHandler {
 		if (e.touches.length < 2) {
 			this.isTouchGesture = false
 		}
+		if (e.touches.length === 1 && e.touches[0]) {
+			// Re-anchor the pan reference to the remaining finger. lastMouseX/Y
+			// still hold the pre-pinch position, so the next touchmove would pan
+			// by the whole pinch-to-finger distance in one jump.
+			const rect = this.canvas.getBoundingClientRect()
+			this.lastMouseX = e.touches[0].clientX - rect.left
+			this.lastMouseY = e.touches[0].clientY - rect.top
+		}
 		if (e.touches.length === 0) {
 			this.isPanning = false
 			if (this.tapCandidate) {
