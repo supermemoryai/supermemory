@@ -1,6 +1,6 @@
-import type { GraphNode } from "../types"
-import type { SpatialIndex } from "./hit-test"
-import type { ViewportState } from "./viewport"
+import type { GraphNode } from "../types.js"
+import type { SpatialIndex } from "./hit-test.js"
+import type { ViewportState } from "./viewport.js"
 
 interface InputCallbacks {
 	onNodeHover: (id: string | null) => void

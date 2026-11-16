@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { generateMockGraphData } from "../mock-data"
+import { generateMockGraphData } from "../mock-data.js"
 
 describe("generateMockGraphData", () => {
 	it("produces deterministic output with same seed", () => {

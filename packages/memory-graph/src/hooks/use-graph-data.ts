@@ -7,8 +7,8 @@ import type {
 	GraphNode,
 	GraphThemeColors,
 	MemoryNodeData,
-} from "../types"
-import { hashString } from "../utils/hash"
+} from "../types.js"
+import { hashString } from "../utils/hash.js"
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
