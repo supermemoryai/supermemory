@@ -75,7 +75,8 @@ Once installed, the plugin runs automatically:
 - **Direct recall** — Before Claude sees each substantive prompt, the hook searches Supermemory and injects fresh matches. Set `recallDirective` to switch to advisory mode, where Claude decides when to search.
 - **Auto-capture** — After each Claude response (the Stop hook), conversation content added since the last save is captured in the background.
 - **Shared repo memory** — Captures go to one repository container shared with the Codex, OpenCode, and Cursor plugins, tagged with `sm_scope: personal` metadata.
-- **MCP tools** — The hosted Supermemory MCP tools (`search_memory`, `add_memory`, and more) use the same credentials. `search_memory` and the legacy camelCase read tools (`listMemories`, `listDocuments`, `getDocument`, `listSpaces`, `whoAmI`) are approved automatically; other tools, including `list_memories`, `list_documents`, `get_document` and `get_profile`, still ask for approval. For deeper history, Claude can also use the `context-gatherer` agent.
+- **MCP tools** — The hosted Supermemory MCP tools (`search_memory`, `add_memory`, and more) use the same credentials. They follow your Claude Code permission settings, so Claude asks before using one unless you've allowed it. For deeper history, Claude can also use the `context-gatherer` agent.
+- **Skipped sessions** — Print-mode runs (`claude -p`), GitHub Action runs, and turns that relay a background subagent's result make no Supermemory calls by default. Conductor and Vibe Kanban sessions are treated as interactive.
 
 ## Commands
 
@@ -118,6 +119,13 @@ Create `~/.supermemory-claude/settings.json`:
 | `signalKeywords` | Keywords that trigger capture |
 | `signalTurnsBefore` | Context turns before a signal (default: 3) |
 | `includeTools` | Tools to explicitly capture |
+| `captureSubagents` | Recall and capture on turns that relay a background subagent's result (default: false) |
+| `captureHeadless` | Load context, recall and capture in `claude -p` and GitHub Action runs (default: false) |
+| `captureOrchestrated` | Load context, recall and capture in Conductor and Vibe Kanban sessions (default: true) |
+| `dedupeOpeningPrompt` | Save a marker instead of an opening prompt (200+ characters) already captured from this machine for the same container in the last 24 hours (default: true) |
+| `dedupeRecallQueries` | Reuse another session's results for the same query and container from the last 10 minutes (default: true) |
+
+Each of the last five options can also be set with an environment variable, `SUPERMEMORY_CAPTURE_SUBAGENTS`, `SUPERMEMORY_CAPTURE_HEADLESS`, `SUPERMEMORY_CAPTURE_ORCHESTRATED`, `SUPERMEMORY_DEDUPE_OPENING_PROMPT` or `SUPERMEMORY_DEDUPE_RECALL_QUERIES`. Set it to `true` or `false`; it takes priority over `settings.json`.
 
 ### Project config
 
