@@ -7,7 +7,13 @@ const sdk = vi.hoisted(() => {
 	}
 	return {
 		NotFoundError,
-		list: vi.fn(),
+		// An empty store unless a test lists files.
+		list: vi.fn(
+			async (): Promise<unknown> => ({
+				documents: [],
+				pagination: { currentPage: 1, totalItems: 0, totalPages: 0 },
+			}),
+		),
 		get: vi.fn(),
 		update: vi.fn(),
 		delete: vi.fn(),
@@ -484,5 +490,271 @@ describe("ClaudeMemoryTool path IDs", () => {
 			path: "/memories/notes_txt",
 		})
 		expect(result.success).toBe(false)
+	})
+})
+
+describe("ClaudeMemoryTool directory paths", () => {
+	let tool: ClaudeMemoryTool
+
+	// The real API applies the `contains` filter; returning every file here
+	// also exercises the client-side prefix check.
+	function mockListedFiles(pages: { id: string; filePath: string }[][]): void {
+		sdk.list.mockReset()
+		pages.forEach((files, index) => {
+			sdk.list.mockResolvedValueOnce({
+				documents: files.map((file) => ({
+					id: file.id,
+					metadata: {
+						source: "claude-memory",
+						claude_memory_type: "file",
+						file_path: file.filePath,
+					},
+				})),
+				pagination: {
+					currentPage: index + 1,
+					totalItems: pages.flat().length,
+					totalPages: pages.length,
+				},
+			})
+		})
+	}
+
+	const PROJECT_FILES = [
+		{ id: "cm_a", filePath: "/memories/projects/a.txt" },
+		{ id: "cm_b", filePath: "/memories/projects/nested/b.txt" },
+		// Shares the "projects" prefix but is not inside the directory.
+		{ id: "cm_c", filePath: "/memories/projectsX/c.txt" },
+	]
+
+	beforeEach(() => {
+		documentsGetMock.mockReset()
+		updateMock.mockReset()
+		sdk.list.mockReset()
+		sdk.delete.mockReset()
+		sdk.add.mockReset()
+		mockDocuments([])
+		tool = new ClaudeMemoryTool("test-api-key")
+	})
+
+	it("view lists a directory given without a trailing slash", async () => {
+		mockListedFiles([PROJECT_FILES])
+
+		const result = await tool.handleCommand({
+			command: "view",
+			path: "/memories/projects",
+		})
+
+		expect(result).toEqual({
+			success: true,
+			content: "Directory: /memories/projects/\n- nested/\n- a.txt",
+		})
+	})
+
+	it("view of an empty memory root returns only the public response fields", async () => {
+		const result = await tool.handleCommand({
+			command: "view",
+			path: "/memories",
+		})
+
+		expect(result).toEqual({
+			success: true,
+			content: "Directory: /memories/\n(empty)",
+		})
+	})
+
+	it("view still reports a path that is neither a file nor a directory", async () => {
+		mockListedFiles([[]])
+
+		const result = await tool.handleCommand({
+			command: "view",
+			path: "/memories/missing",
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toBe("File not found: /memories/missing")
+	})
+
+	it("view prefers a file over a directory at the same path", async () => {
+		mockDocuments([
+			{
+				id: "cm_memories_s_projects",
+				filePath: "/memories/projects",
+				content: "a file",
+			},
+		])
+		mockListedFiles([PROJECT_FILES])
+
+		const result = await tool.handleCommand({
+			command: "view",
+			path: "/memories/projects",
+		})
+
+		expect(result.success).toBe(true)
+		expect(result.content).toContain("a file")
+		expect(sdk.list).not.toHaveBeenCalled()
+	})
+
+	it("view does not fall back to a listing when the file lookup fails", async () => {
+		documentsGetMock.mockRejectedValue(
+			Object.assign(new Error("upstream down"), { status: 500 }),
+		)
+
+		const result = await tool.handleCommand({
+			command: "view",
+			path: "/memories/projects",
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("upstream down")
+		expect(sdk.list).not.toHaveBeenCalled()
+	})
+
+	it.each([
+		"/memories/projects",
+		"/memories/projects/",
+	])("delete %s removes every file in the directory and nothing outside it", async (path) => {
+		mockListedFiles([PROJECT_FILES])
+		sdk.delete.mockResolvedValue({ count: 2, errors: [] })
+
+		const result = await tool.handleCommand({ command: "delete", path })
+
+		expect(result).toEqual({
+			success: true,
+			content: "Directory deleted: /memories/projects/ (2 files)",
+		})
+		expect(sdk.delete).toHaveBeenCalledTimes(1)
+		expect(sdk.delete).toHaveBeenCalledWith(expect.anything(), {
+			ids: ["cm_a", "cm_b"],
+		})
+	})
+
+	it("delete lists every page before deleting, then deletes in chunks", async () => {
+		const files = Array.from({ length: 150 }, (_, index) => ({
+			id: `cm_${index}`,
+			filePath: `/memories/bulk/${index}.txt`,
+		}))
+		mockListedFiles([files.slice(0, 100), files.slice(100)])
+		sdk.delete.mockImplementation(async (_namespace, { ids }) => ({
+			count: ids.length,
+			errors: [],
+		}))
+
+		const result = await tool.handleCommand({
+			command: "delete",
+			path: "/memories/bulk",
+		})
+
+		expect(result.success).toBe(true)
+		expect(sdk.list).toHaveBeenCalledTimes(2)
+		expect(
+			sdk.delete.mock.calls.map(([, request]) => request.ids.length),
+		).toEqual([100, 50])
+		// Deleting while paging would shift later pages and skip files.
+		const lastList = Math.max(...sdk.list.mock.invocationCallOrder)
+		expect(Math.min(...sdk.delete.mock.invocationCallOrder)).toBeGreaterThan(
+			lastList,
+		)
+	})
+
+	it("delete reports the files a directory delete could not remove", async () => {
+		mockListedFiles([PROJECT_FILES])
+		sdk.delete.mockResolvedValue({
+			count: 1,
+			errors: [{ id: "cm_b", error: "Document is still processing" }],
+		})
+
+		const result = await tool.handleCommand({
+			command: "delete",
+			path: "/memories/projects",
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toBe(
+			"Deleted 1 of 2 files in /memories/projects/. Not deleted: /memories/projects/nested/b.txt (Document is still processing)",
+		)
+	})
+
+	it("delete says how many files went before a batch failed", async () => {
+		const files = Array.from({ length: 150 }, (_, index) => ({
+			id: `cm_${index}`,
+			filePath: `/memories/bulk/${index}.txt`,
+		}))
+		mockListedFiles([files.slice(0, 100), files.slice(100)])
+		sdk.delete
+			.mockResolvedValueOnce({ count: 100, errors: [] })
+			.mockRejectedValueOnce(new Error("upstream down"))
+
+		const result = await tool.handleCommand({
+			command: "delete",
+			path: "/memories/bulk",
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toBe(
+			"Deleted 100 of 150 files in /memories/bulk/ before failing: upstream down",
+		)
+	})
+
+	it.each([
+		"/memories",
+		"/memories/",
+	])("delete refuses the memory root %s", async (path) => {
+		const result = await tool.handleCommand({ command: "delete", path })
+
+		expect(result.success).toBe(false)
+		expect(result.error).toBe("Cannot delete the /memories directory")
+		expect(sdk.list).not.toHaveBeenCalled()
+		expect(sdk.delete).not.toHaveBeenCalled()
+	})
+
+	it("delete of a path that is neither a file nor a directory deletes nothing", async () => {
+		mockListedFiles([[]])
+
+		const result = await tool.handleCommand({
+			command: "delete",
+			path: "/memories/missing",
+		})
+
+		expect(result.success).toBe(false)
+		expect(result.error).toBe("File not found: /memories/missing")
+		expect(sdk.delete).not.toHaveBeenCalled()
+	})
+
+	it("delete removes only the file when a file and directory share a path", async () => {
+		mockDocuments([
+			{
+				id: "cm_memories_s_projects",
+				filePath: "/memories/projects",
+				content: "a file",
+			},
+		])
+		mockListedFiles([PROJECT_FILES])
+		sdk.delete.mockResolvedValue({ count: 1, errors: [] })
+
+		const result = await tool.handleCommand({
+			command: "delete",
+			path: "/memories/projects",
+		})
+
+		expect(result.success).toBe(true)
+		expect(sdk.delete).toHaveBeenCalledWith(expect.anything(), {
+			ids: ["cm_memories_s_projects"],
+		})
+		expect(sdk.list).not.toHaveBeenCalled()
+	})
+
+	it("delete does nothing when the file lookup fails", async () => {
+		documentsGetMock.mockRejectedValue(
+			Object.assign(new Error("upstream down"), { status: 500 }),
+		)
+
+		const result = await tool.handleCommand({
+			command: "delete",
+			path: "/memories/projects",
+		})
+
+		expect(result.success).toBe(false)
+		expect(sdk.list).not.toHaveBeenCalled()
+		expect(sdk.delete).not.toHaveBeenCalled()
 	})
 })

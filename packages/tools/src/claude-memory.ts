@@ -10,6 +10,9 @@ export type ClaudeMemoryConfig = SupermemoryToolsConfig
 
 export const CLAUDE_MEMORY_SOURCE = "claude-memory"
 
+// The API documents no per-request cap; this matches the list page size.
+const DELETE_BATCH_SIZE = 100
+
 interface MemoryCommandFields {
 	// view specific
 	view_range?: [number, number]
@@ -190,44 +193,64 @@ export class ClaudeMemoryTool {
 		if (path.endsWith("/") || path === "/memories") {
 			// Normalize path to end with /
 			const dirPath = path.endsWith("/") ? path : `${path}/`
-			return await this.listDirectory(dirPath)
+			const { empty: _empty, ...listing } = await this.listDirectory(dirPath)
+			return listing
 		}
 
-		// Otherwise, read the specific file
-		return await this.readFile(path, viewRange)
+		const { notFound, ...fileResult } = await this.readFile(path, viewRange)
+		if (!notFound) return fileResult
+
+		// Directories are often named without the trailing slash.
+		const { empty, ...listing } = await this.listDirectory(`${path}/`)
+		return empty ? fileResult : listing
+	}
+
+	/** Every file under dirPath (which ends in /), across all pages. */
+	private async listFilesUnder(
+		dirPath: string,
+	): Promise<{ documentId: string; filePath: string }[]> {
+		const files: { documentId: string; filePath: string }[] = []
+		let page = 1
+
+		while (true) {
+			const response = await this.client.list(this.namespace, "documents", {
+				filter: {
+					operator: "and",
+					operands: [
+						{ field: "source", operator: "eq", value: CLAUDE_MEMORY_SOURCE },
+						{ field: "claude_memory_type", operator: "eq", value: "file" },
+						{ field: "file_path", operator: "contains", value: dirPath },
+					],
+				},
+				limit: 100,
+				page,
+			})
+
+			for (const document of response.documents) {
+				const filePath = this.getDocumentFilePath(document)
+				if (filePath?.startsWith(dirPath)) {
+					files.push({ documentId: document.id, filePath })
+				}
+			}
+
+			if (page >= response.pagination.totalPages) break
+			page += 1
+		}
+
+		return files
 	}
 
 	/**
 	 * List directory contents
 	 */
-	private async listDirectory(dirPath: string): Promise<MemoryResponse> {
+	private async listDirectory(
+		dirPath: string,
+	): Promise<MemoryResponse & { empty?: boolean }> {
 		try {
 			// Walk every page so files cannot disappear from a listing.
-			const filePaths: string[] = []
-			let page = 1
-
-			while (true) {
-				const response = await this.client.list(this.namespace, "documents", {
-					filter: {
-						operator: "and",
-						operands: [
-							{ field: "source", operator: "eq", value: CLAUDE_MEMORY_SOURCE },
-							{ field: "claude_memory_type", operator: "eq", value: "file" },
-							{ field: "file_path", operator: "contains", value: dirPath },
-						],
-					},
-					limit: 100,
-					page,
-				})
-
-				for (const document of response.documents) {
-					const filePath = this.getDocumentFilePath(document)
-					if (filePath?.startsWith(dirPath)) filePaths.push(filePath)
-				}
-
-				if (page >= response.pagination.totalPages) break
-				page += 1
-			}
+			const filePaths = (await this.listFilesUnder(dirPath)).map(
+				(file) => file.filePath,
+			)
 
 			const files: string[] = []
 			const dirs = new Set<string>()
@@ -250,6 +273,7 @@ export class ClaudeMemoryTool {
 				return {
 					success: true,
 					content: `Directory: ${dirPath}\n(empty)`,
+					empty: true,
 				}
 			}
 
@@ -271,7 +295,7 @@ export class ClaudeMemoryTool {
 	private async readFile(
 		filePath: string,
 		viewRange?: [number, number],
-	): Promise<MemoryResponse> {
+	): Promise<MemoryResponse & { notFound?: boolean }> {
 		try {
 			// Resolve the exact document inside the configured scope so reads and
 			// mutations use the complete stored file, not one ranked search chunk.
@@ -280,6 +304,7 @@ export class ClaudeMemoryTool {
 				return {
 					success: false,
 					error: readResult.error || `File not found: ${filePath}`,
+					...(readResult.notFound && { notFound: true }),
 				}
 			}
 
@@ -464,19 +489,37 @@ export class ClaudeMemoryTool {
 	}
 
 	/**
-	 * Delete command: Delete memory file
+	 * Delete command: Delete a memory file, or a directory and everything in it
 	 */
 	private async delete(filePath: string): Promise<MemoryResponse> {
+		if (filePath === "/memories" || filePath === "/memories/") {
+			return { success: false, error: "Cannot delete the /memories directory" }
+		}
 		try {
+			if (filePath.endsWith("/")) {
+				return (
+					(await this.deleteDirectory(filePath)) ?? {
+						success: false,
+						error: `Directory not found: ${filePath}`,
+					}
+				)
+			}
+
 			// Find the document first
 			const readResult = await this.getFileDocument(filePath)
 			const documentId =
 				readResult.document?.documentId ?? readResult.documentId
 			if (!documentId) {
-				return {
-					success: false,
-					error: readResult.error || "File not found",
-				}
+				// Only a confirmed miss may fall through to deleting a directory.
+				const directoryResult = readResult.notFound
+					? await this.deleteDirectory(`${filePath}/`)
+					: undefined
+				return (
+					directoryResult ?? {
+						success: false,
+						error: readResult.error || "File not found",
+					}
+				)
 			}
 
 			await this.deleteFile(documentId)
@@ -490,6 +533,47 @@ export class ClaudeMemoryTool {
 				success: false,
 				error: `Failed to delete file: ${error instanceof Error ? error.message : "Unknown error"}`,
 			}
+		}
+	}
+
+	/** Deletes every file under dirPath (which ends in /); undefined when it holds none. */
+	private async deleteDirectory(
+		dirPath: string,
+	): Promise<MemoryResponse | undefined> {
+		// List everything first: deleting while paging would shift later pages.
+		const files = await this.listFilesUnder(dirPath)
+		if (files.length === 0) return undefined
+
+		let deleted = 0
+		const notDeleted: string[] = []
+		try {
+			for (let i = 0; i < files.length; i += DELETE_BATCH_SIZE) {
+				const batch = files.slice(i, i + DELETE_BATCH_SIZE)
+				const response = await this.client.documents.delete(this.namespace, {
+					ids: batch.map((file) => file.documentId),
+				})
+				deleted += response.count
+				for (const error of response.errors ?? []) {
+					const file = batch.find((entry) => entry.documentId === error.id)
+					notDeleted.push(`${file?.filePath ?? error.id} (${error.error})`)
+				}
+			}
+		} catch (error) {
+			return {
+				success: false,
+				error: `Deleted ${deleted} of ${files.length} files in ${dirPath} before failing: ${error instanceof Error ? error.message : "Unknown error"}`,
+			}
+		}
+
+		if (deleted === files.length) {
+			return {
+				success: true,
+				content: `Directory deleted: ${dirPath} (${files.length} ${files.length === 1 ? "file" : "files"})`,
+			}
+		}
+		return {
+			success: false,
+			error: `Deleted ${deleted} of ${files.length} files in ${dirPath}.${notDeleted.length > 0 ? ` Not deleted: ${notDeleted.join(", ")}` : ""}`,
 		}
 	}
 
