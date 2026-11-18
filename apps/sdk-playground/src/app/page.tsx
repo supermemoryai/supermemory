@@ -64,8 +64,33 @@ export default function AgentPlaygroundPage() {
 	const [input, setInput] = useState("")
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [memoryError, setMemoryError] = useState<string | null>(null)
+	const [memoryBusy, setMemoryBusy] = useState<string | null>(null)
+	const [savedMemories, setSavedMemories] = useState<Record<string, boolean>>(
+		{},
+	)
 	const [contextRefreshKey, setContextRefreshKey] = useState(0)
 	const [leftPanel, setLeftPanel] = useState<"sdks" | "tools">("sdks")
+	const chatMessages = useMemo(
+		() =>
+			messages.filter(
+				(message): message is UserOrAssistantMessage =>
+					message.kind === "user" || message.kind === "assistant",
+			),
+		[messages],
+	)
+	const chatMessageIndices = useMemo(() => {
+		let index = 0
+		return messages.map((message) =>
+			message.kind === "user" || message.kind === "assistant" ? index++ : null,
+		)
+	}, [messages])
+	const memoryKey = (messageIndex?: number) =>
+		JSON.stringify([
+			namespace.trim(),
+			conversationId.trim(),
+			messageIndex ?? null,
+		])
 
 	const lastUserMessage = useMemo(() => {
 		const users = messages.filter(
@@ -103,7 +128,13 @@ export default function AgentPlaygroundPage() {
 	}, [refreshMeta])
 
 	const send = async () => {
-		if (!input.trim() || loading || !selectedSdk?.available || !keysReady)
+		if (
+			!input.trim() ||
+			loading ||
+			memoryBusy ||
+			!selectedSdk?.available ||
+			!keysReady
+		)
 			return
 		const activeConversationId = conversationId.trim() || crypto.randomUUID()
 		if (!conversationId.trim()) setConversationId(activeConversationId)
@@ -161,6 +192,50 @@ export default function AgentPlaygroundPage() {
 			setError(err instanceof Error ? err.message : String(err))
 		} finally {
 			setLoading(false)
+		}
+	}
+
+	const changeMemory = async (
+		method: "POST" | "DELETE",
+		messageIndex?: number,
+	) => {
+		if (memoryBusy || loading || !supermemoryKeyReady || !conversationId.trim())
+			return
+		const key = memoryKey(messageIndex)
+		setMemoryBusy(key)
+		setMemoryError(null)
+		try {
+			const res = await fetch("/api/memory", {
+				method,
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					namespace,
+					conversationId,
+					...(messageIndex === undefined ? {} : { messageIndex }),
+					...(method === "POST"
+						? {
+								messages: chatMessages.map((message) => ({
+									role: message.kind,
+									content: message.content,
+								})),
+							}
+						: {}),
+					apiKeys: { supermemoryApiKey },
+				}),
+			})
+			const data = await res.json()
+			if (!res.ok || !data.ok) {
+				throw new Error(data.error ?? "Could not update saved memory")
+			}
+			setSavedMemories((current) => ({
+				...current,
+				[key]: method === "POST",
+			}))
+			setContextRefreshKey((current) => current + 1)
+		} catch (err) {
+			setMemoryError(err instanceof Error ? err.message : String(err))
+		} finally {
+			setMemoryBusy(null)
 		}
 	}
 
@@ -399,6 +474,40 @@ export default function AgentPlaygroundPage() {
 						)}
 					</div>
 
+					<div className="flex flex-wrap items-center gap-2 text-xs">
+						<button
+							type="button"
+							onClick={() => changeMemory("POST")}
+							disabled={
+								chatMessages.length === 0 ||
+								!supermemoryKeyReady ||
+								!conversationId.trim() ||
+								loading ||
+								Boolean(memoryBusy)
+							}
+							className="rounded-md border border-emerald-700 px-3 py-1.5 text-emerald-300 hover:bg-emerald-950/50 disabled:opacity-40"
+						>
+							{memoryBusy === memoryKey()
+								? "Saving…"
+								: savedMemories[memoryKey()]
+									? "Update saved chat"
+									: "Save chat"}
+						</button>
+						{savedMemories[memoryKey()] && (
+							<button
+								type="button"
+								onClick={() => changeMemory("DELETE")}
+								disabled={loading || Boolean(memoryBusy)}
+								className="rounded-md border border-zinc-700 px-3 py-1.5 text-zinc-400 hover:text-zinc-200 disabled:opacity-40"
+							>
+								Remove saved chat
+							</button>
+						)}
+						<span className="text-zinc-500">
+							Save this conversation or an individual message to Supermemory.
+						</span>
+					</div>
+
 					<div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 space-y-3">
 						{messages.length === 0 && (
 							<p className="text-center text-sm text-zinc-500 py-8">
@@ -451,6 +560,8 @@ export default function AgentPlaygroundPage() {
 									</div>
 								)
 							}
+							const messageIndex = chatMessageIndices[i] as number
+							const saved = savedMemories[memoryKey(messageIndex)]
 							return (
 								<div
 									key={i}
@@ -467,7 +578,28 @@ export default function AgentPlaygroundPage() {
 												: "bg-zinc-800 text-zinc-100"
 										}`}
 									>
-										{m.content}
+										<div className="whitespace-pre-wrap">{m.content}</div>
+										{m.content.trim() && (
+											<button
+												type="button"
+												onClick={() =>
+													changeMemory(saved ? "DELETE" : "POST", messageIndex)
+												}
+												disabled={
+													!supermemoryKeyReady ||
+													!conversationId.trim() ||
+													loading ||
+													Boolean(memoryBusy)
+												}
+												className="mt-1 text-xs opacity-70 hover:opacity-100 disabled:opacity-40"
+											>
+												{memoryBusy === memoryKey(messageIndex)
+													? "Working…"
+													: saved
+														? "Saved · Remove"
+														: "Save message"}
+											</button>
+										)}
 									</div>
 								</div>
 							)
@@ -484,6 +616,11 @@ export default function AgentPlaygroundPage() {
 							{error}
 						</div>
 					)}
+					{memoryError && (
+						<div className="rounded-md border border-red-900 bg-red-950/50 px-3 py-2 text-sm text-red-300">
+							{memoryError}
+						</div>
+					)}
 
 					<div className="flex gap-2 shrink-0">
 						<input
@@ -495,7 +632,12 @@ export default function AgentPlaygroundPage() {
 									send()
 								}
 							}}
-							disabled={loading || !selectedSdk?.available || !keysReady}
+							disabled={
+								loading ||
+								Boolean(memoryBusy) ||
+								!selectedSdk?.available ||
+								!keysReady
+							}
 							placeholder={
 								keysReady
 									? "Message the agent…"
@@ -508,6 +650,7 @@ export default function AgentPlaygroundPage() {
 							onClick={send}
 							disabled={
 								loading ||
+								Boolean(memoryBusy) ||
 								!input.trim() ||
 								!selectedSdk?.available ||
 								!keysReady
