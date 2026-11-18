@@ -6,9 +6,9 @@ import {
 	computeClusterAssignments,
 	getAppendPosition,
 	getNodeBounds,
-} from "../hooks/use-graph-data"
-import { DEFAULT_COLORS } from "../constants"
-import type { GraphApiDocument, GraphApiMemory, GraphNode } from "../types"
+} from "../hooks/use-graph-data.js"
+import { DEFAULT_COLORS } from "../constants.js"
+import type { GraphApiDocument, GraphApiMemory, GraphNode } from "../types.js"
 
 function makeMemory(overrides: Partial<GraphApiMemory> = {}): GraphApiMemory {
 	return {

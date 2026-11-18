@@ -4,7 +4,7 @@ import {
 	lightenColor,
 	mixHexColors,
 	shouldDrawRelationEdge,
-} from "../canvas/renderer"
+} from "../canvas/renderer.js"
 
 describe("lightenColor", () => {
 	test("lightens a dark hex color", () => {

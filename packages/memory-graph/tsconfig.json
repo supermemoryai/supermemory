@@ -1,8 +1,8 @@
 {
 	"compilerOptions": {
 		"target": "ES2020",
-		"module": "ESNext",
-		"moduleResolution": "bundler",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
 		"jsx": "react-jsx",
 		"strict": true,
 		"esModuleInterop": true,

@@ -1,4 +1,4 @@
-import type { GraphApiDocument, GraphApiMemory } from "../types"
+import type { GraphApiDocument, GraphApiMemory } from "../types.js"
 
 export interface ChainEntry {
 	id: string
