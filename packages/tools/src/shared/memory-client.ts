@@ -86,6 +86,7 @@ export interface BuildMemoriesTextOptions {
 	logger: Logger
 	promptTemplate?: PromptTemplate
 	signal?: AbortSignal
+	profile?: ProfileStructure["profile"] | Promise<ProfileStructure["profile"]>
 }
 
 /**
@@ -109,14 +110,20 @@ export const buildMemoriesText = async (
 		signal,
 	} = options
 
-	const memoriesResponse = await supermemoryProfileSearch(
-		namespace,
-		queryText,
-		baseUrl,
-		apiKey,
-		signal,
-		mode !== "query",
-	)
+	const [memoriesResponse, profile] = await Promise.all([
+		supermemoryProfileSearch(
+			namespace,
+			queryText,
+			baseUrl,
+			apiKey,
+			signal,
+			mode !== "query" && options.profile === undefined,
+		),
+		options.profile,
+	])
+	if (profile !== undefined) {
+		memoriesResponse.profile = profile
+	}
 
 	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
 	const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0

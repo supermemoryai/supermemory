@@ -9,6 +9,8 @@ import {
 	normalizeBaseUrl,
 	MemoryCache,
 	buildMemoriesText,
+	supermemoryProfileSearch,
+	type ProfileStructure,
 	type Logger,
 	type PromptTemplate,
 	type MemoryMode,
@@ -18,7 +20,11 @@ import {
 	getLastUserMessage,
 	imageFilePartUrl,
 } from "./util"
-import { extractQueryText, injectMemoriesIntoParams } from "./memory-prompt"
+import {
+	extractQueryText,
+	injectMemoriesIntoParams,
+	injectTurnMemoriesIntoParams,
+} from "./memory-prompt"
 
 const safeJsonStringify = (value: unknown): string => {
 	try {
@@ -220,7 +226,6 @@ interface SupermemoryMiddlewareOptions {
 	 * low-signal, and would pollute memory extraction.
 	 */
 	includeToolCalls?: boolean
-	/** Custom function to format memory data into the system prompt */
 	promptTemplate?: PromptTemplate
 	/** Max wait (ms) for the pre-LLM profile retrieval. Omit for no limit (e.g. tests). `withSupermemory` sets this internally. */
 	memoryRetrievalTimeoutMs?: number
@@ -238,11 +243,11 @@ interface SupermemoryMiddlewareContext {
 	apiKey: string
 	promptTemplate?: PromptTemplate
 	memoryRetrievalTimeoutMs?: number
-	/**
-	 * Per-turn memory cache. Stores the injected memories string for each
-	 * user turn (keyed by turnKey) to avoid redundant API calls during tool-call
-	 */
 	memoryCache: MemoryCache<string>
+	profileSnapshot?: Promise<ProfileStructure["profile"]>
+	profileMemories?: Promise<string>
+	turnMemories: Map<string, string>
+	turnRequests: Map<string, Promise<string>>
 }
 
 export const createSupermemoryContext = (
@@ -286,65 +291,15 @@ export const createSupermemoryContext = (
 			? { memoryRetrievalTimeoutMs }
 			: {}),
 		memoryCache: new MemoryCache<string>(),
+		turnMemories: new Map(),
+		turnRequests: new Map(),
 	}
 }
 
-/**
- * Generates a cache key for the current turn based on context and user message.
- * Uses the shared MemoryCache.makeTurnKey implementation.
- */
-const makeTurnKey = (
-	ctx: SupermemoryMiddlewareContext,
-	userMessage: string,
-): string => {
-	return MemoryCache.makeTurnKey(ctx.namespace, ctx.id, ctx.mode, userMessage)
-}
-
-/**
- * Checks if this is a new user turn (last message is from user)
- */
-const isNewUserTurn = (params: LanguageModelCallOptions): boolean => {
-	const lastMessage = params.prompt.at(-1)
-	return lastMessage?.role === "user"
-}
-
-export const transformParamsWithMemory = async (
+const retrieveMemories = async (
 	params: LanguageModelCallOptions,
 	ctx: SupermemoryMiddlewareContext,
-): Promise<LanguageModelCallOptions> => {
-	const userMessage = getLastUserMessage(params)
-
-	if (ctx.mode !== "profile") {
-		if (!userMessage) {
-			ctx.logger.debug(
-				"No user message found, skipping memory search and clearing stale context",
-			)
-			return injectMemoriesIntoParams(params, "", ctx.logger)
-		}
-	}
-
-	const turnKey = makeTurnKey(ctx, userMessage || "")
-	const isNewTurn = isNewUserTurn(params)
-
-	// Check if we can use cached memories
-	const cachedMemories = ctx.memoryCache.get(turnKey)
-	if (!isNewTurn && cachedMemories) {
-		ctx.logger.debug("Using cached memories: ", {
-			turnKey,
-		})
-		return injectMemoriesIntoParams(params, cachedMemories, ctx.logger)
-	}
-
-	ctx.logger.info("Starting memory search", {
-		namespace: ctx.namespace,
-		id: ctx.id,
-		mode: ctx.mode,
-		isNewTurn,
-		cacheHit: false,
-	})
-
-	const queryText = extractQueryText(params, ctx.mode)
-
+): Promise<string> => {
 	let fetchSignal: AbortSignal | undefined
 	let timeoutId: ReturnType<typeof setTimeout> | undefined
 	const timeoutMs = ctx.memoryRetrievalTimeoutMs
@@ -354,28 +309,82 @@ export const transformParamsWithMemory = async (
 		timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 	}
 
-	let memories: string
 	try {
-		memories = await buildMemoriesText({
+		if (ctx.mode === "full") {
+			ctx.profileSnapshot ??= supermemoryProfileSearch(
+				ctx.namespace,
+				"",
+				ctx.normalizedBaseUrl,
+				ctx.apiKey,
+				fetchSignal,
+			).then((response) => response.profile)
+		}
+		return await buildMemoriesText({
 			namespace: ctx.namespace,
-			queryText,
+			queryText: extractQueryText(params, ctx.mode),
 			mode: ctx.mode,
 			baseUrl: ctx.normalizedBaseUrl,
 			apiKey: ctx.apiKey,
 			logger: ctx.logger,
 			promptTemplate: ctx.promptTemplate,
+			...(ctx.profileSnapshot ? { profile: ctx.profileSnapshot } : {}),
 			...(fetchSignal ? { signal: fetchSignal } : {}),
 		})
 	} finally {
-		if (timeoutId !== undefined) {
-			clearTimeout(timeoutId)
-		}
+		if (timeoutId !== undefined) clearTimeout(timeoutId)
+	}
+}
+
+export const injectCachedMemories = (
+	params: LanguageModelCallOptions,
+	ctx: SupermemoryMiddlewareContext,
+): LanguageModelCallOptions =>
+	ctx.mode === "profile"
+		? injectMemoriesIntoParams(params, "", ctx.logger)
+		: injectTurnMemoriesIntoParams(params, ctx.turnMemories)
+
+export const transformParamsWithMemory = async (
+	params: LanguageModelCallOptions,
+	ctx: SupermemoryMiddlewareContext,
+): Promise<LanguageModelCallOptions> => {
+	if (ctx.mode === "profile") {
+		ctx.profileMemories ??= retrieveMemories(params, ctx)
+		const memories = await ctx.profileMemories
+		ctx.memoryCache.set(
+			MemoryCache.makeTurnKey(
+				ctx.namespace,
+				ctx.id,
+				ctx.mode,
+				getLastUserMessage(params) || "",
+			),
+			memories,
+		)
+		return injectMemoriesIntoParams(params, memories, ctx.logger)
 	}
 
-	ctx.memoryCache.set(turnKey, memories)
-	ctx.logger.debug("Cached memories for turn", { turnKey })
-
-	return injectMemoriesIntoParams(params, memories, ctx.logger)
+	const users = params.prompt.filter((message) => message.role === "user")
+	const user = users.at(-1)
+	if (!user) return injectCachedMemories(params, ctx)
+	const query = extractQueryText({ ...params, prompt: [user] }, ctx.mode)
+	if (!query) return injectCachedMemories(params, ctx)
+	const turnKey = JSON.stringify([users.length - 1, query])
+	if (!ctx.turnRequests.has(turnKey)) {
+		ctx.turnRequests.set(
+			turnKey,
+			retrieveMemories(params, ctx).then(
+				(memories) => {
+					ctx.turnMemories.set(turnKey, memories)
+					return memories
+				},
+				(error: unknown) => {
+					ctx.turnMemories.set(turnKey, "")
+					throw error
+				},
+			),
+		)
+	}
+	await ctx.turnRequests.get(turnKey)
+	return injectTurnMemoriesIntoParams(params, ctx.turnMemories)
 }
 
 export const extractAssistantResponseText = (content: unknown[]): string => {
