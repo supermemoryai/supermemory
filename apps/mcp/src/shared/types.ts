@@ -3,6 +3,12 @@ import { z } from "zod"
 // Shared types — imported by both server tools and widget views.
 // Single source of truth for the server↔widget contract.
 
+export const DREAMING_STATUSES = ["dreaming", "done", "failed"] as const
+
+export type KnownDreamingStatus = (typeof DREAMING_STATUSES)[number]
+
+export type DreamingStatus = KnownDreamingStatus | (string & {})
+
 export const namespaceAccessSchema = z.object({
 	namespace: z.string(),
 	containerTag: z.string().optional(),
