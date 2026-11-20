@@ -288,6 +288,13 @@ export function MemoryGraph({
 
 	// Load more when user zooms out enough that visible area dwarfs the node extent
 	const loadMoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+	const cancelLoadMore = useCallback(() => {
+		if (loadMoreTimerRef.current === null) return
+		clearTimeout(loadMoreTimerRef.current)
+		loadMoreTimerRef.current = null
+	}, [])
+	// A pending load-more must not fire after the graph unmounts
+	useEffect(() => cancelLoadMore, [cancelLoadMore])
 	const loadMoreRef = useRef({ hasMore, isLoadingMore, onLoadMore })
 	loadMoreRef.current = { hasMore, isLoadingMore, onLoadMore }
 	const handleViewportChange = useCallback(
@@ -334,14 +341,20 @@ export function MemoryGraph({
 			// (i.e. user has zoomed out significantly past the data)
 			const zoomedOut = viewW > nodeW * 3 || viewH > nodeH * 3
 
-			if (zoomedOut && !loadMoreTimerRef.current) {
+			if (!zoomedOut) {
+				// Zoomed back in before the timer fired: that load is no longer wanted
+				cancelLoadMore()
+				return
+			}
+			if (!loadMoreTimerRef.current) {
 				loadMoreTimerRef.current = setTimeout(() => {
 					loadMoreTimerRef.current = null
-					loadMoreRef.current.onLoadMore?.()
+					const latest = loadMoreRef.current
+					if (latest.hasMore && !latest.isLoadingMore) latest.onLoadMore?.()
 				}, 500)
 			}
 		},
-		[nodes, containerSize.width, containerSize.height],
+		[nodes, containerSize.width, containerSize.height, cancelLoadMore],
 	)
 
 	// Navigation
