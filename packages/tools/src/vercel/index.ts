@@ -6,12 +6,12 @@ import {
 } from "./util"
 import {
 	createSupermemoryContext,
+	injectCachedMemories,
 	transformParamsWithMemory,
 	extractAssistantResponseText,
 	saveMemoryAfterResponse,
 } from "./middleware"
 import type { PromptTemplate, MemoryPromptData } from "./memory-prompt"
-import { injectMemoriesIntoParams } from "./memory-prompt"
 
 const DEFAULT_MEMORY_RETRIEVAL_TIMEOUT_MS = 5000
 
@@ -45,21 +45,6 @@ interface WrapVercelLanguageModelOptions {
 	 * low-signal, and would pollute memory extraction.
 	 */
 	includeToolCalls?: boolean
-	/**
-	 * Custom function to format memory data into the system prompt.
-	 * If not provided, uses the default "User Supermemories:" format.
-	 *
-	 * @example
-	 * ```typescript
-	 * promptTemplate: (data) => `
-	 * <user_memories>
-	 * Here is some information about your past conversations:
-	 * ${data.userMemories}
-	 * ${data.generalSearchMemories}
-	 * </user_memories>
-	 * `.trim()
-	 * ```
-	 */
 	promptTemplate?: PromptTemplate
 	/**
 	 * When Supermemory memory retrieval / injection fails or times out:
@@ -69,52 +54,7 @@ interface WrapVercelLanguageModelOptions {
 	skipMemoryOnError?: boolean
 }
 
-/**
- * Wraps a language model with supermemory middleware to automatically inject relevant memories
- * into the system prompt based on the user's message content.
- *
- * This wrapper searches the supermemory API for relevant memories in the namespace
- * and user message, then either appends memories to an existing system prompt or creates
- * a new system prompt with the memories. Pre-LLM profile retrieval uses a fixed internal
- * time budget and cannot be configured via options.
- *
- * Supports Vercel AI SDK 5 (LanguageModelV2), 6 (LanguageModelV3) and 7 (LanguageModelV4) via runtime
- * detection of `model.specificationVersion`.
- *
- * @param model - The language model to wrap with supermemory capabilities (V2, V3 or V4)
- * @param options - Configuration options for Supermemory integration
- * @param options.namespace - Required. The namespace for memory search (e.g., user ID, project ID)
- * @param options.id - Required. ID that groups messages into a single document for contextual memory generation
- * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
- * @param options.mode - Optional mode for memory search: "profile", "query", or "full" (default: "profile")
- * @param options.addMemory - Optional mode for memory search: "always", "never" (default: "always")
- * @param options.apiKey - Optional Supermemory API key to use instead of the environment variable
- * @param options.baseUrl - Optional base URL for the Supermemory API (default: "https://api.supermemory.ai")
- * @param options.skipMemoryOnError - When memory retrieval fails or times out: `true` (default) continues without injected memories; `false` throws
- *
- * @returns A wrapped language model that automatically includes relevant memories in prompts
- *
- * @example
- * ```typescript
- * import { withSupermemory } from "@supermemory/tools/ai-sdk"
- * import { openai } from "@ai-sdk/openai"
- *
- * const modelWithMemory = withSupermemory(openai("gpt-4"), {
- *   namespace: "user-123",
- *   id: "conversation-456",
- *   mode: "full",
- *   addMemory: "always"
- * })
- *
- * const result = await generateText({
- *   model: modelWithMemory,
- *   messages: [{ role: "user", content: "What's my favorite programming language?" }]
- * })
- * ```
- *
- * @throws {Error} When neither `options.apiKey` nor `process.env.SUPERMEMORY_API_KEY` are set
- * @throws {Error} When supermemory memory retrieval fails and `skipMemoryOnError` is `false`
- */
+// Keep one wrapped model per conversation so its profile and historical recall stay stable.
 const wrapVercelLanguageModel = <T extends LanguageModel>(
 	model: T,
 	options: WrapVercelLanguageModelOptions,
@@ -167,7 +107,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 											: "Unknown error",
 								},
 							)
-							modelParams = injectMemoriesIntoParams(params, "", ctx.logger)
+							modelParams = injectCachedMemories(params, ctx)
 						} else {
 							ctx.logger.error("Error during memory retrieval for generation", {
 								error:
@@ -231,7 +171,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 											: "Unknown error",
 								},
 							)
-							modelParams = injectMemoriesIntoParams(params, "", ctx.logger)
+							modelParams = injectCachedMemories(params, ctx)
 						} else {
 							ctx.logger.error("Error during memory retrieval for stream", {
 								error:

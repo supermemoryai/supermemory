@@ -234,7 +234,7 @@ describe("Unit: withSupermemory", () => {
 			expect(result.prompt[0]?.content).toContain("Cached memory")
 		})
 
-		it("should refetch memories on new user turn", async () => {
+		it("should keep the profile snapshot on a new user turn", async () => {
 			let callCount = 0
 			fetchMock.mockImplementation(() => {
 				callCount++
@@ -284,9 +284,8 @@ describe("Unit: withSupermemory", () => {
 			}
 			const result2 = await transformParamsWithMemory(turn2Params, ctx)
 
-			// Should have called fetch again for new turn
-			expect(fetchMock).toHaveBeenCalledTimes(2)
-			expect(result2.prompt[0]?.content).toContain("Memory from call 2")
+			expect(fetchMock).toHaveBeenCalledTimes(1)
+			expect(result2.prompt[0]?.content).toContain("Memory from call 1")
 		})
 
 		it("replaces the prior SDK memory block instead of accumulating context", async () => {
