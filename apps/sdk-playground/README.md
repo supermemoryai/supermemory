@@ -75,6 +75,13 @@ Try:
 - "What do you know about my drink preferences?"
 - "Forget that I like tea" (tools mode)
 
+Use **Save chat** to add the visible conversation to Supermemory, or **Save message**
+on a chat bubble to add just that message. The saved document records the
+conversation ID and, for a single message, its position. Whole-chat saves use
+the same document ID as middleware saves. Saving again updates that source;
+**Remove** deletes it after processing finishes.
+The playground keeps chat history and saved indicators only for the current tab.
+
 ## Env
 
 | Variable | Required |
