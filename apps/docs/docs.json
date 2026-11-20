@@ -564,11 +564,6 @@
 	},
 	"redirects": [
 		{
-			"destination": "/connectors/overview",
-			"permanent": true,
-			"source": "/connectors"
-		},
-		{
 			"destination": "/agents-and-mcp",
 			"permanent": true,
 			"source": "/vibe-coding"
@@ -1252,6 +1247,11 @@
 		{
 			"source": "/smfs/providers/Dockerfile",
 			"destination": "/"
+		},
+		{
+			"destination": "/connectors/overview",
+			"permanent": true,
+			"source": "/connectors"
 		}
 	],
 	"styling": {
