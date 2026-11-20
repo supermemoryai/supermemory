@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import {
 	BulkDeleteMemoriesSchema,
 	DocumentsWithMemoriesQuerySchema,
+	DocumentsWithMemoriesResponseSchema,
 	ListMemoriesQuerySchema,
 	SearchRequestSchema,
 	Searchv4RequestSchema,
@@ -173,5 +174,63 @@ describe("pagination query schemas", () => {
 
 		const ok = { containerTags: ["tag_a", "tag_b"] }
 		expect(BulkDeleteMemoriesSchema.safeParse(ok).success).toBe(true)
+	})
+})
+
+describe("DocumentsWithMemoriesResponseSchema", () => {
+	const document = {
+		id: "doc_123",
+		orgId: "org_123",
+		userId: "user_123",
+		createdAt: "2026-10-27T06:48:08.112Z",
+		updatedAt: "2026-10-27T06:48:13.638Z",
+		memoryEntries: [
+			{
+				id: "mem_123",
+				memory: "Nora owns the billing pipeline.",
+				spaceId: "space_123",
+				orgId: "org_123",
+				createdAt: "2026-10-27T06:52:34.160Z",
+				updatedAt: "2026-10-27T06:52:34.160Z",
+				sourceAddedAt: "2026-10-27T06:52:34.160Z",
+				sourceRelevanceScore: 0.87,
+				sourceMetadata: null,
+				spaceContainerTag: "space_123",
+			},
+		],
+	}
+
+	const pagination = {
+		currentPage: 1,
+		limit: 10,
+		totalItems: 1,
+		totalPages: 1,
+	}
+
+	it("coerces sourceAddedAt ISO strings returned by the API", () => {
+		const parsed = DocumentsWithMemoriesResponseSchema.parse({
+			documents: [document],
+			pagination,
+		})
+
+		const sourceAddedAt = parsed.documents[0]?.memoryEntries[0]?.sourceAddedAt
+		expect(sourceAddedAt).toBeInstanceOf(Date)
+		expect(sourceAddedAt?.toISOString()).toBe("2026-10-27T06:52:34.160Z")
+	})
+
+	it("accepts a null sourceAddedAt", () => {
+		const parsed = DocumentsWithMemoriesResponseSchema.parse({
+			documents: [
+				{
+					...document,
+					memoryEntries: [
+						{ ...document.memoryEntries[0], sourceAddedAt: null },
+					],
+				},
+			],
+			pagination,
+		})
+
+		expect(parsed.documents[0]?.memoryEntries[0]?.sourceAddedAt).toBeNull()
 	})
 })
