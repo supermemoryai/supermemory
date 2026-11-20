@@ -1,16 +1,16 @@
 // Components
-export { MemoryGraph } from "./components/memory-graph"
-export { GraphCanvas } from "./components/graph-canvas"
+export { MemoryGraph } from "./components/memory-graph.js"
+export { GraphCanvas } from "./components/graph-canvas.js"
 
 // Hooks
-export { useGraphData } from "./hooks/use-graph-data"
-export { useGraphTheme } from "./hooks/use-graph-theme"
+export { useGraphData } from "./hooks/use-graph-data.js"
+export { useGraphTheme } from "./hooks/use-graph-theme.js"
 
 // Engine classes (for advanced usage)
-export { ForceSimulation } from "./canvas/simulation"
-export { ViewportState } from "./canvas/viewport"
-export { SpatialIndex } from "./canvas/hit-test"
-export { VersionChainIndex } from "./canvas/version-chain"
+export { ForceSimulation } from "./canvas/simulation.js"
+export { ViewportState } from "./canvas/viewport.js"
+export { SpatialIndex } from "./canvas/hit-test.js"
+export { VersionChainIndex } from "./canvas/version-chain.js"
 
 // Constants
 export {
@@ -19,7 +19,7 @@ export {
 	DEFAULT_LABELS,
 	FORCE_CONFIG,
 	GRAPH_SETTINGS,
-} from "./constants"
+} from "./constants.js"
 
 // Types
 export type {
@@ -39,7 +39,7 @@ export type {
 	DocumentNodeData,
 	MemoryNodeData,
 	ChainEntry,
-} from "./types"
+} from "./types.js"
 
 // Backward-compatible API types
 export type {
@@ -47,4 +47,4 @@ export type {
 	MemoryEntry,
 	DocumentsResponse,
 	MemoryRelation,
-} from "./api-types"
+} from "./api-types.js"

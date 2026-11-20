@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest"
-import { SpatialIndex } from "../canvas/hit-test"
-import { InputHandler } from "../canvas/input-handler"
-import { ViewportState } from "../canvas/viewport"
-import type { GraphNode } from "../types"
+import { SpatialIndex } from "../canvas/hit-test.js"
+import { InputHandler } from "../canvas/input-handler.js"
+import { ViewportState } from "../canvas/viewport.js"
+import type { GraphNode } from "../types.js"
 
 /**
  * InputHandler tap-to-select on touch devices.

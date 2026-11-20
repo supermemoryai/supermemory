@@ -8,9 +8,9 @@ import { cleanup, render } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 
 afterEach(cleanup)
-import { NodeHoverPopover } from "../components/node-hover-popover"
-import { DEFAULT_COLORS, DEFAULT_LABELS } from "../constants"
-import type { GraphNode, ResolvedMemoryGraphLabels } from "../types"
+import { NodeHoverPopover } from "../components/node-hover-popover.js"
+import { DEFAULT_COLORS, DEFAULT_LABELS } from "../constants.js"
+import type { GraphNode, ResolvedMemoryGraphLabels } from "../types.js"
 
 const documentNode: GraphNode = {
 	id: "doc-1",

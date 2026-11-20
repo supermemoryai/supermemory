@@ -9,13 +9,13 @@ import {
 import {
 	DENSE_GRAPH_STATIC_THRESHOLD,
 	ForceSimulation,
-} from "../canvas/simulation"
-import { DEFAULT_HOVER_POPOVER_Z_INDEX, DEFAULT_LABELS } from "../constants"
-import { VersionChainIndex } from "../canvas/version-chain"
-import type { ViewportState } from "../canvas/viewport"
-import { useGraphData } from "../hooks/use-graph-data"
-import { useGraphTheme } from "../hooks/use-graph-theme"
-import { useInitialGraphFit } from "../hooks/use-initial-graph-fit"
+} from "../canvas/simulation.js"
+import { DEFAULT_HOVER_POPOVER_Z_INDEX, DEFAULT_LABELS } from "../constants.js"
+import { VersionChainIndex } from "../canvas/version-chain.js"
+import type { ViewportState } from "../canvas/viewport.js"
+import { useGraphData } from "../hooks/use-graph-data.js"
+import { useGraphTheme } from "../hooks/use-graph-theme.js"
+import { useInitialGraphFit } from "../hooks/use-initial-graph-fit.js"
 import type {
 	GraphApiDocument,
 	GraphNode,
@@ -23,12 +23,12 @@ import type {
 	GraphThemeColors,
 	MemoryGraphProps,
 	ResolvedMemoryGraphLabels,
-} from "../types"
-import { GraphCanvas } from "./graph-canvas"
-import { Legend } from "./legend"
-import { LoadingIndicator } from "./loading-indicator"
-import { NavigationControls } from "./navigation-controls"
-import { NodeHoverPopover } from "./node-hover-popover"
+} from "../types.js"
+import { GraphCanvas } from "./graph-canvas.js"
+import { Legend } from "./legend.js"
+import { LoadingIndicator } from "./loading-indicator.js"
+import { NavigationControls } from "./navigation-controls.js"
+import { NodeHoverPopover } from "./node-hover-popover.js"
 
 function documentIdForNode(
 	node: GraphNode | null,

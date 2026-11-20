@@ -1,10 +1,10 @@
 import { memo } from "react"
-import { DEFAULT_LABELS } from "../constants"
+import { DEFAULT_LABELS } from "../constants.js"
 import type {
 	GraphThemeColors,
 	LoadingIndicatorProps,
 	ResolvedMemoryGraphLabels,
-} from "../types"
+} from "../types.js"
 
 const spinKeyframes = `
 @keyframes mg-spin {

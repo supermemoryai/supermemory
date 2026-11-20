@@ -1,4 +1,4 @@
-import type { GraphNode } from "../types"
+import type { GraphNode } from "../types.js"
 
 export class SpatialIndex {
 	private grid = new Map<string, GraphNode[]>()
