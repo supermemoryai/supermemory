@@ -11,6 +11,7 @@ import {
 	profileBody,
 	requestJson,
 	requestPath,
+	searchBody,
 } from "../v5-fetch"
 import {
 	RequestContext,
@@ -194,10 +195,14 @@ describe("SupermemoryInputProcessor", () => {
 			expect(systemCall?.args[1]).toBe("supermemory")
 		})
 
-		it("should use cached memories on second call with same message", async () => {
-			fetchMock.mockImplementation(async () =>
-				jsonResponse(createMockProfileResponse(["Cached memory"])),
-			)
+		it("should fetch fresh profile memories for each new message", async () => {
+			let callCount = 0
+			fetchMock.mockImplementation(async () => {
+				callCount++
+				return jsonResponse(
+					createMockProfileResponse([`Fact from call ${callCount}`]),
+				)
+			})
 
 			const processor = new SupermemoryInputProcessor({
 				namespace: TEST_CONFIG.namespace,
@@ -206,29 +211,67 @@ describe("SupermemoryInputProcessor", () => {
 				mode: "profile",
 			})
 
+			const firstList = createMockMessageList()
+			await processor.processInput({
+				messages: [createMessage("user", "Hello")],
+				systemMessages: [],
+				messageList: firstList,
+				abort: vi.fn() as never,
+				retryCount: 0,
+			})
+
+			const secondList = createMockMessageList()
+			await processor.processInput({
+				messages: [createMessage("user", "What do you know about me?")],
+				systemMessages: [],
+				messageList: secondList,
+				abort: vi.fn() as never,
+				retryCount: 0,
+			})
+
+			expect(fetchMock).toHaveBeenCalledTimes(2)
+			const injected = secondList.calls.find((c) => c.method === "addSystem")
+			expect(injected?.args[0]).toContain("Fact from call 2")
+			expect(injected?.args[0]).not.toContain("Fact from call 1")
+		})
+
+		it("should fetch fresh search memories when the same message is repeated", async () => {
+			let callCount = 0
+			fetchMock.mockImplementation(async () => {
+				callCount++
+				return jsonResponse(searchBody([`Memory from call ${callCount}`]))
+			})
+
+			const processor = new SupermemoryInputProcessor({
+				namespace: TEST_CONFIG.namespace,
+				id: TEST_CONFIG.id,
+				apiKey: TEST_CONFIG.apiKey,
+				mode: "query",
+			})
+
 			const messages: MastraDBMessage[] = [createMessage("user", "Hello")]
 
-			const args1: ProcessInputArgs = {
+			await processor.processInput({
 				messages,
 				systemMessages: [],
 				messageList: createMockMessageList(),
 				abort: vi.fn() as never,
 				retryCount: 0,
-			}
+			})
 
-			await processor.processInput(args1)
-			expect(fetchMock).toHaveBeenCalledTimes(1)
-
-			const args2: ProcessInputArgs = {
+			const secondList = createMockMessageList()
+			await processor.processInput({
 				messages,
 				systemMessages: [],
-				messageList: createMockMessageList(),
+				messageList: secondList,
 				abort: vi.fn() as never,
 				retryCount: 0,
-			}
+			})
 
-			await processor.processInput(args2)
-			expect(fetchMock).toHaveBeenCalledTimes(1)
+			expect(fetchMock).toHaveBeenCalledTimes(2)
+			const injected = secondList.calls.find((c) => c.method === "addSystem")
+			expect(injected?.args[0]).toContain("Memory from call 2")
+			expect(injected?.args[0]).not.toContain("Memory from call 1")
 		})
 
 		it("should refetch memories for different user message", async () => {
