@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
-import { VersionChainIndex } from "../canvas/version-chain"
-import type { GraphApiDocument, GraphApiMemory } from "../types"
+import { VersionChainIndex } from "../canvas/version-chain.js"
+import type { GraphApiDocument, GraphApiMemory } from "../types.js"
 
 function makeMem(
 	overrides: Partial<GraphApiMemory> & { id: string },

@@ -1,6 +1,6 @@
 // Graph API types matching backend response
 
-import type { MemoryRelation } from "./api-types"
+import type { MemoryRelation } from "./api-types.js"
 
 export interface GraphApiMemory {
 	id: string
@@ -177,9 +177,9 @@ export interface GraphCanvasProps {
 	onNodeDragEnd: () => void
 	onViewportChange?: (zoom: number, popoverVisible: boolean) => void
 	canvasRef?: React.RefObject<HTMLCanvasElement | null>
-	simulation?: import("./canvas/simulation").ForceSimulation
+	simulation?: import("./canvas/simulation.js").ForceSimulation
 	viewportRef?: React.RefObject<
-		import("./canvas/viewport").ViewportState | null
+		import("./canvas/viewport.js").ViewportState | null
 	>
 }
 
@@ -262,4 +262,4 @@ export type {
 	DocumentWithMemories,
 	MemoryEntry,
 	DocumentsResponse,
-} from "./api-types"
+} from "./api-types.js"

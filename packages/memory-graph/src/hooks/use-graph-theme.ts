@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
-import type { GraphThemeColors } from "../types"
-import { DEFAULT_COLORS } from "../constants"
+import type { GraphThemeColors } from "../types.js"
+import { DEFAULT_COLORS } from "../constants.js"
 
 function readCssVar(name: string, fallback: string): string {
 	if (typeof document === "undefined") return fallback

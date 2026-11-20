@@ -1,11 +1,11 @@
 import { memo, useEffect, useLayoutEffect, useRef } from "react"
-import { SpatialIndex } from "../canvas/hit-test"
-import { InputHandler } from "../canvas/input-handler"
-import { renderFrame } from "../canvas/renderer"
-import { ViewportState } from "../canvas/viewport"
-import { GRAPH_SETTINGS } from "../constants"
-import type { GraphCanvasProps, GraphNode, GraphThemeColors } from "../types"
-import type { ForceSimulation } from "../canvas/simulation"
+import { SpatialIndex } from "../canvas/hit-test.js"
+import { InputHandler } from "../canvas/input-handler.js"
+import { renderFrame } from "../canvas/renderer.js"
+import { ViewportState } from "../canvas/viewport.js"
+import { GRAPH_SETTINGS } from "../constants.js"
+import type { GraphCanvasProps, GraphNode, GraphThemeColors } from "../types.js"
+import type { ForceSimulation } from "../canvas/simulation.js"
 
 export interface ExtendedGraphCanvasProps extends GraphCanvasProps {
 	showFps?: boolean

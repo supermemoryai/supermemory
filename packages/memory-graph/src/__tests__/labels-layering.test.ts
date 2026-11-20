@@ -10,8 +10,8 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { describe, expect, it } from "vitest"
-import { DEFAULT_HOVER_POPOVER_Z_INDEX, DEFAULT_LABELS } from "../constants"
-import type { MemoryGraphLabels, ResolvedMemoryGraphLabels } from "../types"
+import { DEFAULT_HOVER_POPOVER_Z_INDEX, DEFAULT_LABELS } from "../constants.js"
+import type { MemoryGraphLabels, ResolvedMemoryGraphLabels } from "../types.js"
 
 const popoverSrc = readFileSync(
 	resolve(__dirname, "../components/node-hover-popover.tsx"),

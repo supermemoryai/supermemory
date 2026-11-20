@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "dev": "vite build --watch",
-    "build": "vite build && tsc --emitDeclarationOnly",
+    "build": "vite build && tsc --emitDeclarationOnly && bun run scripts/emit-cjs-types.ts",
     "check-types": "tsc --noEmit",
     "prepack": "bun run build && bun run scripts/swap-exports.ts pack",
     "postpack": "bun run scripts/swap-exports.ts unpack",
