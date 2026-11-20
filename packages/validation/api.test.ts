@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import {
 	BulkDeleteMemoriesSchema,
 	DocumentsWithMemoriesQuerySchema,
+	DocumentsWithMemoriesResponseSchema,
 	ListMemoriesQuerySchema,
 	SearchRequestSchema,
 	Searchv4RequestSchema,
@@ -173,5 +174,50 @@ describe("pagination query schemas", () => {
 
 		const ok = { containerTags: ["tag_a", "tag_b"] }
 		expect(BulkDeleteMemoriesSchema.safeParse(ok).success).toBe(true)
+	})
+})
+
+describe("DocumentsWithMemoriesResponseSchema", () => {
+	// Shape of a /v3/documents/documents response after JSON.parse: every
+	// timestamp arrives as an ISO string, never as a Date.
+	const response = (sourceAddedAt: string | null) => ({
+		documents: [
+			{
+				id: "doc_123",
+				orgId: "org_123",
+				userId: "user_123",
+				createdAt: "2026-10-27T06:48:08.112Z",
+				updatedAt: "2026-10-27T06:48:13.638Z",
+				memoryEntries: [
+					{
+						id: "mem_123",
+						memory: "Nora owns the billing pipeline.",
+						spaceId: "space_123",
+						orgId: "org_123",
+						createdAt: "2026-10-27T06:52:34.160Z",
+						updatedAt: "2026-10-27T06:52:34.160Z",
+						sourceAddedAt,
+						sourceRelevanceScore: 0.87,
+						sourceMetadata: null,
+						spaceContainerTag: "space_123",
+					},
+				],
+			},
+		],
+		pagination: { currentPage: 1, limit: 10, totalItems: 1, totalPages: 1 },
+	})
+
+	it("parses an ISO sourceAddedAt into a Date", () => {
+		const parsed = DocumentsWithMemoriesResponseSchema.parse(
+			response("2026-10-27T06:52:34.160Z"),
+		)
+		const entry = parsed.documents[0]?.memoryEntries[0]
+		expect(entry?.sourceAddedAt).toBeInstanceOf(Date)
+		expect(entry?.sourceAddedAt?.toISOString()).toBe("2026-10-27T06:52:34.160Z")
+	})
+
+	it("keeps a null sourceAddedAt", () => {
+		const parsed = DocumentsWithMemoriesResponseSchema.parse(response(null))
+		expect(parsed.documents[0]?.memoryEntries[0]?.sourceAddedAt).toBeNull()
 	})
 })
