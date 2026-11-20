@@ -98,12 +98,12 @@ Claude's memory tool uses a file-system metaphor. Supermemory maps these operati
 
 | Claude Command | Supermemory Action |
 |----------------|-------------------|
-| `view` | Search/retrieve documents |
+| `view` | Read a document, or list the documents under a directory |
 | `create` | Add new document |
 | `str_replace` | Update document content |
 | `insert` | Insert content at line |
-| `delete` | Delete document |
-| `rename` | Move document to new path |
+| `delete` | Delete a document, or every document under a directory |
+| `rename` | Move a document to a new path (files only) |
 
 ### Memory path structure
 
@@ -124,8 +124,9 @@ Each file is stored as one document in the namespace, tagged with `metadata.sour
 ### View (read/list)
 
 ```typescript
-// List directory contents
+// List directory contents (the trailing slash is optional)
 { command: "view", path: "/memories/" }
+{ command: "view", path: "/memories/projects" }
 
 // Read file contents
 { command: "view", path: "/memories/preferences.txt" }
@@ -169,8 +170,14 @@ Each file is stored as one document in the namespace, tagged with `metadata.sour
 ### Delete
 
 ```typescript
+// Delete a file
 { command: "delete", path: "/memories/old-notes.txt" }
+
+// Delete a directory and every file in it
+{ command: "delete", path: "/memories/old-project" }
 ```
+
+A path that names both a file and a directory acts on the file. The `/memories` root can't be deleted. If some files in a directory can't be deleted yet (for example, they are still processing), the result is an error that names them; the rest stay deleted.
 
 ### Rename
 
