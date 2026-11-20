@@ -6,4 +6,4 @@ overrides:
   nanoid@3: 3.3.18
   postcss: 8.5.18
   sharp: 0.35.4
-  undici: 7.29.1
+  undici: 7.30.1
