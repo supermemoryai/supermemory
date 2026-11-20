@@ -53,6 +53,7 @@ supermemory/
     ├── quickstart.md           # Complete setup guide
     ├── sdk-guide.md            # Full SDK documentation (TypeScript & Python)
     ├── api-reference.md        # REST API endpoint reference
+    ├── sdk-integrations.md     # @supermemory/tools and framework integrations
     ├── architecture.md         # How Supermemory works under the hood
     └── use-cases.md            # 8 concrete implementation examples
 ```
@@ -114,18 +115,19 @@ Ready-to-use code snippets for TypeScript and Python showing the basic workflow:
 - Store new memories
 
 ### 2. Complete SDK Documentation
-Full reference for all SDK methods:
-- `add()` - Store memories
-- `profile()` - Retrieve user context
-- `search.memories()` - Semantic search
-- `documents.list()` - List documents
-- `documents.delete()` - Delete documents
+Full reference for the v5 SDK methods (TypeScript `supermemory` 5.x, Python `supermemory` 5.x):
+- `add(namespace, { content, id })` - Add a document; memories are extracted from it
+- `search(namespace, { query, searchMode })` - Search memories, chunks, or both
+- `profile(namespace)` - Read the maintained profile
+- `list(namespace, "documents" | "chunks" | "memories")` - Paginated listing
+- `documents.get / update / delete`, `memories.forget / forgetMatching`, `namespaces.*`, `connectors.*`
 
 ### 3. REST API Reference
-Complete endpoint documentation with cURL examples:
-- `POST /v3/documents` - Add documents
-- `POST /v3/search` - Search memories
-- `POST /v4/memories` - Create direct memories
+Complete v5 endpoint documentation with cURL examples:
+- `POST /ns/{namespace}/document` - Add documents
+- `POST /ns/{namespace}/search` - Search memories and chunks
+- `POST /ns/{namespace}/profile` - Read the profile
+- `DELETE /ns/{namespace}/memories` - Forget memories
 
 ### 4. Architecture Deep Dive
 Understand how Supermemory works:
@@ -149,10 +151,10 @@ Understand how Supermemory works:
 
 The skill emphasizes:
 
-- **Container Tags**: Proper isolation and organization
+- **Namespaces**: One per user or project, always in the URL path or first SDK argument
 - **Metadata**: Rich metadata for advanced filtering
 - **Thresholds**: Balancing precision and recall
-- **Static vs Dynamic Memories**: When to mark memories as permanent
+- **Dreaming modes**: `instant` when the next step reads memories right away, `dynamic` otherwise
 - **Error Handling**: Graceful handling of API errors
 - **Integration Patterns**: Works with Vercel AI SDK, LangChain, CrewAI, etc.
 
@@ -187,7 +189,7 @@ To improve this skill:
 
 - **Skill Type**: Reference skill with automatic invocation
 - **Primary Languages**: TypeScript, Python
-- **Frameworks Covered**: Vercel AI SDK, LangChain, CrewAI, OpenAI SDK
+- **Frameworks Covered**: Vercel AI SDK, OpenAI SDK, Mastra, VoltAgent, Claude memory via `@supermemory/tools` 3.x; Python frameworks via the core Python SDK
 - **Documentation Format**: Markdown with code examples
 - **Auto-invocation**: Enabled (Claude suggests Supermemory proactively)
 
@@ -204,6 +206,11 @@ For questions about:
 - **Claude skills in general**: See [Claude skills documentation](https://docs.claude.com/en/docs/claude-skills)
 
 ## Changelog
+
+### v2.0.0 (2026-10-14)
+- Rewritten for the v5 API: namespace-scoped endpoints, positional namespace in both SDKs, typed filters, new search defaults
+- Removed every legacy name (`containerTag`, `customId`, `/v3`, `/v4`) and added a "Never emit" list for code generation
+- Added `references/sdk-integrations.md` for `@supermemory/tools` 3.x
 
 ### v1.0.0 (2026-02-21)
 - Initial release
