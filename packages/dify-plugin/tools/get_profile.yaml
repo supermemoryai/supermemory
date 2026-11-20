@@ -1,0 +1,22 @@
+identity:
+  name: get_profile
+  author: supermemoryai
+  label:
+    en_US: Get Profile
+description:
+  human:
+    en_US: Read the profile Supermemory maintains for a namespace, with static facts, recent context and custom buckets.
+  llm: Get the profile Supermemory maintains for a namespace. Returns stable facts, recent context and custom buckets without a search query. Use it to personalize a response at the start of a conversation.
+parameters:
+  - name: namespace
+    type: string
+    required: true
+    label:
+      en_US: Namespace
+    human_description:
+      en_US: The user ID, project ID or other string the memories were stored under.
+    llm_description: The namespace whose profile to read, for example a user ID.
+    form: llm
+extra:
+  python:
+    source: tools/get_profile.py

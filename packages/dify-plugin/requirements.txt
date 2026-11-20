@@ -1,0 +1,2 @@
+dify_plugin>=0.10.2,<0.12.0
+supermemory>=5,<6
