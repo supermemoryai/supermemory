@@ -198,7 +198,8 @@
 													"smfs/providers/daytona",
 													"smfs/providers/e2b",
 													"smfs/providers/vercel",
-													"smfs/providers/cloudflare"
+													"smfs/providers/cloudflare",
+													"smfs/providers/boxd"
 												]
 											},
 											"smfs/examples"
