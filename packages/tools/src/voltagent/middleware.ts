@@ -234,8 +234,10 @@ export const enhanceMessagesWithMemories = async (
 	const turnKey = makeTurnKey(ctx, userMessage || "")
 	const isNewTurn = isNewUserTurn(messages)
 
+	// An empty string is a valid cached result: the turn was looked up and had
+	// nothing to inject.
 	const cachedMemories = ctx.memoryCache.get(turnKey)
-	if (!isNewTurn && cachedMemories) {
+	if (!isNewTurn && cachedMemories !== undefined) {
 		ctx.logger.debug("Using cached memories", { turnKey })
 		return injectMemoriesIntoMessages(
 			messagesToEnhance,
