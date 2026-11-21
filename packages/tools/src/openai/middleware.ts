@@ -1,3 +1,4 @@
+import { LRUCache } from "lru-cache"
 import type OpenAI from "openai"
 import { APIPromise } from "openai/core"
 import { Supermemory } from "supermemory"
@@ -13,6 +14,7 @@ import {
 	replaceMemoryContext,
 	stripMemoryContext,
 	turnKey,
+	turnKeys,
 	withTurnMemory,
 	wrapMemoryContext,
 } from "../shared"
@@ -52,6 +54,8 @@ const normalizeBaseUrl = (url?: string): string => {
 }
 
 type AfterResponse<T> = (value: T) => T
+
+type ResponsesTurn = { conversation: ConversationMessage[]; userText: string }
 
 const deferAPIPromise = <T>(
 	start: () => Promise<{
@@ -452,6 +456,8 @@ export function createOpenAIMiddleware(
 
 	const turnMemory = new TurnMemory()
 	let conversationHead: string | undefined
+	let serverTurns = 0
+	const pendingResponses = new LRUCache<string, ResponsesTurn>({ max: 100 })
 
 	// A new opening message means the wrapper is serving a new conversation, so start fresh.
 	const trackConversation = (firstUserKey: string) => {
@@ -486,12 +492,12 @@ export function createOpenAIMiddleware(
 		)
 	}
 
-	const recallTurn = (key: string) =>
+	const recallTurn = (key: string, query: string) =>
 		turnMemory.recall(
 			key,
 			buildTurnRecall({
 				namespace,
-				query: key,
+				query,
 				mode,
 				baseUrl,
 				apiKey,
@@ -552,26 +558,89 @@ export function createOpenAIMiddleware(
 				: Array.isArray(params.input)
 					? params.input
 					: []
+		type ResponsesResult = Awaited<ReturnType<typeof originalResponsesCreate>>
+		type ResponseLike = {
+			id?: unknown
+			output_text?: unknown
+			output?: unknown
+		}
+		const finishTurn = (turn: ResponsesTurn, response: ResponseLike) => {
+			if (hasResponsesFunctionCall(response.output)) {
+				if (typeof response.id === "string") {
+					pendingResponses.set(response.id, turn)
+				}
+				return
+			}
+			captureTurn(
+				[
+					...turn.conversation,
+					{ role: "assistant", content: extractResponsesOutputText(response) },
+				],
+				turn.userText,
+			)
+		}
+		const afterResponseFor =
+			(turn: ResponsesTurn): AfterResponse<ResponsesResult> =>
+			(value) => {
+				if (!params.stream) {
+					finishTurn(turn, value as ResponseLike)
+					return value
+				}
+				return observeStream(
+					value,
+					(event) => {
+						const { type, response } = event as {
+							type?: unknown
+							response?: ResponseLike
+						}
+						if (type === "response.completed" && response) {
+							finishTurn(turn, response)
+						}
+					},
+					() => {},
+				)
+			}
+
 		const userItems = items.filter(isResponsesUserMessage)
 		const latestUser = userItems.at(-1)
-		if (!latestUser) return { request: forward(params.input) }
+		if (!latestUser) {
+			const pending = params.previous_response_id
+				? pendingResponses.get(params.previous_response_id)
+				: undefined
+			if (!pending) return { request: forward(params.input) }
+			pendingResponses.delete(params.previous_response_id as string)
+			return {
+				request: forward(params.input),
+				afterResponse: afterResponseFor(pending),
+			}
+		}
 
-		const keyOf = (item: ResponsesInputItem) =>
-			turnKey(extractTextContent(item.content))
-		const firstUser = userItems[0]
 		const serverHistory =
 			params.previous_response_id ||
 			(params as { conversation?: unknown }).conversation
+		const keys = new Map(
+			turnKeys(userItems.map((item) => extractTextContent(item.content))).map(
+				(key, index) => [
+					userItems[index],
+					serverHistory ? `${serverTurns + 1}\u0000${key}` : key,
+				],
+			),
+		)
+		if (serverHistory) serverTurns++
+		const firstUser = userItems[0]
 		if (firstUser && !serverHistory) {
-			trackConversation(keyOf(firstUser))
+			trackConversation(keys.get(firstUser) as string)
 		}
-		const latestKey = keyOf(latestUser)
-		await recallTurn(latestKey)
+		await recallTurn(
+			keys.get(latestUser) as string,
+			turnKey(extractTextContent(latestUser.content)),
+		)
 
 		const memories = await Promise.all(
-			items.map((item) =>
-				isResponsesUserMessage(item) ? turnMemory.get(keyOf(item)) : undefined,
-			),
+			items.map((item) => {
+				const key = keys.get(item as ResponsesInputItem)
+				return key === undefined ? undefined : turnMemory.get(key)
+			}),
 		)
 		const injected = items.map((item, index) => {
 			const memory = memories[index]
@@ -584,42 +653,13 @@ export function createOpenAIMiddleware(
 				? ((injected[0] as { content: string }).content as typeof params.input)
 				: (injected as typeof params.input)
 
-		const conversation = convertResponsesConversationMessages(params.input)
-		const userText = extractTextContent(latestUser.content)
-		const finishTurn = (response: {
-			output_text?: unknown
-			output?: unknown
-		}) => {
-			if (hasResponsesFunctionCall(response.output)) return
-			captureTurn(
-				[
-					...conversation,
-					{ role: "assistant", content: extractResponsesOutputText(response) },
-				],
-				userText,
-			)
+		return {
+			request: forward(input),
+			afterResponse: afterResponseFor({
+				conversation: convertResponsesConversationMessages(params.input),
+				userText: extractTextContent(latestUser.content),
+			}),
 		}
-
-		type ResponsesResult = Awaited<ReturnType<typeof originalResponsesCreate>>
-		const afterResponse: AfterResponse<ResponsesResult> = (value) => {
-			if (!params.stream) {
-				finishTurn(value as { output_text?: unknown; output?: unknown })
-				return value
-			}
-			return observeStream(
-				value,
-				(event) => {
-					const { type, response } = event as {
-						type?: unknown
-						response?: { output_text?: unknown; output?: unknown }
-					}
-					if (type === "response.completed" && response) finishTurn(response)
-				},
-				() => {},
-			)
-		}
-
-		return { request: forward(input), afterResponse }
 	}
 
 	const createResponsesWithMemory = (
@@ -645,16 +685,22 @@ export function createOpenAIMiddleware(
 		const latestUser = userMessages.at(-1)
 		if (!latestUser) return { request: forward(messages) }
 
-		const keyOf = (
-			message: OpenAI.Chat.Completions.ChatCompletionMessageParam,
-		) => turnKey(extractTextContent(message.content))
-		trackConversation(keyOf(userMessages[0] ?? latestUser))
-		await recallTurn(keyOf(latestUser))
+		const keys = new Map<unknown, string>(
+			turnKeys(
+				userMessages.map((message) => extractTextContent(message.content)),
+			).map((key, index) => [userMessages[index], key]),
+		)
+		trackConversation(keys.get(userMessages[0] ?? latestUser) as string)
+		await recallTurn(
+			keys.get(latestUser) as string,
+			turnKey(extractTextContent(latestUser.content)),
+		)
 
 		const memories = await Promise.all(
-			messages.map((message) =>
-				message.role === "user" ? turnMemory.get(keyOf(message)) : undefined,
-			),
+			messages.map((message) => {
+				const key = keys.get(message)
+				return key === undefined ? undefined : turnMemory.get(key)
+			}),
 		)
 		const injected = messages.map((message, index) => {
 			const memory = memories[index]

@@ -19,6 +19,7 @@ import {
 	PROFILE_SEARCH_THRESHOLD,
 	buildTurnRecall,
 	turnKey,
+	turnKeys,
 	withTurnMemory,
 	wrapMemoryContext,
 	TurnMemoryByConversation,
@@ -323,16 +324,22 @@ export const enhanceMessagesWithMemories = async (
 		)
 	}
 
+	const users = messages.filter((message) => message.role === "user")
+	const keys = new Map(
+		turnKeys(users.map(getMessageText)).map((key, index) => [
+			users[index],
+			key,
+		]),
+	)
 	const memory = ctx.turns.for(conversationId)
 	const query = turnKey(getMessageText(latest))
-	await memory.recall(query, recallTurn(ctx, query))
+	await memory.recall(keys.get(latest) as string, recallTurn(ctx, query))
 
 	const blocks = await Promise.all(
-		messages.map((message) =>
-			message.role === "user"
-				? memory.get(turnKey(getMessageText(message)))
-				: undefined,
-		),
+		messages.map((message) => {
+			const key = keys.get(message)
+			return key === undefined ? undefined : memory.get(key)
+		}),
 	)
 	const withBlocks = messages.map((message, index) => {
 		const block = blocks[index]

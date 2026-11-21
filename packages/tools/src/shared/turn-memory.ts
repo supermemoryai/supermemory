@@ -38,6 +38,17 @@ export type TurnRecallFetcher = (
 export const turnKey = (text: string): string =>
 	stripMemoryContext(text).trim().replace(/\s+/g, " ")
 
+// A repeated question is its own turn, so it gets a fresh search instead of the first one's block.
+export const turnKeys = (texts: string[]): string[] => {
+	const seen = new Map<string, number>()
+	return texts.map((text) => {
+		const key = turnKey(text)
+		const count = (seen.get(key) ?? 0) + 1
+		seen.set(key, count)
+		return count === 1 ? key : `${key}\u0000${count}`
+	})
+}
+
 type TextPart = { type: string; text?: string }
 
 // Removes only SDK-added blocks, so caller-authored bytes reach the model exactly as sent.
