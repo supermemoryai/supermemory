@@ -81,21 +81,17 @@ export function createSupermemoryHooks(
 	return {
 		onPrepareMessages: async (args: HookPrepareMessagesArgs) => {
 			try {
-				// VoltAgent 2.x supplies canonical UI messages directly on the hook.
-				const inputMessages = (args.rawMessages ??
-					args.messages) as unknown as VoltAgentMessage[]
 				const preparedMessages = args.messages as unknown as VoltAgentMessage[]
 
 				ctx.logger.debug("onPrepareMessages called", {
 					messageCount: args.messages.length,
-					inputMessageCount: inputMessages.length,
 					agentName: args.agent.name,
 				})
 
 				const enhancedMessages = await enhanceMessagesWithMemories(
-					inputMessages,
-					ctx,
 					preparedMessages,
+					ctx,
+					args.context?.conversationId ?? ctx.id,
 				)
 
 				ctx.logger.debug("Messages enhanced with memories", {

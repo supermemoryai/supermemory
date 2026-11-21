@@ -9,7 +9,7 @@ import MigrateCli from "/snippets/migrate-cli.mdx";
 
 Add memory capabilities to the official OpenAI SDKs using Supermemory. Two approaches available:
 
-1. **`withSupermemory` wrapper** - Automatic memory injection into system prompts (zero-config)
+1. **`withSupermemory` wrapper** - Automatic memory injection into each user turn (zero-config)
 2. **Function calling tools** - Explicit tool calls for search/add memory operations
 
 <MigrateCli legacy="@supermemory/tools 2.x" guideHref="/migration/tools-v3-upgrade" guideLabel="3.0 upgrade guide" />
@@ -31,7 +31,7 @@ Add memory capabilities to the official OpenAI SDKs using Supermemory. Two appro
 
 ## withSupermemory wrapper
 
-The simplest way to add memory to your OpenAI client. Wraps your client to automatically inject relevant memories into system prompts.
+The simplest way to add memory to your OpenAI client. Wraps your client to automatically add relevant memories to each user turn, leaving your system prompt untouched so provider prompt caching keeps working.
 
 ### Installation
 
@@ -47,7 +47,7 @@ import { withSupermemory } from "@supermemory/tools/openai"
 
 const openai = new OpenAI()
 
-// Wrap client with memory - memories auto-injected into system prompts
+// Wrap client with memory - memories are added to each user turn
 const client = withSupermemory(openai, {
   namespace: "user-123",     // Required: identifies the user/container
   id: "conversation-456", // Required: groups messages into the same document 
@@ -89,6 +89,12 @@ const client = withSupermemory(openai, {
 })
 ```
 
+### Prompt caching
+
+Memories are fetched once per user turn (tool-call steps reuse them) and appended to that turn's user message. Earlier turns are re-sent with exactly the block they got the first time, and the profile is shown once per conversation, so every request starts with the same bytes as the one before. Keep one wrapper per conversation to get this: a new wrapper starts with no memory of earlier turns' blocks.
+
+Recall has a 3 second budget with no retries. If it fails or runs out, the model call goes ahead without memories for that turn. When `addMemory` is `"always"`, the finished turn is saved once after the model's final answer, in the background, and system and developer messages are never saved.
+
 ### Modes explained
 
 | Mode | Description | Use Case |
@@ -102,7 +108,7 @@ const client = withSupermemory(openai, {
 ```typescript
 const client = withSupermemory(openai, { namespace: "user-123", id: "conv-456", mode: "full" })
 
-// Memories injected into instructions
+// Memories are added to the user input; instructions are left untouched
 const response = await client.responses.create({
   model: "gpt-5",
   instructions: "You are a helpful assistant.",

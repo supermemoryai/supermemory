@@ -2,14 +2,18 @@ import { jsonResponse, profileBody } from "./v5-fetch"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createSupermemoryHooks } from "../src/voltagent"
 
+type PrepareArgs = Parameters<
+	NonNullable<ReturnType<typeof createSupermemoryHooks>["onPrepareMessages"]>
+>[0]
+
 describe("VoltAgent memory context", () => {
 	afterEach(() => vi.unstubAllGlobals())
 
-	it("replaces prior SDK context in the prepared system message", async () => {
-		vi.stubGlobal(
-			"fetch",
-			vi.fn(async () => jsonResponse(profileBody(["Fresh profile fact"]))),
+	it("appends memories to the user turn and leaves the system message untouched", async () => {
+		const fetchMock = vi.fn(async () =>
+			jsonResponse(profileBody(["Fresh profile fact"])),
 		)
+		vi.stubGlobal("fetch", fetchMock)
 		const hooks = createSupermemoryHooks("user-a", {
 			id: "conversation-a",
 			apiKey: "sm_test_key",
@@ -17,29 +21,41 @@ describe("VoltAgent memory context", () => {
 			addMemory: "never",
 		})
 
-		const args = {
-			agent: { name: "test-agent" },
-			context: {
-				input: { messages: [{ role: "user", content: "Remember me" }] },
-			},
-			messages: [
-				{
-					id: "system",
-					role: "system",
-					content:
-						'Be helpful.\n\n<supermemory context="user-memories" readonly>\nStale profile fact\n</supermemory>',
-					parts: [],
-				},
-			],
-		} as Parameters<NonNullable<typeof hooks.onPrepareMessages>>[0]
-		const result = await hooks.onPrepareMessages?.(args)
+		const system = {
+			id: "system",
+			role: "system",
+			parts: [{ type: "text", text: "Be helpful." }],
+		}
+		const firstUser = {
+			id: "u1",
+			role: "user",
+			parts: [{ type: "text", text: "Remember me" }],
+		}
+		const prepare = (messages: unknown[]) =>
+			hooks.onPrepareMessages?.({
+				agent: { name: "test-agent" },
+				context: { conversationId: "conversation-a" },
+				messages,
+			} as unknown as PrepareArgs)
 
-		const content = String(result?.messages?.[0]?.content ?? "")
-		expect(content).toContain("Be helpful.")
-		expect(content).toContain("Fresh profile fact")
-		expect(content).not.toContain("Stale profile fact")
-		expect(
-			content.match(/<supermemory context="user-memories" readonly>/g),
-		).toHaveLength(1)
+		const first = await prepare([system, firstUser])
+		const second = await prepare([
+			system,
+			firstUser,
+			{ id: "a1", role: "assistant", parts: [{ type: "text", text: "Hi" }] },
+			{ id: "u2", role: "user", parts: [{ type: "text", text: "Again" }] },
+		])
+
+		expect(first?.messages?.[0]).toEqual(system)
+		const injected = JSON.stringify(first?.messages?.[1])
+		expect(injected).toContain("Remember me")
+		expect(injected).toContain("Fresh profile fact")
+		expect(JSON.stringify(second?.messages?.slice(0, 2))).toBe(
+			JSON.stringify(first?.messages),
+		)
+		expect(JSON.stringify(second?.messages?.[3])).not.toContain(
+			"Fresh profile fact",
+		)
+		expect(fetchMock).toHaveBeenCalledTimes(1)
 	})
 })
