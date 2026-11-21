@@ -38,6 +38,39 @@ export type TurnRecallFetcher = (
 export const turnKey = (text: string): string =>
 	stripMemoryContext(text).trim().replace(/\s+/g, " ")
 
+const fingerprint = (text: string): string => {
+	let a = 0x811c9dc5
+	let b = 0x01000193
+	for (let index = 0; index < text.length; index++) {
+		const code = text.charCodeAt(index)
+		a = Math.imul(a ^ code, 0x01000193)
+		b = Math.imul(b ^ code, 0x5bd1e995)
+	}
+	return (a >>> 0).toString(36) + (b >>> 0).toString(36)
+}
+
+// Keys a user turn by its text and the assistant reply before it, so a repeated question is a new turn and trimming never shifts a kept message's key.
+export function turnKeys<M>(
+	messages: readonly M[],
+	read: (message: M) => { role: unknown; text: string },
+): Map<M, string> {
+	const keys = new Map<M, string>()
+	let reply = ""
+	for (const message of messages) {
+		const { role, text } = read(message)
+		if (role === "assistant") {
+			const replyText = turnKey(text)
+			if (replyText) reply = fingerprint(replyText)
+		} else if (role === "user") {
+			keys.set(
+				message,
+				reply ? `${turnKey(text)}\u0000${reply}` : turnKey(text),
+			)
+		}
+	}
+	return keys
+}
+
 type TextPart = { type: string; text?: string }
 
 // Removes only SDK-added blocks, so caller-authored bytes reach the model exactly as sent.
@@ -146,10 +179,14 @@ export const buildTurnRecall =
 	}
 
 export class TurnMemory {
-	private turns = new LRUCache<string, Promise<string>[]>({
+	private turns = new LRUCache<string, Promise<string>>({
 		max: MAX_TURNS_PER_CONVERSATION,
 	})
 	private frozen?: FrozenProfile
+
+	get(key: string): Promise<string> | undefined {
+		return this.turns.get(key)
+	}
 
 	get profile(): string {
 		return this.frozen?.text ?? ""
@@ -160,31 +197,14 @@ export class TurnMemory {
 		this.frozen = undefined
 	}
 
-	// Repeats of one text map to its latest recalls counted from the end, so trimming old history never shifts a block.
-	blocks(keys: string[]): Array<Promise<string> | undefined> {
-		const later = new Map<string, number>()
-		const blocks: Array<Promise<string> | undefined> = []
-		for (let index = keys.length - 1; index >= 0; index--) {
-			const key = keys[index] as string
-			const skip = later.get(key) ?? 0
-			later.set(key, skip + 1)
-			const entries = this.turns.get(key)
-			blocks[index] = entries?.[entries.length - 1 - skip]
-		}
-		return blocks
-	}
-
 	// Frozen per turn so later requests resend identical bytes; never rejects or outlasts the budget.
 	recall(
-		keys: string[],
+		key: string,
 		fetch: TurnRecallFetcher,
-		{ fresh = false, timeoutMs = RECALL_TIMEOUT_MS } = {},
+		timeoutMs = RECALL_TIMEOUT_MS,
 	): Promise<string> {
-		const key = keys.at(-1) ?? ""
-		const entries = this.turns.get(key) ?? []
-		const occurrences = keys.filter((other) => other === key).length
-		const existing = entries.at(-1)
-		if (existing && !fresh && entries.length >= occurrences) return existing
+		const existing = this.turns.get(key)
+		if (existing) return existing
 
 		const controller = new AbortController()
 		let timer: ReturnType<typeof setTimeout> | undefined
@@ -206,7 +226,7 @@ export class TurnMemory {
 				() => "",
 			)
 			.finally(() => clearTimeout(timer))
-		this.turns.set(key, [...entries, entry])
+		this.turns.set(key, entry)
 		return entry
 	}
 }

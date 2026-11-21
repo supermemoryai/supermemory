@@ -14,6 +14,7 @@ import {
 	replaceMemoryContext,
 	stripMemoryContext,
 	turnKey,
+	turnKeys,
 	withTurnMemory,
 	wrapMemoryContext,
 } from "../shared"
@@ -141,7 +142,7 @@ const extractTextContent = (content: unknown): string => {
 			if (!part || typeof part !== "object") return []
 			const { type, text } = part as { type?: unknown; text?: unknown }
 			if (
-				(type === "text" || type === "input_text") &&
+				(type === "text" || type === "input_text" || type === "output_text") &&
 				typeof text === "string" &&
 				text.trim()
 			) {
@@ -455,6 +456,7 @@ export function createOpenAIMiddleware(
 
 	const turnMemory = new TurnMemory()
 	let conversationHead: string | undefined
+	let serverTurns = 0
 	const pendingResponses = new LRUCache<string, ResponsesTurn>({ max: 100 })
 
 	// A new opening message means the wrapper is serving a new conversation, so start fresh.
@@ -490,12 +492,12 @@ export function createOpenAIMiddleware(
 		)
 	}
 
-	const recallTurn = (keys: string[], fresh = false) =>
+	const recallTurn = (key: string, query: string) =>
 		turnMemory.recall(
-			keys,
+			key,
 			buildTurnRecall({
 				namespace,
-				query: keys.at(-1) ?? "",
+				query,
 				mode,
 				baseUrl,
 				apiKey,
@@ -503,7 +505,6 @@ export function createOpenAIMiddleware(
 				promptTemplate: (data) =>
 					`${data.userMemories}\n${data.generalSearchMemories}`.trim(),
 			}),
-			{ fresh },
 		)
 
 	// Fire and forget: a slow or failing save must never hold the caller's response.
@@ -625,17 +626,32 @@ export function createOpenAIMiddleware(
 			}
 		}
 
-		const serverHistory = !!(params.previous_response_id || conversationParam)
-		const keys = userItems.map((item) =>
-			turnKey(extractTextContent(item.content)),
+		const serverHistory = params.previous_response_id || conversationParam
+		const keys = turnKeys(items, (item) => ({
+			role: (item as { role?: unknown })?.role,
+			text: extractTextContent((item as { content?: unknown })?.content),
+		}))
+		if (serverHistory) {
+			serverTurns++
+			for (const [item, key] of keys) {
+				keys.set(item, `${serverTurns}\u0000${key}`)
+			}
+		}
+		const firstUser = userItems[0]
+		if (firstUser && !serverHistory) {
+			trackConversation(keys.get(firstUser) as string)
+		}
+		await recallTurn(
+			keys.get(latestUser) as string,
+			turnKey(extractTextContent(latestUser.content)),
 		)
-		if (!serverHistory) trackConversation(keys[0] as string)
-		await recallTurn(keys, serverHistory)
 
-		const blocks = new Map<unknown, Promise<string> | undefined>(
-			turnMemory.blocks(keys).map((block, index) => [userItems[index], block]),
+		const memories = await Promise.all(
+			items.map((item) => {
+				const key = keys.get(item)
+				return key === undefined ? undefined : turnMemory.get(key)
+			}),
 		)
-		const memories = await Promise.all(items.map((item) => blocks.get(item)))
 		const injected = items.map((item, index) => {
 			const memory = memories[index]
 			if (memory === undefined || !isResponsesUserMessage(item)) return item
@@ -679,19 +695,21 @@ export function createOpenAIMiddleware(
 		const latestUser = userMessages.at(-1)
 		if (!latestUser) return { request: forward(messages) }
 
-		const keys = userMessages.map((message) =>
-			turnKey(extractTextContent(message.content)),
+		const keys = turnKeys(messages, (message) => ({
+			role: message.role,
+			text: extractTextContent(message.content),
+		}))
+		trackConversation(keys.get(userMessages[0] ?? latestUser) as string)
+		await recallTurn(
+			keys.get(latestUser) as string,
+			turnKey(extractTextContent(latestUser.content)),
 		)
-		trackConversation(keys[0] as string)
-		await recallTurn(keys)
 
-		const blocks = new Map<unknown, Promise<string> | undefined>(
-			turnMemory
-				.blocks(keys)
-				.map((block, index) => [userMessages[index], block]),
-		)
 		const memories = await Promise.all(
-			messages.map((message) => blocks.get(message)),
+			messages.map((message) => {
+				const key = keys.get(message)
+				return key === undefined ? undefined : turnMemory.get(key)
+			}),
 		)
 		const injected = messages.map((message, index) => {
 			const memory = memories[index]
