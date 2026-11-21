@@ -581,6 +581,27 @@ execute_memory_tool_calls(
 ) -> List[dict]
 ```
 
+#### `with_supermemory`
+
+```python
+from openai import OpenAI
+from supermemory_openai import with_supermemory, OpenAIMiddlewareOptions
+
+client = with_supermemory(
+    OpenAI(),
+    OpenAIMiddlewareOptions(
+        container_tag="user-123",  # identifies the user
+        custom_id="conversation-456",  # one wrapper per conversation
+        mode="full",  # "profile" (default) | "query" | "full"
+        add_memory="always",  # "always" (default) | "never"
+    ),
+)
+```
+
+Wraps a sync or async OpenAI client's `chat.completions.create`. The Python wrapper places memories so the provider's prompt cache keeps working. The user's profile is fetched once per conversation and appended to the first system or developer message as a separate block, byte-identical on every later call. Each new user message gets its own search results appended to it, and earlier messages are re-sent with exactly the block they got the first time. Tool-call steps reuse their turn's memories and never search again.
+
+Recall has a 3 second budget with no retries. If it fails or runs out, the model call goes ahead without memories, and a failed profile is fetched again on the next user message. When `add_memory` is `"always"`, each turn is saved once in the background after the model's final reply, and system and developer messages are never saved.
+
 ### JavaScript SDK
 
 #### `supermemoryTools`

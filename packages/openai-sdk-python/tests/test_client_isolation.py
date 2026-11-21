@@ -56,7 +56,10 @@ def create_sync_client() -> tuple[Any, Mock]:
 
 
 def create_async_client() -> tuple[Any, AsyncMock]:
-    create = AsyncMock(return_value={"id": "chat-response"})
+    reply = SimpleNamespace(content="ok", tool_calls=None)
+    create = AsyncMock(
+        return_value=SimpleNamespace(choices=[SimpleNamespace(message=reply)])
+    )
     completions = SimpleNamespace(create=create)
     chat = SimpleNamespace(completions=completions)
     return SimpleNamespace(chat=chat), create
@@ -206,9 +209,9 @@ def test_shared_sync_client_does_not_stack_tenant_middleware() -> None:
 
         assert lookups == ["tenant-b"]
         messages = original_create.call_args.kwargs["messages"]
-        assert [message["role"] for message in messages] == ["user"]
-        assert messages[0]["content"].startswith("private\n\n")
+        assert [message["role"] for message in messages] == ["system", "user"]
         assert "secret-tenant-b" in messages[0]["content"]
+        assert messages[1] == {"role": "user", "content": "private"}
         assert all("tenant-a" not in str(message) for message in messages)
 
         base_client.chat.completions.create(
@@ -287,7 +290,7 @@ def test_raw_and_streaming_response_facades_remain_memory_aware() -> None:
             ) as stream:
                 assert stream.label.endswith("stream")
 
-        assert lookups == ["tenant-b"] * 2
+        assert lookups == ["tenant-b"]
         for create in calls.values():
             assert "secret-tenant-b" in str(create.call_args.kwargs["messages"])
 
@@ -336,7 +339,7 @@ def test_async_raw_and_streaming_response_prefixes_remain_memory_aware() -> None
             )
             asyncio.run(consume_stream(stream_context))
 
-        assert lookups == ["tenant-b"] * 2
+        assert lookups == ["tenant-b"]
         for create in calls.values():
             assert "secret-tenant-b" in str(create.call_args.kwargs["messages"])
 
@@ -431,15 +434,12 @@ async def test_real_async_openai_paths_use_async_middleware(path: str) -> None:
             ]
 
         assert lookups == ["tenant-real"]
-        assert writes == [
-            (
-                "tenant-real",
-                "conversation:thread-tenant-real",
-                "User: private message",
-            )
-        ]
+        saved = "User: private message"
+        if not path.endswith(".streaming"):
+            saved += "\n\nAssistant: ok"
+        assert writes == [("tenant-real", "conversation:thread-tenant-real", saved)]
         assert len(sent_messages) == 1
-        assert [message["role"] for message in sent_messages[0]] == ["user"]
+        assert [message["role"] for message in sent_messages[0]] == ["system", "user"]
         assert "secret-tenant-real" in sent_messages[0][0]["content"]
         assert runtime_warnings == []
     finally:
@@ -495,7 +495,7 @@ async def test_shared_async_client_saves_only_for_selected_tenant() -> None:
             (
                 "tenant-b",
                 "conversation:thread-tenant-b",
-                "User: private tenant B message",
+                "User: private tenant B message\n\nAssistant: ok",
             )
         ]
         assert original_create.call_count == 1
@@ -577,6 +577,6 @@ def test_real_completions_stream_helper_uses_middleware(is_async: bool) -> None:
                     pass
 
     assert lookups == ["tenant-a"]
-    assert [message["role"] for message in sent_messages[0]] == ["user"]
+    assert [message["role"] for message in sent_messages[0]] == ["system", "user"]
     assert "secret-tenant-a" in sent_messages[0][0]["content"]
     assert sent_messages[1] == [{"role": "user", "content": "hi"}]

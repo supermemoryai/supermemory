@@ -206,11 +206,12 @@ class TestMemoryInjection:
                 call_args = original_create.call_args[1]
 
                 enhanced_messages = call_args["messages"]
-                assert [message["role"] for message in enhanced_messages] == ["user"]
-                user_content = enhanced_messages[0]["content"]
-                assert user_content.startswith(messages[0]["content"] + "\n\n")
-                assert "User prefers Python" in user_content
-                assert messages[0]["content"] == "What's my favorite programming language?"
+                assert [message["role"] for message in enhanced_messages] == [
+                    "system",
+                    "user",
+                ]
+                assert "User prefers Python" in enhanced_messages[0]["content"]
+                assert enhanced_messages[1] == messages[0]
 
     @pytest.mark.asyncio
     async def test_memory_injection_query_mode(
@@ -282,17 +283,20 @@ class TestMemoryInjection:
                 call_args = original_create.call_args[1]
                 enhanced_messages = call_args["messages"]
 
-                assert enhanced_messages[0]["role"] == "user"
-                user_content = enhanced_messages[0]["content"]
-                assert "Static Profile" in user_content
-                assert "Dynamic Profile" in user_content
+                system_content = enhanced_messages[0]["content"]
+                user_content = enhanced_messages[1]["content"]
+                assert enhanced_messages[0]["role"] == "system"
+                assert "Static Profile" in system_content
+                assert "Dynamic Profile" in system_content
+                assert "Search results" not in system_content
                 assert "Search results" in user_content
+                assert "Static Profile" not in user_content
 
     @pytest.mark.asyncio
-    async def test_existing_system_prompt_is_never_modified(
+    async def test_profile_is_appended_to_existing_system_prompt(
         self, mock_async_openai_client, mock_openai_response, mock_supermemory_response
     ):
-        """Memories go on the user turn; the system prompt is sent byte-for-byte."""
+        """The profile replaces only the SDK's own block in the caller's system prompt."""
         original_create = AsyncMock(return_value=mock_openai_response)
         mock_async_openai_client.chat.completions.create = original_create
 
@@ -330,15 +334,14 @@ class TestMemoryInjection:
                 enhanced_messages = call_args["messages"]
 
                 assert len(enhanced_messages) == len(messages)
-                assert enhanced_messages[0] == messages[0]
-
-                user_message = enhanced_messages[1]
-                assert user_message["role"] == "user"
-                assert user_message["content"].startswith("What do you know about me?\n\n")
-                assert "User prefers Python" in user_message["content"]
-                assert user_message["content"].count(
+                system_content = enhanced_messages[0]["content"]
+                assert system_content.startswith("You are a helpful assistant.\n")
+                assert "User prefers Python" in system_content
+                assert "Stale profile fact" not in system_content
+                assert system_content.count(
                     '<supermemory context="user-memories" readonly>'
                 ) == 1
+                assert enhanced_messages[1] == messages[1]
 
 
     @pytest.mark.asyncio
@@ -835,15 +838,15 @@ class TestMemorySearchFailOpen:
     )
     ENHANCED_MESSAGES = [
         {
-            "role": "user",
+            "role": "system",
             "content": (
-                "What do you know about me?\n\n"
                 '<supermemory context="user-memories" readonly>\n'
                 "## Static Profile\n\n"
                 "- memories about the user\n"
                 "</supermemory>"
             ),
         },
+        {"role": "user", "content": "What do you know about me?"},
     ]
 
 
@@ -1159,15 +1162,53 @@ class TestProfileSearchFallback:
         assert result.profile["static"] == ["Prefers vegetarian food"]
 
 
-def _profile_response(search: list[str]) -> Mock:
+def _recall_response(*args: Any, include_profile: bool = True, **kwargs: Any) -> Mock:
+    query = args[1] if len(args) > 1 else ""
+    if include_profile:
+        return Mock(
+            profile={"static": ["Prefers Python"], "dynamic": ["Planning a trip"]},
+            search_results={},
+        )
     return Mock(
-        profile={"static": ["Prefers Python"], "dynamic": ["Planning a trip"]},
-        search_results={"results": [{"memory": memory} for memory in search]},
+        profile={},
+        search_results={
+            "results": [
+                {"memory": f"Result for {query}"},
+                {"memory": "Prefers Python"},
+                {"memory": "Runs 5k"},
+            ]
+        },
+    )
+
+
+def _tool_call_response() -> ChatCompletion:
+    return ChatCompletion(
+        id="chatcmpl-tool",
+        object="chat.completion",
+        created=1234567890,
+        model="gpt-4",
+        choices=[
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "call_1",
+                            "type": "function",
+                            "function": {"name": "get_weather", "arguments": "{}"},
+                        }
+                    ],
+                },
+                "finish_reason": "tool_calls",
+            }
+        ],
     )
 
 
 class TestCacheSafeTurns:
-    """Memory is pinned per user turn so every earlier request prefix is resent unchanged."""
+    """The profile is frozen in the system prompt and each turn keeps its own search block."""
 
     SYSTEM = {"role": "system", "content": "You are helpful."}
 
@@ -1182,17 +1223,12 @@ class TestCacheSafeTurns:
                 ),
             )
 
-    def test_turns_stay_byte_identical_and_tool_steps_reuse_memory(
+    def test_profile_once_in_system_and_turns_stay_byte_identical(
         self, mock_openai_client, mock_openai_response
     ):
         original_create = Mock(return_value=mock_openai_response)
         mock_openai_client.chat.completions.create = original_create
-        search = AsyncMock(
-            side_effect=[
-                _profile_response(["Likes cortados", "Runs 5k"]),
-                _profile_response(["Runs 5k", "Learning Portuguese"]),
-            ]
-        )
+        search = AsyncMock(side_effect=_recall_response)
         with patch("supermemory_openai.middleware.supermemory_profile_search", new=search):
             wrapped = self._wrap(mock_openai_client)
             turn_one = [self.SYSTEM, {"role": "user", "content": "Weather?"}]
@@ -1210,37 +1246,77 @@ class TestCacheSafeTurns:
             ]
             wrapped.chat.completions.create(model="gpt-4", messages=turn_two)
 
-        assert search.await_count == 2
-        assert [call.kwargs["include_profile"] for call in search.await_args_list] == [
-            True,
-            False,
-        ]
+        flags = [call.kwargs.get("include_profile", True) for call in search.await_args_list]
+        assert sorted(flags) == [False, False, True]
         sent = [call.kwargs["messages"] for call in original_create.call_args_list]
-        assert all(request[0] == self.SYSTEM for request in sent)
+        assert sent[0][0] == sent[1][0] == sent[2][0]
+        assert sent[0][0]["content"].startswith("You are helpful.\n<supermemory")
+        assert all(str(request).count("Prefers Python") == 1 for request in sent)
+        assert all("Prefers Python" in request[0]["content"] for request in sent)
         assert sent[0][1] == sent[1][1] == sent[2][1]
-        assert "Prefers Python" in sent[0][1]["content"]
-        assert "Likes cortados" in sent[0][1]["content"]
+        assert "Result for Weather?" in sent[0][1]["content"]
         assert sent[1][: len(sent[0])] == sent[0]
         assert sent[2][: len(sent[1])] == sent[1]
         latest = sent[2][-1]["content"]
-        assert latest.startswith("Dinner?\n\n")
-        assert "Learning Portuguese" in latest
-        assert "Prefers Python" not in latest
+        assert latest.startswith("Dinner?\n<supermemory")
+        assert "Result for Dinner?" in latest
         assert "Runs 5k" not in latest
         assert turn_two[-1] == {"role": "user", "content": "Dinner?"}
 
+    def test_repeated_question_is_a_new_turn_and_trimming_keeps_blocks(
+        self, mock_openai_client, mock_openai_response
+    ):
+        original_create = Mock(return_value=mock_openai_response)
+        mock_openai_client.chat.completions.create = original_create
+        calls = iter(range(1, 100))
+
+        async def recall(*args: Any, **kwargs: Any) -> Any:
+            return Mock(
+                profile={},
+                search_results={"results": [{"memory": f"Search {next(calls)}"}]},
+            )
+
+        search = AsyncMock(side_effect=recall)
+        with patch("supermemory_openai.middleware.supermemory_profile_search", new=search):
+            wrapped = self._wrap(mock_openai_client, mode="query")
+            messages: list[Any] = []
+            for question, reply in (
+                ("Weather?", "Sunny."),
+                ("Weather?", "Still sunny."),
+                ("Dinner?", "Pasta."),
+                ("Dessert?", None),
+            ):
+                messages = [*messages, {"role": "user", "content": question}]
+                wrapped.chat.completions.create(model="gpt-4", messages=messages)
+                if reply:
+                    messages = [*messages, {"role": "assistant", "content": reply}]
+            searches = search.await_count
+            wrapped.chat.completions.create(model="gpt-4", messages=messages[4:])
+
+        assert searches == 4
+        assert search.await_count == 4
+        sent = [call.kwargs["messages"] for call in original_create.call_args_list]
+        full = sent[3]
+        assert "Search 1" in full[0]["content"]
+        assert "Search 2" in full[2]["content"]
+        assert full[0]["content"].startswith("Weather?\n")
+        assert full[2]["content"].startswith("Weather?\n")
+        assert sent[4] == full[4:]
+
     @pytest.mark.asyncio
-    async def test_failed_recall_is_retried_on_the_next_user_turn(
+    async def test_failed_profile_is_retried_on_the_next_user_turn(
         self, mock_async_openai_client, mock_openai_response
     ):
         original_create = AsyncMock(return_value=mock_openai_response)
         mock_async_openai_client.chat.completions.create = original_create
-        search = AsyncMock(
-            side_effect=[
-                SupermemoryNetworkError("network down"),
-                _profile_response(["Likes cortados"]),
-            ]
-        )
+        profile_failures = [SupermemoryNetworkError("network down")]
+
+        async def recall(*args: Any, include_profile: bool = True, **kwargs: Any) -> Any:
+            if include_profile and profile_failures:
+                raise profile_failures.pop()
+            return _recall_response(*args, include_profile=include_profile)
+
+        search = AsyncMock(side_effect=recall)
         with patch("supermemory_openai.middleware.supermemory_profile_search", new=search):
             wrapped = self._wrap(mock_async_openai_client)
             turn_one = [self.SYSTEM, {"role": "user", "content": "Weather?"}]
@@ -1257,17 +1333,14 @@ class TestCacheSafeTurns:
             ]
             await wrapped.chat.completions.create(model="gpt-4", messages=turn_two)
 
-        assert search.await_count == 2
-        assert [call.kwargs["include_profile"] for call in search.await_args_list] == [
-            True,
-            True,
-        ]
+        flags = [call.kwargs.get("include_profile", True) for call in search.await_args_list]
+        assert sorted(flags) == [False, False, True, True]
         sent = [call.kwargs["messages"] for call in original_create.call_args_list]
-        assert sent[0] == turn_one
-        assert sent[1] == tool_step
-        assert sent[2][:-1] == turn_two[:-1]
-        assert "Prefers Python" in sent[2][-1]["content"]
-        assert "Likes cortados" in sent[2][-1]["content"]
+        assert sent[0][0] == self.SYSTEM
+        assert sent[1][0] == self.SYSTEM
+        assert sent[0][1] == sent[1][1] == sent[2][1]
+        assert "Prefers Python" in sent[2][0]["content"]
+        assert "Result for Dinner?" in sent[2][-1]["content"]
 
     def test_profile_is_fetched_once_even_when_empty(
         self, mock_openai_client, mock_openai_response
@@ -1286,7 +1359,7 @@ class TestCacheSafeTurns:
                 messages = [*messages, {"role": "assistant", "content": "ok"}]
 
         assert search.await_count == 1
-        assert search.await_args.kwargs["include_profile"] is True
+        assert original_create.call_args.kwargs["messages"] == messages[:-1]
 
     def test_recall_timeout_degrades_to_no_memory(
         self, mock_openai_client, mock_openai_response
@@ -1301,8 +1374,8 @@ class TestCacheSafeTurns:
         with patch(
             "supermemory_openai.middleware.supermemory_profile_search",
             new=hanging_search,
-        ):
-            wrapped = self._wrap(mock_openai_client, recall_timeout=0.2)
+        ), patch("supermemory_openai.middleware.RECALL_TIMEOUT_SECONDS", 0.2):
+            wrapped = self._wrap(mock_openai_client)
             started = time.monotonic()
             wrapped.chat.completions.create(model="gpt-4", messages=messages)
             elapsed = time.monotonic() - started
@@ -1310,10 +1383,10 @@ class TestCacheSafeTurns:
         assert elapsed < 1.5
         assert original_create.call_args.kwargs["messages"] == messages
 
-    def test_sync_capture_runs_in_background_once_per_turn_without_system_prompts(
+    def test_turn_is_saved_once_with_its_final_reply_without_system_prompts(
         self, mock_openai_client, mock_openai_response
     ):
-        original_create = Mock(return_value=mock_openai_response)
+        original_create = Mock(side_effect=[_tool_call_response(), mock_openai_response])
         mock_openai_client.chat.completions.create = original_create
         release = threading.Event()
         uploads: list[tuple[str, Any]] = []
@@ -1324,7 +1397,7 @@ class TestCacheSafeTurns:
 
         with patch(
             "supermemory_openai.middleware.supermemory_profile_search",
-            new=AsyncMock(return_value=_profile_response([])),
+            new=AsyncMock(side_effect=_recall_response),
         ), patch(
             "supermemory_openai.middleware.add_memory_tool", new=slow_add_memory
         ):
@@ -1340,10 +1413,27 @@ class TestCacheSafeTurns:
                     model="gpt-4",
                     messages=[
                         *turn,
+                        {"role": "assistant", "content": None, "tool_calls": []},
                         {"role": "tool", "tool_call_id": "call_1", "content": "sunny"},
                     ],
                 )
                 assert time.monotonic() - started < 1.0
                 release.set()
 
-        assert uploads == [("User: Weather?", "conversation:test-conv")]
+        assert uploads == [
+            (
+                "User: Weather?\n\nTool: sunny\n\n"
+                "Assistant: Hello! How can I help you today?",
+                "conversation:test-conv",
+            )
+        ]
+
+    def test_supermemory_requests_identify_the_plugin(self):
+        from importlib.metadata import version
+
+        from supermemory_openai.middleware import SUPERMEMORY_HEADERS
+
+        assert SUPERMEMORY_HEADERS == {
+            "x-sm-source": "openai-python",
+            "x-sm-plugin-version": version("supermemory-openai-sdk"),
+        }

@@ -142,7 +142,7 @@ response = openai_with_memory.chat.completions.create(
 
 **Event Loop Management**: For sync clients, recall runs on a short-lived daemon thread with its own event loop, so the middleware works the same whether or not it is called from inside a running event loop.
 
-**Background Task Management**: When `add_memory="always"`, memory storage never delays the model call. Async clients save in an asyncio task; sync clients save on a daemon thread, which does not keep the process alive. Saves use a 5-second timeout and no retries. Use a context manager, or wait for pending saves yourself, so the last turn is saved before the process exits:
+**Background Task Management**: When `add_memory="always"`, saving never delays the model call; each turn is saved once its final assistant reply arrives. Async clients save in an asyncio task; sync clients save on a daemon thread. Saves use a 5-second timeout and no retries. When the interpreter exits, pending sync saves get up to 5 more seconds to finish. Use a context manager, or wait for pending saves yourself, to make sure the last turn is saved before you exit:
 
 ```python
 from supermemory_openai import with_supermemory, OpenAIMiddlewareOptions
@@ -175,14 +175,15 @@ with with_supermemory(
 
 ## How memories are placed
 
-Memories are added to the conversation in a way that keeps the provider's prompt cache working:
+Memories are added in a way that keeps the provider's prompt cache working. Every block is wrapped in `<supermemory context="user-memories" readonly>` … `</supermemory>`.
 
-- Memories are recalled once per user turn and appended to that turn's **user message**, inside a `<supermemory context="user-memories" readonly>` block. The system and developer messages are never modified.
-- Every later request resends each earlier turn with exactly the same memory text, so earlier turns stay byte-identical and the cached prefix keeps matching. The wrapper keeps this per-turn text in a bounded in-memory cache (256 turns); your `messages` list is never mutated.
-- Tool-call continuation steps inside a turn reuse that turn's memory and do not recall again.
-- The profile is fetched and included once per conversation, on the first turn where the fetch succeeds, even if it comes back empty. It is never refreshed: there is no TTL or timer. Later turns call only `/v4/search` (in `full` and `query` mode) or nothing at all (in `profile` mode), so anything new arrives through search results. Memories already shown in an earlier turn are not repeated. The profile is fetched again only when the turn cache has evicted a conversation's earlier turns or the process restarted, which the wrapper treats as a new conversation.
-- Recall is capped by `recall_timeout` (2 seconds by default) and makes a single attempt. If it times out or fails, that turn is sent without memory, and the next user turn tries again.
-- Conversation saves skip system and developer messages and happen once per user turn.
+- **Profile, in the system prompt** (`profile` and `full` mode). The user's profile is fetched once per conversation, on the first user message where the fetch succeeds (an empty profile counts). It is appended as a separate block to the first system or developer message, or sent as a new leading system message when there is none. It is byte-identical on every later call, tool-only calls included, and it is never refreshed: there is no TTL or timer. Each request carries exactly one copy, and the profile never appears in a user message.
+- **Search results, on the user message** (`query` and `full` mode). Each new user message gets the search results retrieved for it (`/v4/search`), minus anything the profile or an earlier turn already showed. Earlier user messages keep exactly the block they first received, so the cached prefix keeps matching.
+- **Turns.** A user turn is identified by its text plus the assistant reply before it. Asking the same question again after a new reply is a new turn with its own search. Trimming old messages from the front of the history keeps the remaining messages' blocks. Tool-call continuations reuse their turn's block and never search again.
+- **Failures.** Recall waits at most 3 seconds and makes one attempt with no retries. On a timeout or error the call goes ahead without that memory. A profile that failed to load is fetched again on the next user message, so it can join the system prompt one turn late; that changes the cached prefix once.
+- **Bounds.** One wrapper serves one conversation (`custom_id`) and remembers up to 500 turns. If older turns are evicted, they are sent without their blocks from then on. The profile is fetched again only after the process restarts (a new wrapper), which counts as a new conversation.
+- **Saves.** With `add_memory="always"`, a turn is saved once its final assistant reply arrives (a reply that only calls tools keeps the turn open). The save holds the conversation plus that reply, without system or developer messages, and runs in the background. Through `with_streaming_response` the reply body is not visible to the wrapper, so those turns are saved when the request is made, without the reply.
+- **Request headers.** Every request to Supermemory sends `x-sm-source: openai-python` and `x-sm-plugin-version` with the installed package version.
 
 ## Middleware Configuration
 
@@ -191,7 +192,7 @@ Memories are added to the conversation in a way that keeps the provider's prompt
 The middleware supports three different modes for memory injection:
 
 #### `"profile"` mode (default)
-Injects the user's static and dynamic profile once per conversation, on the first user turn where it loads. Later turns make no Supermemory call. Best for maintaining consistent user context.
+Adds the user's static and dynamic profile to the system prompt once per conversation, on the first user turn where it loads. Later turns make no Supermemory call. Best for maintaining consistent user context.
 
 ```python
 openai_with_memory = with_supermemory(
@@ -211,7 +212,7 @@ openai_with_memory = with_supermemory(
 ```
 
 #### `"full"` mode
-Combines both profile and query modes - includes the profile once plus relevant search results on every user turn.
+Combines both profile and query modes: the profile once in the system prompt, plus search results on every user message.
 
 ```python
 openai_with_memory = with_supermemory(
@@ -381,7 +382,6 @@ class OpenAIMiddlewareOptions:
     add_memory: Literal["always", "never"] = "always"      # Auto-save behavior
     api_key: Optional[str] = None               # Falls back to SUPERMEMORY_API_KEY
     base_url: Optional[str] = None              # Falls back to SUPERMEMORY_BASE_URL
-    recall_timeout: float = 2.0                 # Seconds to wait for recall before sending without memory
 ```
 
 ### SupermemoryTools

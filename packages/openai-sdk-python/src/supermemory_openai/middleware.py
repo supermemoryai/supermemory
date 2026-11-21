@@ -1,9 +1,9 @@
 """Supermemory middleware for OpenAI clients."""
 
 import asyncio
+import atexit
 import hashlib
 import inspect
-import json
 import os
 import threading
 import time
@@ -11,10 +11,11 @@ import types
 from collections import OrderedDict
 from collections.abc import Coroutine
 from dataclasses import dataclass
-from typing import Any, Literal, Optional, TypeVar, Union, cast
+from importlib.metadata import version as package_version
+from typing import Any, Callable, Literal, Optional, TypeVar, Union, cast
 
 import supermemory
-from openai import AsyncOpenAI, OpenAI
+from openai import AsyncOpenAI, AsyncStream, OpenAI, Stream
 from openai.types.chat import ChatCompletionMessageParam
 
 from .exceptions import (
@@ -29,36 +30,95 @@ from .utils import (
     create_logger,
     deduplicate_memories,
     get_conversation_content,
-    get_last_user_message,
+    replace_memory_context,
+    strip_memory_context,
     wrap_memory_context,
 )
 
 DEFAULT_SUPERMEMORY_BASE_URL = "https://api.supermemory.ai"
-DEFAULT_RECALL_TIMEOUT_SECONDS = 2.0
+RECALL_TIMEOUT_SECONDS = 3.0
 CAPTURE_TIMEOUT_SECONDS = 5.0
 EXIT_WAIT_SECONDS = 5.0
-TURN_CACHE_SIZE = 256
+MAX_TURNS_PER_CONVERSATION = 500
 UNCAPTURED_ROLES = ("system", "developer")
+SM_SOURCE = "openai-python"
+
+
+def _plugin_version() -> str:
+    try:
+        return package_version("supermemory-openai-sdk")
+    except Exception:
+        return "unknown"
+
+
+SUPERMEMORY_HEADERS = {
+    "x-sm-source": SM_SOURCE,
+    "x-sm-plugin-version": _plugin_version(),
+}
 
 T = TypeVar("T")
+
+_PENDING_CAPTURES: set[threading.Thread] = set()
+
+
+@atexit.register
+def _finish_pending_captures() -> None:
+    """Give the last sync saves a bounded chance to land, as Node keeps the process alive for open requests."""
+    deadline = time.monotonic() + EXIT_WAIT_SECONDS
+    for thread in list(_PENDING_CAPTURES):
+        thread.join(max(0.0, deadline - time.monotonic()))
 
 
 @dataclass
 class OpenAIMiddlewareOptions:
-    """Configuration options for OpenAI middleware."""
+    """Configuration options for OpenAI middleware.
 
-    container_tag: str  # Required: identifies the user/container
-    custom_id: str  # Required: groups messages into the same document
+    Attributes:
+        container_tag: Identifies whose memories are read and written, such as a
+            user or project ID. Required.
+        custom_id: Conversation ID. Messages saved by this wrapper are grouped into
+            one Supermemory document with this ID, and the wrapper keeps the memory
+            it injected for this conversation. Required.
+        verbose: Print detailed logs of memory recall and saving. Defaults to False.
+        mode: Where memories come from and where they go. Defaults to "profile".
+
+            - "profile": the user's profile, fetched once per conversation and
+              appended to the system prompt.
+            - "query": search results for each user message, appended to that
+              message.
+            - "full": both; the profile once in the system prompt plus per-message
+              search results.
+
+            Recall waits at most 3 seconds. A failed or timed-out fetch sends the
+            request without that memory, and the profile is fetched again on the
+            next user message.
+        add_memory: "always" saves each finished turn (the conversation plus the
+            final assistant reply, without system or developer messages) in the
+            background; "never" only reads memories. Defaults to "always".
+        api_key: Supermemory API key. Falls back to the SUPERMEMORY_API_KEY
+            environment variable.
+        base_url: Supermemory API base URL. Falls back to SUPERMEMORY_BASE_URL, then
+            https://api.supermemory.ai.
+    """
+
+    container_tag: str
+    custom_id: str
     verbose: bool = False
     mode: Literal["profile", "query", "full"] = "profile"
     add_memory: Literal["always", "never"] = "always"
     api_key: Optional[str] = None
     base_url: Optional[str] = None
-    recall_timeout: float = DEFAULT_RECALL_TIMEOUT_SECONDS
 
 
 class SupermemoryProfileSearch:
-    """Type for Supermemory profile search response."""
+    """Parsed response of a profile or memory search request.
+
+    Attributes:
+        profile: The ``static`` and ``dynamic`` profile lists, empty for a
+            search-only request.
+        search_results: The search results object with a ``results`` list, empty
+            when no search ran.
+    """
 
     def __init__(self, data: dict[str, Any]):
         self.profile: dict[str, Any] = data.get("profile", {})
@@ -66,19 +126,45 @@ class SupermemoryProfileSearch:
 
 
 @dataclass(frozen=True)
-class _TurnMemory:
-    """Memory text pinned to one user turn so later requests resend the same bytes."""
+class _TurnBlock:
+    """Search memory pinned to one user turn so later requests resend the same bytes."""
 
     text: str = ""
-    profile_fetched: bool = False
     memories: tuple[str, ...] = ()
 
 
-def _message_fingerprint(message: Any) -> bytes:
-    """Serialize a caller message deterministically for turn keys."""
-    if hasattr(message, "model_dump"):
-        message = message.model_dump(exclude_none=True)
-    return json.dumps(message, sort_keys=True, default=str).encode()
+class _ConversationMemory:
+    """The frozen profile and per-turn blocks of one conversation, bounded per conversation."""
+
+    def __init__(self) -> None:
+        self.lock = threading.RLock()
+        self.turns: OrderedDict[str, _TurnBlock] = OrderedDict()
+        self.latest_by_text: dict[str, str] = {}
+        self.profile_text: Optional[str] = None
+        self.profile_memories: tuple[str, ...] = ()
+
+    def block(self, key: str) -> Optional[_TurnBlock]:
+        """A turn whose preceding reply was trimmed away falls back to the latest turn with its text."""
+        with self.lock:
+            if key not in self.turns and "\x00" not in key:
+                key = self.latest_by_text.get(key, key)
+            block = self.turns.get(key)
+            if block is not None:
+                self.turns.move_to_end(key)
+            return block
+
+    def pin(self, key: str, block: _TurnBlock) -> None:
+        """Keep the first block stored for a turn so a racing duplicate request cannot replace it."""
+        with self.lock:
+            if key in self.turns:
+                return
+            self.turns[key] = block
+            self.latest_by_text[key.split("\x00")[0]] = key
+            while len(self.turns) > MAX_TURNS_PER_CONVERSATION:
+                evicted, _ = self.turns.popitem(last=False)
+                text = evicted.split("\x00")[0]
+                if self.latest_by_text.get(text) == evicted:
+                    del self.latest_by_text[text]
 
 
 def _role(message: Any) -> Any:
@@ -87,70 +173,101 @@ def _role(message: Any) -> Any:
     return getattr(message, "role", None)
 
 
-def _user_turns(messages: list[ChatCompletionMessageParam]) -> list[tuple[int, str]]:
-    """Key each user message by a hash of the original conversation up to it."""
-    digest = hashlib.sha256()
-    turns: list[tuple[int, str]] = []
+def _message_text(message: Any) -> str:
+    content = (
+        message.get("content")
+        if isinstance(message, dict)
+        else getattr(message, "content", None)
+    )
+    if isinstance(content, str):
+        return content.strip()
+    if not isinstance(content, list):
+        return ""
+    texts = []
+    for part in content:
+        text = (
+            part.get("text") if isinstance(part, dict) else getattr(part, "text", None)
+        )
+        if isinstance(text, str) and text.strip():
+            texts.append(text.strip())
+    return "\n".join(texts)
+
+
+def _turn_text(text: str) -> str:
+    return " ".join(strip_memory_context(text).split())
+
+
+def _turn_keys(messages: list[ChatCompletionMessageParam]) -> list[tuple[int, str]]:
+    """Key each user turn by its text and the reply before it, so repeats are new turns and trimming keeps keys."""
+    keys: list[tuple[int, str]] = []
+    reply = ""
     for index, message in enumerate(messages):
-        digest.update(_message_fingerprint(message))
-        digest.update(b"\x00")
-        if _role(message) == "user":
-            turns.append((index, digest.copy().hexdigest()))
-    return turns
+        role = _role(message)
+        if role == "assistant":
+            reply_text = _turn_text(_message_text(message))
+            if reply_text:
+                reply = hashlib.sha256(reply_text.encode()).hexdigest()[:16]
+        elif role == "user":
+            text = _turn_text(_message_text(message))
+            keys.append((index, f"{text}\x00{reply}" if reply else text))
+    return keys
 
 
-def _append_to_user_message(
-    message: ChatCompletionMessageParam, memory_text: str
-) -> ChatCompletionMessageParam:
-    """Append memory after the user's own content without touching other fields."""
+def _with_memory_block(message: Any, memories: str) -> Any:
+    """Replace only SDK-owned blocks, so caller-authored bytes reach the model exactly as sent."""
     if not isinstance(message, dict):
         return message
     content = message.get("content")
     if isinstance(content, str):
-        joined = f"{content}\n\n{memory_text}" if content else memory_text
-        return cast(ChatCompletionMessageParam, {**message, "content": joined})
-    if isinstance(content, list):
-        parts = [*content, {"type": "text", "text": memory_text}]
-        return cast(ChatCompletionMessageParam, {**message, "content": parts})
-    return message
+        return {**message, "content": replace_memory_context(content, memories)}
+    if not isinstance(content, list):
+        return message
+    parts = []
+    for part in content:
+        text = part.get("text") if isinstance(part, dict) else None
+        if not isinstance(text, str) or "<supermemory" not in text:
+            parts.append(part)
+            continue
+        stripped = strip_memory_context(text)
+        if stripped:
+            parts.append({**part, "text": stripped})
+    block = wrap_memory_context(memories)
+    return {
+        **message,
+        "content": [*parts, {"type": "text", "text": block}] if block else parts,
+    }
 
 
-def _build_turn_memory(
+def _profile_memories(
     response: SupermemoryProfileSearch,
-    mode: Literal["profile", "query", "full"],
-    include_profile: bool,
-    seen: set[str],
-) -> _TurnMemory:
-    """Format one turn's memory, leaving out anything an earlier turn already carried."""
-    profile = (response.profile or {}) if include_profile else {}
+) -> tuple[str, tuple[str, ...]]:
+    profile = response.profile or {}
     deduplicated = deduplicate_memories(
         static=profile.get("static", []),
         dynamic=profile.get("dynamic", []),
-        search_results=(response.search_results or {}).get("results", []),
     )
-    static = [m for m in deduplicated.static if m not in seen]
-    dynamic = [m for m in deduplicated.dynamic if m not in seen]
-    search = (
-        [m for m in deduplicated.search_results if m not in seen]
-        if mode != "profile"
-        else []
+    markdown = convert_profile_to_markdown(
+        {"profile": {"static": deduplicated.static, "dynamic": deduplicated.dynamic}}
     )
+    return markdown, (*deduplicated.static, *deduplicated.dynamic)
 
-    profile_markdown = convert_profile_to_markdown(
-        {"profile": {"static": static, "dynamic": dynamic}}
+
+def _search_block(response: SupermemoryProfileSearch, seen: set[str]) -> _TurnBlock:
+    """Leave out what the profile or an earlier turn already carried."""
+    deduplicated = deduplicate_memories(
+        search_results=(response.search_results or {}).get("results", [])
     )
-    search_markdown = (
-        "Search results for user's recent message: \n"
-        + "\n".join(f"- {memory}" for memory in search)
-        if search
-        else ""
+    memories = tuple(m for m in deduplicated.search_results if m not in seen)
+    if not memories:
+        return _TurnBlock()
+    text = "Search results for user's recent message: \n" + "\n".join(
+        f"- {memory}" for memory in memories
     )
-    text = wrap_memory_context(f"{profile_markdown}\n{search_markdown}")
-    return _TurnMemory(
-        text=text,
-        profile_fetched=include_profile,
-        memories=(*static, *dynamic, *search),
-    )
+    return _TurnBlock(text=text, memories=memories)
+
+
+def _succeeded(result: Any) -> bool:
+    return result is not None and not isinstance(result, BaseException)
 
 
 def _run_with_deadline(coroutine: Coroutine[Any, Any, T], timeout: float) -> T:
@@ -217,6 +334,7 @@ class _AsyncMemoryResponseContextManager:
 
         return await self._wrapper._create_with_memory_async(
             enter_original,
+            observe_reply=False,
             **self._kwargs,
         )
 
@@ -240,16 +358,37 @@ async def supermemory_profile_search(
     query_text: str,
     api_key: str,
     base_url: str,
-    timeout: float = DEFAULT_RECALL_TIMEOUT_SECONDS,
+    timeout: float = RECALL_TIMEOUT_SECONDS,
     include_profile: bool = True,
 ) -> SupermemoryProfileSearch:
-    """Without the profile, call /v4/search with the parameters /v4/profile uses for its own q search."""
+    """Fetch the user's profile or search their memories.
+
+    With ``include_profile`` the request goes to ``/v4/profile`` (adding a search
+    when ``query_text`` is set). Without it the request goes to ``/v4/search`` with
+    the same parameters ``/v4/profile`` uses for its own search. The request makes
+    one attempt with no retries. When aiohttp is not installed, the requests
+    fallback runs on a worker thread so it never blocks the event loop.
+
+    Args:
+        container_tag: Tag whose memories are read.
+        query_text: Search query; empty for a profile-only request.
+        api_key: Supermemory API key.
+        base_url: Supermemory API base URL.
+        timeout: Seconds before the request is abandoned.
+        include_profile: Fetch the profile (``True``) or only search (``False``).
+
+    Returns:
+        The parsed profile and/or search results.
+
+    Raises:
+        SupermemoryAPIError: When the API answers with a non-2xx status.
+    """
     payload: dict[str, Any]
     if include_profile:
         payload = {"containerTag": container_tag, "include": ["static", "dynamic"]}
         if query_text:
             payload["q"] = query_text
-        profile_url = f"{base_url.rstrip('/')}/v4/profile"
+        url = f"{base_url.rstrip('/')}/v4/profile"
     else:
         payload = {
             "q": query_text,
@@ -262,61 +401,51 @@ async def supermemory_profile_search(
             "rewriteQuery": False,
             "searchMode": "memories",
         }
-        profile_url = f"{base_url.rstrip('/')}/v4/search"
+        url = f"{base_url.rstrip('/')}/v4/search"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+        **SUPERMEMORY_HEADERS,
+    }
 
     try:
         import aiohttp
 
-        timeout = aiohttp.ClientTimeout(total=timeout)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
+        client_timeout = aiohttp.ClientTimeout(total=timeout)
+        async with aiohttp.ClientSession(timeout=client_timeout) as session:
             async with session.post(
-                profile_url,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {api_key}",
-                },
-                json=payload,
-                allow_redirects=False,
+                url, headers=headers, json=payload, allow_redirects=False
             ) as response:
                 if not 200 <= response.status < 300:
-                    error_text = await response.text()
                     raise SupermemoryAPIError(
                         "Supermemory profile search failed",
                         status_code=response.status,
-                        response_text=error_text,
+                        response_text=await response.text(),
                     )
-
                 data = await response.json()
-                return SupermemoryProfileSearch(
-                    data if include_profile else {"searchResults": data}
-                )
 
     except ImportError:
         import requests
 
-        response = await asyncio.to_thread(
+        sync_response = await asyncio.to_thread(
             requests.post,
-            profile_url,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}",
-            },
+            url,
+            headers=headers,
             json=payload,
             timeout=timeout,
             allow_redirects=False,
         )
-
-        if not 200 <= response.status_code < 300:
+        if not 200 <= sync_response.status_code < 300:
             raise SupermemoryAPIError(
                 "Supermemory profile search failed",
-                status_code=response.status_code,
-                response_text=response.text,
+                status_code=sync_response.status_code,
+                response_text=sync_response.text,
             )
+        data = sync_response.json()
 
-        data = response.json()
-        return SupermemoryProfileSearch(
-            data if include_profile else {"searchResults": data}
-        )
+    return SupermemoryProfileSearch(
+        data if include_profile else {"searchResults": data}
+    )
 
 
 async def add_memory_tool(
@@ -326,7 +455,22 @@ async def add_memory_tool(
     custom_id: Optional[str],
     logger: Logger,
 ) -> None:
-    """Add a memory; a sync client is only passed in from the sync wrapper's capture thread."""
+    """Save content to Supermemory.
+
+    The sync wrapper calls this from its background save thread with a sync
+    client; the async wrapper passes an async client.
+
+    Args:
+        client: Supermemory client used for the save.
+        container_tag: Tag the memory is saved under.
+        content: Text to save, typically the formatted conversation.
+        custom_id: Document ID that groups saves of one conversation, or None.
+        logger: Logger for the outcome.
+
+    Raises:
+        SupermemoryNetworkError: When the save fails on a network error.
+        SupermemoryMemoryOperationError: When the save fails for any other reason.
+    """
     try:
         kwargs = {"content": content, "container_tag": container_tag}
         if custom_id is not None:
@@ -364,7 +508,21 @@ async def add_memory_tool(
 
 
 class SupermemoryOpenAIWrapper:
-    """Wrapper for OpenAI client with Supermemory middleware."""
+    """OpenAI client wrapper that adds Supermemory recall and saving to chat completions.
+
+    Create it with :func:`with_supermemory`. Every attribute other than ``chat``
+    and the ``with_raw_response`` / ``with_streaming_response`` prefixes is
+    delegated to the wrapped client unchanged. One wrapper serves one
+    conversation (``OpenAIMiddlewareOptions.custom_id``).
+
+    The wrapper keeps the prompt cache intact. The user's profile is fetched once
+    per conversation and appended to the first system or developer message (or
+    sent as a leading system message), byte-identical on every call. Each user
+    message gets the search results retrieved for it, and earlier messages keep
+    exactly the block they first received. Tool-call continuations reuse their
+    turn's block. Each finished turn is saved in the background once its final
+    assistant reply arrives.
+    """
 
     def __init__(
         self,
@@ -389,8 +547,7 @@ class SupermemoryOpenAIWrapper:
 
         self._background_tasks: set[asyncio.Task] = set()
         self._capture_threads: set[threading.Thread] = set()
-        self._turn_memories: OrderedDict[str, _TurnMemory] = OrderedDict()
-        self._turn_lock = threading.Lock()
+        self._conversation = _ConversationMemory()
 
         if not hasattr(supermemory, "Supermemory"):
             raise SupermemoryConfigurationError(
@@ -411,6 +568,7 @@ class SupermemoryOpenAIWrapper:
                 base_url=self._base_url,
                 timeout=CAPTURE_TIMEOUT_SECONDS,
                 max_retries=0,
+                default_headers=SUPERMEMORY_HEADERS,
             )
         except Exception as e:
             raise SupermemoryConfigurationError(
@@ -550,167 +708,255 @@ class SupermemoryOpenAIWrapper:
         def create_sync_with_memory(
             **kwargs: Any,
         ) -> Any:
-            return self._create_with_memory_sync(original_create, **kwargs)
+            return self._create_with_memory_sync(
+                original_create, observe_reply=not streaming_response, **kwargs
+            )
 
         return create_sync_with_memory
 
     async def _create_with_memory_async(
         self,
         original_create: Any,
+        observe_reply: bool = True,
         **kwargs: Any,
     ) -> Any:
         """Async create with memory injection; memory failures fail open."""
         messages = list(kwargs.get("messages", []))
-        turns = _user_turns(messages)
-        turn_key = self._new_turn_key(messages, turns)
-        if turn_key is not None:
-            self._capture_async(messages)
-            plan = self._recall_plan(messages, turns)
-            response = None
-            if plan is not None:
+        keys = _turn_keys(messages)
+        plan = self._recall_plan(messages, keys)
+        if plan is not None:
+            results: list[Any] = [None, None]
+            if plan[2] or plan[3]:
                 try:
-                    response = await asyncio.wait_for(
-                        supermemory_profile_search(
-                            self._container_tag,
-                            plan[0],
-                            self._api_key,
-                            self._base_url,
-                            timeout=self._options.recall_timeout,
-                            include_profile=plan[1],
+                    results = await asyncio.wait_for(
+                        asyncio.gather(
+                            *self._recall_requests(plan), return_exceptions=True
                         ),
-                        timeout=self._options.recall_timeout,
+                        timeout=RECALL_TIMEOUT_SECONDS,
                     )
                 except Exception as error:
-                    self._log_recall_failure(error)
-            self._remember_turn(turn_key, response, plan)
-        kwargs["messages"] = self._apply_turn_memories(messages, turns)
-        return await original_create(**kwargs)
+                    results = [error, error]
+            self._finish_recall(plan, results)
+            if not observe_reply:
+                self._capture_async(messages, None)
+        kwargs["messages"] = self._apply_memory(messages, keys)
+        value = await original_create(**kwargs)
+        if observe_reply and keys:
+            return self._observe_reply(
+                value, lambda reply: self._capture_async(messages, reply)
+            )
+        return value
 
     def _create_with_memory_sync(
         self,
         original_create: Any,
+        observe_reply: bool = True,
         **kwargs: Any,
     ) -> Any:
         """Sync create with memory injection; memory failures fail open."""
         messages = list(kwargs.get("messages", []))
-        turns = _user_turns(messages)
-        turn_key = self._new_turn_key(messages, turns)
-        if turn_key is not None:
-            self._capture_sync(messages)
-            plan = self._recall_plan(messages, turns)
-            response = None
-            if plan is not None:
-                try:
-                    response = _run_with_deadline(
-                        supermemory_profile_search(
-                            self._container_tag,
-                            plan[0],
-                            self._api_key,
-                            self._base_url,
-                            timeout=self._options.recall_timeout,
-                            include_profile=plan[1],
-                        ),
-                        self._options.recall_timeout,
-                    )
-                except Exception as error:
-                    self._log_recall_failure(error)
-            self._remember_turn(turn_key, response, plan)
-        kwargs["messages"] = self._apply_turn_memories(messages, turns)
-        return original_create(**kwargs)
+        keys = _turn_keys(messages)
+        plan = self._recall_plan(messages, keys)
+        if plan is not None:
+            results: list[Any] = [None, None]
+            if plan[2] or plan[3]:
+                requests = self._recall_requests(plan)
 
-    def _new_turn_key(
-        self,
-        messages: list[ChatCompletionMessageParam],
-        turns: list[tuple[int, str]],
-    ) -> Optional[str]:
-        """Return the key of a user turn seen for the first time; tool steps reuse their turn."""
-        if not turns or turns[-1][0] != len(messages) - 1:
-            return None
-        turn_key = turns[-1][1]
-        with self._turn_lock:
-            if turn_key in self._turn_memories:
-                return None
-            self._turn_memories[turn_key] = _TurnMemory()
-            self._evict_turns()
-        return turn_key
+                async def gather() -> list[Any]:
+                    return await asyncio.gather(*requests, return_exceptions=True)
+
+                try:
+                    results = _run_with_deadline(gather(), RECALL_TIMEOUT_SECONDS)
+                except Exception as error:
+                    results = [error, error]
+            self._finish_recall(plan, results)
+            if not observe_reply:
+                self._capture_sync(messages, None)
+        kwargs["messages"] = self._apply_memory(messages, keys)
+        value = original_create(**kwargs)
+        if observe_reply and keys:
+            return self._observe_reply(
+                value, lambda reply: self._capture_sync(messages, reply)
+            )
+        return value
 
     def _recall_plan(
         self,
         messages: list[ChatCompletionMessageParam],
-        turns: list[tuple[int, str]],
-    ) -> Optional[tuple[str, bool, set[str]]]:
-        """The profile is fetched until one fetch succeeds in this conversation, then never again."""
-        include_profile = self._options.mode != "query"
-        seen: set[str] = set()
-        with self._turn_lock:
-            for _, key in turns[:-1]:
-                earlier = self._turn_memories.get(key)
-                if earlier is None:
-                    continue
-                include_profile = include_profile and not earlier.profile_fetched
-                seen.update(earlier.memories)
-        if self._options.mode == "profile" and not include_profile:
+        keys: list[tuple[int, str]],
+    ) -> Optional[tuple[str, str, bool, bool, set[str]]]:
+        """Plan recall for a user turn seen for the first time; tool continuations reuse their turn."""
+        if not keys:
             return None
-        query_text = (
-            get_last_user_message(messages) if self._options.mode != "profile" else ""
-        )
-        if self._options.mode != "profile" and not query_text.strip():
+        index, key = keys[-1]
+        conversation = self._conversation
+        if conversation.block(key) is not None:
             return None
+        query = _turn_text(_message_text(messages[index]))
+        with conversation.lock:
+            fetch_profile = (
+                self._options.mode != "query" and conversation.profile_text is None
+            )
+            seen = set(conversation.profile_memories)
+            for _, earlier in keys[:-1]:
+                block = conversation.block(earlier)
+                if block is not None:
+                    seen.update(block.memories)
+        search = self._options.mode != "profile" and bool(query)
         self._logger.info(
-            "Starting memory search",
+            "Starting memory recall",
             {
                 "container_tag": self._container_tag,
                 "conversation_id": self._options.custom_id,
                 "mode": self._options.mode,
-                "include_profile": include_profile,
+                "fetch_profile": fetch_profile,
+                "search": search,
             },
         )
-        return query_text, include_profile, seen
+        return key, query, fetch_profile, search, seen
 
-    def _remember_turn(
+    def _recall_requests(
+        self, plan: tuple[str, str, bool, bool, set[str]]
+    ) -> list[Coroutine[Any, Any, Any]]:
+        _, query, fetch_profile, search, _ = plan
+
+        async def skipped() -> None:
+            return None
+
+        return [
+            (
+                supermemory_profile_search(
+                    self._container_tag, "", self._api_key, self._base_url
+                )
+                if fetch_profile
+                else skipped()
+            ),
+            (
+                supermemory_profile_search(
+                    self._container_tag,
+                    query,
+                    self._api_key,
+                    self._base_url,
+                    include_profile=False,
+                )
+                if search
+                else skipped()
+            ),
+        ]
+
+    def _finish_recall(
         self,
-        turn_key: str,
-        response: Optional[SupermemoryProfileSearch],
-        plan: Optional[tuple[str, bool, set[str]]],
+        plan: tuple[str, str, bool, bool, set[str]],
+        results: list[Any],
     ) -> None:
-        """Pin the turn's memory; a failed recall leaves it empty so the next turn retries."""
-        if response is None or plan is None:
-            return
-        try:
-            memory = _build_turn_memory(response, self._options.mode, plan[1], plan[2])
-        except Exception as error:
-            self._log_recall_failure(error)
-            return
+        """Freeze a fetched profile once; a failed fetch stays unset so the next new turn retries it."""
+        key, _, fetch_profile, search, seen = plan
+        profile_result, search_result = results
+        conversation = self._conversation
+        if fetch_profile and _succeeded(profile_result):
+            markdown, memories = _profile_memories(profile_result)
+            with conversation.lock:
+                if conversation.profile_text is None:
+                    conversation.profile_text = markdown
+                    conversation.profile_memories = memories
+                seen = seen | set(conversation.profile_memories)
+        block = _TurnBlock()
+        if search and _succeeded(search_result):
+            block = _search_block(search_result, seen)
+        for requested, result in (
+            (fetch_profile, profile_result),
+            (search, search_result),
+        ):
+            if requested and isinstance(result, BaseException):
+                self._log_recall_failure(result)
         self._logger.debug(
-            "Memory search completed",
-            {"memory_count": len(memory.memories), "content": memory.text},
+            "Memory recall completed",
+            {"memory_count": len(block.memories), "content": block.text},
         )
-        with self._turn_lock:
-            if turn_key in self._turn_memories:
-                self._turn_memories[turn_key] = memory
+        conversation.pin(key, block)
 
-    def _evict_turns(self) -> None:
-        while len(self._turn_memories) > TURN_CACHE_SIZE:
-            self._turn_memories.popitem(last=False)
-
-    def _apply_turn_memories(
+    def _apply_memory(
         self,
         messages: list[ChatCompletionMessageParam],
-        turns: list[tuple[int, str]],
+        keys: list[tuple[int, str]],
     ) -> list[ChatCompletionMessageParam]:
-        """Re-attach every pinned turn memory to its user message on a copy of the request."""
+        """Put the frozen profile in the system prompt and each pinned search block on its own user message."""
         enhanced = list(messages)
-        with self._turn_lock:
-            for index, key in turns:
-                memory = self._turn_memories.get(key)
-                if memory is None:
-                    continue
-                self._turn_memories.move_to_end(key)
-                if memory.text:
-                    enhanced[index] = _append_to_user_message(
-                        enhanced[index], memory.text
-                    )
-        return enhanced
+        for index, key in keys:
+            block = self._conversation.block(key)
+            if block is not None:
+                enhanced[index] = _with_memory_block(enhanced[index], block.text)
+        profile = self._conversation.profile_text or ""
+        if self._options.mode == "query":
+            return enhanced
+        system = next(
+            (
+                index
+                for index, message in enumerate(enhanced)
+                if _role(message) in UNCAPTURED_ROLES
+            ),
+            None,
+        )
+        if system is not None:
+            enhanced[system] = _with_memory_block(enhanced[system], profile)
+            return enhanced
+        block = wrap_memory_context(profile)
+        if not block:
+            return enhanced
+        system_message = cast(
+            ChatCompletionMessageParam, {"role": "system", "content": block}
+        )
+        return [system_message, *enhanced]
+
+    def _observe_reply(self, value: Any, finish: Callable[[str], None]) -> Any:
+        """Save once the turn's final reply arrives; replies that only call tools keep the turn open."""
+        if hasattr(value, "http_response") and hasattr(value, "parse"):
+            try:
+                self._observe_reply(value.parse(), finish)
+            except Exception as error:
+                self._logger.debug(
+                    "Could not read the reply to save it", {"error": str(error)}
+                )
+            return value
+        if isinstance(value, Stream):
+            value._iterator = self._observed_stream(value._iterator, finish)
+            return value
+        if isinstance(value, AsyncStream):
+            value._iterator = self._observed_async_stream(value._iterator, finish)
+            return value
+        choices = getattr(value, "choices", None)
+        message = getattr(choices[0], "message", None) if choices else None
+        if message is not None and not getattr(message, "tool_calls", None):
+            finish(getattr(message, "content", None) or "")
+        return value
+
+    @staticmethod
+    def _observed_stream(iterator: Any, finish: Callable[[str], None]) -> Any:
+        text: list[str] = []
+        called_tool = False
+        for chunk in iterator:
+            delta = getattr(chunk.choices[0], "delta", None) if chunk.choices else None
+            if delta is not None:
+                text.append(delta.content or "")
+                called_tool = called_tool or bool(delta.tool_calls)
+            yield chunk
+        if not called_tool:
+            finish("".join(text))
+
+    @staticmethod
+    async def _observed_async_stream(
+        iterator: Any, finish: Callable[[str], None]
+    ) -> Any:
+        text: list[str] = []
+        called_tool = False
+        async for chunk in iterator:
+            delta = getattr(chunk.choices[0], "delta", None) if chunk.choices else None
+            if delta is not None:
+                text.append(delta.content or "")
+                called_tool = called_tool or bool(delta.tool_calls)
+            yield chunk
+        if not called_tool:
+            finish("".join(text))
 
     def _log_recall_failure(self, error: BaseException) -> None:
         if isinstance(
@@ -723,38 +969,52 @@ class SupermemoryOpenAIWrapper:
             ),
         ):
             self._logger.warn(
-                "Memory search failed, proceeding without memory injection",
+                "Memory recall failed, proceeding without it",
                 {"error": str(error), "type": type(error).__name__},
             )
         else:
             self._logger.error(
-                "Unexpected error during memory search, proceeding without memory injection",
+                "Unexpected error during memory recall, proceeding without it",
                 {"error": str(error), "type": type(error).__name__},
             )
 
     def _capture_request(
-        self, messages: list[ChatCompletionMessageParam]
+        self, messages: list[ChatCompletionMessageParam], reply: Optional[str]
     ) -> Optional[tuple[str, Optional[str]]]:
-        """Build the upload for this turn; system and developer prompts never leave the process."""
+        """Build the upload for a finished turn; system and developer prompts never leave the process."""
         if self._options.add_memory != "always":
             return None
-        user_message = get_last_user_message(messages)
-        if not user_message.strip():
+        conversation: list[Any] = []
+        for message in messages:
+            if not isinstance(message, dict) or message.get("role") in UNCAPTURED_ROLES:
+                continue
+            content = message.get("content")
+            if isinstance(content, str):
+                message = {**message, "content": strip_memory_context(content)}
+            conversation.append(message)
+        user_text = next(
+            (
+                _message_text(message)
+                for message in reversed(conversation)
+                if message.get("role") == "user"
+            ),
+            "",
+        )
+        if not user_text:
             return None
+        if reply is not None:
+            conversation.append({"role": "assistant", "content": reply})
         if not self._options.custom_id:
-            return user_message, None
-        conversation = [
-            message
-            for message in messages
-            if isinstance(message, dict) and message.get("role") not in UNCAPTURED_ROLES
-        ]
+            return user_text, None
         return (
             get_conversation_content(conversation),
             f"conversation:{self._options.custom_id}",
         )
 
-    def _capture_async(self, messages: list[ChatCompletionMessageParam]) -> None:
-        capture = self._capture_request(messages)
+    def _capture_async(
+        self, messages: list[ChatCompletionMessageParam], reply: Optional[str]
+    ) -> None:
+        capture = self._capture_request(messages, reply)
         if capture is None:
             return
         task = asyncio.create_task(
@@ -781,9 +1041,11 @@ class SupermemoryOpenAIWrapper:
                 {"error": str(exception), "type": type(exception).__name__},
             )
 
-    def _capture_sync(self, messages: list[ChatCompletionMessageParam]) -> None:
+    def _capture_sync(
+        self, messages: list[ChatCompletionMessageParam], reply: Optional[str]
+    ) -> None:
         """Save on a daemon thread so a slow or hung API never delays the model call or exit."""
-        capture = self._capture_request(messages)
+        capture = self._capture_request(messages, reply)
         if capture is None:
             return
         coroutine = add_memory_tool(
@@ -804,13 +1066,23 @@ class SupermemoryOpenAIWrapper:
                 )
             finally:
                 self._capture_threads.discard(thread)
+                _PENDING_CAPTURES.discard(thread)
 
         thread = threading.Thread(target=run, name="supermemory-capture", daemon=True)
         self._capture_threads.add(thread)
+        _PENDING_CAPTURES.add(thread)
         thread.start()
 
     def wait_for_background_captures(self, timeout: float = EXIT_WAIT_SECONDS) -> None:
-        """Join pending sync-client captures for at most timeout seconds in total."""
+        """Wait for pending saves made by a sync client.
+
+        Saves from a sync client run on daemon threads, which do not keep the
+        process alive. Call this before exiting (the sync context manager calls
+        it for you) so the last turn is saved.
+
+        Args:
+            timeout: Maximum total time to wait, in seconds.
+        """
         deadline = time.monotonic() + timeout
         for thread in list(self._capture_threads):
             thread.join(max(0.0, deadline - time.monotonic()))
@@ -920,11 +1192,21 @@ def with_supermemory(
     Wraps an OpenAI client with SuperMemory middleware to automatically inject relevant memories
     into the conversation based on the user's message content.
 
-    Memories are recalled once per user turn and appended to that turn's user message. The
-    system and developer prompts are never modified, and earlier turns are resent with the
-    same memory text on every later request so the provider's prompt cache keeps matching.
-    Recall is bounded by ``recall_timeout`` and fails open; conversation capture runs in
-    the background and never delays the model call.
+    Placement keeps the provider's prompt cache matching:
+
+    - The profile (modes "profile" and "full") is fetched once per conversation and
+      appended as a delimited block to the first system or developer message, or sent
+      as a new leading system message when there is none. It is byte-identical on
+      every later call and never refreshed.
+    - Search results (modes "query" and "full") are recalled once per user turn and
+      appended to that turn's user message. Earlier user messages keep exactly the
+      block they first received, and tool-call continuations reuse their turn's block.
+
+    Recall waits at most 3 seconds with no retries; on a failure or timeout the call
+    goes ahead without that memory, and a missing profile is fetched again on the next
+    user message. With ``add_memory="always"`` each finished turn is saved in the
+    background once its final assistant reply arrives, without system or developer
+    messages, so saving never delays the model call.
 
     Args:
         openai_client: The OpenAI client to wrap with SuperMemory middleware
