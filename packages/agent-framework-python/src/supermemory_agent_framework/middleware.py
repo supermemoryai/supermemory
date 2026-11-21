@@ -1,11 +1,11 @@
 """Supermemory middleware for Microsoft Agent Framework.
 
-Provides ChatMiddleware that appends relevant memories to the current user
-message once per user turn, and optionally saves conversations.
+Provides ChatMiddleware that adds the user's profile to the system prompt once
+per conversation, appends search results to each user turn, and optionally
+saves finished turns.
 """
 
 import asyncio
-import hashlib
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Literal, Optional
@@ -20,27 +20,37 @@ from .exceptions import (
     SupermemoryTimeoutError,
 )
 from .utils import (
-    DEFAULT_RECALL_TIMEOUT,
     Logger,
-    append_memory_block,
     build_memories_text,
     create_logger,
-    memory_blocks,
-    recall_turn_memories,
+    recall_turn,
+    replace_text_block,
     strip_memory_injection,
+    turn_key,
+    turn_keys,
 )
 
-_MAX_CACHED_TURNS = 256
+_MAX_TURNS_PER_CONVERSATION = 500
+_MAX_CONVERSATIONS = 100
 
 
 @dataclass
 class SupermemoryMiddlewareOptions:
-    """Configuration options for Supermemory middleware."""
+    """Configuration options for Supermemory middleware.
+
+    Attributes:
+        verbose: Log memory search, injection and storage details.
+        mode: What to retrieve. ``"profile"`` adds the user profile to the system
+            prompt once per conversation. ``"query"`` appends search results for
+            each user turn to that turn's message. ``"full"`` does both, and leaves
+            search results the profile already contains out of the user blocks.
+        add_memory: ``"always"`` saves each finished turn to Supermemory in the
+            background; ``"never"`` only retrieves.
+    """
 
     verbose: bool = False
     mode: Literal["profile", "query", "full"] = "profile"
     add_memory: Literal["always", "never"] = "never"
-    recall_timeout: float = DEFAULT_RECALL_TIMEOUT
 
 
 def _get_last_user_message(messages: Any) -> str:
@@ -149,13 +159,27 @@ def _message_role(message: Any) -> Any:
 
 
 def _message_text(message: Any) -> str:
-    """Read message text from framework objects or dict messages."""
-    return _get_last_user_message([message]) if _message_role(message) == "user" else ""
+    """Read the text of a framework object or dict message of any role."""
+    if isinstance(message, dict):
+        content = message.get("content", message.get("text"))
+    else:
+        content = getattr(message, "text", None)
+        if content is None:
+            content = getattr(message, "content", None)
+    if isinstance(content, str):
+        return content
+    if isinstance(content, (list, tuple)):
+        return " ".join(
+            part if isinstance(part, str) else str(part.get("text", ""))
+            for part in content
+            if isinstance(part, str)
+            or (isinstance(part, dict) and part.get("type") == "text")
+        )
+    return ""
 
 
-# Falls back to the first user turn's hash when the request carries no session or conversation id.
-def _conversation_key(context: Any, root_key: str) -> str:
-    """Identify the conversation that owns the once-per-conversation profile."""
+def _conversation_id(context: Any) -> Optional[str]:
+    """Return the caller's session or conversation id for this request, if any."""
     session_id = getattr(getattr(context, "session", None), "session_id", None)
     if session_id:
         return f"session:{session_id}"
@@ -163,22 +187,71 @@ def _conversation_key(context: Any, root_key: str) -> str:
     conversation_id = (
         options.get("conversation_id") if isinstance(options, dict) else None
     )
-    if conversation_id:
-        return f"conversation:{conversation_id}"
-    return f"root:{root_key}"
+    return f"conversation:{conversation_id}" if conversation_id else None
 
 
-def _with_memory_block(message: Any, block: str) -> Any:
-    """Return a copy of a user message with the memory block appended."""
+def _server_history(context: Any) -> bool:
+    """Whether the service, not this request, holds the earlier turns."""
+    options = getattr(context, "options", None)
+    if not isinstance(options, dict):
+        return False
+    return bool(options.get("conversation_id")) or options.get("store") is True
+
+
+def _with_text_block(text: str, block: str) -> str:
+    """Replace Supermemory blocks in a string with exactly one block."""
+    preserved = strip_memory_injection(text)
+    if not block:
+        return preserved
+    return f"{preserved}\n{block}" if preserved else block
+
+
+def _with_block(message: Any, block: str) -> Any:
+    """Return a copy of a message carrying exactly one Supermemory block."""
     if isinstance(message, dict):
         key = "content" if "content" in message else "text"
         content = message.get(key)
         if isinstance(content, list):
-            return {**message, key: [*content, {"type": "text", "text": block}]}
-        return {**message, key: f"{content or ''}\n\n{block}".lstrip()}
+            parts = [
+                (
+                    {**part, "text": strip_memory_injection(part["text"])}
+                    if isinstance(part, dict) and isinstance(part.get("text"), str)
+                    else part
+                )
+                for part in content
+            ]
+            return {**message, key: [*parts, {"type": "text", "text": block}]}
+        return {**message, key: _with_text_block(content or "", block)}
     if not hasattr(message, "contents"):
         return message
-    return append_memory_block(message, block)
+    return replace_text_block(message, block)
+
+
+class _TurnMemory:
+    """One conversation's frozen profile and per-turn search blocks."""
+
+    def __init__(self) -> None:
+        self.turns: OrderedDict[str, str] = OrderedDict()
+        self.profile: Optional[str] = None
+        self.server_turns = 0
+
+    # A trimmed history can drop the reply that fingerprinted a kept message's key; a unique text match still finds its block.
+    def find(self, key: str) -> Optional[str]:
+        """Return a turn's frozen block, matching by text alone if the reply was trimmed."""
+        if key in self.turns:
+            self.turns.move_to_end(key)
+            return self.turns[key]
+        if "\0" in key:
+            return None
+        matches = [k for k in self.turns if k.split("\0", 1)[0] == key]
+        return self.turns[matches[0]] if len(matches) == 1 else None
+
+    def remember(self, key: str, block: str) -> None:
+        """Freeze a turn's block, evicting the least recently used turn."""
+        self.turns[key] = block
+        self.turns.move_to_end(key)
+        while len(self.turns) > _MAX_TURNS_PER_CONVERSATION:
+            self.turns.popitem(last=False)
 
 
 async def _save_memory(
@@ -215,12 +288,24 @@ async def _save_memory(
 
 
 class SupermemoryChatMiddleware(ChatMiddleware):
-    """Chat middleware that appends Supermemory memories to the user message.
+    """Chat middleware that adds Supermemory memories to every model call.
 
-    Memories are recalled once per user turn and appended to that turn's user
-    message. Every later model call re-applies the same text to the same turn,
-    so earlier turns stay byte-identical and prompt caches keep hitting. The
-    system prompt is never modified. It can also save conversations as memories.
+    The user's profile is fetched once per conversation and appended as a
+    delimited block to the system prompt (the agent instructions, else the first
+    system message, else a new leading system message). Search results are
+    fetched once per user turn and appended to that turn's user message. Every
+    later model call of the conversation re-applies the same blocks with
+    identical bytes, so provider prompt caches keep hitting; tool-call
+    continuation steps reuse their turn's block without searching again.
+
+    Recall has a fixed 3-second budget and never retries; on timeout or error
+    the call goes ahead without the missing part, and a missing profile is
+    fetched again on the next new user turn. State is kept in process, per
+    conversation: up to 500 turns for each of up to 100 conversations, least
+    recently used first out. An evicted conversation starts over as new.
+
+    With ``add_memory="always"`` each finished turn (the final assistant reply,
+    not a tool call) is saved in the background, without system messages.
 
     Example:
         ```python
@@ -257,134 +342,189 @@ class SupermemoryChatMiddleware(ChatMiddleware):
         connection: AgentSupermemory,
         options: Optional[SupermemoryMiddlewareOptions] = None,
     ) -> None:
+        """Initialize the middleware.
+
+        Args:
+            connection: Shared AgentSupermemory connection.
+            options: Retrieval and storage options; defaults to
+                ``SupermemoryMiddlewareOptions()``.
+        """
         self._connection = connection
         self._container_tag = connection.container_tag
         self._options = options or SupermemoryMiddlewareOptions()
         self._logger = create_logger(self._options.verbose)
         self._supermemory_client = connection.client
         self._background_tasks: set[asyncio.Task[None]] = set()
-        self._turns: OrderedDict[str, str] = OrderedDict()
-        self._profiled: OrderedDict[str, None] = OrderedDict()
+        self._conversations: OrderedDict[str, _TurnMemory] = OrderedDict()
 
     async def process(
         self,
         context: Any,
         call_next: Callable[[], Awaitable[None]],
     ) -> None:
-        """Process the chat request by injecting memories and optionally saving conversations."""
-        messages = context.messages
+        """Add memories to the request, call the model, and save finished turns.
 
-        if self._options.add_memory == "always":
-            user_message = _get_last_user_message(messages)
-            if user_message and user_message.strip():
-                content = _get_conversation_content(messages)
-
-                task = asyncio.create_task(
-                    _save_memory(
-                        self._supermemory_client,
-                        self._container_tag,
-                        content,
-                        self._connection.custom_id,
-                        self._logger,
-                    )
-                )
-                self._background_tasks.add(task)
-                task.add_done_callback(self._background_tasks.discard)
-
-                def _handle_task_exception(task_obj: asyncio.Task[None]) -> None:
-                    try:
-                        exc = task_obj.exception()
-                        if exc is not None:
-                            self._logger.warn(
-                                "Background memory storage failed",
-                                {"error": str(exc), "type": type(exc).__name__},
-                            )
-                    except asyncio.CancelledError:
-                        self._logger.debug("Memory storage task was cancelled")
-
-                task.add_done_callback(_handle_task_exception)
-
-        await self._apply_turn_memories(context)
+        Args:
+            context: The framework ``ChatContext`` for this model call.
+            call_next: Continues the middleware pipeline.
+        """
+        original = list(context.messages)
+        has_user = await self._apply_memories(context)
         await call_next()
+        if has_user and self._options.add_memory == "always":
+            self._save_when_finished(context, original)
 
-    # Turn N's block is keyed by the user texts up to N so every later call replays identical bytes.
-    async def _apply_turn_memories(self, context: Any) -> None:
+    # Keys come from turn_keys so later calls, trimmed history and repeated questions all map to the right frozen block.
+    async def _apply_memories(self, context: Any) -> bool:
+        """Recall for a new user turn and re-apply the conversation's blocks."""
         messages = context.messages
-        user_indexes = [
-            i for i, message in enumerate(messages) if _message_role(message) == "user"
-        ]
-        if not user_indexes:
+        keys = turn_keys(messages, lambda m: (_message_role(m), _message_text(m)))
+        if not keys:
             self._logger.debug("No user message found, skipping memory search")
-            return
+            return False
 
-        digest = hashlib.sha256(self._container_tag.encode())
-        prior_blocks: list[str] = []
-        conversation = ""
-        for index in user_indexes:
-            text = _message_text(messages[index])
-            existing = memory_blocks([text])
-            digest.update(b"\0" + strip_memory_injection(text).encode())
-            conversation = conversation or _conversation_key(
-                context, digest.hexdigest()
+        first, last = min(keys), max(keys)
+        conversation = _conversation_id(context) or f"root:{keys[first]}"
+        memory = self._memory_for(conversation)
+        if _server_history(context):
+            if last == len(messages) - 1:
+                memory.server_turns += 1
+            keys = {i: f"{memory.server_turns}\0{key}" for i, key in keys.items()}
+
+        if memory.find(keys[last]) is None:
+            self._logger.info(
+                "Starting memory search",
+                {
+                    "container_tag": self._container_tag,
+                    "conversation_id": self._connection.conversation_id,
+                    "mode": self._options.mode,
+                },
             )
-            if existing:
-                prior_blocks.extend(existing)
-                continue
+            search_block, fresh_profile = await recall_turn(
+                self._connection,
+                mode=self._options.mode,
+                query_text=turn_key(_message_text(messages[last])),
+                profile_block=memory.profile,
+                logger=self._logger,
+            )
+            if memory.profile is None and fresh_profile is not None:
+                memory.profile = fresh_profile
+            memory.remember(keys[last], search_block)
 
-            key = digest.hexdigest()
-            block = self._turns.get(key)
-            if block is not None:
-                self._turns.move_to_end(key)
-            elif index == user_indexes[-1]:
-                block = await self._recall(text, prior_blocks, conversation)
-                self._turns[key] = block
-                while len(self._turns) > _MAX_CACHED_TURNS:
-                    self._turns.popitem(last=False)
-            if not block:
-                continue
+        for index, key in keys.items():
+            block = memory.find(key)
+            if block:
+                self._replace(context, index, _with_block(messages[index], block))
+        if memory.profile:
+            self._apply_profile(context, memory.profile)
+        return True
 
-            original = messages[index]
-            updated = _with_memory_block(original, block)
-            messages[index] = updated
-            record = getattr(context, "record_message_replacement", None)
-            if record and isinstance(original, Message) and updated is not original:
-                try:
-                    record(updated, original)
-                except (TypeError, ValueError):
-                    pass
-            prior_blocks.append(block)
+    def _memory_for(self, conversation: str) -> _TurnMemory:
+        """Return the conversation's memory, evicting the least recently used one."""
+        memory = self._conversations.get(conversation)
+        if memory is None:
+            memory = self._conversations[conversation] = _TurnMemory()
+            while len(self._conversations) > _MAX_CONVERSATIONS:
+                self._conversations.popitem(last=False)
+        self._conversations.move_to_end(conversation)
+        return memory
 
-    async def _recall(
-        self, user_text: str, prior_blocks: list[str], conversation: str
-    ) -> str:
-        """Recall this turn's memories within the budget; failures yield ''."""
-        if self._options.mode != "profile" and not user_text.strip():
-            return ""
-        profile_owed = conversation not in self._profiled
-        if not profile_owed:
-            self._profiled.move_to_end(conversation)
-        self._logger.info(
-            "Starting memory search",
-            {
-                "container_tag": self._container_tag,
-                "conversation_id": self._connection.conversation_id,
-                "mode": self._options.mode,
-            },
+    def _replace(self, context: Any, index: int, updated: Any) -> None:
+        """Swap a call-local message and record it for compaction reconciliation."""
+        original = context.messages[index]
+        if updated is original:
+            return
+        context.messages[index] = updated
+        record = getattr(context, "record_message_replacement", None)
+        if record and isinstance(original, Message) and isinstance(updated, Message):
+            try:
+                record(updated, original)
+            except (TypeError, ValueError):
+                pass
+
+    # The agent's instructions are the system prompt, so the profile joins them there rather than adding a second system message.
+    def _apply_profile(self, context: Any, block: str) -> None:
+        """Put the frozen profile block into the request's system prompt."""
+        options = getattr(context, "options", None)
+        instructions = (
+            options.get("instructions") if isinstance(options, dict) else None
         )
-        block, recalled = await recall_turn_memories(
-            self._connection,
-            mode=self._options.mode,
-            query_text=user_text,
-            include_profile=profile_owed,
-            prior_blocks=prior_blocks,
-            timeout=self._options.recall_timeout,
-            logger=self._logger,
+        if isinstance(instructions, str) and instructions.strip():
+            context.options = {
+                **options,
+                "instructions": _with_text_block(instructions, block),
+            }
+            return
+        messages = context.messages
+        for index, message in enumerate(messages):
+            if _message_role(message) in ("system", "developer"):
+                self._replace(context, index, _with_block(message, block))
+                return
+        if any(isinstance(message, dict) for message in messages):
+            messages.insert(0, {"role": "system", "content": block})
+        else:
+            messages.insert(0, Message("system", [block]))
+
+    def _save_when_finished(self, context: Any, messages: list[Any]) -> None:
+        """Schedule a background save once the turn's final reply has arrived."""
+        result = getattr(context, "result", None)
+        if result is None:
+            return
+        if hasattr(result, "with_result_hook"):
+
+            def _on_final(final: Any) -> None:
+                self._save_turn(messages, final)
+
+            try:
+                result.with_result_hook(_on_final)
+            except Exception as error:
+                self._logger.warn(
+                    "Could not observe streamed reply", {"error": str(error)}
+                )
+            return
+        self._save_turn(messages, result)
+
+    def _save_turn(self, messages: list[Any], response: Any) -> None:
+        """Save the conversation with its final reply, skipping tool-call steps."""
+        replies = list(getattr(response, "messages", None) or [])
+        if any(
+            getattr(content, "type", None) == "function_call"
+            for reply in replies
+            for content in getattr(reply, "contents", None) or []
+        ):
+            return
+        conversation = [
+            message
+            for message in [*messages, *replies]
+            if _message_role(message) not in ("system", "developer")
+        ]
+        content = _get_conversation_content(conversation)
+        if not content.strip():
+            return
+        task = asyncio.create_task(
+            _save_memory(
+                self._supermemory_client,
+                self._container_tag,
+                content,
+                self._connection.custom_id,
+                self._logger,
+            )
         )
-        if recalled and profile_owed:
-            self._profiled[conversation] = None
-            while len(self._profiled) > _MAX_CACHED_TURNS:
-                self._profiled.popitem(last=False)
-        return block
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+
+        def _handle_task_exception(task_obj: asyncio.Task[None]) -> None:
+            try:
+                exc = task_obj.exception()
+                if exc is not None:
+                    self._logger.warn(
+                        "Background memory storage failed",
+                        {"error": str(exc), "type": type(exc).__name__},
+                    )
+            except asyncio.CancelledError:
+                self._logger.debug("Memory storage task was cancelled")
+
+        task.add_done_callback(_handle_task_exception)
 
     async def wait_for_background_tasks(self, timeout: Optional[float] = 10.0) -> None:
         """Wait for all background memory storage tasks to complete."""

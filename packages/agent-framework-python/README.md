@@ -188,34 +188,37 @@ asyncio.run(main())
 
 ## Where memories go
 
-Both the middleware and the context provider append a `<supermemory context="user-memories" readonly>` block to the current turn's user message. They never write into the system prompt or the agent instructions, so the instructions prefix stays byte-identical and provider prompt caches keep hitting.
+Memories land in two places, and neither one changes between calls of a conversation, so provider prompt caches keep hitting.
 
-- Recall runs once per user turn. Tool-call continuation steps in the same turn reuse that turn's block, and they don't call Supermemory again.
-- Earlier turns keep exactly the block they had when they ran. The context provider attaches the block to the turn's input message, which the session's history provider stores, so later runs replay it unchanged. The middleware keeps each turn's block in a bounded in-process cache (256 turns) and re-applies it to the same user message on every later call.
-- The profile is fetched once per conversation and never refreshed, in every mode. After that, anything new comes from the per-turn search. A fetch that fails isn't recorded, so the next new user turn fetches it again. The context provider records delivery under its key in the agent session's state, so the record is saved and dropped with the session, including sessions whose history the service stores. The middleware keeps a bounded in-process record (256 conversations) keyed by the session id, else the `conversation_id` option, else a hash of the conversation's first user message. A conversation whose entry was evicted counts as new and gets the profile again. `entity_context`, if set, goes in the same first block. Search results that an earlier block in the prompt already showed are left out, and a turn with nothing new gets no block.
-- Recall has a wall-clock budget, `recall_timeout`, which defaults to 2 seconds. Recall uses a client with `max_retries=0` and the same timeout, and the shared client keeps the SDK defaults for writes. If recall times out or fails, the model call runs without memories for that turn, and the next user turn tries again.
-- Session history saved by the context provider includes these blocks. Conversation storage (`store_conversations` / `add_memory`) strips them before writing to Supermemory.
+- **Profile: system prompt, once per conversation.** The user's static and dynamic profile (with `entity_context`, if set) is fetched once per conversation and never refreshed. It is appended as a delimited `<supermemory context="user-memories" readonly>` block to the system prompt: the agent instructions, else the first system message, else a new leading system message. Every later call of the conversation, tool-call steps included, sends that block with identical bytes. Exactly one copy is sent per request, and it never goes in a user message.
+- **Search results: the user message they were retrieved for.** Each new user turn runs one search and appends the results to that turn's user message. Tool-call continuation steps reuse the turn's block without searching again, and earlier user messages keep exactly the block they first received. In full mode, results the profile already contains are left out.
+- **Modes.** `"profile"` sends only the system block. `"query"` sends only user blocks (plus `entity_context` in the system block when you set it). `"full"` sends both and never repeats the profile in a user block.
+- **Failures.** Recall has a fixed 3-second budget and uses a client with `max_retries=0`; the shared client keeps the SDK defaults for writes. If a part times out or fails, the call goes ahead without it. A failed profile is never recorded, so the next new user turn fetches it again; when it arrives, the system prompt changes once and then stays fixed.
+- **Context provider state.** The provider stores the frozen profile block under `profile_block` in its scoped session state, so it is saved and dropped with the session, including sessions whose history the service stores (`store=True` or a service conversation id). Search blocks are attached to the run's input message, which the session history stores, so later runs replay them unchanged.
+- **Middleware state.** The middleware keeps per-conversation state in process: up to 500 turns for each of up to 100 conversations, least recently used first out. The conversation is identified by the agent session id, else the `conversation_id` option, else the conversation's first user message. A user turn is keyed by its text plus the preceding assistant reply, so the same question asked again after a reply is a new turn with its own search, and trimming old history from the front keeps the remaining messages' blocks. An evicted conversation starts over as new.
+- **Saves.** `store_conversations=True` (provider) and `add_memory="always"` (middleware) save each turn once its final assistant reply arrives, including that reply, without system messages or memory blocks. Saves run in the background and never delay the model call or the response; call `wait_for_background_tasks()` before shutdown to flush them.
+- **Attribution.** Every request to Supermemory sends `x-sm-source: agent-framework-python` and `x-sm-plugin-version` with the installed package version.
 
 ## Middleware Configuration
 
 ### Memory Modes
 
 #### `"profile"` mode (default)
-Injects the static and dynamic profile once per conversation, on the first user turn where it loads.
+Adds the static and dynamic profile to the system prompt once per conversation. User messages get no memory block.
 
 ```python
 SupermemoryMiddlewareOptions(mode="profile")
 ```
 
 #### `"query"` mode
-Searches for memories relevant to the current user message.
+Searches for memories relevant to each user turn and appends them to that turn's message. No profile is fetched.
 
 ```python
 SupermemoryMiddlewareOptions(mode="query")
 ```
 
 #### `"full"` mode
-Combines both profile and query modes.
+Combines both: the profile once in the system prompt, plus search results on each user turn.
 
 ```python
 SupermemoryMiddlewareOptions(mode="full")
@@ -247,7 +250,6 @@ middleware = SupermemoryChatMiddleware(
         verbose=True,
         mode="full",
         add_memory="always",
-        recall_timeout=2.0,                  # Seconds before a turn runs without memories
     ),
 )
 ```
@@ -288,7 +290,7 @@ source documents, and the argument is not exposed to the model.
 - `entity_context` remains display context prepended to retrieved memories; this migration does not start sending it as ingestion `supporting_context`.
 - On a new user turn, profile mode makes one profile request, query mode makes one search request, and full mode makes both when there is a user query. After the profile has loaded once in a conversation, it isn't requested again. V5 profiles no longer accept a query. Profile-associated search keeps the legacy memory-only mode and `0.6` threshold rather than adopting v5's broader defaults; the explicit search tool keeps its hybrid mode and `0.6` threshold. Provider and middleware context still contains fact text rather than `{id, memory}` objects and deduplicates facts across profile/search results.
 - Tool JSON envelopes remain unchanged: search returns `success`, `results`, and `count`; add returns `success` and `memory`; profile returns `success`, `profile`, and `search_results`. Profile static/dynamic/bucket values remain strings. Profile search results retain `results`, `timing`, and `total` (the number returned). Search results retain a top-level `updated_at` mapped from v5 `system.updated_at`, along with v5 fields. Legacy optional fields that v5 does not return, such as version numbers and file paths, remain present as `null`; their values cannot be reconstructed.
-- The provider stores one key, `profile_delivered`, in its scoped session state and leaves the other keys unchanged. Existing framework session exports remain loadable; keep using the same container tag and conversation ID when reconstructing the connection. The API client's credentials are not serialized into session state.
+- The provider stores one key, `profile_block` (the frozen system block), in its scoped session state and leaves the other keys unchanged. Existing framework session exports remain loadable; keep using the same container tag and conversation ID when reconstructing the connection. The API client's credentials are not serialized into session state.
 
 This maps requests but does not move server-side data. If existing v3/v4 data has not been migrated into the corresponding v5 namespace, follow the [v5 migration guide](https://supermemory.ai/docs/migration/api-v5) before relying on historical recall. The adapter does not delete or rewrite the old data.
 
@@ -316,7 +318,6 @@ provider = SupermemoryContextProvider(
     store_conversations=True,         # Save conversations after each run
     context_prompt="## Memories\n...",  # Custom header for injected memories
     verbose=True,                     # Enable logging
-    recall_timeout=2.0,               # Seconds before a turn runs without memories
 )
 ```
 

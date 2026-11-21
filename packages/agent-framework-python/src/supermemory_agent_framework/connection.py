@@ -12,6 +12,7 @@ from typing import Any, Optional
 import supermemory
 
 from .exceptions import SupermemoryConfigurationError
+from .utils import RECALL_TIMEOUT, sm_headers
 
 
 class AgentSupermemory:
@@ -57,24 +58,37 @@ class AgentSupermemory:
             )
 
         self.client: supermemory.AsyncSupermemory = supermemory.AsyncSupermemory(
-            api_key=resolved_api_key, base_url=base_url
+            api_key=resolved_api_key, base_url=base_url, default_headers=sm_headers()
         )
         self.container_tag: str = container_tag
         self.conversation_id: str = conversation_id or str(uuid.uuid4())
         self.custom_id: str = f"conversation_{self.conversation_id}"
         self.entity_context: Optional[str] = entity_context
-        self._recall_clients: tuple[Any, float, Any] = (None, 0.0, None)
+        self._recall_clients: tuple[Any, Any] = (None, None)
 
     # Derived lazily so a replaced `client` is honored; the shared client keeps SDK retries for writes.
-    def recall_client(self, timeout: float) -> supermemory.AsyncSupermemory:
-        source, cached_timeout, derived = self._recall_clients
-        if source is self.client and cached_timeout == timeout:
+    def recall_client(self) -> supermemory.AsyncSupermemory:
+        """Return the client used for prompt-time recall.
+
+        It is derived from ``client`` with ``max_retries=0``, a request timeout of
+        ``RECALL_TIMEOUT`` seconds and the Supermemory attribution headers, so a slow
+        or failing API can never hold a model call longer than the recall budget.
+        The derived client shares ``client``'s HTTP connection pool and is rebuilt
+        when ``client`` is replaced.
+
+        Returns:
+            The recall client, or ``client`` itself when it cannot derive copies.
+        """
+        source, derived = self._recall_clients
+        if source is self.client:
             return derived
         with_options = getattr(self.client, "with_options", None)
         derived = (
-            with_options(max_retries=0, timeout=timeout)
+            with_options(
+                max_retries=0, timeout=RECALL_TIMEOUT, default_headers=sm_headers()
+            )
             if with_options
             else self.client
         )
-        self._recall_clients = (self.client, timeout, derived)
+        self._recall_clients = (self.client, derived)
         return derived

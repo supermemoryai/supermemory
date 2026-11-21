@@ -7,7 +7,8 @@ This is the idiomatic way to integrate persistent memory in Agent Framework,
 following the same pattern as the built-in Mem0 integration.
 """
 
-from typing import Any, Literal
+import asyncio
+from typing import Any, Literal, Optional
 
 try:
     from agent_framework import BaseContextProvider  # type: ignore[attr-defined]
@@ -15,23 +16,25 @@ except ImportError:
     from agent_framework import ContextProvider as BaseContextProvider
 
 from .connection import AgentSupermemory
+from .middleware import _save_memory
 from .utils import (
-    DEFAULT_RECALL_TIMEOUT,
-    append_memory_block,
     create_logger,
-    memory_blocks,
-    recall_turn_memories,
+    recall_turn,
+    replace_text_block,
     strip_memory_injection,
+    turn_key,
 )
 
-_PROFILE_DELIVERED = "profile_delivered"
+_PROFILE_STATE_KEY = "profile_block"
 
 
 class SupermemoryContextProvider(BaseContextProvider):
     """Context provider that integrates Supermemory into the agent pipeline.
 
-    Automatically searches for relevant memories before the model is invoked
-    and optionally stores conversations after the model responds.
+    Before each run it adds the user's profile, fetched once per session, to the
+    agent instructions, and appends search results for the run's user message to
+    that message. Both stay byte-identical on later runs, so provider prompt
+    caches keep hitting. It optionally stores conversations after each run.
 
     This follows the same pattern as the built-in Mem0 context provider,
     making it the most idiomatic way to add persistent memory to agents.
@@ -76,7 +79,6 @@ class SupermemoryContextProvider(BaseContextProvider):
         context_prompt: str = "",
         verbose: bool = False,
         source_id: str = "supermemory",
-        recall_timeout: float = DEFAULT_RECALL_TIMEOUT,
     ) -> None:
         """Initialize the Supermemory context provider.
 
@@ -87,7 +89,6 @@ class SupermemoryContextProvider(BaseContextProvider):
             context_prompt: Header text prepended to memory content.
             verbose: Enable detailed logging.
             source_id: Unique identifier for this provider instance.
-            recall_timeout: Seconds recall may take before the turn runs without memories.
         """
         super().__init__(source_id=source_id)
 
@@ -98,7 +99,7 @@ class SupermemoryContextProvider(BaseContextProvider):
         self._context_prompt = context_prompt
         self._logger = create_logger(verbose)
         self._client = connection.client
-        self._recall_timeout = recall_timeout
+        self._background_tasks: set[asyncio.Task[None]] = set()
 
     async def before_run(
         self,
@@ -108,7 +109,22 @@ class SupermemoryContextProvider(BaseContextProvider):
         context: Any,
         state: dict[str, Any],
     ) -> None:
-        """Append this turn's memories to the turn's user message."""
+        """Add memories to this run before the model is invoked.
+
+        The profile is fetched once per session, stored in this provider's
+        session state, and added to the agent instructions (the system prompt)
+        on every run with identical bytes. Search results for the run's user
+        message are appended to that message, which the session history stores,
+        so later runs replay it unchanged. Recall that fails or exceeds the
+        3-second budget is skipped for this run; a missing profile is fetched
+        again on the next run.
+
+        Args:
+            agent: The agent being run.
+            session: The agent session, if any.
+            context: The framework ``SessionContext`` for this run.
+            state: This provider's scoped, persisted session state.
+        """
         input_messages = getattr(context, "input_messages", None) or []
         index = next(
             (
@@ -118,58 +134,36 @@ class SupermemoryContextProvider(BaseContextProvider):
             ),
             None,
         )
-        if index is None or not hasattr(input_messages[index], "contents"):
+        profile_block = state.get(_PROFILE_STATE_KEY)
+        if index is not None and hasattr(input_messages[index], "contents"):
+            user_message = input_messages[index]
+            query_text = turn_key(user_message.text)
+            self._logger.info(
+                "Searching Supermemory for memories",
+                {
+                    "container_tag": self._container_tag,
+                    "mode": self._mode,
+                    "query_preview": query_text[:100],
+                },
+            )
+            search_block, fresh_profile = await recall_turn(
+                self._connection,
+                mode=self._mode,
+                query_text=query_text,
+                profile_block=profile_block,
+                logger=self._logger,
+                context_prompt=self._context_prompt,
+            )
+            if fresh_profile is not None:
+                state[_PROFILE_STATE_KEY] = fresh_profile
+                profile_block = fresh_profile
+            if search_block:
+                input_messages[index] = replace_text_block(user_message, search_block)
+        else:
             self._logger.debug("No user message found, skipping memory search")
-            return
-        user_message = input_messages[index]
-        if memory_blocks([user_message.text]):
-            return
 
-        query_text = self._extract_query_from_context(context)
-        if not query_text and self._mode == "query":
-            self._logger.debug("No user message found, skipping memory search")
-            return
-
-        history = [
-            message
-            for messages in (getattr(context, "context_messages", None) or {}).values()
-            for message in messages
-        ]
-        prior_blocks = memory_blocks(
-            message.text
-            for message in [*history, *input_messages[:index]]
-            if getattr(message, "role", None) == "user"
-        )
-
-        self._logger.info(
-            "Searching Supermemory for memories",
-            {
-                "container_tag": self._container_tag,
-                "mode": self._mode,
-                "query_preview": query_text[:100] if query_text else "",
-            },
-        )
-        profile_owed = not state.get(_PROFILE_DELIVERED)
-        block, recalled = await recall_turn_memories(
-            self._connection,
-            mode=self._mode,
-            query_text=query_text,
-            include_profile=profile_owed,
-            prior_blocks=prior_blocks,
-            timeout=self._recall_timeout,
-            logger=self._logger,
-            context_prompt=self._context_prompt,
-        )
-        if recalled and profile_owed:
-            state[_PROFILE_DELIVERED] = True
-        if not block:
-            self._logger.debug("No memories to inject")
-            return
-
-        self._logger.debug(
-            "Injecting memories into user message", {"length": len(block)}
-        )
-        input_messages[index] = append_memory_block(user_message, block)
+        if profile_block:
+            context.extend_instructions(self.source_id, profile_block)
 
     async def after_run(
         self,
@@ -179,37 +173,71 @@ class SupermemoryContextProvider(BaseContextProvider):
         context: Any,
         state: dict[str, Any],
     ) -> None:
-        """Store conversation messages to Supermemory for future retrieval."""
+        """Save the finished run to Supermemory in the background.
+
+        Runs only with ``store_conversations=True``. The run's user input and final
+        response are saved without system messages or memory blocks. The save
+        never delays the agent's response; use ``wait_for_background_tasks()`` to
+        wait for pending saves, for example before shutdown.
+
+        Args:
+            agent: The agent being run.
+            session: The agent session, if any.
+            context: The framework ``SessionContext`` for this run.
+            state: This provider's scoped, persisted session state.
+        """
         if not self._store_conversations:
             return
-
-        try:
-            conversation_text = self._extract_conversation_from_context(context)
-            if not conversation_text:
-                self._logger.debug("No conversation content to store")
-                return
-
-            self._logger.info(
-                "Storing conversation to Supermemory",
-                {
-                    "container_tag": self._container_tag,
-                    "content_length": len(conversation_text),
-                },
-            )
-
-            await self._client.add(
+        conversation_text = self._extract_conversation_from_context(context)
+        if not conversation_text:
+            self._logger.debug("No conversation content to store")
+            return
+        self._logger.info(
+            "Storing conversation to Supermemory",
+            {
+                "container_tag": self._container_tag,
+                "content_length": len(conversation_text),
+            },
+        )
+        task = asyncio.create_task(
+            _save_memory(
+                self._client,
                 self._container_tag,
-                content=conversation_text,
-                id=self._connection.custom_id,
+                conversation_text,
+                self._connection.custom_id,
+                self._logger,
             )
+        )
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        task.add_done_callback(self._log_save_failure)
 
-            self._logger.info("Conversation stored successfully")
-
-        except Exception as e:
+    def _log_save_failure(self, task: "asyncio.Task[None]") -> None:
+        """Log a failed background save instead of raising it."""
+        if not task.cancelled() and task.exception() is not None:
             self._logger.error(
-                "Failed to store conversation",
-                {"error": str(e)},
+                "Failed to store conversation", {"error": str(task.exception())}
             )
+
+    async def wait_for_background_tasks(self, timeout: Optional[float] = 10.0) -> None:
+        """Wait for pending background conversation saves.
+
+        Args:
+            timeout: Seconds to wait; ``None`` waits indefinitely.
+
+        Raises:
+            asyncio.TimeoutError: If the saves do not finish in time; unfinished
+                saves are cancelled.
+        """
+        if not self._background_tasks:
+            return
+        pending = asyncio.gather(*self._background_tasks, return_exceptions=True)
+        try:
+            await asyncio.wait_for(pending, timeout=timeout)
+        except asyncio.TimeoutError:
+            for task in self._background_tasks:
+                task.cancel()
+            raise
 
     def _extract_query_from_context(self, context: Any) -> str:
         """Extract the last user message from the session context."""
@@ -281,7 +309,7 @@ class SupermemoryContextProvider(BaseContextProvider):
             elif isinstance(msg, dict):
                 role = msg.get("role")
 
-            if role not in ("user", "assistant", "system"):
+            if role not in ("user", "assistant"):
                 continue
 
             if hasattr(msg, "text"):

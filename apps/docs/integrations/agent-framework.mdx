@@ -64,7 +64,7 @@ conn = AgentSupermemory(
 | `api_key` | `str` | env var | Supermemory API key. Falls back to `SUPERMEMORY_API_KEY` |
 | `container_tag` | `str` | `"msft_agent_chat"` | Memory scope (e.g., user ID) |
 | `conversation_id` | `str` | auto-generated | Groups messages into a conversation |
-| `entity_context` | `str` | `None` | Custom context about the user, prepended to the first memory block of a session |
+| `entity_context` | `str` | `None` | Custom context about the user, added to the profile block in the system prompt |
 | `base_url` | `str` | SDK default | Supermemory API base URL |
 
 Pass this connection to any integration:
@@ -116,7 +116,7 @@ asyncio.run(main())
 
 ### How it works
 
-1. **`before_run()`** — Searches Supermemory for the user's profile and relevant memories, then appends them to the current turn's user message. The system prompt and agent instructions are never changed. See [Where memories go](#where-memories-go).
+1. **`before_run()`** — Adds the user's profile, fetched once per session, to the agent instructions, and appends search results for the current turn to its user message. See [Where memories go](#where-memories-go).
 2. **`after_run()`** — If `store_conversations=True`, saves the conversation to Supermemory so future sessions have more context
 
 ### Configuration options
@@ -128,7 +128,6 @@ asyncio.run(main())
 | `store_conversations` | `bool` | `False` | Save conversations after each run |
 | `context_prompt` | `str` | built-in | Custom prompt describing the memories |
 | `verbose` | `bool` | `False` | Enable detailed logging |
-| `recall_timeout` | `float` | `2.0` | Seconds recall may take before the turn runs without memories |
 
 ---
 
@@ -174,7 +173,7 @@ Tool JSON envelopes are preserved. Profiles still expose string arrays for stati
 
 ## Chat middleware
 
-Intercept chat requests to automatically add memory context. Useful when you want memory injection without the session-based context provider pattern. The middleware recalls once per user turn and appends the result to that turn's user message. Tool-call steps in the same turn reuse it without calling Supermemory again. `SupermemoryMiddlewareOptions` accepts `mode` (default `"profile"`), `add_memory` (`"always"` or `"never"`), `verbose`, and `recall_timeout` (default `2.0` seconds).
+Intercept chat requests to automatically add memory context. Useful when you want memory injection without the session-based context provider pattern. The middleware adds the profile to the system prompt once per conversation and searches once per user turn, appending the results to that turn's user message. Tool-call steps in the same turn reuse them without calling Supermemory again. `SupermemoryMiddlewareOptions` accepts `mode` (default `"profile"`), `add_memory` (`"always"` or `"never"`), and `verbose`.
 
 ```python
 import asyncio
@@ -223,7 +222,7 @@ SupermemoryContextProvider(conn, mode="full")  # or "profile" / "query"
 | `"query"` | Memories relevant to the current message only | Targeted recall, no profile data |
 | `"full"` (default) | Profile + query search combined | Maximum context |
 
-The profile is fetched once per conversation and never refreshed, in every mode. After that, anything new comes from the per-turn search. A fetch that fails isn't recorded, so the next new user turn fetches it again. The context provider records delivery under its key in the agent session's state, so the record is saved and dropped with the session, including sessions whose history the service stores. The middleware keeps a bounded in-process record (256 conversations) keyed by the session id, else the `conversation_id` option, else a hash of the conversation's first user message. A conversation whose entry was evicted counts as new and gets the profile again. Later turns carry only search results that earlier turns haven't shown.
+The profile is fetched once per conversation, never refreshed, and placed in the system prompt; anything newer comes from the per-turn search. Profile mode sends no user blocks, query mode sends no profile, and full mode leaves results the profile already contains out of the user blocks. A failed profile fetch is retried on the next new user turn.
 
 V5 profile retrieval does not accept a search query. On a new user turn, full mode makes separate profile and search requests and deduplicates overlapping facts before injection. Profile-associated searches keep the legacy memory-only mode and `0.6` threshold; the explicit search tool keeps hybrid mode and `0.6`. Writes are asynchronous; an accepted document may not be immediately searchable, and this migration does not change the SDK's default processing mode.
 
@@ -231,12 +230,14 @@ V5 profile retrieval does not accept a search query. On a new user turn, full mo
 
 ## Where memories go
 
-The provider and the middleware both append a `<supermemory context="user-memories" readonly>` block to the current turn's user message. Nothing is written to the system prompt or instructions, so the start of every request stays the same and provider prompt caching keeps working.
+The profile goes in the system prompt once per conversation, and search results go on the user message they were retrieved for. Neither changes on later calls, so provider prompt caching keeps working.
 
-- Earlier turns stay byte-identical on later requests. The provider attaches the block to the turn's input message, and the session history stores that message. The middleware keeps each turn's block in a bounded in-process cache and re-applies it on every later call.
-- The profile is fetched once per conversation and never refreshed. See [Memory modes](#memory-modes).
-- Recall has a time budget, `recall_timeout`, which defaults to 2 seconds. It uses a client with no retries and a matching request timeout. If recall times out or fails, that turn runs without memories, and the next user turn recalls again.
-- Session history saved by the provider includes these blocks. Conversation storage strips them before writing to Supermemory.
+- The profile (with `entity_context`, if set) is fetched once per conversation and never refreshed. It is appended as a `<supermemory context="user-memories" readonly>` block to the agent instructions, else the first system message, else a new leading system message. Every request carries exactly one copy, and it never goes in a user message.
+- Each new user turn runs one search and appends the results to that turn's user message. Tool-call steps reuse the block without searching again, and earlier user messages keep the block they first received. A question repeated after a reply is a new turn with its own search.
+- Recall has a fixed 3-second budget with no retries. If a part times out or fails, the call goes ahead without it. A failed profile is fetched again on the next user turn.
+- The provider keeps the frozen profile in its session state (`profile_block`), so service-stored history (`store=True` or a service conversation id) gets the profile once too. The middleware keeps in-process state per conversation (500 turns, 100 conversations, least recently used first out); an evicted conversation starts over as new.
+- Saves happen once the turn's final assistant reply arrives, run in the background, and leave out system messages and memory blocks.
+- Every request to Supermemory sends `x-sm-source: agent-framework-python` and `x-sm-plugin-version`.
 
 ---
 
@@ -319,7 +320,7 @@ This example stores conversations through the provider only. Enabling middleware
 
 The package provides specific exception types:
 
-Tools return operation failures as JSON (`success: false`, `error`). Provider retrieval/storage and middleware retrieval failures are logged and let the agent continue without memories. Recall that exceeds `recall_timeout` is treated the same way. Middleware background write failures are logged rather than raised by `wait_for_background_tasks()`; a timeout on that wait still raises `asyncio.TimeoutError`.
+Tools return operation failures as JSON (`success: false`, `error`). Provider retrieval/storage and middleware retrieval failures are logged and let the agent continue without memories. Recall that exceeds the 3-second budget is treated the same way. Middleware background write failures are logged rather than raised by `wait_for_background_tasks()`; a timeout on that wait still raises `asyncio.TimeoutError`.
 
 ```python
 from supermemory_agent_framework import (

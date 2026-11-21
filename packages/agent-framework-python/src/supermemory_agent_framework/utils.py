@@ -2,9 +2,11 @@
 
 import asyncio
 import copy
+import hashlib
 import json
 import re
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Protocol
+from importlib.metadata import version
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, Protocol, Sequence
 
 import supermemory
 from supermemory.types import ProfileResponse, SearchResponse
@@ -12,7 +14,9 @@ from supermemory.types import ProfileResponse, SearchResponse
 if TYPE_CHECKING:
     from .connection import AgentSupermemory
 
-DEFAULT_RECALL_TIMEOUT = 2.0
+RECALL_TIMEOUT = 3.0
+SM_SOURCE = "agent-framework-python"
+DIST_NAME = "supermemory-agent-framework"
 DEFAULT_CONTEXT_PROMPT = "The following are retrieved memories about the user."
 MEMORY_CONTEXT_PATTERN = re.compile(
     r'(?:\r?\n)?<supermemory context="user-memories" readonly>.*?</supermemory>',
@@ -88,10 +92,21 @@ def replace_memory_injection(content: str, memories: str) -> str:
 class Logger(Protocol):
     """Logger protocol for type safety."""
 
-    def debug(self, message: str, data: Optional[dict[str, Any]] = None) -> None: ...
-    def info(self, message: str, data: Optional[dict[str, Any]] = None) -> None: ...
-    def warn(self, message: str, data: Optional[dict[str, Any]] = None) -> None: ...
-    def error(self, message: str, data: Optional[dict[str, Any]] = None) -> None: ...
+    def debug(self, message: str, data: Optional[dict[str, Any]] = None) -> None:
+        """Log a debug-level message with optional structured data."""
+        ...
+
+    def info(self, message: str, data: Optional[dict[str, Any]] = None) -> None:
+        """Log an info-level message with optional structured data."""
+        ...
+
+    def warn(self, message: str, data: Optional[dict[str, Any]] = None) -> None:
+        """Log a warn-level message with optional structured data."""
+        ...
+
+    def error(self, message: str, data: Optional[dict[str, Any]] = None) -> None:
+        """Log an error-level message with optional structured data."""
+        ...
 
 
 class SimpleLogger:
@@ -118,15 +133,19 @@ class SimpleLogger:
             print(log_message, flush=True)
 
     def debug(self, message: str, data: Optional[dict[str, Any]] = None) -> None:
+        """Log a debug-level message with optional structured data."""
         self._log("debug", message, data)
 
     def info(self, message: str, data: Optional[dict[str, Any]] = None) -> None:
+        """Log an info-level message with optional structured data."""
         self._log("info", message, data)
 
     def warn(self, message: str, data: Optional[dict[str, Any]] = None) -> None:
+        """Log a warn-level message with optional structured data."""
         self._log("warn", message, data)
 
     def error(self, message: str, data: Optional[dict[str, Any]] = None) -> None:
+        """Log an error-level message with optional structured data."""
         self._log("error", message, data)
 
 
@@ -248,11 +267,85 @@ def convert_profile_to_markdown(data: dict[str, Any]) -> str:
     return "\n\n".join(sections)
 
 
-# Merged into the last text part because chat clients emit each text part as its own user message.
-def append_memory_block(message: Any, block: str) -> Any:
+def sm_headers() -> dict[str, str]:
+    """Return the attribution headers sent on every Supermemory request.
+
+    Returns:
+        A mapping with ``x-sm-source`` set to ``agent-framework-python`` and
+        ``x-sm-plugin-version`` set to the installed package version, or
+        ``"unknown"`` when the package metadata cannot be read.
+    """
+    try:
+        plugin_version = version(DIST_NAME)
+    except Exception:
+        plugin_version = "unknown"
+    return {"x-sm-source": SM_SOURCE, "x-sm-plugin-version": plugin_version}
+
+
+def turn_key(text: str) -> str:
+    """Normalize a message text into the stable part of a turn key.
+
+    Args:
+        text: Message text, possibly carrying a Supermemory memory block.
+
+    Returns:
+        The text without Supermemory blocks, trimmed, with whitespace collapsed.
+    """
+    return " ".join(strip_memory_injection(text).split())
+
+
+# Keys a user turn by its text and the assistant reply before it, so a repeated question is a new turn and trimming never shifts a kept message's key.
+def turn_keys(
+    messages: Sequence[Any], read: Callable[[Any], tuple[Any, str]]
+) -> dict[int, str]:
+    """Compute the turn key of every user message in a request.
+
+    Args:
+        messages: The request's messages, in order.
+        read: Returns ``(role, text)`` for a message.
+
+    Returns:
+        A mapping from the index of each user message to its turn key.
+    """
+    keys: dict[int, str] = {}
+    reply = ""
+    for index, message in enumerate(messages):
+        role, text = read(message)
+        if role == "assistant":
+            reply_text = turn_key(text)
+            if reply_text:
+                reply = hashlib.sha256(reply_text.encode()).hexdigest()[:16]
+        elif role == "user":
+            key = turn_key(text)
+            keys[index] = f"{key}\0{reply}" if reply else key
+    return keys
+
+
+def replace_text_block(message: Any, block: str) -> Any:
+    """Return a copy of a framework ``Message`` carrying exactly one memory block.
+
+    Earlier Supermemory blocks are removed from every text part, and ``block`` is
+    appended to the last text part. Appending to an existing part matters because
+    chat clients send each text part of a user message as its own message.
+
+    Args:
+        message: An Agent Framework ``Message``.
+        block: A wrapped memory block, or ``""`` to only remove earlier blocks.
+
+    Returns:
+        A new ``Message``; the original message is not modified.
+    """
     from agent_framework import Content
 
-    contents = list(message.contents or [])
+    contents = []
+    for content in message.contents or []:
+        text = getattr(content, "text", None)
+        if getattr(content, "type", None) == "text" and isinstance(text, str):
+            stripped = strip_memory_injection(text)
+            if stripped != text:
+                content = copy.copy(content)
+                content.text = stripped
+        contents.append(content)
     last_text = next(
         (
             i
@@ -261,11 +354,11 @@ def append_memory_block(message: Any, block: str) -> Any:
         ),
         None,
     )
-    if last_text is None:
+    if block and last_text is None:
         contents.append(Content.from_text(block))
-    else:
+    elif block:
         part = copy.copy(contents[last_text])
-        part.text = f"{part.text}\n\n{block}" if part.text else block
+        part.text = f"{part.text}\n{block}" if part.text else block
         contents[last_text] = part
     updated = copy.copy(message)
     updated.additional_properties = dict(message.additional_properties or {})
@@ -273,17 +366,8 @@ def append_memory_block(message: Any, block: str) -> Any:
     return updated
 
 
-def memory_blocks(texts: Iterable[str]) -> list[str]:
-    """Return every memory block already present in the given texts."""
-    return [
-        match.group(0).strip()
-        for text in texts
-        for match in MEMORY_CONTEXT_PATTERN.finditer(text)
-    ]
-
-
 def _block_memories(blocks: Iterable[str]) -> list[str]:
-    """List the memory lines carried by earlier memory blocks."""
+    """List the memory lines carried by memory blocks."""
     return [
         line[2:]
         for block in blocks
@@ -292,84 +376,144 @@ def _block_memories(blocks: Iterable[str]) -> list[str]:
     ]
 
 
+def _format_search(results: list[Any], exclude: Iterable[str]) -> str:
+    """Format search results that are not already part of the profile."""
+    memories = deduplicate_memories(
+        search_results=results, exclude=exclude
+    ).search_results
+    if not memories:
+        return ""
+    return "Search results for user's recent message:\n" + "\n".join(
+        f"- {memory}" for memory in memories
+    )
+
+
 async def build_memories_text(
     client: supermemory.AsyncSupermemory,
     container_tag: str,
     mode: str,
     query_text: str = "",
-    *,
-    include_profile: bool = True,
-    exclude: Iterable[str] = (),
 ) -> str:
-    """Fetch profile and search results and format the ones not already shown."""
-    include_profile = include_profile and mode != "query"
+    """Fetch and format memories in one call, without the per-turn placement rules.
+
+    Args:
+        client: Supermemory SDK client.
+        container_tag: Namespace to read from.
+        mode: ``"profile"``, ``"query"``, or ``"full"``.
+        query_text: Search query; ignored in profile mode.
+
+    Returns:
+        The profile as Markdown (except in query mode) followed by search results
+        that the profile does not already contain, or ``""``.
+    """
     response, search = await _fetch_profile_and_search(
         client,
         container_tag,
-        include_profile=include_profile,
+        include_profile=mode != "query",
         query=query_text if mode != "profile" else "",
     )
-    profile = response.profile if response else None
-    deduplicated = deduplicate_memories(
-        static=list(profile.static or []) if profile else [],
-        dynamic=list(profile.dynamic or []) if profile else [],
-        search_results=list(search.results) if search else [],
-        exclude=exclude,
+    profile_text = _format_profile(response)
+    search_text = (
+        _format_search(list(search.results), _block_memories([profile_text]))
+        if search
+        else ""
     )
-
-    profile_text = convert_profile_to_markdown(
-        {
-            "profile": {
-                "static": deduplicated.static,
-                "dynamic": deduplicated.dynamic,
-            }
-        }
-    )
-    search_text = ""
-    if mode != "profile" and deduplicated.search_results:
-        search_text = "Search results for user's recent message:\n" + "\n".join(
-            f"- {memory}" for memory in deduplicated.search_results
-        )
     return f"{profile_text}\n{search_text}".strip()
 
 
-# The caller owns "profile delivered" so the profile is fetched once per conversation even when history is server-side.
-async def recall_turn_memories(
+def _format_profile(response: Any) -> str:
+    """Format a profile response as deduplicated Markdown."""
+    profile = getattr(response, "profile", None)
+    if not profile:
+        return ""
+    deduplicated = deduplicate_memories(
+        static=list(profile.static or []), dynamic=list(profile.dynamic or [])
+    )
+    return convert_profile_to_markdown(
+        {"profile": {"static": deduplicated.static, "dynamic": deduplicated.dynamic}}
+    )
+
+
+# Profile and search run in parallel under one budget; whatever finishes in time is kept, and a failed profile is simply not returned so the next turn retries it.
+async def recall_turn(
     connection: "AgentSupermemory",
     *,
     mode: str,
     query_text: str,
-    include_profile: bool,
-    prior_blocks: list[str],
-    timeout: float,
+    profile_block: Optional[str],
     logger: Logger,
     context_prompt: str = "",
-) -> tuple[str, bool]:
-    """Return this turn's wrapped memory block and whether recall succeeded."""
-    fetch_profile = include_profile and mode != "query"
-    search_query = query_text if mode != "profile" else ""
-    if not fetch_profile and not search_query:
-        return "", True
-    try:
-        memories = await asyncio.wait_for(
-            build_memories_text(
-                connection.recall_client(timeout),
-                connection.container_tag,
-                mode,
-                search_query,
-                include_profile=fetch_profile,
-                exclude=_block_memories(prior_blocks),
-            ),
-            timeout=timeout,
+) -> tuple[str, Optional[str]]:
+    """Recall one user turn's memories within the fixed recall budget.
+
+    Args:
+        connection: Shared connection; its no-retry recall client is used.
+        mode: ``"profile"``, ``"query"``, or ``"full"``.
+        query_text: The user turn's text, used as the search query.
+        profile_block: The conversation's frozen system block, or ``None`` when the
+            profile has not been fetched successfully yet.
+        logger: Logger for recall failures.
+        context_prompt: Header text for the memory blocks.
+
+    Returns:
+        ``(search_block, new_profile_block)``. ``search_block`` is the wrapped block
+        for the user message, or ``""``. ``new_profile_block`` is the system block
+        to freeze for the conversation when this call fetched the profile
+        successfully (``""`` when there is nothing to show), otherwise ``None``.
+    """
+    client = connection.recall_client()
+    tag = connection.container_tag
+    tasks: dict[str, asyncio.Task[Any]] = {}
+    if mode != "query" and profile_block is None:
+        tasks["profile"] = asyncio.ensure_future(client.profile(tag))
+    if mode != "profile" and query_text.strip():
+        tasks["search"] = asyncio.ensure_future(
+            client.search(tag, query=query_text, threshold=0.6, search_mode="memories")
         )
-    except Exception as error:
-        logger.warn(
-            "Memory recall failed or timed out, continuing without memories",
-            {"error": str(error) or type(error).__name__, "timeout_s": timeout},
+
+    if mode == "query" and profile_block is None:
+        profile_block = (
+            wrap_memory_injection(connection.entity_context, context_prompt)
+            if connection.entity_context
+            else ""
         )
-        return "", False
-    if not memories:
-        return "", True
-    if connection.entity_context and include_profile:
-        memories = f"{connection.entity_context}\n\n{memories}"
-    return wrap_memory_injection(memories, context_prompt), True
+        fresh_profile: Optional[str] = profile_block
+    else:
+        fresh_profile = None
+    if not tasks:
+        return "", fresh_profile
+
+    done, pending = await asyncio.wait(tasks.values(), timeout=RECALL_TIMEOUT)
+    for task in pending:
+        task.cancel()
+    results: dict[str, Any] = {}
+    for name, task in tasks.items():
+        if task not in done:
+            logger.warn(
+                "Memory recall timed out; continuing without it", {"part": name}
+            )
+        elif task.exception() is not None:
+            logger.warn(
+                "Memory recall failed; continuing without it",
+                {"part": name, "error": str(task.exception())},
+            )
+        else:
+            results[name] = task.result()
+
+    if "profile" in results:
+        profile_md = _format_profile(results["profile"])
+        if connection.entity_context:
+            profile_md = f"{connection.entity_context}\n\n{profile_md}".strip()
+        fresh_profile = (
+            wrap_memory_injection(profile_md, context_prompt) if profile_md else ""
+        )
+    known_profile = fresh_profile if fresh_profile is not None else profile_block or ""
+
+    search_block = ""
+    if "search" in results:
+        search_text = _format_search(
+            list(results["search"].results), _block_memories([known_profile])
+        )
+        if search_text:
+            search_block = wrap_memory_injection(search_text, context_prompt)
+    return search_block, fresh_profile

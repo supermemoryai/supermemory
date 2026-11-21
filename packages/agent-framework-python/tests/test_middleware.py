@@ -136,24 +136,28 @@ class TestMiddlewareConfiguration:
 
 class TestMemoryInjection:
     @pytest.mark.asyncio
-    async def test_appends_to_user_message_and_keeps_system_prompt(self) -> None:
+    async def test_profile_goes_to_system_and_search_to_user(self) -> None:
         conn = _make_conn()
         conn.client = _fake_client()
         middleware = SupermemoryChatMiddleware(
             conn, SupermemoryMiddlewareOptions(mode="full")
         )
-        system = {"role": "system", "content": "Be helpful."}
         context = SimpleNamespace(
-            messages=[system, {"role": "user", "content": "What do you remember?"}]
+            messages=[
+                {"role": "system", "content": "Be helpful."},
+                {"role": "user", "content": "What do you remember?"},
+            ]
         )
 
         await middleware.process(context, AsyncMock())
 
-        assert context.messages[0] == {"role": "system", "content": "Be helpful."}
-        content = context.messages[1]["content"]
-        assert content.startswith("What do you remember?")
-        assert "Prefers Python" in content
-        assert "Asked about What do you remember?" in content
+        system = context.messages[0]["content"]
+        assert system.startswith("Be helpful.\n")
+        assert system.count("Prefers Python") == 1
+        user = context.messages[1]["content"]
+        assert user.startswith("What do you remember?")
+        assert "Prefers Python" not in user
+        assert "Asked about What do you remember?" in user
 
     @pytest.mark.asyncio
     async def test_recalls_once_per_turn_and_replays_earlier_turns(self) -> None:
@@ -167,22 +171,25 @@ class TestMemoryInjection:
         for extra in [[], [{"role": "tool", "content": "step"}]]:
             context = SimpleNamespace(messages=[*history, *extra])
             await middleware.process(context, AsyncMock())
-            sent.append(context.messages[0]["content"])
+            sent.append([m["content"] for m in context.messages[:2]])
         assert sent[0] == sent[1]
         assert conn.client.profile.await_count == 1
         assert conn.client.search.await_count == 1
 
         history += [
             {"role": "assistant", "content": "answer"},
-            {"role": "user", "content": "second"},
+            {"role": "user", "content": "first"},
         ]
         context = SimpleNamespace(messages=list(history))
         await middleware.process(context, AsyncMock())
-        assert context.messages[0]["content"] == sent[0]
-        second = context.messages[2]["content"]
-        assert "Asked about second" in second
-        assert "Prefers Python" not in second
+        assert [m["content"] for m in context.messages[:2]] == sent[0]
+        assert "Asked about first" in context.messages[3]["content"]
         assert conn.client.profile.await_count == 1
+        assert conn.client.search.await_count == 2
+
+        trimmed = SimpleNamespace(messages=list(history[2:]))
+        await middleware.process(trimmed, AsyncMock())
+        assert trimmed.messages[-1]["content"] == context.messages[3]["content"]
         assert conn.client.search.await_count == 2
 
     @pytest.mark.asyncio
@@ -193,20 +200,23 @@ class TestMemoryInjection:
             conn, SupermemoryMiddlewareOptions(mode="full")
         )
         session = SimpleNamespace(session_id="session-1")
-        texts = []
+        systems = []
         for turn in ["first", "second"]:
             context = SimpleNamespace(
                 messages=[{"role": "user", "content": turn}], session=session
             )
             await middleware.process(context, AsyncMock())
-            texts.append(context.messages[0]["content"])
-        assert "Prefers Python" in texts[0]
-        assert "Prefers Python" not in texts[1]
-        assert "Asked about second" in texts[1]
+            systems.append(context.messages[0])
+            assert "Asked about " + turn in context.messages[1]["content"]
+        assert systems[0] == systems[1]
+        assert systems[0]["role"] == "system"
         assert conn.client.profile.await_count == 1
 
     @pytest.mark.asyncio
-    async def test_failed_recall_degrades_and_retries_on_next_turn(self) -> None:
+    async def test_failed_recall_degrades_and_retries_on_next_turn(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr("supermemory_agent_framework.utils.RECALL_TIMEOUT", 0.1)
         conn = _make_conn()
         conn.client = _fake_client()
 
@@ -215,7 +225,7 @@ class TestMemoryInjection:
 
         conn.client.profile = AsyncMock(side_effect=slow_profile)
         middleware = SupermemoryChatMiddleware(
-            conn, SupermemoryMiddlewareOptions(mode="full", recall_timeout=0.1)
+            conn, SupermemoryMiddlewareOptions(mode="profile")
         )
         history = [{"role": "user", "content": "first"}]
         context = SimpleNamespace(messages=list(history))
@@ -231,8 +241,9 @@ class TestMemoryInjection:
         ]
         context = SimpleNamespace(messages=list(history))
         await middleware.process(context, AsyncMock())
-        assert context.messages[0] == history[0]
-        assert "Prefers Python" in context.messages[2]["content"]
+        assert context.messages[0]["role"] == "system"
+        assert "Prefers Python" in context.messages[0]["content"]
+        assert context.messages[1:] == history
 
     @pytest.mark.asyncio
     async def test_query_mode_keeps_search_fact_also_present_in_profile(self) -> None:

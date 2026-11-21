@@ -154,7 +154,7 @@ class TestMemoryRetrieval:
         )
 
     @pytest.mark.asyncio
-    async def test_later_turns_keep_history_and_skip_shown_memories(self) -> None:
+    async def test_profile_in_instructions_once_and_search_on_user_turns(self) -> None:
         conn = _make_conn()
         conn.client = SimpleNamespace(
             profile=AsyncMock(
@@ -164,7 +164,10 @@ class TestMemoryRetrieval:
             ),
             search=AsyncMock(
                 return_value=SimpleNamespace(
-                    results=[SimpleNamespace(memory="Lives in Lisbon")]
+                    results=[
+                        SimpleNamespace(memory="Prefers Python"),
+                        SimpleNamespace(memory="Lives in Lisbon"),
+                    ]
                 )
             ),
         )
@@ -173,28 +176,26 @@ class TestMemoryRetrieval:
         first = SessionContext(input_messages=[Message("user", ["hello"])])
         await provider.before_run(agent=None, session=None, context=first, state=state)
         turn_one = first.input_messages[0]
-        assert not first.instructions
-        assert "Prefers Python" in turn_one.text
+        assert len(first.instructions) == 1
+        assert "Prefers Python" in first.instructions[0]
+        assert "Prefers Python" not in turn_one.text
         assert "Lives in Lisbon" in turn_one.text
 
         second = SessionContext(
             input_messages=[Message("user", ["where do I live?"])],
-            context_messages={
-                "in_memory": [turn_one, Message("assistant", ["Hi"])],
-            },
+            context_messages={"in_memory": [turn_one, Message("assistant", ["Hi"])]},
         )
         await provider.before_run(agent=None, session=None, context=second, state=state)
-
+        assert second.instructions == first.instructions
         assert second.context_messages["in_memory"][0] is turn_one
-        assert second.input_messages[0].text == "where do I live?"
-        assert conn.client.profile.await_count == 1
+        assert "Lives in Lisbon" in second.input_messages[0].text
+        assert "Prefers Python" not in second.input_messages[0].text
 
         service_history = SessionContext(input_messages=[Message("user", ["more"])])
         await provider.before_run(
             agent=None, session=None, context=service_history, state=state
         )
-        assert "Prefers Python" not in service_history.input_messages[0].text
-        assert "Lives in Lisbon" in service_history.input_messages[0].text
+        assert service_history.instructions == first.instructions
         assert conn.client.profile.await_count == 1
         assert conn.client.search.await_count == 3
 
@@ -203,13 +204,16 @@ class TestMemoryRetrieval:
         conn = _make_conn()
         conn.client = SimpleNamespace(
             profile=AsyncMock(side_effect=RuntimeError("down")),
-            search=AsyncMock(return_value=SimpleNamespace(results=[])),
+            search=AsyncMock(
+                return_value=SimpleNamespace(results=[SimpleNamespace(memory="Fact")])
+            ),
         )
         provider = SupermemoryContextProvider(conn, mode="full")
         state: dict = {}
         first = SessionContext(input_messages=[Message("user", ["hello"])])
         await provider.before_run(agent=None, session=None, context=first, state=state)
-        assert first.input_messages[0].text == "hello"
+        assert not first.instructions
+        assert "Fact" in first.input_messages[0].text
         assert state == {}
 
         conn.client.profile = AsyncMock(
@@ -219,5 +223,6 @@ class TestMemoryRetrieval:
         )
         second = SessionContext(input_messages=[Message("user", ["again"])])
         await provider.before_run(agent=None, session=None, context=second, state=state)
-        assert "Prefers Python" in second.input_messages[0].text
-        assert state == {"profile_delivered": True}
+        assert "Prefers Python" in second.instructions[0]
+        assert "Prefers Python" not in second.input_messages[0].text
+        assert state == {"profile_block": second.instructions[0]}
