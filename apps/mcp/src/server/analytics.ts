@@ -16,11 +16,22 @@ const MCP_EVENT_PROPERTIES = [
 	"$mcp_client_name",
 	"$mcp_client_version",
 	"$mcp_protocol_version",
-	"$mcp_listed_tool_names",
 	"$mcp_conversation_id",
 	"$session_id",
 	"$groups",
 ] as const
+const ERROR_MESSAGE_MAX_LENGTH = 120
+const ERROR_CODES: ReadonlyArray<readonly [RegExp, string]> = [
+	[/timed out/i, "timeout"],
+	[/network error/i, "network"],
+	[/authentication failed/i, "unauthorized"],
+	[/forbidden/i, "forbidden"],
+	[/rate limit/i, "rate_limited"],
+	[/server error/i, "server_error"],
+	[/^tool \S+ (not found|disabled)/i, "unknown_tool"],
+	[/not found|no document with id/i, "not_found"],
+	[/invalid|is required|pass between|exceeds/i, "invalid_input"],
+]
 
 export type WaitUntil = (promise: Promise<unknown>) => void
 
@@ -58,16 +69,33 @@ class ImmediateMcpPostHog extends PostHog {
 	}
 }
 
+// Quoted spans carry document ids and space names, so they are blanked before the message leaves the Worker.
+function errorProperties(
+	errorType: unknown,
+	errorMessage: unknown,
+): Record<string, string> {
+	const message =
+		typeof errorMessage === "string"
+			? errorMessage
+					.replace(/^(MCP error -?\d+: )?(Error: )?/, "")
+					.replace(/"[^"]*"|'[^']*'|`[^`]*`/g, '""')
+					.slice(0, ERROR_MESSAGE_MAX_LENGTH)
+			: ""
+	const code =
+		ERROR_CODES.find(([pattern]) => pattern.test(message))?.[1] ??
+		(typeof errorType === "string" && /^\w{1,40}$/.test(errorType)
+			? errorType
+			: "unknown")
+	return {
+		$mcp_error_type: code,
+		...(message ? { $mcp_error_message: message } : {}),
+	}
+}
+
 const metadataOnlyMcpEvent: NonNullable<MCPAnalyticsOptions["beforeSend"]> = (
 	event,
 ) => {
-	if (
-		!["$mcp_tool_call", "$mcp_tools_list", "$mcp_initialize"].includes(
-			event.event,
-		)
-	) {
-		return null
-	}
+	if (event.event !== "$mcp_tool_call") return null
 
 	const errorMessage = event.properties.$mcp_error_message
 	const outOfCredits =
@@ -85,7 +113,9 @@ const metadataOnlyMcpEvent: NonNullable<MCPAnalyticsOptions["beforeSend"]> = (
 			// Billing state, not a server bug, so keep it out of the error rate.
 			...(outOfCredits
 				? { $mcp_is_error: false, $mcp_error_type: "out_of_credits" }
-				: {}),
+				: event.properties.$mcp_is_error === true
+					? errorProperties(event.properties.$mcp_error_type, errorMessage)
+					: {}),
 			$process_person_profile: false,
 		},
 	}
