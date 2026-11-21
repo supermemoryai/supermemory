@@ -1,3 +1,6 @@
+import { CLIENT_CAPABILITIES_META_KEY } from "@modelcontextprotocol/server"
+import { z } from "zod"
+import { APP_EXTENSION_ID } from "../app-metadata"
 import * as addMemory from "./add-memory"
 import * as fetchGraphData from "./fetch-graph-data"
 import * as forgetMemory from "./forget-memory"
@@ -27,19 +30,64 @@ const LEGACY_TOOL_NAMES: Record<string, string> = {
 	who_am_i: "whoAmI",
 }
 
+export interface ToolListing {
+	legacyAliases: boolean
+	appTools: boolean
+}
+
+const EVERY_TOOL: ToolListing = { legacyAliases: true, appTools: true }
+
+const toolsListRequest = z.looseObject({
+	method: z.literal("tools/list"),
+	params: z
+		.looseObject({
+			_meta: z
+				.looseObject({
+					[CLIENT_CAPABILITIES_META_KEY]: z
+						.looseObject({
+							extensions: z.record(z.string(), z.unknown()).optional(),
+						})
+						.optional(),
+				})
+				.optional(),
+		})
+		.optional(),
+})
+
+// Hiding applies only to a lone tools/list so hidden tools stay callable; legacy lists carry no capabilities, so they keep app tools.
+export function toolListingFor(body: unknown): ToolListing {
+	const request = toolsListRequest.safeParse(body)
+	if (!request.success) return EVERY_TOOL
+	const capabilities =
+		request.data.params?._meta?.[CLIENT_CAPABILITIES_META_KEY]
+	return {
+		legacyAliases: false,
+		appTools:
+			!capabilities || APP_EXTENSION_ID in (capabilities.extensions ?? {}),
+	}
+}
+
 type LooseRegisterTool = (
 	name: string,
-	config: { title?: string; description?: string },
+	config: {
+		title?: string
+		description?: string
+		_meta?: Record<string, unknown>
+	},
 	cb: unknown,
 ) => ReturnType<ToolDeps["server"]["registerTool"]>
 
-// Aliases must stay listed: ChatGPT rejects calls to tools missing from tools/list.
-function withLegacyToolNames(server: ToolDeps["server"]): ToolDeps["server"] {
+// Disabling before connect is silent, so a hidden tool sends no list_changed.
+function withListing(
+	server: ToolDeps["server"],
+	listing: ToolListing,
+): ToolDeps["server"] {
 	const register = server.registerTool.bind(server) as LooseRegisterTool
 	const registerTool: LooseRegisterTool = (name, config, cb) => {
 		const tool = register(name, config, cb)
+		if (!listing.appTools && config._meta?.ui) tool.disable()
 		const legacyName = LEGACY_TOOL_NAMES[name]
-		if (legacyName) {
+		if (legacyName && listing.legacyAliases) {
 			register(
 				legacyName,
 				{
@@ -55,8 +103,8 @@ function withLegacyToolNames(server: ToolDeps["server"]): ToolDeps["server"] {
 	return { registerTool: registerTool as ToolDeps["server"]["registerTool"] }
 }
 
-export function registerAllTools(toolDeps: ToolDeps) {
-	const deps = { ...toolDeps, server: withLegacyToolNames(toolDeps.server) }
+export function registerAllTools(toolDeps: ToolDeps, listing: ToolListing) {
+	const deps = { ...toolDeps, server: withListing(toolDeps.server, listing) }
 	searchMemory.register(deps)
 	getProfile.register(deps)
 	listDocuments.register(deps)

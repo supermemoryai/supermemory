@@ -91,6 +91,17 @@ These tools are available to the embedded MCP App and hidden from the model.
 | `prepare-file-upload` | Prepare a secure direct file upload |
 | `fetch-graph-data` | Fetch graph documents for the app |
 
+### Tool listing
+
+`tools/list` returns only what the client can use. Every tool stays callable.
+
+- The pre-v5 camelCase aliases (`getDocument`, `listDocuments`,
+  `listMemories`, `listSpaces`, `whoAmI`) are never listed.
+- MCP App launchers and app-only tools are listed only when the client
+  advertises the `io.modelcontextprotocol/ui` extension in its per-request
+  capabilities. 2025-era clients send no capabilities after `initialize`, so
+  they still get them.
+
 ## Resources And Prompt
 
 | Kind | Name or URI | Purpose |

@@ -10,7 +10,7 @@ import { registerContextPrompt } from "./prompts/context"
 import { registerNamespacesResource } from "./resources/namespaces"
 import { registerProfileResource } from "./resources/profile"
 import { registerWidgetResource } from "./resources/widget"
-import { registerAllTools } from "./tools"
+import { registerAllTools, type ToolListing } from "./tools"
 import { errorResult } from "./tools/types"
 import type { ActorContext, ServerEnv } from "./types"
 import {
@@ -79,6 +79,7 @@ export function createSupermemoryServer(
 	actor: ActorContext,
 	waitUntil: WaitUntil,
 	mcpOrigin: string,
+	toolListing: ToolListing,
 ): McpServer {
 	const server = new McpServer(
 		{
@@ -120,18 +121,21 @@ export function createSupermemoryServer(
 			expiresAt,
 		}
 	}
-	registerAllTools({
-		server,
-		actor,
-		getClient,
-		getSession: () => fetchSession(actor.bearerToken, apiUrl),
-		resolveNamespace,
-		getActiveNamespace,
-		setActiveNamespace,
-		createUploadSession,
-		getClientInfo: clientInfoFromContext,
-		errorResult,
-	})
+	registerAllTools(
+		{
+			server,
+			actor,
+			getClient,
+			getSession: () => fetchSession(actor.bearerToken, apiUrl),
+			resolveNamespace,
+			getActiveNamespace,
+			setActiveNamespace,
+			createUploadSession,
+			getClientInfo: clientInfoFromContext,
+			errorResult,
+		},
+		toolListing,
+	)
 
 	// Clients that cached the pre-v5 tool list refetch it on this notice
 	server.server.oninitialized = () => {
