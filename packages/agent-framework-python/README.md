@@ -186,12 +186,23 @@ async def main():
 asyncio.run(main())
 ```
 
+## Where memories go
+
+Both the middleware and the context provider append a `<supermemory context="user-memories" readonly>` block to the current turn's user message. They never write into the system prompt or the agent instructions, so the instructions prefix stays byte-identical and provider prompt caches keep hitting.
+
+- Recall runs once per user turn. Tool-call continuation steps in the same turn reuse that turn's block, and they don't call Supermemory again.
+- Earlier turns keep exactly the block they had when they ran. The context provider attaches the block to the turn's input message, which the session's history provider stores, so later runs replay it unchanged. The middleware keeps each turn's block in a bounded in-process cache (256 turns) and re-applies it to the same user message on every later call.
+- The profile, and `entity_context` if set, go in the first block that the session fetches successfully. Later turns carry only search results that earlier blocks haven't already shown, and a turn with nothing new gets no block.
+- Recall has a wall-clock budget, `recall_timeout`, which defaults to 2 seconds. Recall uses a client with `max_retries=0` and the same timeout, and the shared client keeps the SDK defaults for writes. If recall times out or fails, the model call runs without memories for that turn, and the next user turn tries again. A profile that failed to load is fetched again then.
+- Session history saved by the context provider includes these blocks. Conversation storage (`store_conversations` / `add_memory`) strips them before writing to Supermemory.
+- If the session history is stored by the service instead of a local history provider, the provider can't see earlier blocks. In that case each turn repeats the profile. Earlier turns stay unchanged because the service keeps them.
+
 ## Middleware Configuration
 
 ### Memory Modes
 
 #### `"profile"` mode (default)
-Injects all static and dynamic profile memories into every request.
+Injects the static and dynamic profile once, on the first user turn where it loads.
 
 ```python
 SupermemoryMiddlewareOptions(mode="profile")
@@ -237,9 +248,12 @@ middleware = SupermemoryChatMiddleware(
         verbose=True,
         mode="full",
         add_memory="always",
+        recall_timeout=2.0,                  # Seconds before a turn runs without memories
     ),
 )
 ```
+
+`AgentSupermemory` also accepts `base_url` to point the SDK at another Supermemory API host.
 
 ## API Reference
 
@@ -273,7 +287,7 @@ source documents, and the argument is not exposed to the model.
 - Keep passing `container_tag` and `conversation_id`. The adapter passes the container tag as the v5 namespace and uses the unchanged `conversation_<conversation_id>` value as the document `id`. Choose a separate container tag for each tenant; the default `msft_agent_chat` is shared, not tenant-specific.
 - All writes still use add/append, including tool writes and automatic conversation storage. Reusing a conversation ID adds or diffs new content into its document; it does not replace earlier turns. No document update or replacement operation is used.
 - `entity_context` remains display context prepended to retrieved memories; this migration does not start sending it as ingestion `supporting_context`.
-- Profile mode makes one profile request, query mode makes one search request, and full mode makes both when there is a user query. V5 profiles no longer accept a query. Profile-associated search keeps the legacy memory-only mode and `0.6` threshold rather than adopting v5's broader defaults; the explicit search tool keeps its hybrid mode and `0.6` threshold. Provider and middleware context still contains fact text rather than `{id, memory}` objects and deduplicates facts across profile/search results.
+- On a new user turn, profile mode makes one profile request, query mode makes one search request, and full mode makes both when there is a user query. After the profile has been injected once in a session, it isn't requested again. V5 profiles no longer accept a query. Profile-associated search keeps the legacy memory-only mode and `0.6` threshold rather than adopting v5's broader defaults; the explicit search tool keeps its hybrid mode and `0.6` threshold. Provider and middleware context still contains fact text rather than `{id, memory}` objects and deduplicates facts across profile/search results.
 - Tool JSON envelopes remain unchanged: search returns `success`, `results`, and `count`; add returns `success` and `memory`; profile returns `success`, `profile`, and `search_results`. Profile static/dynamic/bucket values remain strings. Profile search results retain `results`, `timing`, and `total` (the number returned). Search results retain a top-level `updated_at` mapped from v5 `system.updated_at`, along with v5 fields. Legacy optional fields that v5 does not return, such as version numbers and file paths, remain present as `null`; their values cannot be reconstructed.
 - The provider has no adapter-owned persisted state schema and leaves its scoped session state unchanged. Existing framework session exports remain loadable; keep using the same container tag and conversation ID when reconstructing the connection. The API client's credentials are not serialized into session state.
 
@@ -303,6 +317,7 @@ provider = SupermemoryContextProvider(
     store_conversations=True,         # Save conversations after each run
     context_prompt="## Memories\n...",  # Custom header for injected memories
     verbose=True,                     # Enable logging
+    recall_timeout=2.0,               # Seconds before a turn runs without memories
 )
 ```
 

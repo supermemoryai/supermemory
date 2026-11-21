@@ -143,7 +143,9 @@ async def test_provider_and_middleware_retrieval_modes(memory_api, mode):
     context = SessionContext(input_messages=[Message("user", ["preferences"])])
     state = {"legacy_user_value": {"keep": True}}
     await provider.before_run(agent=None, session=None, context=context, state=state)
-    injected = "\n".join(context.instructions)
+    assert not context.instructions
+    assert context.input_messages[-1].text.startswith("preferences")
+    injected = context.input_messages[-1].text
     assert "tenant-a prefers Python" in injected
     assert injected.count("tenant-a prefers Python") == 1
     assert "Custom entity context" in injected
@@ -176,8 +178,9 @@ async def test_provider_and_middleware_retrieval_modes(memory_api, mode):
     next_call = AsyncMock()
     await middleware.process(chat, next_call)
     next_call.assert_awaited_once()
-    text = chat.messages[0].text
-    assert "Be helpful" in text
+    assert chat.messages[0].text == "Be helpful"
+    text = chat.messages[1].text
+    assert text.startswith("preferences")
     assert "tenant-a prefers Python" in text
     assert text.count("tenant-a prefers Python") == 1
     assert "Custom entity context" in text
@@ -255,6 +258,7 @@ async def test_failure_policy_with_sdk_errors(memory_api, failure):
     context = SessionContext(input_messages=[Message("user", ["preferences"])])
     await provider.before_run(agent=None, session=None, context=context, state={})
     assert not context.instructions
+    assert context.input_messages[-1].text == "preferences"
     await provider.after_run(agent=None, session=None, context=context, state={})
 
     middleware = SupermemoryChatMiddleware(
@@ -262,17 +266,14 @@ async def test_failure_policy_with_sdk_errors(memory_api, failure):
     )
     chat = ChatContext(
         client=BaseChatClient,
-        messages=[
-            Message("system", ["Be helpful\n" + wrap_memory_injection("Stale memory")]),
-            Message("user", ["preferences"]),
-        ],
+        messages=[Message("system", ["Be helpful"]), Message("user", ["preferences"])],
         options={},
     )
     next_call = AsyncMock()
     await middleware.process(chat, next_call)
     await middleware.wait_for_background_tasks()
     next_call.assert_awaited_once()
-    assert chat.messages[0].text == "Be helpful"
+    assert [message.text for message in chat.messages] == ["Be helpful", "preferences"]
     error_type = (
         SupermemoryNetworkError
         if failure == "network"
@@ -319,7 +320,9 @@ async def test_empty_and_missing_query_do_not_inject_stale_memories(memory_api):
     next_call = AsyncMock()
     await middleware.process(chat, next_call)
     next_call.assert_awaited_once()
-    assert not chat.messages
+    assert [message.text for message in chat.messages] == [
+        wrap_memory_injection("Stale memory")
+    ]
     assert not memory_api.requests
 
 
@@ -423,10 +426,9 @@ async def test_real_framework_pipeline_and_tenant_isolation(memory_api):
         for messages, options in model.calls:
             text = "\n".join(message.text for message in messages)
             assert f"{tenant} prefers Python" in text
-            assert f"{tenant} prefers Python" in options["instructions"]
+            assert options["instructions"] == "Be helpful"
             other_tenant = "tenant-b" if tenant == "tenant-a" else "tenant-a"
             assert other_tenant not in text
-            assert other_tenant not in options["instructions"]
         tool_results = [
             json.loads(content.result)
             for message in model.calls[-1][0]

@@ -7,7 +7,7 @@ context providers.
 
 import os
 import uuid
-from typing import Optional
+from typing import Any, Optional
 
 import supermemory
 
@@ -38,6 +38,7 @@ class AgentSupermemory:
         container_tag: str = "msft_agent_chat",
         entity_context: Optional[str] = None,
         conversation_id: Optional[str] = None,
+        base_url: Optional[str] = None,
     ) -> None:
         """Initialize the shared Supermemory connection.
 
@@ -46,6 +47,7 @@ class AgentSupermemory:
             container_tag: Unique identifier for memory scope (e.g., user ID).
             entity_context: Custom context about the user/entity to prepend to memories.
             conversation_id: Conversation ID for grouping messages. Auto-generated if None.
+            base_url: Supermemory API base URL. Falls back to the SDK default.
         """
         resolved_api_key = api_key or os.getenv("SUPERMEMORY_API_KEY")
         if not resolved_api_key:
@@ -55,9 +57,24 @@ class AgentSupermemory:
             )
 
         self.client: supermemory.AsyncSupermemory = supermemory.AsyncSupermemory(
-            api_key=resolved_api_key
+            api_key=resolved_api_key, base_url=base_url
         )
         self.container_tag: str = container_tag
         self.conversation_id: str = conversation_id or str(uuid.uuid4())
         self.custom_id: str = f"conversation_{self.conversation_id}"
         self.entity_context: Optional[str] = entity_context
+        self._recall_clients: tuple[Any, float, Any] = (None, 0.0, None)
+
+    # Derived lazily so a replaced `client` is honored; the shared client keeps SDK retries for writes.
+    def recall_client(self, timeout: float) -> supermemory.AsyncSupermemory:
+        source, cached_timeout, derived = self._recall_clients
+        if source is self.client and cached_timeout == timeout:
+            return derived
+        with_options = getattr(self.client, "with_options", None)
+        derived = (
+            with_options(max_retries=0, timeout=timeout)
+            if with_options
+            else self.client
+        )
+        self._recall_clients = (self.client, timeout, derived)
+        return derived
