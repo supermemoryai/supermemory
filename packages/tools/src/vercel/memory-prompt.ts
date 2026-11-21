@@ -83,18 +83,18 @@ export const injectMemoriesIntoParams = (
 	return { ...params, prompt: newPrompt } as LanguageModelCallOptions
 }
 
+export const turnKey = (index: number, query: string): string =>
+	JSON.stringify([index, query])
+
 export const injectTurnMemoriesIntoParams = (
 	params: LanguageModelCallOptions,
-	memories: ReadonlyMap<string, string>,
+	memoryForTurn: (key: string) => string,
 ): LanguageModelCallOptions => {
 	let turn = 0
 	const prompt = params.prompt.map((message) => {
-		if (message.role === "system") {
-			return { ...message, content: stripMemoryContext(message.content) }
-		}
 		if (message.role !== "user") return message
 		const query = extractQueryText({ ...params, prompt: [message] }, "query")
-		const memory = memories.get(JSON.stringify([turn++, query])) ?? ""
+		const memory = memoryForTurn(turnKey(turn++, query))
 		const context = wrapMemoryContext(memory)
 		const content: unknown = message.content
 		if (typeof content === "string") {

@@ -85,7 +85,7 @@ const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 
 - `withSupermemory` injects the Supermemory v5 profile for the given `namespace`, plus a memories search on the latest user message in `query` and `full` modes
 - You can provide the Supermemory API key via the `apiKey` option to `withSupermemory` (recommended for browser usage), or fall back to `SUPERMEMORY_API_KEY` in the environment for server usage.
-- **Stable conversation context**: Reuse one wrapped model per conversation. Profile mode fetches and formats the profile once, keeping the system prefix unchanged across later messages and tool steps. Query/full modes attach each turn’s recall to that user message and retain earlier recall unchanged; full mode also fetches the profile only once. Empty results and concurrent requests share the same snapshot. A new wrapper starts a new snapshot; state is not shared across processes.
+- **Stable conversation context**: Reuse one wrapped model per conversation. The profile is fetched once, on the first user turn, and stays unchanged in the system prompt. Query and full modes attach each turn's search results to that user message and keep earlier results unchanged. Each user turn also appends memories added, updated or forgotten since the conversation started, once each. A failed retrieval is retried on the next user turn. State lives in the wrapper and is not shared across processes.
 
 ```typescript
 import { generateText } from "ai"

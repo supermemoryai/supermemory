@@ -15,7 +15,7 @@
   "dependencies": {
     "lru-cache": "^11.2.6",
     "openai": "^4.104.0",
-    "supermemory": "^5.0.0",
+    "supermemory": "^5.1.2",
     "zod": "^4.6.6"
   },
   "devDependencies": {

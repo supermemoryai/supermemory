@@ -159,14 +159,10 @@ describe("Unit: withSupermemory", () => {
 				],
 			}
 
-			await transformParamsWithMemory(params, ctx)
+			const result = await transformParamsWithMemory(params, ctx)
 
-			expect(ctx.memoryCache).toBeDefined()
-			const turnKey = `${TEST_CONFIG.namespace}:test-id:profile:Hello`
-			const cachedMemories = ctx.memoryCache.get(turnKey)
-			expect(cachedMemories).toBeDefined()
-			expect(cachedMemories).toContain("Cached memory")
-			expect(fetchMock).toHaveBeenCalledTimes(1)
+			expect(result.prompt[0]?.content).toContain("Cached memory")
+			expect(fetchMock).toHaveBeenCalledTimes(2)
 		})
 
 		it("should use cached memories on continuation step (no new fetch)", async () => {
@@ -191,7 +187,7 @@ describe("Unit: withSupermemory", () => {
 				],
 			}
 			await transformParamsWithMemory(step1Params, ctx)
-			expect(fetchMock).toHaveBeenCalledTimes(1)
+			expect(fetchMock).toHaveBeenCalledTimes(2)
 
 			// Step 2: Continuation (assistant/tool after user)
 			const step2Params: LanguageModelV2CallOptions = {
@@ -228,7 +224,7 @@ describe("Unit: withSupermemory", () => {
 			const result = await transformParamsWithMemory(step2Params, ctx)
 
 			// Should NOT have called fetch again
-			expect(fetchMock).toHaveBeenCalledTimes(1)
+			expect(fetchMock).toHaveBeenCalledTimes(2)
 			// But should still have injected memories
 			expect(result.prompt[0]?.role).toBe("system")
 			expect(result.prompt[0]?.content).toContain("Cached memory")
@@ -262,7 +258,7 @@ describe("Unit: withSupermemory", () => {
 				],
 			}
 			const result1 = await transformParamsWithMemory(turn1Params, ctx)
-			expect(fetchMock).toHaveBeenCalledTimes(1)
+			expect(fetchMock).toHaveBeenCalledTimes(2)
 			expect(result1.prompt[0]?.content).toContain("Memory from call 1")
 
 			// Second turn (different user message)
@@ -284,7 +280,7 @@ describe("Unit: withSupermemory", () => {
 			}
 			const result2 = await transformParamsWithMemory(turn2Params, ctx)
 
-			expect(fetchMock).toHaveBeenCalledTimes(1)
+			expect(fetchMock).toHaveBeenCalledTimes(3)
 			expect(result2.prompt[0]?.content).toContain("Memory from call 1")
 		})
 
@@ -469,7 +465,7 @@ describe("Unit: withSupermemory", () => {
 			const result = await transformParamsWithMemory(params, ctx)
 
 			expect(result).toEqual(params)
-			expect(fetchMock).not.toHaveBeenCalled()
+			expect(fetchMock).toHaveBeenCalledTimes(1)
 		})
 
 		it("should not mutate the original params.prompt array", async () => {

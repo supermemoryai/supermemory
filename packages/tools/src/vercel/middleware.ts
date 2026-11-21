@@ -1,4 +1,5 @@
-import { Supermemory } from "supermemory"
+import { LRUCache } from "lru-cache"
+import { type ListResponseMemoriesItem, Supermemory } from "supermemory"
 import {
 	addConversation,
 	type ContentPart,
@@ -7,23 +8,20 @@ import {
 import {
 	createLogger,
 	normalizeBaseUrl,
-	MemoryCache,
 	buildMemoriesText,
+	defaultPromptTemplate,
 	supermemoryProfileSearch,
 	type ProfileStructure,
 	type Logger,
 	type PromptTemplate,
 	type MemoryMode,
 } from "../shared"
-import {
-	type LanguageModelCallOptions,
-	getLastUserMessage,
-	imageFilePartUrl,
-} from "./util"
+import { type LanguageModelCallOptions, imageFilePartUrl } from "./util"
 import {
 	extractQueryText,
 	injectMemoriesIntoParams,
 	injectTurnMemoriesIntoParams,
+	turnKey,
 } from "./memory-prompt"
 
 const safeJsonStringify = (value: unknown): string => {
@@ -231,6 +229,17 @@ interface SupermemoryMiddlewareOptions {
 	memoryRetrievalTimeoutMs?: number
 }
 
+const MAX_TURNS = 500
+const MAX_REPORTED_MEMORIES = 1000
+const RECENT_MEMORY_LIMIT = 10
+const EMPTY_PROFILE: ProfileStructure["profile"] = { static: [], dynamic: [] }
+
+interface TurnState {
+	memories: string
+	failure?: { error: unknown }
+	pending?: Promise<void>
+}
+
 interface SupermemoryMiddlewareContext {
 	client: Supermemory
 	logger: Logger
@@ -243,11 +252,11 @@ interface SupermemoryMiddlewareContext {
 	apiKey: string
 	promptTemplate?: PromptTemplate
 	memoryRetrievalTimeoutMs?: number
-	memoryCache: MemoryCache<string>
-	profileSnapshot?: Promise<ProfileStructure["profile"]>
-	profileMemories?: Promise<string>
-	turnMemories: Map<string, string>
-	turnRequests: Map<string, Promise<string>>
+	profile?: { data: ProfileStructure["profile"]; text: string }
+	profileRequest?: Promise<ProfileStructure["profile"]>
+	memoryWatermark?: number
+	turns: LRUCache<string, TurnState>
+	reportedMemories: LRUCache<string, string>
 }
 
 export const createSupermemoryContext = (
@@ -290,46 +299,152 @@ export const createSupermemoryContext = (
 		...(memoryRetrievalTimeoutMs !== undefined
 			? { memoryRetrievalTimeoutMs }
 			: {}),
-		memoryCache: new MemoryCache<string>(),
-		turnMemories: new Map(),
-		turnRequests: new Map(),
+		turns: new LRUCache({ max: MAX_TURNS }),
+		reportedMemories: new LRUCache({ max: MAX_REPORTED_MEMORIES }),
 	}
 }
 
-const retrieveMemories = async (
-	params: LanguageModelCallOptions,
+// A failed fetch is dropped so the next user turn retries it instead of running without a profile for good.
+const loadProfile = (
 	ctx: SupermemoryMiddlewareContext,
-): Promise<string> => {
-	let fetchSignal: AbortSignal | undefined
-	let timeoutId: ReturnType<typeof setTimeout> | undefined
-	const timeoutMs = ctx.memoryRetrievalTimeoutMs
-	if (timeoutMs !== undefined && timeoutMs > 0) {
-		const controller = new AbortController()
-		fetchSignal = controller.signal
-		timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+	signal?: AbortSignal,
+): Promise<ProfileStructure["profile"]> => {
+	if (ctx.profile) return Promise.resolve(ctx.profile.data)
+	ctx.profileRequest ??= supermemoryProfileSearch(
+		ctx.namespace,
+		"",
+		ctx.normalizedBaseUrl,
+		ctx.apiKey,
+		signal,
+	)
+		.then(async ({ profile }) => {
+			const text = await buildMemoriesText({
+				namespace: ctx.namespace,
+				queryText: "",
+				mode: "profile",
+				baseUrl: ctx.normalizedBaseUrl,
+				apiKey: ctx.apiKey,
+				logger: ctx.logger,
+				promptTemplate: ctx.promptTemplate,
+				profile,
+			})
+			ctx.profile = { data: profile, text }
+			return profile
+		})
+		.finally(() => {
+			ctx.profileRequest = undefined
+		})
+	return ctx.profileRequest
+}
+
+const listRecentMemories = async (
+	ctx: SupermemoryMiddlewareContext,
+	signal?: AbortSignal,
+): Promise<ListResponseMemoriesItem[] | undefined> => {
+	try {
+		const { memories } = await ctx.client.list(
+			ctx.namespace,
+			"memories",
+			{
+				sort: "updatedAt",
+				order: "desc",
+				limit: RECENT_MEMORY_LIMIT,
+				include: { forgotten: true },
+			},
+			{ maxRetries: 0, ...(signal && { abortSignal: signal }) },
+		)
+		return memories ?? []
+	} catch (error) {
+		ctx.logger.warn("Supermemory memory updates unavailable", {
+			error: error instanceof Error ? error.message : String(error),
+		})
+		return undefined
 	}
+}
+
+// Compares server timestamps only, so client clock skew can't hide or repeat an update.
+const describeMemoryUpdates = (
+	ctx: SupermemoryMiddlewareContext,
+	memories: ListResponseMemoriesItem[] | undefined,
+	newSnapshot: boolean,
+): string => {
+	if (newSnapshot) ctx.memoryWatermark = undefined
+	if (!memories) return ""
+	const watermark = ctx.memoryWatermark
+	if (watermark === undefined) {
+		ctx.memoryWatermark = Math.max(
+			0,
+			...memories.map((memory) => Date.parse(memory.system.updatedAt) || 0),
+		)
+		return ""
+	}
+	const lines = [...memories].reverse().flatMap((memory) => {
+		const { createdAt, updatedAt } = memory.system
+		if (!(Date.parse(updatedAt) > watermark)) return []
+		const reported = ctx.reportedMemories.get(memory.id)
+		if (reported === updatedAt) return []
+		ctx.reportedMemories.set(memory.id, updatedAt)
+		if (!memory.isForgotten) {
+			return [`- ${memory.version > 1 ? "Updated" : "New"}: ${memory.memory}`]
+		}
+		if (reported === undefined && Date.parse(createdAt) > watermark) return []
+		return [
+			`- Forgotten: ${memory.memory} (no longer true, ignore earlier mentions)`,
+		]
+	})
+	if (lines.length === 0) return ""
+	return `Memory updates since this conversation started:\n${lines.join("\n")}`
+}
+
+// Profile, search and the updates list share one timeout; only the profile and search can fail the turn.
+const retrieveTurn = async (
+	ctx: SupermemoryMiddlewareContext,
+	query: string,
+): Promise<Omit<TurnState, "pending">> => {
+	const controller =
+		(ctx.memoryRetrievalTimeoutMs ?? 0) > 0 ? new AbortController() : undefined
+	const timeoutId = controller
+		? setTimeout(() => controller.abort(), ctx.memoryRetrievalTimeoutMs)
+		: undefined
+	const signal = controller?.signal
+	const hadProfile = ctx.profile !== undefined
+	const profile = ctx.mode === "query" ? undefined : loadProfile(ctx, signal)
+	const template = ctx.promptTemplate ?? defaultPromptTemplate
 
 	try {
-		if (ctx.mode === "full") {
-			ctx.profileSnapshot ??= supermemoryProfileSearch(
-				ctx.namespace,
-				"",
-				ctx.normalizedBaseUrl,
-				ctx.apiKey,
-				fetchSignal,
-			).then((response) => response.profile)
-		}
-		return await buildMemoriesText({
-			namespace: ctx.namespace,
-			queryText: extractQueryText(params, ctx.mode),
-			mode: ctx.mode,
-			baseUrl: ctx.normalizedBaseUrl,
-			apiKey: ctx.apiKey,
-			logger: ctx.logger,
-			promptTemplate: ctx.promptTemplate,
-			...(ctx.profileSnapshot ? { profile: ctx.profileSnapshot } : {}),
-			...(fetchSignal ? { signal: fetchSignal } : {}),
-		})
+		const [profileResult, searchResult, recentResult] =
+			await Promise.allSettled([
+				profile,
+				ctx.mode !== "profile" && query
+					? buildMemoriesText({
+							namespace: ctx.namespace,
+							queryText: query,
+							mode: ctx.mode,
+							baseUrl: ctx.normalizedBaseUrl,
+							apiKey: ctx.apiKey,
+							logger: ctx.logger,
+							promptTemplate: (data) => template({ ...data, userMemories: "" }),
+							...(signal && { signal }),
+							...(profile && { profile: profile.catch(() => EMPTY_PROFILE) }),
+						})
+					: "",
+				listRecentMemories(ctx, signal),
+			])
+		const updates = describeMemoryUpdates(
+			ctx,
+			recentResult.status === "fulfilled" ? recentResult.value : undefined,
+			!hadProfile && ctx.profile !== undefined,
+		)
+		const memories = [
+			searchResult.status === "fulfilled" ? searchResult.value : "",
+			updates,
+		]
+			.filter(Boolean)
+			.join("\n\n")
+		const failed = [profileResult, searchResult].find(
+			(result): result is PromiseRejectedResult => result.status === "rejected",
+		)
+		return { memories, ...(failed && { failure: { error: failed.reason } }) }
 	} finally {
 		if (timeoutId !== undefined) clearTimeout(timeoutId)
 	}
@@ -339,52 +454,41 @@ export const injectCachedMemories = (
 	params: LanguageModelCallOptions,
 	ctx: SupermemoryMiddlewareContext,
 ): LanguageModelCallOptions =>
-	ctx.mode === "profile"
-		? injectMemoriesIntoParams(params, "", ctx.logger)
-		: injectTurnMemoriesIntoParams(params, ctx.turnMemories)
+	injectMemoriesIntoParams(
+		injectTurnMemoriesIntoParams(
+			params,
+			(key) => ctx.turns.get(key)?.memories ?? "",
+		),
+		ctx.profile?.text ?? "",
+		ctx.logger,
+	)
 
+// Tool steps reuse their turn as is; only a new or regenerated user turn retries a failed retrieval.
 export const transformParamsWithMemory = async (
 	params: LanguageModelCallOptions,
 	ctx: SupermemoryMiddlewareContext,
 ): Promise<LanguageModelCallOptions> => {
-	if (ctx.mode === "profile") {
-		ctx.profileMemories ??= retrieveMemories(params, ctx)
-		const memories = await ctx.profileMemories
-		ctx.memoryCache.set(
-			MemoryCache.makeTurnKey(
-				ctx.namespace,
-				ctx.id,
-				ctx.mode,
-				getLastUserMessage(params) || "",
-			),
-			memories,
-		)
-		return injectMemoriesIntoParams(params, memories, ctx.logger)
-	}
-
 	const users = params.prompt.filter((message) => message.role === "user")
 	const user = users.at(-1)
-	if (!user) return injectCachedMemories(params, ctx)
-	const query = extractQueryText({ ...params, prompt: [user] }, ctx.mode)
-	if (!query) return injectCachedMemories(params, ctx)
-	const turnKey = JSON.stringify([users.length - 1, query])
-	if (!ctx.turnRequests.has(turnKey)) {
-		ctx.turnRequests.set(
-			turnKey,
-			retrieveMemories(params, ctx).then(
-				(memories) => {
-					ctx.turnMemories.set(turnKey, memories)
-					return memories
-				},
-				(error: unknown) => {
-					ctx.turnMemories.set(turnKey, "")
-					throw error
-				},
-			),
-		)
+	if (user) {
+		const query = extractQueryText({ ...params, prompt: [user] }, "query")
+		const key = turnKey(users.length - 1, query)
+		const fresh = params.prompt.at(-1)?.role === "user"
+		let turn = ctx.turns.get(key)
+		if (!turn || (fresh && turn.failure && !turn.pending)) {
+			const next: TurnState = { memories: turn?.memories ?? "" }
+			next.pending = retrieveTurn(ctx, query).then((result) => {
+				next.memories = result.memories
+				next.failure = result.failure
+				next.pending = undefined
+			})
+			ctx.turns.set(key, next)
+			turn = next
+		}
+		await turn.pending
+		if (turn.failure) throw turn.failure.error
 	}
-	await ctx.turnRequests.get(turnKey)
-	return injectTurnMemoriesIntoParams(params, ctx.turnMemories)
+	return injectCachedMemories(params, ctx)
 }
 
 export const extractAssistantResponseText = (content: unknown[]): string => {

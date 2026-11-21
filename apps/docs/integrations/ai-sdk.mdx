@@ -52,22 +52,23 @@ const result = await generateText({
 
 ### Prompt caching
 
-Reuse the same wrapped model for every turn of a conversation. In the default
-`profile` mode, the first retrieval is shared by concurrent calls and the formatted
-profile stays unchanged in the system prompt. Later turns and tool steps do not
-refetch it, even if the profile changes remotely.
+Reuse the same wrapped model for every turn of a conversation. In `profile` and
+`full` modes, the profile is fetched on the first user turn and stays unchanged in
+the system prompt for the rest of the conversation. `query` and `full` modes attach
+each turn's search results to that turn's user message, and earlier turns keep their
+original results, so the prompt prefix stays the same as new messages are appended.
 
-`query` and `full` modes attach recall to the matching user message instead of
-rewriting the system prompt. Earlier turns retain their original recall, preserving
-the prompt prefix when new messages are appended. `full` mode uses a single profile
-snapshot while continuing to search for each new user turn.
+On each user turn, the wrapper also lists the namespace's most recently updated
+memories. Anything added, updated or forgotten since the conversation started is
+appended once to that turn's message, so the model learns about changes without the
+system prompt being rewritten. Tool steps reuse their turn's memories without new
+requests.
 
-Create a new wrapper to refresh the profile or start a different conversation.
-The snapshot lives in that wrapper, not in a global or cross-process cache. Keep
-system instructions, tools and earlier messages stable too; provider-specific cache
-eligibility and minimum token counts still apply. Cache-hit savings are not guaranteed.
-If the initial retrieval fails or times out, default error handling continues
-without it; a new wrapper is needed to retry that profile snapshot.
+If retrieval fails or times out, the call continues without it by default, and the
+next user turn retries the profile. State lives in the wrapper, not in a global or
+cross-process cache, so create a new wrapper for each new conversation. Keep system
+instructions, tools and earlier messages stable too. Provider cache eligibility and
+minimum token counts still apply, so cache-hit savings are not guaranteed.
 
 ### Required fields
 
