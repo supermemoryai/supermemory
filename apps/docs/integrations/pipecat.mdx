@@ -70,8 +70,9 @@ When integrated with Pipecat, Supermemory provides two key functionalities:
 
 ### 1. Memory retrieval
 
-When a user message is detected, Supermemory reads the v5 profile and searches
-the same namespace when query results are enabled:
+Supermemory reads the v5 profile once per conversation, on the first context
+frame, and searches the same namespace once for each new user message when query
+results are enabled:
 
 - **Static Profile**: Persistent facts about the user
 - **Dynamic Profile**: Recent context and preferences
@@ -79,9 +80,14 @@ the same namespace when query results are enabled:
 
 ### 2. Context enhancement
 
-Retrieved memories are formatted and injected into the LLM context before generation, giving the model awareness of past conversations. By default they are appended once to the current user message inside a `<user_memories>` block, so the system prompt and earlier turns stay byte-identical and provider prompt caching keeps working. Search results carry absolute dates (`[2026-03-04]`), and the profile is included on the first turn where it loads.
+Retrieved memories are added to the LLM context before generation, each inside a `<user_memories>` block:
 
-Recall never holds up the LLM call for more than `recall_timeout` (1.5 seconds by default). If Supermemory is slow or unavailable, the turn continues without memories and the next user turn tries again.
+- **Profile**: appended to the first system message (or sent as a new leading system message when there is none). It is fetched once and never refreshed, so it stays byte-identical on every later request and never appears in a user message.
+- **Search results**: appended to the user message they were retrieved for. Earlier user messages keep the block they first received, tool-call steps reuse their turn's block without searching again, and results the profile already covers are skipped.
+
+Because the system prompt and earlier turns never change, provider prompt caching keeps working. A turn is identified by its text plus the assistant reply before it, so a repeated question after a new reply gets its own search, and trimming old history from the front keeps every kept message's block. Search results carry absolute dates (`[2026-03-04]`), never relative times.
+
+Recall waits at most 3 seconds and makes no retries. If Supermemory is slow or unavailable, the turn continues without memories; a profile that failed to load is fetched again on the next user turn.
 
 ## Memory modes
 
@@ -90,6 +96,8 @@ Recall never holds up the LLM call for more than `recall_timeout` (1.5 seconds b
 | `"profile"` | Yes            | Yes             | No             | Personalization without search |
 | `"query"`   | No             | No              | Yes            | Finding relevant past context  |
 | `"full"`    | Yes            | Yes             | Yes            | Complete memory (default)      |
+
+The profile (static and dynamic) goes in the system message; search results go on the user message.
 
 ## Configuration options
 
@@ -104,7 +112,6 @@ InputParams(
     search_threshold=0.1,      # Similarity threshold 0.0-1.0 (default: 0.1)
     system_prompt="Based on previous conversations:\n\n",
     inject_mode="auto",        # "auto" | "user" | "system" (default: "auto")
-    recall_timeout=1.5,        # Seconds to wait for memories (default: 1.5)
     storage_drain_timeout=3.0, # Seconds cleanup waits for pending writes (default: 3.0)
 )
 ```
@@ -115,23 +122,24 @@ InputParams(
 | `search_threshold` | float | 0.1                                    | Minimum similarity threshold for memory retrieval            |
 | `mode`             | str   | "full"                                 | Memory retrieval mode: `"profile"`, `"query"`, or `"full"`   |
 | `system_prompt`    | str   | "Based on previous conversations, I recall:\n\n" | Prefix text for memory context                    |
-| `inject_mode`      | str   | "auto"                                 | Where memories go: `"auto"` or `"user"` append to the user message, `"system"` rewrites the system prompt |
-| `recall_timeout`   | float | 1.5                                    | Seconds a turn waits for memories before the LLM call proceeds without them |
+| `inject_mode`      | str   | "auto"                                 | Where search results go: `"auto"` or `"user"` append them to the user message, `"system"` rewrites them into the system prompt. The profile always goes in the system prompt |
 | `storage_drain_timeout` | float | 3.0                               | Seconds cleanup waits for pending conversation writes        |
 
 ## Injection modes
 
-The `inject_mode` parameter controls how memories are added to the LLM context:
+The `inject_mode` parameter controls where per-turn search results are added. The profile block always goes in the system message.
 
 | Mode       | Behavior |
 | ---------- | -------- |
 | `"auto"`   | Default. Same as `"user"`, for text and voice pipelines alike. |
-| `"user"`   | Appends each turn's memories once to that turn's user message. The system prompt and earlier turns never change, so prompt caching keeps working. |
-| `"system"` | Replaces a memory block in the system prompt on every user turn. Use it only for speech-to-speech models that have no text user message to attach to. The system prompt changes each turn, so prompt caching does not apply. |
+| `"user"`   | Appends each turn's search results once to that turn's user message. The system prompt and earlier turns never change, so prompt caching keeps working. |
+| `"system"` | Rewrites this integration's search block in the system prompt on every user turn, next to the profile block (blocks never stack). The system prompt changes each turn, so prompt caching does not apply. |
 
 ## Speech-to-speech models (Gemini Live, etc.)
 
-For speech-to-speech models like Gemini Live, pass `inject_mode="system"` explicitly. This mode rewrites this integration's `<user_memories>` block in the system prompt on every user turn (it never stacks blocks), so the system prompt changes each turn and prompt caching won't apply:
+Pipecat's Gemini Live and OpenAI Realtime services read only the first context they receive (Pipecat 0.0.98 through 1.7.0). Apart from reconnects, later context frames only forward new tool results, so neither a changed system message nor a new text user message reaches the model mid-session, whichever `inject_mode` you use.
+
+The default configuration still gives these models the user profile: it is fetched on the first context frame, before the first user message, and is part of the system instruction the session starts with. Per-turn search results do not reach them. If you pass `system_instruction=` to `GeminiLiveLLMService`, Pipecat 1.x uses it instead of the context's system message, so put your prompt in the `LLMContext` instead:
 
 ```python
 from supermemory_pipecat import SupermemoryPipecatService
@@ -139,8 +147,8 @@ from supermemory_pipecat import SupermemoryPipecatService
 memory = SupermemoryPipecatService(
     api_key=os.getenv("SUPERMEMORY_API_KEY"),
     user_id="unique_user_id",
-    params=SupermemoryPipecatService.InputParams(inject_mode="system"),
 )
+context = LLMContext([{"role": "system", "content": "You are a helpful assistant."}])
 ```
 
 ## Example: Voice agent with memory
