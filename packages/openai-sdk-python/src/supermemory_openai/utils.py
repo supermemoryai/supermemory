@@ -9,19 +9,10 @@ from openai.types.chat import ChatCompletionMessageParam
 
 MEMORY_CONTEXT_START = '<supermemory context="user-memories" readonly>'
 MEMORY_CONTEXT_END = "</supermemory>"
-MEMORY_CONTEXT_PATTERN = re.compile(
-    r'(?:\r?\n)?<supermemory context="user-memories" readonly>.*?</supermemory>',
-    re.DOTALL,
-)
 SUPERMEMORY_TAG_PATTERN = re.compile(
     r"<\s*/?\s*supermemory\b[^>]*>",
     re.IGNORECASE,
 )
-
-
-def strip_memory_context(content: str) -> str:
-    """Remove every context block previously owned by this middleware."""
-    return MEMORY_CONTEXT_PATTERN.sub("", content)
 
 
 def _escape_memory_context_delimiters(memories: str) -> str:
@@ -34,23 +25,12 @@ def _escape_memory_context_delimiters(memories: str) -> str:
 
 
 def wrap_memory_context(memories: str) -> str:
-    """Mark retrieved context so the next turn can replace it safely."""
+    """Fence retrieved memories so recalled text cannot pose as instructions."""
     normalized = memories.strip()
     if not normalized:
         return ""
     escaped = _escape_memory_context_delimiters(normalized)
     return f"{MEMORY_CONTEXT_START}\n{escaped}\n{MEMORY_CONTEXT_END}"
-
-
-def replace_memory_context(content: str, memories: str) -> str:
-    """Replace middleware-owned context while preserving caller instructions."""
-    preserved = strip_memory_context(content)
-    memory_context = wrap_memory_context(memories)
-    if not memory_context:
-        return preserved
-    # The inserted newline is part of the SDK-owned separator: the strip pattern
-    # removes it together with the block, preserving every caller-authored byte.
-    return f"{preserved}\n{memory_context}" if preserved else memory_context
 
 
 class Logger(Protocol):
@@ -227,6 +207,8 @@ def get_conversation_content(
                 elif isinstance(part, str):
                     text_parts.append(part)
             content_text = " ".join(text_parts)
+        elif content is None:
+            content_text = ""
         else:
             content_text = str(content)
 

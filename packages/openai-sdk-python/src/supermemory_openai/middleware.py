@@ -1,22 +1,21 @@
 """Supermemory middleware for OpenAI clients."""
 
 import asyncio
+import hashlib
 import inspect
+import json
 import os
+import threading
+import time
 import types
-from collections.abc import Iterable
+from collections import OrderedDict
+from collections.abc import Coroutine
 from dataclasses import dataclass
-from typing import Any, Literal, Optional, Union, cast
+from typing import Any, Literal, Optional, TypeVar, Union, cast
 
 import supermemory
 from openai import AsyncOpenAI, OpenAI
-from openai.types.chat import (
-    ChatCompletionContentPartTextParam,
-    ChatCompletionDeveloperMessageParam,
-    ChatCompletionMessageParam,
-    ChatCompletionSystemMessageParam,
-)
-from typing_extensions import TypeGuard
+from openai.types.chat import ChatCompletionMessageParam
 
 from .exceptions import (
     SupermemoryAPIError,
@@ -31,13 +30,17 @@ from .utils import (
     deduplicate_memories,
     get_conversation_content,
     get_last_user_message,
-    replace_memory_context,
-    strip_memory_context,
     wrap_memory_context,
 )
 
 DEFAULT_SUPERMEMORY_BASE_URL = "https://api.supermemory.ai"
-PROFILE_REQUEST_TIMEOUT_SECONDS = 30.0
+DEFAULT_RECALL_TIMEOUT_SECONDS = 2.0
+CAPTURE_TIMEOUT_SECONDS = 5.0
+EXIT_WAIT_SECONDS = 5.0
+TURN_CACHE_SIZE = 256
+UNCAPTURED_ROLES = ("system", "developer")
+
+T = TypeVar("T")
 
 
 @dataclass
@@ -51,6 +54,7 @@ class OpenAIMiddlewareOptions:
     add_memory: Literal["always", "never"] = "always"
     api_key: Optional[str] = None
     base_url: Optional[str] = None
+    recall_timeout: float = DEFAULT_RECALL_TIMEOUT_SECONDS
 
 
 class SupermemoryProfileSearch:
@@ -61,130 +65,112 @@ class SupermemoryProfileSearch:
         self.search_results: dict[str, Any] = data.get("searchResults", {})
 
 
-ChatInstructionMessage = Union[
-    ChatCompletionDeveloperMessageParam,
-    ChatCompletionSystemMessageParam,
-]
+@dataclass(frozen=True)
+class _TurnMemory:
+    """Memory text pinned to one user turn so later requests resend the same bytes."""
+
+    text: str = ""
+    has_profile: bool = False
+    memories: tuple[str, ...] = ()
 
 
-def _is_chat_instruction_message(
-    message: ChatCompletionMessageParam,
-) -> TypeGuard[ChatInstructionMessage]:
-    """Return whether a chat message can carry model instructions."""
-    return message.get("role") in ("developer", "system")
+def _message_fingerprint(message: Any) -> bytes:
+    """Serialize a caller message deterministically for turn keys."""
+    if hasattr(message, "model_dump"):
+        message = message.model_dump(exclude_none=True)
+    return json.dumps(message, sort_keys=True, default=str).encode()
 
 
-def _update_instruction_message_memory_context(
-    message: ChatInstructionMessage,
-    memories: Optional[str],
-) -> ChatInstructionMessage:
-    """Replace or strip owned context without dropping structured instructions."""
-    content = message.get("content", "")
-    if isinstance(content, str):
-        updated_content = (
-            replace_memory_context(content, memories)
-            if memories is not None
-            else strip_memory_context(content)
-        )
-        return cast(
-            ChatInstructionMessage,
-            {**message, "content": updated_content},
-        )
-
-    if not isinstance(content, Iterable) or isinstance(
-        content, (bytes, bytearray, dict)
-    ):
-        # OpenAI's supported instruction content is a string or an iterable of
-        # text parts. Preserve an unexpected value instead of erasing it.
-        return message
-
-    injected = False
-    updated_parts: list[ChatCompletionContentPartTextParam] = []
-    for part in content:
-        if not isinstance(part, dict):
-            # Defensive compatibility for a malformed/future iterable. The cast
-            # keeps the value intact rather than deleting caller-authored data.
-            updated_parts.append(cast(ChatCompletionContentPartTextParam, part))
-            continue
-
-        text = part.get("text")
-        if part.get("type") != "text" or not isinstance(text, str):
-            updated_parts.append(part)
-            continue
-
-        if memories is not None and not injected:
-            updated_text = replace_memory_context(text, memories)
-            injected = True
-        else:
-            updated_text = strip_memory_context(text)
-
-        updated_parts.append(
-            cast(
-                ChatCompletionContentPartTextParam,
-                {**part, "text": updated_text},
-            )
-        )
-
-    if memories is not None and not injected:
-        memory_context = wrap_memory_context(memories)
-        if memory_context:
-            updated_parts.append({"type": "text", "text": memory_context})
-
-    return cast(
-        ChatInstructionMessage,
-        {**message, "content": updated_parts},
-    )
+def _role(message: Any) -> Any:
+    if isinstance(message, dict):
+        return message.get("role")
+    return getattr(message, "role", None)
 
 
-def _update_chat_memory_contexts(
-    messages: list[ChatCompletionMessageParam],
-    memories: Optional[str] = None,
-) -> list[ChatCompletionMessageParam]:
-    """Inject once into developer-first instructions and strip every stale block."""
-    developer_index = next(
-        (
-            index
-            for index, message in enumerate(messages)
-            if message.get("role") == "developer"
-        ),
-        -1,
-    )
-    injection_index = developer_index
-    if injection_index < 0:
-        injection_index = next(
-            (
-                index
-                for index, message in enumerate(messages)
-                if message.get("role") == "system"
-            ),
-            -1,
-        )
-
-    if injection_index < 0:
-        if memories is None:
-            return messages
-        memory_context = wrap_memory_context(memories)
-        if not memory_context:
-            return messages
-        system_message: ChatCompletionSystemMessageParam = {
-            "role": "system",
-            "content": memory_context,
-        }
-        return [system_message, *messages]
-
-    enhanced: list[ChatCompletionMessageParam] = []
+def _user_turns(messages: list[ChatCompletionMessageParam]) -> list[tuple[int, str]]:
+    """Key each user message by a hash of the original conversation up to it."""
+    digest = hashlib.sha256()
+    turns: list[tuple[int, str]] = []
     for index, message in enumerate(messages):
-        if not _is_chat_instruction_message(message):
-            enhanced.append(message)
-            continue
+        digest.update(_message_fingerprint(message))
+        digest.update(b"\x00")
+        if _role(message) == "user":
+            turns.append((index, digest.copy().hexdigest()))
+    return turns
 
-        selected_memories = (
-            memories if memories is not None and index == injection_index else None
-        )
-        enhanced.append(
-            _update_instruction_message_memory_context(message, selected_memories)
-        )
-    return enhanced
+
+def _append_to_user_message(
+    message: ChatCompletionMessageParam, memory_text: str
+) -> ChatCompletionMessageParam:
+    """Append memory after the user's own content without touching other fields."""
+    if not isinstance(message, dict):
+        return message
+    content = message.get("content")
+    if isinstance(content, str):
+        joined = f"{content}\n\n{memory_text}" if content else memory_text
+        return cast(ChatCompletionMessageParam, {**message, "content": joined})
+    if isinstance(content, list):
+        parts = [*content, {"type": "text", "text": memory_text}]
+        return cast(ChatCompletionMessageParam, {**message, "content": parts})
+    return message
+
+
+def _build_turn_memory(
+    response: SupermemoryProfileSearch,
+    mode: Literal["profile", "query", "full"],
+    include_profile: bool,
+    seen: set[str],
+) -> _TurnMemory:
+    """Format one turn's memory, leaving out anything an earlier turn already carried."""
+    profile = (response.profile or {}) if include_profile else {}
+    deduplicated = deduplicate_memories(
+        static=profile.get("static", []),
+        dynamic=profile.get("dynamic", []),
+        search_results=(response.search_results or {}).get("results", []),
+    )
+    static = [m for m in deduplicated.static if m not in seen]
+    dynamic = [m for m in deduplicated.dynamic if m not in seen]
+    search = (
+        [m for m in deduplicated.search_results if m not in seen]
+        if mode != "profile"
+        else []
+    )
+
+    profile_markdown = convert_profile_to_markdown(
+        {"profile": {"static": static, "dynamic": dynamic}}
+    )
+    search_markdown = (
+        "Search results for user's recent message: \n"
+        + "\n".join(f"- {memory}" for memory in search)
+        if search
+        else ""
+    )
+    text = wrap_memory_context(f"{profile_markdown}\n{search_markdown}")
+    return _TurnMemory(
+        text=text,
+        has_profile=bool(static or dynamic),
+        memories=(*static, *dynamic, *search),
+    )
+
+
+def _run_with_deadline(coroutine: Coroutine[Any, Any, T], timeout: float) -> T:
+    """Run a coroutine on a daemon thread so a hung request can never hold the caller."""
+    outcome: dict[str, Any] = {}
+
+    def run() -> None:
+        try:
+            outcome["value"] = asyncio.run(coroutine)
+        except BaseException as error:
+            outcome["error"] = error
+
+    thread = threading.Thread(target=run, name="supermemory-recall", daemon=True)
+    thread.start()
+    thread.join(timeout)
+    if thread.is_alive():
+        raise TimeoutError(f"Supermemory recall exceeded {timeout}s")
+    if "error" in outcome:
+        raise outcome["error"]
+    return cast(T, outcome["value"])
 
 
 class _ResourceFacade:
@@ -254,6 +240,7 @@ async def supermemory_profile_search(
     query_text: str,
     api_key: str,
     base_url: str,
+    timeout: float = DEFAULT_RECALL_TIMEOUT_SECONDS,
 ) -> SupermemoryProfileSearch:
     """Search memories via the profile API; the requests fallback runs on a thread."""
     payload = {
@@ -267,7 +254,7 @@ async def supermemory_profile_search(
     try:
         import aiohttp
 
-        timeout = aiohttp.ClientTimeout(total=PROFILE_REQUEST_TIMEOUT_SECONDS)
+        timeout = aiohttp.ClientTimeout(total=timeout)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(
                 profile_url,
@@ -300,7 +287,7 @@ async def supermemory_profile_search(
                 "Authorization": f"Bearer {api_key}",
             },
             json=payload,
-            timeout=PROFILE_REQUEST_TIMEOUT_SECONDS,
+            timeout=timeout,
             allow_redirects=False,
         )
 
@@ -314,124 +301,20 @@ async def supermemory_profile_search(
         return SupermemoryProfileSearch(response.json())
 
 
-async def add_system_prompt(
-    messages: list[ChatCompletionMessageParam],
-    container_tag: str,
-    logger: Logger,
-    mode: Literal["profile", "query", "full"],
-    api_key: str,
-    base_url: str,
-) -> list[ChatCompletionMessageParam]:
-    """Add memory-enhanced system prompts to chat completion messages."""
-    instruction_prompt_exists = any(
-        _is_chat_instruction_message(message) for message in messages
-    )
-
-    query_text = get_last_user_message(messages) if mode != "profile" else ""
-
-    memories_response = await supermemory_profile_search(
-        container_tag,
-        query_text,
-        api_key,
-        base_url,
-    )
-
-    profile = memories_response.profile or {}
-    search_results_data = memories_response.search_results or {}
-    memory_count_static = len(profile.get("static", []))
-    memory_count_dynamic = len(profile.get("dynamic", []))
-    memory_count_search = len(search_results_data.get("results", []))
-
-    logger.info(
-        "Memory search completed",
-        {
-            "container_tag": container_tag,
-            "memory_count_static": memory_count_static,
-            "memory_count_dynamic": memory_count_dynamic,
-            "query_text": query_text[:100] + ("..." if len(query_text) > 100 else ""),
-            "mode": mode,
-        },
-    )
-
-    deduplicated = deduplicate_memories(
-        static=profile.get("static", []) if mode != "query" else [],
-        dynamic=profile.get("dynamic", []) if mode != "query" else [],
-        search_results=search_results_data.get("results", []),
-    )
-
-    logger.debug(
-        "Memory deduplication completed",
-        {
-            "static": {
-                "original": memory_count_static,
-                "deduplicated": len(deduplicated.static),
-            },
-            "dynamic": {
-                "original": memory_count_dynamic,
-                "deduplicated": len(deduplicated.dynamic),
-            },
-            "search_results": {
-                "original": memory_count_search,
-                "deduplicated": len(deduplicated.search_results),
-            },
-        },
-    )
-
-    profile_data = ""
-    if mode != "query":
-        profile_data = convert_profile_to_markdown(
-            {
-                "profile": {
-                    "static": deduplicated.static,
-                    "dynamic": deduplicated.dynamic,
-                },
-                "searchResults": {"results": []},
-            }
-        )
-
-    search_results_memories = ""
-    if mode != "profile" and deduplicated.search_results:
-        search_results_memories = (
-            "Search results for user's recent message: \n"
-            + "\n".join(f"- {memory}" for memory in deduplicated.search_results)
-        )
-
-    memories = f"{profile_data}\n{search_results_memories}".strip()
-
-    if memories:
-        logger.debug(
-            "Memory content preview",
-            {
-                "content": memories,
-                "full_length": len(memories),
-            },
-        )
-
-    if instruction_prompt_exists:
-        logger.debug("Replaced Supermemory context in existing instruction prompt")
-    elif memories:
-        logger.debug("Instruction prompt does not exist, created system prompt")
-
-    return _update_chat_memory_contexts(messages, memories)
-
-
 async def add_memory_tool(
-    client: supermemory.Supermemory,
+    client: Union[supermemory.Supermemory, supermemory.AsyncSupermemory],
     container_tag: str,
     content: str,
     custom_id: Optional[str],
     logger: Logger,
 ) -> None:
-    """Add a memory without running the sync client call on the event loop."""
+    """Add a memory; a sync client is only passed in from the sync wrapper's capture thread."""
     try:
         kwargs = {"content": content, "container_tag": container_tag}
         if custom_id is not None:
             kwargs["custom_id"] = custom_id
 
-        if inspect.iscoroutinefunction(client.add):
-            result = client.add(**kwargs)
-        else:
-            result = await asyncio.to_thread(client.add, **kwargs)
+        result = client.add(**kwargs)
         if inspect.isawaitable(result):
             response = await result
         else:
@@ -487,6 +370,9 @@ class SupermemoryOpenAIWrapper:
         ) or inspect.iscoroutinefunction(inspect.unwrap(base_create))
 
         self._background_tasks: set[asyncio.Task] = set()
+        self._capture_threads: set[threading.Thread] = set()
+        self._turn_memories: OrderedDict[str, _TurnMemory] = OrderedDict()
+        self._turn_lock = threading.Lock()
 
         if not hasattr(supermemory, "Supermemory"):
             raise SupermemoryConfigurationError(
@@ -495,9 +381,18 @@ class SupermemoryOpenAIWrapper:
             )
 
         try:
-            self._supermemory_client: supermemory.Supermemory = supermemory.Supermemory(
+            client_class = (
+                supermemory.AsyncSupermemory
+                if self._is_async_client
+                else supermemory.Supermemory
+            )
+            self._supermemory_client: Union[
+                supermemory.Supermemory, supermemory.AsyncSupermemory
+            ] = client_class(
                 api_key=self._api_key,
                 base_url=self._base_url,
+                timeout=CAPTURE_TIMEOUT_SECONDS,
+                max_retries=0,
             )
         except Exception as e:
             raise SupermemoryConfigurationError(
@@ -648,102 +543,28 @@ class SupermemoryOpenAIWrapper:
     ) -> Any:
         """Async create with memory injection; memory failures fail open."""
         messages = list(kwargs.get("messages", []))
-        kwargs["messages"] = messages
-
-        if self._options.add_memory == "always":
-            user_message = get_last_user_message(messages)
-            if user_message and user_message.strip():
-                content = (
-                    get_conversation_content(messages)
-                    if self._options.custom_id
-                    else user_message
-                )
-                custom_id = (
-                    f"conversation:{self._options.custom_id}"
-                    if self._options.custom_id
-                    else None
-                )
-
-                task = asyncio.create_task(
-                    add_memory_tool(
-                        self._supermemory_client,
-                        self._container_tag,
-                        content,
-                        custom_id,
-                        self._logger,
+        turns = _user_turns(messages)
+        turn_key = self._new_turn_key(messages, turns)
+        if turn_key is not None:
+            self._capture_async(messages)
+            plan = self._recall_plan(messages, turns)
+            response = None
+            if plan is not None:
+                try:
+                    response = await asyncio.wait_for(
+                        supermemory_profile_search(
+                            self._container_tag,
+                            plan[0],
+                            self._api_key,
+                            self._base_url,
+                            timeout=self._options.recall_timeout,
+                        ),
+                        timeout=self._options.recall_timeout,
                     )
-                )
-
-                self._background_tasks.add(task)
-                task.add_done_callback(self._background_tasks.discard)
-
-                def handle_task_exception(task_obj):
-                    try:
-                        if task_obj.exception() is not None:
-                            exception = task_obj.exception()
-                            if isinstance(
-                                exception,
-                                (SupermemoryNetworkError, SupermemoryAPIError),
-                            ):
-                                self._logger.warn(
-                                    "Background memory storage failed",
-                                    {
-                                        "error": str(exception),
-                                        "type": type(exception).__name__,
-                                    },
-                                )
-                            else:
-                                self._logger.error(
-                                    "Unexpected error in background memory storage",
-                                    {
-                                        "error": str(exception),
-                                        "type": type(exception).__name__,
-                                    },
-                                )
-                    except asyncio.CancelledError:
-                        self._logger.debug("Memory storage task was cancelled")
-
-                task.add_done_callback(handle_task_exception)
-
-        if self._options.mode != "profile":
-            user_message = get_last_user_message(messages)
-            if not user_message:
-                self._logger.debug("No user message found, skipping memory search")
-                kwargs["messages"] = _update_chat_memory_contexts(messages)
-                return await original_create(**kwargs)
-
-        self._logger.info(
-            "Starting memory search",
-            {
-                "container_tag": self._container_tag,
-                "conversation_id": self._options.custom_id,
-                "mode": self._options.mode,
-            },
-        )
-
-        try:
-            enhanced_messages = await add_system_prompt(
-                messages,
-                self._container_tag,
-                self._logger,
-                self._options.mode,
-                self._api_key,
-                self._base_url,
-            )
-        except (SupermemoryNetworkError, SupermemoryAPIError) as e:
-            self._logger.warn(
-                "Memory search failed, proceeding without memory injection",
-                {"error": str(e), "type": type(e).__name__},
-            )
-            return await original_create(**kwargs)
-        except Exception as e:
-            self._logger.error(
-                "Unexpected error during memory search, proceeding without memory injection",
-                {"error": str(e), "type": type(e).__name__},
-            )
-            return await original_create(**kwargs)
-
-        kwargs["messages"] = enhanced_messages
+                except Exception as error:
+                    self._log_recall_failure(error)
+            self._remember_turn(turn_key, response, plan)
+        kwargs["messages"] = self._apply_turn_memories(messages, turns)
         return await original_create(**kwargs)
 
     def _create_with_memory_sync(
@@ -753,114 +574,226 @@ class SupermemoryOpenAIWrapper:
     ) -> Any:
         """Sync create with memory injection; memory failures fail open."""
         messages = list(kwargs.get("messages", []))
-        kwargs["messages"] = messages
-
-        if self._options.add_memory == "always":
-            user_message = get_last_user_message(messages)
-            if user_message and user_message.strip():
-                content = (
-                    get_conversation_content(messages)
-                    if self._options.custom_id
-                    else user_message
-                )
-                custom_id = (
-                    f"conversation:{self._options.custom_id}"
-                    if self._options.custom_id
-                    else None
-                )
-
+        turns = _user_turns(messages)
+        turn_key = self._new_turn_key(messages, turns)
+        if turn_key is not None:
+            self._capture_sync(messages)
+            plan = self._recall_plan(messages, turns)
+            response = None
+            if plan is not None:
                 try:
-                    asyncio.run(
-                        add_memory_tool(
-                            self._supermemory_client,
+                    response = _run_with_deadline(
+                        supermemory_profile_search(
                             self._container_tag,
-                            content,
-                            custom_id,
-                            self._logger,
-                        )
+                            plan[0],
+                            self._api_key,
+                            self._base_url,
+                            timeout=self._options.recall_timeout,
+                        ),
+                        self._options.recall_timeout,
                     )
-                except RuntimeError as e:
-                    if "cannot be called from a running event loop" in str(e):
-                        self._logger.warn(
-                            "Cannot save memory in sync client from async context",
-                            {"error": str(e)},
-                        )
-                    else:
-                        raise
-                except SupermemoryNetworkError as e:
-                    self._logger.warn("Network error saving memory", {"error": str(e)})
-                except (SupermemoryAPIError, SupermemoryMemoryOperationError) as e:
-                    self._logger.error("Failed to save memory", {"error": str(e)})
-                except Exception as e:
-                    self._logger.error(
-                        "Unexpected error saving memory",
-                        {"error": str(e), "type": type(e).__name__},
-                    )
+                except Exception as error:
+                    self._log_recall_failure(error)
+            self._remember_turn(turn_key, response, plan)
+        kwargs["messages"] = self._apply_turn_memories(messages, turns)
+        return original_create(**kwargs)
 
-        if self._options.mode != "profile":
-            user_message = get_last_user_message(messages)
-            if not user_message:
-                self._logger.debug("No user message found, skipping memory search")
-                kwargs["messages"] = _update_chat_memory_contexts(messages)
-                return original_create(**kwargs)
+    def _new_turn_key(
+        self,
+        messages: list[ChatCompletionMessageParam],
+        turns: list[tuple[int, str]],
+    ) -> Optional[str]:
+        """Return the key of a user turn seen for the first time; tool steps reuse their turn."""
+        if not turns or turns[-1][0] != len(messages) - 1:
+            return None
+        turn_key = turns[-1][1]
+        with self._turn_lock:
+            if turn_key in self._turn_memories:
+                return None
+            self._turn_memories[turn_key] = _TurnMemory()
+            self._evict_turns()
+        return turn_key
 
+    def _recall_plan(
+        self,
+        messages: list[ChatCompletionMessageParam],
+        turns: list[tuple[int, str]],
+    ) -> Optional[tuple[str, bool, set[str]]]:
+        """Decide the query, whether the profile is still owed, and what earlier turns carried."""
+        include_profile = self._options.mode != "query"
+        seen: set[str] = set()
+        with self._turn_lock:
+            for _, key in turns[:-1]:
+                earlier = self._turn_memories.get(key)
+                if earlier is None:
+                    continue
+                include_profile = include_profile and not earlier.has_profile
+                seen.update(earlier.memories)
+        if self._options.mode == "profile" and not include_profile:
+            return None
+        query_text = (
+            get_last_user_message(messages) if self._options.mode != "profile" else ""
+        )
+        if self._options.mode != "profile" and not query_text.strip():
+            return None
         self._logger.info(
             "Starting memory search",
             {
                 "container_tag": self._container_tag,
                 "conversation_id": self._options.custom_id,
                 "mode": self._options.mode,
+                "include_profile": include_profile,
             },
         )
+        return query_text, include_profile, seen
 
+    def _remember_turn(
+        self,
+        turn_key: str,
+        response: Optional[SupermemoryProfileSearch],
+        plan: Optional[tuple[str, bool, set[str]]],
+    ) -> None:
+        """Pin the turn's memory; a failed recall leaves it empty so the next turn retries."""
+        if response is None or plan is None:
+            return
         try:
-            try:
-                enhanced_messages = asyncio.run(
-                    add_system_prompt(
-                        messages,
-                        self._container_tag,
-                        self._logger,
-                        self._options.mode,
-                        self._api_key,
-                        self._base_url,
-                    )
-                )
-            except RuntimeError as e:
-                if "cannot be called from a running event loop" in str(e):
-                    import concurrent.futures
+            memory = _build_turn_memory(response, self._options.mode, plan[1], plan[2])
+        except Exception as error:
+            self._log_recall_failure(error)
+            return
+        self._logger.debug(
+            "Memory search completed",
+            {"memory_count": len(memory.memories), "content": memory.text},
+        )
+        with self._turn_lock:
+            if turn_key in self._turn_memories:
+                self._turn_memories[turn_key] = memory
 
-                    with concurrent.futures.ThreadPoolExecutor(
-                        max_workers=1
-                    ) as executor:
-                        future = executor.submit(
-                            asyncio.run,
-                            add_system_prompt(
-                                messages,
-                                self._container_tag,
-                                self._logger,
-                                self._options.mode,
-                                self._api_key,
-                                self._base_url,
-                            ),
-                        )
-                        enhanced_messages = future.result()
-                else:
-                    raise
-        except (SupermemoryNetworkError, SupermemoryAPIError) as e:
+    def _evict_turns(self) -> None:
+        while len(self._turn_memories) > TURN_CACHE_SIZE:
+            self._turn_memories.popitem(last=False)
+
+    def _apply_turn_memories(
+        self,
+        messages: list[ChatCompletionMessageParam],
+        turns: list[tuple[int, str]],
+    ) -> list[ChatCompletionMessageParam]:
+        """Re-attach every pinned turn memory to its user message on a copy of the request."""
+        enhanced = list(messages)
+        with self._turn_lock:
+            for index, key in turns:
+                memory = self._turn_memories.get(key)
+                if memory is None:
+                    continue
+                self._turn_memories.move_to_end(key)
+                if memory.text:
+                    enhanced[index] = _append_to_user_message(
+                        enhanced[index], memory.text
+                    )
+        return enhanced
+
+    def _log_recall_failure(self, error: BaseException) -> None:
+        if isinstance(
+            error,
+            (
+                SupermemoryNetworkError,
+                SupermemoryAPIError,
+                asyncio.TimeoutError,
+                TimeoutError,
+            ),
+        ):
             self._logger.warn(
                 "Memory search failed, proceeding without memory injection",
-                {"error": str(e), "type": type(e).__name__},
+                {"error": str(error), "type": type(error).__name__},
             )
-            return original_create(**kwargs)
-        except Exception as e:
+        else:
             self._logger.error(
                 "Unexpected error during memory search, proceeding without memory injection",
-                {"error": str(e), "type": type(e).__name__},
+                {"error": str(error), "type": type(error).__name__},
             )
-            return original_create(**kwargs)
 
-        kwargs["messages"] = enhanced_messages
-        return original_create(**kwargs)
+    def _capture_request(
+        self, messages: list[ChatCompletionMessageParam]
+    ) -> Optional[tuple[str, Optional[str]]]:
+        """Build the upload for this turn; system and developer prompts never leave the process."""
+        if self._options.add_memory != "always":
+            return None
+        user_message = get_last_user_message(messages)
+        if not user_message.strip():
+            return None
+        if not self._options.custom_id:
+            return user_message, None
+        conversation = [
+            message
+            for message in messages
+            if isinstance(message, dict) and message.get("role") not in UNCAPTURED_ROLES
+        ]
+        return (
+            get_conversation_content(conversation),
+            f"conversation:{self._options.custom_id}",
+        )
+
+    def _capture_async(self, messages: list[ChatCompletionMessageParam]) -> None:
+        capture = self._capture_request(messages)
+        if capture is None:
+            return
+        task = asyncio.create_task(
+            add_memory_tool(
+                self._supermemory_client,
+                self._container_tag,
+                capture[0],
+                capture[1],
+                self._logger,
+            )
+        )
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        task.add_done_callback(self._log_capture_task)
+
+    def _log_capture_task(self, task: "asyncio.Task[None]") -> None:
+        if task.cancelled():
+            self._logger.debug("Memory storage task was cancelled")
+            return
+        exception = task.exception()
+        if exception is not None:
+            self._logger.warn(
+                "Background memory storage failed",
+                {"error": str(exception), "type": type(exception).__name__},
+            )
+
+    def _capture_sync(self, messages: list[ChatCompletionMessageParam]) -> None:
+        """Save on a daemon thread so a slow or hung API never delays the model call or exit."""
+        capture = self._capture_request(messages)
+        if capture is None:
+            return
+        coroutine = add_memory_tool(
+            self._supermemory_client,
+            self._container_tag,
+            capture[0],
+            capture[1],
+            self._logger,
+        )
+
+        def run() -> None:
+            try:
+                asyncio.run(coroutine)
+            except Exception as error:
+                self._logger.warn(
+                    "Background memory storage failed",
+                    {"error": str(error), "type": type(error).__name__},
+                )
+            finally:
+                self._capture_threads.discard(thread)
+
+        thread = threading.Thread(target=run, name="supermemory-capture", daemon=True)
+        self._capture_threads.add(thread)
+        thread.start()
+
+    def wait_for_background_captures(self, timeout: float = EXIT_WAIT_SECONDS) -> None:
+        """Join pending sync-client captures for at most timeout seconds in total."""
+        deadline = time.monotonic() + timeout
+        for thread in list(self._capture_threads):
+            thread.join(max(0.0, deadline - time.monotonic()))
 
     async def wait_for_background_tasks(self, timeout: Optional[float] = 10.0) -> None:
         """
@@ -931,6 +864,7 @@ class SupermemoryOpenAIWrapper:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Sync context manager exit - attempt to wait for background tasks."""
+        self.wait_for_background_captures()
         if self._background_tasks:
             try:
                 asyncio.run(self.wait_for_background_tasks(timeout=5.0))
@@ -964,11 +898,13 @@ def with_supermemory(
 ) -> Union[OpenAI, AsyncOpenAI]:
     """
     Wraps an OpenAI client with SuperMemory middleware to automatically inject relevant memories
-    into the system prompt based on the user's message content.
+    into the conversation based on the user's message content.
 
-    This middleware searches the supermemory API for relevant memories using the container tag
-    and user message, then either appends memories to an existing system prompt or creates
-    a new system prompt with the memories.
+    Memories are recalled once per user turn and appended to that turn's user message. The
+    system and developer prompts are never modified, and earlier turns are resent with the
+    same memory text on every later request so the provider's prompt cache keeps matching.
+    Recall is bounded by ``recall_timeout`` and fails open; conversation capture runs in
+    the background and never delays the model call.
 
     Args:
         openai_client: The OpenAI client to wrap with SuperMemory middleware
@@ -1004,8 +940,7 @@ def with_supermemory(
         ```
 
     Raises:
-        ValueError: When SUPERMEMORY_API_KEY environment variable is not set
-        Exception: When supermemory API request fails
+        SupermemoryConfigurationError: When no Supermemory API key is configured
     """
     wrapper = SupermemoryOpenAIWrapper(openai_client, options)
     # Return the wrapper, which delegates all attributes to the original client
