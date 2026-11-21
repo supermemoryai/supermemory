@@ -140,9 +140,9 @@ response = openai_with_memory.chat.completions.create(
 )
 ```
 
-**Event Loop Management**: The middleware properly handles event loops using `asyncio.run()` for sync clients. If called from within an existing async context, it automatically runs in a separate thread to avoid conflicts.
+**Event Loop Management**: For sync clients, recall runs on a short-lived daemon thread with its own event loop, so the middleware works the same whether or not it is called from inside a running event loop.
 
-**Background Task Management**: When `add_memory="always"`, memory storage happens in background tasks. Use context managers or manual cleanup to ensure tasks complete:
+**Background Task Management**: When `add_memory="always"`, memory storage never delays the model call. Async clients save in an asyncio task; sync clients save on a daemon thread, which does not keep the process alive. Saves use a 5-second timeout and no retries. Use a context manager, or wait for pending saves yourself, so the last turn is saved before the process exits:
 
 ```python
 from supermemory_openai import with_supermemory, OpenAIMiddlewareOptions
@@ -162,7 +162,27 @@ client = with_supermemory(
 )
 response = await client.chat.completions.create(...)
 await client.wait_for_background_tasks()  # Ensure memory is saved
+
+# Sync clients
+with with_supermemory(
+    OpenAI(),
+    OpenAIMiddlewareOptions(container_tag="user-123", custom_id="session-456")
+) as client:
+    response = client.chat.completions.create(...)
+# Pending saves are joined for up to 5 seconds on exit
+# (or call client.wait_for_background_captures())
 ```
+
+## How memories are placed
+
+Memories are added to the conversation in a way that keeps the provider's prompt cache working:
+
+- Memories are recalled once per user turn and appended to that turn's **user message**, inside a `<supermemory context="user-memories" readonly>` block. The system and developer messages are never modified.
+- Every later request resends each earlier turn with exactly the same memory text, so earlier turns stay byte-identical and the cached prefix keeps matching. The wrapper keeps this per-turn text in a bounded in-memory cache (256 turns); your `messages` list is never mutated.
+- Tool-call continuation steps inside a turn reuse that turn's memory and do not recall again.
+- The profile is included once, on the first turn where it was fetched successfully. Later turns carry only new search results, and memories already shown in an earlier turn are not repeated.
+- Recall is capped by `recall_timeout` (2 seconds by default) and makes a single attempt. If it times out or fails, that turn is sent without memory, and the next user turn tries again.
+- Conversation saves skip system and developer messages and happen once per user turn.
 
 ## Middleware Configuration
 
@@ -171,7 +191,7 @@ await client.wait_for_background_tasks()  # Ensure memory is saved
 The middleware supports three different modes for memory injection:
 
 #### `"profile"` mode (default)
-Injects all static and dynamic profile memories into every request. Best for maintaining consistent user context.
+Injects the user's static and dynamic profile once per conversation, on the first user turn where it is available. Best for maintaining consistent user context.
 
 ```python
 openai_with_memory = with_supermemory(
@@ -191,7 +211,7 @@ openai_with_memory = with_supermemory(
 ```
 
 #### `"full"` mode
-Combines both profile and query modes - includes all profile memories plus relevant search results.
+Combines both profile and query modes - includes the profile once plus relevant search results on every user turn.
 
 ```python
 openai_with_memory = with_supermemory(
@@ -361,6 +381,7 @@ class OpenAIMiddlewareOptions:
     add_memory: Literal["always", "never"] = "always"      # Auto-save behavior
     api_key: Optional[str] = None               # Falls back to SUPERMEMORY_API_KEY
     base_url: Optional[str] = None              # Falls back to SUPERMEMORY_BASE_URL
+    recall_timeout: float = 2.0                 # Seconds to wait for recall before sending without memory
 ```
 
 ### SupermemoryTools
