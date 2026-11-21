@@ -14,7 +14,6 @@ import {
 	replaceMemoryContext,
 	stripMemoryContext,
 	turnKey,
-	turnKeys,
 	withTurnMemory,
 	wrapMemoryContext,
 } from "../shared"
@@ -456,7 +455,6 @@ export function createOpenAIMiddleware(
 
 	const turnMemory = new TurnMemory()
 	let conversationHead: string | undefined
-	let serverTurns = 0
 	const pendingResponses = new LRUCache<string, ResponsesTurn>({ max: 100 })
 
 	// A new opening message means the wrapper is serving a new conversation, so start fresh.
@@ -492,12 +490,12 @@ export function createOpenAIMiddleware(
 		)
 	}
 
-	const recallTurn = (key: string, query: string) =>
+	const recallTurn = (keys: string[], fresh = false) =>
 		turnMemory.recall(
-			key,
+			keys,
 			buildTurnRecall({
 				namespace,
-				query,
+				query: keys.at(-1) ?? "",
 				mode,
 				baseUrl,
 				apiKey,
@@ -505,6 +503,7 @@ export function createOpenAIMiddleware(
 				promptTemplate: (data) =>
 					`${data.userMemories}\n${data.generalSearchMemories}`.trim(),
 			}),
+			{ fresh },
 		)
 
 	// Fire and forget: a slow or failing save must never hold the caller's response.
@@ -564,11 +563,20 @@ export function createOpenAIMiddleware(
 			output_text?: unknown
 			output?: unknown
 		}
+		const conversationParam = (params as { conversation?: unknown })
+			.conversation
+		const conversationKey =
+			typeof conversationParam === "string"
+				? `conversation:${conversationParam}`
+				: typeof (conversationParam as { id?: unknown })?.id === "string"
+					? `conversation:${(conversationParam as { id: string }).id}`
+					: undefined
 		const finishTurn = (turn: ResponsesTurn, response: ResponseLike) => {
 			if (hasResponsesFunctionCall(response.output)) {
 				if (typeof response.id === "string") {
 					pendingResponses.set(response.id, turn)
 				}
+				if (conversationKey) pendingResponses.set(conversationKey, turn)
 				return
 			}
 			captureTurn(
@@ -604,44 +612,30 @@ export function createOpenAIMiddleware(
 		const userItems = items.filter(isResponsesUserMessage)
 		const latestUser = userItems.at(-1)
 		if (!latestUser) {
-			const pending = params.previous_response_id
-				? pendingResponses.get(params.previous_response_id)
-				: undefined
+			const pendingKey = params.previous_response_id || conversationKey
+			const pending = pendingKey ? pendingResponses.get(pendingKey) : undefined
 			if (!pending) return { request: forward(params.input) }
-			pendingResponses.delete(params.previous_response_id as string)
+			if (params.previous_response_id) {
+				pendingResponses.delete(params.previous_response_id)
+			}
+			if (conversationKey) pendingResponses.delete(conversationKey)
 			return {
 				request: forward(params.input),
 				afterResponse: afterResponseFor(pending),
 			}
 		}
 
-		const serverHistory =
-			params.previous_response_id ||
-			(params as { conversation?: unknown }).conversation
-		const keys = new Map(
-			turnKeys(userItems.map((item) => extractTextContent(item.content))).map(
-				(key, index) => [
-					userItems[index],
-					serverHistory ? `${serverTurns + 1}\u0000${key}` : key,
-				],
-			),
+		const serverHistory = !!(params.previous_response_id || conversationParam)
+		const keys = userItems.map((item) =>
+			turnKey(extractTextContent(item.content)),
 		)
-		if (serverHistory) serverTurns++
-		const firstUser = userItems[0]
-		if (firstUser && !serverHistory) {
-			trackConversation(keys.get(firstUser) as string)
-		}
-		await recallTurn(
-			keys.get(latestUser) as string,
-			turnKey(extractTextContent(latestUser.content)),
-		)
+		if (!serverHistory) trackConversation(keys[0] as string)
+		await recallTurn(keys, serverHistory)
 
-		const memories = await Promise.all(
-			items.map((item) => {
-				const key = keys.get(item as ResponsesInputItem)
-				return key === undefined ? undefined : turnMemory.get(key)
-			}),
+		const blocks = new Map<unknown, Promise<string> | undefined>(
+			turnMemory.blocks(keys).map((block, index) => [userItems[index], block]),
 		)
+		const memories = await Promise.all(items.map((item) => blocks.get(item)))
 		const injected = items.map((item, index) => {
 			const memory = memories[index]
 			if (memory === undefined || !isResponsesUserMessage(item)) return item
@@ -685,22 +679,19 @@ export function createOpenAIMiddleware(
 		const latestUser = userMessages.at(-1)
 		if (!latestUser) return { request: forward(messages) }
 
-		const keys = new Map<unknown, string>(
-			turnKeys(
-				userMessages.map((message) => extractTextContent(message.content)),
-			).map((key, index) => [userMessages[index], key]),
+		const keys = userMessages.map((message) =>
+			turnKey(extractTextContent(message.content)),
 		)
-		trackConversation(keys.get(userMessages[0] ?? latestUser) as string)
-		await recallTurn(
-			keys.get(latestUser) as string,
-			turnKey(extractTextContent(latestUser.content)),
-		)
+		trackConversation(keys[0] as string)
+		await recallTurn(keys)
 
+		const blocks = new Map<unknown, Promise<string> | undefined>(
+			turnMemory
+				.blocks(keys)
+				.map((block, index) => [userMessages[index], block]),
+		)
 		const memories = await Promise.all(
-			messages.map((message) => {
-				const key = keys.get(message)
-				return key === undefined ? undefined : turnMemory.get(key)
-			}),
+			messages.map((message) => blocks.get(message)),
 		)
 		const injected = messages.map((message, index) => {
 			const memory = memories[index]

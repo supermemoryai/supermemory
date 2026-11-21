@@ -61,7 +61,6 @@ export {
 	TurnMemoryByConversation,
 	buildTurnRecall,
 	turnKey,
-	turnKeys,
 	withTurnMemory,
 	type BuildTurnRecallOptions,
 	type FrozenProfile,

@@ -38,17 +38,6 @@ export type TurnRecallFetcher = (
 export const turnKey = (text: string): string =>
 	stripMemoryContext(text).trim().replace(/\s+/g, " ")
 
-// A repeated question is its own turn, so it gets a fresh search instead of the first one's block.
-export const turnKeys = (texts: string[]): string[] => {
-	const seen = new Map<string, number>()
-	return texts.map((text) => {
-		const key = turnKey(text)
-		const count = (seen.get(key) ?? 0) + 1
-		seen.set(key, count)
-		return count === 1 ? key : `${key}\u0000${count}`
-	})
-}
-
 type TextPart = { type: string; text?: string }
 
 // Removes only SDK-added blocks, so caller-authored bytes reach the model exactly as sent.
@@ -157,14 +146,10 @@ export const buildTurnRecall =
 	}
 
 export class TurnMemory {
-	private turns = new LRUCache<string, Promise<string>>({
+	private turns = new LRUCache<string, Promise<string>[]>({
 		max: MAX_TURNS_PER_CONVERSATION,
 	})
 	private frozen?: FrozenProfile
-
-	get(key: string): Promise<string> | undefined {
-		return this.turns.get(key)
-	}
 
 	get profile(): string {
 		return this.frozen?.text ?? ""
@@ -175,14 +160,31 @@ export class TurnMemory {
 		this.frozen = undefined
 	}
 
+	// Repeats of one text map to its latest recalls counted from the end, so trimming old history never shifts a block.
+	blocks(keys: string[]): Array<Promise<string> | undefined> {
+		const later = new Map<string, number>()
+		const blocks: Array<Promise<string> | undefined> = []
+		for (let index = keys.length - 1; index >= 0; index--) {
+			const key = keys[index] as string
+			const skip = later.get(key) ?? 0
+			later.set(key, skip + 1)
+			const entries = this.turns.get(key)
+			blocks[index] = entries?.[entries.length - 1 - skip]
+		}
+		return blocks
+	}
+
 	// Frozen per turn so later requests resend identical bytes; never rejects or outlasts the budget.
 	recall(
-		key: string,
+		keys: string[],
 		fetch: TurnRecallFetcher,
-		timeoutMs = RECALL_TIMEOUT_MS,
+		{ fresh = false, timeoutMs = RECALL_TIMEOUT_MS } = {},
 	): Promise<string> {
-		const existing = this.turns.get(key)
-		if (existing) return existing
+		const key = keys.at(-1) ?? ""
+		const entries = this.turns.get(key) ?? []
+		const occurrences = keys.filter((other) => other === key).length
+		const existing = entries.at(-1)
+		if (existing && !fresh && entries.length >= occurrences) return existing
 
 		const controller = new AbortController()
 		let timer: ReturnType<typeof setTimeout> | undefined
@@ -204,7 +206,7 @@ export class TurnMemory {
 				() => "",
 			)
 			.finally(() => clearTimeout(timer))
-		this.turns.set(key, entry)
+		this.turns.set(key, [...entries, entry])
 		return entry
 	}
 }

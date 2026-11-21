@@ -21,7 +21,6 @@ import {
 	replaceMemoryContext,
 	stripMemoryContext,
 	turnKey,
-	turnKeys,
 	withTurnMemory,
 	wrapMemoryContext,
 	TurnMemoryByConversation,
@@ -188,13 +187,11 @@ export class SupermemoryInputProcessor implements Processor {
 		const latest = users.at(-1)
 		if (!latest) return messageList
 
-		const keys = new Map(
-			turnKeys(users.map(messageText)).map((key, index) => [users[index], key]),
-		)
+		const keys = users.map((message) => turnKey(messageText(message)))
 		const memory = this.turns.for(getEffectiveId(this.ctx, requestContext))
-		const query = turnKey(messageText(latest))
+		const query = keys.at(-1) as string
 		await memory.recall(
-			keys.get(latest) as string,
+			keys,
 			buildTurnRecall({
 				namespace: this.ctx.namespace,
 				query,
@@ -206,11 +203,11 @@ export class SupermemoryInputProcessor implements Processor {
 			}),
 		)
 
+		const byMessage = new Map(
+			memory.blocks(keys).map((block, index) => [users[index], block]),
+		)
 		const blocks = await Promise.all(
-			messages.map((message) => {
-				const key = keys.get(message)
-				return key === undefined ? undefined : memory.get(key)
-			}),
+			messages.map((message) => byMessage.get(message)),
 		)
 		const profile = wrapMemoryContext(memory.profile)
 		if (!profile && blocks.every((block) => !block)) return messageList
