@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server"
 import { instrument, type MCPAnalyticsOptions } from "@posthog/mcp"
 import { PostHog } from "posthog-node"
 import { OUT_OF_CREDITS_MESSAGE } from "./client"
+import { ERROR_STATUS_META_KEY } from "./tools/types"
 import type { ActorContext, ServerEnv } from "./types"
 
 const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com"
@@ -20,7 +21,14 @@ const MCP_EVENT_PROPERTIES = [
 	"$session_id",
 	"$groups",
 ] as const
-const ERROR_MESSAGE_MAX_LENGTH = 120
+const STATUS_ERROR_CODES: Record<number, string> = {
+	400: "invalid_input",
+	401: "unauthorized",
+	403: "forbidden",
+	404: "not_found",
+	422: "invalid_input",
+	429: "rate_limited",
+}
 const ERROR_CODES: ReadonlyArray<readonly [RegExp, string]> = [
 	[/timed out/i, "timeout"],
 	[/network error/i, "network"],
@@ -69,26 +77,26 @@ class ImmediateMcpPostHog extends PostHog {
 	}
 }
 
-// Quoted spans carry document ids and space names, so they are blanked before the message leaves the Worker.
+// API error text can echo user input, so only a fixed code and the HTTP status leave the Worker.
 function errorProperties(
-	errorType: unknown,
-	errorMessage: unknown,
-): Record<string, string> {
-	const message =
-		typeof errorMessage === "string"
-			? errorMessage
-					.replace(/^(MCP error -?\d+: )?(Error: )?/, "")
-					.replace(/"[^"]*"|'[^']*'|`[^`]*`/g, '""')
-					.slice(0, ERROR_MESSAGE_MAX_LENGTH)
-			: ""
+	properties: Record<string, unknown>,
+): Record<string, string | number> {
+	const meta = Reflect.get(Object(properties.$mcp_response), "_meta")
+	const status = Reflect.get(Object(meta), ERROR_STATUS_META_KEY)
+	const message = String(properties.$mcp_error_message ?? "")
+	const errorType = properties.$mcp_error_type
 	const code =
+		(typeof status === "number"
+			? (STATUS_ERROR_CODES[status] ??
+				(status >= 500 ? "server_error" : undefined))
+			: undefined) ??
 		ERROR_CODES.find(([pattern]) => pattern.test(message))?.[1] ??
 		(typeof errorType === "string" && /^\w{1,40}$/.test(errorType)
 			? errorType
 			: "unknown")
 	return {
 		$mcp_error_type: code,
-		...(message ? { $mcp_error_message: message } : {}),
+		...(typeof status === "number" ? { $mcp_error_status: status } : {}),
 	}
 }
 
@@ -114,7 +122,7 @@ const metadataOnlyMcpEvent: NonNullable<MCPAnalyticsOptions["beforeSend"]> = (
 			...(outOfCredits
 				? { $mcp_is_error: false, $mcp_error_type: "out_of_credits" }
 				: event.properties.$mcp_is_error === true
-					? errorProperties(event.properties.$mcp_error_type, errorMessage)
+					? errorProperties(event.properties)
 					: {}),
 			$process_person_profile: false,
 		},

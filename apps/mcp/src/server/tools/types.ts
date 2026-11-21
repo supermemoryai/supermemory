@@ -34,11 +34,18 @@ export function textContent(text: string): TextContent {
 	return { type: "text", text }
 }
 
+export const ERROR_STATUS_META_KEY = "ai.supermemory/error-status"
+
 export function errorResult(error: unknown): CallToolResult {
 	const message =
 		error instanceof Error ? error.message : "An unexpected error occurred"
+	const status =
+		error instanceof Error ? Reflect.get(error, "status") : undefined
 	return {
 		content: [textContent(`Error: ${message}`)],
 		isError: true,
+		...(typeof status === "number"
+			? { _meta: { [ERROR_STATUS_META_KEY]: status } }
+			: {}),
 	}
 }

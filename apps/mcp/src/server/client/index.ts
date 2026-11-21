@@ -148,6 +148,32 @@ function objectProperty(value: unknown, key: string): unknown {
 		: undefined
 }
 
+function apiErrorText(
+	status: number,
+	message: string | undefined,
+): string | undefined {
+	switch (status) {
+		case 400:
+		case 422:
+			return message || "Invalid request. Check your input."
+		case 401:
+			return "Authentication failed. Please re-authenticate."
+		case 402:
+			return OUT_OF_CREDITS_MESSAGE
+		case 403:
+			return (
+				message ||
+				"Access forbidden. This connection may be read-only or scoped to specific spaces — reconnect with broader access, or check your account status."
+			)
+		case 404:
+			return "Not found."
+		case 429:
+			return "Rate limit exceeded. Please wait and try again."
+		default:
+			return status >= 500 ? "Server error. Please try again later." : undefined
+	}
+}
+
 // Unwrap {"error": "..."} bodies so users see the real reason, not raw JSON.
 function extractApiErrorMessage(raw: unknown): string | undefined {
 	if (!raw) return undefined
@@ -509,28 +535,8 @@ export class SupermemoryClient {
 				typeof statusCode === "number"
 					? extractApiErrorMessage(objectProperty(error, "body"))
 					: extractApiErrorMessage(objectProperty(error, "message"))
-			switch (status) {
-				case 400:
-				case 422:
-					throw new Error(message || "Invalid request. Check your input.")
-				case 401:
-					throw new Error("Authentication failed. Please re-authenticate.")
-				case 402:
-					throw new Error(OUT_OF_CREDITS_MESSAGE)
-				case 403:
-					throw new Error(
-						message ||
-							"Access forbidden. This connection may be read-only or scoped to specific spaces — reconnect with broader access, or check your account status.",
-					)
-				case 404:
-					throw new Error("Not found.")
-				case 429:
-					throw new Error("Rate limit exceeded. Please wait and try again.")
-				default:
-					if (status >= 500) {
-						throw new Error("Server error. Please try again later.")
-					}
-			}
+			const text = apiErrorText(status, message)
+			if (text) throw Object.assign(new Error(text), { status })
 		}
 
 		if (error instanceof Error) throw error
@@ -545,7 +551,9 @@ export class SupermemoryClient {
 				handledError instanceof Error
 					? handledError.message
 					: String(handledError)
-			throw new Error(`${operation} failed: ${message}`)
+			throw Object.assign(new Error(`${operation} failed: ${message}`), {
+				status: objectProperty(handledError, "status"),
+			})
 		}
 	}
 }
