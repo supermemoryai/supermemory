@@ -33,7 +33,7 @@ interface AgentConfig {
  * Supermemory processors injected. Use this before creating your Agent instance.
  *
  * The enhanced config includes:
- * - Input processor: Fetches relevant memories before LLM calls
+ * - Input processor: Fetches relevant memories before LLM calls and appends them to the user's message
  * - Output processor: Saves conversations after responses (when addMemory is "always")
  *
  * @param config - The Mastra agent configuration to enhance

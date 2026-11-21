@@ -315,7 +315,15 @@ const recallTurn =
 		}
 	}
 
-// Earlier turns get back the exact block they first had, so the system prompt and history stay cacheable.
+/**
+ * Retrieves memories for the latest user message and appends them to that message.
+ * Earlier user messages get back the exact block they first received, so the system
+ * prompt and history stay cacheable. Returns new messages; the input is not mutated.
+ *
+ * @param messages - VoltAgent messages to enhance
+ * @param ctx - Supermemory middleware context
+ * @param conversationId - Conversation whose memories to reuse (default: ctx.id)
+ */
 export const enhanceMessagesWithMemories = async (
 	messages: VoltAgentMessage[],
 	ctx: SupermemoryMiddlewareContext,

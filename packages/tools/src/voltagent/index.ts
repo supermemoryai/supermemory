@@ -31,7 +31,10 @@ interface WithSupermemoryOptions<T extends VoltAgentConfig>
  *
  * The function injects hooks that automatically:
  * - Retrieve relevant memories before LLM calls (via onPrepareMessages)
- * - Inject memories into the system prompt
+ * - Append them to the user message they were retrieved for, replaying earlier
+ *   messages' blocks unchanged so the system prompt and history stay cacheable
+ * - Fetch the profile once per conversation ("profile" and "full" modes) and
+ *   retry a failed or timed-out fetch on the next user message
  * - Optionally save conversations after completion (via onEnd)
  *
  * @param options - Configuration object containing agent config and Supermemory options

@@ -17,6 +17,16 @@ import {
 } from "../shared"
 import type { LanguageModelCallOptions } from "./util"
 
+/**
+ * Extracts the query text from params based on mode.
+ * For "profile" mode, returns empty string (no query needed).
+ * For "query" or "full" mode, extracts the last user message text, without any
+ * Supermemory block an earlier call appended to it.
+ *
+ * @param params - The language model call options
+ * @param mode - The memory retrieval mode
+ * @returns The query text for memory search
+ */
 export const extractQueryText = (
 	params: LanguageModelCallOptions,
 	mode: "profile" | "query" | "full",
@@ -45,6 +55,16 @@ export const extractQueryText = (
 		.join(" ")
 }
 
+/**
+ * Injects the profile memories string into the system prompt, replacing any Supermemory
+ * block from an earlier call, or creates a system prompt when none exists.
+ * Pure function - does not mutate the original params.
+ *
+ * @param params - The language model call options
+ * @param memories - The formatted memories string to inject
+ * @param logger - Logger for debug output
+ * @returns New params with memories injected into the system prompt
+ */
 export const injectMemoriesIntoParams = (
 	params: LanguageModelCallOptions,
 	memories: string,

@@ -106,11 +106,26 @@ export interface OpenAIMiddlewareOptions {
 	namespace: string
 	/** ID that groups messages into a single document. Required. */
 	id: string
+	/** Enable detailed logging of memory search and injection (default: false). */
 	verbose?: boolean
+	/**
+	 * Memory retrieval mode (default: "profile"):
+	 * - "profile": The user profile, fetched once per conversation with the first user message
+	 * - "query": Search results for each user message
+	 * - "full": Both; the profile comes with the first user message's block
+	 *
+	 * Memories are appended to the user message they were retrieved for.
+	 */
 	mode?: "profile" | "query" | "full"
+	/**
+	 * Memory persistence mode (default: "always"):
+	 * - "always": Save each finished turn to Supermemory in the background
+	 * - "never": Only retrieve memories, don't store new ones
+	 */
 	addMemory?: "always" | "never"
 	/** Supermemory API key (falls back to SUPERMEMORY_API_KEY). */
 	apiKey?: string
+	/** Custom Supermemory API base URL (default: "https://api.supermemory.ai"). */
 	baseUrl?: string
 }
 
@@ -387,6 +402,7 @@ const addMemoryTool = async (
  * @param options.mode - Memory search mode: "profile" (all memories), "query" (search-based), or "full" (both) (default: "profile")
  * @param options.addMemory - Automatic memory storage mode: "always" or "never" (default: "always")
  * @param options.apiKey - Supermemory API key (falls back to SUPERMEMORY_API_KEY)
+ * @param options.baseUrl - Custom Supermemory API base URL (default: "https://api.supermemory.ai")
  * @returns The wrapped client
  * @throws {Error} When neither options.apiKey nor SUPERMEMORY_API_KEY is set
  *

@@ -7,6 +7,8 @@ export interface MemoryPromptData {
 	/**
 	 * Pre-formatted markdown combining static and dynamic profile memories.
 	 * Contains core user facts (name, preferences, goals) and recent context (projects, interests).
+	 * The profile is fetched once per conversation, so this is empty on turns that carry only
+	 * search results.
 	 */
 	userMemories: string
 	/**
@@ -41,7 +43,10 @@ export interface MemorySearchResult
 
 /**
  * Function type for customizing the memory prompt injection.
- * Return the full string to be injected into the system prompt.
+ * Return the full string to inject as the memory block. Where the block goes depends on
+ * the integration: the AI SDK wrapper puts the profile in the system prompt and search
+ * results on the user message; the OpenAI, Mastra and VoltAgent wrappers append the
+ * block to the user message it was retrieved for.
  *
  * @example
  * ```typescript
@@ -131,6 +136,6 @@ export interface SupermemoryBaseOptions {
 	addMemory?: AddMemoryMode
 	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
-	/** Custom function to format memory data into the system prompt */
+	/** Custom function to format memory data into the injected memory block */
 	promptTemplate?: PromptTemplate
 }
