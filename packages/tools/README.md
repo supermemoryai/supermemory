@@ -422,7 +422,7 @@ const addResult = await tools.addMemory({
 ### Mastra Usage
 
 Add persistent memory to [Mastra](https://mastra.ai) AI agents. The integration provides processors that:
-- **Input Processor**: Fetches relevant memories and injects them into the system prompt before LLM calls
+- **Input Processor**: Fetches memories once per user turn and appends them to that user message before LLM calls
 - **Output Processor**: Saves conversations to Supermemory after responses (enabled by default)
 
 #### Quick Start with `withSupermemory` Wrapper
