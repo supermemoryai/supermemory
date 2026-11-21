@@ -194,6 +194,31 @@ describe("OpenAI middleware memory context", () => {
 		expect(profileCalls).toBe(2)
 	})
 
+	it("never refetches a profile that was fetched, even when it was empty", async () => {
+		const fetchMock = vi.fn(v5Router({ profile: () => profileBody() }))
+		vi.stubGlobal("fetch", fetchMock)
+		const { client } = fakeChatClient(() => answer("ok"))
+		const wrapped = withSupermemory(client, {
+			namespace: "user-a",
+			id: "conversation-a",
+			mode: "profile",
+			addMemory: "never",
+		})
+
+		const history: ChatMessage[] = [{ role: "user", content: "One" }]
+		await wrapped.chat.completions.create({ model: "m", messages: history })
+		history.push(
+			{ role: "assistant", content: "ok" },
+			{ role: "user", content: "Two" },
+		)
+		await wrapped.chat.completions.create({ model: "m", messages: history })
+
+		const profileCalls = fetchMock.mock.calls.filter((call) =>
+			requestPath(call[0]).endsWith("/profile"),
+		)
+		expect(profileCalls).toHaveLength(1)
+	})
+
 	it("starts the model call without memories when recall exceeds its budget", async () => {
 		vi.stubGlobal(
 			"fetch",

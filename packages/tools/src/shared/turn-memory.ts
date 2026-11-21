@@ -58,7 +58,7 @@ export interface BuildTurnRecallOptions {
 	promptTemplate?: PromptTemplate
 }
 
-// The profile rides on one turn per conversation; every other turn carries only its own search.
+// The profile is fetched once per conversation and never refreshed; search carries anything newer.
 export const turnRecallMode = (
 	mode: MemoryMode,
 	includeProfile: boolean,
@@ -85,7 +85,7 @@ export const buildTurnRecall =
 				promptTemplate: options.promptTemplate,
 				signal,
 			})
-			return { memories, includesProfile: mode !== "query" && !!memories }
+			return { memories, includesProfile: mode !== "query" }
 		} catch (error) {
 			options.logger.warn("Memory recall failed; continuing without memories", {
 				error: error instanceof Error ? error.message : String(error),
@@ -98,7 +98,7 @@ export class TurnMemory {
 	private turns = new LRUCache<string, Promise<string>>({
 		max: MAX_TURNS_PER_CONVERSATION,
 	})
-	private profileShown = false
+	private profileFetched = false
 
 	get(key: string): Promise<string> | undefined {
 		return this.turns.get(key)
@@ -106,7 +106,7 @@ export class TurnMemory {
 
 	reset(): void {
 		this.turns.clear()
-		this.profileShown = false
+		this.profileFetched = false
 	}
 
 	// Frozen per turn so later requests resend identical bytes; never rejects or outlasts the budget.
@@ -127,12 +127,12 @@ export class TurnMemory {
 			}, timeoutMs)
 		})
 		const entry = Promise.race([
-			fetch(!this.profileShown, controller.signal),
+			fetch(!this.profileFetched, controller.signal),
 			deadline,
 		])
 			.then(
 				(result) => {
-					if (result.includesProfile) this.profileShown = true
+					if (result.includesProfile) this.profileFetched = true
 					return result.memories
 				},
 				() => "",

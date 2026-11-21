@@ -69,7 +69,7 @@ const response = await agent.generate("What do you know about me?")
 
 The Mastra integration uses Mastra's native [Processor](https://mastra.ai/docs/agents/processors) interface:
 
-1. **Input Processor** - Fetches memories once per user turn and appends them to that turn's user message, leaving the instructions untouched so prompt caching keeps working. Recall has a 3 second budget; on failure the agent runs without memories for that turn. With Mastra Memory, the block is saved as part of the stored user message, so later turns replay the same bytes.
+1. **Input Processor** - Fetches memories once per user turn and appends them to that turn's user message, leaving the instructions untouched so prompt caching keeps working. The profile is fetched once per thread and never refreshed; newer facts come through each turn's search. Recall has a 3 second budget; on failure the agent runs without memories for that turn. With Mastra Memory, the block is saved as part of the stored user message, so later turns replay the same bytes.
 2. **Output Processor** - Optionally saves the conversation to Supermemory after generation completes
 
 ```mermaid
