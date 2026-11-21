@@ -210,11 +210,11 @@ jobs:
         include:
           - python-version: "3.10"
             dependency-lane: minimum-dependencies
-            supermemory-version: "3.16.0"
+            supermemory-version: "5.0.0"
             pipecat-version: "0.0.98"
           - python-version: "3.12"
             dependency-lane: current-dependencies
-            supermemory-version: "3.59.0"
+            supermemory-version: "5.0.0"
             pipecat-version: "1.7.0"
     defaults:
       run:
