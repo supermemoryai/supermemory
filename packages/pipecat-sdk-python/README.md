@@ -67,11 +67,43 @@ memory = SupermemoryPipecatService(
         search_limit=10,           # Max memories to retrieve
         search_threshold=0.1,      # Similarity threshold
         mode="full",               # "profile", "query", or "full"
-        inject_mode="auto",        # "auto", "system", or "user"
+        inject_mode="auto",        # "auto", "user", or "system"
+        recall_timeout=1.5,        # Seconds to wait for memories before the LLM call proceeds
+        storage_drain_timeout=3.0, # Seconds cleanup waits for pending writes
         system_prompt="Based on previous conversations, I recall:\n\n",
     ),
 )
 ```
+
+### Injection modes
+
+| Mode       | Behavior |
+| ---------- | -------- |
+| `"auto"`   | Default. Same as `"user"`, for text and voice pipelines alike. |
+| `"user"`   | Appends each turn's memories once to that turn's user message (cache-safe). |
+| `"system"` | Replaces this integration's memory block in the system prompt every user turn. For speech-to-speech models with no text user message; prompt caching does not apply. |
+
+### Prompt caching
+
+In `"auto"` and `"user"` mode, memories are appended once per user turn, to that
+turn's user message, inside a `<user_memories>` block. The system message is never modified and earlier turns
+are never rewritten, so every request is a byte-for-byte extension of the previous
+one and provider prompt caches keep hitting. This holds for text and voice
+pipelines alike.
+
+- Tool-call steps inside a turn reuse that turn's memories and do not search again.
+- The profile is included once, on the first turn where it loads; later turns carry
+  only search results that were not already injected.
+- Search results are dated with absolute dates (`[2026-03-04]`), never relative
+  times, so the injected text does not change as time passes.
+
+### Timeouts and failures
+
+Recall never blocks the LLM call for longer than `recall_timeout` (default 1.5s).
+Profile and search run in parallel with no SDK retries; if either fails or times
+out, the turn continues without it. A failed profile is fetched again on the next
+user turn. Writes run in a background queue; on cleanup the service waits at most
+`storage_drain_timeout` for them and logs any batches it could not write.
 
 ### Memory Modes
 
@@ -86,14 +118,13 @@ memory = SupermemoryPipecatService(
 1. **Intercepts context frames** - Listens for Pipecat's universal `LLMContextFrame` (and legacy 0.x frames)
 2. **Tracks conversation** - Separates real conversation messages from tagged memory context
 3. **Retrieves memories** - Reads the v5 profile and, in `query` or `full` mode, searches the same namespace for the user's message
-4. **Injects memories** - Uses a system message for audio/system mode and a tagged user message otherwise
+4. **Injects memories** - Appends a tagged `<user_memories>` block to the current user message once per turn, or replaces it in the system prompt in `"system"` mode
 5. **Stores messages** - Serializes newly observed user and assistant messages through a background queue that drains during cleanup
 
 ### What Gets Stored
 
 New user and assistant messages are stored as a JSON conversation segment. The
-injected `<user_memories>` message is filtered out before storage and does not
-advance the storage cursor.
+injected `<user_memories>` block is stripped from user messages before storage.
 
 For example, this conversation segment:
 
@@ -149,10 +180,11 @@ async def websocket_endpoint(websocket: WebSocket):
     context = LLMContext([{"role": "system", "content": "You are a helpful assistant."}])
     context_aggregator = llm.create_context_aggregator(context)
 
-    # Supermemory memory service
+    # Speech-to-speech models need memories in the system prompt
     memory = SupermemoryPipecatService(
         user_id="alice",
         session_id="session-123",
+        params=SupermemoryPipecatService.InputParams(inject_mode="system"),
     )
 
     pipeline = Pipeline([
