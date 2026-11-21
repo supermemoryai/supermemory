@@ -1,5 +1,5 @@
 import { LRUCache } from "lru-cache"
-import { type ListResponseMemoriesItem, Supermemory } from "supermemory"
+import { Supermemory } from "supermemory"
 import {
 	addConversation,
 	type ContentPart,
@@ -230,8 +230,6 @@ interface SupermemoryMiddlewareOptions {
 }
 
 const MAX_TURNS = 500
-const MAX_REPORTED_MEMORIES = 1000
-const RECENT_MEMORY_LIMIT = 10
 const EMPTY_PROFILE: ProfileStructure["profile"] = { static: [], dynamic: [] }
 
 interface TurnState {
@@ -254,9 +252,7 @@ interface SupermemoryMiddlewareContext {
 	memoryRetrievalTimeoutMs?: number
 	profile?: { data: ProfileStructure["profile"]; text: string }
 	profileRequest?: Promise<ProfileStructure["profile"]>
-	memoryWatermark?: number
 	turns: LRUCache<string, TurnState>
-	reportedMemories: LRUCache<string, string>
 }
 
 export const createSupermemoryContext = (
@@ -300,7 +296,6 @@ export const createSupermemoryContext = (
 			? { memoryRetrievalTimeoutMs }
 			: {}),
 		turns: new LRUCache({ max: MAX_TURNS }),
-		reportedMemories: new LRUCache({ max: MAX_REPORTED_MEMORIES }),
 	}
 }
 
@@ -337,66 +332,7 @@ const loadProfile = (
 	return ctx.profileRequest
 }
 
-const listRecentMemories = async (
-	ctx: SupermemoryMiddlewareContext,
-	signal?: AbortSignal,
-): Promise<ListResponseMemoriesItem[] | undefined> => {
-	try {
-		const { memories } = await ctx.client.list(
-			ctx.namespace,
-			"memories",
-			{
-				sort: "updatedAt",
-				order: "desc",
-				limit: RECENT_MEMORY_LIMIT,
-				include: { forgotten: true },
-			},
-			{ maxRetries: 0, ...(signal && { abortSignal: signal }) },
-		)
-		return memories ?? []
-	} catch (error) {
-		ctx.logger.warn("Supermemory memory updates unavailable", {
-			error: error instanceof Error ? error.message : String(error),
-		})
-		return undefined
-	}
-}
-
-// Compares server timestamps only, so client clock skew can't hide or repeat an update.
-const describeMemoryUpdates = (
-	ctx: SupermemoryMiddlewareContext,
-	memories: ListResponseMemoriesItem[] | undefined,
-	newSnapshot: boolean,
-): string => {
-	if (newSnapshot) ctx.memoryWatermark = undefined
-	if (!memories) return ""
-	const watermark = ctx.memoryWatermark
-	if (watermark === undefined) {
-		ctx.memoryWatermark = Math.max(
-			0,
-			...memories.map((memory) => Date.parse(memory.system.updatedAt) || 0),
-		)
-		return ""
-	}
-	const lines = [...memories].reverse().flatMap((memory) => {
-		const { createdAt, updatedAt } = memory.system
-		if (!(Date.parse(updatedAt) > watermark)) return []
-		const reported = ctx.reportedMemories.get(memory.id)
-		if (reported === updatedAt) return []
-		ctx.reportedMemories.set(memory.id, updatedAt)
-		if (!memory.isForgotten) {
-			return [`- ${memory.version > 1 ? "Updated" : "New"}: ${memory.memory}`]
-		}
-		if (reported === undefined && Date.parse(createdAt) > watermark) return []
-		return [
-			`- Forgotten: ${memory.memory} (no longer true, ignore earlier mentions)`,
-		]
-	})
-	if (lines.length === 0) return ""
-	return `Memory updates since this conversation started:\n${lines.join("\n")}`
-}
-
-// Profile, search and the updates list share one timeout; only the profile and search can fail the turn.
+// Profile and search share one timeout; a failed profile never drops this turn's search results.
 const retrieveTurn = async (
 	ctx: SupermemoryMiddlewareContext,
 	query: string,
@@ -407,40 +343,28 @@ const retrieveTurn = async (
 		? setTimeout(() => controller.abort(), ctx.memoryRetrievalTimeoutMs)
 		: undefined
 	const signal = controller?.signal
-	const hadProfile = ctx.profile !== undefined
 	const profile = ctx.mode === "query" ? undefined : loadProfile(ctx, signal)
 	const template = ctx.promptTemplate ?? defaultPromptTemplate
 
 	try {
-		const [profileResult, searchResult, recentResult] =
-			await Promise.allSettled([
-				profile,
-				ctx.mode !== "profile" && query
-					? buildMemoriesText({
-							namespace: ctx.namespace,
-							queryText: query,
-							mode: ctx.mode,
-							baseUrl: ctx.normalizedBaseUrl,
-							apiKey: ctx.apiKey,
-							logger: ctx.logger,
-							promptTemplate: (data) => template({ ...data, userMemories: "" }),
-							...(signal && { signal }),
-							...(profile && { profile: profile.catch(() => EMPTY_PROFILE) }),
-						})
-					: "",
-				listRecentMemories(ctx, signal),
-			])
-		const updates = describeMemoryUpdates(
-			ctx,
-			recentResult.status === "fulfilled" ? recentResult.value : undefined,
-			!hadProfile && ctx.profile !== undefined,
-		)
-		const memories = [
-			searchResult.status === "fulfilled" ? searchResult.value : "",
-			updates,
-		]
-			.filter(Boolean)
-			.join("\n\n")
+		const [profileResult, searchResult] = await Promise.allSettled([
+			profile,
+			ctx.mode !== "profile" && query
+				? buildMemoriesText({
+						namespace: ctx.namespace,
+						queryText: query,
+						mode: ctx.mode,
+						baseUrl: ctx.normalizedBaseUrl,
+						apiKey: ctx.apiKey,
+						logger: ctx.logger,
+						promptTemplate: (data) => template({ ...data, userMemories: "" }),
+						...(signal && { signal }),
+						...(profile && { profile: profile.catch(() => EMPTY_PROFILE) }),
+					})
+				: "",
+		])
+		const memories =
+			searchResult.status === "fulfilled" ? searchResult.value : ""
 		const failed = [profileResult, searchResult].find(
 			(result): result is PromiseRejectedResult => result.status === "rejected",
 		)

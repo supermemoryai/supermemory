@@ -58,11 +58,9 @@ the system prompt for the rest of the conversation. `query` and `full` modes att
 each turn's search results to that turn's user message, and earlier turns keep their
 original results, so the prompt prefix stays the same as new messages are appended.
 
-On each user turn, the wrapper also lists the namespace's most recently updated
-memories. Anything added, updated or forgotten since the conversation started is
-appended once to that turn's message, so the model learns about changes without the
-system prompt being rewritten. Tool steps reuse their turn's memories without new
-requests.
+Tool steps reuse their turn's memories without new requests. The profile is never
+refetched during a conversation; facts that change mid-conversation reach the model
+through each turn's search results.
 
 If retrieval fails or times out, the call continues without it by default, and the
 next user turn retries the profile. State lives in the wrapper, not in a global or
