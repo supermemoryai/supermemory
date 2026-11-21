@@ -306,7 +306,7 @@ const recallTurn =
 							promptTemplate: ctx.promptTemplate,
 							signal,
 						})
-			return { memories, includesProfile: mode !== "query" && !!memories }
+			return { memories, includesProfile: mode !== "query" }
 		} catch (error) {
 			ctx.logger.error("Error fetching memories", {
 				error: error instanceof Error ? error.message : "Unknown error",
