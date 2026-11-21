@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { legacyNamespaceOutput } from "./compat"
 import {
+	DREAMING_STATUSES,
 	namespaceAccessSchema,
 	memoriesListSchema,
 	paginationSchema,
@@ -14,10 +15,10 @@ const documentStatusSchema = z
 	)
 
 const dreamingStatusSchema = z
-	.enum(["dreaming", "done"])
+	.union([z.enum(DREAMING_STATUSES), z.string()])
 	.optional()
 	.describe(
-		"Memory extraction status, present when the API returns it. dreaming: pending, running, or retrying after a failure. done: settled, possibly with no memories. Neither done means memories are searchable yet.",
+		"Memory extraction status, present when the API returns it. dreaming: pending, running, or waiting to retry. done: settled, possibly with no memories. failed: memory generation ran out of retries, so part of the content has no memories and it will not retry on its own. Other values may be added later; treat an unknown value as not done. Neither done means memories are searchable yet.",
 	)
 
 const documentSummarySchema = z.object({

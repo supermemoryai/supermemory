@@ -1,3 +1,8 @@
+import {
+	DREAMING_STATUSES,
+	type DreamingStatus,
+	type KnownDreamingStatus,
+} from "../shared/types"
 import type {
 	DocumentDetails,
 	DocumentsListResponse,
@@ -18,8 +23,15 @@ function day(value: string | null | undefined): string {
 	return value?.slice(0, 10) ?? ""
 }
 
-function memoryExtractionLabel(status: "dreaming" | "done"): string {
-	return status === "dreaming" ? "in progress" : "done"
+const MEMORY_EXTRACTION_LABELS: Record<KnownDreamingStatus, string> = {
+	dreaming: "in progress",
+	done: "done",
+	failed: "failed",
+}
+
+function memoryExtractionLabel(status: DreamingStatus): string {
+	const known = DREAMING_STATUSES.find((value) => value === status)
+	return known ? MEMORY_EXTRACTION_LABELS[known] : status
 }
 
 function paginationSummary(

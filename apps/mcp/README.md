@@ -67,9 +67,11 @@ The client discovers the OAuth authorization server through
 | `status` | `done` | Content is processed and readable |
 | `dreamingStatus` | `dreaming` | Memory extraction is pending, running, or retrying |
 | `dreamingStatus` | `done` | Memory extraction settled, possibly with no memories |
+| `dreamingStatus` | `failed` | Memory extraction ran out of retries; part of the content has no memories |
 
-`dreamingStatus` appears only when the API returns it. Neither `done` means
-memories are searchable yet.
+`dreamingStatus` appears only when the API returns it. Values the server does
+not know yet pass through unchanged instead of failing the tool call. Neither
+`done` means memories are searchable yet.
 
 ### MCP App launchers
 
