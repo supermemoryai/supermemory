@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from .connection import AgentSupermemory
 
 DEFAULT_RECALL_TIMEOUT = 2.0
-PROFILE_HEADERS = ("## Static Profile", "## Dynamic Profile")
 DEFAULT_CONTEXT_PROMPT = "The following are retrieved memories about the user."
 MEMORY_CONTEXT_PATTERN = re.compile(
     r'(?:\r?\n)?<supermemory context="user-memories" readonly>.*?</supermemory>',
@@ -334,23 +333,23 @@ async def build_memories_text(
     return f"{profile_text}\n{search_text}".strip()
 
 
-# Profile and entity context ride only the first successful injection; later turns add unseen search results.
+# The caller owns "profile delivered" so the profile is fetched once per conversation even when history is server-side.
 async def recall_turn_memories(
     connection: "AgentSupermemory",
     *,
     mode: str,
     query_text: str,
+    include_profile: bool,
     prior_blocks: list[str],
     timeout: float,
-    logger: "Logger",
+    logger: Logger,
     context_prompt: str = "",
-) -> str:
-    include_profile = mode != "query" and not any(
-        header in block for block in prior_blocks for header in PROFILE_HEADERS
-    )
+) -> tuple[str, bool]:
+    """Return this turn's wrapped memory block and whether recall succeeded."""
+    fetch_profile = include_profile and mode != "query"
     search_query = query_text if mode != "profile" else ""
-    if not include_profile and not search_query:
-        return ""
+    if not fetch_profile and not search_query:
+        return "", True
     try:
         memories = await asyncio.wait_for(
             build_memories_text(
@@ -358,7 +357,7 @@ async def recall_turn_memories(
                 connection.container_tag,
                 mode,
                 search_query,
-                include_profile=include_profile,
+                include_profile=fetch_profile,
                 exclude=_block_memories(prior_blocks),
             ),
             timeout=timeout,
@@ -368,9 +367,9 @@ async def recall_turn_memories(
             "Memory recall failed or timed out, continuing without memories",
             {"error": str(error) or type(error).__name__, "timeout_s": timeout},
         )
-        return ""
+        return "", False
     if not memories:
-        return ""
-    if connection.entity_context and not prior_blocks:
+        return "", True
+    if connection.entity_context and include_profile:
         memories = f"{connection.entity_context}\n\n{memories}"
-    return wrap_memory_injection(memories, context_prompt)
+    return wrap_memory_injection(memories, context_prompt), True

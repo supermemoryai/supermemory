@@ -153,6 +153,21 @@ def _message_text(message: Any) -> str:
     return _get_last_user_message([message]) if _message_role(message) == "user" else ""
 
 
+# Falls back to the first user turn's hash when the request carries no session or conversation id.
+def _conversation_key(context: Any, root_key: str) -> str:
+    """Identify the conversation that owns the once-per-conversation profile."""
+    session_id = getattr(getattr(context, "session", None), "session_id", None)
+    if session_id:
+        return f"session:{session_id}"
+    options = getattr(context, "options", None)
+    conversation_id = (
+        options.get("conversation_id") if isinstance(options, dict) else None
+    )
+    if conversation_id:
+        return f"conversation:{conversation_id}"
+    return f"root:{root_key}"
+
+
 def _with_memory_block(message: Any, block: str) -> Any:
     """Return a copy of a user message with the memory block appended."""
     if isinstance(message, dict):
@@ -249,6 +264,7 @@ class SupermemoryChatMiddleware(ChatMiddleware):
         self._supermemory_client = connection.client
         self._background_tasks: set[asyncio.Task[None]] = set()
         self._turns: OrderedDict[str, str] = OrderedDict()
+        self._profiled: OrderedDict[str, None] = OrderedDict()
 
     async def process(
         self,
@@ -303,10 +319,14 @@ class SupermemoryChatMiddleware(ChatMiddleware):
 
         digest = hashlib.sha256(self._container_tag.encode())
         prior_blocks: list[str] = []
+        conversation = ""
         for index in user_indexes:
             text = _message_text(messages[index])
             existing = memory_blocks([text])
             digest.update(b"\0" + strip_memory_injection(text).encode())
+            conversation = conversation or _conversation_key(
+                context, digest.hexdigest()
+            )
             if existing:
                 prior_blocks.extend(existing)
                 continue
@@ -316,7 +336,7 @@ class SupermemoryChatMiddleware(ChatMiddleware):
             if block is not None:
                 self._turns.move_to_end(key)
             elif index == user_indexes[-1]:
-                block = await self._recall(text, prior_blocks)
+                block = await self._recall(text, prior_blocks, conversation)
                 self._turns[key] = block
                 while len(self._turns) > _MAX_CACHED_TURNS:
                     self._turns.popitem(last=False)
@@ -334,10 +354,15 @@ class SupermemoryChatMiddleware(ChatMiddleware):
                     pass
             prior_blocks.append(block)
 
-    async def _recall(self, user_text: str, prior_blocks: list[str]) -> str:
+    async def _recall(
+        self, user_text: str, prior_blocks: list[str], conversation: str
+    ) -> str:
         """Recall this turn's memories within the budget; failures yield ''."""
         if self._options.mode != "profile" and not user_text.strip():
             return ""
+        profile_owed = conversation not in self._profiled
+        if not profile_owed:
+            self._profiled.move_to_end(conversation)
         self._logger.info(
             "Starting memory search",
             {
@@ -346,14 +371,20 @@ class SupermemoryChatMiddleware(ChatMiddleware):
                 "mode": self._options.mode,
             },
         )
-        return await recall_turn_memories(
+        block, recalled = await recall_turn_memories(
             self._connection,
             mode=self._options.mode,
             query_text=user_text,
+            include_profile=profile_owed,
             prior_blocks=prior_blocks,
             timeout=self._options.recall_timeout,
             logger=self._logger,
         )
+        if recalled and profile_owed:
+            self._profiled[conversation] = None
+            while len(self._profiled) > _MAX_CACHED_TURNS:
+                self._profiled.popitem(last=False)
+        return block
 
     async def wait_for_background_tasks(self, timeout: Optional[float] = 10.0) -> None:
         """Wait for all background memory storage tasks to complete."""

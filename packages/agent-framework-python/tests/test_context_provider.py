@@ -169,8 +169,9 @@ class TestMemoryRetrieval:
             ),
         )
         provider = SupermemoryContextProvider(conn, mode="full")
+        state: dict = {}
         first = SessionContext(input_messages=[Message("user", ["hello"])])
-        await provider.before_run(agent=None, session=None, context=first, state={})
+        await provider.before_run(agent=None, session=None, context=first, state=state)
         turn_one = first.input_messages[0]
         assert not first.instructions
         assert "Prefers Python" in turn_one.text
@@ -182,8 +183,41 @@ class TestMemoryRetrieval:
                 "in_memory": [turn_one, Message("assistant", ["Hi"])],
             },
         )
-        await provider.before_run(agent=None, session=None, context=second, state={})
+        await provider.before_run(agent=None, session=None, context=second, state=state)
 
         assert second.context_messages["in_memory"][0] is turn_one
         assert second.input_messages[0].text == "where do I live?"
         assert conn.client.profile.await_count == 1
+
+        service_history = SessionContext(input_messages=[Message("user", ["more"])])
+        await provider.before_run(
+            agent=None, session=None, context=service_history, state=state
+        )
+        assert "Prefers Python" not in service_history.input_messages[0].text
+        assert "Lives in Lisbon" in service_history.input_messages[0].text
+        assert conn.client.profile.await_count == 1
+        assert conn.client.search.await_count == 3
+
+    @pytest.mark.asyncio
+    async def test_failed_profile_is_retried_on_next_turn(self) -> None:
+        conn = _make_conn()
+        conn.client = SimpleNamespace(
+            profile=AsyncMock(side_effect=RuntimeError("down")),
+            search=AsyncMock(return_value=SimpleNamespace(results=[])),
+        )
+        provider = SupermemoryContextProvider(conn, mode="full")
+        state: dict = {}
+        first = SessionContext(input_messages=[Message("user", ["hello"])])
+        await provider.before_run(agent=None, session=None, context=first, state=state)
+        assert first.input_messages[0].text == "hello"
+        assert state == {}
+
+        conn.client.profile = AsyncMock(
+            return_value=SimpleNamespace(
+                profile=SimpleNamespace(static=["Prefers Python"], dynamic=[])
+            )
+        )
+        second = SessionContext(input_messages=[Message("user", ["again"])])
+        await provider.before_run(agent=None, session=None, context=second, state=state)
+        assert "Prefers Python" in second.input_messages[0].text
+        assert state == {"profile_delivered": True}

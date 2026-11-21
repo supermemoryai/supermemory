@@ -24,6 +24,8 @@ from .utils import (
     strip_memory_injection,
 )
 
+_PROFILE_DELIVERED = "profile_delivered"
+
 
 class SupermemoryContextProvider(BaseContextProvider):
     """Context provider that integrates Supermemory into the agent pipeline.
@@ -147,15 +149,19 @@ class SupermemoryContextProvider(BaseContextProvider):
                 "query_preview": query_text[:100] if query_text else "",
             },
         )
-        block = await recall_turn_memories(
+        profile_owed = not state.get(_PROFILE_DELIVERED)
+        block, recalled = await recall_turn_memories(
             self._connection,
             mode=self._mode,
             query_text=query_text,
+            include_profile=profile_owed,
             prior_blocks=prior_blocks,
             timeout=self._recall_timeout,
             logger=self._logger,
             context_prompt=self._context_prompt,
         )
+        if recalled and profile_owed:
+            state[_PROFILE_DELIVERED] = True
         if not block:
             self._logger.debug("No memories to inject")
             return

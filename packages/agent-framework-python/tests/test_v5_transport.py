@@ -152,7 +152,7 @@ async def test_provider_and_middleware_retrieval_modes(memory_api, mode):
     assert "Known facts" in injected
     assert ("tenant-a is building an agent" in injected) == (mode != "query")
     assert "tenant-a source passage" not in injected
-    assert state == {"legacy_user_value": {"keep": True}}
+    assert state == {"legacy_user_value": {"keep": True}, "profile_delivered": True}
     await provider.after_run(agent=None, session=None, context=context, state=state)
     expected = {"profile"} if mode == "profile" else {"search"}
     if mode == "full":
@@ -418,10 +418,14 @@ async def test_real_framework_pipeline_and_tenant_isolation(memory_api):
         await middleware.wait_for_background_tasks()
         assert response.text == "Remembered"
         assert len(model.calls) == 2
-        assert session.state["supermemory"] == old_state["state"]["supermemory"]
+        expected_state = {
+            **old_state["state"]["supermemory"],
+            "profile_delivered": True,
+        }
+        assert session.state["supermemory"] == expected_state
         assert (
             AgentSession.from_dict(session.to_dict()).state["supermemory"]
-            == old_state["state"]["supermemory"]
+            == expected_state
         )
         for messages, options in model.calls:
             text = "\n".join(message.text for message in messages)

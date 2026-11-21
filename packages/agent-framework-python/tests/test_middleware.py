@@ -186,6 +186,26 @@ class TestMemoryInjection:
         assert conn.client.search.await_count == 2
 
     @pytest.mark.asyncio
+    async def test_profile_once_per_session_without_visible_history(self) -> None:
+        conn = _make_conn()
+        conn.client = _fake_client()
+        middleware = SupermemoryChatMiddleware(
+            conn, SupermemoryMiddlewareOptions(mode="full")
+        )
+        session = SimpleNamespace(session_id="session-1")
+        texts = []
+        for turn in ["first", "second"]:
+            context = SimpleNamespace(
+                messages=[{"role": "user", "content": turn}], session=session
+            )
+            await middleware.process(context, AsyncMock())
+            texts.append(context.messages[0]["content"])
+        assert "Prefers Python" in texts[0]
+        assert "Prefers Python" not in texts[1]
+        assert "Asked about second" in texts[1]
+        assert conn.client.profile.await_count == 1
+
+    @pytest.mark.asyncio
     async def test_failed_recall_degrades_and_retries_on_next_turn(self) -> None:
         conn = _make_conn()
         conn.client = _fake_client()

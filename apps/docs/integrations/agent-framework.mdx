@@ -223,7 +223,7 @@ SupermemoryContextProvider(conn, mode="full")  # or "profile" / "query"
 | `"query"` | Memories relevant to the current message only | Targeted recall, no profile data |
 | `"full"` (default) | Profile + query search combined | Maximum context |
 
-The profile is injected once, on the first user turn where it loads. Later turns carry only search results that earlier turns haven't shown.
+The profile is fetched once per conversation and never refreshed, in every mode. After that, anything new comes from the per-turn search. A fetch that fails isn't recorded, so the next new user turn fetches it again. The context provider records delivery under its key in the agent session's state, so the record is saved and dropped with the session, including sessions whose history the service stores. The middleware keeps a bounded in-process record (256 conversations) keyed by the session id, else the `conversation_id` option, else a hash of the conversation's first user message. A conversation whose entry was evicted counts as new and gets the profile again. Later turns carry only search results that earlier turns haven't shown.
 
 V5 profile retrieval does not accept a search query. On a new user turn, full mode makes separate profile and search requests and deduplicates overlapping facts before injection. Profile-associated searches keep the legacy memory-only mode and `0.6` threshold; the explicit search tool keeps hybrid mode and `0.6`. Writes are asynchronous; an accepted document may not be immediately searchable, and this migration does not change the SDK's default processing mode.
 
@@ -234,6 +234,7 @@ V5 profile retrieval does not accept a search query. On a new user turn, full mo
 The provider and the middleware both append a `<supermemory context="user-memories" readonly>` block to the current turn's user message. Nothing is written to the system prompt or instructions, so the start of every request stays the same and provider prompt caching keeps working.
 
 - Earlier turns stay byte-identical on later requests. The provider attaches the block to the turn's input message, and the session history stores that message. The middleware keeps each turn's block in a bounded in-process cache and re-applies it on every later call.
+- The profile is fetched once per conversation and never refreshed. See [Memory modes](#memory-modes).
 - Recall has a time budget, `recall_timeout`, which defaults to 2 seconds. It uses a client with no retries and a matching request timeout. If recall times out or fails, that turn runs without memories, and the next user turn recalls again.
 - Session history saved by the provider includes these blocks. Conversation storage strips them before writing to Supermemory.
 
