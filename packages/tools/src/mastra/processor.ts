@@ -6,7 +6,7 @@
  * - Conversation saving: Persists conversations to Supermemory after responses
  *
  * Processors integrate with Mastra's processor pipeline:
- * - InputProcessor runs before the LLM call, injecting memories into system messages
+ * - InputProcessor runs before the LLM call, appending memories to the user's turn
  * - OutputProcessor runs after the LLM responds, optionally saving the conversation
  *
  * @module
@@ -16,10 +16,11 @@ import {
 	createLogger,
 	normalizeBaseUrl,
 	validateApiKey,
-	MemoryCache,
-	buildMemoriesText,
-	extractQueryText,
-	wrapMemoryContext,
+	buildTurnRecall,
+	stripMemoryContext,
+	turnKey,
+	withTurnMemory,
+	TurnMemoryByConversation,
 	type Logger,
 	type MemoryMode,
 	type PromptTemplate,
@@ -51,7 +52,6 @@ interface ProcessorContext {
 	addMemory: "always" | "never"
 	logger: Logger
 	promptTemplate?: PromptTemplate
-	memoryCache: MemoryCache<string>
 }
 
 /**
@@ -73,7 +73,6 @@ function createProcessorContext(
 		addMemory: options.addMemory ?? "always",
 		logger,
 		promptTemplate: options.promptTemplate,
-		memoryCache: new MemoryCache<string>(),
 	}
 }
 
@@ -98,12 +97,49 @@ function getEffectiveId(
 	return ctx.id
 }
 
+const messageText = (message: MastraDBMessage): string => {
+	const { parts, content } = message.content
+	if (Array.isArray(parts) && parts.length > 0) {
+		return parts
+			.flatMap((part) =>
+				part.type === "text" && typeof part.text === "string"
+					? [part.text]
+					: [],
+			)
+			.join(" ")
+	}
+	return typeof content === "string" ? content : ""
+}
+
+const withMessageMemory = (
+	message: MastraDBMessage,
+	memories: string,
+): MastraDBMessage => {
+	const { parts, content } = message.content
+	const textParts =
+		Array.isArray(parts) && parts.length > 0
+			? parts
+			: [
+					{
+						type: "text" as const,
+						text: typeof content === "string" ? content : "",
+					},
+				]
+	return {
+		...message,
+		content: {
+			...message.content,
+			parts: withTurnMemory(textParts, memories) as typeof parts,
+		},
+	}
+}
+
 /**
- * Input processor that injects memories into the system prompt before LLM calls.
+ * Input processor that adds memories to the user's turn before LLM calls.
  *
  * This processor runs once at the start of agent execution (processInput).
- * It fetches relevant memories from Supermemory based on the user's message
- * and injects them into the system messages.
+ * It appends memories to the latest user message and replays earlier turns'
+ * blocks unchanged, so the instructions and history stay cacheable.
  *
  * @example
  * ```typescript
@@ -131,6 +167,7 @@ export class SupermemoryInputProcessor implements Processor {
 	readonly name = "Supermemory Memory Injection"
 
 	private ctx: ProcessorContext
+	private turns = new TurnMemoryByConversation()
 
 	constructor(options: SupermemoryMastraOptions) {
 		this.ctx = createProcessorContext(options)
@@ -139,71 +176,36 @@ export class SupermemoryInputProcessor implements Processor {
 	async processInput(args: ProcessInputArgs): Promise<ProcessInputResult> {
 		const { messages, messageList, requestContext } = args
 
-		// Mastra owns tagged system messages by tag. Clear the previous value on
-		// every invocation so empty, skipped, cached, fresh, and error paths cannot
-		// leave stale Supermemory context behind.
-		messageList.clearSystemMessages("supermemory")
+		const latest = messages.filter((message) => message.role === "user").at(-1)
+		if (!latest) return messageList
 
-		try {
-			const queryText = extractQueryText(
-				messages as unknown as Array<{
-					role: string
-					content: string | Array<{ type: string; text?: string }>
-				}>,
-				this.ctx.mode,
-			)
-
-			if (this.ctx.mode !== "profile" && !queryText) {
-				this.ctx.logger.debug("No user message found, skipping memory search")
-				return messageList
-			}
-
-			const effectiveThreadId = getEffectiveId(this.ctx, requestContext)
-			const turnKey = MemoryCache.makeTurnKey(
-				this.ctx.namespace,
-				effectiveThreadId,
-				this.ctx.mode,
-				queryText || "",
-			)
-
-			const cachedMemories = this.ctx.memoryCache.get(turnKey)
-			if (cachedMemories) {
-				this.ctx.logger.debug("Using cached memories", { turnKey })
-				messageList.addSystem(wrapMemoryContext(cachedMemories), "supermemory")
-				return messageList
-			}
-
-			this.ctx.logger.info("Starting memory search", {
+		const memory = this.turns.for(getEffectiveId(this.ctx, requestContext))
+		const query = turnKey(messageText(latest))
+		await memory.recall(
+			query,
+			buildTurnRecall({
 				namespace: this.ctx.namespace,
-				threadId: effectiveThreadId,
-				mode: this.ctx.mode,
-			})
-
-			const memories = await buildMemoriesText({
-				namespace: this.ctx.namespace,
-				queryText: queryText || "",
+				query,
 				mode: this.ctx.mode,
 				baseUrl: this.ctx.baseUrl,
 				apiKey: this.ctx.apiKey,
 				logger: this.ctx.logger,
 				promptTemplate: this.ctx.promptTemplate,
-			})
+			}),
+		)
 
-			if (memories) {
-				this.ctx.memoryCache.set(turnKey, memories)
-				messageList.addSystem(wrapMemoryContext(memories), "supermemory")
-				this.ctx.logger.debug("Injected memories into system prompt", {
-					length: memories.length,
-				})
-			}
-
-			return messageList
-		} catch (error) {
-			this.ctx.logger.error("Error fetching memories", {
-				error: error instanceof Error ? error.message : "Unknown error",
-			})
-			return messageList
-		}
+		const blocks = await Promise.all(
+			messages.map((message) =>
+				message.role === "user"
+					? memory.get(turnKey(messageText(message)))
+					: undefined,
+			),
+		)
+		if (blocks.every((block) => !block)) return messageList
+		return messages.map((message, index) => {
+			const block = blocks[index]
+			return block === undefined ? message : withMessageMemory(message, block)
+		})
 	}
 }
 
@@ -300,7 +302,7 @@ export class SupermemoryOutputProcessor implements Processor {
 			const content = msg.content
 
 			if (content.content && typeof content.content === "string") {
-				result.push({ role, content: content.content })
+				result.push({ role, content: stripMemoryContext(content.content) })
 				continue
 			}
 
@@ -314,8 +316,9 @@ export class SupermemoryOutputProcessor implements Processor {
 					)
 					.map((part) => ({
 						type: "text" as const,
-						text: part.text,
+						text: stripMemoryContext(part.text),
 					}))
+					.filter((part) => part.text)
 
 				if (textParts.length > 0) {
 					result.push({ role, content: textParts })
