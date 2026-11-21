@@ -11,6 +11,7 @@ import {
 } from "./auth"
 import { SupermemoryMCP } from "./legacy-protocol-state"
 import { createSupermemoryServer } from "./server"
+import { toolListingFor } from "./tools"
 import type { ActorContext, ServerEnv } from "./types"
 import { SpaceState, uploadStateName } from "./space-state"
 
@@ -230,6 +231,14 @@ async function handleMcpRequest(
 		bearerToken: authUser.bearerToken,
 		oauthClientId: authUser.oauthClientId,
 	}
+	const body =
+		c.req.method === "POST"
+			? await c.req.raw
+					.clone()
+					.json()
+					.catch(() => undefined)
+			: undefined
+	const toolListing = toolListingFor(body)
 	const request = rewritePath
 		? new Request(new URL(rewritePath, c.req.url).toString(), c.req.raw)
 		: c.req.raw
@@ -240,6 +249,7 @@ async function handleMcpRequest(
 				actor,
 				(promise) => c.executionCtx.waitUntil(promise),
 				mcpOrigin,
+				toolListing,
 			),
 		{
 			route: "/mcp",
