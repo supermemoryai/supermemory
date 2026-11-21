@@ -1,4 +1,5 @@
 import { NotFoundError, Supermemory } from "supermemory"
+import { type SupermemorySource, sourceHeaders } from "./shared/context"
 import type { MemoryMode } from "./shared/types"
 import type { SupermemoryToolsConfig } from "./types"
 
@@ -40,11 +41,13 @@ export function getNamespace(config?: { namespace?: string }): string {
 
 export function createToolsClient(
 	apiKey: string,
-	config?: SupermemoryToolsConfig,
+	config: SupermemoryToolsConfig | undefined,
+	source: SupermemorySource,
 ): Supermemory {
 	return new Supermemory({
 		apiKey,
 		...CLIENT_OPTIONS,
+		headers: sourceHeaders(source),
 		...(config?.baseUrl ? { baseUrl: config.baseUrl } : {}),
 	})
 }

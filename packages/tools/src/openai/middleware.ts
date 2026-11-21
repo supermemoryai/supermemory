@@ -1,7 +1,7 @@
 import { LRUCache } from "lru-cache"
 import type OpenAI from "openai"
 import { APIPromise } from "openai/core"
-import { Supermemory } from "supermemory"
+import type { Supermemory } from "supermemory"
 import {
 	addConversation,
 	type ContentPart as ConversationContentPart,
@@ -11,6 +11,7 @@ import {
 import {
 	TurnMemory,
 	buildTurnRecall,
+	createSupermemoryClient,
 	replaceMemoryContext,
 	stripMemoryContext,
 	turnKey,
@@ -363,6 +364,7 @@ const addMemoryTool = async (
 				namespace,
 				apiKey,
 				baseUrl,
+				source: "tools-openai",
 			})
 
 			logger.info("Conversation saved successfully", {
@@ -441,9 +443,10 @@ export function createOpenAIMiddleware(
 		)
 	}
 	const baseUrl = normalizeBaseUrl(options?.baseUrl)
-	const client = new Supermemory({
+	const client = createSupermemoryClient({
 		apiKey,
-		...(baseUrl !== "https://api.supermemory.ai" ? { baseUrl } : {}),
+		baseUrl,
+		source: "tools-openai",
 	})
 
 	const id = options?.id
@@ -501,6 +504,7 @@ export function createOpenAIMiddleware(
 				mode,
 				baseUrl,
 				apiKey,
+				source: "tools-openai",
 				logger,
 				promptTemplate: (data) =>
 					`${data.userMemories}\n${data.generalSearchMemories}`.trim(),

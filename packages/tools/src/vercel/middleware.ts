@@ -1,5 +1,5 @@
 import { LRUCache } from "lru-cache"
-import { Supermemory } from "supermemory"
+import type { Supermemory } from "supermemory"
 import {
 	addConversation,
 	type ContentPart,
@@ -7,6 +7,7 @@ import {
 } from "../conversations-client"
 import {
 	createLogger,
+	createSupermemoryClient,
 	normalizeBaseUrl,
 	buildMemoriesText,
 	defaultPromptTemplate,
@@ -176,6 +177,7 @@ export const saveMemoryAfterResponse = async (
 			namespace,
 			apiKey,
 			baseUrl,
+			source: "tools-ai-sdk",
 		})
 
 		logger.info("Conversation saved successfully", {
@@ -274,11 +276,10 @@ export const createSupermemoryContext = (
 	const logger = createLogger(verbose)
 	const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
 
-	const client = new Supermemory({
+	const client = createSupermemoryClient({
 		apiKey,
-		...(normalizedBaseUrl !== "https://api.supermemory.ai"
-			? { baseUrl: normalizedBaseUrl }
-			: {}),
+		baseUrl: normalizedBaseUrl,
+		source: "tools-ai-sdk",
 	})
 
 	return {
@@ -310,6 +311,7 @@ const loadProfile = (
 		"",
 		ctx.normalizedBaseUrl,
 		ctx.apiKey,
+		"tools-ai-sdk",
 		signal,
 	)
 		.then(async ({ profile }) => {
@@ -319,6 +321,7 @@ const loadProfile = (
 				mode: "profile",
 				baseUrl: ctx.normalizedBaseUrl,
 				apiKey: ctx.apiKey,
+				source: "tools-ai-sdk",
 				logger: ctx.logger,
 				promptTemplate: ctx.promptTemplate,
 				profile,
@@ -356,6 +359,7 @@ const retrieveTurn = async (
 						mode: ctx.mode,
 						baseUrl: ctx.normalizedBaseUrl,
 						apiKey: ctx.apiKey,
+						source: "tools-ai-sdk",
 						logger: ctx.logger,
 						promptTemplate: (data) => template({ ...data, userMemories: "" }),
 						...(signal && { signal }),

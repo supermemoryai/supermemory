@@ -162,6 +162,7 @@ export const addSystemPrompt = async (
 		mode,
 		baseUrl,
 		apiKey,
+		source: "tools-ai-sdk",
 		logger,
 		promptTemplate,
 	})

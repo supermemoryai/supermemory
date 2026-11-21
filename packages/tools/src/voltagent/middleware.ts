@@ -4,7 +4,7 @@
  * Provides memory retrieval, injection, and storage functionality.
  */
 
-import { type SearchRequest, Supermemory } from "supermemory"
+import type { SearchRequest, Supermemory } from "supermemory"
 import {
 	addConversation,
 	type ContentPart as ConversationContentPart,
@@ -13,6 +13,7 @@ import {
 } from "../conversations-client"
 import {
 	createLogger,
+	createSupermemoryClient,
 	normalizeBaseUrl,
 	defaultPromptTemplate,
 	stripMemoryContext,
@@ -119,11 +120,10 @@ export const createSupermemoryContext = (
 	const logger = createLogger(verbose)
 	const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
 
-	const client = new Supermemory({
+	const client = createSupermemoryClient({
 		apiKey,
-		...(normalizedBaseUrl !== "https://api.supermemory.ai"
-			? { baseUrl: normalizedBaseUrl }
-			: {}),
+		baseUrl: normalizedBaseUrl,
+		source: "tools-voltagent",
 	})
 
 	return {
@@ -281,6 +281,7 @@ const recallTurn = (
 		mode: ctx.mode,
 		baseUrl: ctx.normalizedBaseUrl,
 		apiKey: ctx.apiKey,
+		source: "tools-voltagent",
 		logger: ctx.logger,
 		promptTemplate: ctx.promptTemplate,
 		...(useAdvancedSearch && {
@@ -472,6 +473,7 @@ export const saveConversation = async (
 			supportingContext: ctx.supportingContext,
 			apiKey: ctx.apiKey,
 			baseUrl: ctx.normalizedBaseUrl,
+			source: "tools-voltagent",
 		})
 
 		ctx.logger.info("Conversation saved successfully", {

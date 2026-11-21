@@ -202,6 +202,7 @@ export class SupermemoryInputProcessor implements Processor {
 				mode: this.ctx.mode,
 				baseUrl: this.ctx.baseUrl,
 				apiKey: this.ctx.apiKey,
+				source: "tools-mastra",
 				logger: this.ctx.logger,
 				promptTemplate: this.ctx.promptTemplate,
 			}),
@@ -306,6 +307,7 @@ export class SupermemoryOutputProcessor implements Processor {
 				namespace: this.ctx.namespace,
 				apiKey: this.ctx.apiKey,
 				baseUrl: this.ctx.baseUrl,
+				source: "tools-mastra",
 			})
 
 			this.ctx.logger.info("Conversation saved successfully", {

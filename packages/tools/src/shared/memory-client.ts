@@ -11,7 +11,7 @@ import type {
 	PromptTemplate,
 } from "./types"
 import { SupermemoryError } from "supermemory"
-import { createSupermemoryClient } from "./context"
+import { type SupermemorySource, createSupermemoryClient } from "./context"
 import {
 	convertProfileToMarkdown,
 	defaultPromptTemplate,
@@ -32,10 +32,11 @@ export const supermemoryProfileSearch = async (
 	queryText: string,
 	baseUrl: string,
 	apiKey: string,
+	source: SupermemorySource,
 	signal?: AbortSignal,
 	includeProfile = true,
 ): Promise<ProfileStructure> => {
-	const client = createSupermemoryClient({ apiKey, baseUrl })
+	const client = createSupermemoryClient({ apiKey, baseUrl, source })
 	// No retries: this runs before the LLM call, and the raw v4 fetch never retried.
 	const requestOptions = {
 		maxRetries: 0,
@@ -83,6 +84,7 @@ export interface BuildMemoriesTextOptions {
 	mode: MemoryMode
 	baseUrl: string
 	apiKey: string
+	source: SupermemorySource
 	logger: Logger
 	promptTemplate?: PromptTemplate
 	signal?: AbortSignal
@@ -105,6 +107,7 @@ export const buildMemoriesText = async (
 		mode,
 		baseUrl,
 		apiKey,
+		source,
 		logger,
 		promptTemplate = defaultPromptTemplate,
 		signal,
@@ -116,6 +119,7 @@ export const buildMemoriesText = async (
 			queryText,
 			baseUrl,
 			apiKey,
+			source,
 			signal,
 			mode !== "query" && options.profile === undefined,
 		),

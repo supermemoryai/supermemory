@@ -1,4 +1,5 @@
 import { LRUCache } from "lru-cache"
+import type { SupermemorySource } from "./context"
 import { buildMemoriesText, supermemoryProfileSearch } from "./memory-client"
 import {
 	MEMORY_CONTEXT_START,
@@ -103,6 +104,7 @@ export interface BuildTurnRecallOptions {
 	mode: MemoryMode
 	baseUrl: string
 	apiKey: string
+	source: SupermemorySource
 	logger: Logger
 	promptTemplate?: PromptTemplate
 	search?: TurnSearch
@@ -125,6 +127,7 @@ export const buildTurnRecall =
 							"",
 							options.baseUrl,
 							options.apiKey,
+							options.source,
 							signal,
 						).then(async ({ profile: data }) => ({
 							data,
@@ -134,6 +137,7 @@ export const buildTurnRecall =
 								mode: "profile",
 								baseUrl: options.baseUrl,
 								apiKey: options.apiKey,
+								source: options.source,
 								logger: options.logger,
 								promptTemplate: template,
 								profile: data,
@@ -149,6 +153,7 @@ export const buildTurnRecall =
 					mode: options.mode,
 					baseUrl: options.baseUrl,
 					apiKey: options.apiKey,
+					source: options.source,
 					logger: options.logger,
 					promptTemplate: (prompt) => template({ ...prompt, userMemories: "" }),
 					signal: searchSignal,

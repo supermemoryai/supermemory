@@ -1,5 +1,8 @@
 import type { AddResponse } from "supermemory"
-import { createSupermemoryClient } from "./shared/context"
+import {
+	type SupermemorySource,
+	createSupermemoryClient,
+} from "./shared/context"
 
 export interface ConversationMessage {
 	role: "user" | "assistant" | "system" | "tool"
@@ -75,6 +78,7 @@ export interface AddConversationParams {
 	supportingContext?: string
 	apiKey: string
 	baseUrl?: string
+	source: SupermemorySource
 }
 
 const CONVERSATION_REQUEST_TIMEOUT_SECONDS = 30
@@ -123,6 +127,7 @@ export async function addConversation(
 	const client = createSupermemoryClient({
 		apiKey: params.apiKey,
 		baseUrl: params.baseUrl,
+		source: params.source,
 	})
 	return await client.add(
 		params.namespace,

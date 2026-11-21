@@ -41,6 +41,7 @@ describe("buildMemoriesText", () => {
 			mode: "query",
 			baseUrl: BASE_URL,
 			apiKey: API_KEY,
+			source: "tools-ai-sdk",
 			logger,
 		})
 
@@ -61,6 +62,7 @@ describe("buildMemoriesText", () => {
 			mode: "full",
 			baseUrl: BASE_URL,
 			apiKey: API_KEY,
+			source: "tools-ai-sdk",
 			logger,
 		})
 
