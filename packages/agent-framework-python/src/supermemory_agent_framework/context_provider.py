@@ -9,8 +9,6 @@ following the same pattern as the built-in Mem0 integration.
 
 from typing import Any, Literal
 
-from agent_framework import Message
-
 try:
     from agent_framework import BaseContextProvider  # type: ignore[attr-defined]
 except ImportError:
@@ -18,11 +16,12 @@ except ImportError:
 
 from .connection import AgentSupermemory
 from .utils import (
-    _fetch_profile_and_search,
-    convert_profile_to_markdown,
+    DEFAULT_RECALL_TIMEOUT,
+    append_memory_block,
     create_logger,
-    deduplicate_memories,
-    wrap_memory_injection,
+    memory_blocks,
+    recall_turn_memories,
+    strip_memory_injection,
 )
 
 
@@ -75,6 +74,7 @@ class SupermemoryContextProvider(BaseContextProvider):
         context_prompt: str = "",
         verbose: bool = False,
         source_id: str = "supermemory",
+        recall_timeout: float = DEFAULT_RECALL_TIMEOUT,
     ) -> None:
         """Initialize the Supermemory context provider.
 
@@ -85,6 +85,7 @@ class SupermemoryContextProvider(BaseContextProvider):
             context_prompt: Header text prepended to memory content.
             verbose: Enable detailed logging.
             source_id: Unique identifier for this provider instance.
+            recall_timeout: Seconds recall may take before the turn runs without memories.
         """
         super().__init__(source_id=source_id)
 
@@ -95,6 +96,7 @@ class SupermemoryContextProvider(BaseContextProvider):
         self._context_prompt = context_prompt
         self._logger = create_logger(verbose)
         self._client = connection.client
+        self._recall_timeout = recall_timeout
 
     async def before_run(
         self,
@@ -104,13 +106,38 @@ class SupermemoryContextProvider(BaseContextProvider):
         context: Any,
         state: dict[str, Any],
     ) -> None:
-        """Search Supermemory for relevant memories and inject into context."""
-        query_text = ""
-        if self._mode != "profile":
-            query_text = self._extract_query_from_context(context)
-            if not query_text and self._mode == "query":
-                self._logger.debug("No user message found, skipping memory search")
-                return
+        """Append this turn's memories to the turn's user message."""
+        input_messages = getattr(context, "input_messages", None) or []
+        index = next(
+            (
+                i
+                for i in range(len(input_messages) - 1, -1, -1)
+                if getattr(input_messages[i], "role", None) == "user"
+            ),
+            None,
+        )
+        if index is None or not hasattr(input_messages[index], "contents"):
+            self._logger.debug("No user message found, skipping memory search")
+            return
+        user_message = input_messages[index]
+        if memory_blocks([user_message.text]):
+            return
+
+        query_text = self._extract_query_from_context(context)
+        if not query_text and self._mode == "query":
+            self._logger.debug("No user message found, skipping memory search")
+            return
+
+        history = [
+            message
+            for messages in (getattr(context, "context_messages", None) or {}).values()
+            for message in messages
+        ]
+        prior_blocks = memory_blocks(
+            message.text
+            for message in [*history, *input_messages[:index]]
+            if getattr(message, "role", None) == "user"
+        )
 
         self._logger.info(
             "Searching Supermemory for memories",
@@ -120,37 +147,23 @@ class SupermemoryContextProvider(BaseContextProvider):
                 "query_preview": query_text[:100] if query_text else "",
             },
         )
-
-        try:
-            memories_text = await self._fetch_memories(query_text)
-        except Exception as e:
-            self._logger.error(
-                "Failed to fetch memories, proceeding without",
-                {"error": str(e)},
-            )
+        block = await recall_turn_memories(
+            self._connection,
+            mode=self._mode,
+            query_text=query_text,
+            prior_blocks=prior_blocks,
+            timeout=self._recall_timeout,
+            logger=self._logger,
+            context_prompt=self._context_prompt,
+        )
+        if not block:
+            self._logger.debug("No memories to inject")
             return
-
-        if not memories_text:
-            self._logger.debug("No memories found")
-            return
-
-        if self._connection.entity_context:
-            memories_text = f"{self._connection.entity_context}\n\n{memories_text}"
-
-        full_text = wrap_memory_injection(memories_text, self._context_prompt)
 
         self._logger.debug(
-            "Injecting memories into context",
-            {"length": len(memories_text)},
+            "Injecting memories into user message", {"length": len(block)}
         )
-
-        if hasattr(context, "extend_instructions"):
-            context.extend_instructions(self.source_id, full_text)
-        elif hasattr(context, "extend_messages"):
-            context.extend_messages(
-                self.source_id,
-                [Message("system", [full_text])],
-            )
+        input_messages[index] = append_memory_block(user_message, block)
 
     async def after_run(
         self,
@@ -191,45 +204,6 @@ class SupermemoryContextProvider(BaseContextProvider):
                 "Failed to store conversation",
                 {"error": str(e)},
             )
-
-    async def _fetch_memories(self, query_text: str = "") -> str:
-        """Fetch and format memories from Supermemory."""
-        response, search = await _fetch_profile_and_search(
-            self._client,
-            self._container_tag,
-            include_profile=self._mode != "query",
-            query=query_text if self._mode != "profile" else "",
-        )
-        profile = response.profile if response else None
-        static = list(profile.static) if profile and profile.static else []
-        dynamic = list(profile.dynamic) if profile and profile.dynamic else []
-        search_results_raw = list(search.results) if search else []
-
-        deduplicated = deduplicate_memories(
-            static=static if self._mode != "query" else [],
-            dynamic=dynamic if self._mode != "query" else [],
-            search_results=search_results_raw,
-        )
-
-        profile_text = ""
-        if self._mode != "query":
-            profile_text = convert_profile_to_markdown(
-                {
-                    "profile": {
-                        "static": deduplicated.static,
-                        "dynamic": deduplicated.dynamic,
-                    },
-                    "searchResults": {"results": []},
-                }
-            )
-
-        search_text = ""
-        if self._mode != "profile" and deduplicated.search_results:
-            search_text = "Search results for user's recent message:\n" + "\n".join(
-                f"- {memory}" for memory in deduplicated.search_results
-            )
-
-        return f"{profile_text}\n{search_text}".strip()
 
     def _extract_query_from_context(self, context: Any) -> str:
         """Extract the last user message from the session context."""
@@ -311,7 +285,9 @@ class SupermemoryContextProvider(BaseContextProvider):
             elif isinstance(msg, dict):
                 content = msg.get("content", "") or msg.get("text", "")
 
-            if isinstance(content, str) and content.strip():
+            if isinstance(content, str):
+                content = strip_memory_injection(content).strip()
+            if isinstance(content, str) and content:
                 display = {
                     "user": "User",
                     "assistant": "Assistant",

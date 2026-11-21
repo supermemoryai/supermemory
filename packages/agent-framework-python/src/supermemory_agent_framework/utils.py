@@ -1,13 +1,19 @@
 """Utility functions for Supermemory Agent Framework integration."""
 
 import asyncio
+import copy
 import json
 import re
-from typing import Any, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Iterable, Optional, Protocol
 
 import supermemory
 from supermemory.types import ProfileResponse, SearchResponse
 
+if TYPE_CHECKING:
+    from .connection import AgentSupermemory
+
+DEFAULT_RECALL_TIMEOUT = 2.0
+PROFILE_HEADERS = ("## Static Profile", "## Dynamic Profile")
 DEFAULT_CONTEXT_PROMPT = "The following are retrieved memories about the user."
 MEMORY_CONTEXT_PATTERN = re.compile(
     r'(?:\r?\n)?<supermemory context="user-memories" readonly>.*?</supermemory>',
@@ -141,10 +147,31 @@ class DeduplicatedMemories:
         self.search_results = search_results
 
 
+def _memory_key(memory: str) -> str:
+    """Normalize display-only profile decoration for duplicate comparison."""
+    normalized = memory.strip()
+    normalized = re.sub(
+        r"^\[recent\]\s*",
+        "",
+        normalized,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    normalized = re.sub(
+        r"^\[\d{4}-\d{2}-\d{2}\]\s*",
+        "",
+        normalized,
+        count=1,
+    )
+    return " ".join(normalized.strip().split()).casefold()
+
+
 def deduplicate_memories(
     static: Optional[list[Any]] = None,
     dynamic: Optional[list[Any]] = None,
     search_results: Optional[list[Any]] = None,
+    *,
+    exclude: Iterable[str] = (),
 ) -> DeduplicatedMemories:
     """Deduplicates memory items across sources. Priority: Static > Dynamic > Search Results."""
     static_items = static or []
@@ -169,26 +196,9 @@ def deduplicate_memories(
                 return value.strip()
         return None
 
-    def comparison_key(memory: str) -> str:
-        """Normalize display-only profile decoration for duplicate comparison."""
-        normalized = memory.strip()
-        normalized = re.sub(
-            r"^\[recent\]\s*",
-            "",
-            normalized,
-            count=1,
-            flags=re.IGNORECASE,
-        )
-        normalized = re.sub(
-            r"^\[\d{4}-\d{2}-\d{2}\]\s*",
-            "",
-            normalized,
-            count=1,
-        )
-        return " ".join(normalized.strip().split()).casefold()
-
+    comparison_key = _memory_key
     static_memories: list[str] = []
-    seen_memories: set[str] = set()
+    seen_memories: set[str] = {_memory_key(memory) for memory in exclude}
 
     for item in static_items:
         memory = extract_memory_text(item)
@@ -237,3 +247,130 @@ def convert_profile_to_markdown(data: dict[str, Any]) -> str:
         sections.append("\n".join(f"- {item}" for item in dynamic_memories))
 
     return "\n\n".join(sections)
+
+
+# Merged into the last text part because chat clients emit each text part as its own user message.
+def append_memory_block(message: Any, block: str) -> Any:
+    from agent_framework import Content
+
+    contents = list(message.contents or [])
+    last_text = next(
+        (
+            i
+            for i in range(len(contents) - 1, -1, -1)
+            if getattr(contents[i], "type", None) == "text"
+        ),
+        None,
+    )
+    if last_text is None:
+        contents.append(Content.from_text(block))
+    else:
+        part = copy.copy(contents[last_text])
+        part.text = f"{part.text}\n\n{block}" if part.text else block
+        contents[last_text] = part
+    updated = copy.copy(message)
+    updated.additional_properties = dict(message.additional_properties or {})
+    updated.contents = contents
+    return updated
+
+
+def memory_blocks(texts: Iterable[str]) -> list[str]:
+    """Return every memory block already present in the given texts."""
+    return [
+        match.group(0).strip()
+        for text in texts
+        for match in MEMORY_CONTEXT_PATTERN.finditer(text)
+    ]
+
+
+def _block_memories(blocks: Iterable[str]) -> list[str]:
+    """List the memory lines carried by earlier memory blocks."""
+    return [
+        line[2:]
+        for block in blocks
+        for line in block.splitlines()
+        if line.startswith("- ")
+    ]
+
+
+async def build_memories_text(
+    client: supermemory.AsyncSupermemory,
+    container_tag: str,
+    mode: str,
+    query_text: str = "",
+    *,
+    include_profile: bool = True,
+    exclude: Iterable[str] = (),
+) -> str:
+    """Fetch profile and search results and format the ones not already shown."""
+    include_profile = include_profile and mode != "query"
+    response, search = await _fetch_profile_and_search(
+        client,
+        container_tag,
+        include_profile=include_profile,
+        query=query_text if mode != "profile" else "",
+    )
+    profile = response.profile if response else None
+    deduplicated = deduplicate_memories(
+        static=list(profile.static or []) if profile else [],
+        dynamic=list(profile.dynamic or []) if profile else [],
+        search_results=list(search.results) if search else [],
+        exclude=exclude,
+    )
+
+    profile_text = convert_profile_to_markdown(
+        {
+            "profile": {
+                "static": deduplicated.static,
+                "dynamic": deduplicated.dynamic,
+            }
+        }
+    )
+    search_text = ""
+    if mode != "profile" and deduplicated.search_results:
+        search_text = "Search results for user's recent message:\n" + "\n".join(
+            f"- {memory}" for memory in deduplicated.search_results
+        )
+    return f"{profile_text}\n{search_text}".strip()
+
+
+# Profile and entity context ride only the first successful injection; later turns add unseen search results.
+async def recall_turn_memories(
+    connection: "AgentSupermemory",
+    *,
+    mode: str,
+    query_text: str,
+    prior_blocks: list[str],
+    timeout: float,
+    logger: "Logger",
+    context_prompt: str = "",
+) -> str:
+    include_profile = mode != "query" and not any(
+        header in block for block in prior_blocks for header in PROFILE_HEADERS
+    )
+    search_query = query_text if mode != "profile" else ""
+    if not include_profile and not search_query:
+        return ""
+    try:
+        memories = await asyncio.wait_for(
+            build_memories_text(
+                connection.recall_client(timeout),
+                connection.container_tag,
+                mode,
+                search_query,
+                include_profile=include_profile,
+                exclude=_block_memories(prior_blocks),
+            ),
+            timeout=timeout,
+        )
+    except Exception as error:
+        logger.warn(
+            "Memory recall failed or timed out, continuing without memories",
+            {"error": str(error) or type(error).__name__, "timeout_s": timeout},
+        )
+        return ""
+    if not memories:
+        return ""
+    if connection.entity_context and not prior_blocks:
+        memories = f"{connection.entity_context}\n\n{memories}"
+    return wrap_memory_injection(memories, context_prompt)

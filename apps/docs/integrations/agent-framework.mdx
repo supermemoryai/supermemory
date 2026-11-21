@@ -9,7 +9,7 @@ Microsoft's [Agent Framework](https://github.com/microsoft/agent-framework) is a
 
 ## What you can do
 
-- Automatically inject user memories before every agent run (context provider)
+- Automatically add user memories to each user turn (context provider)
 - Give agents tools to search and store memories on their own
 - Intercept chat requests to add memory context via middleware
 - Combine all three for maximum flexibility
@@ -64,7 +64,8 @@ conn = AgentSupermemory(
 | `api_key` | `str` | env var | Supermemory API key. Falls back to `SUPERMEMORY_API_KEY` |
 | `container_tag` | `str` | `"msft_agent_chat"` | Memory scope (e.g., user ID) |
 | `conversation_id` | `str` | auto-generated | Groups messages into a conversation |
-| `entity_context` | `str` | `None` | Custom context about the user, prepended to memories |
+| `entity_context` | `str` | `None` | Custom context about the user, prepended to the first memory block of a session |
+| `base_url` | `str` | SDK default | Supermemory API base URL |
 
 Pass this connection to any integration:
 
@@ -115,7 +116,7 @@ asyncio.run(main())
 
 ### How it works
 
-1. **`before_run()`** — Searches Supermemory for the user's profile and relevant memories, then injects them into the session context as additional instructions
+1. **`before_run()`** — Searches Supermemory for the user's profile and relevant memories, then appends them to the current turn's user message. The system prompt and agent instructions are never changed. See [Where memories go](#where-memories-go).
 2. **`after_run()`** — If `store_conversations=True`, saves the conversation to Supermemory so future sessions have more context
 
 ### Configuration options
@@ -127,6 +128,7 @@ asyncio.run(main())
 | `store_conversations` | `bool` | `False` | Save conversations after each run |
 | `context_prompt` | `str` | built-in | Custom prompt describing the memories |
 | `verbose` | `bool` | `False` | Enable detailed logging |
+| `recall_timeout` | `float` | `2.0` | Seconds recall may take before the turn runs without memories |
 
 ---
 
@@ -172,7 +174,7 @@ Tool JSON envelopes are preserved. Profiles still expose string arrays for stati
 
 ## Chat middleware
 
-Intercept chat requests to automatically inject memory context. Useful when you want memory injection without the session-based context provider pattern.
+Intercept chat requests to automatically add memory context. Useful when you want memory injection without the session-based context provider pattern. The middleware recalls once per user turn and appends the result to that turn's user message. Tool-call steps in the same turn reuse it without calling Supermemory again. `SupermemoryMiddlewareOptions` accepts `mode` (default `"profile"`), `add_memory` (`"always"` or `"never"`), `verbose`, and `recall_timeout` (default `2.0` seconds).
 
 ```python
 import asyncio
@@ -221,7 +223,19 @@ SupermemoryContextProvider(conn, mode="full")  # or "profile" / "query"
 | `"query"` | Memories relevant to the current message only | Targeted recall, no profile data |
 | `"full"` (default) | Profile + query search combined | Maximum context |
 
-V5 profile retrieval does not accept a search query. Full mode makes separate profile and search requests and deduplicates overlapping facts before injection. Profile-associated searches keep the legacy memory-only mode and `0.6` threshold; the explicit search tool keeps hybrid mode and `0.6`. Writes are asynchronous; an accepted document may not be immediately searchable, and this migration does not change the SDK's default processing mode.
+The profile is injected once, on the first user turn where it loads. Later turns carry only search results that earlier turns haven't shown.
+
+V5 profile retrieval does not accept a search query. On a new user turn, full mode makes separate profile and search requests and deduplicates overlapping facts before injection. Profile-associated searches keep the legacy memory-only mode and `0.6` threshold; the explicit search tool keeps hybrid mode and `0.6`. Writes are asynchronous; an accepted document may not be immediately searchable, and this migration does not change the SDK's default processing mode.
+
+---
+
+## Where memories go
+
+The provider and the middleware both append a `<supermemory context="user-memories" readonly>` block to the current turn's user message. Nothing is written to the system prompt or instructions, so the start of every request stays the same and provider prompt caching keeps working.
+
+- Earlier turns stay byte-identical on later requests. The provider attaches the block to the turn's input message, and the session history stores that message. The middleware keeps each turn's block in a bounded in-process cache and re-applies it on every later call.
+- Recall has a time budget, `recall_timeout`, which defaults to 2 seconds. It uses a client with no retries and a matching request timeout. If recall times out or fails, that turn runs without memories, and the next user turn recalls again.
+- Session history saved by the provider includes these blocks. Conversation storage strips them before writing to Supermemory.
 
 ---
 
@@ -304,7 +318,7 @@ This example stores conversations through the provider only. Enabling middleware
 
 The package provides specific exception types:
 
-Tools return operation failures as JSON (`success: false`, `error`). Provider retrieval/storage and middleware retrieval failures are logged and let the agent continue without memories. Middleware background write failures are logged rather than raised by `wait_for_background_tasks()`; a timeout on that wait still raises `asyncio.TimeoutError`.
+Tools return operation failures as JSON (`success: false`, `error`). Provider retrieval/storage and middleware retrieval failures are logged and let the agent continue without memories. Recall that exceeds `recall_timeout` is treated the same way. Middleware background write failures are logged rather than raised by `wait_for_background_tasks()`; a timeout on that wait still raises `asyncio.TimeoutError`.
 
 ```python
 from supermemory_agent_framework import (

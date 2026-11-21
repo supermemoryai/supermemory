@@ -1,15 +1,17 @@
 """Supermemory middleware for Microsoft Agent Framework.
 
-Provides ChatMiddleware that automatically injects relevant memories into
-the system prompt before LLM calls, and optionally saves conversations.
+Provides ChatMiddleware that appends relevant memories to the current user
+message once per user turn, and optionally saves conversations.
 """
 
 import asyncio
+import hashlib
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Literal, Optional
 
 import supermemory
-from agent_framework import ChatMiddleware, Content, Message
+from agent_framework import ChatMiddleware, Message
 
 from .connection import AgentSupermemory
 from .exceptions import (
@@ -18,15 +20,17 @@ from .exceptions import (
     SupermemoryTimeoutError,
 )
 from .utils import (
+    DEFAULT_RECALL_TIMEOUT,
     Logger,
-    _fetch_profile_and_search,
-    convert_profile_to_markdown,
+    append_memory_block,
+    build_memories_text,
     create_logger,
-    deduplicate_memories,
-    replace_memory_injection,
+    memory_blocks,
+    recall_turn_memories,
     strip_memory_injection,
-    wrap_memory_injection,
 )
+
+_MAX_CACHED_TURNS = 256
 
 
 @dataclass
@@ -36,6 +40,7 @@ class SupermemoryMiddlewareOptions:
     verbose: bool = False
     mode: Literal["profile", "query", "full"] = "profile"
     add_memory: Literal["always", "never"] = "never"
+    recall_timeout: float = DEFAULT_RECALL_TIMEOUT
 
 
 def _get_last_user_message(messages: Any) -> str:
@@ -113,6 +118,7 @@ def _get_conversation_content(messages: Any) -> str:
             else:
                 content_text = str(content)
 
+            content_text = strip_memory_injection(content_text).strip()
             if content_text:
                 conversation_parts.append(f"{role_display}: {content_text}")
 
@@ -127,54 +133,37 @@ async def _build_memories_text(
     query_text: str = "",
 ) -> str:
     """Build formatted memories text from Supermemory API."""
-    memories_response, search = await _fetch_profile_and_search(
-        client,
-        container_tag,
-        include_profile=mode != "query",
-        query=query_text if mode != "profile" else "",
-    )
-    profile = memories_response.profile if memories_response else None
-    static = list(profile.static) if profile and profile.static else []
-    dynamic = list(profile.dynamic) if profile and profile.dynamic else []
-    search_results_raw = list(search.results) if search else []
-
+    memories = await build_memories_text(client, container_tag, mode, query_text)
     logger.info(
         "Memory search completed",
-        {
-            "container_tag": container_tag,
-            "memory_count_static": len(static),
-            "memory_count_dynamic": len(dynamic),
-            "query_text": (query_text[:100] + ("..." if len(query_text) > 100 else "")),
-            "mode": mode,
-        },
+        {"container_tag": container_tag, "mode": mode, "length": len(memories)},
     )
+    return memories
 
-    deduplicated = deduplicate_memories(
-        static=static if mode != "query" else [],
-        dynamic=dynamic if mode != "query" else [],
-        search_results=search_results_raw,
-    )
 
-    profile_data = ""
-    if mode != "query":
-        profile_data = convert_profile_to_markdown(
-            {
-                "profile": {
-                    "static": deduplicated.static,
-                    "dynamic": deduplicated.dynamic,
-                },
-                "searchResults": {"results": []},
-            }
-        )
+def _message_role(message: Any) -> Any:
+    """Read a message role from framework objects or dict messages."""
+    if isinstance(message, dict):
+        return message.get("role")
+    return getattr(message, "role", None)
 
-    search_results_memories = ""
-    if mode != "profile" and deduplicated.search_results:
-        search_results_memories = (
-            "Search results for user's recent message: \n"
-            + "\n".join(f"- {memory}" for memory in deduplicated.search_results)
-        )
 
-    return f"{profile_data}\n{search_results_memories}".strip()
+def _message_text(message: Any) -> str:
+    """Read message text from framework objects or dict messages."""
+    return _get_last_user_message([message]) if _message_role(message) == "user" else ""
+
+
+def _with_memory_block(message: Any, block: str) -> Any:
+    """Return a copy of a user message with the memory block appended."""
+    if isinstance(message, dict):
+        key = "content" if "content" in message else "text"
+        content = message.get(key)
+        if isinstance(content, list):
+            return {**message, key: [*content, {"type": "text", "text": block}]}
+        return {**message, key: f"{content or ''}\n\n{block}".lstrip()}
+    if not hasattr(message, "contents"):
+        return message
+    return append_memory_block(message, block)
 
 
 async def _save_memory(
@@ -211,11 +200,12 @@ async def _save_memory(
 
 
 class SupermemoryChatMiddleware(ChatMiddleware):
-    """Chat middleware that injects Supermemory memories into the system prompt.
+    """Chat middleware that appends Supermemory memories to the user message.
 
-    This middleware intercepts chat requests before they reach the LLM,
-    fetches relevant memories from Supermemory, and injects them into
-    the system prompt. It can also save conversations as memories.
+    Memories are recalled once per user turn and appended to that turn's user
+    message. Every later model call re-applies the same text to the same turn,
+    so earlier turns stay byte-identical and prompt caches keep hitting. The
+    system prompt is never modified. It can also save conversations as memories.
 
     Example:
         ```python
@@ -258,6 +248,7 @@ class SupermemoryChatMiddleware(ChatMiddleware):
         self._logger = create_logger(self._options.verbose)
         self._supermemory_client = connection.client
         self._background_tasks: set[asyncio.Task[None]] = set()
+        self._turns: OrderedDict[str, str] = OrderedDict()
 
     async def process(
         self,
@@ -265,7 +256,6 @@ class SupermemoryChatMiddleware(ChatMiddleware):
         call_next: Callable[[], Awaitable[None]],
     ) -> None:
         """Process the chat request by injecting memories and optionally saving conversations."""
-        _inject_memories(context, "")
         messages = context.messages
 
         if self._options.add_memory == "always":
@@ -298,15 +288,56 @@ class SupermemoryChatMiddleware(ChatMiddleware):
 
                 task.add_done_callback(_handle_task_exception)
 
-        query_text = ""
-        if self._options.mode != "profile":
-            user_message = _get_last_user_message(messages)
-            if not user_message:
-                self._logger.debug("No user message found, skipping memory search")
-                await call_next()
-                return
-            query_text = user_message
+        await self._apply_turn_memories(context)
+        await call_next()
 
+    # Turn N's block is keyed by the user texts up to N so every later call replays identical bytes.
+    async def _apply_turn_memories(self, context: Any) -> None:
+        messages = context.messages
+        user_indexes = [
+            i for i, message in enumerate(messages) if _message_role(message) == "user"
+        ]
+        if not user_indexes:
+            self._logger.debug("No user message found, skipping memory search")
+            return
+
+        digest = hashlib.sha256(self._container_tag.encode())
+        prior_blocks: list[str] = []
+        for index in user_indexes:
+            text = _message_text(messages[index])
+            existing = memory_blocks([text])
+            digest.update(b"\0" + strip_memory_injection(text).encode())
+            if existing:
+                prior_blocks.extend(existing)
+                continue
+
+            key = digest.hexdigest()
+            block = self._turns.get(key)
+            if block is not None:
+                self._turns.move_to_end(key)
+            elif index == user_indexes[-1]:
+                block = await self._recall(text, prior_blocks)
+                self._turns[key] = block
+                while len(self._turns) > _MAX_CACHED_TURNS:
+                    self._turns.popitem(last=False)
+            if not block:
+                continue
+
+            original = messages[index]
+            updated = _with_memory_block(original, block)
+            messages[index] = updated
+            record = getattr(context, "record_message_replacement", None)
+            if record and isinstance(original, Message) and updated is not original:
+                try:
+                    record(updated, original)
+                except (TypeError, ValueError):
+                    pass
+            prior_blocks.append(block)
+
+    async def _recall(self, user_text: str, prior_blocks: list[str]) -> str:
+        """Recall this turn's memories within the budget; failures yield ''."""
+        if self._options.mode != "profile" and not user_text.strip():
+            return ""
         self._logger.info(
             "Starting memory search",
             {
@@ -315,35 +346,14 @@ class SupermemoryChatMiddleware(ChatMiddleware):
                 "mode": self._options.mode,
             },
         )
-
-        try:
-            memories = await _build_memories_text(
-                self._container_tag,
-                self._logger,
-                self._options.mode,
-                self._supermemory_client,
-                query_text,
-            )
-        except Exception as e:
-            self._logger.error(
-                "Failed to fetch memories, proceeding without",
-                {"error": str(e)},
-            )
-            await call_next()
-            return
-
-        if memories:
-            if self._connection.entity_context:
-                memories = f"{self._connection.entity_context}\n\n{memories}"
-
-            self._logger.debug(
-                "Memory content preview",
-                {"content": memories[:200], "full_length": len(memories)},
-            )
-
-            _inject_memories(context, memories)
-
-        await call_next()
+        return await recall_turn_memories(
+            self._connection,
+            mode=self._options.mode,
+            query_text=user_text,
+            prior_blocks=prior_blocks,
+            timeout=self._options.recall_timeout,
+            logger=self._logger,
+        )
 
     async def wait_for_background_tasks(self, timeout: Optional[float] = 10.0) -> None:
         """Wait for all background memory storage tasks to complete."""
@@ -371,230 +381,3 @@ class SupermemoryChatMiddleware(ChatMiddleware):
                 if not task.done():
                     task.cancel()
             raise
-
-
-def _update_structured_content(
-    content: Any,
-    memories: str,
-    *,
-    inject: bool,
-) -> tuple[Any, bool, bool]:
-    """Clear owned blocks from string/dict content and optionally inject one."""
-    if isinstance(content, str):
-        updated = (
-            replace_memory_injection(content, memories)
-            if inject
-            else strip_memory_injection(content)
-        )
-        return updated, inject, updated != content
-
-    if isinstance(content, (list, tuple)):
-        updated_parts: list[Any] = []
-        removed_owned_block = False
-        for part in content:
-            if isinstance(part, str):
-                cleaned = strip_memory_injection(part)
-                removed_owned_block = removed_owned_block or cleaned != part
-                if cleaned or cleaned == part:
-                    updated_parts.append(cleaned)
-                continue
-
-            if isinstance(part, dict) and isinstance(part.get("text"), str):
-                original_text = part["text"]
-                cleaned_text = strip_memory_injection(original_text)
-                removed_owned_block = (
-                    removed_owned_block or cleaned_text != original_text
-                )
-                if cleaned_text or cleaned_text == original_text:
-                    if cleaned_text == original_text:
-                        updated_parts.append(part)
-                    else:
-                        updated_parts.append({**part, "text": cleaned_text})
-                continue
-
-            updated_parts.append(part)
-
-        if inject:
-            updated_parts.append(
-                {"type": "text", "text": wrap_memory_injection(memories)}
-            )
-
-        if isinstance(content, tuple):
-            return tuple(updated_parts), inject, removed_owned_block
-        return updated_parts, inject, removed_owned_block
-
-    if content is None and inject:
-        return wrap_memory_injection(memories), True, False
-
-    return content, False, False
-
-
-def _update_framework_message(
-    msg: Any,
-    memories: str,
-    *,
-    inject: bool,
-) -> tuple[bool, bool]:
-    """Update real Agent Framework Message contents without assigning .text."""
-    try:
-        contents = list(msg.contents or [])
-    except (AttributeError, TypeError):
-        return False, False
-
-    updated_contents = []
-    removed_owned_block = False
-    for content in contents:
-        text = getattr(content, "text", None)
-        if getattr(content, "type", None) == "text" and isinstance(text, str):
-            cleaned = strip_memory_injection(text)
-            removed_owned_block = removed_owned_block or cleaned != text
-            if cleaned or cleaned == text:
-                if cleaned != text:
-                    content.text = cleaned
-                updated_contents.append(content)
-            continue
-
-        updated_contents.append(content)
-
-    if inject:
-        updated_contents.append(Content.from_text(wrap_memory_injection(memories)))
-
-    try:
-        msg.contents = updated_contents
-    except (AttributeError, TypeError):
-        try:
-            msg.contents[:] = updated_contents
-        except (AttributeError, TypeError):
-            return False, False
-
-    return inject, removed_owned_block and not updated_contents
-
-
-def _is_empty_content(content: Any) -> bool:
-    """Return whether stripping an owned block left no message content."""
-    return (
-        content is None
-        or content == ""
-        or (isinstance(content, (list, tuple)) and not content)
-    )
-
-
-def _inject_memories(context: Any, memories: str) -> None:
-    """Inject memories into the chat context messages.
-
-    Handles both object-based and dict-based message formats used by
-    different Agent Framework providers.
-    """
-    messages = context.messages
-    should_inject = bool(memories.strip())
-    memory_text = wrap_memory_injection(memories) if should_inject else ""
-
-    # Replace prior SDK blocks in every system message and inject once.
-    injected = False
-    messages_to_remove: list[Any] = []
-    for msg in list(messages):
-        role = None
-        if hasattr(msg, "role"):
-            role = msg.role
-        elif isinstance(msg, dict):
-            role = msg.get("role")
-
-        if role == "system":
-            inject_here = should_inject and not injected
-            injected_here = False
-            remove_here = False
-
-            if hasattr(msg, "contents"):
-                injected_here, remove_here = _update_framework_message(
-                    msg,
-                    memories,
-                    inject=inject_here,
-                )
-            elif isinstance(msg, dict):
-                content_key = "content" if "content" in msg else "text"
-                updated, injected_here, removed_owned_block = (
-                    _update_structured_content(
-                        msg.get(content_key),
-                        memories,
-                        inject=inject_here,
-                    )
-                )
-                msg[content_key] = updated
-                remove_here = (
-                    not inject_here
-                    and removed_owned_block
-                    and _is_empty_content(updated)
-                )
-            elif hasattr(msg, "content"):
-                updated, injected_here, removed_owned_block = (
-                    _update_structured_content(
-                        msg.content,
-                        memories,
-                        inject=inject_here,
-                    )
-                )
-                try:
-                    msg.content = updated
-                except (AttributeError, TypeError):
-                    injected_here = False
-                else:
-                    remove_here = (
-                        not inject_here
-                        and removed_owned_block
-                        and _is_empty_content(updated)
-                    )
-            elif hasattr(msg, "text"):
-                updated, injected_here, removed_owned_block = (
-                    _update_structured_content(
-                        msg.text,
-                        memories,
-                        inject=inject_here,
-                    )
-                )
-                try:
-                    msg.text = updated
-                except (AttributeError, TypeError):
-                    injected_here = False
-                else:
-                    remove_here = (
-                        not inject_here
-                        and removed_owned_block
-                        and _is_empty_content(updated)
-                    )
-
-            injected = injected or injected_here
-            if remove_here:
-                messages_to_remove.append(msg)
-
-    if messages_to_remove:
-        retained_messages = [
-            msg
-            for msg in messages
-            if not any(msg is removed for removed in messages_to_remove)
-        ]
-        try:
-            messages[:] = retained_messages
-        except (AttributeError, TypeError):
-            try:
-                context.messages = retained_messages
-                messages = context.messages
-            except (AttributeError, TypeError):
-                pass
-
-    if injected or not should_inject:
-        return
-
-    # No system message found - prepend one
-    new_message: Any
-    if any(isinstance(msg, dict) for msg in messages):
-        new_message = {"role": "system", "content": memory_text}
-    else:
-        new_message = Message("system", [memory_text])
-
-    try:
-        messages.insert(0, new_message)
-    except (AttributeError, TypeError):
-        try:
-            context.messages = [new_message, *list(messages)]
-        except (AttributeError, TypeError):
-            pass

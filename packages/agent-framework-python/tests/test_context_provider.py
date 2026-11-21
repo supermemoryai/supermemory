@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from agent_framework import Message, SessionContext
 
 from supermemory_agent_framework import AgentSupermemory, SupermemoryContextProvider
 
@@ -131,21 +132,58 @@ class TestMemoryRetrieval:
     async def test_query_mode_keeps_search_fact_also_present_in_profile(self) -> None:
         fact = "User likes machine learning projects"
         conn = _make_conn()
-        conn.client.profile = AsyncMock(
-            return_value=SimpleNamespace(
-                profile=SimpleNamespace(static=[fact], dynamic=[]),
-                search_results=SimpleNamespace(results=[SimpleNamespace(memory=fact)]),
-            )
-        )
-        conn.client.search = AsyncMock(
-            return_value=SimpleNamespace(results=[SimpleNamespace(memory=fact)])
+        conn.client = SimpleNamespace(
+            profile=AsyncMock(
+                return_value=SimpleNamespace(
+                    profile=SimpleNamespace(static=[fact], dynamic=[]),
+                )
+            ),
+            search=AsyncMock(
+                return_value=SimpleNamespace(results=[SimpleNamespace(memory=fact)])
+            ),
         )
         provider = SupermemoryContextProvider(conn, mode="query")
+        context = SessionContext(input_messages=[Message("user", ["machine learning"])])
 
-        memories = await provider._fetch_memories("machine learning")
+        await provider.before_run(agent=None, session=None, context=context, state={})
 
-        assert fact in memories
+        assert fact in context.input_messages[0].text
         conn.client.profile.assert_not_awaited()
         conn.client.search.assert_awaited_once_with(
             "user-123", query="machine learning", threshold=0.6, search_mode="memories"
         )
+
+    @pytest.mark.asyncio
+    async def test_later_turns_keep_history_and_skip_shown_memories(self) -> None:
+        conn = _make_conn()
+        conn.client = SimpleNamespace(
+            profile=AsyncMock(
+                return_value=SimpleNamespace(
+                    profile=SimpleNamespace(static=["Prefers Python"], dynamic=[])
+                )
+            ),
+            search=AsyncMock(
+                return_value=SimpleNamespace(
+                    results=[SimpleNamespace(memory="Lives in Lisbon")]
+                )
+            ),
+        )
+        provider = SupermemoryContextProvider(conn, mode="full")
+        first = SessionContext(input_messages=[Message("user", ["hello"])])
+        await provider.before_run(agent=None, session=None, context=first, state={})
+        turn_one = first.input_messages[0]
+        assert not first.instructions
+        assert "Prefers Python" in turn_one.text
+        assert "Lives in Lisbon" in turn_one.text
+
+        second = SessionContext(
+            input_messages=[Message("user", ["where do I live?"])],
+            context_messages={
+                "in_memory": [turn_one, Message("assistant", ["Hi"])],
+            },
+        )
+        await provider.before_run(agent=None, session=None, context=second, state={})
+
+        assert second.context_messages["in_memory"][0] is turn_one
+        assert second.input_messages[0].text == "where do I live?"
+        assert conn.client.profile.await_count == 1

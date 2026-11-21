@@ -1,5 +1,7 @@
 """Tests for Supermemory middleware."""
 
+import asyncio
+import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
@@ -14,8 +16,22 @@ from supermemory_agent_framework.middleware import (
     _build_memories_text,
     _get_conversation_content,
     _get_last_user_message,
-    _inject_memories,
 )
+
+
+def _fake_client(fact: str = "Prefers Python") -> SimpleNamespace:
+    return SimpleNamespace(
+        profile=AsyncMock(
+            return_value=SimpleNamespace(
+                profile=SimpleNamespace(static=[fact], dynamic=[])
+            )
+        ),
+        search=AsyncMock(
+            side_effect=lambda tag, query, **kwargs: SimpleNamespace(
+                results=[SimpleNamespace(memory=f"Asked about {query}")]
+            )
+        ),
+    )
 
 
 def _make_conn(**kwargs):
@@ -119,29 +135,84 @@ class TestMiddlewareConfiguration:
 
 
 class TestMemoryInjection:
-    def test_replaces_prior_sdk_context(self) -> None:
+    @pytest.mark.asyncio
+    async def test_appends_to_user_message_and_keeps_system_prompt(self) -> None:
+        conn = _make_conn()
+        conn.client = _fake_client()
+        middleware = SupermemoryChatMiddleware(
+            conn, SupermemoryMiddlewareOptions(mode="full")
+        )
+        system = {"role": "system", "content": "Be helpful."}
         context = SimpleNamespace(
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Be helpful.\n\n"
-                        '<supermemory context="user-memories" readonly>\n'
-                        "Stale profile fact\n"
-                        "</supermemory>"
-                    ),
-                },
-                {"role": "user", "content": "What do you remember?"},
-            ]
+            messages=[system, {"role": "user", "content": "What do you remember?"}]
         )
 
-        _inject_memories(context, "Fresh profile fact")
+        await middleware.process(context, AsyncMock())
 
-        content = context.messages[0]["content"]
-        assert "Be helpful." in content
-        assert "Fresh profile fact" in content
-        assert "Stale profile fact" not in content
-        assert content.count('<supermemory context="user-memories" readonly>') == 1
+        assert context.messages[0] == {"role": "system", "content": "Be helpful."}
+        content = context.messages[1]["content"]
+        assert content.startswith("What do you remember?")
+        assert "Prefers Python" in content
+        assert "Asked about What do you remember?" in content
+
+    @pytest.mark.asyncio
+    async def test_recalls_once_per_turn_and_replays_earlier_turns(self) -> None:
+        conn = _make_conn()
+        conn.client = _fake_client()
+        middleware = SupermemoryChatMiddleware(
+            conn, SupermemoryMiddlewareOptions(mode="full")
+        )
+        history = [{"role": "user", "content": "first"}]
+        sent = []
+        for extra in [[], [{"role": "tool", "content": "step"}]]:
+            context = SimpleNamespace(messages=[*history, *extra])
+            await middleware.process(context, AsyncMock())
+            sent.append(context.messages[0]["content"])
+        assert sent[0] == sent[1]
+        assert conn.client.profile.await_count == 1
+        assert conn.client.search.await_count == 1
+
+        history += [
+            {"role": "assistant", "content": "answer"},
+            {"role": "user", "content": "second"},
+        ]
+        context = SimpleNamespace(messages=list(history))
+        await middleware.process(context, AsyncMock())
+        assert context.messages[0]["content"] == sent[0]
+        second = context.messages[2]["content"]
+        assert "Asked about second" in second
+        assert "Prefers Python" not in second
+        assert conn.client.profile.await_count == 1
+        assert conn.client.search.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_failed_recall_degrades_and_retries_on_next_turn(self) -> None:
+        conn = _make_conn()
+        conn.client = _fake_client()
+
+        async def slow_profile(tag):
+            await asyncio.sleep(5)
+
+        conn.client.profile = AsyncMock(side_effect=slow_profile)
+        middleware = SupermemoryChatMiddleware(
+            conn, SupermemoryMiddlewareOptions(mode="full", recall_timeout=0.1)
+        )
+        history = [{"role": "user", "content": "first"}]
+        context = SimpleNamespace(messages=list(history))
+        started = time.monotonic()
+        await middleware.process(context, AsyncMock())
+        assert time.monotonic() - started < 1
+        assert context.messages == history
+
+        conn.client.profile = _fake_client().profile
+        history += [
+            {"role": "assistant", "content": "answer"},
+            {"role": "user", "content": "second"},
+        ]
+        context = SimpleNamespace(messages=list(history))
+        await middleware.process(context, AsyncMock())
+        assert context.messages[0] == history[0]
+        assert "Prefers Python" in context.messages[2]["content"]
 
     @pytest.mark.asyncio
     async def test_query_mode_keeps_search_fact_also_present_in_profile(self) -> None:
