@@ -6,7 +6,8 @@
  * - Conversation saving: Persists conversations to Supermemory after responses
  *
  * Processors integrate with Mastra's processor pipeline:
- * - InputProcessor runs before the LLM call, injecting memories into system messages
+ * - InputProcessor runs before the LLM call, adding the profile to the system messages and
+ *   search results to the user's turn
  * - OutputProcessor runs after the LLM responds, optionally saving the conversation
  *
  * @module
@@ -16,10 +17,14 @@ import {
 	createLogger,
 	normalizeBaseUrl,
 	validateApiKey,
-	MemoryCache,
-	buildMemoriesText,
-	extractQueryText,
+	buildTurnRecall,
+	replaceMemoryContext,
+	stripMemoryContext,
+	turnKey,
+	turnKeys,
+	withTurnMemory,
 	wrapMemoryContext,
+	TurnMemoryByConversation,
 	type Logger,
 	type MemoryMode,
 	type PromptTemplate,
@@ -51,7 +56,6 @@ interface ProcessorContext {
 	addMemory: "always" | "never"
 	logger: Logger
 	promptTemplate?: PromptTemplate
-	memoryCache: MemoryCache<string>
 }
 
 /**
@@ -73,7 +77,6 @@ function createProcessorContext(
 		addMemory: options.addMemory ?? "always",
 		logger,
 		promptTemplate: options.promptTemplate,
-		memoryCache: new MemoryCache<string>(),
 	}
 }
 
@@ -98,12 +101,53 @@ function getEffectiveId(
 	return ctx.id
 }
 
+const messageText = (message: MastraDBMessage): string => {
+	const { parts, content } = message.content
+	if (Array.isArray(parts) && parts.length > 0) {
+		return parts
+			.flatMap((part) =>
+				part.type === "text" && typeof part.text === "string"
+					? [part.text]
+					: [],
+			)
+			.join(" ")
+	}
+	return typeof content === "string" ? content : ""
+}
+
+const withMessageMemory = (
+	message: MastraDBMessage,
+	memories: string,
+): MastraDBMessage => {
+	const { parts, content } = message.content
+	const textParts =
+		Array.isArray(parts) && parts.length > 0
+			? parts
+			: [
+					{
+						type: "text" as const,
+						text: typeof content === "string" ? content : "",
+					},
+				]
+	return {
+		...message,
+		content: {
+			...message.content,
+			parts: withTurnMemory(textParts, memories) as typeof parts,
+		},
+	}
+}
+
 /**
- * Input processor that injects memories into the system prompt before LLM calls.
+ * Input processor that adds memories to the prompt before LLM calls.
  *
- * This processor runs once at the start of agent execution (processInput).
- * It fetches relevant memories from Supermemory based on the user's message
- * and injects them into the system messages.
+ * This processor runs once at the start of agent execution (processInput):
+ * - The profile ("profile" and "full" modes) is fetched once per conversation and appended to the
+ *   first system message (the agent instructions) as a separate block, or added as a system
+ *   message when there is none. It stays byte-identical on every call.
+ * - Search results ("query" and "full" modes) are appended to the user message they were
+ *   retrieved for, and earlier messages keep the block they first received.
+ * - A failed or timed-out fetch is retried on the next user message.
  *
  * @example
  * ```typescript
@@ -131,78 +175,72 @@ export class SupermemoryInputProcessor implements Processor {
 	readonly name = "Supermemory Memory Injection"
 
 	private ctx: ProcessorContext
+	private turns = new TurnMemoryByConversation()
 
 	constructor(options: SupermemoryMastraOptions) {
 		this.ctx = createProcessorContext(options)
 	}
 
 	async processInput(args: ProcessInputArgs): Promise<ProcessInputResult> {
-		const { messages, messageList, requestContext } = args
+		const { messages, messageList, requestContext, systemMessages } = args
 
-		// Mastra owns tagged system messages by tag. Clear the previous value on
-		// every invocation so empty, skipped, cached, fresh, and error paths cannot
-		// leave stale Supermemory context behind.
-		messageList.clearSystemMessages("supermemory")
+		const users = messages.filter((message) => message.role === "user")
+		const latest = users.at(-1)
+		if (!latest) return messageList
 
-		try {
-			const queryText = extractQueryText(
-				messages as unknown as Array<{
-					role: string
-					content: string | Array<{ type: string; text?: string }>
-				}>,
-				this.ctx.mode,
-			)
-
-			if (this.ctx.mode !== "profile" && !queryText) {
-				this.ctx.logger.debug("No user message found, skipping memory search")
-				return messageList
-			}
-
-			const effectiveThreadId = getEffectiveId(this.ctx, requestContext)
-			const turnKey = MemoryCache.makeTurnKey(
-				this.ctx.namespace,
-				effectiveThreadId,
-				this.ctx.mode,
-				queryText || "",
-			)
-
-			const cachedMemories = this.ctx.memoryCache.get(turnKey)
-			if (cachedMemories) {
-				this.ctx.logger.debug("Using cached memories", { turnKey })
-				messageList.addSystem(wrapMemoryContext(cachedMemories), "supermemory")
-				return messageList
-			}
-
-			this.ctx.logger.info("Starting memory search", {
+		const keys = turnKeys(messages, (message) => ({
+			role: message.role,
+			text: messageText(message),
+		}))
+		const memory = this.turns.for(getEffectiveId(this.ctx, requestContext))
+		const query = turnKey(messageText(latest))
+		await memory.recall(
+			keys.get(latest) as string,
+			buildTurnRecall({
 				namespace: this.ctx.namespace,
-				threadId: effectiveThreadId,
-				mode: this.ctx.mode,
-			})
-
-			const memories = await buildMemoriesText({
-				namespace: this.ctx.namespace,
-				queryText: queryText || "",
+				query,
 				mode: this.ctx.mode,
 				baseUrl: this.ctx.baseUrl,
 				apiKey: this.ctx.apiKey,
+				source: "tools-mastra",
 				logger: this.ctx.logger,
 				promptTemplate: this.ctx.promptTemplate,
-			})
+			}),
+		)
 
-			if (memories) {
-				this.ctx.memoryCache.set(turnKey, memories)
-				messageList.addSystem(wrapMemoryContext(memories), "supermemory")
-				this.ctx.logger.debug("Injected memories into system prompt", {
-					length: memories.length,
-				})
-			}
-
-			return messageList
-		} catch (error) {
-			this.ctx.logger.error("Error fetching memories", {
-				error: error instanceof Error ? error.message : "Unknown error",
-			})
-			return messageList
+		const blocks = await Promise.all(
+			messages.map((message) => {
+				const key = keys.get(message)
+				return key === undefined ? undefined : memory.get(key)
+			}),
+		)
+		const profile = wrapMemoryContext(memory.profile)
+		if (!profile && blocks.every((block) => !block)) return messageList
+		const system = systemMessages.findIndex(
+			(message) =>
+				message.role === "system" && typeof message.content === "string",
+		)
+		return {
+			messages: messages.map((message, index) => {
+				const block = blocks[index]
+				return block === undefined ? message : withMessageMemory(message, block)
+			}),
+			systemMessages:
+				system === -1
+					? profile
+						? [...systemMessages, { role: "system" as const, content: profile }]
+						: systemMessages
+					: systemMessages.map((message, index) =>
+							index === system
+								? ({
+										...message,
+										content: replaceMemoryContext(
+											message.content as string,
+											memory.profile,
+										),
+									} as (typeof systemMessages)[number])
+								: message,
+						),
 		}
 	}
 }
@@ -269,6 +307,7 @@ export class SupermemoryOutputProcessor implements Processor {
 				namespace: this.ctx.namespace,
 				apiKey: this.ctx.apiKey,
 				baseUrl: this.ctx.baseUrl,
+				source: "tools-mastra",
 			})
 
 			this.ctx.logger.info("Conversation saved successfully", {
@@ -300,7 +339,7 @@ export class SupermemoryOutputProcessor implements Processor {
 			const content = msg.content
 
 			if (content.content && typeof content.content === "string") {
-				result.push({ role, content: content.content })
+				result.push({ role, content: stripMemoryContext(content.content) })
 				continue
 			}
 
@@ -314,8 +353,9 @@ export class SupermemoryOutputProcessor implements Processor {
 					)
 					.map((part) => ({
 						type: "text" as const,
-						text: part.text,
+						text: stripMemoryContext(part.text),
 					}))
+					.filter((part) => part.text)
 
 				if (textParts.length > 0) {
 					result.push({ role, content: textParts })

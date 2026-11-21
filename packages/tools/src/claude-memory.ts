@@ -75,7 +75,7 @@ export class ClaudeMemoryTool {
 	}
 
 	constructor(apiKey: string, config?: ClaudeMemoryConfig) {
-		this.client = createToolsClient(apiKey, config)
+		this.client = createToolsClient(apiKey, config, "tools-claude-memory")
 		this.namespace = getNamespace(config)
 	}
 

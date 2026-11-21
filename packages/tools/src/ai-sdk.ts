@@ -25,7 +25,7 @@ export const searchMemoriesTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createToolsClient(apiKey, config)
+	const client = createToolsClient(apiKey, config, "tools-ai-sdk")
 	const namespace = getNamespace(config)
 	const strict = config?.strict ?? false
 
@@ -87,7 +87,7 @@ export const addMemoryTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createToolsClient(apiKey, config)
+	const client = createToolsClient(apiKey, config, "tools-ai-sdk")
 	const namespace = getNamespace(config)
 
 	return tool({
@@ -117,7 +117,7 @@ export const getProfileTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createToolsClient(apiKey, config)
+	const client = createToolsClient(apiKey, config, "tools-ai-sdk")
 	const namespace = getNamespace(config)
 
 	return tool({
@@ -142,7 +142,7 @@ export const documentListTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createToolsClient(apiKey, config)
+	const client = createToolsClient(apiKey, config, "tools-ai-sdk")
 	const namespace = getNamespace(config)
 	const strict = config?.strict ?? false
 
@@ -184,7 +184,7 @@ export const documentDeleteTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createToolsClient(apiKey, config)
+	const client = createToolsClient(apiKey, config, "tools-ai-sdk")
 	const namespace = getNamespace(config)
 
 	return tool({
@@ -211,7 +211,7 @@ export const documentAddTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createToolsClient(apiKey, config)
+	const client = createToolsClient(apiKey, config, "tools-ai-sdk")
 	const namespace = getNamespace(config)
 
 	return tool({
@@ -250,7 +250,7 @@ export const memoryForgetTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const client = createToolsClient(apiKey, config)
+	const client = createToolsClient(apiKey, config, "tools-ai-sdk")
 	const namespace = getNamespace(config)
 
 	return tool({

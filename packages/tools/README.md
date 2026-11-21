@@ -85,7 +85,7 @@ const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 
 - `withSupermemory` injects the Supermemory v5 profile for the given `namespace`, plus a memories search on the latest user message in `query` and `full` modes
 - You can provide the Supermemory API key via the `apiKey` option to `withSupermemory` (recommended for browser usage), or fall back to `SUPERMEMORY_API_KEY` in the environment for server usage.
-- **Per-turn caching**: Memory injection is cached for tool-call continuations within the same user turn. The middleware detects when the AI SDK is continuing a multi-step flow (e.g., after a tool call) and reuses the cached memories instead of making redundant API calls. A fresh fetch occurs on each new user message turn.
+- **Stable conversation context**: Reuse one wrapped model per conversation. The profile is fetched once, on the first user turn, and stays unchanged in the system prompt. Query and full modes attach each turn's search results to that user message and keep earlier results unchanged. The profile is never refetched mid-conversation; newer facts arrive through search. A failed retrieval is retried on the next user turn. State lives in the wrapper and is not shared across processes.
 
 ```typescript
 import { generateText } from "ai"
@@ -422,7 +422,7 @@ const addResult = await tools.addMemory({
 ### Mastra Usage
 
 Add persistent memory to [Mastra](https://mastra.ai) AI agents. The integration provides processors that:
-- **Input Processor**: Fetches relevant memories and injects them into the system prompt before LLM calls
+- **Input Processor**: Fetches memories once per user turn and appends them to that user message before LLM calls
 - **Output Processor**: Saves conversations to Supermemory after responses (enabled by default)
 
 #### Quick Start with `withSupermemory` Wrapper

@@ -11,7 +11,7 @@ import type {
 	PromptTemplate,
 } from "./types"
 import { SupermemoryError } from "supermemory"
-import { createSupermemoryClient } from "./context"
+import { type SupermemorySource, createSupermemoryClient } from "./context"
 import {
 	convertProfileToMarkdown,
 	defaultPromptTemplate,
@@ -32,10 +32,11 @@ export const supermemoryProfileSearch = async (
 	queryText: string,
 	baseUrl: string,
 	apiKey: string,
+	source: SupermemorySource,
 	signal?: AbortSignal,
 	includeProfile = true,
 ): Promise<ProfileStructure> => {
-	const client = createSupermemoryClient({ apiKey, baseUrl })
+	const client = createSupermemoryClient({ apiKey, baseUrl, source })
 	// No retries: this runs before the LLM call, and the raw v4 fetch never retried.
 	const requestOptions = {
 		maxRetries: 0,
@@ -83,14 +84,16 @@ export interface BuildMemoriesTextOptions {
 	mode: MemoryMode
 	baseUrl: string
 	apiKey: string
+	source: SupermemorySource
 	logger: Logger
 	promptTemplate?: PromptTemplate
 	signal?: AbortSignal
+	profile?: ProfileStructure["profile"] | Promise<ProfileStructure["profile"]>
 }
 
 /**
  * Fetches memories from the API, deduplicates them, and formats them into
- * the final string to be injected into the system prompt.
+ * the final memory block string.
  *
  * @param options - Configuration for building memories text
  * @returns The final formatted memories string ready for injection
@@ -104,19 +107,27 @@ export const buildMemoriesText = async (
 		mode,
 		baseUrl,
 		apiKey,
+		source,
 		logger,
 		promptTemplate = defaultPromptTemplate,
 		signal,
 	} = options
 
-	const memoriesResponse = await supermemoryProfileSearch(
-		namespace,
-		queryText,
-		baseUrl,
-		apiKey,
-		signal,
-		mode !== "query",
-	)
+	const [memoriesResponse, profile] = await Promise.all([
+		supermemoryProfileSearch(
+			namespace,
+			queryText,
+			baseUrl,
+			apiKey,
+			source,
+			signal,
+			mode !== "query" && options.profile === undefined,
+		),
+		options.profile,
+	])
+	if (profile !== undefined) {
+		memoriesResponse.profile = profile
+	}
 
 	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
 	const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0

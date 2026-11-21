@@ -197,7 +197,7 @@ export const memoryToolSchemas = {
 
 function createClient(apiKey: string, config?: SupermemoryToolsConfig) {
 	return {
-		client: createToolsClient(apiKey, config),
+		client: createToolsClient(apiKey, config, "tools-openai"),
 		namespace: getNamespace(config),
 	}
 }

@@ -53,3 +53,19 @@ export {
 	wrapMemoryContext,
 	replaceMemoryContext,
 } from "./memory-context"
+
+// Per-turn memory placement
+export {
+	RECALL_TIMEOUT_MS,
+	TurnMemory,
+	TurnMemoryByConversation,
+	buildTurnRecall,
+	turnKey,
+	turnKeys,
+	withTurnMemory,
+	type BuildTurnRecallOptions,
+	type FrozenProfile,
+	type TurnRecall,
+	type TurnRecallFetcher,
+	type TurnSearch,
+} from "./turn-memory"

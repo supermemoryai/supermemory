@@ -81,7 +81,9 @@ When integrated with VoltAgent, Supermemory hooks into two lifecycle events:
 Before each LLM call, Supermemory automatically:
 - Extracts the user's latest message
 - Searches for relevant memories scoped to the `namespace`
-- Injects retrieved memories into the system prompt
+- Appends retrieved memories to that user message, once per turn, leaving the system prompt untouched so prompt caching keeps working
+- Gives up after 3 seconds with no retries, so a slow API never holds the model call
+- Fetches the profile once per conversation and never refreshes it; newer facts come through each turn's search
 
 ### 2. Conversation saving (onEnd)
 

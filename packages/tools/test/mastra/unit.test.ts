@@ -154,7 +154,7 @@ describe("SupermemoryInputProcessor", () => {
 	})
 
 	describe("processInput", () => {
-		it("should inject memories into messageList", async () => {
+		it("should add the profile as a system message and leave the user message untouched", async () => {
 			fetchMock.mockImplementation(async () =>
 				jsonResponse(
 					createMockProfileResponse(
@@ -182,16 +182,18 @@ describe("SupermemoryInputProcessor", () => {
 				retryCount: 0,
 			}
 
-			await processor.processInput(args)
+			const result = (await processor.processInput(args)) as {
+				messages: MastraDBMessage[]
+				systemMessages: { role: string; content: string }[]
+			}
 
-			expect(messageList.addSystem).toHaveBeenCalled()
-			const systemCall = messageList.calls.find((c) => c.method === "addSystem")
-			expect(systemCall).toBeDefined()
-			expect(systemCall?.args[0]).toContain("TypeScript")
-			expect(systemCall?.args[0]).toContain(
-				'<supermemory context="user-memories" readonly>',
-			)
-			expect(systemCall?.args[1]).toBe("supermemory")
+			expect(messageList.addSystem).not.toHaveBeenCalled()
+			expect(result.messages[0]?.content.parts).toEqual([
+				{ type: "text", text: "Hello" },
+			])
+			const system = result.systemMessages[0]?.content ?? ""
+			expect(system).toContain("TypeScript")
+			expect(system).toContain('<supermemory context="user-memories" readonly>')
 		})
 
 		it("should use cached memories on second call with same message", async () => {
