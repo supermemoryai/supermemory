@@ -37,6 +37,7 @@ def fake_profile_search(lookups: list[str]) -> Any:
         api_key: str,
         base_url: str,
         timeout: Optional[float] = None,
+        include_profile: bool = True,
     ) -> Any:
         lookups.append(container_tag)
         return SimpleNamespace(

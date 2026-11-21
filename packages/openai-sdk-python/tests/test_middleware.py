@@ -1211,6 +1211,10 @@ class TestCacheSafeTurns:
             wrapped.chat.completions.create(model="gpt-4", messages=turn_two)
 
         assert search.await_count == 2
+        assert [call.kwargs["include_profile"] for call in search.await_args_list] == [
+            True,
+            False,
+        ]
         sent = [call.kwargs["messages"] for call in original_create.call_args_list]
         assert all(request[0] == self.SYSTEM for request in sent)
         assert sent[0][1] == sent[1][1] == sent[2][1]
@@ -1254,12 +1258,35 @@ class TestCacheSafeTurns:
             await wrapped.chat.completions.create(model="gpt-4", messages=turn_two)
 
         assert search.await_count == 2
+        assert [call.kwargs["include_profile"] for call in search.await_args_list] == [
+            True,
+            True,
+        ]
         sent = [call.kwargs["messages"] for call in original_create.call_args_list]
         assert sent[0] == turn_one
         assert sent[1] == tool_step
         assert sent[2][:-1] == turn_two[:-1]
         assert "Prefers Python" in sent[2][-1]["content"]
         assert "Likes cortados" in sent[2][-1]["content"]
+
+    def test_profile_is_fetched_once_even_when_empty(
+        self, mock_openai_client, mock_openai_response
+    ):
+        original_create = Mock(return_value=mock_openai_response)
+        mock_openai_client.chat.completions.create = original_create
+        search = AsyncMock(
+            return_value=Mock(profile={"static": [], "dynamic": []}, search_results={})
+        )
+        with patch("supermemory_openai.middleware.supermemory_profile_search", new=search):
+            wrapped = self._wrap(mock_openai_client, mode="profile")
+            messages: list[Any] = [self.SYSTEM]
+            for text in ("One", "Two", "Three"):
+                messages = [*messages, {"role": "user", "content": text}]
+                wrapped.chat.completions.create(model="gpt-4", messages=messages)
+                messages = [*messages, {"role": "assistant", "content": "ok"}]
+
+        assert search.await_count == 1
+        assert search.await_args.kwargs["include_profile"] is True
 
     def test_recall_timeout_degrades_to_no_memory(
         self, mock_openai_client, mock_openai_response

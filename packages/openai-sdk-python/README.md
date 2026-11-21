@@ -180,7 +180,7 @@ Memories are added to the conversation in a way that keeps the provider's prompt
 - Memories are recalled once per user turn and appended to that turn's **user message**, inside a `<supermemory context="user-memories" readonly>` block. The system and developer messages are never modified.
 - Every later request resends each earlier turn with exactly the same memory text, so earlier turns stay byte-identical and the cached prefix keeps matching. The wrapper keeps this per-turn text in a bounded in-memory cache (256 turns); your `messages` list is never mutated.
 - Tool-call continuation steps inside a turn reuse that turn's memory and do not recall again.
-- The profile is included once, on the first turn where it was fetched successfully. Later turns carry only new search results, and memories already shown in an earlier turn are not repeated.
+- The profile is fetched and included once per conversation, on the first turn where the fetch succeeds, even if it comes back empty. It is never refreshed: there is no TTL or timer. Later turns call only `/v4/search` (in `full` and `query` mode) or nothing at all (in `profile` mode), so anything new arrives through search results. Memories already shown in an earlier turn are not repeated. The profile is fetched again only when the turn cache has evicted a conversation's earlier turns or the process restarted, which the wrapper treats as a new conversation.
 - Recall is capped by `recall_timeout` (2 seconds by default) and makes a single attempt. If it times out or fails, that turn is sent without memory, and the next user turn tries again.
 - Conversation saves skip system and developer messages and happen once per user turn.
 
@@ -191,7 +191,7 @@ Memories are added to the conversation in a way that keeps the provider's prompt
 The middleware supports three different modes for memory injection:
 
 #### `"profile"` mode (default)
-Injects the user's static and dynamic profile once per conversation, on the first user turn where it is available. Best for maintaining consistent user context.
+Injects the user's static and dynamic profile once per conversation, on the first user turn where it loads. Later turns make no Supermemory call. Best for maintaining consistent user context.
 
 ```python
 openai_with_memory = with_supermemory(
@@ -201,7 +201,7 @@ openai_with_memory = with_supermemory(
 ```
 
 #### `"query"` mode
-Only searches for memories relevant to the current user message. More efficient for large memory stores.
+Only searches for memories relevant to the current user message (`/v4/search`, never the profile). More efficient for large memory stores.
 
 ```python
 openai_with_memory = with_supermemory(

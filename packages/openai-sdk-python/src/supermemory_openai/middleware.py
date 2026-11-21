@@ -70,7 +70,7 @@ class _TurnMemory:
     """Memory text pinned to one user turn so later requests resend the same bytes."""
 
     text: str = ""
-    has_profile: bool = False
+    profile_fetched: bool = False
     memories: tuple[str, ...] = ()
 
 
@@ -148,7 +148,7 @@ def _build_turn_memory(
     text = wrap_memory_context(f"{profile_markdown}\n{search_markdown}")
     return _TurnMemory(
         text=text,
-        has_profile=bool(static or dynamic),
+        profile_fetched=include_profile,
         memories=(*static, *dynamic, *search),
     )
 
@@ -241,15 +241,28 @@ async def supermemory_profile_search(
     api_key: str,
     base_url: str,
     timeout: float = DEFAULT_RECALL_TIMEOUT_SECONDS,
+    include_profile: bool = True,
 ) -> SupermemoryProfileSearch:
-    """Search memories via the profile API; the requests fallback runs on a thread."""
-    payload = {
-        "containerTag": container_tag,
-        "include": ["static", "dynamic"],
-    }
-    if query_text:
-        payload["q"] = query_text
-    profile_url = f"{base_url.rstrip('/')}/v4/profile"
+    """Without the profile, call /v4/search with the parameters /v4/profile uses for its own q search."""
+    payload: dict[str, Any]
+    if include_profile:
+        payload = {"containerTag": container_tag, "include": ["static", "dynamic"]}
+        if query_text:
+            payload["q"] = query_text
+        profile_url = f"{base_url.rstrip('/')}/v4/profile"
+    else:
+        payload = {
+            "q": query_text,
+            "containerTag": container_tag,
+            "limit": 15,
+            "threshold": 0.5,
+            "include": {"documents": True},
+            "rerank": False,
+            "aggregate": False,
+            "rewriteQuery": False,
+            "searchMode": "memories",
+        }
+        profile_url = f"{base_url.rstrip('/')}/v4/search"
 
     try:
         import aiohttp
@@ -274,7 +287,9 @@ async def supermemory_profile_search(
                     )
 
                 data = await response.json()
-                return SupermemoryProfileSearch(data)
+                return SupermemoryProfileSearch(
+                    data if include_profile else {"searchResults": data}
+                )
 
     except ImportError:
         import requests
@@ -298,7 +313,10 @@ async def supermemory_profile_search(
                 response_text=response.text,
             )
 
-        return SupermemoryProfileSearch(response.json())
+        data = response.json()
+        return SupermemoryProfileSearch(
+            data if include_profile else {"searchResults": data}
+        )
 
 
 async def add_memory_tool(
@@ -558,6 +576,7 @@ class SupermemoryOpenAIWrapper:
                             self._api_key,
                             self._base_url,
                             timeout=self._options.recall_timeout,
+                            include_profile=plan[1],
                         ),
                         timeout=self._options.recall_timeout,
                     )
@@ -589,6 +608,7 @@ class SupermemoryOpenAIWrapper:
                             self._api_key,
                             self._base_url,
                             timeout=self._options.recall_timeout,
+                            include_profile=plan[1],
                         ),
                         self._options.recall_timeout,
                     )
@@ -619,7 +639,7 @@ class SupermemoryOpenAIWrapper:
         messages: list[ChatCompletionMessageParam],
         turns: list[tuple[int, str]],
     ) -> Optional[tuple[str, bool, set[str]]]:
-        """Decide the query, whether the profile is still owed, and what earlier turns carried."""
+        """The profile is fetched until one fetch succeeds in this conversation, then never again."""
         include_profile = self._options.mode != "query"
         seen: set[str] = set()
         with self._turn_lock:
@@ -627,7 +647,7 @@ class SupermemoryOpenAIWrapper:
                 earlier = self._turn_memories.get(key)
                 if earlier is None:
                     continue
-                include_profile = include_profile and not earlier.has_profile
+                include_profile = include_profile and not earlier.profile_fetched
                 seen.update(earlier.memories)
         if self._options.mode == "profile" and not include_profile:
             return None
