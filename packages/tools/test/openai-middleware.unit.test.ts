@@ -64,7 +64,7 @@ describe("OpenAI middleware memory context", () => {
 		vi.useRealTimers()
 	})
 
-	it("leaves the system prompt untouched and appends memories to the user turn", async () => {
+	it("appends the profile to the caller's system message and leaves the user turn untouched", async () => {
 		vi.stubGlobal(
 			"fetch",
 			vi.fn(v5Router({ profile: () => profileBody(["Fresh profile fact"]) })),
@@ -86,14 +86,14 @@ describe("OpenAI middleware memory context", () => {
 		})
 
 		const forwarded = create.mock.calls[0]?.[0] as ChatParams
-		expect(forwarded.messages[0]).toEqual({
-			role: "system",
-			content: "Be helpful.",
+		const system = String(forwarded.messages[0]?.content)
+		expect(system.startsWith("Be helpful.\n")).toBe(true)
+		expect(system).toContain("Fresh profile fact")
+		expect(system.match(MEMORY_TAG)).toHaveLength(1)
+		expect(forwarded.messages[1]).toEqual({
+			role: "user",
+			content: "What do you remember?",
 		})
-		const user = String(forwarded.messages[1]?.content)
-		expect(user.startsWith("What do you remember?")).toBe(true)
-		expect(user).toContain("Fresh profile fact")
-		expect(user.match(MEMORY_TAG)).toHaveLength(1)
 	})
 
 	it("recalls once per user turn and re-sends earlier turns byte for byte", async () => {
@@ -154,7 +154,9 @@ describe("OpenAI middleware memory context", () => {
 		expect(paths.filter((path) => path.endsWith("/profile"))).toHaveLength(1)
 		expect(paths.filter((path) => path.endsWith("/search"))).toHaveLength(2)
 		const last = (create.mock.calls[2]?.[0] as ChatParams).messages
-		expect(String(last[1]?.content)).toContain("Profile fact")
+		expect(String(last[0]?.content)).toContain("Profile fact")
+		expect(String(last[1]?.content)).toContain("Search fact 1")
+		expect(String(last[1]?.content)).not.toContain("Profile fact")
 		expect(String(last[5]?.content)).toContain("Search fact 2")
 		expect(String(last[5]?.content)).not.toContain("Profile fact")
 	})
@@ -188,9 +190,10 @@ describe("OpenAI middleware memory context", () => {
 
 		const first = (create.mock.calls[0]?.[0] as ChatParams).messages
 		const second = (create.mock.calls[1]?.[0] as ChatParams).messages
-		expect(first[0]).toEqual({ role: "user", content: "One" })
-		expect(second[0]).toEqual({ role: "user", content: "One" })
-		expect(String(second[2]?.content)).toContain("Late profile")
+		expect(first).toEqual([{ role: "user", content: "One" }])
+		expect(second[0]?.role).toBe("system")
+		expect(String(second[0]?.content)).toContain("Late profile")
+		expect(second.slice(1)).toEqual(history)
 		expect(profileCalls).toBe(2)
 	})
 

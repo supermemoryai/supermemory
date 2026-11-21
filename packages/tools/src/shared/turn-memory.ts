@@ -1,25 +1,36 @@
 import { LRUCache } from "lru-cache"
-import { buildMemoriesText } from "./memory-client"
+import { buildMemoriesText, supermemoryProfileSearch } from "./memory-client"
 import {
 	MEMORY_CONTEXT_START,
 	replaceMemoryContext,
 	stripMemoryContext,
 	wrapMemoryContext,
 } from "./memory-context"
-import type { Logger, MemoryMode, PromptTemplate } from "./types"
+import { defaultPromptTemplate } from "./prompt-builder"
+import type {
+	Logger,
+	MemoryMode,
+	ProfileStructure,
+	PromptTemplate,
+} from "./types"
 
 export const RECALL_TIMEOUT_MS = 3000
 
 const MAX_TURNS_PER_CONVERSATION = 500
 const MAX_CONVERSATIONS = 100
 
+export interface FrozenProfile {
+	data: ProfileStructure["profile"]
+	text: string
+}
+
 export interface TurnRecall {
 	memories: string
-	includesProfile: boolean
+	profile?: FrozenProfile
 }
 
 export type TurnRecallFetcher = (
-	includeProfile: boolean,
+	profile: FrozenProfile | undefined,
 	signal: AbortSignal,
 ) => Promise<TurnRecall>
 
@@ -48,6 +59,11 @@ export function withTurnMemory<C extends string | TextPart[]>(
 	return (block ? [...parts, { type: textType, text: block }] : parts) as C
 }
 
+export type TurnSearch = (
+	profile: Promise<ProfileStructure["profile"]> | undefined,
+	signal: AbortSignal,
+) => Promise<string>
+
 export interface BuildTurnRecallOptions {
 	namespace: string
 	query: string
@@ -56,41 +72,76 @@ export interface BuildTurnRecallOptions {
 	apiKey: string
 	logger: Logger
 	promptTemplate?: PromptTemplate
+	search?: TurnSearch
 }
 
-// The profile is fetched once per conversation and never refreshed; search carries anything newer.
-export const turnRecallMode = (
-	mode: MemoryMode,
-	includeProfile: boolean,
-	hasQuery: boolean,
-): MemoryMode | null => {
-	if (includeProfile && mode !== "query") return hasQuery ? mode : "profile"
-	if (mode === "profile" || !hasQuery) return null
-	return "query"
-}
+const EMPTY_PROFILE: ProfileStructure["profile"] = { static: [], dynamic: [] }
 
+// The profile is fetched once per conversation and never refreshed; search carries anything newer and skips what the profile already says.
 export const buildTurnRecall =
 	(options: BuildTurnRecallOptions): TurnRecallFetcher =>
-	async (includeProfile, signal) => {
-		const mode = turnRecallMode(options.mode, includeProfile, !!options.query)
-		if (!mode) return { memories: "", includesProfile: false }
-		try {
-			const memories = await buildMemoriesText({
-				namespace: options.namespace,
-				queryText: mode === "profile" ? "" : options.query,
-				mode,
-				baseUrl: options.baseUrl,
-				apiKey: options.apiKey,
-				logger: options.logger,
-				promptTemplate: options.promptTemplate,
-				signal,
-			})
-			return { memories, includesProfile: mode !== "query" }
-		} catch (error) {
-			options.logger.warn("Memory recall failed; continuing without memories", {
-				error: error instanceof Error ? error.message : String(error),
-			})
-			throw error
+	async (frozen, signal) => {
+		const template = options.promptTemplate ?? defaultPromptTemplate
+		const profile =
+			options.mode === "query"
+				? undefined
+				: frozen
+					? Promise.resolve(frozen)
+					: supermemoryProfileSearch(
+							options.namespace,
+							"",
+							options.baseUrl,
+							options.apiKey,
+							signal,
+						).then(async ({ profile: data }) => ({
+							data,
+							text: await buildMemoriesText({
+								namespace: options.namespace,
+								queryText: "",
+								mode: "profile",
+								baseUrl: options.baseUrl,
+								apiKey: options.apiKey,
+								logger: options.logger,
+								promptTemplate: template,
+								profile: data,
+							}),
+						}))
+		const profileData = profile?.then((p) => p.data).catch(() => EMPTY_PROFILE)
+		const search =
+			options.search ??
+			((profileFor, searchSignal) =>
+				buildMemoriesText({
+					namespace: options.namespace,
+					queryText: options.query,
+					mode: options.mode,
+					baseUrl: options.baseUrl,
+					apiKey: options.apiKey,
+					logger: options.logger,
+					promptTemplate: (prompt) => template({ ...prompt, userMemories: "" }),
+					signal: searchSignal,
+					...(profileFor && { profile: profileFor }),
+				}))
+		const [profileResult, searchResult] = await Promise.allSettled([
+			profile,
+			options.mode !== "profile" && options.query
+				? search(profileData, signal)
+				: "",
+		])
+		for (const result of [profileResult, searchResult]) {
+			if (result.status === "rejected") {
+				options.logger.warn("Memory recall failed; continuing without it", {
+					error:
+						result.reason instanceof Error
+							? result.reason.message
+							: String(result.reason),
+				})
+			}
+		}
+		return {
+			memories: searchResult.status === "fulfilled" ? searchResult.value : "",
+			...(!frozen &&
+				profileResult.status === "fulfilled" &&
+				profileResult.value && { profile: profileResult.value }),
 		}
 	}
 
@@ -98,15 +149,19 @@ export class TurnMemory {
 	private turns = new LRUCache<string, Promise<string>>({
 		max: MAX_TURNS_PER_CONVERSATION,
 	})
-	private profileFetched = false
+	private frozen?: FrozenProfile
 
 	get(key: string): Promise<string> | undefined {
 		return this.turns.get(key)
 	}
 
+	get profile(): string {
+		return this.frozen?.text ?? ""
+	}
+
 	reset(): void {
 		this.turns.clear()
-		this.profileFetched = false
+		this.frozen = undefined
 	}
 
 	// Frozen per turn so later requests resend identical bytes; never rejects or outlasts the budget.
@@ -123,16 +178,16 @@ export class TurnMemory {
 		const deadline = new Promise<TurnRecall>((resolve) => {
 			timer = setTimeout(() => {
 				controller.abort()
-				resolve({ memories: "", includesProfile: false })
+				resolve({ memories: "" })
 			}, timeoutMs)
 		})
 		const entry = Promise.race([
-			fetch(!this.profileFetched, controller.signal),
+			fetch(this.frozen, controller.signal),
 			deadline,
 		])
 			.then(
 				(result) => {
-					if (result.includesProfile) this.profileFetched = true
+					this.frozen ??= result.profile
 					return result.memories
 				},
 				() => "",

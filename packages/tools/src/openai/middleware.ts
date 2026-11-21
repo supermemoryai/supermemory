@@ -10,9 +10,11 @@ import {
 import {
 	TurnMemory,
 	buildTurnRecall,
+	replaceMemoryContext,
 	stripMemoryContext,
 	turnKey,
 	withTurnMemory,
+	wrapMemoryContext,
 } from "../shared"
 import { createLogger, type Logger } from "../vercel/logger"
 
@@ -110,11 +112,9 @@ export interface OpenAIMiddlewareOptions {
 	verbose?: boolean
 	/**
 	 * Memory retrieval mode (default: "profile"):
-	 * - "profile": The user profile, fetched once per conversation with the first user message
-	 * - "query": Search results for each user message
-	 * - "full": Both; the profile comes with the first user message's block
-	 *
-	 * Memories are appended to the user message they were retrieved for.
+	 * - "profile": The user profile, fetched once per conversation, in the system message or `instructions`
+	 * - "query": Search results for each user message, appended to that message
+	 * - "full": Both: the profile once in the system message or `instructions`, plus per-message search results
 	 */
 	mode?: "profile" | "query" | "full"
 	/**
@@ -391,8 +391,9 @@ const addMemoryTool = async (
 /**
  * Creates SuperMemory middleware for OpenAI clients.
  *
- * Appends memories to each user turn and replays earlier turns' blocks unchanged,
- * so the system prompt and history stay cacheable; saves each finished turn in the background.
+ * Puts the frozen profile in the system message (Chat Completions) or `instructions` (Responses)
+ * and appends search results to the user turn they were retrieved for, replaying earlier turns'
+ * blocks unchanged so the prompt prefix stays cacheable; saves each finished turn in the background.
  *
  * @param openaiClient - The OpenAI client to wrap
  * @param namespace - The namespace for memory search (e.g., user ID, project ID)
@@ -459,6 +460,32 @@ export function createOpenAIMiddleware(
 		conversationHead = firstUserKey
 	}
 
+	// Tool-only requests get the profile too, so the system prompt never flips between calls.
+	const withProfile = (
+		messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+	): OpenAI.Chat.Completions.ChatCompletionMessageParam[] => {
+		const system = messages.findIndex(
+			(message) => message.role === "system" || message.role === "developer",
+		)
+		if (system === -1) {
+			const profile = wrapMemoryContext(turnMemory.profile)
+			return profile
+				? [{ role: "system", content: profile }, ...messages]
+				: messages
+		}
+		return messages.map((message, index) =>
+			index === system
+				? ({
+						...message,
+						content: withTurnMemory(
+							message.content as string | { type: string; text?: string }[],
+							turnMemory.profile,
+						),
+					} as typeof message)
+				: message,
+		)
+	}
+
 	const recallTurn = (key: string) =>
 		turnMemory.recall(
 			key,
@@ -508,7 +535,14 @@ export function createOpenAIMiddleware(
 		const forward = (input: typeof params.input) =>
 			originalResponsesCreate.call(
 				baseResponses,
-				{ ...params, input },
+				{
+					...params,
+					input,
+					instructions:
+						typeof params.instructions === "string"
+							? replaceMemoryContext(params.instructions, turnMemory.profile)
+							: wrapMemoryContext(turnMemory.profile) || params.instructions,
+				},
 				requestOptions,
 			)
 
@@ -603,7 +637,7 @@ export function createOpenAIMiddleware(
 		) =>
 			originalCreate.call(
 				baseCompletions,
-				{ ...params, messages: forwardedMessages },
+				{ ...params, messages: withProfile(forwardedMessages) },
 				requestOptions,
 			)
 

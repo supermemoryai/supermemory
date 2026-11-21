@@ -9,7 +9,7 @@ type PrepareArgs = Parameters<
 describe("VoltAgent memory context", () => {
 	afterEach(() => vi.unstubAllGlobals())
 
-	it("appends memories to the user turn and leaves the system message untouched", async () => {
+	it("appends the profile to the system message and leaves the user turns untouched", async () => {
 		const fetchMock = vi.fn(async () =>
 			jsonResponse(profileBody(["Fresh profile fact"])),
 		)
@@ -46,14 +46,14 @@ describe("VoltAgent memory context", () => {
 			{ id: "u2", role: "user", parts: [{ type: "text", text: "Again" }] },
 		])
 
-		expect(first?.messages?.[0]).toEqual(system)
-		const injected = JSON.stringify(first?.messages?.[1])
-		expect(injected).toContain("Remember me")
-		expect(injected).toContain("Fresh profile fact")
+		const systemParts = (first?.messages?.[0] as typeof system).parts
+		expect(systemParts[0]).toEqual({ type: "text", text: "Be helpful." })
+		expect(JSON.stringify(systemParts.slice(1))).toContain("Fresh profile fact")
+		expect(first?.messages?.[1]).toEqual(firstUser)
 		expect(JSON.stringify(second?.messages?.slice(0, 2))).toBe(
 			JSON.stringify(first?.messages),
 		)
-		expect(JSON.stringify(second?.messages?.[3])).not.toContain(
+		expect(JSON.stringify(second?.messages?.slice(1))).not.toContain(
 			"Fresh profile fact",
 		)
 		expect(fetchMock).toHaveBeenCalledTimes(1)

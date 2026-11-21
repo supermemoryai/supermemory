@@ -7,14 +7,13 @@ export interface MemoryPromptData {
 	/**
 	 * Pre-formatted markdown combining static and dynamic profile memories.
 	 * Contains core user facts (name, preferences, goals) and recent context (projects, interests).
-	 * The profile is fetched once per conversation, so this is empty on turns that carry only
-	 * search results.
+	 * Set only for the profile block, which goes in the system prompt; empty in search blocks.
 	 */
 	userMemories: string
 	/**
 	 * Pre-formatted search results text for the current query.
 	 * Contains memories retrieved based on semantic similarity to the conversation.
-	 * Empty string if mode is "profile" only.
+	 * Set only for search blocks, which go on the user message; empty in the profile block.
 	 */
 	generalSearchMemories: string
 	/**
@@ -43,10 +42,13 @@ export interface MemorySearchResult
 
 /**
  * Function type for customizing the memory prompt injection.
- * Return the full string to inject as the memory block. Where the block goes depends on
- * the integration: the AI SDK wrapper puts the profile in the system prompt and search
- * results on the user message; the OpenAI, Mastra and VoltAgent wrappers append the
- * block to the user message it was retrieved for.
+ * Return the full string to inject as a memory block. Every wrapper places memories the same way:
+ * - The profile block (`userMemories` set, `generalSearchMemories` empty) goes in the system
+ *   prompt. It is fetched once per conversation and stays byte-identical on every call.
+ * - Each search block (`generalSearchMemories` set, `userMemories` empty) is appended to the
+ *   user message it was retrieved for, and earlier messages keep the block they first received.
+ *
+ * The template is called separately for each block, so the profile never appears twice.
  *
  * @example
  * ```typescript
@@ -64,9 +66,11 @@ export type PromptTemplate = (data: MemoryPromptData) => string
 
 /**
  * Memory retrieval mode:
- * - "profile": Retrieves user profile memories (static + dynamic) without query filtering
- * - "query": Searches memories based on semantic similarity to the user's message
- * - "full": Combines both profile and query-based results
+ * - "profile": The user profile (static + dynamic), fetched once per conversation, in the system prompt
+ * - "query": Search results for each user message, appended to that message
+ * - "full": Both: the profile once in the system prompt, plus per-message search results
+ *
+ * A failed or timed-out fetch is retried on the next user message.
  */
 export type MemoryMode = "profile" | "query" | "full"
 
@@ -130,12 +134,12 @@ export interface SupermemoryBaseOptions {
 	baseUrl?: string
 	/** Optional conversation/thread ID to group messages for contextual memory generation */
 	threadId?: string
-	/** Memory retrieval mode */
+	/** Memory retrieval mode (default: "profile"); see {@link MemoryMode} for where each block goes */
 	mode?: MemoryMode
 	/** Memory persistence mode */
 	addMemory?: AddMemoryMode
 	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
-	/** Custom function to format memory data into the injected memory block */
+	/** Custom function to format the profile block and each search block; see {@link PromptTemplate} */
 	promptTemplate?: PromptTemplate
 }

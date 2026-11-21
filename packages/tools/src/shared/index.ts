@@ -61,9 +61,10 @@ export {
 	TurnMemoryByConversation,
 	buildTurnRecall,
 	turnKey,
-	turnRecallMode,
 	withTurnMemory,
 	type BuildTurnRecallOptions,
+	type FrozenProfile,
 	type TurnRecall,
 	type TurnRecallFetcher,
+	type TurnSearch,
 } from "./turn-memory"

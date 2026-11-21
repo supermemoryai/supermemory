@@ -91,7 +91,7 @@ export interface BuildMemoriesTextOptions {
 
 /**
  * Fetches memories from the API, deduplicates them, and formats them into
- * the final string to be injected into the system prompt.
+ * the final memory block string.
  *
  * @param options - Configuration for building memories text
  * @returns The final formatted memories string ready for injection

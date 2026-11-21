@@ -45,19 +45,19 @@ export interface SupermemoryMastraOptions {
 	baseUrl?: string
 	/**
 	 * Memory retrieval mode (default: "profile"):
-	 * - "profile": The user profile, fetched once per conversation on the first user message
-	 * - "query": Search results for each user message
-	 * - "full": Both; the profile comes with the first user message's block
+	 * - "profile": The user profile, fetched once per conversation, added to the system messages
+	 * - "query": Search results for each user message, appended to that message
+	 * - "full": Both: the profile once in the system messages, plus per-message search results
 	 *
-	 * Memories are appended to the user message they were retrieved for and replayed unchanged
-	 * on later calls. A failed or timed-out fetch is retried on the next user message.
+	 * The profile stays byte-identical on every call and earlier messages keep the block they
+	 * first received. A failed or timed-out fetch is retried on the next user message.
 	 */
 	mode?: MemoryMode
 	/** Memory persistence mode (default: "always") */
 	addMemory?: AddMemoryMode
 	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
-	/** Custom function to format memory data into the block appended to the user message */
+	/** Custom function to format the profile block and each search block; see {@link PromptTemplate} */
 	promptTemplate?: PromptTemplate
 }
 

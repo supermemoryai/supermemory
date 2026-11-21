@@ -6,7 +6,8 @@
  * - Conversation saving: Persists conversations to Supermemory after responses
  *
  * Processors integrate with Mastra's processor pipeline:
- * - InputProcessor runs before the LLM call, appending memories to the user's turn
+ * - InputProcessor runs before the LLM call, adding the profile to the system messages and
+ *   search results to the user's turn
  * - OutputProcessor runs after the LLM responds, optionally saving the conversation
  *
  * @module
@@ -17,9 +18,11 @@ import {
 	normalizeBaseUrl,
 	validateApiKey,
 	buildTurnRecall,
+	replaceMemoryContext,
 	stripMemoryContext,
 	turnKey,
 	withTurnMemory,
+	wrapMemoryContext,
 	TurnMemoryByConversation,
 	type Logger,
 	type MemoryMode,
@@ -135,11 +138,15 @@ const withMessageMemory = (
 }
 
 /**
- * Input processor that adds memories to the user's turn before LLM calls.
+ * Input processor that adds memories to the prompt before LLM calls.
  *
- * This processor runs once at the start of agent execution (processInput).
- * It appends memories to the latest user message and replays earlier turns'
- * blocks unchanged, so the instructions and history stay cacheable.
+ * This processor runs once at the start of agent execution (processInput):
+ * - The profile ("profile" and "full" modes) is fetched once per conversation and appended to the
+ *   first system message (the agent instructions) as a separate block, or added as a system
+ *   message when there is none. It stays byte-identical on every call.
+ * - Search results ("query" and "full" modes) are appended to the user message they were
+ *   retrieved for, and earlier messages keep the block they first received.
+ * - A failed or timed-out fetch is retried on the next user message.
  *
  * @example
  * ```typescript
@@ -174,7 +181,7 @@ export class SupermemoryInputProcessor implements Processor {
 	}
 
 	async processInput(args: ProcessInputArgs): Promise<ProcessInputResult> {
-		const { messages, messageList, requestContext } = args
+		const { messages, messageList, requestContext, systemMessages } = args
 
 		const latest = messages.filter((message) => message.role === "user").at(-1)
 		if (!latest) return messageList
@@ -201,11 +208,34 @@ export class SupermemoryInputProcessor implements Processor {
 					: undefined,
 			),
 		)
-		if (blocks.every((block) => !block)) return messageList
-		return messages.map((message, index) => {
-			const block = blocks[index]
-			return block === undefined ? message : withMessageMemory(message, block)
-		})
+		const profile = wrapMemoryContext(memory.profile)
+		if (!profile && blocks.every((block) => !block)) return messageList
+		const system = systemMessages.findIndex(
+			(message) =>
+				message.role === "system" && typeof message.content === "string",
+		)
+		return {
+			messages: messages.map((message, index) => {
+				const block = blocks[index]
+				return block === undefined ? message : withMessageMemory(message, block)
+			}),
+			systemMessages:
+				system === -1
+					? profile
+						? [...systemMessages, { role: "system" as const, content: profile }]
+						: systemMessages
+					: systemMessages.map((message, index) =>
+							index === system
+								? ({
+										...message,
+										content: replaceMemoryContext(
+											message.content as string,
+											memory.profile,
+										),
+									} as (typeof systemMessages)[number])
+								: message,
+						),
+		}
 	}
 }
 

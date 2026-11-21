@@ -8,17 +8,16 @@ import {
  * Wraps an OpenAI client with SuperMemory middleware to automatically inject relevant memories
  * into both Chat Completions and Responses APIs based on the user's input content.
  *
- * For Chat Completions API: Searches for memories using the latest user message and appends
- * them to that message.
+ * The profile ("profile" and "full" modes) is fetched once per conversation and is not refreshed:
+ * - Chat Completions API: appended as a separate block to the first system or developer message,
+ *   keeping your text unchanged, or sent as a new system message when there is none.
+ * - Responses API: appended to `instructions` the same way, or set as `instructions`. OpenAI does
+ *   not carry `instructions` over with `previous_response_id`, so it is resent unchanged each call.
  *
- * For Responses API: Searches for memories using the latest user item in `input` and appends
- * them to that item. `instructions` are left unchanged.
- *
- * Earlier user messages get back the exact memory block they first received, so the system
- * prompt, instructions and history stay byte-identical and prompt-cacheable. The profile
- * ("profile" and "full" modes) is fetched once per conversation, with the first user message,
- * and is not refreshed. A failed or timed-out fetch is retried on the next user message.
- * Use one wrapped client per conversation (`options.id`).
+ * Search results ("query" and "full" modes) are appended to the user message (or user `input` item)
+ * they were retrieved for, and earlier messages keep the block they first received, so the prompt
+ * prefix stays byte-identical and prompt-cacheable. A failed or timed-out fetch is retried on the
+ * next user message. Use one wrapped client per conversation (`options.id`).
  *
  * @param openaiClient - The OpenAI client to wrap with SuperMemory middleware
  * @param options - Configuration options for the middleware
@@ -48,7 +47,7 @@ import {
  *   addMemory: "always"
  * })
  *
- * // Use with Chat Completions API - memories appended to the user message
+ * // Use with Chat Completions API - profile in the system message, search on the user message
  * const chatResponse = await openaiWithSupermemory.chat.completions.create({
  *   model: "gpt-4",
  *   messages: [
@@ -56,7 +55,7 @@ import {
  *   ]
  * })
  *
- * // Use with Responses API - memories appended to the user input
+ * // Use with Responses API - profile in instructions, search on the user input
  * const response = await openaiWithSupermemory.responses.create({
  *   model: "gpt-4o",
  *   instructions: "You are a helpful coding assistant",
