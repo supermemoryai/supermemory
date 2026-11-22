@@ -522,10 +522,11 @@ export class ClaudeMemoryTool {
 			// Per Anthropic docs: "Destination already exists: Return an error (do not overwrite)"
 			// Exception: if destination is the SAME file's legacy ID, allow in-place rename.
 			const destResult = await this.getFileDocument(newPath)
-			if (destResult.success && destResult.document) {
-				// Destination exists. Check if it's the same file (legacy ID case).
-				const isSameFile =
-					destResult.document.documentId === readResult.document.documentId
+			const destDocId = destResult.document?.documentId ?? destResult.documentId
+			if (destDocId) {
+				// Destination exists (even if content is still processing).
+				// Check if it's the same file (legacy ID case).
+				const isSameFile = destDocId === readResult.document.documentId
 				if (!isSameFile) {
 					return {
 						success: false,
