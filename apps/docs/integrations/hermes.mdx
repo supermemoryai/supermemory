@@ -6,7 +6,7 @@ icon: "/images/hermes.svg"
 ---
 
 
-The [hermes-supermemory](https://github.com/supermemoryai/hermes-supermemory) plugin is the **supermemory** memory provider for [Hermes agent](https://github.com/NousResearch/hermes-agent): semantic long-term memory, profile recall, search, explicit memory tools, and per-turn conversation capture — not a bolt-on script the model might skip. It previously shipped inside Hermes core and is now maintained by Supermemory as a Hermes plugin. Hermes runs across Telegram, Discord, Slack, WhatsApp, Signal, and the CLI from one gateway.
+The [hermes-supermemory](https://github.com/supermemoryai/plugins/tree/main/hermes) plugin is the **supermemory** memory provider for [Hermes agent](https://github.com/NousResearch/hermes-agent): semantic long-term memory, profile recall, search, explicit memory tools, and per-turn conversation capture — not a bolt-on script the model might skip. It previously shipped inside Hermes core and is now maintained by Supermemory as a Hermes plugin. Hermes runs across Telegram, Discord, Slack, WhatsApp, Signal, and the CLI from one gateway.
 
 Hermes also ships with built-in `MEMORY.md` and `USER.md` files. Supermemory adds structure and isolation (profile-scoped and optional multi-container tags), plus retrieval that goes beyond a single flat file.
 
@@ -18,7 +18,7 @@ Create a supermemory API key from the [API Keys](https://console.supermemory.ai/
 ## Install the memory provider
 
 ```bash
-hermes plugins install supermemoryai/hermes-supermemory
+hermes plugins install supermemoryai/plugins/hermes
 hermes plugins enable supermemory
 hermes memory setup
 ```
@@ -104,7 +104,7 @@ Example:
 }
 ```
 
-See the [plugin README](https://github.com/supermemoryai/hermes-supermemory) for the exact schema and any newer options.
+See the [plugin README](https://github.com/supermemoryai/plugins/tree/main/hermes) for the exact schema and any newer options.
 
 ## Config file
 
@@ -153,7 +153,7 @@ Then run `hermes memory setup` and enter the local server's API key.
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Hermes plugin README" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/hermes-supermemory">
+  <Card title="Hermes plugin README" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/plugins/tree/main/hermes">
     Full config table, env vars, and multi-container details.
   </Card>
 
