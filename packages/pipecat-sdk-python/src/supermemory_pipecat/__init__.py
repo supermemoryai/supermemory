@@ -25,8 +25,6 @@ Example:
     ```
 """
 
-from importlib.metadata import PackageNotFoundError, version
-
 from .exceptions import (
     APIError,
     ConfigurationError,
@@ -35,7 +33,7 @@ from .exceptions import (
     NetworkError,
     SupermemoryPipecatError,
 )
-from .service import SupermemoryPipecatService
+from .service import PLUGIN_VERSION, SupermemoryPipecatService
 from .utils import (
     deduplicate_memories,
     format_memories_to_text,
@@ -44,11 +42,7 @@ from .utils import (
 
 InputParams = SupermemoryPipecatService.InputParams
 
-try:
-    __version__ = version("supermemory-pipecat")
-except PackageNotFoundError:
-    # Source-tree fallback; built wheels always use package metadata above.
-    __version__ = "0.2.0"
+__version__ = PLUGIN_VERSION
 
 __all__ = [
     # Main service

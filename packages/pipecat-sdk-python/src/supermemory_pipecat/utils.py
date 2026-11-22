@@ -32,41 +32,15 @@ def get_last_user_message(messages: List[Dict[str, Any]]) -> str | None:
     return None
 
 
-def format_relative_time(iso_timestamp: str) -> str:
-    """Convert ISO timestamp to relative time string.
-
-    Format rules:
-    - [just now] - within 30 minutes
-    - [Xmins ago] - 30-60 minutes
-    - [X hrs ago] - less than 1 day
-    - [Xd ago] - less than 1 week
-    - [X Jul] - more than 1 week, same year
-    - [X Jul, 2023] - different year
-    """
+def format_absolute_date(iso_timestamp: str) -> str:
+    """Convert an ISO timestamp to its UTC calendar date (YYYY-MM-DD)."""
     try:
         dt = datetime.fromisoformat(iso_timestamp.replace("Z", "+00:00"))
-        now = datetime.now(timezone.utc)
-        diff = now - dt
-
-        seconds = diff.total_seconds()
-        minutes = seconds / 60
-        hours = seconds / 3600
-        days = seconds / 86400
-
-        if minutes < 30:
-            return "just now"
-        elif minutes < 60:
-            return f"{int(minutes)}mins ago"
-        elif hours < 24:
-            return f"{int(hours)} hrs ago"
-        elif days < 7:
-            return f"{int(days)}d ago"
-        elif dt.year == now.year:
-            return f"{dt.day} {dt.strftime('%b')}"
-        else:
-            return f"{dt.day} {dt.strftime('%b')}, {dt.year}"
-    except Exception:
+    except (TypeError, ValueError):
         return ""
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc)
+    return dt.strftime("%Y-%m-%d")
 
 
 def _field(item: Any, *names: str, default: Any = None) -> Any:
@@ -83,6 +57,12 @@ def _field(item: Any, *names: str, default: Any = None) -> Any:
         if value is not None:
             return value
     return default
+
+
+def _memory_key(memory: str) -> str:
+    """Comparison key that ignores the API's date label on dynamic profile entries."""
+    without_prefix = _DYNAMIC_DATE_PREFIX.sub("", memory.strip())
+    return " ".join(without_prefix.split()).casefold()
 
 
 def _memory_text(item: Any) -> str:
@@ -110,18 +90,12 @@ def deduplicate_memories(
     """
     seen: set[str] = set()
 
-    def comparison_key(memory: str) -> str:
-        # Dynamic profile entries are date-labelled by the API while search
-        # results contain the same memory without that presentation prefix.
-        without_prefix = _DYNAMIC_DATE_PREFIX.sub("", memory.strip())
-        return " ".join(without_prefix.split()).casefold()
-
     def unique_strings(memories: List[str]) -> List[str]:
         out: List[str] = []
         for m in memories:
             if not isinstance(m, str):
                 continue
-            key = comparison_key(m)
+            key = _memory_key(m)
             if key and key not in seen:
                 seen.add(key)
                 out.append(m)
@@ -131,7 +105,7 @@ def deduplicate_memories(
         out: List[Any] = []
         for r in results:
             memory = _memory_text(r)
-            key = comparison_key(memory)
+            key = _memory_key(memory)
             if key and key not in seen:
                 seen.add(key)
                 out.append(r)
@@ -153,7 +127,8 @@ def format_memories_to_text(
 ) -> str:
     """Format deduplicated memories into a text string for injection.
 
-    Search results include temporal context (e.g., '3d ago') from updatedAt.
+    Search results are labelled with the absolute date (YYYY-MM-DD) from updatedAt,
+    so the rendered text does not change as time passes.
     """
     sections = []
 
@@ -181,9 +156,9 @@ def format_memories_to_text(
             updated_at = _field(item, "updatedAt", "updated_at") or _field(
                 _field(item, "system"), "updatedAt", "updated_at", default=""
             )
-            time_str = format_relative_time(updated_at) if updated_at else ""
-            if time_str:
-                lines.append(f"- [{time_str}] {memory}")
+            date = format_absolute_date(updated_at) if updated_at else ""
+            if date:
+                lines.append(f"- [{date}] {memory}")
             else:
                 lines.append(f"- {memory}")
         sections.append("\n".join(lines))
