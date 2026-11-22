@@ -24,18 +24,22 @@ In the browser, convert each page with `graphPageToDocuments`:
 ```tsx
 import { MemoryGraph, graphPageToDocuments } from '@supermemory/memory-graph';
 import type { GraphApiDocument, GraphPage } from '@supermemory/memory-graph';
+import { useEffect, useState } from 'react';
 
 function App() {
   const [documents, setDocuments] = useState<GraphApiDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     fetch('/api/graph')
-      .then(res => res.json() as Promise<GraphPage>)
-      .then(page => {
-        setDocuments(graphPageToDocuments(page));
-        setIsLoading(false);
-      });
+      .then(res => {
+        if (!res.ok) throw new Error(`Graph request failed: ${res.status}`);
+        return res.json() as Promise<GraphPage>;
+      })
+      .then(page => setDocuments(graphPageToDocuments(page)))
+      .catch(setError)
+      .finally(() => setIsLoading(false));
   }, []);
 
   return (
@@ -43,6 +47,7 @@ function App() {
       <MemoryGraph
         documents={documents}
         isLoading={isLoading}
+        error={error}
         variant="console"
       />
     </div>

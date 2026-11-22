@@ -37,7 +37,10 @@ export default function MemoryGraphPage() {
 
   useEffect(() => {
     fetch('/api/graph')
-      .then(res => res.json() as Promise<GraphPage>)
+      .then(res => {
+        if (!res.ok) throw new Error(`Graph request failed: ${res.status}`);
+        return res.json() as Promise<GraphPage>;
+      })
       .then(page => setDocuments(graphPageToDocuments(page)))
       .catch(setError)
       .finally(() => setIsLoading(false));
@@ -168,7 +171,7 @@ app.get('/api/graph', async (req, res) => {
 
 ### With pagination
 
-Follow `nextCursor` until it is `null`, appending each page's documents:
+Load the next page on `onLoadMore` while `nextCursor` is set, appending each page's documents:
 
 ```tsx
 'use client';
@@ -182,9 +185,11 @@ export default function PaginatedGraph() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const fetchPage = useCallback(async (after: string | null) => {
     const res = await fetch(after ? `/api/graph?cursor=${encodeURIComponent(after)}` : '/api/graph');
+    if (!res.ok) throw new Error(`Graph request failed: ${res.status}`);
     const page: GraphPage = await res.json();
     const next = graphPageToDocuments(page);
     setDocuments(prev => (after ? [...prev, ...next] : next));
@@ -192,14 +197,21 @@ export default function PaginatedGraph() {
   }, []);
 
   useEffect(() => {
-    fetchPage(null).finally(() => setIsLoading(false));
+    fetchPage(null)
+      .catch(setError)
+      .finally(() => setIsLoading(false));
   }, [fetchPage]);
 
   const loadMore = useCallback(async () => {
     if (!cursor || isLoadingMore) return;
     setIsLoadingMore(true);
-    await fetchPage(cursor);
-    setIsLoadingMore(false);
+    try {
+      await fetchPage(cursor);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setIsLoadingMore(false);
+    }
   }, [cursor, isLoadingMore, fetchPage]);
 
   return (
@@ -207,6 +219,7 @@ export default function PaginatedGraph() {
       documents={documents}
       isLoading={isLoading}
       isLoadingMore={isLoadingMore}
+      error={error}
       hasMore={cursor !== null}
       onLoadMore={loadMore}
     />
