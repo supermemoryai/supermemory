@@ -30,6 +30,24 @@ def middleware_options(
     )
 
 
+def fake_profile_search(lookups: list[str]) -> Any:
+    async def search(
+        container_tag: str,
+        query_text: str,
+        api_key: str,
+        base_url: str,
+        timeout: Optional[float] = None,
+        include_profile: bool = True,
+    ) -> Any:
+        lookups.append(container_tag)
+        return SimpleNamespace(
+            profile={"static": [f"secret-{container_tag}"], "dynamic": []},
+            search_results={"results": []},
+        )
+
+    return search
+
+
 def create_sync_client() -> tuple[Any, Mock]:
     create = Mock(return_value={"id": "chat-response"})
     completions = SimpleNamespace(create=create, marker="completions-marker")
@@ -38,7 +56,10 @@ def create_sync_client() -> tuple[Any, Mock]:
 
 
 def create_async_client() -> tuple[Any, AsyncMock]:
-    create = AsyncMock(return_value={"id": "chat-response"})
+    reply = SimpleNamespace(content="ok", tool_calls=None)
+    create = AsyncMock(
+        return_value=SimpleNamespace(choices=[SimpleNamespace(message=reply)])
+    )
     completions = SimpleNamespace(create=create)
     chat = SimpleNamespace(completions=completions)
     return SimpleNamespace(chat=chat), create
@@ -158,25 +179,13 @@ def test_shared_sync_client_does_not_stack_tenant_middleware() -> None:
     base_client, original_create = create_sync_client()
     lookups: list[str] = []
 
-    async def fake_prompt(
-        messages: list[Any],
-        container_tag: str,
-        logger: Any,
-        mode: Any,
-        api_key: str,
-        base_url: str,
-    ) -> list[Any]:
-        lookups.append(container_tag)
-        return [
-            {"role": "system", "content": f"secret-{container_tag}"},
-            *messages,
-        ]
+    fake_prompt = fake_profile_search(lookups)
 
     with patch(
         "supermemory_openai.middleware.supermemory.Supermemory",
         return_value=Mock(),
     ), patch(
-        "supermemory_openai.middleware.add_system_prompt",
+        "supermemory_openai.middleware.supermemory_profile_search",
         side_effect=fake_prompt,
     ):
         tenant_a: Any = with_supermemory(
@@ -200,7 +209,9 @@ def test_shared_sync_client_does_not_stack_tenant_middleware() -> None:
 
         assert lookups == ["tenant-b"]
         messages = original_create.call_args.kwargs["messages"]
-        assert messages[0]["content"] == "secret-tenant-b"
+        assert [message["role"] for message in messages] == ["system", "user"]
+        assert "secret-tenant-b" in messages[0]["content"]
+        assert messages[1] == {"role": "user", "content": "private"}
         assert all("tenant-a" not in str(message) for message in messages)
 
         base_client.chat.completions.create(
@@ -214,25 +225,13 @@ def test_rewrapping_a_facade_recovers_the_pristine_client() -> None:
     base_client, original_create = create_sync_client()
     lookups: list[str] = []
 
-    async def fake_prompt(
-        messages: list[Any],
-        container_tag: str,
-        logger: Any,
-        mode: Any,
-        api_key: str,
-        base_url: str,
-    ) -> list[Any]:
-        lookups.append(container_tag)
-        return [
-            {"role": "system", "content": f"secret-{container_tag}"},
-            *messages,
-        ]
+    fake_prompt = fake_profile_search(lookups)
 
     with patch(
         "supermemory_openai.middleware.supermemory.Supermemory",
         return_value=Mock(),
     ), patch(
-        "supermemory_openai.middleware.add_system_prompt",
+        "supermemory_openai.middleware.supermemory_profile_search",
         side_effect=fake_prompt,
     ):
         tenant_a: Any = with_supermemory(
@@ -263,25 +262,13 @@ def test_raw_and_streaming_response_facades_remain_memory_aware() -> None:
     )
     lookups: list[str] = []
 
-    async def fake_prompt(
-        messages: list[Any],
-        container_tag: str,
-        logger: Any,
-        mode: Any,
-        api_key: str,
-        base_url: str,
-    ) -> list[Any]:
-        lookups.append(container_tag)
-        return [
-            {"role": "system", "content": f"secret-{container_tag}"},
-            *messages,
-        ]
+    fake_prompt = fake_profile_search(lookups)
 
     with patch(
         "supermemory_openai.middleware.supermemory.Supermemory",
         return_value=Mock(),
     ), patch(
-        "supermemory_openai.middleware.add_system_prompt",
+        "supermemory_openai.middleware.supermemory_profile_search",
         side_effect=fake_prompt,
     ):
         tenant_b: Any = with_supermemory(
@@ -303,7 +290,7 @@ def test_raw_and_streaming_response_facades_remain_memory_aware() -> None:
             ) as stream:
                 assert stream.label.endswith("stream")
 
-        assert lookups == ["tenant-b"] * 6
+        assert lookups == ["tenant-b"]
         for create in calls.values():
             assert "secret-tenant-b" in str(create.call_args.kwargs["messages"])
 
@@ -317,19 +304,7 @@ def test_async_raw_and_streaming_response_prefixes_remain_memory_aware() -> None
     )
     lookups: list[str] = []
 
-    async def fake_prompt(
-        messages: list[Any],
-        container_tag: str,
-        logger: Any,
-        mode: Any,
-        api_key: str,
-        base_url: str,
-    ) -> list[Any]:
-        lookups.append(container_tag)
-        return [
-            {"role": "system", "content": f"secret-{container_tag}"},
-            *messages,
-        ]
+    fake_prompt = fake_profile_search(lookups)
 
     async def call_raw(create: Any) -> None:
         response = await create(
@@ -346,7 +321,7 @@ def test_async_raw_and_streaming_response_prefixes_remain_memory_aware() -> None
         "supermemory_openai.middleware.supermemory.Supermemory",
         return_value=Mock(),
     ), patch(
-        "supermemory_openai.middleware.add_system_prompt",
+        "supermemory_openai.middleware.supermemory_profile_search",
         side_effect=fake_prompt,
     ):
         tenant_b: Any = with_supermemory(
@@ -364,7 +339,7 @@ def test_async_raw_and_streaming_response_prefixes_remain_memory_aware() -> None
             )
             asyncio.run(consume_stream(stream_context))
 
-        assert lookups == ["tenant-b"] * 6
+        assert lookups == ["tenant-b"]
         for create in calls.values():
             assert "secret-tenant-b" in str(create.call_args.kwargs["messages"])
 
@@ -376,19 +351,7 @@ async def test_real_async_openai_paths_use_async_middleware(path: str) -> None:
     writes: list[tuple[str, Optional[str], str]] = []
     sent_messages: list[list[Any]] = []
 
-    async def fake_prompt(
-        messages: list[Any],
-        container_tag: str,
-        logger: Any,
-        mode: Any,
-        api_key: str,
-        base_url: str,
-    ) -> list[Any]:
-        lookups.append(container_tag)
-        return [
-            {"role": "system", "content": f"secret-{container_tag}"},
-            *messages,
-        ]
+    fake_prompt = fake_profile_search(lookups)
 
     async def fake_add_memory(
         client: Any,
@@ -429,7 +392,7 @@ async def test_real_async_openai_paths_use_async_middleware(path: str) -> None:
             "supermemory_openai.middleware.supermemory.Supermemory",
             return_value=Mock(),
         ), patch(
-            "supermemory_openai.middleware.add_system_prompt",
+            "supermemory_openai.middleware.supermemory_profile_search",
             new=fake_prompt,
         ), patch(
             "supermemory_openai.middleware.add_memory_tool",
@@ -471,15 +434,13 @@ async def test_real_async_openai_paths_use_async_middleware(path: str) -> None:
             ]
 
         assert lookups == ["tenant-real"]
-        assert writes == [
-            (
-                "tenant-real",
-                "conversation:thread-tenant-real",
-                "User: private message",
-            )
-        ]
+        saved = "User: private message"
+        if not path.endswith(".streaming"):
+            saved += "\n\nAssistant: ok"
+        assert writes == [("tenant-real", "conversation:thread-tenant-real", saved)]
         assert len(sent_messages) == 1
-        assert sent_messages[0][0]["content"] == "secret-tenant-real"
+        assert [message["role"] for message in sent_messages[0]] == ["system", "user"]
+        assert "secret-tenant-real" in sent_messages[0][0]["content"]
         assert runtime_warnings == []
     finally:
         await base_client.close()
@@ -491,19 +452,7 @@ async def test_shared_async_client_saves_only_for_selected_tenant() -> None:
     lookups: list[str] = []
     writes: list[tuple[str, Optional[str], str]] = []
 
-    async def fake_prompt(
-        messages: list[Any],
-        container_tag: str,
-        logger: Any,
-        mode: Any,
-        api_key: str,
-        base_url: str,
-    ) -> list[Any]:
-        lookups.append(container_tag)
-        return [
-            {"role": "system", "content": f"secret-{container_tag}"},
-            *messages,
-        ]
+    fake_prompt = fake_profile_search(lookups)
 
     async def fake_add_memory(
         client: Any,
@@ -518,7 +467,7 @@ async def test_shared_async_client_saves_only_for_selected_tenant() -> None:
         "supermemory_openai.middleware.supermemory.Supermemory",
         return_value=Mock(),
     ), patch(
-        "supermemory_openai.middleware.add_system_prompt",
+        "supermemory_openai.middleware.supermemory_profile_search",
         side_effect=fake_prompt,
     ), patch(
         "supermemory_openai.middleware.add_memory_tool",
@@ -546,7 +495,7 @@ async def test_shared_async_client_saves_only_for_selected_tenant() -> None:
             (
                 "tenant-b",
                 "conversation:thread-tenant-b",
-                "User: private tenant B message",
+                "User: private tenant B message\n\nAssistant: ok",
             )
         ]
         assert original_create.call_count == 1
@@ -582,16 +531,7 @@ def test_real_completions_stream_helper_uses_middleware(is_async: bool) -> None:
     lookups: list[str] = []
     sent_messages: list[list[Any]] = []
 
-    async def fake_prompt(
-        messages: list[Any],
-        container_tag: str,
-        logger: Any,
-        mode: Any,
-        api_key: str,
-        base_url: str,
-    ) -> list[Any]:
-        lookups.append(container_tag)
-        return [{"role": "system", "content": f"secret-{container_tag}"}, *messages]
+    fake_prompt = fake_profile_search(lookups)
 
     def handle_request(request: httpx.Request) -> httpx.Response:
         sent_messages.append(json.loads(request.content)["messages"])
@@ -615,7 +555,7 @@ def test_real_completions_stream_helper_uses_middleware(is_async: bool) -> None:
         "supermemory_openai.middleware.supermemory.Supermemory",
         return_value=Mock(),
     ), patch(
-        "supermemory_openai.middleware.add_system_prompt",
+        "supermemory_openai.middleware.supermemory_profile_search",
         new=fake_prompt,
     ):
         wrapped: Any = with_supermemory(base_client, middleware_options("tenant-a"))
@@ -637,5 +577,6 @@ def test_real_completions_stream_helper_uses_middleware(is_async: bool) -> None:
                     pass
 
     assert lookups == ["tenant-a"]
-    assert sent_messages[0][0] == {"role": "system", "content": "secret-tenant-a"}
+    assert [message["role"] for message in sent_messages[0]] == ["system", "user"]
+    assert "secret-tenant-a" in sent_messages[0][0]["content"]
     assert sent_messages[1] == [{"role": "user", "content": "hi"}]

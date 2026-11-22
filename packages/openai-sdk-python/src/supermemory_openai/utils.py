@@ -227,6 +227,8 @@ def get_conversation_content(
                 elif isinstance(part, str):
                     text_parts.append(part)
             content_text = " ".join(text_parts)
+        elif content is None:
+            content_text = ""
         else:
             content_text = str(content)
 
