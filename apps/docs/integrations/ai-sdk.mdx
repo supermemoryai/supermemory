@@ -32,7 +32,7 @@ npm install @supermemory/tools
 
 ## User profiles with middleware
 
-Automatically inject user profiles into every LLM call for instant personalization.
+Load the user profile once and reuse the same snapshot throughout the conversation.
 
 ```typescript
 import { generateText } from "ai"
@@ -49,6 +49,24 @@ const result = await generateText({
   messages: [{ role: "user", content: "What do you know about me?" }]
 })
 ```
+
+### Prompt caching
+
+Reuse the same wrapped model for every turn of a conversation. In `profile` and
+`full` modes, the profile is fetched on the first user turn and stays unchanged in
+the system prompt for the rest of the conversation. `query` and `full` modes attach
+each turn's search results to that turn's user message, and earlier turns keep their
+original results, so the prompt prefix stays the same as new messages are appended.
+
+Tool steps reuse their turn's memories without new requests. The profile is never
+refetched during a conversation; facts that change mid-conversation reach the model
+through each turn's search results.
+
+If retrieval fails or times out, the call continues without it by default, and the
+next user turn retries the profile. State lives in the wrapper, not in a global or
+cross-process cache, so create a new wrapper for each new conversation. Keep system
+instructions, tools and earlier messages stable too. Provider cache eligibility and
+minimum token counts still apply, so cache-hit savings are not guaranteed.
 
 ### Required fields
 

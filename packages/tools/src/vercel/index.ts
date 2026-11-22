@@ -6,12 +6,12 @@ import {
 } from "./util"
 import {
 	createSupermemoryContext,
+	injectCachedMemories,
 	transformParamsWithMemory,
 	extractAssistantResponseText,
 	saveMemoryAfterResponse,
 } from "./middleware"
 import type { PromptTemplate, MemoryPromptData } from "./memory-prompt"
-import { injectMemoriesIntoParams } from "./memory-prompt"
 
 const DEFAULT_MEMORY_RETRIEVAL_TIMEOUT_MS = 5000
 
@@ -23,10 +23,13 @@ interface WrapVercelLanguageModelOptions {
 	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
 	/**
-	 * Memory retrieval mode:
-	 * - "profile": Retrieves user profile memories (static + dynamic) without query filtering
-	 * - "query": Searches memories based on semantic similarity to the user's message
-	 * - "full": Combines both profile and query-based results
+	 * Memory retrieval mode (default: "profile"):
+	 * - "profile": Fetches the user profile (static + dynamic) once and adds it to the system prompt
+	 * - "query": Searches memories for each user message and appends the results to that message
+	 * - "full": Both: the profile once in the system prompt, plus per-message search results
+	 *
+	 * The profile is fetched once per wrapped model and is not refreshed mid-conversation,
+	 * so the system prompt and earlier turns stay byte-identical and prompt-cacheable.
 	 */
 	mode?: "profile" | "query" | "full"
 	/**
@@ -46,8 +49,11 @@ interface WrapVercelLanguageModelOptions {
 	 */
 	includeToolCalls?: boolean
 	/**
-	 * Custom function to format memory data into the system prompt.
+	 * Custom function to format memory data into the injected memory block.
 	 * If not provided, uses the default "User Supermemories:" format.
+	 *
+	 * It is called separately for the profile block (system prompt) and for each
+	 * user message's search block; in the search block `data.userMemories` is empty.
 	 *
 	 * @example
 	 * ```typescript
@@ -63,20 +69,29 @@ interface WrapVercelLanguageModelOptions {
 	promptTemplate?: PromptTemplate
 	/**
 	 * When Supermemory memory retrieval / injection fails or times out:
-	 * - `true` (default): log and call the base model with the original prompt (no memories).
+	 * - `true` (default): log and call the base model without the memories that failed.
 	 * - `false`: propagate the error (fail closed on memory).
+	 *
+	 * Either way, a failed retrieval is retried on the next user message.
 	 */
 	skipMemoryOnError?: boolean
 }
 
 /**
- * Wraps a language model with supermemory middleware to automatically inject relevant memories
- * into the system prompt based on the user's message content.
+ * Wraps a language model with Supermemory middleware to automatically inject relevant memories
+ * into the prompt and save the conversation.
  *
- * This wrapper searches the supermemory API for relevant memories in the namespace
- * and user message, then either appends memories to an existing system prompt or creates
- * a new system prompt with the memories. Pre-LLM profile retrieval uses a fixed internal
- * time budget and cannot be configured via options.
+ * Memory placement is designed to keep provider prompt caching working across turns:
+ * - The user profile ("profile" and "full" modes) is fetched once, on the first user message,
+ *   and added to the system prompt. It is not refreshed mid-conversation.
+ * - Search results ("query" and "full" modes) are appended to the user message they were
+ *   retrieved for, and earlier messages keep the exact block they first received.
+ * - Tool-call steps within a turn reuse that turn's memories without new API calls.
+ * - A failed or timed-out retrieval is retried on the next user message.
+ *
+ * Create one wrapped model per conversation (`options.id`): the profile and per-message
+ * memories are cached on the wrapper. Pre-LLM retrieval uses a fixed internal time budget
+ * and cannot be configured via options.
  *
  * Supports Vercel AI SDK 5 (LanguageModelV2), 6 (LanguageModelV3) and 7 (LanguageModelV4) via runtime
  * detection of `model.specificationVersion`.
@@ -84,12 +99,14 @@ interface WrapVercelLanguageModelOptions {
  * @param model - The language model to wrap with supermemory capabilities (V2, V3 or V4)
  * @param options - Configuration options for Supermemory integration
  * @param options.namespace - Required. The namespace for memory search (e.g., user ID, project ID)
- * @param options.id - Required. ID that groups messages into a single document for contextual memory generation
+ * @param options.id - Required. Conversation ID that groups messages into a single document for contextual memory generation
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
- * @param options.mode - Optional mode for memory search: "profile", "query", or "full" (default: "profile")
- * @param options.addMemory - Optional mode for memory search: "always", "never" (default: "always")
+ * @param options.mode - Optional memory retrieval mode: "profile", "query", or "full" (default: "profile")
+ * @param options.addMemory - Optional memory persistence mode: "always" or "never" (default: "always")
  * @param options.apiKey - Optional Supermemory API key to use instead of the environment variable
  * @param options.baseUrl - Optional base URL for the Supermemory API (default: "https://api.supermemory.ai")
+ * @param options.includeToolCalls - Optional flag to save tool calls and results with the conversation (default: false)
+ * @param options.promptTemplate - Optional function to format memory data into the injected memory block
  * @param options.skipMemoryOnError - When memory retrieval fails or times out: `true` (default) continues without injected memories; `false` throws
  *
  * @returns A wrapped language model that automatically includes relevant memories in prompts
@@ -113,6 +130,7 @@ interface WrapVercelLanguageModelOptions {
  * ```
  *
  * @throws {Error} When neither `options.apiKey` nor `process.env.SUPERMEMORY_API_KEY` are set
+ * @throws {Error} When `options.id` is empty
  * @throws {Error} When supermemory memory retrieval fails and `skipMemoryOnError` is `false`
  */
 const wrapVercelLanguageModel = <T extends LanguageModel>(
@@ -167,7 +185,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 											: "Unknown error",
 								},
 							)
-							modelParams = injectMemoriesIntoParams(params, "", ctx.logger)
+							modelParams = injectCachedMemories(params, ctx)
 						} else {
 							ctx.logger.error("Error during memory retrieval for generation", {
 								error:
@@ -231,7 +249,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 											: "Unknown error",
 								},
 							)
-							modelParams = injectMemoriesIntoParams(params, "", ctx.logger)
+							modelParams = injectCachedMemories(params, ctx)
 						} else {
 							ctx.logger.error("Error during memory retrieval for stream", {
 								error:

@@ -20,7 +20,8 @@ import type { LanguageModelCallOptions } from "./util"
 /**
  * Extracts the query text from params based on mode.
  * For "profile" mode, returns empty string (no query needed).
- * For "query" or "full" mode, extracts the last user message text.
+ * For "query" or "full" mode, extracts the last user message text, without any
+ * Supermemory block an earlier call appended to it.
  *
  * @param params - The language model call options
  * @param mode - The memory retrieval mode
@@ -43,19 +44,21 @@ export const extractQueryText = (
 	if (!content) return ""
 
 	if (typeof content === "string") {
-		return content
+		return stripMemoryContext(content)
 	}
 
 	// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility across V2, V3 and V4
 	return (content as any[])
 		.filter((part) => part.type === "text")
-		.map((part) => part.text || "")
+		.map((part) => stripMemoryContext(part.text || ""))
+		.filter(Boolean)
 		.join(" ")
 }
 
 /**
- * Injects memories string into params by appending to existing system prompt
- * or creating a new one. Pure function - does not mutate the original params.
+ * Injects the profile memories string into the system prompt, replacing any Supermemory
+ * block from an earlier call, or creates a system prompt when none exists.
+ * Pure function - does not mutate the original params.
  *
  * @param params - The language model call options
  * @param memories - The formatted memories string to inject
@@ -100,6 +103,40 @@ export const injectMemoriesIntoParams = (
 	return { ...params, prompt: newPrompt } as LanguageModelCallOptions
 }
 
+export const turnKey = (index: number, query: string): string =>
+	JSON.stringify([index, query])
+
+export const injectTurnMemoriesIntoParams = (
+	params: LanguageModelCallOptions,
+	memoryForTurn: (key: string) => string,
+): LanguageModelCallOptions => {
+	let turn = 0
+	const prompt = params.prompt.map((message) => {
+		if (message.role !== "user") return message
+		const query = extractQueryText({ ...params, prompt: [message] }, "query")
+		const memory = memoryForTurn(turnKey(turn++, query))
+		const context = wrapMemoryContext(memory)
+		const content: unknown = message.content
+		if (typeof content === "string") {
+			return { ...message, content: replaceMemoryContext(content, memory) }
+		}
+		return {
+			...message,
+			content: [
+				...message.content
+					.map((part) =>
+						part.type === "text"
+							? { ...part, text: stripMemoryContext(part.text) }
+							: part,
+					)
+					.filter((part) => part.type !== "text" || part.text),
+				...(context ? [{ type: "text" as const, text: context }] : []),
+			],
+		}
+	})
+	return { ...params, prompt } as LanguageModelCallOptions
+}
+
 /**
  * Adds memories to the system prompt by fetching from API and injecting.
  * This is the original combined function, now implemented via helpers.
@@ -125,6 +162,7 @@ export const addSystemPrompt = async (
 		mode,
 		baseUrl,
 		apiKey,
+		source: "tools-ai-sdk",
 		logger,
 		promptTemplate,
 	})

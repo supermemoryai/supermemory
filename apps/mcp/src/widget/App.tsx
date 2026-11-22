@@ -106,7 +106,9 @@ function renderView(
 					onError={setError}
 					prefill={msg.prefill}
 					viewId={msg.viewId}
+					canCreateNamespace={msg.canCreateNamespace}
 					writableNamespaces={msg.writableNamespaces}
+					writeBlockedReason={msg.writeBlockedReason}
 				/>
 			)
 		case "upload":
@@ -116,7 +118,9 @@ function renderView(
 					onAdvance={setView}
 					onError={setError}
 					viewId={msg.viewId}
+					canCreateNamespace={msg.canCreateNamespace}
 					writableNamespaces={msg.writableNamespaces}
+					writeBlockedReason={msg.writeBlockedReason}
 				/>
 			)
 		case "graph":

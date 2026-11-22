@@ -20,7 +20,7 @@ Place `SupermemoryPipecatService` between context aggregator and LLM in the pipe
 from supermemory_pipecat import SupermemoryPipecatService
 
 memory = SupermemoryPipecatService(
-    user_id="user-123",       # Required: identifies the user
+    user_id="user-123",     # Required: scopes all memory calls
     session_id="session-456", # Optional: groups conversations
 )
 

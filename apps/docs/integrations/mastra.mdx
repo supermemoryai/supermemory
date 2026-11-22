@@ -69,7 +69,7 @@ const response = await agent.generate("What do you know about me?")
 
 The Mastra integration uses Mastra's native [Processor](https://mastra.ai/docs/agents/processors) interface:
 
-1. **Input Processor** - Fetches relevant memories from Supermemory and injects them into the system prompt before the LLM call
+1. **Input Processor** - Fetches memories once per user turn and appends them to that turn's user message, leaving the instructions untouched so prompt caching keeps working. The profile is fetched once per thread and never refreshed; newer facts come through each turn's search. Recall has a 3 second budget; on failure the agent runs without memories for that turn. With Mastra Memory, the block is saved as part of the stored user message, so later turns replay the same bytes.
 2. **Output Processor** - Optionally saves the conversation to Supermemory after generation completes
 
 ```mermaid
@@ -85,7 +85,7 @@ sequenceDiagram
     Agent->>InputProcessor: Process input
     InputProcessor->>Supermemory: Fetch memories
     Supermemory-->>InputProcessor: Return memories
-    InputProcessor->>Agent: Inject into system prompt
+    InputProcessor->>Agent: Append to the user message
     Agent->>LLM: Generate response
     LLM-->>Agent: Return response
     Agent->>OutputProcessor: Process output
@@ -346,8 +346,7 @@ const agent = new Agent(withSupermemory(
 
 // Console output:
 // [supermemory] Starting memory search { namespace: "user-123", mode: "profile" }
-// [supermemory] Found 5 memories
-// [supermemory] Injected memories into system prompt { length: 1523 }
+// [supermemory] Memory search completed { memoryCountStatic: 3, memoryCountDynamic: 2 }
 ```
 
 ---

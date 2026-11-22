@@ -51,9 +51,9 @@
 		"@vitejs/plugin-react": "^4.3.4",
 		"tailwindcss": "^4.1.13",
 		"typescript": "^5.8.3",
-		"vite": "^6.0.0",
+		"vite": "^6.4.4",
 		"vite-plugin-singlefile": "^2.3.0",
-		"vitest": "^3.2.4",
+		"vitest": "^4.1.11",
 		"wrangler": "^4.4.0"
 	}
 }

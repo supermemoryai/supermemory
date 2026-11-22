@@ -2,6 +2,7 @@ import { z } from "zod"
 import { pickerViewSchema, type ViewMessage } from "../../shared/types"
 import { appResultMeta, appToolMeta } from "../app-metadata"
 import { effectiveNamespaceAccess } from "../auth/rbac"
+import { emptySpacesMessage } from "../space"
 import { READ_ONLY_TOOL_ANNOTATIONS } from "./annotations"
 import { withLegacyView } from "./compat"
 import { textContent, type ToolDeps } from "./types"
@@ -43,7 +44,9 @@ export function register(deps: ToolDeps) {
 				return {
 					content: [
 						textContent(
-							`${namespaces.length} spaces available. Select one to set your active context.`,
+							namespaces.length > 0
+								? `${namespaces.length} spaces available. Select one to set your active context.`
+								: emptySpacesMessage(session),
 						),
 					],
 					structuredContent: sc,

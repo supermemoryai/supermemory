@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
+import { useState } from "react"
 import { viewMessageSchema, type ViewMessage } from "../../shared/types"
+import { initialSpaceTarget, SpaceField } from "../components/SpaceField"
 import {
 	ActionGroup,
 	Button,
@@ -7,14 +8,14 @@ import {
 	PageHeader,
 	Stack,
 	TextArea,
-	SpaceSelect,
 } from "../design/ui"
 import { useApp } from "../hooks/useApp"
-import { formatNamespaceLabel } from "../lib/formatNamespace"
 
 interface Props {
 	activeNamespace?: string | null
 	writableNamespaces: string[]
+	canCreateNamespace?: boolean
+	writeBlockedReason?: string
 	prefill?: string
 	onAdvance: (msg: ViewMessage) => void
 	onError: (message: string) => void
@@ -24,6 +25,8 @@ interface Props {
 export function Save({
 	activeNamespace,
 	writableNamespaces,
+	canCreateNamespace = false,
+	writeBlockedReason,
 	prefill,
 	onAdvance,
 	onError,
@@ -31,26 +34,11 @@ export function Save({
 }: Props) {
 	const { callTool, handoffToModel } = useApp()
 	const [content, setContent] = useState(prefill ?? "")
-	const [selectedNamespace, setSelectedNamespace] = useState<string | null>(
-		activeNamespace ?? writableNamespaces[0] ?? null,
+	const [target, setTarget] = useState(() =>
+		initialSpaceTarget(activeNamespace, writableNamespaces),
 	)
 	const [saving, setSaving] = useState(false)
-
-	useEffect(() => {
-		if (!selectedNamespace && writableNamespaces.length > 0) {
-			setSelectedNamespace(writableNamespaces[0])
-		}
-	}, [selectedNamespace, writableNamespaces])
-
-	const options = useMemo(
-		() =>
-			writableNamespaces.map((namespace) => ({
-				value: namespace,
-				label: formatNamespaceLabel(namespace),
-				description: namespace,
-			})),
-		[writableNamespaces],
-	)
+	const selectedNamespace = target?.namespace
 
 	const trimmed = content.trim()
 	const canSave = trimmed.length > 0 && !!selectedNamespace && !saving
@@ -107,15 +95,13 @@ export function Save({
 							/>
 						</Field>
 
-						{writableNamespaces.length > 0 ? (
-							<Field label="Space">
-								<SpaceSelect
-									onValueChange={setSelectedNamespace}
-									options={options}
-									value={selectedNamespace}
-								/>
-							</Field>
-						) : null}
+						<SpaceField
+							canCreateNamespace={canCreateNamespace}
+							onChange={setTarget}
+							value={target}
+							writableNamespaces={writableNamespaces}
+							writeBlockedReason={writeBlockedReason}
+						/>
 
 						<div className="flex justify-end pt-(--space-1)">
 							<ActionGroup>
@@ -125,7 +111,11 @@ export function Save({
 									onClick={handleSave}
 									variant="primary"
 								>
-									{saving ? "Saving" : "Save memory"}
+									{saving
+										? "Saving"
+										: target?.isNew
+											? "Create space and save"
+											: "Save memory"}
 								</Button>
 							</ActionGroup>
 						</div>

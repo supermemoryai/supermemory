@@ -1,0 +1,20 @@
+{
+	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+	"name": "ai.supermemory/memory",
+	"title": "Supermemory",
+	"description": "Long-term memory for AI agents: store and recall memories and user profiles in any MCP client.",
+	"websiteUrl": "https://supermemory.ai/mcp/",
+	"repository": {
+		"url": "https://github.com/supermemoryai/supermemory",
+		"source": "github",
+		"id": "764287615",
+		"subfolder": "apps/mcp"
+	},
+	"version": "1.0.2",
+	"remotes": [
+		{
+			"type": "streamable-http",
+			"url": "https://mcp.supermemory.ai/mcp"
+		}
+	]
+}

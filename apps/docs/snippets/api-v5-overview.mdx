@@ -77,7 +77,7 @@ URL values are positional (`namespace` first, then `id` where there is one); eve
 
 ### Connectors
 
-Connector routes also move under the namespace. Legacy `containerTags` arrays become one namespace per connector.
+Connector routes also move under the namespace. Legacy `containerTags` arrays become one namespace per connector. Connectors created without container tags belong to `sm_project_default`, where their syncs already write documents.
 
 | Legacy | v5 | SDK method |
 | --- | --- | --- |

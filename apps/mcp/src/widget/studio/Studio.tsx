@@ -370,6 +370,7 @@ export function Studio() {
 							<WidgetShell>
 								<Save
 									activeNamespace="sm_project_marketing"
+									canCreateNamespace
 									onAdvance={saveStub.onAdvance}
 									onError={saveStub.onError}
 									prefill="The Q3 launch will target fintech enterprise buyers."
@@ -378,13 +379,49 @@ export function Studio() {
 							</WidgetShell>
 						</Frame>
 
+						<Frame label="Save · no spaces" width={frameWidth}>
+							<WidgetShell>
+								<Save
+									canCreateNamespace
+									onAdvance={saveStub.onAdvance}
+									onError={saveStub.onError}
+									prefill="I prefer dark roast coffee."
+									writableNamespaces={[]}
+								/>
+							</WidgetShell>
+						</Frame>
+
+						<Frame label="Save · scoped, no create" width={frameWidth}>
+							<WidgetShell>
+								<Save
+									activeNamespace="work"
+									onAdvance={saveStub.onAdvance}
+									onError={saveStub.onError}
+									prefill="I prefer dark roast coffee."
+									writableNamespaces={["work", "notes"]}
+								/>
+							</WidgetShell>
+						</Frame>
+
 						<Frame label="Upload" width={frameWidth}>
 							<WidgetShell>
 								<Upload
 									activeNamespace="sm_project_marketing"
+									canCreateNamespace
 									onAdvance={uploadStub.onAdvance}
 									onError={uploadStub.onError}
 									writableNamespaces={mockWritableNamespaces}
+								/>
+							</WidgetShell>
+						</Frame>
+
+						<Frame label="Upload · no spaces" width={frameWidth}>
+							<WidgetShell>
+								<Upload
+									canCreateNamespace
+									onAdvance={uploadStub.onAdvance}
+									onError={uploadStub.onError}
+									writableNamespaces={[]}
 								/>
 							</WidgetShell>
 						</Frame>

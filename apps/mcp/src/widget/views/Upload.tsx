@@ -1,25 +1,25 @@
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import {
 	uploadPreparationSchema,
 	uploadResponseSchema,
 	type ViewMessage,
 } from "../../shared/types"
+import { initialSpaceTarget, SpaceField } from "../components/SpaceField"
 import {
 	ActionGroup,
 	Button,
-	Field,
 	FileUpload,
 	PageHeader,
 	Stack,
-	SpaceSelect,
 } from "../design/ui"
 import { useApp } from "../hooks/useApp"
-import { formatNamespaceLabel } from "../lib/formatNamespace"
 import { FileText, X } from "../lib/icons"
 
 interface Props {
 	activeNamespace?: string | null
 	writableNamespaces: string[]
+	canCreateNamespace?: boolean
+	writeBlockedReason?: string
 	onAdvance: (msg: ViewMessage) => void
 	onError: (message: string) => void
 	viewId?: string
@@ -37,26 +37,19 @@ const ACCEPT =
 export function Upload({
 	activeNamespace,
 	writableNamespaces,
+	canCreateNamespace = false,
+	writeBlockedReason,
 	onAdvance,
 	onError,
 	viewId,
 }: Props) {
 	const { callTool, handoffToModel } = useApp()
 	const [file, setFile] = useState<File | null>(null)
-	const [selectedNamespace, setSelectedNamespace] = useState<string | null>(
-		activeNamespace ?? writableNamespaces[0] ?? null,
+	const [target, setTarget] = useState(() =>
+		initialSpaceTarget(activeNamespace, writableNamespaces),
 	)
 	const [uploading, setUploading] = useState(false)
-
-	const options = useMemo(
-		() =>
-			writableNamespaces.map((namespace) => ({
-				value: namespace,
-				label: formatNamespaceLabel(namespace),
-				description: namespace,
-			})),
-		[writableNamespaces],
-	)
+	const selectedNamespace = target?.namespace
 
 	const canUpload = !!file && !!selectedNamespace && !uploading
 
@@ -166,15 +159,13 @@ export function Upload({
 							/>
 						)}
 
-						{writableNamespaces.length > 0 ? (
-							<Field label="Space">
-								<SpaceSelect
-									onValueChange={setSelectedNamespace}
-									options={options}
-									value={selectedNamespace}
-								/>
-							</Field>
-						) : null}
+						<SpaceField
+							canCreateNamespace={canCreateNamespace}
+							onChange={setTarget}
+							value={target}
+							writableNamespaces={writableNamespaces}
+							writeBlockedReason={writeBlockedReason}
+						/>
 
 						<div className="flex justify-end pt-(--space-1)">
 							<ActionGroup>
@@ -184,7 +175,11 @@ export function Upload({
 									onClick={handleUpload}
 									variant="primary"
 								>
-									{uploading ? "Uploading" : "Upload file"}
+									{uploading
+										? "Uploading"
+										: target?.isNew
+											? "Create space and upload"
+											: "Upload file"}
 								</Button>
 							</ActionGroup>
 						</div>
