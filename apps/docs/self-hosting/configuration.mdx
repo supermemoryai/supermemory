@@ -104,7 +104,7 @@ The server manages memory for you and separates the two kinds of work you send i
 - **Searches are always served immediately.** They never wait behind ingestion, regardless of how much is queued.
 - **Adds are accepted instantly but processed through a queue.** A `POST /ns/{namespace}/document` call returns in milliseconds with status `queued`; extraction, embedding, and indexing happen in the background at a controlled pace.
 
-Ingestion may grow the server's memory usage by at most `SUPERMEMORY_EMBEDDING_RAM_LIMIT` (default **1 GB**) above its post-boot baseline. Past that, new documents simply wait in the queue until memory drops back under the limit — nothing is dropped, ingestion just slows down. The limit is measured above the boot baseline because the built-in local embeddings and storage engine have a fixed footprint that exists before any document is processed.
+Ingestion may grow the server's memory usage by at most `SUPERMEMORY_EMBEDDING_RAM_LIMIT` (default **1 GB**) above its post-boot baseline. Past that, new documents wait in the queue until memory drops back under the limit — nothing is dropped. The limit is measured above the boot baseline because the built-in local embeddings and storage engine have a fixed footprint that exists before any document is processed.
 
 The limit is printed at boot, and whenever adds are waiting the binary shows a live status line in the terminal:
 
@@ -126,6 +126,10 @@ SUPERMEMORY_EMBEDDING_RAM_LIMIT=4gb ./supermemory-server
 ```
 
 Raise the limit and concurrency on machines with spare RAM for faster bulk imports; lower them on small VPSes where you want the server to stay lean and don't mind adds draining slowly.
+
+### Size the limit for your store
+
+Snapshot writes can use memory comparable to the size of the store, and that use counts against the ingest limit. If the store is close to or larger than the limit, a snapshot can keep memory above it and ingestion stays paused (`0 running` in the status line) instead of draining. Size the limit above the store file; the default 1 GB is enough for small stores, but a store of several hundred MB needs more. If ingestion stays paused after raising the limit, restart the server. A document that never leaves `processing` also keeps the store dirty; delete its namespace with `DELETE /ns/{namespace}` to clear it.
 
 ## Telemetry
 
