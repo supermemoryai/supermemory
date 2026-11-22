@@ -17,6 +17,7 @@ from agent_framework import (
     ChatContext,
     ChatMiddlewareLayer,
     ChatResponse,
+    ChatResponseUpdate,
     Content,
     FunctionInvocationLayer,
     Message,
@@ -514,3 +515,50 @@ async def test_real_framework_pipeline_continues_on_memory_failure(memory_api, f
     ]
     assert len(results) == 3
     assert all(result["success"] is False and result["error"] for result in results)
+
+
+class StreamingChatClient(SmokeChatClientBase):
+    def _inner_get_response(self, *, messages, stream, options, **kwargs):
+        assert stream
+
+        async def _updates():
+            yield ChatResponseUpdate(
+                role="assistant", contents=[Content.from_text("Remembered")]
+            )
+            yield ChatResponseUpdate(role="assistant", finish_reason="stop")
+
+        return self._build_response_stream(_updates())
+
+
+@pytest.mark.parametrize("kind", ["provider", "middleware"])
+@pytest.mark.parametrize("stop_at_final_chunk", [True, False])
+async def test_streamed_turn_is_saved_once_when_the_caller_stops_at_the_final_chunk(
+    memory_api, kind, stop_at_final_chunk
+):
+    connection = AgentSupermemory(
+        api_key="test", container_tag="tenant-a", conversation_id="stream"
+    )
+    if kind == "provider":
+        extension = SupermemoryContextProvider(connection, store_conversations=True)
+        wiring = {"context_providers": [extension]}
+    else:
+        extension = SupermemoryChatMiddleware(
+            connection, SupermemoryMiddlewareOptions(mode="full", add_memory="always")
+        )
+        wiring = {"middleware": [extension]}
+    agent = StreamingChatClient().as_agent(
+        name="MemoryAgent", instructions="Be helpful", **wiring
+    )
+    stream = agent.run("My preferences?", session=AgentSession(), stream=True)
+    received = 0
+    async for _ in stream:
+        received += 1
+        if stop_at_final_chunk and received == 2:
+            break
+    await extension.wait_for_background_tasks()
+
+    writes = [
+        body for _, path, body in memory_api.requests if path.endswith("/document")
+    ]
+    assert len(writes) == 1
+    assert writes[0]["content"] == "User: My preferences?\n\nAssistant: Remembered"

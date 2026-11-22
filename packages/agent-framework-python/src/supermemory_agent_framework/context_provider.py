@@ -8,7 +8,9 @@ following the same pattern as the built-in Mem0 integration.
 """
 
 import asyncio
-from typing import Any, Literal, Optional
+from typing import Any, Awaitable, Callable, Literal, Optional
+
+from agent_framework import ChatMiddleware
 
 try:
     from agent_framework import BaseContextProvider  # type: ignore[attr-defined]
@@ -16,7 +18,7 @@ except ImportError:
     from agent_framework import ContextProvider as BaseContextProvider
 
 from .connection import AgentSupermemory
-from .middleware import _save_memory
+from .middleware import _has_tool_call, _on_final_reply, _save_memory
 from .utils import (
     create_logger,
     recall_turn,
@@ -26,6 +28,28 @@ from .utils import (
 )
 
 _PROFILE_STATE_KEY = "profile_block"
+
+
+class _FinalReplySaver(ChatMiddleware):
+    """Run-scoped chat middleware that hands each model call's reply to a callback."""
+
+    def __init__(self, on_final: Callable[[Any], None], logger: Any) -> None:
+        self._on_final = on_final
+        self._logger = logger
+
+    async def process(
+        self, context: Any, call_next: Callable[[], Awaitable[None]]
+    ) -> None:
+        """Call the model, then report its reply once it is complete."""
+        await call_next()
+        result = getattr(context, "result", None)
+        if result is not None:
+            _on_final_reply(result, self._report, self._logger)
+
+    def _report(self, reply: Any) -> None:
+        """Pass on a finished reply unless it only asks for tool calls."""
+        if not _has_tool_call(reply):
+            self._on_final(reply)
 
 
 class SupermemoryContextProvider(BaseContextProvider):
@@ -165,6 +189,18 @@ class SupermemoryContextProvider(BaseContextProvider):
         if profile_block:
             context.extend_instructions(self.source_id, profile_block)
 
+        if self._store_conversations and isinstance(
+            getattr(context, "metadata", None), dict
+        ):
+            extend_middleware = getattr(context, "extend_middleware", None)
+            if extend_middleware is not None:
+                extend_middleware(
+                    self.source_id,
+                    _FinalReplySaver(
+                        lambda reply: self._save_run(context, reply), self._logger
+                    ),
+                )
+
     async def after_run(
         self,
         *,
@@ -186,9 +222,19 @@ class SupermemoryContextProvider(BaseContextProvider):
             context: The framework ``SessionContext`` for this run.
             state: This provider's scoped, persisted session state.
         """
-        if not self._store_conversations:
-            return
-        conversation_text = self._extract_conversation_from_context(context)
+        if self._store_conversations:
+            self._save_run(context, getattr(context, "response", None))
+
+    # Streaming callers can stop at the final chunk, which skips after_run, so the run-scoped saver may already have saved this run.
+    def _save_run(self, context: Any, response: Any) -> None:
+        """Save the run's input and final reply once."""
+        metadata = getattr(context, "metadata", None)
+        saved_key = f"{self.source_id}:saved"
+        if isinstance(metadata, dict):
+            if metadata.get(saved_key):
+                return
+            metadata[saved_key] = True
+        conversation_text = self._extract_conversation_from_context(context, response)
         if not conversation_text:
             self._logger.debug("No conversation content to store")
             return
@@ -280,7 +326,9 @@ class SupermemoryContextProvider(BaseContextProvider):
                     return " ".join(parts)
         return ""
 
-    def _extract_conversation_from_context(self, context: Any) -> str:
+    def _extract_conversation_from_context(
+        self, context: Any, response: Any = None
+    ) -> str:
         """Extract conversation text from context for storage."""
         messages: list[Any] = []
 
@@ -289,8 +337,8 @@ class SupermemoryContextProvider(BaseContextProvider):
         elif hasattr(context, "messages"):
             messages.extend(context.messages or [])
 
-        if hasattr(context, "response") and context.response:
-            resp = context.response
+        resp = response if response is not None else getattr(context, "response", None)
+        if resp:
             if hasattr(resp, "text") and resp.text:
                 messages.append({"role": "assistant", "content": resp.text})
             elif hasattr(resp, "messages"):

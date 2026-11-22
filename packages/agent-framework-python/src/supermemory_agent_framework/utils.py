@@ -314,11 +314,43 @@ def turn_keys(
         if role == "assistant":
             reply_text = turn_key(text)
             if reply_text:
-                reply = hashlib.sha256(reply_text.encode()).hexdigest()[:16]
+                reply = _fingerprint(reply_text)
         elif role == "user":
             key = turn_key(text)
             keys[index] = f"{key}\0{reply}" if reply else key
     return keys
+
+
+def turn_answers(
+    messages: Sequence[Any], read: Callable[[Any], tuple[Any, str]]
+) -> dict[int, str]:
+    """Fingerprint the assistant reply that answered each user message in a request.
+
+    Args:
+        messages: The request's messages, in order.
+        read: Returns ``(role, text)`` for a message.
+
+    Returns:
+        A mapping from the index of each answered user message to the fingerprint
+        of the first non-empty assistant reply after it; unanswered turns are absent.
+    """
+    answers: dict[int, str] = {}
+    pending: Optional[int] = None
+    for index, message in enumerate(messages):
+        role, text = read(message)
+        if role == "user":
+            pending = index
+        elif role == "assistant" and pending is not None:
+            reply_text = turn_key(text)
+            if reply_text:
+                answers[pending] = _fingerprint(reply_text)
+                pending = None
+    return answers
+
+
+def _fingerprint(text: str) -> str:
+    """Return a short, stable fingerprint of a normalized message text."""
+    return hashlib.sha256(text.encode()).hexdigest()[:16]
 
 
 def replace_text_block(message: Any, block: str) -> Any:

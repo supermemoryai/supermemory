@@ -236,7 +236,7 @@ The profile goes in the system prompt once per conversation, and search results 
 - Each new user turn runs one search and appends the results to that turn's user message. Tool-call steps reuse the block without searching again, and earlier user messages keep the block they first received. A question repeated after a reply is a new turn with its own search.
 - Recall has a fixed 3-second budget with no retries. If a part times out or fails, the call goes ahead without it. A failed profile is fetched again on the next user turn.
 - The provider keeps the frozen profile in its session state (`profile_block`), so service-stored history (`store=True` or a service conversation id) gets the profile once too. The middleware keeps in-process state per conversation (500 turns, 100 conversations, least recently used first out); an evicted conversation starts over as new.
-- Saves happen once the turn's final assistant reply arrives, run in the background, and leave out system messages and memory blocks.
+- Saves happen once the turn's final assistant reply arrives, run in the background, and leave out system messages and memory blocks. With streaming, the save starts on the reply's last chunk, so a caller that stops iterating there still saves the turn, exactly once.
 - Every request to Supermemory sends `x-sm-source: agent-framework-python` and `x-sm-plugin-version`.
 
 ---

@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Literal, Optional
 
 import supermemory
-from agent_framework import ChatMiddleware, Message
+from agent_framework import ChatMiddleware, ChatResponse, Message
 
 from .connection import AgentSupermemory
 from .exceptions import (
@@ -26,6 +26,7 @@ from .utils import (
     recall_turn,
     replace_text_block,
     strip_memory_injection,
+    turn_answers,
     turn_key,
     turn_keys,
 )
@@ -232,12 +233,21 @@ class _TurnMemory:
 
     def __init__(self) -> None:
         self.turns: OrderedDict[str, str] = OrderedDict()
+        self.answers: dict[str, str] = {}
         self.profile: Optional[str] = None
         self.server_turns = 0
 
-    # A trimmed history can drop the reply that fingerprinted a kept message's key; a unique text match still finds its block.
-    def find(self, key: str) -> Optional[str]:
+    # A trimmed history can drop the reply that fingerprinted a kept message's key; the reply that answered it, or a unique text match, still finds its block.
+    def find(self, key: str, answer: Optional[str] = None) -> Optional[str]:
         """Return a turn's frozen block, matching by text alone if the reply was trimmed."""
+        if answer is not None and "\0" not in key:
+            answered = [
+                k
+                for k in self.turns
+                if k.split("\0", 1)[0] == key and self.answers.get(k) == answer
+            ]
+            if len(answered) == 1:
+                key = answered[0]
         if key in self.turns:
             self.turns.move_to_end(key)
             return self.turns[key]
@@ -251,7 +261,52 @@ class _TurnMemory:
         self.turns[key] = block
         self.turns.move_to_end(key)
         while len(self.turns) > _MAX_TURNS_PER_CONVERSATION:
-            self.turns.popitem(last=False)
+            evicted, _ = self.turns.popitem(last=False)
+            self.answers.pop(evicted, None)
+
+
+def _has_tool_call(response: Any) -> bool:
+    """Whether a model reply asks for a tool call, so the turn is not finished yet."""
+    return any(
+        getattr(content, "type", None) == "function_call"
+        for reply in getattr(response, "messages", None) or []
+        for content in getattr(reply, "contents", None) or []
+    )
+
+
+# Callers often stop iterating at the final chunk and never resume the stream, so the reply is reported on its terminal update, before the caller receives it.
+def _on_final_reply(
+    result: Any, on_final: Callable[[Any], None], logger: Logger
+) -> None:
+    """Call ``on_final`` once with a model call's reply, as soon as it is complete."""
+    updates: list[Any] = []
+    reported = False
+
+    def _report(response: Any) -> None:
+        nonlocal reported
+        if reported:
+            return
+        reported = True
+        try:
+            on_final(response)
+        except Exception as error:
+            logger.warn("Could not save the reply", {"error": str(error)})
+
+    def _on_update(update: Any) -> Any:
+        updates.append(update)
+        reason = getattr(update, "finish_reason", None)
+        if reason is not None and str(getattr(reason, "value", reason)) != "tool_calls":
+            _report(ChatResponse.from_updates(updates))
+        return update
+
+    if not hasattr(result, "with_result_hook"):
+        _report(result)
+        return
+    try:
+        result.with_result_hook(_report)
+        result.with_transform_hook(_on_update)
+    except Exception as error:
+        logger.warn("Could not observe streamed reply", {"error": str(error)})
 
 
 async def _save_memory(
@@ -368,6 +423,10 @@ class SupermemoryChatMiddleware(ChatMiddleware):
             context: The framework ``ChatContext`` for this model call.
             call_next: Continues the middleware pipeline.
         """
+        for index, message in enumerate(context.messages):
+            content = message.get("content") if isinstance(message, dict) else None
+            if content is not None and not isinstance(content, (str, list, dict)):
+                context.messages[index] = {**message, "content": list(content)}
         original = list(context.messages)
         has_user = await self._apply_memories(context)
         await call_next()
@@ -411,10 +470,13 @@ class SupermemoryChatMiddleware(ChatMiddleware):
                 memory.profile = fresh_profile
             memory.remember(keys[last], search_block)
 
+        answers = turn_answers(messages, lambda m: (_message_role(m), _message_text(m)))
         for index, key in keys.items():
-            block = memory.find(key)
+            block = memory.find(key, answers.get(index))
             if block:
                 self._replace(context, index, _with_block(messages[index], block))
+            if index in answers and key in memory.turns:
+                memory.answers.setdefault(key, answers[index])
         if memory.profile:
             self._apply_profile(context, memory.profile)
         return True
@@ -468,31 +530,16 @@ class SupermemoryChatMiddleware(ChatMiddleware):
     def _save_when_finished(self, context: Any, messages: list[Any]) -> None:
         """Schedule a background save once the turn's final reply has arrived."""
         result = getattr(context, "result", None)
-        if result is None:
-            return
-        if hasattr(result, "with_result_hook"):
-
-            def _on_final(final: Any) -> None:
-                self._save_turn(messages, final)
-
-            try:
-                result.with_result_hook(_on_final)
-            except Exception as error:
-                self._logger.warn(
-                    "Could not observe streamed reply", {"error": str(error)}
-                )
-            return
-        self._save_turn(messages, result)
+        if result is not None:
+            _on_final_reply(
+                result, lambda final: self._save_turn(messages, final), self._logger
+            )
 
     def _save_turn(self, messages: list[Any], response: Any) -> None:
         """Save the conversation with its final reply, skipping tool-call steps."""
-        replies = list(getattr(response, "messages", None) or [])
-        if any(
-            getattr(content, "type", None) == "function_call"
-            for reply in replies
-            for content in getattr(reply, "contents", None) or []
-        ):
+        if _has_tool_call(response):
             return
+        replies = list(getattr(response, "messages", None) or [])
         conversation = [
             message
             for message in [*messages, *replies]

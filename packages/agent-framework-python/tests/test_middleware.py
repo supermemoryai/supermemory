@@ -193,6 +193,69 @@ class TestMemoryInjection:
         assert conn.client.search.await_count == 2
 
     @pytest.mark.asyncio
+    async def test_trimmed_repeated_question_keeps_its_own_block(self) -> None:
+        conn = _make_conn()
+        conn.client = _fake_client()
+        searches = iter(range(1, 10))
+        conn.client.search.side_effect = lambda tag, query, **kwargs: SimpleNamespace(
+            results=[SimpleNamespace(memory=f"Search {next(searches)}")]
+        )
+        middleware = SupermemoryChatMiddleware(
+            conn, SupermemoryMiddlewareOptions(mode="query")
+        )
+        history: list = []
+        sent = []
+        for answer in ["Sunny", "Rainy", None]:
+            history.append({"role": "user", "content": "Weather?"})
+            context = SimpleNamespace(messages=list(history))
+            await middleware.process(context, AsyncMock())
+            sent.append(context.messages[-1]["content"])
+            if answer:
+                history.append({"role": "assistant", "content": answer})
+        assert ["Search 1" in sent[0], "Search 2" in sent[1]] == [True, True]
+
+        trimmed = SimpleNamespace(messages=list(history[2:]))
+        await middleware.process(trimmed, AsyncMock())
+        assert [m["content"] for m in trimmed.messages if m["role"] == "user"] == [
+            sent[1],
+            sent[2],
+        ]
+        assert conn.client.search.await_count == 3
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "content",
+        [
+            ("Be helpful.",),
+            ({"type": "text", "text": "Be helpful."},),
+            (part for part in ["Be helpful."]),
+        ],
+    )
+    async def test_iterable_system_content_keeps_the_profile(self, content) -> None:
+        conn = _make_conn()
+        conn.client = _fake_client()
+        middleware = SupermemoryChatMiddleware(
+            conn, SupermemoryMiddlewareOptions(mode="full")
+        )
+        context = SimpleNamespace(
+            messages=[
+                {"role": "system", "content": content},
+                {"role": "user", "content": ("What do you remember?",)},
+            ]
+        )
+
+        await middleware.process(context, AsyncMock())
+
+        system = context.messages[0]["content"]
+        assert isinstance(system, list)
+        texts = [p if isinstance(p, str) else p["text"] for p in system]
+        assert texts[0] == "Be helpful."
+        assert sum("Prefers Python" in text for text in texts) == 1
+        user = context.messages[1]["content"]
+        assert user[0] == "What do you remember?"
+        assert "Asked about What do you remember?" in user[-1]["text"]
+
+    @pytest.mark.asyncio
     async def test_profile_once_per_session_without_visible_history(self) -> None:
         conn = _make_conn()
         conn.client = _fake_client()
