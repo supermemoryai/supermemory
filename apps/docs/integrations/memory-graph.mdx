@@ -21,29 +21,26 @@ npm install @supermemory/memory-graph
 
 ## Quick start
 
+Fetch one page of the graph from your backend (see [Backend API route](#backend-api-route)) and convert it with `graphPageToDocuments`:
+
 ```tsx
 'use client'; // For Next.js App Router
 
-import { MemoryGraph } from '@supermemory/memory-graph';
-import type { GraphApiDocument } from '@supermemory/memory-graph';
+import { MemoryGraph, graphPageToDocuments } from '@supermemory/memory-graph';
+import type { GraphApiDocument, GraphPage } from '@supermemory/memory-graph';
 import { useEffect, useState } from 'react';
 
-export default function GraphPage() {
+export default function MemoryGraphPage() {
   const [documents, setDocuments] = useState<GraphApiDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     fetch('/api/graph')
-      .then(res => res.json())
-      .then(data => {
-        setDocuments(data.documents);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        setError(err);
-        setIsLoading(false);
-      });
+      .then(res => res.json() as Promise<GraphPage>)
+      .then(page => setDocuments(graphPageToDocuments(page)))
+      .catch(setError)
+      .finally(() => setIsLoading(false));
   }, []);
 
   return (
@@ -78,7 +75,7 @@ Existing icon-based document nodes and connection styling remain the defaults. O
 
 ## Backend API route
 
-Create an API route to fetch documents from Supermemory. The endpoint returns each document's memories as `memoryEntries` and its type as `type`; `MemoryGraph` reads `memories` and `documentType`, so map each document before returning it:
+Create a server route that reads the graph for the signed-in user's namespace. `POST /ns/{namespace}/graph` returns up to `limit` documents (at most 100) with their memories as `{ nodes, edges, nextCursor }`. Pass `nextCursor` back as `cursor` for the next page; it is `null` on the last page. Return the page as is and convert it in the browser with `graphPageToDocuments`.
 
 <CodeGroup>
 
@@ -86,30 +83,21 @@ Create an API route to fetch documents from Supermemory. The endpoint returns ea
 // app/api/graph/route.ts
 import { NextResponse } from 'next/server';
 
-export async function GET() {
-  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
-    },
-    body: JSON.stringify({
-      page: 1,
-      limit: 500,
-      sort: 'createdAt',
-      order: 'desc',
-    }),
-  });
+export async function GET(request: Request) {
+  const namespace = 'user_123'; // the signed-in user's namespace
+  const params = new URLSearchParams({ limit: '100' });
+  const cursor = new URL(request.url).searchParams.get('cursor');
+  if (cursor) params.set('cursor', cursor);
 
-  const data = await response.json();
-  return NextResponse.json({
-    ...data,
-    documents: data.documents.map((doc: { type: string; memoryEntries: unknown[] }) => ({
-      ...doc,
-      documentType: doc.type,
-      memories: doc.memoryEntries,
-    })),
-  });
+  const response = await fetch(
+    `https://api.supermemory.ai/ns/${encodeURIComponent(namespace)}/graph?${params}`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}` },
+    },
+  );
+
+  return NextResponse.json(await response.json(), { status: response.status });
 }
 ```
 
@@ -118,47 +106,37 @@ export async function GET() {
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
-    },
-    body: JSON.stringify({ page: 1, limit: 500, sort: 'createdAt', order: 'desc' }),
-  });
+  const namespace = 'user_123'; // the signed-in user's namespace
+  const params = new URLSearchParams({ limit: '100' });
+  if (typeof req.query.cursor === 'string') params.set('cursor', req.query.cursor);
 
-  const data = await response.json();
-  res.json({
-    ...data,
-    documents: data.documents.map((doc: { type: string; memoryEntries: unknown[] }) => ({
-      ...doc,
-      documentType: doc.type,
-      memories: doc.memoryEntries,
-    })),
-  });
+  const response = await fetch(
+    `https://api.supermemory.ai/ns/${encodeURIComponent(namespace)}/graph?${params}`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}` },
+    },
+  );
+
+  res.status(response.status).json(await response.json());
 }
 ```
 
 ```javascript Express
 app.get('/api/graph', async (req, res) => {
-  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
-    },
-    body: JSON.stringify({ page: 1, limit: 500, sort: 'createdAt', order: 'desc' }),
-  });
+  const namespace = 'user_123'; // the signed-in user's namespace
+  const params = new URLSearchParams({ limit: '100' });
+  if (typeof req.query.cursor === 'string') params.set('cursor', req.query.cursor);
 
-  const data = await response.json();
-  res.json({
-    ...data,
-    documents: data.documents.map((doc) => ({
-      ...doc,
-      documentType: doc.type,
-      memories: doc.memoryEntries,
-    })),
-  });
+  const response = await fetch(
+    `https://api.supermemory.ai/ns/${encodeURIComponent(namespace)}/graph?${params}`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}` },
+    },
+  );
+
+  res.status(response.status).json(await response.json());
 });
 ```
 
@@ -190,48 +168,46 @@ app.get('/api/graph', async (req, res) => {
 
 ### With pagination
 
+Follow `nextCursor` until it is `null`, appending each page's documents:
+
 ```tsx
 'use client';
 
-import { MemoryGraph } from '@supermemory/memory-graph';
-import type { GraphApiDocument } from '@supermemory/memory-graph';
+import { MemoryGraph, graphPageToDocuments } from '@supermemory/memory-graph';
+import type { GraphApiDocument, GraphPage } from '@supermemory/memory-graph';
 import { useCallback, useEffect, useState } from 'react';
 
 export default function PaginatedGraph() {
   const [documents, setDocuments] = useState<GraphApiDocument[]>([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [cursor, setCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  useEffect(() => { fetchPage(1, false); }, []);
+  const fetchPage = useCallback(async (after: string | null) => {
+    const res = await fetch(after ? `/api/graph?cursor=${encodeURIComponent(after)}` : '/api/graph');
+    const page: GraphPage = await res.json();
+    const next = graphPageToDocuments(page);
+    setDocuments(prev => (after ? [...prev, ...next] : next));
+    setCursor(page.nextCursor);
+  }, []);
 
-  const fetchPage = async (pageNum: number, append: boolean) => {
-    pageNum === 1 ? setIsLoading(true) : setIsLoadingMore(true);
-
-    const res = await fetch(`/api/graph?page=${pageNum}&limit=100`);
-    const data = await res.json();
-
-    append ? setDocuments(prev => [...prev, ...data.documents]) : setDocuments(data.documents);
-    setHasMore(data.pagination.currentPage < data.pagination.totalPages);
-    setIsLoading(false);
-    setIsLoadingMore(false);
-  };
+  useEffect(() => {
+    fetchPage(null).finally(() => setIsLoading(false));
+  }, [fetchPage]);
 
   const loadMore = useCallback(async () => {
-    if (!isLoadingMore && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      await fetchPage(nextPage, true);
-    }
-  }, [page, hasMore, isLoadingMore]);
+    if (!cursor || isLoadingMore) return;
+    setIsLoadingMore(true);
+    await fetchPage(cursor);
+    setIsLoadingMore(false);
+  }, [cursor, isLoadingMore, fetchPage]);
 
   return (
     <MemoryGraph
       documents={documents}
       isLoading={isLoading}
       isLoadingMore={isLoadingMore}
-      hasMore={hasMore}
+      hasMore={cursor !== null}
       onLoadMore={loadMore}
     />
   );
@@ -339,6 +315,10 @@ interface GraphApiMemory {
 }
 ```
 
+### GraphPage
+
+One page of `POST /ns/{namespace}/graph`: `{ nodes, edges, nextCursor }`. `graphPageToDocuments(page)` turns it into `GraphApiDocument[]`.
+
 `DocumentWithMemories` and `MemoryEntry` are still exported as backward-compatible types.
 
 ---
@@ -349,6 +329,12 @@ interface GraphApiMemory {
 
 ```typescript
 import { MemoryGraph, GraphCanvas } from '@supermemory/memory-graph';
+```
+
+### Adapters
+
+```typescript
+import { graphPageToDocuments } from '@supermemory/memory-graph';
 ```
 
 ### Hooks

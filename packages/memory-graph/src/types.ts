@@ -261,5 +261,5 @@ export interface LoadingIndicatorProps {
 export type {
 	DocumentWithMemories,
 	MemoryEntry,
-	DocumentsResponse,
+	GraphPage,
 } from "./api-types"

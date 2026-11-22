@@ -17,19 +17,23 @@ pnpm add @supermemory/memory-graph
 
 ## Quick Start
 
+Add a server route that calls `POST https://api.supermemory.ai/ns/{namespace}/graph?limit=100` with `Authorization: Bearer $SUPERMEMORY_API_KEY` for the signed-in user's namespace and returns the response. Each page is `{ nodes, edges, nextCursor }`; pass `nextCursor` back as `?cursor=` for the next one. Keep the key on the server.
+
+In the browser, convert each page with `graphPageToDocuments`:
+
 ```tsx
-import { MemoryGraph } from '@supermemory/memory-graph';
-import type { DocumentWithMemories } from '@supermemory/memory-graph';
+import { MemoryGraph, graphPageToDocuments } from '@supermemory/memory-graph';
+import type { GraphApiDocument, GraphPage } from '@supermemory/memory-graph';
 
 function App() {
-  const [documents, setDocuments] = useState<DocumentWithMemories[]>([]);
+  const [documents, setDocuments] = useState<GraphApiDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/graph')
-      .then(res => res.json())
-      .then(data => {
-        setDocuments(data.documents);
+      .then(res => res.json() as Promise<GraphPage>)
+      .then(page => {
+        setDocuments(graphPageToDocuments(page));
         setIsLoading(false);
       });
   }, []);
@@ -60,11 +64,12 @@ function App() {
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `documents` | `DocumentWithMemories[]` | Array of documents with their memory entries |
+| `documents` | `GraphApiDocument[]` | Documents with their memories, from `graphPageToDocuments` |
 | `isLoading` | `boolean` | Show loading state |
 | `variant` | `"console" \| "consumer"` | Display mode (default: "console") |
 | `error` | `Error \| null` | Error to display |
-| `loadMoreDocuments` | `() => Promise<void>` | Function to load more data |
+| `onLoadMore` | `() => void` | Load the next page (follow `nextCursor`) |
+| `hasMore` | `boolean` | Whether `nextCursor` is set |
 | `highlightDocumentIds` | `string[]` | IDs of documents to highlight |
 
 Console mode uses the supplied theme colors for its surface, 16px dot grid, document icons, and node fills and strokes. Consumer mode keeps its transparent surface and cluster colors.
