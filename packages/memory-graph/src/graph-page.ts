@@ -3,7 +3,7 @@ import type {
 	GraphPageMemoryNode,
 	MemoryRelation,
 } from "./api-types"
-import type { GraphApiDocument } from "./types"
+import type { GraphApiDocument } from "./api-types"
 
 // MemoryGraph takes documents with nested memories, so fold one POST /ns/{namespace}/graph page back into that shape.
 export function graphPageToDocuments(page: GraphPage): GraphApiDocument[] {

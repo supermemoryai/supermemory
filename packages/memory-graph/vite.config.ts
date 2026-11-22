@@ -31,6 +31,7 @@ export default defineConfig({
 			entry: {
 				"memory-graph": resolve(__dirname, "src/index.tsx"),
 				"mock-data": resolve(__dirname, "src/mock-data.ts"),
+				server: resolve(__dirname, "src/server.ts"),
 			},
 			formats: ["es", "cjs"],
 		},

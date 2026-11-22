@@ -9,6 +9,7 @@
   "exports": {
     ".": "./src/index.tsx",
     "./mock-data": "./src/mock-data.ts",
+    "./server": "./src/server.ts",
     "./package.json": "./package.json"
   },
   "files": [

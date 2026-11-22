@@ -88,3 +88,35 @@ export interface GraphPage {
 	edges: GraphPageEdge[]
 	nextCursor: string | null
 }
+
+export interface GraphApiMemory {
+	id: string
+	memory: string
+	content?: string | null
+	isStatic: boolean
+	spaceId: string
+	isLatest: boolean
+	isForgotten: boolean
+	forgetAfter: string | null
+	forgetReason: string | null
+	version: number
+	parentMemoryId: string | null
+	rootMemoryId: string | null
+	createdAt: string
+	updatedAt: string
+	relation?: MemoryRelation | null
+	updatesMemoryId?: string | null
+	nextVersionId?: string | null
+	memoryRelations?: Record<string, MemoryRelation> | null
+	spaceContainerTag?: string | null
+}
+
+export interface GraphApiDocument {
+	id: string
+	title: string | null
+	summary: string | null
+	documentType: string
+	createdAt: string
+	updatedAt: string
+	memories: GraphApiMemory[]
+}
