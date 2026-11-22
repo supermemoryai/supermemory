@@ -414,7 +414,7 @@ describe("ClaudeMemoryTool path IDs", () => {
 		expect(updateMock).not.toHaveBeenCalled()
 	})
 
-	it("renames onto a legacy destination in place", async () => {
+	it("renames onto a different live file → error (per Anthropic docs)", async () => {
 		mockDocuments([
 			{
 				id: "cm_memories_s_src_d_txt",
@@ -427,7 +427,6 @@ describe("ClaudeMemoryTool path IDs", () => {
 				content: "stale",
 			},
 		])
-		sdk.delete.mockResolvedValue({ count: 1 })
 
 		const result = await tool.handleCommand({
 			command: "rename",
@@ -435,11 +434,34 @@ describe("ClaudeMemoryTool path IDs", () => {
 			new_path: "/memories/dst.txt",
 		})
 
+		expect(result.success).toBe(false)
+		expect(result.error).toContain("already exists")
+	})
+
+	it("renames to non-existing destination → succeeds", async () => {
+		mockDocuments([
+			{
+				id: "cm_memories_s_src_d_txt",
+				filePath: "/memories/src.txt",
+				content: "moved",
+			},
+		])
+		sdk.delete.mockResolvedValue({ count: 1 })
+
+		const result = await tool.handleCommand({
+			command: "rename",
+			old_path: "/memories/src.txt",
+			new_path: "/memories/newdst.txt",
+		})
+
 		expect(result.success).toBe(true)
 		expect(updateMock).toHaveBeenCalledWith(
 			expect.anything(),
-			"memories_dst_txt",
-			expect.objectContaining({ content: "moved" }),
+			"cm_memories_s_newdst_d_txt",
+			expect.objectContaining({
+				content: "moved",
+				metadata: expect.objectContaining({ file_path: "/memories/newdst.txt" }),
+			}),
 		)
 		expect(sdk.delete).toHaveBeenCalledWith(expect.anything(), {
 			ids: ["cm_memories_s_src_d_txt"],
