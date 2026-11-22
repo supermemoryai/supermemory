@@ -1,293 +1,341 @@
-# Supermemory Quickstart Guide
+# Quickstart
 
-Get up and running with Supermemory in under 5 minutes.
+Get from zero to a working add, search, and profile in both SDKs. Every call is scoped to one namespace, passed first.
 
-## Step 1: Get Your API Key
+## Step 1: Get an API key
 
-1. Visit the [Supermemory Developer Console](https://console.supermemory.ai)
-2. Sign up or log in
-3. Navigate to **API Keys → Create API Key**
-4. Copy your API key and save it securely
+Create a key in the [console](https://console.supermemory.ai). Keys start with `sm_`.
 
 ## Step 2: Install the SDK
 
-Supermemory works with the following SDKs natively:
-
-### TypeScript/JavaScript
 ```bash
-npm install supermemory
+npm i supermemory          # TypeScript, also ships the CLI (npx supermemory)
+pip install -U supermemory # Python
 ```
 
-📦 View on npm: [https://www.npmjs.com/package/supermemory](https://www.npmjs.com/package/supermemory)
+Both packages must be 5.x. Earlier versions call the deprecated v3/v4 API.
 
-### Python
-```bash
-pip install supermemory
-# Or for async support with aiohttp
-pip install 'supermemory[aiohttp]'
-```
-
-📦 View on PyPI: [https://pypi.org/project/supermemory/](https://pypi.org/project/supermemory/)
-
-### Other SDKs
-
-Discover all available SDKs and community integrations at [supermemory.ai/docs](https://supermemory.ai/docs)
-
-## Step 3: Set Environment Variable
-
-Add your API key to your environment:
+## Step 3: Set the key
 
 ```bash
-export SUPERMEMORY_API_KEY="your_api_key_here"
+export SUPERMEMORY_API_KEY="sm_..."
 ```
 
-Or add to your `.env` file:
+Both clients read it by default.
+
+```ts
+import { Supermemory } from "supermemory"
+
+const client = new Supermemory() // or new Supermemory({ apiKey })
 ```
-SUPERMEMORY_API_KEY=your_api_key_here
-```
-
-## Step 4: Basic Usage
-
-### TypeScript Example
-
-```typescript
-import { Supermemory } from 'supermemory';
-
-const client = new Supermemory({
-  apiKey: process.env.SUPERMEMORY_API_KEY
-});
-
-async function main() {
-  // 1. Retrieve context for personalization
-  const response = await client.profile({
-    containerTag: "user_123", // Unique user identifier
-    q: "What does the user prefer?"
-  });
-
-  console.log("Static Profile:", response.profile.static);
-  console.log("Dynamic Profile:", response.profile.dynamic);
-  if (response.searchResults) {
-    console.log("Search Results:", response.searchResults.results);
-  }
-
-  // 2. Enrich your LLM prompt
-  const systemMessage = `
-    Static Profile:
-    ${response.profile.static.map(f => `- ${f}`).join('\n')}
-
-    Recent Context:
-    ${response.profile.dynamic.map(f => `- ${f}`).join('\n')}
-  `;
-
-  // Send systemMessage to your LLM...
-
-  // 3. Store new memories from the conversation
-  await client.add({
-    content: "User mentioned they prefer dark mode and TypeScript",
-    containerTag: "user_123",
-    metadata: {
-      source: "chat",
-      timestamp: new Date().toISOString()
-    }
-  });
-
-  console.log("Memory stored successfully!");
-}
-
-main();
-```
-
-### Python Example
 
 ```python
-import os
 from supermemory import Supermemory
 
-client = Supermemory(api_key=os.environ["SUPERMEMORY_API_KEY"])
-
-def main():
-    # 1. Retrieve context
-    response = client.profile(
-        container_tag="user_123",
-        q="What does the user prefer?"
-    )
-
-    print("Static Profile:", response["profile"]["static"])
-    print("Dynamic Profile:", response["profile"]["dynamic"])
-    if "searchResults" in response:
-        print("Search Results:", response["searchResults"]["results"])
-
-    # 2. Enrich your LLM prompt
-    static_facts = "\n".join(f"- {fact}" for fact in response["profile"]["static"])
-    dynamic_facts = "\n".join(f"- {fact}" for fact in response["profile"]["dynamic"])
-
-    system_message = f"""
-    Static Profile:
-    {static_facts}
-
-    Recent Context:
-    {dynamic_facts}
-    """
-
-    # Send system_message to your LLM...
-
-    # 3. Store new memories
-    client.add(
-        content="User mentioned they prefer dark mode and TypeScript",
-        container_tag="user_123",
-        metadata={
-            "source": "chat",
-            "timestamp": "2026-02-21T10:00:00Z"
-        }
-    )
-
-    print("Memory stored successfully!")
-
-if __name__ == "__main__":
-    main()
+client = Supermemory()  # or Supermemory(api_key="...")
 ```
 
-### Python Async Example
+## Step 4: Add your first document
+
+Give the document a stable `id`. Repeating the same `id` later appends or diffs into that document instead of creating a new one. Use `dreaming: "instant"` so memories form within about a minute; the default `dynamic` batches extraction and can take several minutes on a fresh namespace.
+
+```ts
+const { id, status } = await client.add("user_alex", {
+  content: "Alex prefers morning meetings and works in design.",
+  id: "conv_2026_10_14",
+  metadata: { source: "chat" },
+  dreaming: "instant",
+})
+```
 
 ```python
-import os
-import asyncio
-from supermemory import AsyncSupermemory
+result = client.add(
+    "user_alex",
+    content="Alex prefers morning meetings and works in design.",
+    id="conv_2026_10_14",
+    metadata={"source": "chat"},
+    dreaming="instant",
+)
+```
 
-async def main():
-    client = AsyncSupermemory(api_key=os.environ["SUPERMEMORY_API_KEY"])
+The response is `{ id, status }`. `status` is `queued` when new work started, or the document's current state for an unchanged duplicate.
 
-    # 1. Retrieve context
-    response = await client.profile(
-        container_tag="user_123",
-        q="What does the user prefer?"
+## Step 5: Wait for processing
+
+Processing is asynchronous. `system.status` tracks extraction and indexing. The REST response also carries `system.dreamingStatus`, which tracks memory formation and can finish minutes later under `dreaming: "dynamic"`. The 5.0.x SDK types do not declare that field yet, so SDK code polls `system.status` and uses `dreaming: "instant"` whenever the next step reads memories or the profile.
+
+```ts
+async function waitForDocument(namespace: string, id: string) {
+  for (;;) {
+    const doc = await client.documents.get(namespace, id)
+    if (doc.system.status === "failed") throw new Error(`document ${id} failed`)
+    if (doc.system.status === "done") return doc
+    await new Promise((r) => setTimeout(r, 1000))
+  }
+}
+
+await waitForDocument("user_alex", "conv_2026_10_14")
+```
+
+```python
+import time
+
+def wait_for_document(namespace: str, id: str):
+    while True:
+        doc = client.documents.get(namespace, id)
+        if doc.system.status == "failed":
+            raise RuntimeError(f"document {id} failed")
+        if doc.system.status == "done":
+            return doc
+        time.sleep(1)
+
+wait_for_document("user_alex", "conv_2026_10_14")
+```
+
+`system.status` values: `unknown`, `queued`, `extracting`, `chunking`, `embedding`, `indexing`, `done`, `failed`.
+
+## Step 6: Search
+
+One call, three modes. Omitting `searchMode` gives `hybrid`.
+
+```ts
+// Learned facts only
+const memories = await client.search("user_alex", {
+  query: "when does Alex like to meet?",
+  searchMode: "memories",
+  limit: 5,
+})
+
+// Source text only, classic RAG
+const chunks = await client.search("user_alex", {
+  query: "meeting preferences",
+  searchMode: "chunks",
+  include: { documents: true },
+})
+
+// Both in one ranked list
+const hybrid = await client.search("user_alex", { query: "meeting preferences" })
+
+for (const r of hybrid.results) {
+  console.log(r.memory ?? r.chunk, r.score)
+}
+```
+
+```python
+memories = client.search("user_alex", query="when does Alex like to meet?", search_mode="memories", limit=5)
+chunks = client.search("user_alex", query="meeting preferences", search_mode="chunks", include={"documents": True})
+hybrid = client.search("user_alex", query="meeting preferences")
+
+for r in hybrid.results:
+    print(r.memory or r.chunk, r.score)
+```
+
+Each result carries `memory` or `chunk` (sometimes both), `score`, `system` timestamps, and `included` when requested. Branch on field presence. The response also has `searchTime` in milliseconds.
+
+## Step 7: Read the profile
+
+The profile is maintained for you. It takes no query; run a search when you need ranked results.
+
+```ts
+const { profile } = await client.profile("user_alex")
+profile.static   // [{ id, memory }] standing facts
+profile.dynamic  // [{ id, memory }] recent context
+profile.buckets  // { [name]: [{ id, memory }] } custom buckets, if any
+```
+
+```python
+response = client.profile("user_alex")
+response.profile.static
+response.profile.dynamic
+response.profile.buckets
+```
+
+## Core workflow pattern
+
+For a chatbot or assistant, every turn looks like this:
+
+```ts
+async function respond(userId: string, sessionId: string, userMessage: string) {
+  const [{ profile }, { results }] = await Promise.all([
+    client.profile(userId),
+    client.search(userId, { query: userMessage, limit: 5 }),
+  ])
+
+  const context = [
+    ...profile.static.map((m) => m.memory),
+    ...profile.dynamic.map((m) => m.memory),
+    ...results.map((r) => r.memory ?? r.chunk),
+  ].join("\n")
+
+  const reply = await callYourModel(context, userMessage)
+
+  // Same session id, same document: the conversation keeps updating one document
+  await client.add(userId, { content: `User: ${userMessage}\nAssistant: ${reply}`, id: sessionId })
+  return reply
+}
+```
+
+```python
+def respond(user_id: str, session_id: str, user_message: str) -> str:
+    profile = client.profile(user_id).profile
+    results = client.search(user_id, query=user_message, limit=5).results
+
+    context = "\n".join(
+        [m.memory for m in profile.static]
+        + [m.memory for m in profile.dynamic]
+        + [r.memory or r.chunk for r in results]
     )
+    reply = call_your_model(context, user_message)
 
-    print("User facts:", response["profile"]["static"])
-
-    # 2. Store new memories
-    await client.add(
-        content="User mentioned they prefer dark mode and TypeScript",
-        container_tag="user_123",
-        metadata={"source": "chat"}
-    )
-
-    print("Memory stored successfully!")
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    client.add(user_id, content=f"User: {user_message}\nAssistant: {reply}", id=session_id)
+    return reply
 ```
 
-## Core Workflow Pattern
+## Understanding namespaces
 
-The standard Supermemory workflow follows three steps:
+A namespace is the isolation boundary. A document lives in exactly one.
 
-1. **Retrieve Context**: Use `profile()` to get relevant user information
-2. **Enrich Prompt**: Combine context with your system message
-3. **Store Memories**: Use `add()` to save new information
+- One namespace per end user (`user_123`) is the default choice.
+- Use a compound name for per-project memory (`user_123_project_abc`).
+- Put shared company knowledge in its own namespace (`org_acme_kb`). Read it with a second search and merge by `score`.
+- Never pass two namespaces to one call and never guess the namespace from a document or memory id. A memory from another namespace returns `404`.
 
-This pattern ensures your AI agent has perfect recall and becomes more personalized over time.
+Existing namespaces: `client.namespaces.list()` returns `{ namespaces, pagination }`.
 
-## Understanding Container Tags
+## Threshold
 
-Container tags are identifiers that isolate memories:
+`threshold` is the minimum relevance score, 0 to 1. The default is `0.3`.
 
-- Use **user IDs** for per-user personalization: `"user_123"`
-- Use **project IDs** for project-specific context: `"project_abc"`
-- Use **session IDs** for temporary context: `"session_xyz"`
-- Use **organization IDs** for shared knowledge: `"org_acme"`
+| Goal | Threshold |
+| --- | --- |
+| Broad recall, let the model filter | `0.1` to `0.3` |
+| Balanced | `0.3` |
+| Only strong matches | `0.5` to `0.7` |
 
-Memories with the same containerTag are grouped together and can be searched independently.
+Set it explicitly when comparing results across environments.
 
-## Advanced: Threshold Filtering
+## Common patterns
 
-Control relevance strictness with the `threshold` parameter:
+### Metadata and typed filters
 
-```typescript
-const context = await client.profile({
-  containerTag: "user_123",
-  query: "user preferences",
-  threshold: 0.7  // 0-1: higher = stricter matching
-});
+Metadata is any JSON object on the document. Filter with one typed `filter` object. The same shape works in `search`, `profile`, and `list`.
+
+```ts
+await client.add("user_alex", { content: "Q3 launch moves to October.", metadata: { source: "slack", priority: 3 } })
+
+const { results } = await client.search("user_alex", {
+  query: "launch date",
+  filter: {
+    operator: "and",
+    operands: [
+      { field: "source", operator: "eq", value: "slack" },
+      { field: "priority", operator: "gte", value: 3 },
+    ],
+  },
+})
 ```
 
-- **0.0**: Most permissive (returns more results, lower precision)
-- **0.5**: Balanced (recommended starting point)
-- **1.0**: Most strict (returns fewer results, higher precision)
-
-## Next Steps
-
-- **User Profiles**: Learn about static vs. dynamic facts
-- **Search API**: Explore advanced filtering and metadata queries
-- **Document Ingestion**: Add PDFs, images, videos, and URLs
-- **Integration Guides**: Connect with Vercel AI SDK, LangChain, CrewAI
-
-## Common Patterns
-
-### Chatbot with Memory
-```typescript
-// Before generating response
-const context = await client.profile({
-  containerTag: userId,
-  query: userMessage
-});
-
-// After receiving LLM response
-await client.add({
-  content: `User: ${userMessage}\nAssistant: ${llmResponse}`,
-  containerTag: userId
-});
+```python
+client.search(
+    "user_alex",
+    query="launch date",
+    filter={
+        "operator": "and",
+        "operands": [
+            {"field": "source", "operator": "eq", "value": "slack"},
+            {"field": "priority", "operator": "gte", "value": 3},
+        ],
+    },
+)
 ```
 
-### Document Knowledge Base
-```typescript
-// Add documents
-await client.add({
-  content: "https://example.com/documentation",
-  containerTag: "knowledge_base",
-  metadata: { type: "documentation" }
-});
+Operators: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `notContains`, `arrayContains`, `arrayNotContains`, and `and` / `or` with `operands`.
 
-// Search documents (use hybrid mode for RAG)
-const response = await client.search({
-  q: "How do I authenticate?",
-  containerTag: "knowledge_base",
-  searchMode: "hybrid",
-  limit: 10
-});
+### Upload a file
+
+Files go through a multipart endpoint, so `metadata` is a JSON string there.
+
+```ts
+import { openAsBlob } from "node:fs"
+
+await client.documents.uploadFile("user_alex", {
+  file: await openAsBlob("notes.pdf"),
+  metadata: JSON.stringify({ source: "upload" }),
+})
 ```
 
-### Personalized Recommendations
-```typescript
-// Get user profile
-const profile = await client.profile({
-  containerTag: userId,
-  query: "user interests and preferences"
-});
+```python
+with open("notes.pdf", "rb") as f:
+    client.documents.upload_file("user_alex", file=f)
+```
 
-// Use profile to personalize recommendations
-const recommendations = generateRecommendations(profile);
+Poll the returned `id` as in Step 5. PDFs and videos take longer than text.
+
+### Add a URL
+
+Pass the URL as `content`. The page is fetched and processed like any other document.
+
+```ts
+await client.add("user_alex", { content: "https://example.com/post", id: "post_1" })
+```
+
+```python
+client.add("user_alex", content="https://example.com/post", id="post_1")
+```
+
+### List what is stored
+
+```ts
+const { documents, pagination } = await client.list("user_alex", "documents", { limit: 20, sort: "createdAt", order: "desc" })
+const { memories } = await client.list("user_alex", "memories")
+```
+
+```python
+page = client.list("user_alex", "documents", limit=20, sort="createdAt", order="desc")
+memories = client.list("user_alex", "memories").memories
+```
+
+### Forget memories
+
+Preview by meaning with `dryRun: true`, review the ids, then forget those exact ids. Running the semantic request again with `dryRun: false` can pick a different set if memories changed.
+
+```ts
+const preview = await client.memories.forgetMatching("user_alex", { query: "old home address", dryRun: true })
+await client.memories.forget("user_alex", { ids: preview.matches.map((m) => m.id) })
+```
+
+```python
+preview = client.memories.forget_matching("user_alex", query="old home address", dry_run=True)
+client.memories.forget("user_alex", ids=[m.id for m in preview.matches])
+```
+
+Both return `{ count, matches, errors }`. Check `errors` even on HTTP success.
+
+### Delete documents
+
+```ts
+const { count, errors } = await client.documents.delete("user_alex", { ids: ["conv_2026_10_14"] })
+```
+
+```python
+client.documents.delete("user_alex", ids=["conv_2026_10_14"])
 ```
 
 ## Troubleshooting
 
-**API Key Not Working**
-- Ensure the environment variable is set correctly
-- Check that the API key hasn't been revoked in the console
-- Verify you're using the correct key (not accidentally using a test key)
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| Search returns nothing right after `add` | Default `dreaming: "dynamic"` batches memory extraction | Add with `dreaming: "instant"`, or wait a few minutes; `GET /ns/{ns}/document/{id}` shows `system.dreamingStatus` |
+| Profile is empty on a new namespace | Same as above | Same as above |
+| `400` on a request | An option is in the wrong place, or a legacy field was sent | `GET` options go in the query string, `POST` options in the body. Remove legacy field names, see "Never emit" in SKILL.md |
+| `401` | Wrong or missing key | Check `SUPERMEMORY_API_KEY`, header is `Authorization: Bearer sm_...` |
+| `404` on a memory or document | It belongs to another namespace | Use the namespace the content was added to |
+| TypeScript method does not exist | Pre-5 SDK installed | `npm i supermemory@5`, see the method map in `sdk-guide.md` |
 
-**No Results from Search**
-- Try lowering the `threshold` parameter
-- Ensure the containerTag matches what you used during `add()`
-- Wait 1-2 minutes after adding content for processing to complete
+## Next steps
 
-**Slow Processing**
-- Large PDFs (100 pages) take 1-2 minutes
-- Videos take 5-10 minutes
-- Check document status with `documents.list()`
-
-## Support
-
-- **Documentation**: [supermemory.ai/docs](https://supermemory.ai/docs)
-- **Console**: [console.supermemory.ai](https://console.supermemory.ai)
-- **GitHub**: [github.com/supermemoryai/supermemory](https://github.com/supermemoryai/supermemory)
+- `sdk-guide.md`: every method, option, response, error, and client setting.
+- `api-reference.md`: the REST endpoints with cURL.
+- `sdk-integrations.md`: Vercel AI SDK, OpenAI, Mastra, and other framework code.
+- `use-cases.md`: complete chatbot, task assistant, RAG, support, and multi-tenant examples.
+- `architecture.md`: how documents become memories and how retrieval ranks them.

@@ -200,25 +200,24 @@ npm install supermemory    # or: pip install supermemory
 ### Quickstart
 
 ```typescript
-import Supermemory from "supermemory";
+import { Supermemory } from "supermemory";
 
 const client = new Supermemory();
 
-// Store a conversation
-await client.add({
+// Store a conversation in the user's namespace
+await client.add("user_123", {
   content: "User loves TypeScript and prefers functional patterns",
-  containerTag: "user_123",
 });
 
-// Get user profile + relevant memories in one call
-const { profile, searchResults } = await client.profile({
-  containerTag: "user_123",
-  q: "What programming style does the user prefer?",
+// Read the user's profile, and search their memories
+const { profile } = await client.profile("user_123");
+const { results } = await client.search("user_123", {
+  query: "What programming style does the user prefer?",
 });
 
-// profile.static  → ["Loves TypeScript", "Prefers functional patterns"]
-// profile.dynamic → ["Working on API integration"]
-// searchResults   → Relevant memories ranked by similarity
+// profile.static  → long-term facts, e.g. "Loves TypeScript"
+// profile.dynamic → recent context, e.g. "Working on API integration"
+// results         → relevant memories ranked by similarity
 ```
 
 ```python
@@ -226,16 +225,16 @@ from supermemory import Supermemory
 
 client = Supermemory()
 
-client.add(
-    content="User loves TypeScript and prefers functional patterns",
-    container_tag="user_123"
-)
+client.add("user_123", content="User loves TypeScript and prefers functional patterns")
 
-result = client.profile(container_tag="user_123", q="programming style")
+profile = client.profile("user_123").profile
+results = client.search("user_123", query="programming style")
 
-print(result.profile.static)   # Long-term facts
-print(result.profile.dynamic)  # Recent context
+print([m.memory for m in profile.static])   # Long-term facts
+print([m.memory for m in profile.dynamic])  # Recent context
 ```
+
+Every call is scoped to a **namespace** (a user, a tenant or a project). This is the v5 API; `containerTag`, `/v3` and `/v4` belong to older versions that shut down on December 31, 2026.
 
 Supermemory automatically extracts memories, builds user profiles, and returns relevant context. No embedding pipelines, no vector DB config, no chunking strategies.
 
@@ -246,11 +245,11 @@ Drop-in wrappers for every major AI framework:
 ```typescript
 // Vercel AI SDK
 import { withSupermemory } from "@supermemory/tools/ai-sdk";
-const model = withSupermemory(openai("gpt-4o"), { containerTag: "user_123", customId: "conv-1" });
+const model = withSupermemory(openai("gpt-4o"), { namespace: "user_123", id: "conv-1" });
 
 // Mastra
 import { withSupermemory } from "@supermemory/tools/mastra";
-const agent = new Agent(withSupermemory(config, "user-123", { mode: "full" }));
+const agent = new Agent(withSupermemory(config, { namespace: "user_123", id: "conv-1", mode: "full" }));
 ```
 
 **Vercel AI SDK** · **LangChain** · **LangGraph** · **OpenAI Agents SDK** · **Mastra** · **Agno** · **Claude Memory Tool** · **n8n**
@@ -259,17 +258,15 @@ const agent = new Agent(withSupermemory(config, "user-123", { mode: "full" }));
 
 ```typescript
 // Hybrid (default) — RAG + Memory in one query
-const results = await client.search({
-  q: "how do I deploy?",
-  containerTag: "user_123",
+const { results } = await client.search("user_123", {
+  query: "how do I deploy?",
   searchMode: "hybrid",
 });
 // Returns deployment docs (RAG) + user's deploy preferences (Memory)
 
 // Memories only
-const results = await client.search({
-  q: "user preferences",
-  containerTag: "user_123",
+const { results: memories } = await client.search("user_123", {
+  query: "user preferences",
   searchMode: "memories",
 });
 ```
@@ -279,7 +276,7 @@ const results = await client.search({
 Traditional memory relies on search — you need to know what to ask for. Supermemory automatically maintains a profile for every user:
 
 ```typescript
-const { profile } = await client.profile({ containerTag: "user_123" });
+const { profile } = await client.profile("user_123");
 
 // profile.static  → ["Senior engineer at Acme", "Prefers dark mode", "Uses Vim"]
 // profile.dynamic → ["Working on auth migration", "Debugging rate limits"]

@@ -43,7 +43,7 @@ Document enters the processing queue. The system validates the content type and 
 
 **What happens:**
 - Content type detection (PDF, image, video, URL, text)
-- Validation of metadata and container tags
+- Validation of metadata and the target namespace
 - Assignment to processing queue
 
 ### 2. Extracting
@@ -258,9 +258,9 @@ Metadata:
 Results: Semantically similar + metadata match
 ```
 
-## Container Tag Isolation
+## Namespace Isolation
 
-Container tags create isolated "spaces" within Supermemory:
+A namespace is the isolation boundary. Every document, memory, and profile belongs to exactly one, and every request names one in its path (`/ns/{namespace}/...`):
 
 ```
 ┌─────────────────────────────────┐
@@ -488,7 +488,7 @@ messages = [
 ```
 [PDF Document]
     ↓
-[API: POST /v3/documents]
+[API: POST /ns/{namespace}/document]
     ↓
 [Queue: Document ID returned, status: "queued"]
     ↓
@@ -510,11 +510,11 @@ messages = [
 ```
 [User Query: "authentication methods"]
     ↓
-[API: POST /v4/search]
+[API: POST /ns/{namespace}/search]
     ↓
 [Embed: Query → Vector]
     ↓
-[Search: Vector similarity in container]
+[Search: Vector similarity within the namespace]
     ↓
 [Filter: Apply metadata filters]
     ↓
@@ -538,7 +538,7 @@ Supermemory is designed for scale:
 ## Security & Privacy
 
 - **Encryption**: AES-256 at rest, TLS 1.3 in transit
-- **Isolation**: Container tags enforce strict boundaries
+- **Isolation**: Namespaces enforce strict boundaries; a memory id from another namespace returns 404
 - **Access Control**: API key-based authentication
 - **Compliance**: SOC 2, GDPR compliant
 - **Data Residency**: Regional storage options

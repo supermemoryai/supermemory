@@ -1,0 +1,11 @@
+{
+	"$schema": "https://context7.com/schema/context7.json",
+	"projectTitle": "supermemory",
+	"description": "Memory API for AI agents: long-term memory, user profiles, search and connectors. The current API is v5.",
+	"excludeFolders": ["apps/docs/api-reference", "apps/docs/migration"],
+	"rules": [
+		"The current API is v5. Every call is scoped to a namespace: POST /ns/{namespace}/document, /ns/{namespace}/search, /ns/{namespace}/profile.",
+		"Use the supermemory SDK version 5 or later: client.add(namespace, { content }), client.search(namespace, { query }), client.profile(namespace).",
+		"Do not use containerTag, containerTags, /v3 or /v4 in new code; those API versions shut down on December 31, 2026."
+	]
+}
