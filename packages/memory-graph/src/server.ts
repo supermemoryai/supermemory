@@ -29,7 +29,8 @@ export async function fetchMemoryGraph({
 	baseUrl = "https://api.supermemory.ai",
 	limit = 100,
 }: FetchMemoryGraphOptions): Promise<GraphApiDocument[]> {
-	const documents: GraphApiDocument[] = []
+	const nodes: GraphPage["nodes"] = []
+	const edges: GraphPage["edges"] = []
 	let cursor: string | null = null
 	for (let page = 0; page < MAX_PAGES; page++) {
 		const url = new URL(`/ns/${encodeURIComponent(namespace)}/graph`, baseUrl)
@@ -45,17 +46,20 @@ export async function fetchMemoryGraph({
 		})
 		if (!response.ok) {
 			const body = (await response.json().catch(() => null)) as {
-				error?: string
+				error?: unknown
 			} | null
 			throw new MemoryGraphError(
 				response.status,
-				body?.error ?? `Memory graph request failed with ${response.status}`,
+				typeof body?.error === "string"
+					? body.error
+					: `Memory graph request failed with ${response.status}`,
 			)
 		}
 		const graphPage = (await response.json()) as GraphPage
-		documents.push(...graphPageToDocuments(graphPage))
+		nodes.push(...graphPage.nodes)
+		edges.push(...graphPage.edges)
 		cursor = graphPage.nextCursor
 		if (!cursor) break
 	}
-	return documents
+	return graphPageToDocuments({ nodes, edges, nextCursor: null })
 }

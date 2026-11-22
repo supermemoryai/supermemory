@@ -85,6 +85,7 @@ export function MemoryGraph({
 	openDocumentOnEnter = false,
 }: MemoryGraphProps) {
 	const [fetched, setFetched] = useState<{
+		endpoint?: string
 		documents?: GraphApiDocument[]
 		error?: Error
 	}>({})
@@ -92,7 +93,6 @@ export function MemoryGraph({
 	useEffect(() => {
 		if (!endpoint) return
 		const controller = new AbortController()
-		setFetched({})
 		fetch(endpoint, { method: "POST", signal: controller.signal })
 			.then((response) => {
 				if (!response.ok)
@@ -101,20 +101,21 @@ export function MemoryGraph({
 			})
 			.then((data) =>
 				setFetched({
+					endpoint,
 					documents: Array.isArray(data) ? data : graphPageToDocuments(data),
 				}),
 			)
 			.catch((error: Error) => {
-				if (!controller.signal.aborted) setFetched({ error })
+				if (!controller.signal.aborted) setFetched({ endpoint, error })
 			})
 		return () => controller.abort()
 	}, [endpoint])
 
+	const current = endpoint && fetched.endpoint === endpoint ? fetched : null
 	const documents =
-		(endpoint ? fetched.documents : documentsProp) ?? NO_DOCUMENTS
-	const externalIsLoading =
-		isLoadingProp || (!!endpoint && !fetched.documents && !fetched.error)
-	const externalError = errorProp ?? fetched.error ?? null
+		(endpoint ? current?.documents : documentsProp) ?? NO_DOCUMENTS
+	const externalIsLoading = isLoadingProp || (!!endpoint && !current)
+	const externalError = errorProp ?? current?.error ?? null
 
 	const resolvedLabels = useMemo<ResolvedMemoryGraphLabels>(
 		() => ({ ...DEFAULT_LABELS, ...labelOverrides }),

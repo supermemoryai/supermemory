@@ -119,7 +119,7 @@ export default function MemoryGraphPage() {
 }
 ```
 
-`MemoryGraph` sends a `POST` to `endpoint` (with the page's cookies, so your session auth applies) and shows a loading indicator, then the graph. An empty namespace shows "No memories yet" (override it with `labels.emptyGraph` or `children`), and a failed request shows the error.
+`MemoryGraph` sends a `POST` to `endpoint` (cookies are sent to a same-origin route, so your session auth applies) and shows a loading indicator, then the graph. An empty namespace shows "No memories yet" (override it with `labels.emptyGraph` or `children`), and a failed request shows the error.
 
 ### Other backends
 
@@ -131,13 +131,14 @@ From Python, Go, Ruby or any other server, call the API directly and return the 
 
 ```python Python
 import os, requests
+from urllib.parse import quote
 
 def memory_graph(namespace: str) -> dict:
     nodes, edges, cursor = [], [], None
     while True:
         params = {"limit": 100, **({"cursor": cursor} if cursor else {})}
         page = requests.post(
-            f"https://api.supermemory.ai/ns/{namespace}/graph",
+            f"https://api.supermemory.ai/ns/{quote(namespace, safe='')}/graph",
             params=params,
             headers={"Authorization": f"Bearer {os.environ['SUPERMEMORY_API_KEY']}"},
             json={},
