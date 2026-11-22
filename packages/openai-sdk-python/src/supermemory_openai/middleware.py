@@ -9,7 +9,7 @@ import threading
 import time
 import types
 from collections import OrderedDict
-from collections.abc import Coroutine
+from collections.abc import Coroutine, Iterable
 from dataclasses import dataclass
 from importlib.metadata import version as package_version
 from typing import Any, Callable, Literal, Optional, TypeVar, Union, cast
@@ -139,15 +139,41 @@ class _ConversationMemory:
     def __init__(self) -> None:
         self.lock = threading.RLock()
         self.turns: OrderedDict[str, _TurnBlock] = OrderedDict()
-        self.latest_by_text: dict[str, str] = {}
+        self.positions: dict[str, int] = {}
+        self.keys_by_position: dict[int, str] = {}
+        self.next_position = 0
         self.profile_text: Optional[str] = None
         self.profile_memories: tuple[str, ...] = ()
 
-    def block(self, key: str) -> Optional[_TurnBlock]:
-        """A turn whose preceding reply was trimmed away falls back to the latest turn with its text."""
+    def resolve(self, keys: list[tuple[int, str]]) -> list[tuple[int, str]]:
+        """A trim keeps the tail, so turns that lost their preceding reply map onto the stored turns in order."""
         with self.lock:
-            if key not in self.turns and "\x00" not in key:
-                key = self.latest_by_text.get(key, key)
+            anchor = next(
+                (
+                    (offset, self.positions[key])
+                    for offset, (_, key) in enumerate(keys)
+                    if "\x00" in key and key in self.positions
+                ),
+                None,
+            )
+            if anchor is None and keys:
+                last = keys[-1][1]
+                tail = self.keys_by_position.get(self.next_position - 1)
+                same_turn = (
+                    tail is not None and "\x00" not in last and _key_text(tail) == last
+                )
+                anchor = (len(keys) - 1, self.next_position - int(same_turn))
+            resolved = []
+            for offset, (index, key) in enumerate(keys):
+                if anchor is not None and "\x00" not in key:
+                    stored = self.keys_by_position.get(anchor[1] - anchor[0] + offset)
+                    if stored is not None and _key_text(stored) == key:
+                        key = stored
+                resolved.append((index, key))
+            return resolved
+
+    def block(self, key: str) -> Optional[_TurnBlock]:
+        with self.lock:
             block = self.turns.get(key)
             if block is not None:
                 self.turns.move_to_end(key)
@@ -159,12 +185,16 @@ class _ConversationMemory:
             if key in self.turns:
                 return
             self.turns[key] = block
-            self.latest_by_text[key.split("\x00")[0]] = key
+            self.positions[key] = self.next_position
+            self.keys_by_position[self.next_position] = key
+            self.next_position += 1
             while len(self.turns) > MAX_TURNS_PER_CONVERSATION:
                 evicted, _ = self.turns.popitem(last=False)
-                text = evicted.split("\x00")[0]
-                if self.latest_by_text.get(text) == evicted:
-                    del self.latest_by_text[text]
+                del self.keys_by_position[self.positions.pop(evicted)]
+
+
+def _key_text(key: str) -> str:
+    return key.split("\x00")[0]
 
 
 def _role(message: Any) -> Any:
@@ -213,15 +243,27 @@ def _turn_keys(messages: list[ChatCompletionMessageParam]) -> list[tuple[int, st
     return keys
 
 
+def _listed_content(message: Any) -> Any:
+    """Read an iterable of content parts once, so a one-shot iterator still reaches the model intact."""
+    content = message.get("content") if isinstance(message, dict) else None
+    if isinstance(content, (str, bytes, bytearray, dict, list)) or not isinstance(
+        content, Iterable
+    ):
+        return message
+    return {**message, "content": list(content)}
+
+
+def _accepts_memory(message: Any) -> bool:
+    return isinstance(message, dict) and isinstance(message.get("content"), (str, list))
+
+
 def _with_memory_block(message: Any, memories: str) -> Any:
     """Replace only SDK-owned blocks, so caller-authored bytes reach the model exactly as sent."""
-    if not isinstance(message, dict):
+    if not _accepts_memory(message):
         return message
-    content = message.get("content")
+    content = message["content"]
     if isinstance(content, str):
         return {**message, "content": replace_memory_context(content, memories)}
-    if not isinstance(content, list):
-        return message
     parts = []
     for part in content:
         text = part.get("text") if isinstance(part, dict) else None
@@ -288,6 +330,35 @@ def _run_with_deadline(coroutine: Coroutine[Any, Any, T], timeout: float) -> T:
     if "error" in outcome:
         raise outcome["error"]
     return cast(T, outcome["value"])
+
+
+class _StreamedReply:
+    """Save at the reply's terminal chunk, before it is yielded, since callers often stop reading there."""
+
+    def __init__(self, finish: Callable[[str], None]) -> None:
+        self._finish = finish
+        self._text: list[str] = []
+        self._called_tool = False
+        self._saved = False
+
+    def observe(self, chunk: Any) -> None:
+        choices = getattr(chunk, "choices", None)
+        choice = choices[0] if choices else None
+        delta = getattr(choice, "delta", None)
+        if delta is not None:
+            self._text.append(getattr(delta, "content", None) or "")
+            self._called_tool = self._called_tool or bool(
+                getattr(delta, "tool_calls", None)
+            )
+        reason = getattr(choice, "finish_reason", None)
+        if reason and reason != "tool_calls":
+            self.end()
+
+    def end(self) -> None:
+        if self._called_tool or self._saved:
+            return
+        self._saved = True
+        self._finish("".join(self._text))
 
 
 class _ResourceFacade:
@@ -721,8 +792,8 @@ class SupermemoryOpenAIWrapper:
         **kwargs: Any,
     ) -> Any:
         """Async create with memory injection; memory failures fail open."""
-        messages = list(kwargs.get("messages", []))
-        keys = _turn_keys(messages)
+        messages = [_listed_content(message) for message in kwargs.get("messages", [])]
+        keys = self._conversation.resolve(_turn_keys(messages))
         plan = self._recall_plan(messages, keys)
         if plan is not None:
             results: list[Any] = [None, None]
@@ -754,8 +825,8 @@ class SupermemoryOpenAIWrapper:
         **kwargs: Any,
     ) -> Any:
         """Sync create with memory injection; memory failures fail open."""
-        messages = list(kwargs.get("messages", []))
-        keys = _turn_keys(messages)
+        messages = [_listed_content(message) for message in kwargs.get("messages", [])]
+        keys = self._conversation.resolve(_turn_keys(messages))
         plan = self._recall_plan(messages, keys)
         if plan is not None:
             results: list[Any] = [None, None]
@@ -897,7 +968,7 @@ class SupermemoryOpenAIWrapper:
             ),
             None,
         )
-        if system is not None:
+        if system is not None and _accepts_memory(enhanced[system]):
             enhanced[system] = _with_memory_block(enhanced[system], profile)
             return enhanced
         block = wrap_memory_context(profile)
@@ -932,31 +1003,21 @@ class SupermemoryOpenAIWrapper:
 
     @staticmethod
     def _observed_stream(iterator: Any, finish: Callable[[str], None]) -> Any:
-        text: list[str] = []
-        called_tool = False
+        reply = _StreamedReply(finish)
         for chunk in iterator:
-            delta = getattr(chunk.choices[0], "delta", None) if chunk.choices else None
-            if delta is not None:
-                text.append(delta.content or "")
-                called_tool = called_tool or bool(delta.tool_calls)
+            reply.observe(chunk)
             yield chunk
-        if not called_tool:
-            finish("".join(text))
+        reply.end()
 
     @staticmethod
     async def _observed_async_stream(
         iterator: Any, finish: Callable[[str], None]
     ) -> Any:
-        text: list[str] = []
-        called_tool = False
+        reply = _StreamedReply(finish)
         async for chunk in iterator:
-            delta = getattr(chunk.choices[0], "delta", None) if chunk.choices else None
-            if delta is not None:
-                text.append(delta.content or "")
-                called_tool = called_tool or bool(delta.tool_calls)
+            reply.observe(chunk)
             yield chunk
-        if not called_tool:
-            finish("".join(text))
+        reply.end()
 
     def _log_recall_failure(self, error: BaseException) -> None:
         if isinstance(

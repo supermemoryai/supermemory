@@ -31,8 +31,8 @@ except ImportError:
     )
 
 from supermemory_openai.middleware import supermemory_profile_search
-from openai import OpenAI, AsyncOpenAI
-from openai.types.chat import ChatCompletion, ChatCompletionMessage
+from openai import AsyncOpenAI, AsyncStream, OpenAI, Stream
+from openai.types.chat import ChatCompletion, ChatCompletionChunk, ChatCompletionMessage
 from openai.types import CompletionUsage
 
 from supermemory_openai.exceptions import (
@@ -1303,6 +1303,96 @@ class TestCacheSafeTurns:
         assert full[2]["content"].startswith("Weather?\n")
         assert sent[4] == full[4:]
 
+    def test_trimmed_repeated_question_keeps_the_later_turns_block(
+        self, mock_openai_client, mock_openai_response
+    ):
+        original_create = Mock(return_value=mock_openai_response)
+        mock_openai_client.chat.completions.create = original_create
+        blocks = iter(["Block A", "Block B", "Block C"])
+
+        async def recall(*args: Any, **kwargs: Any) -> Any:
+            return Mock(
+                profile={},
+                search_results={"results": [{"memory": next(blocks)}]},
+            )
+
+        search = AsyncMock(side_effect=recall)
+        with patch("supermemory_openai.middleware.supermemory_profile_search", new=search):
+            wrapped = self._wrap(mock_openai_client, mode="query")
+            history = [
+                {"role": "user", "content": "Weather?"},
+                {"role": "assistant", "content": "Sunny."},
+                {"role": "user", "content": "Weather?"},
+            ]
+            wrapped.chat.completions.create(model="gpt-4", messages=history[:1])
+            wrapped.chat.completions.create(model="gpt-4", messages=history)
+            tool_step = [
+                history[2],
+                {"role": "assistant", "content": None, "tool_calls": []},
+                {"role": "tool", "tool_call_id": "call_1", "content": "sunny"},
+            ]
+            wrapped.chat.completions.create(model="gpt-4", messages=tool_step)
+            searches = search.await_count
+            next_turn = [
+                *tool_step,
+                {"role": "assistant", "content": "Still sunny."},
+                {"role": "user", "content": "Dinner?"},
+            ]
+            wrapped.chat.completions.create(model="gpt-4", messages=next_turn)
+
+        assert searches == 2
+        assert search.await_count == 3
+        sent = [call.kwargs["messages"] for call in original_create.call_args_list]
+        assert "Block A" in sent[1][0]["content"]
+        assert "Block B" in sent[1][2]["content"]
+        assert sent[2][0] == sent[1][2]
+        assert sent[3][0] == sent[1][2]
+        assert "Block C" in sent[3][-1]["content"]
+
+    def test_iterable_instruction_content_carries_the_profile(
+        self, mock_openai_client, mock_openai_response
+    ):
+        original_create = Mock(return_value=mock_openai_response)
+        mock_openai_client.chat.completions.create = original_create
+        part = {"type": "text", "text": "You are helpful."}
+        search = AsyncMock(side_effect=_recall_response)
+        with patch("supermemory_openai.middleware.supermemory_profile_search", new=search):
+            wrapped = self._wrap(mock_openai_client, mode="profile")
+            for content in ((part,), iter([part])):
+                wrapped.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": content},
+                        {"role": "user", "content": "Weather?"},
+                    ],
+                )
+
+        sent = [call.kwargs["messages"] for call in original_create.call_args_list]
+        assert sent[0][0] == sent[1][0]
+        assert sent[0][0]["content"][0] == part
+        assert "Prefers Python" in sent[0][0]["content"][1]["text"]
+        assert len(sent[0]) == 2
+
+    @pytest.mark.parametrize("content", [None, b"raw", {"text": "odd"}])
+    def test_unexpected_instruction_content_gets_a_leading_profile_message(
+        self, mock_openai_client, mock_openai_response, content
+    ):
+        original_create = Mock(return_value=mock_openai_response)
+        mock_openai_client.chat.completions.create = original_create
+        system = {"role": "system", "content": content}
+        search = AsyncMock(side_effect=_recall_response)
+        with patch("supermemory_openai.middleware.supermemory_profile_search", new=search):
+            wrapped = self._wrap(mock_openai_client, mode="profile")
+            wrapped.chat.completions.create(
+                model="gpt-4",
+                messages=[system, {"role": "user", "content": "Weather?"}],
+            )
+
+        sent = original_create.call_args.kwargs["messages"]
+        assert sent[0]["role"] == "system"
+        assert "Prefers Python" in sent[0]["content"]
+        assert sent[1] is system
+
     @pytest.mark.asyncio
     async def test_failed_profile_is_retried_on_the_next_user_turn(
         self, mock_async_openai_client, mock_openai_response
@@ -1427,6 +1517,92 @@ class TestCacheSafeTurns:
                 "conversation:test-conv",
             )
         ]
+
+    @staticmethod
+    def _chunks() -> list[ChatCompletionChunk]:
+        return [
+            ChatCompletionChunk(
+                id="chunk",
+                object="chat.completion.chunk",
+                created=1234567890,
+                model="gpt-4",
+                choices=[{"index": 0, "delta": delta, "finish_reason": reason}],
+            )
+            for delta, reason in (
+                ({"role": "assistant", "content": "It is "}, None),
+                ({"content": "sunny."}, None),
+                ({}, "stop"),
+                ({}, None),
+            )
+        ]
+
+    def test_stream_closed_at_the_stop_chunk_is_saved_once(self, mock_openai_client):
+        stream = Stream.__new__(Stream)
+        stream._iterator = iter(self._chunks())
+        mock_openai_client.chat.completions.create = Mock(return_value=stream)
+        uploads: list[str] = []
+
+        async def add_memory(client, container_tag, content, custom_id, logger):
+            uploads.append(content)
+
+        with patch(
+            "supermemory_openai.middleware.supermemory_profile_search",
+            new=AsyncMock(side_effect=_recall_response),
+        ), patch("supermemory_openai.middleware.add_memory_tool", new=add_memory):
+            wrapped = self._wrap(mock_openai_client, add_memory="always")
+            response = wrapped.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": "Weather?"}],
+                stream=True,
+            )
+            for chunk in response:
+                if chunk.choices[0].finish_reason == "stop":
+                    break
+            wrapped.wait_for_background_captures()
+            saved_at_stop = list(uploads)
+            list(response)
+            wrapped.wait_for_background_captures()
+
+        assert saved_at_stop == ["User: Weather?\n\nAssistant: It is sunny."]
+        assert uploads == saved_at_stop
+
+    @pytest.mark.asyncio
+    async def test_async_stream_closed_at_the_stop_chunk_is_saved_once(
+        self, mock_async_openai_client
+    ):
+        async def chunks() -> Any:
+            for chunk in self._chunks():
+                yield chunk
+
+        stream = AsyncStream.__new__(AsyncStream)
+        stream._iterator = chunks()
+        mock_async_openai_client.chat.completions.create = AsyncMock(return_value=stream)
+        uploads: list[str] = []
+
+        async def add_memory(client, container_tag, content, custom_id, logger):
+            uploads.append(content)
+
+        with patch(
+            "supermemory_openai.middleware.supermemory_profile_search",
+            new=AsyncMock(side_effect=_recall_response),
+        ), patch("supermemory_openai.middleware.add_memory_tool", new=add_memory):
+            wrapped = self._wrap(mock_async_openai_client, add_memory="always")
+            response = await wrapped.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": "Weather?"}],
+                stream=True,
+            )
+            async for chunk in response:
+                if chunk.choices[0].finish_reason == "stop":
+                    break
+            await wrapped.wait_for_background_tasks()
+            saved_at_stop = list(uploads)
+            async for _ in response:
+                pass
+            await wrapped.wait_for_background_tasks()
+
+        assert saved_at_stop == ["User: Weather?\n\nAssistant: It is sunny."]
+        assert uploads == saved_at_stop
 
     def test_supermemory_requests_identify_the_plugin(self):
         from importlib.metadata import version
