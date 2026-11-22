@@ -363,6 +363,33 @@ class TestTurnInjection(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
+    async def test_reset_keeps_the_last_unsaved_turn(self) -> None:
+        service = SupermemoryPipecatService(api_key="mock_key", user_id="user-123")
+        profile, search = self._client([], [])
+        add = AsyncMock()
+        service._supermemory_client = SimpleNamespace(profile=profile, search=search, add=add)
+        first = _Context([{"role": "user", "content": "Hi"}])
+        await service._prepare_context(first)
+        first.messages.append({"role": "assistant", "content": "Hello"})
+
+        service.reset_memory_tracking()
+        second = _Context([{"role": "user", "content": "New chat"}])
+        await service._prepare_context(second)
+        second.messages.append({"role": "assistant", "content": "Welcome"})
+        await SupermemoryPipecatService.cleanup(service)
+
+        saved = [json.loads(call.kwargs["content"]) for call in add.await_args_list]
+        self.assertEqual(
+            saved,
+            [
+                [{"role": "user", "content": "Hi"}, {"role": "assistant", "content": "Hello"}],
+                [
+                    {"role": "user", "content": "New chat"},
+                    {"role": "assistant", "content": "Welcome"},
+                ],
+            ],
+        )
+
     async def test_storage_drain_is_bounded(self) -> None:
         service = self._service(storage_drain_timeout=0.05)
 

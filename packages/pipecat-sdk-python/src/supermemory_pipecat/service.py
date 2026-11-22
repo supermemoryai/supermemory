@@ -587,7 +587,16 @@ class SupermemoryPipecatService(FrameProcessor):
         """Reset memory and save tracking so the service can serve a new conversation.
 
         Clears the per-turn memory blocks, the loaded profile, and the storage cursor.
+        The previous conversation's unsaved last turn stays queued, and is written
+        with the next save or during cleanup.
         """
+        if self._context is not None:
+            unsaved = _messages_after_overlap(
+                self._latest_storable_context,
+                _snapshot_storable_messages(self._context.get_messages()),
+            )
+            if unsaved:
+                self._storage_queue.append(unsaved)
         self._latest_storable_context = []
         self._turn_blocks.clear()
         self._profile = None
