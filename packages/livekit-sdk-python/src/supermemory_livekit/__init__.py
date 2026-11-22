@@ -9,7 +9,7 @@ from .memory import InputParams, SupermemoryLiveKit
 try:
     __version__ = version("supermemory-livekit")
 except PackageNotFoundError:
-    __version__ = "0.1.0"
+    __version__ = "0.1.1"
 
 
 def __getattr__(name: str) -> Any:
