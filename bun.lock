@@ -3426,6 +3426,8 @@
 
     "strip-ansi-cjs/ansi-regex": ["ansi-regex@5.0.1", "", {}, "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ=="],
 
+    "supermemory-mcp/@supermemory/memory-graph": ["@supermemory/memory-graph@0.2.6", "", { "dependencies": { "d3-force": "^3.0.0" }, "peerDependencies": { "react": ">=18.0.0", "react-dom": ">=18.0.0" } }, "sha512-6o5LIJ7p00jYrJfht3bF9WnF/TK+dd5aboMIFHdi8YxDlEBX8FTuvC9AuqcSunAxOWoe0+1glCfHZitEYN92fA=="],
+
     "supermemory-mcp/@vitejs/plugin-react": ["@vitejs/plugin-react@4.7.0", "", { "dependencies": { "@babel/core": "^7.28.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-beta.27", "@types/babel__core": "^7.20.5", "react-refresh": "^0.17.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA=="],
 
     "supermemory-mcp/supermemory": ["supermemory@5.0.0", "", { "bin": { "supermemory": "bin/cli.mjs" } }, "sha512-qnnGcJ1UHFt8Df/j8U4c1SooMV2axkg03jhrTIDOPnjma32aeXxaao+Z5Q/U7EyorNN7Vn82PY3Rd6lGInEgAA=="],
