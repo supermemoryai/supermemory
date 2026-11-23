@@ -41,6 +41,14 @@ npx supermemory search "language preference" --namespace user_123
 npx supermemory profile --namespace user_123
 ```
 
+Sign in and install the coding-agent plugins:
+
+```bash
+npx supermemory login                        # browser sign-in; --api-key stores a key instead
+npx supermemory plugin                       # install the Claude Code, Cursor, OpenCode and Codex plugins, then sign them in on one consent screen
+npx supermemory plugin --only claude,codex   # install only the listed plugins
+```
+
 ## Skill
 
 Install the official skill so the agent uses the real endpoints, auth, and `namespace` rules instead of hallucinating APIs:
