@@ -5,10 +5,10 @@ import type {
 	GraphThemeColors,
 	GraphAppearance,
 	MemoryNodeData,
-} from "../types"
-import type { ViewportState } from "./viewport"
-import { drawDocIcon, roundRect } from "./document-icons"
-import { hashString } from "../utils/hash"
+} from "../types.js"
+import type { ViewportState } from "./viewport.js"
+import { drawDocIcon, roundRect } from "./document-icons.js"
+import { hashString } from "../utils/hash.js"
 
 export interface RenderState {
 	selectedNodeId: string | null

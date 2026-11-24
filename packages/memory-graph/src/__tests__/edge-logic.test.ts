@@ -19,11 +19,11 @@
  */
 
 import { describe, it, expect } from "vitest"
-import type { GraphApiDocument, GraphApiMemory } from "../types"
+import type { GraphApiDocument, GraphApiMemory } from "../types.js"
 import {
 	computeEdges as computeGraphEdges,
 	getEdgeVisualProps,
-} from "../hooks/use-graph-data"
+} from "../hooks/use-graph-data.js"
 
 // ---------------------------------------------------------------------------
 // Pure extraction of edges useMemo from use-graph-data.ts

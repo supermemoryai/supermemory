@@ -1,5 +1,5 @@
 import { memo } from "react"
-import type { GraphNode, GraphThemeColors } from "../types"
+import type { GraphNode, GraphThemeColors } from "../types.js"
 
 interface NavigationControlsProps {
 	onCenter: () => void

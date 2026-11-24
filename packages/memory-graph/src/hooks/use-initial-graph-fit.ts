@@ -1,7 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, type RefObject } from "react"
-import type { ViewportState } from "../canvas/viewport"
-import type { ForceSimulation } from "../canvas/simulation"
-import type { GraphApiDocument, GraphNode } from "../types"
+import type { ViewportState } from "../canvas/viewport.js"
+import type { ForceSimulation } from "../canvas/simulation.js"
+import type { GraphApiDocument, GraphNode } from "../types.js"
 
 export function useInitialGraphFit({
 	documents,

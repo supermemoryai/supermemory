@@ -1,4 +1,4 @@
-import type { GraphThemeColors, ResolvedMemoryGraphLabels } from "./types"
+import type { GraphThemeColors, ResolvedMemoryGraphLabels } from "./types.js"
 
 export const DEFAULT_LABELS: ResolvedMemoryGraphLabels = {
 	documentGroup: "Documents",
