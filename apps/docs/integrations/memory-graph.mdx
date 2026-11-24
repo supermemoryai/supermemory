@@ -31,19 +31,26 @@ Two pieces: a server route that reads the signed-in user's graph, and `<MemoryGr
 
 ```typescript Next.js App Router
 // app/api/memory-graph/route.ts
-import { fetchMemoryGraph } from '@supermemory/memory-graph/server';
+import { fetchMemoryGraph, MemoryGraphError } from '@supermemory/memory-graph/server';
 import { auth } from '@/auth'; // your auth
 
 export async function POST() {
   const user = await auth();
   if (!user) return new Response('Unauthorized', { status: 401 });
 
-  return Response.json(
-    await fetchMemoryGraph({
-      apiKey: process.env.SUPERMEMORY_API_KEY!,
-      namespace: user.id,
-    }),
-  );
+  try {
+    return Response.json(
+      await fetchMemoryGraph({
+        apiKey: process.env.SUPERMEMORY_API_KEY!,
+        namespace: user.id,
+      }),
+    );
+  } catch (error) {
+    if (error instanceof MemoryGraphError) {
+      return Response.json({ error: error.message }, { status: error.status });
+    }
+    throw error;
+  }
 }
 ```
 
@@ -68,16 +75,24 @@ app.post('/api/memory-graph', requireUser, async (req, res, next) => {
 ```
 
 ```typescript Hono
-import { fetchMemoryGraph } from '@supermemory/memory-graph/server';
+import { fetchMemoryGraph, MemoryGraphError } from '@supermemory/memory-graph/server';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
-app.post('/api/memory-graph', requireUser, async (c) =>
-  c.json(
-    await fetchMemoryGraph({
-      apiKey: c.env.SUPERMEMORY_API_KEY,
-      namespace: c.get('user').id,
-    }),
-  ),
-);
+app.post('/api/memory-graph', requireUser, async (c) => {
+  try {
+    return c.json(
+      await fetchMemoryGraph({
+        apiKey: c.env.SUPERMEMORY_API_KEY,
+        namespace: c.get('user').id,
+      }),
+    );
+  } catch (error) {
+    if (error instanceof MemoryGraphError) {
+      return c.json({ error: error.message }, error.status as ContentfulStatusCode);
+    }
+    throw error;
+  }
+});
 ```
 
 </CodeGroup>
