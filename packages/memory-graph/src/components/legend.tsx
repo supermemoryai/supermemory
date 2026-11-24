@@ -1,11 +1,11 @@
 import { memo, useState } from "react"
-import { DEFAULT_LABELS } from "../constants"
+import { DEFAULT_LABELS } from "../constants.js"
 import type {
 	GraphEdge,
 	GraphNode,
 	GraphThemeColors,
 	ResolvedMemoryGraphLabels,
-} from "../types"
+} from "../types.js"
 
 interface LegendProps {
 	nodes?: GraphNode[]

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
-import { ForceSimulation } from "../canvas/simulation"
-import type { GraphNode, GraphEdge } from "../types"
+import { ForceSimulation } from "../canvas/simulation.js"
+import type { GraphNode, GraphEdge } from "../types.js"
 
 function makeNode(id: string, x: number, y: number): GraphNode {
 	return {

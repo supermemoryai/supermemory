@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
-import { SpatialIndex } from "../canvas/hit-test"
-import type { GraphNode } from "../types"
+import { SpatialIndex } from "../canvas/hit-test.js"
+import type { GraphNode } from "../types.js"
 
 function makeNode(
 	id: string,

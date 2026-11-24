@@ -21,13 +21,24 @@ if (mode === "pack") {
 	pkg.types = "./dist/index.d.ts"
 	pkg.exports = {
 		".": {
-			types: "./dist/index.d.ts",
-			import: "./dist/memory-graph.js",
-			require: "./dist/memory-graph.cjs",
+			import: {
+				types: "./dist/index.d.ts",
+				default: "./dist/memory-graph.js",
+			},
+			require: {
+				types: "./dist/index.d.cts",
+				default: "./dist/memory-graph.cjs",
+			},
 		},
 		"./mock-data": {
-			types: "./dist/mock-data.d.ts",
-			import: "./dist/mock-data.js",
+			import: {
+				types: "./dist/mock-data.d.ts",
+				default: "./dist/mock-data.js",
+			},
+			require: {
+				types: "./dist/mock-data.d.cts",
+				default: "./dist/mock-data.cjs",
+			},
 		},
 		"./package.json": "./package.json",
 	}

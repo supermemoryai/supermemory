@@ -1,6 +1,6 @@
 import * as d3 from "d3-force"
-import type { DocumentNodeData, GraphEdge, GraphNode } from "../types"
-import { FORCE_CONFIG } from "../constants"
+import type { DocumentNodeData, GraphEdge, GraphNode } from "../types.js"
+import { FORCE_CONFIG } from "../constants.js"
 
 export const DENSE_GRAPH_STATIC_THRESHOLD = 6000
 

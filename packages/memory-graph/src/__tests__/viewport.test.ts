@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
-import { ViewportState } from "../canvas/viewport"
-import type { GraphNode } from "../types"
+import { ViewportState } from "../canvas/viewport.js"
+import type { GraphNode } from "../types.js"
 
 function makeNode(id: string, x: number, y: number): GraphNode {
 	return {

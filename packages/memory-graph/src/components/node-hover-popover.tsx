@@ -1,13 +1,13 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { ChainEntry } from "../canvas/version-chain"
-import { DEFAULT_HOVER_POPOVER_Z_INDEX, DEFAULT_LABELS } from "../constants"
+import type { ChainEntry } from "../canvas/version-chain.js"
+import { DEFAULT_HOVER_POPOVER_Z_INDEX, DEFAULT_LABELS } from "../constants.js"
 import type {
 	DocumentNodeData,
 	GraphNode,
 	GraphThemeColors,
 	MemoryNodeData,
 	ResolvedMemoryGraphLabels,
-} from "../types"
+} from "../types.js"
 
 export interface NodeHoverPopoverProps {
 	node: GraphNode
