@@ -29,8 +29,14 @@ if (mode === "pack") {
 			types: "./dist/mock-data.d.ts",
 			import: "./dist/mock-data.js",
 		},
+		"./server": {
+			types: "./dist/server.d.ts",
+			import: "./dist/server.js",
+			require: "./dist/server.cjs",
+		},
 		"./package.json": "./package.json",
 	}
+	pkg.typesVersions = { "*": { server: ["./dist/server.d.ts"] } }
 } else if (mode === "unpack") {
 	// Switch back to source exports for workspace use
 	pkg.main = "./src/index.tsx"
@@ -39,8 +45,10 @@ if (mode === "pack") {
 	pkg.exports = {
 		".": "./src/index.tsx",
 		"./mock-data": "./src/mock-data.ts",
+		"./server": "./src/server.ts",
 		"./package.json": "./package.json",
 	}
+	delete pkg.typesVersions
 } else {
 	console.error("Usage: bun run scripts/swap-exports.ts [pack|unpack]")
 	process.exit(1)

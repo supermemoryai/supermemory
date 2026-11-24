@@ -14,6 +14,7 @@ export const DEFAULT_LABELS: ResolvedMemoryGraphLabels = {
 	showMemory: "Go to memory",
 	loadingMoreDocuments: (count: number) =>
 		`Loading more documents... (${count})`,
+	emptyGraph: "No memories yet",
 }
 
 export const DEFAULT_HOVER_POPOVER_Z_INDEX = 100

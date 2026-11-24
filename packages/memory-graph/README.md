@@ -17,34 +17,39 @@ pnpm add @supermemory/memory-graph
 
 ## Quick Start
 
+Add a server route that returns `fetchMemoryGraph` for the signed-in user. It calls `POST /ns/{namespace}/graph` with your API key, follows `nextCursor` to the last page and returns the documents `MemoryGraph` renders. It only uses the global `fetch`, so it runs on Node, Bun, Deno and Cloudflare Workers.
+
+```ts
+// app/api/memory-graph/route.ts (Next.js App Router)
+import { fetchMemoryGraph } from '@supermemory/memory-graph/server';
+
+export async function POST() {
+  const user = await auth(); // your auth
+  if (!user) return new Response('Unauthorized', { status: 401 });
+
+  return Response.json(
+    await fetchMemoryGraph({ apiKey: process.env.SUPERMEMORY_API_KEY!, namespace: user.id }),
+  );
+}
+```
+
+Then point `MemoryGraph` at the route. It shows loading, empty and error states on its own:
+
 ```tsx
 import { MemoryGraph } from '@supermemory/memory-graph';
-import type { DocumentWithMemories } from '@supermemory/memory-graph';
 
 function App() {
-  const [documents, setDocuments] = useState<DocumentWithMemories[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetch('/api/graph')
-      .then(res => res.json())
-      .then(data => {
-        setDocuments(data.documents);
-        setIsLoading(false);
-      });
-  }, []);
-
   return (
     <div style={{ height: '100vh' }}>
-      <MemoryGraph
-        documents={documents}
-        isLoading={isLoading}
-        variant="console"
-      />
+      <MemoryGraph endpoint="/api/memory-graph" variant="console" />
     </div>
   );
 }
 ```
+
+Keep the API key on the server: it can read every namespace in your organization, so your route checks who is signed in and passes only that user's namespace. A namespace is up to 100 letters, digits, `_`, `:` or `-`, so map IDs such as `auth0|123` or emails first. `fetchMemoryGraph` throws `MemoryGraphError` with the API's `status` (`400`, `401`, `403`, `429`) and reason when a request fails.
+
+On a non-JavaScript backend, call `POST https://api.supermemory.ai/ns/{namespace}/graph?limit=100` with `Authorization: Bearer $SUPERMEMORY_API_KEY`, repeat with `&cursor=<nextCursor>` until it is `null`, and return `{ nodes, edges }` with every page's nodes and edges. `<MemoryGraph endpoint>` accepts that shape too. To fetch documents yourself, convert each page with `graphPageToDocuments` and pass `documents`.
 
 ## Features
 
@@ -60,11 +65,13 @@ function App() {
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `documents` | `DocumentWithMemories[]` | Array of documents with their memory entries |
+| `endpoint` | `string` | Your server route returning `fetchMemoryGraph`'s result, fetched with `POST` |
+| `documents` | `GraphApiDocument[]` | Documents with their memories, when you fetch them yourself |
 | `isLoading` | `boolean` | Show loading state |
 | `variant` | `"console" \| "consumer"` | Display mode (default: "console") |
 | `error` | `Error \| null` | Error to display |
-| `loadMoreDocuments` | `() => Promise<void>` | Function to load more data |
+| `onLoadMore` | `() => void` | Load the next page (follow `nextCursor`) |
+| `hasMore` | `boolean` | Whether `nextCursor` is set |
 | `highlightDocumentIds` | `string[]` | IDs of documents to highlight |
 
 Console mode uses the supplied theme colors for its surface, 16px dot grid, document icons, and node fills and strokes. Consumer mode keeps its transparent surface and cluster colors.

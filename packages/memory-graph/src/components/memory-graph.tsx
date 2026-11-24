@@ -12,6 +12,8 @@ import {
 } from "../canvas/simulation"
 import { DEFAULT_HOVER_POPOVER_Z_INDEX, DEFAULT_LABELS } from "../constants"
 import { VersionChainIndex } from "../canvas/version-chain"
+import type { GraphPage } from "../api-types"
+import { graphPageToDocuments } from "../graph-page"
 import type { ViewportState } from "../canvas/viewport"
 import { useGraphData } from "../hooks/use-graph-data"
 import { useGraphTheme } from "../hooks/use-graph-theme"
@@ -55,13 +57,16 @@ function documentIdForNode(
 	return ids.size === 1 && ids.has(sourceId) ? sourceId : null
 }
 
+const NO_DOCUMENTS: GraphApiDocument[] = []
+
 export function MemoryGraph({
-	documents = [],
-	isLoading: externalIsLoading = false,
+	documents: documentsProp,
+	endpoint,
+	isLoading: isLoadingProp = false,
 	isLoadingMore = false,
 	onLoadMore,
 	hasMore = false,
-	error: externalError = null,
+	error: errorProp = null,
 	children,
 	variant = "console",
 	highlightDocumentIds = [],
@@ -79,6 +84,47 @@ export function MemoryGraph({
 	appearance,
 	openDocumentOnEnter = false,
 }: MemoryGraphProps) {
+	const [fetched, setFetched] = useState<{
+		endpoint?: string
+		documents?: GraphApiDocument[]
+		error?: Error
+	}>({})
+
+	useEffect(() => {
+		if (!endpoint) return
+		const controller = new AbortController()
+		fetch(endpoint, { method: "POST", signal: controller.signal })
+			.then(async (response) => {
+				if (!response.ok) {
+					const body = (await response.json().catch(() => null)) as {
+						error?: unknown
+					} | null
+					throw new Error(
+						typeof body?.error === "string"
+							? body.error
+							: `Graph request failed: ${response.status}`,
+					)
+				}
+				return response.json() as Promise<GraphApiDocument[] | GraphPage>
+			})
+			.then((data) =>
+				setFetched({
+					endpoint,
+					documents: Array.isArray(data) ? data : graphPageToDocuments(data),
+				}),
+			)
+			.catch((error: Error) => {
+				if (!controller.signal.aborted) setFetched({ endpoint, error })
+			})
+		return () => controller.abort()
+	}, [endpoint])
+
+	const current = endpoint && fetched.endpoint === endpoint ? fetched : null
+	const documents =
+		(endpoint ? current?.documents : documentsProp) ?? NO_DOCUMENTS
+	const externalIsLoading = isLoadingProp || (!!endpoint && !current)
+	const externalError = errorProp ?? current?.error ?? null
+
 	const resolvedLabels = useMemo<ResolvedMemoryGraphLabels>(
 		() => ({ ...DEFAULT_LABELS, ...labelOverrides }),
 		[labelOverrides],
@@ -762,6 +808,13 @@ export function MemoryGraph({
 		return chainIndex.current.getChain(activeNodeData.id)
 	}, [activeNodeData, limitedDocuments])
 
+	const emptyState =
+		children ??
+		(endpoint ? (
+			<div style={{ color: colors.textSecondary }}>
+				{resolvedLabels.emptyGraph}
+			</div>
+		) : null)
 	const isLayoutPending = !hasContainerSize && limitedDocuments.length > 0
 	const isLoading = externalIsLoading || isLayoutPending
 
@@ -847,9 +900,9 @@ export function MemoryGraph({
 				colors={colors}
 			/>
 
-			{!isLoading && !nodes.some((n) => n.type === "document") && children && (
-				<div style={emptyStateStyle}>{children}</div>
-			)}
+			{!isLoading &&
+				!nodes.some((n) => n.type === "document") &&
+				emptyState && <div style={emptyStateStyle}>{emptyState}</div>}
 
 			<div
 				style={canvasContainerStyle}

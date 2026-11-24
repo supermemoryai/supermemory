@@ -1,40 +1,12 @@
 // Graph API types matching backend response
 
-import type { MemoryRelation } from "./api-types"
+import type {
+	GraphApiDocument,
+	GraphApiMemory,
+	MemoryRelation,
+} from "./api-types"
 
-export interface GraphApiMemory {
-	id: string
-	memory: string
-	content?: string | null
-	isStatic: boolean
-	spaceId: string
-	isLatest: boolean
-	isForgotten: boolean
-	forgetAfter: string | null
-	forgetReason: string | null
-	version: number
-	parentMemoryId: string | null
-	rootMemoryId: string | null
-	createdAt: string
-	updatedAt: string
-	// Relation fields from backend
-	relation?: MemoryRelation | null
-	updatesMemoryId?: string | null
-	nextVersionId?: string | null
-	memoryRelations?: Record<string, MemoryRelation> | null
-	// Source/join fields
-	spaceContainerTag?: string | null
-}
-
-export interface GraphApiDocument {
-	id: string
-	title: string | null
-	summary: string | null
-	documentType: string
-	createdAt: string
-	updatedAt: string
-	memories: GraphApiMemory[]
-}
+export type { GraphApiDocument, GraphApiMemory }
 
 export interface GraphApiEdge {
 	source: string
@@ -149,6 +121,7 @@ export interface MemoryGraphLabels {
 	previousDocument?: string
 	showMemory?: string
 	loadingMoreDocuments?: (count: number) => string
+	emptyGraph?: string
 }
 
 export type ResolvedMemoryGraphLabels = Required<MemoryGraphLabels>
@@ -186,6 +159,8 @@ export interface GraphCanvasProps {
 export interface MemoryGraphProps {
 	/** Documents to display - pass this for direct data mode */
 	documents?: GraphApiDocument[]
+	/** Your server route returning fetchMemoryGraph's result, fetched with POST */
+	endpoint?: string
 	/** Whether data is loading */
 	isLoading?: boolean
 	/** Whether more data is being loaded */
@@ -261,5 +236,5 @@ export interface LoadingIndicatorProps {
 export type {
 	DocumentWithMemories,
 	MemoryEntry,
-	DocumentsResponse,
+	GraphPage,
 } from "./api-types"
