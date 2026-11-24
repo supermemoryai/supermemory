@@ -22,6 +22,15 @@ export class MemoryGraphError extends Error {
 
 const MAX_PAGES = 20
 
+function apiErrorMessage(error: unknown): string | undefined {
+	if (typeof error === "string") return error
+	if (!Array.isArray(error)) return undefined
+	const messages = error
+		.map((issue) => (issue as { message?: unknown } | null)?.message)
+		.filter((message): message is string => typeof message === "string")
+	return messages.length > 0 ? messages.join("; ") : undefined
+}
+
 // Follows nextCursor up to MAX_PAGES so one browser request gets the whole graph without seeing the API key.
 export async function fetchMemoryGraph({
 	apiKey,
@@ -50,9 +59,8 @@ export async function fetchMemoryGraph({
 			} | null
 			throw new MemoryGraphError(
 				response.status,
-				typeof body?.error === "string"
-					? body.error
-					: `Memory graph request failed with ${response.status}`,
+				apiErrorMessage(body?.error) ??
+					`Memory graph request failed with ${response.status}`,
 			)
 		}
 		const graphPage = (await response.json()) as GraphPage

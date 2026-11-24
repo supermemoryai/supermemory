@@ -94,9 +94,17 @@ export function MemoryGraph({
 		if (!endpoint) return
 		const controller = new AbortController()
 		fetch(endpoint, { method: "POST", signal: controller.signal })
-			.then((response) => {
-				if (!response.ok)
-					throw new Error(`Graph request failed: ${response.status}`)
+			.then(async (response) => {
+				if (!response.ok) {
+					const body = (await response.json().catch(() => null)) as {
+						error?: unknown
+					} | null
+					throw new Error(
+						typeof body?.error === "string"
+							? body.error
+							: `Graph request failed: ${response.status}`,
+					)
+				}
 				return response.json() as Promise<GraphApiDocument[] | GraphPage>
 			})
 			.then((data) =>

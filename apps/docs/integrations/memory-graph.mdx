@@ -48,15 +48,22 @@ export async function POST() {
 ```
 
 ```typescript Express
-import { fetchMemoryGraph } from '@supermemory/memory-graph/server';
+import { fetchMemoryGraph, MemoryGraphError } from '@supermemory/memory-graph/server';
 
-app.post('/api/memory-graph', requireUser, async (req, res) => {
-  res.json(
-    await fetchMemoryGraph({
-      apiKey: process.env.SUPERMEMORY_API_KEY!,
-      namespace: req.user.id,
-    }),
-  );
+app.post('/api/memory-graph', requireUser, async (req, res, next) => {
+  try {
+    res.json(
+      await fetchMemoryGraph({
+        apiKey: process.env.SUPERMEMORY_API_KEY!,
+        namespace: req.user.id,
+      }),
+    );
+  } catch (error) {
+    if (error instanceof MemoryGraphError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    next(error);
+  }
 });
 ```
 
@@ -84,11 +91,11 @@ app.post('/api/memory-graph', requireUser, async (c) =>
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `apiKey` | `string` | - | Your Supermemory API key |
-| `namespace` | `string` | - | The namespace to read, usually the signed-in user's ID |
+| `namespace` | `string` | - | The namespace to read, usually the signed-in user's ID. Up to 100 letters, digits, `_`, `:` or `-`, so map IDs such as `auth0\|123` or emails first |
 | `baseUrl` | `string` | `https://api.supermemory.ai` | API origin |
 | `limit` | `number` | `100` | Documents per page (at most 100). Up to 20 pages are read |
 
-On a failed request it throws `MemoryGraphError`, whose `status` is the API's status code: `401` for a bad key, `403` when the key cannot read the namespace, `429` when rate limited.
+On a failed request it throws `MemoryGraphError`, whose `status` is the API's status code and whose `message` is the API's reason: `400` for an invalid namespace or `limit`, `401` for a bad key, `403` when the key cannot read the namespace, `429` when rate limited.
 
 ```typescript
 import { fetchMemoryGraph, MemoryGraphError } from '@supermemory/memory-graph/server';

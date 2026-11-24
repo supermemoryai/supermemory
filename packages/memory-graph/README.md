@@ -47,7 +47,7 @@ function App() {
 }
 ```
 
-Keep the API key on the server: it can read every namespace in your organization, so your route checks who is signed in and passes only that user's namespace. `fetchMemoryGraph` throws `MemoryGraphError` with the API's `status` (`401`, `403`, `429`) when a request fails.
+Keep the API key on the server: it can read every namespace in your organization, so your route checks who is signed in and passes only that user's namespace. A namespace is up to 100 letters, digits, `_`, `:` or `-`, so map IDs such as `auth0|123` or emails first. `fetchMemoryGraph` throws `MemoryGraphError` with the API's `status` (`400`, `401`, `403`, `429`) and reason when a request fails.
 
 On a non-JavaScript backend, call `POST https://api.supermemory.ai/ns/{namespace}/graph?limit=100` with `Authorization: Bearer $SUPERMEMORY_API_KEY`, repeat with `&cursor=<nextCursor>` until it is `null`, and return `{ nodes, edges }` with every page's nodes and edges. `<MemoryGraph endpoint>` accepts that shape too. To fetch documents yourself, convert each page with `graphPageToDocuments` and pass `documents`.
 
