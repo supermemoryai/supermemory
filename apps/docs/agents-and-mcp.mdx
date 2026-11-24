@@ -33,12 +33,20 @@ npx supermemory help --all
 npx supermemory migrate            # move a v3/v4 project to v5 with your agent
 ```
 
-Also available for smoke tests against your key: `add`, `search`, `profile`, `docs`, `namespaces`, `config`, `whoami`. Auth via first-run credentials or `SUPERMEMORY_API_KEY`.
+Also available for smoke tests against your key: `add`, `search`, `profile`, `docs`, `namespaces`, `config`, `whoami`. Auth via `supermemory login`, first-run credentials, or `SUPERMEMORY_API_KEY`.
 
 ```bash
 npx supermemory add "User prefers TypeScript" --namespace user_123
 npx supermemory search "language preference" --namespace user_123
 npx supermemory profile --namespace user_123
+```
+
+Sign in and install the coding-agent plugins:
+
+```bash
+npx supermemory login                        # browser sign-in; --api-key stores a key instead
+npx supermemory plugin --all                 # install every detected plugin (Claude Code, Cursor, OpenCode, Codex), then sign them in on one consent screen
+npx supermemory plugin --only claude,codex   # install only the listed plugins
 ```
 
 ## Skill
