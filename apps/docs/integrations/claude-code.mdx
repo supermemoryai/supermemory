@@ -73,7 +73,7 @@ Once installed, the plugin runs automatically:
 
 - **Session context** — At session start, profile facts for this project are loaded into context.
 - **Direct recall** — Before Claude sees each substantive prompt, the hook searches Supermemory and injects fresh matches. Set `recallDirective` to switch to advisory mode, where Claude decides when to search.
-- **Auto-capture** — After each Claude response (the Stop hook), conversation content added since the last save is captured in the background.
+- **Auto-capture** — After each Claude response (the Stop hook), conversation content added since the last save is captured in the background. On v5 the plugin sends the raw transcript and the server formats it.
 - **Shared repo memory** — Captures go to one repository container shared with the Codex, OpenCode, and Cursor plugins, tagged with `sm_scope: personal` metadata.
 - **MCP tools** — The hosted Supermemory MCP tools (`search_memory`, `add_memory`, and more) use the same credentials. They follow your Claude Code permission settings, so Claude asks before using one unless you've allowed it. For deeper history, Claude can also use the `context-gatherer` agent.
 - **Skipped sessions** — Print-mode runs (`claude -p`), GitHub Action runs, and turns that relay a background subagent's result make no Supermemory calls by default. Conductor and Vibe Kanban sessions are treated as interactive.
@@ -115,10 +115,10 @@ Create `~/.supermemory-claude/settings.json`:
 | --- | --- |
 | `maxProfileItems` | Max memories in context (default: 5) |
 | `recallDirective` | Override the built-in reasoned-recall instruction |
-| `signalExtraction` | Only capture important turns (default: false) |
-| `signalKeywords` | Keywords that trigger capture |
-| `signalTurnsBefore` | Context turns before a signal (default: 3) |
-| `includeTools` | Tools to explicitly capture |
+| `signalExtraction` | Legacy API only: capture only important turns (default: false). On v5 the whole session is sent |
+| `signalKeywords` | Legacy API only: keywords that trigger capture |
+| `signalTurnsBefore` | Legacy API only: context turns before a signal (default: 3) |
+| `includeTools` | Legacy API only: tools to explicitly capture. On v5 every tool call and result is sent |
 | `captureSubagents` | Recall and capture on turns that relay a background subagent's result (default: false) |
 | `captureHeadless` | Load context, recall and capture in `claude -p` and GitHub Action runs (default: false) |
 | `captureOrchestrated` | Load context, recall and capture in Conductor and Vibe Kanban sessions (default: true) |
