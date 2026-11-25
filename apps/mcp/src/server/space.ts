@@ -22,17 +22,29 @@ function scopedKeyTags(session: SessionInfo): string[] | null {
 		: null
 }
 
-// Mirrors the API's hard allowlist (scoped keys, restricted members), preferring a space writes can reach.
-export function accessibleDefaultNamespace(session: SessionInfo): string {
+// Mirrors the API's hard allowlist (scoped keys, restricted members); null means no allowlist.
+export function allowedNamespaces(session: SessionInfo): string[] | null {
 	const keyTags = scopedKeyTags(session)
 	const memberTags =
 		session.accessType === "restricted" && session.namespaces
 			? session.namespaces.map((access) => access.namespace)
 			: null
-	const allowed =
-		keyTags && memberTags
-			? keyTags.filter((tag) => memberTags.includes(tag))
-			: (keyTags ?? memberTags)
+	return keyTags && memberTags
+		? keyTags.filter((tag) => memberTags.includes(tag))
+		: (keyTags ?? memberTags)
+}
+
+// The stored active space is shared by every connection the user has, so use it only where this one can reach it.
+export function usableActiveNamespace(
+	active: string | undefined,
+	allowed: string[] | null,
+): string | undefined {
+	return active && (!allowed || allowed.includes(active)) ? active : undefined
+}
+
+// Prefers a space writes can reach inside the allowlist.
+export function accessibleDefaultNamespace(session: SessionInfo): string {
+	const allowed = allowedNamespaces(session)
 	if (!allowed?.[0]) return DEFAULT_NAMESPACE
 	const canWrite = (tag: string) =>
 		session.scope?.permission !== "read" &&
