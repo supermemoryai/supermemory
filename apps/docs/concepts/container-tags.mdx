@@ -69,6 +69,44 @@ A namespace is an **opaque identifier you choose**. Supermemory does not parse m
 
 ---
 
+## Creating a namespace
+
+There is no create step. A namespace appears the first time you add a document or memory to a new name:
+
+- **API and SDKs**: `POST /ns/{namespace}/document` (`supermemory.add(namespace, ...)`) creates it, as in the example above.
+- **Console**: type a new name in any namespace picker and choose **New: <name>**. It's created when you add to it.
+- **Plugins**: set a new namespace in the plugin's config. It's created on the first save.
+
+<Note>
+Namespace settings only apply to a namespace that exists. `PATCH /ns/{namespace}` returns `404` until the first write, so add a document first, then set `supportingContext`.
+</Note>
+
+---
+
+## Renaming a namespace
+
+There is no rename endpoint. Move the content into the new name instead: the target namespace is created if it doesn't exist, and the old one is removed when the move finishes.
+
+<CodeGroup>
+
+```typescript TypeScript
+await supermemory.namespaces.delete("acme_support", { moveTo: "acme_helpdesk" });
+// { status: "queued", operationId, namespace: "acme_support", moveTo: "acme_helpdesk" }
+```
+
+```bash curl
+curl -X DELETE "https://api.supermemory.ai/ns/acme_support?moveTo=acme_helpdesk" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+</CodeGroup>
+
+- The move is queued and returns an `operationId`.
+- It needs an org admin or owner with write access to both namespaces.
+- Update anything that still uses the old name: your code, plugin configs, and scoped API keys.
+
+---
+
 ## Naming rules
 
 Namespaces are validated on every request. A namespace must:

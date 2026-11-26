@@ -14,6 +14,7 @@ type Registered = {
 		context: unknown,
 	) => Promise<{
 		structuredContent?: Record<string, unknown>
+		content?: Array<{ text: string }>
 		isError?: boolean
 	}>
 }
@@ -127,6 +128,11 @@ describe("containerTag compatibility", () => {
 		})
 		const missing = await tool.cb({}, {})
 		expect(missing.isError).toBe(true)
+		const unknown = await tool.cb({ namespace: "acme_billing" }, {})
+		expect(unknown.isError).toBe(true)
+		expect(unknown.content?.[0]?.text).toContain(
+			"'acme_billing' doesn't exist yet. It's created automatically",
+		)
 	})
 
 	it("lists spaces with both keys per item", async () => {

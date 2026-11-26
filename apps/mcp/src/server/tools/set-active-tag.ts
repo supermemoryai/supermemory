@@ -28,7 +28,9 @@ export function register(deps: ToolDeps) {
 				const viewId = args.viewId ?? crypto.randomUUID()
 				if (!(await deps.getClient().getNamespace(namespace))) {
 					return deps.errorResult(
-						new Error(`No access to namespace '${namespace}'.`),
+						new Error(
+							`Namespace '${namespace}' doesn't exist yet. It's created automatically the first time you save a memory to it.`,
+						),
 					)
 				}
 				await deps.setActiveNamespace(namespace)
