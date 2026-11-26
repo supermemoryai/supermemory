@@ -199,7 +199,7 @@ describe("OpenAI middleware memory context", () => {
 		expect(JSON.stringify(forwarded)).not.toContain("Injected")
 	})
 
-	it("restores Responses output items and strips the field the API would reject", async () => {
+	it("restores Responses output items from JSON with serializeMemoryBlocks and strips the field the API would reject", async () => {
 		vi.stubGlobal(
 			"fetch",
 			vi.fn(v5Router({ profile: () => profileBody(["Profile fact"]) })),
@@ -228,6 +228,7 @@ describe("OpenAI middleware memory context", () => {
 				id: "conversation-a",
 				mode: "profile",
 				addMemory: "never",
+				serializeMemoryBlocks: true,
 			})
 
 		const first = await wrap().responses.create({ model: "m", input: "Hello" })
@@ -452,6 +453,53 @@ describe("OpenAI middleware memory context", () => {
 		const paths = fetchMock.mock.calls.map((entry) => requestPath(entry[0]))
 		expect(paths.filter((path) => path.endsWith("/search"))).toHaveLength(1)
 		expect(paths.filter((path) => path.endsWith("/profile"))).toHaveLength(1)
+	})
+
+	it("keeps the tag out of JSON by default but restores it from the returned objects", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(v5Router({ profile: () => profileBody(["Profile fact"]) })),
+		)
+		const { client, create } = fakeChatClient(() => answer("ok"))
+		const wrap = () =>
+			withSupermemory(client, {
+				namespace: "user-a",
+				id: "conversation-a",
+				mode: "profile",
+				addMemory: "never",
+			})
+		const history: ChatMessage[] = [{ role: "user", content: "One" }]
+		const result = await wrap().chat.completions.create({
+			model: "m",
+			messages: [...history],
+		})
+		const reply = result.choices[0]?.message as ChatMessage
+
+		expect(reply).toHaveProperty("supermemory.signature")
+		expect(JSON.stringify(reply)).not.toContain("supermemory")
+		history.push(reply, { role: "user", content: "Two" })
+		await wrap().chat.completions.create({ model: "m", messages: [...history] })
+		await wrap().chat.completions.create({
+			model: "m",
+			messages: JSON.parse(JSON.stringify(history)),
+		})
+
+		const [first, restored, fromJson] = create.mock.calls.map(
+			(entry) => (entry[0] as ChatParams).messages,
+		)
+		expect(restored?.[1]).toEqual(first?.[1])
+		expect(restored?.map((message) => message.role)).toEqual([
+			"user",
+			"user",
+			"assistant",
+			"user",
+		])
+		expect(fromJson?.map((message) => message.role)).toEqual([
+			"user",
+			"assistant",
+			"user",
+			"user",
+		])
 	})
 
 	it("routes the SDK's parse, stream and runTools helpers through memory", async () => {

@@ -155,6 +155,15 @@ export interface OpenAIMiddlewareOptions {
 	apiKey?: string
 	/** Custom Supermemory API base URL (default: "https://api.supermemory.ai"). */
 	baseUrl?: string
+	/**
+	 * Make the `supermemory` field on returned messages and output items enumerable, so it survives
+	 * `JSON.stringify` and stored history restores its memory blocks (default: false). By default the
+	 * field is non-enumerable: the wrapper reads it from the objects you push back, but JSON drops it,
+	 * so history replayed through another client never carries it. Turn this on only if every replay
+	 * goes through a wrapped client, or delete the field first: the Responses API and strict
+	 * OpenAI-compatible servers reject unknown fields with a 400.
+	 */
+	serializeMemoryBlocks?: boolean
 }
 
 const extractTextContent = (content: unknown): string => {
@@ -380,10 +389,14 @@ const withoutTag = <T>(item: T): T => {
 	return rest as T
 }
 
-const setTag = (target: unknown, tag: MemoryBlockTag) => {
+// Non-enumerable by default so history serialized for another client or provider never carries the field.
+const setTag = (target: unknown, tag: MemoryBlockTag, enumerable: boolean) => {
 	if (target && typeof target === "object") {
-		Object.assign(target, {
-			[MEMORY_BLOCK_KEY]: { block: tag.block, signature: tag.signature },
+		Object.defineProperty(target, MEMORY_BLOCK_KEY, {
+			value: { block: tag.block, signature: tag.signature },
+			enumerable,
+			configurable: true,
+			writable: true,
 		})
 	}
 }
@@ -478,6 +491,7 @@ const addMemoryTool = async (
  * @param options.addMemory - Automatic memory storage mode: "always" or "never" (default: "always")
  * @param options.apiKey - Supermemory API key (falls back to SUPERMEMORY_API_KEY)
  * @param options.baseUrl - Custom Supermemory API base URL (default: "https://api.supermemory.ai")
+ * @param options.serializeMemoryBlocks - Make the `supermemory` field enumerable so it survives JSON; replay such history only through a wrapped client (default: false)
  * @returns The wrapped client
  * @throws {Error} When neither options.apiKey nor SUPERMEMORY_API_KEY is set
  *
@@ -498,6 +512,7 @@ export function createOpenAIMiddleware(
 	options?: OpenAIMiddlewareOptions,
 ) {
 	const baseClient = getBaseClient(openaiClient)
+	const serializeBlocks = options?.serializeMemoryBlocks ?? false
 	const baseChat = baseClient.chat
 	const baseCompletions = baseChat.completions
 	const baseResponses = baseClient.responses
@@ -621,7 +636,7 @@ export function createOpenAIMiddleware(
 		const tag =
 			params.previous_response_id || conversationParam ? undefined : placed.tag
 		const tagOutput = (output: unknown) => {
-			if (tag && Array.isArray(output)) setTag(output[0], tag)
+			if (tag && Array.isArray(output)) setTag(output[0], tag, serializeBlocks)
 		}
 		const finishTurn = (turn: ResponsesTurn, response: ResponseLike) => {
 			if (hasResponsesFunctionCall(response.output)) {
@@ -724,7 +739,7 @@ export function createOpenAIMiddleware(
 			if (!params.stream) {
 				const message = (value as OpenAI.Chat.Completions.ChatCompletion)
 					.choices?.[0]?.message
-				if (message && placed.tag) setTag(message, placed.tag)
+				if (message && placed.tag) setTag(message, placed.tag, serializeBlocks)
 				if (message && !message.tool_calls?.length) {
 					finishTurn(message.content ?? "")
 				}
