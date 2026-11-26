@@ -21,7 +21,11 @@ export interface MemoryBlockOptions {
 	logger: Logger
 	promptTemplate?: PromptTemplate
 	timeoutMs?: number
-	recallText?: (query: string, signal: AbortSignal) => Promise<string>
+	recallText?: (
+		query: string,
+		signal: AbortSignal,
+		known?: ReadonlySet<string>,
+	) => Promise<string>
 }
 
 export interface MemoryBlocks {
@@ -69,12 +73,6 @@ const innerLines = (block: string) =>
 		.map((line) => line.trim())
 		.filter(Boolean)
 
-const withoutKnownLines = (block: string, known: ReadonlySet<string>) => {
-	const lines = block.split("\n")
-	const fresh = innerLines(block).filter((line) => !known.has(line))
-	return fresh.length ? [lines[0], ...fresh, lines.at(-1)].join("\n") : ""
-}
-
 // Keyed by the server-only API key and bound to the namespace, so a client can neither forge a block nor move one across namespaces.
 export function createMemoryBlocks(options: MemoryBlockOptions): MemoryBlocks {
 	const key = crypto.subtle.importKey(
@@ -91,7 +89,7 @@ export function createMemoryBlocks(options: MemoryBlockOptions): MemoryBlocks {
 
 	const recallText =
 		options.recallText ??
-		((query: string, signal: AbortSignal) =>
+		((query: string, signal: AbortSignal, known?: ReadonlySet<string>) =>
 			buildMemoriesText({
 				namespace: options.namespace,
 				queryText: options.mode === "profile" ? "" : query,
@@ -102,6 +100,7 @@ export function createMemoryBlocks(options: MemoryBlockOptions): MemoryBlocks {
 				logger: options.logger,
 				promptTemplate: options.promptTemplate,
 				signal,
+				known,
 			}))
 
 	return {
@@ -109,10 +108,9 @@ export function createMemoryBlocks(options: MemoryBlockOptions): MemoryBlocks {
 			const text = await recallText(
 				query,
 				AbortSignal.timeout(options.timeoutMs ?? RECALL_TIMEOUT_MS),
+				known,
 			)
-			const full = wrapMemoryContext(text)
-			if (!full) return undefined
-			const block = known?.size ? withoutKnownLines(full, known) : full
+			const block = wrapMemoryContext(text)
 			const signature = await crypto.subtle.sign(
 				"HMAC",
 				await key,

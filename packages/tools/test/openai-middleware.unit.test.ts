@@ -2,6 +2,7 @@ import OpenAI from "openai"
 import { zodResponseFormat, zodTextFormat } from "openai/helpers/zod"
 import { z } from "zod/v3"
 import {
+	errorResponse,
 	profileBody,
 	requestJson,
 	requestPath,
@@ -345,6 +346,112 @@ describe("OpenAI middleware memory context", () => {
 		expect(content).toContain("Final answer")
 		expect(content).not.toContain("SECRET_SYSTEM_PROMPT")
 		expect(content).not.toContain("SECRET_DEVELOPER_PROMPT")
+	})
+
+	it("keeps a multiline memory whole when only some of its lines were sent before", async () => {
+		let profiles = 0
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(
+				v5Router({
+					profile: () =>
+						profileBody(
+							++profiles === 1
+								? ["Project Alpha:\nDeadline: Friday"]
+								: [
+										"Project Alpha:\nDeadline: Friday",
+										"Project Beta:\nDeadline: Friday",
+									],
+						),
+				}),
+			),
+		)
+		const { client, create } = fakeChatClient(() => answer("ok"))
+		const send = async (messages: ChatMessage[]) => {
+			const wrapped = withSupermemory(client, {
+				namespace: "user-a",
+				id: "conversation-a",
+				mode: "profile",
+				addMemory: "never",
+			})
+			const result = await wrapped.chat.completions.create({
+				model: "m",
+				messages: [...messages],
+			})
+			return result.choices[0]?.message as ChatMessage
+		}
+
+		const history: ChatMessage[] = [{ role: "user", content: "One" }]
+		history.push(await send(history), { role: "user", content: "Two" })
+		await send(history)
+
+		const last = String(
+			(create.mock.calls[1]?.[0] as ChatParams).messages.at(-1)?.content,
+		)
+		expect(last).toContain("- Project Beta:\nDeadline: Friday")
+		expect(last).not.toContain("Project Alpha")
+	})
+
+	it("keeps the search results when the profile request fails", async () => {
+		const router = v5Router({ search: () => searchBody(["Search fact"]) })
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (input: unknown) =>
+				requestPath(input).endsWith("/profile")
+					? errorResponse(500)
+					: router(input),
+			),
+		)
+		const { client, create } = fakeChatClient(() => answer("ok"))
+		const wrapped = withSupermemory(client, {
+			namespace: "user-a",
+			id: "conversation-a",
+			mode: "full",
+			addMemory: "never",
+		})
+
+		await wrapped.chat.completions.create({
+			model: "m",
+			messages: [{ role: "user", content: "What do you know?" }],
+		})
+
+		const forwarded = (create.mock.calls[0]?.[0] as ChatParams).messages
+		expect(String(forwarded.at(-1)?.content)).toContain("Search fact")
+	})
+
+	it("recalls once per user turn even when nothing is found", async () => {
+		const fetchMock = vi.fn(v5Router({}))
+		vi.stubGlobal("fetch", fetchMock)
+		const { client } = fakeChatClient((params) =>
+			params.messages.at(-1)?.role === "user"
+				? toolCall("call_1")
+				: answer("done"),
+		)
+		const send = async (messages: ChatMessage[]) => {
+			const wrapped = withSupermemory(client, {
+				namespace: "user-a",
+				id: "conversation-a",
+				mode: "full",
+				addMemory: "never",
+			})
+			const result = await wrapped.chat.completions.create({
+				model: "m",
+				messages: [...messages],
+			})
+			return result.choices[0]?.message as ChatMessage
+		}
+
+		const history: ChatMessage[] = [{ role: "user", content: "Fix the bug" }]
+		history.push(await send(history), {
+			role: "tool",
+			tool_call_id: "call_1",
+			content: "file contents",
+		})
+		await send(history)
+
+		const paths = fetchMock.mock.calls.map((entry) => requestPath(entry[0]))
+		expect(paths.filter((path) => path.endsWith("/search"))).toHaveLength(1)
+		expect(paths.filter((path) => path.endsWith("/profile"))).toHaveLength(1)
 	})
 
 	it("routes the SDK's parse, stream and runTools helpers through memory", async () => {

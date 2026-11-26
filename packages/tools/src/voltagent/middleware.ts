@@ -166,8 +166,8 @@ export const createSupermemoryContext = (
 				source: "tools-voltagent",
 				mode,
 				logger,
-				recallText: (query, signal) =>
-					searchWithAdvancedOptions(ctx, query, signal),
+				recallText: (query, signal, known) =>
+					searchWithAdvancedOptions(ctx, query, signal, known),
 			})
 		}
 	}
@@ -212,6 +212,7 @@ const searchWithAdvancedOptions = async (
 	ctx: SupermemoryMiddlewareContext,
 	queryText: string,
 	signal: AbortSignal,
+	known?: ReadonlySet<string>,
 ): Promise<string> => {
 	ctx.logger.info("Using advanced search with custom parameters")
 
@@ -245,11 +246,15 @@ const searchWithAdvancedOptions = async (
 
 		return [{ ...result, memory }]
 	})
-	const deduplicated = deduplicateMemoriesForMode(ctx.mode, {
-		static: profileData?.static,
-		dynamic: profileData?.dynamic,
-		searchResults,
-	})
+	const deduplicated = deduplicateMemoriesForMode(
+		ctx.mode,
+		{
+			static: profileData?.static,
+			dynamic: profileData?.dynamic,
+			searchResults,
+		},
+		known,
+	)
 	const searchResultByKey = new Map<string, (typeof searchResults)[number]>()
 	for (const result of searchResults) {
 		const key = normalizeMemoryFact(result.memory)

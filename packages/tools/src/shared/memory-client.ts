@@ -27,6 +27,20 @@ function describeSupermemoryError(error: unknown): string {
 // Matches the v4 profile search defaults (memories mode, 0.6 threshold).
 export const PROFILE_SEARCH_THRESHOLD = 0.6
 
+/**
+ * Fetches the profile and runs a memories search in parallel. When one of the two fails, the other's result is kept.
+ *
+ * @param namespace - Namespace to read from
+ * @param queryText - Search query; an empty string skips the search
+ * @param baseUrl - Supermemory API base URL
+ * @param apiKey - Supermemory API key
+ * @param source - Integration name sent with each request
+ * @param signal - Optional abort signal for both requests
+ * @param includeProfile - Whether to fetch the profile (default: true)
+ * @param logger - Optional logger that is warned when only one of the two requests fails
+ * @returns The profile and, when a query was given, the search results
+ * @throws {Error} When every request that was made fails
+ */
 export const supermemoryProfileSearch = async (
 	namespace: string,
 	queryText: string,
@@ -35,6 +49,7 @@ export const supermemoryProfileSearch = async (
 	source: SupermemorySource,
 	signal?: AbortSignal,
 	includeProfile = true,
+	logger?: Logger,
 ): Promise<ProfileStructure> => {
 	const client = createSupermemoryClient({ apiKey, baseUrl, source })
 	// No retries: this runs before the LLM call, and the raw v4 fetch never retried.
@@ -43,7 +58,7 @@ export const supermemoryProfileSearch = async (
 		...(signal && { abortSignal: signal }),
 	}
 
-	const [profileResponse, searchResponse] = await Promise.all([
+	const requests = [
 		includeProfile
 			? client.profile(namespace, undefined, requestOptions)
 			: undefined,
@@ -58,11 +73,22 @@ export const supermemoryProfileSearch = async (
 					requestOptions,
 				)
 			: undefined,
-	]).catch((error: unknown) => {
-		throw new Error(
-			`Supermemory profile search failed: ${describeSupermemoryError(error)}`,
-		)
-	})
+	] as const
+	const [profileResult, searchResult] = await Promise.allSettled(requests)
+	const failures = [profileResult, searchResult].flatMap((result) =>
+		result.status === "rejected" ? [result.reason as unknown] : [],
+	)
+	if (failures.length > 0) {
+		const message = `Supermemory profile search failed: ${describeSupermemoryError(failures[0])}`
+		if (failures.length === requests.filter(Boolean).length) {
+			throw new Error(message)
+		}
+		logger?.warn(`${message}; continuing with the rest`)
+	}
+	const profileResponse =
+		profileResult.status === "fulfilled" ? profileResult.value : undefined
+	const searchResponse =
+		searchResult.status === "fulfilled" ? searchResult.value : undefined
 
 	return {
 		profile: profileResponse?.profile ?? { static: [], dynamic: [] },
@@ -89,6 +115,8 @@ export interface BuildMemoriesTextOptions {
 	promptTemplate?: PromptTemplate
 	signal?: AbortSignal
 	profile?: ProfileStructure["profile"] | Promise<ProfileStructure["profile"]>
+	/** Trimmed lines of memory blocks the model already has; memories they fully cover are left out. */
+	known?: ReadonlySet<string>
 }
 
 /**
@@ -122,6 +150,7 @@ export const buildMemoriesText = async (
 			source,
 			signal,
 			mode !== "query" && options.profile === undefined,
+			logger,
 		),
 		options.profile,
 	])
@@ -142,11 +171,15 @@ export const buildMemoriesText = async (
 	})
 
 	const rawSearchResults = memoriesResponse.searchResults?.results ?? []
-	const deduplicated = deduplicateMemoriesForMode(mode, {
-		static: memoriesResponse.profile.static,
-		dynamic: memoriesResponse.profile.dynamic,
-		searchResults: rawSearchResults,
-	})
+	const deduplicated = deduplicateMemoriesForMode(
+		mode,
+		{
+			static: memoriesResponse.profile.static,
+			dynamic: memoriesResponse.profile.dynamic,
+			searchResults: rawSearchResults,
+		},
+		options.known,
+	)
 
 	logger.debug("Memory deduplication completed", {
 		static: {
