@@ -23,9 +23,6 @@ export {
 	formatMemoriesForPrompt,
 } from "./prompt-builder"
 
-// Cache
-export { MemoryCache, makeTurnKey } from "./cache"
-
 // Context
 export {
 	normalizeBaseUrl,
@@ -54,18 +51,15 @@ export {
 	replaceMemoryContext,
 } from "./memory-context"
 
-// Per-turn memory placement
+// Signed memory blocks
 export {
+	MEMORY_BLOCK_KEY,
 	RECALL_TIMEOUT_MS,
-	TurnMemory,
-	TurnMemoryByConversation,
-	buildTurnRecall,
-	turnKey,
-	turnKeys,
-	withTurnMemory,
-	type BuildTurnRecallOptions,
-	type FrozenProfile,
-	type TurnRecall,
-	type TurnRecallFetcher,
-	type TurnSearch,
-} from "./turn-memory"
+	createMemoryBlocks,
+	placeMemoryBlocks,
+	type MemoryBlockOptions,
+	type MemoryBlockTag,
+	type MemoryBlocks,
+	type MemoryMessages,
+	type PlacedMemory,
+} from "./memory-block"

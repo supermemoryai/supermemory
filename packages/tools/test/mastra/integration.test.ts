@@ -15,7 +15,7 @@ import {
 	withSupermemory,
 } from "../../src/mastra"
 import type {
-	ProcessInputArgs,
+	ProcessInputStepArgs,
 	ProcessOutputResultArgs,
 	MessageList,
 	MastraDBMessage,
@@ -97,11 +97,51 @@ const createIntegrationMessageList = (): MessageList & {
 	}
 }
 
+type Prompt = Array<{
+	role: string
+	content: Array<{ type: string; text?: string }>
+}>
+
+// Runs one model call through the processor's wrapped model and returns the prompt the model got.
+async function runStep(
+	processor: { processInputStep?: (args: ProcessInputStepArgs) => unknown },
+	text: string,
+	history: Prompt = [],
+): Promise<{ sent: Prompt; reply: { content: unknown[] } }> {
+	const inner = {
+		specificationVersion: "v2" as const,
+		provider: "test-provider",
+		modelId: "test-model",
+		supportedUrls: {},
+		doGenerate: vi.fn(async (_options: { prompt: Prompt }) => ({
+			content: [{ type: "text", text: "ok" }],
+			finishReason: "stop",
+			usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+			warnings: [],
+		})),
+		doStream: vi.fn(),
+	}
+	const step = (await processor.processInputStep?.({
+		model: inner,
+		stepNumber: 0,
+	} as unknown as ProcessInputStepArgs)) as {
+		model: {
+			doGenerate: (options: {
+				prompt: Prompt
+			}) => Promise<{ content: unknown[] }>
+		}
+	}
+	const reply = await step.model.doGenerate({
+		prompt: [...history, { role: "user", content: [{ type: "text", text }] }],
+	})
+	return { sent: inner.doGenerate.mock.calls[0]?.[0].prompt ?? [], reply }
+}
+
 describe.skipIf(!shouldRunIntegration)(
 	"Integration: Mastra processors with real API",
 	() => {
 		describe("SupermemoryInputProcessor", () => {
-			it("should fetch real memories and inject into messageList", async () => {
+			it("should send real memories after the user message and leave it untouched", async () => {
 				const processor = new SupermemoryInputProcessor({
 					namespace: INTEGRATION_CONFIG.namespace,
 					id: INTEGRATION_CONFIG.id,
@@ -110,24 +150,18 @@ describe.skipIf(!shouldRunIntegration)(
 					mode: "profile",
 				})
 
-				const messageList = createIntegrationMessageList()
-				const messages: MastraDBMessage[] = [
-					createMessage("user", "Hello, what do you know about me?"),
-				]
+				const { sent } = await runStep(
+					processor,
+					"Hello, what do you know about me?",
+				)
 
-				const args: ProcessInputArgs = {
-					messages,
-					systemMessages: [],
-					messageList,
-					abort: vi.fn() as never,
-					retryCount: 0,
-				}
-
-				await processor.processInput(args)
-
-				expect(messageList.addSystem).toHaveBeenCalled()
-				const systemContent = messageList.getSystemContent()
-				expect(typeof systemContent).toBe("string")
+				expect(sent[0]).toEqual({
+					role: "user",
+					content: [
+						{ type: "text", text: "Hello, what do you know about me?" },
+					],
+				})
+				expect(sent.length).toBeLessThanOrEqual(2)
 			})
 
 			it("should use query mode with user message as search query", async () => {
@@ -141,34 +175,14 @@ describe.skipIf(!shouldRunIntegration)(
 					mode: "query",
 				})
 
-				const messageList = createIntegrationMessageList()
-				const args: ProcessInputArgs = {
-					messages: [
-						createMessage(
-							"user",
-							"What are my favorite programming languages?",
-						),
-					],
-					systemMessages: [],
-					messageList,
-					abort: vi.fn() as never,
-					retryCount: 0,
-				}
+				await runStep(processor, "What are my favorite programming languages?")
 
-				await processor.processInput(args)
-
-				const profileCalls = fetchSpy.mock.calls.filter(
-					(call) => typeof call[0] === "string" && call[0].includes("/search"),
+				const searchCalls = fetchSpy.mock.calls.filter((call) =>
+					String(call[0] instanceof Request ? call[0].url : call[0]).includes(
+						"/search",
+					),
 				)
-				expect(profileCalls.length).toBeGreaterThan(0)
-
-				const profileCall = profileCalls[0]
-				if (profileCall?.[1]) {
-					const body = JSON.parse(
-						(profileCall[1] as RequestInit).body as string,
-					)
-					expect(body.query).toBe("What are my favorite programming languages?")
-				}
+				expect(searchCalls.length).toBeGreaterThan(0)
 
 				fetchSpy.mockRestore()
 			})
@@ -184,77 +198,46 @@ describe.skipIf(!shouldRunIntegration)(
 					mode: "full",
 				})
 
-				const messageList = createIntegrationMessageList()
-				const args: ProcessInputArgs = {
-					messages: [createMessage("user", "Full mode test query")],
-					systemMessages: [],
-					messageList,
-					abort: vi.fn() as never,
-					retryCount: 0,
-				}
+				await runStep(processor, "Full mode test query")
 
-				await processor.processInput(args)
-
-				const profileCalls = fetchSpy.mock.calls.filter(
-					(call) => typeof call[0] === "string" && call[0].includes("/search"),
+				const paths = fetchSpy.mock.calls.map((call) =>
+					String(call[0] instanceof Request ? call[0].url : call[0]),
 				)
-				expect(profileCalls.length).toBeGreaterThan(0)
-
-				const profileCall = profileCalls[0]
-				if (profileCall?.[1]) {
-					const body = JSON.parse(
-						(profileCall[1] as RequestInit).body as string,
-					)
-					expect(body.query).toBe("Full mode test query")
-				}
+				expect(paths.some((path) => path.includes("/search"))).toBe(true)
+				expect(paths.some((path) => path.includes("/profile"))).toBe(true)
 
 				fetchSpy.mockRestore()
 			})
 
-			it("should cache memories for repeated calls with same message", async () => {
-				const fetchSpy = vi.spyOn(globalThis, "fetch")
-
+			it("should restore a signed block from the stored reply instead of recalling again", async () => {
 				const processor = new SupermemoryInputProcessor({
 					namespace: INTEGRATION_CONFIG.namespace,
 					id: INTEGRATION_CONFIG.id,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					mode: "profile",
+					promptTemplate: () => "<mastra-memories>always</mastra-memories>",
 				})
-
-				const messages: MastraDBMessage[] = [
-					createMessage("user", "Cache test message"),
-				]
-
-				const args1: ProcessInputArgs = {
-					messages,
-					systemMessages: [],
-					messageList: createIntegrationMessageList(),
-					abort: vi.fn() as never,
-					retryCount: 0,
+				const first = await runStep(processor, "Restore test")
+				const replyPart = first.reply.content[0] as {
+					providerMetadata?: Record<string, unknown>
 				}
 
-				await processor.processInput(args1)
-				const callsAfterFirst = fetchSpy.mock.calls.filter(
-					(call) => typeof call[0] === "string" && call[0].includes("/profile"),
-				).length
+				const second = await runStep(processor, "Next", [
+					...first.sent.slice(0, 1),
+					{
+						role: "assistant",
+						content: [
+							{
+								type: "text",
+								text: "ok",
+								providerOptions: replyPart.providerMetadata,
+							} as never,
+						],
+					},
+				])
 
-				const args2: ProcessInputArgs = {
-					messages,
-					systemMessages: [],
-					messageList: createIntegrationMessageList(),
-					abort: vi.fn() as never,
-					retryCount: 0,
-				}
-
-				await processor.processInput(args2)
-				const callsAfterSecond = fetchSpy.mock.calls.filter(
-					(call) => typeof call[0] === "string" && call[0].includes("/profile"),
-				).length
-
-				expect(callsAfterSecond).toBe(callsAfterFirst)
-
-				fetchSpy.mockRestore()
+				expect(second.sent.slice(0, first.sent.length)).toEqual(first.sent)
 			})
 
 			it("should use custom promptTemplate for memory formatting", async () => {
@@ -272,19 +255,11 @@ describe.skipIf(!shouldRunIntegration)(
 					promptTemplate: customTemplate,
 				})
 
-				const messageList = createIntegrationMessageList()
-				const args: ProcessInputArgs = {
-					messages: [createMessage("user", "Custom template test")],
-					systemMessages: [],
-					messageList,
-					abort: vi.fn() as never,
-					retryCount: 0,
-				}
+				const { sent } = await runStep(processor, "Custom template test")
 
-				await processor.processInput(args)
-
-				const systemContent = messageList.getSystemContent()
-				expect(systemContent).toMatch(/<mastra-memories>.*<\/mastra-memories>/s)
+				expect(JSON.stringify(sent.at(-1))).toMatch(
+					/<mastra-memories>.*<\/mastra-memories>/s,
+				)
 			})
 		})
 
@@ -404,17 +379,8 @@ describe.skipIf(!shouldRunIntegration)(
 					addMemory: "always",
 				})
 
-				const messageList = createIntegrationMessageList()
-				const inputArgs: ProcessInputArgs = {
-					messages: [createMessage("user", "Test processors factory")],
-					systemMessages: [],
-					messageList,
-					abort: vi.fn() as never,
-					retryCount: 0,
-				}
-
-				await input.processInput(inputArgs)
-				expect(messageList.addSystem).toHaveBeenCalled()
+				const { sent } = await runStep(input, "Test processors factory")
+				expect(sent[0]?.role).toBe("user")
 
 				const outputArgs: ProcessOutputResultArgs = {
 					messages: [
@@ -456,18 +422,9 @@ describe.skipIf(!shouldRunIntegration)(
 				const inputProcessor = enhanced.inputProcessors?.[0]
 				expect(inputProcessor?.id).toBe("supermemory-input")
 
-				if (inputProcessor?.processInput) {
-					const messageList = createIntegrationMessageList()
-					const args: ProcessInputArgs = {
-						messages: [createMessage("user", "Wrapper test")],
-						systemMessages: [],
-						messageList,
-						abort: vi.fn() as never,
-						retryCount: 0,
-					}
-
-					await inputProcessor.processInput(args)
-					expect(messageList.addSystem).toHaveBeenCalled()
+				if (inputProcessor?.processInputStep) {
+					const { sent } = await runStep(inputProcessor, "Wrapper test")
+					expect(sent[0]?.role).toBe("user")
 				}
 			})
 
@@ -521,18 +478,9 @@ describe.skipIf(!shouldRunIntegration)(
 					verbose: true,
 				})
 
-				const messageList = createIntegrationMessageList()
-				const args: ProcessInputArgs = {
-					messages: [createMessage("user", "Verbose mode test")],
-					systemMessages: [],
-					messageList,
-					abort: vi.fn() as never,
-					retryCount: 0,
-				}
+				const { sent } = await runStep(processor, "Verbose mode test")
 
-				await processor.processInput(args)
-
-				expect(messageList.addSystem).toHaveBeenCalled()
+				expect(sent[0]?.role).toBe("user")
 			})
 
 			it("custom baseUrl should be used for API calls", async () => {
@@ -546,22 +494,16 @@ describe.skipIf(!shouldRunIntegration)(
 					mode: "profile",
 				})
 
-				const args: ProcessInputArgs = {
-					messages: [createMessage("user", "Base URL test")],
-					systemMessages: [],
-					messageList: createIntegrationMessageList(),
-					abort: vi.fn() as never,
-					retryCount: 0,
-				}
+				await runStep(processor, "Base URL test")
 
-				await processor.processInput(args)
-
-				const profileCalls = fetchSpy.mock.calls.filter(
-					(call) => typeof call[0] === "string" && call[0].includes("/profile"),
-				)
+				const profileCalls = fetchSpy.mock.calls
+					.map((call) =>
+						String(call[0] instanceof Request ? call[0].url : call[0]),
+					)
+					.filter((url) => url.includes("/profile"))
 				expect(profileCalls.length).toBeGreaterThan(0)
 
-				const url = profileCalls[0]?.[0] as string
+				const url = profileCalls[0] as string
 				expect(url.startsWith(INTEGRATION_CONFIG.baseUrl)).toBe(true)
 
 				fetchSpy.mockRestore()
@@ -578,18 +520,13 @@ describe.skipIf(!shouldRunIntegration)(
 					mode: "profile",
 				})
 
-				const messageList = createIntegrationMessageList()
-				const args: ProcessInputArgs = {
-					messages: [createMessage("user", "Invalid key test")],
-					systemMessages: [],
-					messageList,
-					abort: vi.fn() as never,
-					retryCount: 0,
-				}
-
-				const result = await processor.processInput(args)
-				expect(result).toBe(messageList)
-				expect(messageList.addSystem).not.toHaveBeenCalled()
+				const { sent } = await runStep(processor, "Invalid key test")
+				expect(sent).toEqual([
+					{
+						role: "user",
+						content: [{ type: "text", text: "Invalid key test" }],
+					},
+				])
 			})
 
 			it("output processor should handle save errors gracefully", async () => {

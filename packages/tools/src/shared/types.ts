@@ -7,13 +7,13 @@ export interface MemoryPromptData {
 	/**
 	 * Pre-formatted markdown combining static and dynamic profile memories.
 	 * Contains core user facts (name, preferences, goals) and recent context (projects, interests).
-	 * Set only for the profile block, which goes in the system prompt; empty in search blocks.
+	 * Empty in "query" mode.
 	 */
 	userMemories: string
 	/**
 	 * Pre-formatted search results text for the current query.
 	 * Contains memories retrieved based on semantic similarity to the conversation.
-	 * Set only for search blocks, which go on the user message; empty in the profile block.
+	 * Empty in "profile" mode.
 	 */
 	generalSearchMemories: string
 	/**
@@ -43,12 +43,10 @@ export interface MemorySearchResult
 /**
  * Function type for customizing the memory prompt injection.
  * Return the full string to inject as a memory block. Every wrapper places memories the same way:
- * - The profile block (`userMemories` set, `generalSearchMemories` empty) goes in the system
- *   prompt. It is fetched once per conversation and stays byte-identical on every call.
- * - Each search block (`generalSearchMemories` set, `userMemories` empty) is appended to the
- *   user message it was retrieved for, and earlier messages keep the block they first received.
+ * one recall per user turn, sent as a separate user message after the latest user message and
+ * carried back, signed, with the reply so earlier turns stay byte-identical.
  *
- * The template is called separately for each block, so the profile never appears twice.
+ * The template is called once per recall, with the profile and the search results together.
  *
  * @example
  * ```typescript
@@ -66,11 +64,11 @@ export type PromptTemplate = (data: MemoryPromptData) => string
 
 /**
  * Memory retrieval mode:
- * - "profile": The user profile (static + dynamic), fetched once per conversation, in the system prompt
- * - "query": Search results for each user message, appended to that message
- * - "full": Both: the profile once in the system prompt, plus per-message search results
+ * - "profile": The user profile (static + dynamic)
+ * - "query": Search results for the latest user message
+ * - "full": Both, in one block
  *
- * A failed or timed-out fetch is retried on the next user message.
+ * A failed or timed-out recall is retried on the next call.
  */
 export type MemoryMode = "profile" | "query" | "full"
 

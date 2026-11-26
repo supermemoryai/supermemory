@@ -1,4 +1,3 @@
-import { LRUCache } from "lru-cache"
 import type { Supermemory } from "supermemory"
 import {
 	addConversation,
@@ -6,24 +5,27 @@ import {
 	type ConversationMessage,
 } from "../conversations-client"
 import {
+	MEMORY_BLOCK_KEY,
 	createLogger,
+	createMemoryBlocks,
 	createSupermemoryClient,
 	normalizeBaseUrl,
-	buildMemoriesText,
-	defaultPromptTemplate,
-	supermemoryProfileSearch,
-	type ProfileStructure,
+	placeMemoryBlocks,
 	type Logger,
-	type PromptTemplate,
+	type MemoryBlockTag,
+	type MemoryBlocks,
+	type MemoryMessages,
 	type MemoryMode,
+	type PromptTemplate,
 } from "../shared"
-import { type LanguageModelCallOptions, imageFilePartUrl } from "./util"
 import {
-	extractQueryText,
-	injectMemoriesIntoParams,
-	injectTurnMemoriesIntoParams,
-	turnKey,
-} from "./memory-prompt"
+	type LanguageModel,
+	type LanguageModelCallOptions,
+	type LanguageModelMessage,
+	type LanguageModelStreamPart,
+	imageFilePartUrl,
+} from "./util"
+import { extractQueryText } from "./memory-prompt"
 
 const safeJsonStringify = (value: unknown): string => {
 	try {
@@ -227,17 +229,8 @@ interface SupermemoryMiddlewareOptions {
 	 */
 	includeToolCalls?: boolean
 	promptTemplate?: PromptTemplate
-	/** Max wait (ms) for the pre-LLM profile retrieval. Omit for no limit (e.g. tests). `withSupermemory` sets this internally. */
+	/** Max wait (ms) for the pre-LLM memory retrieval. `withSupermemory` sets this internally. */
 	memoryRetrievalTimeoutMs?: number
-}
-
-const MAX_TURNS = 500
-const EMPTY_PROFILE: ProfileStructure["profile"] = { static: [], dynamic: [] }
-
-interface TurnState {
-	memories: string
-	failure?: { error: unknown }
-	pending?: Promise<void>
 }
 
 interface SupermemoryMiddlewareContext {
@@ -250,11 +243,7 @@ interface SupermemoryMiddlewareContext {
 	includeToolCalls: boolean
 	normalizedBaseUrl: string
 	apiKey: string
-	promptTemplate?: PromptTemplate
-	memoryRetrievalTimeoutMs?: number
-	profile?: { data: ProfileStructure["profile"]; text: string }
-	profileRequest?: Promise<ProfileStructure["profile"]>
-	turns: LRUCache<string, TurnState>
+	blocks: MemoryBlocks
 }
 
 export const createSupermemoryContext = (
@@ -292,131 +281,191 @@ export const createSupermemoryContext = (
 		includeToolCalls,
 		normalizedBaseUrl,
 		apiKey,
-		promptTemplate,
-		...(memoryRetrievalTimeoutMs !== undefined
-			? { memoryRetrievalTimeoutMs }
-			: {}),
-		turns: new LRUCache({ max: MAX_TURNS }),
+		blocks: createMemoryBlocks({
+			namespace,
+			apiKey,
+			baseUrl: normalizedBaseUrl,
+			source: "tools-ai-sdk",
+			mode,
+			logger,
+			...(promptTemplate && { promptTemplate }),
+			...(memoryRetrievalTimeoutMs !== undefined && {
+				timeoutMs: memoryRetrievalTimeoutMs,
+			}),
+		}),
 	}
 }
 
-// A failed fetch is dropped so the next user turn retries it instead of running without a profile for good.
-const loadProfile = (
-	ctx: SupermemoryMiddlewareContext,
-	signal?: AbortSignal,
-): Promise<ProfileStructure["profile"]> => {
-	if (ctx.profile) return Promise.resolve(ctx.profile.data)
-	ctx.profileRequest ??= supermemoryProfileSearch(
-		ctx.namespace,
-		"",
-		ctx.normalizedBaseUrl,
-		ctx.apiKey,
-		"tools-ai-sdk",
-		signal,
-	)
-		.then(async ({ profile }) => {
-			const text = await buildMemoriesText({
-				namespace: ctx.namespace,
-				queryText: "",
-				mode: "profile",
-				baseUrl: ctx.normalizedBaseUrl,
-				apiKey: ctx.apiKey,
-				source: "tools-ai-sdk",
-				logger: ctx.logger,
-				promptTemplate: ctx.promptTemplate,
-				profile,
-			})
-			ctx.profile = { data: profile, text }
-			return profile
-		})
-		.finally(() => {
-			ctx.profileRequest = undefined
-		})
-	return ctx.profileRequest
-}
-
-// Profile and search share one timeout; a failed profile never drops this turn's search results.
-const retrieveTurn = async (
-	ctx: SupermemoryMiddlewareContext,
-	query: string,
-): Promise<Omit<TurnState, "pending">> => {
-	const controller =
-		(ctx.memoryRetrievalTimeoutMs ?? 0) > 0 ? new AbortController() : undefined
-	const timeoutId = controller
-		? setTimeout(() => controller.abort(), ctx.memoryRetrievalTimeoutMs)
-		: undefined
-	const signal = controller?.signal
-	const profile = ctx.mode === "query" ? undefined : loadProfile(ctx, signal)
-	const template = ctx.promptTemplate ?? defaultPromptTemplate
-
-	try {
-		const [profileResult, searchResult] = await Promise.allSettled([
-			profile,
-			ctx.mode !== "profile" && query
-				? buildMemoriesText({
-						namespace: ctx.namespace,
-						queryText: query,
-						mode: ctx.mode,
-						baseUrl: ctx.normalizedBaseUrl,
-						apiKey: ctx.apiKey,
-						source: "tools-ai-sdk",
-						logger: ctx.logger,
-						promptTemplate: (data) => template({ ...data, userMemories: "" }),
-						...(signal && { signal }),
-						...(profile && { profile: profile.catch(() => EMPTY_PROFILE) }),
-					})
-				: "",
-		])
-		const memories =
-			searchResult.status === "fulfilled" ? searchResult.value : ""
-		const failed = [profileResult, searchResult].find(
-			(result): result is PromiseRejectedResult => result.status === "rejected",
-		)
-		return { memories, ...(failed && { failure: { error: failed.reason } }) }
-	} finally {
-		if (timeoutId !== undefined) clearTimeout(timeoutId)
-	}
-}
-
-export const injectCachedMemories = (
-	params: LanguageModelCallOptions,
-	ctx: SupermemoryMiddlewareContext,
-): LanguageModelCallOptions =>
-	injectMemoriesIntoParams(
-		injectTurnMemoriesIntoParams(
-			params,
-			(key) => ctx.turns.get(key)?.memories ?? "",
+const promptMessages: MemoryMessages<LanguageModelMessage> = {
+	tagOf: (message) =>
+		message.role === "assistant"
+			? message.content.find((part) => part.providerOptions?.[MEMORY_BLOCK_KEY])
+					?.providerOptions?.[MEMORY_BLOCK_KEY]
+			: undefined,
+	isUser: (message) => message.role === "user",
+	textOf: (message) =>
+		extractQueryText(
+			{ prompt: [message] } as LanguageModelCallOptions,
+			"query",
 		),
-		ctx.profile?.text ?? "",
-		ctx.logger,
-	)
+	blockMessage: (block) => ({
+		role: "user",
+		content: [{ type: "text", text: block }],
+	}),
+}
 
-// Tool steps reuse their turn as is; only a new or regenerated user turn retries a failed retrieval.
+export interface PreparedCall {
+	params: LanguageModelCallOptions
+	tag?: MemoryBlockTag
+	error?: unknown
+}
+
 export const transformParamsWithMemory = async (
 	params: LanguageModelCallOptions,
-	ctx: SupermemoryMiddlewareContext,
-): Promise<LanguageModelCallOptions> => {
-	const users = params.prompt.filter((message) => message.role === "user")
-	const user = users.at(-1)
-	if (user) {
-		const query = extractQueryText({ ...params, prompt: [user] }, "query")
-		const key = turnKey(users.length - 1, query)
-		const fresh = params.prompt.at(-1)?.role === "user"
-		let turn = ctx.turns.get(key)
-		if (!turn || (fresh && turn.failure && !turn.pending)) {
-			const next: TurnState = { memories: turn?.memories ?? "" }
-			next.pending = retrieveTurn(ctx, query).then((result) => {
-				next.memories = result.memories
-				next.failure = result.failure
-				next.pending = undefined
-			})
-			ctx.turns.set(key, next)
-			turn = next
-		}
-		await turn.pending
-		if (turn.failure) throw turn.failure.error
+	blocks: MemoryBlocks,
+): Promise<PreparedCall> => {
+	const placed = await placeMemoryBlocks(blocks, params.prompt, promptMessages)
+	return {
+		params: { ...params, prompt: placed.messages },
+		...(placed.tag && { tag: placed.tag }),
+		...(placed.error !== undefined && { error: placed.error }),
 	}
-	return injectCachedMemories(params, ctx)
+}
+
+const withTag = <P>(part: P, tag: MemoryBlockTag): P => ({
+	...part,
+	providerMetadata: {
+		...(part as { providerMetadata?: object }).providerMetadata,
+		[MEMORY_BLOCK_KEY]: { block: tag.block, signature: tag.signature },
+	},
+})
+
+// The first text or tool call carries the tag because frameworks keep its metadata when they store the reply.
+export const tagGeneratedContent = <P extends { type: string }>(
+	content: P[],
+	tag: MemoryBlockTag,
+): P[] => {
+	const index = content.findIndex(
+		(part) => part.type === "text" || part.type === "tool-call",
+	)
+	return content.map((part, at) => (at === index ? withTag(part, tag) : part))
+}
+
+const tagStream = (
+	tag: MemoryBlockTag | undefined,
+	onText: (delta: string) => void,
+	onDone: () => void,
+) => {
+	let tagged: string | undefined
+	return new TransformStream<LanguageModelStreamPart, LanguageModelStreamPart>({
+		transform(chunk, controller) {
+			if (chunk.type === "text-delta") onText(chunk.delta)
+			if (!tag) return controller.enqueue(chunk)
+			if (tagged === undefined && chunk.type === "tool-call") {
+				tagged = ""
+				return controller.enqueue(withTag(chunk, tag))
+			}
+			if (tagged === undefined && chunk.type === "text-start") {
+				tagged = chunk.id
+			}
+			const textChunk =
+				chunk.type === "text-start" ||
+				chunk.type === "text-delta" ||
+				chunk.type === "text-end"
+			controller.enqueue(
+				textChunk && chunk.id === tagged ? withTag(chunk, tag) : chunk,
+			)
+		},
+		flush: onDone,
+	})
+}
+
+const WRAPPED_MODEL = Symbol.for("@supermemory/tools/memory-blocks")
+
+export interface MemoryBlockModelOptions {
+	blocks: MemoryBlocks
+	logger: Logger
+	onRecallError: (error: unknown) => void
+	onFinish?: (params: LanguageModelCallOptions, text: string) => void
+}
+
+// Recalls into a trailing user message and tags the reply with the signed block; Mastra's doGenerate returns a stream, so both shapes are tagged.
+export const withMemoryBlocks = <T extends LanguageModel>(
+	model: T,
+	options: MemoryBlockModelOptions,
+): T => {
+	if (Reflect.get(model, WRAPPED_MODEL)) return model
+	const prepare = async (params: LanguageModelCallOptions) => {
+		const prepared = await transformParamsWithMemory(params, options.blocks)
+		if (prepared.error !== undefined) options.onRecallError(prepared.error)
+		return prepared
+	}
+	const piped = <R extends { stream: ReadableStream<LanguageModelStreamPart> }>(
+		result: R,
+		params: LanguageModelCallOptions,
+		tag: MemoryBlockTag | undefined,
+	): R => {
+		let text = ""
+		return {
+			...result,
+			stream: result.stream.pipeThrough(
+				tagStream(
+					tag,
+					(delta) => {
+						text += delta
+					},
+					() => options.onFinish?.(params, text),
+				),
+			),
+		}
+	}
+	const fail = (message: string, error: unknown) => {
+		options.logger.error(message, {
+			error: error instanceof Error ? error.message : "Unknown error",
+		})
+		return error
+	}
+	return new Proxy(model, {
+		get(target, prop, receiver) {
+			if (prop === WRAPPED_MODEL) return true
+			if (prop === "doGenerate") {
+				return async (params: LanguageModelCallOptions) => {
+					const prepared = await prepare(params)
+					try {
+						// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility across V2, V3 and V4
+						const result = await target.doGenerate(prepared.params as any)
+						const content =
+							prepared.tag && Array.isArray(result.content)
+								? tagGeneratedContent(result.content, prepared.tag)
+								: result.content
+						if (result.stream) {
+							return piped({ ...result, content }, params, prepared.tag)
+						}
+						options.onFinish?.(
+							params,
+							extractAssistantResponseText(result.content as unknown[]),
+						)
+						return { ...result, content }
+					} catch (error) {
+						throw fail("Error generating response", error)
+					}
+				}
+			}
+			if (prop === "doStream") {
+				return async (params: LanguageModelCallOptions) => {
+					const prepared = await prepare(params)
+					try {
+						// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility across V2, V3 and V4
+						const result = await target.doStream(prepared.params as any)
+						return piped(result, params, prepared.tag)
+					} catch (error) {
+						throw fail("Error streaming response", error)
+					}
+				}
+			}
+			return Reflect.get(target, prop, receiver)
+		},
+	}) as T
 }
 
 export const extractAssistantResponseText = (content: unknown[]): string => {

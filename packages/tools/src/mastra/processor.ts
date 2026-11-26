@@ -6,8 +6,8 @@
  * - Conversation saving: Persists conversations to Supermemory after responses
  *
  * Processors integrate with Mastra's processor pipeline:
- * - InputProcessor runs before the LLM call, adding the profile to the system messages and
- *   search results to the user's turn
+ * - InputProcessor wraps the model for each step, so memories ride in a separate user message
+ *   after the latest user message and the reply carries them back into Mastra memory
  * - OutputProcessor runs after the LLM responds, optionally saving the conversation
  *
  * @module
@@ -15,20 +15,17 @@
 
 import {
 	createLogger,
+	createMemoryBlocks,
 	normalizeBaseUrl,
 	validateApiKey,
-	buildTurnRecall,
-	replaceMemoryContext,
 	stripMemoryContext,
-	turnKey,
-	turnKeys,
-	withTurnMemory,
-	wrapMemoryContext,
-	TurnMemoryByConversation,
 	type Logger,
+	type MemoryBlocks,
 	type MemoryMode,
 	type PromptTemplate,
 } from "../shared"
+import { withMemoryBlocks } from "../vercel/middleware"
+import type { LanguageModel } from "../vercel/util"
 import {
 	addConversation,
 	type ConversationMessage,
@@ -37,8 +34,8 @@ import { MASTRA_THREAD_ID_KEY } from "@mastra/core/request-context"
 import type {
 	SupermemoryMastraOptions,
 	Processor,
-	ProcessInputArgs,
-	ProcessInputResult,
+	ProcessInputStepArgs,
+	ProcessInputStepResult,
 	ProcessOutputResultArgs,
 	MastraDBMessage,
 	RequestContext,
@@ -101,53 +98,21 @@ function getEffectiveId(
 	return ctx.id
 }
 
-const messageText = (message: MastraDBMessage): string => {
-	const { parts, content } = message.content
-	if (Array.isArray(parts) && parts.length > 0) {
-		return parts
-			.flatMap((part) =>
-				part.type === "text" && typeof part.text === "string"
-					? [part.text]
-					: [],
-			)
-			.join(" ")
-	}
-	return typeof content === "string" ? content : ""
-}
-
-const withMessageMemory = (
-	message: MastraDBMessage,
-	memories: string,
-): MastraDBMessage => {
-	const { parts, content } = message.content
-	const textParts =
-		Array.isArray(parts) && parts.length > 0
-			? parts
-			: [
-					{
-						type: "text" as const,
-						text: typeof content === "string" ? content : "",
-					},
-				]
-	return {
-		...message,
-		content: {
-			...message.content,
-			parts: withTurnMemory(textParts, memories) as typeof parts,
-		},
-	}
-}
-
 /**
- * Input processor that adds memories to the prompt before LLM calls.
+ * Input processor that adds memories to every model call.
  *
- * This processor runs once at the start of agent execution (processInput):
- * - The profile ("profile" and "full" modes) is fetched once per conversation and appended to the
- *   first system message (the agent instructions) as a separate block, or added as a system
- *   message when there is none. It stays byte-identical on every call.
- * - Search results ("query" and "full" modes) are appended to the user message they were
- *   retrieved for, and earlier messages keep the block they first received.
- * - A failed or timed-out fetch is retried on the next user message.
+ * It wraps the step's model (processInputStep) instead of editing Mastra's messages:
+ * - When the latest user message has no memories yet, one recall (profile and search, per
+ *   `mode`) is sent as a separate user message after it. The agent instructions and the
+ *   stored messages are never changed.
+ * - The reply carries that block, signed, in its provider metadata, which Mastra memory stores
+ *   with the message. On later calls the block is put back in front of that reply, so history
+ *   is resent byte for byte and stays prompt-cacheable. Tool-call steps reuse it.
+ * - A block with a missing or bad signature is ignored and the call gets a fresh recall.
+ * - Nothing is held in memory between calls, so a new agent per request is fine.
+ *
+ * The step model must be a resolved AI SDK model, which is what Mastra passes for both a model
+ * object and a `provider/model` string.
  *
  * @example
  * ```typescript
@@ -175,72 +140,51 @@ export class SupermemoryInputProcessor implements Processor {
 	readonly name = "Supermemory Memory Injection"
 
 	private ctx: ProcessorContext
-	private turns = new TurnMemoryByConversation()
+	private blocks: MemoryBlocks
 
 	constructor(options: SupermemoryMastraOptions) {
 		this.ctx = createProcessorContext(options)
-	}
-
-	async processInput(args: ProcessInputArgs): Promise<ProcessInputResult> {
-		const { messages, messageList, requestContext, systemMessages } = args
-
-		const users = messages.filter((message) => message.role === "user")
-		const latest = users.at(-1)
-		if (!latest) return messageList
-
-		const keys = turnKeys(messages, (message) => ({
-			role: message.role,
-			text: messageText(message),
-		}))
-		const memory = this.turns.for(getEffectiveId(this.ctx, requestContext))
-		const query = turnKey(messageText(latest))
-		await memory.recall(
-			keys.get(latest) as string,
-			buildTurnRecall({
-				namespace: this.ctx.namespace,
-				query,
-				mode: this.ctx.mode,
-				baseUrl: this.ctx.baseUrl,
-				apiKey: this.ctx.apiKey,
-				source: "tools-mastra",
-				logger: this.ctx.logger,
+		this.blocks = createMemoryBlocks({
+			namespace: this.ctx.namespace,
+			apiKey: this.ctx.apiKey,
+			baseUrl: this.ctx.baseUrl,
+			source: "tools-mastra",
+			mode: this.ctx.mode,
+			logger: this.ctx.logger,
+			...(this.ctx.promptTemplate && {
 				promptTemplate: this.ctx.promptTemplate,
 			}),
-		)
+		})
+	}
 
-		const blocks = await Promise.all(
-			messages.map((message) => {
-				const key = keys.get(message)
-				return key === undefined ? undefined : memory.get(key)
-			}),
-		)
-		const profile = wrapMemoryContext(memory.profile)
-		if (!profile && blocks.every((block) => !block)) return messageList
-		const system = systemMessages.findIndex(
-			(message) =>
-				message.role === "system" && typeof message.content === "string",
-		)
+	/**
+	 * Wraps the step's model so the call gets this turn's memories and the reply carries them.
+	 *
+	 * @param args - Mastra step arguments; only `model` is read
+	 * @returns The wrapped model, or nothing when the model is not a resolved AI SDK model
+	 */
+	processInputStep(args: ProcessInputStepArgs): ProcessInputStepResult {
+		const { model } = args
+		if (
+			!model ||
+			typeof model !== "object" ||
+			typeof (model as { doStream?: unknown }).doStream !== "function"
+		) {
+			this.ctx.logger.warn(
+				"Supermemory needs a resolved model in processInputStep; skipping memories",
+			)
+			return {}
+		}
+		const logger = this.ctx.logger
 		return {
-			messages: messages.map((message, index) => {
-				const block = blocks[index]
-				return block === undefined ? message : withMessageMemory(message, block)
-			}),
-			systemMessages:
-				system === -1
-					? profile
-						? [...systemMessages, { role: "system" as const, content: profile }]
-						: systemMessages
-					: systemMessages.map((message, index) =>
-							index === system
-								? ({
-										...message,
-										content: replaceMemoryContext(
-											message.content as string,
-											memory.profile,
-										),
-									} as (typeof systemMessages)[number])
-								: message,
-						),
+			model: withMemoryBlocks(model as unknown as LanguageModel, {
+				blocks: this.blocks,
+				logger,
+				onRecallError: (error) =>
+					logger.warn("Memory recall failed; continuing without it", {
+						error: error instanceof Error ? error.message : String(error),
+					}),
+			}) as unknown as typeof model,
 		}
 	}
 }

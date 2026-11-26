@@ -7,7 +7,13 @@
  * @module
  */
 
-import { createSupermemoryHooks, mergeHooks } from "./hooks"
+import { withMemoryBlocks } from "../vercel/middleware"
+import type { LanguageModel } from "../vercel/util"
+import { createHooks, mergeHooks } from "./hooks"
+import {
+	createSupermemoryContext,
+	type SupermemoryMiddlewareContext,
+} from "./middleware"
 import type { VoltAgentConfig, SupermemoryVoltAgent } from "./types"
 
 /**
@@ -29,14 +35,19 @@ interface WithSupermemoryOptions<T extends VoltAgentConfig>
 /**
  * Enhances a VoltAgent agent configuration with Supermemory memory capabilities.
  *
- * The function injects hooks that automatically:
- * - Retrieve relevant memories before LLM calls (via onPrepareMessages)
- * - Fetch the profile once per conversation ("profile" and "full" modes) and append it to
- *   the system message as a separate block, byte-identical on every call
- * - Append search results ("query" and "full" modes) to the user message they were retrieved
- *   for, replaying earlier messages' blocks unchanged so the prompt prefix stays cacheable
- * - Retry a failed or timed-out fetch on the next user message
- * - Optionally save conversations after completion (via onEnd)
+ * When `agentConfig.model` is a model object or a function returning one, the model is wrapped:
+ * - When the latest user message has no memories yet, one recall (profile and search, per
+ *   `mode`) is sent as a separate user message after it. Instructions and stored messages are
+ *   never changed.
+ * - The reply carries that block, signed, in its provider metadata, which VoltAgent memory
+ *   stores with the message. On later calls the block is put back in front of that reply, so
+ *   history is resent byte for byte and stays prompt-cacheable. Tool-call steps reuse it.
+ * - A block with a missing or bad signature is ignored and the call gets a fresh recall.
+ * - Nothing is held in memory between calls, so a new agent per request is fine.
+ *
+ * With a `provider/model` string or a fallback list, the recall is appended by an
+ * `onPrepareMessages` hook instead (see {@link createSupermemoryHooks}). Either way an `onEnd`
+ * hook saves the conversation when `addMemory` is `"always"`.
  *
  * @param options - Configuration object containing agent config and Supermemory options
  * @param options.agentConfig - The VoltAgent agent configuration to enhance
@@ -140,17 +151,47 @@ export function withSupermemory<T extends VoltAgentConfig>(
 ): T & { hooks: NonNullable<VoltAgentConfig["hooks"]> } {
 	const { agentConfig, namespace, ...supermemoryOptions } = options
 
-	// Create Supermemory hooks (internally creates its own context, validates API key)
-	const supermemoryHooks = createSupermemoryHooks(namespace, supermemoryOptions)
+	const ctx = createSupermemoryContext(namespace, supermemoryOptions)
+	const model = wrapModel(agentConfig.model, ctx)
+	const hooks = mergeHooks(agentConfig.hooks, createHooks(ctx, !model))
 
-	// Merge with existing hooks if present
-	const mergedHooks = mergeHooks(agentConfig.hooks, supermemoryHooks)
-
-	// Return enhanced config with merged hooks
-	return {
-		...agentConfig,
-		hooks: mergedHooks,
+	return { ...agentConfig, model: model ?? agentConfig.model, hooks } as T & {
+		hooks: NonNullable<VoltAgentConfig["hooks"]>
 	}
+}
+
+const isModel = (value: unknown): value is LanguageModel =>
+	!!value &&
+	typeof value === "object" &&
+	typeof (value as { doStream?: unknown }).doStream === "function"
+
+// Returns undefined when the model cannot be wrapped, so the hooks append the recall instead.
+const wrapModel = (
+	model: VoltAgentConfig["model"],
+	ctx: SupermemoryMiddlewareContext,
+): VoltAgentConfig["model"] | undefined => {
+	const wrap = (value: unknown) => {
+		if (isModel(value)) {
+			return withMemoryBlocks(value, {
+				blocks: ctx.blocks,
+				logger: ctx.logger,
+				onRecallError: (error) =>
+					ctx.logger.warn("Memory recall failed; continuing without it", {
+						error: error instanceof Error ? error.message : String(error),
+					}),
+			})
+		}
+		ctx.logger.warn(
+			"Supermemory can only wrap a model object; this call runs without memories",
+		)
+		return value
+	}
+	if (isModel(model)) return wrap(model) as VoltAgentConfig["model"]
+	if (typeof model === "function") {
+		return (async (...args: Parameters<typeof model>) =>
+			wrap(await model(...args))) as VoltAgentConfig["model"]
+	}
+	return undefined
 }
 
 // Export types for consumers

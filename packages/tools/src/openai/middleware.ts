@@ -9,15 +9,13 @@ import {
 	toConversationImageUrl,
 } from "../conversations-client"
 import {
-	TurnMemory,
-	buildTurnRecall,
+	MEMORY_BLOCK_KEY,
+	createMemoryBlocks,
 	createSupermemoryClient,
-	replaceMemoryContext,
+	placeMemoryBlocks,
 	stripMemoryContext,
-	turnKey,
-	turnKeys,
-	withTurnMemory,
-	wrapMemoryContext,
+	type MemoryBlockTag,
+	type MemoryMessages,
 } from "../shared"
 import { createLogger, type Logger } from "../vercel/logger"
 
@@ -117,9 +115,11 @@ export interface OpenAIMiddlewareOptions {
 	verbose?: boolean
 	/**
 	 * Memory retrieval mode (default: "profile"):
-	 * - "profile": The user profile, fetched once per conversation, in the system message or `instructions`
-	 * - "query": Search results for each user message, appended to that message
-	 * - "full": Both: the profile once in the system message or `instructions`, plus per-message search results
+	 * - "profile": The user profile
+	 * - "query": Search results for the latest user message
+	 * - "full": Both, in one block
+	 *
+	 * The block is sent as a separate user message after the latest user message.
 	 */
 	mode?: "profile" | "query" | "full"
 	/**
@@ -343,6 +343,46 @@ const hasResponsesFunctionCall = (output: unknown): boolean =>
 			item?.type === "function_call" || item?.type === "custom_tool_call",
 	)
 
+type ChatMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam
+
+const tagOf = (item: unknown): unknown =>
+	item && typeof item === "object"
+		? (item as Record<string, unknown>)[MEMORY_BLOCK_KEY]
+		: undefined
+
+// The API rejects unknown fields on replayed Responses items, so the tag never leaves the wrapper.
+const withoutTag = <T>(item: T): T => {
+	if (tagOf(item) === undefined) return item
+	const { [MEMORY_BLOCK_KEY]: _tag, ...rest } = item as Record<string, unknown>
+	return rest as T
+}
+
+const setTag = (target: unknown, tag: MemoryBlockTag) => {
+	if (target && typeof target === "object") {
+		Object.assign(target, {
+			[MEMORY_BLOCK_KEY]: { block: tag.block, signature: tag.signature },
+		})
+	}
+}
+
+const chatMessages: MemoryMessages<ChatMessage> = {
+	tagOf: (message) =>
+		message.role === "assistant" ? tagOf(message) : undefined,
+	isUser: (message) => message.role === "user",
+	textOf: (message) => extractTextContent(message.content),
+	blockMessage: (block) => ({ role: "user", content: block }),
+}
+
+const responsesItems: MemoryMessages<unknown> = {
+	tagOf: (item) => (isResponsesUserMessage(item) ? undefined : tagOf(item)),
+	isUser: isResponsesUserMessage,
+	textOf: (item) => extractTextContent((item as ResponsesInputItem).content),
+	blockMessage: (block) => ({
+		role: "user",
+		content: [{ type: "input_text", text: block }],
+	}),
+}
+
 // With a conversation id and messages, saves the whole conversation as one document.
 const addMemoryTool = async (
 	client: Supermemory,
@@ -397,9 +437,14 @@ const addMemoryTool = async (
 /**
  * Creates SuperMemory middleware for OpenAI clients.
  *
- * Puts the frozen profile in the system message (Chat Completions) or `instructions` (Responses)
- * and appends search results to the user turn they were retrieved for, replaying earlier turns'
- * blocks unchanged so the prompt prefix stays cacheable; saves each finished turn in the background.
+ * When the latest user message has no memories yet, sends one recall as a separate user message
+ * after it, leaving your messages, system prompt and `instructions` unchanged. The returned
+ * assistant message (Chat Completions, non-streaming) or first output item (Responses with
+ * client-sent history) carries that block, signed, in a `supermemory` field. Send it back as is
+ * and the wrapper puts the block in front of it and strips the field, so earlier turns are resent
+ * byte for byte; a missing or bad signature means no block is restored. With
+ * `previous_response_id` or a conversation, OpenAI keeps the block in its stored history.
+ * Each finished turn is saved in the background. Nothing is held in memory between calls.
  *
  * @param openaiClient - The OpenAI client to wrap
  * @param namespace - The namespace for memory search (e.g., user ID, project ID)
@@ -457,59 +502,33 @@ export function createOpenAIMiddleware(
 	const originalCreate = baseCompletions.create
 	const originalResponsesCreate = baseResponses?.create
 
-	const turnMemory = new TurnMemory()
-	let conversationHead: string | undefined
-	let serverTurns = 0
 	const pendingResponses = new LRUCache<string, ResponsesTurn>({ max: 100 })
+	const blocks = createMemoryBlocks({
+		namespace,
+		apiKey,
+		baseUrl,
+		source: "tools-openai",
+		mode,
+		logger,
+		promptTemplate: (data) =>
+			`${data.userMemories}\n${data.generalSearchMemories}`.trim(),
+	})
 
-	// A new opening message means the wrapper is serving a new conversation, so start fresh.
-	const trackConversation = (firstUserKey: string) => {
-		if (firstUserKey === conversationHead) return
-		turnMemory.reset()
-		conversationHead = firstUserKey
-	}
-
-	// Tool-only requests get the profile too, so the system prompt never flips between calls.
-	const withProfile = (
-		messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-	): OpenAI.Chat.Completions.ChatCompletionMessageParam[] => {
-		const system = messages.findIndex(
-			(message) => message.role === "system" || message.role === "developer",
-		)
-		if (system === -1) {
-			const profile = wrapMemoryContext(turnMemory.profile)
-			return profile
-				? [{ role: "system", content: profile }, ...messages]
-				: messages
+	const placeBlocks = async <M>(
+		items: readonly M[],
+		adapter: MemoryMessages<M>,
+	) => {
+		const placed = await placeMemoryBlocks(blocks, items, adapter)
+		if (placed.error !== undefined) {
+			logger.warn("Memory recall failed; continuing without it", {
+				error:
+					placed.error instanceof Error
+						? placed.error.message
+						: String(placed.error),
+			})
 		}
-		return messages.map((message, index) =>
-			index === system
-				? ({
-						...message,
-						content: withTurnMemory(
-							message.content as string | { type: string; text?: string }[],
-							turnMemory.profile,
-						),
-					} as typeof message)
-				: message,
-		)
+		return { messages: placed.messages.map(withoutTag), tag: placed.tag }
 	}
-
-	const recallTurn = (key: string, query: string) =>
-		turnMemory.recall(
-			key,
-			buildTurnRecall({
-				namespace,
-				query,
-				mode,
-				baseUrl,
-				apiKey,
-				source: "tools-openai",
-				logger,
-				promptTemplate: (data) =>
-					`${data.userMemories}\n${data.generalSearchMemories}`.trim(),
-			}),
-		)
 
 	// Fire and forget: a slow or failing save must never hold the caller's response.
 	const captureTurn = (
@@ -542,26 +561,26 @@ export function createOpenAIMiddleware(
 			)
 		}
 
-		const forward = (input: typeof params.input) =>
-			originalResponsesCreate.call(
-				baseResponses,
-				{
-					...params,
-					input,
-					instructions:
-						typeof params.instructions === "string"
-							? replaceMemoryContext(params.instructions, turnMemory.profile)
-							: wrapMemoryContext(turnMemory.profile) || params.instructions,
-				},
-				requestOptions,
-			)
-
 		const items: unknown[] =
 			typeof params.input === "string"
 				? [{ role: "user", content: params.input }]
 				: Array.isArray(params.input)
 					? params.input
 					: []
+		const placed = await placeBlocks(items, responsesItems)
+		const input = (
+			typeof params.input === "string" &&
+			placed.messages.length === items.length
+				? params.input
+				: placed.messages
+		) as typeof params.input
+		const forward = () =>
+			originalResponsesCreate.call(
+				baseResponses,
+				{ ...params, input },
+				requestOptions,
+			)
+
 		type ResponsesResult = Awaited<ReturnType<typeof originalResponsesCreate>>
 		type ResponseLike = {
 			id?: unknown
@@ -576,6 +595,11 @@ export function createOpenAIMiddleware(
 				: typeof (conversationParam as { id?: unknown })?.id === "string"
 					? `conversation:${(conversationParam as { id: string }).id}`
 					: undefined
+		const tag =
+			params.previous_response_id || conversationParam ? undefined : placed.tag
+		const tagOutput = (output: unknown) => {
+			if (tag && Array.isArray(output)) setTag(output[0], tag)
+		}
 		const finishTurn = (turn: ResponsesTurn, response: ResponseLike) => {
 			if (hasResponsesFunctionCall(response.output)) {
 				if (typeof response.id === "string") {
@@ -593,82 +617,51 @@ export function createOpenAIMiddleware(
 			)
 		}
 		const afterResponseFor =
-			(turn: ResponsesTurn): AfterResponse<ResponsesResult> =>
+			(turn: ResponsesTurn | undefined): AfterResponse<ResponsesResult> =>
 			(value) => {
 				if (!params.stream) {
-					finishTurn(turn, value as ResponseLike)
+					tagOutput((value as ResponseLike).output)
+					if (turn) finishTurn(turn, value as ResponseLike)
 					return value
 				}
 				return observeStream(
 					value,
 					(event) => {
-						const { type, response } = event as {
+						const { type, response, item, output_index } = event as {
 							type?: unknown
 							response?: ResponseLike
+							item?: unknown
+							output_index?: unknown
+						}
+						if (
+							(type === "response.output_item.added" ||
+								type === "response.output_item.done") &&
+							output_index === 0
+						) {
+							tagOutput([item])
 						}
 						if (type === "response.completed" && response) {
-							finishTurn(turn, response)
+							tagOutput(response.output)
+							if (turn) finishTurn(turn, response)
 						}
 					},
 					() => {},
 				)
 			}
 
-		const userItems = items.filter(isResponsesUserMessage)
-		const latestUser = userItems.at(-1)
+		const latestUser = items.filter(isResponsesUserMessage).at(-1)
 		if (!latestUser) {
 			const pendingKey = params.previous_response_id || conversationKey
 			const pending = pendingKey ? pendingResponses.get(pendingKey) : undefined
-			if (!pending) return { request: forward(params.input) }
 			if (params.previous_response_id) {
 				pendingResponses.delete(params.previous_response_id)
 			}
 			if (conversationKey) pendingResponses.delete(conversationKey)
-			return {
-				request: forward(params.input),
-				afterResponse: afterResponseFor(pending),
-			}
+			return { request: forward(), afterResponse: afterResponseFor(pending) }
 		}
-
-		const serverHistory = params.previous_response_id || conversationParam
-		const keys = turnKeys(items, (item) => ({
-			role: (item as { role?: unknown })?.role,
-			text: extractTextContent((item as { content?: unknown })?.content),
-		}))
-		if (serverHistory) {
-			serverTurns++
-			for (const [item, key] of keys) {
-				keys.set(item, `${serverTurns}\u0000${key}`)
-			}
-		}
-		const firstUser = userItems[0]
-		if (firstUser && !serverHistory) {
-			trackConversation(keys.get(firstUser) as string)
-		}
-		await recallTurn(
-			keys.get(latestUser) as string,
-			turnKey(extractTextContent(latestUser.content)),
-		)
-
-		const memories = await Promise.all(
-			items.map((item) => {
-				const key = keys.get(item)
-				return key === undefined ? undefined : turnMemory.get(key)
-			}),
-		)
-		const injected = items.map((item, index) => {
-			const memory = memories[index]
-			if (memory === undefined || !isResponsesUserMessage(item)) return item
-			const content = item.content as string | { type: string; text?: string }[]
-			return { ...item, content: withTurnMemory(content, memory, "input_text") }
-		})
-		const input =
-			typeof params.input === "string"
-				? ((injected[0] as { content: string }).content as typeof params.input)
-				: (injected as typeof params.input)
 
 		return {
-			request: forward(input),
+			request: forward(),
 			afterResponse: afterResponseFor({
 				conversation: convertResponsesConversationMessages(params.input),
 				userText: extractTextContent(latestUser.content),
@@ -686,40 +679,17 @@ export function createOpenAIMiddleware(
 		requestOptions?: OpenAI.RequestOptions,
 	) => {
 		const messages = Array.isArray(params.messages) ? params.messages : []
-		const forward = (
-			forwardedMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-		) =>
-			originalCreate.call(
-				baseCompletions,
-				{ ...params, messages: withProfile(forwardedMessages) },
-				requestOptions,
-			)
-
-		const userMessages = messages.filter((message) => message.role === "user")
-		const latestUser = userMessages.at(-1)
-		if (!latestUser) return { request: forward(messages) }
-
-		const keys = turnKeys(messages, (message) => ({
-			role: message.role,
-			text: extractTextContent(message.content),
-		}))
-		trackConversation(keys.get(userMessages[0] ?? latestUser) as string)
-		await recallTurn(
-			keys.get(latestUser) as string,
-			turnKey(extractTextContent(latestUser.content)),
+		const placed = await placeBlocks(messages, chatMessages)
+		const request = originalCreate.call(
+			baseCompletions,
+			{ ...params, messages: placed.messages },
+			requestOptions,
 		)
 
-		const memories = await Promise.all(
-			messages.map((message) => {
-				const key = keys.get(message)
-				return key === undefined ? undefined : turnMemory.get(key)
-			}),
-		)
-		const injected = messages.map((message, index) => {
-			const memory = memories[index]
-			if (memory === undefined || message.role !== "user") return message
-			return { ...message, content: withTurnMemory(message.content, memory) }
-		})
+		const latestUser = messages
+			.filter((message) => message.role === "user")
+			.at(-1)
+		if (!latestUser) return { request }
 
 		const conversation = convertChatConversationMessages(messages)
 		const userText = extractTextContent(latestUser.content)
@@ -731,6 +701,7 @@ export function createOpenAIMiddleware(
 			if (!params.stream) {
 				const message = (value as OpenAI.Chat.Completions.ChatCompletion)
 					.choices?.[0]?.message
+				if (message && placed.tag) setTag(message, placed.tag)
 				if (message && !message.tool_calls?.length) {
 					finishTurn(message.content ?? "")
 				}
@@ -752,7 +723,7 @@ export function createOpenAIMiddleware(
 			)
 		}
 
-		return { request: forward(injected), afterResponse }
+		return { request, afterResponse }
 	}
 
 	const createWithMemory = (

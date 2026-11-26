@@ -12,23 +12,20 @@ import {
 	toConversationImageUrl,
 } from "../conversations-client"
 import {
+	convertProfileToMarkdown,
 	createLogger,
+	createMemoryBlocks,
 	createSupermemoryClient,
 	normalizeBaseUrl,
 	defaultPromptTemplate,
+	placeMemoryBlocks,
 	stripMemoryContext,
 	PROFILE_SEARCH_THRESHOLD,
-	buildTurnRecall,
-	turnKey,
-	turnKeys,
-	withTurnMemory,
-	wrapMemoryContext,
-	TurnMemoryByConversation,
 	type Logger,
+	type MemoryBlocks,
+	type MemoryMessages,
 	type MemoryMode,
-	type ProfileStructure,
 	type PromptTemplate,
-	type TurnRecallFetcher,
 } from "../shared"
 import {
 	deduplicateMemoriesForMode,
@@ -54,7 +51,7 @@ export interface SupermemoryMiddlewareContext {
 	normalizedBaseUrl: string
 	apiKey: string
 	promptTemplate?: PromptTemplate
-	turns: TurnMemoryByConversation
+	blocks: MemoryBlocks
 	threshold?: number
 	limit?: number
 	rerank?: SupermemoryVoltAgent["rerank"]
@@ -126,7 +123,7 @@ export const createSupermemoryContext = (
 		source: "tools-voltagent",
 	})
 
-	return {
+	const ctx: SupermemoryMiddlewareContext = {
 		client,
 		logger,
 		namespace,
@@ -136,7 +133,15 @@ export const createSupermemoryContext = (
 		normalizedBaseUrl,
 		apiKey,
 		promptTemplate,
-		turns: new TurnMemoryByConversation(),
+		blocks: createMemoryBlocks({
+			namespace,
+			apiKey,
+			baseUrl: normalizedBaseUrl,
+			source: "tools-voltagent",
+			mode,
+			logger,
+			...(promptTemplate && { promptTemplate }),
+		}),
 		threshold,
 		limit,
 		rerank,
@@ -147,7 +152,36 @@ export const createSupermemoryContext = (
 		supportingContext,
 		searchMode,
 	}
+	if (usesAdvancedSearch(ctx)) {
+		if (mode === "profile") {
+			logger.warn(
+				"Advanced search parameters (threshold, limit, rerank, rewriteQuery, filter, include, searchMode) " +
+					'are ignored when mode is "profile". Use mode "query" or "full" to enable advanced search.',
+			)
+		} else {
+			ctx.blocks = createMemoryBlocks({
+				namespace,
+				apiKey,
+				baseUrl: normalizedBaseUrl,
+				source: "tools-voltagent",
+				mode,
+				logger,
+				recallText: (query, signal) =>
+					searchWithAdvancedOptions(ctx, query, signal),
+			})
+		}
+	}
+	return ctx
 }
+
+const usesAdvancedSearch = (ctx: SupermemoryMiddlewareContext): boolean =>
+	ctx.threshold !== undefined ||
+	ctx.limit !== undefined ||
+	ctx.rerank !== undefined ||
+	ctx.rewriteQuery !== undefined ||
+	ctx.filter !== undefined ||
+	ctx.include !== undefined ||
+	ctx.searchMode !== undefined
 
 type VoltAgentContentPart = {
 	type: string
@@ -174,24 +208,9 @@ const getMessageText = (message: VoltAgentMessage): string => {
 		.join(" ")
 }
 
-const withMessageMemory = (
-	message: VoltAgentMessage,
-	memories: string,
-): VoltAgentMessage => {
-	if (Array.isArray(message.parts)) {
-		return { ...message, parts: withTurnMemory(message.parts, memories) }
-	}
-	if (typeof message.content === "string" || Array.isArray(message.content)) {
-		return { ...message, content: withTurnMemory(message.content, memories) }
-	}
-	return message
-}
-
 const searchWithAdvancedOptions = async (
 	ctx: SupermemoryMiddlewareContext,
 	queryText: string,
-	mode: MemoryMode,
-	profile: Promise<ProfileStructure["profile"]> | undefined,
 	signal: AbortSignal,
 ): Promise<string> => {
 	ctx.logger.info("Using advanced search with custom parameters")
@@ -209,13 +228,14 @@ const searchWithAdvancedOptions = async (
 	if (ctx.filter !== undefined) searchParams.filter = ctx.filter
 	if (ctx.include !== undefined) searchParams.include = ctx.include
 
-	const [response, profileData] = await Promise.all([
-		ctx.client.search(ctx.namespace, searchParams, {
-			maxRetries: 0,
-			abortSignal: signal,
-		}),
-		mode === "full" ? profile : undefined,
+	const requestOptions = { maxRetries: 0, abortSignal: signal }
+	const [response, profileResponse] = await Promise.all([
+		ctx.client.search(ctx.namespace, searchParams, requestOptions),
+		ctx.mode === "full"
+			? ctx.client.profile(ctx.namespace, undefined, requestOptions)
+			: undefined,
 	])
+	const profileData = profileResponse?.profile
 
 	const searchResults = response.results.flatMap((result) => {
 		const memory = getMemoryText(result)
@@ -225,7 +245,7 @@ const searchWithAdvancedOptions = async (
 
 		return [{ ...result, memory }]
 	})
-	const deduplicated = deduplicateMemoriesForMode(mode, {
+	const deduplicated = deduplicateMemoriesForMode(ctx.mode, {
 		static: profileData?.static,
 		dynamic: profileData?.dynamic,
 		searchResults,
@@ -257,109 +277,59 @@ const searchWithAdvancedOptions = async (
 	})
 
 	return (ctx.promptTemplate ?? defaultPromptTemplate)({
-		userMemories: "",
+		userMemories:
+			ctx.mode === "full"
+				? convertProfileToMarkdown({
+						profile: {
+							static: deduplicated.static,
+							dynamic: deduplicated.dynamic,
+						},
+						searchResults: { results: [] },
+					})
+				: "",
 		generalSearchMemories,
 		searchResults: deduplicatedSearchResults,
 	})
 }
 
-const recallTurn = (
-	ctx: SupermemoryMiddlewareContext,
-	queryText: string,
-): TurnRecallFetcher => {
-	const useAdvancedSearch =
-		ctx.threshold !== undefined ||
-		ctx.limit !== undefined ||
-		ctx.rerank !== undefined ||
-		ctx.rewriteQuery !== undefined ||
-		ctx.filter !== undefined ||
-		ctx.include !== undefined ||
-		ctx.searchMode !== undefined
-	return buildTurnRecall({
-		namespace: ctx.namespace,
-		query: queryText,
-		mode: ctx.mode,
-		baseUrl: ctx.normalizedBaseUrl,
-		apiKey: ctx.apiKey,
-		source: "tools-voltagent",
-		logger: ctx.logger,
-		promptTemplate: ctx.promptTemplate,
-		...(useAdvancedSearch && {
-			search: (profile, signal) =>
-				searchWithAdvancedOptions(ctx, queryText, ctx.mode, profile, signal),
-		}),
-	})
+const voltAgentMessages: MemoryMessages<VoltAgentMessage> = {
+	tagOf: () => undefined,
+	isUser: (message) => message.role === "user",
+	textOf: getMessageText,
+	blockMessage: (block) => ({
+		id: `supermemory-${crypto.randomUUID()}`,
+		role: "user",
+		content: block,
+		parts: [{ type: "text", text: block }],
+	}),
 }
 
 /**
- * Retrieves memories for the latest user message: search results are appended to that
- * message and the conversation's frozen profile to the system message. Earlier user messages
- * get back the exact block they first received, so the prompt prefix stays cacheable.
- * Returns new messages; the input is not mutated.
+ * Appends one recall for the latest user message as a separate user message at the end, leaving
+ * every given message unchanged. Returns new messages; the input is not mutated.
  *
  * @param messages - VoltAgent messages to enhance
  * @param ctx - Supermemory middleware context
- * @param conversationId - Conversation whose memories to reuse (default: ctx.id)
+ * @returns The messages, plus the memory message when the recall found anything
  */
 export const enhanceMessagesWithMemories = async (
 	messages: VoltAgentMessage[],
 	ctx: SupermemoryMiddlewareContext,
-	conversationId: string = ctx.id,
 ): Promise<VoltAgentMessage[]> => {
-	const latest = messages.filter((message) => message.role === "user").at(-1)
-	if (!latest) return messages
-
-	if (
-		ctx.mode === "profile" &&
-		(ctx.threshold !== undefined ||
-			ctx.limit !== undefined ||
-			ctx.rerank !== undefined ||
-			ctx.rewriteQuery !== undefined ||
-			ctx.filter !== undefined ||
-			ctx.include !== undefined ||
-			ctx.searchMode !== undefined)
-	) {
-		ctx.logger.warn(
-			"Advanced search parameters (threshold, limit, rerank, rewriteQuery, filter, include, searchMode) " +
-				'are ignored when mode is "profile". Use mode "query" or "full" to enable advanced search.',
-		)
-	}
-
-	const keys = turnKeys(messages, (message) => ({
-		role: message.role,
-		text: getMessageText(message),
-	}))
-	const memory = ctx.turns.for(conversationId)
-	const query = turnKey(getMessageText(latest))
-	await memory.recall(keys.get(latest) as string, recallTurn(ctx, query))
-
-	const blocks = await Promise.all(
-		messages.map((message) => {
-			const key = keys.get(message)
-			return key === undefined ? undefined : memory.get(key)
-		}),
+	const placed = await placeMemoryBlocks(
+		ctx.blocks,
+		messages,
+		voltAgentMessages,
 	)
-	const withBlocks = messages.map((message, index) => {
-		const block = blocks[index]
-		return block === undefined ? message : withMessageMemory(message, block)
-	})
-	const system = withBlocks.findIndex((message) => message.role === "system")
-	if (system !== -1) {
-		return withBlocks.map((message, index) =>
-			index === system ? withMessageMemory(message, memory.profile) : message,
-		)
+	if (placed.error !== undefined) {
+		ctx.logger.warn("Memory recall failed; continuing without it", {
+			error:
+				placed.error instanceof Error
+					? placed.error.message
+					: String(placed.error),
+		})
 	}
-	const profile = wrapMemoryContext(memory.profile)
-	if (!profile) return withBlocks
-	return [
-		{
-			id: `supermemory-profile-${conversationId}`,
-			role: "system",
-			content: profile,
-			parts: [{ type: "text", text: profile }],
-		},
-		...withBlocks,
-	]
+	return placed.messages
 }
 
 /**
