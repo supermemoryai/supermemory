@@ -1,4 +1,6 @@
-import type OpenAI from "openai"
+import OpenAI from "openai"
+import { zodResponseFormat, zodTextFormat } from "openai/helpers/zod"
+import { z } from "zod/v3"
 import {
 	profileBody,
 	requestJson,
@@ -343,5 +345,152 @@ describe("OpenAI middleware memory context", () => {
 		expect(content).toContain("Final answer")
 		expect(content).not.toContain("SECRET_SYSTEM_PROMPT")
 		expect(content).not.toContain("SECRET_DEVELOPER_PROMPT")
+	})
+
+	it("routes the SDK's parse, stream and runTools helpers through memory", async () => {
+		const fetchMock = vi.fn(
+			v5Router({ profile: () => profileBody(["Cat is Zephyr"]) }),
+		)
+		vi.stubGlobal("fetch", fetchMock)
+		const sent: Array<{ path: string; body: Record<string, unknown> }> = []
+		const sse = (events: unknown[]) =>
+			new Response(
+				events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join("") +
+					"data: [DONE]\n\n",
+				{ headers: { "content-type": "text/event-stream" } },
+			)
+		const completion = (message: Record<string, unknown>) => ({
+			id: "cmpl_1",
+			object: "chat.completion",
+			created: 0,
+			model: "m",
+			choices: [
+				{
+					index: 0,
+					finish_reason: "stop",
+					logprobs: null,
+					message: { role: "assistant", refusal: null, ...message },
+				},
+			],
+		})
+		const response = {
+			id: "resp_1",
+			object: "response",
+			status: "completed",
+			output: [
+				{
+					type: "message",
+					id: "msg_1",
+					role: "assistant",
+					status: "completed",
+					content: [
+						{ type: "output_text", text: '{"cat":"Zephyr"}', annotations: [] },
+					],
+				},
+			],
+		}
+		const openaiFetch = async (input: unknown, init?: RequestInit) => {
+			const path = requestPath(input)
+			const body = requestJson(init)
+			sent.push({ path, body })
+			if (path.endsWith("/responses/resp_1")) return Response.json(response)
+			if (path.endsWith("/responses"))
+				return body.stream
+					? sse([
+							{
+								type: "response.created",
+								response: { ...response, output: [] },
+							},
+							{ type: "response.completed", response },
+						])
+					: Response.json(response)
+			const messages = body.messages as ChatMessage[]
+			if (body.stream)
+				return sse([
+					{
+						id: "cmpl_1",
+						object: "chat.completion.chunk",
+						created: 0,
+						model: "m",
+						choices: [
+							{
+								index: 0,
+								delta: { role: "assistant", content: "Zephyr" },
+								finish_reason: "stop",
+							},
+						],
+					},
+				])
+			if (body.tools && !messages.some((message) => message.role === "tool"))
+				return Response.json(
+					completion({
+						content: null,
+						tool_calls: [
+							{
+								id: "call_1",
+								type: "function",
+								function: { name: "lookup", arguments: "{}" },
+							},
+						],
+					}),
+				)
+			return Response.json(completion({ content: '{"cat":"Zephyr"}' }))
+		}
+		const wrapped = withSupermemory(
+			new OpenAI({ apiKey: "sk-test", fetch: openaiFetch as never }),
+			{ namespace: "user-a", id: "conversation-a", mode: "profile" },
+		)
+		const Cat = z.object({ cat: z.string() })
+		const messages: ChatMessage[] = [{ role: "user", content: "Name my cat" }]
+		const completions = wrapped.beta.chat.completions
+
+		const parsed = await completions.parse({
+			model: "m",
+			messages,
+			response_format: zodResponseFormat(Cat as never, "cat"),
+		})
+		await completions.stream({ model: "m", messages }).finalChatCompletion()
+		await completions
+			.runTools({
+				model: "m",
+				messages,
+				tools: [
+					{
+						type: "function",
+						function: {
+							name: "lookup",
+							description: "Look up the cat",
+							function: () => "Zephyr",
+							parse: JSON.parse,
+							parameters: { type: "object", properties: {} },
+						},
+					},
+				],
+			})
+			.finalContent()
+		const parsedResponse = await wrapped.responses.parse({
+			model: "m",
+			input: "Name my cat",
+			text: { format: zodTextFormat(Cat as never, "cat") },
+		})
+		await wrapped.responses
+			.stream({ model: "m", input: "Name my cat" })
+			.finalResponse()
+		const retrieved = await wrapped.responses.retrieve("resp_1")
+
+		expect(parsed.choices[0]?.message.parsed).toEqual({ cat: "Zephyr" })
+		expect(parsedResponse.output_parsed).toEqual({ cat: "Zephyr" })
+		expect(retrieved.id).toBe("resp_1")
+		const calls = sent.filter((call) => call.body.model)
+		expect(calls).toHaveLength(6)
+		for (const call of calls)
+			expect(JSON.stringify(call.body)).toContain("Cat is Zephyr")
+		await vi.waitFor(() =>
+			expect(
+				fetchMock.mock.calls.filter((call) =>
+					requestPath(call[0]).endsWith("/document"),
+				),
+			).toHaveLength(5),
+		)
 	})
 })

@@ -47,6 +47,29 @@ const cloneWithOverrides = <T extends object>(
 	return Object.create(Object.getPrototypeOf(source), descriptors) as T
 }
 
+// SDK helpers (parse, stream, runTools) call create through this._client; a proxy keeps the SDK's private fields reachable.
+const routeHelpersThrough = (
+	baseClient: object,
+	overrides: Record<PropertyKey, unknown>,
+	resources: unknown[],
+) => {
+	const helperClient = new Proxy(baseClient, {
+		get(target, key) {
+			if (Object.hasOwn(overrides, key)) return overrides[key]
+			const value = Reflect.get(target, key, target)
+			return typeof value === "function" ? value.bind(target) : value
+		},
+	})
+	for (const resource of resources) {
+		if (!resource) continue
+		Object.defineProperty(resource, "_client", {
+			value: helperClient,
+			configurable: true,
+			writable: true,
+		})
+	}
+}
+
 const normalizeBaseUrl = (url?: string): string => {
 	const defaultUrl = "https://api.supermemory.ai"
 	return url?.trim().replace(/\/+$/, "") || defaultUrl
@@ -743,10 +766,29 @@ export function createOpenAIMiddleware(
 					create: createResponsesWithMemory as typeof originalResponsesCreate,
 				})
 			: undefined
-	const wrappedClient = cloneWithOverrides(baseClient, {
+	const baseBetaCompletions = baseClient.beta?.chat?.completions
+	const wrappedBetaCompletions = baseBetaCompletions
+		? cloneWithOverrides(baseBetaCompletions, {})
+		: undefined
+	const wrappedBeta = wrappedBetaCompletions
+		? cloneWithOverrides(baseClient.beta, {
+				chat: cloneWithOverrides(baseClient.beta.chat, {
+					completions: wrappedBetaCompletions,
+				}),
+			})
+		: undefined
+	const overrides = {
 		chat: wrappedChat,
 		...(wrappedResponses ? { responses: wrappedResponses } : {}),
-	})
+		...(wrappedBeta ? { beta: wrappedBeta } : {}),
+	}
+	const wrappedClient = cloneWithOverrides(baseClient, overrides)
+	routeHelpersThrough(baseClient, overrides, [
+		wrappedChat,
+		wrappedCompletions,
+		wrappedResponses,
+		wrappedBetaCompletions,
+	])
 
 	Object.defineProperty(wrappedClient, BASE_CLIENT_SYMBOL, {
 		value: baseClient,
