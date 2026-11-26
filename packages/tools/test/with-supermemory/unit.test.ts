@@ -234,16 +234,17 @@ describe("Unit: withSupermemory", () => {
 				replay(result.content as Array<Record<string, unknown>>),
 				user("What is my name?"),
 			]
-			await next.model.doGenerate({ prompt: history })
+			const second = await next.model.doGenerate({ prompt: history })
 
 			const resent = next.forwarded()
 			expect(resent.slice(0, sent.length)).toEqual(sent)
 			expect(resent[sent.length]?.role).toBe("assistant")
-			expect(resent.at(-1)).toMatchObject({
-				role: "user",
-				content: [{ type: "text", text: tag.block }],
-			})
-			expect(resent).toHaveLength(sent.length + 3)
+			expect(resent.at(-1)).toEqual(user("What is my name?"))
+			expect(resent).toHaveLength(sent.length + 2)
+			expect(
+				(second.content[0] as { providerMetadata?: Record<string, unknown> })
+					.providerMetadata?.supermemory,
+			).toMatchObject({ block: "" })
 			expect(fetchMock).toHaveBeenCalledTimes(2)
 		})
 

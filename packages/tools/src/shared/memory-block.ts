@@ -25,7 +25,10 @@ export interface MemoryBlockOptions {
 }
 
 export interface MemoryBlocks {
-	recall(query: string): Promise<MemoryBlockTag | undefined>
+	recall(
+		query: string,
+		known?: ReadonlySet<string>,
+	): Promise<MemoryBlockTag | undefined>
 	verify(tag: unknown): Promise<string | undefined>
 }
 
@@ -59,6 +62,19 @@ const fromBase64Url = (text: string): Uint8Array<ArrayBuffer> | undefined => {
 	}
 }
 
+const innerLines = (block: string) =>
+	block
+		.split("\n")
+		.slice(1, -1)
+		.map((line) => line.trim())
+		.filter(Boolean)
+
+const withoutKnownLines = (block: string, known: ReadonlySet<string>) => {
+	const lines = block.split("\n")
+	const fresh = innerLines(block).filter((line) => !known.has(line))
+	return fresh.length ? [lines[0], ...fresh, lines.at(-1)].join("\n") : ""
+}
+
 // Keyed by the server-only API key and bound to the namespace, so a client can neither forge a block nor move one across namespaces.
 export function createMemoryBlocks(options: MemoryBlockOptions): MemoryBlocks {
 	const key = crypto.subtle.importKey(
@@ -89,13 +105,14 @@ export function createMemoryBlocks(options: MemoryBlockOptions): MemoryBlocks {
 			}))
 
 	return {
-		async recall(query) {
+		async recall(query, known) {
 			const text = await recallText(
 				query,
 				AbortSignal.timeout(options.timeoutMs ?? RECALL_TIMEOUT_MS),
 			)
-			const block = wrapMemoryContext(text)
-			if (!block) return undefined
+			const full = wrapMemoryContext(text)
+			if (!full) return undefined
+			const block = known?.size ? withoutKnownLines(full, known) : full
 			const signature = await crypto.subtle.sign(
 				"HMAC",
 				await key,
@@ -123,7 +140,7 @@ export function createMemoryBlocks(options: MemoryBlockOptions): MemoryBlocks {
 	}
 }
 
-// Restores each verified block right in front of its reply, then recalls only when nothing since the last user message carries one.
+// Restores each verified block in front of its reply, then recalls once per user turn and sends only lines no restored block already carries.
 export async function placeMemoryBlocks<M>(
 	blocks: MemoryBlocks,
 	messages: readonly M[],
@@ -145,10 +162,16 @@ export async function placeMemoryBlocks<M>(
 	})
 	const user = messages[lastUser]
 	if (user === undefined) return { messages: placed }
-	if (restored.slice(lastUser + 1).some(Boolean)) return { messages: placed }
+	if (restored.slice(lastUser + 1).some((block) => block !== undefined)) {
+		return { messages: placed }
+	}
+	const known = new Set(
+		restored.flatMap((block) => (block ? innerLines(block) : [])),
+	)
 	try {
-		const tag = await blocks.recall(adapter.textOf(user))
+		const tag = await blocks.recall(adapter.textOf(user), known)
 		if (!tag) return { messages: placed }
+		if (!tag.block) return { messages: placed, tag }
 		return { messages: [...placed, adapter.blockMessage(tag.block)], tag }
 	} catch (error) {
 		return { messages: placed, error }

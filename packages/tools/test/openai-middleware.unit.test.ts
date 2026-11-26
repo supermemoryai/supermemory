@@ -254,7 +254,7 @@ describe("OpenAI middleware memory context", () => {
 				JSON.stringify(inputs[0]).slice(0, -1),
 			),
 		).toBe(true)
-		expect(inputs[1]).toHaveLength(5)
+		expect(inputs[1]).toHaveLength(4)
 		expect(inputs[2]).toHaveLength(2)
 		expect(chained.output[0]).not.toHaveProperty("supermemory")
 	})

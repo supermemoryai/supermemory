@@ -55,6 +55,8 @@ const result = await generateText({
 Your system prompt, your messages and your cache breakpoints are never changed. On
 each user turn the wrapper makes one recall (the profile and search results, per
 `mode`) and sends it as a separate user message after your latest user message.
+Memories already shown in an earlier restored block are left out, so a turn that
+recalls nothing new sends no block at all.
 
 The reply's first text or tool-call part carries that block, signed, in
 `providerMetadata.supermemory`. Save the whole UI message (the default `useChat` and

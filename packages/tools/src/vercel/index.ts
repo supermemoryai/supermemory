@@ -78,7 +78,8 @@ interface WrapVercelLanguageModelOptions {
  * with nothing held in memory between calls:
  * - When the latest user message has no memories yet, one recall (profile and search,
  *   per `mode`) is sent as a separate user message after it. Your messages, the system
- *   prompt and your cache breakpoints are never changed.
+ *   prompt and your cache breakpoints are never changed. Lines an earlier restored block
+ *   already carries are left out, so a turn with nothing new sends no block.
  * - The reply's first text or tool-call part carries that block, signed, in
  *   `providerMetadata.supermemory`. When you send the reply back (for example
  *   `convertToModelMessages` on stored UI messages), the block is put back in front of it,

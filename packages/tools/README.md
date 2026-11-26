@@ -85,7 +85,7 @@ const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 
 - `withSupermemory` injects the Supermemory v5 profile for the given `namespace`, plus a memories search on the latest user message in `query` and `full` modes
 - You can provide the Supermemory API key via the `apiKey` option to `withSupermemory` (recommended for browser usage), or fall back to `SUPERMEMORY_API_KEY` in the environment for server usage.
-- **Stable conversation context**: Each user turn gets one recall (profile and search, per mode), sent as a separate user message after your latest user message; your system prompt, messages and cache breakpoints are never changed. The reply carries that block, signed, in `providerMetadata.supermemory`, and when you send the stored reply back the block is put back in front of it, so earlier turns are resent byte for byte. Nothing is held between calls, so a new wrapper per request is fine. A block with a missing or bad signature is ignored, and text-only history just gets a fresh recall each turn.
+- **Stable conversation context**: Each user turn gets one recall (profile and search, per mode), sent as a separate user message after your latest user message (memories an earlier restored block already shows are left out); your system prompt, messages and cache breakpoints are never changed. The reply carries that block, signed, in `providerMetadata.supermemory`, and when you send the stored reply back the block is put back in front of it, so earlier turns are resent byte for byte. Nothing is held between calls, so a new wrapper per request is fine. A block with a missing or bad signature is ignored, and text-only history just gets a fresh recall each turn.
 
 ```typescript
 import { generateText } from "ai"
