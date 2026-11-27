@@ -180,11 +180,7 @@ import { NextPage } from 'next';
 import { clsx } from 'clsx';
 import { motion } from 'motion';
 
-// 3. Internal packages
-import { Button } from '@repo/ui';
-import { useAuth } from '@repo/lib';
-
-// 4. Relative imports
+// 3. Relative imports
 import { Header } from './header';
 import { Footer } from './footer';
 ```
