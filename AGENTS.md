@@ -193,6 +193,8 @@ A Bun + Turbo monorepo. The `supermemory` SDKs on npm and PyPI are built in sepa
 | `packages/pipecat-sdk-python/` | `supermemory-pipecat`: Pipecat integration |
 | `packages/cartesia-sdk-python/` | `supermemory-cartesia`: Cartesia Line integration |
 | `packages/livekit-sdk-python/` | `supermemory-livekit` (not on PyPI yet): LiveKit Agents integration |
+| `packages/strands-python/` | `supermemory-strands` (not on PyPI yet): memory store for Strands Agents |
+| `packages/dify-plugin/` | Supermemory tool plugin for the Dify Marketplace (author `supermemoryai`) |
 | `packages/ui/` | Shared UI components |
 | `packages/lib/` | Shared utilities and logic |
 | `packages/hooks/` | Shared React hooks |

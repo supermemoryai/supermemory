@@ -1,0 +1,75 @@
+identity:
+  name: search_memories
+  author: supermemoryai
+  label:
+    en_US: Search Memories
+description:
+  human:
+    en_US: Search a Supermemory namespace for memories and source passages relevant to a query.
+  llm: Search Supermemory for context relevant to a natural-language query. Returns ranked memories and source passages from the given namespace.
+parameters:
+  - name: namespace
+    type: string
+    required: true
+    label:
+      en_US: Namespace
+    human_description:
+      en_US: The user ID, project ID or other string the memories were stored under.
+    llm_description: The namespace to search, for example a user ID or project ID. It must match the namespace used when the content was added.
+    form: llm
+  - name: query
+    type: string
+    required: true
+    label:
+      en_US: Query
+    human_description:
+      en_US: The question, topic or phrase to search for.
+    llm_description: Natural-language question, topic or phrase to retrieve relevant context for.
+    form: llm
+  - name: limit
+    type: number
+    required: false
+    default: 10
+    min: 1
+    max: 100
+    label:
+      en_US: Limit
+    human_description:
+      en_US: Maximum number of results to return (1 to 100).
+    llm_description: Maximum number of results to return, from 1 to 100. Default is 10.
+    form: form
+  - name: search_mode
+    type: select
+    required: false
+    default: hybrid
+    label:
+      en_US: Search Mode
+    human_description:
+      en_US: Hybrid combines memories with source chunks. Memories returns learned context only. Chunks returns source passages only.
+    llm_description: Search surface. "hybrid" combines memories with source chunks, "memories" returns learned context, "chunks" returns source passages.
+    form: form
+    options:
+      - value: hybrid
+        label:
+          en_US: Hybrid
+      - value: memories
+        label:
+          en_US: Memories
+      - value: chunks
+        label:
+          en_US: Chunks
+  - name: threshold
+    type: number
+    required: false
+    default: 0.3
+    min: 0
+    max: 1
+    label:
+      en_US: Threshold
+    human_description:
+      en_US: Minimum relevance score from 0 to 1. Raise it for fewer, more precise results.
+    llm_description: Minimum relevance score from 0 to 1. Default is 0.3.
+    form: form
+extra:
+  python:
+    source: tools/search_memories.py

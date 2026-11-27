@@ -1,0 +1,31 @@
+identity:
+  name: forget_memories
+  author: supermemoryai
+  label:
+    en_US: Forget Memories
+description:
+  human:
+    en_US: Remove specific memories from recall in a Supermemory namespace by memory ID.
+  llm: Forget specific memories by ID so they are removed from normal recall. Get memory IDs from the Search Memories or Get Profile tool first.
+parameters:
+  - name: namespace
+    type: string
+    required: true
+    label:
+      en_US: Namespace
+    human_description:
+      en_US: The user ID, project ID or other string the memories were stored under.
+    llm_description: The namespace that contains the memories to forget.
+    form: llm
+  - name: memory_ids
+    type: string
+    required: true
+    label:
+      en_US: Memory IDs
+    human_description:
+      en_US: Memory IDs to forget, as a comma-separated list or a JSON array.
+    llm_description: Memory IDs to forget, as a comma-separated string or a JSON array string, for example "mem_abc123,mem_def456".
+    form: llm
+extra:
+  python:
+    source: tools/forget_memories.py
