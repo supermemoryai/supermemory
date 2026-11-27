@@ -111,11 +111,11 @@ export class ClaudeMemoryTool {
 					}
 					return await this.create(path, command.file_text)
 				case "str_replace":
-					// new_str may be "" (deleting text) but must be present.
-					if (!command.old_str || command.new_str === undefined) {
+					// new_str is optional per Anthropic docs: when omitted, old_str is deleted.
+					if (!command.old_str) {
 						return {
 							success: false,
-							error: "old_str and new_str are required for str_replace command",
+							error: "old_str is required for str_replace command",
 						}
 					}
 					return await this.strReplace(path, command.old_str, command.new_str)
@@ -362,12 +362,13 @@ export class ClaudeMemoryTool {
 	}
 
 	/**
-	 * String replace command: Replace text in existing file
+	 * String replace command: Replace text in existing file.
+	 * newStr is optional: when omitted, oldStr is deleted (per Anthropic docs).
 	 */
 	private async strReplace(
 		filePath: string,
 		oldStr: string,
-		newStr: string,
+		newStr?: string,
 	): Promise<MemoryResponse> {
 		try {
 			// First, find and read the existing file
@@ -389,10 +390,9 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			// Replace the string. The function replacer keeps `$` sequences
-			// in the replacement literal — a bare string here would expand
-			// patterns like $&, $', and $` and silently corrupt the file.
-			const newContent = originalContent.replace(oldStr, () => newStr)
+			// newStr is optional: when undefined, delete oldStr (replace with empty string)
+			const replacement = newStr ?? ""
+			const newContent = originalContent.replace(oldStr, () => replacement)
 
 			await this.writeFile(readResult.document.documentId, newContent, {
 				...readResult.document.metadata,
@@ -516,6 +516,24 @@ export class ClaudeMemoryTool {
 					success: false,
 					error: readResult.error || "File not found",
 				}
+			}
+
+			// Check if destination already exists as a DIFFERENT live file.
+			// Per Anthropic docs: "Destination already exists: Return an error (do not overwrite)"
+			// Exception: if destination is the SAME file's legacy ID, allow in-place rename.
+			const destResult = await this.getFileDocument(newPath)
+			const destDocId = destResult.document?.documentId ?? destResult.documentId
+			if (destDocId) {
+				// Destination exists (even if content is still processing).
+				// Check if it's the same file (legacy ID case).
+				const isSameFile = destDocId === readResult.document.documentId
+				if (!isSameFile) {
+					return {
+						success: false,
+						error: `Error: The destination ${newPath} already exists`,
+					}
+				}
+				// Same file (legacy ID): proceed with in-place rename below.
 			}
 
 			// Overwrite the destination's existing document (possibly a legacy ID) so no stale copy survives.

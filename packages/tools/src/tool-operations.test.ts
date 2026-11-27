@@ -537,17 +537,22 @@ describe("ClaudeMemoryTool", () => {
 		)
 	})
 
-	it("str_replace still rejects a missing new_str", async () => {
+	it("str_replace without new_str deletes old_str (per Anthropic docs)", async () => {
+		mockFileDocument("keep this\nremove me\nkeep that")
 		const tool = new ClaudeMemoryTool(API_KEY)
 
 		const result = await tool.handleCommand({
 			command: "str_replace",
 			path: FILE_PATH,
-			old_str: "something",
+			old_str: "remove me\n",
 		})
 
-		expect(result.success).toBe(false)
-		expect(result.error).toContain("new_str")
+		expect(result.success).toBe(true)
+		expect(sdk.documentsUpdate).toHaveBeenCalledWith(
+			DEFAULT_NS,
+			FILE_ID,
+			expect.objectContaining({ content: "keep this\nkeep that" }),
+		)
 	})
 
 	it("insert accepts an empty insert_text for blank lines", async () => {
