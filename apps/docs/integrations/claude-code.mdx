@@ -11,7 +11,7 @@ icon: "/images/claude-code-icon.svg"
   className="rounded-lg"
 />
 
-[supermemory](https://github.com/supermemoryai/claude-supermemory) is a Claude Code plugin that gives your AI persistent memory across sessions. Your agent remembers what you worked on — across sessions, across projects.
+[supermemory](https://github.com/supermemoryai/plugins/tree/main/claude-code) is a Claude Code plugin that gives your AI persistent memory across sessions. Your agent remembers what you worked on — across sessions, across projects.
 
 <Tip>
 **Prefer to keep everything on your machine?** This plugin works with [self-hosted Supermemory](/self-hosting/overview) — run `npx supermemory local`, then set `baseUrl` in project config (or point your install at your local API) and use the API key printed on first boot.
@@ -23,7 +23,7 @@ icon: "/images/claude-code-icon.svg"
 
 ```bash
 # Add the plugin marketplace
-/plugin marketplace add supermemoryai/claude-supermemory
+/plugin marketplace add supermemoryai/plugins
 
 # Install the plugin
 /plugin install supermemory
@@ -153,7 +153,7 @@ API key precedence is `SUPERMEMORY_CC_API_KEY`, project `apiKey`, then `~/.super
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="GitHub repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/claude-supermemory">
+  <Card title="GitHub repository" icon="/images/github-icon.svg" href="https://github.com/supermemoryai/plugins/tree/main/claude-code">
     Source code, issues, and detailed README.
   </Card>
 

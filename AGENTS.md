@@ -133,11 +133,11 @@ To install a single plugin by hand, or for an agent the CLI doesn't cover (Herme
 
 | Agent | Install | Guide |
 | --- | --- | --- |
-| Claude Code | `/plugin marketplace add supermemoryai/claude-supermemory`, then `/plugin install supermemory` | [docs](https://supermemory.ai/docs/integrations/claude-code) |
+| Claude Code | `/plugin marketplace add supermemoryai/plugins`, then `/plugin install supermemory` | [docs](https://supermemory.ai/docs/integrations/claude-code) |
 | Cursor | `/add-plugin cursor-supermemory`, or Supermemory in the Cursor Marketplace | [docs](https://supermemory.ai/docs/integrations/cursor) |
 | Codex | `npx codex-supermemory@latest install`, then restart Codex CLI | [docs](https://supermemory.ai/docs/integrations/codex) |
 | OpenCode | `bunx opencode-supermemory@latest install --no-tui` | [docs](https://supermemory.ai/docs/integrations/opencode) |
-| Hermes | `hermes plugins install supermemoryai/hermes-supermemory`, `hermes plugins enable supermemory`, then `hermes memory setup` | [repo](https://github.com/supermemoryai/hermes-supermemory) |
+| Hermes | `hermes plugins install supermemoryai/plugins/hermes`, `hermes plugins enable supermemory`, then `hermes memory setup` | [repo](https://github.com/supermemoryai/plugins/tree/main/hermes) |
 | OpenClaw | `openclaw plugins install @supermemory/openclaw-supermemory` | [docs](https://supermemory.ai/docs/integrations/openclaw) |
 | Any MCP client | Remote server `https://mcp.supermemory.ai/mcp` (OAuth sign-in, no API key) | [docs](https://supermemory.ai/docs/supermemory-mcp/mcp) |
 

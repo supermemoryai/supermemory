@@ -119,12 +119,12 @@ These plugins are implementations of the supermemory API, and they are open sour
 
 You can find them here: 
 
-- Claude Code plugin: https://github.com/supermemoryai/claude-supermemory
+- Claude Code plugin: https://github.com/supermemoryai/plugins/tree/main/claude-code
 - Muse Code plugin: https://github.com/supermemoryai/muse-supermemory
-- Cursor plugin: https://github.com/supermemoryai/cursor-supermemory
-- Codex plugin: https://github.com/supermemoryai/codex-supermemory
-- OpenClaw plugin: https://github.com/supermemoryai/openclaw-supermemory
-- OpenCode plugin: https://github.com/supermemoryai/opencode-supermemory
+- Cursor plugin: https://github.com/supermemoryai/plugins/tree/main/cursor
+- Codex plugin: https://github.com/supermemoryai/plugins/tree/main/codex
+- OpenClaw plugin: https://github.com/supermemoryai/plugins/tree/main/openclaw
+- OpenCode plugin: https://github.com/supermemoryai/plugins/tree/main/opencode
 - Hermes agent (Supermemory memory provider): https://github.com/NousResearch/hermes-agent
 
 ### MCP

@@ -95,11 +95,11 @@ Supermemory 已经为 Claude Code、Cursor、Codex、OpenCode、OpenClaw、Herme
 
 这些插件本质上是 supermemory API 的实现，全部开源：
 
-- Claude Code 插件：https://github.com/supermemoryai/claude-supermemory
-- Cursor 插件：https://github.com/supermemoryai/cursor-supermemory
-- Codex 插件：https://github.com/supermemoryai/codex-supermemory
-- OpenClaw 插件：https://github.com/supermemoryai/openclaw-supermemory
-- OpenCode 插件：https://github.com/supermemoryai/opencode-supermemory
+- Claude Code 插件：https://github.com/supermemoryai/plugins/tree/main/claude-code
+- Cursor 插件：https://github.com/supermemoryai/plugins/tree/main/cursor
+- Codex 插件：https://github.com/supermemoryai/plugins/tree/main/codex
+- OpenClaw 插件：https://github.com/supermemoryai/plugins/tree/main/openclaw
+- OpenCode 插件：https://github.com/supermemoryai/plugins/tree/main/opencode
 - Hermes agent（Supermemory 作为记忆 provider）：https://github.com/NousResearch/hermes-agent
 
 ### MCP
