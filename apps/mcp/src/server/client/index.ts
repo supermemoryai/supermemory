@@ -9,6 +9,7 @@ import type {
 import {
 	type DocumentMemoryEntry,
 	type DocumentWithMemories,
+	type DreamingStatus,
 	type GraphApiPage,
 	type GraphDocumentsPage,
 	graphApiPageSchema,
@@ -36,8 +37,6 @@ export type {
 	GraphDocumentsPage,
 	NamespaceInfo,
 }
-
-type DreamingStatus = "dreaming" | "done"
 
 export interface DocumentSummary {
 	id: string
