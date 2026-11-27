@@ -389,6 +389,23 @@ export class ClaudeMemoryTool {
 				}
 			}
 
+			// old_str must be unique, like Anthropic's memory tool: replacing
+			// only the first of several matches would silently edit the wrong spot.
+			const matchingLines: number[] = []
+			for (
+				let index = originalContent.indexOf(oldStr);
+				index !== -1;
+				index = originalContent.indexOf(oldStr, index + 1)
+			) {
+				matchingLines.push(originalContent.slice(0, index).split("\n").length)
+			}
+			if (matchingLines.length > 1) {
+				return {
+					success: false,
+					error: `No replacement was performed. Multiple occurrences of old_str "${oldStr}" in lines: ${matchingLines.join(", ")}. Please ensure it is unique`,
+				}
+			}
+
 			// Replace the string. The function replacer keeps `$` sequences
 			// in the replacement literal — a bare string here would expand
 			// patterns like $&, $', and $` and silently corrupt the file.
