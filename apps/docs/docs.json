@@ -451,6 +451,7 @@
 											"GET /ns/{namespace}/document/{id}",
 											"GET /ns/{namespace}/memories/{id}",
 											"POST /ns/{namespace}/list/{type}",
+											"POST /ns/{namespace}/graph",
 											"DELETE /ns/{namespace}/document",
 											"DELETE /ns/{namespace}/memories",
 											"DELETE /ns/{namespace}/memories/semantic"
