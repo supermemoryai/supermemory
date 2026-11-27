@@ -303,17 +303,34 @@ export function deduplicateMemories(
  *
  * @param mode - The memory retrieval mode
  * @param data - Profile data with memory items from different sources
+ * @param known - Optional trimmed lines of memory blocks the model already has; a memory whose every rendered line is in it is dropped
  * @returns Deduplicated memory strings for each source
  */
 export function deduplicateMemoriesForMode(
 	mode: MemoryMode,
 	data: ProfileWithMemories,
+	known?: ReadonlySet<string>,
 ): DeduplicatedMemories {
 	const injectsProfile = mode !== "query"
 
-	return deduplicateMemories({
+	const deduplicated = deduplicateMemories({
 		static: injectsProfile ? data.static : [],
 		dynamic: injectsProfile ? data.dynamic : [],
 		searchResults: data.searchResults,
 	})
+	if (!known?.size) return deduplicated
+	const fresh = (memories: string[]) =>
+		memories.filter(
+			(memory) =>
+				!`- ${memory}`
+					.split("\n")
+					.map((line) => line.trim())
+					.filter(Boolean)
+					.every((line) => known.has(line)),
+		)
+	return {
+		static: fresh(deduplicated.static),
+		dynamic: fresh(deduplicated.dynamic),
+		searchResults: fresh(deduplicated.searchResults),
+	}
 }

@@ -17,6 +17,8 @@ export type {
 	Processor,
 	ProcessInputArgs,
 	ProcessInputResult,
+	ProcessInputStepArgs,
+	ProcessInputStepResult,
 	ProcessOutputResultArgs,
 	ProcessorMessageResult,
 	InputProcessor,
@@ -45,19 +47,20 @@ export interface SupermemoryMastraOptions {
 	baseUrl?: string
 	/**
 	 * Memory retrieval mode (default: "profile"):
-	 * - "profile": The user profile, fetched once per conversation, added to the system messages
-	 * - "query": Search results for each user message, appended to that message
-	 * - "full": Both: the profile once in the system messages, plus per-message search results
+	 * - "profile": The user profile
+	 * - "query": Search results for the latest user message
+	 * - "full": Both, in one block
 	 *
-	 * The profile stays byte-identical on every call and earlier messages keep the block they
-	 * first received. A failed or timed-out fetch is retried on the next user message.
+	 * The block is sent as a separate user message after the latest user message and comes back
+	 * with the stored reply, so earlier turns stay byte-identical. A failed or timed-out recall
+	 * is retried on the next call.
 	 */
 	mode?: MemoryMode
 	/** Memory persistence mode (default: "always") */
 	addMemory?: AddMemoryMode
 	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
-	/** Custom function to format the profile block and each search block; see {@link PromptTemplate} */
+	/** Custom function to format the memory block; see {@link PromptTemplate} */
 	promptTemplate?: PromptTemplate
 }
 

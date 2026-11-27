@@ -85,7 +85,7 @@ const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 
 - `withSupermemory` injects the Supermemory v5 profile for the given `namespace`, plus a memories search on the latest user message in `query` and `full` modes
 - You can provide the Supermemory API key via the `apiKey` option to `withSupermemory` (recommended for browser usage), or fall back to `SUPERMEMORY_API_KEY` in the environment for server usage.
-- **Stable conversation context**: Reuse one wrapped model per conversation. The profile is fetched once, on the first user turn, and stays unchanged in the system prompt. Query and full modes attach each turn's search results to that user message and keep earlier results unchanged. The profile is never refetched mid-conversation; newer facts arrive through search. A failed retrieval is retried on the next user turn. State lives in the wrapper and is not shared across processes.
+- **Stable conversation context**: Each user turn gets one recall (profile and search, per mode), sent as a separate user message after your latest user message (memories an earlier restored block already shows are left out); your system prompt, messages and cache breakpoints are never changed. The reply carries that block, signed, in `providerMetadata.supermemory`, and when you send the stored reply back the block is put back in front of it, so earlier turns are resent byte for byte. Nothing is held between calls, so a new wrapper per request is fine. A block with a missing or bad signature is ignored, and text-only history just gets a fresh recall each turn.
 
 ```typescript
 import { generateText } from "ai"
@@ -248,7 +248,7 @@ const modelWithOptions = withSupermemory(openai("gpt-4"), {
 
 #### Custom Prompt Templates
 
-Customize how memories are formatted and injected into the system prompt using the `promptTemplate` option. This is useful for:
+Customize how memories are formatted in the injected memory block using the `promptTemplate` option. This is useful for:
 - Using XML-based prompting (e.g., for Claude models)
 - Custom branding (removing "supermemories" references)
 - Controlling how your agent describes where information comes from
@@ -556,7 +556,7 @@ const { input } = createSupermemoryProcessors({
 
 #### Custom Prompt Templates
 
-Customize how memories are formatted in the system prompt:
+Customize how memories are formatted in the memory block:
 
 ```typescript
 import { createSupermemoryProcessors, type MemoryPromptData } from "@supermemory/tools/mastra"

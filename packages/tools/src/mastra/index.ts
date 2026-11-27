@@ -13,6 +13,8 @@ export type {
 	Processor,
 	ProcessInputArgs,
 	ProcessInputResult,
+	ProcessInputStepArgs,
+	ProcessInputStepResult,
 	ProcessOutputResultArgs,
 	ProcessorMessageResult,
 	MastraDBMessage,

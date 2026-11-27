@@ -25,7 +25,7 @@ import {
 	withSupermemory,
 } from "../../src/mastra"
 import type {
-	ProcessInputArgs,
+	ProcessInputStepArgs,
 	ProcessOutputResultArgs,
 	MessageList,
 	MastraDBMessage,
@@ -153,8 +153,40 @@ describe("SupermemoryInputProcessor", () => {
 		})
 	})
 
-	describe("processInput", () => {
-		it("should add the profile as a system message and leave the user message untouched", async () => {
+	describe("processInputStep", () => {
+		const createModel = () => ({
+			specificationVersion: "v2" as const,
+			provider: "test-provider",
+			modelId: "test-model",
+			supportedUrls: {},
+			doGenerate: vi.fn(async (_options: unknown) => ({
+				content: [{ type: "text", text: "Hi" }],
+				finishReason: "stop",
+				usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+				warnings: [],
+			})),
+			doStream: vi.fn(),
+		})
+
+		const stepArgs = (model: unknown) =>
+			({ model, stepNumber: 0 }) as unknown as ProcessInputStepArgs
+
+		const createProcessor = () =>
+			new SupermemoryInputProcessor({
+				namespace: TEST_CONFIG.namespace,
+				id: TEST_CONFIG.id,
+				apiKey: TEST_CONFIG.apiKey,
+				mode: "profile",
+			})
+
+		const userPrompt = [
+			{
+				role: "user" as const,
+				content: [{ type: "text" as const, text: "Hello" }],
+			},
+		]
+
+		it("wraps the model so the call gets a trailing memory message and a tagged reply", async () => {
 			fetchMock.mockImplementation(async () =>
 				jsonResponse(
 					createMockProfileResponse(
@@ -163,259 +195,53 @@ describe("SupermemoryInputProcessor", () => {
 					),
 				),
 			)
+			const inner = createModel()
 
-			const processor = new SupermemoryInputProcessor({
-				namespace: TEST_CONFIG.namespace,
-				id: TEST_CONFIG.id,
-				apiKey: TEST_CONFIG.apiKey,
-				mode: "profile",
-			})
-
-			const messageList = createMockMessageList()
-			const messages: MastraDBMessage[] = [createMessage("user", "Hello")]
-
-			const args: ProcessInputArgs = {
-				messages,
-				systemMessages: [],
-				messageList,
-				abort: vi.fn() as never,
-				retryCount: 0,
+			const { model } = createProcessor().processInputStep(stepArgs(inner)) as {
+				model: ReturnType<typeof createModel>
+			}
+			const result = (await model.doGenerate({
+				prompt: userPrompt,
+			} as never)) as {
+				content: Array<{ providerMetadata?: Record<string, unknown> }>
 			}
 
-			const result = (await processor.processInput(args)) as {
-				messages: MastraDBMessage[]
-				systemMessages: { role: string; content: string }[]
+			const sent = (inner.doGenerate.mock.calls[0] as unknown[])[0] as {
+				prompt: Array<{ role: string; content: Array<{ text: string }> }>
 			}
-
-			expect(messageList.addSystem).not.toHaveBeenCalled()
-			expect(result.messages[0]?.content.parts).toEqual([
-				{ type: "text", text: "Hello" },
-			])
-			const system = result.systemMessages[0]?.content ?? ""
-			expect(system).toContain("TypeScript")
-			expect(system).toContain('<supermemory context="user-memories" readonly>')
-		})
-
-		it("should use cached memories on second call with same message", async () => {
-			fetchMock.mockImplementation(async () =>
-				jsonResponse(createMockProfileResponse(["Cached memory"])),
+			expect(sent.prompt[0]).toEqual(userPrompt[0])
+			expect(sent.prompt[1]?.role).toBe("user")
+			expect(sent.prompt[1]?.content[0]?.text).toContain("TypeScript")
+			expect(sent.prompt[1]?.content[0]?.text).toContain(
+				'<supermemory context="user-memories" readonly>',
 			)
-
-			const processor = new SupermemoryInputProcessor({
-				namespace: TEST_CONFIG.namespace,
-				id: TEST_CONFIG.id,
-				apiKey: TEST_CONFIG.apiKey,
-				mode: "profile",
+			expect(result.content[0]?.providerMetadata?.supermemory).toMatchObject({
+				block: sent.prompt[1]?.content[0]?.text,
 			})
-
-			const messages: MastraDBMessage[] = [createMessage("user", "Hello")]
-
-			const args1: ProcessInputArgs = {
-				messages,
-				systemMessages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processInput(args1)
-			expect(fetchMock).toHaveBeenCalledTimes(1)
-
-			const args2: ProcessInputArgs = {
-				messages,
-				systemMessages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processInput(args2)
-			expect(fetchMock).toHaveBeenCalledTimes(1)
 		})
 
-		it("should refetch memories for different user message", async () => {
-			let callCount = 0
-			fetchMock.mockImplementation(() => {
-				callCount++
-				return Promise.resolve(
-					jsonResponse(
-						createMockProfileResponse([`Memory from call ${callCount}`]),
-					),
-				)
-			})
-
-			const processor = new SupermemoryInputProcessor({
-				namespace: TEST_CONFIG.namespace,
-				id: TEST_CONFIG.id,
-				apiKey: TEST_CONFIG.apiKey,
-				mode: "query",
-			})
-
-			const args1: ProcessInputArgs = {
-				messages: [createMessage("user", "First message")],
-				systemMessages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processInput(args1)
-			expect(fetchMock).toHaveBeenCalledTimes(1)
-
-			const args2: ProcessInputArgs = {
-				messages: [createMessage("user", "Different message")],
-				systemMessages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processInput(args2)
-			expect(fetchMock).toHaveBeenCalledTimes(2)
+		it("does not wrap a model twice across steps", () => {
+			const processor = createProcessor()
+			const { model } = processor.processInputStep(stepArgs(createModel()))
+			expect(processor.processInputStep(stepArgs(model)).model).toBe(model)
 		})
 
-		it("should return messageList in query mode when no user message", async () => {
-			const processor = new SupermemoryInputProcessor({
-				namespace: TEST_CONFIG.namespace,
-				id: TEST_CONFIG.id,
-				apiKey: TEST_CONFIG.apiKey,
-				mode: "query",
-			})
-
-			const messageList = createMockMessageList()
-			const args: ProcessInputArgs = {
-				messages: [],
-				systemMessages: [],
-				messageList,
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			const result = await processor.processInput(args)
-
-			expect(result).toBe(messageList)
-			expect(fetchMock).not.toHaveBeenCalled()
-			expect(messageList.addSystem).not.toHaveBeenCalled()
+		it("leaves an unresolved model alone", () => {
+			expect(
+				createProcessor().processInputStep(stepArgs("openai/gpt-4o")),
+			).toEqual({})
 		})
 
-		it("should handle API errors gracefully", async () => {
+		it("calls the model without memories when recall fails", async () => {
 			fetchMock.mockImplementation(async () => errorResponse(500))
+			const inner = createModel()
 
-			const processor = new SupermemoryInputProcessor({
-				namespace: TEST_CONFIG.namespace,
-				id: TEST_CONFIG.id,
-				apiKey: TEST_CONFIG.apiKey,
-				mode: "profile",
-			})
-
-			const messageList = createMockMessageList()
-			const args: ProcessInputArgs = {
-				messages: [createMessage("user", "Hello")],
-				systemMessages: [],
-				messageList,
-				abort: vi.fn() as never,
-				retryCount: 0,
+			const { model } = createProcessor().processInputStep(stepArgs(inner)) as {
+				model: ReturnType<typeof createModel>
 			}
+			await model.doGenerate({ prompt: userPrompt } as never)
 
-			const result = await processor.processInput(args)
-
-			expect(result).toBe(messageList)
-			expect(messageList.addSystem).not.toHaveBeenCalled()
-		})
-
-		it("should use threadId from options", async () => {
-			fetchMock.mockImplementation(async () =>
-				jsonResponse(createMockProfileResponse(["Memory"])),
-			)
-
-			const processor = new SupermemoryInputProcessor({
-				namespace: TEST_CONFIG.namespace,
-				id: "thread-123",
-				apiKey: TEST_CONFIG.apiKey,
-				mode: "profile",
-			})
-
-			const args: ProcessInputArgs = {
-				messages: [createMessage("user", "Hello")],
-				systemMessages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processInput(args)
-
-			expect(fetchMock).toHaveBeenCalled()
-		})
-
-		it("should use threadId from requestContext when not in options", async () => {
-			fetchMock.mockImplementation(async () =>
-				jsonResponse(createMockProfileResponse(["Memory"])),
-			)
-
-			const processor = new SupermemoryInputProcessor({
-				namespace: TEST_CONFIG.namespace,
-				id: TEST_CONFIG.id,
-				apiKey: TEST_CONFIG.apiKey,
-				mode: "profile",
-			})
-
-			const requestContext = new RequestContext()
-			requestContext.set(MASTRA_THREAD_ID_KEY, "ctx-thread-456")
-
-			const args: ProcessInputArgs = {
-				messages: [createMessage("user", "Hello")],
-				systemMessages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-				requestContext,
-			}
-
-			await processor.processInput(args)
-
-			expect(fetchMock).toHaveBeenCalled()
-		})
-
-		it("should handle messages with array content parts", async () => {
-			fetchMock.mockImplementation(async () =>
-				jsonResponse(createMockProfileResponse(["Memory"])),
-			)
-
-			const processor = new SupermemoryInputProcessor({
-				namespace: TEST_CONFIG.namespace,
-				id: TEST_CONFIG.id,
-				apiKey: TEST_CONFIG.apiKey,
-				mode: "query",
-			})
-
-			const messages: MastraDBMessage[] = [
-				{
-					id: "msg-1",
-					role: "user",
-					content: {
-						format: 2,
-						parts: [
-							{ type: "text", text: "Hello " },
-							{ type: "text", text: "World" },
-						],
-					},
-					createdAt: new Date(),
-				},
-			]
-
-			const messageList = createMockMessageList()
-			const args: ProcessInputArgs = {
-				messages,
-				systemMessages: [],
-				messageList,
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processInput(args)
-
-			expect(fetchMock).toHaveBeenCalled()
+			expect(inner.doGenerate).toHaveBeenCalledWith({ prompt: userPrompt })
 		})
 	})
 })

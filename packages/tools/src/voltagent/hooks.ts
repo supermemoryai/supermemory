@@ -16,6 +16,7 @@ import {
 	createSupermemoryContext,
 	enhanceMessagesWithMemories,
 	saveConversation,
+	type SupermemoryMiddlewareContext,
 } from "./middleware"
 
 const getInputMessages = (input: unknown): VoltAgentMessage[] => {
@@ -47,8 +48,12 @@ const getOutputText = (output: unknown): string => {
 /**
  * Creates Supermemory hooks for VoltAgent agents.
  *
- * These hooks intercept the agent lifecycle to inject memories
- * before LLM calls and save conversations after completion.
+ * These hooks intercept the agent lifecycle to inject memories before LLM calls and save
+ * conversations after completion. `onPrepareMessages` appends one recall as a separate user
+ * message after the latest user message, leaving every earlier message unchanged so the prompt
+ * prefix stays cacheable. The memory message is not stored, so each call recalls again. Prefer
+ * {@link withSupermemory} with a model object: it wraps the model, and the stored reply carries
+ * its memories so later turns resend them byte for byte.
  *
  * @param namespace - The namespace (e.g. user ID) for scoping memories
  * @param options - Configuration options for memory behavior
@@ -76,40 +81,45 @@ export function createSupermemoryHooks(
 	namespace: string,
 	options: SupermemoryVoltAgent,
 ): VoltAgentHooks {
-	const ctx = createSupermemoryContext(namespace, options)
+	return createHooks(createSupermemoryContext(namespace, options), true)
+}
+
+export function createHooks(
+	ctx: SupermemoryMiddlewareContext,
+	injectMemories: boolean,
+): VoltAgentHooks {
+	const onPrepareMessages = async (args: HookPrepareMessagesArgs) => {
+		try {
+			const preparedMessages = args.messages as unknown as VoltAgentMessage[]
+
+			ctx.logger.debug("onPrepareMessages called", {
+				messageCount: args.messages.length,
+				agentName: args.agent.name,
+			})
+
+			const enhancedMessages = await enhanceMessagesWithMemories(
+				preparedMessages,
+				ctx,
+			)
+
+			ctx.logger.debug("Messages enhanced with memories", {
+				originalCount: args.messages.length,
+				enhancedCount: enhancedMessages.length,
+			})
+
+			return {
+				messages: enhancedMessages as unknown as typeof args.messages,
+			}
+		} catch (error) {
+			ctx.logger.error("Error in onPrepareMessages", {
+				error: error instanceof Error ? error.message : "Unknown error",
+			})
+			return { messages: args.messages }
+		}
+	}
 
 	return {
-		onPrepareMessages: async (args: HookPrepareMessagesArgs) => {
-			try {
-				const preparedMessages = args.messages as unknown as VoltAgentMessage[]
-
-				ctx.logger.debug("onPrepareMessages called", {
-					messageCount: args.messages.length,
-					agentName: args.agent.name,
-				})
-
-				const enhancedMessages = await enhanceMessagesWithMemories(
-					preparedMessages,
-					ctx,
-					args.context?.conversationId ?? ctx.id,
-				)
-
-				ctx.logger.debug("Messages enhanced with memories", {
-					originalCount: args.messages.length,
-					enhancedCount: enhancedMessages.length,
-				})
-
-				return {
-					messages: enhancedMessages as unknown as typeof args.messages,
-				}
-			} catch (error) {
-				ctx.logger.error("Error in onPrepareMessages", {
-					error: error instanceof Error ? error.message : "Unknown error",
-				})
-				return { messages: args.messages }
-			}
-		},
-
+		...(injectMemories && { onPrepareMessages }),
 		onEnd: async (args: HookEndArgs): Promise<void> => {
 			try {
 				ctx.logger.debug("onEnd called", {

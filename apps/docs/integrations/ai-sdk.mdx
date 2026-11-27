@@ -52,21 +52,28 @@ const result = await generateText({
 
 ### Prompt caching
 
-Reuse the same wrapped model for every turn of a conversation. In `profile` and
-`full` modes, the profile is fetched on the first user turn and stays unchanged in
-the system prompt for the rest of the conversation. `query` and `full` modes attach
-each turn's search results to that turn's user message, and earlier turns keep their
-original results, so the prompt prefix stays the same as new messages are appended.
+Your system prompt, your messages and your cache breakpoints are never changed. On
+each user turn the wrapper makes one recall (the profile and search results, per
+`mode`) and sends it as a separate user message after your latest user message.
+Memories already shown in an earlier restored block are left out, so a turn that
+recalls nothing new sends no block at all.
 
-Tool steps reuse their turn's memories without new requests. The profile is never
-refetched during a conversation; facts that change mid-conversation reach the model
-through each turn's search results.
+The reply's first text or tool-call part carries that block, signed, in
+`providerMetadata.supermemory`. Save the whole UI message (the default `useChat` and
+`onFinish` flow) and build the next request with `convertToModelMessages`: the
+wrapper puts each block back in front of its reply, so earlier turns are resent byte
+for byte. Tool steps reuse the block without a new request.
 
-If retrieval fails or times out, the call continues without it by default, and the
-next user turn retries the profile. State lives in the wrapper, not in a global or
-cross-process cache, so create a new wrapper for each new conversation. Keep system
-instructions, tools and earlier messages stable too. Provider cache eligibility and
-minimum token counts still apply, so cache-hit savings are not guaranteed.
+The wrapper holds nothing between calls, so a new wrapper per request or per server
+instance is fine. The signature is an HMAC keyed by your Supermemory API key, so a
+block edited or invented on the client is ignored. If your app stores only message
+text, nothing is restored and each call just gets a fresh recall after the latest
+user message, which still caches well with an explicit cache breakpoint on your last
+message but not with Anthropic's automatic caching.
+
+If retrieval fails or times out, the call continues without it by default. Provider
+cache eligibility and minimum token counts still apply, so cache-hit savings are not
+guaranteed.
 
 ### Required fields
 

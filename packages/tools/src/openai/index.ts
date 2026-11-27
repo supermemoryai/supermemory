@@ -8,16 +8,14 @@ import {
  * Wraps an OpenAI client with SuperMemory middleware to automatically inject relevant memories
  * into both Chat Completions and Responses APIs based on the user's input content.
  *
- * The profile ("profile" and "full" modes) is fetched once per conversation and is not refreshed:
- * - Chat Completions API: appended as a separate block to the first system or developer message,
- *   keeping your text unchanged, or sent as a new system message when there is none.
- * - Responses API: appended to `instructions` the same way, or set as `instructions`. OpenAI does
- *   not carry `instructions` over with `previous_response_id`, so it is resent unchanged each call.
- *
- * Search results ("query" and "full" modes) are appended to the user message (or user `input` item)
- * they were retrieved for, and earlier messages keep the block they first received, so the prompt
- * prefix stays byte-identical and prompt-cacheable. A failed or timed-out fetch is retried on the
- * next user message. Use one wrapped client per conversation (`options.id`).
+ * Each user turn gets one recall (per `mode`), sent as a separate user message after the latest
+ * user message; your system prompt, `instructions` and messages are not changed. The returned
+ * assistant message (Chat Completions, non-streaming) or first output item (Responses) carries
+ * that block, signed, in a non-enumerable `supermemory` field. Push that object back into your
+ * history and the wrapper restores the block in front of it, so earlier turns are resent byte for
+ * byte and stay prompt-cacheable. JSON drops the field, so stored history gets a fresh recall
+ * instead, unless `serializeMemoryBlocks` is on. The parse, stream and runTools helpers go
+ * through the wrapper too.
  *
  * @param openaiClient - The OpenAI client to wrap with SuperMemory middleware
  * @param options - Configuration options for the middleware
@@ -28,6 +26,7 @@ import {
  * @param options.addMemory - Optional mode for memory addition: "always" (default), "never"
  * @param options.apiKey - Optional Supermemory API key; falls back to SUPERMEMORY_API_KEY
  * @param options.baseUrl - Optional base URL for the Supermemory API (default: "https://api.supermemory.ai")
+ * @param options.serializeMemoryBlocks - Optional; make the `supermemory` field enumerable so stored JSON history restores its blocks. Replay such history only through a wrapped client, because the Responses API and strict OpenAI-compatible servers reject the field (default: false)
  *
  * @returns A distinct OpenAI middleware facade for Chat Completions and Responses APIs. The supplied client is not mutated.
  *
