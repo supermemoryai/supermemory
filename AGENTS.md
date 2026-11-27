@@ -172,8 +172,8 @@ A Bun + Turbo monorepo. The `supermemory` SDKs on npm and PyPI are built in sepa
   `packages/*-python/pyproject.toml` unless asked. The `publish-*.yml` workflows publish when those change on `main`.
 - Edit the workflows in `.github/workflows/` unless asked.
 - Migrate the Python packages to the v5 SDK unless asked. `openai-sdk-python`, `pipecat-sdk-python` and
-  `cartesia-sdk-python` pin `supermemory<5` (the 3.x SDK) on purpose, and `livekit-sdk-python` still makes uncapped 3.x
-  SDK calls; all of them use `container_tag`. `agent-framework-python` 2.0 is already on v5 (`supermemory>=5.0.0,<6`)
+  `cartesia-sdk-python` pin `supermemory<5` (the 3.x SDK) on purpose, and `livekit-sdk-python` pins `supermemory<4`
+  because it calls the 3.x API; all of them use `container_tag`. `agent-framework-python` 2.0 is already on v5 (`supermemory>=5.0.0,<6`)
   and passes its `container_tag` as the namespace.
 - Commit `.env` files, API keys or credentials.
 

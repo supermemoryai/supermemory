@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Literal, Optional
 from uuid import uuid4
 
@@ -30,6 +31,16 @@ _ATTRIBUTE = "supermemory_container_tag"
 _STORE_TIMEOUT = 10.0
 _MAX_DOCUMENT_CHARS = 100_000
 _MAX_BUFFERED = 2_000
+
+
+def _plugin_version() -> str:
+    try:
+        return version("supermemory-livekit")
+    except PackageNotFoundError:
+        return "unknown"
+
+
+_SOURCE_HEADERS = {"x-sm-source": "livekit-python", "x-sm-plugin-version": _plugin_version()}
 
 
 def _log_flush_failure(task: "asyncio.Task[None]") -> None:
@@ -99,7 +110,7 @@ class SupermemoryLiveKit:
             raise ConfigurationError(
                 "supermemory is not installed. Install with: pip install supermemory-livekit"
             ) from exc
-        kwargs: dict[str, Any] = {"api_key": self.api_key}
+        kwargs: dict[str, Any] = {"api_key": self.api_key, "default_headers": _SOURCE_HEADERS}
         if base_url:
             kwargs["base_url"] = base_url
         return supermemory.AsyncSupermemory(**kwargs)
