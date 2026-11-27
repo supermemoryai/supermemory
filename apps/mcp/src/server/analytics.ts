@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server"
 import { instrument, type MCPAnalyticsOptions } from "@posthog/mcp"
 import { PostHog } from "posthog-node"
 import { OUT_OF_CREDITS_MESSAGE } from "./client"
+import { ERROR_STATUS_META_KEY } from "./tools/types"
 import type { ActorContext, ServerEnv } from "./types"
 
 const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com"
@@ -16,11 +17,29 @@ const MCP_EVENT_PROPERTIES = [
 	"$mcp_client_name",
 	"$mcp_client_version",
 	"$mcp_protocol_version",
-	"$mcp_listed_tool_names",
 	"$mcp_conversation_id",
 	"$session_id",
 	"$groups",
 ] as const
+const STATUS_ERROR_CODES: Record<number, string> = {
+	400: "invalid_input",
+	401: "unauthorized",
+	403: "forbidden",
+	404: "not_found",
+	422: "invalid_input",
+	429: "rate_limited",
+}
+const ERROR_CODES: ReadonlyArray<readonly [RegExp, string]> = [
+	[/timed out/i, "timeout"],
+	[/network error/i, "network"],
+	[/authentication failed/i, "unauthorized"],
+	[/forbidden/i, "forbidden"],
+	[/rate limit/i, "rate_limited"],
+	[/server error/i, "server_error"],
+	[/^tool \S+ (not found|disabled)/i, "unknown_tool"],
+	[/not found|no document with id/i, "not_found"],
+	[/invalid|is required|pass between|exceeds/i, "invalid_input"],
+]
 
 export type WaitUntil = (promise: Promise<unknown>) => void
 
@@ -58,16 +77,33 @@ class ImmediateMcpPostHog extends PostHog {
 	}
 }
 
+// API error text can echo user input, so only a fixed code and the HTTP status leave the Worker.
+function errorProperties(
+	properties: Record<string, unknown>,
+): Record<string, string | number> {
+	const meta = Reflect.get(Object(properties.$mcp_response), "_meta")
+	const status = Reflect.get(Object(meta), ERROR_STATUS_META_KEY)
+	const message = String(properties.$mcp_error_message ?? "")
+	const errorType = properties.$mcp_error_type
+	const code =
+		(typeof status === "number"
+			? (STATUS_ERROR_CODES[status] ??
+				(status >= 500 ? "server_error" : undefined))
+			: undefined) ??
+		ERROR_CODES.find(([pattern]) => pattern.test(message))?.[1] ??
+		(typeof errorType === "string" && /^\w{1,40}$/.test(errorType)
+			? errorType
+			: "unknown")
+	return {
+		$mcp_error_type: code,
+		...(typeof status === "number" ? { $mcp_error_status: status } : {}),
+	}
+}
+
 const metadataOnlyMcpEvent: NonNullable<MCPAnalyticsOptions["beforeSend"]> = (
 	event,
 ) => {
-	if (
-		!["$mcp_tool_call", "$mcp_tools_list", "$mcp_initialize"].includes(
-			event.event,
-		)
-	) {
-		return null
-	}
+	if (event.event !== "$mcp_tool_call") return null
 
 	const errorMessage = event.properties.$mcp_error_message
 	const outOfCredits =
@@ -85,7 +121,9 @@ const metadataOnlyMcpEvent: NonNullable<MCPAnalyticsOptions["beforeSend"]> = (
 			// Billing state, not a server bug, so keep it out of the error rate.
 			...(outOfCredits
 				? { $mcp_is_error: false, $mcp_error_type: "out_of_credits" }
-				: {}),
+				: event.properties.$mcp_is_error === true
+					? errorProperties(event.properties)
+					: {}),
 			$process_person_profile: false,
 		},
 	}
