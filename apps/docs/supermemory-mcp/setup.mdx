@@ -1,6 +1,6 @@
 ---
 title: "Setup and usage"
-description: "Connect Supermemory to an MCP client with OAuth and choose how requests use spaces"
+description: "Connect Supermemory to an MCP client with OAuth or an API key and choose how requests use spaces"
 icon: "/icons/hugeicons/settings-01.svg"
 ---
 
@@ -23,6 +23,25 @@ Add the remote server to your MCP client:
 ```
 
 Supermemory MCP uses OAuth. Your client opens the authorization page so you can sign in and approve access. No API key or custom header is required.
+
+### Clients without OAuth
+
+Some MCP clients can't run an OAuth flow. They can authenticate with a Supermemory API key instead. Create a key in the [console](https://console.supermemory.ai/keys) and send it as a bearer token:
+
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer sm_your_api_key"
+      }
+    }
+  }
+}
+```
+
+The server recognizes keys that start with `sm_` and skips OAuth for them. The key has the same access as in the API, so keep it out of shared or committed config files.
 
 ## Choose a space
 
@@ -59,7 +78,7 @@ Add the server to `~/.cursor/mcp.json`:
 
 ### Other MCP clients
 
-Add `https://mcp.supermemory.ai/mcp` as a remote HTTP MCP server and complete the OAuth flow opened by your client. Exact menu names and configuration locations vary between clients.
+Add `https://mcp.supermemory.ai/mcp` as a remote HTTP MCP server and complete the OAuth flow opened by your client. If the client has no OAuth support, pass an API key as shown in [Clients without OAuth](#clients-without-oauth). Exact menu names and configuration locations vary between clients.
 
 Clients with MCP Apps support render the space picker, guided save, file upload, and memory graph directly in the conversation.
 
