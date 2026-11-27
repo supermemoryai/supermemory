@@ -1,0 +1,191 @@
+---
+title: "Keenable"
+sidebarTitle: "Keenable"
+description: "Compose official Keenable SDKs with Supermemory for web search, page fetch, and memory"
+icon: "/icons/hugeicons/globe-02.svg"
+---
+
+Agents need two things from the web: **find sources**, then **read them**. Firecrawl only does the second. [Keenable](https://keenable.ai) does both in one API — ranked search snippets in well under a second, and the page as clean markdown — so you do not pair a crawler with a separate search vendor.
+
+**Fetch replaces Firecrawl.** Keenable returns markdown from a 100B+ document index, or live from the source when the URL is not indexed (`live=true` on the [fetch API](https://docs.keenable.ai/api-reference/fetch)). Same job as a scrape, with a much larger free allowance.
+
+Use the official Keenable packages next to Supermemory. Memory stays in `@supermemory/tools` / `supermemory`; search and fetch stay in `keenable` / `@keenable/ai-sdk`. Store the pages that should persist with `documentAdd` or `supermemory.add`.
+
+## Why Keenable instead of Firecrawl
+
+Keenable is a search engine that also fetches. Firecrawl is a live crawler with no web index of its own. Replacing Firecrawl with Keenable gives URL ingest a pre-built index **and** a live fallback, plus search on the same key.
+
+| | [Firecrawl](https://www.firecrawl.dev/pricing) | [Keenable](https://keenable.ai/pricing) |
+|---|---|---|
+| Web index | None — every scrape hits the live page | **100B+ documents**, p95 under 250ms (US East) |
+| Page fetch | Live scrape only | Indexed copy, or `live=true` for any public URL |
+| Web search | Add-on (2 credits / 10 results) | First-class; same credit as a fetch |
+| Free monthly quota | **1,000** scrape credits | **100,000** requests (search or fetch) |
+| After the free quota | Paid plan: Hobby $19 / 5k, Standard $99 / 100k. Hobby overage **$5 / 1,000** | No seat — **$4 / 1,000** requests |
+| High volume (100+ RPS) | Scale $749/mo, overage $1 / 1,000 | Dedicated **$1 / 1,000** |
+| Self-host without a key | URL ingest fails | Public fetch endpoint (rate-limited per IP) |
+
+A self-host or product user who ingests 100,000 pages a month pays **$99** on Firecrawl Standard and **$0** on Keenable's recurring free allowance. After that, pay-as-you-go is $4 / 1,000 instead of buying a seat; at 100+ RPS the dedicated rate is $1 / 1,000 — Firecrawl's Scale overage, without the $749 plan. Search and fetch share the same credit, so agent research does not need a second vendor.
+
+Prices from each vendor's public pricing page. Search and fetch each cost one Keenable credit; see [Keenable credits](https://docs.keenable.ai/credits).
+
+## Setup
+
+Install both official packages. Do not pull web search from `@supermemory/tools` — that package is memory only.
+
+```bash
+npm install @supermemory/tools @keenable/ai-sdk keenable
+```
+
+```bash
+# .env
+SUPERMEMORY_API_KEY=your-supermemory-api-key
+# Optional. Without it, Keenable uses public endpoints
+# (rate-limited per IP). A key lifts the hourly cap.
+KEENABLE_API_KEY=keen_your_key
+```
+
+Get a Supermemory key from [console.supermemory.ai](https://console.supermemory.ai). Get a Keenable key from [keenable.ai](https://keenable.ai), or skip it for the public path. API reference: [docs.keenable.ai](https://docs.keenable.ai).
+
+## AI SDK
+
+Compose `supermemoryTools` with [`keenableTools`](https://www.npmjs.com/package/@keenable/ai-sdk) from `@keenable/ai-sdk`. The model sees `keenable_search` and `keenable_fetch`.
+
+```typescript
+import { generateText, stepCountIs } from "ai"
+import { openai } from "@ai-sdk/openai"
+import { supermemoryTools } from "@supermemory/tools/ai-sdk"
+import { keenableTools } from "@keenable/ai-sdk"
+
+const tools = {
+  ...supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
+    namespace: "user-123",
+  }),
+  ...keenableTools(), // or keenableTools({ apiKey: process.env.KEENABLE_API_KEY })
+}
+
+const result = await generateText({
+  model: openai("gpt-5"),
+  messages: [
+    {
+      role: "user",
+      content: "What shipped in the latest Bun release? Remember the highlights.",
+    },
+  ],
+  tools,
+  stopWhen: stepCountIs(8),
+})
+```
+
+Typical loop:
+
+1. `searchMemories` — already stored?
+2. `keenable_search` — find sources on the open web
+3. `keenable_fetch` — read the pages you will cite
+4. `documentAdd` / `addMemory` — keep what should persist
+
+To add only one Keenable tool, import `keenableSearch` or `keenableFetch` instead of the pair.
+
+## OpenAI function calling
+
+Compose Supermemory's executor with the official [`keenable`](https://www.npmjs.com/package/keenable) `TOOLS` and `runToolCall`.
+
+```typescript
+import OpenAI from "openai"
+import { Keenable, TOOLS, runToolCall } from "keenable"
+import {
+  getToolDefinitions,
+  createToolCallExecutor,
+} from "@supermemory/tools/openai"
+
+const client = new OpenAI()
+const keenable = new Keenable() // reads KEENABLE_API_KEY, or new Keenable({ apiKey })
+const executeMemory = createToolCallExecutor(process.env.SUPERMEMORY_API_KEY!, {
+  namespace: "user-123",
+})
+
+const messages = [
+  { role: "user" as const, content: "Summarize the latest Bun release notes." },
+]
+
+const completion = await client.chat.completions.create({
+  model: "gpt-5",
+  messages,
+  tools: [...getToolDefinitions(), ...TOOLS],
+})
+
+for (const toolCall of completion.choices[0]?.message.tool_calls ?? []) {
+  if (toolCall.type !== "function") continue
+  const content =
+    toolCall.function.name.startsWith("keenable_")
+      ? await runToolCall(
+          keenable,
+          toolCall.function.name,
+          toolCall.function.arguments,
+        )
+      : await executeMemory(toolCall)
+  messages.push({
+    role: "tool",
+    tool_call_id: toolCall.id,
+    content,
+  })
+}
+```
+
+`TOOLS` exposes `keenable_search` and `keenable_fetch`. Both return a numbered, citable block.
+
+## Programmatic client
+
+Use the official SDK when you are not going through tool calling. Search results already carry extracted page text in `snippet`; call `fetch` when you need the full page as markdown.
+
+```typescript
+import { Keenable } from "keenable"
+import { Supermemory } from "supermemory"
+
+const keenable = new Keenable()
+const supermemory = new Supermemory({
+  apiKey: process.env.SUPERMEMORY_API_KEY,
+})
+
+const results = await keenable.search(
+  "blog post comparing React and Vue performance",
+  { maxResults: 5 },
+)
+
+const page = await keenable.fetch(results.results[0].url)
+
+await supermemory.add("user-123", { content: page.content })
+```
+
+For a URL Keenable has not indexed, the [REST fetch](https://docs.keenable.ai/api-reference/fetch) takes `live=true` so the live page still resolves — that is the Firecrawl-style scrape path, without a second vendor.
+
+```python
+from keenable import Keenable
+from supermemory import Supermemory
+
+keenable = Keenable()  # or Keenable("keen_...") / set KEENABLE_API_KEY
+supermemory = Supermemory()
+
+results = keenable.search("blog post comparing React and Vue performance")
+page = keenable.fetch(next(iter(results)).url)
+supermemory.add("user-123", content=page.content)
+```
+
+## Mastra
+
+Compose `@supermemory/tools/mastra` memory with [`@keenable/mastra`](https://www.npmjs.com/package/@keenable/mastra) search and fetch:
+
+```typescript
+import { createKeenableTools } from "@keenable/mastra"
+
+const tools = createKeenableTools() // reads KEENABLE_API_KEY; or { apiKey: "keen_..." }
+// exposes keenable-search and keenable-fetch
+```
+
+## MCP
+
+Keep the [Supermemory MCP](/supermemory-mcp/mcp) for memory. Add [Keenable's MCP](https://docs.keenable.ai/mcp-server) at `https://api.keenable.ai/mcp` when the same assistant also needs the open web. Two servers, two jobs — memory vs search/fetch — without mixing them into one tool list.
+
+## Self-hosted URL ingestion
+
+The self-hosted server fetches webpage documents through Keenable instead of Firecrawl. Set `KEENABLE_API_KEY` for production; omit it to use the public fetch endpoint. See [Self-hosting configuration](/self-hosting/configuration).

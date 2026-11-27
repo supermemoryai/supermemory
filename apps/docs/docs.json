@@ -295,6 +295,7 @@
 							"integrations/langchain",
 							"integrations/crewai",
 							"integrations/agno",
+							"integrations/keenable",
 							"integrations/memory-graph",
 							"integrations/claude-memory",
 							"integrations/pipecat",
