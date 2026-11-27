@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test"
 import { readFileSync } from "node:fs"
 import {
 	BulkDeleteMemoriesSchema,
+	ContainerTagProfileResponseSchema,
 	DocumentsWithMemoriesQuerySchema,
 	ListMemoriesQuerySchema,
 	SearchRequestSchema,
@@ -173,5 +174,50 @@ describe("pagination query schemas", () => {
 
 		const ok = { containerTags: ["tag_a", "tag_b"] }
 		expect(BulkDeleteMemoriesSchema.safeParse(ok).success).toBe(true)
+	})
+})
+
+describe("ContainerTagProfileResponseSchema", () => {
+	// One entry as GET /v3/container-tags/:containerTag/profile returns it.
+	const entry = {
+		id: "KyYkFfHPine8Mkvmgc6yzh",
+		memory: "Ivan Petrov is a principal database architect at Volta Grid.",
+		isStatic: true,
+		isInference: false,
+		version: 1,
+		sourceCount: 1,
+		rootMemoryId: "KyYkFfHPine8Mkvmgc6yzh",
+		parentMemoryId: null,
+		createdAt: "2026-10-27T06:52:34.160Z",
+		updatedAt: "2026-10-27T06:52:34.160Z",
+		metadata: {
+			temporalContext: { documentDate: "2026-10-27", eventDate: null },
+		},
+	}
+
+	it("parses the memory objects the API returns", () => {
+		const parsed = ContainerTagProfileResponseSchema.parse({
+			profile: {
+				static: [entry],
+				dynamic: [{ ...entry, id: "dyn_1", isStatic: false }],
+			},
+		})
+
+		expect(parsed.profile.static?.[0]?.memory).toBe(entry.memory)
+		expect(parsed.profile.static?.[0]?.createdAt).toBeInstanceOf(Date)
+		expect(parsed.profile.dynamic?.[0]).toMatchObject({
+			id: "dyn_1",
+			isStatic: false,
+			parentMemoryId: null,
+		})
+	})
+
+	it("accepts an empty profile", () => {
+		const parsed = ContainerTagProfileResponseSchema.parse({
+			profile: { static: [], dynamic: [] },
+		})
+
+		expect(parsed.profile.static).toEqual([])
+		expect(parsed.profile.dynamic).toEqual([])
 	})
 })
