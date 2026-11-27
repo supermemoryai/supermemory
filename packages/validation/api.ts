@@ -1471,6 +1471,31 @@ export const BulkDeleteMemoriesResponseSchema = z
 		description: "Response for bulk memory deletion",
 	})
 
+export const ProfileEntrySchema = z
+	.object({
+		id: z.string(),
+		memory: z.string(),
+		isStatic: z.boolean().optional(),
+		isInference: z.boolean().optional(),
+		version: z.number().optional(),
+		sourceCount: z.number().optional(),
+		rootMemoryId: z.string().nullable().optional(),
+		parentMemoryId: z.string().nullable().optional(),
+		createdAt: z.string().optional(),
+		updatedAt: z.string().optional(),
+		metadata: z.record(z.unknown()).nullable().optional(),
+	})
+	.passthrough()
+
+export const ContainerTagProfileResponseSchema = z.object({
+	profile: z
+		.object({
+			static: z.array(ProfileEntrySchema).optional(),
+			dynamic: z.array(ProfileEntrySchema).optional(),
+		})
+		.passthrough(),
+})
+
 export const ContainerTagListTypeSchema = z
 	.object({
 		id: z.string().openapi({
