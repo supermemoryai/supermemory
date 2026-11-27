@@ -319,6 +319,10 @@ Permanently remove documents. One call deletes 1 to 100 documents by Supermemory
 
 Inspect both `count` and per-ID `errors`; HTTP success can include partial failures. Only documents whose `system.status` is `done` or `failed` can be deleted; a document that is still processing is reported in `errors` as `Document is still processing`. Memories derived from a deleted document are forgotten.
 
+<Note>
+Self-hosted: a document that stays in `processing` because ingestion is paused cannot be deleted. Raise `SUPERMEMORY_EMBEDDING_RAM_LIMIT`, restart the server, and delete it once it finishes; if it still will not clear, delete the namespace. See [Memory limits & ingestion queue](/self-hosting/configuration#memory-limits-&-ingestion-queue).
+</Note>
+
 <Warning>
 Deletes are permanent — no recovery.
 </Warning>
