@@ -1,13 +1,45 @@
 ---
 title: "ChatGPT Web"
-description: "Connect Supermemory MCP to ChatGPT Web and make Supermemory the default for memory, recall, and saved context"
+description: "Install the Supermemory plugin in ChatGPT or add Supermemory MCP by hand, and make Supermemory the default for memory, recall, and saved context"
 icon: "/images/openai.svg"
 sidebarTitle: "ChatGPT Web"
 ---
 
 Connect Supermemory MCP to [ChatGPT Web](https://chatgpt.com) to use your Supermemory context directly in a conversation.
 
-## Step 1: Open settings
+The quickest way is the Supermemory plugin in ChatGPT's plugin directory. You can also [add Supermemory MCP by hand](#add-supermemory-mcp-by-hand) if your ChatGPT plan allows custom MCP servers.
+
+## Install the Supermemory plugin
+
+In ChatGPT's plugin directory the listing is called **Supermemory**, with the description "Universal context and memory".
+
+<Steps>
+  <Step title="Open the Supermemory plugin">
+    Open the [Supermemory plugin page](https://chatgpt.com/plugins/plugin_asdk_app_6a6c19c5bdd88191880272467b06e356) in ChatGPT. You can also select **Plugins** in the ChatGPT sidebar and search for `Supermemory`.
+  </Step>
+
+  <Step title="Install it">
+    Select **Install plugin**. When ChatGPT asks you to connect, select **Connect Supermemory** and sign in to Supermemory. On the **Authorize ChatGPT** page, choose your workspace, **Read and write** or **Read only**, and **All memories** or **Only some tags**, then select **Authorize**.
+  </Step>
+
+  <Step title="Try it in a chat">
+    Start a new chat and try one of the example prompts from the plugin page:
+
+    - `Give a detailed description of who I am from supermemory`
+    - `Show me my memory graph in supermemory`
+    - `I want to upload a file to supermemory`
+
+    ChatGPT uses installed plugins when they're relevant. To pick Supermemory yourself, type `@` and select it.
+  </Step>
+</Steps>
+
+Whether you can install a plugin depends on your ChatGPT plan, workspace, role, and region. See OpenAI's [Plugins in ChatGPT](https://help.openai.com/en/articles/20001256-plugins-in-chatgpt) for details. To remove the plugin later, open it from **Plugins**, open the three-dot menu, and select **Uninstall**.
+
+## Add Supermemory MCP by hand
+
+Use these steps to add Supermemory MCP to ChatGPT Web by hand, as a custom MCP server. OpenAI's [Connecting custom MCP servers in ChatGPT](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt) lists which plans can add one.
+
+### Step 1: Open settings
 
 Open your profile menu in the lower-left corner of ChatGPT Web and select **Settings**.
 
@@ -22,7 +54,7 @@ Open your profile menu in the lower-left corner of ChatGPT Web and select **Sett
   alt="ChatGPT Web profile menu in light mode with Settings highlighted"
 />
 
-## Step 2: Open plugins
+### Step 2: Open plugins
 
 Select **Plugins** in the Settings sidebar.
 
@@ -37,7 +69,7 @@ Select **Plugins** in the Settings sidebar.
   alt="ChatGPT Web Plugins settings in light mode"
 />
 
-## Step 3: Open developer mode
+### Step 3: Open developer mode
 
 Scroll to the bottom of **Plugins** and select **Developer mode**.
 
@@ -52,7 +84,7 @@ Scroll to the bottom of **Plugins** and select **Developer mode**.
   alt="Developer mode and Browse plugins at the bottom of ChatGPT Web Plugins settings in light mode"
 />
 
-## Step 4: Enable developer mode
+### Step 4: Enable developer mode
 
 ChatGPT opens the **Developer mode** section under **Security and login**. Turn **Developer mode** on.
 
@@ -78,7 +110,7 @@ ChatGPT opens the **Developer mode** section under **Security and login**. Turn 
   alt="Developer mode enabled in ChatGPT Web light mode"
 />
 
-## Step 5: Open browse plugins
+### Step 5: Open browse plugins
 
 Return to **Plugins**, scroll to the bottom, and select **Browse plugins**.
 
@@ -93,7 +125,7 @@ Return to **Plugins**, scroll to the bottom, and select **Browse plugins**.
   alt="Browse plugins at the bottom of ChatGPT Web Plugins settings in light mode"
 />
 
-## Step 6: Add a plugin
+### Step 6: Add a plugin
 
 On the Plugins page, select the **plus icon** in the upper-right corner.
 
@@ -108,7 +140,7 @@ On the Plugins page, select the **plus icon** in the upper-right corner.
   alt="ChatGPT Web Plugins page in light mode with the plus icon"
 />
 
-## Step 7: Enter the Supermemory details
+### Step 7: Enter the Supermemory details
 
 Complete the **New Plugin** form:
 
@@ -130,7 +162,7 @@ The icon is optional. Leave **Advanced OAuth settings** unchanged.
   alt="New Plugin form in light mode filled with the Supermemory MCP details"
 />
 
-## Step 8: Confirm and create
+### Step 8: Confirm and create
 
 Scroll to the bottom of the form. Select **I understand and want to continue**, then select **Create**.
 
@@ -145,7 +177,7 @@ Scroll to the bottom of the form. Select **I understand and want to continue**, 
   alt="New Plugin confirmation in light mode with the acknowledgement selected"
 />
 
-## Step 9: Sign in to Supermemory
+### Step 9: Sign in to Supermemory
 
 ChatGPT opens the **Add Supermemory MCP to ChatGPT** dialog. Select **Sign in with Supermemory MCP**.
 
@@ -166,7 +198,7 @@ ChatGPT opens the **Add Supermemory MCP to ChatGPT** dialog. Select **Sign in wi
   ![Supermemory organization picker shown for accounts with multiple organizations](/images/supermemory-mcp/chatgpt-web/step-9-organization.png)
 </Accordion>
 
-## Step 10: Approve access
+### Step 10: Approve access
 
 On the Supermemory authorization page:
 
@@ -177,7 +209,7 @@ On the Supermemory authorization page:
 
 ![Supermemory MCP authorization page with permission, access, and expiration controls](/images/supermemory-mcp/chatgpt-web/step-10-authorize.png)
 
-## Step 11: Start using Supermemory
+### Step 11: Start using Supermemory
 
 After approval, ChatGPT returns to the Supermemory MCP plugin page. Select **Try in chat**.
 
@@ -192,7 +224,7 @@ After approval, ChatGPT returns to the Supermemory MCP plugin page. Select **Try
   alt="Connected Supermemory MCP page in ChatGPT Web light mode"
 />
 
-## Done
+### Done
 
 Supermemory MCP is now ready to use in ChatGPT Web. You can manage or disconnect it later from the [Plugins page](https://chatgpt.com/plugins).
 
