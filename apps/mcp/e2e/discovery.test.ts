@@ -11,13 +11,9 @@ const EXPECTED_TOOLS = [
 	"add_memory",
 	"fetch-graph-data",
 	"forget_memory",
-	"getDocument",
 	"get_document",
 	"get_profile",
 	"guided-save",
-	"listDocuments",
-	"listMemories",
-	"listSpaces",
 	"list_documents",
 	"list_memories",
 	"list_spaces",
@@ -28,7 +24,6 @@ const EXPECTED_TOOLS = [
 	"select-space",
 	"set-active-tag",
 	"upload-file",
-	"whoAmI",
 	"who_am_i",
 ]
 const describeWithAuth = describe.skipIf(!OAUTH_CREDENTIALS_AVAILABLE)
@@ -106,6 +101,12 @@ describeWithAuth("MCP — discovery & identity", () => {
 		const parsed = JSON.parse(textOf(res))
 		expect(parsed.userId).toBeTruthy()
 		expect(parsed).toHaveProperty("activeSpace")
+	})
+
+	it("keeps unlisted legacy aliases callable", async () => {
+		const res = await callTool(s.client, "whoAmI")
+		expect(res.isError).toBeFalsy()
+		expect(JSON.parse(textOf(res)).userId).toBeTruthy()
 	})
 
 	it("listSpaces returns content", async () => {

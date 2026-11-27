@@ -1,6 +1,7 @@
 import widgetManifest from "../../dist/widget-manifest.json"
 
 export const APP_RESOURCE_MIME_TYPE = "text/html;profile=mcp-app"
+export const APP_EXTENSION_ID = "io.modelcontextprotocol/ui"
 export const SUPERMEMORY_RESOURCE_URI = widgetManifest.resourceUri
 
 type AppVisibility = "model" | "app"
