@@ -1,15 +1,17 @@
 """Supermemory middleware for Microsoft Agent Framework.
 
-Provides ChatMiddleware that automatically injects relevant memories into
-the system prompt before LLM calls, and optionally saves conversations.
+Provides ChatMiddleware that adds the user's profile to the system prompt once
+per conversation, appends search results to each user turn, and optionally
+saves finished turns.
 """
 
 import asyncio
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Literal, Optional
 
 import supermemory
-from agent_framework import ChatMiddleware, Content, Message
+from agent_framework import ChatMiddleware, ChatResponse, Message
 
 from .connection import AgentSupermemory
 from .exceptions import (
@@ -19,19 +21,33 @@ from .exceptions import (
 )
 from .utils import (
     Logger,
-    _fetch_profile_and_search,
-    convert_profile_to_markdown,
+    build_memories_text,
     create_logger,
-    deduplicate_memories,
-    replace_memory_injection,
+    recall_turn,
+    replace_text_block,
     strip_memory_injection,
-    wrap_memory_injection,
+    turn_answers,
+    turn_key,
+    turn_keys,
 )
+
+_MAX_TURNS_PER_CONVERSATION = 500
+_MAX_CONVERSATIONS = 100
 
 
 @dataclass
 class SupermemoryMiddlewareOptions:
-    """Configuration options for Supermemory middleware."""
+    """Configuration options for Supermemory middleware.
+
+    Attributes:
+        verbose: Log memory search, injection and storage details.
+        mode: What to retrieve. ``"profile"`` adds the user profile to the system
+            prompt once per conversation. ``"query"`` appends search results for
+            each user turn to that turn's message. ``"full"`` does both, and leaves
+            search results the profile already contains out of the user blocks.
+        add_memory: ``"always"`` saves each finished turn to Supermemory in the
+            background; ``"never"`` only retrieves.
+    """
 
     verbose: bool = False
     mode: Literal["profile", "query", "full"] = "profile"
@@ -113,6 +129,7 @@ def _get_conversation_content(messages: Any) -> str:
             else:
                 content_text = str(content)
 
+            content_text = strip_memory_injection(content_text).strip()
             if content_text:
                 conversation_parts.append(f"{role_display}: {content_text}")
 
@@ -127,54 +144,169 @@ async def _build_memories_text(
     query_text: str = "",
 ) -> str:
     """Build formatted memories text from Supermemory API."""
-    memories_response, search = await _fetch_profile_and_search(
-        client,
-        container_tag,
-        include_profile=mode != "query",
-        query=query_text if mode != "profile" else "",
-    )
-    profile = memories_response.profile if memories_response else None
-    static = list(profile.static) if profile and profile.static else []
-    dynamic = list(profile.dynamic) if profile and profile.dynamic else []
-    search_results_raw = list(search.results) if search else []
-
+    memories = await build_memories_text(client, container_tag, mode, query_text)
     logger.info(
         "Memory search completed",
-        {
-            "container_tag": container_tag,
-            "memory_count_static": len(static),
-            "memory_count_dynamic": len(dynamic),
-            "query_text": (query_text[:100] + ("..." if len(query_text) > 100 else "")),
-            "mode": mode,
-        },
+        {"container_tag": container_tag, "mode": mode, "length": len(memories)},
+    )
+    return memories
+
+
+def _message_role(message: Any) -> Any:
+    """Read a message role from framework objects or dict messages."""
+    if isinstance(message, dict):
+        return message.get("role")
+    return getattr(message, "role", None)
+
+
+def _message_text(message: Any) -> str:
+    """Read the text of a framework object or dict message of any role."""
+    if isinstance(message, dict):
+        content = message.get("content", message.get("text"))
+    else:
+        content = getattr(message, "text", None)
+        if content is None:
+            content = getattr(message, "content", None)
+    if isinstance(content, str):
+        return content
+    if isinstance(content, (list, tuple)):
+        return " ".join(
+            part if isinstance(part, str) else str(part.get("text", ""))
+            for part in content
+            if isinstance(part, str)
+            or (isinstance(part, dict) and part.get("type") == "text")
+        )
+    return ""
+
+
+def _conversation_id(context: Any) -> Optional[str]:
+    """Return the caller's session or conversation id for this request, if any."""
+    session_id = getattr(getattr(context, "session", None), "session_id", None)
+    if session_id:
+        return f"session:{session_id}"
+    options = getattr(context, "options", None)
+    conversation_id = (
+        options.get("conversation_id") if isinstance(options, dict) else None
+    )
+    return f"conversation:{conversation_id}" if conversation_id else None
+
+
+def _server_history(context: Any) -> bool:
+    """Whether the service, not this request, holds the earlier turns."""
+    options = getattr(context, "options", None)
+    if not isinstance(options, dict):
+        return False
+    return bool(options.get("conversation_id")) or options.get("store") is True
+
+
+def _with_text_block(text: str, block: str) -> str:
+    """Replace Supermemory blocks in a string with exactly one block."""
+    preserved = strip_memory_injection(text)
+    if not block:
+        return preserved
+    return f"{preserved}\n{block}" if preserved else block
+
+
+def _with_block(message: Any, block: str) -> Any:
+    """Return a copy of a message carrying exactly one Supermemory block."""
+    if isinstance(message, dict):
+        key = "content" if "content" in message else "text"
+        content = message.get(key)
+        if isinstance(content, list):
+            parts = [
+                (
+                    {**part, "text": strip_memory_injection(part["text"])}
+                    if isinstance(part, dict) and isinstance(part.get("text"), str)
+                    else part
+                )
+                for part in content
+            ]
+            return {**message, key: [*parts, {"type": "text", "text": block}]}
+        return {**message, key: _with_text_block(content or "", block)}
+    if not hasattr(message, "contents"):
+        return message
+    return replace_text_block(message, block)
+
+
+class _TurnMemory:
+    """One conversation's frozen profile and per-turn search blocks."""
+
+    def __init__(self) -> None:
+        self.turns: OrderedDict[str, str] = OrderedDict()
+        self.answers: dict[str, str] = {}
+        self.profile: Optional[str] = None
+        self.server_turns = 0
+
+    # A trimmed history can drop the reply that fingerprinted a kept message's key; the reply that answered it, or a unique text match, still finds its block.
+    def find(self, key: str, answer: Optional[str] = None) -> Optional[str]:
+        """Return a turn's frozen block, matching by text alone if the reply was trimmed."""
+        if answer is not None and "\0" not in key:
+            answered = [
+                k
+                for k in self.turns
+                if k.split("\0", 1)[0] == key and self.answers.get(k) == answer
+            ]
+            if len(answered) == 1:
+                key = answered[0]
+        if key in self.turns:
+            self.turns.move_to_end(key)
+            return self.turns[key]
+        if "\0" in key:
+            return None
+        matches = [k for k in self.turns if k.split("\0", 1)[0] == key]
+        return self.turns[matches[0]] if len(matches) == 1 else None
+
+    def remember(self, key: str, block: str) -> None:
+        """Freeze a turn's block, evicting the least recently used turn."""
+        self.turns[key] = block
+        self.turns.move_to_end(key)
+        while len(self.turns) > _MAX_TURNS_PER_CONVERSATION:
+            evicted, _ = self.turns.popitem(last=False)
+            self.answers.pop(evicted, None)
+
+
+def _has_tool_call(response: Any) -> bool:
+    """Whether a model reply asks for a tool call, so the turn is not finished yet."""
+    return any(
+        getattr(content, "type", None) == "function_call"
+        for reply in getattr(response, "messages", None) or []
+        for content in getattr(reply, "contents", None) or []
     )
 
-    deduplicated = deduplicate_memories(
-        static=static if mode != "query" else [],
-        dynamic=dynamic if mode != "query" else [],
-        search_results=search_results_raw,
-    )
 
-    profile_data = ""
-    if mode != "query":
-        profile_data = convert_profile_to_markdown(
-            {
-                "profile": {
-                    "static": deduplicated.static,
-                    "dynamic": deduplicated.dynamic,
-                },
-                "searchResults": {"results": []},
-            }
-        )
+# Callers often stop iterating at the final chunk and never resume the stream, so the reply is reported on its terminal update, before the caller receives it.
+def _on_final_reply(
+    result: Any, on_final: Callable[[Any], None], logger: Logger
+) -> None:
+    """Call ``on_final`` once with a model call's reply, as soon as it is complete."""
+    updates: list[Any] = []
+    reported = False
 
-    search_results_memories = ""
-    if mode != "profile" and deduplicated.search_results:
-        search_results_memories = (
-            "Search results for user's recent message: \n"
-            + "\n".join(f"- {memory}" for memory in deduplicated.search_results)
-        )
+    def _report(response: Any) -> None:
+        nonlocal reported
+        if reported:
+            return
+        reported = True
+        try:
+            on_final(response)
+        except Exception as error:
+            logger.warn("Could not save the reply", {"error": str(error)})
 
-    return f"{profile_data}\n{search_results_memories}".strip()
+    def _on_update(update: Any) -> Any:
+        updates.append(update)
+        reason = getattr(update, "finish_reason", None)
+        if reason is not None and str(getattr(reason, "value", reason)) != "tool_calls":
+            _report(ChatResponse.from_updates(updates))
+        return update
+
+    if not hasattr(result, "with_result_hook"):
+        _report(result)
+        return
+    try:
+        result.with_result_hook(_report)
+        result.with_transform_hook(_on_update)
+    except Exception as error:
+        logger.warn("Could not observe streamed reply", {"error": str(error)})
 
 
 async def _save_memory(
@@ -211,11 +343,24 @@ async def _save_memory(
 
 
 class SupermemoryChatMiddleware(ChatMiddleware):
-    """Chat middleware that injects Supermemory memories into the system prompt.
+    """Chat middleware that adds Supermemory memories to every model call.
 
-    This middleware intercepts chat requests before they reach the LLM,
-    fetches relevant memories from Supermemory, and injects them into
-    the system prompt. It can also save conversations as memories.
+    The user's profile is fetched once per conversation and appended as a
+    delimited block to the system prompt (the agent instructions, else the first
+    system message, else a new leading system message). Search results are
+    fetched once per user turn and appended to that turn's user message. Every
+    later model call of the conversation re-applies the same blocks with
+    identical bytes, so provider prompt caches keep hitting; tool-call
+    continuation steps reuse their turn's block without searching again.
+
+    Recall has a fixed 3-second budget and never retries; on timeout or error
+    the call goes ahead without the missing part, and a missing profile is
+    fetched again on the next new user turn. State is kept in process, per
+    conversation: up to 500 turns for each of up to 100 conversations, least
+    recently used first out. An evicted conversation starts over as new.
+
+    With ``add_memory="always"`` each finished turn (the final assistant reply,
+    not a tool call) is saved in the background, without system messages.
 
     Example:
         ```python
@@ -252,98 +397,181 @@ class SupermemoryChatMiddleware(ChatMiddleware):
         connection: AgentSupermemory,
         options: Optional[SupermemoryMiddlewareOptions] = None,
     ) -> None:
+        """Initialize the middleware.
+
+        Args:
+            connection: Shared AgentSupermemory connection.
+            options: Retrieval and storage options; defaults to
+                ``SupermemoryMiddlewareOptions()``.
+        """
         self._connection = connection
         self._container_tag = connection.container_tag
         self._options = options or SupermemoryMiddlewareOptions()
         self._logger = create_logger(self._options.verbose)
         self._supermemory_client = connection.client
         self._background_tasks: set[asyncio.Task[None]] = set()
+        self._conversations: OrderedDict[str, _TurnMemory] = OrderedDict()
 
     async def process(
         self,
         context: Any,
         call_next: Callable[[], Awaitable[None]],
     ) -> None:
-        """Process the chat request by injecting memories and optionally saving conversations."""
-        _inject_memories(context, "")
-        messages = context.messages
+        """Add memories to the request, call the model, and save finished turns.
 
-        if self._options.add_memory == "always":
-            user_message = _get_last_user_message(messages)
-            if user_message and user_message.strip():
-                content = _get_conversation_content(messages)
-
-                task = asyncio.create_task(
-                    _save_memory(
-                        self._supermemory_client,
-                        self._container_tag,
-                        content,
-                        self._connection.custom_id,
-                        self._logger,
-                    )
-                )
-                self._background_tasks.add(task)
-                task.add_done_callback(self._background_tasks.discard)
-
-                def _handle_task_exception(task_obj: asyncio.Task[None]) -> None:
-                    try:
-                        exc = task_obj.exception()
-                        if exc is not None:
-                            self._logger.warn(
-                                "Background memory storage failed",
-                                {"error": str(exc), "type": type(exc).__name__},
-                            )
-                    except asyncio.CancelledError:
-                        self._logger.debug("Memory storage task was cancelled")
-
-                task.add_done_callback(_handle_task_exception)
-
-        query_text = ""
-        if self._options.mode != "profile":
-            user_message = _get_last_user_message(messages)
-            if not user_message:
-                self._logger.debug("No user message found, skipping memory search")
-                await call_next()
-                return
-            query_text = user_message
-
-        self._logger.info(
-            "Starting memory search",
-            {
-                "container_tag": self._container_tag,
-                "conversation_id": self._connection.conversation_id,
-                "mode": self._options.mode,
-            },
-        )
-
-        try:
-            memories = await _build_memories_text(
-                self._container_tag,
-                self._logger,
-                self._options.mode,
-                self._supermemory_client,
-                query_text,
-            )
-        except Exception as e:
-            self._logger.error(
-                "Failed to fetch memories, proceeding without",
-                {"error": str(e)},
-            )
-            await call_next()
-            return
-
-        if memories:
-            if self._connection.entity_context:
-                memories = f"{self._connection.entity_context}\n\n{memories}"
-
-            self._logger.debug(
-                "Memory content preview",
-                {"content": memories[:200], "full_length": len(memories)},
-            )
-
-            _inject_memories(context, memories)
-
+        Args:
+            context: The framework ``ChatContext`` for this model call.
+            call_next: Continues the middleware pipeline.
+        """
+        for index, message in enumerate(context.messages):
+            content = message.get("content") if isinstance(message, dict) else None
+            if content is not None and not isinstance(content, (str, list, dict)):
+                context.messages[index] = {**message, "content": list(content)}
+        original = list(context.messages)
+        has_user = await self._apply_memories(context)
         await call_next()
+        if has_user and self._options.add_memory == "always":
+            self._save_when_finished(context, original)
+
+    # Keys come from turn_keys so later calls, trimmed history and repeated questions all map to the right frozen block.
+    async def _apply_memories(self, context: Any) -> bool:
+        """Recall for a new user turn and re-apply the conversation's blocks."""
+        messages = context.messages
+        keys = turn_keys(messages, lambda m: (_message_role(m), _message_text(m)))
+        if not keys:
+            self._logger.debug("No user message found, skipping memory search")
+            return False
+
+        first, last = min(keys), max(keys)
+        conversation = _conversation_id(context) or f"root:{keys[first]}"
+        memory = self._memory_for(conversation)
+        if _server_history(context):
+            if last == len(messages) - 1:
+                memory.server_turns += 1
+            keys = {i: f"{memory.server_turns}\0{key}" for i, key in keys.items()}
+
+        if memory.find(keys[last]) is None:
+            self._logger.info(
+                "Starting memory search",
+                {
+                    "container_tag": self._container_tag,
+                    "conversation_id": self._connection.conversation_id,
+                    "mode": self._options.mode,
+                },
+            )
+            search_block, fresh_profile = await recall_turn(
+                self._connection,
+                mode=self._options.mode,
+                query_text=turn_key(_message_text(messages[last])),
+                profile_block=memory.profile,
+                logger=self._logger,
+            )
+            if memory.profile is None and fresh_profile is not None:
+                memory.profile = fresh_profile
+            memory.remember(keys[last], search_block)
+
+        answers = turn_answers(messages, lambda m: (_message_role(m), _message_text(m)))
+        for index, key in keys.items():
+            block = memory.find(key, answers.get(index))
+            if block:
+                self._replace(context, index, _with_block(messages[index], block))
+            if index in answers and key in memory.turns:
+                memory.answers.setdefault(key, answers[index])
+        if memory.profile:
+            self._apply_profile(context, memory.profile)
+        return True
+
+    def _memory_for(self, conversation: str) -> _TurnMemory:
+        """Return the conversation's memory, evicting the least recently used one."""
+        memory = self._conversations.get(conversation)
+        if memory is None:
+            memory = self._conversations[conversation] = _TurnMemory()
+            while len(self._conversations) > _MAX_CONVERSATIONS:
+                self._conversations.popitem(last=False)
+        self._conversations.move_to_end(conversation)
+        return memory
+
+    def _replace(self, context: Any, index: int, updated: Any) -> None:
+        """Swap a call-local message and record it for compaction reconciliation."""
+        original = context.messages[index]
+        if updated is original:
+            return
+        context.messages[index] = updated
+        record = getattr(context, "record_message_replacement", None)
+        if record and isinstance(original, Message) and isinstance(updated, Message):
+            try:
+                record(updated, original)
+            except (TypeError, ValueError):
+                pass
+
+    # The agent's instructions are the system prompt, so the profile joins them there rather than adding a second system message.
+    def _apply_profile(self, context: Any, block: str) -> None:
+        """Put the frozen profile block into the request's system prompt."""
+        options = getattr(context, "options", None)
+        instructions = (
+            options.get("instructions") if isinstance(options, dict) else None
+        )
+        if isinstance(instructions, str) and instructions.strip():
+            context.options = {
+                **options,
+                "instructions": _with_text_block(instructions, block),
+            }
+            return
+        messages = context.messages
+        for index, message in enumerate(messages):
+            if _message_role(message) in ("system", "developer"):
+                self._replace(context, index, _with_block(message, block))
+                return
+        if any(isinstance(message, dict) for message in messages):
+            messages.insert(0, {"role": "system", "content": block})
+        else:
+            messages.insert(0, Message("system", [block]))
+
+    def _save_when_finished(self, context: Any, messages: list[Any]) -> None:
+        """Schedule a background save once the turn's final reply has arrived."""
+        result = getattr(context, "result", None)
+        if result is not None:
+            _on_final_reply(
+                result, lambda final: self._save_turn(messages, final), self._logger
+            )
+
+    def _save_turn(self, messages: list[Any], response: Any) -> None:
+        """Save the conversation with its final reply, skipping tool-call steps."""
+        if _has_tool_call(response):
+            return
+        replies = list(getattr(response, "messages", None) or [])
+        conversation = [
+            message
+            for message in [*messages, *replies]
+            if _message_role(message) not in ("system", "developer")
+        ]
+        content = _get_conversation_content(conversation)
+        if not content.strip():
+            return
+        task = asyncio.create_task(
+            _save_memory(
+                self._supermemory_client,
+                self._container_tag,
+                content,
+                self._connection.custom_id,
+                self._logger,
+            )
+        )
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+
+        def _handle_task_exception(task_obj: asyncio.Task[None]) -> None:
+            try:
+                exc = task_obj.exception()
+                if exc is not None:
+                    self._logger.warn(
+                        "Background memory storage failed",
+                        {"error": str(exc), "type": type(exc).__name__},
+                    )
+            except asyncio.CancelledError:
+                self._logger.debug("Memory storage task was cancelled")
+
+        task.add_done_callback(_handle_task_exception)
 
     async def wait_for_background_tasks(self, timeout: Optional[float] = 10.0) -> None:
         """Wait for all background memory storage tasks to complete."""
@@ -371,230 +599,3 @@ class SupermemoryChatMiddleware(ChatMiddleware):
                 if not task.done():
                     task.cancel()
             raise
-
-
-def _update_structured_content(
-    content: Any,
-    memories: str,
-    *,
-    inject: bool,
-) -> tuple[Any, bool, bool]:
-    """Clear owned blocks from string/dict content and optionally inject one."""
-    if isinstance(content, str):
-        updated = (
-            replace_memory_injection(content, memories)
-            if inject
-            else strip_memory_injection(content)
-        )
-        return updated, inject, updated != content
-
-    if isinstance(content, (list, tuple)):
-        updated_parts: list[Any] = []
-        removed_owned_block = False
-        for part in content:
-            if isinstance(part, str):
-                cleaned = strip_memory_injection(part)
-                removed_owned_block = removed_owned_block or cleaned != part
-                if cleaned or cleaned == part:
-                    updated_parts.append(cleaned)
-                continue
-
-            if isinstance(part, dict) and isinstance(part.get("text"), str):
-                original_text = part["text"]
-                cleaned_text = strip_memory_injection(original_text)
-                removed_owned_block = (
-                    removed_owned_block or cleaned_text != original_text
-                )
-                if cleaned_text or cleaned_text == original_text:
-                    if cleaned_text == original_text:
-                        updated_parts.append(part)
-                    else:
-                        updated_parts.append({**part, "text": cleaned_text})
-                continue
-
-            updated_parts.append(part)
-
-        if inject:
-            updated_parts.append(
-                {"type": "text", "text": wrap_memory_injection(memories)}
-            )
-
-        if isinstance(content, tuple):
-            return tuple(updated_parts), inject, removed_owned_block
-        return updated_parts, inject, removed_owned_block
-
-    if content is None and inject:
-        return wrap_memory_injection(memories), True, False
-
-    return content, False, False
-
-
-def _update_framework_message(
-    msg: Any,
-    memories: str,
-    *,
-    inject: bool,
-) -> tuple[bool, bool]:
-    """Update real Agent Framework Message contents without assigning .text."""
-    try:
-        contents = list(msg.contents or [])
-    except (AttributeError, TypeError):
-        return False, False
-
-    updated_contents = []
-    removed_owned_block = False
-    for content in contents:
-        text = getattr(content, "text", None)
-        if getattr(content, "type", None) == "text" and isinstance(text, str):
-            cleaned = strip_memory_injection(text)
-            removed_owned_block = removed_owned_block or cleaned != text
-            if cleaned or cleaned == text:
-                if cleaned != text:
-                    content.text = cleaned
-                updated_contents.append(content)
-            continue
-
-        updated_contents.append(content)
-
-    if inject:
-        updated_contents.append(Content.from_text(wrap_memory_injection(memories)))
-
-    try:
-        msg.contents = updated_contents
-    except (AttributeError, TypeError):
-        try:
-            msg.contents[:] = updated_contents
-        except (AttributeError, TypeError):
-            return False, False
-
-    return inject, removed_owned_block and not updated_contents
-
-
-def _is_empty_content(content: Any) -> bool:
-    """Return whether stripping an owned block left no message content."""
-    return (
-        content is None
-        or content == ""
-        or (isinstance(content, (list, tuple)) and not content)
-    )
-
-
-def _inject_memories(context: Any, memories: str) -> None:
-    """Inject memories into the chat context messages.
-
-    Handles both object-based and dict-based message formats used by
-    different Agent Framework providers.
-    """
-    messages = context.messages
-    should_inject = bool(memories.strip())
-    memory_text = wrap_memory_injection(memories) if should_inject else ""
-
-    # Replace prior SDK blocks in every system message and inject once.
-    injected = False
-    messages_to_remove: list[Any] = []
-    for msg in list(messages):
-        role = None
-        if hasattr(msg, "role"):
-            role = msg.role
-        elif isinstance(msg, dict):
-            role = msg.get("role")
-
-        if role == "system":
-            inject_here = should_inject and not injected
-            injected_here = False
-            remove_here = False
-
-            if hasattr(msg, "contents"):
-                injected_here, remove_here = _update_framework_message(
-                    msg,
-                    memories,
-                    inject=inject_here,
-                )
-            elif isinstance(msg, dict):
-                content_key = "content" if "content" in msg else "text"
-                updated, injected_here, removed_owned_block = (
-                    _update_structured_content(
-                        msg.get(content_key),
-                        memories,
-                        inject=inject_here,
-                    )
-                )
-                msg[content_key] = updated
-                remove_here = (
-                    not inject_here
-                    and removed_owned_block
-                    and _is_empty_content(updated)
-                )
-            elif hasattr(msg, "content"):
-                updated, injected_here, removed_owned_block = (
-                    _update_structured_content(
-                        msg.content,
-                        memories,
-                        inject=inject_here,
-                    )
-                )
-                try:
-                    msg.content = updated
-                except (AttributeError, TypeError):
-                    injected_here = False
-                else:
-                    remove_here = (
-                        not inject_here
-                        and removed_owned_block
-                        and _is_empty_content(updated)
-                    )
-            elif hasattr(msg, "text"):
-                updated, injected_here, removed_owned_block = (
-                    _update_structured_content(
-                        msg.text,
-                        memories,
-                        inject=inject_here,
-                    )
-                )
-                try:
-                    msg.text = updated
-                except (AttributeError, TypeError):
-                    injected_here = False
-                else:
-                    remove_here = (
-                        not inject_here
-                        and removed_owned_block
-                        and _is_empty_content(updated)
-                    )
-
-            injected = injected or injected_here
-            if remove_here:
-                messages_to_remove.append(msg)
-
-    if messages_to_remove:
-        retained_messages = [
-            msg
-            for msg in messages
-            if not any(msg is removed for removed in messages_to_remove)
-        ]
-        try:
-            messages[:] = retained_messages
-        except (AttributeError, TypeError):
-            try:
-                context.messages = retained_messages
-                messages = context.messages
-            except (AttributeError, TypeError):
-                pass
-
-    if injected or not should_inject:
-        return
-
-    # No system message found - prepend one
-    new_message: Any
-    if any(isinstance(msg, dict) for msg in messages):
-        new_message = {"role": "system", "content": memory_text}
-    else:
-        new_message = Message("system", [memory_text])
-
-    try:
-        messages.insert(0, new_message)
-    except (AttributeError, TypeError):
-        try:
-            context.messages = [new_message, *list(messages)]
-        except (AttributeError, TypeError):
-            pass

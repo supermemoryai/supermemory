@@ -7,9 +7,10 @@ This is the idiomatic way to integrate persistent memory in Agent Framework,
 following the same pattern as the built-in Mem0 integration.
 """
 
-from typing import Any, Literal
+import asyncio
+from typing import Any, Awaitable, Callable, Literal, Optional
 
-from agent_framework import Message
+from agent_framework import ChatMiddleware
 
 try:
     from agent_framework import BaseContextProvider  # type: ignore[attr-defined]
@@ -17,20 +18,47 @@ except ImportError:
     from agent_framework import ContextProvider as BaseContextProvider
 
 from .connection import AgentSupermemory
+from .middleware import _has_tool_call, _on_final_reply, _save_memory
 from .utils import (
-    _fetch_profile_and_search,
-    convert_profile_to_markdown,
     create_logger,
-    deduplicate_memories,
-    wrap_memory_injection,
+    recall_turn,
+    replace_text_block,
+    strip_memory_injection,
+    turn_key,
 )
+
+_PROFILE_STATE_KEY = "profile_block"
+
+
+class _FinalReplySaver(ChatMiddleware):
+    """Run-scoped chat middleware that hands each model call's reply to a callback."""
+
+    def __init__(self, on_final: Callable[[Any], None], logger: Any) -> None:
+        self._on_final = on_final
+        self._logger = logger
+
+    async def process(
+        self, context: Any, call_next: Callable[[], Awaitable[None]]
+    ) -> None:
+        """Call the model, then report its reply once it is complete."""
+        await call_next()
+        result = getattr(context, "result", None)
+        if result is not None:
+            _on_final_reply(result, self._report, self._logger)
+
+    def _report(self, reply: Any) -> None:
+        """Pass on a finished reply unless it only asks for tool calls."""
+        if not _has_tool_call(reply):
+            self._on_final(reply)
 
 
 class SupermemoryContextProvider(BaseContextProvider):
     """Context provider that integrates Supermemory into the agent pipeline.
 
-    Automatically searches for relevant memories before the model is invoked
-    and optionally stores conversations after the model responds.
+    Before each run it adds the user's profile, fetched once per session, to the
+    agent instructions, and appends search results for the run's user message to
+    that message. Both stay byte-identical on later runs, so provider prompt
+    caches keep hitting. It optionally stores conversations after each run.
 
     This follows the same pattern as the built-in Mem0 context provider,
     making it the most idiomatic way to add persistent memory to agents.
@@ -95,6 +123,7 @@ class SupermemoryContextProvider(BaseContextProvider):
         self._context_prompt = context_prompt
         self._logger = create_logger(verbose)
         self._client = connection.client
+        self._background_tasks: set[asyncio.Task[None]] = set()
 
     async def before_run(
         self,
@@ -104,53 +133,73 @@ class SupermemoryContextProvider(BaseContextProvider):
         context: Any,
         state: dict[str, Any],
     ) -> None:
-        """Search Supermemory for relevant memories and inject into context."""
-        query_text = ""
-        if self._mode != "profile":
-            query_text = self._extract_query_from_context(context)
-            if not query_text and self._mode == "query":
-                self._logger.debug("No user message found, skipping memory search")
-                return
+        """Add memories to this run before the model is invoked.
 
-        self._logger.info(
-            "Searching Supermemory for memories",
-            {
-                "container_tag": self._container_tag,
-                "mode": self._mode,
-                "query_preview": query_text[:100] if query_text else "",
-            },
+        The profile is fetched once per session, stored in this provider's
+        session state, and added to the agent instructions (the system prompt)
+        on every run with identical bytes. Search results for the run's user
+        message are appended to that message, which the session history stores,
+        so later runs replay it unchanged. Recall that fails or exceeds the
+        3-second budget is skipped for this run; a missing profile is fetched
+        again on the next run.
+
+        Args:
+            agent: The agent being run.
+            session: The agent session, if any.
+            context: The framework ``SessionContext`` for this run.
+            state: This provider's scoped, persisted session state.
+        """
+        input_messages = getattr(context, "input_messages", None) or []
+        index = next(
+            (
+                i
+                for i in range(len(input_messages) - 1, -1, -1)
+                if getattr(input_messages[i], "role", None) == "user"
+            ),
+            None,
         )
-
-        try:
-            memories_text = await self._fetch_memories(query_text)
-        except Exception as e:
-            self._logger.error(
-                "Failed to fetch memories, proceeding without",
-                {"error": str(e)},
+        profile_block = state.get(_PROFILE_STATE_KEY)
+        if index is not None and hasattr(input_messages[index], "contents"):
+            user_message = input_messages[index]
+            query_text = turn_key(user_message.text)
+            self._logger.info(
+                "Searching Supermemory for memories",
+                {
+                    "container_tag": self._container_tag,
+                    "mode": self._mode,
+                    "query_preview": query_text[:100],
+                },
             )
-            return
-
-        if not memories_text:
-            self._logger.debug("No memories found")
-            return
-
-        if self._connection.entity_context:
-            memories_text = f"{self._connection.entity_context}\n\n{memories_text}"
-
-        full_text = wrap_memory_injection(memories_text, self._context_prompt)
-
-        self._logger.debug(
-            "Injecting memories into context",
-            {"length": len(memories_text)},
-        )
-
-        if hasattr(context, "extend_instructions"):
-            context.extend_instructions(self.source_id, full_text)
-        elif hasattr(context, "extend_messages"):
-            context.extend_messages(
-                self.source_id,
-                [Message("system", [full_text])],
+            search_block, fresh_profile = await recall_turn(
+                self._connection,
+                mode=self._mode,
+                query_text=query_text,
+                profile_block=profile_block,
+                logger=self._logger,
+                context_prompt=self._context_prompt,
             )
+            if fresh_profile is not None:
+                state[_PROFILE_STATE_KEY] = fresh_profile
+                profile_block = fresh_profile
+            if search_block:
+                input_messages[index] = replace_text_block(user_message, search_block)
+        else:
+            self._logger.debug("No user message found, skipping memory search")
+
+        if profile_block:
+            context.extend_instructions(self.source_id, profile_block)
+
+        if self._store_conversations and isinstance(
+            getattr(context, "metadata", None), dict
+        ):
+            extend_middleware = getattr(context, "extend_middleware", None)
+            if extend_middleware is not None:
+                extend_middleware(
+                    self.source_id,
+                    _FinalReplySaver(
+                        lambda reply: self._save_run(context, reply), self._logger
+                    ),
+                )
 
     async def after_run(
         self,
@@ -160,76 +209,81 @@ class SupermemoryContextProvider(BaseContextProvider):
         context: Any,
         state: dict[str, Any],
     ) -> None:
-        """Store conversation messages to Supermemory for future retrieval."""
-        if not self._store_conversations:
-            return
+        """Save the finished run to Supermemory in the background.
 
-        try:
-            conversation_text = self._extract_conversation_from_context(context)
-            if not conversation_text:
-                self._logger.debug("No conversation content to store")
+        Runs only with ``store_conversations=True``. The run's user input and final
+        response are saved without system messages or memory blocks. The save
+        never delays the agent's response; use ``wait_for_background_tasks()`` to
+        wait for pending saves, for example before shutdown.
+
+        Args:
+            agent: The agent being run.
+            session: The agent session, if any.
+            context: The framework ``SessionContext`` for this run.
+            state: This provider's scoped, persisted session state.
+        """
+        if self._store_conversations:
+            self._save_run(context, getattr(context, "response", None))
+
+    # Streaming callers can stop at the final chunk, which skips after_run, so the run-scoped saver may already have saved this run.
+    def _save_run(self, context: Any, response: Any) -> None:
+        """Save the run's input and final reply once."""
+        metadata = getattr(context, "metadata", None)
+        saved_key = f"{self.source_id}:saved"
+        if isinstance(metadata, dict):
+            if metadata.get(saved_key):
                 return
-
-            self._logger.info(
-                "Storing conversation to Supermemory",
-                {
-                    "container_tag": self._container_tag,
-                    "content_length": len(conversation_text),
-                },
-            )
-
-            await self._client.add(
+            metadata[saved_key] = True
+        conversation_text = self._extract_conversation_from_context(context, response)
+        if not conversation_text:
+            self._logger.debug("No conversation content to store")
+            return
+        self._logger.info(
+            "Storing conversation to Supermemory",
+            {
+                "container_tag": self._container_tag,
+                "content_length": len(conversation_text),
+            },
+        )
+        task = asyncio.create_task(
+            _save_memory(
+                self._client,
                 self._container_tag,
-                content=conversation_text,
-                id=self._connection.custom_id,
+                conversation_text,
+                self._connection.custom_id,
+                self._logger,
             )
+        )
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        task.add_done_callback(self._log_save_failure)
 
-            self._logger.info("Conversation stored successfully")
-
-        except Exception as e:
+    def _log_save_failure(self, task: "asyncio.Task[None]") -> None:
+        """Log a failed background save instead of raising it."""
+        if not task.cancelled() and task.exception() is not None:
             self._logger.error(
-                "Failed to store conversation",
-                {"error": str(e)},
+                "Failed to store conversation", {"error": str(task.exception())}
             )
 
-    async def _fetch_memories(self, query_text: str = "") -> str:
-        """Fetch and format memories from Supermemory."""
-        response, search = await _fetch_profile_and_search(
-            self._client,
-            self._container_tag,
-            include_profile=self._mode != "query",
-            query=query_text if self._mode != "profile" else "",
-        )
-        profile = response.profile if response else None
-        static = list(profile.static) if profile and profile.static else []
-        dynamic = list(profile.dynamic) if profile and profile.dynamic else []
-        search_results_raw = list(search.results) if search else []
+    async def wait_for_background_tasks(self, timeout: Optional[float] = 10.0) -> None:
+        """Wait for pending background conversation saves.
 
-        deduplicated = deduplicate_memories(
-            static=static if self._mode != "query" else [],
-            dynamic=dynamic if self._mode != "query" else [],
-            search_results=search_results_raw,
-        )
+        Args:
+            timeout: Seconds to wait; ``None`` waits indefinitely.
 
-        profile_text = ""
-        if self._mode != "query":
-            profile_text = convert_profile_to_markdown(
-                {
-                    "profile": {
-                        "static": deduplicated.static,
-                        "dynamic": deduplicated.dynamic,
-                    },
-                    "searchResults": {"results": []},
-                }
-            )
-
-        search_text = ""
-        if self._mode != "profile" and deduplicated.search_results:
-            search_text = "Search results for user's recent message:\n" + "\n".join(
-                f"- {memory}" for memory in deduplicated.search_results
-            )
-
-        return f"{profile_text}\n{search_text}".strip()
+        Raises:
+            asyncio.TimeoutError: If the saves do not finish in time; unfinished
+                saves are cancelled.
+        """
+        if not self._background_tasks:
+            return
+        pending = asyncio.gather(*self._background_tasks, return_exceptions=True)
+        try:
+            await asyncio.wait_for(pending, timeout=timeout)
+        except asyncio.TimeoutError:
+            for task in self._background_tasks:
+                task.cancel()
+            raise
 
     def _extract_query_from_context(self, context: Any) -> str:
         """Extract the last user message from the session context."""
@@ -272,7 +326,9 @@ class SupermemoryContextProvider(BaseContextProvider):
                     return " ".join(parts)
         return ""
 
-    def _extract_conversation_from_context(self, context: Any) -> str:
+    def _extract_conversation_from_context(
+        self, context: Any, response: Any = None
+    ) -> str:
         """Extract conversation text from context for storage."""
         messages: list[Any] = []
 
@@ -281,8 +337,8 @@ class SupermemoryContextProvider(BaseContextProvider):
         elif hasattr(context, "messages"):
             messages.extend(context.messages or [])
 
-        if hasattr(context, "response") and context.response:
-            resp = context.response
+        resp = response if response is not None else getattr(context, "response", None)
+        if resp:
             if hasattr(resp, "text") and resp.text:
                 messages.append({"role": "assistant", "content": resp.text})
             elif hasattr(resp, "messages"):
@@ -301,7 +357,7 @@ class SupermemoryContextProvider(BaseContextProvider):
             elif isinstance(msg, dict):
                 role = msg.get("role")
 
-            if role not in ("user", "assistant", "system"):
+            if role not in ("user", "assistant"):
                 continue
 
             if hasattr(msg, "text"):
@@ -311,7 +367,9 @@ class SupermemoryContextProvider(BaseContextProvider):
             elif isinstance(msg, dict):
                 content = msg.get("content", "") or msg.get("text", "")
 
-            if isinstance(content, str) and content.strip():
+            if isinstance(content, str):
+                content = strip_memory_injection(content).strip()
+            if isinstance(content, str) and content:
                 display = {
                     "user": "User",
                     "assistant": "Assistant",

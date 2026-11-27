@@ -3,6 +3,7 @@
 import inspect
 import json
 from copy import deepcopy
+from importlib.metadata import version
 from typing import Any
 from unittest.mock import AsyncMock, Mock
 
@@ -16,6 +17,7 @@ from agent_framework import (
     ChatContext,
     ChatMiddlewareLayer,
     ChatResponse,
+    ChatResponseUpdate,
     Content,
     FunctionInvocationLayer,
     Message,
@@ -39,12 +41,14 @@ from supermemory_agent_framework.utils import wrap_memory_injection
 class MemoryAPI:
     def __init__(self) -> None:
         self.requests: list[tuple[str, str, dict[str, Any]]] = []
+        self.headers: list[httpx.Headers] = []
         self.failure: int | str | None = None
         self.empty = False
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content)
         self.requests.append((request.method, request.url.path, body))
+        self.headers.append(request.headers)
         if self.failure == "network":
             raise httpx.ConnectError("Offline", request=request)
         if self.failure == "timeout":
@@ -143,14 +147,17 @@ async def test_provider_and_middleware_retrieval_modes(memory_api, mode):
     context = SessionContext(input_messages=[Message("user", ["preferences"])])
     state = {"legacy_user_value": {"keep": True}}
     await provider.before_run(agent=None, session=None, context=context, state=state)
-    injected = "\n".join(context.instructions)
-    assert "tenant-a prefers Python" in injected
-    assert injected.count("tenant-a prefers Python") == 1
-    assert "Custom entity context" in injected
-    assert "Known facts" in injected
-    assert ("tenant-a is building an agent" in injected) == (mode != "query")
-    assert "tenant-a source passage" not in injected
-    assert state == {"legacy_user_value": {"keep": True}}
+    assert len(context.instructions) == 1
+    system = context.instructions[0]
+    user = context.input_messages[-1].text
+    assert user.startswith("preferences")
+    assert "Custom entity context" in system
+    assert "Known facts" in system
+    assert (system + user).count("tenant-a prefers Python") == 1
+    assert ("tenant-a prefers Python" in user) == (mode == "query")
+    assert ("tenant-a is building an agent" in system) == (mode != "query")
+    assert "tenant-a source passage" not in system + user
+    assert state == {"legacy_user_value": {"keep": True}, "profile_block": system}
     await provider.after_run(agent=None, session=None, context=context, state=state)
     expected = {"profile"} if mode == "profile" else {"search"}
     if mode == "full":
@@ -176,12 +183,30 @@ async def test_provider_and_middleware_retrieval_modes(memory_api, mode):
     next_call = AsyncMock()
     await middleware.process(chat, next_call)
     next_call.assert_awaited_once()
-    text = chat.messages[0].text
-    assert "Be helpful" in text
-    assert "tenant-a prefers Python" in text
-    assert text.count("tenant-a prefers Python") == 1
-    assert "Custom entity context" in text
+    system = chat.messages[0].text
+    user = chat.messages[1].text
+    assert system.startswith("Be helpful\n")
+    assert "Custom entity context" in system
+    assert user.startswith("preferences")
+    assert (system + user).count("tenant-a prefers Python") == 1
+    assert ("tenant-a prefers Python" in user) == (mode == "query")
     assert {path.rsplit("/", 1)[1] for _, path, _ in memory_api.requests} == expected
+
+
+async def test_every_request_sends_attribution_headers(memory_api):
+    connection = AgentSupermemory(api_key="test", container_tag="tenant-a")
+    provider = SupermemoryContextProvider(connection, store_conversations=True)
+    context = SessionContext(input_messages=[Message("user", ["preferences"])])
+    await provider.before_run(agent=None, session=None, context=context, state={})
+    await provider.after_run(agent=None, session=None, context=context, state={})
+    await provider.wait_for_background_tasks()
+    await SupermemoryTools(connection).add_memory("A fact")
+
+    paths = {path.rsplit("/", 1)[1] for _, path, _ in memory_api.requests}
+    assert paths == {"profile", "search", "document"}
+    for headers in memory_api.headers:
+        assert headers["x-sm-source"] == "agent-framework-python"
+        assert headers["x-sm-plugin-version"] == version("supermemory-agent-framework")
 
 
 async def test_tool_formats_and_append_mapping(memory_api):
@@ -255,6 +280,7 @@ async def test_failure_policy_with_sdk_errors(memory_api, failure):
     context = SessionContext(input_messages=[Message("user", ["preferences"])])
     await provider.before_run(agent=None, session=None, context=context, state={})
     assert not context.instructions
+    assert context.input_messages[-1].text == "preferences"
     await provider.after_run(agent=None, session=None, context=context, state={})
 
     middleware = SupermemoryChatMiddleware(
@@ -262,17 +288,14 @@ async def test_failure_policy_with_sdk_errors(memory_api, failure):
     )
     chat = ChatContext(
         client=BaseChatClient,
-        messages=[
-            Message("system", ["Be helpful\n" + wrap_memory_injection("Stale memory")]),
-            Message("user", ["preferences"]),
-        ],
+        messages=[Message("system", ["Be helpful"]), Message("user", ["preferences"])],
         options={},
     )
     next_call = AsyncMock()
     await middleware.process(chat, next_call)
     await middleware.wait_for_background_tasks()
     next_call.assert_awaited_once()
-    assert chat.messages[0].text == "Be helpful"
+    assert [message.text for message in chat.messages] == ["Be helpful", "preferences"]
     error_type = (
         SupermemoryNetworkError
         if failure == "network"
@@ -319,7 +342,9 @@ async def test_empty_and_missing_query_do_not_inject_stale_memories(memory_api):
     next_call = AsyncMock()
     await middleware.process(chat, next_call)
     next_call.assert_awaited_once()
-    assert not chat.messages
+    assert [message.text for message in chat.messages] == [
+        wrap_memory_injection("Stale memory")
+    ]
     assert not memory_api.requests
 
 
@@ -413,20 +438,27 @@ async def test_real_framework_pipeline_and_tenant_isolation(memory_api):
         start = len(memory_api.requests)
         response = await agent.run("My preferences?", session=session)
         await middleware.wait_for_background_tasks()
+        await provider.wait_for_background_tasks()
         assert response.text == "Remembered"
         assert len(model.calls) == 2
-        assert session.state["supermemory"] == old_state["state"]["supermemory"]
+        expected_state = {
+            **old_state["state"]["supermemory"],
+            "profile_block": session.state["supermemory"]["profile_block"],
+        }
+        assert f"{tenant} prefers Python" in expected_state["profile_block"]
+        assert session.state["supermemory"] == expected_state
         assert (
             AgentSession.from_dict(session.to_dict()).state["supermemory"]
-            == old_state["state"]["supermemory"]
+            == expected_state
         )
         for messages, options in model.calls:
             text = "\n".join(message.text for message in messages)
-            assert f"{tenant} prefers Python" in text
-            assert f"{tenant} prefers Python" in options["instructions"]
+            instructions = options["instructions"]
+            assert instructions.startswith("Be helpful\n")
+            assert instructions.count(f"{tenant} prefers Python") == 1
+            assert f"{tenant} prefers Python" not in text
             other_tenant = "tenant-b" if tenant == "tenant-a" else "tenant-a"
-            assert other_tenant not in text
-            assert other_tenant not in options["instructions"]
+            assert other_tenant not in text + instructions
         tool_results = [
             json.loads(content.result)
             for message in model.calls[-1][0]
@@ -441,7 +473,12 @@ async def test_real_framework_pipeline_and_tenant_isolation(memory_api):
         assert all(body["id"] == "conversation_existing" for body in writes)
         assert any(body["content"] == "An explicit new fact" for body in writes)
         assert any("Assistant: Remembered" in body["content"] for body in writes)
-        assert any(body["content"] == "User: My preferences?" for body in writes)
+        turn_writes = [
+            body for body in writes if "User: My preferences?" in body["content"]
+        ]
+        assert turn_writes
+        assert all("Assistant: Remembered" in body["content"] for body in turn_writes)
+        assert all("Be helpful" not in body["content"] for body in turn_writes)
 
 
 @pytest.mark.parametrize("failure", [503, "network", "timeout"])
@@ -462,6 +499,7 @@ async def test_real_framework_pipeline_continues_on_memory_failure(memory_api, f
     )
     response = await agent.run("My preferences?", session=AgentSession())
     await middleware.wait_for_background_tasks()
+    await provider.wait_for_background_tasks()
     assert response.text == "Remembered"
     assert len(model.calls) == 2
     for messages, options in model.calls:
@@ -477,3 +515,50 @@ async def test_real_framework_pipeline_continues_on_memory_failure(memory_api, f
     ]
     assert len(results) == 3
     assert all(result["success"] is False and result["error"] for result in results)
+
+
+class StreamingChatClient(SmokeChatClientBase):
+    def _inner_get_response(self, *, messages, stream, options, **kwargs):
+        assert stream
+
+        async def _updates():
+            yield ChatResponseUpdate(
+                role="assistant", contents=[Content.from_text("Remembered")]
+            )
+            yield ChatResponseUpdate(role="assistant", finish_reason="stop")
+
+        return self._build_response_stream(_updates())
+
+
+@pytest.mark.parametrize("kind", ["provider", "middleware"])
+@pytest.mark.parametrize("stop_at_final_chunk", [True, False])
+async def test_streamed_turn_is_saved_once_when_the_caller_stops_at_the_final_chunk(
+    memory_api, kind, stop_at_final_chunk
+):
+    connection = AgentSupermemory(
+        api_key="test", container_tag="tenant-a", conversation_id="stream"
+    )
+    if kind == "provider":
+        extension = SupermemoryContextProvider(connection, store_conversations=True)
+        wiring = {"context_providers": [extension]}
+    else:
+        extension = SupermemoryChatMiddleware(
+            connection, SupermemoryMiddlewareOptions(mode="full", add_memory="always")
+        )
+        wiring = {"middleware": [extension]}
+    agent = StreamingChatClient().as_agent(
+        name="MemoryAgent", instructions="Be helpful", **wiring
+    )
+    stream = agent.run("My preferences?", session=AgentSession(), stream=True)
+    received = 0
+    async for _ in stream:
+        received += 1
+        if stop_at_final_chunk and received == 2:
+            break
+    await extension.wait_for_background_tasks()
+
+    writes = [
+        body for _, path, body in memory_api.requests if path.endswith("/document")
+    ]
+    assert len(writes) == 1
+    assert writes[0]["content"] == "User: My preferences?\n\nAssistant: Remembered"
