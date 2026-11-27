@@ -167,7 +167,7 @@ Memory is scoped with **projects** (container tags) so you can separate work and
 
 ### Supported clients
 
-**Claude Desktop** · **Cursor** · **Windsurf** · **VS Code** · **Claude Code** · **OpenCode** · **OpenClaw** · **Hermes**
+**Claude Desktop** · **Cursor** · **Windsurf** · **VS Code** · **Claude Code** · **OpenCode** · **OpenClaw** · **Hermes** · **Atomic Agent**
 
 The MCP server is open source — [view the source](https://supermemory.ai/docs/supermemory-mcp/mcp).
 
