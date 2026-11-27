@@ -54,7 +54,7 @@ export const v5Router =
 		search?: () => unknown
 		document?: () => unknown
 	}) =>
-	async (input: unknown): Promise<Response> => {
+	async (input: unknown, _init?: RequestInit): Promise<Response> => {
 		const path = requestPath(input)
 		if (path.endsWith("/profile"))
 			return jsonResponse(routes.profile?.() ?? profileBody())
