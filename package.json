@@ -85,12 +85,12 @@
     "@modelcontextprotocol/client": "2.3.1",
     "@modelcontextprotocol/sdk": "1.32.1",
     "@modelcontextprotocol/server": "2.3.1",
-    "node-forge": "1.4.0",
+    "node-forge": "1.4.3",
     "postcss": "8.5.23",
     "protobufjs": "7.6.6",
     "sharp": "0.35.5",
     "socket.io-parser": "4.2.7",
-    "undici": "7.29.1",
+    "undici": "7.30.1",
     "ws": "8.21.3"
   },
   "workerd": {
