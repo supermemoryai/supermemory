@@ -2,6 +2,7 @@ import type { AuthInfo } from "@modelcontextprotocol/server"
 import { createMcpHandler } from "agents/mcp/server"
 import { Hono, type Context } from "hono"
 import { cors } from "hono/cors"
+import { etag } from "hono/etag"
 import {
 	isApiKey,
 	TransientAuthError,
@@ -76,6 +77,47 @@ function resourceMetadata(c: Context<{ Bindings: Bindings }>) {
 
 app.get("/.well-known/oauth-protected-resource", resourceMetadata)
 app.get(PROTECTED_RESOURCE_METADATA_PATH, resourceMetadata)
+
+app.get("/mcp/server-card", etag(), (c) => {
+	const card = {
+		$schema:
+			"https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
+		name: "ai.supermemory/memory",
+		version: "1.0.0",
+		title: "Supermemory",
+		description:
+			"Save, search, and recall a user's memories and documents across AI conversations.",
+		websiteUrl: "https://supermemory.ai/docs/supermemory-mcp/mcp",
+		repository: {
+			url: "https://github.com/supermemoryai/supermemory",
+			source: "github",
+			subfolder: "apps/mcp",
+		},
+		icons: [
+			{
+				src: "https://supermemory.ai/icon-512.png",
+				mimeType: "image/png",
+				sizes: ["512x512"],
+			},
+			{
+				src: "https://supermemory.ai/favicon.svg",
+				mimeType: "image/svg+xml",
+				sizes: ["any"],
+			},
+		],
+		remotes: [
+			{
+				type: "streamable-http",
+				url: c.env.MCP_RESOURCE || DEFAULT_MCP_RESOURCE,
+			},
+		],
+	}
+
+	return c.body(JSON.stringify(card, null, 2), 200, {
+		"Content-Type": "application/mcp-server-card+json",
+		"Cache-Control": "public, max-age=3600",
+	})
+})
 
 app.get("/.well-known/openai-apps-challenge", (c) => {
 	return c.text(c.env.OPENAI_APPS_CHALLENGE || "")
