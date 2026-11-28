@@ -193,10 +193,6 @@ A Bun + Turbo monorepo. The `supermemory` SDKs on npm and PyPI are built in sepa
 | `packages/pipecat-sdk-python/` | `supermemory-pipecat`: Pipecat integration |
 | `packages/cartesia-sdk-python/` | `supermemory-cartesia`: Cartesia Line integration |
 | `packages/livekit-sdk-python/` | `supermemory-livekit` (not on PyPI yet): LiveKit Agents integration |
-| `packages/ui/` | Shared UI components |
-| `packages/lib/` | Shared utilities and logic |
-| `packages/hooks/` | Shared React hooks |
-| `packages/validation/` | Zod schemas and validation |
 | `packages/docs-test/` | Runs the code samples from the docs |
 | `skills/` | Older copy of the supermemory skill, still on the v3/v4 API. The current skill is [supermemoryai/skills](https://github.com/supermemoryai/skills) |
 
